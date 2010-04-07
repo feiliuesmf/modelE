@@ -1,5 +1,4 @@
 #include "rundeck_opts.h"
-
       subroutine obio_sinksettl(vrbos,kmax,errcon,i,j)
 
       USE obio_dim
@@ -8,10 +7,6 @@
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
      .                   ,rhs
-
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES,   only : dzo
-#endif
 
       implicit none
 
@@ -35,34 +30,44 @@
 
       !phyto sinking
       do nt = nnut+1,ntyp-nzoo
+        do k = 1,kmax
+        rhs(k,nnut+nt,16) = 0.
+        enddo
         do k = 1,kmax-1
          trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
-         P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
-         P_tend(k+1,nt) = P_tend(k+1,nt) + trnd/dzo(k+1)
+         P_tend(k  ,nt) = P_tend(k,  nt) - trnd/dp1d(k  )
+         P_tend(k+1,nt) = P_tend(k+1,nt) + trnd/dp1d(k+1)
 
-         rhs(k,nnut+nt,16)= - trnd/dzo(k)
+         rhs(k  ,nnut+nt,16) = rhs(k  ,nnut+nt,16) - trnd/dp1d(k  )
+         rhs(k+1,nnut+nt,16) = rhs(k+1,nnut+nt,16) + trnd/dp1d(k+1)
         enddo  ! k
 !let phytoplankton that reaches the bottom, disappear in the sediment
 !        k = kmax
 !        trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
-!        P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
-!        rhs(k,nnut+nt,16)= - trnd/dzo(k)
+!        P_tend(k,nt)   = P_tend(k,nt)   - trnd/dp1d(k)
+!        rhs(k,nnut+nt,16)= - trnd/dp1d(k)
       enddo ! n
 
       !detritus settling
       do nt = 1,ndet
+        do k=1,kmax
+        rhs(k,nnut+nchl+nzoo+nt,16) = 0.
+        enddo
         do k = 1,kmax-1
          trnd = det(k,nt)*wsdet(k,nt)
-         D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
-         D_tend(k+1,nt) = D_tend(k+1,nt) + trnd/dzo(k+1)
+         D_tend(k  ,nt) = D_tend(k  ,nt) - trnd/dp1d(k  )
+         D_tend(k+1,nt) = D_tend(k+1,nt) + trnd/dp1d(k+1)
 
-         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
+         rhs(k  ,nnut+nchl+nzoo+nt,16)= rhs(k  ,nnut+nchl+nzoo+nt,16) 
+     .                                - trnd/dp1d(k  )
+         rhs(k+1,nnut+nchl+nzoo+nt,16)= rhs(k+1,nnut+nchl+nzoo+nt,16) 
+     .                                + trnd/dp1d(k+1)
         enddo  ! k
 !let detritus that reaches the bottom, disappear in the sediment
 !        k = kmax
 !        trnd = det(k,nt)*wsdet(k,nt)
-!        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
-!        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
+!        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
+!        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
       enddo ! nt
 
 

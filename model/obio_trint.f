@@ -157,7 +157,7 @@
 #ifdef OBIO_ON_GARYocean
       function volumeIntegration(quantity)
       use ocean, only : dxypo, focean
-      use oceanres, only: dzo
+      use oceanres,  only: dzo
       real*8, intent(in) :: quantity(:,j_0h:,:,:)
       real*8 :: volumeIntegration(size(quantity,4))
       
@@ -216,7 +216,7 @@
       end function areaIntegration
 
       real*8 function sumDepthOfTopLayer()
-      use oceanres, only: dzo
+      use oceanres,  only: dzo
       use ocean, only : focean
       real*8 :: partialIntegration(j_0h:j_1h)
       
