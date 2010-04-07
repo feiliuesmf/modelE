@@ -348,9 +348,11 @@ C**** No need to save current value
       end if
       return
       end subroutine diagtcb
+#endif /* TRACERS_ON or TRACERS_OCEAN */
 
 #if !defined(CUBED_SPHERE) && !defined(CUBE_GRID) /* skip prt routines */
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       SUBROUTINE DIAGTCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
@@ -497,7 +499,7 @@ C****
   905 FORMAT (A38,2F9.2,1X,13I6)
   906 FORMAT ('0AREA (10^10 M^2)',F30.1,F9.1,1X,13I6)
       END SUBROUTINE DIAGTCP
-#endif
+#endif /* TRACERS_ON or TRACERS_OCEAN */
 
 #ifdef TRACERS_ON
       MODULE BDjlt
