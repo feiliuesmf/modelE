@@ -625,7 +625,7 @@ c------------------------------------------------------------------------------
       subroutine bio_inicond2D_g(filename,fldo,dateline)
 
 !read in a field at 1x1 resolution
-!convert to 4x5 grid
+!convert to atmospheric grid
 !convert to ocean grid 
 !this routine only for (i,j,monthly) arrays
 
@@ -735,7 +735,7 @@ c------------------------------------------------------------------------------
       subroutine bio_inicond2D(filename,fldo,dateline)
 
 !read in a field at 1x1 resolution
-!convert to 4x5 grid
+!convert to atmospheric grid
 !convert to ocean grid (using Shana's routine) 
 !this routine only for (i,j,monthly) arrays
 
@@ -765,6 +765,7 @@ c
       real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
       real fldo(i_0h:i_1h,j_0h:j_1h,kgrd)
       real fldo_glob(iio,jjo,kgrd)
+      real idl_n
 
       logical vrbos,dateline
 
@@ -813,7 +814,8 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
       enddo    ! j-loop
 
       !compute glb average and replace missing data
-      call HNTR80(igrd,jgrd,180.d0,60.d0,
+      if (dateline) idl_n=0.d0   !no of poits away from dateline
+      call HNTR80(igrd,jgrd,idl_n,60.d0,
      .             iia,jja,0.d0,DLATM,-9999.d0)
       call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
       enddo    ! k-loop
