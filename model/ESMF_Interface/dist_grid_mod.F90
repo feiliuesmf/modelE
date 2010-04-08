@@ -433,7 +433,8 @@
       allocate(ims(0:0), jms(0:npes_world-1))
       npes_used = npes_world
       if (present(npes_max)) npes_used = min(npes_max, npes_world)
-      jms = getLatitudeDistribution(jm, npes_used)
+      jms(0:npes_used-1) = getLatitudeDistribution(jm, npes_used)
+      if(npes_used<npes_world) jms(npes_used:npes_world-1) = 0
 
       ims(0) = im
       
@@ -591,7 +592,7 @@
             latsPerProcess(1) = jm - (jm/2)
             return
           case (3:)
-            npes_used = min(numProcesses, jm-2, npes_max)
+            npes_used = min(numProcesses, jm-2)
 
             ! 1st cut - round down
             latsPerProcess(0:numProcesses-1) = JM/npes_used  ! round down
