@@ -5,8 +5,8 @@ LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 !
 ! resolution-dependent:
-ERS=AR5_C90/ERS1_1993_MONTHLY.720x360.threshold-13_C90        ! ERS data
-DSRC=AR5_C90/Ginoux_2001_updated_hires_withVegMask_v2009_C90  ! preferred sources
+ERS=ERS1_1993_MONTHLY.720x360.threshold-13_C90        ! ERS data
+DSRC=Ginoux_2001_updated_hires_withVegMask_v2009_C90  ! preferred sources
                                               ! optimized use: prefDustSources=0
 ! alternative preferred dust source files:
 !  Ginoux_source_v2009_VegMask_144x90_C90   (optimized use: prefDustSources=1)
