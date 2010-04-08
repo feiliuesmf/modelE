@@ -49,6 +49,7 @@
       allocate(summ(ntrcr))
       summ = volumeIntegration(tracer)
 
+#ifdef TRACERS_GASEXCH_ocean
       !integrate flux
       ! using resize to force tracflx to act as 4D array with
       ! size 1 in the uninteresting directions to match
@@ -57,6 +58,9 @@
       sumFlux= areaIntegration(tracflx(:,:,1)*(1-oRSI))
 #else
       sumFlux= areaIntegration(tracflx(:,:,1)*(1-oice))
+#endif
+#else
+      sumFlux=0.   ! no surface flux
 #endif
       ironFlux= areaIntegration(atmFe(:,:,JMON))
       ironFlux= ironFlux*solFe*1.d-3/max(p1d(2),1.e-3)

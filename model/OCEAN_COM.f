@@ -11,7 +11,7 @@ C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
       Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO
-#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+#ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm
 #endif
       Use SparseCommunicator_mod
@@ -114,7 +114,7 @@ C**** ocean related parameters
 !@var OPBOT ocean bottom pressure (diagnostic only) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPBOT
 
-#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+#ifdef TRACERS_OCEAN
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
 ! for i/o, straits, GM ?
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: 
@@ -387,7 +387,7 @@ C****
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
-#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+#ifdef TRACERS_OCEAN
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       USE OCN_TRACER_COM, only : ntm
@@ -467,7 +467,7 @@ C****
       ALLOCATE( OLAT2D_DG  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OJ_BUDG  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OWTBUDG  (IM,J_0H:J_1H), STAT = IER)
-#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+#ifdef TRACERS_OCEAN
       ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)

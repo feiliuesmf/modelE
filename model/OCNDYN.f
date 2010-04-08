@@ -876,7 +876,7 @@ C****
      *      SXMO_glob, SYMO_glob, SZMO_glob,
      *      OGEOZ_glob, OGEOZ_SV_glob,
      *      S0M_glob, gather_ocean
-#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+#ifdef TRACERS_OCEAN
      *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, ntm
 #endif
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
@@ -945,7 +945,9 @@ C****
       call pack_data(ogrid, ihra,       ihra_glob)
       call pack_data(ogrid, gcmax,     gcmax_glob)
       call pack_data(ogrid, tracer,   tracer_glob)
+#ifdef TRACERS_GASEXCH_ocean
       call pack_data(ogrid, pp2tot_day,pp2tot_day_glob)
+#endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       call pack_data(ogrid, pCO2,      pCO2_glob)
@@ -962,8 +964,8 @@ C****
       write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      * 'R8 dim(im,jm,',LMO,',',NTM,'):
      * nstep0,avgq,gcmax,tirrq,ihra,tracer'
-      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
-     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
+c      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
+c     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
 #endif
 #endif
 
@@ -1015,8 +1017,10 @@ C****
       !that the model did
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+#ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRN2MODULE_HEADER
      . ,nstep,pp2tot_day_glob
+#endif
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
@@ -1095,8 +1099,10 @@ C****
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+#ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRN2HEADER
      . ,nstep0,pp2tot_day_glob
+#endif
       print*,'nstep0= ',nstep0
       i=itest
       j=jtest
@@ -1145,7 +1151,9 @@ C****
       call unpack_data(ogrid, ihra_glob,       ihra)
       call unpack_data(ogrid, gcmax_glob,     gcmax)
       call unpack_data(ogrid, tracer_glob,   tracer)
+#ifdef TRACERS_GASEXCH_ocean
       call unpack_data(ogrid, pp2tot_day_glob,pp2tot_day)
+#endif
 
       call ESMF_BCAST(ogrid,nstep0)
 
