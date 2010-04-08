@@ -985,9 +985,9 @@ c
       k=k+1
 c      IJL_SGMFL_vert = k
       sname_oijl(k) = 'sgmflx_z'
-      units_oijl(k) = 'kg/s'
+      units_oijl(k) = '10^-6 kg/m^2 s'
       lname_oijl(k) = 'GM/EDDY VERT. SALT FLUX'
-      scale_oijl(k) = 1./dts
+      scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
       k=k+1

@@ -529,13 +529,11 @@ c      IF(.not.QL(K))  GO TO 540
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
-C**** Gent-McWilliams fluxes (10^-2 kg/s*m)
+C**** Gent-McWilliams fluxes ([J or kg]/s or [J kg]/m2/s for vert)
 C****
       DO KK=0,2
         K=KK+IJL_GGMFL
-        DO L=1,lmo               !3
-c     L =1,13!KCMF(K)
-!          L=KCMFfull(K) ! anl
+        DO L=1,lmo 
           LNAME=LNAME_OIJL(K)
           UNITS=UNITS_OIJL(K)
           SELECT CASE (KK)
@@ -575,9 +573,7 @@ C**** Gent-McWilliams Salt Fluxes
 C****
       DO KK=0,2
         K=KK+IJL_SGMFL
-        DO L=1,lmo               !3
-c      L =KCMF(K)
-c          L=KCMFfull(K) ! anl
+        DO L=1,lmo
           LNAME=LNAME_OIJL(K)
           UNITS=UNITS_OIJL(K)
           SELECT CASE (KK)
@@ -599,7 +595,7 @@ c          L=KCMFfull(K) ! anl
             SNAME='gm_vt_sflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1) !*DXYPO(J))
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/(IDACC(1)*DXYPO(J))
               END DO
             END DO
           END SELECT
@@ -631,13 +627,24 @@ C****
             SNAME="oc_gm_nstflx"//trim(trname(n))//"_L"//LEVSTR(L)
           CASE (2)    !  Vertical fluxes
             LNAME="GM/EDDY VERT. FLUX "//trname(n)
-           if (to_per_mil(n).gt.0) THEN
-              UNITS=unit_string(ntrocn(n),'kg/s')
-            ELSE
-              UNITS=unit_string(ntrocn(n),' kg/kg/s')
-            END IF
+            UNITS=unit_string(ntrocn(n)-6,'kg/m^2 s')
             SNAME="gm_vt_tflx"//trim(trname(n))//"_L"//LEVSTR(L)
           END SELECT
+          if (KK.EQ.3) THEN     ! vert fluxes, scale/divide by area
+
+          DO J=1,JM
+            DO I=1,IMAXJ(J)
+              IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
+     *             THEN
+                if (TOIJL(I,J,L,TOIJL_CONC,N).gt.0) Q(I,J)=10.**
+     *                (6-ntrocn(n))*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/
+     *                (IDACC(1)*DTS*DXYPO(J))
+              ENDIF
+            END DO
+          END DO
+
+          ELSE
+          
           DO J=1,JM
             DO I=1,IMAXJ(J)
               IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
@@ -649,6 +656,7 @@ C****
             END DO
           END DO
 
+          END IF
           Q(2:IM,JM)=Q(1,JM)
           Q(2:IM,1)=Q(1,1)
           TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
@@ -751,14 +759,14 @@ C****
       do n=1,ntm
       DO L=1,lmo-1
         LNAME="VERT. DIFF. FLUX "//trname(n)
-        UNITS=unit_string(ntrocn(n),'kg/s')
+        UNITS=unit_string(ntrocn(n)-6,'kg/m^2 s')
         SNAME="wtfltr"//trim(trname(n))//"_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
           IF((OIJL(I,J,L+1,IJL_MO).gt.0).and.(TOIJL(I,J,L,TOIJL_CONC
-     *         ,N).gt.0)) Q(I,J)=1d6*10.**(-ntrocn(n))*TOIJL(I,J,L
-     *         ,TOIJL_wtfl,N)/(IDACC(1)*DTS)
+     *         ,N).gt.0)) Q(I,J)=10.**(6-ntrocn(n))*TOIJL(I,J,L
+     *         ,TOIJL_wtfl,N)/(IDACC(1)*DTS*DXYPO(J))
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
