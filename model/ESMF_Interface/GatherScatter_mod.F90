@@ -422,7 +422,7 @@ contains
     type (ESMF_AxisIndex), pointer :: axisIndex(:,:)
     integer :: rc
     
-    allocate(axisIndex(NPES_WORLD,3))
+    allocate(axisIndex(getNumProcesses(grid),3))
     call ESMF_GridGetAllAxisIndex(grid%esmf_grid, globalAI=axisIndex, &
          &     horzRelLoc=ESMF_CELL_CENTER, &
          &     vertRelLoc=ESMF_CELL_CELL, rc=rc)
