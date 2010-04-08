@@ -533,6 +533,7 @@ c temporarily empty.
      *     ,apress,uisurf,visurf
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
+      USE DOMAIN_DECOMP_1D, only : hasSouthPole, hasNorthPole
 #ifdef CUBE_GRID
       use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
@@ -591,7 +592,7 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
 
 C**** Start main loop
 C**** Replicate polar boxes
-      if (agrid%HAVE_NORTH_POLE) then
+      if (hasNorthPole(agrid)) then
         RSI(2:aIM,aJM)=RSI(1,aJM)
         MSI(2:aIM,aJM)=MSI(1,aJM)
         DMUA(2:aIM,aJM,2) = DMUA(1,aJM,2)
@@ -649,7 +650,7 @@ c needs evaluation      end if
           im1=i
         enddo
       enddo
-      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(grid_ICDYN)) THEN
         GAIRX(1:nx1,jmicdyn)=idmua(1,jmicdyn)*bydts
         GAIRY(1:nx1,jmicdyn)=idmva(1,jmicdyn)*bydts
       END IF
@@ -723,8 +724,8 @@ c-------------------------------------------------------------------
       CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
 
 c*** Calculate gradient on ice dyn. grid
-      if (grid_ICDYN%HAVE_NORTH_POLE) PGFU(1:IMICDYN,JMICDYN)=0
-      if (grid_ICDYN%HAVE_SOUTH_POLE) PGFU(1:IMICDYN, 1)=0  !RKF
+      if (hasNorthPole(grid_ICDYN)) PGFU(1:IMICDYN,JMICDYN)=0
+      if (hasSouthPole(grid_ICDYN)) PGFU(1:IMICDYN, 1)=0  !RKF
       DO J=iJ_0S,iJ_1S
         I=IMICDYN
         DO IP1=1,IMICDYN
@@ -782,7 +783,7 @@ C**** Update halo for HEFF
       END DO
       END DO
 c**** set north pole
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         do i=1,nx1
           AMASS(i,jmicdyn)= RHOI*HEFF(1,JMICDYN)
           COR  (i,jmicdyn)= AMASS(i,jmicdyn)
@@ -813,7 +814,7 @@ C**** Update halo for USI,UOSURF,VOSURF,PGFU
         enddo
       enddo
 c**** set north pole
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         do i=1,imicdyn
           GWATX(i,jmicdyn)=0.
           PGFUB(i,jmicdyn)=0.
@@ -906,12 +907,12 @@ C**** Rescale DMVI to be net momentum into ocean
       enddo
 
 C**** set south pole 
-      if (grid_ICDYN%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(grid_ICDYN)) then
         dmui(:,1)=0.
       endif
 
 C**** set north pole 
-      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(grid_ICDYN)) THEN
         USI(:,jmicdyn)=0.
         VSI(:,jmicdyn)=0.
         DMUINP=0.
@@ -944,7 +945,7 @@ c*** diagnostics
           ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + iRSI(I,J)
         END DO
       END DO
-      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(grid_ICDYN)) THEN
         ICIJ(1,JMICDYN,IJ_DMUI)=ICIJ(1,JMICDYN,IJ_DMUI)+DMUI(1,JMICDYN)
         ICIJ(1,JMICDYN,IJ_RSI) =ICIJ(1,JMICDYN,IJ_RSI) +iRSI(1,JMICDYN)
         ICIJ(1,JMICDYN,IJ_PICE)=ICIJ(1,JMICDYN,IJ_PICE)
@@ -967,7 +968,7 @@ C**** UI2rho = | tau |
           iUI2rho(i,j)= sqrt(dmu(i+1,j)**2 + dmv(i+1,j)**2) * bydts
         enddo
       enddo
-      IF(grid_ICDYN%HAVE_NORTH_POLE) iUI2rho(:,jmicdyn)=0.
+      IF(hasNorthPole(grid_ICDYN)) iUI2rho(:,jmicdyn)=0.
       call ll2csint_ij(grid_icdyn,ICE2CSint,iUI2rho,UI2rho)
       deallocate(iUI2rho)
       do j=aJ_0,aJ_1
@@ -1019,7 +1020,9 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       USE DOMAIN_DECOMP_1D, only : grid, GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN, 
+     &     hasNorthPole, hasSouthPole
+
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
       USE ICEDYN_COM, only : usidt,vsidt,ausi,avsi,rsix,rsiy,rsisave
 #ifdef TRACERS_WATER
@@ -1173,7 +1176,7 @@ C**** calculate mass fluxes for the ice advection
           IM1=I
         END DO
       END DO
-      IF (grid%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(grid)) THEN
         VSIDT(1:IM,JM)=0.
         USIDT(1:IM,JM)=AUSI(1,JM)*DTS
       END IF
@@ -2115,7 +2118,8 @@ C****
       use cs2ll_utils, only : ll2csint_lij
       use icedyn_com, only : ICE2CSint
 #else
-      USE DOMAIN_DECOMP_1D, only : band_pack
+      USE DOMAIN_DECOMP_1D, only : band_pack,
+     &     hasSouthPole, hasNorthPole
       use icedyn_com, only : pack_i2a
       use GEOM,only : cosu,sinu
 #endif
@@ -2171,7 +2175,7 @@ c*** B->A : 4 points averaging
          enddo
       enddo
 c*** Poles
-      if (aGRID%have_south_pole) then
+      if (hasSouthPole(agrid)) then
          uisurf(1,1) = 0. ; visurf(1,1) = 0.
          do i=1,IM
             uisurf(1,1) = uisurf(1,1)+(avsi(i,1)*sinu(i))*2./IM
@@ -2181,7 +2185,7 @@ c*** Poles
          visurf(:,1)=visurf(1,1)
       endif
       
-      if (aGRID%have_north_pole) then
+      if (hasNorthPole(agrid)) then
          uisurf(1,JM) = 0. ; visurf(1,JM) = 0.
          do i=1,IM
             uisurf(1,JM) = uisurf(1,JM)-(avsi(i,JM-1)*sinu(i))
