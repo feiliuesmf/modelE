@@ -74,7 +74,6 @@ c**** Extract domain decomposition info
       NS=0
       NSOLD=0                            ! strat
 
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          PUA(:,:,L) = 0.
@@ -110,22 +109,16 @@ C
 C**** INITIAL FORWARD STEP, QX = Q + .667*DT*F(Q)
       MRCH=0
 C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL CALC_PIJL(LM,P,PIJL)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL AFLUX (U,V,PIJL)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL ADVECM (P,PB,DTFS)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS,.true.)   ! strat
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 #ifdef NUDGE_ON
       CALL NUDGE (UX,VX,DTFS)
 #endif
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
@@ -133,18 +126,15 @@ C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL CALC_PIJL(LS1-1,PB,PIJL)
       CALL AFLUX (UX,VX,PIJL)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL ADVECM (P,PA,DT)
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DT)
 #endif
       CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT,.false.)   ! strat
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
 
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
@@ -154,13 +144,11 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL CALC_PIJL(LS1-1,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (PA,PB,DTLF)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DTLF)
 #endif
       CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF,.false.)   ! strat
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
@@ -172,16 +160,13 @@ C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
       MRCH=2
 C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
       CALL CALC_PIJL(LS1-1,PA,PIJL)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL AFLUX (UT,VT,PIJL)
       CALL ADVECM (PC,P,DTLF)
 #ifdef NUDGE_ON
       CALL NUDGE  (U,V,DTLF)
 #endif
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF,.false.)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
@@ -196,7 +181,6 @@ C**** ADVECT Q AND T
 CCC   TT(:,:,:) = T(:,:,:)
 CCC   TZT(:,:,:)= TZ(:,:,:)
 !$OMP  PARALLEL DO PRIVATE (L)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       DO L=1,LM
          TT(:,:,L)  = T(:,:,L)
          TZT(:,:,L) = TZ(:,:,L)
@@ -211,7 +195,6 @@ CCC   tz(:,:,:) = tmom(mz,:,:,:)
          TZ(:,:,L) = TMOM(MZ,:,:,L)
       ENDDO
 !$OMP  END PARALLEL DO
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
 CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
@@ -222,19 +205,16 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
 !$OMP END PARALLEL DO
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
 
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       call compute_mass_flux_diags(PHI, PU, PV, dt)
 
       CALL CALC_AMPK(LS1-1)
 c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       call isotropuv(u,v,COS_LIMIT)
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
       PC(:,:) = P(:,:)      ! LOAD P TO PC
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
@@ -242,12 +222,10 @@ c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
          ENDIF
-         if (am_i_root()) write(*,*) __LINE__,__FILE__
 C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 
       if (USE_UNR_DRAG==1) then
       CALL UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
@@ -258,7 +236,6 @@ C**** Restart after 8 steps due to divergence of solutions
       PUA = PUA * DTLF
       PVA = PVA * DTLF
       SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
-      if (am_i_root()) write(*,*) __LINE__,__FILE__
 
 c apply east-west filter to U and V once per physics timestep
       CALL FLTRUV(U,V,UT,VT)
