@@ -1,0 +1,16 @@
+!------- Needed for dry deposition ---------
+OLSON=chem_files/drydep.table
+DRYCOEFF=chem_files/drydep.coef
+VEGTYPEBIN=vegtype_C90from0.5x0.5deg
+LAI01BIN=lai01_C90from0.5x0.5deg
+LAI02BIN=lai02_C90from0.5x0.5deg
+LAI03BIN=lai03_C90from0.5x0.5deg
+LAI04BIN=lai04_C90from0.5x0.5deg
+LAI05BIN=lai05_C90from0.5x0.5deg
+LAI06BIN=lai06_C90from0.5x0.5deg
+LAI07BIN=lai07_C90from0.5x0.5deg
+LAI08BIN=lai08_C90from0.5x0.5deg
+LAI09BIN=lai09_C90from0.5x0.5deg
+LAI10BIN=lai10_C90from0.5x0.5deg
+LAI11BIN=lai11_C90from0.5x0.5deg
+LAI12BIN=lai12_C90from0.5x0.5deg
