@@ -379,6 +379,7 @@
       integer :: npes_used
       integer, dimension(:), allocatable :: pelist
       integer :: group_world,group_used,ierr
+      integer :: newCommunicator
 
       logical :: useCubedSphere
 
@@ -489,7 +490,6 @@
 #ifdef USE_MPI
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
-      call setMpiCommunicator(grd_dum, MPI_COMM_WORLD)
       grd_dum%private%numProcesses = npes_used
       grd_dum%private%mpi_tag = 10  ! initial value
 
@@ -504,9 +504,9 @@
       enddo
       call mpi_group_incl(group_world,npes_used,pelist,group_used,ierr)
       deallocate(pelist)
-      call mpi_comm_create(MPI_COMM_WORLD,group_used, &
-    &     getMpiCommunicator(grd_dum),ierr)
-      if(.not. grd_dum%HAVE_DOMAIN) call setMpiCommunicator(grd_dum, MPI_COMM_NULL)
+      call mpi_comm_create(MPI_COMM_WORLD,group_used, newCommunicator, ierr)
+      if(.not. grd_dum%HAVE_DOMAIN) newCommunicator = MPI_COMM_NULL
+      call setMpiCommunicator(grd_dum, newCommunicator)
 #else
       ! I guess we don't need HALO in SCM mode...
       !grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT - 1)
