@@ -298,6 +298,7 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
+      write(*,*) __LINE__,__FILE__
 
       call startTimer('Main Loop')
       DO WHILE (Itime.lt.ItimeE)
@@ -311,6 +312,7 @@ C****
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
+      write(*,*) __LINE__,__FILE__
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
@@ -327,6 +329,7 @@ C**** write restart information alternately onto 2 disk files
          KDISK=3-KDISK
          CALL TIMER (NOW,MELSE)
       END IF
+      write(*,*) __LINE__,__FILE__
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -352,6 +355,7 @@ C**** reset sub-daily diag files
           end if   !  beginning of acc.period
         END IF     !  beginning of month
       END IF       !  beginning of day
+      write(*,*) __LINE__,__FILE__
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
@@ -360,14 +364,19 @@ C****
       if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
 
+      write(*,*) __LINE__,__FILE__
          IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
+      write(*,*) __LINE__,__FILE__
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
+      write(*,*) __LINE__,__FILE__
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
+      write(*,*) __LINE__,__FILE__
 
       PTOLD = P ! save for clouds
 C**** Initialize pressure for mass fluxes used by tracers and Q
       PS (:,:)   = P(:,:)
 
+      write(*,*) __LINE__,__FILE__
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
@@ -396,8 +405,11 @@ c     enddo
 #endif
       call startTimer('Atm. Dynamics')
 
+      write(*,*) __LINE__,__FILE__
 #ifndef USE_FVCORE
+      write(*,*) __LINE__,__FILE__
       CALL DYNAM()
+      write(*,*) __LINE__,__FILE__
 #else
 
       ! Using FV instead
@@ -416,6 +428,7 @@ c     enddo
 #endif
         endif
 #endif
+      write(*,*) __LINE__,__FILE__
 
 #if !defined( ADIABATIC ) || defined( CUBE_GRID)
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
@@ -431,6 +444,7 @@ C**** Currently energy is put in uniformly weighted by mass
        enddo
 #endif
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
+      write(*,*) __LINE__,__FILE__
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  PARALLEL DO PRIVATE (L)
@@ -453,6 +467,7 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (NOW,MTRACE)
 #endif
 #endif
+      write(*,*) __LINE__,__FILE__
 #ifdef USE_SYSUSAGE
          call sysusage(1,2)
 #endif
@@ -535,7 +550,9 @@ C**** Calculate non-interactive tracer surface sources and sinks
          CALL TIMER (NOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
+      write(*,*) __LINE__,__FILE__
       CALL SURFCE
+      write(*,*) __LINE__,__FILE__
       call stopTimer('Surface')
          CALL CHECKT ('SURFCE')
          CALL TIMER (NOW,MSURF)
@@ -630,6 +647,7 @@ C****
 #ifdef TRACERS_DUST
       call ahourly
 #endif
+      write(*,*) __LINE__,__FILE__
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -828,6 +846,7 @@ c$$$      call test_save(__LINE__, itime-1)
 C****
 C**** END OF MAIN LOOP
 C****
+      write(*,*) __LINE__,__FILE__
 
 #if !defined( ADIABATIC ) || defined( CUBE_GRID)
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING

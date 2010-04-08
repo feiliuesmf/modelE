@@ -539,7 +539,8 @@ c temporarily empty.
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
       use cs2ll_utils, only : ll2csint_ij
 #else
-      USE DOMAIN_DECOMP_1D, only : band_pack
+      USE DOMAIN_DECOMP_1D, only : band_pack,
+     &     hasSouthPole, hasNorthPole
       USE GEOM, only : cosip,sinip
       use icedyn_com, only : pack_a2i,pack_i2a
 #endif
