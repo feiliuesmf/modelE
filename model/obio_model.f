@@ -71,7 +71,7 @@
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime,itimei
-      USE GEOM,       only : LON_DG,LAT_DG
+      USE OCEAN,       only : oLON_DG,oLAT_DG
       USE CONSTANT,   only : grav
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
@@ -213,7 +213,7 @@
       if (AM_I_ROOT()) then
 #ifdef OBIO_ON_GARYocean
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
-     .      LAT_DG(jtest,2),LON_DG(itest,2)
+     .      oLAT_DG(jtest,2),oLON_DG(itest,2)
 #else
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
      .      latij_glob(itest,jtest,3),lonij_glob(itest,jtest,3)
@@ -253,7 +253,7 @@
 
 #ifdef OBIO_ON_GARYocean
       write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
-     .      itest,jtest,LON_DG(itest,1),LAT_DG(jtest,1)
+     .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
 #endif
 
       !print out tracer integrals just before main loop
@@ -273,8 +273,9 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-cdiag  write(*,'(a,3i5,2e12.4)')'obio_model, step,i,j=',nstep,i,j,
-cdiag.          lon_dg(i,1),lat_dg(j,1)
+cdiag  if (nstep.eq.1)
+cdiag. write(*,'(a,3i5,2e12.4)')'obio_model, step,i,j=',nstep,i,j,
+cdiag.          olon_dg(i,1),olat_dg(j,1)
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.

@@ -744,7 +744,7 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only : DLATM
+      USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h

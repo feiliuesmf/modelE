@@ -397,8 +397,7 @@ c       13 -- Mediterranean/Black Seas
 
       USE OCEANR_DIM, only : ogrid   
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      Use GEOM,       only : LON_DG,LAT_DG
-      Use OCEAN,      only : LMOM=>LMM, ZOE=>ZE
+      Use OCEAN,      only : LMOM=>LMM, ZOE=>ZE, oLON_DG,oLAT_DG
 
       USE obio_dim
       USE obio_incom, only: ir
@@ -441,8 +440,8 @@ c  Find nwater values corresponding to regions
        do 1000 j=1,jdm
        do 1000 i=1,idm
 
-        rlon=LON_DG(i,1)
-        rlat=LAT_DG(j,1)
+        rlon=oLON_DG(i,1)
+        rlat=oLAT_DG(j,1)
 
         if (rlon .gt. 180)rlon = rlon-360.0
 

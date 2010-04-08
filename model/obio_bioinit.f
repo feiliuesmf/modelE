@@ -694,7 +694,7 @@ c
 
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-      USE GEOM, only : DLATM
+      USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
       USE hycom_arrays_glob, only : dpinit
