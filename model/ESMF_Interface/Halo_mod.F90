@@ -143,14 +143,14 @@ contains
     call MPI_sendrecv(sBufS, numSendSouth, MPI_DOUBLE_PRECISION, &
          &     pe_south, tag, &
          &     rBufN, numRecvNorth, MPI_DOUBLE_PRECISION, pe_north, tag, &
-         &     MPI_COMM_WORLD, status, ier)
+         &     getMpiCommunicator(grid), status, ier)
 
     tag = 1 + mod(tag - 1, NUM_TAGS)
 
     call MPI_sendrecv(sBufN, numSendNorth, MPI_DOUBLE_PRECISION, &
          &     pe_north, tag, &
          &     rBufS, numRecvSouth, MPI_DOUBLE_PRECISION, pe_south, tag, &
-         &     MPI_COMM_WORLD, status, ier)
+         &     getMpiCommunicator(grid), status, ier)
 
   end subroutine halo_update_mask
 #endif
