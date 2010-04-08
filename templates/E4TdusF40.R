@@ -48,12 +48,12 @@ TRDUST_COM TRDUST                   ! dust tracer specific code
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"     /* without "Ent" */
+#include "E4_components"    /* without "Ent" */
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -82,7 +82,7 @@ E4TdusF40 (E4F40 with year 2000 atm., 1996-2005 clim ocn, dust tracers)
 #include "sdragF40_params"
 #include "gwdragF40_params"
 
-cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
+! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.74 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds

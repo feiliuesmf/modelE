@@ -84,12 +84,12 @@ lightning                           ! Colin Price lightning model
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"     /* without "Ent" */
+#include "E4_components"    /* without "Ent" */
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -126,7 +126,7 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 #include "gwdragF40_params"
 CDEF=1.5  ! overwrites value above
 
-cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
+! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.74 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds

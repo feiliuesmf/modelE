@@ -25,7 +25,7 @@ OSTRAITS_1QX1_COM                   ! dynamic ocean modules
 DIAG_RES_F                          ! diagnostics
 FFT144 OFFT288E                     ! Fast Fourier Transform
 
-     ! lat-lon grid specific source codes
+    ! lat-lon grid specific source codes
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
@@ -40,12 +40,12 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "dynamic_ocn_source_files"
 
 Components:
-#include "E4_components"     /* without "Ent" */
+#include "E4_components"    /* without "Ent" */
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -71,7 +71,7 @@ E4F40oQ32 (2x2.5x40, 1850 atm.;  1x1.25x32 ocean)
 #include "sdragF40_params"
 #include "gwdragF40_params"
 
-cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
+! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.73 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds

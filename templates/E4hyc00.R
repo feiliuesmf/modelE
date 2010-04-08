@@ -29,7 +29,7 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-     ! lat-lon grid specific source codes
+    ! lat-lon grid specific source codes
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
@@ -44,12 +44,12 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "hycom_source_files"
 
 Components:
-#include "E4_components"       /* without "Ent" */
+#include "E4_components"    /* without "Ent" */
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -75,7 +75,7 @@ E4hyc00 (2x2.5x40, 1850 atm.;  1x1x26 HYCOM ocean)
 #include "sdragF40_params"
 #include "gwdragF40_params"
 
-cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
+! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.73 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
