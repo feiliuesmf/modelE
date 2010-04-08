@@ -39,8 +39,12 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"
-#include "Ent_components"    /* with Component Options */
+#include "E4_components"      /* without "Ent" */
+Ent
+
+Component Options:
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
