@@ -684,6 +684,27 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 
+      K=IJL_KVG
+      DO L=1,lmo-1
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
+        SNAME="kvg_L"//LEVSTR(L)
+        Q=UNDEF
+        DO J=1,JM
+        DO I=1,IMAXJ(J)
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=OIJL(I,J,L,K)*
+     &         SCALE_OIJL(K)/IDACC(1)
+        END DO
+        END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
+        TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
+        TITLE(51:80)=XLB
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
+      END DO
+
       K=IJL_WGFL
       DO L=1,lmo-1
         LNAME=LNAME_OIJL(K)
@@ -729,7 +750,7 @@ C****
 #ifdef TRACERS_OCEAN
       do n=1,ntm
       DO L=1,lmo-1
-        LNAME="VERT. DIFF. "//trname(n)
+        LNAME="VERT. DIFF. FLUX "//trname(n)
         UNITS=unit_string(ntrocn(n),'kg/s')
         SNAME="wtfltr"//trim(trname(n))//"_L"//LEVSTR(L)
         Q=UNDEF

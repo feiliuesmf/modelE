@@ -922,7 +922,7 @@ c
       IJL_KVG = k
       sname_oijl(k) = 'kvg'
       units_oijl(k) = 'cm^2/s'
-      lname_oijl(k) = 'Vertical heat diffusivity'
+      lname_oijl(k) = 'VERT. HEAT DIFF.'
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
@@ -930,7 +930,7 @@ c
       IJL_WGFL = k
       sname_oijl(k) = 'wgfl'
       units_oijl(k) = 'W/m^2'
-      lname_oijl(k) = 'VERT. HEAT DIFF.'
+      lname_oijl(k) = 'VERT. HEAT DIFF. FLUX'
       scale_oijl(k) = 1d0/dts
       lgrid_oijl(k) = 2
 c
@@ -938,7 +938,7 @@ c
       IJL_WSFL = k
       sname_oijl(k) = 'wsfl'
       units_oijl(k) = '10^-6 kg/m^2'
-      lname_oijl(k) = 'VERT. SALT DIFF.'
+      lname_oijl(k) = 'VERT. SALT DIFF. FLUX'
       scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
