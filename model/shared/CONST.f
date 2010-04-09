@@ -176,6 +176,9 @@ c      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
 
 !@param radius radius of the earth (6371000 m, IUGG)
       real*8,parameter :: radius = 6371000.
+!@param areag surface area of the earth (m^2)
+      real*8,parameter :: areag = 4.*pi*radius*radius
+
 !@param grav gravitaional accelaration (9.80665 m/s^2)
 c**** SI reference gravity (at 45 deg) = 9.80665
       real*8,parameter :: grav = 9.80665d0

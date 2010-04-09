@@ -31,12 +31,10 @@ c
 !@cont GEOM_CS
 
       USE MODEL_COM, only : IM,JM
-      USE CONSTANT, only : radius,twopi
+      USE CONSTANT, only : radius,twopi,areag
       IMPLICIT NONE
       SAVE
 
-!@var AREAG global integral of area (m^2)
-      REAL*8 :: AREAG
 !@var  lat2d latitude of mid point of primary grid box (radians)
       REAL*8, ALLOCATABLE :: lat2d(:,:)
 !@var  lat2d_dg latitude of mid point of primary grid box (degrees)
@@ -153,8 +151,6 @@ c     &     i0h,i1h,i1,j0h,j1h,j0,j1
       allocate(byaxyp(i0h:i1h, j0h:j1h))
 
       allocate(imaxj(j0:j1))
-
-      AREAG = 2 * TWOPI * RADIUS*RADIUS
 
 c
 c calculate corner lons/lats, and areas integrated from the center

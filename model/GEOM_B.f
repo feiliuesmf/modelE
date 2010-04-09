@@ -4,7 +4,7 @@
 !@auth Original development team
 !@ver  1.0 (B grid version)
 !@cont GEOM_B
-      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
+      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian,AREAG
       USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
       IMPLICIT NONE
       PRIVATE
@@ -54,8 +54,6 @@ C**** some B-grid conservation quantities
       REAL*8, PUBLIC, DIMENSION(:,:), ALLOCATABLE ::
      &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,LON2D_DG,SINLAT2D,COSLAT2D
      &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
-!@var AREAG global integral of area (m^2)
-      REAL*8, PUBLIC :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
       REAL*8, PUBLIC, DIMENSION(JM,2,2) :: WTJ
 
@@ -231,7 +229,6 @@ C****
         sinlatv(j) = sin(latv(j))
         dxlatv(j) = radius*dlon*coslatv(j)
       enddo
-      AREAG = 2*TWOPI*RADIUS*RADIUS
       BYDYP(:) = 1.D0/DYP(:)
       RAVPS(1)  = 0.
       RAPVS(1)  = 0.

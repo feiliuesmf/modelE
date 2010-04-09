@@ -9,15 +9,13 @@
 !@cont GEOM_CS
 
       USE MODEL_COM, only : IM,JM
-      USE CONSTANT, only : radius
+      USE CONSTANT, only : radius, areag
       use FV_UTILS, only : abort_core
       use ESMF_Mod
 
       IMPLICIT NONE
       SAVE
 
-!@var AREAG global integral of area (m^2)
-      REAL*8 :: AREAG
 !@var  lat2d latitude of mid point of primary grid box (radians)
       REAL*8, ALLOCATABLE :: lat2d(:,:)
 !@var  lat2d_dg latitude of mid point of primary grid box (degrees)
@@ -105,8 +103,6 @@
       allocate(bydxyp(j0h:j1h))
 
       allocate(imaxj(j0:j1))
-
-      AREAG = 2 * TWOPI * RADIUS*RADIUS
 
       ! From FV CS grid
 c      lon2d = agrid(:,:,1)
