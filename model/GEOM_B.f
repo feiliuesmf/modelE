@@ -9,7 +9,7 @@
       IMPLICIT NONE
       PRIVATE
 
-      public :: GEOM_B
+      public :: GEOM_B, areag
       public :: lonlat_to_ij
       public :: lonlat_to_tile
       public :: lon_to_I
