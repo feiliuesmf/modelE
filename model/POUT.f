@@ -18,13 +18,10 @@ C**** have to wait.
 !@auth G. Schmidt
       use diag_com, only : sname_strlen,units_strlen,lname_strlen
       implicit none
-!@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
+!@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn,iu_jc !units for selected 
+!@+   diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
-     *     ,iu_ijl
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-!@var iu_jc unit for tracer conservation diagnostics
-      integer iu_jc
-#endif
+     *     ,iu_ijl,iu_jc
 !@var im,jm,lm,lm_req local dimensions set in open_* routines
       integer :: im,jm,lm,lm_req,ndiuvar
 !@var JMMAX maximum conceivable JM
@@ -748,7 +745,6 @@ C**** Try simply removing spaces for compactness
       return
       end subroutine POUT_hdiurn
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       subroutine close_jc
 !@sum  CLOSE_jc closes the conservation quantity ascii output file
 !@auth J. Lerner
@@ -785,7 +781,6 @@ C**** set dimensions
 
       subroutine POUT_jc(TITLE,SNAME,LNAME,UNITS,cnslat,KMAX)
 !@sum  POUT_JC output zonal conservation ascii file (aplot format)
-!@+    This was written for tracer, but probably works for all
 !@auth J. Lerner
 !@ver  1.0
       USE GISSOUT
@@ -829,5 +824,5 @@ C**** output hemispheric and global means
 
       return
       end subroutine pout_jc
-#endif
+
 
