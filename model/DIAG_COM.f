@@ -27,12 +27,10 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var LAT_BUDG latitudes of budget grid
 !@var DXYP_BUDG area array of budget grid
       REAL*8, DIMENSION(JM_BUDG), public :: LAT_BUDG,DXYP_BUDG
-
-c**** area of zig-zag bands on budget grid
-      REAL*8, ALLOCATABLE, DIMENSION(:), public :: axypband_loc,
-     &   axypband
-c**** area weight for zig-zag diagnostics on budget grid
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg,wtbudg2
+!@var local area array of budget grid (locally owned by 1 processor but has global size)
+      REAL*8, DIMENSION(JM_BUDG), public :: DXYP_BUDG_LOC
+!@var area weight for diagnostics on budget grid
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: WTBUDG,WTBUDG2
 
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=85
@@ -1548,8 +1546,8 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       USE GEOM, only : dxyp, lat_dg
 #endif
       use model_com, only : fim
-      USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,axypband,axypband_loc,
-     &     lat_budg,dxyp_budg
+      USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,
+     &     lat_budg,dxyp_budg,dxyp_budg_loc
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
@@ -1566,15 +1564,13 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
 
 #ifdef CUBE_GRID   /* temporary */
 c**** Compute area weights of zig-zag grid cells
-      allocate(axypband(JM_BUDG),axypband_loc(JM_BUDG))
-      call set_zzarea()
+      call set_budg_area()
       do J=J_0,J_1
          do I=I_0,I_1
-            wtbudg(I,J)=axyp(I,J)/axypband(J_BUDG(I,J))
+            wtbudg(I,J)=axyp(I,J)/dxyp_budg(J_BUDG(I,J))
             wtbudg2(I,J)=wtbudg(I,J)
          enddo
       enddo
-      dxyp_budg(:) = axypband(:)
 c get the nominal latitudes of the budget grid
       dlat_budg = 180./REAL(JM_budg)  ! for full polar box
       if(jm_budg.eq.46) dlat_budg=4. ! 1/2 box at pole for 4 deg res.
@@ -1733,12 +1729,12 @@ c temporary variant of inc_ajl without any weighting
       RETURN
       END SUBROUTINE INC_ASJL
 
-      subroutine set_zzarea()
-!@sum  pre-computes area of zig-zag bands accross processors. Several
-!@+    processors can contribute to same zig-zag band
+      subroutine set_budg_area()
+!@sum  pre-computes area of budget-grid band (zig-zag band on the cubed sphere)
+!@+    accross processors. Several processors can contribute to same band
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
-      use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
+      use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
       USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
@@ -1747,19 +1743,19 @@ c temporary variant of inc_ajl without any weighting
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
-      axypband_loc(:)=0.0
+      dxyp_budg_loc(:)=0.0
 
       do J=J_0,J_1
          do I=I_0,I_1
-            axypband_loc(J_BUDG(I,J))=axypband_loc(J_BUDG(I,J))
+            dxyp_budg_loc(J_BUDG(I,J))=dxyp_budg_loc(J_BUDG(I,J))
      &       +axyp(I,J)
          enddo
       enddo
 
       increment = .false.
-      call SUMXPE(axypband_loc,axypband,increment)   !summing global area
-      call esmf_bcast(grid,axypband)
-      end subroutine set_zzarea
+      call SUMXPE(dxyp_budg_loc,dxyp_budg,increment)   !summing global area
+      call esmf_bcast(grid,dxyp_budg)
+      end subroutine set_budg_area
 c*
 
 #ifdef NEW_IO
