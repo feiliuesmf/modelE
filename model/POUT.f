@@ -343,13 +343,13 @@ C**** Allow for the possibility of wrap-around arrays
 !@var JM_GCM dimensions for j output
       INTEGER, INTENT(IN) :: jm_gcm
 !@var lat_dg_gcm latitude of mid points of grid boxs (deg)
-      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM) :: lat_dg_gcm
 
       call openunit(filename,iu_j,.false.,.false.)
 
 C**** set dimensions
       jm=jm_gcm
-      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+      lat_dg(1:JM,1)=lat_dg_gcm(1:JM)
 
       return
       end subroutine open_j
@@ -772,13 +772,13 @@ C**** Try simply removing spaces for compactness
 !@var JM_GCM dimensions for j output
       INTEGER, INTENT(IN) :: jm_gcm
 !@var lat_dg_gcm latitude of mid points of grid boxs (deg)
-      REAL*8, INTENT(IN), DIMENSION(JM_GCM,2) :: lat_dg_gcm
+      REAL*8, INTENT(IN), DIMENSION(JM_GCM) :: lat_dg_gcm
 
       call openunit(filename,iu_jc,.false.,.false.)
 
 C**** set dimensions
       jm=jm_gcm
-      lat_dg(1:JM,:)=lat_dg_gcm(1:JM,:)
+      lat_dg(1:JM,1)=lat_dg_gcm(1:JM)
 
       return
       end subroutine open_jc
@@ -797,7 +797,7 @@ C**** set dimensions
       CHARACTER(len=sname_strlen), DIMENSION(kmax),INTENT(IN) :: SNAME
       CHARACTER(len=units_strlen), DIMENSION(kmax),INTENT(IN) :: UNITS
       REAL*8, DIMENSION(JM+3,kmax), INTENT(IN) :: cnslat
-      INTEGER K,N,J
+      INTEGER K,N,J,KK,K1,K2
 
 C**** Convert spaces in TITLE to underscore
       DO K=1,KMAX
@@ -807,21 +807,25 @@ C**** Convert spaces in TITLE to underscore
         end do
       END DO
 
-      WRITE(iu_jc,*) "Zonal conservation for tracers "
+      DO KK=1,KMAX/50+1   ! split into 50 parameter chunks
+      K1=1+(KK-1)*50
+      K2=MIN(KMAX,KK*50)
+      WRITE(iu_jc,*) "Zonal conservation diagnostics"
       WRITE(iu_jc,*) "Latitude"
       WRITE(iu_jc,*) "Zonal Average"
-      WRITE(iu_jc,'(A,100A)') "Lat",(TRIM(TITLE(K)(1:38)),K=1,KMAX)
+      WRITE(iu_jc,'(A,100A)') "Lat",(TRIM(TITLE(K)(1:38)),K=K1,K2)
 
       DO J=1,JM
-        WRITE(iu_jc,'(I4,50(1X,1pE11.4))') NINT(LAT_DG(J,1)),
-     *       (cnslat(J,K),K=1,KMAX)
+        WRITE(iu_jc,'(F6.1,50(1X,1pE11.4))') LAT_DG(J,1),
+     *       (cnslat(J,K),K=K1,K2)
       END DO
       WRITE(iu_jc,*)
 C**** output hemispheric and global means
-      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"NH",(cnslat(JM+2,K),K=1,KMAX)
-      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"SH",(cnslat(JM+1,K),K=1,KMAX)
-      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"GLOB",(cnslat(JM+3,K),K=1,KMAX)
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"NH",(cnslat(JM+2,K),K=K1,K2)
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"SH",(cnslat(JM+1,K),K=K1,K2)
+      WRITE(iu_jc,'(A4,50(1X,1pE11.4))')"GLOB",(cnslat(JM+3,K),K=K1,K2)
       WRITE(iu_jc,*)
+      END DO
 
       return
       end subroutine pout_jc

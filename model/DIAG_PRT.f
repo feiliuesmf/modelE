@@ -733,15 +733,15 @@ c     write(0,*) 'SCM no diags   print_diags'
       use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP_1D, only : GRID
-      USE MODEL_COM, only : im,jm,fim,
+      USE MODEL_COM, only : 
      &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid,ntype
-      USE GEOM, only : dxyp,lat_dg
       USE DIAG_COM, only : aj=>aj_out,areg=>areg_out,
      &     ntype_out,nreg,kaj,terrain,
      &     QDIAG,acc_period,kdiag,namreg,ia_j,iden_j,iden_reg,
      *     scale_j,stitle_j,lname_j,name_j,units_j,
      *     fmt_j,fmt_reg,sname_strlen,units_strlen,lname_strlen
+     &     ,jm=>jm_budg,dxyp_budg,lat_budg
       IMPLICIT NONE
       LOGICAL qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24
@@ -794,7 +794,7 @@ C**** Arrays needed for full output
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
-     *     ,ntype_out,jm,lat_dg)
+     *     ,ntype_out,jm,lat_budg)
 
       DAYS=(Itime-Itime0)/FLOAT(nday)
 C****
@@ -810,7 +810,7 @@ C****
 #if (defined COMPILER_PGI)
         write(6,*) "skipping some info due to PGI bugs :-("
 #else
-        write(6,fmt=fmt903) NINT(LAT_DG(JM:INC:-INC,1))
+        write(6,fmt=fmt903) NINT(LAT_BUDG(JM:INC:-INC))
 #endif
         WRITE (6,905)
         n_out = 0
@@ -818,14 +818,14 @@ C****
           if(trim(stitle_j(n)).eq.'no output') cycle
           n_out = n_out + 1
           FLAT(:)=AJ(:,N,M)*SCALE_J(N)/IDACC(IA_J(N))
-          HSUMJ(:)=FLAT(:)*DXYP(:)
+          HSUMJ(:)=FLAT(:)*DXYP_BUDG(:)
           IF(IDEN_J(N).GT.0) THEN
             HWTJ(:)=AJ(:,IDEN_J(N),M)/IDACC(IA_J(IDEN_J(N)))
           ELSE
             HWTJ(:)=1d0
           ENDIF
           FLAT(:)=FLAT(:)/(HWTJ(:)+teeny)
-          HWTJ(:)=HWTJ(:)*DXYP(:)
+          HWTJ(:)=HWTJ(:)*DXYP_BUDG(:)
           DO J=1,JM
             MLAT(J)=NINTlimit(FLAT(J) )
           END DO
@@ -854,7 +854,7 @@ C**** Save BUDG for full output
 #if (defined COMPILER_PGI)
         write(6,*) "skipping some info due to PGI bugs :-("
 #else
-        write(6,fmt=(fmt903)) NINT(LAT_DG(JM:INC:-INC,1))
+        write(6,fmt=(fmt903)) NINT(LAT_BUDG(JM:INC:-INC))
 #endif
         WRITE (6,905)
         IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,n_out,
@@ -4385,13 +4385,15 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 !@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
-     &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
+     &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
       USE GEOM, only :
-     &     areag,dxyp,LAT_DG,WTJ
-      USE DIAG_COM, only :
+     &     areag,WTJ
+      USE DIAG_COM, only :  qdiag,acc_period,
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
-     *     inc=>incj,xwon,ia_inst
+     *     inc=>incj,xwon,ia_inst,name_consrv,lname_consrv,
+     *     units_consrv,sname_strlen,units_strlen,lname_strlen
+     &     ,jm=>jm_budg,dxyp_budg,lat_budg
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM,KCMX) :: CSJ
@@ -4405,7 +4407,13 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 
       INTEGER :: j,jhemi,jnh,jp1,jpm,jv1,jvm,jx,n,n1
       REAL*8 :: aglob,ahem,days
+C**** Arrays needed for full output and pdE
+      CHARACTER*38, DIMENSION(KCON) :: TITLEO
 
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      IF (QDIAG)
+     *     call open_jc(trim(acc_period)//'.jc'//XLABEL(1:LRUNID),
+     *     jm,lat_budg)
 
 C**** CALCULATE SCALING FACTORS
       IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
@@ -4429,7 +4437,7 @@ C**** CALCULATE ALL CONSERVED QUANTITIES ON TRACER GRID
             CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
      &                           (IDACC(IA_CON(N))+1d-20)
             CNSLAT(J,N) = CSJ(J,N)
-            CSJ(J,N)    = CSJ(J,N)*DXYP(J)*FIM
+            CSJ(J,N)    = CSJ(J,N)*DXYP_BUDG(J)
          END DO
       END DO
       CALL GLOBALSUM(GRID, CSJ(:,N1:KCMX),
@@ -4449,6 +4457,7 @@ C**** LOOP OVER HEMISPHERES
         CNSLAT(JM+1,N)=FHEM(1,N)
         CNSLAT(JM+2,N)=FHEM(2,N)
         CNSLAT(JM+3,N)=FGLOB(N)
+          titleo(n)=title_con(n)
       END DO
       DO JHEMI=2,1,-1
         WRITE (6,901) XLABEL
@@ -4459,14 +4468,14 @@ C**** LOOP OVER HEMISPHERES
 
 C**** WRITE TABLES
         DO J=JP1,JPM
-          MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
+          MAREA(J)=1.D-10*XWON*DXYP_BUDG(J)+.5
         END DO
         DO N=1,KCMX
           IF(N.EQ.1 .OR. N.EQ.26) THEN ! AM/KE get their own section
             WRITE(6,907)
             WRITE(6,903) (DASH,J=JP1,JPM,INC)
             WRITE(6,904) HEMIS(JHEMI),
-     &           (NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
+     &           (NINT(LAT_BUDG(JX)),JX=JPM,JP1,-INC)
             WRITE(6,903) (DASH,J=JP1,JPM,INC)
           ENDIF
           WRITE (6,905) TITLE_CON(N),FGLOB(N),FHEM(JHEMI,N),
@@ -4477,6 +4486,10 @@ C**** WRITE TABLES
         END DO
 
       END DO
+      IF (QDIAG) CALL POUT_JC(titleo,name_consrv,lname_consrv,
+     *     units_consrv,cnslat,kcmx)
+
+      if(qdiag) call close_JC
       RETURN
 C****
   901 FORMAT ('1',A)

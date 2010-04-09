@@ -362,9 +362,9 @@ C**** No need to save current value
 
       USE CONSTANT, only: teeny, twopi
       USE MODEL_COM, only:
-     &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
-      USE GEOM, only: areag,dxyp,lat_dg
+      USE GEOM, only: areag 
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
@@ -372,6 +372,7 @@ C**** No need to save current value
      &     natmtrcons,nocntrcons 
       USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
+     &     ,jm=>jm_budg,dxyp_budg,lat_budg
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -396,14 +397,14 @@ C**** CALCULATE SCALING FACTORS
       IF (IDACC(12).LT.1) IDACC(12)=1
 C**** Calculate areas
       DO J=1,JM
-        MAREA(J)=1.D-10*XWON*FIM*DXYP(J)+.5
+        MAREA(J)=1.D-10*XWON*DXYP_BUDG(J)+.5
       END DO
       AGLOB=1.D-10*AREAG*XWON
       AHEM=1.D-10*(.5*AREAG)*XWON
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)
-     *     call open_jc(trim(acc_period)//'.jc'//XLABEL(1:LRUNID),
-     *     jm,lat_dg)
+     *     call open_jc(trim(acc_period)//'.jct'//XLABEL(1:LRUNID),
+     *     jm,lat_budg)
 C****
 C**** Outer loop over tracers
 C****
@@ -423,6 +424,7 @@ C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
           END IF
         END DO
       END DO
+
 C**** CALCULATE ALL OTHER CONSERVED QUANTITIES ON TRACER GRID
       DO K=1,KTCON_max
         FGLOB(K)=0.
@@ -442,8 +444,8 @@ c     J-loop usage N-Hemi vs S-Hemi
           FGLOB (K)=FGLOB (K)+(FSH+FNH)
           FHEM(1,K)=FHEM(1,K)+FSH
           FHEM(2,K)=FHEM(2,K)+FNH
-          CNSLAT(JSH,K)=FSH/(FIM*DXYP(JSH))
-          CNSLAT(JNH,K)=FNH/(FIM*DXYP(JNH))
+          CNSLAT(JSH,K)=FSH/(DXYP_BUDG(JSH))
+          CNSLAT(JNH,K)=FNH/(DXYP_BUDG(JNH))
         END DO
         FGLOB (K)=FGLOB (K)/AREAG
         FHEM(1,K)=FHEM(1,K)/(.5*AREAG)
@@ -474,7 +476,7 @@ C**** LOOP OVER HEMISPHERES
         JPM=JHEMI*(JEQ-1)
 C**** PRODUCE TABLES
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
-        WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_DG(JX,1)),JX=JPM,JP1,-INC)
+        WRITE (6,904) HEMIS(JHEMI),(NINT(LAT_BUDG(JX)),JX=JPM,JP1,-INC)
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         DO K=1,KTCON_max
         WRITE (6,905) TITLE_TCON(K,N),FGLOB(K),FHEM(JHEMI,K),

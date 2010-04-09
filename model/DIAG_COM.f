@@ -27,6 +27,7 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var LAT_BUDG latitudes of budget grid
 !@var DXYP_BUDG area array of budget grid
       REAL*8, DIMENSION(JM_BUDG), public :: LAT_BUDG,DXYP_BUDG
+
 !@var local area array of budget grid (locally owned by 1 processor but has global size)
       REAL*8, DIMENSION(JM_BUDG), public :: DXYP_BUDG_LOC
 !@var area weight for diagnostics on budget grid
@@ -1537,71 +1538,18 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       return
       end SUBROUTINE aPERIOD
 
-
-      subroutine set_wtbudg()
-!@sum Precomputes area weights for zonal means on budget grid
-!auth Denis Gueyffier
-      USE GEOM, only : j_budg, axyp, imaxj
-#ifndef CUBE_GRID   /* temporary */
-      USE GEOM, only : dxyp, lat_dg
-#endif
-      use model_com, only : fim
-      USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,
-     &     lat_budg,dxyp_budg,dxyp_budg_loc
-      USE DOMAIN_DECOMP_ATM, only :GRID,GET
-      IMPLICIT NONE
-      INTEGER :: I,J,J_0,J_1,I_0,I_1
-      INTEGER :: IER
-#ifdef CUBE_GRID   /* temporary */
-      real*8 :: dlat_budg,fjeq_budg
-#endif
-
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
-      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
-
-      ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
-      ALLOCATE( wtbudg2(I_0:I_1, J_0:J_1), STAT = IER)
-
-#ifdef CUBE_GRID   /* temporary */
-c**** Compute area weights of zig-zag grid cells
-      call set_budg_area()
-      do J=J_0,J_1
-         do I=I_0,I_1
-            wtbudg(I,J)=axyp(I,J)/dxyp_budg(J_BUDG(I,J))
-            wtbudg2(I,J)=wtbudg(I,J)
-         enddo
-      enddo
-c get the nominal latitudes of the budget grid
-      dlat_budg = 180./REAL(JM_budg)  ! for full polar box
-      if(jm_budg.eq.46) dlat_budg=4. ! 1/2 box at pole for 4 deg res.
-      if(jm_budg.eq.24) dlat_budg=8. ! 1/4 box at pole for 8 deg res.
-      lat_budg(1) = -90.; lat_budg(jm_budg) = +90.;
-      fjeq_budg = .5*(1+jm_budg)
-      do j=2,jm_budg-1
-        lat_budg(j) = dlat_budg*(j-fjeq_budg)
-      enddo
-#else
-      lat_budg(:) = lat_dg(:,1)
-      dxyp_budg(:) = fim*dxyp(:)
-      do J=J_0,J_1
-        wtbudg(:,j)=1d0/imaxj(j)
-        wtbudg2(:,j)=1d0/fim
-      enddo
-#endif
-
-      RETURN
-      END SUBROUTINE set_wtbudg
+C**** Routines associated with the budget grid
 
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
-      USE GEOM, only : j_budg,j_0b,j_1b, lat2d_dg
+      USE GEOM, only : j_budg,j_0b,j_1b,lat2d_dg
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
-      INTEGER :: IER,KK,LL
+      INTEGER :: IER
 
 C**** define atmospheric grid
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1, J_STRT_HALO=J_0H,
@@ -1611,22 +1559,96 @@ C**** define atmospheric grid
 
       ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER)
 
-      DO J=J_0H,J_1H
+C**** Define mapping from actual lon/lat point to budget grid
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
+      DO J=J_0H,J_1H
         DO I=I_0,I_1
            J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
         END DO
       END DO
 
-
+C**** define limits on budget indices for each processor
       j_0b=MINVAL( J_BUDG(I_0:I_1,J_0:J_1) )
       j_1b=MAXVAL( J_BUDG(I_0:I_1,J_0:J_1) )
 
-c      write(*,*) "j_0b - j_0", j_0b - j_0
-c      write(*,*) "j_1b - j_1", j_1b - j_1
-
       RETURN
       END SUBROUTINE SET_J_BUDG
+
+      subroutine set_wtbudg()
+!@sum Precomputes area weights for zonal means on budget grid
+!auth Denis Gueyffier
+      USE GEOM, only : j_budg, axyp, imaxj
+      USE MODEL_COM, only : fim
+      USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,lat_budg,dxyp_budg
+      USE DOMAIN_DECOMP_ATM, only :GRID,GET
+      IMPLICIT NONE
+      INTEGER :: I,J,J_0,J_1,I_0,I_1
+      INTEGER :: IER
+      real*8 :: dlat_budg,fjeq_budg
+
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
+
+      ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
+      ALLOCATE( wtbudg2(I_0:I_1, J_0:J_1), STAT = IER)
+
+C**** get the nominal latitudes of the budget grid
+      dlat_budg = 180./REAL(JM_budg)  ! for full polar box
+      if(jm_budg.eq.46) dlat_budg=4. ! 1/2 box at pole for 4 deg res.
+      if(jm_budg.eq.24) dlat_budg=8. ! 1/4 box at pole for 8 deg res.
+      lat_budg(1) = -90.; lat_budg(jm_budg) = +90.;
+      fjeq_budg = .5*(1+jm_budg)
+      do j=2,jm_budg-1
+        lat_budg(j) = dlat_budg*(j-fjeq_budg)
+      enddo
+
+      call set_budg_area()
+
+C**** Compute area weights of zonal bands, including adjustment for polar 
+C**** box in lat/lon case.
+      do J=J_0,J_1
+         do I=I_0,I_1
+            wtbudg2(I,J) = axyp(I,J)/dxyp_budg(J_BUDG(I,J))
+#ifdef CUBE_GRID
+            wtbudg (I,J) = wtbudg2(I,J)
+#else
+            wtbudg (I,J) = wtbudg2(I,J)*fim/real(imaxj(j),kind=8)
+#endif
+         enddo
+      enddo
+
+      RETURN
+      END SUBROUTINE set_wtbudg
+
+      subroutine set_budg_area()
+!@sum  pre-computes area of budget-grid band (zig-zag band on the cubed sphere)
+!@+    accross processors. Several processors can contribute to same band
+!@auth Denis Gueyffier
+      use GEOM, only: J_BUDG,axyp
+      use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
+      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
+      IMPLICIT NONE
+      INTEGER :: I,J,J_0,J_1,I_0,I_1
+      logical :: increment
+
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
+
+      dxyp_budg_loc(:)=0.0
+
+      do J=J_0,J_1
+         do I=I_0,I_1
+            dxyp_budg_loc(J_BUDG(I,J))=dxyp_budg_loc(J_BUDG(I,J))
+     &       +axyp(I,J)
+         enddo
+      enddo
+
+      increment = .false.
+      call SUMXPE(dxyp_budg_loc,dxyp_budg,increment)   !summing global area
+      call esmf_bcast(grid,dxyp_budg)
+
+      return
+      end subroutine set_budg_area
 
       SUBROUTINE INC_AJ(I,J,ITYPE,J_DIAG,ACC)
 !@sum inc_aj grid dependent incrementer for zonal mean budget diags
@@ -1728,35 +1750,6 @@ c temporary variant of inc_ajl without any weighting
 
       RETURN
       END SUBROUTINE INC_ASJL
-
-      subroutine set_budg_area()
-!@sum  pre-computes area of budget-grid band (zig-zag band on the cubed sphere)
-!@+    accross processors. Several processors can contribute to same band
-!@auth Denis Gueyffier
-      use GEOM, only: J_BUDG,axyp
-      use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
-      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
-      IMPLICIT NONE
-      INTEGER :: I,J,J_0,J_1,I_0,I_1
-      logical :: increment
-
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
-      I_0 = grid%I_STRT ; I_1 = grid%I_STOP
-
-      dxyp_budg_loc(:)=0.0
-
-      do J=J_0,J_1
-         do I=I_0,I_1
-            dxyp_budg_loc(J_BUDG(I,J))=dxyp_budg_loc(J_BUDG(I,J))
-     &       +axyp(I,J)
-         enddo
-      enddo
-
-      increment = .false.
-      call SUMXPE(dxyp_budg_loc,dxyp_budg,increment)   !summing global area
-      call esmf_bcast(grid,dxyp_budg)
-      end subroutine set_budg_area
-c*
 
 #ifdef NEW_IO
       subroutine def_rsf_acc(fid,r4_on_disk)
