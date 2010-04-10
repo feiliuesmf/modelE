@@ -1638,7 +1638,7 @@ c      var_name='hour';call wrtdarr(hours)
 
 C**** set dimensions
       jm=jm_gcm
-      lat_dg(1:JM,1)=lat_dg_gcm(1:JM,:)
+      lat_dg(1:JM,1)=lat_dg_gcm(1:JM)
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
 
