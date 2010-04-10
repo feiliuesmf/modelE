@@ -649,7 +649,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(2*M__,N__)     :: POMEGA
       REAL*8, DIMENSION(N__)           :: ZTAU,FZ
       REAL*8, DIMENSION(2*M__,2*LM+2+1):: POMEGAJ
-      REAL*8, DIMENSION(2*LM+2)        :: PFASTJ
+      REAL*8, DIMENSION(2*LM+3)        :: PFASTJ
       REAL*8, DIMENSION(NWFASTJ+1)     :: WBIN
       REAL*8, DIMENSION(NWFASTJ)       :: WL,FL,QRAYL,QBC,DUMMY,FLX
       REAL*8, DIMENSION(NWFASTJ,3)     :: QO3, QO2, Q1D, zpdep
