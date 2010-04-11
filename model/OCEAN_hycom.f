@@ -32,8 +32,9 @@
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
      &  , diapyn, diapyc, jerlv0
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
-     .  , diag_counter
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
+     .  , diag_counter,itest_trac,jtest_trac
 #endif
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
@@ -236,8 +237,10 @@ c
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem,itest,jtest
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
-     .     ,diag_counter
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
+     .  , diag_counter,itest_trac,jtest_trac
+      USE HYCOM_ARRAYS_GLOB_RENAMER, only : plevav_loc,tracav_loc
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : atrac
@@ -271,7 +274,8 @@ c
      .     TRN2MODULE_HEADER = "TRGASXOBIOhdiags"
 #endif 
 #endif
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
       integer i,j,k
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "OCideal trcrs"
@@ -309,7 +313,8 @@ c
       call gather_hycom_arrays   !mkb Jun  6
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
+     || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)   
       call pack_data(ogrid, tracav_loc, tracav)
       call pack_data(ogrid, plevav_loc, plevav)
 #endif
@@ -348,7 +353,8 @@ c
 #endif
 #endif
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
       write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a63)')
      *'tracav,plevav,diag_counter'
@@ -417,12 +423,13 @@ css#endif
 #endif
 #endif
 
-#if (defined TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,tracav,plevav,diag_counter
-      i=itest_bio
-      j=jtest_bio
-      print*,'test point at:',itest_bio,jtest_bio
+      i=itest_trac
+      j=jtest_trac
+      print*,'test point at:',itest_trac,jtest_trac
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst1a k=',k,
@@ -534,12 +541,13 @@ c
 #endif
 #endif
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,tracav,plevav,diag_counter
-      i=itest_bio
-      j=jtest_bio
-      print*,'test point at:',itest_bio,jtest_bio
+      i=itest_trac
+      j=jtest_trac
+      print*,'test point at:',itest_trac,jtest_trac
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst1b k=',k,
@@ -659,12 +667,13 @@ c
 #endif
 #endif
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,tracav,plevav,diag_counter
-      i=itest_bio
-      j=jtest_bio
-      print*,'test point at:',itest_bio,jtest_bio
+      i=itest_trac
+      j=jtest_trac
+      print*,'test point at:',itest_trac,jtest_trac
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst2 k=',k,
@@ -695,7 +704,8 @@ c
 #endif
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)   
       call unpack_data(ogrid, tracav, tracav_loc)
       call unpack_data(ogrid, plevav, plevav_loc)
 #endif

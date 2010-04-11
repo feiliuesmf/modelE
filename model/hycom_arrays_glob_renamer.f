@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       module hycom_arrays_glob_renamer
 
       USE HYCOM_ARRAYS, only :
@@ -48,7 +49,9 @@ c
      .,tauyav_loc => tauyav 
      .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit 
      .,dpmxav_loc => dpmxav,oiceav_loc => oiceav
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) \
+    || (defined TRACERS_OCEAN_WATER_MASSES) \
+    || (defined TRACERS_ZEBRA)
      .,plevav_loc => plevav,tracav_loc => tracav
 #endif
 c 
@@ -185,7 +188,9 @@ c
       public dpinit_loc
       public dpmxav_loc
       public oiceav_loc
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) \
+    || (defined TRACERS_OCEAN_WATER_MASSES) \
+    || (defined TRACERS_ZEBRA)
       public plevav_loc
       public tracav_loc
 #endif

@@ -207,9 +207,12 @@ c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
-#if defined(TRACERS_HYCOM_Ventilation) \
- || defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology) \
- || defined(TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_HYCOM_Ventilation) \
+ || (defined TRACERS_GASEXCH_ocean) \
+ || (defined TRACERS_OceanBiology) \
+ || (defined TRACERS_AGE_OCEAN) \
+ || (defined TRACERS_OCEAN_WATER_MASSES) \
+ || (defined TRACERS_ZEBRA)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
 #else     
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
@@ -260,6 +263,10 @@ c --- 'lp' = logical unit number for printer output
 
 c --- grid point where detailed diagnostics are desired:
       integer, public :: itest=-1, jtest=-1    !overwritten by values in rundeck
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+    || (defined TRACERS_ZEBRA)
+      integer, public :: itest_trac=316, jtest_trac=258  
+#endif
 c
 c --- ocean mixed layer schemes
       integer, public :: iocnmx=2              !overwritten by value in rundeck
@@ -277,7 +284,8 @@ c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'diapyc' = diapycnal diffusivity (m^2/s)
       real, public :: diapyn=3.e-7, diapyc=.5e-4 !overwritten by values in rundeck
 c
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+    || (defined TRACERS_ZEBRA)
       real*8, public :: diag_counter
 #endif
       end module HYCOM_SCALARS

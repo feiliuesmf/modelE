@@ -38,7 +38,12 @@ c-----------------------------------------------------------------------------
 #endif
 
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) \
-   || (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES)
+   || (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES) \
+   || (defined TRACERS_ZEBRA)
+
+#ifdef TRACERS_ZEBRA
+      integer, parameter :: ntrcr = 26
+#endif
 
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) 
       integer, parameter :: ntrcr = 1
