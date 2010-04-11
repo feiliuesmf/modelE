@@ -15,7 +15,7 @@ c
       integer mo,ny1,ny2,dcd,status,ia,k00,ny,m,nt
       integer, parameter:: nrec=8,lat0=10,lon0=10
       real*8 :: area,avgbot
-      character flnmin*80,runid*10,flnmout1*80,flnmout2*80,flnmout3*80
+      character flnmin*80,runid*20,flnmout1*80,flnmout2*80,flnmout3*80
      .         ,ttl*80,ttl1*80,ttl2*80,ttl3*80
       logical timav,cnvert,monave_convert,solo_convert
       character*26 ttlt(ntrcr),ttl0(nrec)
