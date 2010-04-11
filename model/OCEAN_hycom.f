@@ -237,7 +237,8 @@ c
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem,itest,jtest
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+#if (defined TRACERS_AGE_OCEAN) \
+     || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
      .  , diag_counter,itest_trac,jtest_trac
       USE HYCOM_ARRAYS_GLOB_RENAMER, only : plevav_loc,tracav_loc
@@ -353,9 +354,10 @@ c
 #endif
 #endif
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+#if (defined TRACERS_AGE_OCEAN) \
+     || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
-      write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
+      write(*,'(a,i9,f9.0)')'chk TRACERS write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a63)')
      *'tracav,plevav,diag_counter'
 #endif
@@ -575,7 +577,10 @@ c
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
      . ,uflxav,vflxav,diaflx
-#if (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES)
+#if (defined TRACERS_OceanBiology) \
+     || (defined TRACERS_AGE_OCEAN) \
+     || (defined TRACERS_OCEAN_WATER_MASSES) \
+     || (defined TRACERS_ZEBRA)
      . ,tracer(:,:,:,1)
 #else
 !Shan Sun's rsf files have one dimensional tracer
