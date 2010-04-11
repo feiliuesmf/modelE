@@ -346,16 +346,18 @@ c
 c     write(flnmin,'(5a,i3,a,i3,2a,i4.4,2a)')trim(path1),trim(runid)
 c    . ,'/out',trim(runid),'_',dcd,'0_',dcd,'9/',amon(mo),ny
 c    . ,'.out',trim(runid)
-      write(flnmin,'(2a,i4.4,2a)')trim(path1),amon(mo),ny
+      write(flnmin,'(4a,i4.4,2a)')trim(path1),trim(runid)
+     .  ,'/',amon(mo),ny
      .  ,'.out',trim(runid)
-      write(flnmout,'(2a,i4.4,2a)')trim(path1),amon(mo),ny
+      write(flnmout,'(4a,i4.4,2a)')trim(path1),trim(runid)
+     .  ,'/',amon(mo),ny
      .  ,'.zout',trim(runid)
       write(ttl1,'(i3,a,i3,3x,2(1x,a),i4)') 
      .            iia,'x',jja,trim(runid),amon(mo),ny
       write(ttl2,'(2(i3,a),i2,2(1x,a),i4)') iia,'x',jja,'x',k33
      .         ,trim(runid),amon(mo),ny
-      open(80+mo,file=path2//flnmout,form='unformatted'
-     .                              ,status='unknown')
+      open(80+mo,file=flnmout,form='unformatted'
+     .                       ,status='unknown')
       write (lp,'(2a)') 'reading input from ',trim(flnmin)
       write (lp,'(2a)') 'output file:       ',trim(flnmout)
 
