@@ -2336,7 +2336,7 @@ c
       allocate(uarp(isd:ied,jsd:jed),varp(isd:ied,jsd:jed),
      &         dudx(isd:ied,jsd:jed),dudy(isd:ied,jsd:jed),
      &         dvdx(isd:ied,jsd:jed),dvdy(isd:ied,jsd:jed),
-     &         ua1d(isd:ied),va1d(isd:ied))
+     &         ua1d(isd-1:ied+1),va1d(isd-1:ied+1))
       call halo_update(grid,u_a)
       call halo_update(grid,v_a)
 c
@@ -2359,6 +2359,8 @@ c
             ua1d(i) = uarp(i,j)
             va1d(i) = varp(i,j)
           enddo
+          ua1d(isd-1) = 0.; ua1d(ied+1) = 0.
+          va1d(isd-1) = 0.; va1d(ied+1) = 0.
           do i=max(1,isd),min(ied,grid%npx)
             wti = dtype%ix_edge(i)
             ii = wti
