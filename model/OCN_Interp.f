@@ -959,6 +959,7 @@ C**** surface tracer concentration
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
+      DO NT = 1,NTM
       DO J=oJ_0,oJ_1
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
@@ -969,6 +970,7 @@ C**** surface tracer concentration
             opCO2_loc(I,J)=0.
           END IF
         END DO
+      END DO
       END DO
       DO NT = 1,NTM
          CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)

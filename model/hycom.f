@@ -175,9 +175,7 @@ c
       integer bef,aft                   !  bio routine timing variables
       real plev
 #endif
-#if (defined TRACERS_AGE_OCEAN) \
-      || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       real plev
       integer nt
 #endif
@@ -637,24 +635,11 @@ c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
-    || defined(TRACERS_OCEAN_WATER_MASSES) || defined(TRACERS_ZEBRA)
+    || defined(TRACERS_OCEAN_WATER_MASSES)
 c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
-#ifdef TRACERS_ZEBRA
-           if (nstep.eq.1) then
-            do nt=1,ntrcr
-            do k=1,kdm
-               if (k.eq.ntrcr) then
-                   tracer_loc(i,j,k,nt)=1.   !release in all layers
-               else
-                   tracer_loc(i,j,k,nt)=0.   !release in all layers
-               endif
-            enddo
-            enddo
-           endif
-#endif
 #ifdef TRACERS_AGE_OCEAN
 !for consistency with Gary's ocean need to 
 !multiply here by trcfrq*baclin/(JDperY*SDAY) 
@@ -663,6 +648,7 @@ c$OMP PARALLEL DO
            tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)
      .           + 1.*trcfrq*baclin/(JDperY*SDAY)
            enddo
+ 12     continue
 #endif
 #ifdef TRACERS_OCEAN_WATER_MASSES
             tracer_loc(i,j,1,1)=0.; 
@@ -679,11 +665,11 @@ c$OMP PARALLEL DO
                       tracer_loc(i,j,1,2)=1.; 
               endif
               endif
+ 12     continue
 #endif
 #ifdef TRACERS_HYCOM_Ventilation
-        tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
+12      tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
 #endif
- 12     continue
 c$OMP END PARALLEL DO
 #endif
         call system_clock(after)        ! time elapsed since last system_clock
@@ -917,7 +903,22 @@ ccc      call comparall(m,n,mm,nn,string)
 
 
 #if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN) \
-     || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_ZEBRA)
+     || (defined TRACERS_OCEAN_WATER_MASSES)
+cdiag  do k=1,kdm
+cdiag  km=k+mm
+cdiag   if (k.eq.1)
+cdiag.   write(lp,'(a,3i5,a,a)')'aftr hbge ',nstep,itest,jtest
+cdiag.   ,'    dp       nitr      ammo      sili      iron  '
+cdiag.   ,'    diat      chlo      cyan      cocco     herb'
+cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
+cdiag.     k,dp(itest,jtest,km)/onem,
+cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
+cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
+cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
+cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
+cdiag.     tracer(itest,jtest,k,9)
+cdiag  enddo
+cdiag  call obio_limits('aftr hybgen')
 
 !accumulate fields for diagnostic output
       call gather_dpinit 
@@ -925,7 +926,7 @@ ccc      call comparall(m,n,mm,nn,string)
       if (mod(nstep,trcfrq).eq.0) then
 
       diag_counter=diag_counter+1
-      print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
+      print*, 'obio_model: doing tracav at nstep=',nstep,diag_counter
 
       do j=1,jdm
       do i=1,idm
@@ -973,10 +974,8 @@ ccc      call comparall(m,n,mm,nn,string)
       end if
 
 #ifndef OBIO_ON_GARYocean            /* NOT for Garys ocean */
-#ifdef TRACERS_OceanBiology
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-#endif
 #endif
 
 #endif
@@ -1230,8 +1229,7 @@ ccc     .     'barotrop. v vel. (mm/s)')
       call set_data_after_archiv()
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       tracav_loc = 0
       plevav_loc = 0
 #endif
@@ -1514,8 +1512,7 @@ c------------------------------------------------------------------
 #endif
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       call pack_data( ogrid,  tracav_loc, tracav )
       call pack_data( ogrid,  plevav_loc, plevav )
 #endif
