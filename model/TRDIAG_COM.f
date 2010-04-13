@@ -1181,10 +1181,22 @@ C**** can be called from both ocean tracer or atm tracer code
       end subroutine reset_tcons
 
       subroutine gather_zonal_tcons
-      USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DIAG_COM, only : ia_inst
+      USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV, ia_tcon,ntmxcon,ktcon
+      USE DOMAIN_DECOMP_ATM, only : GRID,am_i_root
       USE DIAG_ZONAL, only : pack_lc
       implicit none
+      integer :: n,k
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! set inst qtys to zero in the "global" array before summing over PEs
+      if(am_i_root()) then
+        do n=1,ntmxcon
+          do k=1,ktcon
+            if(ia_tcon(k,n).eq.ia_inst) tconsrv(:,k,n)=0.
+          enddo
+        enddo
+      endif
+#endif
       call pack_lc   (grid, TCONSRV_loc,TCONSRV )
       return
       end subroutine gather_zonal_tcons

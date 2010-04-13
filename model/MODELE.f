@@ -593,8 +593,10 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
 
+#ifdef USE_FVCUBED
+      IDACC(ia_filt)=IDACC(ia_filt)+1 ! prevent /0
+#else
 C**** SEA LEVEL PRESSURE FILTER
-#ifndef USE_FVCUBED
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(ia_filt)=IDACC(ia_filt)+1
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
@@ -607,6 +609,11 @@ C**** SEA LEVEL PRESSURE FILTER
       END IF
 #endif
 #ifdef TRACERS_ON
+#ifdef USE_FVCUBED
+! Reinitialize instantaneous consrv qtys (every timestep since
+! DIAGTCA is called every timestep for 3D sources)
+      CALL DIAGCA (1) ! was not called w/ SLP filter
+#endif
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
       CALL TRGRAV
