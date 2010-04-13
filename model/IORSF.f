@@ -10,7 +10,7 @@
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : am_i_root !REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
-     *                     ,ioread,ioread_nodiag,iowrite 
+     *                     ,ioread,ioread_nodiag,iowrite
 
       IMPLICIT NONE
 !@var filenm name of file to be read or written
@@ -58,10 +58,10 @@ C**** Calls to individual i/o routines
         call io_diags  (kunit,it,iact,ioerr)
         if(it1.ne.it .or. ioerr.eq.1)
      &       call stop_model('restart problem',255)
-        return
+        go to 10
       end if
       if(iaction.ne.ioread_single.and.iaction.ne.iowrite_single) then
-        call io_model  (kunit,iact,ioerr) 
+        call io_model  (kunit,iact,ioerr)
         call io_strat  (kunit,iact,ioerr)
         call io_ocean  (kunit,iact,ioerr)
         call io_lakes  (kunit,iact,ioerr)
