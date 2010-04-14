@@ -4065,7 +4065,7 @@ c
         ij_flam = k
         lname_ij(k) = 'VEGETATION FLAMMABILITY'
         units_ij(k) = 'none'
-        write(name_ij(k),'(a5)') 'FLAMM'
+        name_ij(k) = 'FLAMM'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e0
 #endif
@@ -4074,14 +4074,14 @@ c
         ij_flash = k
         lname_ij(k) = 'LIGHTNING FLASH RATE'
         units_ij(k) = '1.e-10 flashes/m2/s'
-        write(name_ij(k),'(a5)') 'FLASH'
+        name_ij(k) = 'FLASH'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
       k=k+1        ! lightning cloud-to-ground flash rate
         ij_CtoG = k
         lname_ij(k) = 'LIGHTNING CLOUD TO GROUND FLASH RATE'
         units_ij(k) = '1.e-10 flashes/m2/s'
-        write(name_ij(k),'(a5)') 'CtoG'
+        name_ij(k) = 'CtoG'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
 #endif
