@@ -1805,8 +1805,8 @@ c          data=sday*prec/dtsrc
            do n=1,NTRACE ! sum over rad code tracers is used
              if(ntrix(n)>0)then
                select case(namedd(k))
-                 case('tAOD') ; data=data+ttausv_sum(:,:,n)
-                 case('ctAOD'); data=data+ttausv_sum_cs(:,:,n)
+                 case('tAOD') ; data=data+ttausv_sum(:,:,ntrix(n))
+                 case('ctAOD'); data=data+ttausv_sum_cs(:,:,ntrix(n))
                end select
              endif
            enddo
@@ -2261,8 +2261,10 @@ C**** for (c)AOD multiple tracers are written to one file:
             do n=1,NTRACE
               if(ntrix(n) > 0)then
                 select case(namedd(k))
-                  case('AOD') ; data=ttausv_sum(:,:,n)/ttausv_count
-                  case('cAOD'); data=ttausv_sum_cs(:,:,n)/ttausv_count
+                case('AOD')
+                  data=ttausv_sum(:,:,ntrix(n))/ttausv_count
+                case('cAOD')
+                  data=ttausv_sum_cs(:,:,ntrix(n))/ttausv_count
                 end select
                 polefix=.true.
                 call write_data(data,kunit,polefix)
