@@ -3898,25 +3898,31 @@ C                                       READ Input Files
 C                                       --------------------------------
 c     inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
 c     if(qexist) RDFILE=RDFGEN              !     generic names are used
-      RDFILE=RDFGEN              !     generic names are used
+        RDFILE=RDFGEN           !     generic names are used
 c     inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
 c     if(.not.qexist) call stop_model('updaer: no TropAero files',255)
 
-!**** Sulfate
+c read table sizes then close
+        call openunit (RDFILE(1),ifile,.true.,.true.) ! unformatted,old
+        read(ifile) aertitle, ima, jma, lma, ndeca, fdeca, ldeca
+        write(*,*)'fdeca: ', fdeca, ldeca
+        call closeUnit(ifile)
+!!    check whether the newer input files are being used
+        if(aertitle(1:26)=='                          ') call
+     *       stop_model('updaer2: use newer input files',255)
+        allocate( plbaer(lma+1) )
+        allocate( suldd (ima,jma,lma,12,ndeca)
+     *       ,nitdd(ima,jma,lma,12,ndeca)
+     *       ,ocadd(ima,jma,lma,12,ndeca),bcadd(ima,jma,lma,12,ndeca)
+     *       ,bcbdd(ima,jma,lma,12,ndeca) )
+        allocate( ssadd (ima,jma,lma,12) )
+        allocate( A6JDAY2 (lma,6,ima,jma) )
+        allocate( A6YEAR2 (ima,jma,lma,0:12,6) )
+        allocate( md1850 (4,ima,jma,0:12) )
+        allocate( anfix (ima,jma,0:12) )
+
       call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
       read(ifile) aertitle, ima, jma, lma, ndeca, fdeca, ldeca
-!!    check whether the newer input files are being used
-      if(aertitle(1:26)=='                          ') call
-     *     stop_model('updaer2: use newer input files',255)
-      allocate( plbaer(lma+1) )
-      allocate( suldd (ima,jma,lma,12,ndeca),nitdd(ima,jma,lma,12,ndeca)
-     *  ,ocadd(ima,jma,lma,12,ndeca),bcadd(ima,jma,lma,12,ndeca)
-     *  ,bcbdd(ima,jma,lma,12,ndeca) )
-      allocate( ssadd (ima,jma,lma,12) )
-      allocate( A6JDAY2 (lma,6,ima,jma) )
-      allocate( A6YEAR2 (ima,jma,lma,0:12,6) )
-      allocate( md1850 (4,ima,jma,0:12) )
-      allocate( anfix (ima,jma,0:12) )
       read(ifile) plbaer
       DO 101 IDD=1,ndeca
       DO 101 M=1,12
@@ -3961,39 +3967,64 @@ c     if(.not.qexist) call stop_model('updaer: no TropAero files',255)
       DO 106 M=1,12
   106 READ (IFILE) BCBDD(:,:,:,M,IDD)
       call closeunit (ifile)
+
+        do idd = 1, ndeca
+          do m = 1, 12
+            write(*,*)'month =', m, 'decade = ', idd
+!**** Sulfate
+            call readTable(RDFILE(1), SULDD(:,:,:,m,idd),
+     &           month=m, decade=idd)
+!**** Sea salt
+            if (idd == 1) 
+     &        call readTable(RDFILE(2), SSADD(:,:,:,m), month=m,
+     &           decade=idd)
+!**** Nitrate
+            call readTable(RDFILE(3), NITDD(:,:,:,m,idd), month=m, 
+     &           decade=idd)
+!**** Organic Carbon
+            call readTable(RDFILE(4), OCADD(:,:,:,m,idd), month=m,
+     &           decade=idd)
+!**** Black Carbon from Fossil and bio fuel
+            call readTable(RDFILE(5), BCADD(:,:,:,m,idd), month=m,
+     &           decade=idd)
+!**** Black Carbon from Biomass burning
+            call readTable(RDFILE(6), BCBDD(:,:,:,m,idd), month=m, 
+     &           decade=idd)
+          end do
+        end do
+        
 C**** Prepare for aerosol indirect effect parameterization:
 C     - Collect the monthly aerosol number densities (an) for the time
 C       independent aerosols (desert dust and sea salt)       an:  /cm^3
 C     - Save the monthly 1850 mass densities (md) for the time dependent
 C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
-!!!   call openunit (RDFILE(5),ifile,.true.,.true.) !neglect desert dust
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
-      xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+        xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
 c za720 should be changed to be consistent with top of level 5 in 20L
-      byz = 1d-6/za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-       DO M=1,12
-!!!     READ (IFILE) XTITLE,mddust
-       DO J=1,jma
-       DO I=1,ima
+        byz = 1d-6/za720        ! 1d-6/depth in m (+conversion /m3 -> /cm3)
+        do M=1,12
+          do J=1,jma
+            do I=1,ima
 c SUM to L=5 for low clouds only
 c Using 1890 not 1850 values here
-         anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +               +    byz * SUM(SSADD(I,J,1:5,M)) * Xsslt
+              anfix(i,j,m) = 0. !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
+     +             +    byz * SUM(SSADD(I,J,1:5,M)) * Xsslt
 C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
-        md1850(1,i,j,m) = byz * SUM(SULDD(I,J,1:5,M,1))
-        md1850(2,i,j,m) = byz * SUM(NITDD(I,J,1:5,M,1))
-        md1850(3,i,j,m) = byz * SUM(OCADD(i,j,1:5,m,1))
-        md1850(4,i,j,m) = byz *(SUM(BCBDD(I,J,1:5,M,1))
-     *                         +SUM(BCADD(I,J,1:5,M,1)))
-      end do
-      end do
-      end do
-      anfix(:,:,0) = anfix(:,:,12) ; md1850(:,:,:,0) = md1850(:,:,:,12)
-!!!   call closeunit (ifile)
+              md1850(1,i,j,m) = byz * SUM(SULDD(I,J,1:5,M,1))
+              md1850(2,i,j,m) = byz * SUM(NITDD(I,J,1:5,M,1))
+              md1850(3,i,j,m) = byz * SUM(OCADD(i,j,1:5,M,1))
+              md1850(4,i,j,m) = byz *(SUM(BCBDD(I,J,1:5,M,1))
+     *             +SUM(BCADD(I,J,1:5,M,1)))
+            end do
+          end do
+        end do
+        anfix(:,:,0) = anfix(:,:,12)
+        md1850(:,:,:,0) = md1850(:,:,:,12)
 
-      IFIRST=0
-      ENDIF
+        IFIRST=0
+
+      end if
 C                                                   0            12
 C     Collect 13 months of data for time period Dec/15/(yr-1)-Dec/15/yr:
 C     To time input data READs, JYEARX is set ahead of JYEARA by 15 days
@@ -4001,6 +4032,7 @@ C     ------------------------------------------------------------------
       if(JYEARA<0) then
         JYEARX = -JYEARA
       else
+!TODO - hardwired for 365 days?
         JYEARX=MIN(JYEARA+(JJDAYA+15)/366,2050)
       end if
 
@@ -4107,6 +4139,66 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
 
       RETURN        !  A6JDAY(9,6,72,46) is used in GETAER via ILON,JLAT
       END SUBROUTINE UPDAER2
+
+      subroutine getIntraYearInterpolation(jjdaya, months, weights)
+      integer, intent(in) :: jjdaya
+      integer, intent(out) :: months(2)
+      real*8, intent(out) :: weights(2)
+
+      real*8 :: xmi
+
+      xmi=(jjdaya+jjdaya+31-(jjdaya+15)/61+(jjdaya+14)/61)/61.D0
+      months(1) = xmi
+      if (months(1) > 11) months(1)=0
+      months(2) = months(1) + 1
+
+      weights(2) = xmi - months(1) !   Intra-year interpolation is linear in JJDAYA
+      weights(1) = 1.d0 - weights(2)
+
+      end subroutine getIntraYearInterpolation
+
+      subroutine getInterYearInterpolation(jyeara, jyrnow, 
+     &     decades, weights)
+      integer, intent(in) :: jyeara
+      integer, intent(in) :: jyrnow
+      integer, intent(out) :: decades(2)
+      real*8, intent(out) :: weights(2)
+
+      end subroutine getInterYearInterpolation
+
+      subroutine readTable(fileName, table, month, decade)
+      use FileManager, only: openUnit, closeUnit
+      character(len=*), intent(in) :: fileName
+      real*4, intent(inout) :: table(:,:,:)
+      integer, intent(in) :: month
+      integer, intent(in) :: decade
+
+      character*80 :: title
+      integer :: ifile
+      integer :: ima, jma, lma, ndeca, fdeca, ldeca
+      integer :: idd, m
+
+      call openunit (fileName, ifile, .true., .true.)    ! unformatted,old
+      read(ifile) title, ima, jma, lma, ndeca, fdeca, ldeca
+      write(*,*)'num decades: ', ndeca, trim(fileName)
+      read(ifile) ! skip plbaer
+
+      ! skip earlier decades
+      do idd = 1, decade - 1
+        do m = 1, 12
+          read (ifile) ! skip
+        end do
+      end do
+      ! skip earlier month in requested decade
+      do m = 1, month - 1
+        read (ifile) ! skip
+      end do
+
+      ! read actual month
+      read (ifile) table(:,:,:)
+
+      call closeunit (ifile)
+      end subroutine readTable
 
       SUBROUTINE SETDST
       IMPLICIT NONE
