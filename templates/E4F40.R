@@ -1,4 +1,7 @@
-E4F40.R GISS Model E  1850 ocn/atm                 rar 07/15/2009
+E4F40.R GISS Model E  1850 ocn/atm          larissa        04/15/2010
+
+!! E4F40 is for NIsurf=1 (U00a=0.72; U00b=1.68)
+
 !! delete lines starting with '!!' unless E4F40 prepares a q-flux ocean run
 !! E4qsF40.R GISS Model E  1850 atm, ocn: q-flux 65m             rar 07/15/2009
 
@@ -61,7 +64,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E4F40 (modelE as frozen in June 2009, 1850 atmosph. cond., Ent veget.,
+E4F40 (NIsurf=1; modelE as frozen in June 2009, 1850 atmosph. cond., Ent veget.,
 with gravity wave drag, prescribed ocean)
 
 &&PARAMETERS
@@ -72,7 +75,7 @@ with gravity wave drag, prescribed ocean)
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.73 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.72 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.68 ! below 850mb and MC regions; tune this last  to get rad.balance
 
 PTLISO=15.       ! press(mb) above which rad. assumes isothermal layers

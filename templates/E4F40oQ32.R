@@ -1,4 +1,6 @@
-E4F40oQ32.R GISS Model E  coupled version          larissa   06/03/2009
+E4F40oQ32.R GISS Model E  coupled version          larissa   04/15/2010
+
+!! E4F40oQ32 is for NIsurf=1 (U00a=0.72; U00b=1.68)
 
 E4F40oQ32: E4F40 coupled to 1x1.25deg 32-layer GISS ocean model
 E4F40 = modelE as frozen in April 2010:
@@ -62,7 +64,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E4F40oQ32 (2x2.5x40, 1850 atm.;  1x1.25x32 ocean)
+E4F40oQ32 (NIsurf=1; 2x2.5x40, 1850 atm.;  1x1.25x32 ocean)
 
 
 &&PARAMETERS
@@ -74,7 +76,7 @@ E4F40oQ32 (2x2.5x40, 1850 atm.;  1x1.25x32 ocean)
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.73 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.72 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.68 ! below 850mb and MC regions; tune this last  to get rad.balance
 
 PTLISO=15.       ! press(mb) above which rad. assumes isothermal layers
