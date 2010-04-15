@@ -75,7 +75,7 @@
      & ,RNOx_lgt
 #endif
       use model_com, only : fland
-      use geom,      only : lat2d_dg,byaxyp
+      use geom,      only : lat2d_dg,axyp,byaxyp
       use constant,  only : bygrav
       use dynamics,  only : gz
       use diag_com,  only : ij_CtoG,ij_flash,aij=>aij_loc
@@ -93,7 +93,7 @@
 !@var zlt ?
       integer, intent(in) :: lmax,lfrz,i,j
       integer:: lmax_temp
-      real*8 :: htcon,htfrz,flash,th,th2,th3,th4,zlt,cg
+      real*8 :: htcon,htfrz,flash,th,th2,th3,th4,zlt,cg,area_ref
 #ifdef SHINDELL_STRAT_CHEM      
 !@param tune_NOx multiplier of NOx production rate from lightning
       real*8, parameter :: tune_NOx=1.000d0
@@ -135,6 +135,12 @@
       else
         flash=tune_lt_land*3.44d-5*(htcon**4.92d0) ! continent
       end if
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! rescale flash rate by gridbox area
+      area_ref = 6d10 ! avg 2x2.5 tropical area for reference
+      flash = flash * axyp(i,j)/area_ref
+#endif
 
 ! The formulation by Price and Rind (1993) in Geophysical Res.
 ! Letters is used to calculate the fraction of total lightning
