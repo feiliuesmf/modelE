@@ -390,10 +390,10 @@
 #endif
 
       if (useCubedSphere) then
-        grid_size = [IM, JM*6]
+        grid_size = (/IM, JM*6/)
 !!$$        grd_dum%localSubdomain = newDomain(IM, 6*JM)
       else
-        grid_size = [IM, JM]
+        grid_size = (/IM, JM/)
 !!$$        grd_dum%localSubdomain = newDomain(IM, JM)
       end if
 

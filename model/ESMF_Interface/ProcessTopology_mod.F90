@@ -50,8 +50,8 @@ contains
     this%useMPI = .false.
     this%rank = 0
     this%npes = 1
-    this%partition = [1,1,1]
-    this%rankTopology = [0,0,0]
+    this%partition = (/1,1,1/)
+    this%rankTopology = (/0,0,0/)
 
   end function newProcessTopology_serial
 
