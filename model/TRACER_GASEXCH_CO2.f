@@ -1,8 +1,12 @@
 #include "rundeck_opts.h"
+!@sum  TRACERS_GASEXCH_COM: module for ocean-atmosphere gas exchange
+!@+    special case for CO2
+!@auth Natassa Romanou
+!@ver  1.0
 
       MODULE TRACER_GASEXCH_COM
 
-      USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
+      USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
 
       implicit none
 
@@ -11,14 +15,18 @@
       private
 
       public alloc_gasexch_com
+#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
       public gather_gasexch_com_arrays
       public scatter_gasexch_com_arrays
+#endif
 
       public
      .  tracflx !  tracer flux at air-sea intfc
 
+#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
       public 
      .  tracflx_glob
+#endif
 
       public
      .  tracflx1d
@@ -30,7 +38,9 @@
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atrac
 
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
+#ifndef OBIO_ON_GARYocean
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx_glob
+#endif
   
       real*8 tracflx1d(ntm)
       common /gasexch3/tracflx1d
@@ -42,10 +52,9 @@
 !------------------------------------------------------------------------------
       subroutine alloc_gasexch_com
 
-      USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
+      USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
 
 #ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only   : idm=>imo,jdm=>jmo
       USE MODEL_COM, only : iia=>im,jja=>jm
       USE OCEANR_DIM, only : ogrid
 #else
@@ -62,11 +71,10 @@
       j_0h=ogrid%J_STRT_HALO
       j_1h=ogrid%J_STOP_HALO
 
-      print*,'alloc_gasexch_com:',i_0,i_1,j_0,j_1
-      print*, ntm
-
       ALLOCATE(tracflx(i_0:i_1,j_0h:j_1h,ntm))
+#ifndef OBIO_ON_GARYocean
       ALLOCATE(tracflx_glob(idm,jdm,ntm))
+#endif
 
       ALLOCATE(atracflx(iia,jja,ntm))
       ALLOCATE(atrac(iia,jja,ntm))
@@ -75,32 +83,27 @@
 
 
 !------------------------------------------------------------------------------
+#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
       subroutine gather_gasexch_com_arrays
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
       USE HYCOM_DIM, only : ogrid
-#endif
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       call pack_data( ogrid, tracflx,tracflx_glob )
 
       end subroutine gather_gasexch_com_arrays
-
+#endif
 !------------------------------------------------------------------------------
+#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
       subroutine scatter_gasexch_com_arrays
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
       USE HYCOM_DIM, only : ogrid
-#endif
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       call unpack_data( ogrid, tracflx_glob,tracflx )
 
       end subroutine scatter_gasexch_com_arrays
+#endif
 
       END MODULE TRACER_GASEXCH_COM
 
@@ -123,7 +126,7 @@
       USE PARAM, only: get_param
 
 
-      USE TRACER_COM, only : n_CO2n,ntm  !tracers involved in air-sea gas exch
+      USE TRACER_COM, only : ntm_gasexch  !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : atrac
 
@@ -141,9 +144,9 @@
       do j=1,jja
       do i=1,iia
       if (focean(i,j).gt.0.) then
-c         do nt=1,ntm
-            GTRACER(n_CO2n,1,i,j)=atrac(i,j,n_CO2n)
-c         enddo
+          do nt=1,ntm_gasexch
+            GTRACER(nt,1,i,j)=atrac(i,j,nt)
+          enddo
       endif
       enddo
       enddo
@@ -164,7 +167,7 @@ c ---------------------------------------------------------------------
   
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : trname,tr_mm,vol2mass,n_CO2n
+      USE TRACER_COM, only : trname,tr_mm,vol2mass,ntm_gasexch
       USE obio_incom, only : awan
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
@@ -219,14 +222,14 @@ c ---------------------------------------------------------------------
       beta_gas = alpha_gas * psurf/1013.25      !stdslp and psurf in mb, no need to change units
 
       !trsf is really sfac = Kw_gas * beta_gas
-      !the term 1.0d6 / vol2mass(n_CO2n) is needed to convert uatm -> kg,co2/kg,air 
+      !the term 1.0d6 / vol2mass(ntm_gasexch) is needed to convert uatm -> kg,co2/kg,air 
       !in the denominator of alpha
-      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(n_CO2n)
+      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(ntm_gasexch)
 
       !trconstflx comes in from SURFACE.f and has units kg,co2/kg,air/m2
       !therefore trcnst needs to be myltiplied by byrho before it is sent to  PBL.f
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
-     .                * 1.0d6 / vol2mass(n_CO2n)    
+     .                * 1.0d6 / vol2mass(ntm_gasexch)    
 
         if (ilong.eq.1. .and. jlat.eq.45) then
         write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2:',

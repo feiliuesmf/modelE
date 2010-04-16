@@ -29,9 +29,6 @@ C****
       Use ODIAG, Only: toijl=>toijl_loc,
      *               toijl_conc,toijl_tflx,toijl_gmfl
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: scatter_gasexch_com_arrays
-#endif
 #ifdef TRACERS_OceanBiology
       USE obio_com, only: gather_chl
 #endif
@@ -87,9 +84,6 @@ C**** Apply bottom and coastal drags
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
-#ifdef TRACERS_GASEXCH_ocean
-      call scatter_gasexch_com_arrays
-#endif
       call obio_model
       call gather_chl
 #ifdef TRACERS_GASEXCH_ocean

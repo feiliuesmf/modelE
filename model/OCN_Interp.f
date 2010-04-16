@@ -394,7 +394,7 @@ c*   polar values are replaced by their longitudinal mean
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: pCO2
-      USE TRACER_COM, only : vol2mass
+      USE TRACER_COM, only : vol2mass,ntm_gasexch
       USE FLUXES, only : gtracer
 #endif
       use ocean, only : remap_O2A
@@ -633,7 +633,7 @@ C**** surface tracer concentration
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
             !pco2 is in uatm, convert to kg,CO2/kg,air
             opCO2_loc(I,J) = pCO2(I,J)
-     .                 * vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+     .        * vol2mass(ntm_gasexch)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
           ELSE
             opCO2_loc(I,J)=0.
           END IF
@@ -644,7 +644,7 @@ C**** surface tracer concentration
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(opCO2_loc(:,oJM),oIM)
 
-      DO NT = 1,NTM
+      DO NT = 1,ntm_gasexch
          call ab_add( lstr, opCO2_loc, aTRAC(:,:,NT), 
      &        shape(opCO2_loc), 'ij', oWEIGHT2, aWEIGHT2) 
       END DO
@@ -691,7 +691,7 @@ c*    actual interpolation here
 #ifdef TRACERS_OCEAN
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      do l=1,NTM
+      do l=1,ntm_gasexch
          if(hasNorthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM))
      &        call lon_avg(aTRAC(:,aJM,l),aIM)
@@ -713,7 +713,7 @@ c*    actual interpolation here
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      DO l = 1,NTM
+      DO l = 1,ntm_gasexch
          if(hasNorthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM))
      &        call lon_avg(aTRAC(:,aJM,l),aIM)
@@ -785,7 +785,7 @@ c*    actual interpolation here
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: pCO2
-      USE TRACER_COM, only : vol2mass
+      USE TRACER_COM, only : vol2mass,ntm_gasexch
       USE FLUXES, only : gtracer
 #endif
 
@@ -959,20 +959,18 @@ C**** surface tracer concentration
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
-      DO NT = 1,NTM
       DO J=oJ_0,oJ_1
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
             !pco2 is in uatm, convert to kg,CO2/kg,air
             opCO2_loc(I,J) = pCO2(I,J)
-     .                 * vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+     .          * vol2mass(ntm_gasexch)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
           ELSE
             opCO2_loc(I,J)=0.
           END IF
         END DO
       END DO
-      END DO
-      DO NT = 1,NTM
+      DO NT = 1,ntm_gasexch
          CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
 
          !gtracer is first set in TRACER_DRV, then atrac is interpolated
@@ -1045,7 +1043,6 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : aTRGASEX=>TRGASEX
-      USE TRACER_GASEXCH_COM, only: tracflx_glob
       USE DOMAIN_DECOMP_1D, only : pack_data
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1084,8 +1081,7 @@ C**** surface tracer concentration
       USE obio_forc, only : ovisdir,ovisdif,onirdir,onirdif
 #endif
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : osolz
-      USE obio_forc, only : owind
+      USE obio_forc, only : osolz, owind
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
@@ -1447,7 +1443,7 @@ C**** surface tracer concentration
       allocate(atmp3(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
-      do N=1,NTM
+      do N=1,ntm_gasexch
        atmp3(N,:,:)=aTRGASEX(N,1,:,:)
       if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
@@ -1711,20 +1707,19 @@ c*
 #ifdef TRACERS_GASEXCH_ocean
       if ( (hasNorthPole(agrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
-         do N=1,NTM
+         do N=1,ntm_gasexch
             call lon_avg( otmp3(N,:,oJM), oIM)
          enddo
       endif
       if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
-         do N=1,NTM
+         do N=1,ntm_gasexch
             call lon_avg( otmp3(N,:,1), oIM)
          enddo
       endif
 
-      do N=1,NTM
+      do N=1,ntm_gasexch
          oTRGASEX(N,1,:,:)=otmp3(N,:,:)
-         call pack_data(ogrid,oTRGASEX(N,1,:,:),tracflx_glob(:,:,N))
       enddo
       deallocate(atmp3,otmp3)
 #endif
@@ -1830,7 +1825,7 @@ c*
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : aTRGASEX=>TRGASEX
-      USE TRACER_GASEXCH_COM, only: tracflx_glob
+      USE TRACER_GASEXCH_COM, only: tracflx
 #endif
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : avisdir    => FSRDIR
@@ -1863,13 +1858,13 @@ c*
 #ifdef TRACERS_GASEXCH_ocean
       USE MODEL_COM, only: nstep=>itime
       USE OFLUXES, only : oTRGASEX
+      USE TRACER_COM, only : ntm_gasexch
 #endif
 #ifdef OBIO_RAD_coupling
       USE obio_forc, only : ovisdir,ovisdif,onirdir,onirdif
 #endif
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : osolz
-      USE obio_forc, only : owind
+      USE obio_forc, only : osolz,owind
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
@@ -1883,7 +1878,7 @@ c*
       INTEGER, PARAMETER :: NSTYPE=4
       INTEGER I,J, N
       INTEGER aJ_0,aJ_1, aI_0,aI_1
-      INTEGER oJ_0,oJ_1
+      INTEGER oJ_0,oJ_1,oI_0,oI_1
 
       REAL*8,
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,aGRID%J_STRT:aGRID%J_STOP)::
@@ -1903,6 +1898,8 @@ c*
 
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
+      oI_0 = oGRID%i_STRT
+      oI_1 = oGRID%i_STOP
 
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
@@ -2098,10 +2095,19 @@ c*
 #endif
 #endif
 #endif
+
 #ifdef TRACERS_GASEXCH_ocean
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aTRGASEX,oTRGASEX, tracflx_glob, aWEIGHT
-     *             , NTM, NSTYPE,1)
+      CALL INT_AG2OG(aTRGASEX,oTRGASEX, aWEIGHT,
+     .               ntm_gasexch, NSTYPE,1)
+
+      DO N=1,ntm_gasexch
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oI_1
+             tracflx(I,J,N) = oTRGASEX(N,1,I,J) 
+          ENDDO
+        ENDDO
+      ENDDO
 #endif
 
 #ifdef OBIO_RAD_coupling

@@ -12,6 +12,9 @@
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: ntm
+#ifdef TRACERS_GASEXCH_ocean
+      USE TRACER_COM, only: ntm_gasexch
+#endif
 #endif
 
       IMPLICIT NONE
@@ -163,7 +166,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       !:-:-I-J arrays
 #ifdef TRACERS_GASEXCH_ocean
 
-      ALLOCATE( oTRGASEX( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
+      ALLOCATE( oTRGASEX(ntm_gasexch, 1 , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
       oTRGASEX=0.     !initialize to zero
 
