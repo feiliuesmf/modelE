@@ -35,7 +35,7 @@ contains
     integer, intent(in) :: im
     integer, intent(in) :: jm
 
-    domain%globalExtents = [im, jm]
+    domain%globalExtents = (/im, jm/)
 
   end function newDomain
 
