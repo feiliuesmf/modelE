@@ -225,7 +225,7 @@
       END TYPE DIST_GRID
 #endif
 
-      TYPE (DIST_GRID) :: GRID
+      type (DIST_GRID), save :: GRID
 !not used      TYPE (DIST_GRID) :: GRID_TRANS
 
       public :: haveLatitude
