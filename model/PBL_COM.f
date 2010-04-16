@@ -541,6 +541,9 @@ C****
       ALLOCATE(t1_after_aturb(I_0H:I_1H,J_0H:J_1H),
      &         u1_after_aturb(I_0H:I_1H,J_0H:J_1H),
      &         v1_after_aturb(I_0H:I_1H,J_0H:J_1H))
+      t1_after_aturb(:,J_0H:J_1H) = 0.
+      u1_after_aturb(:,J_0H:J_1H) = 0.
+      v1_after_aturb(:,J_0H:J_1H) = 0.
 
       END SUBROUTINE ALLOC_PBL_COM
 

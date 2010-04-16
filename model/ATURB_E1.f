@@ -561,7 +561,7 @@ c
       END DO
 
       DO J=J_0,J_1
-        DO I=I_0,I_1
+        DO I=I_0,IMAXJ(J)
           u1_after_aturb(i,j) = u_3d_agrid(1,i,j)
           v1_after_aturb(i,j) = v_3d_agrid(1,i,j)
         END DO
