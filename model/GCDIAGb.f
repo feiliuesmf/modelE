@@ -887,7 +887,8 @@ C****
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, GLOBALSUM
-      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST, AM_I_ROOT
+      USE PRECISION_MOD
       USE GETTIME_MOD
       IMPLICIT NONE
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,KE_jsum
@@ -1909,7 +1910,10 @@ C**** ACCUMULATE HERE
 
 c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
       KE_jsum = sum(KE_part(:,J_0:J_1,:),2)
-      CALL SUMXPE(KE_jsum, KE)  ! not bitwise reproducible
+      CALL SUMXPE(KE_jsum, KE)
+! changing the PE count causes roundoff diffs when using sumxpe, so
+      if(am_i_root()) call reduce_precision(ke,1d-9) ! remove trailing bits
+
       call ESMF_BCAST(grid, KE)
 
       DO 2150 KS=1,NSPHER
@@ -1962,7 +1966,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : GRID,GET,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
       USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
-
+      USE PRECISION_MOD
       IMPLICIT NONE
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM) :: X, Xtmp
@@ -2098,7 +2102,9 @@ cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
 
 c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
       KE_jsum = sum(KE_part(:,J_0:J_1,:),2)
-      CALL SUMXPE(KE_jsum, KE) ! not bitwise reproducible
+      CALL SUMXPE(KE_jsum, KE)
+! changing the PE count causes roundoff diffs when using sumxpe, so
+      if(am_i_root()) call reduce_precision(ke,1d-9) ! remove trailing bits
       call ESMF_BCAST(grid, KE)
 
       IF (NDT /= 0) THEN
@@ -2203,7 +2209,7 @@ C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
 
 c      CALL GLOBALSUM(grid, VAR_part, VAR) ! not parallelized
       VAR_jsum = sum(VAR_part(:,:,:,J_0:J_1),4)
-      CALL SUMXPE(VAR_jsum, VAR) ! not bitwise reproducible
+      CALL SUMXPE(VAR_jsum, VAR)
 
       IF (AM_I_ROOT()) THEN
         DO L = 1, LM
@@ -2216,6 +2222,8 @@ c      CALL GLOBALSUM(grid, VAR_part, VAR) ! not parallelized
             KS=KS+1
           END DO
         END DO
+! changing the PE count causes roundoff diffs when using sumxpe, so
+        call reduce_precision(ape,1d-9) ! remove trailing bits
       END IF
 
 C**** CURRENT TOTAL POTENTIAL ENERGY
