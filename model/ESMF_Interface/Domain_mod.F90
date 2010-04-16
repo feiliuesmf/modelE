@@ -6,11 +6,13 @@ module Domain_mod
   public :: newDomain
 
   type Domain1D_type
+    private
     integer :: interior(2) ! exclude halo cells
     integer :: exterior(2) ! include halo cells
   end type Domain1D_type
 
   type Domain_type
+    private
     type (Domain1D_type) :: axes(2)
     integer :: tile  = 1 ! support for cubed-sphere
     integer :: globalExtents(2) 
