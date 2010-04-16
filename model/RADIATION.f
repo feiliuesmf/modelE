@@ -4157,12 +4157,25 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
 
       end subroutine getIntraYearInterpolation
 
-      subroutine getInterYearInterpolation(jyeara, jyrnow, 
+      subroutine getInterYearInterpolation(jyeara, jjdaya, jyrnow, 
      &     decades, weights)
       integer, intent(in) :: jyeara
+      integer, intent(in) :: jjdaya
       integer, intent(in) :: jyrnow
       integer, intent(out) :: decades(2)
       real*8, intent(out) :: weights(2)
+
+      integer :: jyearx
+
+      if (jyeara < 0) then
+        jyearx = -jyeara
+      else
+!TODO - hardwired for 365 days?
+        jyearx = min(jyeara+(jjdaya+15)/366,2050)
+      end if
+
+      decades = 0
+      weights = 0
 
       end subroutine getInterYearInterpolation
 
