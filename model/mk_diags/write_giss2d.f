@@ -107,9 +107,11 @@ c
             p2(n) = len_trim(diminfo)
           enddo
         endif
+        vname = ''
         status = nf_inq_varname(fid,varid,vname)
-        lname = vname
+        lname = ''
         status = nf_get_att_text(fid,varid,'long_name',lname)
+        if(status.ne.nf_noerr) lname = vname
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
         if(status.eq.nf_noerr) units = ' ('//trim(units)//') '
