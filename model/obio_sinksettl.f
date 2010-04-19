@@ -7,6 +7,11 @@
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
      .                   ,rhs
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM,  only : nstep=>itime
+#else
+      USE hycom_scalars, only: nstep,baclin
+#endif
 
       implicit none
 
@@ -21,12 +26,13 @@
 
 #ifdef OBIO_ON_GARYocean
 
-!the sinking term is given in units (m/s)*(moles/m3)
-!in order to be converted into moles/m3/s as the tendency
+!the sinking term is given in units (m/hr)*(moles/m3)
+!in order to be converted into moles/m3/hr as the tendency
 !terms are, we need to multiply by dz of each layer:
 !  dz(k  ) * P_tend(k  ) = dz(k  ) * P_tend(k  ) - trnd
 !  dz(k+1) * P_tend(k+1) = dz(k+1) * P_tend(k+1) + trnd
 !this way we ensure conservation of tracer after vertical adjustment
+!the /hr factor is bcz the obio timestep is in hrs.
 
       !phyto sinking
       do nt = nnut+1,ntyp-nzoo
@@ -81,8 +87,7 @@
        do nt=1,nchl
 
           do k=kmax+1,2,-1
-            !need to multiply by timestep in hrs
-            !(which we do not do here becz timestep=1hr)
+            !obio_ws is in m/hr
             obio_ws(k,nt)=.5*(obio_ws(k,nt)+obio_ws(k-1,nt))
           end do
           obio_ws(     1,nt)=0.                !  no flux through sea surface
@@ -99,7 +104,8 @@ cdiag      endif
            do k=1,kmax
             rhs(k,nnut+nt,16)=obio_P(k,nnut+nt)
            enddo
-           call advc1d(kmax,obio_P(1,nnut+nt),p1d,obio_ws(1,nt),
+           call advc1d(kmax,obio_P(1,nnut+nt),p1d,
+     .                 obio_ws(1,nt)*baclin/3600.,
      .                 vrbos,errcon)
            if (errcon) write(*,*)'error in phyto sinking: nt=',nt
 
@@ -122,15 +128,12 @@ cdiag      endif
        !detrital settling
        do nt=1,ndet
           do k=kmax+1,2,-1
-            !detritus
-            !need to multiply by timestep in hrs
-            !(which we do not do here becz timestep=1hr)
+            !detritus settling rates in m/hr
             wsdet(k,nt)=.5*(wsdet(k,nt)+wsdet(k-1,nt))
             !for the moment let wsdet be constant and not depending on T
             !when I tried to change this I would get crossover errors
             !for layers of near-zero thickness
             wsdet(k,nt)=wsdeth(nt)
-
           end do
           wsdet(     1,nt)=0.                !  no flux through sea surface
 
@@ -153,18 +156,22 @@ cdiag      endif
           do k=1,kmax
              wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
           enddo
-!for the moment let flux go through the sea floor.
-!need to change that and create an array that will actually
+!need to change that (?) and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
 !sequastration studies.
 !(sediment=stuff(bottom layer)-stuff(layer above)
 
           do k=1,kmax
+           !this is not really rhs, just a temp storage space
            rhs(k,nnut+nchl+nzoo+nt,16)=det(k,nt)
           enddo
-          call advc1d(kmax,det(1,nt),p1d,wsdet(1,nt),vrbos,errcon)
-          if (errcon) write(*,*)'error in detritus component: nt=',nt
+          call advc1d(kmax,det(1,nt),p1d,
+     .      wsdet(1,nt)*baclin/3600.,vrbos,errcon)
+          if (errcon) write(*,*)
+     .     'error in detritus component: nt=',nt,i,j,kmax
           do k=1,kmax
+
+           !this is really rhs
            rhs(k,nnut+nchl+nzoo+nt,16)=
      .            (det(k,nt)-rhs(k,nnut+nchl+nzoo+nt,16))/obio_deltat
           enddo
