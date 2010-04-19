@@ -6,10 +6,10 @@ LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 !
 ! resolution-dependent:
 ERS=ERS1_1993_MONTHLY.720x360.threshold-13_C90        ! ERS data
-DSRC=Ginoux_2001_updated_hires_withVegMask_v2009_C90  ! preferred sources
-                                              ! optimized use: prefDustSources=0
+DSRC=Ginoux_source_v2009_VegMask_0.25x0.25_to_C90     ! preferred dust sources
+                                           ! optimized use: prefDustSources=1
 ! alternative preferred dust source files:
-!  Ginoux_source_v2009_VegMask_144x90_C90   (optimized use: prefDustSources=1)
+!  Ginoux2001_source_VegMask_144x90_C90     (optimized use: prefDustSources=0)
 !  Ginoux_source_v2009_NoVegMask_144x90_C90 (optimized use: prefDustSources=2)
 !  GriniZender_DustSources_C90_from_144x90  (optimized use: prefDustSources=3)
 !  Tegen_DustSources_C90_from_0.5x0.5       (optimized use: prefDustSources=4)
