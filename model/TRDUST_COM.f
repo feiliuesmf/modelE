@@ -432,8 +432,13 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.036636533D0
+              fracSiltPDFscheme = 0.023985135D0
+#else
               fracClayPDFscheme = 0.091393298D0
               fracSiltPDFscheme = 0.10973922D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.10309873D0
@@ -467,8 +472,13 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.034805282D0
+              fracSiltPDFscheme = 0.0307729D0
+#else
               fracClayPDFscheme = 0.086874723D0
               fracSiltPDFscheme = 0.097082074D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.091387274D0
@@ -502,8 +512,13 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.028216341D0
+              fracSiltPDFscheme = 0.010625339D0
+#else
               fracClayPDFscheme = 0.051027254D0
               fracSiltPDFscheme = 0.047415049D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.059176377D0
@@ -537,8 +552,13 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.015809495D0
+              fracSiltPDFscheme = 0.059532525D-1
+#else
               fracClayPDFscheme = 0.03586315D0
               fracSiltPDFscheme = 0.028140008D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.036893354D0
@@ -572,8 +592,13 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.046381759D0
+              fracSiltPDFscheme = 0.040315694D-1
+#else
               fracClayPDFscheme = 0.083940461D0
               fracSiltPDFscheme = 0.06811547D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.09620785D0
