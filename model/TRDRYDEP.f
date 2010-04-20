@@ -825,7 +825,7 @@ c***  Read VEGTYPEt2b.f for documentation about the binary format
          do I=I_0,I_1
             regcount=0
             do K=1,NVEGTYPE
-               if (FUSE_loc(I,J,K) .gt. 1.e-6) then
+               if (FUSE_loc(I,J,K) .gt. 5.d-4) then
                    regcount=regcount+1
                    ILAND(I,J,regcount)=K-1
                    IUSE(I,J,regcount)=
