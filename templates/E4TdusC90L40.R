@@ -90,7 +90,6 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
 #include "dust_params"
-prefDustSources=0  ! override default prefDustSources=1 (its C90 file comes from 144x90)
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=1800.         ! for FV dynamics, set same as DTsrc
