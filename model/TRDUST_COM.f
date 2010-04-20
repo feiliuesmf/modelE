@@ -97,10 +97,10 @@ c**** wind speed
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
      &   ,'Ginoux2001_source_VegMask_144x90_C90    (uses 144x90 params)'
-     &   ,'Ginoux_source_v2009_VegMask_144x90_C90  (uses 144x90 params)'
+     &   ,'Ginoux_source_v2009_VegMask_0.25x0.25_to_C90(uses 144x90 pa)'
      &   ,'Ginoux_source_v2009_NoVegMask_144x90_C90(uses 144x90 params)'
-     &   ,'GriniZender_DustSources_144x90_C90      (uses 144x90 params)'
-     &   ,'Tegen_DustSources_144x90_C90            (uses 144x90 params)'
+     &   ,'GriniZender_DustSources_C90_from_144x90 (uses 144x90 params)'
+     &   ,'Tegen_DustSources_C90_from_0.5x0.5      (uses 144x90 params)'
      &   /),(/numDustSourceOpt,numResolutionOpt/))
 
 !@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
@@ -447,20 +447,30 @@ c**** set parameters depending on the preferred sources chosen
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.092714686D0 ! not optimized yet
-            fracSiltPDFscheme = 0.11636162D0  ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.091393298D0  ! not optimized yet
+              fracSiltPDFscheme = 0.10973922D0   ! not optimized yet
+            else
+              fracClayPDFscheme = 0.10309873D0   ! not optimized yet
+              fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
+            end if
             ires=3
           case(360)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.092714686D0 ! not optimized yet
-            fracSiltPDFscheme = 0.11636162D0  ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.091393298D0  ! not optimized yet
+              fracSiltPDFscheme = 0.10973922D0   ! not optimized yet
+            else
+              fracClayPDFscheme = 0.10309873D0   ! not optimized yet
+              fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
+            end if
             ires=4
           case(90)              ! uses values for im=144 for now
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.099017658D0  ! not optimized yet
-              fracSiltPDFscheme = 0.072244382D0  ! not optimized yet
+              fracClayPDFscheme = 0.091393298D0  ! not optimized yet
+              fracSiltPDFscheme = 0.10973922D0   ! not optimized yet
             else
-              fracClayPDFscheme = 0.092714686D0  ! not optimized yet
-              fracSiltPDFscheme = 0.11636162D0   ! not optimized yet
+              fracClayPDFscheme = 0.10309873D0   ! not optimized yet
+              fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
             end if
             ires=5
           end select
@@ -487,20 +497,30 @@ c**** set parameters depending on the preferred sources chosen
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.091387274D0 ! not optimized yet
-            fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.086874723D0 ! not optimized yet
+              fracSiltPDFscheme = 0.097082074D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.091387274D0 ! not optimized yet
+              fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
+            end if
             ires=3
           case(360)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.091387274D0 ! not optimized yet
-            fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.086874723D0 ! not optimized yet
+              fracSiltPDFscheme = 0.097082074D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.091387274D0 ! not optimized yet
+              fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
+            end if
             ires=4
           case(90)              ! uses values for im=144 for now
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.092321704D0 ! not optimized yet
-              fracSiltPDFscheme = 0.075609092D0 ! not optimized yet
+              fracClayPDFscheme = 0.086874723D0 ! not optimized yet
+              fracSiltPDFscheme = 0.097082074D0 ! not optimized yet
             else
               fracClayPDFscheme = 0.091387274D0 ! not optimized yet
-              fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+              fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
             end if
             ires=5
           end select
@@ -527,20 +547,30 @@ c**** set parameters depending on the preferred sources chosen
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.057676781D0 ! not optimized yet
-            fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.051027254D0 ! not optimized yet
+              fracSiltPDFscheme = 0.047415049D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.059176377D0 ! not optimized yet
+              fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
+            end if
             ires=3
           case(360)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.057676781D0 ! not optimized yet
-            fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.051027254D0 ! not optimized yet
+              fracSiltPDFscheme = 0.047415049D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.059176377D0 ! not optimized yet
+              fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
+            end if
             ires=4
           case(90)              ! uses values for im=144 for now
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.054054294D0 ! not optimized yet
-              fracSiltPDFscheme = 0.041997386D0 ! not optimized yet
+              fracClayPDFscheme = 0.051027254D0 ! not optimized yet
+              fracSiltPDFscheme = 0.047415049D0 ! not optimized yet
             else
-              fracClayPDFscheme = 0.057676781D0 ! not optimized yet
-              fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+              fracClayPDFscheme = 0.059176377D0 ! not optimized yet
+              fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
             end if
             ires=5
           end select
@@ -567,20 +597,30 @@ c**** set parameters depending on the preferred sources chosen
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.038794273D0 ! not optimized yet
-            fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.03586315D0  ! not optimized yet
+              fracSiltPDFscheme = 0.028140008D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.036893354D0 ! not optimized yet
+              fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
+            end if
             ires=3
           case(360)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.038794273D0 ! not optimized yet
-            fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.03586315D0  ! not optimized yet
+              fracSiltPDFscheme = 0.028140008D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.036893354D0 ! not optimized yet
+              fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
+            end if
             ires=4
           case(90)              ! uses values for im=144 for now
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.035367998D0 ! not optimized yet
-              fracSiltPDFscheme = 0.029040256D0 ! not optimized yet
+              fracClayPDFscheme = 0.03586315D0  ! not optimized yet
+              fracSiltPDFscheme = 0.028140008D0 ! not optimized yet
             else
-              fracClayPDFscheme = 0.038794273D0 ! not optimized yet
-              fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+              fracClayPDFscheme = 0.036893354D0 ! not optimized yet
+              fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
             end if
             ires=5
           end select
@@ -607,20 +647,30 @@ c**** set parameters depending on the preferred sources chosen
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.088998936D0 ! not optimized yet
-            fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.083940461D0 ! not optimized yet
+              fracSiltPDFscheme = 0.06811547D0  ! not optimized yet
+            else
+              fracClayPDFscheme = 0.09620785D0  ! not optimized yet
+              fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
+            end if
             ires=3
           case(360)             ! uses values for im=144 for now
-            fracClayPDFscheme = 0.088998936D0 ! not optimized yet
-            fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.083940461D0 ! not optimized yet
+              fracSiltPDFscheme = 0.06811547D0  ! not optimized yet
+            else
+              fracClayPDFscheme = 0.09620785D0  ! not optimized yet
+              fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
+            end if
             ires=4
           case(90)              ! uses values for im=144 for now
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.080945478D0 ! not optimized yet
-              fracSiltPDFscheme = 0.060172677D0 ! not optimized yet
+              fracClayPDFscheme = 0.083940461D0 ! not optimized yet
+              fracSiltPDFscheme = 0.06811547D0  ! not optimized yet
             else
-              fracClayPDFscheme = 0.088998936D0 ! not optimized yet
-              fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+              fracClayPDFscheme = 0.09620785D0  ! not optimized yet
+              fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
             end if
             ires=5
           end select
