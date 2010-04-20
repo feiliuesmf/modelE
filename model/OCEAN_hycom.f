@@ -832,7 +832,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       USE HYCOM_DIM, only : grid=>ogrid
       use domain_decomp_1d, only : agrid=>grid
       use pario, only : defvar
-      USE HYCOM_ATM, only : gather_atm,scatter_atm,
+      USE HYCOM_ATM, only :
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,
      &     dmsi_loc,dhsi_loc,dssi_loc,asst_loc,atempr_loc
       USE HYCOM_SCALARS, only : nstep,time,nstep0,time0,baclin,oddev
