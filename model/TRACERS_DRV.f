@@ -5807,7 +5807,7 @@ c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_source(2,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'ship source'
+        lname_ijts(k) = 'OC ship source'
         sname_ijts(k) = 'OC_Ship_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -5816,7 +5816,7 @@ c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_source(3,n) = k ! Terpene source should always be last
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Terpene source'
+        lname_ijts(k) = 'OC Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -5836,7 +5836,7 @@ c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_source(1,n) = k ! Terpene source should always be last
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Terpene source'
+        lname_ijts(k) = 'OC Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
