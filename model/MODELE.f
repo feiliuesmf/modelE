@@ -649,6 +649,7 @@ C****
       if (kradia.gt.0) then               ! radiative forcing run
         CALL DAILY(.false.)
         if(Kradia<10)  CALL daily_RAD(.true.)
+        if(Kradia<10)  call daily_EARTH(.false.)
         if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
       else                                ! full model, kradia le 0

@@ -2065,9 +2065,6 @@ ccc                               currently using only topography part
 
       call init_gh(dtsurf,istart)
 
-      ! no need to continue for diags ?
-      if (istart.le.0) return
-
       call init_veg( istart, redogh )
       call init_land_surface(redogh,inisnow,istart)
 
