@@ -50,7 +50,7 @@ C****
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
-     *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN,REFDRY
+     *     ,FS8OPX,FT8OPX, TRRDRY,KRHTRA,TRADEN,REFDRY
      *     ,rcomp1, writer, writet
      *     ,FSTASC,FTTASC
 #ifdef ALTER_RADF_BY_LAT
@@ -87,6 +87,7 @@ C****
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
 #endif
+      use IndirectAerParam_mod, only: dCDNC_est, aermix
       IMPLICIT NONE
 
       INTEGER L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
@@ -821,7 +822,7 @@ c      USE ATMDYN, only : CALC_AMPK
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-     &          ,writer,rcompx,updghg
+     &          ,writer,rcompx,updghg, table
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_chem,FS8OPX,FT8OPX,use_o3_ref,KYEARG,KJDAYG
@@ -966,6 +967,7 @@ c    *     ,SNFST0,TNFST0
 #ifdef RAD_O3_GCM_HRES
       use RAD_native_O3, only: O3JDAY_native,O3JREF_native
 #endif
+      use IndirectAerParam_mod, only: dCDNC_est
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
 C
@@ -1432,7 +1434,7 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
-      call dCDNC_EST(ilon,jlat,pland, dCDNC)
+      call dCDNC_EST(ilon,jlat,pland, dCDNC, table)
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
@@ -3605,53 +3607,6 @@ C****
 C****
       RETURN
       END SUBROUTINE ORBIT
-
-      subroutine dCDNC_EST(i,j,pland, dCDNC)
-!@sum  finds change in cloud droplet number concentration since 1850
-!@auth R. Ruedy
-!@ver  1.0
-      use radpar, only : anssdd, mdpi, mdcur
-      USE CONSTANT, only : pi
-      implicit none
-      integer, intent(in)  :: i,j ! grid coordinates w.r. 72x46 grid
-      real*8 , intent(in)  :: pland ! land fraction
-      real*8 , intent(out) :: dCDNC ! CDNC(cur)-CDNC(1850)
-
-      real*8, parameter, dimension(5) ::
-C                TROPOSPHERIC AEROSOL PARAMETERS
-C                  SO4     NO3    OCX    BCB   BCI
-     &  f_act=(/ 1.0d0,  1.0d0, 0.8d0, 0.6d0, .8d0/), ! soluble fraction
-     &  dens =(/1769d0, 1700d0,  1.d3,  1.d3, 1.d3/)  ! density
-
-      real*8, parameter, dimension(2) ::
-C                    Ocean         Land      ! r**3: r=.085,.052 microns
-     &  radto3 =(/ 614.125d-24, 140.608d-24/),  ! used for SO4,NO3,OC,BC
-     &  scl    =(/     162d0,       298d0/),  ! for Gultepe's formula
-     &  offset =(/     273d0,       595d0/)   ! for Gultepe's formula
-
-      integer it, n
-      real*8  An,An0,cdnc(2),cdnc0(2),fbymass1
-
-      do it=1,2  ! ocean, land
-        An0 = anssdd(i,j)  !  aerosol number of sea salt and dust
-        An  = An0          !  aerosol number of sea salt and dust
-        do n=1,4
-          fbymass1 =  F_act(n)*(.75d0/pi)/(dens(n)*radto3(it))
-          An0 = An0 + mdpi (n,i,j)*fbymass1   ! +fact*tot_mass/part_mass
-          An  = An  + mdcur(n,i,j)*fbymass1
-        end do
-        fbymass1 =  F_act(5)*(.75d0/pi)/(dens(5)*radto3(it))
-        An  = An  + mdcur(5,i,j)*fbymass1
-
-        if(An0.lt.1.) An0=1.
-        if(An .lt.1.) An =1.
-        cdnc0(it) = max( 20d0, scl(it)*log10(AN0)-offset(it))
-        cdnc (it) = max( 20d0, scl(it)*log10(AN )-offset(it))
-      end do
-
-      dCDNC = (1-pland)*(cdnc(1)-cdnc0(1))+pland *(cdnc(2)-cdnc0(2))
-      return
-      end subroutine dCDNC_EST
 
       subroutine updBCd (year)
 !@sum  reads appropriate Black Carbon deposition data if necessary
