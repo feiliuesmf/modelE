@@ -34,7 +34,7 @@ c      integer, parameter :: IM=72, JM=46
       integer, dimension(IM,JM) :: IREG_glob
       integer, dimension(IM,JM,NTYPE) :: ILAND_glob,IUSE_glob
       real*4, dimension(IM,JM,NVEGTYPE) :: FUSE_glob,XLAI_TEMP1,
-     &     XLAI_TEMP2
+     &     XLAI_TEMP2,FUSE_TEMP1,FUSE_TEMP2
       real*8, dimension(im,jm,ntype) :: XLAI_glob
       real*4, dimension(im,jm,ntype) :: XLAI_glob4
       real*4, dimension(im,jm,nvegtype) :: XLAI_out
@@ -79,37 +79,63 @@ c***  for fortran arrays
       read(3100) title,FOCEAN
       close(3100)
 
+        do I=1,IM
+           do J=1,JM
+              do K=1,NVEGTYPE
+                 if (FOCEAN(I,J) .gt. 0.
+     &                .and. FUSE_glob(I,J,K) .eq. 0.) then
+                    FUSE_temp1(I,J,K)=skip
+                 else
+                    FUSE_temp1(I,J,K)=FUSE_glob(I,J,K)
+                 endif
+              enddo
+           enddo
+        enddo
+        write(*,*) "THERE"
+        do k=1,nvegtype
+           call fillin(FUSE_TEMP2(:,:,K),
+     &          FUSE_TEMP1(:,:,K),im,jm,skip,.false.)
+        enddo
+
+c***  Make sure that fractions at a particular cell add up to 1
+      do J=1,JM
+      do I=1,IM
+         if (FUSE_TEMP2(I,J,54) .le. 0.001 
+     &        .and. FUSE_TEMP2(I,J,71) .ge. .9995 ) then
+            write(*,*) "tundra < 0.001 landice",i,j,
+     &        FUSE_TEMP2(I,J,54),FUSE_TEMP2(I,J,71) 
+            FUSE_TEMP2(I,J,71)=FUSE_TEMP2(I,J,71)+FUSE_TEMP2(I,J,54)
+     &        -0.001
+            FUSE_TEMP2(I,J,54)=0.001
+            write(*,*) "after",FUSE_TEMP2(I,J,54),FUSE_TEMP2(I,J,71)
+         endif
+         if ( FUSE_TEMP2(I,J,1) .le. 0.) FUSE_TEMP2(I,J,1)=0.
+         if (abs(sum(FUSE_TEMP2(I,J,:))-1.0) .gt. 0.001) then 
+c            write(6,*) "Warning veg. fractions at cell:",i,j,
+c     &        "do not add up to 1. Difference is more than 1 per mil"
+            FUSE_TEMP2(I,J,:)=FUSE_TEMP2(I,J,:)/sum(FUSE_TEMP2(I,J,:))
+         endif
+      enddo
+      enddo
+
       oname=trim(fname)//".bin"
       write(*,*) oname
 
       open(unit=3200, FILE=oname,FORM='unformatted',STATUS='unknown')
 
-c      TITLE="vegetation fractions, 4x5 grid, please add more info here"
-c      write(3200) TITLE
-
-      do iveg=0,NVEGTYPE-1
+      do iveg=1,NVEGTYPE
          write(vegtype,'(i2)') iveg
          TITLE_VEG_TYPE="veg type="//vegtype
-         write(3200) TITLE_VEG_TYPE,FUSE_glob(:,:,iveg+1)
+         write(3200) TITLE_VEG_TYPE,FUSE_TEMP2(:,:,iveg)
       enddo
-
-
-c      do iveg=0,NVEGTYPE-1
-c         write(vegtype,'(i2)') iveg
-c         TITLE_VEG_TYPE="order type="//vegtype
-c         write(3200) TITLE_VEG_TYPE,order(:,:,iveg+1)
-c      enddo
-
-
-c***  Check that fractions at a particular cell add up to 1
-      if (any(abs(sum(FUSE_glob,3)-1.0) .gt. 0.001)) then 
-         write(6,*) "Warning veg. fractions at cell:",i,j,
-     &        "do not add up to 1. Difference is more than 1 per mil"
-         
-      endif
-
-c      write(6,*) sum(FUSE_glob,3)
  
+      close(unit=3200)
+
+      open(unit=3200, FILE='sumfuse',FORM='unformatted',
+     &     STATUS='unknown')
+      TITLE="sum fuse"
+      write(3200) TITLE,SUM(FUSE_TEMP2,3)
+
       close(unit=3200)
 
 C     Read lai:
@@ -168,7 +194,7 @@ C     Read lai:
      &       STATUS='unknown')
         
         do iveg=1,NVEGTYPE
-           write(vegtype,'(i2)') iveg-1
+           write(vegtype,'(i2)') iveg
            TITLE_VEG_TYPE="LAI corresponding to veg type="//vegtype
            write(3200) TITLE_VEG_TYPE,XLAI_temp2(:,:,iveg)
         enddo
