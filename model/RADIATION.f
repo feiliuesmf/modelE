@@ -8350,7 +8350,6 @@ c     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
 c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      use IndirectAerosolEffect_mod
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
