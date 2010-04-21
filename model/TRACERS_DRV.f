@@ -9322,6 +9322,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
+
       do n=1,ntm_chem
         if(n==n_CH4)then ! ------------------- methane --------------
 #ifdef WATER_MISC_GRND_CH4_SRC
@@ -9365,9 +9366,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           end select
 #endif
         endif !------------------------------------------------------
-#ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))call dynamic_biomass_burning(n,nread+1)
-#endif
       end do
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -9903,6 +9901,9 @@ C****
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
+#endif
 #ifdef TRACERS_TERP
       case ('Terpenes')
         do ns=1,ntsurfsrc(n)
