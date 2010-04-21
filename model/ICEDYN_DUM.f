@@ -2,9 +2,9 @@
 
       MODULE ICEDYN_COM
       integer :: imic=0,kticij=0
-      real*8,dimension(2) :: rsix=0,rsiy=0,usi=0,vsi=0
-      real*8,dimension(2) :: USIDT=0,VSIDT=0,RSISAVE=0
-      real*8,dimension(2) :: icij=0,ticij=0
+      real*8,dimension(:),allocatable :: rsix,rsiy,usi,vsi
+      real*8,dimension(:),allocatable :: USIDT,VSIDT,RSISAVE
+      real*8,dimension(:),allocatable :: icij
       contains
       subroutine alloc_icedyn_com(grid)
       use DOMAIN_DECOMP_ATM, only : DIST_GRID
@@ -26,7 +26,7 @@
 
       SUBROUTINE ICEDYN_DUM
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
-      ENTRY alloc_icedyn
+      !ENTRY alloc_icedyn
       ENTRY alloc_icedyn_com
       ENTRY gather_icdiags
       ENTRY io_icedyn
@@ -46,6 +46,17 @@
 #endif
       RETURN
       END SUBROUTINE ICEDYN_DUM
+
+      SUBROUTINE alloc_icedyn
+      use ICEDYN_COM
+      implicit none
+      allocate( rsix(2), rsiy(2), usi(2), vsi(2))
+      allocate( USIDT(2), VSIDT(2), RSISAVE(2) )
+      allocate( icij(2) )
+      rsix=0; rsiy=0; usi=0; vsi=0
+      USIDT=0; VSIDT=0; RSISAVE=0
+      icij=0
+      END SUBROUTINE alloc_icedyn
 
 
       SUBROUTINE DYNSI
