@@ -1219,7 +1219,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi
       USE MODEL_COM, only: itime,im,jm,fland,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, pack_data,
-     &                         am_i_root, write_parallel
+     &   esmf_bcast, write_parallel
       USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
@@ -1277,6 +1277,12 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 ! Determine if there are new wetlands for given point,
 ! or remove existing wetlands:
 
+       ! for nearest-neighbor all processors must know global source:
+       if(nn_or_zon==0)then 
+         call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob(:,:))
+         call esmf_bcast(grid,src_glob)
+       end if
+
        do j=J_0,J_1
        if(j == 1 .or. j==jm) cycle ! skip the poles
        do i=I_0,imaxj(j)
@@ -1313,22 +1319,18 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
                   endif
                  enddo
                case(0) ! use nearest neighbor approach
-                 call pack_data
-     &           (grid,sfc_src(:,:,n,ns_wet),src_glob(:,:))
-                 if(am_i_root( )) then
-                   ix=0
-                   do while(zmcount == 0.)
-                     ix=ix+1
-                     if(ix>im)call stop_model('ix>im int wetl dist',255)
-                     do ii=i-ix,i+ix ;do jj=j-ix,j+ix
-                       if(ii>0.and.ii<=im.and.jj>0.and.jj<=jm .and.
-     &                 src_glob(ii,jj) > 0.)then
-                         zm=zm+src_glob(ii,jj)
-                         zmcount=zmcount+1.d0
-                       endif
-                     enddo           ;enddo
-                   enddo
-                 endif ! root
+                 ix=0
+                 do while(zmcount == 0.)
+                   ix=ix+1
+                   if(ix>im)call stop_model('ix>im int wetl dist',255)
+                   do ii=i-ix,i+ix ;do jj=j-ix,j+ix
+                     if(ii>0.and.ii<=im.and.jj>0.and.jj<=jm .and.
+     &               src_glob(ii,jj) > 0.)then
+                       zm=zm+src_glob(ii,jj)
+                       zmcount=zmcount+1.d0
+                     endif
+                   enddo           ;enddo
+                 enddo
                case default
                  call stop_model('problem with nn_or_zon',255)
                end select
