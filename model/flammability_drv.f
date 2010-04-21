@@ -164,7 +164,7 @@
       use domain_decomp_1d, only: get,grid,am_i_root,
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
-     & DRAfl,HRAfl,maxHR_prec,nday_prec
+     & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec
 
       implicit none
 
@@ -219,6 +219,9 @@
        header='CALCULATE_FLAMMABILITY: first_prec(i,j) (real)'
         call pack_data(grid,first_prec(:,:),general_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,general_glob
+       header='CALCULATE_FLAMMABILITY: ravg_prec(i,j)'
+        call pack_data(grid,ravg_prec(:,:),general_glob(:,:))
+        if(am_i_root())write(kunit,err=10)header,general_glob
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -242,6 +245,8 @@
           call unpack_data(grid,general_glob(:,:),iHfl(:,:))
           if(am_i_root())read(kunit,err=10)header,general_glob
           call unpack_data(grid,general_glob(:,:),first_prec(:,:))
+          if(am_i_root())read(kunit,err=10)header,general_glob
+          call unpack_data(grid,general_glob(:,:),ravg_prec(:,:))
 
         END SELECT
       END SELECT
@@ -261,6 +266,64 @@
 
       end subroutine io_flammability
 
+#ifdef NEW_IO
+      subroutine def_rsf_flammability(fid)
+!@sum  def_rsf_flammability defines flammability array structure in 
+!@+    restart files
+!@auth Greg Faluvegi (directly from M. Kelley's def_rsf_lakes)
+!@ver  beta
+      use flammability_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+
+      call defvar(grid,fid,drafl,'drafl(dist_im,dist_jm,nday_prec)')
+      call defvar(grid,fid,hrafl,'hrafl(dist_im,dist_jm,maxHR_prec)')
+      call defvar(grid,fid,prsfl,'prsfl(dist_im,dist_jm)')
+      call defvar(grid,fid,i0fl,'i0fl(dist_im,dist_jm)') ! real
+      call defvar(grid,fid,iDfl,'iDfl(dist_im,dist_jm)') ! real
+      call defvar(grid,fid,iHfl,'iHfl(dist_im,dist_jm)') ! real
+      call defvar(grid,fid,first_prec,'first_prec(dist_im,dist_jm)')
+      call defvar(grid,fid,ravg_prec,'ravg_prec(dist_im,dist_jm)')
+
+      return
+      end subroutine def_rsf_flammability
+
+      subroutine new_io_flammability(fid,iaction)
+!@sum  new_io_flammability read/write lake arrays from/to restart files
+!@auth Greg Faluvegi (directly from M. Kelley's new_io_lakes)
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use flammability_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'drafl', drafl )
+        call write_dist_data(grid, fid, 'hrafl', hrafl )
+        call write_dist_data(grid, fid, 'prsfl', prsfl )
+        call write_dist_data(grid, fid, 'i0fl', i0fl )
+        call write_dist_data(grid, fid, 'iDfl', iDfl )
+        call write_dist_data(grid, fid, 'iHfl', iHfl )
+        call write_dist_data(grid, fid, 'first_prec', first_prec )
+        call write_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'drafl', drafl )
+        call read_dist_data(grid, fid, 'hrafl', hrafl )
+        call read_dist_data(grid, fid, 'prsfl', prsfl )
+        call read_dist_data(grid, fid, 'i0fl', i0fl )
+        call read_dist_data(grid, fid, 'iDfl', iDfl )
+        call read_dist_data(grid, fid, 'iHfl', iHfl )
+        call read_dist_data(grid, fid, 'first_prec', first_prec )
+        call read_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+      end select
+      return
+      end subroutine new_io_flammability
+#endif /* NEW_IO */
 
       subroutine flammability_drv
 !@sum driver routine for flammability potential of surface

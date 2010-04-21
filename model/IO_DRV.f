@@ -129,6 +129,9 @@ c
         call new_io_somtq  (fid,iorw)
         call new_io_rad    (fid,iorw)
         call new_io_icedyn (fid,iorw)
+#ifdef CALCULATE_FLAMMABILITY
+        call new_io_flammability(fid,iorw)
+#endif
 #ifdef TRACERS_ON
         call new_io_tracer (fid,iorw)
 #endif
@@ -228,6 +231,9 @@ c
       call def_rsf_clouds (fid)
       call def_rsf_somtq  (fid)
       call def_rsf_rad    (fid)
+#ifdef CALCULATE_FLAMMABILITY
+      call def_rsf_flammability(fid)
+#endif
 #ifdef TRACERS_ON
       call def_rsf_tracer (fid)
 #endif
