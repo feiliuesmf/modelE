@@ -40,6 +40,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "modelE4_source_files"
 #include "dynamic_ocn_source_files"
+OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 Components:
 #include "E4_components"    /* without "Ent" */
