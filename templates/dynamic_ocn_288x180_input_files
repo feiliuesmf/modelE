@@ -3,4 +3,3 @@ OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E1QX1.L32               ! ocean filter
 KBASIN=KB288X180.modelE         ! ocean basin designations
 TOPO_OC=Z1QX1N                  ! ocean fraction and topography
-TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography

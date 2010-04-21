@@ -53,6 +53,7 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 Data input files:
 #include "IC_144x90_input_files"
 #include "dynamic_ocn_288x180_input_files"
+TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
 
 RVR=RD2HX2.OFrac.RVR.bin          ! river direction file (frac. ocean)
 
