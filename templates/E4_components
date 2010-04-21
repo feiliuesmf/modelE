@@ -1,1 +1,1 @@
-shared ESMF_Interface solvers giss_LSM dd2d
+shared ESMF_Interface solvers giss_LSM
