@@ -998,7 +998,7 @@ set snow values and ocean values. This is used mainly for converted
 model II' data.
  <li> <tt>ISTART=8</tt> This is a restart from a model
 configuration identical to the run now starting. This is for
-perturbation experiments etc.
+perturbation experiments etc. See note below.
  <li> <tt>ISTART=9</tt> This is a restart from this model
 run. (i.e. a continuation, or a backtrack to an older rsf file).
  <li> <tt>ISTART=10</tt> This is used internally to pick up
@@ -1020,6 +1020,12 @@ Please note that if you get this wrong i.e. you use an ISTART that is
 not compatible with the AIC, GIC or OIC files in the rundeck, the
 model is not guaranteed to crash nicely. In fact, the opposite is
 likely. Strange crashes on start up are very often related to this.
+
+Note for ISTART=8: Since itime_tr0 defaults to Itime, tracers will be
+reinitialized. To have them keep their setttings from the rsf file,
+set itime_tr0 to < ItimeI (e.g. 0) for all tracers in the rundeck 
+parameters. If you use tracers that depend on (Itime-itime_tr0), you need
+to set itime_tr0 to the starting time of the rsf file for continuity.
 
 <p><A name="part1_3"><b>3) HOW-TO stop and restart the GCM</b></a></p>
 

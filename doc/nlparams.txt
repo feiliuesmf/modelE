@@ -44,10 +44,16 @@ ISTART:        -1: postprocessing
     8: start of a new run - parameters from rundeck+defaults
        In particular: Itime is set to ItimeI, radiation and all diagnostic
        accumulations are performed in the first hour, IRAND is set to its
-       default (unless reset in the rundeck).
+       default (unless reset in the rundeck). See note below.
 
     9: continuation of an old run which happened to have been stopped
        at the beginning of a diagnostic accumulation period
+
+Note: For ISTART=8: Since itime_tr0 defaults to Itime, tracers will be
+      reinitialized. To have them keep their setttings from the rsf file,
+      set itime_tr0 to < ItimeI (e.g. 0) for all tracers in the rundeck
+      parameters. If you use tracers that depend on (Itime-itime_tr0), you need
+      to set itime_tr0 to the starting time of the rsf file for continuity.
 
 Note: ISTART defaults to 10 on restarts;
       make sure, that ISTART<10 is never left in 'I', otherwise
