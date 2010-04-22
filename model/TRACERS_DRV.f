@@ -9897,14 +9897,14 @@ C****
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
      &      'stratOx','codirect')
-        nfill=ntsurfsrc(n)
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          nfill=nfill+1
-          call dynamic_biomass_burning(n,nfill)
+          call dynamic_biomass_burning(n,ntsurfsrc(n))
+          ! better to add array that knows source index
+          ! perhaps do_fire, changed to integer?
         endif
 #endif
-        do ns=1,nfill; do j=J_0,J_1
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
@@ -9942,6 +9942,18 @@ C****
         end do
 #endif  /* TRACERS_TERP */
       case ('CH4')
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))then
+#ifdef WATER_MISC_GRND_CH4_SRC
+          nfill=ntsurfsrc(n)-3 
+#else
+          nfill=ntsurfsrc(n)
+#endif
+          call dynamic_biomass_burning(n,nfill)
+          ! better to add array that knows source index
+          ! perhaps do_fire, changed to integer?
+        endif
+#endif
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
