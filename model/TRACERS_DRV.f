@@ -9530,7 +9530,7 @@ C**** at the start of any day
 #endif
       USE LAKES_COM, only : flake
       implicit none
-      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
+      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg,nfill
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -9897,13 +9897,17 @@ C****
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
      &      'stratOx','codirect')
-        do ns=1,ntsurfsrc(n); do j=J_0,J_1
+        nfill=ntsurfsrc(n)
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))then
+          nfill=nfill+1
+          call dynamic_biomass_burning(n,nfill)
+        endif
+#endif
+        do ns=1,nfill; do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
-#ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
-#endif
 #ifdef TRACERS_TERP
       case ('Terpenes')
         do ns=1,ntsurfsrc(n)
