@@ -69,8 +69,7 @@ ccc      call testOSST()
       call regridVEG(xll2cs_VEG)
       call regridSOIL(xll2cs_SOIL)
 c      call regridGLMELT(xll2cs_GLMELT)
-      call regridVEGFRAC(xll2cs_halfdeg)
-      call regridLAI(xll2cs_halfdeg)
+      call regridVEGFRAC_LAI(xll2cs_halfdeg)
       call regridGIC(xll2cs_GIC,xll2cs_GIC2)
       call regridAIC(xll2cs_AIC)
 
@@ -835,44 +834,71 @@ c*
 
 
 
-      subroutine regridVEGFRAC(x2grids)
+      subroutine regridVEGFRAC_LAI(x2grids)
 c
-c     regriding vegetation fraction used by tracers code
+c     regriding vegetation fraction and LAI used by tracers code
 c
       use regrid
       implicit none
       include 'netcdf.inc'
-      character*80 :: TITLE(nrecmax),name,oname,TITLEFILE
+      character*80 :: TITLE,name,oname,TITLEFILE
       type (x_2grids), intent(inout) :: x2grids
-      real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
-      real*4, allocatable :: ttargr4(:,:,:,:)
+      real*8, allocatable :: vfraccs(:,:,:,:),ones(:,:,:),
+     &     laiglob(:,:,:,:),real8ll(:,:,:)
+      real*4, allocatable :: real4ll(:,:)
       integer :: iu_VEGFRAC,iu_VEGFRACCS,i,j,k,irec,iunit,imt,jmt,
-     &     ntt,maxrec,status,vid,fid,ir
+     &     ntt,maxrec,status,vid,fid,ir,imlon,jmlat
+      integer :: iu_LAI,iu_LAICS,imonth
+      character(len=2) :: c2month 
+      character(len=1) :: c1month 
 
+      imlon = x2grids%imsource
+      jmlat = x2grids%jmsource
       imt=x2grids%imtarget
       jmt=x2grids%jmtarget
       ntt=x2grids%ntilestarget
 
       write(*,*) "imt jmt ntt",imt,jmt,ntt
 
-      allocate( ttargglob(imt,jmt,ntt,nrecmax),
-     &     ttargr4(imt,jmt,ntt,nrecmax),
+      allocate(
+     &     vfracll(imlon,jmlat,nrecmax),
+     &     vfraccs(imt,jmt,ntt,nrecmax),
+     &     laill(imlon,jmlat),
+     &     real8ll(imlon,jmlat,1),
+     &     laics(imt,jmt,ntt),
+     &     real4ll(imlon,jmlat),
      &     ones(imt,jmt,ntt) )
 
-      ttargglob(:,:,:,:) = 0.0
+      vfraccs(:,:,:,:) = 0.0
      
       iu_VEGFRAC=20
       name="vegtype.global.bin"
       write(*,*) name
       open( iu_VEGFRAC, FILE=name,FORM='unformatted', STATUS='old')
-      
-      call read_regrid_4D_1R(x2grids,iu_VEGFRAC,TITLE,ttargglob,maxrec)
+      oname=trim(name)//".CS"
+      write(*,*) oname
+      open( iu_VEGFRACCS, FILE=oname,FORM='unformatted', 
+     &     STATUS='unknown')
 
+      ir = 0
+      do
+        read(iu_VEGFRAC,iostat=ios) title,real4ll
+        if(ios.ne.0) exit
+        ir = ir + 1
+        vfracll(:,:.ir) = real4ll
+        real8ll(:,:,1) = real4ll
+        call do_regrid(x2grids,real8ll,vfraccs(:,:,:,ir))
+        write(iu_VEGFRACCS) TITLE,real(vfraccs(:,:,:,ir),kind=4)
+      enddo
+      maxrec = ir
+      close(iu_VEGFRAC)
+      close(iu_VEGFRACCS)
+      
 c***  
 c***  CONSISTENCY CHECKS: 1) sum(fractions)=1 
 c***  
 
-      ones=sum(ttargglob(1:imt,1:jmt,1:ntt,1:maxrec),4)
+      ones=sum(vfraccs(1:imt,1:jmt,1:ntt,1:maxrec),4)
       
       if (any( abs(ones(1:imt,1:jmt,1:ntt) - 1.0) .gt. 1.d-3 ) ) then 
          write(*,*) "WARNING FRACTIONS DO NOT ADD UP TO 1 
@@ -880,75 +906,32 @@ c***
          write(*,*) "ones=",ones
       endif
 
-      close(iu_VEGFRAC)
-
-      oname=trim(name)//".CS"
-
-      
-      write(*,*) oname
-         
-      open( iu_VEGFRACCS, FILE=oname,FORM='unformatted', 
-     &        STATUS='unknown')
-      
-      ttargr4=ttargglob
-
-      
-      do ir=1,maxrec
-         write(unit=iu_VEGFRACCS) TITLE(ir), ttargr4(:,:,:,ir)
-      enddo
-         
-      close(iu_VEGFRACCS)
-      
-      deallocate(ttargglob,ones,ttargr4)
-   
-      end subroutine regridVEGFRAC
-c*
-
-
-      subroutine regridLAI(x2grids)
-c
-c     regriding LAI used by tracers code
-c
-      use regrid
-      implicit none
-      include 'netcdf.inc'
-      character*80 :: TITLE(nrecmax),name,oname,TITLEFILE
-      type (x_2grids), intent(inout) :: x2grids
-      real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
-      real*4, allocatable :: ttargr4(:,:,:,:)
-      integer :: iu_LAI,iu_LAICS,i,j,k,irec,iunit,imt,jmt,
-     &     ntt,maxrec,status,vid,fid,ir,imonth
-      character(len=2) :: c2month 
-      character(len=1) :: c1month 
-
-      imt=x2grids%imtarget
-      jmt=x2grids%jmtarget
-      ntt=x2grids%ntilestarget
-
-      write(*,*) "imt jmt ntt",imt,jmt,ntt
-
-      iu_LAI=20
-      
+      iu_LAI=21
       do imonth=1,12
-         if (imonth .lt. 10) then
-            write(c1month,'(i1)') imonth
-            c2month="0"//c1month
-         else
-            write(c2month,'(i2)') imonth
-         endif
+         write(c2month,'(i2.2)') imonth
          name='lai'//c2month//'.global.bin'
          write(*,*) name
-      
+         oname=trim(name)//".CS"
          open( iu_LAI, FILE=name,FORM='unformatted', STATUS='old')
-         
-         call read_regrid_write_4D_1R(x2grids,name,iu_LAI)
-         
+         open( iu_LAICS, FILE=oname,FORM='unformatted', 
+     &        STATUS='unknown')
+         do ir=1,maxrec
+           read(iu_LAI) TITLE, real4ll
+           real8ll(:,:,1) = real4ll*vfracll(:,:,ir) ! multiply lai by weight
+           call do_regrid(x2grids,real8ll,laics)
+           where(vfraccs(:,:,:,ir).gt.0.)
+             laics = laics / vfraccs(:,:,:,ir)  ! divide by regridded weight
+           end where
+           write(iu_LAICS) TITLE, real(laics,kind=4)
+         enddo
          close(iu_LAI)
+         close(iu_LAICS)
       enddo
-   
-      end subroutine regridLAI
-c*
 
+      deallocate(vfracll,vfraccs,laill,laics,ones,real4ll,real8ll)
+   
+      end subroutine regridVEGFRAC_LAI
+c*
 
 
       subroutine regridGIC(x2grids,x2grids2)
