@@ -99,7 +99,7 @@ C**** Some local constants
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
-     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
+     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair   
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
@@ -110,6 +110,7 @@ C**** Some local constants
      *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
+     *     ,ij_rh700,ij_t700,ij_q700
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
@@ -353,6 +354,8 @@ C**** Use masking for 850 mb temp/humidity
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
             if (.not. qabove) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
+          CASE (700)            ! 700 mb
+            nT = IJ_T700 ; nQ = IJ_Q700 ; nRH = IJ_RH700 ; qpress=.true.
           CASE (500)            ! 500 mb
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
           CASE (300)            ! 300 mb
@@ -387,7 +390,11 @@ C**** calculate geopotential heights + temperatures
             if (qpress) then
               AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
               AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-              AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHE,PMB(K))
+              if (PMB(K).ge.500) then  ! w.r.t. water
+                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHe,PMB(K))
+              else                     ! w.r.t ice above 500mb
+                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHs,PMB(K))
+              end if
             end if
           end if
 C****
@@ -3636,7 +3643,7 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
         if(nsum_con(k).eq.0) then
           consrv(:,k)=0.
         elseif(nsum_con(k).gt.0) then
-          consrv(:,nsum_con(k)) = consrv(:,nsum_con(k)) + 
+          consrv(:,nsum_con(k)) = consrv(:,nsum_con(k)) +
      &         consrv(:,k)*scale_con(k)*
      &         max(1,idacc(ia_inst))/(idacc(ia_con(k))+1d-20)
         endif
