@@ -7,7 +7,7 @@
       integer, parameter :: imt=90,jmt=90
       type (x_2grids) :: xll2cs_TOPO,
      &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,
-     &     xll2cs_CROPS,xll2cs_SOIL,xll2cs_GLMELT,
+     &     xll2cs_SOIL,xll2cs_GLMELT,
      &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,
      &     xll2cs_VEG,xll2cs_GIC2,
      &     xll2cs_4x5,xll2cs_2x2h,
@@ -46,11 +46,9 @@ c     288x180 for SICE, OSST, TOPO, VEG
       xll2cs_TOPO=xll2cs_1x1q   
       xll2cs_OSST=xll2cs_1x1q
       xll2cs_SICE=xll2cs_1x1q
-      xll2cs_CROPS=xll2cs_1x1q
       xll2cs_VEG=xll2cs_1x1q
 
-c     360x180 for SOIL, GIC, AIC
-      xll2cs_SOIL=xll2cs_1x1
+c     360x180 for GIC, AIC, GLMELT
       xll2cs_GIC=xll2cs_1x1
       xll2cs_AIC=xll2cs_1x1
       xll2cs_GLMELT=xll2cs_1x1 
@@ -58,16 +56,13 @@ c     360x180 for SOIL, GIC, AIC
 c     144x90 for GIC2
       xll2cs_GIC2=xll2cs_2x2h
 
-c     VEGFRAC, LAI : 4x5
-      xll2cs_VEGFRAC=xll2cs_4x5
-      xll2cs_LAI=xll2cs_4x5
-
-      call regridTOPO(xll2cs_TOPO)
-      call regridOSST(xll2cs_OSST)
+c      call regridTOPO(xll2cs_TOPO)
+c      call regridOSST(xll2cs_OSST)
 ccc      call testOSST()
-      call regridSICE(xll2cs_SICE)
-      call regridVEG(xll2cs_VEG)
-      call regridSOIL(xll2cs_SOIL)
+c      call regridSICE(xll2cs_SICE)
+c      call regridVEG(xll2cs_VEG)
+c      call regridSOIL(xll2cs_halfdeg)
+c      call regridSOIL(xll2cs_1x1)
 c      call regridGLMELT(xll2cs_GLMELT)
       call regridVEGFRAC_LAI(xll2cs_halfdeg)
       call regridGIC(xll2cs_GIC,xll2cs_GIC2)
@@ -429,7 +424,7 @@ c*
       character*80 :: TITLE(10),titleZ
       character*80 :: outunformat,outfile
       integer :: ir,ims,jms,nts,imt,jmt,ntt,i,j,k,l,iveg
-      real*8 ::   FJEQ,DLAT_DG,DLAT,DLON,SINV,SINVm1
+      real*8 ::   FJEQ,DLAT_DG,DLAT,DLON,SINV,SINVm1,vsum
       real*8, allocatable :: dxyp(:)
 
 
@@ -497,15 +492,17 @@ c     computing area of latlon cells
          SINVm1  = Sin (DLAT*(J-.5-FJEQ))
          SINV    = Sin (DLAT*(J+.5-FJEQ))
          DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
-         write(*,*) "dxyp=",DXYP(J)
+c         write(*,*) "dxyp=",DXYP(J)
       END DO
 c     end area
       
       do ir=1,10
          read(unit=iuin) TITLE(ir),data
          write(*,*) "TITLE, ir",TITLE(ir),ir
-         tsource= data
-         
+         tsource(1:ims,1:jms,1)=data(1:ims,1:jms,1)*
+     &         fgroundll(1:ims,1:jms)
+        
+  
          totalfrac(ir)=0.
          do j=1,jms
             do i=1,ims
@@ -519,7 +516,28 @@ c     &                 *fgroundll(i,j)
          call do_regrid(x2grids,tsource,ttargglob)
          tout(:,:,ir,:)=ttargglob(:,:,:)
       enddo
-      
+
+c     divide by sum of veg. fractions
+       do k=1,ntt
+         do j=1,jmt
+            do i=1,imt
+               vsum=(tout(i,j,1,k)+
+     &                 tout(i,j,2,k)+tout(i,j,3,k)+
+     &                 tout(i,j,4,k)+tout(i,j,5,k)+
+     &                 tout(i,j,6,k)+tout(i,j,7,k)+
+     &                 tout(i,j,8,k)+tout(i,j,9,k)+
+     &                 tout(i,j,10,k)  ) 
+               if (vsum .gt. 0.) then
+                 tout(i,j,1:10,k)=tout(i,j,1:10,k)/vsum
+               else
+                  if (fgroundCS(i,j,k) .gt. 0.)  
+     &           write(*,*)  "WARNING!!!!!!!!",i,j,k,fgroundCS(i,j,k)
+               endif
+              
+            enddo
+         enddo
+       enddo
+
       iuout=iuout+1
       
       open( iuout, FILE=outunformat,
@@ -532,7 +550,7 @@ c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
             do i=1,imt
                if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.01 .and.
      &              tout(i,j,1,k)+tout(i,j,10,k) .gt. 0. ) then
-                  write(*,*) " v(1)+v(10) < 0.01 at",i,j,k
+c                  write(*,*) " v(1)+v(10) < 0.01 at",i,j,k
                   alpha=1./(1.-(tout(i,j,1,k)+tout(i,j,10,k)) )
                   tout(i,j,1,k)  = 0.
                   tout(i,j,10,k) = 0.
@@ -541,7 +559,7 @@ c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
                   enddo
                endif
                if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.99) then
-                  write(*,*) " v(1)+v(10) > 0.95 at",i,j,k
+c                  write(*,*) " v(1)+v(10) > 0.95 at",i,j,k
                   alpha=1./(1.- (
      &                 tout(i,j,2,k)+tout(i,j,3,k)+
      &                 tout(i,j,4,k)+tout(i,j,5,k)+
@@ -564,7 +582,7 @@ c     fix all fractions
                do iveg=1,10
                   if (tout(i,j,iveg,k) .le. 0.01 .and.
      &                 tout(i,j,iveg,k) .gt. 0. ) then
-                     write(*,*) " >>>v(",iveg,") < 0.01 at",i,j,k
+c                     write(*,*) " >>>v(",iveg,") < 0.01 at",i,j,k
                      alpha=1./( 1.- tout(i,j,iveg,k) )
                      do l=1,10
                         tout(i,j,l,k)=alpha*tout(i,j,l,k)
@@ -587,8 +605,8 @@ c
          do j=1,jmt
             do i=1,imt
                if (abs( arrsum(i,j,k) - 1.0) .gt. 0.0001) then
-                  write(*,*) "arrsum(",i,",",j,",",k,")=",
-     &                 arrsum(i,j,k)
+c                  write(*,*) "arrsum(",i,",",j,",",k,")=",
+c     &                 arrsum(i,j,k)
                endif
             enddo
          enddo
@@ -603,7 +621,7 @@ c
                do i=1,imt
                   totalfrac(iveg)=totalfrac(iveg)
      &                 +tout(i,j,iveg,k)*axyp(i,j)
-c     &                    *fgroundCS(i,j,k)
+     &                    *fgroundCS(i,j,k)
                enddo
             enddo
          enddo
@@ -647,7 +665,8 @@ c
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
       iu_SOIL=20
-      name="S360X180_0098M.rep"
+c      name="S360X180_0098M.rep"
+      name="SOIL720X360_Reynolds"
       
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -844,11 +863,12 @@ c
       character*80 :: TITLE,name,oname,TITLEFILE
       type (x_2grids), intent(inout) :: x2grids
       real*8, allocatable :: vfraccs(:,:,:,:),ones(:,:,:),
-     &     laiglob(:,:,:,:),real8ll(:,:,:)
+     &     laiglob(:,:,:,:),real8ll(:,:,:),vfracll(:,:,:),
+     &     laics(:,:,:)
       real*4, allocatable :: real4ll(:,:)
       integer :: iu_VEGFRAC,iu_VEGFRACCS,i,j,k,irec,iunit,imt,jmt,
      &     ntt,maxrec,status,vid,fid,ir,imlon,jmlat
-      integer :: iu_LAI,iu_LAICS,imonth
+      integer :: iu_LAI,iu_LAICS,imonth,ios
       character(len=2) :: c2month 
       character(len=1) :: c1month 
 
@@ -863,7 +883,6 @@ c
       allocate(
      &     vfracll(imlon,jmlat,nrecmax),
      &     vfraccs(imt,jmt,ntt,nrecmax),
-     &     laill(imlon,jmlat),
      &     real8ll(imlon,jmlat,1),
      &     laics(imt,jmt,ntt),
      &     real4ll(imlon,jmlat),
@@ -885,7 +904,7 @@ c
         read(iu_VEGFRAC,iostat=ios) title,real4ll
         if(ios.ne.0) exit
         ir = ir + 1
-        vfracll(:,:.ir) = real4ll
+        vfracll(:,:,ir) = real4ll
         real8ll(:,:,1) = real4ll
         call do_regrid(x2grids,real8ll,vfraccs(:,:,:,ir))
         write(iu_VEGFRACCS) TITLE,real(vfraccs(:,:,:,ir),kind=4)
@@ -928,7 +947,7 @@ c***
          close(iu_LAICS)
       enddo
 
-      deallocate(vfracll,vfraccs,laill,laics,ones,real4ll,real8ll)
+      deallocate(vfracll,vfraccs,laics,ones,real4ll,real8ll)
    
       end subroutine regridVEGFRAC_LAI
 c*
@@ -1654,6 +1673,7 @@ c*
       do ir=1,maxrec
          call do_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
          tout=ttargglob
+         write(*,*) "test=",tout(58,13,3)
          write(unit=iuout) TITLE(ir),tout
          write(*,*) "TITLE",TITLE(ir)
       enddo
