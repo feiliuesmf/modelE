@@ -1,7 +1,7 @@
 module Dictionary_mod
-!@sum  param does all the bookkeeping for input parameters
-!@auth I. Aleinov
-!@ver 1.0
+!@sum  Provides interfaces to manipulate sets of key-value pairs.
+!@auth I. Aleinov & T.Clune
+!@ver 1.1
 !@usage This module has the following public subroutines. Most of them
 !@+ are Fortramn 90 interfaces, i.e. they recognize the type of the
 !@+ variables implicitly and call corresponding subroutine.
@@ -66,9 +66,27 @@ module Dictionary_mod
   save
   private
 
+  public :: Dictionary_type
+  
   public set_param, get_param, get_pparam, read_param, write_param
   public is_set_param, alloc_param, sync_param, print_param
   public query_param, print_unused_param
+  public :: reset
+
+  character(len=1), parameter :: INTEGER_TYPE   = 'i'
+  character(len=1), parameter :: REAL_TYPE      = 'r'
+  character(len=1), parameter :: LOGICAL_TYPE   = 'l'
+  character(len=1), parameter :: CHARACTER_TYPE = 'c'
+
+
+  type Dictionary_type
+    private
+
+    integer :: numEntries
+    
+
+  end type Dictionary_type
+
 
   integer, parameter :: MAX_PARAMS = 310
   integer, parameter :: MAX_RPARAMS = 286
@@ -124,6 +142,14 @@ module Dictionary_mod
   end interface
 
 contains
+
+  subroutine reset()
+
+    num_param = 0
+    num_rparam = 0
+    num_iparam = 0
+    num_cparam = 0
+  end subroutine reset
 
   function is_set_param( name_in )
     implicit none
