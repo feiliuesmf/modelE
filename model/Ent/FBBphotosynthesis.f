@@ -15,6 +15,8 @@
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
      &     ,frost_hardiness, fbb_night
 
+      public photosynthpar, pspar
+
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
 !      real*8,parameter :: Kelvin = 273.15d0
@@ -160,6 +162,16 @@ cddd      endif
 
 !      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
       Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
+
+
+      if ( IPAR < .000001d0 ) then
+        Atot = 0.d0
+        Anet = - Rd
+        cs = ca - Anet*1.37d0/gb
+        gs = BallBerry(Anet, rh, cs, pspar)
+        ci = cs - Anet/(gs/1.65d0) 
+        return
+      endif
 
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
       ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
