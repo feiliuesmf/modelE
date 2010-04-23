@@ -441,8 +441,13 @@ c**** set parameters depending on the preferred sources chosen
 #endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.039218312D0
+              fracSiltPDFscheme = 0.021643261D0
+#else
               fracClayPDFscheme = 0.10309873D0
               fracSiltPDFscheme = 0.080987688D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
@@ -491,8 +496,13 @@ c**** set parameters depending on the preferred sources chosen
 #endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.038017106D0
+              fracSiltPDFscheme = 0.029505731D0
+#else
               fracClayPDFscheme = 0.091387274D0
               fracSiltPDFscheme = 0.15582714D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
@@ -541,8 +551,13 @@ c**** set parameters depending on the preferred sources chosen
 #endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.03028031D0
+              fracSiltPDFscheme = 0.097915021D-1
+#else
               fracClayPDFscheme = 0.059176377D0
               fracSiltPDFscheme = 0.056770932D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
@@ -591,8 +606,13 @@ c**** set parameters depending on the preferred sources chosen
 #endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.016681537D0
+              fracSiltPDFscheme = 0.054484947D-1
+#else
               fracClayPDFscheme = 0.036893354D0
               fracSiltPDFscheme = 0.039649002D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
@@ -641,8 +661,13 @@ c**** set parameters depending on the preferred sources chosen
 #endif
               OptModelVers='02/20/2010, 23:30 EST'
             else
+#ifdef NUDGE_ON
+              fracClayPDFscheme = 0.048860416D0
+              fracSiltPDFscheme = 0.029009232D-1
+#else
               fracClayPDFscheme = 0.09620785D0
               fracSiltPDFscheme = 0.058139336D0
+#endif
               OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
