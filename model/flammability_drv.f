@@ -120,7 +120,6 @@
 
       if(am_i_root( ))allocate(temp_glob(im,jm),temp4_glob(im,jm))
 
-      flammability(I_0H:I_1H,J_0H:J_1H) = missing
       if(am_i_root( ))then
         call openunit('VEG_DENSE',iu_data,.true.,.true.)
         read(iu_data) title,temp4_glob
@@ -130,7 +129,10 @@
       write(out_line,*) trim(title),' read from VEG_DENSE'
       call write_parallel(trim(out_line))
       call unpack_data( grid, temp_glob, veg_density )
-      if(Itime==ItimeI)first_prec(:,:)=1.d0
+      if(Itime==ItimeI)then
+        first_prec(:,:)=1.d0
+        flammability(:,:)=missing
+      endif
 
 #ifdef DYNAMIC_BIOMASS_BURNING
       epfc(:,:,:)=0.d0 ! by default no fire emissions for tracer
@@ -164,7 +166,7 @@
       use domain_decomp_1d, only: get,grid,am_i_root,
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
-     & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec
+     & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec,flammability
 
       implicit none
 
@@ -222,6 +224,9 @@
        header='CALCULATE_FLAMMABILITY: ravg_prec(i,j)'
         call pack_data(grid,ravg_prec(:,:),general_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,general_glob
+       header='CALCULATE_FLAMMABILITY: flammability(i,j)'
+        call pack_data(grid,flammability(:,:),general_glob(:,:))
+        if(am_i_root())write(kunit,err=10)header,general_glob
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -247,6 +252,8 @@
           call unpack_data(grid,general_glob(:,:),first_prec(:,:))
           if(am_i_root())read(kunit,err=10)header,general_glob
           call unpack_data(grid,general_glob(:,:),ravg_prec(:,:))
+          if(am_i_root())read(kunit,err=10)header,general_glob
+          call unpack_data(grid,general_glob(:,:),flammability(:,:))
 
         END SELECT
       END SELECT
@@ -286,6 +293,7 @@
       call defvar(grid,fid,iHfl,'iHfl(dist_im,dist_jm)') ! real
       call defvar(grid,fid,first_prec,'first_prec(dist_im,dist_jm)')
       call defvar(grid,fid,ravg_prec,'ravg_prec(dist_im,dist_jm)')
+      call defvar(grid,fid,flammability,'flammability(dist_im,dist_jm)')
 
       return
       end subroutine def_rsf_flammability
@@ -311,6 +319,7 @@
         call write_dist_data(grid, fid, 'iHfl', iHfl )
         call write_dist_data(grid, fid, 'first_prec', first_prec )
         call write_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+        call write_dist_data(grid, fid, 'flammability', flammability )
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'drafl', drafl )
         call read_dist_data(grid, fid, 'hrafl', hrafl )
@@ -320,6 +329,7 @@
         call read_dist_data(grid, fid, 'iHfl', iHfl )
         call read_dist_data(grid, fid, 'first_prec', first_prec )
         call read_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+        call read_dist_data(grid, fid, 'flammability', flammability )
       end select
       return
       end subroutine new_io_flammability
