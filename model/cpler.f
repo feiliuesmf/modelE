@@ -8,6 +8,7 @@
      &      J_0,  J_1,  J_0H,  J_1H
       USE DOMAIN_DECOMP_1D, only : am_i_root,pack_data,unpack_data
       USE HYCOM_DIM, only : agrid,ogrid
+      use filemanager, only : findunit
 c
       implicit none
       private
@@ -18,21 +19,27 @@ c
       public nwgta2o,nwgto2a
 
       public wlista2o, wtaua2o, wlista2o_s, wlisto2a, wlisto2a_f
-     .    ,ilista2o_s, jlista2o_s,nlista2o_s, coso, sino
+     .     ,ilista2o_s, jlista2o_s,nlista2o_s, coso, sino
      .     ,ilista2o,  jlista2o,  nlista2o
      .     ,itaua2o,   jtaua2o,   ntaua2o
      .     ,ilisto2a,  jlisto2a,  nlisto2a
      .     ,ilisto2a_f,jlisto2a_f,nlisto2a_f
 
       integer nwgta2o,nwgto2a
-#ifdef ATM4x5_HYCOM2deg
+#ifdef ATM4x5
+#ifdef HYCOM2deg
       parameter (nwgta2o=18,nwgto2a=39)
 #endif
-#ifdef ATM2x2h_HYCOM2deg
+#endif
+#ifdef ATM2x2h
+#ifdef HYCOM2deg
       parameter (nwgta2o=36,nwgto2a=19)
 #endif
-#ifdef ATM2x2h_HYCOM1deg
+#endif
+#ifdef ATM2x2h
+#ifdef HYCOM1deg
       parameter (nwgta2o=37,nwgto2a=48)
+#endif
 #endif
 c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o)
@@ -49,6 +56,7 @@ c
      .                                 ,nlisto2a    (iia,jja)
      .       ,ilisto2a_f(iia,jja,nwgto2a),jlisto2a_f(iia,jja,nwgto2a)
      .                                 ,nlisto2a_f  (iia,jja)
+      integer iu1,iu2,iu3,iu4,iu5,iu6,iu7,iu8
 
       contains
       subroutine ssta2o(flda,fldo)
@@ -129,9 +137,9 @@ c
 c
 c
       subroutine veca2o(tauxa_loc,tauya_loc,tauxo_loc,tauyo_loc)
-c --- mapping vector from agcm A grid to ogcm A grid
-c --- input  tauxa/tauya (N/m2): E_/N_ward on agcm A grid
-c --- output tauxo/tauyo (N/m2): +i_/+j_ward on ogcm A grid (S_/E_ward in Mercador domain)
+c --- mapping vector like stress from agcm to ogcm, both on A grid
+c --- input  tauxa/tauya: E_/N_ward on agcm A grid
+c --- output tauxo/tauyo: +i_/+j_ward on ogcm A grid (S_/E_ward in Mercador domain)
 c
       implicit none
       integer i,j,l,n
@@ -265,9 +273,9 @@ c
       end subroutine flxo2a
 c
       subroutine veco2a(tauxo_loc,tauyo_loc,tauxa_loc,tauya_loc)
-c --- mapping vector from ogcm C grid to agcm A grid
-c --- input  tauxo/tauyo (N/m2): +i_/+j_ward on ogcm C grid (S_/E_ward in Mercador domain)
-c --- output tauxa/tauya (N/m2): E_/N_ward on agcm A grid
+c --- mapping vector like velocity from C grid ogcm to A grid agcm
+c --- input  tauxo/tauyo: +i_/+j_ward (S_/E_ward in Mercador domain) on ocean C grid (@ i-1/2 & j-1/2)
+c --- output tauxa/tauya: E_/N_ward on agcm A grid
 c
       implicit none
       integer i,j,l,n,ia,ja,jb
@@ -294,7 +302,7 @@ c$OMP PARALLEL DO
  10   eward(i,j)=0.
 c$OMP END PARALLEL DO
 c
-c --- rotate taux/tauy to n/e orientation at ocean A grid
+c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
 c --- check velocity bounds
 c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
@@ -311,7 +319,7 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
  12   continue
 c$OMP END PARALLEL DO           
 c
-c --- mapping nward/eward from ogcm to agcm, both on A grid
+c --- weights are for mapping nward/eward from ogcm to agcm, both on A grid
 c
 c$OMP PARALLEL DO
       do 16 ja=1,jja
@@ -370,15 +378,21 @@ c
       implicit none
       integer :: iz,jz
 c
-#ifdef  ATM4x5_HYCOM2deg
+#ifdef  ATM4x5
+#ifdef  HYCOM2deg
        integer, parameter :: nsize1=10249200, nsize2=2079936
 #endif     
-#ifdef ATM2x2h_HYCOM2deg
+#endif     
+#ifdef ATM2x2h
+#ifdef HYCOM2deg
        integer, parameter :: nsize1=20358000, nsize2=3991680
 #endif
-#ifdef ATM2x2h_HYCOM1deg
+#endif     
+#ifdef ATM2x2h
+#ifdef HYCOM1deg
        integer, parameter :: nsize1=83034720, nsize2=10005120
 #endif
+#endif     
 c --- read in all weights
       if (iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8).ne.nsize1 .or.
      .    iia*jja*((nwgto2a*2+1)*4+nwgto2a*8).ne.nsize2) then
@@ -389,39 +403,47 @@ c --- read in all weights
         stop ' wrong size in cpler'
       endif
 c
-      open(21,file=flnma2o,form='unformatted',status='old',
+      call findunit(iu1)
+      open(iu1,file=flnma2o,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
-      read(21,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
-      close(21)
+      read(iu1,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
+      close(iu1)
 c
-      open(22,file=flnma2o_tau,form='unformatted',status='old',
+      call findunit(iu2)
+      open(iu2,file=flnma2o_tau,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
-      read(22,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
-      close(22)
+      read(iu2,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
+      close(iu2)
 c
-      open(23,file=flnmo2a,form='unformatted',status='old',
+      call findunit(iu3)
+      open(iu3,file=flnmo2a,form='unformatted',status='old',
      .  access='direct',recl=nsize2)
-      read(23,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
-      close(23)
+      read(iu3,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
+      close(iu3)
 c
-      open(24,file=flnmcoso,form='unformatted',status='old')
-      read(24) iz,jz,coso,sino
-      close(24)
+      call findunit(iu4)
+      open(iu4,file=flnmcoso,form='unformatted',status='old')
+      read(iu4) iz,jz,coso,sino
+      close(iu4)
       if (iz.ne.iio .or. jz.ne.jjo) then
         write(lp,*) ' iz,jz=',iz,jz
         stop '(wrong iz/jz in cososino.8bin)'
       endif
 c
-#ifdef ATM2x2h_HYCOM1deg
-      open(25,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
+#ifdef ATM2x2h
+#ifdef HYCOM1deg
+      call findunit(iu5)
+      open(iu5,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
      .  access='direct',recl=nsize2)
-      read(25,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
-      close(25)
+      read(iu5,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
+      close(iu5)
 c
-      open(26,file=flnma2o_s,form='unformatted',status='old',   ! TNL
+      call findunit(iu6)
+      open(iu6,file=flnma2o_s,form='unformatted',status='old',   ! TNL
      .  access='direct',recl=nsize1)
-      read(26,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
-      close(26)
+      read(iu6,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
+      close(iu6)
+#endif
 #endif
 c
       return

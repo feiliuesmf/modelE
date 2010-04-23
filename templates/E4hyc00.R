@@ -18,9 +18,10 @@ Preprocessor Options
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 ! #define TRACERS_GASEXCH_Natassa    ! special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
-! #define  ATM4x5_HYCOM2deg  !  4x5 20 layer atm & 20 layer 2deg hycom (195x180)
-! #define  ATM2x2h_HYCOM2deg !2x2.5 40 layer atm & 26 layer 2deg hycom (195x180)
-#define ATM2x2h_HYCOM1deg    !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
+#define ATM2x2h                      ! 2x2.5 40 layer atm
+! #define ATM4x5                     ! 4x5 20 layer atm
+#define HYCOM1deg                    ! 1deg 26 layer hycom (387x360x26)
+! #define HYCOM2deg                  ! 2deg 26 layer hycom (195x180x26)
 End Preprocessor Options
 
 Object modules:

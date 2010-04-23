@@ -12,9 +12,11 @@ c --- hycom version 0.9
 !      USE MODEL_COM, only : focean
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS, only : akpar
+      use filemanager, only : findunit
+
       implicit none
 c
-      integer i,j,k,l,m,n,mm,ia,ja
+      integer i,j,k,l,m,n,mm,ia,ja,iu1,iu2,iu3,iu4
       include 'state_eqn.h'
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
@@ -35,30 +37,30 @@ c
 c --- read 3-d temperature
 c
         write (lp,'(2a)') 'get initial temperature from  ',flnmint
-        open(unit=31,file=flnmint,form='formatted',status='old',
+        call findunit(iu1)
+        open(unit=iu1,file=flnmint,form='formatted',status='old',
      .     action='read')
-c
-        read (31,'(a79)') (preambl(n),n=1,5)
+        read (iu1,'(a79)') (preambl(n),n=1,5)
         write(lp,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
-        read (31,'(10f8.4)') ((temp(i,j,k),i=1,idm),j=1,jdm)
+        read (iu1,'(10f8.4)') ((temp(i,j,k),i=1,idm),j=1,jdm)
         enddo
-        close (31)
+        close (iu1)
         write (lp,100) 'temp field read, layers, 1 -',kk
         call zebra(temp(1,1,1),idm,ii1,jj)
 c
 c --- read 3-d salinity
 c
         write (lp,'(2a)') 'get initial salinity from  ',flnmins
-        open(unit=32,file=flnmins,form='formatted',status='old',
+        call findunit(iu2)
+        open(unit=iu2,file=flnmins,form='formatted',status='old',
      .     action='read')
-c
-        read (32,'(a79)') (preambl(n),n=1,5)
+        read (iu2,'(a79)') (preambl(n),n=1,5)
         write(lp,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
-        read (32,'(10f8.4)') ((saln(i,j,k),i=1,idm),j=1,jdm)
+        read (iu2,'(10f8.4)') ((saln(i,j,k),i=1,idm),j=1,jdm)
         enddo
-        close (32)
+        close (iu2)
         write (lp,100) 'saln field read, layers, 1 -',kk
         call zebra(saln(1,1,1),idm,ii1,jj)
  100    format (a,i4)
@@ -66,15 +68,15 @@ c
 c --- read interface pressure
 c
         write (lp,'(2a)') 'get initial pressure from  ',flnminp
-        open(unit=33,file=flnminp,form='formatted',status='old',
+        call findunit(iu3)
+        open(unit=iu3,file=flnminp,form='formatted',status='old',
      .     action='read')
-c
-        read (33,'(a79)') (preambl(n),n=1,5)
+        read (iu3,'(a79)') (preambl(n),n=1,5)
         write (lp,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
-        read (33,'(10f8.4)') ((p(i,j,k+1),i=1,idm),j=1,jdm)
+        read (iu3,'(10f8.4)') ((p(i,j,k+1),i=1,idm),j=1,jdm)
         enddo
-        close (33)
+        close (iu3)
         write (lp,100) 'pres field read, levels 2 -',kk+1
         call zebra(p(1,1,kk+1),idm,ii1,jj)
 c
@@ -269,14 +271,15 @@ c
 c ---   read-in monthly kpar file
         write(lp,*) 'opening kpar '
         real4=0.
-        open(21,file='kpar',form='unformatted',status='old')
+        call findunit(iu4)
+        open(iu4,file='kpar',form='unformatted',status='old')
         do k=1,12
         write(lp,*) 'reading kpar mo=',k
-        read(21) title,real4
+        read(iu4) title,real4
         write(lp,*)'title=',title(1:60)
         akpar(:,:,k)=real4(:,:)
         enddo
-        close(21)
+        close(iu4)
       endif
 c
 c     call zebra(akpar,idm,idm,jdm)

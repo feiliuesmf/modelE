@@ -91,15 +91,11 @@ c --- thus, the pairs [(ipacn,jpac),(iatln,jatl)],[(ipacs,jpac),(iatls,jatl)]
 c --- refer to identical grid cells in physical space.
 c
       logical, public, parameter :: beropn=.true.  !true if bering strait open
-#ifdef ATM4x5_HYCOM2deg
+#ifdef HYCOM2deg
       integer, public, parameter :: ipacn=67,ipacs=68,jpac= 95
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=156
 #endif
-#ifdef ATM2x2h_HYCOM2deg
-      integer, public, parameter :: ipacn=67,ipacs=68,jpac= 95
-      integer, public, parameter :: iatln= 2,iatls= 1,jatl=156
-#endif
-#ifdef ATM2x2h_HYCOM1deg
+#ifdef HYCOM1deg
       integer, public, parameter :: ipacn=137,ipacs=138,jpac=189
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=312
 #endif
@@ -119,18 +115,6 @@ cmd   data theta/31.20,32.51,33.54,34.35,34.99,35.50,35.91,36.24,
 cmd  .           36.50,36.70,36.85,36.96,37.04,37.10,37.15,37.20/    !medium
 chv   data theta/31.85,33.22,34.26,35.04,35.62,36.05,36.37,36.61,
 chv  .           36.79,36.92,37.01,37.07,37.11,37.14,37.17,37.20/    !heavy
-#ifdef ATM4x5_HYCOM2deg
-      data theta/
-     .  28.50,29.71,30.82,31.83,32.74,33.55,34.26,34.87,35.38,35.80,
-     .  36.14,36.41,36.62,36.78,36.90,36.99,37.07,37.16,37.28,37.45/  !vhv
-#endif
-#ifdef ATM2x2h_HYCOM2deg
-      data theta/
-     .  28.48,29.37,30.21,31.00,31.74,32.43,33.07,33.66,34.20,34.69
-     . ,35.13,35.52,35.86,36.15,36.39,36.58,36.72,36.82,36.89,36.94
-     . ,36.98,37.02,37.07,37.13,37.20,37.28/          ! hv 26
-#endif
-#ifdef ATM2x2h_HYCOM1deg
       data theta/
 c    .  28.89,30.07,31.11,32.02,32.81,33.49,34.07,34.56,34.97,35.31
 c    . ,35.59,35.82,36.01,36.17,36.31,36.44,36.56,36.67,36.77,36.86
@@ -139,7 +123,6 @@ c
      .  28.48,29.37,30.21,31.00,31.74,32.43,33.07,33.66,34.20,34.69
      . ,35.13,35.52,35.86,36.15,36.39,36.58,36.72,36.82,36.89,36.94
      . ,36.98,37.02,37.07,37.13,37.20,37.28/          ! hv 26
-#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- 'baclin' = baroclinic time step
@@ -147,15 +130,11 @@ c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
 c --- 'equatn' = the i index of the equator
       real, public :: equatn
-#ifdef ATM4x5_HYCOM2deg
+#ifdef HYCOM2deg
       data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
       data equatn/122./
 #endif
-#ifdef ATM2x2h_HYCOM2deg
-      data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
-      data equatn/122./
-#endif
-#ifdef ATM2x2h_HYCOM1deg
+#ifdef HYCOM1deg
       data baclin,batrop/1800., 50./,diagfq/365./          ! 1deg full global
       data equatn/243./
 #endif

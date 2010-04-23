@@ -12,6 +12,7 @@ c
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
+      use filemanager, only : findunit
 c
       implicit none
       integer i,j,k,l,n,nn,kn
@@ -52,7 +53,6 @@ c
         stop 'jdate >100'
       endif
 c
-      nop=13
       no=4096 
       inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4  
                                            ! irecl=1 on COMPAQ, irecl=4 on SGI
@@ -60,6 +60,7 @@ c
 c
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 c
+      call findunit(nop)
       open (unit=nop,file=flnm,status='unknown',form='unformatted',
      .      access='direct',recl=length)
       no=1

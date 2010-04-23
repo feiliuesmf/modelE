@@ -21,20 +21,26 @@ c-----------------------------------------------------------------------------
      .ifv,ilv,isv,jfv,jlv,jsv,
      .msk
 
-#ifdef ATM4x5_HYCOM2deg
-      integer, public, parameter :: idm=195,jdm=180,kdm=20,ms=15
+#ifdef ATM4x5
+#ifdef HYCOM2deg
+      integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
      .                             ,iold=181
       integer, public, parameter :: iia=72,jja=46,iio=idm,jjo=jdm
 #endif
-#ifdef ATM2x2h_HYCOM2deg
+#endif
+#ifdef ATM2x2h
+#ifdef HYCOM2deg
       integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
      .                             ,iold=181
       integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
 #endif
-#ifdef ATM2x2h_HYCOM1deg
+#endif
+#ifdef ATM2x2h
+#ifdef HYCOM1deg
       integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
      .                             ,iold=359
       integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
+#endif
 #endif
 
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) \

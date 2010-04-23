@@ -17,8 +17,10 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+      use filemanager, only : findunit
+
       implicit none
-      integer i,j,k,l,n,ia,ib,ja,jb,jp
+      integer i,j,k,l,n,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
       logical, intent(in) :: iniOCEAN
       real realat,sphdis,q
@@ -31,17 +33,18 @@ c --- 'glufac' = regional viscosity enhancement factor
 c
 c --- read basin depth array
       write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
-      open (unit=9,file=flnmdep,form='unformatted',status='old'
+      call findunit(iu1)
+      open (unit=iu1,file=flnmdep,form='unformatted',status='old'
      .     ,action='read')
-      read (9) iz,jz
+      read (iu1) iz,jz
       if (iz.ne.idm .or. jz.ne.jdm) then
         write (lp,'(2(a,2i5))') 'depth file dimensions',iz,jz,
      .   '  should be',idm,jdm
         stop '(geopar)'
       end if
-      rewind (9)
-      read (9) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
-      close (unit=9)
+      rewind (iu1)
+      read (iu1) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
+      close (unit=iu1)
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       do 9 i=1,ii
@@ -98,16 +101,17 @@ c     call prtmsk(ip,depths,util1,idm,ii1,jj,0.,1.,
 c    .     'bottom depth (m)')
 c
       write (lp,'(2a)') 'read lat/lon from ',flnmlat
-      open (33,file=flnmlat,form='unformatted',status='old')
-      read (33) iz,jz
+      call findunit(iu2)
+      open (iu2,file=flnmlat,form='unformatted',status='old')
+      read (iu2) iz,jz
       if (iz.ne.idm .or. jz.ne.jdm) then
         write (lp,'(2(a,2i5))') 'error - idm,jdm =',iz,jz,
      .   ' in lat/lon file should be',idm,jdm
         stop '(geopar)'
       end if
-      rewind 33
-      read (33) iz,jz,lat4,lon4
-      close(33)
+      rewind iu2
+      read (iu2) iz,jz,lat4,lon4
+      close(iu2)
 c
 c$OMP PARALLEL DO PRIVATE(n) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
@@ -473,15 +477,11 @@ c --- add glue in coastal areas
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- add glue to mediterranean:
-#ifdef ATM4x5_HYCOM2deg
+#ifdef HYCOM2deg
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
 #endif
-#ifdef ATM2x2h_HYCOM2deg
-        if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
-     .        glue(i,j)=glufac
-#endif
-#ifdef ATM2x2h_HYCOM1deg
+#ifdef HYCOM1deg
         if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
      . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
      .        glue(i,j)=glufac
@@ -491,26 +491,21 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c$OMP END PARALLEL DO
 c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
-      open (34,file=flnmbas,form='formatted',status='old')
-#ifdef ATM4x5_HYCOM2deg
+      call findunit(iu3)
+      open (iu3,file=flnmbas,form='formatted',status='old')
+#ifdef HYCOM2deg
         do n=1,2
-        read(34,*)
-        read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
+        read(iu3,*)
+        read(iu3,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
         enddo 
 #endif
-#ifdef ATM2x2h_HYCOM2deg
-        do n=1,2
-        read(34,*)
-        read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
-        enddo 
-#endif
-#ifdef ATM2x2h_HYCOM1deg
+#ifdef HYCOM1deg
         do n=1,3
-        read(34,*)
-        read(34,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
+        read(iu3,*)
+        read(iu3,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
         enddo 
 #endif
-      close(34)
+      close(iu3)
 c
       do i=1,ii
       do j=1,jj
