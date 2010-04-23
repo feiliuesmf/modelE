@@ -1257,7 +1257,7 @@ c First check for nitrogen loss > 100% :
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
      &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
-        if(i == iprn .and. j == jprn) then
+        if(prnchg .and. i == iprn .and. j == jprn) then
           write(out_line,*)
      &    changeL(L,n_HNO3),krate(i,j,l,1,1),y(n_HNO3,l)
           call write_parallel(trim(out_line),crit=jay)
