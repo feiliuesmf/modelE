@@ -295,6 +295,18 @@ c Calculation of removal rates on dust surfaces:
 #ifndef SHINDELL_STRAT_CHEM 
       if(which_trop==0 .or. (JPNL<LS1-1.and.which_trop==1))
      &call stop_model('Are you sure JPNL is right?',255)
+#else
+      ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f
+      if(Itime==ItimeI)then
+        if(use_rad_n2o > 0)then
+          write(out_line,*) 'WARNING:use_rad_n2o overrides PIfact_N2O'
+          call write_parallel(trim(out_line))
+        endif
+        if(use_rad_cfc > 0)then
+          write(out_line,*) 'WARNING:use_rad_cfc overrides PIfact_CFC'
+          call write_parallel(trim(out_line))
+        endif
+      endif
 #endif
 
 c Set "chemical time step". Really this is a method of applying only
@@ -1941,11 +1953,6 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       PIfact(:)=1.d0     
       if(PI_run == 1)then
         PIfact(n_NOx)=PIratio_N
-        if(use_rad_n2o > 0 .or. use_rad_cfc > 0) then
-          write(out_line,*)
-     &    'warning: use_rad_{cfc,n2o} overrides PIfact({cfc,n2o})' 
-          call write_parallel(trim(out_line))
-        endif     
         if(use_rad_n2o == 0) PIfact(n_N2O)=PIratio_N2O
         if(use_rad_cfc == 0) PIfact(n_CFC)=PIratio_CFC
       endif
