@@ -156,7 +156,7 @@ cddd      endif
       real*8 :: Ae, Ac, As
       real*8 :: a1,f1,e1
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-#ifdef NEED_ISOPRENE
+#ifdef BIOGENIC_EMISSIONS
       logical, parameter :: need_isoprene = .true.
 #else
       logical, parameter :: need_isoprene = .false.
