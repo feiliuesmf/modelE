@@ -38,6 +38,8 @@
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
       real*8 :: stressH2O       !Water stress factor (fraction, 1=no stress)
+      logical :: first_call
+      real*8 :: Ac
       end type photosynthpar
 
       private
@@ -154,7 +156,11 @@ cddd      endif
       real*8 :: Ae, Ac, As
       real*8 :: a1,f1,e1
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-
+#ifdef NEED_ISOPRENE
+      logical, parameter :: need_isoprene = .true.
+#else
+      logical, parameter :: need_isoprene = .false.
+#endif
       integer, save :: counter = 0
       counter = counter + 1
 
@@ -173,6 +179,29 @@ cddd      endif
         return
       endif
 
+
+!      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
+      ! Photosynthetic rate limited by RuBP saturation
+      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+
+      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
+      if ( pspar%first_call ) then
+        a1 = pspar%Vcmax
+        e1 = 1.d0
+        f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
+
+        !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
+
+        call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
+        !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac
+        pspar%Ac = Ac
+        pspar%first_call = .false.
+      else
+        Ac = pspar%Ac
+      endif
+
+
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
       ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
       ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
@@ -186,21 +215,16 @@ cddd      endif
       e1 = 1.d0
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
-      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
-      !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae
+      if ( a1 < pspar%Vcmax .or. 
+     &     f1 > pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa .or.
+     &     need_isoprene ) then
+        call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
+        !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae
+      else
+        Ae = 1.d30
+      endif
 
-!      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
-      ! Photosynthetic rate limited by RuBP saturation
-      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
-      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
 
-      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
-      a1 = pspar%Vcmax
-      e1 = 1.d0
-      f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa  !umol/mol
-
-      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
-      !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac
 
 !      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
       !Photosynthetic rate limited by "utilization of photosynthetic products"
@@ -869,6 +893,8 @@ cddd      !!print *,'QQQQ ',A,ci
       !pspar%Nleaf = pftpar(p)%Nleaf * phenology factor !Here can adjust Nleaf according
                                 !to foliage N pools or phenology factor.
       pspar%stressH2O = stressH2O
+
+      pspar%first_call = .true.
 
       end subroutine calc_Pspar
 
