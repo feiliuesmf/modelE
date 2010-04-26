@@ -4431,6 +4431,8 @@ c
      &     units='degrees_east')
       call add_coord(cdl_ij_latlon_template,'lat',1,
      &     units='degrees_north')
+      call add_var(cdl_ij_latlon_template,'float axyp(lat,lon) ;',
+     &     units='m^2',long_name='gridcell area')
       cdl_ij_latlon = cdl_ij_latlon_template ! invoke a copy method later
 #else
       ijstr='(lat,lon) ;'
