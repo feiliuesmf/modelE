@@ -101,6 +101,8 @@ c  Initialize
       do i=1,idm
          if(alk_glob(i,j,k).lt.0.) alk_glob(i,j,k)=0.
 
+         alk_glob(i,j,k)=dmax1(alk_glob(i,j,k),2000.d0)   !set minimum =2000
+
 !        write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
 !    .         i,j,k,alk_glob(i,j,k)
       enddo
@@ -694,7 +696,7 @@ c
 
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-      USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
+      USE GEOM, only : DLATM
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
       USE hycom_arrays_glob, only : dpinit
