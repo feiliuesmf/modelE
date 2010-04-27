@@ -176,6 +176,7 @@ cddd      endif
         cs = ca - Anet*1.37d0/gb
         gs = BallBerry(Anet, rh, cs, pspar)
         ci = cs - Anet/(gs/1.65d0) 
+        isp = 0.d0
         return
       endif
 
