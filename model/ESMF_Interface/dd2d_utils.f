@@ -366,7 +366,6 @@ c
       integer, dimension(:), allocatable :: proclist
       logical :: swap_ne,swap_sw,on_ullr
 
-      write(*,*)'here ', __LINE__,__FILE__
       grid%am_i_globalroot = .true. ! initialize to serial-mode default
       grid%npx = npx
       grid%npy = npy
@@ -379,7 +378,6 @@ c
       grid%ied = ied
       grid%jsd = jsd
       grid%jed = jed
-      write(*,*)'here ', __LINE__,__FILE__
 
 #ifdef SERIAL_MODE
       return
