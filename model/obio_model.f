@@ -679,6 +679,9 @@ cdiag.                  tot,ichan=1,nlt)
           tirrq(k) = 0.0
          enddo
 
+#ifdef TRACERS_Alkalinity
+         zc = 75d0  !initial set in case never makes it into edeu
+#endif
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
          if (vrbos) then

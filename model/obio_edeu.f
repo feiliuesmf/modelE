@@ -155,23 +155,23 @@ cdiag        endif
  
 #ifdef TRACERS_Alkalinity
 !define compensation depth
-!     zc = 75. ! in meters (from OCMIP)
+      zc = 75. ! in meters (from OCMIP)
 
 !alternatively, zc is the depth of that light is 1% of top
-      zc=0d0
-      do k=1,kmax
-       !!!definition of zc>=Qtop/100 gives constant zc everywhere
-       !!if (tirrq(1).gt.0. .and. tirrq(k).ge.tirrq(1)/100.) then
-         if (tirrq(1).gt.tirrq_critical) then
-            if (tirrq(k).ge.tirrq_critical) then
-             zc = p1d(k)    !this is really the "shallowest" limit for zc
-            endif
-         else
-             zc = 0d0
-         endif
+!     zc=0d0
+!     do k=1,kmax
+!      !!!definition of zc>=Qtop/100 gives constant zc everywhere
+!      !!if (tirrq(1).gt.0. .and. tirrq(k).ge.tirrq(1)/100.) then
+!        if (tirrq(1).gt.tirrq_critical) then
+!           if (tirrq(k).ge.tirrq_critical) then
+!            zc = p1d(k)    !this is really the "shallowest" limit for zc
+!           endif
+!        else
+!            zc = 0d0
+!        endif
 cdiag write(*,'(a,4i7,3e12.4)')'obio_edeu2: ',
 cdiag.    nstep,i,j,k,p1d(k),tirrq(k)
-      enddo
+!     enddo
 cdiag write(*,'(a,4i7,e12.4)')'obio_edeu3: ',
 cdiag.    nstep,i,j,k,zc
 #endif

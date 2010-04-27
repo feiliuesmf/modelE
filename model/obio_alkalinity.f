@@ -56,7 +56,7 @@
 
       implicit none
 
-      integer nt,k,kmax,nchl1,nchl2,i,j
+      integer nt,k,kmax,nchl1,nchl2,i,j,kzc
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
      .       J_Ca(kmax),term,term1,term2,DOP
       logical vrbos
@@ -139,6 +139,18 @@ cdiag.                    p1d(k+1),bn,cnratio
            F_Ca(k) = rain_ratio*cpratio*Fc*exp(-1.d0*(p1d(k)-zc)/d_Ca)
          endif
       enddo
+
+      !find layer index for zc
+      do k=kmax+1,1,-1
+           if (p1d(k).gt.zc) kzc = k
+      enddo
+
+      !p1d(kzc) is really the compensation depth
+      !F_Ca(kzc) is the CaCO3 export
+      write(*,'(a,i8,3i5,7e12.4)')'CaCO3 downward flux:',
+     .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
+     .        exp(-1.d0*(p1d(kzc)-zc)/d_Ca),F_Ca(kzc)
+
 
 !compute sources/sinks of CaCO3
       do k=1,kmax
