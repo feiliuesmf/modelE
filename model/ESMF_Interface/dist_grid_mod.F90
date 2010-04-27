@@ -432,8 +432,8 @@
     &     deCountList = (/ 1, NPES_WORLD /))
 
       allocate(ims(0:0), jms(0:npes_world-1))
-      npes_used = npes_world
-      if (present(npes_max)) npes_used = min(npes_max, npes_world)
+      npes_used = min(npes_world, jm-2) ! jm-2 is latlon-specific
+      if (present(npes_max)) npes_used = min(npes_max, npes_used)
       jms(0:npes_used-1) = getLatitudeDistribution(jm, npes_used)
       if(npes_used<npes_world) jms(npes_used:npes_world-1) = 0
 
