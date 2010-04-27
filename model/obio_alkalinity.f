@@ -50,6 +50,7 @@
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
+      USE ODIAG, only: ij_fca,oij=>oij_loc
 #else
       USE hycom_scalars, only: nstep
 #endif
@@ -147,10 +148,13 @@ cdiag.                    p1d(k+1),bn,cnratio
 
       !p1d(kzc) is really the compensation depth
       !F_Ca(kzc) is the CaCO3 export
-      write(*,'(a,i8,3i5,7e12.4)')'CaCO3 downward flux:',
-     .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
-     .        exp(-1.d0*(p1d(kzc)-zc)/d_Ca),F_Ca(kzc)
+!     write(*,'(a,i8,3i5,7e12.4)')'CaCO3 downward flux:',
+!    .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
+!    .        exp(-1.d0*(p1d(kzc)-zc)/d_Ca),F_Ca(kzc)
 
+#ifdef OBIO_ON_GARYocean
+      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(kzc)
+#endif
 
 !compute sources/sinks of CaCO3
       do k=1,kmax

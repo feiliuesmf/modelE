@@ -43,6 +43,9 @@
      .                    ,ao_co2flux
 #endif
 #endif
+#ifdef TRACERS_Alkalinity
+     .                    ,zc
+#endif
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        

@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=23,KOIJL=26,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=24,KOIJL=26,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -55,6 +55,9 @@
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk
      .           ,ij_flux,ij_Ed,ij_Es
+#ifdef TRACERS_Alkalinity
+     .           ,ij_fca
+#endif
 #endif
 
 !@var IJL_xxx Names for OIJL diagnostics
@@ -1175,6 +1178,16 @@ c
       units_oij(k)="grC/m2/yr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
+
+#ifdef TRACERS_Alkalinity
+      k=k+1
+      IJ_fca=k
+      lname_oij(k)="CaCO3 export flux at compensation depth"
+      sname_oij(k)="oij_fca"
+      units_oij(k)="??"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+#endif
 
 #endif
 
