@@ -17,6 +17,7 @@ module testDictionary_mod
   public :: testReadWrite
 
   ! tests of new implementation
+  public :: testKeyNotFound
   public :: testGetValueA
   public :: testGetValueB
   public :: testGetValueReal64
@@ -24,6 +25,8 @@ module testDictionary_mod
   public :: testGetNumEntries
   public :: testHasKey
   public :: testGetKeys
+  
+  public :: testToLowerCase
 
 contains
 
@@ -158,6 +161,17 @@ contains
   end subroutine testReadWrite
 
 
+  subroutine testKeyNotFound()
+    type (Dictionary_type) :: aDictionary
+    integer :: i
+
+    aDictionary = Dictionary()
+    call lookup(aDictionary, 'alpha', i)
+    if (.not. catch('Key not found: <alpha>.')) then
+      call throw(Exception('Failed to detect missing key.'))
+    end if
+  end subroutine testKeyNotFound
+
   subroutine testGetValueA()
     type (Dictionary_type) :: aDictionary
     integer :: expected, found
@@ -257,5 +271,9 @@ contains
 
     call clean(aDictionary)
   end subroutine testGetKeys
+
+  subroutine testToLowerCase()
+    call assertEqual('abcdef123abcdef',toLowerCase('AbCdEf123aBcDeF'))
+  end subroutine testToLowerCase
 
 end module testDictionary_mod

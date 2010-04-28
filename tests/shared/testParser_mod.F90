@@ -129,29 +129,29 @@ contains
   subroutine testGetValueType()
     use Dictionary_mod
 
-    call assertEqual(INTEGER_CASE, getValueType('3'))
-    call assertEqual(INTEGER_CASE, getValueType('123456'))
+    call assertEqual(INTEGER_TYPE, getValueType('3'))
+    call assertEqual(INTEGER_TYPE, getValueType('123456'))
 
-    call assertEqual(REAL64_CASE, getValueType('1.'))
-    call assertEqual(REAL64_CASE, getValueType('1.2'))
-    call assertEqual(REAL64_CASE, getValueType('1.2e+10'))
-    call assertEqual(REAL64_CASE, getValueType('234.6d-12'))
+    call assertEqual(REAL64_TYPE, getValueType('1.'))
+    call assertEqual(REAL64_TYPE, getValueType('1.2'))
+    call assertEqual(REAL64_TYPE, getValueType('1.2e+10'))
+    call assertEqual(REAL64_TYPE, getValueType('234.6d-12'))
 
-    call assertEqual(LOGICAL_CASE, getValueType('.true.'))
-    call assertEqual(LOGICAL_CASE, getValueType('.false.'))
-    call assertEqual(LOGICAL_CASE, getValueType('T'))
-    call assertEqual(LOGICAL_CASE, getValueType('F'))
-    call assertEqual(LOGICAL_CASE, getValueType('t'))
-    call assertEqual(LOGICAL_CASE, getValueType('f'))
-    call assertEqual(LOGICAL_CASE, getValueType('t'))
-    call assertEqual(LOGICAL_CASE, getValueType('false'))
-    call assertEqual(LOGICAL_CASE, getValueType('true'))
+    call assertEqual(LOGICAL_TYPE, getValueType('.true.'))
+    call assertEqual(LOGICAL_TYPE, getValueType('.false.'))
+    call assertEqual(LOGICAL_TYPE, getValueType('T'))
+    call assertEqual(LOGICAL_TYPE, getValueType('F'))
+    call assertEqual(LOGICAL_TYPE, getValueType('t'))
+    call assertEqual(LOGICAL_TYPE, getValueType('f'))
+    call assertEqual(LOGICAL_TYPE, getValueType('t'))
+    call assertEqual(LOGICAL_TYPE, getValueType('false'))
+    call assertEqual(LOGICAL_TYPE, getValueType('true'))
 
-    call assertEqual(STRING_CASE, getValueType('hello'))
-    call assertEqual(STRING_CASE, getValueType('truely'))
-    call assertEqual(STRING_CASE, getValueType('Fa'))
-    call assertEqual(STRING_CASE, getValueType('''.true.''')) ! has quotes => string
-    call assertEqual(STRING_CASE, getValueType('".true."')) ! has quotes => string
+    call assertEqual(STRING_TYPE, getValueType('hello'))
+    call assertEqual(STRING_TYPE, getValueType('truely'))
+    call assertEqual(STRING_TYPE, getValueType('Fa'))
+    call assertEqual(STRING_TYPE, getValueType('''.true.''')) ! has quotes => string
+    call assertEqual(STRING_TYPE, getValueType('".true."')) ! has quotes => string
 
   end subroutine testGetValueType
 
@@ -161,14 +161,14 @@ contains
 !@+ treated as string.
     use Dictionary_mod
 
-    call assertEqual(INTEGER_CASE, getValueType(['3','4']))
-    call assertEqual(REAL64_CASE, getValueType(['3.','4 ']))
-    call assertEqual(REAL64_CASE, getValueType(['3 ','4.', '5 ']))
-    call assertEqual(REAL64_CASE, getValueType(['3 ','4.']))
-    call assertEqual(REAL64_CASE, getValueType(['3.','4.']))
+    call assertEqual(INTEGER_TYPE, getValueType(['3','4']))
+    call assertEqual(REAL64_TYPE, getValueType(['3.','4 ']))
+    call assertEqual(REAL64_TYPE, getValueType(['3 ','4.', '5 ']))
+    call assertEqual(REAL64_TYPE, getValueType(['3 ','4.']))
+    call assertEqual(REAL64_TYPE, getValueType(['3.','4.']))
 
-    call assertEqual(LOGICAL_CASE, getValueType(['T     ','F     ','.true.']))
-    call assertEqual(STRING_CASE,  getValueType(['3     ','F     ','.true.']))
+    call assertEqual(LOGICAL_TYPE, getValueType(['T     ','F     ','.true.']))
+    call assertEqual(STRING_TYPE,  getValueType(['3     ','F     ','.true.']))
 
   end subroutine testGetCommonValueType
 
@@ -317,6 +317,9 @@ contains
 
     call lookup(aDictionary, 'gamma', gammaValue)
     call assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
+
+    call lookup(aDictionary, 'Gamma', gammaValue)
+    call assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
     call lookup(aDictionary, 'delta', deltaValues)
     call assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')

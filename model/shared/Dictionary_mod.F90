@@ -1,6 +1,8 @@
 !TODO delete alloc_param
 module Dictionary_mod
 !@sum  Provides interfaces to manipulate sets of key-value pairs.
+!@+  This type of data structure is also knows as an associative array
+!@+  and a map.
 !@auth I. Aleinov & T.Clune
 !@ver 1.1
 !@usage This module has the following public subroutines. Most of them
@@ -41,7 +43,7 @@ module Dictionary_mod
 !@+     dim - integer - dimension of an array; omit 'dim' for scalars
 !@+     opt - character*1 - an optional "option" (opt='o' means
 !@+       "overwrite")
-!@+     kunut - integer - unit number for reading/writing
+!@+     kunit - integer - unit number for reading/writing
 !@+     ptype - character*1, intent(out) - returns the type of the
 !@+       parameter: 'i' for integer, 'r' for real*8, 'c' for character
 !@+     ovrwrt - logical - if .true. then reading overwrites those
@@ -87,7 +89,7 @@ module Dictionary_mod
   public is_set_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
-  public :: lowcase
+  public :: lowcase, toLowerCase
 
   ! params
   public :: INTEGER_TYPE
@@ -170,15 +172,14 @@ module Dictionary_mod
     module procedure sync_aiparam, sync_arparam, sync_acparam
   end interface
 
+  ! Constructors
   interface KeyValuePair
-    module procedure KeyValuePair_pair
-
+    module procedure KeyValuePair_pair ! copy constructor
     module procedure KeyValuePair_integer
     module procedure KeyValuePair_real64
     module procedure KeyValuePair_logical
     module procedure KeyValuePair_string
     module procedure KeyValuePair_dictionary
-
     module procedure KeyValuePair_integerArray
     module procedure KeyValuePair_real64Array
     module procedure KeyValuePair_logicalArray
@@ -186,19 +187,23 @@ module Dictionary_mod
     module procedure KeyValuePair_dictionaryArray
   end interface
 
-  ! dictionary
-  interface lookup
-    module procedure lookup_keyInteger
-    module procedure lookup_keyReal64
-    module procedure lookup_keyLogical
-    module procedure lookup_keyString
-    module procedure lookup_keyDictionary
+  ! Constructors
+  interface Dictionary
+    module procedure Dictionary_empty
+    module procedure Dictionary_copy
+  end interface
 
-    module procedure lookup_keyIntegerArray
-    module procedure lookup_keyReal64Array
-    module procedure lookup_keyLogicalArray
-    module procedure lookup_keyStringArray
-    module procedure lookup_keyDictionaryArray
+  interface lookup
+    module procedure lookup_integer
+    module procedure lookup_real64
+    module procedure lookup_logical
+    module procedure lookup_string
+    module procedure lookup_dictionary
+    module procedure lookup_integerarray
+    module procedure lookup_real64array
+    module procedure lookup_logicalarray
+    module procedure lookup_stringarray
+    module procedure lookup_dictionaryarray
   end interface
 
   ! pairs
@@ -208,7 +213,6 @@ module Dictionary_mod
     module procedure getValue_logical
     module procedure getValue_string
     module procedure getValue_dictionary
-
     module procedure getValue_integerArray
     module procedure getValue_real64Array
     module procedure getValue_logicalArray
@@ -218,9 +222,6 @@ module Dictionary_mod
 
   interface clean
     module procedure cleanKeyValuePair
-  end interface
-
-  interface clean
     module procedure cleanDictionary
   end interface
 
@@ -238,16 +239,10 @@ module Dictionary_mod
     module procedure insert_real64
     module procedure insert_logical
     module procedure insert_string
-
     module procedure insert_integerArray
     module procedure insert_real64Array
     module procedure insert_logicalArray
     module procedure insert_stringArray
-  end interface
-
-  interface Dictionary
-    module procedure Dictionary_empty
-    module procedure Dictionary_copy
   end interface
 
 contains
@@ -282,13 +277,9 @@ contains
     character*(*), intent(in) :: name_in
     logical is_set_param
     integer n
-    character*(MAX_NAME_LEN) name
-
-    name = name_in
-    call lowcase( name )
 
     do n=1,num_param
-      if ( Params(n)%name == name ) exit
+      if ( Params(n)%name == toLowerCase(name_in) ) exit
     enddo
 
     if ( n > num_param  ) then
@@ -307,7 +298,6 @@ contains
     character*1, intent(in) ::  attrib
     type (ParamStr), pointer :: PStr
     logical, intent(in) :: flag
-    character*(MAX_NAME_LEN) name
 
     if ( len(name_in) > MAX_NAME_LEN ) then
       print *, 'PARAM: parameter name too long: ', name_in
@@ -315,15 +305,12 @@ contains
       call stop_model('PARAM: parameter name too long: ',255)
     endif
 
-    name = name_in
-    call lowcase( name )
-
-    call get_pstr( name, dim, attrib, PStr )
+    call get_pstr( toLowerCase(name_in), dim, attrib, PStr )
 
     if ( associated( PStr ) ) then
       if ( .not. flag ) then
         print *, 'PARAM: attempt to set param which is already set'
-        print *, 'name: ', name
+        print *, 'name: ', toLowerCase(name_in)
         call stop_model( &
              &         'PARAM: attempt to set param which is already set',255)
       else
@@ -341,7 +328,7 @@ contains
 
     num_param = num_param + 1
     PStr => Params(num_param)
-    PStr%name = name
+    PStr%name = toLowerCase(name_in)
     PStr%attrib = attrib
     PStr%dim = dim
 
@@ -390,21 +377,17 @@ contains
     character*1, intent(in) ::  attrib
     type (ParamStr), pointer :: PStr
     integer n
-    character*(MAX_NAME_LEN) name
-
-    name = name_in
-    call lowcase( name )
 
     nullify( PStr )
 
     do n=1,num_param
-      if ( Params(n)%name == name ) exit
+      if ( Params(n)%name == toLowerCase(name_in) ) exit
     enddo
 
     if ( n > num_param  ) return   ! not found - return NULL
 
     if ( Params(n)%attrib /= attrib .or. Params(n)%dim /= dim ) then
-      print *, 'PARAM: wrong type or dim of parameter: ', name
+      print *, 'PARAM: wrong type or dim of parameter: ', toLowerCase(name_in)
       print *, 'ATT: set: ', Params(n)%attrib, ' called: ', attrib
       print *, 'DIM: set: ', Params(n)%dim, ' called: ', dim
       call stop_model('PARAM: wrong type or dim of parameter',255)
@@ -953,6 +936,26 @@ contains
   end subroutine query_param
 
 
+  function toLowerCase(string) result(newString)
+    character(len=*), intent(in) :: string
+    character(len=len_trim(string)) :: newString
+
+    integer n, i
+    integer A, Z, shift, c
+
+    A = iachar( 'A' )
+    Z = iachar( 'Z' )
+    shift = iachar( 'a' ) - iachar( 'A' )
+
+    newString = trim(string)
+    n = len(newString)
+    do i=1,n
+      c = iachar( newString(i:i) )
+      if ( c>=A .and. c<=Z ) newString(i:i) = achar( c + shift )
+    enddo
+
+  end function toLowerCase
+
   subroutine lowcase( str )
     ! converts string str to lower case
     implicit none
@@ -1469,7 +1472,7 @@ contains
     getNumEntries = size(this%pairs)
   end function getNumEntries
 
-  subroutine lookup_keyInteger(this, key, value)
+  subroutine lookup_integer(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     integer, intent(out) :: value
@@ -1478,9 +1481,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
 
-  end subroutine lookup_keyInteger
+  end subroutine lookup_integer
 
-  subroutine lookup_keyReal64(this, key, value)
+  subroutine lookup_real64(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     real*8, intent(out) :: value
@@ -1489,9 +1492,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
 
-  end subroutine lookup_keyReal64
+  end subroutine lookup_real64
 
-  subroutine lookup_keyLogical(this, key, value)
+  subroutine lookup_logical(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     logical, intent(out) :: value
@@ -1500,9 +1503,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
 
-  end subroutine lookup_keyLogical
+  end subroutine lookup_logical
 
-  subroutine lookup_keyString(this, key, value)
+  subroutine lookup_string(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(out) :: value
@@ -1511,9 +1514,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
 
-  end subroutine lookup_keyString
+  end subroutine lookup_string
 
-  subroutine lookup_keyDictionary(this, key, value)
+  subroutine lookup_dictionary(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     type (Dictionary_type), intent(out) :: value
@@ -1522,9 +1525,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
 
-  end subroutine lookup_keyDictionary
+  end subroutine lookup_dictionary
 
-  subroutine lookup_keyIntegerArray(this, key, values)
+  subroutine lookup_integerArray(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     integer, intent(out) :: values(:)
@@ -1533,9 +1536,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
 
-  end subroutine lookup_keyIntegerArray
+  end subroutine lookup_integerArray
 
-  subroutine lookup_keyReal64Array(this, key, values)
+  subroutine lookup_real64Array(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     real*8, intent(out) :: values(:)
@@ -1544,9 +1547,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
     
-  end subroutine lookup_keyReal64Array
+  end subroutine lookup_real64Array
 
-  subroutine lookup_keyLogicalArray(this, key, values)
+  subroutine lookup_logicalArray(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     logical, intent(out) :: values(:)
@@ -1555,9 +1558,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
 
-  end subroutine lookup_keyLogicalArray
+  end subroutine lookup_logicalArray
 
-  subroutine lookup_keyStringArray(this, key, values)
+  subroutine lookup_stringArray(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(out) :: values(:)
@@ -1566,9 +1569,9 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
 
-  end subroutine lookup_keyStringArray
+  end subroutine lookup_stringArray
 
-  subroutine lookup_keyDictionaryArray(this, key, values)
+  subroutine lookup_dictionaryArray(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     type (Dictionary_type), intent(out) :: values(:)
@@ -1577,7 +1580,7 @@ contains
     i = getIndex(this, key)
     if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
 
-  end subroutine lookup_keyDictionaryArray
+  end subroutine lookup_dictionaryArray
 
   subroutine cleanKeyValuePair(this)
     type (KeyValuePair_type), intent(in) :: this
@@ -1641,12 +1644,15 @@ contains
 
     integer :: i
     do i = 1, getNumEntries(this)
-      if (key == getKey(this%pairs(i))) then
+      if (toLowerCase(key) == toLowerCase(getKey(this%pairs(i)))) then
         index = i
         return
       end if
     end do
     index = NOT_FOUND
+#ifdef USE_PFUNIT
+    call throw(Exception('Key not found: <'//trim(key)//'>.'))
+#endif
     
   end function getIndex
 
