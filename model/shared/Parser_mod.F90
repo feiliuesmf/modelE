@@ -280,8 +280,7 @@ contains
       allocate(values(n))
       do i = 1, n
         token = tokens(i)
-        call lowcase(token)
-        select case(token)
+        select case(toLowerCase(token))
         case ('t', 'true', '.true.')
           values(i) = .true.
         case ('f', 'false', '.false.')
@@ -386,16 +385,12 @@ contains
 
   logical function isLogical(string)
 !@sum Allow a variety of convenient formats for true/false values
-    use Dictionary_mod, only: lowcase
+    use Dictionary_mod, only: toLowerCase
     character(len=*), intent(in) :: string
     logical :: logicalValue
     integer :: status
     
-    character(len=len(string)) :: tmpString
-
-    tmpString = string
-    call lowCase(tmpString)
-    select case (trim(tmpString))
+    select case (trim(toLowerCase(string)))
     case ('t','f','true','false','.true.','.false.')
       isLogical = .true.
     case default

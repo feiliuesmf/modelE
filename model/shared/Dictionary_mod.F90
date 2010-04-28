@@ -89,7 +89,7 @@ module Dictionary_mod
   public is_set_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
-  public :: lowcase, toLowerCase
+  public :: toLowerCase
 
   ! params
   public :: INTEGER_TYPE
@@ -955,23 +955,6 @@ contains
     enddo
 
   end function toLowerCase
-
-  subroutine lowcase( str )
-    ! converts string str to lower case
-    implicit none
-    character*(*) str
-    integer n, i
-    integer A, Z, shift, c
-
-    A = iachar( 'A' )
-    Z = iachar( 'Z' )
-    shift = iachar( 'a' ) - iachar( 'A' )
-    n = len_trim(str)
-    do i=1,n
-      c = iachar( str(i:i) )
-      if ( c>=A .and. c<=Z ) str(i:i) = achar( c + shift )
-    enddo
-  end subroutine lowcase
 
   !**** the code below is included for compatibility with older     ****
   !**** versions; it may be removed later when not needed any more  ****
