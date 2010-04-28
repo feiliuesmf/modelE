@@ -36,7 +36,7 @@ module JulianCalendar_mod
   integer, parameter :: MID_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR+1) = (/ &
        & -15,16,45,75,106,136,167,197,228,259,289,320,350,381 &
        & /)
-  integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) MID_JULIAN_DAY_IN_MONTH
+  integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) = MID_JULIAN_DAY_IN_MONTH
 
   real*8, parameter :: SECONDS_PER_DAY = 86400.,   SDAY = SECONDS_PER_DAY
   real*8, parameter :: EARTH_DAYS_PER_DAY = 1.,    EDPERD = EARTH_DAYS_PER_DAY
