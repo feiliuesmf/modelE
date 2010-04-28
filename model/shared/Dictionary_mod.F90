@@ -1,3 +1,4 @@
+!TODO delete alloc_param
 module Dictionary_mod
 !@sum  Provides interfaces to manipulate sets of key-value pairs.
 !@auth I. Aleinov & T.Clune
@@ -61,32 +62,77 @@ module Dictionary_mod
 !@+ 04/18/02 added 3 bytes to ParamStr so that its size is
 !@+ divisible by 4 (needed for portability SGI,LINUX <-> IBM,COMPAQ).
 !@+ Header renamed to "PARAM02 "
-
+#ifdef USE_PFUNIT
+  use pFUnit
+#endif
   implicit none
   save
   private
 
+  ! types
   public :: Dictionary_type
+  public :: KeyValuePair_type
+
+  ! constructor
+  public :: Dictionary
+  public :: clean
+  public :: KeyValuePair
+
+  ! Accessors
+  public :: insert
+  public :: getNumEntries
+  public :: getKey
+  public :: lookup
+  public :: getValue
+  public :: getType
+  public :: getNumValues
+  public :: hasKey
+  public :: getKeys
+
   
   public set_param, get_param, get_pparam, read_param, write_param
   public is_set_param, alloc_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
+  public :: lowcase
 
-  character(len=1), parameter :: INTEGER_TYPE   = 'i'
-  character(len=1), parameter :: REAL_TYPE      = 'r'
-  character(len=1), parameter :: LOGICAL_TYPE   = 'l'
-  character(len=1), parameter :: CHARACTER_TYPE = 'c'
+  ! params
+  public :: INTEGER_TYPE
+  public :: REAL64_TYPE
+  public :: LOGICAL_TYPE
+  public :: STRING_TYPE
+  public :: DICT_TYPE
 
+  integer, parameter :: INTEGER_TYPE = 1
+  integer, parameter :: REAL64_TYPE  = 2
+  integer, parameter :: LOGICAL_TYPE = 3
+  integer, parameter :: STRING_TYPE  = 4
+  integer, parameter :: DICT_TYPE = 5
+
+  public :: MAX_LEN_KEY
+  public :: MAX_LEN_VALUE
+  integer, parameter :: MAX_LEN_KEY = 128
+  integer, parameter :: MAX_LEN_VALUE = 128
+
+  integer, parameter :: NOT_FOUND = -1
+
+  type KeyValuePair_type
+    private
+    character(len=MAX_LEN_KEY) :: key
+    integer :: valueType
+    integer :: numElements
+
+    integer, pointer :: integerValues(:) => null()
+    real*8,  pointer :: real64Values(:) => null()
+    logical, pointer :: logicalValues(:) => null()
+    character(len=MAX_LEN_VALUE), pointer :: stringValues(:) => null()
+    type (Dictionary_type), pointer :: dictionaryValues(:) => null()
+  end type KeyValuePair_type
 
   type Dictionary_type
     private
-
-    integer :: numEntries
-    
-
+    type (KeyValuePair_type), pointer :: pairs(:) => null()
   end type Dictionary_type
-
 
   integer, parameter :: MAX_PARAMS = 310
   integer, parameter :: MAX_RPARAMS = 286
@@ -141,10 +187,107 @@ module Dictionary_mod
     module procedure sync_aiparam, sync_arparam, sync_acparam
   end interface
 
+  interface KeyValuePair
+    module procedure KeyValuePair_pair
+
+    module procedure KeyValuePair_integer
+    module procedure KeyValuePair_real64
+    module procedure KeyValuePair_logical
+    module procedure KeyValuePair_string
+    module procedure KeyValuePair_dictionary
+
+    module procedure KeyValuePair_integerArray
+    module procedure KeyValuePair_real64Array
+    module procedure KeyValuePair_logicalArray
+    module procedure KeyValuePair_stringArray
+    module procedure KeyValuePair_dictionaryArray
+  end interface
+
+  ! dictionary
+  interface lookup
+    module procedure lookup_keyInteger
+    module procedure lookup_keyReal64
+    module procedure lookup_keyLogical
+    module procedure lookup_keyString
+    module procedure lookup_keyDictionary
+
+    module procedure lookup_keyIntegerArray
+    module procedure lookup_keyReal64Array
+    module procedure lookup_keyLogicalArray
+    module procedure lookup_keyStringArray
+    module procedure lookup_keyDictionaryArray
+  end interface
+
+  ! pairs
+  interface getValue
+    module procedure getValue_integer
+    module procedure getValue_real64
+    module procedure getValue_logical
+    module procedure getValue_string
+    module procedure getValue_dictionary
+
+    module procedure getValue_integerArray
+    module procedure getValue_real64Array
+    module procedure getValue_logicalArray
+    module procedure getValue_stringArray
+    module procedure getValue_dictionaryArray
+  end interface
+
+  interface clean
+    module procedure cleanKeyValuePair
+  end interface
+
+  interface clean
+    module procedure cleanDictionary
+  end interface
+
+  interface getType
+    module procedure getType_pair
+    module procedure getType_integer
+    module procedure getType_real64
+    module procedure getType_logical
+    module procedure getType_string
+    module procedure getType_dictionary
+  end interface
+
+  interface insert
+    module procedure insert_integer
+    module procedure insert_real64
+    module procedure insert_logical
+    module procedure insert_string
+
+    module procedure insert_integerArray
+    module procedure insert_real64Array
+    module procedure insert_logicalArray
+    module procedure insert_stringArray
+  end interface
+
+  interface Dictionary
+    module procedure Dictionary_empty
+    module procedure Dictionary_copy
+  end interface
+
 contains
 
-  subroutine reset()
+  function Dictionary_empty() 
+    type (Dictionary_type) :: Dictionary_empty
+    allocate(Dictionary_empty%pairs(0))
+  end function Dictionary_empty
 
+  function Dictionary_copy(original) result(copy)
+    type (Dictionary_type), intent(in) :: original
+    type (Dictionary_type) :: copy
+
+    integer :: i
+
+    allocate(copy%pairs(getNumEntries(original)))
+    do i = 1, getNumEntries(original)
+      copy%pairs(i) = KeyValuePair(original%pairs(i))
+    end do
+
+  end function Dictionary_copy
+
+  subroutine reset()
     num_param = 0
     num_rparam = 0
     num_iparam = 0
@@ -170,6 +313,7 @@ contains
     else
       is_set_param = .true.
     endif
+
     return
   end function is_set_param
 
@@ -1083,6 +1227,618 @@ contains
 10  print *, 'PARAM: Error reading, unit = ', kunit
     call stop_model('PARAM: Error reading',255)
   end subroutine read_param_comp01
+
+  function KeyValuePair_pair(original) result(copy)
+    type (KeyValuePair_type), intent(in) :: original
+    type (KeyValuePair_type) :: copy
+
+    select case (getType(original))
+    case (INTEGER_TYPE)
+      copy = KeyValuePair(original%key, original%integerValues)
+    case (REAL64_TYPE)
+      copy = KeyValuePair(original%key, original%real64Values)
+    case (LOGICAL_TYPE)
+      copy = KeyValuePair(original%key, original%logicalValues)
+    case (STRING_TYPE)
+      copy = KeyValuePair(original%key, original%stringValues)
+    case (DICT_TYPE)
+      copy = KeyValuePair(original%key, original%dictionaryValues)
+    end select
+
+  end function KeyValuePair_pair
+
+  function KeyValuePair_integer(key, value) result(pair)
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: value
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = INTEGER_TYPE
+    pair%numElements = 1
+    allocate(pair%integerValues(1))
+    pair%integerValues(1) = value
+  end function KeyValuePair_integer
+
+  function KeyValuePair_real64(key, value) result(pair)
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: value
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = REAL64_TYPE
+    pair%numElements = 1
+    allocate(pair%real64Values(1))
+    pair%real64Values(1) = value
+  end function KeyValuePair_real64
+
+  function KeyValuePair_logical(key, value) result(pair)
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: value
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = LOGICAL_TYPE
+    pair%numElements = 1
+    allocate(pair%logicalValues(1))
+    pair%logicalValues(1) = value
+  end function KeyValuePair_logical
+
+  function KeyValuePair_string(key, value) result(pair)
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: value
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = STRING_TYPE
+    pair%numElements = 1
+    allocate(pair%stringValues(1))
+    pair%stringValues(1) = value
+  end function KeyValuePair_string
+
+  function KeyValuePair_dictionary(key, value) result(pair)
+    character(len=*), intent(in) :: key
+    type (Dictionary_type), intent(in) :: value
+    type (KeyValuePair_type) :: pair
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+
+    pair%key = key
+    pair%valueType = DICT_TYPE
+    pair%numElements = 1
+
+    allocate(pair%dictionaryValues(1))
+    pair%dictionaryValues(1) = Dictionary(value)
+
+  end function KeyValuePair_dictionary
+
+  function KeyValuePair_integerArray(key, values) result(pair)
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: values(:)
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = INTEGER_TYPE
+    pair%numElements = size(values)
+    allocate(pair%integerValues(size(values)))
+    pair%integerValues = values
+  end function KeyValuePair_integerArray
+
+  function KeyValuePair_real64Array(key, values) result(pair)
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: values(:)
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = REAL64_TYPE
+    pair%numElements = size(values)
+    allocate(pair%real64Values(size(values)))
+    pair%real64Values = values
+  end function KeyValuePair_real64Array
+
+  function KeyValuePair_logicalArray(key, values) result(pair)
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: values(:)
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = LOGICAL_TYPE
+    pair%numElements = size(values)
+    allocate(pair%logicalValues(size(values)))
+    pair%logicalValues = values
+  end function KeyValuePair_logicalArray
+
+  function KeyValuePair_stringArray(key, values) result(pair)
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: values(:)
+    type (KeyValuePair_type) :: pair
+
+    pair%key = key
+    pair%valueType = STRING_TYPE
+    pair%numElements = size(values)
+    allocate(pair%stringValues(size(values)))
+    pair%stringValues = values
+  end function KeyValuePair_stringArray
+
+  function KeyValuePair_dictionaryArray(key, values) result(pair)
+    character(len=*), intent(in) :: key
+    type (Dictionary_type), intent(in) :: values(:)
+    type (KeyValuePair_type) :: pair
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    integer :: i
+
+    pair%key = key
+    pair%valueType = DICT_TYPE
+    pair%numElements = size(values)
+
+    allocate(pair%dictionaryValues(size(values)))
+    do i = 1, size(values)
+      pair%dictionaryValues(i) = Dictionary(values(i))
+    end do
+
+  end function KeyValuePair_dictionaryArray
+
+  function getKey(this) result(key)
+    type (KeyValuePair_type) :: this
+    character(len=MAX_LEN_KEY) :: key
+    key = trim(this%key)
+  end function getKey
+
+  integer function getType_pair(this)
+    type (KeyValuePair_type) :: this
+    integer :: valueType
+    getType_pair = this%valueType
+  end function getType_pair
+
+  integer function getType_integer(value)
+    integer, intent(in) :: value
+    getType_integer = INTEGER_TYPE
+  end function getType_integer
+
+  integer function getType_real64(value)
+    real*8, intent(in) :: value
+    getType_real64 = REAL64_TYPE
+  end function getType_real64
+
+  integer function getType_logical(value)
+    logical, intent(in) :: value
+    getType_logical = LOGICAL_TYPE
+  end function getType_logical
+
+  integer function getType_string(value)
+    character(len=*), intent(in) :: value
+    getType_string = STRING_TYPE
+  end function getType_string
+
+  integer function getType_dictionary(value)
+    type (Dictionary_type), intent(in) :: value
+    getType_dictionary = DICT_TYPE
+  end function getType_dictionary
+
+  function getNumValues(this) result(numValues)
+    type (KeyValuePair_type) :: this
+    integer :: numValues
+
+    select case(this%valueType)
+    case (INTEGER_TYPE)
+      numValues = size(this%integerValues)
+    case (REAL64_TYPE)
+      numValues = size(this%real64Values)
+    case (LOGICAL_TYPE)
+      numValues = size(this%logicalValues)
+    case (STRING_TYPE)
+      numValues = size(this%stringValues)
+    end select
+
+  end function getNumValues
+
+  logical function check(this, valueType, numElements)
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(in) :: valueType
+    integer, intent(in) :: numElements
+
+    check = (this%valueType == valueType)
+#ifdef USE_PFUNIT
+    if (.not. check) then
+      call throw(Exception('Incorrect type for specified key: <' &
+           & // trim(this%key) // '>'))
+      return
+    end if
+#endif
+    check = (numElements == this%numElements)
+#ifdef USE_PFUNIT
+    if (.not. check) then
+      call throw(Exception('Incorrect number of elements for specified key: <' &
+           & // trim(this%key) // '>'))
+      return
+    end if
+#endif
+
+
+
+  end function check
+
+  subroutine getValue_integer(this, value)
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(out) :: value
+
+    if (check(this, getType(value), 1)) then
+      value = this%integerValues(1)
+    end if
+
+  end subroutine getValue_integer
+
+  subroutine getValue_real64(this, value)
+    type (KeyValuePair_type), intent(in) :: this
+    real*8, intent(out) :: value
+
+    if (check(this, getType(value), 1)) then
+      value = this%real64Values(1)
+    end if
+      
+  end subroutine getValue_real64
+  
+  subroutine getValue_logical(this, value)
+    type (KeyValuePair_type), intent(in) :: this
+    logical, intent(out) :: value
+
+    if (check(this, getType(value), 1)) then
+      value = this%logicalValues(1)
+    end if
+
+  end subroutine getValue_logical
+
+  subroutine getValue_string(this, value)
+    type (KeyValuePair_type), intent(in) :: this
+    character(len=*), intent(out) :: value
+
+    if (check(this, getType(value), 1)) then
+      value = this%stringValues(1)
+    end if
+
+  end subroutine getValue_string
+
+  subroutine getValue_dictionary(this, value)
+    type (KeyValuePair_type), intent(in) :: this
+    type (Dictionary_type), intent(out) :: value
+
+    if (check(this, getType(value), 1)) then
+      value = this%dictionaryValues(1) ! shallow copy
+    end if
+
+  end subroutine getValue_dictionary
+
+  subroutine getValue_integerArray(this, values)
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(out) :: values(:)
+
+    if (check(this, getType(values(1)), size(values))) then
+      values = this%integerValues
+    end if
+
+  end subroutine getValue_integerArray
+
+  subroutine getValue_real64Array(this, values)
+    type (KeyValuePair_type), intent(in) :: this
+    real*8, intent(out) :: values(:)
+
+    if (check(this, getType(values(1)),size(values))) then
+      values = this%real64Values
+    end if
+
+  end subroutine getValue_real64Array
+
+  subroutine getValue_logicalArray(this, values)
+    type (KeyValuePair_type), intent(in) :: this
+    logical, intent(out) :: values(:)
+
+    if (check(this, getType(values(1)), size(values))) then
+      values = this%logicalValues
+    end if
+
+  end subroutine getValue_logicalArray
+
+  subroutine getValue_stringArray(this, values)
+    type (KeyValuePair_type), intent(in) :: this
+    character(len=*), intent(out) :: values(:)
+
+    if (check(this, getType(values(1)), size(values))) then
+      values = this%stringValues
+    end if
+
+  end subroutine getValue_stringArray
+
+  subroutine getValue_dictionaryArray(this, values)
+    type (KeyValuePair_type), intent(in) :: this
+    type (Dictionary_type), intent(out) :: values(:)
+
+    if (check(this, getType(values(1)), 1)) then
+      values = this%dictionaryValues(1) ! shallow copy
+    end if
+
+  end subroutine getValue_dictionaryArray
+
+  subroutine addEntry(this)
+!@sum Creates space for new entry in dictionary
+    type (Dictionary_type), intent(inout) :: this
+
+    type (KeyValuePair_type), pointer :: oldPairs(:)
+    integer :: numEntries
+
+    oldPairs => this%pairs
+    numEntries = getNumEntries(this)
+    allocate(this%pairs(numEntries+1))
+    this%pairs(1:numEntries) = oldPairs  ! shallow copy
+    deallocate(oldPairs)
+
+  end subroutine addEntry
+
+  subroutine insert_integer(this, key, value)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: value
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
+
+  end subroutine insert_integer
+
+  subroutine insert_real64(this, key, value)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: value
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
+
+  end subroutine insert_real64
+
+  subroutine insert_logical(this, key, value)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: value
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
+
+  end subroutine insert_logical
+
+  subroutine insert_string(this, key, value)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: value
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
+
+  end subroutine insert_string
+
+  subroutine insert_integerArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(in) :: values(:)
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
+
+  end subroutine insert_integerArray
+
+  subroutine insert_real64Array(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(in) :: values(:)
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
+
+  end subroutine insert_real64Array
+
+  subroutine insert_logicalArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(in) :: values(:)
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
+
+  end subroutine insert_logicalArray
+
+  subroutine insert_stringArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: values(:)
+    
+    call addEntry(this)
+    this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
+
+  end subroutine insert_stringArray
+
+  integer function getNumEntries(this)
+    type (Dictionary_type), intent(in) :: this
+    getNumEntries = size(this%pairs)
+  end function getNumEntries
+
+  subroutine lookup_keyInteger(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
+
+  end subroutine lookup_keyInteger
+
+  subroutine lookup_keyReal64(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
+
+  end subroutine lookup_keyReal64
+
+  subroutine lookup_keyLogical(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
+
+  end subroutine lookup_keyLogical
+
+  subroutine lookup_keyString(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
+
+  end subroutine lookup_keyString
+
+  subroutine lookup_keyDictionary(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    type (Dictionary_type), intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), value)
+
+  end subroutine lookup_keyDictionary
+
+  subroutine lookup_keyIntegerArray(this, key, values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(out) :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
+
+  end subroutine lookup_keyIntegerArray
+
+  subroutine lookup_keyReal64Array(this, key, values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(out) :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
+    
+  end subroutine lookup_keyReal64Array
+
+  subroutine lookup_keyLogicalArray(this, key, values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(out) :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
+
+  end subroutine lookup_keyLogicalArray
+
+  subroutine lookup_keyStringArray(this, key, values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(out) :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
+
+  end subroutine lookup_keyStringArray
+
+  subroutine lookup_keyDictionaryArray(this, key, values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    type (Dictionary_type), intent(out) :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
+
+  end subroutine lookup_keyDictionaryArray
+
+  subroutine cleanKeyValuePair(this)
+    type (KeyValuePair_type), intent(in) :: this
+    
+    integer :: i
+
+    select case (this%valueType)
+    case (INTEGER_TYPE)
+      deallocate(this%integerValues)
+    case (REAL64_TYPE)
+      deallocate(this%real64Values)
+    case (LOGICAL_TYPE)
+      deallocate(this%logicalValues)
+    case (STRING_TYPE)
+      deallocate(this%stringValues)
+    case (DICT_TYPE)
+      do i = 1, size(this%dictionaryValues)
+        call clean(this%dictionaryValues(i))
+      end do
+      deallocate(this%dictionaryValues)
+    end select
+
+  end subroutine cleanKeyValuePair
+
+  subroutine cleanDictionary(this)
+    type (Dictionary_type), intent(in) :: this
+    integer :: i
+    do i = 1, size(this%pairs)
+      call clean(this%pairs(i))
+    end do
+    deallocate(this%pairs)
+  end subroutine cleanDictionary
+
+  logical function hasKey(this, key)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+
+    integer :: i
+
+    hasKey = .false.
+    do i = 1, getNumEntries(this)
+      if (trim(key) == getKey(this%pairs(i))) then
+        hasKey = .true.
+        return
+      end if
+    end do
+
+  end function hasKey
+
+  function getKeys(this) result(keys)
+    type (Dictionary_type), intent(in) :: this
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    keys => this%pairs(:)%key
+
+  end function getKeys
+
+  integer function getIndex(this, key) result(index)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+
+    integer :: i
+    do i = 1, getNumEntries(this)
+      if (key == getKey(this%pairs(i))) then
+        index = i
+        return
+      end if
+    end do
+    index = NOT_FOUND
+    
+  end function getIndex
+
 end module Dictionary_mod
 
 

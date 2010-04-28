@@ -4,6 +4,7 @@ module testDictionary_mod
   implicit none
   private
 
+  ! tests of legacy functionality
   public :: testSetInteger
   public :: testSetReal
   public :: testSetString
@@ -14,6 +15,15 @@ module testDictionary_mod
 
   public :: testQuery
   public :: testReadWrite
+
+  ! tests of new implementation
+  public :: testGetValueA
+  public :: testGetValueB
+  public :: testGetValueReal64
+
+  public :: testGetNumEntries
+  public :: testHasKey
+  public :: testGetKeys
 
 contains
 
@@ -146,4 +156,106 @@ contains
     call deleteFile('dictionary.dat')
 
   end subroutine testReadWrite
+
+
+  subroutine testGetValueA()
+    type (Dictionary_type) :: aDictionary
+    integer :: expected, found
+
+    expected = 1
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'key', expected)
+    call lookup(aDictionary, 'key', found)
+    call assertEqual(expected, found)
+
+    call clean(aDictionary)
+
+  end subroutine testGetValueA
+
+  subroutine testGetValueB()
+    type (Dictionary_type) :: aDictionary
+    integer :: expectedA, foundA
+    integer :: expectedB, foundB
+
+    expectedA = 1
+    expectedB = 2
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'keyA', expectedA)
+    call insert(aDictionary, 'keyB', expectedB)
+
+    call lookup(aDictionary, 'keyB', foundB)
+    call assertEqual(expectedB, foundB)
+
+    call lookup(aDictionary, 'keyA', foundA)
+    call assertEqual(expectedA, foundA)
+
+    call clean(aDictionary)
+
+  end subroutine testGetValueB
+
+  subroutine testGetValueReal64()
+    type (Dictionary_type) :: aDictionary
+    real(kind=r64) :: expected, found
+
+    expected = 1
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'key', expected)
+    call lookup(aDictionary, 'key', found)
+    call assertEqual(expected, found)
+
+    call clean(aDictionary)
+
+  end subroutine testGetValueReal64
+
+  subroutine testGetNumEntries()
+    type (Dictionary_type) :: aDictionary
+    real(kind=r64) :: expected, found
+
+    expected = 1
+    aDictionary = Dictionary()
+
+    call assertEqual(0, getNumEntries(aDictionary))
+
+    call insert(aDictionary, 'key', expected)
+    call assertEqual(1, getNumEntries(aDictionary))
+
+    call insert(aDictionary, 'key', expected)
+    call assertEqual(2, getNumEntries(aDictionary))
+
+  end subroutine testGetNumEntries
+
+  subroutine testHasKey()
+    type (Dictionary_type) :: aDictionary
+
+    aDictionary = Dictionary()
+    call assertFalse(hasKey(aDictionary, 'a'))
+
+    call insert(aDictionary, 'a', 1)
+    call assertTrue(hasKey(aDictionary, 'a'))
+    call assertFalse(hasKey(aDictionary, 'b'))
+
+    call insert(aDictionary, 'b', 1)
+    call assertTrue(hasKey(aDictionary, 'a'))
+    call assertTrue(hasKey(aDictionary, 'b'))
+
+    call clean(aDictionary)
+
+  end subroutine testHasKey
+
+  subroutine testGetKeys()
+    type (Dictionary_type) :: aDictionary
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'a', 1)
+    call insert(aDictionary, 'b', 1)
+
+    keys => getKeys(aDictionary)
+    call assertEqual(2, size(keys))
+    call assertTrue(any(keys == 'b'))
+    call assertTrue(any(keys == 'a'))
+
+    call clean(aDictionary)
+  end subroutine testGetKeys
+
 end module testDictionary_mod

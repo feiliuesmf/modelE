@@ -8,7 +8,7 @@ PFUNIT_TEST_DIRECTORIES =./profiler ./shared
 SOURCE_DIR = ../model
 
 PFUNIT_LFLAGS+= -L$(SOURCE_DIR)/profiler -lprofiler -L$(SOURCE_DIR)/shared -lshared
-EXTRA_FFLAGS += -$I$(SOURCE_DIR)/profiler -$I$(SOURCE_DIR)/shared
+EXTRA_FFLAGS += -$I$(SOURCE_DIR)/profiler -$I$(SOURCE_DIR)/shared -DUSE_PFUNIT
 PFUNIT_TEST_PATTERNS=test%
 MPI_FC=mpif90
 FC=ifort
