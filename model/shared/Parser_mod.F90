@@ -228,6 +228,7 @@ contains
 #ifdef USE_PFUNIT
       if (size(tokens) < 2) then
         call throw(Exception('Parser_mod: syntax error in input unit.'))
+        cycle
       end if
 #endif
       call readAndInsert(aDictionary, key=tokens(1), tokens=tokens(2:))
