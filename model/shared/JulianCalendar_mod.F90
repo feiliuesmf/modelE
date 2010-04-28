@@ -89,7 +89,8 @@ module JulianCalendar_mod
        & /)
 
 !@var AMONTH(0:12)  (3-4 letter) names for all months
-  integer :: i
+! AMONTH(0) = 'IC' (i.e. initial conditions) only used early in a
+! model run.  Should find a way to eliminate it.
   character*4, parameter :: AMONTH(0:12) = (/ 'IC  ', JULIAN_MONTHS%shortName /)
 
 
