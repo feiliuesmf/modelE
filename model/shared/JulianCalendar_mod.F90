@@ -1,13 +1,17 @@
 module JulianCalendar_mod
 !@sum Specifies the parameters for the Julian calendar used in modelE.
 !@auth T. Clune
+  implicit none
+
 
 ! During the transition period, this module will continue to support the legacy
 ! names for constants which tend towards the terse end of the spectrum.  
 
+
   !         Legacy :  New
   public :: SDAY,     SECONDS_PER_DAY
   public :: SYR,      SECONDS_PER_YEAR
+  public ::           SECONDS_PER_HOUR
   public :: HRDAY,    HOURS_PER_DAY
 
   public :: JDPERY,   DAYS_PER_YEAR
@@ -43,6 +47,11 @@ module JulianCalendar_mod
   real*8, parameter :: EARTH_DAYS_PER_YEAR = 365., EDPERY = EARTH_DAYS_PER_YEAR
   real*8, parameter :: SECONDS_PER_YEAR = SECONDS_PER_DAY * DAYS_PER_YEAR
   real*8, parameter :: SYR = SECONDS_PER_YEAR
+
+  real*8, parameter :: SECONDS_PER_HOUR = 3600.
+  real*8, parameter :: HOURS_PER_DAY = SECONDS_PER_DAY / SECONDS_PER_HOUR
+  real*8, parameter :: HRDAY = HOURS_PER_DAY
+
 
   ! Months
   type Month_type
