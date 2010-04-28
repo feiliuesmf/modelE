@@ -37,21 +37,21 @@
       !phyto sinking
       do nt = nnut+1,ntyp-nzoo
         do k = 1,kmax
-        rhs(k,nnut+nt,16) = 0.
+        rhs(k,nt,16) = 0.
         enddo
         do k = 1,kmax-1
          trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
          P_tend(k  ,nt) = P_tend(k,  nt) - trnd/dp1d(k  )
          P_tend(k+1,nt) = P_tend(k+1,nt) + trnd/dp1d(k+1)
 
-         rhs(k  ,nnut+nt,16) = rhs(k  ,nnut+nt,16) - trnd/dp1d(k  )
-         rhs(k+1,nnut+nt,16) = rhs(k+1,nnut+nt,16) + trnd/dp1d(k+1)
+         rhs(k  ,nt,16) = rhs(k  ,nt,16) - trnd/dp1d(k  )
+         rhs(k+1,nt,16) = rhs(k+1,nt,16) + trnd/dp1d(k+1)
         enddo  ! k
 !let phytoplankton that reaches the bottom, disappear in the sediment
 !        k = kmax
 !        trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
 !        P_tend(k,nt)   = P_tend(k,nt)   - trnd/dp1d(k)
-!        rhs(k,nnut+nt,16)= - trnd/dp1d(k)
+!        rhs(k,nt,16)= - trnd/dp1d(k)
       enddo ! n
 
       !detritus settling

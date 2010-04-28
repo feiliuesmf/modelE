@@ -10,7 +10,6 @@ c  leap frog method.
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
-     .                   ,rhs
 #ifdef TRACERS_Alkalinity
      .                   ,A_tend,alk1d
 #endif

@@ -21,9 +21,10 @@
 ! sigma_Ca fraction of P converted to DOP, or fraction of C converted to DOC
 ! 1-sigma_Ca fraction of P NOT converted to DOP, or fraction of C NOT converted to DOC
 ! kappa_Ca semi-labile DOP consumption rate constant
-! alkalinity units should be umol/kg
 ! alk tendency is also computed under ice.  this is because 
 ! alk changes due to sal and temp changes.
+! alkalinity units should be umol/kg (uE/kg to go into obio_carbon)
+! alk tendency computed here is in umol/m3/s, convert to umol/kg
 !-------------------------------------------------------------------------
 ! J_ALK = -rN:P* J_PO4 + 2*J_Ca
 ! J_PO4 = J_NO3/rN:P, tendency of phosphates
@@ -75,12 +76,11 @@
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
       do k=1,kmax
-      !!! ASK WATSON
-      J_PO4(k) = 0.1d0 * P_tend(k,1)    !approximate by nitrate conc
-                                  !NO3/PO4 ratio from Conkright et al, 1994
+      J_PO4(k) = 0.1d0 * P_tend(k,1)    !approximate by nitrate conc tendency
+                                        !NO3/PO4 ratio from Conkright et al, 1994
       term = -1.d0*npratio * J_PO4(k) 
       rhs(k,15,1) = term
-      A_tend(k)= term
+      A_tend(k)= term 
       enddo
 
       term1=A_tend(1)
@@ -108,15 +108,20 @@
         if (p1d(k+1) .le. zc)  then
           pp=0.
           do nt=nchl1,nchl2
+             !pp2_1d is in mg,C/m3/hr
+             !pp is in mg,C/m2/hr     
              pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.d-3)/bn/cnratio   
 
 cdiag        write(*,'(a,6i5,4e12.4)')'obio_alkalinity, pp:',
 cdiag.        nstep,i,j,k,nchl1,nchl2,pp2_1d(k,nt),
 cdiag.                    p1d(k+1),bn,cnratio
           enddo
-          DOP = pp/uMtomgm3/cpratio     !convert to uM C
-                                        !Jprod units uM/hr
-          Jprod(k) = kappa_Ca*DOP-J_PO4(k)
+!         DOP = pp/uMtomgm3/cpratio     !convert to uM C
+!                                       !Jprod units uM/hr
+!         Jprod(k) = kappa_Ca*DOP-J_PO4(k)
+
+          Jprod(k) = pp/uMtomgm3/cpratio     !convert to uM C
+                                             !Jprod units uM/hr
         else
 
           Jprod(k)=0.
@@ -171,6 +176,10 @@ cdiag.                    p1d(k+1),bn,cnratio
       enddo
 
       term2=A_tend(1)-term1
+
+      !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,C/m3/hr
+      !convert A_tend terms into uE/kg/hr, the actual units of alkalinity 
+      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,C/m3/hr -> umol/m3/hr -> umol/kg/hr
 
 ! surface boundary condition 
 ! we probably do not need one here since the effects of buoyancy 

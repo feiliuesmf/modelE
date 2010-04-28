@@ -22,7 +22,7 @@
 !  C(2) = DIC (uM)
 !  P(11) = alkalinity (uM)
 !  pCO2 (uatm)
-!  alk  (uM/kg)   ????
+!  alk  (umolC/kg)
 
       implicit none
 

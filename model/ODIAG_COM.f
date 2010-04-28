@@ -1184,7 +1184,7 @@ c
       IJ_fca=k
       lname_oij(k)="CaCO3 export flux at compensation depth"
       sname_oij(k)="oij_fca"
-      units_oij(k)="??"
+      units_oij(k)="uM/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 #endif
