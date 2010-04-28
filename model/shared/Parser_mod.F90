@@ -1,7 +1,7 @@
 module Parser_mod
 !@sum procedures to read parameters from the rundeck into the database
-!@auth I. Aleinov
-!@ver 1.0     
+!@auth I. Aleinov and T. Clune
+!@ver 1.1     
   implicit none
 
   public :: Parser_type
@@ -51,7 +51,6 @@ contains
 
   end function strip_comment
 
-
   subroutine skip_junk( str )
     character*(*) str
 
@@ -60,7 +59,6 @@ contains
     enddo
     return
   end subroutine skip_junk
-
 
   subroutine sread_int( str, value )
     character*(*) str
@@ -78,7 +76,6 @@ contains
     return
   end subroutine sread_int
 
-
   subroutine sread_real( str, value )
     character*(*) str
     real*8 value
@@ -92,9 +89,7 @@ contains
 
     call skip_junk( str )
 
-    return
   end subroutine sread_real
-
 
   subroutine sread_char( str, value )
     character*(*) str
@@ -120,9 +115,7 @@ contains
 
     call skip_junk( str )
 
-    return
   end subroutine sread_char
-
 
   subroutine parse_params( kunit )
     use PARAM
@@ -208,6 +201,8 @@ contains
   end subroutine parse_params
 
   function parse(this, unit) result(aDictionary)
+!@sum Parses text from input unit to populate a Dictionary object.
+!@+ Skips header section at top.
     use Dictionary_mod
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
@@ -227,21 +222,29 @@ contains
       if (isEndOfList(this, line)) exit
 
       tokens => splitTokens(this, line)
-      select case (getValueType(tokens(2:)))
-      case (INTEGER_TYPE)
-        call insert(aDictionary, tokens(1), readIntegers(tokens(2:)))
-      case (REAL64_TYPE)
-        call insert(aDictionary, tokens(1), readReal64s(tokens(2:)))
-      case (LOGICAL_TYPE)
-        call insert(aDictionary, tokens(1), readLogicals(tokens(2:)))
-      case (STRING_TYPE)
-        call insert(aDictionary, tokens(1), readStrings(tokens(2:)))
-      end select
+      call readAndInsert(aDictionary, key=tokens(1), tokens=tokens(2:))
 
       deallocate(tokens)
     end do
 
   contains
+
+    subroutine readAndInsert(aDictionary, key, tokens)
+      type (Dictionary_type), intent(inout) :: aDictionary
+      character(len=*), intent(in) :: key
+      character(len=*), intent(in) :: tokens(:)
+      
+      select case (getValueType(tokens))
+      case (INTEGER_TYPE)
+        call insert(aDictionary, key, readIntegers(tokens))
+      case (REAL64_TYPE)
+        call insert(aDictionary, key, readReal64s(tokens))
+      case (LOGICAL_TYPE)
+        call insert(aDictionary, key, readLogicals(tokens))
+      case (STRING_TYPE)
+        call insert(aDictionary, key, readStrings(tokens))
+      end select
+    end subroutine readAndInsert
 
     function readIntegers(tokens) result(values)
       character(len=*), intent(in) :: tokens(:)
