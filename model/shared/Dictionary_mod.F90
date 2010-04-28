@@ -19,10 +19,6 @@ module Dictionary_mod
 !@+     sync_param( name, value, dim ) - puts parameter <name> into the
 !@+       database if it is not yet there, otherwise gets it
 !@+
-!@+ Subroutines to work with pointers:
-!@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to
-!@+       the parameter data of the parameter <name> in the database
-!@+
 !@+ Reading/writing subroutines:
 !@+     read_param( kunit, ovrwrt ) - reads the parameter database from
 !@+       the unit <kunit>
@@ -87,7 +83,7 @@ module Dictionary_mod
   public :: getKeys
 
   
-  public set_param, get_param, get_pparam, read_param, write_param
+  public set_param, get_param, read_param, write_param
   public is_set_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
@@ -167,11 +163,6 @@ module Dictionary_mod
   interface get_param
     module procedure get_iparam, get_rparam, get_cparam
     module procedure get_aiparam, get_arparam, get_acparam
-  end interface
-
-  interface get_pparam
-    module procedure get_piparam, get_prparam, get_pcparam
-    module procedure get_paiparam, get_parparam, get_pacparam
   end interface
 
   interface sync_param
@@ -495,43 +486,6 @@ contains
   end subroutine get_aiparam
 
 
-  subroutine get_piparam( name, pvalue )
-    implicit none
-    character*(*), intent(in) ::  name
-    integer, pointer ::  pvalue
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, 1, 'i', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Idata( PStr%indx )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_piparam
-
-  subroutine get_paiparam( name, pvalue, np )
-    implicit none
-    character*(*), intent(in) ::  name
-    integer, pointer ::  pvalue(:)
-    integer, intent(in) :: np
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, np, 'i', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Idata( PStr%indx:PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_paiparam
-
-
-
   !***** reals ******!
 
   subroutine set_rparam( name, value, opt )
@@ -600,41 +554,6 @@ contains
     return
   end subroutine get_arparam
 
-
-  subroutine get_prparam( name, pvalue )
-    implicit none
-    character*(*), intent(in) ::  name
-    real*8, pointer ::  pvalue
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, 1, 'r', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Rdata( PStr%indx )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_prparam
-
-  subroutine get_parparam( name, pvalue, np )
-    implicit none
-    character*(*), intent(in) ::  name
-    real*8, pointer ::  pvalue(:)
-    integer, intent(in) :: np
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, np, 'r', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Rdata( PStr%indx:PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_parparam
 
 
   !***** Chars ******!
@@ -717,41 +636,6 @@ contains
     return
   end subroutine get_acparam
 
-
-  subroutine get_pcparam( name, pvalue )
-    implicit none
-    character*(*), intent(in) ::  name
-    character*(*), pointer ::  pvalue
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, 1, 'c', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Cdata( PStr%indx )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_pcparam
-
-  subroutine get_pacparam( name, pvalue, np )
-    implicit none
-    character*(*), intent(in) ::  name
-    character*(*), pointer ::  pvalue(:)
-    integer, intent(in) :: np
-    type (ParamStr), pointer :: PStr
-
-    call get_pstr( name, np, 'c', PStr )
-    if ( .not. associated( PStr) ) then
-      print *, 'PARAM: Can''t get - not in database : ', name
-      call stop_model( &
-           &       'PARAM: Can''t get parameter - not in database',255)
-    endif
-    pvalue => Cdata( PStr%indx:PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
-    return
-  end subroutine get_pacparam
 
   !***** sync functions ******!
 
