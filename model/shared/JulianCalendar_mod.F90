@@ -19,28 +19,23 @@ module JulianCalendar_mod
   public :: JDendOfM, LAST_JULIAN_DAY_IN_MONTH
   public :: JDmidOfM, MID_JULIAN_DAY_IN_MONTH
 
+  public :: AMONTH
+
   ! Not entirely clear if these constants belong here, since they actually
   ! should vary for other planets and/or eras (e.g. paleo has shorter day)
   public :: EDPERD,   EARTH_DAYS_PER_DAY
   public :: EDPERY,   EARTH_DAYS_PER_YEAR
-  
 
-  ! Legacy params
+  public :: Month_type, JULIAN_MONTHS
+  public :: JANUARY,   FEBRUARY, MARCH,    APRIL
+  public :: MAY,       JUNE,     JULY,     AUGUST
+  public :: SEPTEMBER, OCTOBER,  NOVEMBER, DECEMBER
+
+  
 !@var DAYS_PER_YEAR (JDPERY)    number of days per year
-  integer, parameter :: DAYS_PER_YEAR = 365, JDPERY =DAYS_PER_YEAR
+  integer, parameter :: DAYS_PER_YEAR = 365, JDPERY = DAYS_PER_YEAR
 !@var MONTHS_PER_YEAR (JMperY)  number of months per year
   integer, parameter :: MONTHS_PER_YEAR = 12, JMPERY = MONTHS_PER_YEAR
-
-!@var LAST_JULIAN_DAY_IN_MONTH (JDendOfM, ) last Julian day in month
-  integer, parameter :: LAST_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR) = (/ &
-       & 0,31,59,90,120,151,181,212,243,273,304,334,365 &
-       & /)
-  integer, parameter :: JDendOfM(0:MONTHS_PER_YEAR) = LAST_JULIAN_DAY_IN_MONTH
-!@var MID_JULIAN_DAY_IN_MONTH(0:13) (JDmidOfM(0:13)) middle Julian day in month
-  integer, parameter :: MID_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR+1) = (/ &
-       & -15,16,45,75,106,136,167,197,228,259,289,320,350,381 &
-       & /)
-  integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) = MID_JULIAN_DAY_IN_MONTH
 
   real*8, parameter :: SECONDS_PER_DAY = 86400.,   SDAY = SECONDS_PER_DAY
   real*8, parameter :: EARTH_DAYS_PER_DAY = 1.,    EDPERD = EARTH_DAYS_PER_DAY
@@ -52,6 +47,17 @@ module JulianCalendar_mod
   real*8, parameter :: HOURS_PER_DAY = SECONDS_PER_DAY / SECONDS_PER_HOUR
   real*8, parameter :: HRDAY = HOURS_PER_DAY
 
+
+!@var LAST_JULIAN_DAY_IN_MONTH (JDendOfM, ) last Julian day in month
+  integer, parameter :: LAST_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR) = (/ &
+       & 0,31,59,90,120,151,181,212,243,273,304,334,365 &
+       & /)
+  integer, parameter :: JDendOfM(0:MONTHS_PER_YEAR) = LAST_JULIAN_DAY_IN_MONTH
+!@var MID_JULIAN_DAY_IN_MONTH(0:13) (JDmidOfM(0:13)) middle Julian day in month
+  integer, parameter :: MID_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR+1) = (/ &
+       & -15,16,45,75,106,136,167,197,228,259,289,320,350,381 &
+       & /)
+  integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) = MID_JULIAN_DAY_IN_MONTH
 
   ! Months
   type Month_type
@@ -75,13 +81,17 @@ module JulianCalendar_mod
   type (Month_type), parameter :: NOVEMBER  = Month_type('NOV ', 'November  ', 30, 334,  320)
   type (Month_type), parameter :: DECEMBER  = Month_type('DEC ', 'December  ', 31, 365,  350)
 
-  ! Useful to provide months 0 (13) for last (first) month of previous (next) year.
-  type (Month_type), parameter :: JULIAN_MONTHS(0:MONTHS_PER_YEAR+1) = (/ &
-       & DECEMBER,                      &
+  type (Month_type), parameter :: JULIAN_MONTHS(MONTHS_PER_YEAR) = (/ &
        & JANUARY,  FEBRUARY, MARCH,     &
        & APRIL,    MAY,      JUNE,      &
        & JULY,     AUGUST,   SEPTEMBER, &
-       & OCTOBER,  NOVEMBER, DECEMBER,  &
-       & JANUARY /)
+       & OCTOBER,  NOVEMBER, DECEMBER   &
+       & /)
+
+!@var AMONTH(0:12)  (3-4 letter) names for all months
+  integer :: i
+  character*4, parameter :: AMONTH(0:12) = (/ 'IC  ', JULIAN_MONTHS%shortName /)
+
+
 
 end module JulianCalendar_mod
