@@ -20,9 +20,6 @@ module Dictionary_mod
 !@+       database if it is not yet there, otherwise gets it
 !@+
 !@+ Subroutines to work with pointers:
-!@+     alloc_param( name, pvalue, initval, dim ) - allocates space in
-!@+       the database for the parameter <name>, fills it with data
-!@+       provided in <initval> and returns pointer to it in <pvalue>
 !@+     get_pparam( name, pvalue, dim ) - returns pointer <pvalue> to
 !@+       the parameter data of the parameter <name> in the database
 !@+
@@ -91,7 +88,7 @@ module Dictionary_mod
 
   
   public set_param, get_param, get_pparam, read_param, write_param
-  public is_set_param, alloc_param, sync_param, print_param
+  public is_set_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
   public :: lowcase
@@ -175,11 +172,6 @@ module Dictionary_mod
   interface get_pparam
     module procedure get_piparam, get_prparam, get_pcparam
     module procedure get_paiparam, get_parparam, get_pacparam
-  end interface
-
-  interface alloc_param
-    module procedure alloc_iparam, alloc_rparam, alloc_cparam
-    module procedure alloc_aiparam, alloc_arparam, alloc_acparam
   end interface
 
   interface sync_param
@@ -760,71 +752,6 @@ contains
     PStr%is_accessed = 'y'
     return
   end subroutine get_pacparam
-
-  !***** alloc fuctions ******
-
-  subroutine alloc_iparam( name, pvalue, initval )
-    implicit none
-    character*(*), intent(in) ::  name
-    integer, pointer ::  pvalue
-    integer, intent(in) :: initval
-    call set_param( name, initval )
-    call get_pparam( name, pvalue )
-  end subroutine alloc_iparam
-
-
-  subroutine alloc_aiparam( name, pvalue, initval, dim )
-    implicit none
-    character*(*), intent(in) ::  name
-    integer, pointer ::  pvalue(:)
-    integer, intent(in) :: initval(:)
-    integer, intent(in) :: dim
-    call set_param( name, initval, dim )
-    call get_pparam( name, pvalue, dim )
-  end subroutine alloc_aiparam
-
-
-  subroutine alloc_rparam( name, pvalue, initval )
-    implicit none
-    character*(*), intent(in) ::  name
-    real*8, pointer ::  pvalue
-    real*8, intent(in) :: initval
-    call set_param( name, initval )
-    call get_pparam( name, pvalue )
-  end subroutine alloc_rparam
-
-
-  subroutine alloc_arparam( name, pvalue, initval, dim )
-    implicit none
-    character*(*), intent(in) ::  name
-    real*8, pointer ::  pvalue(:)
-    real*8, intent(in) :: initval(:)
-    integer, intent(in) :: dim
-    call set_param( name, initval, dim )
-    call get_pparam( name, pvalue, dim )
-  end subroutine alloc_arparam
-
-
-  subroutine alloc_cparam( name, pvalue, initval )
-    implicit none
-    character*(*), intent(in) ::  name
-    character*(*), pointer ::  pvalue
-    character*(*), intent(in) :: initval
-    call set_param( name, initval )
-    call get_pparam( name, pvalue )
-  end subroutine alloc_cparam
-
-
-  subroutine alloc_acparam( name, pvalue, initval, dim )
-    implicit none
-    character*(*), intent(in) ::  name
-    character*(*), pointer ::  pvalue(:)
-    character*(*), intent(in) :: initval(:)
-    integer, intent(in) :: dim
-    call set_param( name, initval, dim )
-    call get_pparam( name, pvalue, dim )
-  end subroutine alloc_acparam
-
 
   !***** sync functions ******!
 
