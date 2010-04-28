@@ -24,6 +24,7 @@ module testParser_mod
   public :: testSplitEmbeddedComma
 
   public :: testParse
+  public :: testParseNoValue
 
 contains
 
@@ -287,7 +288,7 @@ contains
     real(kind=r64) :: gammaValue
     logical :: deltaValues(4)
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) 'alhap = 0' ! ignore - in header
+    write(unit,*) 'alpha = 0' ! ignore - in header
     write(unit,*) 'b'
     write(unit,*) END_HEADER
     write(unit,*) '! alpha = 1' ! ignore - only a comment
@@ -328,4 +329,36 @@ contains
 
   end subroutine testParse
 
+  subroutine testParseNoValue()
+!@sum Tests that an exception is thrown if there is no value to associate with a key.
+    use FileManager
+    use Dictionary_mod
+    type (Parser_type) :: parser
+
+    type (Dictionary_type) :: aDictionary
+    integer :: unit
+    character(len=*), parameter :: END_HEADER = '*** end header ***'
+    character(len=*), parameter :: END_LIST = '*** end params ***'
+    character(len=256) :: line
+
+    integer :: betaValue
+    real(kind=r64) :: gammaValue
+    logical :: deltaValues(4)
+    call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
+    write(unit,*) END_HEADER
+    write(unit,*) 'beta'
+    write(unit,*) END_LIST
+    rewind(unit)
+
+    call setEndHeader(parser, END_HEADER)
+    call setEndOfList(parser, END_LIST)
+    call setTokenSeparators(parser, '=,')
+    call setCommentCharacters(parser, '!#')
+    aDictionary = parse(parser, unit)
+    if (.not. catch('Parser_mod: syntax error in input unit.')) then
+      call throw(Exception('Failed to detect syntax error in parse'))
+    end if
+
+    close(unit, status='delete')
+  end subroutine testParseNoValue
 end module testParser_mod

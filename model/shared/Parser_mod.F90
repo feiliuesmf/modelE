@@ -204,6 +204,9 @@ contains
 !@sum Parses text from input unit to populate a Dictionary object.
 !@+ Skips header section at top.
     use Dictionary_mod
+#ifdef USE_PFUNIT
+    use pFUnit
+#endif
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -222,6 +225,11 @@ contains
       if (isEndOfList(this, line)) exit
 
       tokens => splitTokens(this, line)
+#ifdef USE_PFUNIT
+      if (size(tokens) < 2) then
+        call throw(Exception('Parser_mod: syntax error in input unit.'))
+      end if
+#endif
       call readAndInsert(aDictionary, key=tokens(1), tokens=tokens(2:))
 
       deallocate(tokens)
@@ -347,7 +355,9 @@ contains
   end subroutine setEndOfList
 
   subroutine skipHeader(this, unit)
+#ifdef USE_PFUNIT
     use pFUnit
+#endif
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
     character(len=MAX_LEN_LINE) :: line
