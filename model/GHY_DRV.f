@@ -882,6 +882,7 @@ c****
       use pbl_drv, only : pbl, t_pbl_args, xdelt
 
       use snow_drvm, only : snow_cover_same_as_rad
+      use snow_model, only : i_earth,j_earth
 
       use diag_com , only : HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,NDIUPT,adiurn_dust,ijdd
@@ -1088,15 +1089,15 @@ c$$$#endif
 c$$$!$OMP*   )
 c$$$!$OMP*   SHARED(ns,moddsf,moddd,
 c$$$!$OMP&     J_0,J_1,I_0,imaxj, dtsrc,nisurf,lat2d,fearth,p,pedn,
-c$$$!$OMP&     pk, pek, t, q, am, tsns_ij, fsf, cosz1, pmid, qg_ij, TRHR, 
-c$$$!$OMP&     gtempr,evap_max_ij, fr_sat_ij, CO2X,CO2ppm,vegCO2X_off, 
-c$$$!$OMP&     SRVISSURF, entcells, Qf_ij, w_ij, ht_ij, nsn_ij, 
+c$$$!$OMP&     pk, pek, t, q, am, tsns_ij, fsf, cosz1, pmid, qg_ij, TRHR,
+c$$$!$OMP&     gtempr,evap_max_ij, fr_sat_ij, CO2X,CO2ppm,vegCO2X_off,
+c$$$!$OMP&     SRVISSURF, entcells, Qf_ij, w_ij, ht_ij, nsn_ij,
 c$$$!$OMP&     fr_snow_ij, top_index_ij, top_dev_ij, dz_ij, q_ij, qk_ij,
 c$$$!$OMP&     sl_ij, prec, eprec, precss, end_of_day_flag,
 c$$$!$OMP&     snowbv, canopy_temp_ij, snow_cover_same_as_rad,e1,
 c$$$!$OMP&     FSRDIR, dzsn_ij, wsn_ij,hsn_ij, fr_snow_rad_ij, snowe,
-c$$$!$OMP&     tearth, wearth, aiearth, gtemp, soil_surf_moist, 
-c$$$!$OMP&     bare_soil_wetness, uflux1, vflux1, evapor,dth1, dq1, 
+c$$$!$OMP&     tearth, wearth, aiearth, gtemp, soil_surf_moist,
+c$$$!$OMP&     bare_soil_wetness, uflux1, vflux1, evapor,dth1, dq1,
 c$$$!$OMP&     runoe, erunoe,e0, idx, idxd, TRSURF)
 c$$$!$OMP*   SCHEDULE(DYNAMIC,2)
 
@@ -1282,7 +1283,7 @@ ccc stuff needed for dynamic vegetation
       case(0)
         Ca = land_CO2_bc !*(1.0D-06)*ps*100.0/gasc/ts
       end select
-      
+
 !!      vis_rad        = SRVISSURF(i,j)
       vis_rad        = SRVISSURF(i,j)*cosz1(i,j)*.82
       direct_vis_rad = vis_rad * FSRDIR(i,j)
@@ -1315,6 +1316,7 @@ ccc stuff needed for dynamic vegetation
       call get_fb_fv( fb, fv, i, j )
       !write(401,*) "cdh", i,j,cdh
       ijdebug=i*1000+j
+      i_earth = i ; j_earth = j ! for snow debug statements
       !ghy_counter = counter
 
       irrig = 0.d0
@@ -1449,7 +1451,7 @@ c**** wearth+aiearth are used in radiation only
       gtemp(1,4,i,j)=tsns_ij(i,j)
       gtempr(4,i,j) =tearth(i,j)+tf
       soil_surf_moist(i,j) = 1000.*(fb*w(1,1) + fv*w(1,2))/dz_ij(i,j,1)
-      bare_soil_wetness(i,j) = 
+      bare_soil_wetness(i,j) =
      &     w(1,1) / ( thets(1,1)*dz_ij(i,j,1) )
 
 #ifdef SCM
@@ -1624,7 +1626,7 @@ c***********************************************************************
      &     ,hdiurn=>hdiurn_loc
 #endif
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg, ij_psoil,ij_vsfr,ij_bsfr
-     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_rhs 
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_rhs
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
@@ -2064,6 +2066,7 @@ ccc                               currently using only topography part
       logical, intent(in) :: redogh, inisnow
 
       call init_gh(dtsurf,istart)
+
 
       call init_veg( istart, redogh )
       call init_land_surface(redogh,inisnow,istart)
@@ -3773,7 +3776,7 @@ cddd     &           fv*( ws_can + thets(1,2)*dz_ij(i,j,1) )
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
 cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
 
-            bare_soil_wetness(i,j) = 
+            bare_soil_wetness(i,j) =
      &           w_ij(1,1,i,j) / ( thets(1,1)*dz_ij(i,j,1) )
 
          !!! this diag belongs to Ent - commenting out
@@ -3939,7 +3942,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
-!     Water in vegetated layers 0 (canopy), 1, 2 and 
+!     Water in vegetated layers 0 (canopy), 1, 2 and
 !     bare soil layers 1,2,3
         do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+w_ij(k,1,i,j)
@@ -4540,7 +4543,7 @@ cddd      sinday=sin(twopi/edpery*jday)
       end subroutine init_underwater_soil
 
       subroutine get_canopy_temperaure(CanTemp, i, j)
-!@sum returns canopy temperature for the cell i,j 
+!@sum returns canopy temperature for the cell i,j
 !@+   returns -1d30 for a cell with no vegetation
       use constant, only : rhow, shw_kg=>shw
       use ghy_com, only : w_ij, ht_ij, fearth
@@ -4564,7 +4567,7 @@ cddd      sinday=sin(twopi/edpery*jday)
         CanTemp = -1.d30
         return
       endif
-      
+
 #ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     canopy_heat_capacity=can_ht_cap )
