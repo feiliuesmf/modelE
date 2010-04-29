@@ -58,11 +58,12 @@ c
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
-     &     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
+     &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
      &     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D,ijlt_pO1D
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
+     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -736,10 +737,9 @@ c           (~200nm):
             if(inss == 26)ss(inss,L,I,J)=ss(inss,L,I,J)*1.0d-1 !CFC
 #endif
           enddo
+          taijls(i,j,l,ijlt_JO1D)=taijls(i,j,l,ijlt_JO1D)+ss(2,l,i,j)
+          taijls(i,j,l,ijlt_JNO2)=taijls(i,j,l,ijlt_JNO2)+ss(1,l,i,j)
           taijls(i,j,l,ijlt_JH2O2)=taijls(i,j,l,ijlt_JH2O2)+ss(4,l,i,j)
-#ifdef ACCMIP_LIKE_DIAGS
-          taijls(i,j,l,ijlt_phO1D)=taijls(i,j,l,ijlt_phO1D)+ss(2,l,i,j)
-#endif
 #ifdef SHINDELL_STRAT_CHEM
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))

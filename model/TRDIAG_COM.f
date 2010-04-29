@@ -212,10 +212,11 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_power: power of 10 used for tracer IJL 3D diags
       INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
-      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2,ijlt_COp,ijlt_COd,
+      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_COp,ijlt_COd,
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
-     & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr
+     & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
+     & ,ijlt_JH2O2
 #ifdef SOA_DIAGS
 !@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
 #ifdef TRACERS_TERP
@@ -302,7 +303,7 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktajls=998
+      INTEGER,PARAMETER :: ktajls=1008
 
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3
