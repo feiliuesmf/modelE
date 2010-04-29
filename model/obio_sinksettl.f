@@ -2,20 +2,22 @@
       subroutine obio_sinksettl(vrbos,kmax,errcon,i,j)
 
       USE obio_dim
-      USE obio_incom,only: wsdeth
+      USE obio_incom,only: wsdeth,mgchltouMC
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
-     .                   ,rhs
+     .                   ,rhs,zc
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
+      USE ODIAG, only: ij_cexp,oij=>oij_loc
+      USE OCEAN, only: dxypo
 #else
       USE hycom_scalars, only: nstep,baclin
 #endif
 
       implicit none
 
-      integer :: i,j,k,nt,kmax
+      integer :: i,j,k,nt,kmax,kzc
       real    :: trnd
       logical :: vrbos,errcon
 
@@ -54,6 +56,23 @@
 !        rhs(k,nt,16)= - trnd/dp1d(k)
       enddo ! n
 
+     
+      !diagnostic for total carbon export at compensation depth
+      !total carbon = sinking phyto + settling C detritus
+      !term1: sinking phytoplankton
+      !find layer index for zc
+      do k=kmax+1,1,-1
+           if (p1d(k).gt.zc) kzc = k
+      enddo
+      do nt=nnut+1,nnut+nchl
+         OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) 
+                          !mgm3/hr -> uM/hr=mili,molC/m3/hr-> mol,C/m3/hr
+     .                    + rhs(kzc,nt,16) * mgchltouMC * 1.d-3    
+                          ! -> Pgr,C/yr
+     .                    * 12.d0 * 365.d0 *dxypo(J)*75.d0
+     .                    * 12.d0 * 1.d-15
+      enddo
+
       !detritus settling
       do nt = 1,ndet
         do k=1,kmax
@@ -76,6 +95,14 @@
 !        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
       enddo ! nt
 
+      !diagnostic for carbon export at compensation depth
+      !term2: settling C detritus contribution
+      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) 
+                       !micro-grC/lt/hr -> mili,grC/m3/hr -> mol,C/m3/hr
+     .                 + rhs(kzc,nnut+nchl+nzoo+1,16)*1.d-3 /12.d0   
+                          ! -> Pgr,C/yr
+     .                    * 12.d0 * 365.d0 *dxypo(J)*75.d0
+     .                    * 12.d0 * 1.d-15
 
 
 #else     /* HYCOM */

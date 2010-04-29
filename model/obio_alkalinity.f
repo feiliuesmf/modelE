@@ -52,6 +52,7 @@
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
       USE ODIAG, only: ij_fca,oij=>oij_loc
+      USE OCEAN, only: dxypo
 #else
       USE hycom_scalars, only: nstep
 #endif
@@ -159,6 +160,15 @@ cdiag.                    p1d(k+1),bn,cnratio
 
 #ifdef OBIO_ON_GARYocean
       OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(kzc)
+     .                *12.d0*365.d0*1.d-3*12.d0
+     .                *dxypo(J)*75.d0*1.d-15
+!to convert this into units of Pgr,C/yr: 
+! * 24 *365          ! uM/hr -> uM/yr = mili-mol,C/m3/hr
+! * 1e-3             ! mol,C/m3/yr
+! * 361098046745487. ! mol,C/m/yr, better multiply by dxypo(J)
+! * p1d(kzc)         ! mol,C/yr
+! * 12.d0            ! gr,C/yr
+! * 1.d-15           ! Pgr,C/yr
 #endif
 
 !compute sources/sinks of CaCO3
