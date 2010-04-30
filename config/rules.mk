@@ -165,10 +165,10 @@ endif
 ifeq ($(CUBE_GRID),YES)
 CPPFLAGS += -DCUBE_GRID
 FFLAGS +=-I$(FFTW_ROOT)/include
-FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
+FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -i4 -r8 -w -vec-report0 -align all -fno-alias
 LIBS += -L${BASELIBDIR}/lib -lesmf -lrt -lstdc++
 #-lstdc++ -lrt
-LIBS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
+LIBS += -stack_temps -safe_cray_ptr -i_dynamic -i4 -r8 -w -vec-report0 -align all -fno-alias
 LIBS += -L$(FFTW_ROOT)/lib -lfftw3 -lm
 
 endif
