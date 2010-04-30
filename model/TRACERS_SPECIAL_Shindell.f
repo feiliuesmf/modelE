@@ -206,7 +206,7 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft,kstep
+      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
  
       IMPLICIT NONE
@@ -416,7 +416,6 @@ C====
 !@sum Read in monthly sources and interpolate to current day
 !@auth Jean Lerner and others / Greg Faluvegi
       USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
-      USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL
@@ -424,7 +423,7 @@ C====
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
-      integer Ldim,L,imon,iu,ipos,k,nn,k2
+      integer :: Ldim,L,imon,iu,ipos,k,nn,k2,kstep=10
       character(len=300) :: out_line
       real*8 :: frac, alpha
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -480,6 +479,9 @@ c**** Interpolate two months of data to current day
 
 ! --------------- transient emissions -------------------------------!
       else
+        ! 3D source files as of now have no meta-data so assume
+        ! that transient time slices are decadal:
+        kstep=10
         ipos=1
         k2=yr1
         alpha=0.d0 ! before start year, use start year value
@@ -580,7 +582,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      & + sfc_b(I_0:I_1,J_0:J_1,:)*alpha
 
       write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period ',k2,' to ',k2+kstep,
+     &100.d0*alpha,' % of period mid ',k2,' to mid ',k2+kstep,
      &' and monthly fraction= ',frac 
       call write_parallel(trim(out_line))
 

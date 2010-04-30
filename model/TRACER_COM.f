@@ -960,11 +960,8 @@ C**** arrays that could be general, but are only used by chemistry
       character*10, dimension(ntm,ntsurfsrcmax) :: nameT  ! need not be
       character*1, dimension(ntm,ntsurfsrcmax) :: freq,res ! arrays
       character*9, dimension(ntm,ntsurfsrcmax) :: Tyears   ! here...
-      integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end
+      integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end,delTyr
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
-!@param kstep number of years assumed between transient emissions slices
-      integer, parameter :: kstep=10 ! assume decadal transient emissions
-
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_sect maximum number of sectors for emissions altering
 !@param n_max_reg  maximum number of regions for emissions altering

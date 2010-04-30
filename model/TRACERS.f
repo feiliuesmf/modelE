@@ -1996,11 +1996,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
       USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
-     & freq,nameT,ssname,ty_start,ty_end,kstep
+     & freq,nameT,ssname,ty_start,ty_end,delTyr
    
       implicit none
       
-      integer :: iu,ns,k,ipos,kx
+      integer :: iu,ns,k,ipos,kx,kstep=10
       integer, intent(in) :: nsrc,n
       character*80 :: fname
       character*2 :: fnum
@@ -2059,6 +2059,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         else                
           select case(freq(n,ns))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns) ! just for printing
@@ -2086,9 +2087,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !should do! endif
             sfc_src(I_0:I_1,J_0:J_1,n,ns)=sfc_a(I_0:I_1,J_0:J_1)*
      &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
-            write(out_line,*)
-     &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+
+            write(out_line,'(a,1X,a,a4,F9.4,a16,I4,a8,I4)')
+     &      trim(nameT(n,ns)),trim(ssname(n,ns)),' at ',
+     &      100.d0*alpha,'% of period mid ',kx,' to mid ',kx+kstep
             call write_parallel(trim(out_line))
             ifirst2(n,ns) = .false.
 
@@ -2140,7 +2142,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       case(7) ; message='read_emis_header: problem with res'
       case(8) ; message='read_emis_header: M and F are choices for res'
       case(9) ; message='read_emis_header: transient years seem wrong'
-      case(10); message='read_emis_header: trans yrs not 10 years apart'
+      case(10); message='read_emis_header: delTyr(e.g. kstep) is zero'
+      case(11); message='read_emis_header: trans yrs step/years suspect'
       end select
       if(error > 0) then
         if(error == 5 .and. checkname==.false.)then
@@ -2163,7 +2166,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth Greg Faluvegi
      
       use TRACER_COM, only : trname,freq,nameT,res,ssname,Tyears,
-     & ty_start,ty_end
+     & ty_start,ty_end,delTyr
       use string_funcs, only : lowercase
       implicit none
 
@@ -2210,8 +2213,24 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         if(ty_start(n,ns) /= ty_end(n,ns))then
           if(ty_start(n,ns) < 0 .or. ty_start(n,ns) > 3000)error=9
           if(ty_end(n,ns)   < 0 .or. ty_end(n,ns)   > 3000)error=9
-          if(ty_end(n,ns)-ty_start(n,ns) < 10)error=10 ! decades expected
         endif
+      endif
+
+      str = str(n1+9+1:)
+      n1 = scan( str, '=')     ! optional transient slice step.
+      if(str(n1-3:n1-1) /= 'del')then
+        delTyr(n,ns)=10 ! default=decades for backwards compatability
+      else 
+        str = str(n1+1:)
+        n2 = scan( str,' ')
+        read(str(1:n2-1),*)delTyr(n,ns)
+      endif
+
+      if(delTyr(n,ns)==0)then
+        error=10
+      else
+        ! check for integer number of slices:
+        if(MOD((ty_end(n,ns)-ty_start(n,ns)),delTyr(n,ns))/=0.)error=11
       endif
 
       end subroutine parse_header
@@ -2236,7 +2255,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
-      USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,kstep
+      USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
 
       implicit none
 
@@ -2244,7 +2263,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac,alpha
-      integer ::  imon,iu,n,ns,ipos,k,nn,kx
+      integer ::  imon,iu,n,ns,ipos,k,nn,kx,kstep=10
       character*80 :: junk
       character(len=300) :: out_line
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -2283,6 +2302,7 @@ c****   Interpolate two months of data to current day
         call write_parallel(trim(out_line))
 ! --------------- transient emissions -------------------------------!
       else 
+        kstep=delTyr(n,ns)
         ipos=1
         alpha=0.d0 ! before start year, use start year value
         kx=ty_start(n,ns) ! just for printing
@@ -2353,10 +2373,10 @@ c****   Interpolate two months of data to current day
         data(I_0:I_1,J_0:J_1)=sfc_a(I_0:I_1,J_0:J_1)*(1.d0-alpha) + 
      &  sfc_b(I_0:I_1,J_0:J_1)*alpha
 
-        write(out_line,*)
-     &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &  100.d0*alpha,' % of period ',kx,' to ',kx+kstep,
-     &  ' and monthly fraction= ',frac
+        write(out_line,'(a,1X,a,a4,F9.4,a16,I4,a8,I4,a22,F9.4)')
+     &  trim(nameT(n,ns)),trim(ssname(n,ns)),' at ',100.d0*alpha,
+     &  '% of period mid ',kx,' to mid ',kx+kstep,
+     &  ' and monthly fraction=',frac
         call write_parallel(trim(out_line))
  
       endif

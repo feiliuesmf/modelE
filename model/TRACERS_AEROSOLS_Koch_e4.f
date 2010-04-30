@@ -716,7 +716,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr,imAER,n_bcb,n_ocb,n_so2
-     * ,ty_start,ty_end,trname,freq,kstep
+     * ,ty_start,ty_end,trname,freq
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
       integer ihyr,iuc,mm,iact,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
@@ -933,14 +933,14 @@ c Carbonaceous aerosol emissions
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_bcii,n_ocii,imAER,kstep
+     * ty_start,ty_end,n_bcii,n_ocii,imAER,delTyr
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
       implicit none
       character*20 title
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
+      integer :: iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
-     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear 
+     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear,kstep=10
       logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
@@ -1006,6 +1006,7 @@ c hardcoding - old sources are kg/year
         else
           select case(freq(n,ns))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns) ! just for printing
@@ -1084,6 +1085,7 @@ c hardcoding - old sources are kg/year
         else
           select case(freq(n,ns))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns) ! just for printing
@@ -1188,13 +1190,13 @@ c historic BC emissions
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_so2,imAER,kstep
+     * ty_start,ty_end,n_so2,imAER,delTyr
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
+      integer :: iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
-     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear
+     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear,kstep=10
       logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
@@ -1257,6 +1259,7 @@ c     do iy=1,ndec
         else
           select case(freq(n,ns))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns) ! just for printing
@@ -1352,13 +1355,13 @@ c historic NH3 emissions
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,imAER,n_NH3,imPI
-     * ,trname,freq,nameT,ty_start,ty_end,ssname,kstep
+     * ,trname,freq,nameT,ty_start,ty_end,ssname,delTyr
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
+      integer :: iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec,ns1,ns2,n,nc
-     * ,tys,tye,ns,ipos,kx,k,i_0,i_1,xyear
+     * ,tys,tye,ns,ipos,kx,k,i_0,i_1,xyear,kstep=10
 c     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
 c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
 c    &     hnh3_con_all,hnh3_cyc_all
@@ -1428,6 +1431,7 @@ c     end do
         else
           select case(freq(n,ns1))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns1)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns1) ! just for printing
@@ -1497,6 +1501,7 @@ c     end do
         else
           select case(freq(n,ns2))
           case('a')        ! annual file, only read first time + new steps
+            kstep=delTyr(n,ns2)
             ipos=1
             alpha=0.d0 ! before start year, use start year value
             kx=ty_start(n,ns2) ! just for printing
@@ -2789,7 +2794,6 @@ c divide NOx emission by 350 to get BC
 ! taken from TRACERS_SPECIAL_Shindell, in case we
 !  we run aerosols independent of gases
       USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
-      USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL,write_parallel,backspace_parallel
@@ -2806,6 +2810,7 @@ c divide NOx emission by 350 to get BC
      *     ,sfc_a,sfc_b
       logical, intent(in):: trans_emis
       integer, intent(in):: yr1,yr2
+      integer :: kstep=10 !<< please note this hard-code
 
       integer :: J_0, J_1
 
@@ -2948,7 +2953,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
 
       write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &100.d0*alpha,' % of period mid ',k,' to mid ',k+kstep,
      &' and monthly fraction= ',frac
       call write_parallel(trim(out_line))
 
