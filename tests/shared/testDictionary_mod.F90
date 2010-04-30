@@ -28,6 +28,8 @@ module testDictionary_mod
   
   public :: testToLowerCase
 
+  public :: testFailDuplicateKey
+
 contains
 
   subroutine testSetInteger()
@@ -230,10 +232,10 @@ contains
 
     call assertEqual(0, getNumEntries(aDictionary))
 
-    call insert(aDictionary, 'key', expected)
+    call insert(aDictionary, 'key1', expected)
     call assertEqual(1, getNumEntries(aDictionary))
 
-    call insert(aDictionary, 'key', expected)
+    call insert(aDictionary, 'key2', expected)
     call assertEqual(2, getNumEntries(aDictionary))
 
   end subroutine testGetNumEntries
@@ -275,5 +277,16 @@ contains
   subroutine testToLowerCase()
     call assertEqual('abcdef123abcdef',toLowerCase('AbCdEf123aBcDeF'))
   end subroutine testToLowerCase
+
+  subroutine testFailDuplicateKey()
+    type (Dictionary_type) :: aDictionary
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'a', 1)
+    call insert(aDictionary, 'a', 2)
+    if (.not. catch('Dictionary: duplicate key - <a>.')) then
+      call throw(Exception('Failed to diagnose duplicate key.'))
+    end if
+    call clean(aDictionary)
+  end subroutine testFailDuplicateKey
 
 end module testDictionary_mod

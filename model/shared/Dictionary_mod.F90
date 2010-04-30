@@ -1347,12 +1347,18 @@ contains
 
   end subroutine getValue_dictionaryArray
 
-  subroutine addEntry(this)
+  subroutine addEntry(this, key)
 !@sum Creates space for new entry in dictionary
     type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
 
     type (KeyValuePair_type), pointer :: oldPairs(:)
     integer :: numEntries
+
+    if (hasKey(this, key)) then
+      call throwException('Dictionary: duplicate key - <'//trim(key)//'>.',14)
+      return
+    end if
 
     oldPairs => this%pairs
     numEntries = getNumEntries(this)
@@ -1366,8 +1372,8 @@ contains
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: value
-    
-    call addEntry(this)
+
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
 
   end subroutine insert_integer
@@ -1377,7 +1383,7 @@ contains
     character(len=*), intent(in) :: key
     real*8, intent(in) :: value
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
 
   end subroutine insert_real64
@@ -1387,7 +1393,7 @@ contains
     character(len=*), intent(in) :: key
     logical, intent(in) :: value
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
 
   end subroutine insert_logical
@@ -1397,7 +1403,7 @@ contains
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: value
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, value)
 
   end subroutine insert_string
@@ -1407,7 +1413,7 @@ contains
     character(len=*), intent(in) :: key
     integer, intent(in) :: values(:)
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
 
   end subroutine insert_integerArray
@@ -1417,7 +1423,7 @@ contains
     character(len=*), intent(in) :: key
     real*8, intent(in) :: values(:)
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
 
   end subroutine insert_real64Array
@@ -1427,7 +1433,7 @@ contains
     character(len=*), intent(in) :: key
     logical, intent(in) :: values(:)
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
 
   end subroutine insert_logicalArray
@@ -1437,7 +1443,7 @@ contains
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: values(:)
     
-    call addEntry(this)
+    call addEntry(this, key)
     this%pairs(getNumEntries(this)) = KeyValuePair(key, values)
 
   end subroutine insert_stringArray
