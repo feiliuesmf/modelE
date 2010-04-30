@@ -57,9 +57,6 @@ module Dictionary_mod
 !@+ 04/18/02 added 3 bytes to ParamStr so that its size is
 !@+ divisible by 4 (needed for portability SGI,LINUX <-> IBM,COMPAQ).
 !@+ Header renamed to "PARAM02 "
-#ifdef USE_PFUNIT
-  use pFUnit
-#endif
   implicit none
   save
   private
@@ -1235,23 +1232,18 @@ contains
     integer, intent(in) :: numElements
 
     check = (this%valueType == valueType)
-#ifdef USE_PFUNIT
     if (.not. check) then
-      call throw(Exception('Incorrect type for specified key: <' &
-           & // trim(this%key) // '>'))
+      call throwException('Incorrect type for specified key: <' &
+           & // trim(this%key) // '>', 14)
       return
     end if
-#endif
     check = (numElements == this%numElements)
-#ifdef USE_PFUNIT
+
     if (.not. check) then
-      call throw(Exception('Incorrect number of elements for specified key: <' &
-           & // trim(this%key) // '>'))
+      call throwException('Incorrect number of elements for specified key: <' &
+           & // trim(this%key) // '>', 14)
       return
     end if
-#endif
-
-
 
   end function check
 
@@ -1633,9 +1625,7 @@ contains
       end if
     end do
     index = NOT_FOUND
-#ifdef USE_PFUNIT
-    call throw(Exception('Key not found: <'//trim(key)//'>.'))
-#endif
+    call throwException('Key not found: <'//trim(key)//'>.', 14)
     
   end function getIndex
 
