@@ -22,9 +22,13 @@ module testParser_mod
   public :: testSplitTokensC
   public :: testSplitTokensD
   public :: testSplitEmbeddedComma
+  public :: testBadFirstSeparator
 
   public :: testParse
   public :: testParseNoValue
+
+!!$  public :: testMissingEndQuote
+!!$  public :: testFirstSep ! '='
 
 contains
 
@@ -73,7 +77,7 @@ contains
     expectedString = string
     call assertEqual(expectedString, stripComment(parser, string))
 
-    call setCommentCharacters(parser, ' ')
+    call setCommentCharacters(parser, ' ,')
     expectedString = 'has'
     call assertEqual(expectedString, stripComment(parser, string))
 
@@ -273,6 +277,22 @@ contains
 
   end subroutine testSplitEmbeddedComma
 
+  subroutine testBadFirstSeparator()
+    type (Parser_type) :: parser
+    character(len=*), parameter :: separators = '= ,'
+    character(len=128) :: string
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+
+    call setTokenSeparators(parser, separators)
+
+    tokens => splitTokens(parser, " my var = 3")
+    if (.not. catch('Parser_mod: Illegal syntax.  "=" not first separator.')) then
+      call throw(Exception('Failed to detect illegal syntax.'))
+    end if
+    deallocate(tokens)
+
+  end subroutine testBadFirstSeparator
+
   subroutine testParse()
     use FileManager
     use Dictionary_mod
@@ -293,6 +313,8 @@ contains
     write(unit,*) END_HEADER
     write(unit,*) '! alpha = 1' ! ignore - only a comment
     write(unit,*) 'beta = 2'
+    write(unit,*) ! empty line
+    write(unit,*) '!' ! effectively empty line
     write(unit,*) 'gamma = 3.'
     write(unit,*) '! alpha = 2' ! ignore - only a comment
     write(unit,*) 'delta = T, F, T, T'
@@ -308,6 +330,7 @@ contains
     aDictionary = parse(parser, unit)
     close(unit, status='delete')
 
+    call assertEqual(3, size(getKeys(aDictionary)))
     call assertFalse(hasKey(aDictionary, 'alpha'), 'There should not be an "alpha".')
     call assertTrue(hasKey(aDictionary, 'beta'), 'There should be a "beta".')
     call assertTrue(hasKey(aDictionary, 'gamma'), 'There should be a "gamma".')
@@ -352,7 +375,7 @@ contains
 
     call setEndHeader(parser, END_HEADER)
     call setEndOfList(parser, END_LIST)
-    call setTokenSeparators(parser, '=,')
+    call setTokenSeparators(parser, ' =,')
     call setCommentCharacters(parser, '!#')
     aDictionary = parse(parser, unit)
     if (.not. catch('Parser_mod: syntax error in input unit.')) then
@@ -361,4 +384,6 @@ contains
 
     close(unit, status='delete')
   end subroutine testParseNoValue
+
+
 end module testParser_mod

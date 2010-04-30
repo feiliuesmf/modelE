@@ -17,7 +17,7 @@ module Parser_mod
 
   public :: MAX_LEN_LINE
   public :: MAX_LEN_TOKEN
-  integer, parameter :: MAX_COMMENT_CHARACTERS = 2
+  integer, parameter :: MAX_COMMENT_CHARACTERS = 3
   integer, parameter :: MAX_TOKEN_SEPARATORS   = 2
   integer, parameter :: MAX_LEN_LINE  = 256
   integer, parameter :: MAX_LEN_TOKEN = 32
@@ -25,10 +25,8 @@ module Parser_mod
   character(len=*), parameter :: ENTIRE_TOKEN = '(a33)' ! MAX_LEN_TOKEN + 1 char
 
   type Parser_type
-    integer :: numCommentCharacters = 2
-    integer :: numTokenSeparators = 2
     character(len=MAX_COMMENT_CHARACTERS) :: commentCharacters = '!#' ! legacy default
-    character(len=MAX_TOKEN_SEPARATORS) :: tokenSeparators = '=,'     ! legacy default
+    character(len=MAX_TOKEN_SEPARATORS) :: tokenSeparators = ' =,'     ! legacy default
     character(len=MAX_LEN_LINE) :: endHeader = '&&PARAMETERS'         ! legacy default
     character(len=MAX_LEN_LINE) :: endOfList = '&&END_PARAMETERS'     ! legacy default
   end type Parser_type
@@ -204,9 +202,7 @@ contains
 !@sum Parses text from input unit to populate a Dictionary object.
 !@+ Skips header section at top.
     use Dictionary_mod
-#ifdef USE_PFUNIT
-    use pFUnit
-#endif
+
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -223,14 +219,16 @@ contains
       read(unit,fmt=ENTIRE_LINE,iostat=status) line
       if (status /= 0) exit
       if (isEndOfList(this, line)) exit
+      
+      line = stripComment(this, line)
+      if (len_trim(line) == 0) cycle ! skip
 
       tokens => splitTokens(this, line)
-#ifdef USE_PFUNIT
       if (size(tokens) < 2) then
-        call throw(Exception('Parser_mod: syntax error in input unit.'))
+        call throwException('Parser_mod: syntax error in input unit.', 14)
         cycle
       end if
-#endif
+
       call readAndInsert(aDictionary, key=tokens(1), tokens=tokens(2:))
 
       deallocate(tokens)
@@ -321,7 +319,6 @@ contains
     character(len=*), intent(in) :: commentCharacters
 
     this%commentCharacters = commentCharacters
-    this%numCommentCharacters = len(commentCharacters) ! do NOT use trim - might want blanks
 
   end subroutine setCommentCharacters
 
@@ -333,7 +330,7 @@ contains
 
     integer :: n
 
-    n = scan( str, this%commentCharacters(1:this%numCommentCharacters))
+    n = scan(str, trim(this%commentCharacters))
     select case (n)
     case (0)
       newStr = trim(str)
@@ -356,9 +353,7 @@ contains
   end subroutine setEndOfList
 
   subroutine skipHeader(this, unit)
-#ifdef USE_PFUNIT
-    use pFUnit
-#endif
+
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
     character(len=MAX_LEN_LINE) :: line
@@ -366,12 +361,11 @@ contains
     
     do
       read(unit,fmt=ENTIRE_LINE,iostat=status) line
-#ifdef USE_PFUNIT
       if (status < 0) then
-        call throw(Exception('end of file before reaching header'))
+        call throwException('end of file before reaching header', 14)
         return
       end if
-#endif
+
       if (trim(line) == this%endHeader) exit
     end do
 
@@ -477,7 +471,6 @@ contains
     type (Parser_type), intent(inout) :: this
     character(len=*), intent(in) :: tokenSeparators
     this%tokenSeparators = tokenSeparators
-    this%numTokenSeparators = len(tokenSeparators)
   end subroutine setTokenSeparators
 
   function splitTokens(this, string) result(tokens)
@@ -506,7 +499,7 @@ contains
       else
         idxStart = 1
       end if
-      idxNextSeparator = scan(buffer(idxStart:), this%tokenSeparators)
+      idxNextSeparator = scan(buffer(idxStart:), trim(this%tokenSeparators))
       if (idxNextSeparator > 0) then
         tokens(i) = trim(buffer(:idxStart+idxNextSeparator-2))
         buffer = adjustl(buffer(idxStart+idxNextSeparator:))
@@ -515,6 +508,12 @@ contains
         exit
       end if
     end do
+
+    if (numTokens >= 1) then
+      if (scan(trim(tokens(1)), ' ') /= 0) then
+        call throwException('Parser_mod: Illegal syntax.  "=" not first separator.', 14)
+      end if
+    end if
     
   end function splitTokens
 
