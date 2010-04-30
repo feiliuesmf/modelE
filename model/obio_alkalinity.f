@@ -52,7 +52,7 @@
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
       USE ODIAG, only: ij_fca,oij=>oij_loc
-      USE OCEAN, only: dxypo
+      USE OCEAN, only: dxypo,lmm
 #else
       USE hycom_scalars, only: nstep
 #endif
@@ -151,6 +151,8 @@ cdiag.                    p1d(k+1),bn,cnratio
       do k=kmax+1,1,-1
            if (p1d(k).gt.zc) kzc = k
       enddo
+      if (kzc.lt.1) kzc=1
+      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
 
       !p1d(kzc) is really the compensation depth
       !F_Ca(kzc) is the CaCO3 export
@@ -160,7 +162,7 @@ cdiag.                    p1d(k+1),bn,cnratio
 
 #ifdef OBIO_ON_GARYocean
       OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(kzc)
-     .                *12.d0*365.d0*1.d-3*12.d0
+     .                *24.d0*365.d0*1.d-3*12.d0
      .                *dxypo(J)*75.d0*1.d-15
 !to convert this into units of Pgr,C/yr: 
 ! * 24 *365          ! uM/hr -> uM/yr = mili-mol,C/m3/hr

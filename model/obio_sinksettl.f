@@ -10,7 +10,7 @@
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE ODIAG, only: ij_cexp,oij=>oij_loc
-      USE OCEAN, only: dxypo
+      USE OCEAN, only: dxypo,lmm
 #else
       USE hycom_scalars, only: nstep,baclin
 #endif
@@ -28,9 +28,10 @@
 
 #ifdef OBIO_ON_GARYocean
 
-!the sinking term is given in units (m/hr)*(moles/m3)
-!in order to be converted into moles/m3/hr as the tendency
-!terms are, we need to multiply by dz of each layer:
+!the sinking term is given in units (m/hr)*(mgr,chl/m3)
+!in order to be converted into mgr,chl/m3/hr as the tendency
+!terms are in the phytoplankton equations, 
+!we need to multiply by dz of each layer:
 !  dz(k  ) * P_tend(k  ) = dz(k  ) * P_tend(k  ) - trnd
 !  dz(k+1) * P_tend(k+1) = dz(k+1) * P_tend(k+1) + trnd
 !this way we ensure conservation of tracer after vertical adjustment
@@ -64,14 +65,28 @@
       do k=kmax+1,1,-1
            if (p1d(k).gt.zc) kzc = k
       enddo
+      if (kzc.lt.1) kzc=1
+      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
+
       do nt=nnut+1,nnut+nchl
          OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) 
                           !mgm3/hr -> uM/hr=mili,molC/m3/hr-> mol,C/m3/hr
      .                    + rhs(kzc,nt,16) * mgchltouMC * 1.d-3    
                           ! -> Pgr,C/yr
-     .                    * 12.d0 * 365.d0 *dxypo(J)*75.d0
+     .                    * 24.d0 * 365.d0 *dxypo(J)*75.d0
      .                    * 12.d0 * 1.d-15
       enddo
+
+cdiag write(*,'(a,3i5,8e12.4)')'carbon export1:',
+cdiag.   nstep,i,j,obio_P(kzc,5),obio_ws(kzc,1),
+cdiag.             obio_P(kzc,6),obio_ws(kzc,2),
+cdiag.             obio_P(kzc,7),obio_ws(kzc,3),
+cdiag.             obio_P(kzc,8),obio_ws(kzc,4) 
+cdiag write(*,'(a,3i5,4e12.4)')'carbon export1a:',
+cdiag.   nstep,i,j,       rhs(kzc,5,16),
+cdiag.                    rhs(kzc,6,16),
+cdiag.                    rhs(kzc,7,16),
+cdiag.                    rhs(kzc,8,16)
 
       !detritus settling
       do nt = 1,ndet
@@ -101,9 +116,12 @@
                        !micro-grC/lt/hr -> mili,grC/m3/hr -> mol,C/m3/hr
      .                 + rhs(kzc,nnut+nchl+nzoo+1,16)*1.d-3 /12.d0   
                           ! -> Pgr,C/yr
-     .                    * 12.d0 * 365.d0 *dxypo(J)*75.d0
+     .                    * 24.d0 * 365.d0 *dxypo(J)*75.d0
      .                    * 12.d0 * 1.d-15
 
+cdiag write(*,'(a,4i5,5e12.4)')'carbon export2:',
+cdiag.   nstep,i,j,kzc,zc,p1d(kzc),det(kzc,1),wsdet(kzc,1),
+cdiag.                    rhs(kzc,nnut+nchl+nzoo+1,16)
 
 #else     /* HYCOM */
 #ifndef noBIO            /****** for all runs except noBIO tests ********/
