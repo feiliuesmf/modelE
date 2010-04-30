@@ -54,3 +54,19 @@ subroutine stop_model( message, retcode )
 
 end subroutine stop_model
 
+subroutine throwException(message, retcode)
+!@sum Either invokes pFUnit exception for testing or
+!@+ stop_model() for run-time testing.
+!@auth T. Clune
+#ifdef USE_PFUNIT
+  use pFUnit
+#endif
+  character(len=*), intent(in) :: message
+  integer, intent(in) :: retcode
+
+#ifdef USE_PFUNIT
+  call throw(Exception(message))
+#else
+  call stop_model(message, retcode)
+#endif
+end subroutine throwException
