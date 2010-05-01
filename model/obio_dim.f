@@ -62,8 +62,6 @@
                                           !1-Alk is from climatology (GLODAP annmean)
                                           !2-Alk is prognostic
 #endif
-      integer, parameter :: IRON_from=0   !0-Iron from GOCART model
-                                          !1-Iron from Ron Miller's dust fluxes
 
 c --- diagno_bio      output obio-model fields and diagnostic messages
       logical, public:: diagno_bio

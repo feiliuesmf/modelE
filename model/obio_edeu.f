@@ -19,9 +19,7 @@ c  final is quanta for phytoplankton growth.
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
-#ifdef TRACERS_Alkalinity
      *                      ,zc
-#endif
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
@@ -153,7 +151,6 @@ cdiag        endif
 
        enddo  !k
  
-#ifdef TRACERS_Alkalinity
 !define compensation depth
       zc = 75. ! in meters (from OCMIP)
 
@@ -174,7 +171,6 @@ cdiag.    nstep,i,j,k,p1d(k),tirrq(k)
 !     enddo
 cdiag write(*,'(a,4i7,e12.4)')'obio_edeu3: ',
 cdiag.    nstep,i,j,k,zc
-#endif
 
 c  Irradiance summary loops
 

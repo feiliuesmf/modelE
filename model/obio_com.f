@@ -112,11 +112,10 @@ c
       real A_tend                             !alk tendency (dA/dt)
       common /akpt/ A_tend(kdm)
 !$OMP THREADPRIVATE(/akpt/)
-
+#endif
       real zc                                 !compensation depth
       common /bzc/zc
 !$OMP THREADPRIVATE(/bzc/)
-#endif
 
       real rmuplsr                            !growth+resp rate
       common /bgro/ rmuplsr(kdm,nchl)   

@@ -499,7 +499,6 @@ c  Read in factors to compute average irradiance
       print*, '    '
       endif
 
-      if (IRON_from.eq.0) then
 !     open(unit=iu_bio,file='atmFedirect0'
 !    . ,form='unformatted',status='old',access='direct' 
 !    . ,recl=idm*jdm*8/4)
@@ -514,22 +513,6 @@ c  Read in factors to compute average irradiance
 #else
         call bio_inicond2D(filename,atmFe(:,:,:),.true.)
 #endif
-      endif
-
-!     if (IRON_from.eq.1) then
-!     !this needs to be changed according to bio_inicond2D
-!     !not done yet, because ron's iron fluxes too big.
-!     call stop_model("obio_init:IRON_from.eq.1 not implemented",255)
-!     call openunit('atmFedirect1',iu_bio)
-!     do imon=1,12  !1 year of monthly values
-!      do j=1,jdm
-!       do i=1,idm
-!       read(iu_bio,'(e12.4)')atmFe_glob(i,j,imon)
-!       enddo
-!      enddo
-!     enddo
-!     call closeunit(iu_bio)
-!     endif
 
 #ifdef TRACERS_Alkalinity
 ! Alkalinity will be read in from obio_bioinit
@@ -581,10 +564,6 @@ c  Read in factors to compute average irradiance
       if (ALK_CLIM.eq.0) write(*,*) 'ALKALINITY, from SALINITY'
       if (ALK_CLIM.eq.1) write(*,*) 'ALKLNTY, GLODAP annmean'
       if (ALK_CLIM.eq.2) write(*,*) 'ALKALINITY prognostic'
-
-      write(*,*)'IRON_from = ', IRON_from
-      if (IRON_from.eq.0) write(*,*) 'IRON FLUXES, GOCART model'
-      if (IRON_from.eq.1) write(*,*) 'IRON FLUXES, R.Miller dustfluxes'
 
 #ifdef OBIO_RAD_coupling
       print*, 'OBIO - RADIATION COUPLING'
