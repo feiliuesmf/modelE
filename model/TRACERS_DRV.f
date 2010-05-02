@@ -3257,30 +3257,30 @@ c Processes AMP Budget
           end if
 #endif
           itcon_AMPm(2,n)=18
-          qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) =
+          qcon(itcon_AMPm(2,n)) = .true. ; conpts(6) =
      *         'Mode AktivPart'
           qsum(itcon_AMPm(2,n)) = .false.
 c     Processes AMP Budget
           itcon_AMP(1,n)=19
-          qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
+          qcon(itcon_AMP(1,n)) = .true. ; conpts(7) = 'P1 Nucleation'
           qsum(itcon_AMP(1,n)) = .true.
           itcon_AMP(2,n)=20
-          qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
+          qcon(itcon_AMP(2,n)) = .true. ; conpts(8) = 'P2 Coagulation'
           qsum(itcon_AMP(2,n)) = .true.
           itcon_AMP(3,n)=21
-          qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
+          qcon(itcon_AMP(3,n)) = .true.;conpts(9) ='P3 NOTHING'
           qsum(itcon_AMP(3,n)) = .true.
           itcon_AMP(4,n)=22
-          qcon(itcon_AMP(4,n)) = .true.;conpts(11)='P4 Intermode Coag'
+          qcon(itcon_AMP(4,n)) = .true.;conpts(10)='P4 Intermode Coag'
           qsum(itcon_AMP(4,n)) = .true.
           itcon_AMP(5,n)=23
-          qcon(itcon_AMP(5,n)) = .true.;conpts(12)='P5 Intramode Tr'
+          qcon(itcon_AMP(5,n)) = .true.;conpts(11)='P5 Intramode Tr'
           qsum(itcon_AMP(5,n)) = .true.
           itcon_AMP(6,n)=24
-          qcon(itcon_AMP(6,n)) = .true.;conpts(13)='P6 Mode Transf'
+          qcon(itcon_AMP(6,n)) = .true.;conpts(12)='P6 Mode Transf'
           qsum(itcon_AMP(6,n)) = .true.
           itcon_AMP(7,n)=25
-          qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
+          qcon(itcon_AMP(7,n)) = .true. ; conpts(13) = 'P7 AMP Budget'
           qsum(itcon_AMP(7,n)) = .true.
 
         end select
@@ -10035,7 +10035,10 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
        end do
 #else
          do j=J_0,J_1
-            trsource(:,j,1,n) = .99*so2_src(:,j,1)*0.0375d0
+            trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
+#ifdef TRACERS_AMP
+     &                         *0.99d0
+#endif
          end do
         trsource(:,j_0:j_1,2,n)=.99*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
 #endif
