@@ -2,6 +2,9 @@ module Parser_mod
 !@sum procedures to read parameters from the rundeck into the database
 !@auth I. Aleinov and T. Clune
 !@ver 1.1     
+  use GenericType_mod
+  use KeyValuePair_mod
+  use Dictionary_mod, only: MAX_LEN_LINE
   implicit none
 
   public :: Parser_type
@@ -19,7 +22,6 @@ module Parser_mod
   public :: MAX_LEN_TOKEN
   integer, parameter :: MAX_COMMENT_CHARACTERS = 3
   integer, parameter :: MAX_TOKEN_SEPARATORS   = 2
-  integer, parameter :: MAX_LEN_LINE  = 256
   integer, parameter :: MAX_LEN_TOKEN = 32
   character(len=*), parameter :: ENTIRE_LINE = '(a257)' ! MAX_LEN_LINE + 1 char
   character(len=*), parameter :: ENTIRE_TOKEN = '(a33)' ! MAX_LEN_TOKEN + 1 char
@@ -198,6 +200,45 @@ contains
     &     'PARSER: No &&PARAMETERS or &&END_PARAMETERS found',255)
   end subroutine parse_params
 
+  function parseLine(this, line) result(pair)
+    use Dictionary_mod
+    type (Parser_type), intent(in) :: this
+    character(len=*), intent(in) :: line
+    type (KeyValuePair_type) :: pair
+
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+
+    tokens => splitTokens(this, line)
+    if (size(tokens) < 2) then
+      call throwException('Parser_mod: syntax error in input unit.', 14)
+      return
+    end if
+
+    pair = readPair(key=tokens(1), tokens=tokens(2:))
+    deallocate(tokens)
+
+  contains
+
+    function readPair(key, tokens) result(pair)
+      character(len=*), intent(in) :: key
+      character(len=*), intent(in) :: tokens(:)
+      type (KeyValuePair_type) :: pair
+
+      type (GenericType_type), pointer :: values(:)
+      integer :: numValues, i
+
+      numValues = size(tokens)
+      allocate(values(numValues))
+      do i = 1, numValues
+        values(i) = fromString(tokens(i), getValueType(tokens))
+      end do
+      pair = KeyValuePair(key, values)
+      deallocate(values)
+
+    end function readPair
+
+  end function parseLine
+
   function parse(this, unit) result(aDictionary)
 !@sum Parses text from input unit to populate a Dictionary object.
 !@+ Skips header section at top.
@@ -208,8 +249,8 @@ contains
 
     type (Dictionary_type) :: aDictionary
     integer :: status
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
     character(len=MAX_LEN_LINE) :: line
+    type (KeyValuePair_type) :: pair
 
     aDictionary = Dictionary()
 
@@ -223,94 +264,10 @@ contains
       line = stripComment(this, line)
       if (len_trim(line) == 0) cycle ! skip
 
-      tokens => splitTokens(this, line)
-      if (size(tokens) < 2) then
-        call throwException('Parser_mod: syntax error in input unit.', 14)
-        cycle
-      end if
+      pair = parseLine(this, line)
+      call insert(aDictionary, pair)
 
-      call readAndInsert(aDictionary, key=tokens(1), tokens=tokens(2:))
-
-      deallocate(tokens)
     end do
-
-  contains
-
-    subroutine readAndInsert(aDictionary, key, tokens)
-      type (Dictionary_type), intent(inout) :: aDictionary
-      character(len=*), intent(in) :: key
-      character(len=*), intent(in) :: tokens(:)
-      
-      select case (getValueType(tokens))
-      case (INTEGER_TYPE)
-        call insert(aDictionary, key, readIntegers(tokens))
-      case (REAL64_TYPE)
-        call insert(aDictionary, key, readReal64s(tokens))
-      case (LOGICAL_TYPE)
-        call insert(aDictionary, key, readLogicals(tokens))
-      case (STRING_TYPE)
-        call insert(aDictionary, key, readStrings(tokens))
-      end select
-    end subroutine readAndInsert
-
-    function readIntegers(tokens) result(values)
-      character(len=*), intent(in) :: tokens(:)
-      integer, pointer :: values(:)
-      
-      integer :: i, n
-
-      n = size(tokens)
-      allocate(values(n))
-      do i = 1, n
-        read(tokens(i),'(i)') values(i)
-      end do
-    end function readIntegers
-
-    function readReal64s(tokens) result(values)
-      character(len=*), intent(in) :: tokens(:)
-      real*8, pointer :: values(:)
-      
-      integer :: i, n
-
-      n = size(tokens)
-      allocate(values(n))
-      do i = 1, n
-        read(tokens(i),'(g)') values(i)
-      end do
-    end function readReal64s
-
-    function readLogicals(tokens) result(values)
-      character(len=*), intent(in) :: tokens(:)
-      logical, pointer :: values(:)
-      
-      integer :: i, n
-      character(len=MAX_LEN_TOKEN) :: token
-
-      n = size(tokens)
-      allocate(values(n))
-      do i = 1, n
-        token = tokens(i)
-        select case(toLowerCase(token))
-        case ('t', 'true', '.true.')
-          values(i) = .true.
-        case ('f', 'false', '.false.')
-          values(i) = .false.
-        end select
-      end do
-    end function readLogicals
-
-    function readStrings(tokens) result(values)
-      character(len=*), intent(in) :: tokens(:)
-      character(len=MAX_LEN_TOKEN), pointer :: values(:)
-      
-      integer :: i, n
-
-      n = size(tokens)
-      allocate(values(n))
-      do i = 1, n
-        read(tokens(i),fmt=ENTIRE_TOKEN) values(i)
-      end do
-    end function readStrings
 
   end function parse
   
@@ -393,7 +350,7 @@ contains
 
   logical function isLogical(string)
 !@sum Allow a variety of convenient formats for true/false values
-    use Dictionary_mod, only: toLowerCase
+    use StringUtilities_mod, only: toLowerCase
     character(len=*), intent(in) :: string
     logical :: logicalValue
     integer :: status

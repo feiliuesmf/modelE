@@ -1,6 +1,7 @@
 module testDictionary_mod
   use pfunit
   use Dictionary_mod
+  use KeyValuePair_mod
   implicit none
   private
 
@@ -26,8 +27,6 @@ module testDictionary_mod
   public :: testHasKey
   public :: testGetKeys
   
-  public :: testToLowerCase
-
   public :: testFailDuplicateKey
 
 contains
@@ -169,9 +168,9 @@ contains
 
     aDictionary = Dictionary()
     call lookup(aDictionary, 'alpha', i)
-    if (.not. catch('Key not found: <alpha>.')) then
-      call throw(Exception('Failed to detect missing key.'))
-    end if
+    call assertFailedAssert('Key not found: <alpha>.', &
+         & 'Failed to detect missing key.')
+
   end subroutine testKeyNotFound
 
   subroutine testGetValueA()
@@ -274,18 +273,13 @@ contains
     call clean(aDictionary)
   end subroutine testGetKeys
 
-  subroutine testToLowerCase()
-    call assertEqual('abcdef123abcdef',toLowerCase('AbCdEf123aBcDeF'))
-  end subroutine testToLowerCase
-
   subroutine testFailDuplicateKey()
     type (Dictionary_type) :: aDictionary
     aDictionary = Dictionary()
     call insert(aDictionary, 'a', 1)
     call insert(aDictionary, 'a', 2)
-    if (.not. catch('Dictionary: duplicate key - <a>.')) then
-      call throw(Exception('Failed to diagnose duplicate key.'))
-    end if
+    call assertFailedAssert('Dictionary: duplicate key - <a>.', &
+         & 'Failed to diagnose duplicate key.')
     call clean(aDictionary)
   end subroutine testFailDuplicateKey
 

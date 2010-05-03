@@ -27,6 +27,7 @@ module testParser_mod
   public :: testParse
   public :: testParseNoValue
 
+
 !!$  public :: testMissingEndQuote
 !!$  public :: testFirstSep ! '='
 
@@ -124,9 +125,8 @@ contains
 
     call setEndHeader(parser, END_HEADER)
     call skipHeader(parser, unit)
-    if (.not. catch('end of file before reaching header')) then
-      call throw(Exception('did not notice missing end of header'))
-    end if
+    call assertFailedAssert( 'end of file before reaching header', &
+         & 'did not notice missing end of header')
 
     close(unit, status='delete')
   end subroutine testNoEndHeader
@@ -286,9 +286,8 @@ contains
     call setTokenSeparators(parser, separators)
 
     tokens => splitTokens(parser, " my var = 3")
-    if (.not. catch('Parser_mod: Illegal syntax.  "=" not first separator.')) then
-      call throw(Exception('Failed to detect illegal syntax.'))
-    end if
+    call assertFailedAssert('Parser_mod: Illegal syntax.  "=" not first separator.', &
+         & 'Failed to detect illegal syntax.')
     deallocate(tokens)
 
   end subroutine testBadFirstSeparator
@@ -378,12 +377,10 @@ contains
     call setTokenSeparators(parser, ' =,')
     call setCommentCharacters(parser, '!#')
     aDictionary = parse(parser, unit)
-    if (.not. catch('Parser_mod: syntax error in input unit.')) then
-      call throw(Exception('Failed to detect syntax error in parse'))
-    end if
+    call assertFailedAssert('Parser_mod: syntax error in input unit.', &
+         & 'Failed to detect syntax error in parse')
 
     close(unit, status='delete')
   end subroutine testParseNoValue
-
 
 end module testParser_mod
