@@ -1,4 +1,6 @@
 module StringUtilities_mod
+!@sum Container module for various procedures which manipulate strings
+!@auth T.Clune
   implicit none
   private
 
@@ -7,6 +9,11 @@ module StringUtilities_mod
 contains
 
   function toLowerCase(string) result(newString)
+!@auth I. Aleinov
+!@sum Produces a copy of the string argument, but with any
+!@+ capitalized letters replaced by their lower case equivalent.
+!@+ Characters which are not alphabetic letters are copied without
+!@+  modification.
     character(len=*), intent(in) :: string
     character(len=len_trim(string)) :: newString
 
