@@ -14,7 +14,8 @@ filters: U,V in E-W direction (after every dynamics time step)
 Preprocessor Options
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-#define ATM2x2h_HYCOM1deg   !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
+#define ATM2x2h             !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
+#define HYCOM1deg           !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define TRACERS_OceanBiology
 #define OBIO_RAD_coupling
 #define pCO2_ONLINE
