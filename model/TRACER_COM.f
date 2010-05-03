@@ -876,7 +876,7 @@ C**** Diagnostic indices and meta-data
 !@var ntisurfsrc no. of interactive surface sources for each tracer
       integer, dimension(ntm) :: ntisurfsrc
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: nt3Dsrcmax=6
+      integer, parameter :: nt3Dsrcmax=7
 !@var sfc_src array holds tracer sources that go into trsource( )
 !@+ maybe wasteful of memory, but works for now...
       real*8, allocatable, dimension(:,:,:,:) :: sfc_src
@@ -1002,12 +1002,14 @@ C**** arrays that could be general, but are only used by chemistry
 !@param nOverwrite index for tracer overwrite 3D source
 !@param nOther index for tracer misc. 3D source
 !@param nAircraft index for tracer aircraft 3D source
+!@param nBiomass index for tracer biomass burning 3D source
 !@param nVolcanic index for tracer volcano 3D source
+!@param nChemloss index for tracer chemistry 3D loss
 ! Must be a better way to do this, but for now, it is better than
 ! hardcoding indicies with a number like "3":
-      INTEGER, PARAMETER :: nChemistry  = 1, nOverwrite = 2,
-     &     nOther  = 3, nAircraft   = 4, nBiomass    = 5,
-     &     nVolcanic = 6
+      INTEGER, PARAMETER :: nChemistry = 1, nOverwrite = 2,
+     &     nOther = 3, nAircraft = 4, nBiomass = 5,
+     &     nVolcanic = 6, nChemloss = 7
 
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CFC
