@@ -1891,7 +1891,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif /* TRACERS_ON */
 #endif /* NEW_IO */
 
-      subroutine num_srf_sources(nt,nsrc)
+      subroutine num_srf_sources(nt,nsrc,checkname)
 !@sum reads headers from emission files to return
 !@+ source names and determine the number of sources
 !@+ from the number of files in the rundeck of the form:
@@ -1917,7 +1917,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       character*32 :: pname
       character*124 :: tr_sectors_are
       character(len=300) :: out_line
-      logical :: qexist
+      logical :: qexist,checkname
 
 ! loop through potential number of surface sources, checking if
 ! those files exist. If they do, obtain the source name by reading
@@ -1933,7 +1933,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
-          call read_emis_header(nt,n,iu,.true.)
+          call read_emis_header(nt,n,iu,checkname)
           call closeunit(iu)
 ! -- begin sector  stuff --
           tr_sectors_are = ' '
@@ -1988,7 +1988,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       end subroutine num_srf_sources
 
 
-      subroutine read_sfc_sources(n,nsrc,xyear,xday)
+      subroutine read_sfc_sources(n,nsrc,xyear,xday,checkname)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
       USE MODEL_COM, only: itime,im,jm
@@ -2011,6 +2011,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      & sfc_a,sfc_b
       integer, intent(IN) :: xyear, xday
+      logical :: checkname
       
       save ifirst2
 
@@ -2034,7 +2035,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         endif
         fname=trim(trname(n))//'_'//fnum
         call openunit(fname,iu,.true.)
-        call read_emis_header(n,ns,iu,.true.)
+        call read_emis_header(n,ns,iu,checkname)
 
 ! now read the data: (should be in kg/m2/s please)
  
