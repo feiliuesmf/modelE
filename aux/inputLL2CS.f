@@ -406,8 +406,11 @@ c*
 
       subroutine read_regrid_write_veg(x2grids,name,iuin)
       use regrid
-      USE CONSTANT, only : RADIUS,radian,TWOPI
       implicit none
+      real*8,parameter :: pi = 3.1415926535897932d0 
+      real*8,parameter :: twopi = 2d0*pi         
+      real*8,parameter :: radian = pi/180d0      
+      real*8,parameter :: radius = 6371000.
       type(x_2grids), intent(in) :: x2grids
       character*80, intent(in) :: name
       integer, intent(in) :: iuin

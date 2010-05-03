@@ -151,13 +151,13 @@ $(BIN_DIR)/RDijk2ll: RDijk2ll.o $(GCMLIB)
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 inputll2cs: regrid.o ncio.o inputLL2CS.o 
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ ../model/shared/libshared.a ../model/DOMAIN_DECOMPcs.o $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 ll2cs: regrid.o ll2cs.o  
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS) 
 
 ncll2cs: regrid.o ncio.o ncll2cs.o
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS) 
 
 ncGinoux: ncio.o ncGinoux.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)

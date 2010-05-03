@@ -24,4 +24,4 @@ gmake input
 
 
 #     regrid all other quantities which need pre/post processing
-./inputLL2cs
+./inputll2cs
