@@ -8,7 +8,6 @@
 !@ read_mon3Dsources
 !@ READ_OFFHNO3
 !@ READ_OFFSS
-!@ read_E95_SO2_source
 !@ get_ships
 !@ get_hist_BMB
 !@ get_BCOC
@@ -45,11 +44,7 @@ c!@var SS1_AER        SALT bin 1 prescribed by AERONET (kg S/day/box)
       real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS1_AER  !(im,jm,366)
 c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS2_AER  !(im,jm,366)
-#ifdef EDGAR_1995
-      INTEGER, PARAMETER :: nso2src  = 6
-#else
       INTEGER, PARAMETER :: nso2src  = 1
-#endif
 !@var SO2_src    SO2 industry: surface source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: SO2_src !(im,jm,nso2src)
 !@var BCI_src    BC Industrial source (kg/s/box)
@@ -553,122 +548,6 @@ c -----------------------------------------------------------------
 c -----------------------------------------------------------------
 
 
-      SUBROUTINE read_E95_SO2_source(nt)
-!@sum reads in SO2 surface sources: Edgar 1995 (RIVM)
-C**** There are 2 monthly sources and 4 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
-c    * ,DTsrc,ls1,jmon,t,lm
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel 
-     * ,AM_I_ROOT
-      USE GEOM, only: BYAXYP
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit,
-     * nameunit
-      USE TRACER_COM, only: itime_tr0,trname
-      USE AEROSOL_SOURCES, only: src=>SO2_src,nsrc=>nso2src
-c    *  ,SO2_biosrc_3D
-      implicit none
-      character*80 title
-      logical :: ifirst=.true.
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=4,nmons=2
-      integer ann_units(nanns),mon_units(nmons)
-      character*12 :: ann_files(nanns) =
-     * (/'SO2_FFNB_E95','SO2_INNB_E95','SO2_WHNB_E95',
-     *  'SO2_BFNB_E95'/)
-      logical :: ann_bins=.true.
-      character*12 :: mon_files(nmons) =
-     * (/'SO2_AGNB_E95','SO2_BBNB_E95'/)
-      logical :: mon_bins=.true.
-      real*8, allocatable, dimension(:,:,:) :: tlca,tlcb  ! for monthly sources
-      real*8 frac,bySperHr
-      integer :: imon(nmons)
-      integer i,j,jj,nt,iu,k,j_0,j_1,i_0,i_1
-      integer :: jdlast=0
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-
-C Edgar-1995 has its own biomass (2D) source and diagnostic.
-C To avoid complications with indexing of 3D sources, leave in the
-C 3D biomass array and diagnostic but fill it with Edgar 1995
-C emissions. Make all levels other than surface equal to zero (nbell)
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
-c      so2_biosrc_3D(:,j_0:j_1,:,:)=0.
-C Now the Edgar-1995 sources
-C
-C    K=1    Fossil fuel combustion           (edgar 95 annual)
-C    K=2    industrial prod & cons processes (edgar 95 annual)
-C    K=3    wastehandling (edgar 95 annual)
-C    These 3 are from edgar 95, but with our monthly variation from
-C    biomass burning applied to the annual values:
-C    K=4    agricultural waste burning
-C    K=5    biofuel production, transformation, combustion
-C    K=6    biomass burning
-C
-      if (itime.lt.itime_tr0(nt)) return
-      bySperHr = 1.d0/3600.d0
-
-C****
-C**** Annual Edgar-1995 Sources
-C**** The EDGAR-1995 sources are in KGSO2/4x5grid/HR and need to be
-C**** converted to KGSO2/m2/sec:
-C****
-      if (ifirst) then
-        Allocate(tlca(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons)
-     *       ,tlcb(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
-        call openunit(ann_files,ann_units,ann_bins,.true.)
-        k = 0
-        do iu = 1,nanns
-          k = k+1
-c         call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          call readt_parallel (grid,
-     &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
-          do j=j_0,j_1
-            do i=i_0,i_1
-              src(i,j,k) = src(i,j,k)*byaxyp(i,j)*bySperHr
-            end do
-          end do
-        end do
-        call closeunit(ann_units)
-       
-        call openunit(mon_files,mon_units,mon_bins,.true.)
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C**** The EDGAR-1995 sources are in KG/4x5grid/HR and need to be
-C**** converted to KG/m2/sec:
-
-C****
-      ifirst = .false.
-      jj = 0
-      do k=nanns+1,nsrc
-        jj = jj+1
-        call read_monthly_sources(mon_units(jj),jdlast,
-     *    tlca(:,:,jj),tlcb(:,:,jj),src(:,:,k),frac,imon(jj))
-        do j=j_0,j_1
-          do i=i_0,i_1
-C Also fill 3D biomass array
-C Units are kgSO2/s
-c           if (k.eq.6) then
-c             so2_biosrc_3D(i,j,1,jmon)= src(i,j,k)*bySperHr
-c           endif
-            src(i,j,k) = src(i,j,k)*byaxyp(i,j)*bySperHr
-          end do
-        end do
-      end do
-      jdlast = jday
-      if (AM_I_ROOT())
-     *  write(6,*) trname(nt),'Sources interpolated to current day',frac
-      call sys_flush(6)
-C****
-      END SUBROUTINE read_E95_SO2_source
- 
       SUBROUTINE get_ships(end_of_day)
       USE AEROSOL_SOURCES, only: BC_ship,POM_ship,SO2_ship
       USE MODEL_COM, only: im,jm,jmon

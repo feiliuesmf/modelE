@@ -927,11 +927,7 @@ C          read the CFC initial conditions:
       case ('SO2')
       n_SO2 = n
           ntm_power(n) = -11
-#ifdef EDGAR_1995
-          ntsurfsrc(n) = 6
-#else
           ntsurfsrc(n) = 2   !Industrial,ships
-#endif
           tr_mm(n) = 64.
           tr_RKD(n) =0.0118d0 !mole/J or  1.2  M/atm
           tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
@@ -943,11 +939,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('SO4')
       n_SO4 = n
           ntm_power(n) = -11
-#ifdef EDGAR_1995
-          ntsurfsrc(n) = 6
-#else
           ntsurfsrc(n) = 2   !Industrial,ships
-#endif
           tr_mm(n) = 96.
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
           trradius(n)=3.d-7 !m
@@ -2646,35 +2638,6 @@ C**** set some defaults
           itcon_3Dsrc(5,N) = 17
           qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
           qsum(itcon_3Dsrc(5,N)) = .true.
-#ifdef EDGAR_1995
-          itcon_surf(1,N) = 18
-          qcon(itcon_surf(1,N)) = .true.; conpts(6) =
-     *         'E95 Fossil fuel'
-          itcon_surf(2,N) =19
-          qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
-          itcon_surf(3,N) = 20
-          qcon(itcon_surf(3,N)) = .true.; conpts(8) =
-     *         'E95 Waste hand.'
-          itcon_surf(4,N) = 21
-          qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
-          itcon_surf(5,N) = 22
-          qcon(itcon_surf(5,N)) = .true.; conpts(10) =
-     *         'E95 Agr. waste.'
-          itcon_surf(6,N) = 23
-          qcon(itcon_surf(6,N)) = .true.; conpts(11) =
-     *         'E95 Biomass Burn'
-          itcon_mc(n) =24
-          qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
-          itcon_ss(n) =25
-          qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            itcon_dd(n,1)=26
-            qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-          end if
-#endif
-#else  /* not EDGAR_1995 */
           itcon_surf(1,N) = 18
           qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
           qsum(itcon_surf(1,N))=.false.
@@ -2694,7 +2657,6 @@ C**** set some defaults
             qsum(itcon_dd(n,1)) = .false.
           end if
 #endif
-#endif  /* EDGAR_1995 */
 
         case ('SO4')
           itcon_3Dsrc(1,N) = 13
@@ -2706,38 +2668,6 @@ C**** set some defaults
           itcon_3Dsrc(3,N) = 15
           qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
           qsum(itcon_3Dsrc(3,N)) = .true.
-#ifdef EDGAR_1995
-          itcon_surf(1,N) = 16
-          qcon(itcon_surf(1,N)) = .true.; conpts(4) =
-     *         'E95 Fossil fuel'
-          itcon_surf(2,N) = 17
-          qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
-          itcon_surf(3,N) = 18
-          qcon(itcon_surf(3,N)) = .true.; conpts(6) =
-     *         'E95 Waste hand.'
-          itcon_surf(4,N) =19
-          qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
-          itcon_surf(5,N) = 20
-          qcon(itcon_surf(5,N)) = .true.; conpts(8) =
-     *         'E95 Agr. waste.'
-          itcon_surf(6,N) = 21
-          qcon(itcon_surf(6,N)) = .true.; conpts(9) =
-     *         'E95 Biomass Burn'
-          itcon_mc(n) =22
-          qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
-          itcon_ss(n) =23
-          qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            itcon_dd(n,1)=24
-            qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=25
-            qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
-          end if
-#endif
-#else  /* not EDGAR_1995 */
           itcon_surf(1,N) = 16
           qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
           qsum(itcon_surf(1,N)) = .false.
@@ -2760,7 +2690,6 @@ C**** set some defaults
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
-#endif  /* EDGAR_1995 */
 
         case ('BCII')
           itcon_3Dsrc(1,N) = 13
@@ -3964,50 +3893,6 @@ c gravitational settling of MSA
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
-#ifdef EDGAR_1995
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'E95_Fos_Fuel_Source_of_'//trname(n)
-        lname_jls(k) = 'SO2 E95 fossil fuel source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'E95_Industrial_Source_of_'//trname(n)
-        lname_jls(k) = 'SO2 E95 Industrial Processes source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'E95_Waste_hl_source_'//trname(n)
-        lname_jls(k) = 'SO2 E95 Waste Handling source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'E95_Biofuel_source_of_'//trname(n)
-        lname_jls(k) = 'SO2 E95 Biofuel source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'E95_Ag_waste_burn_source_of_'//trname(n)
-        lname_jls(k) = 'SO2 E95 Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'E95_Biomass_burn_source_of_'//trname(n)
-        lname_jls(k) = 'SO2 E95 Biomass burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
 c industrial source
         k = k + 1
         jls_source(1,n) = k
@@ -4023,7 +3908,6 @@ c industrial source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 c volcanic production of SO2
         k = k + 1
         jls_3Dsource(1,n) = k
@@ -4125,50 +4009,6 @@ c stratiform cloud phase source of SO4
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
-#ifdef EDGAR_1995
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'E95_Fos_Fuel_Source_of_'//trname(n)
-        lname_jls(k) = 'SO4 E95 fossil fuel source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'E95_Industrial_Source_of_'//trname(n)
-        lname_jls(k) = 'SO4 E95 Industrial Processes source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'E95_Waste_hl_source_'//trname(n)
-        lname_jls(k) = 'SO4 E95 Waste Handling source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'E95_Biofuel_source_of_'//trname(n)
-        lname_jls(k) = 'SO4 E95 Biofuel source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'E95_Ag_waste_burn_source_'//trname(n)
-        lname_jls(k) = 'SO4 E95 Agricultural Waste Burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'E95_Biomass_burn_source_'//trname(n)
-        lname_jls(k) = 'SO4 E95 Biomass burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#else
 c industrial source
         k = k + 1
         jls_source(1,n) = k
@@ -4184,7 +4024,6 @@ c industrial source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 c gravitational settling of SO4
         k = k + 1
         jls_grav(n) = k
@@ -6098,56 +5937,6 @@ c put in chemical loss of SO2
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef EDGAR_1995
-      k = k+1
-        ijts_source(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 fossil fuel source'
-        sname_ijts(k) = 'SO2_E95_ffuel_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(2,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 industrial processes source'
-        sname_ijts(k) = 'SO2_E95_indust_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(3,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 waste handling source'
-        sname_ijts(k) = 'SO2_E95_waste_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(4,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 Biofuel'
-        sname_ijts(k) = 'SO2_E95_biofuel_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-       k = k+1
-        ijts_source(5,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 agricultural waste burning source'
-        sname_ijts(k) = 'SO2_E95_Ag_waste_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(6,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 E95 Biomass burning'
-        sname_ijts(k) = 'SO2_E95_biomass_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
 c emissions of industrial SO2
         k = k + 1
         ijts_source(1,n) = k
@@ -6165,7 +5954,7 @@ c emissions of industrial SO2
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
+
         case ('SO4')
 c put in production of SO4 from gas phase
         k = k + 1
@@ -6176,56 +5965,6 @@ c put in production of SO4 from gas phase
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef EDGAR_1995
-      k = k+1
-        ijts_source(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 fossil fuel source'
-        sname_ijts(k) = 'SO4_E95_ffuel_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(2,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 industrial processes source'
-        sname_ijts(k) = 'SO4_E95_indust_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(3,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 waste handling source'
-        sname_ijts(k) = 'SO4_E95_waste_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(4,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 Biofuel'
-        sname_ijts(k) = 'SO4_E95_biofuel_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(5,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 agricultural waste burning source'
-        sname_ijts(k) = 'SO4_E95_Ag_waste_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k+1
-        ijts_source(6,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 E95 Biomass burning'
-        sname_ijts(k) = 'SO4_E95_biomass_source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
 c SO4 from industrial emissions
         k = k + 1
         ijts_source(1,n) = k
@@ -6243,7 +5982,6 @@ c SO4 from industrial emissions
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c put in source of SO4 from aqueous chem
         k = k + 1
@@ -8920,7 +8658,6 @@ c read in AEROCOM seasalt
 
 c read in SO2 emissions
 c Industrial
-#ifndef EDGAR_1995
       if (imPI.eq.0) then
       if (imAER.eq.0) then
 C    Initialize:
@@ -8935,7 +8672,6 @@ C    Initialize:
       call closeunit(iuc)
       endif
       endif
-#endif
 C Put aircraft for so2 and BC
       if (imPI.eq.0) then
       so2_src_3d(:,:,:,2)= 0.d0
@@ -9383,15 +9119,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-#ifdef EDGAR_1995
-      do n=1,ntm
-        select case (trname(n))
-        case ('SO2')
-        call read_E95_SO2_source(n,end_of_day)
-        end select
-      end do
-#endif
-
         if (imAER.eq.3.or.imAER.eq.5) then
         do n=1,ntm
         select case (trname(n))
@@ -9992,47 +9719,22 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2')
 c       if (imAER.eq.0) then
-c#ifndef EDGAR_1995
 c       call read_SO2_source(n)
-c#endif
 c       endif
-#ifdef EDGAR_1995
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
-            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0*axyp(:,j)
-         end do
-        end do
-#else
 c       do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
             trsource(:,j,1,n) = so2_src(:,j,1)*0.975d0
          end do
 c       end do
         trsource(:,j_0:j_1,2,n)=SO2_ship(:,j_0:j_1,jmon)*0.975
-#endif
 
 c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
       case ('SO4','M_ACC_SU')
 #ifdef TRACERS_AMP_M4
-#ifdef EDGAR_1995
-       do ns=1,ntsurfsrc(n)
-       do j=J_0,J_1
-         trsource(:,j,ns,n) = so2_src(:,j,ns)*0.0375d0*axyp(:,j)
-       end do
-       end do
-#else
        do j=J_0,J_1
          trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
        end do
         trsource(:,j_0:j_1,2,n)=SO2_ship(:,j_0:j_1,jmon)*0.0375d0
-#endif
-#else
-#ifdef EDGAR_1995
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
-         trsource(:,j,ns,n) =.99* so2_src(:,j,ns)*0.0375d0*axyp(:,j)
-       end do
-       end do
 #else
          do j=J_0,J_1
             trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
@@ -10042,22 +9744,13 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          end do
         trsource(:,j_0:j_1,2,n)=.99*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
 #endif
-#endif
 
 #ifdef TRACERS_AMP
       case ('M_AKK_SU')
-#ifdef EDGAR_1995
-        do ns=1,ntsurfsrc(n)
-         do j=J_0,J_1
-         trsource(:,j,ns,n) = 0.01*so2_src(:,j,ns)*0.0375d0*axyp(:,j)
-       end do
-       end do
-#else
          do j=J_0,J_1
             trsource(:,j,1,n) = 0.01* so2_src(:,j,1)*0.0375d0
          end do
         trsource(:,j_0:j_1,2,n)=.01*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
-#endif
 #endif
 c! TRACERS_AMP
       case ('BCII')
@@ -10318,7 +10011,6 @@ c End Laki code
      *tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,2)
       if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      * call apply_tracer_3Dsource(2,n) ! aircraft
-#ifndef EDGAR_1995
 C**** biomass source for SO2
       tr3Dsource(:,J_0:J_1,:,3,n) = 0.
       if (imAER.ne.1) then
@@ -10333,12 +10025,10 @@ C**** biomass source for SO2
      *  *0.975d0
       endif
       call apply_tracer_3Dsource(3,n) ! biomass
-#endif
       case ('SO4')
 C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(2,n) ! volcanos
-#ifndef EDGAR_1995
       tr3Dsource(:,J_0:J_1,:,3,n) = 0.
       if (imAER.ne.1) then
       do j=J_0,J_1; do i=I_0,I_1
@@ -10352,13 +10042,11 @@ C**** three 3D sources ( volcanos and biomass) read in from files
      *  *0.0375d0
       endif
       call apply_tracer_3Dsource(3,n) ! biomass
-#endif
 #ifdef TRACERS_AMP
       case ('M_ACC_SU')
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
 #ifdef TRACERS_AMP_M4
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-#ifndef EDGAR_1995
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.
       do j=J_0,J_1; do i=I_0,I_1
       blay=int(dclev(i,j)+0.5)
@@ -10372,16 +10060,13 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       endif
 c     tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
 c    &      + so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0
-#endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #else
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.99
      &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-#ifndef EDGAR_1995
 c DMK not sure what this is about:
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
      &      + (0.99* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
-#endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #endif
 c      enddo ; enddo
@@ -10390,11 +10075,9 @@ c      enddo ; enddo
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.01
      &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-#ifndef EDGAR_1995
 c DMK or here:
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
      &      + (0.01* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
-#endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #endif
 
