@@ -1220,8 +1220,14 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@+ wetland distribution changes.
 !@auth Greg Faluvegi
       USE MODEL_COM, only: itime,im,jm,fland,jday
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, pack_data,
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &   esmf_bcast, write_parallel
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      USE DD2D_UTILS, only : 
+#else
+      USE DOMAIN_DECOMP_1D, only : 
+#endif
+     &     pack_data
       USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
@@ -1238,11 +1244,15 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       character(len=300) :: out_line
       integer m,ii,ix,jj
       real*8 :: zm,zmcount
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      real*8 :: src_glob(IM,IM,6),src_flatglob(1-im:2*im,1-im:2*im)
+#else
       real*8, dimension(IM,JM) :: src_glob
+#endif
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1, J_0S,J_1S
 
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1261,8 +1271,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 ! over water (/ice?) though. And not until the first averaging
 ! period is through (first_mod criterion):
       do m=1,nra_ncep
-        loop_j: do j=J_0,J_1
-          if(j == 1 .or. j==jm) cycle loop_j
+        loop_j: do j=J_0S,J_1S ! skipping poles
           loop_i: do i=I_0,imaxj(j)
             add_wet_src(i,j)=0.d0
             if(fearth(i,j) <= 0.) cycle loop_i
@@ -1281,12 +1290,22 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
        ! for nearest-neighbor all processors must know global source:
        if(nn_or_zon==0)then 
-         call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob(:,:))
+         call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob)
          call esmf_bcast(grid,src_glob)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+         ! Reorient the global array to the i-j index space of this
+         ! processor. Implicit assumption (for now): wetlands exist on
+         ! at least 2 faces; no data needed from the opposing face.
+         call flatten_cube(src_glob,src_flatglob,im,grid%tile)
+#endif
+       else
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+         call stop_model('alter_wetlands_source: zonal mean '//
+     &        'to be implemented using zonalmean_ij2ij',255)
+#endif
        end if
 
-       do j=J_0,J_1
-       if(j == 1 .or. j==jm) cycle ! skip the poles
+       do j=J_0S,J_1S ! skipping poles
        do i=I_0,imaxj(j)
          if(fearth(i,j) <= 0.) cycle ! and boxes with no land
 
@@ -1324,6 +1343,19 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
                  ix=0
                  do while(zmcount == 0.)
                    ix=ix+1
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+                   if(ix>2*im)
+     &                  call stop_model('ix>2*im int wetl dist',255)
+                   do jj=j-ix,j+ix
+                     if(jj<1-im .or. jj>2*im) cycle
+                     do ii=i-ix,i+ix,1+(2*ix-1)*(1-abs((jj-j)/ix))
+                       if(ii<1-im .or. ii>2*im) cycle
+                       if(src_flatglob(ii,jj).le.0.) cycle
+                       zm=zm+src_flatglob(ii,jj)
+                       zmcount=zmcount+1.d0
+                     enddo
+                   enddo
+#else
                    if(ix>im)call stop_model('ix>im int wetl dist',255)
                    do ii=i-ix,i+ix ;do jj=j-ix,j+ix
                      if(ii>0.and.ii<=im.and.jj>0.and.jj<=jm .and.
@@ -1332,6 +1364,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
                        zmcount=zmcount+1.d0
                      endif
                    enddo           ;enddo
+#endif
                  enddo
                case default
                  call stop_model('problem with nn_or_zon',255)
@@ -1372,6 +1405,65 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
       return
       end subroutine alter_wetlands_source
+
+      subroutine flatten_cube(arr6,flat5,n,face)
+!@sum Places data from 5 of the 6 faces of a cube into the i-j index
+!@+   space of one of the faces. Referenced to that face, the cube is
+!@+   comprised of
+!@+   (1) that face
+!@+   (2) the 4 adjacent faces in the directions left, right, down, up
+!@+   (3) the opposing face
+!@+   Data from the local/adjacent faces are stored in
+!@+   flat5(1-n:2*n,1-n:2*n) as follows:
+!@+    local face: i, j = 1  :n  , 1  :n  (each face is n by n points)
+!@+   to the left: i, j = 1-n:0  , 1  :n
+!@+         right: i, j = 1+n:2*n, 1  :n
+!@+          down: i, j = 1  :n  , 1-n:0
+!@+            up: i, j = 1  :n  , 1+n:2*n
+!@+   flat5 is set to zero where both i and j are either <1 or >n
+!@+   Data from the opposing side can also be placed into the flat array
+!@+   in a symmetric manner, but this is not necessary for current
+!@+   applications (filling missing data using neighboring values).
+!@auth M. Kelley
+      implicit none
+!@ var arr6  : input global array with 3d-cube indexing
+!@ var flat5 : output global array with flattened-cube indexing
+!@ var n     : faces are n by n gridpoints
+!@ var face  : the cube face to be used as reference for i-j indexing
+      integer :: n,face
+      real*8, dimension(n,n,6) :: arr6
+      real*8, dimension(1-n:2*n,1-n:2*n) :: flat5
+      integer :: facem1,facep1,facem2,facep2
+      facem1 = 1+mod(6+(face-1)-1,6)
+      facep1 = 1+mod(6+(face-1)+1,6)
+      facem2 = 1+mod(6+(face-1)-2,6)
+      facep2 = 1+mod(6+(face-1)+2,6)
+      flat5 = 0.
+      flat5(1:n,1:n) = arr6(:,:,face)
+      if(mod(face,2).eq.0) then
+        flat5(1-n:0,1:n)   = arr6(:,:,facem1)           ! l
+        flat5(n+1:2*n,1:n) = rotcw(arr6(:,:,facep2),n)  ! r
+        flat5(1:n,1-n:0) = rotccw(arr6(:,:,facem2),n)   ! d
+        flat5(1:n,n+1:2*n) = arr6(:,:,facep1)           ! u
+      else
+        flat5(1-n:0,1:n) = rotcw(arr6(:,:,facem2),n)    ! l
+        flat5(n+1:2*n,1:n) = arr6(:,:,facep1)           ! r
+        flat5(1:n,1-n:0) = arr6(:,:,facem1)             ! d
+        flat5(1:n,n+1:2*n) = rotccw(arr6(:,:,facep2),n) ! u
+      endif
+      return
+      contains
+      function rotcw(arr,m)
+      integer :: m
+      real*8, dimension(m,m) :: arr,rotcw
+      rotcw = transpose(arr(m:1:-1,:))
+      end function rotcw
+      function rotccw(arr,m)
+      integer :: m
+      real*8, dimension(m,m) :: arr,rotccw
+      rotccw = transpose(arr(:,m:1:-1))
+      end function rotccw
+      end subroutine flatten_cube
 
 
       SUBROUTINE read_mon_src_3(iu,data,frac)
