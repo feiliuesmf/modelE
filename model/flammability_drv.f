@@ -103,38 +103,31 @@
      & ,epfc
       use tracer_com, only: ntm,trname,do_fire
 #endif
-      use domain_decomp_atm,only: grid, get, am_i_root, write_parallel,
-     & unpack_data
-      use filemanager, only: openunit, closeunit
+      use domain_decomp_atm,only: grid, get, am_i_root, readt_parallel
+      use filemanager, only: openunit, closeunit, nameunit
 
       implicit none
-
       real*8, allocatable,  dimension(:,:) :: temp_glob
       real*4, allocatable,  dimension(:,:) :: temp4_glob
       character*80 :: title,fname
       character*150 :: out_line
+
       integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n
 
       call get(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       call get(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-      if(am_i_root( ))allocate(temp_glob(im,jm),temp4_glob(im,jm))
+      call openunit('VEG_DENSE',iu_data,.true.,.true.)
+      call readt_parallel(grid,iu_data,nameunit(iu_data),veg_density,1)
+      call closeunit(iu_data)
 
-      if(am_i_root( ))then
-        call openunit('VEG_DENSE',iu_data,.true.,.true.)
-        read(iu_data) title,temp4_glob
-        call closeunit(iu_data)
-        temp_glob(:,:)=dble(temp4_glob(:,:))
-      endif
-      write(out_line,*) trim(title),' read from VEG_DENSE'
-      call write_parallel(trim(out_line))
-      call unpack_data( grid, temp_glob, veg_density )
       if(Itime==ItimeI)then
         first_prec(:,:)=1.d0
         flammability(:,:)=missing
       endif
 
 #ifdef DYNAMIC_BIOMASS_BURNING
+      if(am_i_root( ))allocate(temp_glob(im,jm),temp4_glob(im,jm))
       epfc(:,:,:)=0.d0 ! by default no fire emissions for tracer
       do n=1,ntm
         if(do_fire(n)) then
@@ -150,9 +143,8 @@
           call unpack_data( grid, temp_glob, epfc(:,:,n) )
         endif
       enddo
-#endif
-
       if(am_i_root()) deallocate( temp_glob, temp4_glob )
+#endif
 
       return
       end subroutine init_flammability
