@@ -29,6 +29,15 @@ module testDictionary_mod
   
   public :: testFailDuplicateKey
 
+  public :: testEqualsA
+  public :: testEqualsB
+  public :: testEqualsC
+  public :: testEqualsD
+  public :: testEqualsE
+  public :: testEqualsF
+  public :: testEqualsG
+  public :: testEqualsH
+
 contains
 
   subroutine testSetInteger()
@@ -282,5 +291,104 @@ contains
          & 'Failed to diagnose duplicate key.')
     call clean(aDictionary)
   end subroutine testFailDuplicateKey
+
+  subroutine testEqualsA()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call assertTrue(a == b)
+
+  end subroutine testEqualsA
+
+  subroutine testEqualsB()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', 1)
+    call assertFalse(a == b)
+
+  end subroutine testEqualsB
+
+  subroutine testEqualsC()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', 1)
+    call insert(b, 'key1', 1)
+    call assertTrue(a == b)
+
+  end subroutine testEqualsC
+
+  subroutine testEqualsD()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', 1)
+    call insert(b, 'key2', 1)
+    call assertFalse(a == b)
+
+  end subroutine testEqualsD
+
+  subroutine testEqualsE()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', 1)
+    call insert(b, 'key1', 2)
+    call assertFalse(a == b)
+
+  end subroutine testEqualsE
+
+  subroutine testEqualsF()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', [1,2])
+    call insert(b, 'key1', [2])
+    call assertFalse(a == b)
+
+  end subroutine testEqualsF
+
+  subroutine testEqualsG()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', [1,2])
+    call insert(b, 'key1', [1,2])
+    call assertTrue(a == b)
+
+  end subroutine testEqualsG
+
+  subroutine testEqualsH()
+    type (Dictionary_type) :: a
+    type (Dictionary_type) :: b
+    
+    a = Dictionary()
+    b = Dictionary()
+    call insert(a, 'key1', [1,2])
+    call insert(a, 'key2', .true.)
+    call insert(a, 'key3', 'hello')
+
+    call insert(b, 'key3', 'hello')
+    call insert(b, 'key2', .true.)
+    call insert(b, 'key1', [1,2])
+
+    call assertTrue(a == b)
+
+  end subroutine testEqualsH
 
 end module testDictionary_mod

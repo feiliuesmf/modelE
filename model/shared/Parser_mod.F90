@@ -11,10 +11,10 @@ module Parser_mod
   public :: parse
   public :: stripComment
   public :: skipHeader
-  public :: isEndOfList
+  public :: isEndData
   public :: setCommentCharacters
-  public :: setEndHeader
-  public :: setEndOfList
+  public :: setBeginData
+  public :: setEndData
   public :: getValueType
   public :: splitTokens
 
@@ -29,8 +29,8 @@ module Parser_mod
   type Parser_type
     character(len=MAX_COMMENT_CHARACTERS) :: commentCharacters = '!#' ! legacy default
     character(len=MAX_TOKEN_SEPARATORS) :: tokenSeparators = ' =,'     ! legacy default
-    character(len=MAX_LEN_LINE) :: endHeader = '&&PARAMETERS'         ! legacy default
-    character(len=MAX_LEN_LINE) :: endOfList = '&&END_PARAMETERS'     ! legacy default
+    character(len=MAX_LEN_LINE) :: beginData = '&&PARAMETERS'         ! legacy default
+    character(len=MAX_LEN_LINE) :: endData = '&&END_PARAMETERS'     ! legacy default
   end type Parser_type
 
   type (Parser_type) :: globalParser
@@ -259,7 +259,7 @@ contains
     do
       read(unit,fmt=ENTIRE_LINE,iostat=status) line
       if (status /= 0) exit
-      if (isEndOfList(this, line)) exit
+      if (isEndData(this, line)) exit
       
       line = stripComment(this, line)
       if (len_trim(line) == 0) cycle ! skip
@@ -297,17 +297,17 @@ contains
 
   end function stripComment
 
-  subroutine setEndHeader(this, endHeader)
+  subroutine setBeginData(this, beginData)
     type (Parser_type), intent(inout) :: this
-    character(len=*), intent(in) :: endHeader
-    this%endHeader = endHeader
-  end subroutine setEndHeader
+    character(len=*), intent(in) :: beginData
+    this%beginData = beginData
+  end subroutine setBeginData
 
-  subroutine setEndOfList(this, endOfList)
+  subroutine setEndData(this, endData)
     type (Parser_type), intent(inout) :: this
-    character(len=*), intent(in) :: endOfList
-    this%endOfList = endOfList
-  end subroutine setEndOfList
+    character(len=*), intent(in) :: endData
+    this%endData = endData
+  end subroutine setEndData
 
   subroutine skipHeader(this, unit)
 
@@ -323,7 +323,7 @@ contains
         return
       end if
 
-      if (trim(line) == this%endHeader) exit
+      if (trim(line) == this%beginData) exit
     end do
 
   end subroutine skipHeader
@@ -416,13 +416,13 @@ contains
 
   end function getValueType_multi
 
-  logical function isEndOfList(this, string)
+  logical function isEndData(this, string)
     type (Parser_type), intent(in) :: this
     character(len=*), intent(in) :: string
     
-    isEndOfList = (trim(this%endOfList) == trim(string))
+    isEndData = (trim(this%endData) == trim(string))
 
-  end function isEndOfList
+  end function isEndData
 
   subroutine setTokenSeparators(this, tokenSeparators)
     type (Parser_type), intent(inout) :: this
@@ -506,5 +506,37 @@ contains
     countTokens = numTokens
 
   end function countTokens
+
+  subroutine writeAsText(this, unit, aDictionary)
+    use Dictionary_mod
+    type (Parser_type), intent(in) :: this
+    type (Dictionary_type), intent(in) :: aDictionary
+    integer, intent(in) :: unit
+
+    integer :: i, j
+    type (KeyValuePair_type) :: pair
+    character(len=MAX_LEN_LINE) :: line
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    keys => getKeys(aDictionary)
+    write(unit,*) trim(this%beginData)
+    do i = 1, getNumEntries(aDictionary)
+
+      call lookup(aDictionary, keys(i), pair)
+
+      select case (getNumValues(pair))
+      case (1)
+        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(getValue(pair)))
+      case (2:)
+        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(getValue(pair,1)))
+        do j = 2, size(getValues(pair))
+          line = trim(line) // ', ' // trim(toString(getValue(pair,j)))
+        end do
+      end select
+      write(unit,*) trim(line)
+    end do
+    write(unit,*) trim(this%endData)
+
+  end subroutine writeAsText
 
 end module PARSER_MOD

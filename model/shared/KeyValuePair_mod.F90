@@ -28,7 +28,12 @@ module KeyValuePair_mod
     module procedure cleanKeyValuePair
   end interface
 
-contains
+  interface getValue
+    module procedure getValue_1
+    module procedure getValue_i
+  end interface
+
+Contains
 
   function KeyValuePair_scalar(key, value) result(pair)
     character(len=*), intent(in) :: key
@@ -71,12 +76,12 @@ contains
     numValues = size(this%values)
   end function getNumValues
 
-  function getValue(this) result(value)
+  function getValue_1(this) result(value)
     type (KeyValuePair_type), intent(in) :: this
     type (GenericType_type) :: value
     
     value = this%values(1)
-  end function getValue
+  end function getValue_1
 
   function getValues(this) result(values)
     type (KeyValuePair_type), intent(in) :: this
@@ -84,6 +89,15 @@ contains
     
     values = this%values(:)
   end function getValues
+
+  function getValue_i(this, i) result(value)
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(in) :: i
+    type (GenericType_type) :: value
+    
+    
+    value = this%values(i)
+  end function getValue_i
 
   logical function check(this, valueType, numValues)
     type (KeyValuePair_type), intent(in) :: this

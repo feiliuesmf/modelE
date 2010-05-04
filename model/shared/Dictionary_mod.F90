@@ -72,6 +72,7 @@ module Dictionary_mod
   public :: lookup
   public :: hasKey
   public :: getKeys
+  public :: operator(==)
 
   ! Common
   public :: clean
@@ -154,6 +155,7 @@ module Dictionary_mod
   end interface
 
   interface lookup
+    module procedure lookup_pair
     module procedure lookup_integer
     module procedure lookup_real64
     module procedure lookup_logical
@@ -180,6 +182,10 @@ module Dictionary_mod
     module procedure insert_real64Array
     module procedure insert_logicalArray
     module procedure insert_stringArray
+  end interface
+  
+  interface operator(==)
+    module procedure equals
   end interface
 
 contains
@@ -1084,6 +1090,17 @@ contains
     getNumEntries = size(this%pairs)
   end function getNumEntries
 
+  subroutine lookup_pair(this, key, value)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    type (KeyValuePair_type), intent(out) :: value
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) value = this%pairs(i)
+
+  end subroutine lookup_pair
+
   subroutine lookup_integer(this, key, value)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
@@ -1274,6 +1291,37 @@ contains
     string = value
   end function toString_string
 
+  logical function equals(a, b)
+    type (Dictionary_type), intent(in) :: a
+    type (Dictionary_type), intent(in) :: b
+
+    integer :: i, j
+    integer :: numA, numB
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+    character(len=MAX_LEN_KEY) :: key
+
+    numA = getNumEntries(a)
+    numB = getNumEntries(b)
+    equals = (numA == numB)
+
+    if (equals) then
+      keys => getKeys(a)
+      do i = 1, numA
+        key = trim(keys(i))
+
+        equals = hasKey(b, key)
+        if (.not. equals) exit
+
+        j = getIndex(b, key)
+        equals = (getNumValues(a%pairs(i)) == getNumValues(b%pairs(j)))
+        if (.not. equals) exit
+
+        equals = all(getValues(a%pairs(i)) == getValues(b%pairs(j)))
+        if (.not. equals) exit
+      end do
+    end if
+
+  end function equals
 
 end module Dictionary_mod
 

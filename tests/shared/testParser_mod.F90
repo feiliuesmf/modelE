@@ -11,8 +11,8 @@ module testParser_mod
 
   public :: testStripComment_new
   public :: testSkipHeader
-  public :: testNoEndHeader
-  public :: testIsEndOfList
+  public :: testNoBeginData
+  public :: testIsEndData
 
   public :: testGetValueType
   public :: testGetCommonValueType
@@ -24,15 +24,18 @@ module testParser_mod
   public :: testSplitEmbeddedComma
   public :: testBadFirstSeparator
 
+  public :: testParseSimple
   public :: testParse
   public :: testParseNoValue
+
+  public :: testWriteText
+  public :: testWriteTextExample
 
 
 !!$  public :: testMissingEndQuote
 !!$  public :: testFirstSep ! '='
 
 contains
-
   subroutine testStripComment_noComment()
     character(len=30) :: expectedString
     character(len=30) :: string
@@ -92,17 +95,17 @@ contains
     use FileManager
     type (Parser_type) :: parser
     integer :: unit
-    character(len=*), parameter :: END_HEADER = '*** end header ***'
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=256) :: line
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
     write(unit,*) 'a'
     write(unit,*) 'b'
-    write(unit,*) END_HEADER
+    write(unit,*) BEGIN_DATA
     write(unit,*) 'first line after header'
     rewind(unit)
 
-    call setEndHeader(parser, END_HEADER)
+    call setBeginData(parser, BEGIN_DATA)
     call skipHeader(parser, unit)
     read(unit,'(a257)') line
     call assertEqual('first line after header', line)
@@ -111,11 +114,11 @@ contains
 
   end subroutine testSkipHeader
 
-  subroutine testNoEndHeader()
+  subroutine testNoBeginData()
     use FileManager
     type (Parser_type) :: parser
     integer :: unit
-    character(len=*), parameter :: END_HEADER = '*** end header ***'
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=256) :: line
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
@@ -123,13 +126,13 @@ contains
     write(unit,*) 'b'
     rewind(unit)
 
-    call setEndHeader(parser, END_HEADER)
+    call setBeginData(parser, BEGIN_DATA)
     call skipHeader(parser, unit)
     call assertFailedAssert( 'end of file before reaching header', &
          & 'did not notice missing end of header')
 
     close(unit, status='delete')
-  end subroutine testNoEndHeader
+  end subroutine testNoBeginData
 
   subroutine testGetValueType()
     use Dictionary_mod
@@ -179,15 +182,15 @@ contains
 
 
 
-  subroutine testIsEndOfList()
+  subroutine testIsEndData()
     use FileManager
     type (Parser_type) :: parser
-    character(len=*), parameter :: END_LIST = '*** end params ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
 
-    call setEndOfList(parser, END_LIST)
-    call assertTrue(isEndOfList(parser, END_LIST))
-    call assertFalse(isEndOfList(parser, 'some other string'))
-  end subroutine testIsEndOfList
+    call setEndData(parser, END_DATA)
+    call assertTrue(isEndData(parser, END_DATA))
+    call assertFalse(isEndData(parser, 'some other string'))
+  end subroutine testIsEndData
 
   subroutine testSplitTokensA()
     type (Parser_type) :: parser
@@ -292,6 +295,40 @@ contains
 
   end subroutine testBadFirstSeparator
 
+  subroutine testParseSimple()
+    use FileManager
+    use Dictionary_mod
+    type (Parser_type) :: parser
+
+    type (Dictionary_type) :: aDictionary
+    integer :: unit
+    integer :: i(3)
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
+
+    call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
+    write(unit,*) BEGIN_DATA
+    write(unit,*) 'key = 1, 2, 3'
+    write(unit,*) END_DATA
+    rewind(unit)
+
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
+    call setTokenSeparators(parser, '=,')
+    call setCommentCharacters(parser, '!#')
+
+    aDictionary = parse(parser, unit)
+    close(unit, status='delete')
+
+    call assertEqual(1, size(getKeys(aDictionary)))
+    call assertTrue(hasKey(aDictionary, 'key'), 'There should not be a "key".')
+    call lookup(aDictionary, 'key', i)
+    call assertEqual([1,2,3], i, 'Wrong value for "key".')
+
+    call clean(aDictionary)
+
+  end subroutine testParseSimple
+
   subroutine testParse()
     use FileManager
     use Dictionary_mod
@@ -299,17 +336,18 @@ contains
 
     type (Dictionary_type) :: aDictionary
     integer :: unit
-    character(len=*), parameter :: END_HEADER = '*** end header ***'
-    character(len=*), parameter :: END_LIST = '*** end params ***'
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
     character(len=256) :: line
 
     integer :: betaValue
     real(kind=r64) :: gammaValue
     logical :: deltaValues(4)
+
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
     write(unit,*) 'alpha = 0' ! ignore - in header
     write(unit,*) 'b'
-    write(unit,*) END_HEADER
+    write(unit,*) BEGIN_DATA
     write(unit,*) '! alpha = 1' ! ignore - only a comment
     write(unit,*) 'beta = 2'
     write(unit,*) ! empty line
@@ -317,12 +355,12 @@ contains
     write(unit,*) 'gamma = 3.'
     write(unit,*) '! alpha = 2' ! ignore - only a comment
     write(unit,*) 'delta = T, F, T, T'
-    write(unit,*) END_LIST
+    write(unit,*) END_DATA
     write(unit,*) '! alpha = 3' ! ignore - after header
     rewind(unit)
 
-    call setEndHeader(parser, END_HEADER)
-    call setEndOfList(parser, END_LIST)
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
     call setTokenSeparators(parser, '=,')
     call setCommentCharacters(parser, '!#')
 
@@ -359,21 +397,18 @@ contains
 
     type (Dictionary_type) :: aDictionary
     integer :: unit
-    character(len=*), parameter :: END_HEADER = '*** end header ***'
-    character(len=*), parameter :: END_LIST = '*** end params ***'
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
     character(len=256) :: line
 
-    integer :: betaValue
-    real(kind=r64) :: gammaValue
-    logical :: deltaValues(4)
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) END_HEADER
+    write(unit,*) BEGIN_DATA
     write(unit,*) 'beta'
-    write(unit,*) END_LIST
+    write(unit,*) END_DATA
     rewind(unit)
 
-    call setEndHeader(parser, END_HEADER)
-    call setEndOfList(parser, END_LIST)
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
     call setTokenSeparators(parser, ' =,')
     call setCommentCharacters(parser, '!#')
     aDictionary = parse(parser, unit)
@@ -382,5 +417,89 @@ contains
 
     close(unit, status='delete')
   end subroutine testParseNoValue
+
+  subroutine testWriteText()
+    use FileManager
+    use Dictionary_mod
+    type (Parser_type) :: parser
+
+    type (Dictionary_type) :: aDictionary
+    type (Dictionary_type) :: bDictionary
+    integer :: unit
+    character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
+    character(len=*), parameter :: END_DATA = '*** end params ***'
+    character(len=256) :: line
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    integer :: i(3)
+
+    aDictionary = Dictionary()
+    call insert(aDictionary,'key',[1,2,3])
+
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
+    call setTokenSeparators(parser, '=,')
+    call setCommentCharacters(parser, '!#')
+    call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
+    call writeAsText(parser, unit, aDictionary)
+    close(unit)
+
+    call openUnit('testParser.txt', unit, qold=.true., qbin=.false.)
+
+    bDictionary = parse(parser, unit)
+
+    keys => getKeys(bDictionary)
+    call lookup(bDictionary, 'key', i)
+
+    call assertTrue(aDictionary == bDictionary)
+
+    call clean(bDictionary)
+    call clean(aDictionary)
+
+    close(unit, status='delete')
+
+  end subroutine testWriteText
+
+  subroutine testWriteTextExample()
+    use FileManager
+    use Dictionary_mod
+    type (Parser_type) :: parser
+
+    type (Dictionary_type) :: aDictionary
+    type (Dictionary_type) :: bDictionary
+    integer :: unit
+    character(len=*), parameter :: BEGIN_DATA = '{'
+    character(len=*), parameter :: END_DATA = '}'
+    character(len=256) :: line
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+
+    integer :: scale
+    real*8 :: mass
+    character(len=MAX_LEN_TOKEN) :: name
+
+    call setBeginData(parser, BEGIN_DATA)
+    call setEndData(parser, END_DATA)
+    call setTokenSeparators(parser, '=,')
+    call setCommentCharacters(parser, '!#')
+    call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
+
+    aDictionary = Dictionary()
+    call insert(aDictionary,'name', 'Air')
+    call insert(aDictionary,'logScale', -2)
+    call insert(aDictionary,'molecularMass', 28.9655d0)
+    call writeAsText(parser, unit, aDictionary)
+    
+    rewind(unit)
+    bDictionary = parse(parser, unit)
+
+    keys => getKeys(bDictionary)
+    call assertTrue(aDictionary == bDictionary, 'Dictionaries differ.')
+
+    call clean(bDictionary)
+    call clean(aDictionary)
+
+    close(unit, status='delete')
+
+  end subroutine testWriteTextExample
 
 end module testParser_mod
