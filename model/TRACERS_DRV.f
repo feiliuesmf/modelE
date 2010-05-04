@@ -9742,7 +9742,10 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
      &                         *0.99d0
 #endif
          end do
-        trsource(:,j_0:j_1,2,n)=.99*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
+        trsource(:,j_0:j_1,2,n)=SO2_ship(:,j_0:j_1,jmon)*0.0375d0
+#ifdef TRACERS_AMP
+     &                         *0.99d0
+#endif
 #endif
 
 #ifdef TRACERS_AMP
