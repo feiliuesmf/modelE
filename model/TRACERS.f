@@ -2217,14 +2217,15 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         endif
       endif
 
+      delTyr(n,ns)=10   ! default=decades for backwards compatability
       str = str(n1+9+1:)
       n1 = scan( str, '=')     ! optional transient slice step.
-      if(str(n1-3:n1-1) /= 'del')then
-        delTyr(n,ns)=10 ! default=decades for backwards compatability
-      else 
-        str = str(n1+1:)
-        n2 = scan( str,' ')
-        read(str(1:n2-1),*)delTyr(n,ns)
+      if(n1 > 0) then
+        if(str(n1-3:n1-1) == 'del')then
+          str = str(n1+1:)
+          n2 = scan( str,' ')
+          read(str(1:n2-1),*)delTyr(n,ns)
+        endif
       endif
 
       if(delTyr(n,ns)==0)then
