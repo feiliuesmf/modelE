@@ -69,7 +69,9 @@ module Dictionary_mod
   public :: Dictionary
   public :: insert
   public :: getNumEntries
+  public :: oldLookup
   public :: lookup
+  public :: merge
   public :: hasKey
   public :: getKeys
   public :: operator(==)
@@ -155,6 +157,10 @@ module Dictionary_mod
   end interface
 
   interface lookup
+    module procedure lookup_s
+  end interface
+
+  interface oldLookup
     module procedure lookup_pair
     module procedure lookup_integer
     module procedure lookup_real64
@@ -182,6 +188,18 @@ module Dictionary_mod
     module procedure insert_real64Array
     module procedure insert_logicalArray
     module procedure insert_stringArray
+  end interface
+
+  interface merge
+!!$    module procedure merge_pair
+    module procedure merge_integer
+!!$    module procedure merge_real64
+!!$    module procedure merge_logical
+!!$    module procedure merge_string
+!!$    module procedure merge_integerArray
+!!$    module procedure merge_real64Array
+!!$    module procedure merge_logicalArray
+!!$    module procedure merge_stringArray
   end interface
   
   interface operator(==)
@@ -1015,6 +1033,22 @@ contains
 
   end subroutine insert_integer
 
+  subroutine merge_integer(this, key, value)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(inout) :: value
+
+    integer :: index
+
+    index = getIndex(this, key)
+    if (index == NOT_FOUND) then
+      call addEntry(this, key)
+    else
+      value = lookup(this, key)
+    end if
+
+  end subroutine merge_integer
+
   subroutine insert_real64(this, key, value)
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
@@ -1097,9 +1131,27 @@ contains
     integer :: i
 
     i = getIndex(this, key)
-    if (i /= NOT_FOUND) value = this%pairs(i)
+    if (i /= NOT_FOUND)  value = this%pairs(i)
 
   end subroutine lookup_pair
+
+  function lookup_s(this, key) result(values)
+    type (Dictionary_type), intent(in) :: this
+    character(len=*), intent(in) :: key
+    type (GenericType_type), pointer :: values(:)
+    integer :: i
+
+    i = getIndex(this, key)
+    if (i /= NOT_FOUND) then
+      allocate(values(getNumValues(this%pairs(i))))
+      values = getValues(this%pairs(i))
+    else
+      ! need to allocate something to prevent a crash
+      allocate(values(0))
+      call throwException('Key not found: <'//trim(key)//'>.', 14)
+    end if
+
+  end function lookup_s
 
   subroutine lookup_integer(this, key, value)
     type (Dictionary_type), intent(in) :: this
@@ -1256,7 +1308,6 @@ contains
       end if
     end do
     index = NOT_FOUND
-    call throwException('Key not found: <'//trim(key)//'>.', 14)
     
   end function getIndex
 

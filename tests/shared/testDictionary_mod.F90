@@ -2,6 +2,7 @@ module testDictionary_mod
   use pfunit
   use Dictionary_mod
   use KeyValuePair_mod
+  use GenericType_mod
   implicit none
   private
 
@@ -37,6 +38,8 @@ module testDictionary_mod
   public :: testEqualsF
   public :: testEqualsG
   public :: testEqualsH
+
+  public :: testMergeKey
 
 contains
 
@@ -176,7 +179,8 @@ contains
     integer :: i
 
     aDictionary = Dictionary()
-    call lookup(aDictionary, 'alpha', i)
+    i = lookup(aDictionary, 'alpha')
+    call assertFailedAssert('GenericType_mod: nonconforming shapes.')
     call assertFailedAssert('Key not found: <alpha>.', &
          & 'Failed to detect missing key.')
 
@@ -189,7 +193,7 @@ contains
     expected = 1
     aDictionary = Dictionary()
     call insert(aDictionary, 'key', expected)
-    call lookup(aDictionary, 'key', found)
+    found = lookup(aDictionary, 'key')
     call assertEqual(expected, found)
 
     call clean(aDictionary)
@@ -207,10 +211,10 @@ contains
     call insert(aDictionary, 'keyA', expectedA)
     call insert(aDictionary, 'keyB', expectedB)
 
-    call lookup(aDictionary, 'keyB', foundB)
+    foundB = lookup(aDictionary, 'keyB')
     call assertEqual(expectedB, foundB)
 
-    call lookup(aDictionary, 'keyA', foundA)
+    foundA = lookup(aDictionary, 'keyA')
     call assertEqual(expectedA, foundA)
 
     call clean(aDictionary)
@@ -224,7 +228,7 @@ contains
     expected = 1
     aDictionary = Dictionary()
     call insert(aDictionary, 'key', expected)
-    call lookup(aDictionary, 'key', found)
+    found = lookup(aDictionary, 'key')
     call assertEqual(expected, found)
 
     call clean(aDictionary)
@@ -389,6 +393,21 @@ contains
 
     call assertTrue(a == b)
 
+    call clean(a)
+    call clean(b)
+
   end subroutine testEqualsH
+
+  subroutine testMergeKey()
+    type (Dictionary_type) :: aDictionary
+    integer :: probe
+
+    aDictionary = Dictionary()
+    call insert(aDictionary, 'a', 1)
+    probe = 2
+    call merge(aDictionary, 'a', probe)
+    call assertTrue(all(1 == lookup(aDictionary, 'a')))
+    call clean(aDictionary)
+  end subroutine testMergeKey
 
 end module testDictionary_mod

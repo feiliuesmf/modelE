@@ -239,22 +239,24 @@ contains
 
   end function parseLine
 
-  function parse(this, unit) result(aDictionary)
+  function parse(this, unit, status) result(aDictionary)
 !@sum Parses text from input unit to populate a Dictionary object.
 !@+ Skips header section at top.
     use Dictionary_mod
 
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
+    integer, intent(out) :: status
 
     type (Dictionary_type) :: aDictionary
-    integer :: status
     character(len=MAX_LEN_LINE) :: line
     type (KeyValuePair_type) :: pair
 
+    status = 0 ! unless ...
     aDictionary = Dictionary()
 
-    call skipHeader(this, unit)
+    call skipHeader(this, unit, status)
+    if (status /= 0) return
     
     do
       read(unit,fmt=ENTIRE_LINE,iostat=status) line
@@ -309,17 +311,17 @@ contains
     this%endData = endData
   end subroutine setEndData
 
-  subroutine skipHeader(this, unit)
+  subroutine skipHeader(this, unit, status)
 
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
+    integer, intent(out) :: status
+
     character(len=MAX_LEN_LINE) :: line
-    integer :: status
     
     do
       read(unit,fmt=ENTIRE_LINE,iostat=status) line
       if (status < 0) then
-        call throwException('end of file before reaching header', 14)
         return
       end if
 
@@ -522,7 +524,7 @@ contains
     write(unit,*) trim(this%beginData)
     do i = 1, getNumEntries(aDictionary)
 
-      call lookup(aDictionary, keys(i), pair)
+      call oldLookup(aDictionary, keys(i), pair)
 
       select case (getNumValues(pair))
       case (1)

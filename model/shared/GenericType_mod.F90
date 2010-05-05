@@ -45,14 +45,14 @@ module GenericType_mod
   ! Overload assignment operator to facilitate extracting values of
   ! intrisic types.  Overload for 1D arrays as well.
   interface assignment(=)
-    module procedure assignToInteger
-    module procedure assignToIntegerArray
-    module procedure assignToReal64
-    module procedure assignToReal64Array
+    module procedure assignToInteger_sca_sca, assignToInteger_sca_arr
+    module procedure assignToInteger_arr_sca, assignToInteger_arr_arr
+    module procedure assignToReal64_sca_sca, assignToReal64_sca_arr
+    module procedure assignToReal64_arr_sca, assignToReal64_arr_arr
     module procedure assignToLogical
     module procedure assignToLogicalArray
-    module procedure assignToString
-    module procedure assignToStringArray
+    module procedure assignToString_sca_sca, assignToString_sca_arr
+    module procedure assignToString_arr_sca, assignToString_arr_arr
   end interface
 
   ! This interface is provided mostly to facilitate testing.
@@ -125,30 +125,78 @@ contains
 
 
   ! Begin overload of assigment (=)
-  subroutine assignToInteger(value, this)
+  subroutine assignToInteger_sca_sca(value, this)
     integer, intent(out) :: value
     type (GenericType_type), intent(in) :: this
     value = this%integerValue
-  end subroutine assignToInteger
+  end subroutine assignToInteger_sca_sca
 
-  subroutine assignToIntegerArray(values, this)
+  subroutine assignToInteger_sca_arr(value, this)
+    integer, intent(out) :: value
+    type (GenericType_type), intent(in) :: this(:)
+    if (size(this) /= 1) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
+    value = this(1)%integerValue
+  end subroutine assignToInteger_sca_arr
+
+  subroutine assignToInteger_arr_arr(values, this)
     integer, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
+    if (size(values) /= size(this)) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
     values(:) = this(:)%integerValue
-  end subroutine assignToIntegerArray
+  end subroutine assignToInteger_arr_arr
+
+  subroutine assignToInteger_arr_sca(values, this)
+    integer, intent(out) :: values(:)
+    type (GenericType_type), intent(in) :: this
+    if (size(values) /= 1) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
+    values(1) = this%integerValue
+  end subroutine assignToInteger_arr_sca
   
-  subroutine assignToReal64(value, this)
+  subroutine assignToReal64_sca_sca(value, this)
     real*8, intent(out) :: value
     type (GenericType_type), intent(in) :: this
     value = this%real64Value
-  end subroutine assignToReal64
+  end subroutine assignToReal64_sca_sca
 
-  subroutine assignToReal64Array(values, this)
+  subroutine assignToReal64_sca_arr(value, this)
+    real*8, intent(out) :: value
+    type (GenericType_type), intent(in) :: this(:)
+    if (size(this) /= 1) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
+    value = this(1)%real64Value
+  end subroutine assignToReal64_sca_arr
+
+  subroutine assignToReal64_arr_arr(values, this)
     real*8, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
+    if (size(values) /= size(this)) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
     values = this(:)%real64Value
-  end subroutine assignToReal64Array
+  end subroutine assignToReal64_arr_arr
 
+  subroutine assignToReal64_arr_sca(values, this)
+    real*8, intent(out) :: values(:)
+    type (GenericType_type), intent(in) :: this
+    if (size(values) /= 1) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
+    values(1) = this%real64Value
+  end subroutine assignToReal64_arr_sca
+  
   subroutine assignToLogical(value, this)
     logical, intent(out) :: value
     type (GenericType_type), intent(in) :: this
@@ -161,17 +209,37 @@ contains
     values = this(:)%logicalValue
   end subroutine assignToLogicalArray
 
-  subroutine assignToString(value, this)
+  subroutine assignToString_sca_arr(value, this)
+    character(len=*), intent(out) :: value
+    type (GenericType_type), intent(in) :: this(:)
+    value = this(1)%stringValue
+  end subroutine assignToString_sca_arr
+
+  subroutine assignToString_sca_sca(value, this)
     character(len=*), intent(out) :: value
     type (GenericType_type), intent(in) :: this
     value = this%stringValue
-  end subroutine assignToString
+  end subroutine assignToString_sca_sca
 
-  subroutine assignToStringArray(values, this)
+  subroutine assignToString_arr_sca(values, this)
+    character(len=*), intent(out) :: values(:)
+    type (GenericType_type), intent(in) :: this
+    if (size(values) /= 1) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
+    values(1) = this%stringValue
+  end subroutine assignToString_arr_sca
+
+  subroutine assignToString_arr_arr(values, this)
     character(len=*), intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
+    if (size(values) /= size(this)) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      return
+    end if
     values = this%stringValue
-  end subroutine assignToStringArray
+  end subroutine assignToString_arr_arr
   ! End of overload of assignment(=)
 
   ! Begin overload of operator(==)
