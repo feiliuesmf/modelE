@@ -141,9 +141,11 @@
       n2 = index(tmpstr,'(')-1
       varname = tmpstr(n1:n2)
       if(present(units)) then
-        k = k + 1
-        cdl%vars(k) = indent2//trim(varname)//':units = "'//
-     &     trim(units)//'" ;'
+        if(len_trim(units).gt.0) then
+          k = k + 1
+          cdl%vars(k) = indent2//trim(varname)//':units = "'//
+     &         trim(units)//'" ;'
+        endif
       endif
       if(present(long_name)) then
         k = k + 1
