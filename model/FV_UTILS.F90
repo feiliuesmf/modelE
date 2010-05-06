@@ -63,8 +63,8 @@ module FV_UTILS
   Real*8, parameter, public :: PRESSURE_UNIT_FV    =    1 ! 1 pa
   Real*8, parameter, public :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
 
-  integer, parameter, public :: INITIAL_START = 8
-  integer, parameter, public :: EXTEND_RUN = 9
+  integer, parameter, public :: INITIAL_START = 2 ! ISTART=2: cold start, no FV restart files
+  integer, parameter, public :: EXTEND_RUN = 3    ! ISTART>2: FV restart files are read
 
   ! This data structure is o convenient entity for storing persistent data between
   ! calls to this module.  In addition to

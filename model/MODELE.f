@@ -1679,7 +1679,9 @@ C****
         call io_rsf("AIC",IhrX,irsfic,ioerr)
 c if starting with a different land mask, these maybe necessary
 c        iniSNOW = .TRUE.  ! Special for non-0k
+#ifndef CUBE_GRID /* iniPBL is inconvenient when not cold starting */
         iniPBL=.TRUE.           ! Special for non-0k
+#endif
         if (ioerr.eq.1) goto 800
       END SELECT
 
@@ -1748,12 +1750,6 @@ C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****        mainly used for REPEATS and delayed EXTENSIONS
       CASE (1:9)                      !  diag.arrays are not read in
         if(istart.eq.9) call io_rsf("AIC",Itime,irerun,ioerr)
-#ifdef USE_FVCORE
-        if(AM_I_ROOT()) then
-          call system('cp AICfv  dyncore_internal_restart')
-          call system('cp AICdfv tendencies_checkpoint')
-        endif
-#endif
         if(istart.le.8) then         !  initial start of rad.forcing run
           call openunit("AIC",iu_AIC,.true.,.true.)
           call io_label(iu_AIC,Itime,ItimeX,irerun,ioerr)
@@ -1887,6 +1883,11 @@ C**** need a clock to satisfy ESMF interfaces
       clock = init_app_clock( (/ YEARI, MONTHI, DATEI, HOURI, MINTI,0/),
      &                        (/ YEARE, MONTHE, DATEE, HOURE, MINTE,0/),
      &             interval = int(dt) )
+C**** copy FV restart files to expected names
+      if(AM_I_ROOT() .and. istart.gt.2 .and. istart.lt.10) then
+        call system('cp AICfv  dyncore_internal_restart')
+        call system('cp AICdfv tendencies_checkpoint')
+      endif
 #endif
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
