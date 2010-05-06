@@ -16,6 +16,44 @@
 
       contains
 
+#ifdef OPTIMIZED_TRIDIAG
+      SUBROUTINE TRIDIAG(A,B,C,R,U,N)
+!@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
+!@auth Numerical Recipes
+!@ver  1.0
+      IMPLICIT NONE
+      INTEGER, PARAMETER :: NMAX = 8000  !@var NMAX workspace
+      INTEGER, INTENT(IN):: N         !@var N    dimension of arrays
+      REAL*8, INTENT(IN) :: A(N)   !@var A    coefficients of u_i-1
+      REAL*8, INTENT(IN) :: B(N)   !@var B    coefficients of u_i
+      REAL*8, INTENT(IN) :: C(N)   !@var C    coefficients of u_i+1
+      REAL*8, INTENT(IN) :: R(N)   !@var R    RHS vector
+      REAL*8, INTENT(OUT):: U(N)   !@var U    solution vector
+      REAL*8 :: BET, byBET                !@var BET  work variable
+      !REAL*8 :: GAM(Size(A))       !@var GAM  work array
+      REAL*8 :: GAM(NMAX)       !@var GAM  work array
+      INTEGER :: J                 !@var J    loop variable
+
+      IF ( N > NMAX )
+     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
+
+      BET=B(1)
+      IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
+      byBET = 1d0/BET
+      U(1)=R(1) *byBET
+      DO J=2,N
+        GAM(J)=C(J-1) *byBET
+        BET=B(J)-A(J)*GAM(J)
+        IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
+        byBET = 1d0/BET
+        U(J)=(R(J)-A(J)*U(J-1))*byBET
+      END DO
+      DO J=N-1,1,-1
+        U(J)=U(J)-GAM(J+1)*U(J+1)
+      END DO
+      RETURN
+      END SUBROUTINE TRIDIAG
+#else
       SUBROUTINE TRIDIAG(A,B,C,R,U,N)
 !@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
 !@auth Numerical Recipes
@@ -48,6 +86,7 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
       END DO
       RETURN
       END SUBROUTINE TRIDIAG
+#endif
 
       SUBROUTINE TRIDIAG_cyclic(A,B,C,R,U,N)
 !@sum TRIDIAG_cyclic solves a cyclic tridiagonal matrix equation (A,B,C)U=R
