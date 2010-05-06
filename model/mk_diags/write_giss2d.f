@@ -25,6 +25,10 @@
       character(len=6) :: ifmt='(ix.x)'
       real*4, parameter :: undef=-1e30
       real*4 :: shnhgm(3)
+      character(len=30) :: run_info
+      character(len=132) :: xlabel
+      logical :: is_modelE_output
+      integer :: ind,linfo,lrem,l1
 
       nargs = iargc()
       if(nargs.ne.4) then
@@ -58,6 +62,24 @@ c
 c get the number of quantities in the file
 c
       status = nf_inq_nvars(fid,nvars)
+
+c
+c check whether this is a modelE output file and try to extract
+c the time period from the filename
+c
+      xlabel = ''
+      status = nf_get_att_text(fid,nf_global,'xlabel',xlabel)
+      is_modelE_output = .false.
+      if(status.eq.nf_noerr) then
+        run_info = xlabel(1:index(xlabel,' ')-1)
+        ind = index(infile,trim(run_info))
+        ind = index(infile(1:ind-1),'.')
+        if(ind.gt.0) then
+          is_modelE_output = .true.
+          run_info = infile(1:ind-1)//' '//run_info
+          linfo = len_trim(run_info)
+        endif
+      endif
 
 c
 c open fortran output file
@@ -114,7 +136,7 @@ c
         if(status.ne.nf_noerr) lname = vname
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
-        if(status.eq.nf_noerr) units = ' ('//trim(units)//') '
+        if(status.eq.nf_noerr) units = '('//trim(units)//')'
         shnhgm = undef
         if(ndims.eq.2) then ! look for global means
           status = nf_inq_varid(fid,trim(vname)//'_hemis',varid2)
@@ -124,8 +146,13 @@ c
         endif
         do k=1,nslab
           status = nf_get_vara_real(fid,varid,srt,cnt,xout)
-          title = trim(lname)//units
+          title = trim(lname)//' '//units
           if(ndims.gt.2) title=trim(title)//' '//trim(diminfo)
+          lrem = 80-(len_trim(title)+1) ! space remaining for run info
+          if(lrem>0 .and. is_modelE_output) then
+            l1 = 80-min(lrem,linfo)+1
+            title(l1:80)=run_info(1:min(lrem,linfo))
+          endif
           if(shnhgm(3).eq.undef) then ! no global mean available
             write(lunit) title,xout
           else                        ! write with global mean
