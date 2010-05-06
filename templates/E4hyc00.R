@@ -56,7 +56,7 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "hycom_387x360_input_files"
 
-RVR=RD_modelE_Fa.RVR_1deghycom_1.bin ! river direction file
+RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
 
 #include "land144x90_input_files"
 #include "rad_input_files"
