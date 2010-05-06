@@ -3209,6 +3209,7 @@ c
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_PSOIL
 c
+#ifdef IRRIGATION_ON
       k=k+1
       IJ_IRRW_TOT = k
       lname_ij(k) = 'FRACTION ACTUAL TO POTENTIAL'
@@ -3240,36 +3241,6 @@ c
       denom_ij(k) = 0
 c
       k=k+1
-      IJ_MWL = k
-      lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
-      units_ij(k) = '10^10 kg'
-      name_ij(k) = 'mwl'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_GML = k
-      lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
-      units_ij(k) = '10^15 J'
-      name_ij(k) = 'gml'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-15
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_MWLir = k
-      lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
-      units_ij(k) = 'kg'
-      name_ij(k) = 'mwl_irrigate'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
       IJ_GMLir = k
       lname_ij(k) = 'ENTHALPY OF LAKE/RIVER LOST TO IRRIGATION'
       units_ij(k) = 'J'
@@ -3296,6 +3267,37 @@ c
       name_ij(k) = 'irrig_gwE'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_MWLir = k
+      lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
+      units_ij(k) = 'kg'
+      name_ij(k) = 'mwl_irrigate'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+#endif
+c
+      k=k+1
+      IJ_MWL = k
+      lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^10 kg'
+      name_ij(k) = 'mwl'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_GML = k
+      lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^15 J'
+      name_ij(k) = 'gml'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-15
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0
 c

@@ -1982,9 +1982,10 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
+     *     ,aij=>aij_loc,ij_mwl,ij_gml
 #ifdef IRRIGATION_ON
-     *      ,aij=>aij_loc,ij_irrW_tot,ij_mwl,ij_mwlir
-     *      ,ij_gml,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
+     *     ,ij_irrW_tot,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE,
+     *     j_irgw,j_irgwE
 #endif
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
@@ -2050,6 +2051,10 @@ C**** calculate flux over whole box
         ERUN0=             ERUNE*PEARTH
         MWL(I,J) = MWL(I,J) + RUN0*AXYP(I,J)
         GML(I,J) = GML(I,J) +ERUN0*AXYP(I,J)
+
+        AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)
+        AIJ(I,J,IJ_GML)=AIJ(I,J,IJ_GML)+GML(I,J)
+
 #ifdef IRRIGATION_ON
         MWL_temp = MWL(I,J)
         GML_temp = GML(I,J)
@@ -2064,9 +2069,6 @@ C****   Compute mass/energy withdrawal from lakes/rivers
 C****   Compute lake- and irrigation-related diagnostics
 !        AIJ(I,J,IJ_IRRW_TOT)=AIJ(I,J,IJ_IRRW_TOT)+irrig_water_pot(I,J)
 
-        AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)
-        AIJ(I,J,IJ_GML)=AIJ(I,J,IJ_GML)+GML(I,J)
-
         AIJ(I,J,IJ_MWLir)=AIJ(I,J,IJ_MWLir)+MWL_to_irrig(I,J)
         AIJ(I,J,IJ_GMLir)=AIJ(I,J,IJ_GMLir)+GML_to_irrig(I,J)
 
@@ -2075,8 +2077,8 @@ C****   Compute lake- and irrigation-related diagnostics
 
         CALL INC_AJ(I,J,itearth ,j_irgw ,irrig_gw(I,J))
         CALL INC_AJ(I,J,itearth ,j_irgwE ,irrig_gw_energy(I,J))
-
 #endif
+
 #ifdef TRACERS_WATER
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
      *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*AXYP(I,J)
