@@ -107,10 +107,7 @@
       use filemanager, only: openunit, closeunit, nameunit
 
       implicit none
-      real*8, allocatable,  dimension(:,:) :: temp_glob
-      real*4, allocatable,  dimension(:,:) :: temp4_glob
       character*80 :: title,fname
-      character*150 :: out_line
 
       integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n
 
@@ -127,23 +124,16 @@
       endif
 
 #ifdef DYNAMIC_BIOMASS_BURNING
-      if(am_i_root( ))allocate(temp_glob(im,jm),temp4_glob(im,jm))
       epfc(:,:,:)=0.d0 ! by default no fire emissions for tracer
       do n=1,ntm
         if(do_fire(n)) then
           fname=trim(trname(n))//'_EPFC'
-          if(am_i_root( ))then
-            call openunit(trim(fname),iu_data,.true.,.true.)
-            read(iu_data) title,temp4_glob
-            call closeunit(iu_data)
-            temp_glob(:,:)=dble(temp4_glob(:,:))
-          endif
-          write(out_line,*) trim(title),' read from ',trim(fname)
-          call write_parallel(trim(out_line))
-          call unpack_data( grid, temp_glob, epfc(:,:,n) )
+          call openunit(trim(fname),iu_data,.true.,.true.)
+          call readt_parallel(grid,iu_data,nameunit(iu_data),
+     &         epfc(:,:,n),1)
+          call closeunit(iu_data)
         endif
       enddo
-      if(am_i_root()) deallocate( temp_glob, temp4_glob )
 #endif
 
       return
