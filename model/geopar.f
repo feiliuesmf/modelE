@@ -7,7 +7,7 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
 cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
@@ -18,7 +18,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
       use filemanager, only : findunit
-
+      use hycom_dim, only : ogrid
       implicit none
       integer i,j,k,l,n,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
@@ -542,6 +542,9 @@ c
       call cpl_wgt                      ! read in weights for coupler
       endif ! AM_I_ROOT
 c
+
+      call esmf_bcast(ogrid,area)
+
       return
       end
 c
