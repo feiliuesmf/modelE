@@ -3,7 +3,7 @@
 c
 c --- micom version 2.9
 c --- hycom version 0.9
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,NORTH,SOUTH,GLOBALMAX
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
      &     ,ip,idm,ii1,JDM
      &     ,jchunk
@@ -20,7 +20,7 @@ c
 c
       integer mask(idm,J_0H:J_1H),jcyc,iz,jz,iter
       real pold(idm,J_0H:J_1H),q,dpmin,dpmn(J_0H:J_1H),clip,flxhi,flxlo,
-     &     dtinv,old,
+     &     dtinv,old,dpmin_loc,
      .     hymar,boost,pbot1,pbot2,p1,p2,hyc_pechg1,hyc_pechg2,pa,pb
       external hyc_pechg1,hyc_pechg2
       character text*20
@@ -438,6 +438,8 @@ c$OMP PARALLEL DO REDUCTION(max:dpmin) SCHEDULE(STATIC,jchunk)
  37     dpmin=max(dpmin,dpmn(j))
 c$OMP END PARALLEL DO
 c
+      dpmin_loc = dpmin
+      call globalmax(ogrid,dpmin_loc,dpmin)
       do 38 j=J_0,J_1
         do 38 l=1,isp(j)
         do 38 i=ifp(j,l),ilp(j,l)
