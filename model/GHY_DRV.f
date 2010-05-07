@@ -1845,9 +1845,9 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
      &    (airrig*ptype/dtsrc/1000.d0)/irrig_water_pot(i,j)
 #else
-      aij(i,j,ij_irrW)=0.d0
-      aij(i,j,ij_irrE)=0.d0
-      aij(i,j,ij_irrW_tot)=0.d0
+c      aij(i,j,ij_irrW)=0.d0
+c      aij(i,j,ij_irrE)=0.d0
+c      aij(i,j,ij_irrW_tot)=0.d0
 #endif
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
