@@ -184,7 +184,6 @@ C****
       REAL*8, DIMENSION(JM,0:LMO,4) :: SFM!,SFS SFS is for salt
 
 C****
-
 #ifdef TRACERS_OCEAN
 !@var KTOIJL number of 3-dimensional ocean tracer diagnostics
       INTEGER, PARAMETER :: KTOIJL=10
@@ -196,6 +195,14 @@ C****
      *     ,toijl_wtfl=10
 !@var TLNST strait diagnostics
       REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
+
+!@var ktoijlx total number of toijl output fields over all tracers
+      integer, parameter :: ktoijlx = ntm*8 + 1 ! +1 for mo used as denom
+!@var TOIJL_out like TOIJL_loc, but reshaped/rescaled for offline postprocessing
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TOIJL_out
+!@var divbya_toijl, kn_toijl helper arrays for postprocessing
+      LOGICAL, DIMENSION(KTOIJLx) :: DIVBYA_TOIJL ! acc needs division by area?
+      INTEGER, DIMENSION(2,KTOIJLx) :: KN_TOIJL
 #endif
 
 #ifdef NEW_IO
@@ -213,6 +220,20 @@ c declarations that facilitate switching between restart and acc
 c instances of arrays
       target :: oijl_loc,oijl_out
       real*8, dimension(:,:,:,:), pointer :: oijl_ioptr
+
+#ifdef TRACERS_OCEAN
+!@var CDL_TOIJL consolidated metadata for TOIJL output fields in CDL notation
+      type(cdl_type) :: cdl_toijl
+!@var ia_toijl IDACC numbers for TOIJL diagnostics
+      INTEGER, DIMENSION(KTOIJLx) :: IA_TOIJL
+!@var denom_toijl denominators for TOIJL diagnostics
+      INTEGER, DIMENSION(KTOIJLx) :: DENOM_TOIJL
+!@var scale_toijl scales for TOIJL diagnostics
+      REAL*8, DIMENSION(KTOIJLx) :: SCALE_TOIJL
+!@var sname_toijl Short names for TOIJL diagnostics
+      CHARACTER(len=sname_strlen), DIMENSION(KTOIJLx) :: SNAME_TOIJL
+#endif
+
 #endif
       END MODULE ODIAG
 
@@ -398,7 +419,7 @@ C****
 !@ver  beta
       use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc
+      use odiag, only : tlnst,toijl=>toijl_loc,toijl_out
 #endif
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
@@ -414,10 +435,14 @@ C****
       call defvar(grid,fid,olnst,'olnst(lmo,nmst,kolnst)',
      &     r4_on_disk=r4_on_disk)
 #ifdef TRACERS_OCEAN
-      call defvar(grid,fid,toijl,
-     &     'toijl(dist_imo,dist_jmo,lmo,ktoijl,ntm)',
-     &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntm)',
+      if(r4_on_disk) then
+        call defvar(grid,fid,toijl_out,
+     &       'toijl(dist_imo,dist_jmo,lmo,ktoijl)',r4_on_disk=.true.)
+      else
+        call defvar(grid,fid,toijl,
+     &       'toijl(dist_imo,dist_jmo,lmo,ktoijl,ntmo)')
+      endif
+      call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntmo)',
      &     r4_on_disk=r4_on_disk)
 #ifndef TRACERS_ON
       call def_rsf_tcons(fid,r4_on_disk)
@@ -430,7 +455,7 @@ C****
 !@sum  new_io_ocdiag read/write ocean arrays from/to restart+acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite
+      use model_com, only : ioread,iowrite,iowrite_single
       USE OCEANR_DIM, only : grid=>ogrid
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
@@ -438,7 +463,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use odiag, only : ol,olnst,
      &     oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc
+      use odiag, only : tlnst,toijl=>toijl_loc,toijl_out
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -446,17 +471,21 @@ c    extended/rescaled instances of arrays when writing acc files
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
-      case (iowrite)            ! output to restart or acc file
+      case (iowrite,iowrite_single)            ! output to restart or acc file
         call write_dist_data(grid,fid,'oij',oij)
         call write_dist_data(grid,fid,'oijl',oijl)
         call write_data(grid,fid,'ol',ol)
 c straits arrays
         call write_data(grid,fid,'olnst',olnst)
 #ifdef TRACERS_OCEAN
-        call write_dist_data(grid,fid,'toijl',toijl)
+        if(iaction.eq.iowrite) then
+          call write_dist_data(grid,fid,'toijl',toijl)
+        elseif(iaction.eq.iowrite_single) then
+          call write_dist_data(grid,fid,'toijl',toijl_out)
+        endif
         call write_data(grid,fid,'tlnst',tlnst)
 #endif
-      case (ioread)            ! input from restart or acc file
+      case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'oij',oij)
         call read_dist_data(grid,fid,'oijl',oijl)
         call read_data(grid,fid,'ol',ol,bcast_all=.true.)
@@ -541,6 +570,15 @@ c straits arrays
 #ifndef TRACERS_ON
       call def_meta_tcons(fid)
 #endif
+      call write_attr(grid,fid,'toijl','reduction','sum')
+      call write_attr(grid,fid,'toijl','split_dim',4)
+      call defvar(grid,fid,ia_toijl,'ia_toijl(ktoijl)')
+      call defvar(grid,fid,denom_toijl,'denom_toijl(ktoijl)')
+      call defvar(grid,fid,scale_toijl,'scale_toijl(ktoijl)')
+      call defvar(grid,fid,sname_toijl,
+     &     'sname_toijl(sname_strlen,ktoijl)')
+      call defvar_cdl(grid,fid,cdl_toijl,
+     &     'cdl_toijl(cdl_strlen,kcdl_toijl)')
 #endif      
 
       return
@@ -589,6 +627,11 @@ c straits arrays
 #ifndef TRACERS_ON
       call write_meta_tcons(fid)
 #endif
+      call write_data(grid,fid,'ia_toijl',ia_toijl)
+      call write_data(grid,fid,'denom_toijl',denom_toijl)
+      call write_data(grid,fid,'scale_toijl',scale_toijl)
+      call write_data(grid,fid,'sname_toijl',sname_toijl)
+      call write_cdl(grid,fid,'cdl_toijl',cdl_toijl)
 #endif      
 
       return
@@ -733,14 +776,15 @@ C****
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
       USE TRDIAG_COM, only : nocntrcons
-      USE OCN_TRACER_COM, only : ntrocn,trname
+      USE OCN_TRACER_COM, only : ntrocn,trname,n_Water,to_per_mil
 #endif
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE., QSUM(NPTS)
       CHARACTER CONPT(NPTS)*10,CONPTs(20)*10,UNITS*20,UNITS_INST*20,
      *     unit_string*50
-      INTEGER k,kb,kq,kc,kk,n,nt,ndel
+      INTEGER k,kb,kq,kc,kk,n,nt,ndel,kk_Water
       character(len=10) :: xstr,ystr,zstr
+      character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
 
       byrho2 = .00097d0**2 ! reciprocal**2 of mean ocean density
@@ -1384,6 +1428,9 @@ c
 
       call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
       call merge_cdl(cdl_oij,cdl_odepths,cdl_oijl)
+#ifdef TRACERS_OCEAN 
+      call merge_cdl(cdl_oij,cdl_odepths,cdl_toijl)
+#endif
 
       do k=1,koij
         if(trim(sname_oij(k)).eq.'unused') cycle
@@ -1459,6 +1506,117 @@ c
      &       long_name=trim(lname_otj(k)),
      &       units=trim(units_otj(k)) )
       enddo
+
+#ifdef TRACERS_OCEAN 
+      do kk=1,ktoijlx
+        sname_toijl(kk) = 'unused'
+        ia_toijl(kk) = ia_src
+        denom_toijl(kk) = 0
+        scale_toijl(kk) = 1.
+        divbya_toijl(kk) = .false.
+        kn_toijl(:,kk) = 0
+      enddo
+      kk = 1
+      xyzstr='(zoc,lato,lono) ;'
+      sname_toijl(kk) = 'mo' ! gridbox mass in kg
+      call add_var(cdl_toijl,
+     &     'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &     long_name='OCEAN GRIDBOX MASS', units='kg' )
+      kk_water = 0
+      do nt=1,ntm
+        kk = kk + 1
+        if(nt.eq.n_Water) kk_Water = kk
+        xyzstr='(zoc,lato,lono) ;'
+        sname_toijl(kk) = trim(trname(nt))
+        denom_toijl(kk) = 1 ! mo index == 1
+        kn_toijl(:,kk) = (/ toijl_conc, nt /)
+        if(to_per_mil(nt).gt.0 .and. nt.ne.n_Water) then
+          unitstr='per mil'
+          denom_toijl(kk) = -1   ! flag to be used below
+        else
+          unitstr='kg/kg'
+        endif
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='OCEAN '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+        call add_varline(cdl_toijl,trim(sname_toijl(kk))//
+     &       ':missing_value = -1.e30f ;')
+c
+c metadata for vertical fluxes
+c
+        xyzstr='(zoce,lato,lono) ;'
+        unitstr='kg/m^2/s'
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_zflx_adv'
+        divbya_toijl(kk) = .true.
+        kn_toijl(:,kk) = (/ toijl_tflx+2, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='VERT. ADV. FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_zflx_turb'
+        divbya_toijl(kk) = .true.
+        kn_toijl(:,kk) = (/ toijl_wtfl, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='VERT. DIFF. FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_zflx_gm'
+        divbya_toijl(kk) = .true.
+        kn_toijl(:,kk) = (/ toijl_gmfl+2, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='GM/EDDY VERT. FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+
+c
+c metadata for E-W fluxes
+c
+        xyzstr='(zoc,lato,lono2) ;'
+        unitstr='kg/s'
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_xflx_adv'
+        kn_toijl(:,kk) = (/ toijl_tflx+0, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='ADV. E-W FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_xflx_gm'
+        kn_toijl(:,kk) = (/ toijl_gmfl+0, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='GM/EDDY E-W FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+c
+c metadata for N-S fluxes
+c
+        xyzstr='(zoc,lato2,lono) ;'
+        unitstr='kg/s'
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_yflx_adv'
+        kn_toijl(:,kk) = (/ toijl_tflx+1, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='ADV. N-S FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+        kk = kk + 1
+        sname_toijl(kk) = trim(trname(nt))//'_yflx_gm'
+        kn_toijl(:,kk) = (/ toijl_gmfl+1, nt /)
+        call add_var(cdl_toijl,
+     &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
+     &       long_name='GM/EDDY N-S FLUX '//trim(trname(nt)),
+     &       units=trim(unitstr) )
+
+      enddo
+! set denom for per mil units
+      where(denom_toijl.eq.-1) denom_toijl = kk_Water
+
+#endif /* TRACERS_OCEAN */
+
 #endif
 
       RETURN
@@ -1517,6 +1675,9 @@ c
       ALLOCATE(       OIJL_out (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN
       ALLOCATE(      TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,NTM), STAT=IER )
+#ifdef NEW_IO
+      ALLOCATE(      TOIJL_out (IM,J_0H:J_1H,LMO,KTOIJLx), STAT=IER )
+#endif
 #ifndef TRACERS_ON
       ALLOCATE(    TCONSRV_loc(J_0BUDG:J_1BUDG,KTCON,NTMXCON), STAT=IER)
 #endif

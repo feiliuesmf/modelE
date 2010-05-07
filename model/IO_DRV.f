@@ -143,7 +143,7 @@ c
       if(do_io_acc) then
         if(iaction.eq.iowrite_single) call write_acc_meta(fid)
         call new_io_acc(fid,iaction)
-        call new_io_ocdiag(fid,iorw)
+        call new_io_ocdiag(fid,iaction)
         call new_io_icdiag(fid,iorw)
 #ifdef TRACERS_ON
         call new_io_trdiag (fid,iaction)
@@ -587,6 +587,9 @@ c      call set_ioptrs_iceacc_extended
       call diag_ocean_prep
 #ifdef TRACERS_ON
       call diag_trac_prep
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call diagtcp_prep
 #endif
       return
       end subroutine calc_derived_acc

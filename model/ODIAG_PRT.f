@@ -1732,11 +1732,16 @@ c
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
+#ifdef TRACERS_OCEAN
+      use odiag, only :
+     &     ktoijlx,toijl_out,divbya_toijl,kn_toijl,toijl_loc,toijl_conc
+      USE OCN_TRACER_COM, only : trw0,n_Water,to_per_mil
+#endif
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : am_i_root,halo_update,south
      &     ,pack_data,unpack_data ! for horz stream function
       implicit none
-      integer i,j,l,k
+      integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,fac,facst
       integer :: j_0,j_1,j_0s,j_1s
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: mfu
@@ -1846,6 +1851,30 @@ C****
       endif
       call unpack_data(grid,sf_glob,oij(:,:,ij_sf))
       if(am_i_root()) deallocate(mfu_glob,sf_glob)
+
+#ifdef TRACERS_OCEAN
+C****
+C**** Tracers
+C****
+      toijl_out(:,:,:,:) = 0.
+      kk = 1
+      toijl_out(:,:,:,kk) = oijl_out(:,:,:,ijl_mo)
+      do kk=2,ktoijlx
+        k = kn_toijl(1,kk)
+        n = kn_toijl(2,kk)
+        if(k.le.0 .or. n.le.0) cycle
+        toijl_out(:,:,:,kk) = toijl_loc(:,:,:,k,n)
+        if(divbya_toijl(kk)) then
+          do l=1,lmo; do j=j_0,j_1
+            toijl_out(:,j,l,kk) = toijl_out(:,j,l,kk)/dxypo(j)
+          enddo; enddo
+        endif
+        if(to_per_mil(n) .and. n.ne.n_Water) then
+          toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)
+     &         -trw0(n)*toijl_loc(:,:,:,TOIJL_conc,n_water))
+        endif
+      enddo
+#endif
 
       return
       end subroutine oijl_prep

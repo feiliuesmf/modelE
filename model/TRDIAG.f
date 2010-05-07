@@ -1,13 +1,13 @@
 #include "rundeck_opts.h"
 
+#ifdef TRACERS_ON
+
       subroutine diag_trac_prep
       implicit none
       call gather_zonal_trdiag
-      call gather_zonal_tcons
       call diagjlt_prep
       call diagijt_prep
       call diagijlt_prep
-      call diagtcp_prep
       return
       end subroutine diag_trac_prep
 
@@ -1288,32 +1288,41 @@ c
       return
       end subroutine diagijlt_prep
 
+#endif /* TRACERS_ON */
+
       SUBROUTINE DIAGTCP_prep
 ! comments to be added
       USE CONSTANT, only: teeny
       USE MODEL_COM, only : idacc
       USE GEOM, only: areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,cdl_latbudg
-      USE TRACER_COM, only: ntm
-      USE TRDIAG_COM, only : tconsrv,
-     &     ktcon,ktcon_out,ntmxcon,nsum_tcon,scale_tcon,
+      USE TRDIAG_COM, only : natmtrcons,nocntrcons,tconsrv,
+     &     ktcon,ktcon_out,nsum_tcon,scale_tcon,
      &     ia_tcon,title_tcon,hemis_tconsrv,name_tconsrv,tconsrv_out,
      &     ia_tcon_out,scale_tcon_out,sname_tconsrv_out,cdl_tconsrv
       use domain_decomp_atm, only : am_i_root
       use cdl_mod
       IMPLICIT NONE
-      INTEGER :: j,n,k,kk,KTCON_max,j1,j2
+      INTEGER :: j,n,k,kk,KTCON_max,j1,j2,ntmoa
       real*8 :: hemfac
-      character*80 :: sname,titles(ktcon*ntmxcon)
+      character*80 :: sname
+      character(len=80), dimension(:), allocatable :: titles
+
+      ntmoa = natmtrcons+nocntrcons
+
+      call gather_zonal_tcons
 
       if(.not.am_i_root()) return
 
       if(.not.allocated(tconsrv_out)) then
+
+      allocate(titles(ktcon*ntmoa))
+
 c
 c determine how many actual output fields there are
 c
         ktcon_out = 0
-        do n=1,ntm
+        do n=1,ntmoa
           do k=ktcon,1,-1
             if(nsum_tcon(k,n).gt.0) ktcon_max = nsum_tcon(k,n)
           enddo
@@ -1333,7 +1342,7 @@ c
 c copy metadata
 c
         kk = 0
-        do n=1,ntm
+        do n=1,ntmoa
           do k=ktcon,1,-1
             if(nsum_tcon(k,n).gt.0) ktcon_max = nsum_tcon(k,n)
           enddo
@@ -1361,6 +1370,8 @@ c
      &         'float '//trim(sname)//'_hemis(shnhgm) ;')
         enddo
 
+        deallocate(titles)
+
       endif ! memory allocation and setup
 
 c
@@ -1369,7 +1380,7 @@ c also calculate sums of changes, hemispheric/global avgs
 c
       hemfac = 2./sum(dxyp)
       kk = 0
-      do n=1,ntm
+      do n=1,ntmoa
         do k=ktcon,1,-1
 C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
           if(nsum_tcon(k,n).eq.0) then

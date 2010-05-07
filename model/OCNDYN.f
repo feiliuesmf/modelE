@@ -1174,9 +1174,18 @@ C****
       use ocean
       use straits
       USE OCEANR_DIM, only : grid=>ogrid
+#ifdef TRACERS_OCEAN
+      Use OCN_TRACER_COM, Only : trname
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,nstep0
+     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
+#endif
+#endif
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
+      integer :: n
       call defvar(grid,fid,mo,'mo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,uo,'uo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,vo,'vo(dist_imo,dist_jmo,lmo)')
@@ -1207,16 +1216,35 @@ c straits arrays
       call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
 #ifdef TRACERS_OCEAN
 c tracer arrays
-      call defvar(grid,fid,trmo,'trmo(dist_imo,dist_jmo,lmo,ntm)')
-      call defvar(grid,fid,txmo,'txmo(dist_imo,dist_jmo,lmo,ntm)')
-      call defvar(grid,fid,tymo,'tymo(dist_imo,dist_jmo,lmo,ntm)')
-      call defvar(grid,fid,tzmo,'tzmo(dist_imo,dist_jmo,lmo,ntm)')
+      do n=1,ntm
+        call defvar(grid,fid,trmo(:,:,:,n),
+     &       'trmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,txmo(:,:,:,n),
+     &       'txmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tymo(:,:,:,n),
+     &       'tymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tzmo(:,:,:,n),
+     &       'tzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+      enddo
 c tracer arrays in straits
-      call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntm)')
-      call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntm)')
-      call defvar(grid,fid,tzmst,'tzmst(lmo,nmst,ntm)')
+      call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntmo)')
+      call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntmo)')
+      call defvar(grid,fid,tzmst,'tzmst(lmo,nmst,ntmo)')
 #ifdef TRACERS_WATER
-      call defvar(grid,fid,trsist,'trsist(ntm,lmi,nmst)')
+      call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
+#endif
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      call defvar(grid,fid,nstep0,'obio_nstep0')
+      call defvar(grid,fid,avgq,'avgq(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gcmax,'gcmax(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,tirrq3d,'tirrq3d(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,ihra,'ihra(dist_imo,dist_jmo)')
+      do n=1,ntm
+        call defvar(grid,fid,tracer(:,:,:,n),
+     &       'obio_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+      enddo
+      call defvar(grid,fid,pCO2,'pCO2(dist_imo,dist_jmo)')
+      call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
 #endif
 #endif
       return
@@ -1232,9 +1260,19 @@ c tracer arrays in straits
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
+#ifdef TRACERS_OCEAN
+      Use OCN_TRACER_COM, Only : trname
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      use model_com, only : nstep=>itime
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,nstep0
+     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
+#endif
+#endif
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      integer :: n
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'mo',mo)
@@ -1267,16 +1305,35 @@ c straits arrays
         call write_data(grid,fid,'ssist',ssist)
 #ifdef TRACERS_OCEAN
 c tracer arrays
-        call write_dist_data(grid,fid,'trmo',trmo)
-        call write_dist_data(grid,fid,'txmo',txmo)
-        call write_dist_data(grid,fid,'tymo',tymo)
-        call write_dist_data(grid,fid,'tzmo',tzmo)
+        do n=1,ntm
+          call write_dist_data(grid,fid,'trmo_'//trim(trname(n)),
+     &         trmo(:,:,:,n))
+          call write_dist_data(grid,fid,'txmo_'//trim(trname(n)),
+     &         txmo(:,:,:,n))
+          call write_dist_data(grid,fid,'tymo_'//trim(trname(n)),
+     &         tymo(:,:,:,n))
+          call write_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
+     &         tzmo(:,:,:,n))
+        enddo
 c tracer arrays in straits
         call write_data(grid,fid,'trmst',trmst)
         call write_data(grid,fid,'txmst',txmst)
         call write_data(grid,fid,'tzmst',tzmst)
 #ifdef TRACERS_WATER
         call write_data(grid,fid,'trsist',trsist)
+#endif
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call write_data(grid,fid,'obio_nstep0',nstep)
+        call write_dist_data(grid,fid,'avgq',avgq)
+        call write_dist_data(grid,fid,'gcmax',gcmax)
+        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call write_dist_data(grid,fid,'ihra',ihra)
+        do n=1,ntm
+          call write_dist_data(grid,fid,'obio_'//trim(trname(n)),
+     &         tracer(:,:,:,n))
+        enddo
+        call write_dist_data(grid,fid,'pCO2',pCO2)
+        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
 #endif
 #endif
       case (ioread)            ! input from restart file
@@ -1310,16 +1367,36 @@ c straits arrays
         call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
 #ifdef TRACERS_OCEAN
 c tracer arrays
-        call read_dist_data(grid,fid,'trmo',trmo)
-        call read_dist_data(grid,fid,'txmo',txmo)
-        call read_dist_data(grid,fid,'tymo',tymo)
-        call read_dist_data(grid,fid,'tzmo',tzmo)
+        do n=1,ntm
+          call read_dist_data(grid,fid,'trmo_'//trim(trname(n)),
+     &         trmo(:,:,:,n))
+          call read_dist_data(grid,fid,'txmo_'//trim(trname(n)),
+     &         txmo(:,:,:,n))
+          call read_dist_data(grid,fid,'tymo_'//trim(trname(n)),
+     &         tymo(:,:,:,n))
+          call read_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
+     &         tzmo(:,:,:,n))
+        enddo
 c tracer arrays in straits
         call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)
         call read_data(grid,fid,'txmst',txmst,bcast_all=.true.)
         call read_data(grid,fid,'tzmst',tzmst,bcast_all=.true.)
 #ifdef TRACERS_WATER
         call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
+#endif
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call read_data(grid,fid,'obio_nstep0',nstep0,
+     &       bcast_all=.true.)
+        call read_dist_data(grid,fid,'avgq',avgq)
+        call read_dist_data(grid,fid,'gcmax',gcmax)
+        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call read_dist_data(grid,fid,'ihra',ihra)
+        do n=1,ntm
+          call read_dist_data(grid,fid,'obio_'//trim(trname(n)),
+     &         tracer(:,:,:,n))
+        enddo
+        call read_dist_data(grid,fid,'pCO2',pCO2)
+        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
 #endif
 #endif
       end select
