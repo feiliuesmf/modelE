@@ -7785,9 +7785,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : gtracer
       USE RADPAR, only : xnow
 #endif
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       use pario, only : par_open,par_close,read_data
-#endif
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -7852,11 +7850,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
 #endif
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      real*8 :: volc_press,volc_lons(360),volc_lats(180),
-     &     volc_height(360,180),volc_emiss(360,180)
+      real*8 :: volc_press,volc_lons(Im),volc_lats(Jm+1),
+     &     volc_height(Im,Jm+1),volc_emiss(Im,Jm+1)
       integer :: file_id,ilon,jlat,volc_ij(2)
-#endif
+
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -8711,7 +8708,6 @@ c divide by 2 because BC = 0.1 x S, not SO2
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
 c read 1-degree lat-lon netcdf file and convert lat,lon,height to i,j,l.
 c NOTE: the input file specifies integrals over its 1-degree gridboxes.
 c Converting height to model level using a simple formula for now.
@@ -8725,8 +8721,8 @@ c initialization, at which point actual heights can be used.
       call read_data(grid,file_id,'VOLC_CONT',volc_emiss,
      &     bcast_all=.true.)
       call par_close(grid,file_id)
-      do jlat=1,180
-        do ilon=1,360
+      do jlat=1,Jm+1
+        do ilon=1,Im
           if(volc_emiss(ilon,jlat) <= 0.) cycle
           call lonlat_to_ij(
      &         (/volc_lons(ilon),volc_lats(jlat)/),volc_ij)
@@ -8743,17 +8739,16 @@ c initialization, at which point actual heights can be used.
      &         +volc_emiss(ilon,jlat)/(sday*30.4d0)/12.d0
         enddo
       enddo
-#else
 c read ASCII file specifying the i,j,l of point sources
-      call openunit('SO2_VOLCANO',iuc,.false.,.true.)
-      do
-      read(iuc,*) ii,jj,ll,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      so2_src_3d(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
-      end do
-      call closeunit(iuc)
-#endif
+c      call openunit('SO2_VOLCANO',iuc,.false.,.true.)
+c      do
+c      read(iuc,*) ii,jj,ll,carbstuff
+c      if (ii.eq.0) exit
+c      if (jj<j_0 .or. jj>j_1) cycle
+c      so2_src_3d(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
+c      end do
+c      call closeunit(iuc)
+
 c Biomass for AeroCom
       if (imAER.eq.1) then
        so2_biosrc_3D(:,:,:,:)= 0.d0
