@@ -10,7 +10,7 @@
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE ODIAG, only: ij_cexp,oij=>oij_loc
-      USE OCEAN, only: dxypo,lmm
+      USE OCEAN, only: lmm,dxypo
 #else
       USE hycom_scalars, only: nstep,baclin
 #endif
@@ -18,7 +18,7 @@
       implicit none
 
       integer :: i,j,k,nt,kmax,kzc
-      real    :: trnd
+      real    :: trnd, cexp
       logical :: vrbos,errcon
 
 
@@ -68,25 +68,25 @@
       if (kzc.lt.1) kzc=1
       if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
 
+      cexp = 0.
       do nt=nnut+1,nnut+nchl
-         OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) 
-                          !mgm3/hr -> uM/hr=mili,molC/m3/hr-> mol,C/m3/hr
-     .                    + rhs(kzc,nt,16) * mgchltouMC * 1.d-3    
-                          ! -> Pgr,C/yr
-     .                    * 24.d0 * 365.d0 *dxypo(J)*75.d0
-     .                    * 12.d0 * 1.d-15
+        k = kzc    !dont integrate over depth
+        cexp = cexp
+     .        + obio_P(k,nt)*obio_ws(k,nt-nnut)/dp1d(k)    ! mgm3/hr 
+     .        * mgchltouMC * 1.d-3                         ! -> uM,C/hr=mili-mol,C/m3/hr
+     .        * 24.d0 * 365.d0 *dp1d(k)                    ! -> mol,C/m3/hr
+     .        * 12.d0 * 1.d-15                             ! -> Pg,C/m2/yr
+     .        * dxypo(j)                                   ! -> Pg,C/yr
+
+cdiag write(*,'(a,5i5,4e12.4)')'sinksettl, cexp1:',
+cdiag.   nstep,i,j,k,nt,obio_P(k,nt),obio_ws(k,nt-nnut),dp1d(k),cexp
       enddo
 
-cdiag write(*,'(a,3i5,8e12.4)')'carbon export1:',
-cdiag.   nstep,i,j,obio_P(kzc,5),obio_ws(kzc,1),
-cdiag.             obio_P(kzc,6),obio_ws(kzc,2),
-cdiag.             obio_P(kzc,7),obio_ws(kzc,3),
-cdiag.             obio_P(kzc,8),obio_ws(kzc,4) 
-cdiag write(*,'(a,3i5,4e12.4)')'carbon export1a:',
-cdiag.   nstep,i,j,       rhs(kzc,5,16),
-cdiag.                    rhs(kzc,6,16),
-cdiag.                    rhs(kzc,7,16),
-cdiag.                    rhs(kzc,8,16)
+      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp)  + cexp 
+
+cdiag write(*,'(a,3i5,e12.4)')'sinksettl, cexp1a:',
+cdiag.   nstep,i,j,cexp
+
 
       !detritus settling
       do nt = 1,ndet
@@ -102,6 +102,7 @@ cdiag.                    rhs(kzc,8,16)
      .                                - trnd/dp1d(k  )
          rhs(k+1,nnut+nchl+nzoo+nt,16)= rhs(k+1,nnut+nchl+nzoo+nt,16) 
      .                                + trnd/dp1d(k+1)
+
         enddo  ! k
 !let detritus that reaches the bottom, disappear in the sediment
 !        k = kmax
@@ -112,16 +113,25 @@ cdiag.                    rhs(kzc,8,16)
 
       !diagnostic for carbon export at compensation depth
       !term2: settling C detritus contribution
-      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) 
-                       !micro-grC/lt/hr -> mili,grC/m3/hr -> mol,C/m3/hr
-     .                 + rhs(kzc,nnut+nchl+nzoo+1,16)*1.d-3 /12.d0   
-                          ! -> Pgr,C/yr
-     .                    * 24.d0 * 365.d0 *dxypo(J)*75.d0
-     .                    * 12.d0 * 1.d-15
+      cexp =  0.
+        k = kzc
+        nt= 1            !only the for carbon detritus
+        cexp = cexp 
+     .        + det(k,nt)*wsdet(k,nt)/dp1d(k)      ! micro-grC/lt/hr == mili,grC/m3/hr
+     .        * 1.d-3 /12.d0                       ! -> mol,C/m3/hr
+     .        * 24.d0 * 365.d0 *dp1d(k)            ! -> mol,C/m2/yr
+     .        * 12.d0 * 1.d-15                     ! -> Pgr,C/m2/yr
+     .        * dxypo(j)                           ! -> Pg,C/yr
 
-cdiag write(*,'(a,4i5,5e12.4)')'carbon export2:',
-cdiag.   nstep,i,j,kzc,zc,p1d(kzc),det(kzc,1),wsdet(kzc,1),
-cdiag.                    rhs(kzc,nnut+nchl+nzoo+1,16)
+cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp2:',
+cdiag.   nstep,i,j,k,det(k,nt),wsdet(k,nt),dp1d(k),cexp
+
+      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp
+
+cdiag write(*,'(a,3i5,e12.4)')'sinksettl, cexp2a:',
+cdiag.   nstep,i,j,cexp
+
+
 
 #else     /* HYCOM */
 #ifndef noBIO            /****** for all runs except noBIO tests ********/

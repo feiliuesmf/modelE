@@ -103,9 +103,15 @@ c  Initialize
       call bio_inicond_g(filename,fldo2,fldoz)
       tracer(:,:,:,3)=fldo2         !because 3 is silicate
 
+#ifdef obio_TRANSIENTRUNS
+! in the transient runs keep the dic read in from RSF/AIC file
+      dic = tracer(:,:,:,15)
+#else
+! otherwise take from rundeck
       filename='dic_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
       dic(:,:,:)=fldo2
+#endif
 
 #ifdef TRACERS_Alkalinity
       filename='alk_inicond'
