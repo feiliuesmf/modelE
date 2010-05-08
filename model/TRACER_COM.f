@@ -929,6 +929,8 @@ C**** Aerosol specific switches and arrays
 !@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
 c  2 Bond/Streets past, present, future using sector inputs; 3 historic
       integer :: imAER = 1
+!!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission
+      integer :: OFFLINE_DMS_SS = 0
 !@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
       integer :: imPI = 0
 !@dbparam aer_int_yr indicates year of emission

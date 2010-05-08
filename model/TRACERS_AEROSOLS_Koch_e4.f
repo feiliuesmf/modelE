@@ -1566,7 +1566,7 @@ c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
-      USE TRACER_COM, only: tr_mm,n_DMS,imAER
+      USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
       USE MODEL_COM, only: jmon,jday,lm,jyear
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
@@ -1586,7 +1586,7 @@ c want kg DMS/m2/s
       DMS_flux=0.d0
         erate=0.d0
         !!!Tc=T-273.d0
-        if (imAER.ne.1) then
+        if (OFFLINE_DMS_SS.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
 c Nightingale et al
@@ -1628,7 +1628,7 @@ c
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
-      USE TRACER_COM, only: imAER
+      USE TRACER_COM, only: OFFLINE_DMS_SS
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE MODEL_COM, only: jday
@@ -1643,7 +1643,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 c
       ss=0.
         erate=0.d0
-       if (imAER.ne.1) then
+       if (OFFLINE_DMS_SS.ne.1) then
        if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
         swind_cap=swind

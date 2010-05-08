@@ -266,6 +266,8 @@ C**** set super saturation parameter for isotopes if needed
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
+C**** DMS, seasalt from offline fields
+      call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 C**** decide on emissions
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions
@@ -7703,7 +7705,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *     tr_mm,rnsrc,vol2mass
 #if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
     (defined TRACERS_AMP)
-     *     ,imAER,n_SO2,imPI,aer_int_yr
+     *     ,imAER,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS
 #endif
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
@@ -8602,7 +8604,7 @@ C**** Initialise ocean tracers if necessary
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c read in DMS source
-      if (imAER.ne.1) then !initialize interactive DMS (non-AeroCom)
+      if (OFFLINE_DMS_SS.ne.1) then !initialize interactive DMS (non-AeroCom)
       call openunit('DMS_SEA',iudms,.true.,.true.)
         DMSinput(:,:,:)= 0.d0
        do mm=1,12
@@ -8627,7 +8629,7 @@ c will call read_dist_data for cubed sphere compatibility
       endif
  901  FORMAT(3X,3(I4),E11.3)
 c read in AEROCOM seasalt
-      if (imAER.eq.1) then
+      if (OFFLINE_DMS_SS.eq.1) then
         status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
         status=NF_INQ_VARID(ncidu,'salt',id1)
         start(1)=i_0
