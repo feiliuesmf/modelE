@@ -2549,6 +2549,9 @@ C**** check tracers
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'
 #endif
+#ifdef TRACERS_AMP
+      write(6,*) '...and aerosol microphysics'
+#endif
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and secondary organic aerosols'
