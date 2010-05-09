@@ -97,7 +97,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1620
+      INTEGER,PARAMETER :: ktaijs=1633
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
@@ -358,6 +358,9 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
+#ifdef TRACERS_AMP
+     &                             +3
+#endif
 !@param KTCON total number of conservation diagnostics for tracers
       INTEGER, PARAMETER :: KTCON=npts+ntcons+2
 !@param ntmxcon total number of conservation quantities
