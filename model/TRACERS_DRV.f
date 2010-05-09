@@ -2284,11 +2284,19 @@ c      qsum(itcon_ss(n)) = .false.
       QCON=(/ t,                                           !instant.
      *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
+#ifdef TRACERS_AMP
+     *      , F,  F,  F
+#endif
+     *      /)
       QSUM=(/ f,                                           !instant.
      *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
+#ifdef TRACERS_AMP
+     *      , F,  F,  F
+#endif
+     *      /)
       do n=1,ntm
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
