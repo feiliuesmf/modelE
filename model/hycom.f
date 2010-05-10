@@ -91,7 +91,7 @@ c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
-     &                         haveLatitude, GLOBALSUM, ESMF_BCAST
+     &                         haveLatitude, GLOBALSUM, ESMF_BCAST, GRID
       USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data,
      &     band_pack
       USE HYCOM_ATM 
@@ -163,9 +163,8 @@ c
       real sum_,coord,x,x1,totl,sumice,fusion,saldif,tf
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
-     .    ,thkchg,flxdiv,den_str
+     .    ,thkchg,flxdiv,eflow_gl
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
-      logical doThis
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,nsub
       integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),ipa(iia,jja)
@@ -268,7 +267,9 @@ c Eventually we will call veci2o and combine atm- and ice-ocean
 c stresses after the respective regrids to HYCOM
       call band_pack(pack_i2a, dmui_loc, admui_loc)
       call band_pack(pack_i2a, dmvi_loc, admvi_loc)
-
+      eflow_gl=0.
+      call globalsum(grid, eflowo_loc, eflow_gl, all=.true.)
+c
       do 29 ia=aI_0,aI_1
       iam1=mod(ia-2+iia,iia)+1
       do 29 ja=aJ_0,aJ_1
@@ -284,8 +285,9 @@ c --- accumulate
      .                                /(3600.*real(nhr))
       aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                              ! J/m2 => W/m2
      . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))          ! ocean water
-     . +(eflowo_loc(ia,ja)+egmelt_loc(ia,ja)+emelti_loc(ia,ja))
+     . +(                egmelt_loc(ia,ja)+emelti_loc(ia,ja))
      .                              /(axyp(ia,ja)*focean_loc(ia,ja))     ! ocn or ice
+     . + eflow_gl/area
      . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))          ! ice
      .                                 /(3600.*real(nhr))
       asalt_loc(ia,ja)=asalt_loc(ia,ja)                                  ! kg/m2/sec salt
@@ -1025,29 +1027,6 @@ c
 !------------------------------------------------------------
       if (diagno .or. mod(time+.0001,1.).lt..0002) then    !  once a day
 c
-c --- make line printer plot of mean layer thickness
-!----note: this section is not used for any thing, so we are
-!----      skipping this computation.
-        doThis = .false.
-
-        if( doThis ) then
-          index=-1
-          nflip=mod(nflip+1,2)
-          do 705 k=1+(kk-1)*nflip,kk-(kk-1)*nflip,1-2*nflip
-ccc       if (k.eq.kk-(kk-1)*nflip) index=1
-          sum_=0.
-          totl=0.
-          do 706 j=1,jj
-          do 706 l=1,isp(j)
-          do 706 i=ifp(j,l),ilp(j,l)
-          totl=totl+oice(i,j)*scp2(i,j)
- 706      sum_=sum_+dp(i,j,k+nn)*scp2(i,j)
-css       call linout(sum_/(area*onem),charac(k),index)
- 705      index=0
-c ---     add ice extend (%) to plot
-css       call linout(100.*totl/area,'I',1)
-        end if ! dothis
-c
 c --- diagnose mean sea surface height
         sumj(:)=0.; sumicej(:)=0.;
         do 704 j=J_0,J_1
@@ -1395,27 +1374,6 @@ c --- with respect to the ice/openwater flux ratio?
  204  continue
 
 c$OMP END PARALLEL DO
-#ifdef ATM4x5_HYCOM2deg
-c --- enhance flow through Denmark Strait
-      do j=max(aJ_0,39),min(aJ_1,43)
-      do i=j-10,j-8
-      den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
-      uosurf_loc(i,j)=uosurf_loc(i,j)-den_str
-      vosurf_loc(i,j)=vosurf_loc(i,j)-den_str
-      if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
-      enddo
-      enddo
-c
-cdiag if (time.le.1)
-cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
-cdiag. iatest,jatest,' output enh. uo,vo,ice,focean day=',time,nstep
-cdiag. ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
-cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
-cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
-cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
-c     call prtmsk(ipa,uosurf,util3(31,31),iia,10,15,0.,1000.,'uo(mm/s)')
-c     call prtmsk(ipa,vosurf,util3(31,31),iia,10,15,0.,1000.,'vo(mm/s)')
-#endif
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
@@ -1424,7 +1382,6 @@ c
         stop ' stop: dates in agcm/ogcm do not match'
       end if
 c
-
  9666 continue
       call scatter2_atm
 
