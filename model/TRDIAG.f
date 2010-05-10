@@ -737,7 +737,7 @@ c dry/(dry+wet) deposition fraction
 c
       if (dodrydep(n).and.dowetdep(n)) then
         k=k+1
-        sname_taij(k) = "pc_dry_dep_"//trim(trname(n))
+        sname_taij(k) = trim(trname(n))//"_pc_dry_dep"
         lname_taij(k) = trim(trname(n))//" Percent Dry Deposition"
         units_taij(k) = "%"
         ir_taij(k) = ir_pct

@@ -1310,7 +1310,7 @@ C****
       if (dodrydep(n).and.dowetdep(n)) then
         k=k+1
         ijtype(k) = 3
-        name(k) = "pc_dry_dep_"//trim(trname(n))
+        name(k) = trim(trname(n))//"_pc_dry_dep"
         lname(k) = trim(trname(n))//" Percent Dry Deposition"
         units(k) = "%"
         irange(k) = ir_pct
