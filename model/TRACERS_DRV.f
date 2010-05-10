@@ -7795,7 +7795,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : gtracer
       USE RADPAR, only : xnow
 #endif
-      use pario, only : par_open,par_close,read_data
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -7860,9 +7859,17 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
 #endif
-      real*8 :: volc_press,volc_lons(Im),volc_lats(Jm+1),
+#if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID) /* 1-deg volc. emiss */
+      real*8 :: volc_lons(360),volc_lats(180),
+     &     volc_height(360,180),volc_emiss(360,180)
+#else /* volc. emiss on model grid, 1 extra lat at SP */
+      real*8 :: volc_lons(Im),volc_lats(Jm+1),
      &     volc_height(Im,Jm+1),volc_emiss(Im,Jm+1)
-      integer :: file_id,ilon,jlat,volc_ij(2)
+#endif
+      real*8 :: volc_press
+      integer :: file_id,vid,ilon,jlat,volc_ij(2)
+#endif
 
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
@@ -8718,21 +8725,23 @@ c divide by 2 because BC = 0.1 x S, not SO2
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
-c read 1-degree lat-lon netcdf file and convert lat,lon,height to i,j,l.
-c NOTE: the input file specifies integrals over its 1-degree gridboxes.
+c read lat-lon netcdf file and convert lat,lon,height to i,j,l.
+c NOTE: the input file specifies integrals over its gridboxes.
 c Converting height to model level using a simple formula for now.
 c Eventually the atm. state module will make height available during
 c initialization, at which point actual heights can be used.
-      file_id = par_open(grid,'SO2_VOLCANO','read')
-      call read_data(grid,file_id,'lon',volc_lons,bcast_all=.true.)
-      call read_data(grid,file_id,'lat',volc_lats,bcast_all=.true.)
-      call read_data(grid,file_id,'HEIGHT_CONT',volc_height,
-     &     bcast_all=.true.)
-      call read_data(grid,file_id,'VOLC_CONT',volc_emiss,
-     &     bcast_all=.true.)
-      call par_close(grid,file_id)
-      do jlat=1,Jm+1
-        do ilon=1,Im
+      status = nf_open('SO2_VOLCANO',nf_nowrite,file_id)
+      status = nf_inq_varid(file_id,'lon',vid)
+      status = nf_get_var_double(file_id,vid,volc_lons)
+      status = nf_inq_varid(file_id,'lat',vid)
+      status = nf_get_var_double(file_id,vid,volc_lats)
+      status = nf_inq_varid(file_id,'HEIGHT_CONT',vid)
+      status = nf_get_var_double(file_id,vid,volc_height)
+      status = nf_inq_varid(file_id,'VOLC_CONT',vid)
+      status = nf_get_var_double(file_id,vid,volc_emiss)
+      status = nf_close(file_id)
+      do jlat=1,ubound(volc_lats,1)
+        do ilon=1,ubound(volc_lons,1)
           if(volc_emiss(ilon,jlat) <= 0.) cycle
           call lonlat_to_ij(
      &         (/volc_lons(ilon),volc_lats(jlat)/),volc_ij)
