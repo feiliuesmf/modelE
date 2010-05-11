@@ -1127,12 +1127,12 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      &     ,TRWM_GLOB
 #endif
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
   
 #ifdef TRACERS_AEROSOLS_Koch
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
 #ifdef INTERACTIVE_WETLANDS_CH4 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
@@ -1181,6 +1181,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
      &    ,TRWM_GLOB(img,jmg,LM)
 #endif
+     &    ,Aijl_glob(img,jmg,LM)
      &     )
 
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1189,8 +1190,7 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
-     &     Aijl_glob(img,jmg,LM)
-     &    ,ss_glob(JPPJ,LM,img,jmg) )
+     &    ss_glob(JPPJ,LM,img,jmg) )
 #ifdef INTERACTIVE_WETLANDS_CH4 
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
@@ -1231,6 +1231,10 @@ C**** check whether air mass is conserved
 #endif
           END IF                !only root processor writes
         END DO
+
+c not yet        header='For tracer 3D emissions: daily_z(i,j,l)'
+c not yet        call pack_data(grid,daily_z,aijl_glob)
+c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1416,6 +1420,9 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
 #endif
           ENDDO
 
+c not yet          if(am_i_root()) read(kunit,err=10) header,aijl_glob
+c not yet          call unpack_data(grid,aijl_glob,daily_z)
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
           IF (am_i_root()) READ(kunit,ERR=10) header,hbaij_glob,
@@ -1556,8 +1563,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       deallocate(snosiz_glob)
 #endif
 
+      deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
-      deallocate(Aijl_glob,ss_glob)
+      deallocate(ss_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
@@ -1615,6 +1623,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &       'trwm_'//trim(trname(n))//ijldims)
 #endif
       enddo
+
+c not yet      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
 
 #ifdef TRACERS_SPECIAL_Shindell       
       compstr='TRACERS_SPECIAL_Shindell'
@@ -1748,6 +1758,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
         enddo
 
+c not yet        call write_dist_data(grid,fid,'daily_z',daily_z)
+
 #ifdef TRACERS_SPECIAL_Shindell       
         call write_dist_data(grid,fid,'ss',ss,jdim=4)
         call write_dist_data(grid,fid,'yNO3',yNO3)
@@ -1820,6 +1832,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &         trwm(:,:,:,n))
 #endif
         enddo
+
+c not yet        call read_dist_data(grid,fid,'daily_z',daily_z)
 
 #ifdef TRACERS_SPECIAL_Shindell       
         call read_dist_data(grid,fid,'ss',ss,jdim=4)

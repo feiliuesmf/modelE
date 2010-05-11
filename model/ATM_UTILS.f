@@ -683,6 +683,118 @@ C**** and convert to WSAVE, units of m/s):
 
       end subroutine COMPUTE_WSAVE
 
+      SUBROUTINE COMPUTE_GZ(p,t,tz,gz)
+!@sum  COMPUTE_GZ calculates geopotential on model levels.
+!@auth Original development team
+      USE model_com, only : im,jm,lm,ls1,ptop,psfmpt,dsig,sige,sig,
+     &     zatmo
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
+      USE GEOM, only : imaxj
+      IMPLICIT NONE
+      INTEGER I,J,L
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     p
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     &     t,tz,gz
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     phidn,pkdn
+      REAL*8 PKE(LS1:LM+1)
+      REAL*8 PDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,
+     &     BYDP,pkdnl,TZBYDP,dpk,dpkp,dpkpp,
+     &     dphidt,dphidtz,dphimdt,dphimdtz
+
+c**** Extract domain decomposition info
+      INTEGER :: I_0, I_1, J_0, J_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid,
+     &     I_STRT=I_0, I_STOP=I_1,
+     &     J_STRT=J_0, J_STOP=J_1,
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      DO L=LS1,LM+1
+        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
+      END DO
+
+      DO J=J_0,J_1
+        DO I=I_0,IMAXJ(J)
+          pkdn(i,j)=(p(i,j)+ptop)**kapa
+          phidn(i,j)=zatmo(i,j)
+        ENDDO
+      ENDDO
+
+      do l=1,ls1-1 ! sigma levels
+        DO J=J_0,J_1
+          DO I=I_0,IMAXJ(J)
+            pdn=sige(l)*p(i,j)+ptop
+            pup=sige(l+1)*p(i,j)+ptop
+            pkpdn=pkdn(i,j)*pdn
+            dp=dsig(l)*p(i,j)
+            bydp=1./dp
+            p0=sig(l)*p(i,j)+ptop
+            pkup=pup**kapa
+            pkpup=pkup*pup
+            dpk = (pkdn(i,j)-pkup)*bykapa
+            dpkp = (pkpdn-pkpup)*bykapap1
+            dpkpp = (pkpdn*pdn-pkpup*pup)*bykapap2
+            dphidt = dpk
+            dphimdt = bykapa*(pkdn(i,j)-dpkp*bydp)
+            dphidtz = dphidt*p0 -dpkp
+            dphimdtz = dphimdt*p0 +bykapap1*(bydp*dpkpp-pkpdn)
+            tzbydp = 2.*tz(i,j,l)*bydp
+!**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
+            gz(i,j,l) = phidn(i,j)
+     &           +rgas*(dphimdt*t(i,j,l)+dphimdtz*tzbydp)
+!**** CALCULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
+            phidn(i,j) = phidn(i,j)
+     &           +rgas*(dphidt*t(i,j,l)+dphidtz*tzbydp)
+            pkdn(i,j) = pkup
+          ENDDO
+        ENDDO
+        IF (have_south_pole) GZ(2:IM, 1,L)=GZ(1, 1,L)
+        IF (have_north_pole) GZ(2:IM,JM,L)=GZ(1,JM,L)
+      enddo
+
+      DO L=LS1,LM ! constant-pressure levels
+        pdn=sige(l)*psfmpt+ptop
+        pup=sige(l+1)*psfmpt+ptop
+        pkdnl=pke(l)
+        pkup=pke(l+1)
+        pkpdn=pkdnl*pdn
+        dp=dsig(l)*psfmpt
+        bydp=1./dp
+        p0=sig(l)*psfmpt+ptop
+        pkpup=pkup*pup
+        dpk = (pkdnl-pkup)*bykapa
+        dpkp = (pkpdn-pkpup)*bykapap1
+        dpkpp = (pkpdn*pdn-pkpup*pup)*bykapap2
+        dphidt = dpk
+        dphimdt = bykapa*(pkdnl-dpkp*bydp)
+        dphidtz = (dphidt*p0 -dpkp)*2.*bydp
+        dphimdtz = (dphimdt*p0 +bykapap1*(bydp*dpkpp-pkpdn))*2.*bydp
+        dphidt = dphidt*rgas
+        dphimdt = dphimdt*rgas
+        dphidtz = dphidtz*rgas
+        dphimdtz = dphimdtz*rgas
+        do j=j_0,j_1
+          do i=i_0,imaxj(j)
+            gz(i,j,l) = phidn(i,j)
+     &           +dphimdt*t(i,j,l) + dphimdtz*tz(i,j,l)
+            phidn(i,j) = phidn(i,j)
+     &           +dphidt *t(i,j,l) + dphidtz *tz(i,j,l)
+          enddo
+        enddo
+        IF (have_south_pole) GZ(2:IM, 1,L)=GZ(1, 1,L)
+        IF (have_north_pole) GZ(2:IM,JM,L)=GZ(1,JM,L)
+      ENDDO
+
+      RETURN
+      END SUBROUTINE compute_gz
+
 
 !if running SCM end
 #endif

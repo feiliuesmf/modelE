@@ -781,6 +781,10 @@ C**** standard tracer and tracer moment arrays
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
 #endif
 
+!@var daily_z: altitude of model levels (m), updated once per day
+!@+   and used for vertical distribution of 3D emissions
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: daily_z
+
 C**** The following general arrays are set in tracer_IC
 
 !@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
@@ -1152,6 +1156,9 @@ C****
      *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trdn1(NTM,I_0H:I_1H,J_0H:J_1H),
      *              sfc_src(I_0H:I_1H,J_0H:J_1H,ntm,ntsurfsrcmax))
+
+      ALLOCATE(  daily_z(I_0H:I_1H,J_0H:J_1H,LM) )
+      daily_z = 0.
 
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(I_0H:I_1H,J_0H:J_1H,LM,NTM) )

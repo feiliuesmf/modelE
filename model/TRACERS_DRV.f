@@ -8915,12 +8915,15 @@ c **** reads in files for dust/mineral tracers
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
-     $     ,flake0,jyear
+     $     ,flake0,jyear,p,t
+      USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
+      USE TRACER_COM, only: daily_z
+      USE CONSTANT, only: grav
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
      & trans_emis_overr_yr,trans_emis_overr_day
@@ -8939,7 +8942,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE TRACER_COM, only: trm,vol2mass,trmom,n_CO2n
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
       USE MODEL_COM, only : nday,nstep=>itime,psf
-      USE CONSTANT, only: grav
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
@@ -8977,6 +8979,11 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      if(end_of_day) then
+        call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
+        daily_z = daily_z/grav
+      endif
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then

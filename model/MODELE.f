@@ -1162,7 +1162,7 @@ C****
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt
 #endif
-      USE SOMTQ_COM, only : tmom,qmom
+      USE SOMTQ_COM, only : mz,tmom,qmom
 #ifdef CUBE_GRID
        use GEOM, only : geom_cs,imaxj
 #else
@@ -1177,7 +1177,7 @@ C****
       USE DYNAMICS, only : pk,pmid,pedn,ualij,valij
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      USE TRACER_COM,only: MTRACE,NTM,TRNAME
+      USE TRACER_COM,only: MTRACE,NTM,TRNAME,daily_z
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,mchem
 #endif
@@ -1984,6 +1984,13 @@ C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
       call init_tracer
 #endif
+#ifdef TRACERS_ON
+      if(istart.le.2) then
+        call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
+        daily_z = daily_z/grav
+      endif
+#endif
+
 
 C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
