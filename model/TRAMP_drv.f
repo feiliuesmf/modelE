@@ -181,15 +181,18 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
 #ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  EMIS_MASS(2) + (tr3Dsource(i,j,l,2,n_M_ACC_SU)*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,2,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,2,n_M_OCC_OC)*1.d9 / AVOL)
+      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
 #else
-      EMIS_MASS(1) =  EMIS_MASS(1) + (tr3Dsource(i,j,l,2,n_M_AKK_SU)*1.d9 / AVOL)
-      EMIS_MASS(2) =  EMIS_MASS(2) + (tr3Dsource(i,j,l,2,n_M_ACC_SU)*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,2,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,2,n_M_BOC_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,2,n_M_BOC_OC)*1.d9 / AVOL)
+      EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(i,j,l,nVolcanic,n_M_AKK_SU)+
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
+      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
+      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
 #endif
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
@@ -198,10 +201,10 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
  
        DO n=1, ntmAMP
           if(AMP_NUMB_MAP(n).eq. 0) then
-      tr3Dsource(i,j,l,1,n) =((AERO(AMP_AERO_MAP(n)) *AVOL *1.d-9)
+      tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(n)) *AVOL *1.d-9)
      *        -trm(i,j,l,n)) /dtsrc 
           else
-      tr3Dsource(i,j,l,1,n) =((AERO(AMP_AERO_MAP(n)) *AVOL)
+      tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(n)) *AVOL)
      *        -trm(i,j,l,n)) /dtsrc
           endif   
        ENDDO
@@ -210,9 +213,9 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        NUMB_SS(i,j,l,2) = AERO(25) *AVOL ! but has only tiny number in it
     
 
-      tr3Dsource(i,j,l,1,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
+      tr3Dsource(i,j,l,nChemistry,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
      *        -trm(i,j,l,n_H2SO4)) /dtsrc 
-      tr3Dsource(i,j,l,1,n_NH3)   =((GAS(3)*AVOL *1.d-9)
+      tr3Dsource(i,j,l,nChemistry,n_NH3)   =((GAS(3)*AVOL *1.d-9)
      *        -trm(i,j,l,n_NH3)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
