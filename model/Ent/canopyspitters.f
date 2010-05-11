@@ -216,7 +216,7 @@
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
           cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
-          cop%IPP = Iemis * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
+          cop%IPP = Iemis * 0.0600d-6 !umol m-2 s-1 to kg-C-isoprene/m2-ground/s
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
           Anet = cop%GPP - Rd !Right now Rd and Respiration_autotrophic are inconsistent-NK
