@@ -6,7 +6,9 @@ module Tracers_mod
   public :: Tracer_type
   public :: TracerBundle_type
   public :: readFromText
-  public :: newReadFromText
+  public :: writeAsText
+  public :: readBinary
+  public :: writeBinary
   public :: getTracer
   public :: getProperty
   public :: getProperties
@@ -16,6 +18,7 @@ module Tracers_mod
   public :: makeSubset
   public :: hasProperty
   public :: checkMandatory
+  public :: operator(==)
   public :: clean
 
   public :: NOT_FOUND
@@ -44,6 +47,7 @@ module Tracers_mod
 
   interface getProperties
     module procedure getProperties_single
+    module procedure getProperties_multi
   end interface
 
   interface hasProperty
@@ -67,47 +71,33 @@ module Tracers_mod
     module procedure getCount_
     module procedure getCount_property
   end interface
+
+  interface operator(==)
+    module procedure equals
+  end interface
+
+  interface writeAsText
+    module procedure writeAsText_bundle
+  end interface
+
+  interface writeBinary
+    module procedure writeBinary_bundle
+    module procedure writeBinary_tracer
+  end interface
+
+  interface readBinary
+    module procedure readBinary_bundle
+    module procedure readBinary_tracer
+  end interface
+
+
 contains
 
-  function readFromText(unit, defaultValues) result(list)
+  function readFromText(unit, defaultValues) result(bundle)
     use Dictionary_mod
     use Parser_mod
     integer, intent(in) :: unit
-    type (Dictionary_type), intent(in) :: defaultValues
-    type (Tracer_type), pointer :: list(:)
-    type (Tracer_type) :: tracer
-    type (Parser_type) :: parser
-
-    integer :: count
-    integer :: status
-    type (Tracer_type), allocatable :: oldList(:)
-
-    allocate(list(0))
-
-    count = 0
-    do
-      tracer = readOneTracer(unit, status)
-      if (status /= 0) exit
-
-      allocate(oldList(count))
-      oldList = list ! shallow copy ok
-      deallocate(list)
-      allocate(list(count+1))
-      list(1:count) = oldList
-      deallocate(oldList)
-      call merge(tracer%properties, defaultValues)
-      list(count+1)%properties = tracer%properties
-      count = count + 1
-
-    end do
-
-  end function readFromText
-
-  function newReadFromText(unit, defaultValues) result(bundle)
-    use Dictionary_mod
-    use Parser_mod
-    integer, intent(in) :: unit
-    type (Dictionary_type), intent(in) :: defaultValues
+    type (Dictionary_type), optional, intent(in) :: defaultValues
     type (TracerBundle_type) :: bundle
     type (Tracer_type) :: tracer
     type (Parser_type) :: parser
@@ -129,13 +119,82 @@ contains
       allocate(bundle%tracers(count+1))
       bundle%tracers(1:count) = oldList
       deallocate(oldList)
-      call merge(tracer%properties, defaultValues)
+      if (present(defaultValues)) then
+        call merge(tracer%properties, defaultValues)
+      end if
       bundle%tracers(count+1)%properties = tracer%properties
       count = count + 1
 
     end do
 
-  end function newReadFromText
+  end function readFromText
+
+  integer function getNumTracers(this)
+    type (TracerBundle_type), intent(in) :: this
+    getNumTracers = size(this%tracers)
+  end function getNumTracers
+
+  subroutine writeBinary_bundle(this, unit)
+    type (TracerBundle_type), intent(in) :: this
+    integer, intent(in) :: unit
+
+    integer :: i, n
+
+    n = getNumTracers(this)
+    write(unit) n
+    do i = 1, n
+      call writeBinary(this%tracers(i), unit)
+    end do
+
+  end subroutine writeBinary_bundle
+
+  subroutine writeBinary_tracer(this, unit)
+    use Dictionary_mod, only: writeBinary
+    type (Tracer_type), intent(in) :: this
+    integer, intent(in) :: unit
+    call writeBinary(this%properties, unit)
+  end subroutine writeBinary_tracer
+
+  subroutine readBinary_bundle(this, unit)
+    type (TracerBundle_type), intent(out) :: this
+    integer, intent(in) :: unit
+
+    integer :: i, n
+
+    read(unit) n
+    allocate(this%tracers(n))
+    do i = 1, n
+      call readBinary(this%tracers(i), unit)
+    end do
+
+  end subroutine readBinary_bundle
+
+  subroutine readBinary_tracer(this, unit)
+    use Dictionary_mod, only: readBinary
+    type (Tracer_type), intent(out) :: this
+    integer, intent(in) :: unit
+    call readBinary(this%properties, unit)
+  end subroutine readBinary_tracer
+
+  subroutine writeAsText_bundle(this, unit)
+    use Parser_mod
+    type (TracerBundle_type), intent(in) :: this
+    integer, intent(in) :: unit
+
+    type (Parser_type) :: parser
+    type (Dictionary_type), pointer :: properties
+    integer :: i
+
+    call setBeginData(parser, '{')
+    call setEndData(parser, '}')
+    call setTokenSeparators(parser, '=,')
+
+    do i = 1, getCount(this)
+      properties => getProperties(this%tracers(i))
+      call writeAsText(parser, unit, properties)
+    end do
+    
+  end subroutine writeAsText_bundle
 
   function readOneTracer(unit, status) result(tracer)
     use Parser_mod, only: Parser_type
@@ -493,6 +552,27 @@ contains
     end do
 
   end subroutine makeSubset
+
+  logical function equals(bundleA, bundleB) result(isEqual)
+    use GenericType_mod
+    use Dictionary_mod, only: operator(==)
+    use Parser_mod, only: MAX_LEN_TOKEN
+    type (TracerBundle_type), target, intent(in) :: bundleA
+    type (TracerBundle_type), target, intent(in) :: bundleB
+
+    integer :: i
+    character(len=MAX_LEN_TOKEN) :: name
+
+    isEqual = .true.
+    do i = 1, getCount(bundleA)
+      name = getProperty(bundleA%tracers(1), 'name')
+      if (.not. (getProperties(bundleA, name) == getProperties(bundleB, name))) then
+        isEqual = .false.
+        exit
+      end if
+    end do
+
+  end function equals
 
   subroutine cleanTracer(this)
     use Dictionary_mod, only: clean

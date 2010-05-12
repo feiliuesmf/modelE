@@ -74,6 +74,8 @@ module Dictionary_mod
   public :: merge
   public :: hasKey
   public :: getKeys
+  public :: readBinary
+  public :: writeBinary
   public :: operator(==)
 
   ! Common
@@ -203,6 +205,14 @@ module Dictionary_mod
   
   interface operator(==)
     module procedure equals
+  end interface
+
+  interface readBinary
+    module procedure readBinary_dictionary
+  end interface
+
+  interface writeBinary
+    module procedure writeBinary_dictionary
   end interface
 
 contains
@@ -1164,10 +1174,10 @@ contains
 
   end subroutine merge_logicalArray
 
-  subroutine merge_stringArray(this, key, value)
+  subroutine merge_stringArray(this, key, values)
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
-    character(len=*), intent(inout) :: value
+    character(len=*), intent(inout) :: values(:)
 
     integer :: index
 
@@ -1175,7 +1185,7 @@ contains
     if (index == NOT_FOUND) then
       call addEntry(this, key)
     else
-      value = lookup(this, key)
+      values = lookup(this, key)
     end if
 
   end subroutine merge_stringArray
@@ -1472,6 +1482,36 @@ contains
 
     string = value
   end function toString_string
+
+  subroutine readBinary_dictionary(this, unit)
+    type (Dictionary_type), intent(out) :: this
+    integer, intent(in) :: unit
+    
+    type (KeyValuePair_type) :: pair
+    integer :: i, n
+
+    this = Dictionary()
+
+    read(unit) n
+    do i = 1, n
+      call readBinary(pair, unit)
+      call insert(this, pair)
+    end do
+
+  end subroutine readBinary_dictionary
+
+  subroutine writeBinary_dictionary(this, unit)
+    type (Dictionary_type), intent(in) :: this
+    integer, intent(in) :: unit
+
+    integer :: i, n
+    n = getNumEntries(this)
+    write(unit) n
+    do i = 1, n
+      call writeBinary(this%pairs(i), unit)
+    end do
+
+  end subroutine writeBinary_dictionary
 
   logical function equals(a, b)
     type (Dictionary_type), intent(in) :: a

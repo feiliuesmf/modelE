@@ -8,6 +8,8 @@ module KeyValuePair_mod
   public :: getKey
   public :: getNumValues
   public :: getValue, getValues
+  public :: writeBinary, readBinary
+  public :: operator(==)
   public :: clean
 
   public :: MAX_LEN_KEY
@@ -31,6 +33,18 @@ module KeyValuePair_mod
   interface getValue
     module procedure getValue_1
     module procedure getValue_i
+  end interface
+
+  interface operator(==)
+    module procedure equals
+  end interface
+
+  interface readBinary
+    module procedure readBinary_pair
+  end interface
+
+  interface writeBinary
+    module procedure writeBinary_pair
   end interface
 
 Contains
@@ -99,6 +113,36 @@ Contains
     value = this%values(i)
   end function getValue_i
 
+  subroutine readBinary_pair(this, unit)
+    type (KeyValuePair_type), intent(out) :: this
+    integer, intent(in) :: unit
+
+    character (len=MAX_LEN_KEY) :: key
+    type (GenericType_type), allocatable :: values(:)
+    integer :: i, n
+
+    read(unit) key, n
+    allocate(values(n))
+    do i = 1, n
+      call readBinary(values(i), unit)
+    end do
+    this = KeyValuePair(key, values)
+  end subroutine readBinary_pair
+
+  subroutine writeBinary_pair(this, unit)
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(in) :: unit
+
+    integer :: i, n
+
+    n = getNumValues(this)
+    write(unit) this%key, n
+    do i = 1, n
+      call writeBinary(this%values(i), unit)
+    end do
+
+  end subroutine writeBinary_pair
+
   logical function check(this, valueType, numValues)
     type (KeyValuePair_type), intent(in) :: this
     integer, intent(in) :: valueType
@@ -119,6 +163,29 @@ Contains
     end if
 
   end function check
+
+  logical function equals(pairA, pairB) result(isEqual)
+    type (KeyValuePair_type), intent(in) :: pairA
+    type (KeyValuePair_type), intent(in) :: pairB
+    
+    isEqual = .true.
+
+    if (trim(getKey(pairA)) /= trim(getKey(pairB))) then
+      isEqual = .false.
+      return
+    end if
+
+    if (getNumValues(pairA) /= getNumValues(pairB)) then
+      isEqual = .false.
+      return
+    end if
+
+    if (.not. all(getValues(pairA)  == getValues(pairB))) then
+      isEqual = .false.
+      return
+    end if
+
+  end function equals
 
   subroutine cleanKeyValuePair(this)
     type (KeyValuePair_type), intent(in) :: this

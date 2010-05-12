@@ -12,6 +12,8 @@ module GenericType_mod
   public :: operator(==)
   public :: toString
   public :: getType
+  public :: readBinary
+  public :: writeBinary
 
   ! parameters
   public :: MAX_LEN_VALUE
@@ -83,6 +85,14 @@ module GenericType_mod
   interface toString
     module procedure toString_single
     module procedure toString_multi
+  end interface
+
+  interface readBinary
+    module procedure readBinary_generic
+  end interface
+
+  interface writeBinary
+    module procedure writeBinary_generic
   end interface
 
 contains
@@ -264,7 +274,9 @@ contains
   elemental logical function equals_generic(expected, generic) result(same)
     type (GenericType_type), intent(in) :: expected
     type (GenericType_type), intent(in) :: generic
+
     same = (expected%type == generic%type)
+
     if (same) then
       select case (generic%type)
       case (INTEGER_TYPE)
@@ -277,6 +289,7 @@ contains
         same = (expected%stringValue == generic%stringValue)
       end select
     end if
+
   end function equals_generic
   
   elemental logical function equals_integer(expected, generic) result(same)
@@ -425,5 +438,57 @@ contains
     character(len=*), intent(in) :: value
     getType_string = STRING_TYPE
   end function getType_string
+
+  subroutine readBinary_generic(this, unit)
+    type (GenericType_type), intent(out) :: this
+    integer, intent(in) :: unit
+    
+    integer :: type
+    integer :: integerValue
+    real*8 :: real64Value
+    logical :: logicalvalue
+    character(len=MAX_LEN_VALUE) :: stringValue
+
+    read(unit) type
+    select case (type)
+    case (INTEGER_TYPE)
+      read(unit) integerValue
+      this = GenericType(integerValue)
+    case (REAL64_TYPE)
+      read(unit) real64Value
+      this = GenericType(real64Value)
+    case (LOGICAL_TYPE)
+      read(unit) logicalvalue
+      this = GenericType(logicalvalue)
+    case (STRING_TYPE)
+      read(unit) stringValue
+      this = GenericType(stringValue)
+    case default
+      call throwException('GenericType_mod::readBinary() - unsupported type.', 14)
+    end select
+
+  end subroutine readBinary_generic
+
+  subroutine writeBinary_generic(this, unit)
+    type (GenericType_type), intent(in) :: this
+    integer, intent(in) :: unit
+    
+    integer :: type
+
+    write(unit) getType(this)
+    select case (getType(this))
+    case (INTEGER_TYPE)
+      write(unit) this%integerValue
+    case (REAL64_TYPE)
+      write(unit) this%real64Value
+    case (LOGICAL_TYPE)
+      write(unit) this%logicalValue
+    case (STRING_TYPE)
+      write(unit) this%stringValue
+    case default
+      call throwException('GenericType_mod::writeBinary() - unsupported type.', 14)
+    end select
+
+  end subroutine writeBinary_generic
 
 end module GenericType_mod

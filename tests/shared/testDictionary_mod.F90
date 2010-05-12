@@ -17,6 +17,7 @@ module testDictionary_mod
 
   public :: testQuery
   public :: testReadWrite
+  public :: testReadWriteBinary
 
   ! tests of new implementation
   public :: testKeyNotFound
@@ -174,6 +175,28 @@ contains
 
   end subroutine testReadWrite
 
+  subroutine testReadWriteBinary()
+    use FileManager
+    integer :: unit
+    type (Dictionary_type) :: dictionaryA
+    type (Dictionary_type) :: dictionaryB
+
+    dictionaryA = Dictionary()
+    call insert(dictionaryA, 'key1', 1)
+    call insert(dictionaryA, 'key2', [.true., .false.])
+    call insert(dictionaryA, 'key3', [1.2d+0,2.d+0])
+    call insert(dictionaryA, 'key4', 'string')
+    
+    call openUnit('dictionary.dat',unit,qold=.false.,qbin=.true.)
+    call writeBinary(dictionaryA, unit)
+
+    rewind(unit)
+    call readBinary(dictionaryB, unit)
+
+    call assertTrue(dictionaryA == dictionaryB)
+    close(unit, status='delete')
+    
+  end subroutine testReadWriteBinary
 
   subroutine testKeyNotFound()
     type (Dictionary_type) :: aDictionary

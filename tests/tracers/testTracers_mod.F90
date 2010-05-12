@@ -17,6 +17,8 @@ module testTracers_mod
   public :: testGetSubset
   public :: testCheckMandatory
   public :: testDefaultValues
+  public :: testWriteAsText
+  public :: testWriteBinary
 
   public :: setUp
   public :: tearDown
@@ -25,7 +27,6 @@ module testTracers_mod
 
   type fixture
     type (TracerBundle_type) :: bundle
-    type (Tracer_type), pointer :: tracers(:) => null()
     type (Dictionary_type) :: defaultValues
     integer :: unit
     integer :: numTracers
@@ -63,6 +64,7 @@ contains
     this%defaultValues = Dictionary()
     call insert(this%defaultValues, 'optionC', .true.)
     call insert(this%defaultValues, 'optionD',  1)
+
   end subroutine setUp
 
   subroutine tearDown(this)
@@ -81,7 +83,7 @@ contains
     integer :: unit
 
     unit = this%unit
-    this%bundle = newReadFromText(unit, this%defaultValues)
+    this%bundle = readFromText(unit, this%defaultValues)
 
     call assertEqual(this%numTracers, getCount(this%bundle), &
          & 'Incorrect number of tracers found.')
@@ -91,9 +93,7 @@ contains
   ! support routine
   subroutine readTracers(this)
     type (fixture) :: this
-    this%tracers => readFromText(this%unit, this%defaultValues)
-    rewind(this%unit)
-    this%bundle = newReadFromText(this%unit, this%defaultValues)
+    this%bundle = readFromText(this%unit, this%defaultValues)
   end subroutine readTracers
 
   subroutine testGetIndex(this)
@@ -112,11 +112,13 @@ contains
     type (fixture) :: this
 
     real(kind=r64) :: expected, found
+    type (Tracer_type), pointer :: tracer
 
     call readTracers(this)
 
     expected = 1.2d+0
-    found = getProperty(this%tracers(1), 'molecularMass')
+    tracer => getTracer(this%bundle, 'speciesA')
+    found = getProperty(tracer, 'molecularMass')
     call assertEqual(expected, found)
 
   end subroutine testGetPropertySingle
@@ -142,11 +144,13 @@ contains
 
     real(kind=r64) :: expected, found
     type (Dictionary_type), pointer :: properties
+    type (Tracer_type), pointer :: tracer
 
     call readTracers(this)
+    tracer => getTracer(this%bundle, 'speciesA')
 
-    call setProperty(this%tracers(1), 'otherProperty', expected)
-    found = getProperty(this%tracers(1), 'otherProperty')
+    call setProperty(tracer, 'otherProperty', expected)
+    found = getProperty(tracer, 'otherProperty')
     call assertEqual(expected, found)
 
   end subroutine testSetProperty
@@ -176,11 +180,13 @@ contains
     type (fixture) :: this
 
     real(kind=r64) :: expected, found
+    type (Tracer_type), pointer :: tracer
 
     call readTracers(this)
+    tracer => getTracer(this%bundle,'speciesA')
 
-    call assertTrue(hasProperty(this%tracers(1), 'optionA'))
-    call assertFalse(hasProperty(this%tracers(1), 'optionB'))
+    call assertTrue(hasProperty(tracer, 'optionA'))
+    call assertFalse(hasProperty(tracer, 'optionB'))
 
   end subroutine testHasPropertySingle
 
@@ -267,5 +273,45 @@ contains
     call assertTrue(expectedOptionD == foundOptionD)
     
   end subroutine testDefaultValues
+
+  subroutine testWriteAsText(this)
+    use FileManager
+    type (fixture) :: this
+    type (TracerBundle_type) :: bundle
+    integer :: unit
+
+    call readTracers(this)
+
+    call openUnit('testTracersOut.txt', unit, qold=.false., qbin=.false.)
+    call writeAsText(this%bundle, unit)
+    rewind(unit)
+
+    bundle = readFromText(unit)
+    call assertTrue(bundle == this%bundle)
+
+    close(unit, status ='delete')
+    call clean(bundle)
+    
+  end subroutine testWriteAsText
+
+  subroutine testWriteBinary(this)
+    use FileManager
+    type (fixture) :: this
+    type (TracerBundle_type) :: bundle
+    integer :: unit
+
+    call readTracers(this)
+
+    call openUnit('testTracersOut.bin', unit, qold=.false., qbin=.true.)
+    call writeBinary(this%bundle, unit)
+    rewind(unit)
+
+    call readBinary(bundle, unit)
+    call assertTrue(bundle == this%bundle)
+
+    close(unit, status ='delete')
+    call clean(bundle)
+    
+  end subroutine testWriteBinary
 
 end module testTracers_mod
