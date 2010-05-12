@@ -49,8 +49,8 @@ module GenericType_mod
     module procedure assignToInteger_arr_sca, assignToInteger_arr_arr
     module procedure assignToReal64_sca_sca, assignToReal64_sca_arr
     module procedure assignToReal64_arr_sca, assignToReal64_arr_arr
-    module procedure assignToLogical
-    module procedure assignToLogicalArray
+    module procedure assignToLogical_sca_sca, assignToLogical_sca_arr
+    module procedure assignToLogical_arr_sca, assignToLogical_arr_arr
     module procedure assignToString_sca_sca, assignToString_sca_arr
     module procedure assignToString_arr_sca, assignToString_arr_arr
   end interface
@@ -197,11 +197,29 @@ contains
     values(1) = this%real64Value
   end subroutine assignToReal64_arr_sca
   
-  subroutine assignToLogical(value, this)
+  subroutine assignToLogical_sca_sca(value, this)
     logical, intent(out) :: value
     type (GenericType_type), intent(in) :: this
     value = this%logicalValue
-  end subroutine assignToLogical
+  end subroutine assignToLogical_sca_sca
+
+  subroutine assignToLogical_sca_arr(value, this)
+    logical, intent(out) :: value
+    type (GenericType_type), intent(in) :: this(:)
+    value = this(1)%logicalValue
+  end subroutine assignToLogical_sca_arr
+
+  subroutine assignToLogical_arr_sca(values, this)
+    logical, intent(out) :: values(:)
+    type (GenericType_type), intent(in) :: this
+    values(1) = this%logicalValue
+  end subroutine assignToLogical_arr_sca
+
+  subroutine assignToLogical_arr_arr(values, this)
+    logical, intent(out) :: values(:)
+    type (GenericType_type), intent(in) :: this(:)
+    values = this%logicalValue
+  end subroutine assignToLogical_arr_arr
 
   subroutine assignToLogicalArray(values, this)
     logical, intent(out) :: values(:)
