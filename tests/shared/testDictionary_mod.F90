@@ -39,7 +39,8 @@ module testDictionary_mod
   public :: testEqualsG
   public :: testEqualsH
 
-  public :: testMergeKey
+  public :: testMergeInteger
+  public :: testMergeDictionary
 
 contains
 
@@ -398,7 +399,7 @@ contains
 
   end subroutine testEqualsH
 
-  subroutine testMergeKey()
+  subroutine testMergeInteger()
     type (Dictionary_type) :: aDictionary
     integer :: probe
 
@@ -408,6 +409,39 @@ contains
     call merge(aDictionary, 'a', probe)
     call assertTrue(all(1 == lookup(aDictionary, 'a')))
     call clean(aDictionary)
-  end subroutine testMergeKey
+  end subroutine testMergeInteger
+
+  subroutine testMergeDictionary()
+    use GenericType_mod
+    type (Dictionary_type) :: aDictionary
+    type (Dictionary_type) :: otherDictionary
+
+    integer :: expectedA
+    real(kind=r64) :: expectedB
+    logical :: expectedC
+
+    aDictionary = Dictionary()
+    otherDictionary = Dictionary()
+
+    call insert(aDictionary, 'a', 1)
+    call insert(aDictionary, 'b', 2.34d+0)
+
+    call insert(otherDictionary, 'a', 1) ! same
+    call insert(otherDictionary, 'b', 1.23d+0) ! different
+    call insert(otherDictionary, 'c', .true.) ! new
+
+    call merge(aDictionary, otherDictionary)
+
+    expectedA = 1
+    expectedB = 2.34d+0
+    expectedC = .true.
+
+    call assertTrue(all(expectedA == lookup(aDictionary, 'a')))
+    call assertTrue(all(expectedB == lookup(aDictionary, 'b')))
+    call assertTrue(all(expectedC == lookup(aDictionary, 'c')))
+
+    call clean(otherDictionary)
+    call clean(aDictionary)
+  end subroutine testMergeDictionary
 
 end module testDictionary_mod
