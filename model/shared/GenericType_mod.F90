@@ -35,8 +35,8 @@ module GenericType_mod
     character(len=MAX_LEN_VALUE) :: stringValue
   end type GenericType_type
 
-  ! Construct generic type from intrinsic data or copy from
-  ! another generic.
+  ! Construct generic type from intrinsic data, read from
+  ! a string, or copy from another generic object.
   interface GenericType ! constructors
     module procedure GenericType_copy
     module procedure GenericType_readString
@@ -146,30 +146,23 @@ contains
   subroutine assignToInteger_sca_arr(value, this)
     integer, intent(out) :: value
     type (GenericType_type), intent(in) :: this(:)
-    if (size(this) /= 1) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+
+    if (nonconforming(1, size(this))) return
     value = this(1)%integerValue
+
   end subroutine assignToInteger_sca_arr
 
   subroutine assignToInteger_arr_arr(values, this)
     integer, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
-    if (size(values) /= size(this)) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), size(this))) return
     values(:) = this(:)%integerValue
   end subroutine assignToInteger_arr_arr
 
   subroutine assignToInteger_arr_sca(values, this)
     integer, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this
-    if (size(values) /= 1) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), 1)) return
     values(1) = this%integerValue
   end subroutine assignToInteger_arr_sca
   
@@ -182,30 +175,21 @@ contains
   subroutine assignToReal64_sca_arr(value, this)
     real*8, intent(out) :: value
     type (GenericType_type), intent(in) :: this(:)
-    if (size(this) /= 1) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(1, size(this))) return
     value = this(1)%real64Value
   end subroutine assignToReal64_sca_arr
 
   subroutine assignToReal64_arr_arr(values, this)
     real*8, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
-    if (size(values) /= size(this)) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), size(this))) return
     values = this(:)%real64Value
   end subroutine assignToReal64_arr_arr
 
   subroutine assignToReal64_arr_sca(values, this)
     real*8, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this
-    if (size(values) /= 1) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), 1)) return
     values(1) = this%real64Value
   end subroutine assignToReal64_arr_sca
   
@@ -218,30 +202,28 @@ contains
   subroutine assignToLogical_sca_arr(value, this)
     logical, intent(out) :: value
     type (GenericType_type), intent(in) :: this(:)
+    if (nonconforming(1, size(this))) return
     value = this(1)%logicalValue
   end subroutine assignToLogical_sca_arr
 
   subroutine assignToLogical_arr_sca(values, this)
     logical, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this
+    if (nonconforming(size(values), 1)) return
     values(1) = this%logicalValue
   end subroutine assignToLogical_arr_sca
 
   subroutine assignToLogical_arr_arr(values, this)
     logical, intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
+    if (nonconforming(size(values), size(this))) return
     values = this%logicalValue
   end subroutine assignToLogical_arr_arr
-
-  subroutine assignToLogicalArray(values, this)
-    logical, intent(out) :: values(:)
-    type (GenericType_type), intent(in) :: this(:)
-    values = this(:)%logicalValue
-  end subroutine assignToLogicalArray
 
   subroutine assignToString_sca_arr(value, this)
     character(len=*), intent(out) :: value
     type (GenericType_type), intent(in) :: this(:)
+    if (nonconforming(1, size(this))) return
     value = this(1)%stringValue
   end subroutine assignToString_sca_arr
 
@@ -254,23 +236,32 @@ contains
   subroutine assignToString_arr_sca(values, this)
     character(len=*), intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this
-    if (size(values) /= 1) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), 1)) return
     values(1) = this%stringValue
   end subroutine assignToString_arr_sca
 
   subroutine assignToString_arr_arr(values, this)
     character(len=*), intent(out) :: values(:)
     type (GenericType_type), intent(in) :: this(:)
-    if (size(values) /= size(this)) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
-      return
-    end if
+    if (nonconforming(size(values), size(this))) return
     values = this%stringValue
   end subroutine assignToString_arr_arr
   ! End of overload of assignment(=)
+
+  ! Throw an exception if the sizes of two arrays/scalarsa are
+  ! not conforming.   
+  logical function nonconforming(sizeA, sizeB)
+    integer, intent(in) :: sizeA
+    integer, intent(in) :: sizeB
+
+    if (sizeA /= sizeB) then
+      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      nonconforming = .true.
+    else
+      nonconforming = .false.
+    end if
+
+  end function nonconforming
 
   ! Begin overload of operator(==)
   elemental logical function equals_generic(expected, generic) result(same)
