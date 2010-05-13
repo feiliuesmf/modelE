@@ -137,8 +137,73 @@ contains
     generic%type = STRING_TYPE
     generic%stringValue = value
   end function GenericType_string
-  ! End constructors
 
+  ! Construct a generic from a string.   Format is based upon the
+  ! requested type.
+  function GenericType_readString(string, type) result(generic)
+    use StringUtilities_mod, only: toLowerCase
+    character(len=*), intent(in) :: string
+    integer, intent(in) :: type
+    type (GenericType_type) :: generic
+    integer :: status
+
+    generic%type = type
+    select case (type)
+    case (INTEGER_TYPE)
+      read(string,'(i)',iostat=status) generic%integerValue
+    case (REAL64_TYPE)
+      read(string,'(g)',iostat=status) generic%real64Value
+    case (LOGICAL_TYPE)
+      generic%logicalValue = readLogical(toLowerCase(string), status)
+    case (STRING_TYPE)
+      generic%stringValue = string
+    case default
+      generic%type = ILLEGAL_TYPE
+      call throwException('GenericType::GenericType() - no such type.',14)
+    end select
+
+    if (status /= 0) then
+      call throwException('GenericType::GenericType() - cannot convert string "' // &
+           & trim(string) // '" to ' // trim(typeString(type)) // '.', 14)
+    end if
+
+  contains
+
+    ! For convenience, allow multiple formats for logicals.
+    logical function readLogical(string, status) result(flag)
+      character(len=*), intent(in) :: string
+      integer, intent(out) :: status
+      status = 0
+      select case(trim(toLowerCase(string)))
+      case ('true','t','.true.')
+        flag = .true.
+      case ('false','f','.false.')
+        flag = .false.
+      case default
+        status = -1 ! cannot convert
+      end select
+    end function readLogical
+
+    function typeString(type)
+      integer, intent(in) :: type
+
+      integer, parameter :: MAX_LEN_TYPE_STRING = 10
+      character(len=MAX_LEN_TYPE_STRING) :: typeString
+
+      select case (type)
+      case (INTEGER_TYPE)
+        typeString = 'integer'
+      case (REAL64_TYPE)
+        typeString = 'real*8'
+      case (LOGICAL_TYPE)
+        typeString = 'logical'
+      case (STRING_TYPE)
+        typeString = 'string'
+      end select
+    end function typeString
+
+  end function GenericType_readString
+  ! End constructors
 
   ! Begin overload of assigment (=)
   subroutine assignToInteger_sca_sca(value, this)
@@ -268,22 +333,25 @@ contains
   end function nonconforming
 
   ! Begin overload of operator(==)
-  elemental logical function equals_generic(expected, generic) result(same)
-    type (GenericType_type), intent(in) :: expected
-    type (GenericType_type), intent(in) :: generic
 
-    same = (expected%type == generic%type)
+  ! Two generics are the same iff they have the same type and he
+  ! corresponding values are the same by the criteria of that type.
+  elemental logical function equals_generic(genericA, genericB) result(same)
+    type (GenericType_type), intent(in) :: genericA
+    type (GenericType_type), intent(in) :: genericB
+
+    same = (genericA%type == genericB%type)
 
     if (same) then
-      select case (generic%type)
+      select case (genericB%type)
       case (INTEGER_TYPE)
-        same = (expected%integerValue == generic%integerValue)
+        same = (genericA%integerValue == genericB%integerValue)
       case (REAL64_TYPE)
-        same = (expected%real64Value == generic%real64Value)
+        same = (genericA%real64Value == genericB%real64Value)
       case (LOGICAL_TYPE)
-        same = (expected%logicalValue == generic%logicalValue)
+        same = (genericA%logicalValue == genericB%logicalValue)
       case (STRING_TYPE)
-        same = (expected%stringValue == generic%stringValue)
+        same = (genericA%stringValue == genericB%stringValue)
       end select
     end if
 
@@ -314,6 +382,10 @@ contains
   end function equals_string
   ! End overload of operator(==)
 
+  ! Overload of toString()
+
+  ! Convert a generic into a human-readable string.  Useful for manipulating
+  ! files containing metadata.
   function toString_single(this) result(string)
     type (GenericType_type), intent(in) :: this
     character(len=MAX_LEN_VALUE) :: string
@@ -336,6 +408,7 @@ contains
     end select
   end function toString_single
 
+  ! Convert an array of generics into an array of human-readable strings.
   function toString_multi(this) result(string)
     type (GenericType_type), intent(in) :: this(:)
     character(len=MAX_LEN_VALUE) :: string(size(this))
@@ -347,69 +420,8 @@ contains
     end do
 
   end function toString_multi
-  
-  function GenericType_readString(string, type) result(generic)
-    use StringUtilities_mod, only: toLowerCase
-    character(len=*), intent(in) :: string
-    integer, intent(in) :: type
-    type (GenericType_type) :: generic
-    integer :: status
 
-    generic%type = type
-    select case (type)
-    case (INTEGER_TYPE)
-      read(string,'(i)',iostat=status) generic%integerValue
-    case (REAL64_TYPE)
-      read(string,'(g)',iostat=status) generic%real64Value
-    case (LOGICAL_TYPE)
-      generic%logicalValue = readLogical(toLowerCase(string), status)
-    case (STRING_TYPE)
-      generic%stringValue = string
-    case default
-      generic%type = ILLEGAL_TYPE
-      call throwException('GenericType::GenericType() - no such type.',14)
-    end select
-
-    if (status /= 0) then
-      call throwException('GenericType::GenericType() - cannot convert string "' // &
-           & trim(string) // '" to ' // trim(typeString(type)) // '.', 14)
-    end if
-
-  contains
-
-    logical function readLogical(string, status) result(flag)
-      character(len=*), intent(in) :: string
-      integer, intent(out) :: status
-      status = 0
-      select case(trim(toLowerCase(string)))
-      case ('true','t','.true.')
-        flag = .true.
-      case ('false','f','.false.')
-        flag = .false.
-      case default
-        status = -1 ! cannot convert
-      end select
-    end function readLogical
-
-    function typeString(type)
-      integer, intent(in) :: type
-
-      integer, parameter :: MAX_LEN_TYPE_STRING = 10
-      character(len=MAX_LEN_TYPE_STRING) :: typeString
-
-      select case (type)
-      case (INTEGER_TYPE)
-        typeString = 'integer'
-      case (REAL64_TYPE)
-        typeString = 'real*8'
-      case (LOGICAL_TYPE)
-        typeString = 'logical'
-      case (STRING_TYPE)
-        typeString = 'string'
-      end select
-    end function typeString
-
-  end function GenericType_readString
+  ! Various trivial accessor methods.
 
   elemental integer function getType_generic(this) result(type)
     type (GenericType_type), intent(in) :: this
@@ -436,6 +448,8 @@ contains
     getType_string = STRING_TYPE
   end function getType_string
 
+  ! Read generic item from unit connected to an unformatted,
+  ! sequential file.
   subroutine readUnformatted_generic(this, unit)
     type (GenericType_type), intent(out) :: this
     integer, intent(in) :: unit
@@ -466,6 +480,8 @@ contains
 
   end subroutine readUnformatted_generic
 
+  ! Write generic item to unit connected to an unformatted,
+  ! sequential file.
   subroutine writeUnformatted_generic(this, unit)
     type (GenericType_type), intent(in) :: this
     integer, intent(in) :: unit
