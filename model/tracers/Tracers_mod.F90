@@ -90,6 +90,7 @@ module Tracers_mod
     module procedure readBinary_tracer
   end interface
 
+  integer, parameter :: LEN_HEADER = 80
 
 contains
 
@@ -152,6 +153,10 @@ contains
     use Dictionary_mod, only: writeBinary
     type (Tracer_type), intent(in) :: this
     integer, intent(in) :: unit
+
+    character(len=LEN_HEADER) :: header
+    header = 'Tracer Bundle - Version 1.0'
+    write(unit) header
     call writeBinary(this%properties, unit)
   end subroutine writeBinary_tracer
 
@@ -160,7 +165,9 @@ contains
     integer, intent(in) :: unit
 
     integer :: i, n
+    character(len=LEN_HEADER) :: header
 
+    read(unit) header
     read(unit) n
     allocate(this%tracers(n))
     do i = 1, n
