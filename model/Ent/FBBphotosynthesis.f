@@ -281,6 +281,8 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       subroutine Voccalc(pft,pa,ca,ci,Tl,Gammastar,isp,Aiso)
 !@sum Isoprene emissions coupled to photosynthesis
 
+      use ent_pfts
+
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: ca   !Ambient air CO2 mole fraction (umol mol-1)      
@@ -297,9 +299,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       real*8 :: IBASER, Y_alpha, kapco2
       real*8 :: tauiso
 C April 2009 values
-      real*8, parameter, dimension(numpft) :: Y_eps = !
-     & (/0.0d0,2.10d-02,8.24d-02,6.48d-02,1.08d-01,
-     & 4.44d-02,1.38d-01,0.0d0/)
+c      real*8, parameter, dimension(numpft) :: Y_eps = !
+c     & (/0.0d0,2.10d-02,8.24d-02,6.48d-02,1.08d-01,
+c     & 4.44d-02,1.38d-01,0.0d0/)
 C New values June 2009
 C      real*8, parameter, dimension(numpft) :: Y_eps = !
 C     & (/0.0d0,1.91d-02,7.19d-02,5.13d-02,8.79d-02,
@@ -311,7 +313,9 @@ C Y_alpha, Y_eps unitless
   
       Y_alpha=(ci-gammamol)/(6.0*(4.67*ci+9.33*gammamol))
 
-      isp = Y_eps(pft)*Aiso*Y_alpha
+c      isp = Y_eps(pft)*Aiso*Y_alpha
+
+      isp = pfpar(pft)%Y_eps*Aiso*Y_alpha
 
 C Include CO2 effects
 

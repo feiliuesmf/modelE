@@ -59,6 +59,10 @@
          real*8 :: b1Ht !para 1 for allometric relation btw DBH & height
          real*8 :: b2Ht !para 2 for allometric relation btw DBH & height
 
+! PFT-specific Isoprene Paramaters
+
+         real*8 :: Y_eps    ! PFT-specific fraction of electrons to make isoprene
+
       end type pftype
 !****************************************************************************
 
