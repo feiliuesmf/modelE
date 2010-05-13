@@ -1,13 +1,14 @@
 module GenericType_mod
-!@sum Implements a data type and methods which genericize intrinsic
-!@+ types: integer, real*8, logical, and string.
+!@sum This module provides a derived type which can contain one element
+!@+ of any of the following intrinsic types: integer, real*8, logical, 
+!@+ and string. This provides a flexible mechanism for organizing various
+!@+ types of metadata.
 !@auth T.Clune
   implicit none
   private
 
   public :: GenericType_type ! data type
-  public :: GenericType ! constructor
-  public :: fromString  ! constructor
+  public :: GenericType      ! constructor
   public :: assignment(=)
   public :: operator(==)
   public :: toString
@@ -38,6 +39,7 @@ module GenericType_mod
   ! another generic.
   interface GenericType ! constructors
     module procedure GenericType_copy
+    module procedure GenericType_readString
     module procedure GenericType_integer
     module procedure GenericType_real64
     module procedure GenericType_logical
@@ -351,7 +353,7 @@ contains
 
   end function toString_multi
   
-  function fromString(string, type) result(generic)
+  function GenericType_readString(string, type) result(generic)
     use StringUtilities_mod, only: toLowerCase
     character(len=*), intent(in) :: string
     integer, intent(in) :: type
@@ -370,11 +372,11 @@ contains
       generic%stringValue = string
     case default
       generic%type = ILLEGAL_TYPE
-      call throwException('GenericType::fromString() - no such type.',14)
+      call throwException('GenericType::GenericType() - no such type.',14)
     end select
 
     if (status /= 0) then
-      call throwException('GenericType::fromString() - cannot convert string "' // &
+      call throwException('GenericType::GenericType() - cannot convert string "' // &
            & trim(string) // '" to ' // trim(typeString(type)) // '.', 14)
     end if
 
@@ -412,7 +414,7 @@ contains
       end select
     end function typeString
 
-  end function fromString
+  end function GenericType_readString
 
   elemental integer function getType_generic(this) result(type)
     type (GenericType_type), intent(in) :: this

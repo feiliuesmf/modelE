@@ -141,6 +141,10 @@ contains
 
     integer :: i, n
 
+    character(len=LEN_HEADER) :: header
+    header = 'Tracer Bundle - Version 1.0'
+    write(unit) header
+
     n = getNumTracers(this)
     write(unit) n
     do i = 1, n
@@ -154,9 +158,6 @@ contains
     type (Tracer_type), intent(in) :: this
     integer, intent(in) :: unit
 
-    character(len=LEN_HEADER) :: header
-    header = 'Tracer Bundle - Version 1.0'
-    write(unit) header
     call writeBinary(this%properties, unit)
   end subroutine writeBinary_tracer
 

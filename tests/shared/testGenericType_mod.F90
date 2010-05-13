@@ -74,8 +74,8 @@ contains
 
   subroutine testFromStringInteger()
 !@sum Test that GenericType can be constructed from a string.
-    call assertTrue(1 == fromString('1', INTEGER_TYPE))
-    call assertTrue(1234 == fromString(' 1234', INTEGER_TYPE))
+    call assertTrue(1 == GenericType('1', INTEGER_TYPE))
+    call assertTrue(1234 == GenericType(' 1234', INTEGER_TYPE))
   end subroutine testFromStringInteger
     
   subroutine testFromStringReal64()
@@ -85,46 +85,46 @@ contains
 
     expected = 1.23d+0
     generic = GenericType(expected)
-    call assertTrue(expected == fromString(toString(generic), REAL64_TYPE))
+    call assertTrue(expected == GenericType(toString(generic), REAL64_TYPE))
 
     expected = -123.789d+0
     generic = GenericType(expected)
-    call assertTrue(expected == fromString(toString(generic), REAL64_TYPE))
+    call assertTrue(expected == GenericType(toString(generic), REAL64_TYPE))
 
   end subroutine testFromStringReal64
 
   subroutine testFromStringLogical()
 !@sum Test that GenericType can be constructed from a string.
-    call assertTrue(.false. == fromString('f', LOGICAL_TYPE))
-    call assertTrue(.false. == fromString('false', LOGICAL_TYPE))
-    call assertTrue(.false. == fromString('.False.', LOGICAL_TYPE))
+    call assertTrue(.false. == GenericType('f', LOGICAL_TYPE))
+    call assertTrue(.false. == GenericType('false', LOGICAL_TYPE))
+    call assertTrue(.false. == GenericType('.False.', LOGICAL_TYPE))
 
-    call assertTrue(.true. == fromString('T', LOGICAL_TYPE))
-    call assertTrue(.true. == fromString('true', LOGICAL_TYPE))
-    call assertTrue(.true. == fromString('.True.', LOGICAL_TYPE))
+    call assertTrue(.true. == GenericType('T', LOGICAL_TYPE))
+    call assertTrue(.true. == GenericType('true', LOGICAL_TYPE))
+    call assertTrue(.true. == GenericType('.True.', LOGICAL_TYPE))
   end subroutine testFromStringLogical
     
   subroutine testFailFromStringInteger()
-!@sum Test that fromString() returs appropriate errors when args are
+!@sum Test that GenericType() returs appropriate errors when args are
 !@+ inconsistent.
     integer :: i
 
-    i = fromString('1.234', INTEGER_TYPE)
-    call assertFailedAssert('GenericType::fromString() - cannot convert string "1.234" to integer.', &
+    i = GenericType('1.234', INTEGER_TYPE)
+    call assertFailedAssert('GenericType::GenericType() - cannot convert string "1.234" to integer.', &
          & 'Failed to detect conversion error.')
 
-    i = fromString('1.234', -1)
-    call assertFailedAssert('GenericType::fromString() - no such type.')
+    i = GenericType('1.234', -1)
+    call assertFailedAssert('GenericType::GenericType() - no such type.')
 
   end subroutine testFailFromStringInteger
     
   subroutine testFailFromStringLogical()
-!@sum Test that fromString() returs appropriate errors when args are
+!@sum Test that GenericType() returs appropriate errors when args are
 !@+ inconsistent.
     logical :: flag
 
-    flag = fromString('fa', LOGICAL_TYPE)
-    call assertFailedAssert('GenericType::fromString() - cannot convert string "fa" to logical.', &
+    flag = GenericType('fa', LOGICAL_TYPE)
+    call assertFailedAssert('GenericType::GenericType() - cannot convert string "fa" to logical.', &
          & 'Failed to detect conversion error.')
 
   end subroutine testFailFromStringLogical

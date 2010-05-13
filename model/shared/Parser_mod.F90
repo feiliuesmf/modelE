@@ -230,7 +230,7 @@ contains
       numValues = size(tokens)
       allocate(values(numValues))
       do i = 1, numValues
-        values(i) = fromString(tokens(i), getValueType(tokens))
+        values(i) = GenericType(tokens(i), getValueType(tokens))
       end do
       pair = KeyValuePair(key, values)
       deallocate(values)
