@@ -978,32 +978,6 @@ contains
     call stop_model('PARAM: Error reading',255)
   end subroutine read_param_comp01
 
-!!$  integer function getType_dictionary(value)
-!!$    type (Dictionary_type), intent(in) :: value
-!!$    getType_dictionary = DICT_TYPE
-!!$  end function getType_dictionary
-!!$
-!!$  subroutine getValue_dictionary(this, value)
-!!$    type (KeyValuePair_type), intent(in) :: this
-!!$    type (Dictionary_type), intent(out) :: value
-!!$
-!!$    if (check(this, getType(value), 1)) then
-!!$      value = this%dictionaryValues(1) ! shallow copy
-!!$    end if
-!!$
-!!$  end subroutine getValue_dictionary
-!!$
-!!$
-!!$  subroutine getValue_dictionaryArray(this, values)
-!!$    type (KeyValuePair_type), intent(in) :: this
-!!$    type (Dictionary_type), intent(out) :: values(:)
-!!$
-!!$    if (check(this, getType(values(1)), 1)) then
-!!$      values = this%dictionaryValues(1) ! shallow copy
-!!$    end if
-!!$
-!!$  end subroutine getValue_dictionaryArray
-
   subroutine addEntry(this, key)
 !@sum Creates space for new entry in dictionary
     type (Dictionary_type), intent(inout) :: this
@@ -1342,17 +1316,6 @@ contains
 
   end subroutine lookup_string
 
-!!$  subroutine lookup_dictionary(this, key, value)
-!!$    type (Dictionary_type), intent(in) :: this
-!!$    character(len=*), intent(in) :: key
-!!$    type (Dictionary_type), intent(out) :: value
-!!$    integer :: i
-!!$
-!!$    i = getIndex(this, key)
-!!$    if (i /= NOT_FOUND) value = getValue(this%pairs(i))
-!!$
-!!$  end subroutine lookup_dictionary
-
   subroutine lookup_integerArray(this, key, values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
@@ -1396,17 +1359,6 @@ contains
     if (i /= NOT_FOUND) values = getValues(this%pairs(i))
 
   end subroutine lookup_stringArray
-
-!!$  subroutine lookup_dictionaryArray(this, key, values)
-!!$    type (Dictionary_type), intent(in) :: this
-!!$    character(len=*), intent(in) :: key
-!!$    type (Dictionary_type), intent(out) :: values(:)
-!!$    integer :: i
-!!$
-!!$    i = getIndex(this, key)
-!!$    if (i /= NOT_FOUND) call getValue(this%pairs(i), values)
-!!$
-!!$  end subroutine lookup_dictionaryArray
 
   subroutine cleanDictionary(this)
     type (Dictionary_type), intent(in) :: this
