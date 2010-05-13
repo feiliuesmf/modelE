@@ -1,21 +1,35 @@
 module KeyValuePair_mod
+!@sum This module provides an interface which couples 
+!@+ "keys" with an array of generics.   Such entites are
+!@+ the building blocks of associative arrays (also called
+!@+ "dictionaries", "maps", or "hash maps".
+!@auth T. Clune
   use GenericType_mod
   implicit none
   private
 
-  public :: KeyValuePair
-  public :: KeyValuePair_type
-  public :: getKey
-  public :: getNumValues
+  public :: KeyValuePair_type ! data type
+  public :: KeyValuePair      ! constructor
+  public :: clean             ! destructor
+  ! accessors
+  public :: getKey, getKeys
   public :: getValue, getValues
-  public :: writeUnformatted, readUnformatted
-  public :: operator(==)
-  public :: clean
+  public :: getNumValues  
 
+  ! File access
+  public :: writeUnformatted
+  public :: readUnformatted
+
+  ! Test equality of a pair.
+  public :: operator(==)
+
+  ! Parameters
   public :: MAX_LEN_KEY
   integer, parameter :: MAX_LEN_KEY = 128
 
+
   type KeyValuePair_type
+    private
     character(len=MAX_LEN_KEY) :: key
     type (GenericType_type), pointer :: values(:) => null()
   end type KeyValuePair_type
@@ -47,9 +61,14 @@ module KeyValuePair_mod
     module procedure writeUnformatted_pair
   end interface
 
-Contains
+  interface getKeys
+    module procedure getKeys_array
+  end interface
+
+contains
 
   function KeyValuePair_scalar(key, value) result(pair)
+!@sum Constructor for scalar value
     character(len=*), intent(in) :: key
     type (GenericType_type), intent(in) :: value
     type (KeyValuePair_type) :: pair
@@ -60,6 +79,7 @@ Contains
   end function KeyValuePair_scalar
 
   function KeyValuePair_array(key, values) result(pair)
+!@sum Constructor for vector of values
     character(len=*), intent(in) :: key
     type (GenericType_type), intent(in) :: values(:)
     type (KeyValuePair_type) :: pair
@@ -70,6 +90,7 @@ Contains
   end function KeyValuePair_array
 
   function KeyValuePair_copy(original) result(pair)
+!@sum Copy constructor
     type (KeyValuePair_type), intent(in) :: original
     type (KeyValuePair_type) :: pair
     
@@ -78,11 +99,41 @@ Contains
     pair%values = original%values
   end function KeyValuePair_copy
 
+  ! Accessors
   function getKey(this) result(key)
     type (KeyValuePair_type) :: this
     character(len=MAX_LEN_KEY) :: key
     key = trim(this%key)
   end function getKey
+
+  function getKeys_array(this) result(keys)
+    type (KeyValuePair_type), target :: this(:)
+    character(len=MAX_LEN_KEY), pointer :: keys(:)
+    keys => this(:)%key
+  end function getKeys_array
+
+  function getValue_1(this) result(value)
+    type (KeyValuePair_type), intent(in) :: this
+    type (GenericType_type) :: value
+    value = this%values(1)
+  end function getValue_1
+
+  function getValues(this) result(values)
+    type (KeyValuePair_type), intent(in) :: this
+    type (GenericType_type) :: values(size(this%values))
+    values = this%values(:)
+  end function getValues
+
+  function getValue_i(this, ith) result(value)
+!@ Get ith value
+    type (KeyValuePair_type), intent(in) :: this
+    integer, intent(in) :: ith
+    type (GenericType_type) :: value
+    if (ith < 0 .or. ith > getNumValues(this)) then
+      call throwException('KeyValuePair_mod::getValue() - argument "ith" out of range.')
+    end if
+    value = this%values(ith)
+  end function getValue_i
 
   function getNumValues(this) result(numValues)
     type (KeyValuePair_type), intent(in) :: this
@@ -90,30 +141,9 @@ Contains
     numValues = size(this%values)
   end function getNumValues
 
-  function getValue_1(this) result(value)
-    type (KeyValuePair_type), intent(in) :: this
-    type (GenericType_type) :: value
-    
-    value = this%values(1)
-  end function getValue_1
-
-  function getValues(this) result(values)
-    type (KeyValuePair_type), intent(in) :: this
-    type (GenericType_type) :: values(size(this%values))
-    
-    values = this%values(:)
-  end function getValues
-
-  function getValue_i(this, i) result(value)
-    type (KeyValuePair_type), intent(in) :: this
-    integer, intent(in) :: i
-    type (GenericType_type) :: value
-    
-    
-    value = this%values(i)
-  end function getValue_i
-
   subroutine readUnformatted_pair(this, unit)
+!@sum Read a KeyValuePair object from a unit attached to
+!@+ an unformatted, sequential file.
     type (KeyValuePair_type), intent(out) :: this
     integer, intent(in) :: unit
 
@@ -130,6 +160,8 @@ Contains
   end subroutine readUnformatted_pair
 
   subroutine writeUnformatted_pair(this, unit)
+!@sum Write a KeyValuePair object to a unit attached to
+!@+ an unformatted, sequential file.
     type (KeyValuePair_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -144,6 +176,9 @@ Contains
   end subroutine writeUnformatted_pair
 
   logical function check(this, valueType, numValues)
+!@sum Return true if object "this" has specified type
+!@+ and number of values.   This utility function is used
+!@+ to check conformance in later subroutines.
     type (KeyValuePair_type), intent(in) :: this
     integer, intent(in) :: valueType
     integer, intent(in) :: numValues
@@ -165,6 +200,7 @@ Contains
   end function check
 
   logical function equals(pairA, pairB) result(isEqual)
+!@sum Return true if two pairs have identical contents.
     type (KeyValuePair_type), intent(in) :: pairA
     type (KeyValuePair_type), intent(in) :: pairB
     
@@ -189,9 +225,7 @@ Contains
 
   subroutine cleanKeyValuePair(this)
     type (KeyValuePair_type), intent(in) :: this
-
     deallocate(this%values)
-
   end subroutine cleanKeyValuePair
 
 end module KeyValuePair_mod

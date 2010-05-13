@@ -215,6 +215,10 @@ module Dictionary_mod
     module procedure writeUnformatted_dictionary
   end interface
 
+  interface getKeys
+    module procedure getKeys_dictionary
+  end interface
+
 contains
 
   function Dictionary_empty() 
@@ -1429,13 +1433,13 @@ contains
 
   end function hasKey
 
-  function getKeys(this) result(keys)
+  function getKeys_dictionary(this) result(keys)
     type (Dictionary_type), intent(in) :: this
     character(len=MAX_LEN_KEY), pointer :: keys(:)
 
-    keys => this%pairs(:)%key
+    keys => getKeys(this%pairs)
 
-  end function getKeys
+  end function getKeys_dictionary
 
   integer function getIndex(this, key) result(index)
     type (Dictionary_type), intent(in) :: this
