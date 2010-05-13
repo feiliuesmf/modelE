@@ -138,9 +138,8 @@ contains
     generic%stringValue = value
   end function GenericType_string
 
-  ! Construct a generic from a string.   Format is based upon the
-  ! requested type.
   function GenericType_readString(string, type) result(generic)
+!@sum Construct a generic from a string and a type specifier.
     use StringUtilities_mod, only: toLowerCase
     character(len=*), intent(in) :: string
     integer, intent(in) :: type
@@ -317,9 +316,9 @@ contains
   end subroutine assignToString_arr_arr
   ! End of overload of assignment(=)
 
-  ! Throw an exception if the sizes of two arrays/scalarsa are
-  ! not conforming.   
   logical function nonconforming(sizeA, sizeB)
+!@sum Throws an exception if the sizes of two arrays/scalars are
+!@+ not conforming.   
     integer, intent(in) :: sizeA
     integer, intent(in) :: sizeB
 
@@ -334,9 +333,10 @@ contains
 
   ! Begin overload of operator(==)
 
-  ! Two generics are the same iff they have the same type and he
-  ! corresponding values are the same by the criteria of that type.
   elemental logical function equals_generic(genericA, genericB) result(same)
+!@sum Test equality of two generics. Two generics are defined to be equal
+!@+  iff they have the same type and the corresponding values are
+!@+  the same by the criteria of that type.
     type (GenericType_type), intent(in) :: genericA
     type (GenericType_type), intent(in) :: genericB
 
@@ -408,8 +408,8 @@ contains
     end select
   end function toString_single
 
-  ! Convert an array of generics into an array of human-readable strings.
   function toString_multi(this) result(string)
+!@sum Convert an array of generics into an array of human-readable strings.
     type (GenericType_type), intent(in) :: this(:)
     character(len=MAX_LEN_VALUE) :: string(size(this))
 
@@ -422,7 +422,6 @@ contains
   end function toString_multi
 
   ! Various trivial accessor methods.
-
   elemental integer function getType_generic(this) result(type)
     type (GenericType_type), intent(in) :: this
     type = this%type
@@ -448,9 +447,9 @@ contains
     getType_string = STRING_TYPE
   end function getType_string
 
-  ! Read generic item from unit connected to an unformatted,
-  ! sequential file.
   subroutine readUnformatted_generic(this, unit)
+!@sum Read generic item from unit connected to an unformatted,
+!@+ sequential file.
     type (GenericType_type), intent(out) :: this
     integer, intent(in) :: unit
     
@@ -480,9 +479,9 @@ contains
 
   end subroutine readUnformatted_generic
 
-  ! Write generic item to unit connected to an unformatted,
-  ! sequential file.
   subroutine writeUnformatted_generic(this, unit)
+!@sum Write generic item to unit connected to an unformatted,
+!@+ sequential file.
     type (GenericType_type), intent(in) :: this
     integer, intent(in) :: unit
     
