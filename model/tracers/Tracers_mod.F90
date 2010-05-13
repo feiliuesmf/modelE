@@ -7,8 +7,8 @@ module Tracers_mod
   public :: TracerBundle_type
   public :: readFromText
   public :: writeAsText
-  public :: readBinary
-  public :: writeBinary
+  public :: readUnformatted
+  public :: writeUnformatted
   public :: getTracer
   public :: getProperty
   public :: getProperties
@@ -80,14 +80,14 @@ module Tracers_mod
     module procedure writeAsText_bundle
   end interface
 
-  interface writeBinary
-    module procedure writeBinary_bundle
-    module procedure writeBinary_tracer
+  interface writeUnformatted
+    module procedure writeUnformatted_bundle
+    module procedure writeUnformatted_tracer
   end interface
 
-  interface readBinary
-    module procedure readBinary_bundle
-    module procedure readBinary_tracer
+  interface readUnformatted
+    module procedure readUnformatted_bundle
+    module procedure readUnformatted_tracer
   end interface
 
   integer, parameter :: LEN_HEADER = 80
@@ -135,7 +135,7 @@ contains
     getNumTracers = size(this%tracers)
   end function getNumTracers
 
-  subroutine writeBinary_bundle(this, unit)
+  subroutine writeUnformatted_bundle(this, unit)
     type (TracerBundle_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -148,20 +148,20 @@ contains
     n = getNumTracers(this)
     write(unit) n
     do i = 1, n
-      call writeBinary(this%tracers(i), unit)
+      call writeUnformatted(this%tracers(i), unit)
     end do
 
-  end subroutine writeBinary_bundle
+  end subroutine writeUnformatted_bundle
 
-  subroutine writeBinary_tracer(this, unit)
-    use Dictionary_mod, only: writeBinary
+  subroutine writeUnformatted_tracer(this, unit)
+    use Dictionary_mod, only: writeUnformatted
     type (Tracer_type), intent(in) :: this
     integer, intent(in) :: unit
 
-    call writeBinary(this%properties, unit)
-  end subroutine writeBinary_tracer
+    call writeUnformatted(this%properties, unit)
+  end subroutine writeUnformatted_tracer
 
-  subroutine readBinary_bundle(this, unit)
+  subroutine readUnformatted_bundle(this, unit)
     type (TracerBundle_type), intent(out) :: this
     integer, intent(in) :: unit
 
@@ -172,17 +172,17 @@ contains
     read(unit) n
     allocate(this%tracers(n))
     do i = 1, n
-      call readBinary(this%tracers(i), unit)
+      call readUnformatted(this%tracers(i), unit)
     end do
 
-  end subroutine readBinary_bundle
+  end subroutine readUnformatted_bundle
 
-  subroutine readBinary_tracer(this, unit)
-    use Dictionary_mod, only: readBinary
+  subroutine readUnformatted_tracer(this, unit)
+    use Dictionary_mod, only: readUnformatted
     type (Tracer_type), intent(out) :: this
     integer, intent(in) :: unit
-    call readBinary(this%properties, unit)
-  end subroutine readBinary_tracer
+    call readUnformatted(this%properties, unit)
+  end subroutine readUnformatted_tracer
 
   subroutine writeAsText_bundle(this, unit)
     use Parser_mod

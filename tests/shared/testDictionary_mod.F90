@@ -17,7 +17,7 @@ module testDictionary_mod
 
   public :: testQuery
   public :: testReadWrite
-  public :: testReadWriteBinary
+  public :: testReadWriteUnformatted
 
   ! tests of new implementation
   public :: testKeyNotFound
@@ -175,7 +175,7 @@ contains
 
   end subroutine testReadWrite
 
-  subroutine testReadWriteBinary()
+  subroutine testReadWriteUnformatted()
     use FileManager
     integer :: unit
     type (Dictionary_type) :: dictionaryA
@@ -188,15 +188,15 @@ contains
     call insert(dictionaryA, 'key4', 'string')
     
     call openUnit('dictionary.dat',unit,qold=.false.,qbin=.true.)
-    call writeBinary(dictionaryA, unit)
+    call writeUnformatted(dictionaryA, unit)
 
     rewind(unit)
-    call readBinary(dictionaryB, unit)
+    call readUnformatted(dictionaryB, unit)
 
     call assertTrue(dictionaryA == dictionaryB)
     close(unit, status='delete')
     
-  end subroutine testReadWriteBinary
+  end subroutine testReadWriteUnformatted
 
   subroutine testKeyNotFound()
     type (Dictionary_type) :: aDictionary

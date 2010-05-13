@@ -9,7 +9,7 @@ module testKeyValuePair_mod
   public :: testGetNumValues
   public :: testGetValue
   public :: testEquals
-  public :: testReadWriteBinary
+  public :: testReadWriteUnformatted
 
 contains
 
@@ -87,7 +87,7 @@ contains
 
   end subroutine testEquals
 
-  subroutine testReadWriteBinary()
+  subroutine testReadWriteUnformatted()
     use GenericType_mod
     use FileManager
     integer :: unit
@@ -106,21 +106,21 @@ contains
     expectedB = KeyValuePair('two', GenericType(.true.))
     expectedC = KeyValuePair('three', GenericType([1.23d+0, 2.34d+0]))
 
-    call writeBinary(expectedA, unit)
-    call writeBinary(expectedB, unit)
-    call writeBinary(expectedC, unit)
+    call writeUnformatted(expectedA, unit)
+    call writeUnformatted(expectedB, unit)
+    call writeUnformatted(expectedC, unit)
 
     rewind(unit)
 
-    call readBinary(foundA, unit)
-    call readBinary(foundB, unit)
-    call readBinary(foundC, unit)
+    call readUnformatted(foundA, unit)
+    call readUnformatted(foundB, unit)
+    call readUnformatted(foundC, unit)
 
     call assertTrue(expectedA == foundA, 'case A')
     call assertTrue(expectedB == foundB, 'case B')
     call assertTrue(expectedC == foundC, 'case C')
     close(unit, status='delete')
 
-  end subroutine testReadWriteBinary
+  end subroutine testReadWriteUnformatted
 
 end module testKeyValuePair_mod

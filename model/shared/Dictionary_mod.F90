@@ -74,8 +74,8 @@ module Dictionary_mod
   public :: merge
   public :: hasKey
   public :: getKeys
-  public :: readBinary
-  public :: writeBinary
+  public :: readUnformatted
+  public :: writeUnformatted
   public :: operator(==)
 
   ! Common
@@ -207,12 +207,12 @@ module Dictionary_mod
     module procedure equals
   end interface
 
-  interface readBinary
-    module procedure readBinary_dictionary
+  interface readUnformatted
+    module procedure readUnformatted_dictionary
   end interface
 
-  interface writeBinary
-    module procedure writeBinary_dictionary
+  interface writeUnformatted
+    module procedure writeUnformatted_dictionary
   end interface
 
 contains
@@ -1483,7 +1483,7 @@ contains
     string = value
   end function toString_string
 
-  subroutine readBinary_dictionary(this, unit)
+  subroutine readUnformatted_dictionary(this, unit)
     type (Dictionary_type), intent(out) :: this
     integer, intent(in) :: unit
     
@@ -1494,13 +1494,13 @@ contains
 
     read(unit) n
     do i = 1, n
-      call readBinary(pair, unit)
+      call readUnformatted(pair, unit)
       call insert(this, pair)
     end do
 
-  end subroutine readBinary_dictionary
+  end subroutine readUnformatted_dictionary
 
-  subroutine writeBinary_dictionary(this, unit)
+  subroutine writeUnformatted_dictionary(this, unit)
     type (Dictionary_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -1508,10 +1508,10 @@ contains
     n = getNumEntries(this)
     write(unit) n
     do i = 1, n
-      call writeBinary(this%pairs(i), unit)
+      call writeUnformatted(this%pairs(i), unit)
     end do
 
-  end subroutine writeBinary_dictionary
+  end subroutine writeUnformatted_dictionary
 
   logical function equals(a, b)
     type (Dictionary_type), intent(in) :: a

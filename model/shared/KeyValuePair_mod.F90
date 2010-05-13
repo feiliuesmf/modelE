@@ -8,7 +8,7 @@ module KeyValuePair_mod
   public :: getKey
   public :: getNumValues
   public :: getValue, getValues
-  public :: writeBinary, readBinary
+  public :: writeUnformatted, readUnformatted
   public :: operator(==)
   public :: clean
 
@@ -39,12 +39,12 @@ module KeyValuePair_mod
     module procedure equals
   end interface
 
-  interface readBinary
-    module procedure readBinary_pair
+  interface readUnformatted
+    module procedure readUnformatted_pair
   end interface
 
-  interface writeBinary
-    module procedure writeBinary_pair
+  interface writeUnformatted
+    module procedure writeUnformatted_pair
   end interface
 
 Contains
@@ -113,7 +113,7 @@ Contains
     value = this%values(i)
   end function getValue_i
 
-  subroutine readBinary_pair(this, unit)
+  subroutine readUnformatted_pair(this, unit)
     type (KeyValuePair_type), intent(out) :: this
     integer, intent(in) :: unit
 
@@ -124,12 +124,12 @@ Contains
     read(unit) key, n
     allocate(values(n))
     do i = 1, n
-      call readBinary(values(i), unit)
+      call readUnformatted(values(i), unit)
     end do
     this = KeyValuePair(key, values)
-  end subroutine readBinary_pair
+  end subroutine readUnformatted_pair
 
-  subroutine writeBinary_pair(this, unit)
+  subroutine writeUnformatted_pair(this, unit)
     type (KeyValuePair_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -138,10 +138,10 @@ Contains
     n = getNumValues(this)
     write(unit) this%key, n
     do i = 1, n
-      call writeBinary(this%values(i), unit)
+      call writeUnformatted(this%values(i), unit)
     end do
 
-  end subroutine writeBinary_pair
+  end subroutine writeUnformatted_pair
 
   logical function check(this, valueType, numValues)
     type (KeyValuePair_type), intent(in) :: this

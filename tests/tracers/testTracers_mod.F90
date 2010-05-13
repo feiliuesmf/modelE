@@ -18,7 +18,7 @@ module testTracers_mod
   public :: testCheckMandatory
   public :: testDefaultValues
   public :: testWriteAsText
-  public :: testWriteBinary
+  public :: testWriteUnformatted
 
   public :: setUp
   public :: tearDown
@@ -294,7 +294,7 @@ contains
     
   end subroutine testWriteAsText
 
-  subroutine testWriteBinary(this)
+  subroutine testWriteUnformatted(this)
     use FileManager
     type (fixture) :: this
     type (TracerBundle_type) :: bundle
@@ -303,15 +303,15 @@ contains
     call readTracers(this)
 
     call openUnit('testTracersOut.bin', unit, qold=.false., qbin=.true.)
-    call writeBinary(this%bundle, unit)
+    call writeUnformatted(this%bundle, unit)
     rewind(unit)
 
-    call readBinary(bundle, unit)
+    call readUnformatted(bundle, unit)
     call assertTrue(bundle == this%bundle)
 
     close(unit, status ='delete')
     call clean(bundle)
     
-  end subroutine testWriteBinary
+  end subroutine testWriteUnformatted
 
 end module testTracers_mod

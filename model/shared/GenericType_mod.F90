@@ -13,8 +13,8 @@ module GenericType_mod
   public :: operator(==)
   public :: toString
   public :: getType
-  public :: readBinary
-  public :: writeBinary
+  public :: readUnformatted
+  public :: writeUnformatted
 
   ! parameters
   public :: MAX_LEN_VALUE
@@ -23,11 +23,16 @@ module GenericType_mod
   public :: LOGICAL_TYPE
   public :: STRING_TYPE
 
-  integer, parameter :: MAX_LEN_VALUE = 128
+  integer, parameter :: MAX_LEN_VALUE = 128 ! longest permitted string value
   integer, parameter :: ILLEGAL_TYPE = -1
+  integer, parameter :: INTEGER_TYPE = 1
+  integer, parameter :: REAL64_TYPE  = 2
+  integer, parameter :: LOGICAL_TYPE = 3
+  integer, parameter :: STRING_TYPE  = 4
+
 
   type GenericType_type
-    integer :: type = ILLEGAL_TYPE
+    integer :: type = ILLEGAL_TYPE 
     ! Only one of the following has a legitimate value at any time.
     integer :: integerValue
     real*8  :: real64Value
@@ -79,22 +84,21 @@ module GenericType_mod
     module procedure getType_string
   end interface
 
-  integer, parameter :: INTEGER_TYPE = 1
-  integer, parameter :: REAL64_TYPE  = 2
-  integer, parameter :: LOGICAL_TYPE = 3
-  integer, parameter :: STRING_TYPE  = 4
-
+  ! Convert scalar (vector) of generics into scalar (vector) of
+  ! strings.  Cannot use ELEMENTAL attribute because want to catch
+  ! uninitialized variables which throws an exception.
   interface toString
     module procedure toString_single
     module procedure toString_multi
   end interface
 
-  interface readBinary
-    module procedure readBinary_generic
+  ! Read generic from a unit opened to a sequential, unformmatted file.
+  interface readUnformatted
+    module procedure readUnformatted_generic
   end interface
 
-  interface writeBinary
-    module procedure writeBinary_generic
+  interface writeUnformatted
+    module procedure writeUnformatted_generic
   end interface
 
 contains
@@ -432,7 +436,7 @@ contains
     getType_string = STRING_TYPE
   end function getType_string
 
-  subroutine readBinary_generic(this, unit)
+  subroutine readUnformatted_generic(this, unit)
     type (GenericType_type), intent(out) :: this
     integer, intent(in) :: unit
     
@@ -457,12 +461,12 @@ contains
       read(unit) stringValue
       this = GenericType(stringValue)
     case default
-      call throwException('GenericType_mod::readBinary() - unsupported type.', 14)
+      call throwException('GenericType_mod::readUnformatted() - unsupported type.', 14)
     end select
 
-  end subroutine readBinary_generic
+  end subroutine readUnformatted_generic
 
-  subroutine writeBinary_generic(this, unit)
+  subroutine writeUnformatted_generic(this, unit)
     type (GenericType_type), intent(in) :: this
     integer, intent(in) :: unit
     
@@ -479,9 +483,9 @@ contains
     case (STRING_TYPE)
       write(unit) this%stringValue
     case default
-      call throwException('GenericType_mod::writeBinary() - unsupported type.', 14)
+      call throwException('GenericType_mod::writeUnformatted() - unsupported type.', 14)
     end select
 
-  end subroutine writeBinary_generic
+  end subroutine writeUnformatted_generic
 
 end module GenericType_mod
