@@ -817,6 +817,8 @@ C**** The following general arrays are set in tracer_IC
 #endif
 !@var do_fire: true if tracer should have emissions via flammability
       logical, dimension(ntm) :: do_fire
+!@var nBBsources number of sources attributed to biomass burning
+      integer, dimension(ntm) :: nBBsources
 !@var trpdens tracer particle density (kg/m^3)
 !@+               (=0 for non-particle tracers)
       real*8, dimension(ntm) :: trpdens

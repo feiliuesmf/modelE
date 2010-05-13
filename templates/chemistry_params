@@ -69,3 +69,8 @@ PIratio_CO_S  = 0.500d0 ! CO in stratosphere
 PIratio_other = 0.500d0 ! {PAN,Isoprene,AlkyNit,Alkenes,Paraffin}
 PIratio_N2O   = 1.000d0 ! {N2O ICs, L=1 overwrit}, set to 1 for use_rad_n2o=1
 PIratio_CFC   = 1.000d0 ! {CFC ICs, L=1 overwrit}, set to 1 for use_rad_cfc=1
+!--- number of biomass burning sources (per tracer)
+Alkenes_nBBsources=2
+CO_nBBsources=2
+NOx_nBBsources=2
+Paraffin_nBBsources=2

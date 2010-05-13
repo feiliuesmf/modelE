@@ -309,6 +309,7 @@ C**** get rundeck parameter for cosmogenic source factor
 ! (I can enclose this in an ifdef if it causes problems
 ! for people). num_srf_sources routine also assigns
 ! sources to sectors, if desired:
+      nBBsources(:)=0
       do n=1,ntm
 ! general case:
 #ifdef TRACERS_AMP
@@ -325,7 +326,9 @@ C**** get rundeck parameter for cosmogenic source factor
         else
           select case (trname(n))
           case ('SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
-            ntsurfsrc(n)=ntsurfsrc(n)-2 ! last two are biomass burning and need to be 3d (offline only)
+            call sync_param(trim(trname(n))//"_nBBsources",
+     &                      nBBsources(n))
+            ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
           end select
 #endif
         endif
@@ -8926,7 +8929,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE CONSTANT, only: grav
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
-     & trans_emis_overr_yr,trans_emis_overr_day
+     & trans_emis_overr_yr,trans_emis_overr_day,nBBsources
 #ifdef TRACERS_SPECIAL_Shindell
      & ,ntm_chem
 #endif
@@ -9118,7 +9121,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif /* TRACERS_SPECIAL_Shindell */
         else !-------------------------------------- general ---------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-          if ( ! this if statement is needed, since some tracers have ntsurfsrc>0 but no trname_XX files
+          if ( ! this if statement is needed, since some tracers have ntsurfsrc>0 but no trname_XX files. It should dissappear one day.
 #ifdef TRACERS_SPECIAL_Shindell
      &        n<=ntm_chem .or.
 #endif
@@ -9150,7 +9153,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             else
               select case (trname(n))
               case ('SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
-                nread=nread+2
+                nread=nread+nBBsources(n)
               end select
 #endif
 #endif
@@ -10132,7 +10135,7 @@ C**** biomass source for SO2, SO4, BC and OC
             bb_e=bb_i                 ! index of last BB source
           else
             bb_i=ntsurfsrc(src_index)+1
-            bb_e=ntsurfsrc(src_index)+2
+            bb_e=ntsurfsrc(src_index)+nBBsources(src_index)
           endif
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
