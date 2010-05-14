@@ -7,6 +7,7 @@
 
 ! compute source/sink term for alkalinity
 ! zc     compensation depth: photosynthesis = respiration
+! or more precisely p1d(kzc)
 ! J_PO4  source/sinks of phosphate
 ! J_Ca   source/sinks of calcium carbonate
 ! Jprod  production of organic phosphorus which is linked to particulate
@@ -64,8 +65,15 @@
      .       J_Ca(kmax),term,term1,term2,DOP
       logical vrbos
 !--------------------------------------------------------------------------
+!find layer index for zc
+      do k=kmax+1,1,-1
+           if (p1d(k).gt.zc) kzc = k
+      enddo
+      if (kzc.lt.1) kzc=1
+      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
+
 !only compute tendency terms if total depth greater than conpensation depth
-      if (p1d(kmax+1) .lt. zc) then
+      if (p1d(kmax+1) .lt. p1d(kzc)) then
          A_tend(:) = 0.
          go to 100
       endif
@@ -106,7 +114,7 @@
 !compute total primary production
 !and the Jprod term
       do k=1,kmax
-        if (p1d(k+1) .le. zc)  then
+        if (p1d(k+1) .le. p1d(kzc))  then
           pp=0.
           do nt=nchl1,nchl2
              !pp2_1d is in mg,C/m3/hr
@@ -132,7 +140,7 @@ cdiag.                    p1d(k+1),bn,cnratio
 !integrate net primary production down to zc
       Jprod_sum = 0.
       do k=1,kmax
-      if (p1d(k+1) .le. zc)  then
+      if (p1d(k+1) .le. p1d(kzc))  then
        Jprod_sum = Jprod_sum + Jprod(k)*dp1d(k)
       endif
       enddo
@@ -142,28 +150,21 @@ cdiag.                    p1d(k+1),bn,cnratio
 !compute downward flux of CaCO3
 !only below the euphotic zone (the compensation layer)
       do k=1,kmax+1
-         if (p1d(k) .gt. zc)  then
-           F_Ca(k) = rain_ratio*cpratio*Fc*exp(-1.d0*(p1d(k)-zc)/d_Ca)
+         if (p1d(k) .gt. p1d(kzc))  then
+           F_Ca(k) = rain_ratio*cpratio*Fc*exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)
          endif
       enddo
-
-      !find layer index for zc
-      do k=kmax+1,1,-1
-           if (p1d(k).gt.zc) kzc = k
-      enddo
-      if (kzc.lt.1) kzc=1
-      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
 
       !p1d(kzc) is really the compensation depth
       !F_Ca(kzc) is the CaCO3 export
 !     write(*,'(a,i8,3i5,7e12.4)')'CaCO3 downward flux:',
 !    .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
-!    .        exp(-1.d0*(p1d(kzc)-zc)/d_Ca),F_Ca(kzc)
+!    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
 
 #ifdef OBIO_ON_GARYocean
       OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(kzc)
      .                *24.d0*365.d0*1.d-3*12.d0
-     .                *dxypo(J)*75.d0*1.d-15
+     .                *dxypo(J)*dp1d(kzc)*1.d-15
 !to convert this into units of Pgr,C/yr: 
 ! * 24 *365          ! uM/hr -> uM/yr = mili-mol,C/m3/hr
 ! * 1e-3             ! mol,C/m3/yr
@@ -205,7 +206,7 @@ cdiag.                    p1d(k+1),bn,cnratio
 !     k=1
 !     write(*,'(a,4i5,12e12.4)')'obio_alkalinity; ',
 !    .    nstep,i,j,k
-!    .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc
+!    .   ,p1d(k),p1d(kzc),J_PO4(k),pp,Jprod_sum,Fc
 !    .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k),term1,term2
 !     enddo
 !     endif
