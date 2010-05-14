@@ -6,7 +6,7 @@ module Tracers_mod
   public :: Tracer_type       ! derived type
   public :: TracerBundle_type ! derived type
   public :: readFromText      
-  public :: writeAsText
+  public :: writeFormatted
   public :: readUnformatted
   public :: writeUnformatted
   public :: getTracer
@@ -76,8 +76,8 @@ module Tracers_mod
     module procedure equals
   end interface
 
-  interface writeAsText
-    module procedure writeAsText_bundle
+  interface writeFormatted
+    module procedure writeFormatted_bundle
   end interface
 
   interface writeUnformatted
@@ -97,7 +97,10 @@ module Tracers_mod
 contains
 
   function readFromText(unit, defaultValues) result(bundle)
+!@sum Populate a TracerBundle from a unit attached to a formatted
+!@+ file.  Optionally apply default values.
     use Parser_mod
+    use Dictionary_mod
     integer, intent(in) :: unit
     type (Dictionary_type), optional, intent(in) :: defaultValues
     type (TracerBundle_type) :: bundle
@@ -111,17 +114,17 @@ contains
     do
       tracer = readOneTracer(unit, status)
       if (status /= 0) exit
-
-      call addTracer(bundle, tracer, defaultValues)
+      if (present(defaultValues)) call merge(tracer%properties, defaultValues)
+      call addTracer(bundle, tracer)
     end do
 
   end function readFromText
 
-  subroutine addTracer(this, tracer, defaultValues)
-    use Dictionary_mod
+  subroutine addTracer(this, tracer)
+!@sum Insert one tracer into a bundle.  Optionally
+!@+ apply default values to the tracer dictionary.
     type (TracerBundle_type), intent(inout) :: this
     type (Tracer_type), intent(in) :: tracer
-    type (Dictionary_type), optional, intent(in) :: defaultValues
 
     type (Tracer_type), allocatable :: oldList(:)
     integer :: count
@@ -135,10 +138,6 @@ contains
     deallocate(oldList)
 
     this%tracers(count+1)%properties = tracer%properties
-
-    if (present(defaultValues)) then
-      call merge(this%tracers(count+1)%properties, defaultValues)
-    end if
 
   end subroutine addTracer
 
@@ -209,7 +208,7 @@ contains
     call readUnformatted(this%properties, unit)
   end subroutine readUnformatted_tracer
 
-  subroutine writeAsText_bundle(this, unit)
+  subroutine writeFormatted_bundle(this, unit)
     use Parser_mod
     type (TracerBundle_type), intent(in) :: this
     integer, intent(in) :: unit
@@ -224,10 +223,10 @@ contains
 
     do i = 1, getCount(this)
       properties => getProperties(this%tracers(i))
-      call writeAsText(parser, unit, properties)
+      call writeFormatted(parser, unit, properties)
     end do
     
-  end subroutine writeAsText_bundle
+  end subroutine writeFormatted_bundle
 
   function readOneTracer(unit, status) result(tracer)
     use Parser_mod, only: Parser_type

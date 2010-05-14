@@ -29,7 +29,7 @@ module testParser_mod
   public :: testParse
   public :: testParseNoValue
 
-  public :: testWriteText
+  public :: testWriteFormatted
   public :: testWriteTextExample
 
 
@@ -446,7 +446,7 @@ contains
     close(unit, status='delete')
   end subroutine testParseNoValue
 
-  subroutine testWriteText()
+  subroutine testWriteFormatted()
     use FileManager
     use Dictionary_mod
     use GenericType_mod
@@ -472,7 +472,7 @@ contains
     call setTokenSeparators(parser, '=,')
     call setCommentCharacters(parser, '!#')
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    call writeAsText(parser, unit, aDictionary)
+    call writeFormatted(parser, unit, aDictionary)
     close(unit)
 
     call openUnit('testParser.txt', unit, qold=.true., qbin=.false.)
@@ -489,7 +489,7 @@ contains
 
     close(unit, status='delete')
 
-  end subroutine testWriteText
+  end subroutine testWriteFormatted
 
   subroutine testWriteTextExample()
     use FileManager
@@ -520,7 +520,7 @@ contains
     call insert(aDictionary,'name', 'Air')
     call insert(aDictionary,'logScale', -2)
     call insert(aDictionary,'molecularMass', 28.9655d0)
-    call writeAsText(parser, unit, aDictionary)
+    call writeFormatted(parser, unit, aDictionary)
     
     rewind(unit)
     bDictionary = parse(parser, unit, status)

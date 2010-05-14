@@ -17,7 +17,7 @@ module testTracers_mod
   public :: testGetSubset
   public :: testCheckMandatory
   public :: testDefaultValues
-  public :: testWriteAsText
+  public :: testWriteFormatted
   public :: testWriteUnformatted
 
   public :: setUp
@@ -274,7 +274,7 @@ contains
     
   end subroutine testDefaultValues
 
-  subroutine testWriteAsText(this)
+  subroutine testWriteFormatted(this)
     use FileManager
     type (fixture) :: this
     type (TracerBundle_type) :: bundle
@@ -283,7 +283,7 @@ contains
     call readTracers(this)
 
     call openUnit('testTracersOut.txt', unit, qold=.false., qbin=.false.)
-    call writeAsText(this%bundle, unit)
+    call writeFormatted(this%bundle, unit)
     rewind(unit)
 
     bundle = readFromText(unit)
@@ -292,7 +292,7 @@ contains
     close(unit, status ='delete')
     call clean(bundle)
     
-  end subroutine testWriteAsText
+  end subroutine testWriteFormatted
 
   subroutine testWriteUnformatted(this)
     use FileManager

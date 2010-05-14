@@ -17,6 +17,7 @@ module Parser_mod
   public :: setEndData
   public :: getValueType
   public :: splitTokens
+  public :: writeFormatted
 
   public :: MAX_LEN_LINE
   public :: MAX_LEN_TOKEN
@@ -550,7 +551,7 @@ contains
     end if
   end function skipEmbeddedSeparators
     
-  subroutine writeAsText(this, unit, aDictionary)
+  subroutine writeFormatted(this, unit, aDictionary)
 !@sum Write dictionary as a text file.  Inverse of
 !@+ parse().
     use Dictionary_mod
@@ -582,6 +583,6 @@ contains
     end do
     write(unit,*) trim(this%endData)
 
-  end subroutine writeAsText
+  end subroutine writeFormatted
 
 end module PARSER_MOD
