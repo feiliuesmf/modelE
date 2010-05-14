@@ -3,9 +3,9 @@ module Tracers_mod
   implicit none
   private
 
-  public :: Tracer_type
-  public :: TracerBundle_type
-  public :: readFromText
+  public :: Tracer_type       ! derived type
+  public :: TracerBundle_type ! derived type
+  public :: readFromText      
   public :: writeAsText
   public :: readUnformatted
   public :: writeUnformatted
@@ -97,7 +97,6 @@ module Tracers_mod
 contains
 
   function readFromText(unit, defaultValues) result(bundle)
-    use Dictionary_mod
     use Parser_mod
     integer, intent(in) :: unit
     type (Dictionary_type), optional, intent(in) :: defaultValues
@@ -105,32 +104,43 @@ contains
     type (Tracer_type) :: tracer
     type (Parser_type) :: parser
 
-    integer :: count
     integer :: status
-    type (Tracer_type), allocatable :: oldList(:)
-
+  
     allocate(bundle%tracers(0))
 
-    count = 0
     do
       tracer = readOneTracer(unit, status)
       if (status /= 0) exit
 
-      allocate(oldList(count))
-      oldList = bundle%tracers ! shallow copy ok
-      deallocate(bundle%tracers)
-      allocate(bundle%tracers(count+1))
-      bundle%tracers(1:count) = oldList
-      deallocate(oldList)
-      if (present(defaultValues)) then
-        call merge(tracer%properties, defaultValues)
-      end if
-      bundle%tracers(count+1)%properties = tracer%properties
-      count = count + 1
-
+      call addTracer(bundle, tracer, defaultValues)
     end do
 
   end function readFromText
+
+  subroutine addTracer(this, tracer, defaultValues)
+    use Dictionary_mod
+    type (TracerBundle_type), intent(inout) :: this
+    type (Tracer_type), intent(in) :: tracer
+    type (Dictionary_type), optional, intent(in) :: defaultValues
+
+    type (Tracer_type), allocatable :: oldList(:)
+    integer :: count
+
+    count = getNumTracers(this)
+    allocate(oldList(count))
+    oldList = this%tracers ! shallow copy ok
+    deallocate(this%tracers)
+    allocate(this%tracers(count+1))
+    this%tracers(1:count) = oldList
+    deallocate(oldList)
+
+    this%tracers(count+1)%properties = tracer%properties
+
+    if (present(defaultValues)) then
+      call merge(this%tracers(count+1)%properties, defaultValues)
+    end if
+
+  end subroutine addTracer
 
   integer function getNumTracers(this)
     type (TracerBundle_type), intent(in) :: this

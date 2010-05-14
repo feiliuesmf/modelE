@@ -33,8 +33,10 @@ module testParser_mod
   public :: testWriteTextExample
 
 
+!TO DO - create tests for these:
 !!$  public :: testMissingEndQuote
 !!$  public :: testFirstSep ! '='
+!!$  public :: testIgnoreEmbeddedComments
 
 contains
   subroutine testStripComment_noComment()
