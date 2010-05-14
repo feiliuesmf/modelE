@@ -484,12 +484,12 @@ contains
     
     buffer = adjustl(string)
     i = 0
-    do
+    do  ! pull off tokens until
       if (len_trim(buffer) == 0) exit ! done
       i = i + 1
       idxStart = skipEmbeddedSeparators(buffer)
-
       idxNextSeparator = scan(buffer(idxStart:), trim(this%tokenSeparators))
+
       if (idxNextSeparator > 0) then
         tokens(i) = trim(buffer(:idxStart+idxNextSeparator-2))
         buffer = adjustl(buffer(idxStart+idxNextSeparator:))
@@ -505,23 +505,13 @@ contains
       end if
     end if
 
-  contains
-
-    integer function skipEmbeddedSeparators(buffer) result(idxStart)
-      character(len=*), intent(in) :: buffer
-!@sum Location of end of string, which might have an embedded separator.
-      if (scan(buffer, '"') == 1) then
-        idxStart = scan(buffer(2:),'"') + 1 + 1 ! include 1st char
-      else if (scan(buffer, "'") == 1) then
-        idxStart = scan(buffer(2:),"'") + 1 + 1 ! include 1st char
-      else
-        idxStart = 1
-      end if
-    end function skipEmbeddedSeparators
-    
   end function splitTokens
 
   integer function countTokens(this, string)
+!@sum Sweep through string to count tokens.  This can then
+!@+ be used to allocate the token array and a 2nd sweep
+!@+ will fill.
+!TO DO - logic with splitTokens() is duplicated. 
     type (Parser_type), intent(in) :: this
     character(len=*), intent(in) :: string
 
@@ -535,13 +525,7 @@ contains
       if (len_trim(buffer) == 0) exit ! done
       numTokens = numTokens + 1
       ! skip strings which might have embedded separator characters
-      if (scan(buffer, '"') == 1) then
-        idxStart = scan(buffer(2:),'"') + 1 + 1 ! include 1st char
-      else if (scan(buffer, "'") == 1) then
-        idxStart = scan(buffer(2:),"'") + 1 + 1 ! include 1st char
-      else
-        idxStart = 1
-      end if
+      idxStart = skipEmbeddedSeparators(buffer)
       idxNextSeparator = scan(buffer(idxStart:), this%tokenSeparators)
       if (idxNextSeparator > 0) then
         buffer = adjustl(buffer(idxStart + idxNextSeparator:))
@@ -554,7 +538,21 @@ contains
 
   end function countTokens
 
+  integer function skipEmbeddedSeparators(buffer) result(idxStart)
+    character(len=*), intent(in) :: buffer
+!@sum Location of end of string, which might have an embedded separator.
+    if (scan(buffer, '"') == 1) then
+      idxStart = scan(buffer(2:),'"') + 1 + 1 ! include 1st char
+    else if (scan(buffer, "'") == 1) then
+      idxStart = scan(buffer(2:),"'") + 1 + 1 ! include 1st char
+    else
+      idxStart = 1
+    end if
+  end function skipEmbeddedSeparators
+    
   subroutine writeAsText(this, unit, aDictionary)
+!@sum Write dictionary as a text file.  Inverse of
+!@+ parse().
     use Dictionary_mod
     type (Parser_type), intent(in) :: this
     type (Dictionary_type), intent(in) :: aDictionary
