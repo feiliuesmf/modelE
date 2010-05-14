@@ -1,4 +1,4 @@
-module testDictionary_mod
+ module testDictionary_mod
   use pfunit
   use Dictionary_mod
   use KeyValuePair_mod
@@ -425,12 +425,22 @@ contains
   subroutine testMergeInteger()
     type (Dictionary_type) :: aDictionary
     integer :: probe
+    integer :: two
 
     aDictionary = Dictionary()
     call insert(aDictionary, 'a', 1)
+    
+    ! 
     probe = 2
     call merge(aDictionary, 'a', probe)
+    call assertEqual(1, probe)
     call assertTrue(all(1 == lookup(aDictionary, 'a')))
+
+    two = 2
+    call merge(aDictionary, 'b', two)
+    call assertEqual(2, two)
+    call assertTrue(all(2 == lookup(aDictionary, 'b')))
+
     call clean(aDictionary)
   end subroutine testMergeInteger
 

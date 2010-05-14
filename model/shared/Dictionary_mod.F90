@@ -65,11 +65,11 @@ module Dictionary_mod
   private
 
   ! Dictionary
-  public :: Dictionary_type
-  public :: Dictionary
+  public :: Dictionary_type ! data type
+  public :: Dictionary      ! constructor
+  public :: clean           ! destructor
   public :: insert
   public :: getNumEntries
-  public :: oldLookup
   public :: lookup
   public :: merge
   public :: hasKey
@@ -78,8 +78,6 @@ module Dictionary_mod
   public :: writeUnformatted
   public :: operator(==)
 
-  ! Common
-  public :: clean
 
   ! Accessors
 
@@ -156,22 +154,6 @@ module Dictionary_mod
   interface Dictionary
     module procedure Dictionary_empty
     module procedure Dictionary_copy
-  end interface
-
-  interface lookup
-    module procedure lookup_s
-  end interface
-
-  interface oldLookup
-    module procedure lookup_pair
-    module procedure lookup_integer
-    module procedure lookup_real64
-    module procedure lookup_logical
-    module procedure lookup_string
-    module procedure lookup_integerarray
-    module procedure lookup_real64array
-    module procedure lookup_logicalarray
-    module procedure lookup_stringarray
   end interface
 
   interface clean
@@ -979,7 +961,9 @@ contains
   end subroutine read_param_comp01
 
   subroutine addEntry(this, key)
-!@sum Creates space for new entry in dictionary
+!@sum Creates space for new entry in dictionary.
+!@+ Could be altered to grow the list by multiple entries
+!@+ which would result in fewer allocations.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
 
@@ -999,7 +983,10 @@ contains
 
   end subroutine addEntry
 
+  ! Begin overload interface for insert()
+
   subroutine insert_pair(this, pair)
+!@sum Insert a KeyValuePair into dictionary
     type (Dictionary_type), intent(inout) :: this
     type (KeyValuePair_type), intent(in) :: pair
 
@@ -1011,6 +998,7 @@ contains
   end subroutine insert_pair
 
   subroutine insert_integer(this, key, value)
+!@sum Insert an integer into dictionary
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: value
@@ -1019,155 +1007,6 @@ contains
     this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_integer
-
-  subroutine merge_dictionary(this, other)
-    type (Dictionary_type), intent(inout) :: this
-    type (Dictionary_type), intent(in) :: other
-
-    integer :: i
-
-    do i = 1, getNumEntries(other)
-      call merge(this, other%pairs(i))
-    end do
-  end subroutine merge_dictionary
-
-  subroutine merge_pair(this, pair)
-    type (Dictionary_type), intent(inout) :: this
-    type (KeyValuePair_type), intent(in) :: pair
-
-    if (hasKey(this, getKey(pair))) return
-    call insert(this, pair)
-
-  end subroutine merge_pair
-
-  subroutine merge_integer(this, key, value)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    integer, intent(inout) :: value
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      value = lookup(this, key)
-    end if
-
-  end subroutine merge_integer
-
-  subroutine merge_real64(this, key, value)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    real*8, intent(inout) :: value
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      value = lookup(this, key)
-    end if
-
-  end subroutine merge_real64
-
-  subroutine merge_logical(this, key, value)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    logical, intent(inout) :: value
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      value = lookup(this, key)
-    end if
-
-  end subroutine merge_logical
-
-  subroutine merge_string(this, key, value)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    character(len=*), intent(inout) :: value
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      value = lookup(this, key)
-    end if
-
-  end subroutine merge_string
-
-  subroutine merge_integerArray(this, key, values)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    integer, intent(inout) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      values = lookup(this, key)
-    end if
-
-  end subroutine merge_integerArray
-
-  subroutine merge_real64Array(this, key, values)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    real*8, intent(inout) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      values = lookup(this, key)
-    end if
-
-  end subroutine merge_real64Array
-
-  subroutine merge_logicalArray(this, key, values)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    logical, intent(inout) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      values = lookup(this, key)
-    end if
-
-  end subroutine merge_logicalArray
-
-  subroutine merge_stringArray(this, key, values)
-    type (Dictionary_type), intent(inout) :: this
-    character(len=*), intent(in) :: key
-    character(len=*), intent(inout) :: values(:)
-
-    integer :: index
-
-    index = getIndex(this, key)
-    if (index == NOT_FOUND) then
-      call addEntry(this, key)
-    else
-      values = lookup(this, key)
-    end if
-
-  end subroutine merge_stringArray
-
   subroutine insert_real64(this, key, value)
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
@@ -1237,24 +1076,151 @@ contains
     this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(values))
 
   end subroutine insert_stringArray
+  ! End overload interface for insert()
+  
+
+  ! Begin overload interface for merge()
+  subroutine merge_dictionary(this, other)
+!@sum Merge two dictionaries. Where duplicate keys exist
+!@+ result has values from the original (1st argument).
+!@+ Analogous behavior to old 'sync_param'.
+    type (Dictionary_type), intent(inout) :: this
+    type (Dictionary_type), intent(in) :: other
+
+    integer :: i
+
+    do i = 1, getNumEntries(other)
+      call merge(this, other%pairs(i))
+    end do
+  end subroutine merge_dictionary
+
+  subroutine merge_pair(this, pair)
+!@sum Merge pair into dictionary.   If key not already
+!@+ present, this is equivalent to insert(), otherwise
+!@+ it does nothing.
+    type (Dictionary_type), intent(inout) :: this
+    type (KeyValuePair_type), intent(in) :: pair
+
+    if (hasKey(this, getKey(pair))) return
+    call insert(this, pair)
+
+  end subroutine merge_pair
+
+  subroutine merge_integer(this, key, value)
+!@sum Merge key+integer.
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(inout) :: value
+
+    if (hasKey(this, key)) then
+      value = lookup(this, key)
+    else
+      call insert(this, key, value)
+    end if
+
+  end subroutine merge_integer
+
+  subroutine merge_real64(this, key, value)
+!@sum Merge key+double.
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(inout) :: value
+
+    if (hasKey(this, key)) then
+      value = lookup(this, key)
+    else
+      call insert(this, key, value)
+    end if
+
+  end subroutine merge_real64
+
+  subroutine merge_logical(this, key, value)
+!@sum Merge key+logical
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(inout) :: value
+
+    if (hasKey(this, key)) then
+      value = lookup(this, key)
+    else
+      call insert(this, key, value)
+    end if
+
+  end subroutine merge_logical
+
+  subroutine merge_string(this, key, value)
+!@sum Merge key+string
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(inout) :: value
+
+    if (hasKey(this, key)) then
+      value = lookup(this, key)
+    else
+      call insert(this, key, value)
+    end if
+
+  end subroutine merge_string
+
+  subroutine merge_integerArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    integer, intent(inout) :: values(:)
+
+    if (hasKey(this, key)) then
+      values = lookup(this, key)
+    else
+      call insert(this, key, values)
+    end if
+
+  end subroutine merge_integerArray
+
+  subroutine merge_real64Array(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    real*8, intent(inout) :: values(:)
+
+    if (hasKey(this, key)) then
+      values = lookup(this, key)
+    else
+      call insert(this, key, values)
+    end if
+
+  end subroutine merge_real64Array
+
+  subroutine merge_logicalArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    logical, intent(inout) :: values(:)
+
+    if (hasKey(this, key)) then
+      values = lookup(this, key)
+    else
+      call insert(this, key, values)
+    end if
+
+  end subroutine merge_logicalArray
+
+  subroutine merge_stringArray(this, key, values)
+    type (Dictionary_type), intent(inout) :: this
+    character(len=*), intent(in) :: key
+    character(len=*), intent(inout) :: values(:)
+
+
+    if (hasKey(this, key)) then
+      values = lookup(this, key)
+    else
+      call insert(this, key, values)
+    end if
+
+  end subroutine merge_stringArray
 
   integer function getNumEntries(this)
     type (Dictionary_type), intent(in) :: this
     getNumEntries = size(this%pairs)
   end function getNumEntries
 
-  subroutine lookup_pair(this, key, value)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    type (KeyValuePair_type), intent(out) :: value
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND)  value = this%pairs(i)
-
-  end subroutine lookup_pair
-
-  function lookup_s(this, key) result(values)
+  function lookup(this, key) result(values)
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     type (GenericType_type), pointer :: values(:)
@@ -1270,95 +1236,7 @@ contains
       call throwException('Key not found: <'//trim(key)//'>.', 14)
     end if
 
-  end function lookup_s
-
-  subroutine lookup_integer(this, key, value)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    integer, intent(out) :: value
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) value = getValue(this%pairs(i))
-
-  end subroutine lookup_integer
-
-  subroutine lookup_real64(this, key, value)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    real*8, intent(out) :: value
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) value = getValue(this%pairs(i))
-
-  end subroutine lookup_real64
-
-  subroutine lookup_logical(this, key, value)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    logical, intent(out) :: value
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) value = getValue(this%pairs(i))
-
-  end subroutine lookup_logical
-
-  subroutine lookup_string(this, key, value)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    character(len=*), intent(out) :: value
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) value = getValue(this%pairs(i))
-
-  end subroutine lookup_string
-
-  subroutine lookup_integerArray(this, key, values)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    integer, intent(out) :: values(:)
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) values = getValues(this%pairs(i))
-
-  end subroutine lookup_integerArray
-
-  subroutine lookup_real64Array(this, key, values)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    real*8, intent(out) :: values(:)
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) values = getValues(this%pairs(i))
-    
-  end subroutine lookup_real64Array
-
-  subroutine lookup_logicalArray(this, key, values)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    logical, intent(out) :: values(:)
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) values = getValues(this%pairs(i))
-
-  end subroutine lookup_logicalArray
-
-  subroutine lookup_stringArray(this, key, values)
-    type (Dictionary_type), intent(in) :: this
-    character(len=*), intent(in) :: key
-    character(len=*), intent(out) :: values(:)
-    integer :: i
-
-    i = getIndex(this, key)
-    if (i /= NOT_FOUND) values = getValues(this%pairs(i))
-
-  end subroutine lookup_stringArray
+  end function lookup
 
   subroutine cleanDictionary(this)
     type (Dictionary_type), intent(in) :: this
@@ -1457,6 +1335,7 @@ contains
   end subroutine readUnformatted_dictionary
 
   subroutine writeUnformatted_dictionary(this, unit)
+!@sum Returns .true. if two dictionaries are identical.
     type (Dictionary_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -1470,6 +1349,10 @@ contains
   end subroutine writeUnformatted_dictionary
 
   logical function equals(a, b)
+!@sum Returns .true. if two dictionaries are identical.
+!@+ I.e. if both dictionaries have the same keys, and
+!@+ for each key the corresponding values are the same.
+!@+ Note that no assumption about ordering of keys is made.
     type (Dictionary_type), intent(in) :: a
     type (Dictionary_type), intent(in) :: b
 
