@@ -142,11 +142,13 @@ contains
   end subroutine addTracer
 
   integer function getNumTracers(this)
+!@sum Returns number of tracers in a bundle.
     type (TracerBundle_type), intent(in) :: this
     getNumTracers = size(this%tracers)
   end function getNumTracers
 
   subroutine writeUnformatted_bundle(this, unit)
+!@sum Write a bundle to a unit attached to an unformatted sequential file.
     type (TracerBundle_type), intent(in) :: this
     integer, intent(in) :: unit
 
@@ -166,6 +168,7 @@ contains
   end subroutine writeUnformatted_bundle
 
   subroutine writeUnformatted_tracer(this, unit)
+!@sum Write a tracer to a unit attached to an unformatted sequential file.
     use Dictionary_mod, only: writeUnformatted
     type (Tracer_type), intent(in) :: this
     integer, intent(in) :: unit
@@ -174,6 +177,7 @@ contains
   end subroutine writeUnformatted_tracer
 
   subroutine readUnformatted_bundle(this, unit)
+!@sum Read a bundle to a unit attached to an unformatted sequential file.
     type (TracerBundle_type), intent(out) :: this
     integer, intent(in) :: unit
 
@@ -202,6 +206,7 @@ contains
   end subroutine readUnformatted_bundle
 
   subroutine readUnformatted_tracer(this, unit)
+!@sum Read a bundle to a unit attached to an unformatted sequential file.
     use Dictionary_mod, only: readUnformatted
     type (Tracer_type), intent(out) :: this
     integer, intent(in) :: unit
