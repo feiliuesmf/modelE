@@ -144,12 +144,6 @@ module Dictionary_mod
     module procedure sync_aiparam, sync_arparam, sync_acparam
   end interface
 
-  interface toString
-    module procedure toString_integer
-    module procedure toString_real64
-    module procedure toString_logical
-  end interface
-
   ! Constructors
   interface Dictionary
     module procedure Dictionary_empty
@@ -986,7 +980,7 @@ contains
   ! Begin overload interface for insert()
 
   subroutine insert_pair(this, pair)
-!@sum Insert a KeyValuePair into dictionary
+!@sum Insert a KeyValuePair into dictionary.
     type (Dictionary_type), intent(inout) :: this
     type (KeyValuePair_type), intent(in) :: pair
 
@@ -998,7 +992,7 @@ contains
   end subroutine insert_pair
 
   subroutine insert_integer(this, key, value)
-!@sum Insert an integer into dictionary
+!@sum Insert an integer into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: value
@@ -1007,7 +1001,9 @@ contains
     this%pairs(getNumEntries(this)) = KeyValuePair(key, GenericType(value))
 
   end subroutine insert_integer
+
   subroutine insert_real64(this, key, value)
+!@sum Insert a double into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(in) :: value
@@ -1018,6 +1014,7 @@ contains
   end subroutine insert_real64
 
   subroutine insert_logical(this, key, value)
+!@sum Insert a logical into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(in) :: value
@@ -1028,6 +1025,7 @@ contains
   end subroutine insert_logical
 
   subroutine insert_string(this, key, value)
+!@sum Insert a string into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: value
@@ -1038,6 +1036,7 @@ contains
   end subroutine insert_string
 
   subroutine insert_integerArray(this, key, values)
+!@sum Insert an integer array into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(in) :: values(:)
@@ -1048,6 +1047,7 @@ contains
   end subroutine insert_integerArray
 
   subroutine insert_real64Array(this, key, values)
+!@sum Insert a real array into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(in) :: values(:)
@@ -1058,6 +1058,7 @@ contains
   end subroutine insert_real64Array
 
   subroutine insert_logicalArray(this, key, values)
+!@sum Insert a logical array into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(in) :: values(:)
@@ -1068,6 +1069,7 @@ contains
   end subroutine insert_logicalArray
 
   subroutine insert_stringArray(this, key, values)
+!@sum Insert a string array into dictionary.
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(in) :: values(:)
@@ -1078,7 +1080,6 @@ contains
   end subroutine insert_stringArray
   ! End overload interface for insert()
   
-
   ! Begin overload interface for merge()
   subroutine merge_dictionary(this, other)
 !@sum Merge two dictionaries. Where duplicate keys exist
@@ -1163,6 +1164,7 @@ contains
   end subroutine merge_string
 
   subroutine merge_integerArray(this, key, values)
+!@sum Merge key+integer array
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     integer, intent(inout) :: values(:)
@@ -1176,6 +1178,7 @@ contains
   end subroutine merge_integerArray
 
   subroutine merge_real64Array(this, key, values)
+!@sum Merge key+double array
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     real*8, intent(inout) :: values(:)
@@ -1189,6 +1192,7 @@ contains
   end subroutine merge_real64Array
 
   subroutine merge_logicalArray(this, key, values)
+!@sum Merge key+logical array
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     logical, intent(inout) :: values(:)
@@ -1202,6 +1206,7 @@ contains
   end subroutine merge_logicalArray
 
   subroutine merge_stringArray(this, key, values)
+!@sum Merge key+stringarray
     type (Dictionary_type), intent(inout) :: this
     character(len=*), intent(in) :: key
     character(len=*), intent(inout) :: values(:)
@@ -1214,13 +1219,20 @@ contains
     end if
 
   end subroutine merge_stringArray
+  ! End of overload of merge()
 
+  
   integer function getNumEntries(this)
+!@sum Returns number of entries in dictionary.
     type (Dictionary_type), intent(in) :: this
     getNumEntries = size(this%pairs)
   end function getNumEntries
 
   function lookup(this, key) result(values)
+!@sum Returns GenericType corresponding to given key.
+!@+ note that overloading of "=" in GenericType_mod
+!@+ allows the result to be given to an appropriate
+!@+ intrinsic type.  
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
     type (GenericType_type), pointer :: values(:)
@@ -1239,6 +1251,7 @@ contains
   end function lookup
 
   subroutine cleanDictionary(this)
+!@sum Restore data structure to pristine state
     type (Dictionary_type), intent(in) :: this
     integer :: i
     do i = 1, size(this%pairs)
@@ -1248,6 +1261,7 @@ contains
   end subroutine cleanDictionary
 
   logical function hasKey(this, key)
+!@sum Returns true iff dictionary has given key.
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
 
@@ -1264,14 +1278,17 @@ contains
   end function hasKey
 
   function getKeys_dictionary(this) result(keys)
+!@sum Returns pointer aray of keys in dictioary.
     type (Dictionary_type), intent(in) :: this
     character(len=MAX_LEN_KEY), pointer :: keys(:)
-
     keys => getKeys(this%pairs)
-
   end function getKeys_dictionary
 
   integer function getIndex(this, key) result(index)
+!@sum Returns index in array of pairs where provided key
+!@+ can be found.   Returns parameter "NOT_FOUND" if
+!@+ key is not present.  
+!@+ NOTE:: THIS METHOD SHOULD NOT BE MADE PUBLIC
     type (Dictionary_type), intent(in) :: this
     character(len=*), intent(in) :: key
 
@@ -1285,37 +1302,6 @@ contains
     index = NOT_FOUND
     
   end function getIndex
-
-  elemental function toString_integer(value) result(string)
-    integer, intent(in) :: value
-    character(len=MAX_LEN_VALUE) :: string
-    write(string,'(i)') value
-  end function toString_integer
-
-  elemental function toString_real64(value) result(string)
-    real*8, intent(in) :: value
-    character(len=MAX_LEN_VALUE) :: string
-    write(string,'(g25.18)') value
-  end function toString_real64
-
-  elemental function toString_logical(value) result(string)
-    logical, intent(in) :: value
-    character(len=MAX_LEN_VALUE) :: string
-
-    if (value .eqv. .true.) then ! being pedantic
-      write(string,'(a)') 'True'
-    else
-      write(string,'(a)') 'False'
-    end if
-
-  end function toString_logical
-
-  elemental function toString_string(value) result(string)
-    character(len=*), intent(in) :: value
-    character(len=MAX_LEN_VALUE) :: string
-
-    string = value
-  end function toString_string
 
   subroutine readUnformatted_dictionary(this, unit)
     type (Dictionary_type), intent(out) :: this
