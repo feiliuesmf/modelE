@@ -1304,6 +1304,9 @@ contains
   end function getIndex
 
   subroutine readUnformatted_dictionary(this, unit)
+!@sum Populates a dicitonary from unformatted sequential file.
+!@+ NOTE: No header is used, so this procedure should always
+!@+ be wrapped in logic that checks for a higher level header.
     type (Dictionary_type), intent(out) :: this
     integer, intent(in) :: unit
     
@@ -1321,7 +1324,10 @@ contains
   end subroutine readUnformatted_dictionary
 
   subroutine writeUnformatted_dictionary(this, unit)
-!@sum Returns .true. if two dictionaries are identical.
+!@sum Stores a dicitonary to an unformatted sequential file.
+!@+ NOTE: No header is used, so this procedure should always
+!@+ be wrapped in logic that provides such a safe header.
+
     type (Dictionary_type), intent(in) :: this
     integer, intent(in) :: unit
 
