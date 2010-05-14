@@ -91,6 +91,8 @@ module Tracers_mod
   end interface
 
   integer, parameter :: LEN_HEADER = 80
+  integer, parameter :: VERSION = 1
+  character(len=*), parameter :: DESCRIPTION = 'TracerBundle'
 
 contains
 
@@ -142,7 +144,8 @@ contains
     integer :: i, n
 
     character(len=LEN_HEADER) :: header
-    header = 'Tracer Bundle - Version 1.0'
+
+    write(header, '(a," - version:",1x,i0)') DESCRIPTION, VERSION
     write(unit) header
 
     n = getNumTracers(this)
@@ -166,9 +169,21 @@ contains
     integer, intent(in) :: unit
 
     integer :: i, n
+    integer :: oldVersion
+    character(len=len(DESCRIPTION)) :: tag
     character(len=LEN_HEADER) :: header
 
     read(unit) header
+    read(header, '(a," - version:",i)') tag, oldVersion
+
+    if (tag /= DESCRIPTION) then
+      call throwException(DESCRIPTION // '::readUnformatted() - incorrect header.', 14)
+    end if
+
+    if (oldVersion /= VERSION) then
+      call throwException(DESCRIPTION // '::readUnformatted() - unsupported format.', 14)
+    end if
+      
     read(unit) n
     allocate(this%tracers(n))
     do i = 1, n
