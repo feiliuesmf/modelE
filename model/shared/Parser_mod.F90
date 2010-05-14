@@ -516,7 +516,7 @@ contains
     integer, intent(in) :: unit
 
     integer :: i, j
-    type (KeyValuePair_type) :: pair
+    type (GenericType_type), pointer :: values(:)
     character(len=MAX_LEN_LINE) :: line
     character(len=MAX_LEN_KEY), pointer :: keys(:)
 
@@ -524,15 +524,15 @@ contains
     write(unit,*) trim(this%beginData)
     do i = 1, getNumEntries(aDictionary)
 
-      call oldLookup(aDictionary, keys(i), pair)
+      values =>lookup(aDictionary, keys(i))
 
-      select case (getNumValues(pair))
+      select case (size(values))
       case (1)
-        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(getValue(pair)))
+        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(values(1)))
       case (2:)
-        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(getValue(pair,1)))
-        do j = 2, size(getValues(pair))
-          line = trim(line) // ', ' // trim(toString(getValue(pair,j)))
+        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(values(1)))
+        do j = 2, size(values)
+          line = trim(line) // ', ' // trim(toString(values(j)))
         end do
       end select
       write(unit,*) trim(line)
