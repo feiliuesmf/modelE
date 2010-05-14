@@ -7,7 +7,7 @@ module Parser_mod
   use Dictionary_mod, only: MAX_LEN_LINE
   implicit none
 
-  public :: Parser_type
+  public :: Parser_type ! data type
   public :: parse
   public :: stripComment
   public :: skipHeader
@@ -201,6 +201,11 @@ contains
   end subroutine parse_params
 
   function parseLine(this, line) result(pair)
+!@sum Attempts to create a key value pair by parsing a line of text
+!@+ into separate tokens (via splitTokens).  Throws an exception if
+!@+ less than two tokens are found.   (Should probably be modified
+!@+ to also throw exception if first token is not an exceptable
+!@+ key.)
     use Dictionary_mod
     type (Parser_type), intent(in) :: this
     character(len=*), intent(in) :: line
@@ -220,6 +225,8 @@ contains
   contains
 
     function readPair(key, tokens) result(pair)
+!@sum Helper function.  Creates a KeyValuePair from
+!@+ a key and list of tokens.
       character(len=*), intent(in) :: key
       character(len=*), intent(in) :: tokens(:)
       type (KeyValuePair_type) :: pair
@@ -274,6 +281,9 @@ contains
   end function parse
   
   subroutine setCommentCharacters(this, commentCharacters)
+!@sum Set the characters which should be interpreted as comment
+!@+ when processing input.  Defaults are conventional Fortran "!#",
+!@+ but this routine can be used to override.
     type (Parser_type), intent(inout) :: this
     character(len=*), intent(in) :: commentCharacters
 
@@ -281,8 +291,16 @@ contains
 
   end subroutine setCommentCharacters
 
+  subroutine setTokenSeparators(this, tokenSeparators)
+!@sum Override default characters used to separate tokens.
+    type (Parser_type), intent(inout) :: this
+    character(len=*), intent(in) :: tokenSeparators
+    this%tokenSeparators = tokenSeparators
+  end subroutine setTokenSeparators
+
   function stripComment(this, str) result(newStr)
-    ! remove comment at the end of the line.
+!@sum Eliminate trailing comments in line of text. 
+!TO DO - ignore comments in strings
     type (Parser_type), intent(in) :: this
     character*(*), intent(in) :: str
     character(len=len(str)) :: newStr
@@ -300,19 +318,33 @@ contains
   end function stripComment
 
   subroutine setBeginData(this, beginData)
+!@sum Override default string signfying beginning of data,
+!@+ i.e. end of header.
     type (Parser_type), intent(inout) :: this
     character(len=*), intent(in) :: beginData
     this%beginData = beginData
   end subroutine setBeginData
 
+  logical function isEndData(this, string)
+!@sum Return true if string matches the semaphore for the end of data.
+    type (Parser_type), intent(in) :: this
+    character(len=*), intent(in) :: string
+    
+    isEndData = (trim(this%endData) == trim(string))
+
+  end function isEndData
+
   subroutine setEndData(this, endData)
+!@sum Override default string signfying end of data.
     type (Parser_type), intent(inout) :: this
     character(len=*), intent(in) :: endData
     this%endData = endData
   end subroutine setEndData
 
   subroutine skipHeader(this, unit, status)
-
+!@sum Read from unit until semaphore for beginning of data
+!@+ is located.  Returns nonzero status if semaphore is not
+!@+ found before EOF.
     type (Parser_type), intent(in) :: this
     integer, intent(in) :: unit
     integer, intent(out) :: status
@@ -331,6 +363,8 @@ contains
   end subroutine skipHeader
 
   logical function isInteger(string)
+!@sum Returns true if string can be converted to an integer.
+!@+ Should possibly relocate to GenericType_mod
     character(len=*), intent(in) :: string
     integer :: integerValue
     integer :: status
@@ -341,6 +375,8 @@ contains
   end function isInteger
 
   logical function isReal64(string)
+!@sum Returns true if string can be converted to a double.
+!@+ Should possibly relocate to GenericType_mod
     character(len=*), intent(in) :: string
     real*8 :: real64Value
     integer :: status
@@ -351,7 +387,10 @@ contains
   end function isReal64
 
   logical function isLogical(string)
-!@sum Allow a variety of convenient formats for true/false values
+!@sum Returns true if string can be converted to a logical.
+!@+ Allows for Fortran defaults AND other strings that are 
+!@+ convenient equivalents.  (See implementation below.)
+!@+ Should possibly relocate to GenericType_mod
     use StringUtilities_mod, only: toLowerCase
     character(len=*), intent(in) :: string
     logical :: logicalValue
@@ -367,6 +406,10 @@ contains
   end function isLogical
 
   integer function getValueType_single(string) result(type)
+!@sum Returns integer which corresponds to the _type_ that this string
+!@+ can be converted to.  (INTEGER_TYPE, LOGICAL_TYPE, etc.)
+!@+ Priority is given to more restrictive types, which
+!@+ string being a catchall.
     use Dictionary_mod
     character(len=*), intent(in) :: string
 
@@ -391,6 +434,10 @@ contains
   end function getValueType_single
 
   integer function getValueType_multi(tokens) result(type)
+!@sum Return the _type_ that a set of tokens can be converted to.  @+
+!@+ Note that type is the lowest common denominator. E.g. mixtures of
+!@+ integers and doubles will be processed as double values, and 
+!@+ if any token must be treated as a string, all will be.
     use Dictionary_mod
     character(len=*), intent(in) :: tokens(:)
 
@@ -418,21 +465,11 @@ contains
 
   end function getValueType_multi
 
-  logical function isEndData(this, string)
-    type (Parser_type), intent(in) :: this
-    character(len=*), intent(in) :: string
-    
-    isEndData = (trim(this%endData) == trim(string))
-
-  end function isEndData
-
-  subroutine setTokenSeparators(this, tokenSeparators)
-    type (Parser_type), intent(inout) :: this
-    character(len=*), intent(in) :: tokenSeparators
-    this%tokenSeparators = tokenSeparators
-  end subroutine setTokenSeparators
-
   function splitTokens(this, string) result(tokens)
+!@ Attempt to split a string into a set of independent tokens
+!@+ based upon separaters specified in the Parser object.
+!@+ A crude attempt is made to ensure that the 1st separator is '='.
+!@+ A more comprehensive treatement of this should be made.
     type (Parser_type), intent(in) :: this
     character(len=*), intent(in) :: string
     character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
@@ -450,14 +487,8 @@ contains
     do
       if (len_trim(buffer) == 0) exit ! done
       i = i + 1
-      ! skip strings which might have embedded separator characters
-      if (scan(buffer, '"') == 1) then
-        idxStart = scan(buffer(2:),'"') + 1 + 1 ! include 1st char
-      else if (scan(buffer, "'") == 1) then
-        idxStart = scan(buffer(2:),"'") + 1 + 1 ! include 1st char
-      else
-        idxStart = 1
-      end if
+      idxStart = skipEmbeddedSeparators(buffer)
+
       idxNextSeparator = scan(buffer(idxStart:), trim(this%tokenSeparators))
       if (idxNextSeparator > 0) then
         tokens(i) = trim(buffer(:idxStart+idxNextSeparator-2))
@@ -473,6 +504,20 @@ contains
         call throwException('Parser_mod: Illegal syntax.  "=" not first separator.', 14)
       end if
     end if
+
+  contains
+
+    integer function skipEmbeddedSeparators(buffer) result(idxStart)
+      character(len=*), intent(in) :: buffer
+!@sum Location of end of string, which might have an embedded separator.
+      if (scan(buffer, '"') == 1) then
+        idxStart = scan(buffer(2:),'"') + 1 + 1 ! include 1st char
+      else if (scan(buffer, "'") == 1) then
+        idxStart = scan(buffer(2:),"'") + 1 + 1 ! include 1st char
+      else
+        idxStart = 1
+      end if
+    end function skipEmbeddedSeparators
     
   end function splitTokens
 
