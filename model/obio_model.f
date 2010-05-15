@@ -410,7 +410,8 @@ cdiag.         nstep,i,j,kmax
 
 ! --- find number of non-massless layers in column
       do kmax=1,kdm
-        if (dp1d(kmax).lt.1.e-2) exit
+c       if (dp1d(kmax).lt.1.e-2) exit
+        if (dp1d(kmax).lt.1.) exit
       end do
       kmax=kmax-1
 cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax

@@ -62,6 +62,7 @@
       !total carbon = sinking phyto + settling C detritus
       !term1: sinking phytoplankton
       !find layer index for zc
+      kzc = 1
       do k=kmax+1,1,-1
            if (p1d(k).gt.zc) kzc = k
       enddo
@@ -150,9 +151,9 @@ cdiag.   nstep,i,j,cexp
 
 cdiag      if (vrbos) then
 cdiag        do k=1,kmax
-cdiag        write(*,*)'befr sinking',
+cdiag        write(*,'(a,6i5,3e12.4)')'befr sinking',
 cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
-cdiag.       p1d(k),obio_ws(k,nt)
+cdiag.       p1d(k),obio_ws(k,nt)*baclin/3600.
 cdiag        enddo
 cdiag      endif
 
@@ -163,6 +164,7 @@ cdiag      endif
      .                 obio_ws(1,nt)*baclin/3600.,
      .                 vrbos,errcon)
            if (errcon) write(*,*)'error in phyto sinking: nt=',nt
+     .                        ,i,j
 
            do k=1,kmax
             rhs(k,nnut+nt,16)=
