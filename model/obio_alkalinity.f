@@ -66,11 +66,14 @@
       logical vrbos
 !--------------------------------------------------------------------------
 !find layer index for zc
+      kzc = 1
       do k=kmax+1,1,-1
            if (p1d(k).gt.zc) kzc = k
       enddo
       if (kzc.lt.1) kzc=1
+#ifdef OBIO_ON_GARYocean
       if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
+#endif
 
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
@@ -151,7 +154,8 @@ cdiag.                    p1d(k+1),bn,cnratio
 !only below the euphotic zone (the compensation layer)
       do k=1,kmax+1
          if (p1d(k) .gt. p1d(kzc))  then
-           F_Ca(k) = rain_ratio*cpratio*Fc*exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)
+           F_Ca(k) = rain_ratio*cpratio*Fc
+     .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)
          endif
       enddo
 
