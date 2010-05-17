@@ -26,6 +26,10 @@ c
       real, parameter :: small=1.e-11   !  (for z,dz given in meters)
 c
 cdiag if (vrbos) write (*,100)
+cdiag  do k=1,kk
+cdiag  write(*,'(2i5,2e12.4)')k,kk,z(k),dz(k)
+cdiag  enddo
+cdiag  write (*,100)
 cdiag. 'entering advc1d:  old loc''n  new loc''n   variable',
 cdiag. (k,z(k),z(k)+dz(k),fld(k),k=1,kk),kk+1,z(kk+1),z(kk+1)+dz(kk+1)
  100  format (a/(i15,2f11.3,es12.3))

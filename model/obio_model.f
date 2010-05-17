@@ -781,9 +781,10 @@ cdiag  endif
        call obio_update(vrbos,kmax,i,j)
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
        if (errcon) then
-          write (*,'(a,2i5)') 'error update at i,j =',i,j
+          write (*,'(a,3i5)') 'error update at i,j =',i,j,kmax
           do k=1,kdm
-          write (*,'(i5,3e12.4)')k,dp1d(k),p1d(k),wsdet(k,1)
+          write (*,'(i5,3e12.4)')
+     .           k,dp1d(k),p1d(k),wsdet(k,1)
           enddo
           stop
        endif

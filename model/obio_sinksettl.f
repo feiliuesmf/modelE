@@ -12,6 +12,7 @@
       USE ODIAG, only: ij_cexp,oij=>oij_loc
       USE OCEAN, only: lmm,dxypo
 #else
+      USE hycom_dim, only: kdm
       USE hycom_scalars, only: nstep,baclin
 #endif
 
@@ -148,12 +149,19 @@ cdiag.   nstep,i,j,cexp
           end do
           obio_ws(     1,nt)=0.                !  no flux through sea surface
 
+          !no flux through the sea floor
+          !and convert to distance (m/timestep)
+          do k=1,kmax
+             obio_ws(k,nt)=min(obio_ws(k,nt),p1d(kmax+1)-p1d(k))
+     .                    * baclin/3600.d0
+          enddo
+
 
 cdiag      if (vrbos) then
 cdiag        do k=1,kmax
 cdiag        write(*,'(a,6i5,3e12.4)')'befr sinking',
 cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
-cdiag.       p1d(k),obio_ws(k,nt)*baclin/3600.
+cdiag.       p1d(k),obio_ws(k,nt)
 cdiag        enddo
 cdiag      endif
 
@@ -161,10 +169,15 @@ cdiag      endif
             rhs(k,nnut+nt,16)=obio_P(k,nnut+nt)
            enddo
            call advc1d(kmax,obio_P(1,nnut+nt),p1d,
-     .                 obio_ws(1,nt)*baclin/3600.,
-     .                 vrbos,errcon)
-           if (errcon) write(*,*)'error in phyto sinking: nt=',nt
-     .                        ,i,j
+     .                 obio_ws(1,nt),vrbos,errcon)
+           if (errcon) then
+             write(*,'(a,4i8)')
+     .       'error in phyto sinking: nt=',nt,i,j,kmax
+             do k=1,kdm
+               write (*,'(i5,3e12.4)')
+     .           k,dp1d(k),p1d(k),obio_ws(k,nt)
+             enddo
+           endif
 
            do k=1,kmax
             rhs(k,nnut+nt,16)=
@@ -192,7 +205,7 @@ cdiag      endif
             !for layers of near-zero thickness
             wsdet(k,nt)=wsdeth(nt)
           end do
-          wsdet(     1,nt)=0.                !  no flux through sea surface
+          wsdet(1,nt)=0.                !  no flux through sea surface
 
 cdiag     if (vrbos.and.nt.eq.1) then
 cdiag       do k=1,kdm
@@ -210,8 +223,10 @@ cdiag        enddo
 cdiag      endif
 
           !no flux through the sea floor
+          !and convert to distance
           do k=1,kmax
              wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
+     .                  *baclin/3600.d0
           enddo
 !need to change that (?) and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
@@ -223,11 +238,18 @@ cdiag      endif
            rhs(k,nnut+nchl+nzoo+nt,16)=det(k,nt)
           enddo
           call advc1d(kmax,det(1,nt),p1d,
-     .      wsdet(1,nt)*baclin/3600.,vrbos,errcon)
-          if (errcon) write(*,*)
+     .      wsdet(1,nt),vrbos,errcon)
+          if (errcon) then
+            write(*,'(a,4i8)')
      .     'error in detritus component: nt=',nt,i,j,kmax
-          do k=1,kmax
+             do k=1,kdm
+               write (*,'(i5,3e12.4)')
+     .           k,dp1d(k),p1d(k),wsdet(k,nt)
+             enddo
+          stop
+          endif
 
+          do k=1,kmax
            !this is really rhs
            rhs(k,nnut+nchl+nzoo+nt,16)=
      .            (det(k,nt)-rhs(k,nnut+nchl+nzoo+nt,16))/obio_deltat
