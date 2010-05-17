@@ -41,6 +41,10 @@ module Parser_mod
     module procedure getValueType_multi
   end interface
 
+  interface writeFormatted
+    module procedure writeFormatted_parser
+  end interface
+
 contains
 
   function strip_comment( str ) result(newStr)
@@ -551,7 +555,7 @@ contains
     end if
   end function skipEmbeddedSeparators
     
-  subroutine writeFormatted(this, unit, aDictionary)
+  subroutine writeFormatted_parser(this, unit, aDictionary)
 !@sum Write dictionary as a text file.  Inverse of
 !@+ parse().
     use Dictionary_mod
@@ -572,9 +576,9 @@ contains
 
       select case (size(values))
       case (1)
-        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(values(1)))
+        write(line,'(2x,a32," = ",a)') keys(i), trim(toString(values(1)))
       case (2:)
-        write(line,'(a," = ",a)') trim(keys(i)), trim(toString(values(1)))
+        write(line,'(2x,a32," = ",a)') keys(i), trim(toString(values(1)))
         do j = 2, size(values)
           line = trim(line) // ', ' // trim(toString(values(j)))
         end do
@@ -583,6 +587,6 @@ contains
     end do
     write(unit,*) trim(this%endData)
 
-  end subroutine writeFormatted
+  end subroutine writeFormatted_parser
 
 end module PARSER_MOD
