@@ -5,6 +5,9 @@ module Tracers_mod
 
   public :: Tracer_type       ! derived type
   public :: TracerBundle_type ! derived type
+  public :: Tracer            ! constructor
+  public :: TracerBundle      ! constructor
+  public :: addTracer
   public :: readFromText      
   public :: writeFormatted
   public :: readUnformatted
@@ -96,6 +99,20 @@ module Tracers_mod
 
 contains
 
+  function Tracer()
+!@sum Construct empty tracer    
+    use Dictionary_mod, only: Dictionary
+    type (Tracer_type) :: Tracer
+    Tracer%properties = Dictionary()
+  end function Tracer
+
+  function TracerBundle()
+!@sum Construct empty tracer    
+    use Dictionary_mod, only: Dictionary
+    type (TracerBundle_type) :: TracerBundle
+    allocate(TracerBundle%tracers(0))
+  end function TracerBundle
+
   function readFromText(unit, defaultValues) result(bundle)
 !@sum Populate a TracerBundle from a unit attached to a formatted
 !@+ file.  Optionally apply default values.
@@ -116,6 +133,7 @@ contains
       if (status /= 0) exit
       if (present(defaultValues)) call merge(tracer%properties, defaultValues)
       call addTracer(bundle, tracer)
+      call clean(tracer)
     end do
 
   end function readFromText
@@ -123,6 +141,7 @@ contains
   subroutine addTracer(this, tracer)
 !@sum Insert one tracer into a bundle.  Optionally
 !@+ apply default values to the tracer dictionary.
+    use Dictionary_mod
     type (TracerBundle_type), intent(inout) :: this
     type (Tracer_type), intent(in) :: tracer
 
@@ -137,7 +156,7 @@ contains
     this%tracers(1:count) = oldList
     deallocate(oldList)
 
-    this%tracers(count+1)%properties = tracer%properties
+    this%tracers(count+1)%properties = Dictionary(tracer%properties)
 
   end subroutine addTracer
 
