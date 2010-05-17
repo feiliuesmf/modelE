@@ -1944,19 +1944,7 @@ C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-#ifdef TRACERS_AMP
-c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
-       FSTOPX(:) = 1-onoff_aer !turns off online tracer
-       FTTOPX(:) = 1-onoff_aer !
-c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
-        CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
-c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
-       FSTOPX(:) = onoff_aer !turns on online tracer
-       FTTOPX(:) = onoff_aer !
-c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
-#else
           CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
-#endif
           SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
 C         BEGIN AMIP
