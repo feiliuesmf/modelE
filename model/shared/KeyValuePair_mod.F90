@@ -25,7 +25,7 @@ module KeyValuePair_mod
 
   ! Parameters
   public :: MAX_LEN_KEY
-  integer, parameter :: MAX_LEN_KEY = 128
+  integer, parameter :: MAX_LEN_KEY = 32
 
 
   type KeyValuePair_type
