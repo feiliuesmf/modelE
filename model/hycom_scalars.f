@@ -261,7 +261,7 @@ c --- ocnmx_factor_s/ocnmx_factor_t:factor to reduce difs/dift in mxkprf.f
 c
 c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'diapyc' = diapycnal diffusivity (m^2/s)
-      real, public :: diapyn=3.e-7, diapyc=.5e-4 !overwritten by values in rundeck
+      real, public :: diapyn=2.e-7, diapyc=.2e-4 !overwritten by values in rundeck
 c
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
     || (defined TRACERS_ZEBRA)
