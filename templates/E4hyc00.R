@@ -107,8 +107,8 @@ jtest=-1         ! default is -1
 iocnmx=2         ! default is 2
 brntop=50.       ! default is 50.
 brnbot=200.      ! default is 200.
-diapyn=3.e-7     ! default is 3.e-7
-diapyc=.5e-4     ! default is .5e-4
+diapyn=2.e-7     ! default is 2.e-7
+diapyc=.2e-4     ! default is .2e-4
 jerlv0=1         ! default is 1
 
 Nssw=48          ! until diurnal diags are fixed, Nssw has to be even
