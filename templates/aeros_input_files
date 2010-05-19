@@ -7,15 +7,16 @@
 !OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc
 !OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
 !------nitrate inputs--------------
-NH3_CON_01=NH3hCON_OCEANflux_Jan10_2x2.5_h
-NH3_CON_02=NH3_forestfire_AR5_1900-2000_2x2.5_h
-NH3_CON_03=NH3_grassfire_AR5_1900-2000_2x2.5_h
-NH3_CON_04=NH3_agr_AR5_1850-2000_2x2.5_h
-NH3_CON_05=NH3_awb_AR5_1850-2000_2x2.5_h
-NH3_CON_06=NH3_dom_AR5_1850-2000_2x2.5_h
-NH3_CON_07=NH3_ind_AR5_1850-2000_2x2.5_h
-NH3_CON_08=NH3_ene_AR5_1850-2000_2x2.5_h
-NH3_CON_09=NH3_tra_AR5_1850-2000_2x2.5_h
+NH3_01=NH3hCON_OCEANflux_Jan10_2x2.5_h
+NH3_02=NH3_agr_AR5_1850-2000_2x2.5_h
+NH3_03=NH3_awb_AR5_1850-2000_2x2.5_h
+NH3_04=NH3_dom_AR5_1850-2000_2x2.5_h
+NH3_05=NH3_ind_AR5_1850-2000_2x2.5_h
+NH3_06=NH3_ene_AR5_1850-2000_2x2.5_h
+NH3_07=NH3_tra_AR5_1850-2000_2x2.5_h
+NH3_08=NH3_forestfire_AR5_1900-2000_2x2.5_h
+NH3_09=NH3_grassfire_AR5_1900-2000_2x2.5_h
+!NH3_EPFC=gsin/fire/NH3_emmissions_per_fire_count_2x2.5
 ! ------- aerosol, needed for imAER= 1 or 3 or 5-----------
 SO2_VOLCANO=SO2_volc_2000_2x2.5_AEROCOM.nc
 ! -------- aerosol, needed for imAER = 3 or 5 --------------

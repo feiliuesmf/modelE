@@ -319,18 +319,14 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
 ! allow any tracer to have a dynamic biomass burning src:
         inquire(file=trim(trname(n))//'_EPFC',exist=do_fire(n))
-        if(do_fire(n))then
-          ntsurfsrc(n)=ntsurfsrc(n)+1
-          ssname(n,ntsurfsrc(n))='dynam_bioburn'
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        else
+        if(.not. do_fire(n))then
           select case (trname(n))
-          case ('SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
+          case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+     &          'NH3', 'SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
             call sync_param(trim(trname(n))//"_nBBsources",
      &                      nBBsources(n))
             ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
           end select
-#endif
         endif
 ! special cases:
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1214,12 +1210,11 @@ CCC#endif
           tr_wd_TYPE(n) = nPART
       case ('NH3')
       n_NH3 = n
-          ntsurfsrc(n) = 1
           ntm_power(n) = -10
           tr_mm(n) = 17.
-       tr_RKD(n) = 0.7303   !tr_RKD=74 M/atm
-       tr_DHD(n) = -2.84d4  !tr_DHD=-6.80 kcal/mole
-       tr_wd_TYPE(n) = nGAS
+          tr_RKD(n) = 0.7303   !tr_RKD=74 M/atm
+          tr_DHD(n) = -2.84d4  !tr_DHD=-6.80 kcal/mole
+          tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
@@ -2410,12 +2405,9 @@ C**** set some defaults
             qsum(itcon_dd(n,1)) = .false.
           end if
 #endif
-#ifdef GFED_3D_BIOMASS
            g=g+1; itcon_3Dsrc(nBiomass,N) = g
-           qcon(itcon_3Dsrc(nBiomass,N)) = .true.
-           conpts(g-12) = 'Biomass_Burning'
-           qsum(itcon_3Dsrc(nBiomass,N)) = .true.
-#endif
+           qcon(g) = .true.; conpts(g-12) = 'Biomass src'
+           qsum(g) = .true.
 #else  /* not TRACERS_SPECIAL_Shindell */
           itcon_surf(1,N) = 13
           qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
@@ -2504,15 +2496,12 @@ C**** set some defaults
               conpts(g-12) = 'Aircraft'
               qsum(itcon_3Dsrc(nAircraft,N)) = .true.
           end select
-#ifdef GFED_3D_BIOMASS
           select case(trname(n))
             case('NOx','CO','Alkenes','Paraffin')
               g=g+1; itcon_3Dsrc(nBiomass,N) = g
-              qcon(itcon_3Dsrc(nBiomass,N)) = .true.
-              conpts(g-12) = 'Biomass_Burning'
-              qsum(itcon_3Dsrc(nBiomass,N)) = .true.
+              qcon(g) = .true.; conpts(g-12) = 'Biomass src'
+              qsum(g) = .true.
           end select
-#endif
 #ifdef TRACERS_NITRATE
           select case (trname(n))
             case ('HNO3')
@@ -2951,24 +2940,35 @@ C**** set some defaults
 #endif
 
         case ('NH3','H2SO4')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
-     *         'Gas phase change'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_mc(n) =14
-          qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-          qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) =15
-          qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-          qsum(itcon_ss(n)) = .false.
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(g) = .true.; conpts(g-12) = 'Gas phase change'
+          qsum(g) = .true.
+          select case (trname(n))
+          case ('NH3')
+            g=g+1; itcon_3Dsrc(nBiomass,N) = g
+            qcon(g) = .true.; conpts(g-12) = 'Biomass src'
+            qsum(g) = .true.
+            do kk=1,ntsurfsrc(n)
+              g=g+1; itcon_surf(kk,N) = g
+              qcon(itcon_surf(kk,N))=.true.
+              conpts(g-12)=trim(ssname(N,kk))
+              qsum(g)=.false.
+            end do
+          end select
+          g=g+1; itcon_mc(n) =g
+          qcon(g) = .true.  ; conpts(g-12) = 'MOIST CONV'
+          qsum(g) = .false.
+          g=g+1; itcon_ss(n) =g
+          qcon(g) = .true.  ; conpts(g-12) = 'LS COND'
+          qsum(g) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            itcon_dd(n,1)=16
-            qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=17
-            qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
+            g=g+1; itcon_dd(n,1)=g
+            qcon(g) = .true. ; conpts(g-12) = 'TURB DEP'
+            qsum(g) = .false.
+            g=g+1; itcon_dd(n,2)=g
+            qcon(g) = .true. ; conpts(g-12) = 'GRAV SET'
+            qsum(g) = .false.
           end if
 #endif
 
@@ -3484,15 +3484,13 @@ C**** set defaults for some precip/wet-dep related diags
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifdef GFED_3D_BIOMASS
         k = k + 1
         jls_3Dsource(nBiomass,n) = k
-        sname_jls(k) = 'bburn_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY BIOMASS BURNING'
+        sname_jls(k) = 'Biomass_src_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' biomass source'
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
 #else
         k = k + 1
         jls_source(6,n) = k
@@ -3797,18 +3795,16 @@ C**** special one unique to HTO
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
-#ifdef GFED_3D_BIOMASS
         select case(trname(n))
         case('NOx','CO','Alkenes','Paraffin')
           k = k + 1
           jls_3Dsource(nBiomass,n) = k
-          sname_jls(k) = 'bburn_source_of'//trname(n)
-          lname_jls(k) = 'CHANGE OF '//trname(n)//' BY BIOMASS BURNING'
+          sname_jls(k) = 'Biomass_src_of_'//trim(trname(n))
+          lname_jls(k) = trim(trname(n))//' biomass source'
           jls_ltop(k) = LM
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
-#endif
 
 #ifdef TRACERS_AEROSOLS_SOA
       case ('isopp1g','isopp2g','apinp1g','apinp2g')
@@ -3913,6 +3909,27 @@ c gravitational settling of MSA
         lname_jls(k) = 'Gravitational Settling of MSA'
         jls_ltop(k) = LM
         jls_power(k) = -3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+       case ('NH3')
+c industrial source
+        do kk=1,ntsurfsrc(n)
+          k = k + 1
+          jls_source(kk,n) = k
+          sname_jls(k) = trim(trname(n))//'_src_'//trim(ssname(n,kk))
+          lname_jls(k) = trim(trname(n))//' source from '//
+     &                   trim(ssname(n,kk))
+          jls_ltop(k) = 1
+          jls_power(k) =0
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        enddo
+c biomass burning source
+        k = k + 1
+        jls_3Dsource(nBiomass,n) = k
+        sname_jls(k) = 'Biomass_src_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' biomass source'
+        jls_ltop(k) = LM
+        jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
        case ('SO2')
@@ -5183,19 +5200,17 @@ C**** This needs to be 'hand coded' depending on circumstances
           endif
 #endif /* AUXILIARY_OX_RADF */
         end select
-#ifdef GFED_3D_BIOMASS
         select case(trname(n))
         case('NOx','CO','Alkenes','Paraffin')
           k = k + 1
           ijts_3Dsource(nBiomass,n) = k
           ia_ijts(k) = ia_src
-          lname_ijts(k) = trname(n)//' Biomass Burning Source'
-          sname_ijts(k) = trim(trname(n))//'_bburn'
+          lname_ijts(k) = trim(trname(n))//' Biomass source'
+          sname_ijts(k) = trim(trname(n))//'_Biomass_source'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end select
-#endif
 
 #ifdef TRACERS_AEROSOLS_SOA
       case ('isopp1g','isopp1a','isopp2g','isopp2a',
@@ -5239,16 +5254,14 @@ c chemical production
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef GFED_3D_BIOMASS
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' Biomass Burning Source'
-        sname_ijts(k) = trim(trname(n))//'_bburn'
+        lname_ijts(k) = trim(trname(n))//' Biomass source'
+        sname_ijts(k) = trim(trname(n))//'_Biomass_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 #else
       k = k + 1
         ijts_source(6,n) = k
@@ -6061,15 +6074,27 @@ c SO4 clear sky longwave radiative forcing
 
 c#ifdef TRACERS_NITRATE
       case ('NH3')
-c production of NH3 from all emissions
+c emissions of biomass NH3
         k = k + 1
-        ijts_source(1,n) = k  ! 3dsource?
+        ijts_3Dsource(nBiomass,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NH3 source from emission'
-        sname_ijts(k) = 'NH3_source_from_emission'
+        lname_ijts(k) = 'Biomass NH3 source'
+        sname_ijts(k) = 'NH3_source_from_biomass'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c emissions of industrial NH3
+        do kr=1,ntsurfsrc(n)
+          k = k + 1
+          ijts_source(kr,n) = k
+          ia_ijts(k) = ia_src
+          sname_ijts(k) = trim(trname(n))//'_src_'//trim(ssname(n,kr))
+          lname_ijts(k) = trim(trname(n))//' source from '//
+     &                   trim(ssname(n,kr))
+          ijts_power(k) = -15
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        enddo
 
       case ('NO3p')
 c NO3 optical thickness
@@ -8327,11 +8352,6 @@ c**** earth
 #endif
           end do; end do; end do
 #endif
-        case('N_d1','N_d2','N_d3','NH3','NH4','NO3p')
-          do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
-          end do; end do; end do
-
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*5.d-10
@@ -8552,6 +8572,7 @@ c**** earth
           end do; end do; end do
 
         case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3',
+     *         'N_d1','N_d2','N_d3','NH3','NH4','NO3p',
      *         'BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB', 'H2O2_s',
      *         'OCI1', 'OCI2', 'OCI3', 'OCA1','OCA2', 'OCA3', 'OCA4',
      *         'seasalt1', 'seasalt2',
@@ -8879,27 +8900,27 @@ c 1.3 converts OC to OM
       if (imAER.ne.3.and.imAER.ne.5) then  !else read in daily
 c read in NH3 emissions
 c Industrial
-      NH3_src_con(:,:)=0.d0
-      NH3_src_cyc(:,:)=0.d0
+        NH3_src_con(:,:)=0.d0
+        NH3_src_cyc(:,:)=0.d0
 
-      call openunit('NH3SOURCE_CYC',iuc,.false.)
-      do
-      read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) exit
-      if (jj<j_0 .or. jj>j_1) cycle
+        call openunit('NH3SOURCE_CYC',iuc,.false.)
+        do
+          read(iuc,*) ii,jj,carbstuff
+          if (ii.eq.0.) exit
+          if (jj<j_0 .or. jj>j_1) cycle
 ! conversion [kg N/gb/a] -> [kg NH3 /gb/s]
-      NH3_src_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/axyp(ii,jj)
-      end do
-      call closeunit(iuc)
+          NH3_src_cyc(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/axyp(ii,jj)
+        end do
+        call closeunit(iuc)
 
-      call openunit('NH3SOURCE_CON',iuc,.false.)
-      do
-      read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      NH3_src_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/axyp(ii,jj)
-      end do
-      call closeunit(iuc)
+        call openunit('NH3SOURCE_CON',iuc,.false.)
+        do
+          read(iuc,*) ii,jj,carbstuff
+          if (ii.eq.0.) exit
+          if (jj<j_0 .or. jj>j_1) cycle
+          NH3_src_con(ii,jj)=carbstuff*1.2142/(sday*30.4*12.)!/axyp(ii,jj)
+        end do
+        call closeunit(iuc)
       endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -8934,7 +8955,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & ,ntm_chem
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     * ,aer_int_yr,imAER,imPI,n_SO2,n_SO4,n_BCB,n_OCB
+     * ,aer_int_yr,imAER,imPI,n_NH3,n_SO2,n_SO4,n_BCB,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BOC_BC,n_M_BOC_OC
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
 #endif
@@ -9098,17 +9119,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef WATER_MISC_GRND_CH4_SRC
          nread=ntsurfsrc(n)-3
-         if(do_fire(n))nread=nread-1
          call read_sfc_sources(n,nread,xyear,xday,.true.)
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  )=
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  -nBBsources(n))=
      &   1.698d-12*fearth0(I_0:I_1,J_0:J_1) ! 5.3558e-5 Jean
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1)=
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1-nBBsources(n))=
      &   5.495d-11*flake0(I_0:I_1,J_0:J_1)  ! 17.330e-4 Jean
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-2)=
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-2-nBBsources(n))=
      &   1.141d-12*focean(I_0:I_1,J_0:J_1)  ! 3.5997e-5 Jean
 #else
          nread=ntsurfsrc(n)
-         if(do_fire(n))nread=nread-1
          if(nread>0) call read_sfc_sources(n,nread,xyear,xday,.true.)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -9129,6 +9148,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef TRACERS_AEROSOLS_Koch
      &        .or. n==n_BCB .or. n==n_OCB
 #endif
+#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
+     &        .or. n==n_NH3
+#endif
 #ifdef TRACERS_AMP
      &        .or. n==n_M_BOC_BC .or. n==n_M_BOC_OC
 #endif
@@ -9146,17 +9168,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) */
             nread=ntsurfsrc(n)
-            if(do_fire(n)) then
-              nread=nread-1
-#ifndef DYNAMIC_BIOMASS_BURNING
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-            else
+            if(.not. do_fire(n)) then
               select case (trname(n))
-              case ('SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
+              case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+     &              'NH3', 'SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
                 nread=nread+nBBsources(n)
               end select
-#endif
-#endif
             endif
 #ifdef TRACERS_AMP
             if(nread>0)call read_sfc_sources(n,nread,xyear,xday,.false.)
@@ -9218,7 +9235,7 @@ c               if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
             case ('BCB', 'M_BOC_BC')  ! this does BCB and OCB and SO2
               if (imAER==3) call get_hist_BMB(end_of_day,jday)
             case ('NH3')
-              call read_hist_NH3(end_of_day,jday)
+              if (imAER==3) call read_hist_NH3(end_of_day,jday)
             end select
           end do
         endif
@@ -9354,6 +9371,10 @@ c      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 c      real*8 :: nlight, max_COSZ1, fact0
 #endif
       real*8 :: lon_w,lon_e,lat_s,lat_n
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      integer :: src_index
+      real*8 :: src_fact
+#endif
 
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
@@ -9693,18 +9714,6 @@ C**** No non-interactive surface sources of Water
 C****
       case ('Water')
         trsource(:,J_0:J_1,:,n)=0.d0
-#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
-      case ('NH3')
-        trsource(:,J_0:J_1,:,n)=0.d0
-        do j=J_0,J_1
-         scca(:) = 0.d0
-          do i = I_0,I_1
-           if (cosz1(i,j) > 0.) scca(i) = cosz1(i,j) * 4.
-          enddo
-            trsource(:,j,1,n) = NH3_src_con(:,j) +
-     *      NH3_src_cyc(:,j)*SCCA(:)
-        end do
-#endif /* TRACERS_NITRATE */
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
@@ -9713,7 +9722,7 @@ C****
      &      'stratOx','codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
+          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -9759,11 +9768,11 @@ C****
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
 #ifdef WATER_MISC_GRND_CH4_SRC
-          nfill=ntsurfsrc(n)-3 
+          nfill=ntsurfsrc(n)-3
 #else
           nfill=ntsurfsrc(n)
 #endif
-          call dynamic_biomass_burning(n,nfill)
+          call dynamic_biomass_burning(n,nfill+1)
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -9797,37 +9806,71 @@ C****
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      case ('SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
+      case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
+     &      'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
+        src_fact=1.d0               ! factor to multiply emissions with
+        src_index=n                 ! index to be used for emissions
+        select case (trname(n))
+        case ('SO2')
+          src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
+        case ('SO4')
+          src_fact=0.0375d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO4)
+          src_index=n_SO2
+        case ('M_ACC_SU')
+          src_fact=0.0375d0
+#ifndef TRACERS_AMP_M4
+     &            *0.99d0 ! the rest goes to M_AKK_SU
+#endif
+          src_index=n_SO2
+#ifndef TRACERS_AMP_M4
+        case ('M_AKK_SU')
+          src_fact=0.0375d0
+     &            *0.01d0
+          src_index=n_SO2
+#endif
+        case ('BCB', 'M_BOC_BC')
+          src_fact=1.4d0
+        case ('OCB', 'M_BOC_OC')
+          src_fact=1.4d0*1.4d0
+        end select
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
+          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
 #endif
-        select case(trname(n))
-        case ('SO2') ! also SO4, M_ACC_SU, M_AKK_SU
-c for SO4 we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
-!industrial
-c          if (imAER.eq.0) call read_SO2_source(n)
+        do ns=1,ntsurfsrc(src_index)
+          trsource(:,J_0:J_1,ns,n)=
+     &      sfc_src(:,J_0:J_1,src_index,ns)
+     &      *axyp(:,J_0:J_1)*src_fact
+        enddo ! ns
+#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) */
+#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
+      case ('NH3')
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))then
+          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
+          ! better to add array that knows source index
+          ! perhaps do_fire, changed to integer?
+        endif
+#endif
+        if (imAER.ne.5) then
+          do j=J_0,J_1
+            scca(:) = 0.d0
+            do i = I_0,I_1
+              if (cosz1(i,j) > 0.) scca(i) = cosz1(i,j) * 4.
+            enddo
+            trsource(:,j,1,n) = NH3_src_con(:,j) +
+     &      NH3_src_cyc(:,j)*SCCA(:)
+          enddo
+        else
           do ns=1,ntsurfsrc(n)
-#ifdef TRACERS_AMP
-            trsource(:,J_0:J_1,ns,n_M_ACC_SU)=sfc_src(:,J_0:J_1,n,ns)
-     &        *axyp(:,J_0:J_1)*0.0375d0
-#ifndef TRACERS_AMP_M4
-     &                        *0.99d0
-            trsource(:,J_0:J_1,ns,n_M_AKK_SU)=sfc_src(:,J_0:J_1,n,ns)
-     &        *axyp(:,J_0:J_1)*0.0375d0
-     &                        *0.01d0
-#endif
-#else
-            trsource(:,J_0:J_1,ns,n_SO4)=sfc_src(:,J_0:J_1,n,ns)
-     &        *axyp(:,J_0:J_1)*0.0375d0
-#endif
             trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
-     &        *axyp(:,J_0:J_1)*0.975d0
-          enddo ! ns
-        end select
+     &        *axyp(:,J_0:J_1)
+          enddo
+        endif
+#endif /* TRACERS_NITRATE || TRACERS_AMP */
 c! TRACERS_AMP
       case ('BCII')
          do j=J_0,J_1
@@ -10072,39 +10115,13 @@ C**** aircraft source for fresh industrial BC
         if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      *    call apply_tracer_3Dsource(2,n) ! aircraft
 
-      case ('SO2', 'SO4', 'BCB', 'OCB', 
+      case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+     &      'NH3', 'SO2', 'SO4', 'BCB', 'OCB', 
      &      'M_ACC_SU', 'M_AKK_SU',
-     &      'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
-        select case (trname(n))
-        case ('SO2')
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-     &      so2_src_3d(:,J_0:J_1,:,1)*0.975d0
-          if (imAER.ne.3.and.imAER.ne.5)
-     &    tr3Dsource(:,J_0:J_1,:,nAircraft,n) =
-     &      so2_src_3d(:,J_0:J_1,:,2)
-          if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
-     &     call apply_tracer_3Dsource(nAircraft,n)
-        case ('SO4')
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-     &      so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-        case ('M_ACC_SU')
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-#ifndef TRACERS_AMP_M4
-     &      0.99d0*
+#ifdef TRACERS_AMP_M4
+     &      'M_OCC_OC',
 #endif
-     &      so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-#ifndef TRACERS_AMP_M4
-        case ('M_AKK_SU')
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-     &      0.01d0*
-     &      so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
-#endif
-        end select
-        call apply_tracer_3Dsource(nVolcanic,n)
-
-C**** biomass source for SO2, SO4, BC and OC
-        tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
-        if (imAER.ne.1) then
+     &      'M_BOC_BC', 'M_BOC_OC')
           src_fact=1.d0 ! factor to multiply emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
@@ -10127,14 +10144,40 @@ C**** biomass source for SO2, SO4, BC and OC
 #endif
           case ('BCB', 'M_BOC_BC')
             src_fact=1.4d0
-          case ('OCB', 'M_BOC_OC')
+          case ('OCB',
+#ifdef TRACERS_AMP_M4
+     &          'M_OCC_OC',
+#endif
+     &          'M_BOC_OC')
             src_fact=1.4d0*1.4d0
           end select
-          if (do_fire(src_index)) then
-            bb_i=ntsurfsrc(src_index) ! index of first BB source
-            bb_e=bb_i                 ! index of last BB source
-          else
-            bb_i=ntsurfsrc(src_index)+1
+
+C**** 3D aircraft source - only SO2, no sulfate
+        select case (trname(n))
+        case ('SO2')
+          if (imAER.ne.3.and.imAER.ne.5)
+     &    tr3Dsource(:,J_0:J_1,:,nAircraft,n) =
+     &      so2_src_3d(:,J_0:J_1,:,2)
+          if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
+     &     call apply_tracer_3Dsource(nAircraft,n)
+        end select
+
+C**** 3D volcanic source
+        select case (trname(n))
+        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
+          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
+     &      so2_src_3d(:,J_0:J_1,:,1)*src_fact
+          call apply_tracer_3Dsource(nVolcanic,n)
+        end select
+
+C**** 3D biomass source
+        tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+        if (imAER.ne.1) then
+#endif
+          bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
+          bb_e=bb_i                   ! index of last BB source
+          if (.not. do_fire(src_index)) then
             bb_e=ntsurfsrc(src_index)+nBBsources(src_index)
           endif
           do j=J_0,J_1; do i=I_0,I_1
@@ -10145,6 +10188,7 @@ C**** biomass source for SO2, SO4, BC and OC
      &          dble(blay)
             end do
           end do; end do
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         else
           select case(trname(n))
 !kt - not ready - SO2t_src has one extra dimension
@@ -10165,7 +10209,11 @@ C**** biomass source for SO2, SO4, BC and OC
           case ('BCB', 'M_BOC_BC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
      &      BCB_src(:,J_0:J_1,:,jmon)
-          case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
+          case ('OCB',
+#ifdef TRACERS_AMP_M4
+     &          'M_OCC_OC',
+#endif
+     &          'M_BOC_OC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
      &      OCB_src(:,J_0:J_1,:,jmon)
           end select
@@ -10174,7 +10222,6 @@ C**** biomass source for SO2, SO4, BC and OC
 #endif
 
 #ifdef TRACERS_AMP
-
       case ('M_BC1_BC')
 C**** aircraft source for fresh industrial BC
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
@@ -10403,7 +10450,7 @@ C**** Apply chemistry and overwrite changes:
 #endif
        tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NO3p) = 0.d0
        tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH4)  = 0.d0
-       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH3)  = 0.d0
+       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0
 
        call EQSAM_DRV
 
@@ -10412,7 +10459,7 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
 #endif
        call apply_tracer_3Dsource(1,n_NH4)  ! NO3 chem prod
-       call apply_tracer_3Dsource(1,n_NH3)  ! NH3
+       call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3
 
 #endif /* TRACERS_NITRATE */
 #ifdef TRACERS_AMP
@@ -10429,7 +10476,7 @@ C**** Apply chemistry and overwrite changes:
         tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
       ENDDO
         tr3Dsource(:,J_0:J_1,:,1,n_H2SO4)  = 0.d0! Aerosol Mirophysics
-        tr3Dsource(:,J_0:J_1,:,1,n_NH3)  = 0.d0! Aerosol Mirophysics
+        tr3Dsource(:,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0! Aerosol Mirophysics
 #ifdef  TRACERS_SPECIAL_Shindell
         tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
 #endif
@@ -10439,7 +10486,7 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(nChemistry,n) ! Aerosol Mirophysics !kt is the index correct?
       ENDDO
 
-       call apply_tracer_3Dsource(1,n_NH3)  ! NH3
+       call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3
        call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
 #ifdef  TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod

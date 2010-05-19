@@ -5,6 +5,7 @@ prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
 !--- number of biomass burning sources (per tracer)
+NH3_nBBsources=2
 SO2_nBBsources=2
 BCB_nBBsources=2
 OCB_nBBsources=2
