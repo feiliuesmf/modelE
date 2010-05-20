@@ -177,8 +177,12 @@
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: unit !@var unit
 #if defined(MACHINE_SGI)
+#if defined(COMPILER_G95)
+      call flush(unit)
+#else
       INTEGER status
       call flush(unit,status)
+#endif
 #elif defined(MACHINE_Linux) || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
       call flush(unit) !!! should check if it works for Absoft and DEC
@@ -240,7 +244,7 @@
 #endif
       implicit none
       character(*), intent(out) :: arg
-#if (! defined(COMPILER_NAG) )
+#if (! defined(COMPILER_NAG) ) && (! defined(COMPILER_G95) )
       integer, external :: iargc
 #endif
       integer, intent(in) :: opt
