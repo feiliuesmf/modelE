@@ -141,29 +141,29 @@ contains
   subroutine testGetValueType()
     use Dictionary_mod
 
-    call assertEqual(INTEGER_TYPE, getValueType('3'))
-    call assertEqual(INTEGER_TYPE, getValueType('123456'))
+    call assertEqual(INTEGER_TYPE, getValueType('3'), 'case A')
+    call assertEqual(INTEGER_TYPE, getValueType('123456'), 'case B')
 
-    call assertEqual(REAL64_TYPE, getValueType('1.'))
-    call assertEqual(REAL64_TYPE, getValueType('1.2'))
-    call assertEqual(REAL64_TYPE, getValueType('1.2e+10'))
-    call assertEqual(REAL64_TYPE, getValueType('234.6d-12'))
+    call assertEqual(REAL64_TYPE, getValueType('1.'), 'case C')
+    call assertEqual(REAL64_TYPE, getValueType('1.2'), 'case D')
+    call assertEqual(REAL64_TYPE, getValueType('1.2e+10'), 'case E')
+    call assertEqual(REAL64_TYPE, getValueType('234.6d-12'), 'case F')
 
-    call assertEqual(LOGICAL_TYPE, getValueType('.true.'))
-    call assertEqual(LOGICAL_TYPE, getValueType('.false.'))
-    call assertEqual(LOGICAL_TYPE, getValueType('T'))
-    call assertEqual(LOGICAL_TYPE, getValueType('F'))
-    call assertEqual(LOGICAL_TYPE, getValueType('t'))
-    call assertEqual(LOGICAL_TYPE, getValueType('f'))
-    call assertEqual(LOGICAL_TYPE, getValueType('t'))
-    call assertEqual(LOGICAL_TYPE, getValueType('false'))
-    call assertEqual(LOGICAL_TYPE, getValueType('true'))
+    call assertEqual(LOGICAL_TYPE, getValueType('.true.'), 'case G')
+    call assertEqual(LOGICAL_TYPE, getValueType('.false.'), 'case H')
+    call assertEqual(LOGICAL_TYPE, getValueType('T'), 'case I')
+    call assertEqual(LOGICAL_TYPE, getValueType('F'), 'case J')
+    call assertEqual(LOGICAL_TYPE, getValueType('t'), 'case K')
+    call assertEqual(LOGICAL_TYPE, getValueType('f'), 'case L')
+    call assertEqual(LOGICAL_TYPE, getValueType('t'), 'case M')
+    call assertEqual(LOGICAL_TYPE, getValueType('false'), 'case N')
+    call assertEqual(LOGICAL_TYPE, getValueType('true'), 'case O')
 
-    call assertEqual(STRING_TYPE, getValueType('hello'))
-    call assertEqual(STRING_TYPE, getValueType('truely'))
-    call assertEqual(STRING_TYPE, getValueType('Fa'))
-    call assertEqual(STRING_TYPE, getValueType('''.true.''')) ! has quotes => string
-    call assertEqual(STRING_TYPE, getValueType('".true."')) ! has quotes => string
+    call assertEqual(STRING_TYPE, getValueType('hello'), 'case P')
+    call assertEqual(STRING_TYPE, getValueType('truely'), 'case Q')
+    call assertEqual(STRING_TYPE, getValueType('Fa'), 'case R')
+    call assertEqual(STRING_TYPE, getValueType('''.true.'''), 'case S') ! has quotes => string
+    call assertEqual(STRING_TYPE, getValueType('".true."'), 'case T') ! has quotes => string
 
   end subroutine testGetValueType
 
