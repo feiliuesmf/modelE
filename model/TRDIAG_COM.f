@@ -7,7 +7,7 @@
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
-     &     ,sname_strlen,units_strlen,lname_strlen
+     &     ,sname_strlen,units_strlen,lname_strlen,jm_budg
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_AEROSOLS_SOA
@@ -375,8 +375,7 @@ C**** include some extra troposphere only ones
 #endif
 #endif
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV_loc
+      REAL*8, DIMENSION(JM_BUDG,ktcon,ntmxcon) :: TCONSRV,TCONSRV_loc 
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -1140,7 +1139,6 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
       ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
       ALLOCATE ( TAJLS_loc(  J_0BUDG:J_1BUDG,LM,ktajls    ),stat=status)
-      ALLOCATE ( TCONSRV_loc(J_0BUDG:J_1BUDG,ktcon,ntmxcon),stat=status)
 
       if(am_i_root()) then
          img = IM
@@ -1156,7 +1154,6 @@ C*** Unpack read global data into local distributed arrays
 
       ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV(JM_BUDG,ktcon,ntmxcon), stat=status )
 
 #ifdef NEW_IO
 ! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
