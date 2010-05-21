@@ -4808,7 +4808,7 @@ c Oxidants
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
-#endif
+#endif /* TRACERS_ON */
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
@@ -7073,7 +7073,7 @@ c      end do
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#endif
+#endif /* TRACERS_ON */
       USE DIAG_COM
       implicit none
       integer, intent(inout) :: k
@@ -7206,7 +7206,7 @@ c clear sky scattering asymmetry factor in six solar bands
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#endif
+#endif /* TRACERS_ON */
 #ifdef HTAP_LIKE_DIAGS
       USE MODEL_COM, only: dtsrc
 #endif
@@ -7717,7 +7717,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *       ,' to at least ',k
         call stop_model('ktaijl too small',255)
       end if
-#endif
+#endif /* TRACERS_ON */
 
       return
       end subroutine init_ijlts_diag
@@ -7784,7 +7784,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef SHINDELL_STRAT_EXTRA
       USE TRACER_SOURCES, only:GLTic
 #endif
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
@@ -8104,7 +8104,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
            chem_tracer_save(2,L,I,J)=trm(I,J,L,n)
      &     *byaxyp(i,j)*avog/(tr_mm(n)*2.69e20) ! to atm*cm
          end do   ; end do   ; end do
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
@@ -8272,7 +8272,7 @@ c**** earth
           endif
 #endif
 
-#endif
+#endif /* TRACERS_WATER */
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('Ox')
@@ -8287,7 +8287,7 @@ c**** earth
             stratO3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
 #endif
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 
         case ('NOx')
 #ifdef TRACERS_SPECIAL_Shindell
@@ -8301,7 +8301,7 @@ c**** earth
             if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
 #endif
           end do; end do; end do
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
         case ('ClOx')
@@ -8351,7 +8351,7 @@ c**** earth
      &      trm(i,j,l,n)=trm(i,j,l,n)*1.d2
 #endif
           end do; end do; end do
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*5.d-10
@@ -8462,7 +8462,7 @@ c**** earth
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
           end do; end do; end do
 #endif  /* TRACERS_TERP */
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AEROSOLS_SOA
         case('isopp1g','isopp1a','isopp2g','isopp2a',
@@ -8546,7 +8546,7 @@ c**** earth
           end do   ; end do   ; end do
 #endif
          endif
-#endif
+#endif /* SHINDELL_STRAT_CHEM */
 
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -8636,7 +8636,7 @@ C**** Initialise pbl profile if necessary
 
       end if
       end do
-#endif
+#endif /* TRACERS_ON */
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 C**** Initialise ocean tracers if necessary
       call tracer_ic_ocean
@@ -9871,6 +9871,7 @@ C****
           enddo
         endif
 #endif /* TRACERS_NITRATE || TRACERS_AMP */
+#ifdef TRACERS_AEROSOLS_Koch
 c! TRACERS_AMP
       case ('BCII')
          do j=J_0,J_1
@@ -9885,6 +9886,7 @@ c! TRACERS_AMP
             trsource(:,j,3,n) = OCT_src(:,j,jmon)
 #endif  /* TRACERS_AEROSOLS_SOA */
          end do
+#endif  /* TRACERS_AEROSOLS_Koch */
 
 #ifdef TRACERS_OM_SP
        case ('OCI3')
@@ -9909,7 +9911,6 @@ c!OMSP
 #endif  /* TRACERS_AEROSOLS_SOA */
          end do
 #endif
-#endif  /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
       end select
 
 ! please keep at end of tracer loop :
@@ -10114,7 +10115,9 @@ C**** aircraft source for fresh industrial BC
      *    = BCI_src_3d(:,J_0:J_1,:)
         if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      *    call apply_tracer_3Dsource(2,n) ! aircraft
+#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_SPECIAL_Shindell)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin',
      &      'NH3', 'SO2', 'SO4', 'BCB', 'OCB', 
      &      'M_ACC_SU', 'M_AKK_SU',
@@ -10220,6 +10223,7 @@ C**** 3D biomass source
         endif ! imAER
         call apply_tracer_3Dsource(nBiomass,n)
 #endif
+#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell
 
 #ifdef TRACERS_AMP
       case ('M_BC1_BC')
@@ -10244,8 +10248,8 @@ C**** biomass source for BC
       endif
       call apply_tracer_3Dsource(2,n) ! biomass
 #endif
+#endif /* TRACERS_AMP */
 
-#endif
 #ifdef TRACERS_OM_SP
       case ('OCI1')
 c**** biomass + industrial for OC species
@@ -10443,7 +10447,7 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(nChemistry,n_N_d3) ! NO3 chem prod on dust
 #endif
       CALL TIMER (NOW,MCHEM)
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_NITRATE
 #ifdef TRACERS_SPECIAL_Shindell
        tr3Dsource(I_0:I_1,J_0:J_1,:,3,n_HNO3) = 0.d0
@@ -10491,7 +10495,7 @@ C**** Apply chemistry and overwrite changes:
 #ifdef  TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
 #endif
-#endif
+#endif /* TRACERS_AMP */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_SOA)
@@ -10551,7 +10555,7 @@ C**** Apply chemistry and overwrite changes:
 #endif
       return
       END SUBROUTINE tracer_3Dsource
-#endif
+#endif /* TRACERS_ON */
 
 #ifdef TRACERS_WATER
 C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
