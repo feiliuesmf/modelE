@@ -149,9 +149,9 @@ contains
     generic%type = type
     select case (type)
     case (INTEGER_TYPE)
-      read(string,'(i)',iostat=status) generic%integerValue
+      read(string,'(i20)',iostat=status) generic%integerValue
     case (REAL64_TYPE)
-      read(string,'(g)',iostat=status) generic%real64Value
+      read(string,*,iostat=status) generic%real64Value
     case (LOGICAL_TYPE)
       generic%logicalValue = readLogical(toLowerCase(string), status)
     case (STRING_TYPE)
@@ -349,7 +349,7 @@ contains
       case (REAL64_TYPE)
         same = (genericA%real64Value == genericB%real64Value)
       case (LOGICAL_TYPE)
-        same = (genericA%logicalValue == genericB%logicalValue)
+        same = (genericA%logicalValue .eqv. genericB%logicalValue)
       case (STRING_TYPE)
         same = (genericA%stringValue == genericB%stringValue)
       end select
@@ -372,7 +372,7 @@ contains
   elemental logical function equals_logical(expected, generic) result(same)
     logical, intent(in) :: expected
     type (GenericType_type), intent(in) :: generic
-    same = (generic%type==LOGICAL_TYPE) .and. (generic%logicalValue==expected)
+    same = (generic%type==LOGICAL_TYPE) .and. (generic%logicalValue .eqv. expected)
   end function equals_logical
 
   elemental logical function equals_string(expected, generic) result(same)
