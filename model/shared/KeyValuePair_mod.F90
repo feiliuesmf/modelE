@@ -109,7 +109,13 @@ contains
   function getKeys_array(this) result(keys)
     type (KeyValuePair_type), target :: this(:)
     character(len=MAX_LEN_KEY), pointer :: keys(:)
+#ifdef COMPILER_G95
+!TODO GFortran breaks with a true pointer assignment.
+    allocate(keys(size(this)))
+    keys = this(:)%key
+#else
     keys => this(:)%key
+#endif
   end function getKeys_array
 
   function getValue_1(this) result(value)
