@@ -11,12 +11,13 @@
       integer, parameter :: imt=90,jmt=90
       integer, parameter :: nrvr = 41 ! # of river mouths
       character*80 :: name,nameout,title,
-     &     title1,title2,title3,title4,title5,title6
+     &     title1,title2,title3,title4,title5,title6,PROD
       real*8,parameter :: undef=-1.d30  !missing value
       real*4, dimension(imt,jmt,6) :: down_lat,down_lon
       real*4, dimension(imt,jmt,6) :: down_lat_911,down_lon_911
       real*8, dimension(imt,jmt,6) :: lon_glob,lat_glob
       integer, dimension(imt,jmt,6) :: idown,jdown,kdown
+      integer, dimension(imt,jmt,6) :: id911,jd911,kd911
       integer :: iu_RD,iu_TOPO,iu_MNAME,iu_MIJ,i,j,k
       LOGICAL, dimension(imt,jmt) :: NODIR
       real*4 :: FOCEAN(imt,jmt,6)
@@ -38,8 +39,10 @@ c*    Read ocean fraction
          if (imt .eq. 32) then
             name="Z_CS32_4X5"
          else if (imt .eq. 90) then
-            name="Z_CS90"
+            name="Z_C90fromZ1QX1N"
          endif
+      call GetEnv ('PROD',PROD) !path to input file directory
+      name = trim(PROD) // '/' // name 
       open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
       read(iu_TOPO) title,FOCEAN
       close(iu_TOPO)
@@ -51,6 +54,7 @@ c*    Read names of river mouths
       elseif (imt .eq. 90) then
          name="mouthnames_DtoO_CS90"
       endif
+      name = trim(PROD) // '/' // name
       open(iu_MNAME,FILE=name,FORM='formatted', STATUS='old')
       READ (iu_MNAME,'(A8)') (namervr(I),I=1,nrvr) !Read mouths names
       write(*,*) namervr
@@ -62,7 +66,7 @@ c*    Read i,j,k coordinates of river mouths (k = index of cube face)
       elseif (imt .eq. 90) then
          name="mouthij_DtoO_CS90"
       endif
-      
+      name = trim(PROD) // '/' // name
       open(iu_MIJ,FILE=name,FORM='formatted', STATUS='old')
       READ (iu_MIJ,'(A2,1X,A2,1X,A1)') (      
      &       mouthI(I),mouthJ(I),mouthK(I), I=1,nrvr)
@@ -82,10 +86,10 @@ c*     conversion char to int
          name="RDtoO.CS32"
          nameout="RDdistocean_CS32.bin"
       elseif (imt .eq. 90) then
-         name="RDtoO.CS90"
+         name="RDtoO.CS90.BIN"
          nameout="RDdistocean_CS90.bin"
       endif
-
+      name = trim(PROD) // '/' // name
 
       write(*,*) name,imt,jmt
 
@@ -95,6 +99,9 @@ c*    read i,j,k coordinates of downstream cells
      &        STATUS='unknown')
 
          read(iu_RD) title,idown,jdown,kdown
+         write(*,*) title
+         read(iu_RD) title,id911,jd911,kd911
+         write(*,*) title
          close(iu_RD)
       write(*,*) "read RDijk2ll_CS"
       endif
@@ -102,6 +109,8 @@ c*    read i,j,k coordinates of downstream cells
 c*    form global arrays for mapping (i,j,k) -> (lon,lat)
       call pack_data(grid,lon2d_dg,lon_glob)
       call pack_data(grid,lat2d_dg,lat_glob)
+
+      write(*,*) "HERE"
 
       if (am_i_root()) then
 
@@ -124,11 +133,13 @@ c*    convert i,j,k coordinates of downstream cells to absolute lat-lon coordina
      &            ,kdown(i,j,k))
 
 c*    dummy emergency directions
-              down_lat_911(i,j,k)=down_lat(i,j,k)
-              down_lon_911(i,j,k)=down_lon(i,j,k)
+              down_lat_911(i,j,k)=lat_glob(id911(i,j,k),jd911(i,j,k)
+     &             ,kd911(i,j,k))
+              down_lon_911(i,j,k)=lon_glob(id911(i,j,k),jd911(i,j,k)
+     &             ,kd911(i,j,k))
             write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
-     &           down_lon(i,j,k)-lon_glob(i,j,k),
-     &           down_lat(i,j,k)-lat_glob(i,j,k)
+     &           down_lon_911(i,j,k)-lon_glob(i,j,k),
+     &           down_lat_911(i,j,k)-lat_glob(i,j,k)
             else
               down_lat(i,j,k)=undef
               down_lon(i,j,k)=undef
@@ -149,7 +160,7 @@ c*    output everything
       if (imt .eq. 32) then
          title1="river directions from dist. to ocean, CS32, April 09"
       elseif (imt .eq. 90) then
-         title1="river directions from dist. to ocean, CS90, April 09"
+         title1="river dir. from dist. to ocean, CS90, April 28, 2010"
       endif
 
       title2="Named River Mouths:"

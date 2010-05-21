@@ -1,0 +1,35 @@
+ADDING EMERGENCY RIVER DIRECTIONS TO CUBED SPHERE RVR FILE
+* add emergency RD inside the emergency directions section of RDtoO.CS90EM.F in the input file directory
+under the form
+      ID911(18,39,1) = 17 ; JD911(18,39,1) = 39 ; KD911(18,39,1)= 1
+* compile RDtoO.CS90EM.F and run
+* copy the resulting file RDtoO.CS90.BIN 
+to /discover/nobackup/projects/giss/prod_input_files/
+* cd decks/
+ and use a CS rundeck like E1oCS90L40.R
+* gmake csrvr RUN=E1oCS90L40 NPES=6 CUBE_GRID=YES FVCUBED=YES
+* cp E1oCS90L40_bin/RDijk2ll E1oCS90L40/
+* define the environment variable $PROD to be
+/discover/nobackup/projects/giss/prod_input_files/
+* cp /home/dgueyffi/csrd.pbs E1oCS90L40/
+edit csrd.pbs so that the file and path names are correct
+*cd E1oCS90L40/
+*qsub csrd.pbs
+
+the resulting file RDdistocean_CS90.bin contains the river directions and the emergency river directions
+
+
+CONVERTING RIVER DIRECTIONS FILE FROM ascii to binary
+to convert an ascii RD file like RD_Fa.RVR to binary on Discover
+* go to decks/
+* use a 2x2H rundeck like E4F40.R
+* gmake rvr RUN=R4F40
+this creates the file E4F40_bin/RDconvert
+* cp E4F40_bin/RDconvert E4F40/
+* cp $IFDIR/RD_Fa.RVR E4F40/
+* cd E4F40
+* cp /home/dgueyffi/rd.pbs .
+* edit rd.pbs so that the paths and filenames are correct
+* qsub rd.pbs
+you should see a new RD_Fa.RVR.bin appear in the current directory
+
