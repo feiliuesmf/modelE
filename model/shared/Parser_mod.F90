@@ -374,7 +374,7 @@ contains
     integer :: integerValue
     integer :: status
     
-    read(string,'(i)',iostat=status) integerValue
+    read(string,'(i20)',iostat=status) integerValue
     isInteger = (status == 0)
 
   end function isInteger
@@ -386,7 +386,7 @@ contains
     real*8 :: real64Value
     integer :: status
     
-    read(string,'(g)',iostat=status) real64Value
+    read(string,*,iostat=status) real64Value
     isReal64 = (status == 0)
 
   end function isReal64
