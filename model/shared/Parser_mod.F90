@@ -386,7 +386,7 @@ contains
     real*8 :: real64Value
     integer :: status
     
-    read(string,*,iostat=status) real64Value
+    read(string,'(g30.30)',iostat=status) real64Value
     isReal64 = (status == 0)
 
   end function isReal64
