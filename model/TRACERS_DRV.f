@@ -10115,9 +10115,10 @@ C**** aircraft source for fresh industrial BC
      *    = BCI_src_3d(:,J_0:J_1,:)
         if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      *    call apply_tracer_3Dsource(2,n) ! aircraft
-#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP
+#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_SPECIAL_Shindell)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin',
      &      'NH3', 'SO2', 'SO4', 'BCB', 'OCB', 
      &      'M_ACC_SU', 'M_AKK_SU',
@@ -10223,7 +10224,7 @@ C**** 3D biomass source
         endif ! imAER
         call apply_tracer_3Dsource(nBiomass,n)
 #endif
-#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell
+#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AMP
       case ('M_BC1_BC')
