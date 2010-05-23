@@ -175,7 +175,7 @@ contains
 
     character(len=LEN_HEADER) :: header
 
-    write(header, '(a," - version:",1x,i0)') DESCRIPTION, VERSION
+    write(header, '(a," - version:",1x,i5.0)') DESCRIPTION, VERSION
     write(unit) header
 
     n = getNumTracers(this)
@@ -206,7 +206,7 @@ contains
     character(len=LEN_HEADER) :: header
 
     read(unit) header
-    read(header, '(a," - version:",i)') tag, oldVersion
+    read(header, '(a," - version:",i5.0)') tag, oldVersion
 
     if (tag /= DESCRIPTION) then
       call throwException(DESCRIPTION // '::readUnformatted() - incorrect header.', 14)
