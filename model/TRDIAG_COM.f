@@ -1182,23 +1182,43 @@ C**** can be called from both ocean tracer or atm tracer code
       end subroutine reset_tcons
 
       subroutine gather_zonal_tcons
-      USE DIAG_COM, only : ia_inst
+      USE DIAG_COM, only : ia_inst,jm_budg
       USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV, ia_tcon,ntmxcon,ktcon
-      USE DOMAIN_DECOMP_ATM, only : GRID,am_i_root
-      USE DIAG_ZONAL, only : pack_lc
+      USE DOMAIN_DECOMP_ATM, only : GRID,am_i_root,sumxpe
       implicit none
+      real*8, dimension(:,:,:), allocatable :: tconsrv_sv
       integer :: n,k
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+
+c TCONSRV is a mixture of accumulations and instantaneous values, hence the
+c complicated logic
 ! set inst qtys to zero in the "global" array before summing over PEs
       if(am_i_root()) then
+        allocate(tconsrv_sv(jm_budg,ktcon,ntmxcon)); tconsrv_sv=tconsrv
         do n=1,ntmxcon
           do k=1,ktcon
             if(ia_tcon(k,n).eq.ia_inst) tconsrv(:,k,n)=0.
           enddo
         enddo
       endif
-#endif
-      call pack_lc   (grid, TCONSRV_loc,TCONSRV )
+
+      call sumxpe (TCONSRV_loc,TCONSRV, increment=.true. )
+
+      do n=1,ntmxcon ! keep instantaneous values
+        do k=1,ktcon
+          if(ia_tcon(k,n).ne.ia_inst) tconsrv_loc(:,k,n)=0. 
+        enddo
+      enddo
+
+      if(am_i_root()) then
+        do n=1,ntmxcon
+          do k=1,ktcon
+            if(ia_tcon(k,n).eq.ia_inst .and. all(tconsrv(:,k,n)==0.))
+     &         tconsrv(:,k,n) = tconsrv_sv(:,k,n)
+          enddo
+        enddo
+        deallocate(tconsrv_sv)
+      endif
+
       return
       end subroutine gather_zonal_tcons
 

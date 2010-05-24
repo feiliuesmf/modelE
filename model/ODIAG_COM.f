@@ -1678,9 +1678,6 @@ c
 #ifdef NEW_IO
       ALLOCATE(      TOIJL_out (IM,J_0H:J_1H,LMO,KTOIJLx), STAT=IER )
 #endif
-#ifndef TRACERS_ON
-      ALLOCATE(    TCONSRV_loc(J_0BUDG:J_1BUDG,KTCON,NTMXCON), STAT=IER)
-#endif
 #endif
 
       if(am_i_root()) then
@@ -1688,9 +1685,6 @@ c
         ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN
         ALLOCATE(TOIJL (IM,JM,LMO,KTOIJL,NTM), STAT=IER )
-#ifndef TRACERS_ON
-        ALLOCATE(TCONSRV (JM_BUDG,KTCON,NTMXCON), STAT=IER )
-#endif
 #endif
       else
         ALLOCATE( OIJ (1,1,1), STAT=IER )
