@@ -11,7 +11,6 @@
 !@ get_ships
 !@ get_hist_BMB
 !@ get_BCOC
-!@ read_hist_SO2
 !@ read_hist_NH3
 !@ read_SO2_source
 !@ read_DMS_sources
@@ -23,6 +22,7 @@
 !@ GRAINS
 !@ get_aircraft_SO2
 !@ read_mon_3D
+!@ read_seawifs_chla
       USE TRACER_COM
       IMPLICIT NONE
       SAVE
@@ -44,6 +44,8 @@ c!@var SS1_AER        SALT bin 1 prescribed by AERONET (kg S/day/box)
       real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS1_AER  !(im,jm,366)
 c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS2_AER  !(im,jm,366)
+!@var OC_SS_enrich_fact OCocean enrichment factor of seasalt1
+      real*4, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact !(im,jm)
       INTEGER, PARAMETER :: nso2src  = 1
 !@var SO2_src    SO2 industry: surface source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: SO2_src !(im,jm,nso2src)
@@ -142,6 +144,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
      * OCB_src,OCBt_src,BCI_src_3D,
+#ifdef TRACERS_AEROSOLS_OCEAN
+     * OC_SS_enrich_fact,
+#endif  /* TRACERS_AEROSOLS_OCEAN */
      * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,SO2_biosrc_3D,
      * ohr,dho2r,perjr, tno3r, 
@@ -180,6 +185,7 @@ c     if (imAER.eq.1) then  !don't know if this is OK
       allocate( SS1_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER)
       allocate( SS2_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER) 
 c     endif
+      allocate( OC_SS_enrich_fact(I_0H:I_1H,J_0H:J_1H) ,STAT=IER) 
       allocate( SO2_src(I_0H:I_1H,J_0H:J_1H,nso2src) ,STAT=IER) 
       allocate( BCI_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( BCB_src(I_0H:I_1H,J_0H:J_1H,lmAER,12),STAT=IER )
@@ -1325,15 +1331,16 @@ c
       return
       end SUBROUTINE read_DMS_sources
 
-      SUBROUTINE read_seasalt_sources(swind,itype,ibin,i,j,ss)
+      SUBROUTINE read_seasalt_sources(swind,itype,ibin,i,j,ss,tr)
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
-      USE TRACER_COM, only: OFFLINE_DMS_SS
+      USE TRACER_COM, only: OFFLINE_DMS_SS,OFFLINE_SS
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE MODEL_COM, only: jday
-      USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
+      USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2,
+     &                           OC_SS_enrich_fact
       use param, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
@@ -1341,28 +1348,31 @@ c want kg seasalt/m2/s, for now in 2 size bins
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
+      character*8, intent(in) :: tr
 c
       ss=0.
-        erate=0.d0
-       if (OFFLINE_DMS_SS.ne.1) then
-       if (itype.eq.1) then
+      erate=0.d0
+      if (OFFLINE_DMS_SS.ne.1.or.OFFLINE_SS.ne.1) then
+        if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
-        swind_cap=swind
-        if (swind.gt.10.d0) swind_cap=10.d0
-        erate= 1.373d0 * swind_cap**(3.41d0)
-        if (ibin.eq.1) then
-          ss=tune_ss1*erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
-        else
-          ss=tune_ss2*erate*7.78d-14 ! supermicron (1. < r_d < 4.)
-        endif
+          swind_cap=swind
+          if (swind.gt.10.d0) swind_cap=10.d0
+          erate= 1.373d0 * swind_cap**(3.41d0)
+          if (ibin.eq.1) then
+            ss=tune_ss1*erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
+            if (trim(tr).eq.'OCocean') ss=ss*OC_SS_enrich_fact(i,j)
+          else
+            ss=tune_ss2*erate*7.78d-14 ! supermicron (1. < r_d < 4.)
+          endif
 c     units are kg salt/m2/s
-       endif
+         endif
        else
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
          if (ibin.eq.1) then
            ss=SS1_AER(i,j,jread)/(sday*axyp(i,j))
+           if (trim(tr).eq.'OCocean') ss=ss*OC_SS_enrich_fact(i,j)
          else 
            ss=SS2_AER(i,j,jread)/(sday*axyp(i,j))
          endif
@@ -2546,3 +2556,37 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       end SUBROUTINE read_mon_3D
       
 
+#ifdef TRACERS_AEROSOLS_OCEAN
+      subroutine read_seawifs_chla(imon)
+!@sum read_seawifs_chla Reads in SeaWiFS chlorophyll-a concentration
+!@auth Kostas Tsigaridis
+
+      use filemanager, only: openunit,closeunit,nameunit
+      use domain_decomp_atm, only: grid,get,readt_parallel
+      use aerosol_sources, only: OC_SS_enrich_fact
+      implicit none
+
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &  seawifs_chla
+      integer :: iu, imon
+      integer :: j,i,j_0,j_1,i_0,i_1
+
+      call get(grid, j_strt=j_0, j_stop=j_1)
+      call get(grid, i_strt=i_0, i_stop=i_1)
+
+! read chla SeaWiFS data
+      call openunit('SeaWiFS_chla',iu,.true.,.true.)
+      call readt_parallel(grid,iu,nameunit(iu),seawifs_chla,imon)
+      call closeunit(iu)
+
+! SS enrichment factor of OC (Vignati et al., AE, 2009, 670)
+! if chla is more than 1.43 mg m-3 the enrichment factor remains
+! constant, 76%.
+      do j=j_0,j_1; do i=i_0,i_1
+        OC_SS_enrich_fact(i,j)=min(seawifs_chla(i,j),1.43d0)*
+     &                         0.435d0+0.13805d0
+      enddo ; enddo
+
+      end subroutine read_seawifs_chla
+#endif  /* TRACERS_AEROSOLS_OCEAN */

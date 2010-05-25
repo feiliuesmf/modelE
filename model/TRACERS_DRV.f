@@ -268,6 +268,8 @@ C**** set super saturation parameter for isotopes if needed
     (defined TRACERS_AMP)
 C**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
+C**** seasalt from offline fields
+      call sync_param("OFFLINE_SS",OFFLINE_SS)
 C**** decide on emissions
       call sync_param("imAER",imAER)
 C**** decide if preindustrial emissions
@@ -933,7 +935,7 @@ C          read the CFC initial conditions:
           tr_mm(n) = 96.  !(H2O2 34;SO2 64)
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
           trradius(n)=5.d-7 !m (SO4 3;BC 1;OC 3)
-          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
       case ('SO2')
@@ -953,7 +955,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 96.
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
 #ifdef TRACERS_HETCHEM
@@ -964,7 +966,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 96.   !!!! Sulfat
           trpdens(n)=2.5d3   !kg/m3 this is clay density
           trradius(n)=0.75D-06 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('SO4_d2')
       n_SO4_d2 = n
@@ -973,7 +975,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 96.
           trpdens(n)=2.65d3   !kg/m3 this is silt1 value
           trradius(n)=2.2D-06 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('SO4_d3')
       n_SO4_d3 = n
@@ -982,7 +984,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 96.
           trpdens(n)=2.65d3   !this is silt2 value
           trradius(n)=4.4D-06 !m this is silt2 value
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('N_d1')
       n_N_d1 = n
@@ -991,7 +993,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 62.   ! NO3
           trpdens(n)=2.5d3   !kg/m3 this is clay density
           trradius(n)=0.75D-06 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('N_d2')
       n_N_d2 = n
@@ -1000,7 +1002,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 62.
           trpdens(n)=2.65d3   !kg/m3 this is silt1 value
           trradius(n)=2.2D-06 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('N_d3')
       n_N_d3 = n
@@ -1009,7 +1011,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 62.
           trpdens(n)=2.65d3   !this is silt2 value
           trradius(n)=4.4D-06 !m this is silt2 value
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 #endif
 
@@ -1020,7 +1022,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 12.
           trpdens(n)=1.3d3   !kg/m3
           trradius(n)=1.d-7 !m
-          fq_aer(n)=0.0   !fraction of aerosol that dissolves
+          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('BCIA') !Soluble (aged) industrial BC
       n_BCIA = n
@@ -1029,7 +1031,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 12.
           trpdens(n)=1.3d3   !kg/m3
           trradius(n)=1.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('BCB') !Biomass BC
       n_BCB = n
@@ -1037,7 +1039,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 12.
           trpdens(n)=1.3d3   !kg/m3
           trradius(n)=1.d-7 !m
-          fq_aer(n)=0.6   !fraction of aerosol that dissolves
+          fq_aer(n)=0.6d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCII') !Insoluble industrial organic mass
       n_OCII = n
@@ -1050,7 +1052,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0   !fraction of aerosol that dissolves
+          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCIA') !Aged industrial organic mass
       n_OCIA = n
@@ -1059,7 +1061,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCI1') !Insoluble organic mass, 1st type: WIOC-SA
       n_OCI1 = n
@@ -1068,7 +1070,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0   !fraction of aerosol that dissolves
+          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCA1') !Aged organic mass, 1st type
       n_OCA1 = n
@@ -1077,7 +1079,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCI2') !Insoluble organic mass, 2nd type: WIOC-NA
       n_OCI2 = n
@@ -1086,7 +1088,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0   !fraction of aerosol that dissolves
+          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCA2') !Aged organic mass, 2nd type
       n_OCA2 = n
@@ -1095,7 +1097,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCI3') !Insoluble organic mass, 3rd type: WSOC-LS
       n_OCI3 = n
@@ -1108,7 +1110,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=0.2   !fraction of aerosol that dissolves
+          fq_aer(n)=0.2d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCA3') !Aged organic mass, 3rd type
       n_OCA3 = n
@@ -1117,7 +1119,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCA4') !soluble organic mass, 4th type: WSOC-MS
       n_OCA4 = n
@@ -1126,7 +1128,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCB') !Biomass organic mass
       n_OCB = n
@@ -1134,7 +1136,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=0.8   !fraction of aerosol that dissolves
+          fq_aer(n)=0.8d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
       case ('Be7')
@@ -1148,7 +1150,7 @@ CCC#endif
           trdecay(n) = 1.51d-7
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
           trradius(n) = 1.d-7  !appropriate for stratosphere
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART ! same as SO4
 
       case ('Be10')
@@ -1161,7 +1163,7 @@ CCC#endif
           tr_mm(n) = 10.d0
           trpdens(n) = 1.7d3   !kg/m3 this is SO4 value
           trradius(n) = 1.d-7  !appropriate for stratosphere
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART ! same as SO4
 
       case ('Pb210')
@@ -1171,7 +1173,7 @@ CCC#endif
           trdecay(n) = 9.85d-10
           trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
           trradius(n) = 3.d-7  !again S04 value
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART ! same as SO4
 
       case ('H2O2_s')
@@ -1193,7 +1195,7 @@ CCC#endif
           tr_mm(n) = 75. !Na x 3.256
           trpdens(n)=2.2d3  !kg/m3 This is for non-hydrated
           trradius(n)=4.4d-7 ! This is non-hydrated
-          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('seasalt2')
       n_seasalt2 = n
@@ -1206,7 +1208,15 @@ CCC#endif
 #ifdef TRACERS_AEROSOLS_Koch
           if (imAER.ne.1) trradius(n)=1.7d-6 ! This is non-hydrated
 #endif
-          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+      case ('OCocean') !Insoluble oceanic organic mass
+      n_OCocean = n
+          ntm_power(n) = -11
+          tr_mm(n) = 15.6
+          trpdens(n)=1.5d3   !kg/m3
+          trradius(n)=4.4d-7 !m, same as seasalt1
+          fq_aer(n)=0.0d0
           tr_wd_TYPE(n) = nPART
       case ('NH3')
       n_NH3 = n
@@ -1225,7 +1235,7 @@ CCC#endif
           tr_mm(n) = 18.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('NO3p')
       n_NO3p = n
@@ -1234,7 +1244,7 @@ CCC#endif
           tr_mm(n) = 62.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.0   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
 #ifdef TRACERS_DUST
@@ -1628,7 +1638,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 62.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7 !m
-          fq_aer(n)=1.   !fraction of aerosol that dissolves
+          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('M_NH4')
       n_M_NH4 = n
@@ -1637,7 +1647,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = 18.
           trpdens(n)=1.7d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1.0d0
           tr_wd_TYPE(n) = nPART
       case ('M_H2O')
       n_M_H2O = n
@@ -1646,7 +1656,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_mm(n) = mwat
           trpdens(n)=1.d3
           trradius(n)=3.d-7
-          fq_aer(n)=1.
+          fq_aer(n)=1.0d0
           tr_wd_TYPE(n) = nPART !nWater
       case ('M_AKK_SU')
       n_M_AKK_SU = n
@@ -3066,7 +3076,8 @@ C**** set some defaults
           end if
 #endif
 
-        case ('seasalt1','seasalt2', 'Clay','Silt1','Silt2','Silt3'
+        case ('seasalt1','seasalt2','OCocean' ! CHECK maybe add a source diagnostic for OCocean here
+     *       ,'Clay','Silt1','Silt2','Silt3'
      *       ,'Silt4','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
      *       ,'ClayQuar','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
      *       ,'Sil1Gyps','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
@@ -4401,40 +4412,27 @@ c gravitational settling of OCIA
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-      case ('seasalt1')
+      case ('seasalt1', 'seasalt2', 'OCocean')
+c ocean source
         k = k + 1
         jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_source_of'//trname(n)
-        lname_jls(k) = 'seasalt1 ocean source'
+        sname_jls(k) = trim(trname(n))//'_ocean_source'
+        lname_jls(k) = trim(trname(n))//' ocean source'
         jls_ltop(k) = 1
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-c gravitational settling of ss1
+c gravitational settling
         k = k + 1
         jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of seasalt1'
+        sname_jls(k) = trim(trname(n))//'_grav_sett'
+        lname_jls(k) = trim(trname(n))//' gravitational settling'
         jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-      case ('seasalt2')
-        k = k + 1
-        jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_source_of'//trname(n)
-        lname_jls(k) = 'seasalt2 ocean source'
-        jls_ltop(k) = 1
-        jls_power(k) =1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-c gravitational settling of ss2
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of seasalt2'
-        jls_ltop(k) = LM
-        jls_power(k) =0
+        select case (trname(n))
+        case ('seasalt1', 'OCocean')
+          jls_power(k) = -2
+        case ('seasalt2')
+          jls_power(k) =0
+        end select
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -6322,87 +6320,77 @@ c source of Pb210 from Rn222 decay
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-      case ('seasalt1')
+      case ('seasalt1', 'seasalt2', 'OCocean')
         k = k + 1
         ijts_isrc(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'seasalt1 Ocean source'
-        sname_ijts(k) = 'seasalt1_Ocean_source'
+        lname_ijts(k) = trim(trname(n))//' Ocean source'
+        sname_ijts(k) = trim(trname(n))//'_Ocean_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-        call set_diag_rad(n,k)
+        call set_diag_rad(n,k) ! CHECK do we need this call for the OCocean tracer?
 
+        select case (trname(n))
+        case ('seasalt1')
 c SS shortwave radiative forcing
-        k = k + 1
-        ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS SW radiative forcing'
-        sname_ijts(k) = 'swf_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(1,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS SW radiative forcing'
+          sname_ijts(k) = 'swf_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SS longwave radiative forcing
-        k = k + 1
-        ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS LW radiative forcing'
-        sname_ijts(k) = 'lwf_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(2,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS LW radiative forcing'
+          sname_ijts(k) = 'lwf_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SS shortwave surface radiative forcing
-        k = k + 1
-        ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS SW surface rad forcing'
-        sname_ijts(k) = 'swf_surf_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(3,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS SW surface rad forcing'
+          sname_ijts(k) = 'swf_surf_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SS longwave surface radiative forcing
-        k = k + 1
-        ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS LW surface rad forcing'
-        sname_ijts(k) = 'lwf_surf_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(4,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS LW surface rad forcing'
+          sname_ijts(k) = 'lwf_surf_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SS clear sky shortwave radiative forcing
-        k = k + 1
-        ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS clr sky SW rad forcing'
-        sname_ijts(k) = 'swf_CS_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(5,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS clr sky SW rad forcing'
+          sname_ijts(k) = 'swf_CS_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
 c SS clear sky longwave radiative forcing
-        k = k + 1
-        ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'SS clr sky LW rad forcing'
-        sname_ijts(k) = 'lwf_CS_SS'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(6,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS clr sky LW rad forcing'
+          sname_ijts(k) = 'lwf_CS_SS'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        end select
 #endif
-       case ('seasalt2')
-        k = k + 1
-        ijts_isrc(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'seasalt2 Ocean source'
-        sname_ijts(k) = 'seasalt2_Ocean_source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef TRACERS_AEROSOLS_Koch
 
-       call set_diag_rad(n,k)
-
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       CASE('Clay','Silt1','Silt2','Silt3','Silt4',
@@ -7742,7 +7730,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *     tr_mm,rnsrc,vol2mass
 #if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
     (defined TRACERS_AMP)
-     *     ,imAER,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS
+     *     ,imAER,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
 #endif
 #ifdef TRACERS_WATER
      *     ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
@@ -8450,23 +8438,12 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
           end do; end do; end do
-
-#ifdef TRACERS_TERP
-        case ('Terpenes')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
-          end do; end do; end do
-#endif  /* TRACERS_TERP */
 #endif /* TRACERS_SPECIAL_Shindell */
 
-#ifdef TRACERS_AEROSOLS_SOA
-        case('isopp1g','isopp1a','isopp2g','isopp2a',
-     &       'apinp1g','apinp1a','apinp2g','apinp2a')
+        case('Terpenes',
+     &       'isopp1g','isopp1a','isopp2g','isopp2a',
+     &       'apinp1g','apinp1a','apinp2g','apinp2a',
+     &       'OCocean')
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
@@ -8475,7 +8452,6 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
           end do; end do; end do
-#endif  /* TRACERS_AEROSOLS_SOA */
 
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
         case ('CO2n')
@@ -8669,7 +8645,7 @@ c will call read_dist_data for cubed sphere compatibility
       endif
  901  FORMAT(3X,3(I4),E11.3)
 c read in AEROCOM seasalt
-      if (OFFLINE_DMS_SS.eq.1) then
+      if (OFFLINE_DMS_SS.eq.1.or.OFFLINE_SS.eq.1) then
         status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
         status=NF_INQ_VARID(ncidu,'salt',id1)
         start(1)=i_0
@@ -9805,6 +9781,10 @@ C****
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
+#ifdef TRACERS_AEROSOLS_OCEAN
+      call read_seawifs_chla(jmon) ! CHECK this has to be called once per month, not every timestep
+#endif  /* TRACERS_AEROSOLS_OCEAN */
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
      &      'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
@@ -9889,27 +9869,26 @@ c! TRACERS_AMP
 #endif  /* TRACERS_AEROSOLS_Koch */
 
 #ifdef TRACERS_OM_SP
-       case ('OCI3')
+      case ('OCI3')
 #ifndef TRACERS_AEROSOLS_SOA
-         do j=J_0,J_1
-            trsource(:,j,1,n) = OCT_src(:,j,jmon)
-         end do
+        do j=J_0,J_1
+          trsource(:,j,1,n) = OCT_src(:,j,jmon)
+        end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 #endif
 c!OMSP
 #ifdef TRACERS_AMP
-       case ('M_BC1_BC')
-         do j=J_0,J_1
-         trsource(:,j,1,n) = BCI_src(:,j)+ BC_ship(:,j,jmon)
-
-         end do
-       case ('M_OCC_OC')
-         do j=J_0,J_1
-         trsource(:,j,1,n) = OCI_src(:,j,1) +POM_ship(:,j,jmon)
+      case ('M_BC1_BC')
+        do j=J_0,J_1
+          trsource(:,j,1,n) = BCI_src(:,j)+ BC_ship(:,j,jmon)
+        end do
+      case ('M_OCC_OC')
+        do j=J_0,J_1
+          trsource(:,j,1,n) = OCI_src(:,j,1) +POM_ship(:,j,jmon)
 #ifndef TRACERS_AEROSOLS_SOA
-     *     +OCT_src(:,j,jmon)
+     *    +OCT_src(:,j,jmon)
 #endif  /* TRACERS_AEROSOLS_SOA */
-         end do
+        end do
 #endif
       end select
 
@@ -10512,6 +10491,9 @@ C**** Apply chemistry and overwrite changes:
 #ifdef TRACERS_AEROSOLS_SOA
      &       'isopp1a', 'isopp2a', 'apinp1a', 'apinp2a',
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &       'OCocean',
+#endif  /* TRACERS_AEROSOLS_OCEAN */
      &       'Clay','seasalt1','N_d1','SO4_d1')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
@@ -11089,7 +11071,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
      * tr_RKD,tr_DHD,LM,NTM,rc_washt
 #ifdef TRACERS_AEROSOLS_Koch
-     * ,trname,n_seasalt1,n_seasalt2
+c     * ,trname,n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
 c      USE CLOUDS, only: NTIX,PL
@@ -11177,7 +11159,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
      * tr_RKD,tr_DHD,NTM,rc_washt
 #ifdef TRACERS_AEROSOLS_Koch
-     * ,trname,n_seasalt1,n_seasalt2
+c     * ,trname,n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
 
