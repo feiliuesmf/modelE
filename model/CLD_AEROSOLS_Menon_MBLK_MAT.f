@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       SUBROUTINE GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
@@ -74,10 +75,14 @@ c     SSM1 = 9.55d11*DSU(1)         ! all sulfate
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
 c     SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-c     SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
+c     SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
 c     SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-c     SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
-c     SSM8 = 1.70d12*((DSU(18))+(DSU(19))+(DSU(20))+(DSU(21))) !SOA: 100% hydrophillic) 
+c     SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
+c     SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+c    &               +DSU(19)*fq_aer(n_isopp2a)
+c    &               +DSU(20)*fq_aer(n_apinp1a)
+c    &               +DSU(21)*fq_aer(n_apinp2a)
+c    &               )! SOA
 c
 C** Land Na (cm-3) is from sulfate+OC+BC and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
@@ -150,7 +155,7 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
         DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
 C** but including nitrates
-          if (n.gt.9.and.n.le.13) then
+        if (n.gt.9.and.n.le.13) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
         if (n.gt.14.and.n.le.17) then
@@ -166,15 +171,17 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &       +DSU(20)+DSU(21)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
-     &       )! SOA with 100% solubility
+     &               )! SOA
 #else
       SSM8=0.d0
 #endif
@@ -237,7 +244,7 @@ C*** DSU gives you aerosol mass in  kg/m3, DSS is in kg of species
 C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
       tams=1.d0/amass*rho
       do n = 1,nt
-         DSU(n) =DSS(n)*tams
+        DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions but with NO3
         if (n.gt.9.and.n.le.13) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
@@ -263,15 +270,17 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &       +DSU(20)+DSU(21)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
-     &       )! SOA with 100% solubility
+     &               )! SOA with 100% solubility
 #else
       SSM8=0.d0
 #endif
@@ -439,15 +448,17 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &       +DSU(20)+DSU(21)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
-     &       )! SOA with 100% solubility
+     &               )! SOA
 #else
       SSM8=0.d0
 #endif
