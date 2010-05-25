@@ -83,12 +83,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_koch=0
 #endif  /* TRACERS_AEROSOLS_Koch */
-!@var ntm_ococean: Number of TRACERS_AEROSOLS_OCEAN tracers.
-#ifdef TRACERS_AEROSOLS_OCEAN
-      integer, parameter :: ntm_ococean=1
-#else
-      integer, parameter :: ntm_ococean=0
-#endif  /* TRACERS_AEROSOLS_OCEAN */
 !@var ntm_dust: Number of TRACERS_DUST tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)
 #ifdef TRACERS_DUST_Silt4
@@ -227,7 +221,7 @@ c          (in order to calculate dust emissions), but not added to ntm.
      *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
      *                          ntm_minerals+ntm_quarzhem+
      *                          ntm_ocean+ntm_air+ntm_chem+
-     *                          ntm_shindell_extra+ntm_ococean
+     *                          ntm_shindell_extra
 #endif
 C**** Each tracer has a variable name and a unique index
 C**** The chemistry species need to be declared first, until the
@@ -291,9 +285,6 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    'OCII    ','OCIA    ','OCB     ',
 #endif  /* SULF_ONLY_AEROSOLS */
 #endif  /* TRACERS_AEROSOLS_Koch */
-#ifdef TRACERS_AEROSOLS_OCEAN
-     *    'OCocean    ',
-#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_DUST
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   ',
 #ifdef TRACERS_DUST_Silt4
@@ -750,7 +741,6 @@ C**** do igas=1,ntm_chem instances get corrected.
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
      *     n_OCI1=0,  n_OCI2=0,  n_OCI3=0,
      *     n_OCA1=0,  n_OCA2=0,  n_OCA3=0, n_OCA4,
-     *     n_OCocean=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
      &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,
      &     n_clayquar=0,n_sil1quar=0,n_sil1feld=0,n_sil1calc=0,
