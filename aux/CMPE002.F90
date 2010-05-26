@@ -384,7 +384,9 @@
 
       implicit none
       logical, parameter :: tt=.true.
+#if (! defined(COMPILER_NAG) ) && (! defined(COMPILER_G95) )
       integer, external :: iargc
+#endif
       integer Itime(2)
       integer ioerr
       character*120 file_name(2)
