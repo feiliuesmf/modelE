@@ -1344,7 +1344,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 c
       ss=0.
       erate=0.d0
-      if (OFFLINE_DMS_SS.ne.1.or.OFFLINE_SS.ne.1) then
+      if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
         if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
           swind_cap=swind
