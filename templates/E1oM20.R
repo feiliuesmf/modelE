@@ -23,7 +23,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers  
+RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -40,7 +40,7 @@ VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules 
+SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
@@ -67,7 +67,7 @@ Data input files:
 ! AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
 ! GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
 ! OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
-AIC=1JAN2012.rsfE051oM20A            ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
+AIC=1JAN2006.rsfEAR4M20o13           ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
@@ -140,7 +140,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
