@@ -22,7 +22,8 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, DIMENSION(LM,nmodes,7)     :: dry_Vf_LEV
       ! FALSE : one Radiation call
       ! TRUE  : nmodes Radiation calls
-      LOGICAL, PARAMETER                 :: AMP_DIAG_FC = .FALSE.
+      INTEGER                            :: AMP_RAD_KEY = 1 ! 1=Volume Mixing || 2=Core - Shell || 3=Maxwell Garnett
+      LOGICAL ,PARAMETER                 :: AMP_DIAG_FC = .TRUE.  ! TRUE=nmode radiation calls  ||  FALSE=one radiation call
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
