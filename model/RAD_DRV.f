@@ -1913,7 +1913,7 @@ c set for BC-albedo effect
         dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
-        IF (AMP_DIAG_FC) THEN
+        IF (AMP_DIAG_FC == 2) THEN
           Do n = 1,nmodes
             FSTOPX(n) = 1-onoff_aer !turns off online tracer
             FTTOPX(n) = 1-onoff_aer !
@@ -2536,7 +2536,7 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
 #ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC) THEN
+         IF (AMP_DIAG_FC == 2) THEN
             NTRACE = nmodes
          ELSE
             NTRACE = 1
@@ -2657,7 +2657,7 @@ c longwave forcing at surface (if required)
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
                END SELECT
 #ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC) THEN
+         IF (AMP_DIAG_FC == 2) THEN
          ELSE
          NTRIX(1)=  n_N_AKK_1
          ENDIF

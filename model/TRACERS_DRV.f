@@ -94,7 +94,7 @@
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
+      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
@@ -276,6 +276,12 @@ C**** decide if preindustrial emissions
       call sync_param("imPI",imPI)
 C**** determine year of emissions
       call sync_param("aer_int_yr",aer_int_yr)
+#endif
+#if (defined TRACERS_AMP)
+C**** Decide on how many times Radiation is called for aerosols once or nmode, default one call
+      call sync_param("AMP_DIAG_FC",AMP_DIAG_FC)
+C**** Decide Radiative Mixing Rules - Volume - Core Shell - Maxwell Garnett, default Volume
+      call sync_param("AMP_RAD_KEY",AMP_RAD_KEY)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -1617,12 +1623,10 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 98.
-          tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
-          tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
-#ifdef TRACERS_DRYDEP
-          HSTAR(n)=1.d5
-#endif
-          tr_wd_TYPE(n) = nGAS
+          trpdens(n)= DENS_SULF
+          trradius(n)= DG_ACC * .5d-6
+          fq_aer(n) = SOLU_ACC
+          tr_wd_TYPE(n) = nPART
       case ('M_NO3')
       n_M_NO3 = n
           ntm_power(n) = -11
@@ -6921,7 +6925,7 @@ c- interactive sources diagnostic
      *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
-      IF (AMP_DIAG_FC) THEN
+      IF ( AMP_DIAG_FC == 2 ) THEN
 cc shortwave radiative forcing
       k = k + 1
         ijts_fc(1,n) = k
@@ -6985,7 +6989,7 @@ c Special Radiation Diagnostic
       end do
 
 c - Tracer independent Diagnostic
-      IF (.not. AMP_DIAG_FC) THEN
+      IF ( AMP_DIAG_FC == 1 ) THEN
         n=1    !  really? why use ijts_fc then?
 cc shortwave radiative forcing
         k = k + 1

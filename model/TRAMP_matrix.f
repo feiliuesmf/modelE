@@ -356,7 +356,6 @@
 
       IF( WRITE_LOG ) WRITE(AUNIT1,'(/A,F12.4/)') 'TOT_SULF = ', TOT_SULF
 
-      IF( CPU_STATS ) CALL CPUTIME( 2 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Call the aerosol thermodynamic module to determine the bulk gas-particle 
@@ -406,7 +405,6 @@
       ENDIF                           ! is currently set to 35% (ammonium sulfate),
                                       ! SSH2O should already be zero here. 
 
-      IF( CPU_STATS ) CALL CPUTIME( 3 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Get the mass of species Q in mode (or quadrature point) I for the
@@ -563,7 +561,6 @@
         IF( GET_DEP_VEL_ONLY ) RETURN
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 4 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Update the coagulation coefficients, if desired. [m^3/s]
@@ -579,7 +576,6 @@
         !--------------------------------------------------------------------------------------------------------------
       END SELECT
 
-      IF( CPU_STATS ) CALL CPUTIME( 5 )
 
       !----------------------------------------------------------------------------------------------------------------
       !
@@ -671,7 +667,6 @@
         DMDT_SO4 = 0.0D+00
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 6 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Get the B_i loss       terms due to intermodal coagulation. [1/s]
@@ -709,7 +704,6 @@
         ENDDO
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 7 )
 
       !----------------------------------------------------------------------------------------------------------------
       !
@@ -753,7 +747,6 @@
         ENDDO
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 8 )
 
       !-------------------------------------------------------------------------------------------------------------------
       ! Get the Pcoag_i,q terms for the production of mass species Q in mode or quadrature point I 
@@ -862,7 +855,6 @@
         ENDDO
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 9 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Get the Pcloud_i,q terms due to the in-cloud production of sulfate
@@ -976,7 +968,6 @@
         WRITE(AUNIT1,*)'PIQ(1,PROD_INDEX_SULF) = ', PIQ(1,PROD_INDEX_SULF)
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 10 )
 
       !----------------------------------------------------------------------------------------------------------------
       !
@@ -1016,7 +1007,6 @@
         ENDDO
       ENDIF
 
-      IF( CPU_STATS ) CALL CPUTIME( 11 )
 
       !----------------------------------------------------------------------------------------------------------------
       !
@@ -1050,7 +1040,6 @@
         ENDIF
       ENDDO
 
-      IF( CPU_STATS ) CALL CPUTIME( 12 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Update the nitrate, ammonium and aerosol water concentrations.
@@ -1093,7 +1082,6 @@
       !----------------------------------------------------------------------------------------------------------------
       AERO(MASS_H2O) = AERO(MASS_H2O) + SSH2O         ! Total aerosol water now.
 
-      IF( CPU_STATS ) CALL CPUTIME( 13 )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Transfer mass and number concentrations from DD1 to DS1, DD2 to DS2,
@@ -1323,7 +1311,6 @@ c          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM )
 c        ENDDO 
 c      ENDDO 
 
-      IF( CPU_STATS ) CALL CPUTIME( 14 )
 
 90000 FORMAT(3I6,D15.5)
 90001 FORMAT(1I6,2D15.5)
