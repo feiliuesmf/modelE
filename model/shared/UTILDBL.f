@@ -2,7 +2,7 @@
 !@sum  UTILDBL Model Independent Utilities
 !@auth Original Development Team
 !@ver  1.0
-!@cont THBAR,QSAT,DQSATDT,READT,DREAD,MREAD
+!@cont THBAR,QSAT,DQSATDT,READT
 
 #if ( defined USE_ESMF )  || ( defined USE_MPP )
 #define USE_MPI
@@ -108,63 +108,6 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       RETURN
       END FUNCTION SLP
 
-
-      SUBROUTINE DREAD (IUNIT,AIN,LENGTH,AOUT)
-!@sum   DREAD   read in real*4 array and convert to real*8
-!@auth  Original Development Team
-!@ver   1.0
-!@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit
-      IMPLICIT NONE
-      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
-      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
-      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
-      INTEGER :: N                        !@var  N      loop variable
-
-      READ (IUNIT,ERR=910,END=920) AIN
-C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-        AOUT(N)=AIN(N)
-      END DO
-      WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
-      RETURN
-  910 WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME(IUNIT))
-      call stop_model('dREAD: READ ERROR',255)
-  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',TRIM(NAME(IUNIT))
-      call stop_model('dREAD: No data found',255)
-      RETURN
-      END
-
-      SUBROUTINE MREAD (IUNIT,M,NSKIP,AIN,LENGTH,AOUT)
-!@sum   MREAD   read in integer and real*4 array and convert to real*8
-!@auth  Original Development Team
-!@ver   1.0
-!@var NAME name of record being read
-      USE FILEMANAGER, only : NAME=>nameunit
-      IMPLICIT NONE
-      INTEGER :: IUNIT                    !@var  IUNIT  file unit number
-      INTEGER, INTENT(OUT) :: M           !@var  M      initial integer
-      INTEGER, INTENT(IN) :: NSKIP        !@var  NSKIP  words to skip
-      INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
-      REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
-      REAL*4 :: X                         !@var  X      dummy variable
-      INTEGER :: N                        !@var  N      loop variable
-
-      READ (IUNIT,ERR=910,END=920) M,(X,N=1,NSKIP),AIN
-C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-        AOUT(N)=AIN(N)
-      END DO
-      WRITE(6,*) "Sucessful read from file ",NAME(IUNIT)
-      RETURN
-  910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)
-      call stop_model('mREAD: READ ERROR',255)
-  920 WRITE(6,*) 'END OF FILE ENCOUNTERED ON FILE ',NAME(IUNIT)
-      call stop_model('mREAD: No data found',255)
-      RETURN
-      END
 
       SUBROUTINE READT (IUNIT,NSKIP,LENGTH,AOUT,IPOS)
 !@sum   READT  read in title and real*4 array and convert to real*8
@@ -600,7 +543,7 @@ C****      '(' is required, so it is inserted
       clean_str=trim(string)
       do k=1,len_trim(string)
          if (clean_str(k:k).eq." " .or. clean_str(k:k).eq."+")
-     $        clean_str(k:k)="_" 
+     $        clean_str(k:k)="_"
       end do
       return
       end function clean_str

@@ -295,23 +295,23 @@ c**** temporary array to read in data
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
-      ierr=0
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
         CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)
         READ (io_data,IOSTAT=ierr) table1
         name=TRIM(nameunit(io_data))
         CALL closeunit(io_data)
+        IF (ierr == 0) then
+          write(6,*) ' Read from file '//TRIM(name)
+        ELSE
+          WRITE(cierr,'(I2)') ierr
+          write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
+        END IF
       END IF
-      IF (ierr == 0) THEN
-        CALL write_parallel(' Read from file '//TRIM(name),unit=6)
-      ELSE
-        WRITE(cierr,'(I2)') ierr
-        CALL write_parallel(' READ ERROR ON FILE '//TRIM(name)//
-     &       ': IOSTAT='//cierr,unit=6)
-        CALL stop_model('init_dust: READ ERROR',255)
-      END IF
+      CALL esmf_bcast(grid,ierr)
+      IF (ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
       CALL esmf_bcast(grid,table1)
+
 c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
       zsum=0.D0
       DO j=1,Kjm
@@ -394,7 +394,7 @@ c**** Read input: fraction clay
         CALL openunit('FRCLAY',io_data,.TRUE.,.TRUE.)
         CALL dread_parallel(grid,io_data,nameunit(io_data),frclay)
         CALL closeunit(io_data)
-        
+
 c**** Read input: fraction silt
         CALL openunit('FRSILT',io_data,.TRUE.,.TRUE.)
         CALL dread_parallel(grid,io_data,nameunit(io_data),frsilt)
@@ -700,7 +700,7 @@ c**** set parameters depending on the preferred sources chosen
             ires=5
           end select
         end select
-  
+
         if (am_i_root()) then
           write(6,*) ' Actually used parameters for soil dust emission:'
           write(6,'(1x,a28,f12.9)') '  Clay: fracClayPDFscheme = '
@@ -735,17 +735,17 @@ c**** Read input: EMISSION LOOKUP TABLE data
           END DO
           name=nameunit(io_data)
           CALL closeunit(io_data)
+          IF (ierr == 0) THEN
+            write(6,*) ' Read from file '//TRIM(name)
+          ELSE
+            WRITE(cierr,'(I2)') ierr
+            write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
+          END IF
         END IF
-        IF (ierr == 0) THEN
-          CALL write_parallel(' Read from file '//TRIM(name),unit=6)
-        ELSE
-          WRITE(cierr,'(I2)') ierr
-          CALL write_parallel(' READ ERROR ON FILE '//TRIM(name)//
-     &         ': IOSTAT='//cierr,unit=6)
-          CALL stop_model('init_dust: READ ERROR',255)
-        END IF
+        CALL esmf_bcast(grid,ierr)
+        if(ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
         CALL esmf_bcast(grid,table)
-          
+
 c**** index of table for threshold velocity from 6.5 to 17 m/s
         DO k=1,Lkm
           x3(k)=6.d0+0.5d0*k
