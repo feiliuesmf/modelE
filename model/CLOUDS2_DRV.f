@@ -1427,7 +1427,7 @@ C**** TRACERS: Use only the active ones
 #endif
 #ifdef TRACERS_AMP
            if (trname(n).eq."M_ACC_SU") then
-           AQsulfRATE(i,j,l)=  dt_sulf_mc(n,l)+dt_sulf_ss(n,l)
+          AQsulfRATE(i,j,l)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
            endif
 #endif
         end do
