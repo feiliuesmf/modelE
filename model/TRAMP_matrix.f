@@ -103,10 +103,10 @@
       REAL(8) :: AERO_WATER_WET            ! wet    aerosol H2O conc. [ug/m^3]
       REAL(8) :: RHD                       ! deliquescence   RH [0-1]
       REAL(8) :: RHC                       ! crystallization RH [0-1]
-      REAL(8) :: DGN(NWEIGHTS)             ! ambient geometric mean diameter of the number distribution for each mode [um]
-      REAL(8) :: DGN_DRY(NWEIGHTS)         ! geometric mean dry diameter of the number distribution for each mode [um]
-      REAL(8) :: DP(NWEIGHTS)              ! ambient diameter of average mass of the number distribution for each mode [um]
-      REAL(8) :: DP_DRY(NWEIGHTS)          ! dry diameter of average mass of the number distribution for each mode [um]
+      REAL(8) :: DGN(NWEIGHTS)             ! ambient geometric mean diameter of the number distribution for each mode [m]
+      REAL(8) :: DGN_DRY(NWEIGHTS)         ! geometric mean dry diameter of the number distribution for each mode [m]
+      REAL(8) :: DP(NWEIGHTS)              ! ambient diameter of average mass of the number distribution for each mode [m]
+      REAL(8) :: DP_DRY(NWEIGHTS)          ! dry diameter of average mass of the number distribution for each mode [m]
       REAL(8) :: P_EMIS_NUMB(NMODES)       ! number emission rates [#/m^3/s]       
       REAL(8) :: SPCMASS1(NMASS_SPCS+2)    ! initial total mass conc. of each model species [ug/m^3]
       REAL(8) :: SPCMASS2(NMASS_SPCS+2)    ! final   total mass conc. of each model species [ug/m^3]
@@ -495,10 +495,14 @@
           DENS_MODE_DRY(I) = TOT_MASS_DRY(I) / VOLTMP_DRY                  ! mode dry     density [g/cm^3] 
           DP    (I) = ( CONV_VOL_TO_DP_FAC * VOLTMP     / NI(I) )**0.333333333333333  ! [m]
           DP_DRY(I) = ( CONV_VOL_TO_DP_FAC * VOLTMP_DRY / NI(I) )**0.333333333333333  ! [m]
+          IF (NI(I) .LT. 1.) THEN
+             DP(I)     = DP0(I)
+             DP_DRY(I) = DP0(I)
+          ENDIF   
           ! IF( DP(I) .GT. DPMAX_GLOBAL ) WRITE(*,'(I4,3D15.5)') I,DP(I),NI(I),TOT_MASS(I)
           DP    (I) = MIN( MAX( DP    (I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
           DP_DRY(I) = MIN( MAX( DP_DRY(I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
-          DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
+         DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
           !------------------------------------------------------------------------------------------------------------
           ! Update values of KCI_COEF_DP(I) for the current diameter of average mass for each mode.
           ! THETA_POLY(I) prevents excessive condensation due to treating the mode as monodisperse.
