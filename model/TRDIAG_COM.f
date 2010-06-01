@@ -97,7 +97,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1640
+      INTEGER,PARAMETER :: ktaijs=1800
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
@@ -110,7 +110,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@dbparam diag_rad switches on/off comprehensive radiative diags for tracers
       INTEGER :: diag_rad=0 ! =off (default)
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: TAIJS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
