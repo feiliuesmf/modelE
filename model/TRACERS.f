@@ -876,7 +876,7 @@ C**** coefficients for hydration radius if required
 C**** Determine if hydration of aerosols is required
       if (hydrate) then
         rh=max(0.01d0,min(rh1,0.99d0))
-C**** hydrated radius (reference?)
+C**** hydrated radius (Gerber, 1988)
         rad=(c1*tr_radius**(c2)/(c3*tr_radius**(c4)-log10(rh))
      *       + tr_radius**3)**by3
 C**** hydrated density
