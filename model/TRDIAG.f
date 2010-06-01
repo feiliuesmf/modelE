@@ -99,6 +99,7 @@ c
         tajl(:,l,k) = ajl(:,l,jl_dwasrc)*bydxyp(:)
       enddo
 
+#ifndef TRACERS_AMP
 #ifdef TRACERS_WATER
 c
       k = k + 1
@@ -114,7 +115,7 @@ c
       enddo
 
 #endif
-
+#endif
 
 C****
 C**** LOOP OVER TRACERS
