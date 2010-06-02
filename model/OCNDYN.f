@@ -706,7 +706,7 @@ C**** restart file with different topography)
       end if
 
 C**** Initialize straits arrays
-      iniStraits=iniOCEAN.or.(istart.lt.9)
+      iniStraits=iniOCEAN.or.(istart.lt.9.and.istart.gt.0)
       call init_STRAITS(iniStraits)
 
 C**** Adjust global mean salinity if required (only at first start up)
