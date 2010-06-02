@@ -330,10 +330,20 @@ C**** get rundeck parameter for cosmogenic source factor
         if(.not. do_fire(n))then
           select case (trname(n))
           case ('Alkenes', 'CO', 'NOx', 'Paraffin',
-     &          'NH3', 'SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
+     &          'NH3', 'SO2', 'BCB', 'OCB',
+     &          'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
             call sync_param(trim(trname(n))//"_nBBsources",
      &                      nBBsources(n))
             ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
+#ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AMP
+            select case (trname(n))
+            case ('M_OCC_OC') ! this handles OCT_src (terpene source)
+              ntsurfsrc(n)=ntsurfsrc(n)+1
+              ssname(n,ntsurfsrc(n))="Terpene source"
+            end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
           end select
         endif
 ! special cases:
@@ -1852,7 +1862,6 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('M_OCC_OC')
       n_M_OCC_OC = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
           tr_mm(n) = 15.6
           trpdens(n)= DENS_OCAR
           trradius(n)=DG_OCC * .5d-6
@@ -1879,7 +1888,6 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('M_BC1_BC')
       n_M_BC1_BC = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 1
           tr_mm(n) = 12.
           trpdens(n)= DENS_BCAR
           trradius(n)=DG_BC1 * .5d-6
@@ -3133,16 +3141,17 @@ c- Species including AMP  emissions - 2D sources and 3D sources
             qsum(g) = .false.
           end if
 #endif
-          g=g+1; itcon_3Dsrc(nChemistry,n) = g !kt is the index correct?
+          g=g+1; itcon_3Dsrc(nChemistry,n) = g
           qcon(g) = .true.; conpts(g-12) = 'AMP source'
           qsum(g) = .true.
           select case (trname(n))
             case ('M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
-     *           ,'M_DD2_DU','M_BC1_BC', 'M_OCC_OC')
+     *           ,'M_DD2_DU')
               g=g+1; itcon_surf(1,n) = g
               qcon(g) = .true.; conpts(g-12) = 'Emission 2D AMP'
               qsum(g) = .true.
-            case ('M_AKK_SU','M_ACC_SU','M_BOC_BC','M_BOC_OC')
+            case ('M_AKK_SU','M_ACC_SU',
+     &            'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
               select case (trname(n))
               case ('M_AKK_SU','M_ACC_SU')
                 do kk=1,ntsurfsrc(n_SO2)
@@ -3154,7 +3163,7 @@ c- Species including AMP  emissions - 2D sources and 3D sources
                 g=g+1; itcon_3Dsrc(nVolcanic,n) = g
                 qcon(g) = .true.; conpts(g-12) = 'Volcano 3D AMP'
                 qsum(g) = .true.
-              case ('M_BOC_BC','M_BOC_OC')
+              case ('M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
                 do kk=1,ntsurfsrc(n)
                   g=g+1; itcon_surf(kk,N) = g
                   qcon(itcon_surf(kk,N))=.true.
@@ -6876,8 +6885,8 @@ C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_AMP
       do n=1,ntm
       select case(trname(n))
-      CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC',
-     *     'M_BOC_BC','M_BOC_OC')
+      CASE('M_AKK_SU','M_ACC_SU',
+     &     'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
         select case(trname(n))
         case('M_AKK_SU','M_ACC_SU')
         k = k + 1
@@ -8962,7 +8971,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      * ,aer_int_yr,imAER,imPI,n_NH3,n_SO2,n_SO4,n_BCB,n_OCB
-     * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BOC_BC,n_M_BOC_OC
+     * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
+     * ,n_M_BOC_OC
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
@@ -9158,6 +9168,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &        .or. n==n_NH3
 #endif
 #ifdef TRACERS_AMP
+     &        .or. n==n_M_BC1_BC .or. n==n_M_OCC_OC
      &        .or. n==n_M_BOC_BC .or. n==n_M_BOC_OC
 #endif
      &        ) then
@@ -9177,12 +9188,31 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             if(.not. do_fire(n)) then
               select case (trname(n))
               case ('Alkenes', 'CO', 'NOx', 'Paraffin',
-     &              'NH3', 'SO2', 'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
+     &              'NH3', 'SO2', 'BCB', 'OCB',
+     &              'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
                 nread=nread+nBBsources(n)
+#ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AMP
+                select case (trname(n))
+                case ('M_OCC_OC')
+                  nread=nread-1
+                end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
               end select
             endif
 #ifdef TRACERS_AMP
             if(nread>0)call read_sfc_sources(n,nread,xyear,xday,.false.)
+#ifndef TRACERS_AEROSOLS_SOA
+                select case (trname(n))
+                case ('M_OCC_OC')
+                  sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
+     &                                ntsurfsrc(n)+nBBsources(n))=
+     &              sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
+     &                                  ntsurfsrc(n)+nBBsources(n)-1)
+                  sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
+                end select
+#endif  /* TRACERS_AEROSOLS_SOA */
 #else
             if(nread>0)call read_sfc_sources(n,nread,xyear,xday,.true.)
 #endif
@@ -9236,7 +9266,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 c               if (imAER.eq.3) call get_ships(end_of_day,jday)  !reads in SO2, BC and POM sources
 c               if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
               endif
-            case ('BCII', 'M_BC1_BC')  !this does BC and OC
+            case ('BCII')  !this does BC and OC
               if (imPI.ne.1) call get_BCOC(end_of_day,jday)
             case ('BCB', 'M_BOC_BC')  ! this does BCB and OCB and SO2
               if (imAER==3) call get_hist_BMB(end_of_day,jday)
@@ -9813,7 +9843,8 @@ C****
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
-     &      'BCB', 'OCB', 'M_BOC_BC', 'M_BOC_OC')
+     &      'BCB', 'OCB',
+     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
         src_fact=1.d0               ! factor to multiply emissions with
         src_index=n                 ! index to be used for emissions
         select case (trname(n))
@@ -9834,10 +9865,8 @@ C****
      &            *0.01d0
           src_index=n_SO2
 #endif
-        case ('BCB', 'M_BOC_BC')
+        case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
           src_fact=1.4d0
-        case ('OCB', 'M_BOC_OC')
-          src_fact=1.4d0*1.4d0
         end select
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
@@ -9846,6 +9875,15 @@ C****
           ! perhaps do_fire, changed to integer?
         endif
 #endif
+#ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AMP
+        select case (trname(n))
+        case ('M_OCC_OC')
+          sfc_src(:,J_0:J_1,src_index,ntsurfsrc(n))=
+     &      OCT_src(:,J_0:J_1,jmon)/axyp(:,J_0:J_1)/src_fact
+        end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
         do ns=1,ntsurfsrc(src_index)
           trsource(:,J_0:J_1,ns,n)=
      &      sfc_src(:,J_0:J_1,src_index,ns)
@@ -9901,21 +9939,6 @@ c! TRACERS_AMP
             trsource(:,j,1,n) = OCT_src(:,j,jmon)
          end do
 #endif  /* TRACERS_AEROSOLS_SOA */
-#endif
-c!OMSP
-#ifdef TRACERS_AMP
-       case ('M_BC1_BC')
-         do j=J_0,J_1
-         trsource(:,j,1,n) = BCI_src(:,j)+ BC_ship(:,j,jmon)
-
-         end do
-       case ('M_OCC_OC')
-         do j=J_0,J_1
-         trsource(:,j,1,n) = OCI_src(:,j,1) +POM_ship(:,j,jmon)
-#ifndef TRACERS_AEROSOLS_SOA
-     *     +OCT_src(:,j,jmon)
-#endif  /* TRACERS_AEROSOLS_SOA */
-         end do
 #endif
       end select
 
@@ -10070,7 +10093,7 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
-      real*8 :: src_fact
+      real*8 :: src_fact,bcb_fact
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -10128,11 +10151,9 @@ C**** aircraft source for fresh industrial BC
       case ('Alkenes', 'CO', 'NOx', 'Paraffin',
      &      'NH3', 'SO2', 'SO4', 'BCB', 'OCB', 
      &      'M_ACC_SU', 'M_AKK_SU',
-#ifdef TRACERS_AMP_M4
-     &      'M_OCC_OC',
-#endif
-     &      'M_BOC_BC', 'M_BOC_OC')
+     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
           src_fact=1.d0 ! factor to multiply emissions with
+          bcb_fact=1.d0 ! factor to multiply biomass_burning emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
           case ('SO2')
@@ -10152,14 +10173,11 @@ C**** aircraft source for fresh industrial BC
      &              *0.01d0
             src_index=n_SO2
 #endif
-          case ('BCB', 'M_BOC_BC')
+          case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
+            bcb_fact=1.4d0
+          case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
             src_fact=1.4d0
-          case ('OCB',
-#ifdef TRACERS_AMP_M4
-     &          'M_OCC_OC',
-#endif
-     &          'M_BOC_OC')
-            src_fact=1.4d0*1.4d0
+            bcb_fact=1.4d0
           end select
 
 C**** 3D aircraft source - only SO2, no sulfate
@@ -10193,7 +10211,7 @@ C**** 3D biomass source
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
             do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n)=axyp(i,j)*src_fact*
+              tr3Dsource(i,j,l,nBiomass,n)=axyp(i,j)*src_fact*bcb_fact*
      &          sum(sfc_src(i,j,src_index,bb_i:bb_e))/
      &          dble(blay)
             end do
@@ -10216,46 +10234,23 @@ C**** 3D biomass source
 !     &      0.01d0*
 !     &      SO2t_src(:,J_0:J_1,:,jmon)*0.0375d0
 !kt
-          case ('BCB', 'M_BOC_BC')
+          case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
-     &      BCB_src(:,J_0:J_1,:,jmon)
-          case ('OCB',
-#ifdef TRACERS_AMP_M4
-     &          'M_OCC_OC',
-#endif
-     &          'M_BOC_OC')
+     &        BCB_src(:,J_0:J_1,:,jmon)
+            select case (trname(n))
+            case ('M_BC1_BC')
+              tr3Dsource(:,J_0:J_1,:,nAircraft,n) =
+     &          BCI_src_3d(:,J_0:J_1,:)
+            end select
+          case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
-     &      OCB_src(:,J_0:J_1,:,jmon)
+     &        OCB_src(:,J_0:J_1,:,jmon)
           end select
         endif ! imAER
         call apply_tracer_3Dsource(nBiomass,n)
+        call apply_tracer_3Dsource(nAircraft,n)
 #endif
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
-
-#ifdef TRACERS_AMP
-      case ('M_BC1_BC')
-C**** aircraft source for fresh industrial BC
-      tr3Dsource(:,J_0:J_1,:,2,n) = 0.d0
-      tr3Dsource(:,J_0:J_1,:,2,n) = BCI_src_3d(:,J_0:J_1,:)
-      call apply_tracer_3Dsource(2,n) ! aircraft
-#ifdef TRACERS_AMP_M4
-C**** biomass source for BC
-      if (imAER.ne.1) then
-      do j=J_0,J_1; do i=I_0,I_1
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      tr3Dsource(i,j,l,2,n) = tr3Dsource(i,j,l,2,n)
-     &     + (BCBt_src(i,j)/real(blay))
-      end do
-      end do; end do
-      else
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) =
-     & tr3Dsource(:,J_0:J_1,1:lmAER,2,n)
-     &   + BCB_src(:,J_0:J_1,:,jmon)
-      endif
-      call apply_tracer_3Dsource(2,n) ! biomass
-#endif
-#endif /* TRACERS_AMP */
 
 #ifdef TRACERS_OM_SP
       case ('OCI1')

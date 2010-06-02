@@ -670,7 +670,6 @@ c Carbonaceous aerosol emissions
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
      * ty_start,ty_end,n_bcii,n_ocii,imAER,delTyr
-     *,n_M_BC1_BC,n_M_OCC_OC
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
       implicit none
@@ -718,11 +717,7 @@ c for now we assume the number of decades BC and OC are the same
       else 
       ns=1
       endif
-#ifdef TRACERS_AMP
-      n=n_M_BC1_BC
-#else
       n=n_BCII
-#endif
       do nc=1,ns
       hbc_read(:,:)=0.0
       write(title,111) 'BC_EM_',nc
@@ -800,11 +795,7 @@ c
       else
       ns=1
       endif
-#ifdef TRACERS_AMP
-      n=n_M_OCC_OC
-#else
       n=n_OCII
-#endif
       do nc=1,ns
       hoc_read(:,:)=0.0
       write(title,111) 'OC_EM_',nc
