@@ -231,7 +231,6 @@ C**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
       REAL*8, DIMENSION(NTM,LM) :: TRDNL
       COMMON/CLD_TRCCOM/TM,TMOM,TRDNL
-!$OMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
@@ -290,11 +289,9 @@ c for diagnostics
 #endif
 #endif
 #ifdef TRACERS_WATER
-!$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-!$OMP  THREADPRIVATE (/CLD_PRECDUST/)
 #endif
 #endif
 #endif
@@ -331,16 +328,6 @@ C**** output variables
       REAL*8  RNDSSL(3,LM)
 !@var prebar1 copy of variable prebar
       REAL*8 prebar1(Lm+1)
-CCOMP  does not work yet:
-!$OMP  THREADPRIVATE (RA,UM,VM,U_0,V_0,UM1,VM1)
-c$$$,PLE,PL,PLK,AIRM,BYAM,ETAL
-c$$$!$OMP*  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE
-c$$$!$OMP*  ,DTOTW,DQCOND,DCTEI,DGDQM,dxypij,DDMFLX
-c$$$!$OMP*  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
-c$$$!$OMP*  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
-c$$$!$OMP*  ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,DCL,RIS,RI1,RI2, AIRXL
-c$$$!$OMP*  ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,LMCMAX
-c$$$!$OMP*  ,LMCMIN,KMAX,DEBUG)
 
       COMMON/CLDPRV/PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
@@ -366,7 +353,6 @@ c$$$!$OMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
      *  ,prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
-!$OMP  THREADPRIVATE (/CLDPRV/)
 
 #ifdef TRACERS_ON
 ! The following tracer arrays are workspace for MSTCNV.  They are
@@ -1013,7 +999,6 @@ C**** Begin loop over possible lmax
 C****
  220  L=LMAX+1
 C**** TEST FOR SUFFICIENT AIR, MOIST STATIC STABILITY AND ENERGY
-C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       IF(MPLUME.LE..001*AIRM(L)) GO TO 340
       SDN=SMP/MPLUME
       SUP=SM1(L)*BYAM(L)
@@ -1023,16 +1008,6 @@ C     IF(L.GT.LMIN+1.AND.SDL(L).GT.0.) GO TO 340
       WMUP=WML(L)
       SVDN=SDN*(1.+DELTX*QDN-WMDN)
       SVUP=SUP*(1.+DELTX*QUP-WMUP)
-C      IF(LMAX.GT.LMIN) THEN
-C        SEDGE=THBAR(SUP,SDN)
-C        QEDGE=.5*(QUP+QDN)
-C        WMEDG=.5*(WMUP+WMDN)
-C        SVEDG=SEDGE*(1.+DELTX*QEDGE-WMEDG)
-C        LHX=LHE
-C        DMSE=(SVUP-SVEDG)*PLK(L)+(SVEDG-SVDN)*PLK(L-1)+
-C     *    SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QDN)
-C        IF(DMSE.GT.-1d-10) GO TO 340      ! condition not applied
-C      END IF
       IF(PLK(L-1)*(SVUP-SVDN)+SLHE*(QUP-QDN).GE.0.) GO TO 340
 C**** TEST FOR CONDENSATION ALSO DETERMINES IF PLUME REACHES UPPER LAYER
 C**** Only set TPSAV if it hasn't already been set
@@ -1061,7 +1036,6 @@ C**** DEFINE VLAT TO AVOID PHASE DISCREPANCY BETWEEN PLUMES
      *    1.d0-2.*(U00b*2.d-4*MPLUME/QSATMP)
 
       MCCONT=MCCONT+1
-C     MC1= MCCONT.EQ.1
       IF(MCCONT.EQ.1) MC1=.TRUE.
 C****
 C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
@@ -1430,7 +1404,6 @@ C**** etadn=0.  ! test
       DDR(L)=DDRAFT
       CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN      ! calculate before CDHDRT
       CDHDRT=CDHDRT-CDHDRT*.5*ETADN+CDHEAT(L)    ! SLH*COND(L)
-C     CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN
       FDDP = .5*DDRAFT/MPLUME
       FDDL = .5*DDRAFT*BYAM(L)
       MPLUME=FLEFT*MPLUME
@@ -1489,10 +1462,6 @@ c    *      i5,i5,i5,2(f12.6))
       endif
 #endif
 
-C     WRITE (6,342) L,LMIN,IC,WCU(L-1),WCU(L),ENT(L),DET(L),
-C    *  BUOY(L),COND(L),TVL(L),TVP
-C 342 FORMAT(1X,'L LMIN IC WCU1 WCU ENT DET BUOY COND,TVL TVP=',
-C    *  3I4,8E15.4)
 C****
 C**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
 C****
@@ -1667,24 +1636,6 @@ c    *                     i5,i5,f10.4)
         END IF
       endif
 #endif
-C     IF(PLE(LMIN)-PLE(LMAX+1).GE.450.) THEN
-C       DO L=LMIN,LMAX                 ! for checking WCU and ENT
-C       IF(IC.EQ.1) THEN
-C         SAVWL(L)=WCU(L)
-C         SAVE1L(L)=ENT(L)
-C       ELSE
-C         SAVWL1(L)=WCU(L)
-C         SAVE2L(L)=ENT(L)
-C       END IF
-C       END DO
-C     END IF
-C     WRITE(6,198) IC,LMIN,LMAX
-CCC   WRITE(6,199) SAVWL(5),SAVWL1(5),SAVE1L(5),SAVE2L(5)
-CCC   WRITE(6,199) SAVWL1
-CCC   WRITE(6,199) SAVE1L
-CCC   WRITE(6,199) SAVE2L
-C 198 FORMAT(1X,'WCU WCU5 ENT1 ENT2 FOR IC LMIN LMAX=',3I8)
-C 199 FORMAT(1X,12E15.3)
 
       IF(PL(LMIN).LT.850.d0) THEN
         LHX1=LHE
@@ -1799,14 +1750,12 @@ C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
         DDRUP=DDRAFT
         DDRAFT=DDRAFT+DDROLD*ETAL(L)   ! add in entrainment
-C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         SMIX=SMDN/(DDRUP+teeny)
         QMIX=QMDN/(DDRUP+teeny)
         SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
         SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
         IF ((SVMIX-SVM1).GE.DTMIN1) THEN
-C       IF ((SMIX-SM1(L-1)*BYAM(L-1))*PLK(L-1).GE.DTMIN1) THEN
           DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
         END IF
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
@@ -2096,11 +2045,6 @@ c           write(iu_scm_prt,*) 'L CUMFLX DWNFLX ',
 c    &            L,CUMFLX(L),DWNFLX(L)
         endif
 #endif
-C       IF(L.GT.LLMIN) DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
-C       IF(L.EQ.1) THEN
-C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
-C    *      DDMFLX(1),TDNL(1),QDNL(1)
-C       END IF
       END DO
 C**** save new 'environment' profile for static stability calc.
       DO L=1,LM
@@ -2244,19 +2188,13 @@ C     TRATIO=TTURB/DTsrc
 #endif
       RHO=PL(L)/(RGAS*TL(L))
       FCLOUD=CCMUL*CCM(L)/(RHO*GRAV*WCU(L)*DTsrc+teeny)
-C     IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(L)*BYPBLM
-C     IF(LMIN.GT.DCL) FCLOUD=CCMUL*CCM(L)/AIRM0
       IF(PLE(LMIN)-PLE(L+2).GE.450.) FCLOUD=5.d0*FCLOUD
       IF(L.LT.LMIN) THEN
         FCLOUD=CCMUL*CCM(LMIN)/(RHO*GRAV*WCU(LMIN)*DTsrc+teeny)
-C       IF(TRATIO.GT.1.) FCLOUD=CCMUL*CCM(LMIN)*BYPBLM
-C       IF(LMIN.GT.DCL) FCLOUD=CCM(LMIN)/AIRM0
       END IF
       IF(PLE(LMIN)-PLE(LMAX+1).LT.450.) THEN
         IF(L.EQ.LMAX-1) THEN
           FCLOUD=CCMUL2*CCM(L)/(RHO*GRAV*WCU(L)*DTsrc+teeny)
-C         IF(TRATIO.GT.1.) FCLOUD=CCMUL2*CCM(L)*BYPBLM
-C         IF(LMIN.GT.DCL) FCLOUD=CCMUL2*CCM(L)/AIRM0
         END IF
         IF(L.LT.LMIN) FCLOUD=0.
       END IF
@@ -2279,7 +2217,6 @@ C**** Q = Q + F(TOLD,PRHEAT,QOLD+EVAP)
       PRECNVL(L+1)=PRECNVL(L+1)+PRCP*BYGRAV
       MCLOUD=0.
       IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM(L)
-C     IF(L.LE.LMIN) MCLOUD=(2.*FEVAP+DDM(L)*BYAM(L+1))*AIRM(L)
       IF(MCLOUD.GT.AIRM(L)) MCLOUD=AIRM(L)
 
 C**** phase of precip is defined by original environment (i.e. TOLD)
@@ -2288,8 +2225,6 @@ C**** phase of condensate is defined by VLAT (based on plume T).
 C**** decide whether to melt frozen precip
       IF (lhp(l).eq.lhs .and. TOLD.GT.TF.AND.TOLD1.LE.TF) then
          if (debug) print*,"cnv1",l,lhp(l),told,told1,LHM*PRCP*BYSHA
-c      IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF.AND.L.GT
-c     *     .LFRZ)) then
         HEAT1(L)=HEAT1(L)+LHM*PRCP*BYSHA
         lhp(l)=lhe
       end if
@@ -2606,8 +2541,6 @@ C**** CALCULATE OPTICAL THICKNESS
           WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
           IF(SVLATL(L).EQ.LHE.AND.SVWMXL(L)/FCLD.GE.WCONST*1.d-3)
      *         WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
-C           IF(SVLATL(L).EQ.LHS.AND.SVWMXL(L)/FCLD.GE.WMUI*1.d-3)
-C    *           WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           IF(WTEM.LT.1.d-10) WTEM=1.d-10
 C**   Set CDNC for moist conv. clds (const at present)
           MNdO = 59.68d0/(RWCLDOX**3)
@@ -2626,7 +2559,6 @@ c          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
           ELSE
 !            RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
-C    *           *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
           RCLDE=RCLD/BYBR       !  effective droplet radius in anvil
@@ -2998,10 +2930,6 @@ C**** initialize diagnostic arrays
 #endif
       DO L=1,LP50
         CLEARA(L)=1.-CLDSAVL(L)
-C       IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
-C       IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-U00ice+teeny))
-C       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
-C       IF(RH(L).GT.1.) CLEARA(L)=0.
         IF(WMX(L).LE.0.) CLEARA(L)=1.
       END DO
       DQUP=0.
@@ -3097,7 +3025,6 @@ C**** If liquid rain falls into an ice cloud, B-F must occur
 C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       CM00=1.d-4
       IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
-C     IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
       IF(LHX.EQ.LHE) THEN                 ! reduced by a factor of 3
         CM00=3.d-5
         IF(ROICE.GT..1d0) CM00=3.d-4
@@ -3110,9 +3037,7 @@ C**** COMPUTE RELATIVE HUMIDITY
       RH1(L)=QL(L)/QSATL(L)
       IF(LHX.EQ.LHS.AND.WMX(L).LE.0d0) THEN          ! Karcher and Lohmann formula
         QSATE=QSAT(TL(L),LHE,PL(L))
-C       RHW=.00536d0*TL(L)-.276d0
         RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
-C       RH1(L)=QL(L)/QSATE
         IF(TL(L).LT.238.16) RH1(L)=QL(L)/(QSATE*RHW)
       END IF
 C**** PHASE CHANGE OF CLOUD WATER CONTENT
@@ -3143,8 +3068,6 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
     ! this formulation is used for consistency with current practice
       RH00(L)=U00a
       IF(PL(L).LT.850.d0) THEN
-c        RH00(L)=RH00(L)*35.*BYAM(L)           ! vert. dependence of U00
-c        IF(RH00(L).GT.0.9d0) RH00(L)=0.9d0
 
         RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
 
@@ -3181,8 +3104,6 @@ C**** Set precip phase to be the same as the cloud, unless precip above
 C**** is ice and temperatures after ice melt would still be below TFrez
       LHP(L)=LHX
       IF (LHP(L+1).eq.LHS .and.
-C    *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
-C    *     +teeny)) LHP(L)=LHP(L+1)
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA)
      *     LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
@@ -3280,7 +3201,6 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCI=SNdI
       WMUI=WMUIX*.001         ! .0001
       WMUSI=0.1
-C     IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
@@ -3913,8 +3833,6 @@ C**** COMPUTATION OF CLOUD WATER EVAPORATION
           WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           IF(LHX.EQ.LHE.AND.WMX(L)/FCLD.GE.WCONST*1d-3)
      *         WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
-C         IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
-C    *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           IF(WTEM.LT.1d-10) WTEM=1d-10
           IF(LHX.EQ.LHE)  THEN
 !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
@@ -3922,7 +3840,6 @@ C    *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-C    *         *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
@@ -4253,7 +4170,6 @@ C**** Note that precip is either all water or all ice
       IF (WMX(L).eq.0)    TRWML(1:ntx,L)=0.   ! remove round off error
 #endif
 C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
-C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
       RH1(L)=QL(L)/QSATC
       IF(LHX.EQ.LHS) THEN
         IF(RH(L).LE.1.) THEN
@@ -4270,13 +4186,9 @@ C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
         IF(QF.LT.0.) WRITE(6,*) 'L CA QF Q QSA=',L,CLEARA(L),QF,QL(L),
      *               QSATC
         QSATE=QSAT(TL(L),LHE,PL(L))
-C       RHW=.00536d0*TL(L)-.276d0
         RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
-C       RH1(L)=QF/QSATE
         IF(TL(L).LT.238.16.AND.WMX(L).LE.0d0) RH1(L)=QF/(QSATE*RHW)
       END IF
-C     IF(RH1(L).LE.1. .AND. RH(L).GT.1.4) WRITE(6,*) 'L T RH RH1 RHW,
-C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
       IF(RH1(L).GT.1.) THEN    ! RH was used in old versions
       SLH=LHX*BYSHA
 
@@ -4635,8 +4547,6 @@ C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
         FCLD=CLDSSL(L)+teeny
         WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
         LHX=SVLHXL(L)
-C       IF(LHX.EQ.LHS.AND.WMX(L)/FCLD.GE.WMUI*1d-3)
-C    *       WTEM=1d5*WMUI*1.d-3*PL(L)/(TL(L)*RGAS)
         IF(WTEM.LT.1d-10) WTEM=1.d-10
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdO = 59.68d0/(RWCLDOX**3)
@@ -4758,7 +4668,6 @@ c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
           RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           QHEATC=(QHEAT(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
-C         IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
           IF(RCLD.GT.RWMAX.AND.PREP(L).GT.QHEATC) RCLD=RWMAX
           RCLDE=RCLD/BYBR
 #ifdef CLD_AER_CDNC
@@ -4781,7 +4690,6 @@ c        if(l.eq.1) write(6,*)"8th check BLK_2M",RCLDE
         ELSE
 !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
           RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-C    *         *(1.+pl(l)*xRICld)
           RCLD=MIN(RCLD,RIMAX)
           RCLDE=RCLD/BYBR
 #ifdef BLK_2MOM
