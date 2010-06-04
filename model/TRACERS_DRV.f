@@ -10094,6 +10094,9 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
       real*8 :: src_fact,bcb_fact
+!@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
+!@+                per unit of air mass (kg/m2)
+      real*8 :: blsrc
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -10210,10 +10213,10 @@ C**** 3D biomass source
           endif
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
+            blsrc = axyp(i,j)*src_fact*bcb_fact*
+     &        sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
             do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n)=axyp(i,j)*src_fact*bcb_fact*
-     &          sum(sfc_src(i,j,src_index,bb_i:bb_e))/
-     &          dble(blay)
+              tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
             end do
           end do; end do
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
