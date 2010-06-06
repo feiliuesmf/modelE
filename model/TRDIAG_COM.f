@@ -1227,7 +1227,8 @@ c complicated logic
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DIAG_ZONAL, only : unpack_lc
       implicit none
-      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
+c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
+      tconsrv_loc = 0
       return
       end subroutine scatter_zonal_tcons
 #endif
