@@ -1523,167 +1523,7 @@ c -- HCl --   (HCl from het phase rxns)
         endif  ! PSCs exist
 #endif
 
-CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
-        if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
-          jay = (J >= J_0 .and. J <= J_1)
-          write(out_line,*)
-     &    'dark, SALBFJ,sza,I,J,L,Itime= ',ALB(I,J,1),sza,I,J,L,Itime
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
-          if(pscX(L))then
-            write(out_line,*) 'There are PSCs, T =',ta(L)
-            call write_parallel(trim(out_line),crit=jay)
-          else
-            write(out_line,*) 'There are no PSCs, T =',ta(L)
-            call write_parallel(trim(out_line),crit=jay)
-          endif
-#endif
-          write(out_line,198) ay(n_NOx),': ',
-     &    changeNOx,' molecules produced; ',
-     &    100.d0*(changeNOx)/y(n_NOx,L),' percent of'
-     &    ,y(n_NOx,L),'(',1.d9*y(n_NOx,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_HNO3),': ',
-     &    changeHNO3,' molecules produced; ',
-     &    100.d0*(changeHNO3)/y(n_HNO3,L),' percent of'
-     &    ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_HETCHEM
-          write(out_line,198) ay(n_HNO3),': ',
-     &    (-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2),' molecules dest dust ',
-     &    (100.d0*(-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2))/y(n_HNO3,L),
-     &    ' percent of'
-     &    ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#endif
-          write(out_line,198) ay(n_N2O5),': ',
-     &    changeN2O5,' net molec produced; ',
-     &    100.d0*(changeN2O5)/y(n_N2O5,L),' percent of'
-     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_N2O5),': ',
-     &    gwprodN2O5,' molec prod fm gas;  ',
-     &    100.d0*(gwprodN2O5)/y(n_N2O5,L),' percent of'
-     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_N2O5),': ',
-     &    -wprod_sulf,' molec prod fm sulf; ',
-     &    -100.d0*(wprod_sulf)/y(n_N2O5,L),' percent of'
-     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_HCHO),': ',
-     &    wprodHCHO,' molecules produced; ',
-     &    100.d0*(wprodHCHO)/y(n_HCHO,L),' percent of'
-     &    ,y(n_HCHO,L),'(',1.d9*y(n_HCHO,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'Aldehyde',': ',
-     &    changeAldehyde,' molecules produced; ',
-     &    100.d0*(changeAldehyde)/yAldehyde(I,J,L),' percent of'
-     &    ,yAldehyde(I,J,L),'(',1.d9*yAldehyde(I,J,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'Alkenes ',': ',
-     &    changeAlkenes,' molecules produced; ',
-     &    100.d0*(changeAlkenes)/y(n_Alkenes,L),' percent of'
-     &    ,y(n_Alkenes,L),'(',1.d9*y(n_Alkenes,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_AEROSOLS_SOA
-          write(out_line,198) 'isopp1g ',': ',
-     &    changeisopp1g,' molecules produced; ',
-     &    100.d0*(changeisopp1g)/y(n_isopp1g,L),' percent of'
-     &    ,y(n_isopp1g,L),'(',1.d9*y(n_isopp1g,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'isopp2g ',': ',
-     &    changeisopp2g,' molecules produced; ',
-     &    100.d0*(changeisopp2g)/y(n_isopp2g,L),' percent of'
-     &    ,y(n_isopp2g,L),'(',1.d9*y(n_isopp2g,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_TERP
-          write(out_line,198) 'apinp1g ',': ',
-     &    changeapinp1g,' molecules produced; ',
-     &    100.d0*(changeapinp1g)/y(n_apinp1g,L),' percent of'
-     &    ,y(n_apinp1g,L),'(',1.d9*y(n_apinp1g,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'apinp2g ',': ',
-     &    changeapinp2g,' molecules produced; ',
-     &    100.d0*(changeapinp2g)/y(n_apinp2g,L),' percent of'
-     &    ,y(n_apinp2g,L),'(',1.d9*y(n_apinp2g,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_TERP */
-#endif  /* TRACERS_AEROSOLS_SOA */
-          write(out_line,198) 'Isoprene',': ',
-     &    changeIsoprene,' molecules produced; ',
-     &    100.d0*(changeIsoprene)/y(n_Isoprene,L),' percent of'
-     &    ,y(n_Isoprene,L),'(',1.d9*y(n_Isoprene,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_TERP
-          write(out_line,198) 'Terpenes',': ',
-     &    changeTerpenes,' molecules produced; ',
-     &    100.d0*(changeTerpenes)/y(n_Terpenes,L),' percent of'
-     &    ,y(n_Terpenes,L),'(',1.d9*y(n_Terpenes,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_TERP */
-          write(out_line,198) 'AlkylNit',': ',
-     &    changeAlkylNit,' molecules produced; ',
-     &    100.d0*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
-     &    ,y(n_AlkylNit,L),'(',1.d9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
-          write(out_line,198) ay(n_ClONO2),': ',
-     &    changeClONO2,' molecules produced; ',
-     &    100.d0*(changeClONO2)/y(n_ClONO2,L),' percent of'
-     &    ,y(n_ClONO2,L),'(',1.d9*y(n_ClONO2,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_ClOx),': ',
-     &    changeClOx,' molecules produced; ',
-     &    100.d0*(changeClOx)/y(n_ClOx,L),' percent of'
-     &    ,y(n_ClOx,L),'(',1.d9*y(n_ClOx,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_HOCl),': ',
-     &    changeHOCl,' molecules produced; ',
-     &    100.d0*(changeHOCl)/y(n_HOCl,L),' percent of'
-     &    ,y(n_HOCl,L),'(',1.d9*y(n_HOCl,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_HCl),': ',
-     &    changeHCl,' molecules produced; ',
-     &    100.d0*(changeHCl)/y(n_HCl,L),' percent of'
-     &    ,y(n_HCl,L),'(',1.d9*y(n_HCl,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(n_Ox),': ',
-     &    changeOx,' molecules produced; ',
-     &    100.d0*(changeOx)/y(n_Ox,L),' percent of'
-     &    ,y(n_Ox,L),'(',1.d9*y(n_Ox,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#endif
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
-          call write_parallel(trim(out_line),crit=jay)
-        endif
- 198    format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
- 199    format(1x,a20,2(2x,e13.3))
-CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
-
-C Make sure nighttime chemistry changes are not too big:
-        error=.false.
-        if(changeNOx < -1.d15.OR.changeNOx > 1.d15) then
-          write(6,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
-          write(6,*) 'rlossN,rprodN,ratioN =',rlossN,rprodN,ratioN
-          error=.true.
-        end if
-        if(changeHNO3 < -1.d15.OR.changeHNO3 > 1.d15) then
-          write(6,*) 'Big chg@ Itime,I,J,L,HNO3',Itime,I,J,L,changeHNO3
-          error=.true.
-        end if
-        if(changeN2O5 < -1.d15.OR.changeN2O5 > 1.d15) then
-          write(6,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
-          error=.true.
-        end if
-        if(wprodHCHO < -1.d15.OR.wprodHCHO > 1.d15) then
-          write(6,*)'Big chg@ Itime,I,J,L,HCHO',Itime,I,J,L,wprodHCHO
-          error=.true.
-        endif
-        if(error)call stop_model('nighttime chem: big changes',255)
+        call printChemistryDiagnostics()
 
 C       ACCUMULATE 3D NO3 diagnostic: 
         if (yNO3(I,J,L) > 0.d0 .and. yNO3(I,J,L) < 1.d20)
@@ -2230,6 +2070,173 @@ c (radiation code wants atm*cm units):
       endif
 
       RETURN
+
+      contains
+
+      subroutine printChemistryDiagnostics()
+CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
+        if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
+          jay = (J >= J_0 .and. J <= J_1)
+          write(out_line,*)
+     &    'dark, SALBFJ,sza,I,J,L,Itime= ',ALB(I,J,1),sza,I,J,L,Itime
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef SHINDELL_STRAT_CHEM
+          if(pscX(L))then
+            write(out_line,*) 'There are PSCs, T =',ta(L)
+            call write_parallel(trim(out_line),crit=jay)
+          else
+            write(out_line,*) 'There are no PSCs, T =',ta(L)
+            call write_parallel(trim(out_line),crit=jay)
+          endif
+#endif
+          write(out_line,198) ay(n_NOx),': ',
+     &    changeNOx,' molecules produced; ',
+     &    100.d0*(changeNOx)/y(n_NOx,L),' percent of'
+     &    ,y(n_NOx,L),'(',1.d9*y(n_NOx,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_HNO3),': ',
+     &    changeHNO3,' molecules produced; ',
+     &    100.d0*(changeHNO3)/y(n_HNO3,L),' percent of'
+     &    ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_HETCHEM
+          write(out_line,198) ay(n_HNO3),': ',
+     &    (-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2),' molecules dest dust ',
+     &    (100.d0*(-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2))/y(n_HNO3,L),
+     &    ' percent of'
+     &    ,y(n_HNO3,L),'(',1.d9*y(n_HNO3,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif
+          write(out_line,198) ay(n_N2O5),': ',
+     &    changeN2O5,' net molec produced; ',
+     &    100.d0*(changeN2O5)/y(n_N2O5,L),' percent of'
+     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_N2O5),': ',
+     &    gwprodN2O5,' molec prod fm gas;  ',
+     &    100.d0*(gwprodN2O5)/y(n_N2O5,L),' percent of'
+     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_N2O5),': ',
+     &    -wprod_sulf,' molec prod fm sulf; ',
+     &    -100.d0*(wprod_sulf)/y(n_N2O5,L),' percent of'
+     &    ,y(n_N2O5,L),'(',1.d9*y(n_N2O5,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_HCHO),': ',
+     &    wprodHCHO,' molecules produced; ',
+     &    100.d0*(wprodHCHO)/y(n_HCHO,L),' percent of'
+     &    ,y(n_HCHO,L),'(',1.d9*y(n_HCHO,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'Aldehyde',': ',
+     &    changeAldehyde,' molecules produced; ',
+     &    100.d0*(changeAldehyde)/yAldehyde(I,J,L),' percent of'
+     &    ,yAldehyde(I,J,L),'(',1.d9*yAldehyde(I,J,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'Alkenes ',': ',
+     &    changeAlkenes,' molecules produced; ',
+     &    100.d0*(changeAlkenes)/y(n_Alkenes,L),' percent of'
+     &    ,y(n_Alkenes,L),'(',1.d9*y(n_Alkenes,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_AEROSOLS_SOA
+          write(out_line,198) 'isopp1g ',': ',
+     &    changeisopp1g,' molecules produced; ',
+     &    100.d0*(changeisopp1g)/y(n_isopp1g,L),' percent of'
+     &    ,y(n_isopp1g,L),'(',1.d9*y(n_isopp1g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'isopp2g ',': ',
+     &    changeisopp2g,' molecules produced; ',
+     &    100.d0*(changeisopp2g)/y(n_isopp2g,L),' percent of'
+     &    ,y(n_isopp2g,L),'(',1.d9*y(n_isopp2g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_TERP
+          write(out_line,198) 'apinp1g ',': ',
+     &    changeapinp1g,' molecules produced; ',
+     &    100.d0*(changeapinp1g)/y(n_apinp1g,L),' percent of'
+     &    ,y(n_apinp1g,L),'(',1.d9*y(n_apinp1g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'apinp2g ',': ',
+     &    changeapinp2g,' molecules produced; ',
+     &    100.d0*(changeapinp2g)/y(n_apinp2g,L),' percent of'
+     &    ,y(n_apinp2g,L),'(',1.d9*y(n_apinp2g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_AEROSOLS_SOA */
+          write(out_line,198) 'Isoprene',': ',
+     &    changeIsoprene,' molecules produced; ',
+     &    100.d0*(changeIsoprene)/y(n_Isoprene,L),' percent of'
+     &    ,y(n_Isoprene,L),'(',1.d9*y(n_Isoprene,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_TERP
+          write(out_line,198) 'Terpenes',': ',
+     &    changeTerpenes,' molecules produced; ',
+     &    100.d0*(changeTerpenes)/y(n_Terpenes,L),' percent of'
+     &    ,y(n_Terpenes,L),'(',1.d9*y(n_Terpenes,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_TERP */
+          write(out_line,198) 'AlkylNit',': ',
+     &    changeAlkylNit,' molecules produced; ',
+     &    100.d0*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
+     &    ,y(n_AlkylNit,L),'(',1.d9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef SHINDELL_STRAT_CHEM
+          write(out_line,198) ay(n_ClONO2),': ',
+     &    changeClONO2,' molecules produced; ',
+     &    100.d0*(changeClONO2)/y(n_ClONO2,L),' percent of'
+     &    ,y(n_ClONO2,L),'(',1.d9*y(n_ClONO2,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_ClOx),': ',
+     &    changeClOx,' molecules produced; ',
+     &    100.d0*(changeClOx)/y(n_ClOx,L),' percent of'
+     &    ,y(n_ClOx,L),'(',1.d9*y(n_ClOx,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_HOCl),': ',
+     &    changeHOCl,' molecules produced; ',
+     &    100.d0*(changeHOCl)/y(n_HOCl,L),' percent of'
+     &    ,y(n_HOCl,L),'(',1.d9*y(n_HOCl,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_HCl),': ',
+     &    changeHCl,' molecules produced; ',
+     &    100.d0*(changeHCl)/y(n_HCl,L),' percent of'
+     &    ,y(n_HCl,L),'(',1.d9*y(n_HCl,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) ay(n_Ox),': ',
+     &    changeOx,' molecules produced; ',
+     &    100.d0*(changeOx)/y(n_Ox,L),' percent of'
+     &    ,y(n_Ox,L),'(',1.d9*y(n_Ox,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
+          call write_parallel(trim(out_line),crit=jay)
+        endif
+ 198    format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
+ 199    format(1x,a20,2(2x,e13.3))
+CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
+
+C Make sure nighttime chemistry changes are not too big:
+        error=.false.
+        if(changeNOx < -1.d15.OR.changeNOx > 1.d15) then
+          write(6,*) 'Big chg@ Itime,I,J,L,NOx ',Itime,I,J,L,changeNOx
+          write(6,*) 'rlossN,rprodN,ratioN =',rlossN,rprodN,ratioN
+          error=.true.
+        end if
+        if(changeHNO3 < -1.d15.OR.changeHNO3 > 1.d15) then
+          write(6,*) 'Big chg@ Itime,I,J,L,HNO3',Itime,I,J,L,changeHNO3
+          error=.true.
+        end if
+        if(changeN2O5 < -1.d15.OR.changeN2O5 > 1.d15) then
+          write(6,*) 'Big chg@ Itime,I,J,L,N2O5',Itime,I,J,L,changeN2O5
+          error=.true.
+        end if
+        if(wprodHCHO < -1.d15.OR.wprodHCHO > 1.d15) then
+          write(6,*)'Big chg@ Itime,I,J,L,HCHO',Itime,I,J,L,wprodHCHO
+          error=.true.
+        endif
+        if(error)call stop_model('nighttime chem: big changes',255)
+        end subroutine printChemistryDiagnostics
+
       END SUBROUTINE masterchem
 
 
