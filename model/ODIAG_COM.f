@@ -511,10 +511,13 @@ c straits arrays
 !@ver  beta
       use odiag
       use pario, only : defvar,write_attr
+      use ocean, only : oxyp
       USE OCEANR_DIM, only : grid=>ogrid
       use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
+
+      call defvar(grid,fid,oxyp,'oxyp(dist_imo,dist_jmo)')
 
       call write_attr(grid,fid,'oij','reduction','sum')
       call write_attr(grid,fid,'oij','split_dim',3)
@@ -590,9 +593,14 @@ c straits arrays
       use odiag
       use pario, only : write_dist_data,write_data
       USE OCEANR_DIM, only : grid=>ogrid
+      use ocean, only : oxyp,focean_loc
       use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: tmp
+
+      tmp = oxyp*focean_loc
+      call write_dist_data(grid,fid,'oxyp',tmp)
 
       call write_data(grid,fid,'ia_oij',ia_oij)
       call write_data(grid,fid,'scale_oij',scale_oij)
@@ -872,11 +880,15 @@ c
       k=k+1
       IJL_MOU = k
       sname_oijl(k) = 'mou' ! denominator for east-west velocity
+      units_oijl(k) = 'kg/m'
+      lname_oijl(k) = 'RHO * DELTA Y * DELTA Z'
       igrid_oijl(k) = 2
 c
       k=k+1
       IJL_MOV = k
       sname_oijl(k) = 'mov' ! denominator for north-south velocity
+      units_oijl(k) = 'kg/m'
+      lname_oijl(k) = 'RHO * DELTA X * DELTA Z'
       jgrid_oijl(k) = 2
 c
       k=k+1
@@ -939,6 +951,11 @@ c      IJL_GFLX_ns = k
 c
       k=k+1
 c      IJL_GFLX_vert = k
+      sname_oijl(k) = 'gflx_z'
+      units_oijl(k) = 'W/m^2'
+      lname_oijl(k) = 'VERT. HEAT FLUX'
+      scale_oijl(k) = 1./dts
+      lgrid_oijl(k) = 2
 c
       k=k+1
       IJL_SFLX = k
@@ -1427,6 +1444,9 @@ c
      &     units='m',coordvalues=zoc1(2:lmo+1))
 
       call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
+      call add_var(cdl_oij,'float oxyp(lato,lono) ;',
+     &     long_name='gridbox area x focean', units='m2')
+
       call merge_cdl(cdl_oij,cdl_odepths,cdl_oijl)
 #ifdef TRACERS_OCEAN 
       call merge_cdl(cdl_oij,cdl_odepths,cdl_toijl)

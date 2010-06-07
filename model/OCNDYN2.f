@@ -43,6 +43,7 @@ C****
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff
+      real*8, parameter :: byno=1./nocean
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
@@ -283,9 +284,9 @@ c
           do n=1,nbyzm(j,l)
             do i=i1yzm(n,j,l),i2yzm(n,j,l)
               OIJL(I,J,L,IJL_MFW) = OIJL(I,J,L,IJL_MFW) + SMW(I,J,L)
-              OIJL(I,J,L,IJL_MO)  = OIJL(I,J,L,IJL_MO) +  MO(I,J,L)
-              OIJL(I,J,L,IJL_G0M) = OIJL(I,J,L,IJL_G0M) + G0M(I,J,L)
-              OIJL(I,J,L,IJL_S0M) = OIJL(I,J,L,IJL_S0M) + S0M(I,J,L)
+              OIJL(I,J,L,IJL_MO)  = OIJL(I,J,L,IJL_MO) +  MO(I,J,L)*byno
+              OIJL(I,J,L,IJL_G0M) = OIJL(I,J,L,IJL_G0M) +G0M(I,J,L)*byno
+              OIJL(I,J,L,IJL_S0M) = OIJL(I,J,L,IJL_S0M) +S0M(I,J,L)*byno
             enddo
           enddo
         enddo
@@ -294,9 +295,9 @@ c
       do j=j_0,j_1
         do n=1,nbyzm(j,1)
           do i=i1yzm(n,j,1),i2yzm(n,j,1)
-            OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
+            OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)*byno
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
-     &           (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)
+     &           (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)*byno
           enddo
         enddo
       enddo
@@ -305,7 +306,7 @@ c
         DO N=1,NTM
           DO L=1,LMO
             TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
-     *           +TRMO(:,:,L,N)
+     *           +TRMO(:,:,L,N)*byno
           END DO
         END DO
 #endif
