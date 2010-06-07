@@ -888,54 +888,7 @@ C Save 3D radical arrays to pass to aerosol code:
      &  (1.d0-pNOx(i,j,l))*y(n_NOx,l)/y(nM,l)
       enddo
 #endif
-CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
-      if(prnchg .and. J == jprn .and. I == iprn) then
-       jay = (J >= J_0 .and. J <= J_1) 
-       l=lprn
-       write(out_line,*) ' '
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'Family ratios at I,J,L: ',i,j,l
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'OH/HO2 = ',y(nOH,l)/y(nHO2,l)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'O/O3 = ',y(nO,l)/y(nO3,l)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'O1D/O3 = ',y(nO1D,l)/y(nO3,l),
-     &  '  J(O1D) = ',ss(2,l,I,J)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'NO/NO2 = ',y(nNO,l)/y(nNO2,l),
-     &  '   J(NO2) = ',ss(1,l,I,J)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'conc OH = ',y(nOH,l)
-       call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
-       write(out_line,*) 'Cl,ClO,Cl2O2,OClO,Cl2 = ',y(nCl,l),
-     &  y(nClO,l),y(nCl2O2,l),y(nOClO,l),y(nCl2,l)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'Br,BrO = ',y(nBr,l),y(nBrO,l)
-       call write_parallel(trim(out_line),crit=jay)
-       write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,l),
-     &  pClOx(I,J,l),pOClOx(I,J,l),pBrOx(I,J,l)
-       call write_parallel(trim(out_line),crit=jay)
-#endif
-       write(out_line,*)
-     & 'sun, SALBFJ,sza,I,J,Itime= ',ALB(I,J,1),sza,I,J,Itime
-       call write_parallel(trim(out_line),crit=jay)
-!c     do inss=1,JPPJ
-!r      write(out_line,195) ' J',inss,ay(ks(inss)),' = ',
-!a   &  (ss(inss,Lqq,I,J),Lqq=1,LS1-1)
-!s      call write_parallel(trim(out_line),crit=jay)
-!h     enddo
-!e     write(out_line,196) ' RCloud',(RCLOUDFJ(Lqq,I,J),Lqq=1,LS1-1)
-!s     call write_parallel(trim(out_line),crit=jay)
-!?     write(out_line,196) ' Ozone ',(y(nO3,Lqq),Lqq=1,LS1-1)
-!?     call write_parallel(trim(out_line),crit=jay)
-!?     write(out_line,*) ' '
-!?     call write_parallel(trim(out_line),crit=jay)
-      endif
- 195  format(a2,i2,1x,a8,a3,11(1x,e9.2))
- 196  format(a7,9x,11(1x,e9.2))
-CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
+      call printDaytimeChemistryDiags()
       
       else
 
@@ -1523,7 +1476,8 @@ c -- HCl --   (HCl from het phase rxns)
         endif  ! PSCs exist
 #endif
 
-        call printChemistryDiagnostics()
+        call printNightChemistryDiags()
+        call checkNighttimeTolerances()
 
 C       ACCUMULATE 3D NO3 diagnostic: 
         if (yNO3(I,J,L) > 0.d0 .and. yNO3(I,J,L) < 1.d20)
@@ -2073,7 +2027,58 @@ c (radiation code wants atm*cm units):
 
       contains
 
-      subroutine printChemistryDiagnostics()
+      subroutine printDaytimeChemistryDiags()
+CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
+      if(prnchg .and. J == jprn .and. I == iprn) then
+       jay = (J >= J_0 .and. J <= J_1) 
+       l=lprn
+       write(out_line,*) ' '
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'Family ratios at I,J,L: ',i,j,l
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'OH/HO2 = ',y(nOH,l)/y(nHO2,l)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'O/O3 = ',y(nO,l)/y(nO3,l)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'O1D/O3 = ',y(nO1D,l)/y(nO3,l),
+     &  '  J(O1D) = ',ss(2,l,I,J)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'NO/NO2 = ',y(nNO,l)/y(nNO2,l),
+     &  '   J(NO2) = ',ss(1,l,I,J)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'conc OH = ',y(nOH,l)
+       call write_parallel(trim(out_line),crit=jay)
+#ifdef SHINDELL_STRAT_CHEM
+       write(out_line,*) 'Cl,ClO,Cl2O2,OClO,Cl2 = ',y(nCl,l),
+     &  y(nClO,l),y(nCl2O2,l),y(nOClO,l),y(nCl2,l)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'Br,BrO = ',y(nBr,l),y(nBrO,l)
+       call write_parallel(trim(out_line),crit=jay)
+       write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,l),
+     &  pClOx(I,J,l),pOClOx(I,J,l),pBrOx(I,J,l)
+       call write_parallel(trim(out_line),crit=jay)
+#endif
+       write(out_line,*)
+     & 'sun, SALBFJ,sza,I,J,Itime= ',ALB(I,J,1),sza,I,J,Itime
+       call write_parallel(trim(out_line),crit=jay)
+!c     do inss=1,JPPJ
+!r      write(out_line,195) ' J',inss,ay(ks(inss)),' = ',
+!a   &  (ss(inss,Lqq,I,J),Lqq=1,LS1-1)
+!s      call write_parallel(trim(out_line),crit=jay)
+!h     enddo
+!e     write(out_line,196) ' RCloud',(RCLOUDFJ(Lqq,I,J),Lqq=1,LS1-1)
+!s     call write_parallel(trim(out_line),crit=jay)
+!?     write(out_line,196) ' Ozone ',(y(nO3,Lqq),Lqq=1,LS1-1)
+!?     call write_parallel(trim(out_line),crit=jay)
+!?     write(out_line,*) ' '
+!?     call write_parallel(trim(out_line),crit=jay)
+      endif
+ 195  format(a2,i2,1x,a8,a3,11(1x,e9.2))
+ 196  format(a7,9x,11(1x,e9.2))
+CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
+      end subroutine printDaytimeChemistryDiags
+
+      subroutine printNightChemistryDiags()
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
         if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
           jay = (J >= J_0 .and. J <= J_1)
@@ -2215,6 +2220,9 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
  199    format(1x,a20,2(2x,e13.3))
 CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
 
+        end subroutine printNightChemistryDiags
+
+        subroutine checkNighttimeTolerances()
 C Make sure nighttime chemistry changes are not too big:
         error=.false.
         if(changeNOx < -1.d15.OR.changeNOx > 1.d15) then
@@ -2235,7 +2243,7 @@ C Make sure nighttime chemistry changes are not too big:
           error=.true.
         endif
         if(error)call stop_model('nighttime chem: big changes',255)
-        end subroutine printChemistryDiagnostics
+        end subroutine checkNighttimeTolerances
 
       END SUBROUTINE masterchem
 
