@@ -86,7 +86,7 @@ main gcm: $(MOD_DIR)
 	-rm .liblist
 	touch .liblist
 	+$(MAKE) -j do_components
-	+$(MAKE) -j do_main
+	+$(MAKE) do_main
 
 echo_vars:
 	@echo CPP_OPTIONS = $(CPP_OPTIONS)
