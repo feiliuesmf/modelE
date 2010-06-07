@@ -115,6 +115,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
       real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
+!@var om2oc ratio of organic matter to organic carbon
+      real*8:: om2oc=1.4d0
+!@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
+      real*8:: BBinc=1.0d0
 
       END MODULE AEROSOL_SOURCES
 
@@ -671,7 +675,7 @@ c Carbonaceous aerosol emissions
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
      * ty_start,ty_end,n_bcii,n_ocii,imAER,delTyr
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
-     * ,hbc,hoc
+     * ,hbc,hoc,om2oc
       implicit none
       character*20 title
       integer :: iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
@@ -902,8 +906,7 @@ c      end do
 c      end do
 c kg/year to kg/s
 c     hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
-c OM=1.4 x OC
-      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*1.4d0
+      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*om2oc
 c interpolate to model year
 c    
 c     d1=real(ihyr-jb1)

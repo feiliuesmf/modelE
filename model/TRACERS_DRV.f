@@ -100,7 +100,7 @@
       USE obio_forc, only : atmCO2
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2
+      USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2, om2oc, BBinc
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
@@ -194,6 +194,8 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
+      call sync_param("om2oc",om2oc)
+      call sync_param("BBinc",BBinc)
 #endif
 #ifdef TRACERS_SPECIAL_O18
 C**** set super saturation parameter for isotopes if needed
@@ -7803,7 +7805,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
-     * BCB_src,OCB_src,
+     * BCB_src,OCB_src,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -8878,8 +8880,8 @@ c Terpenes
         call closeunit(iuc)
 c units are mg Terpene/m2/month
         do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
-! 10% of terpenes end up being SOA, and 1.4 is OM/OC
-          OCT_src(i,j,mm) = OCT_src(i,j,mm)*axyp(i,j)*0.1d0*1.4d0
+! 10% of terpenes end up being SOA
+          OCT_src(i,j,mm) = OCT_src(i,j,mm)*axyp(i,j)*0.1d0*om2oc
         end do; end do; end do
       else ! AEROCOM
 c This assumes 10% emission yield (Chin, Penner)
@@ -9376,7 +9378,7 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,
+      USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,BBinc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -9866,7 +9868,7 @@ C****
           src_index=n_SO2
 #endif
         case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
-          src_fact=1.4d0
+          src_fact=BBinc
         end select
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
@@ -10067,7 +10069,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src_3d,BCI_src_3d,BCB_src,
      *     OCB_src,SO2_biosrc_3D,lmAER,OCBt_src,BCBt_src,OCI_src
-     *     ,so2t_src
+     *     ,so2t_src,BBinc,om2oc
 
       USE PBLCOM, only: dclev
 c Laki emissions
@@ -10093,7 +10095,7 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
-      real*8 :: src_fact,bcb_fact
+      real*8 :: src_fact,bb_fact
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
@@ -10156,7 +10158,7 @@ C**** aircraft source for fresh industrial BC
      &      'M_ACC_SU', 'M_AKK_SU',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
           src_fact=1.d0 ! factor to multiply emissions with
-          bcb_fact=1.d0 ! factor to multiply biomass_burning emissions with
+          bb_fact=1.d0 ! factor to multiply biomass_burning emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
           case ('SO2')
@@ -10177,10 +10179,10 @@ C**** aircraft source for fresh industrial BC
             src_index=n_SO2
 #endif
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
-            bcb_fact=1.4d0
+            bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
-            src_fact=1.4d0
-            bcb_fact=1.4d0
+            src_fact=om2oc
+            bb_fact=BBinc
           end select
 
 C**** 3D aircraft source - only SO2, no sulfate
@@ -10213,7 +10215,7 @@ C**** 3D biomass source
           endif
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
-            blsrc = axyp(i,j)*src_fact*bcb_fact*
+            blsrc = axyp(i,j)*src_fact*bb_fact*
      &        sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
             do l=1,blay
               tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
