@@ -455,7 +455,7 @@ C****
 #endif
 
       if(xdelt /= 0d0) call stop_model(
-     &     'PBL.f is not yet compatible with xdelt==deltx')
+     &     'PBL.f is not yet compatible with xdelt==deltx',255)
 
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
