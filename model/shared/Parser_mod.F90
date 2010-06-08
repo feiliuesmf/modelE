@@ -34,7 +34,7 @@ module Parser_mod
     character(len=MAX_LEN_LINE) :: endData = '&&END_PARAMETERS'     ! legacy default
   end type Parser_type
 
-  type (Parser_type) :: globalParser
+  type (Parser_type), save :: globalParser
 
   interface getValueType
     module procedure getValueType_single

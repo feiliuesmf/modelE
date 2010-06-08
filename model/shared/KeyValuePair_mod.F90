@@ -136,7 +136,7 @@ contains
     integer, intent(in) :: ith
     type (GenericType_type) :: value
     if (ith < 0 .or. ith > getNumValues(this)) then
-      call throwException('KeyValuePair_mod::getValue() - argument "ith" out of range.')
+      call throwException('KeyValuePair_mod::getValue() - argument "ith" out of range.',14)
     end if
     value = this%values(ith)
   end function getValue_i
