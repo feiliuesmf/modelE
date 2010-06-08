@@ -99,7 +99,9 @@ module SpecialIO_mod
     module procedure WRITEI8_PARALLEL_3D
   end interface
   
+#ifdef USE_MPI
   include 'mpif.h'
+#endif
 contains
   
   subroutine BACKSPACE_PARALLEL(IUNIT)

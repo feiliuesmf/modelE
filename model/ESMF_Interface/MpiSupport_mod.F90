@@ -25,7 +25,9 @@ module MpiSupport_mod
     module procedure amRootComm
   end interface
 
+#ifdef USE_MPI
   include 'mpif.h'
+#endif
 
   type MpiType_type
     integer :: numBlocks

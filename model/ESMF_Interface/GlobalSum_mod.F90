@@ -48,7 +48,9 @@ module GlobalSum_mod
     module procedure checksum_column_4d
   end interface
 
+#ifdef USE_MPI
   include 'mpif.h'
+#endif
 
 contains
 
