@@ -7748,7 +7748,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1
-      USE MODEL_COM, only: itime,jday,dtsrc,q,wm,flice,jyear,
+      USE MODEL_COM, only: itime,jday,dtsrc,ptop,q,wm,flice,jyear,
      & PMIDL00
 #ifdef TRACERS_WATER
      &     ,focean
@@ -7774,7 +7774,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
-     &     ,pedn ! pressure at bottom of each layer (mb)
       USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -7908,13 +7907,14 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP)
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID) /* 1-deg volc. emiss */
       real*8 :: volc_lons(360),volc_lats(180),
-     &     volc_height(360,180),volc_emiss(360,180)
+     &     volc_pup(360,180),volc_emiss(360,180)
 #else /* volc. emiss on model grid, 1 extra lat at SP */
       real*8 :: volc_lons(Im),volc_lats(Jm+1),
-     &     volc_height(Im,Jm+1),volc_emiss(Im,Jm+1)
+     &     volc_pup(Im,Jm+1),volc_emiss(Im,Jm+1)
 #endif
-      real*8 :: volc_press
-      integer :: file_id,vid,ilon,jlat,volc_ij(2)
+      real*8 :: x1d(lm),amref(lm),pednref(lm+1),amsum
+      real*8, allocatable, dimension(:,:) :: psref
+      integer :: iu_ps,file_id,vid,ilon,jlat,volc_ij(2)
 #endif
 
       INTEGER J_0, J_1, I_0, I_1
@@ -8767,18 +8767,20 @@ c divide by 2 because BC = 0.1 x S, not SO2
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
-c read lat-lon netcdf file and convert lat,lon,height to i,j,l.
+c read lat-lon netcdf file and convert lat,lon,pres to i,j,l.
 c NOTE: the input file specifies integrals over its gridboxes.
-c Converting height to model level using a simple formula for now.
-c Eventually the atm. state module will make height available during
-c initialization, at which point actual heights can be used.
+      ALLOCATE(  psref(grid%i_strt_halo:grid%i_stop_halo,
+     &                 grid%j_strt_halo:grid%j_stop_halo) )
+      call openunit('PSREF',iu_ps,.true.,.true.)
+      CALL READT_PARALLEL(grid,iu_ps,'PSREF',psref,1)
+      call closeunit(iu_ps)
       status = nf_open('SO2_VOLCANO',nf_nowrite,file_id)
       status = nf_inq_varid(file_id,'lon',vid)
       status = nf_get_var_double(file_id,vid,volc_lons)
       status = nf_inq_varid(file_id,'lat',vid)
       status = nf_get_var_double(file_id,vid,volc_lats)
-      status = nf_inq_varid(file_id,'HEIGHT_CONT',vid)
-      status = nf_get_var_double(file_id,vid,volc_height)
+      status = nf_inq_varid(file_id,'Pres_CONTmax',vid)
+      status = nf_get_var_double(file_id,vid,volc_pup)
       status = nf_inq_varid(file_id,'VOLC_CONT',vid)
       status = nf_get_var_double(file_id,vid,volc_emiss)
       status = nf_close(file_id)
@@ -8790,16 +8792,21 @@ c initialization, at which point actual heights can be used.
           ii = volc_ij(1); jj = volc_ij(2)
           if(jj<j_0 .or. jj>j_1) cycle
           if(ii<i_0 .or. ii>i_1) cycle
-          volc_press = 1000.* ! mb
-     &         exp(-(grav*volc_height(ilon,jlat))/(rgas*280.)) ! 280 K
-          ll = 1
-          do while(pedn(ll,ii,jj) > volc_press)
-            ll = ll + 1
+          call CALC_VERT_AMP(psref(ii,jj)-ptop,lm,
+     &         x1d,amref,x1d,pednref,x1d)
+          lmax = 1
+          do while(pednref(lmax) > volc_pup(ilon,jlat))
+            lmax = lmax + 1
           enddo
-          so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
-     &         +volc_emiss(ilon,jlat)/(sday*30.4d0)/12.d0
+          amsum = sum(amref(1:lmax))
+          do ll=1,lmax ! add source between surf and max height
+            so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
+     &          +(amref(ll)/amsum)*
+     &           volc_emiss(ilon,jlat)/(sday*30.4d0)/12.d0
+          enddo
         enddo
       enddo
+      deallocate(psref)
 c read ASCII file specifying the i,j,l of point sources
 c      call openunit('SO2_VOLCANO',iuc,.false.,.true.)
 c      do
