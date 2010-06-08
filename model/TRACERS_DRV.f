@@ -337,17 +337,17 @@ C**** get rundeck parameter for cosmogenic source factor
             call sync_param(trim(trname(n))//"_nBBsources",
      &                      nBBsources(n))
             ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
-#ifndef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_AMP
-            select case (trname(n))
-            case ('M_OCC_OC') ! this handles OCT_src (terpene source)
-              ntsurfsrc(n)=ntsurfsrc(n)+1
-              ssname(n,ntsurfsrc(n))="Terpene source"
-            end select
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
           end select
         endif
+#ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AMP
+        select case (trname(n))
+        case ('M_OCC_OC') ! this handles OCT_src (terpene source)
+          ntsurfsrc(n)=ntsurfsrc(n)+1
+          ssname(n,ntsurfsrc(n))="Terpene source"
+        end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
 ! special cases:
 #ifdef TRACERS_SPECIAL_Shindell
         if(trname(n) == 'CH4')then
