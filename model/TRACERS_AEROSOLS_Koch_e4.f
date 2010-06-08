@@ -11,7 +11,6 @@
 !@ get_ships
 !@ get_hist_BMB
 !@ get_BCOC
-!@ read_hist_SO2
 !@ read_hist_NH3
 !@ read_SO2_source
 !@ read_DMS_sources
@@ -116,7 +115,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
       real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
 !@var om2oc ratio of organic matter to organic carbon
-      real*8:: om2oc=1.4d0
+      real*8, dimension(ntm) :: om2oc=1.4d0
 !@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
       real*8:: BBinc=1.0d0
 
@@ -906,7 +905,7 @@ c      end do
 c      end do
 c kg/year to kg/s
 c     hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
-      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*om2oc
+      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*om2oc(n)
 c interpolate to model year
 c    
 c     d1=real(ihyr-jb1)

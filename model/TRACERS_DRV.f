@@ -194,7 +194,7 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
-      call sync_param("om2oc",om2oc)
+      call sync_param("OCB_om2oc",om2oc(n_OCB))
       call sync_param("BBinc",BBinc)
 #endif
 #ifdef TRACERS_SPECIAL_O18
@@ -8888,7 +8888,7 @@ c Terpenes
 c units are mg Terpene/m2/month
         do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
 ! 10% of terpenes end up being SOA
-          OCT_src(i,j,mm) = OCT_src(i,j,mm)*axyp(i,j)*0.1d0*om2oc
+          OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0*om2oc(n_OCII)
         end do; end do; end do
       else ! AEROCOM
 c This assumes 10% emission yield (Chin, Penner)
@@ -10188,7 +10188,7 @@ C**** aircraft source for fresh industrial BC
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
             bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
-            src_fact=om2oc
+            src_fact=om2oc(n)
             bb_fact=BBinc
           end select
 
