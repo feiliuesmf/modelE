@@ -83,16 +83,20 @@ sub runInBatch {
   my $queueString = " ";
   if ($queue) {$queueString = "-q $queue\n";};
 
+  my $NODE_SIZE = 8;
 
   my $nCPUS = $self -> {NUM_PROCS};
-  my $nodes = 1 + int(($nCPUS-1)/4);
+  my $nodes = 1 + int(($nCPUS-1)/$NODE_SIZE);
   my $ncpus = $nCPUS;
-  $ncpus = 4 if ($ncpus > 4);
+  $ncpus = $NODE_SIZE if ($ncpus > $NODE_SIZE);
+
+  $walltime = "3:00:00\n";
+  if ($queue == "datamove") {$walltime = "0:30:00\n"};
 
   my $script = <<EOF;
 #!/bin/bash
 #PBS -l select=$nodes:ncpus=$ncpus
-#PBS -l walltime=1:00:00
+#PBS -l walltime=$walltime
 #PBS -W group_list=a940a
 #PBS -N regression
 #PBS -j oe
@@ -100,10 +104,15 @@ sub runInBatch {
 #PBS $queueString
 
 cd \$PBS_O_WORKDIR
+. /usr/share/modules/init/bash
+module purge
+module load comp/intel-10.1.023 lib/mkl-10.1.2.024 mpi/impi-3.2.1.009
+
 $commandString
 EOF
 
 `echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
+
 }
 
 sub launch {
@@ -112,7 +121,7 @@ sub launch {
   my $logFile = $self -> {STDOUT_LOG_FILE};
   my $logErr = $self -> {STDERR_LOG_FILE};
 
-  my $commandString   = "(" . $self -> {COMMAND} . ") 2>&1 >> $logFile; touch $semaphore;";
+  my $commandString   = "(" . $self -> {COMMAND} . ") 2>&1 >> $logFile; /usr/bin/touch $semaphore;";
 
   my $mode = $self -> {QUEUE};
 

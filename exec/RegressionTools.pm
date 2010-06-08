@@ -2,6 +2,7 @@
 use CommandEntry;
 
 my $standardFlags = "SETUP_FLAGS=-wait";
+my $HYCOM = "E1fzhyc";
 
 my $extraFlags;
 $extraFlags{SERIAL}   = "";
@@ -9,18 +10,25 @@ $extraFlags{MPI}      = "ESMF=YES NPES=\$npes";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
 $extraFlags{SERIALMP} = "EXTRA_FFLAGS=-mp"; # Intel kludge for matching serial and OpenMP.
 
+$extraFlags{E1M20} ="";
+$extraFlags{E1F20} ="";
+$extraFlags{E1oM20} ="";
+$extraFlags{E001tr} ="";
+$extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
+
 my $numLinesCMP;
 $numLinesCMP{E1M20}  = 120;
 $numLinesCMP{E1F20}  = 120;
 $numLinesCMP{E1oM20} = 110;
 $numLinesCMP{E001tr} = 123;
+$numLinesCMP{$HYCOM} = 138;
 
 sub setModuleEnvironment {
 #    require perlModule;
     require "$ENV{MODULESHOME}/init/perl";
     module (purge);
 #    module (load, "comp/intel-9.1.042", "mpi/scali-5.3", "lib/mkl-9.0.017");
-    module (load, "comp/intel-9.1.049", "mpi/scali-5.3", "lib/mkl-9.0.017");
+    module (load, "comp/intel-9.1.052", "mpi/scali-5", "lib/mkl-9.1.023");
 }
 
 sub createTemporaryCopy {
@@ -39,12 +47,14 @@ sub createTemporaryCopy {
 sub compileRundeck {
   my $env = shift;
   my $installDir = shift;
+  my $compiler = shift;
 
   my $rundeck    = $env -> {RUNDECK};
   my $configuration = $env -> {CONFIGURATION};
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
-
-  my $flags = "$standardFlags $extraFlags{$configuration}";
+  $resultsDir .="/$compiler";
+  
+  my $flags = "$standardFlags $extraFlags{$configuration} $extraFlags{$rundeck}";
   $flags =~ s/(\$npes)/1/eeg;
 
   my $expName;
@@ -59,12 +69,12 @@ sub compileRundeck {
   cd $installDir/decks;
   make rundeck RUN=$expName RUNSRC=$rundeck;
   make vclean RUN=$expName;
-  make gcm RUN=$expName $flags;
+  make gcm RUN=$expName $flags COMPILER=$compiler;
 EOF
 
   my $binDir = $expName . "_bin";
   if ($configuration eq SERIAL) {
-    $commandString .= "make aux RUN=$expName $flags;\n";
+    $commandString .= "make aux RUN=$expName $flags COMPILER=$compiler;\n";
     $commandString .= "cp $binDir/CMPE002P $resultsDir/CMPE002P.$rundeck;\n";
     $commandString .= "cp $binDir/CMPE002 $resultsDir/CMPE002.$rundeck;\n";
   }
@@ -76,10 +86,12 @@ sub runConfiguration {
     my $env = shift;
     my $installDir = shift;
     my $npes = shift;
+    my $compiler = shift;
 
     my $rundeck    = $env -> {RUNDECK};
     my $configuration = $env -> {CONFIGURATION};
     my $resultsDir = $env -> {RESULTS_DIRECTORY};
+    $resultsDir .="/$compiler";
 
     my $flags = "$standardFlags $extraFlags{$configuration}";
     $flags =~ s/(\$npes)/$npes/eeg;
@@ -102,14 +114,15 @@ sub runConfiguration {
     echo "Using flags: $flags "
     export MODELERC;
     cd $installDir/decks;
-    make setup_nocomp RUN=$expName $flags;
+    rm -f $expName/fort.2
+    make setup_nocomp RUN=$expName $flags COMPILER=$compiler;
     cd $expName;
     # Remove old result so that we notice if things fail really badly
-    rm $resultsDir/$expName.1hr$suffix;
+    rm -f $resultsDir/$expName.1hr$suffix;
     cp fort.2 $resultsDir/$expName.1hr$suffix;
     $continue1Day;
     # Remove old result so that we notice if things fail really badly
-    rm $resultsDir/$expName.1dy$suffix;
+    rm -f $resultsDir/$expName.1dy$suffix;
     cp fort.2 $resultsDir/$expName.1dy$suffix;
 EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes}));
@@ -123,6 +136,7 @@ sub runSetup {
   my $configuration = $env -> {CONFIGURATION};
   my $npes          = $env -> {NUM_PROCS};
   my $resultsDir    = $env -> {RESULTS_DIR};
+  $resultsDir .="/$compiler";
 
   my $expName;
   if (@_) {$expName = shift}
@@ -144,12 +158,14 @@ sub checkResults {
   my $env = shift;
   my $tempDir = shift;
   my $npes = shift;
+  my $compiler = shift;
 
   my $installDir    = $env -> {INSTALL_DIR};
   my $rundeck       = $env -> {RUNDECK};
   my $configuration = $env -> {CONFIGURATION};
   my $resultsDir    = $env -> {RESULTS_DIR};
-  my $cmp           = "$resultsDir/CMPE002";
+  $resultsDir .="/$compiler";
+  my $cmp           = "$resultsDir/CMPE002P";
   my $expName;
 
   if (@_) {$expName = shift}

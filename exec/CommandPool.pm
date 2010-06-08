@@ -12,7 +12,15 @@ sub new {
   $self -> {FINAL_COMMAND} = 0;
   
   bless ($self, $class);
+  makePristine($self -> {SEMAPHORE_PREFIX});
   return $self;
+}
+
+sub makePristine{
+    my $semaphore = shift;
+
+    system("rm -f $semaphore*");
+    return 0;
 }
 
 sub numCommands {
