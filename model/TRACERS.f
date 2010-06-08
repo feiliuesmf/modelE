@@ -748,8 +748,9 @@ C****
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname,trpdens
 #ifdef TRACERS_AMP
-     *     ,AMP_MODES_MAP,ntmAMP
+     *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMP
       USE AMP_AEROSOL, only : DIAM, AMP_dens
+      USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
       USE TRDIAG_COM, only : jls_grav
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -813,14 +814,20 @@ C**** set particle properties
                 tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-                if (n.le.ntmAMP) then
-                  if(AMP_MODES_MAP(n).gt.0) then
-                    if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
-     &                    tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
-                    call AMPtrdens(i,j,l,n)
-                    tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
-                  endif   
-                endif 
+       if (n.le.ntmAMP) then
+        if(AMP_MODES_MAP(n).gt.0.and.DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
+     +  then
+        if(AMP_NUMB_MAP(n).eq. 0) then    ! Mass
+        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
+        else                              ! Number
+        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
+     +            *CONV_DPAM_TO_DGN(AMP_MODES_MAP(n))
+        endif
+
+        call AMPtrdens(i,j,l,n)
+        tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+        endif   
+       endif 
 #endif  
 
 C**** calculate stoke's velocity (including possible hydration effects
