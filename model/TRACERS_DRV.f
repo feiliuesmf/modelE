@@ -9200,27 +9200,27 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &              'NH3', 'SO2', 'BCB', 'OCB',
      &              'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
                 nread=nread+nBBsources(n)
-#ifndef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_AMP
-                select case (trname(n))
-                case ('M_OCC_OC')
-                  nread=nread-1
-                end select
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
               end select
             endif
+#ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AMP
+            select case (trname(n))
+            case ('M_OCC_OC')
+              nread=nread-1
+            end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AMP
             if(nread>0)call read_sfc_sources(n,nread,xyear,xday,.false.)
 #ifndef TRACERS_AEROSOLS_SOA
-                select case (trname(n))
-                case ('M_OCC_OC')
-                  sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
-     &                                ntsurfsrc(n)+nBBsources(n))=
-     &              sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
-     &                                  ntsurfsrc(n)+nBBsources(n)-1)
-                  sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
-                end select
+            select case (trname(n))
+            case ('M_OCC_OC')
+              sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
+     &                            ntsurfsrc(n)+nBBsources(n))=
+     &          sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
+     &                              ntsurfsrc(n)+nBBsources(n)-1)
+              sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
+            end select
 #endif  /* TRACERS_AEROSOLS_SOA */
 #else
             if(nread>0)call read_sfc_sources(n,nread,xyear,xday,.true.)
