@@ -682,6 +682,7 @@ C**** Fill in the undefined pole box duplicates
       do j=j_0,j_1
         do i=i_0,i_1
           taij(i,j,k)=real(idacc(ia_rad))-aij_loc(i,j,ij_cldcv)
+          ia_taij(k) = ia_rad
         enddo
       enddo
 
@@ -899,9 +900,9 @@ c
         if(sname_taij(k)(1:3).eq.'lwf') div_by_area = .false.
         if(sname_taij(k)(1:3).eq.'no_') div_by_area = .false.
         if(sname_taij(k)(1:5).eq.'wtrsh') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'ext_band') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'sct_band') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'asf_band') div_by_area = .false.
+        if(sname_taij(k)(1:4).eq.'ext_') div_by_area = .false.
+        if(sname_taij(k)(1:4).eq.'sct_') div_by_area = .false.
+        if(sname_taij(k)(1:4).eq.'asf_') div_by_area = .false.
         if(sname_taij(k)(1:4).eq.'DIAM') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'DMS_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO2_con_') div_by_area = .false.
