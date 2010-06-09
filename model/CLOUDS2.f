@@ -377,10 +377,27 @@ C**** output variables
       CONTAINS
 
       SUBROUTINE MSTCNV(IERR,LERR,i_debug,j_debug)
+
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR
+
+C**** FREE PARAMETERS THAT USERS MIGHT WANT TO VARY INCLUDE
+C****    (1) ADJUSTMENT TIME FOR STABILIZATION OF CLOUD BASE BY CUMULUS MASS
+C****        FLUX: HARD CODED AS 3600 S IN THIS VERSION OF THE CODE
+C****    (2) SCALING FACTOR FOR ENTRAINMENT STRENGTH (CONTCE): DEFAULT VALUES
+C****        = 0.3, 0.6
+C****    (3) SCALING FACTOR FOR EFFECT OF PRESSURE GRADIENT ON CONVECTIVE
+C****        HORIZONTAL MOMENTUM TRANSPORT: HARD CODED AS 0.7 IN THIS VERSION
+C****        OF THE CODE
+C****    (4) FRACTION OF UPDRAFT MASS ASSUMED FOR INITIAL DOWNDRAFT MASS:
+C****        HARD CODED AS 1/3 (USING GENERAL PARAMETER BY3) IN THIS VERSION
+C****        OF THE CODE
+C****    (5) FRACTION OF PRECIPITATING CONDENSATE AVAILABLE FOR RE-EVAPORATION
+C****        RATHER THAN INCORPORATION INTO DOWNDRAFT: HARD CODED AS 0.5 IN
+C****        THIS VERSION OF THE CODE
+
       IMPLICIT NONE
       REAL*8 LHX,MPLUME,MPLUM1,MCLOUD,MPMAX,SENV,QENV,LHX1
 !@var LHX latent heat of evaporation (J/Kg)
@@ -393,7 +410,7 @@ C**** output variables
 
 C**** functions
       REAL*8 :: QSAT, DQSATDT
-!@var QSAT saturation humidity
+!@var QSAT saturation specific humidity
 !@var DQSATDT dQSAT/dT
 
       REAL*8, DIMENSION(0:LM) :: CM     !@var CM air mass of subsidence
@@ -477,16 +494,16 @@ c for sulfur chemistry
 #endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL,MINLVL,ITER,IC,LFRZ,NSUB
      *     ,LDMIN,LLMIN
-!@var LDRAFT the layer the downdraft orginates
-!@var LEVAP the layer evaporation of precip starts
-!@var LMAX, LMIN the lowest, the highest layer of a convective event
+!@var LDRAFT the layer at which the downdraft orginates
+!@var LEVAP the layer at which evaporation of precip starts
+!@var LMAX, LMIN the base, top layers of a convective event
 !@var MCCONT integer to count convective events
 !@var MAXLVL, MINLVL the lowest, the highest layer of convective events
 !@var ITER number for iteration
 !@var IC integer for cloud types
 !@var LFRZ freezing level
 !@var nsub = LMAX - LMIN + 1
-!@var LDMIN the lowest layer the downdraft drops
+!@var LDMIN the lowest layer to which the downdraft descends
       REAL*8 TERM1,FMP0,SMO1
      *     ,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE,WMDN,WMUP,SVDN
      *     ,SVUP,WMEDG,SVEDG,DMSE,FPLUME,DFP,FMP2,FRAT1,FRAT2,SMN1
@@ -515,8 +532,8 @@ c for sulfur chemistry
 #endif
 #endif
 
-!@var TERM1 contribution to non-entraining convective cloud
-!@var FMP0 non-entraining convective mass
+!@var TERM1 contribution to less entraining convective cloud
+!@var FMP0 less entraining convective mass
 !@var SMO1,QMO1,SMO2,QMO2,SDN,QDN,SUP,QUP,SEDGE,QEDGE dummy variables
 !@var WMDN,WMUP,SVDN,SVUP,WMEDG,SVEDG,DDRUP,DDROLD dummy variables
 !@var DMSE difference in moist static energy
@@ -530,7 +547,7 @@ c for sulfur chemistry
 !@var FCTYPE fraction for convective cloud types
 !@var CDHDRT,ALPHA,BETA,CDHM,CDHSUM,CLDREF dummy variables
 !@var DDRAFT downdraft mass
-!@var DELTA fraction of plume stays in the layer
+!@var DELTA fraction of plume that stays in the layer
 !@var CLDM subsidence due to convection
 !@var DQEVP amount of condensate that evaporates in downdrafts
 !@var EPLUME air mass of entrainment
@@ -541,22 +558,22 @@ c for sulfur chemistry
 !@var FENTRA fraction of entrainment
 !@var FEVAP fraction of air available for precip evaporation
 !@var FLEFT fraction of plume after removing downdraft mass
-!@var FQCOND fraction of water vapour that condenses in plume
+!@var FQCOND fraction of water vapor that condenses in plume
 !@var FQCONDV fraction of condensate that is lofted
-!@var FQEVP fraction of water vapour that evaporates in downdraft
+!@var FQEVP fraction of water vapor that evaporates in downdraft
 !@var FPRCP fraction of evaporated precipitation
 !@var FSEVP fraction of energy lost to evaporate
 !@var FSSUM fraction of energy lost to evaporate
 !@var HEAT1 heating needed for phase change
 !@var PRHEAT energy of condensate
-!@var PRCP precipipation
+!@var PRCP precipitation
 !@var QMDN,QMIX,SMDN,SMIX dummy variables
 !@var QMPMAX,SMPMAX detrainment of QMP, SMP
 !@var QMPT,SMPT dummy variables
 !@var QNX,SUMAJ,SUMDP dummy variables
 !@var QSATC saturation vapor mixing ratio
 !@var QSATMP plume's saturation vapor mixing ratio
-!@var RCLD,RCLDE cloud particle's radius, effective radius
+!@var RCLD,RCLDE cloud particle radius, effective radius
 #ifdef CLD_AER_CDNC
 !@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
 #endif
@@ -573,7 +590,7 @@ c for sulfur chemistry
 !@param RHOG,RHOIP density of graupel and ice particles
 !@param ITMAX max iteration indices
 !@param FITMAX set to 1/ITMAX
-!@param CN0, CN0I, CN0G constants use in computing FLAMW, etc
+!@param CN0, CN0I, CN0G intercepts of Marshall-Palmer particle size dist.
 !@param PN tuning exponential for computing WV
 !@param AIRM0 air mass used to compute convective cloud cover
       REAL*8,  PARAMETER :: CN0=8.d6,PN=1.d0,AIRM0=100.d0
@@ -587,11 +604,11 @@ C     REAL*8 RHO   ! air density
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
       INTEGER,  PARAMETER :: ITMAX=50
       REAL*8, PARAMETER :: FITMAX=1d0/ITMAX
-!@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
-!@var WMAX specified maximum convective vertical velocity
-!@var WV convective vertical velocity
+!@var FLAMW,FLAMG,FLAMI Marshall-Palmer lambda for water, graupel and ice
+!@var WMAX specified maximum convective updraft speed
+!@var WV convective updraft speed
 !@var VT precip terminal velocity
-!@var DCW,DCG,DCI critical cloud particle sizes
+!@var DCW,DCG,DCI critical cloud particle sizes for onset of precip
 !@var FG, FI fraction for graupel and ice
 !@var CONDMU convective condensate in Kg/m^3
 !@var TTURB, TRATIO, BYPBLM dummy variables
@@ -790,7 +807,7 @@ c**** DEL GENIO 1989, J. CLIM.).  THE RESULTING CUMULUS MASS FLUX IS
 c**** ASSUMED TO OCCUR OVER A CONVECTIVE ADJUSTMENT TIME OF 1 HOUR
 c****
 
-C**** COMPUTE THE CONVECTIVE MASS OF THE MORE WEAKLY ENTRAINING PART
+C**** COMPUTE THE CONVECTIVE MASS OF THE LESS  ENTRAINING PART
       TERM1=-10.*CK1*SDL(LMIN+1)*BYGRAV
       FMP0=TERM1*XMASS
       IF(FMP0.LE.0.) FMP0=0.
@@ -879,7 +896,7 @@ C****
 C**** BEGIN LOOP (2) THROUGH CLOUD TYPES OF DIFFERENT ENTRAINMENT RATE
 C****
 
-      ITYPE=2                   ! always 2 types of clouds: more weakly & more strongly entraining
+      ITYPE=2           ! always 2 types of clouds: less and more entraining
       FCTYPE=1.
       FMP2=FMP2*min(1d0,DTsrc/3600.d0)    ! use 1 hr adjustment time
       WMAX=50.
@@ -1020,8 +1037,9 @@ C****
       CONTCE=CONTCE1
       IF(IC.EQ.2) CONTCE=CONTCE2
 C**** INITIAL CUMULUS UPDRAFT SPEED DETERMINED FROM SQRT(TKE), BUT
-C**** LESS THAN 0.5 M/S, FOR MORE STRONGLY ENTRAINING PLUME; TWICE
-C**** THIS VALUE FOR MORE WEAKLY ENTRAINING PLUME
+C**** THE LARGER OF 0.5 M/S OR THE TURBULENT VERTICAL VELOCITY FOR
+C**** THE MORE ENTRAINING PLUME; THE LARGER OF 0.5 M/S OR TWICE THE
+C**** TURBULENT VERTICAL VELOCITY FOR THE LESS ENTRAINING PLUME
       WCU(LMIN)=MAX(.5D0,WTURB(LMIN))
       IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*WTURB(LMIN))
       WCU2(LMIN)=WCU(LMIN)*WCU(LMIN)
@@ -1069,19 +1087,20 @@ C**** W.R.T. LIQUID WATER, OR W.R.T. ICE FOR HOMOGENEOUS NUCLEATION (T<-40)
         QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
       END IF
 
-C**** DEFINE VLAT TO AVOID PHASE DISCREPANCY BETWEEN PLUMES
+C**** DEFINE DUMMY LATENT HEAT VARIABLE TO AVOID PHASE DISCREPANCY BETWEEN PLUMES
       IF (VLAT(L).EQ.LHS) LHX=LHS
       VLAT(L)=LHX
       SLH=LHX*BYSHA
 
+C**** THRESHOLD RH FOR PBL STRATIFORM CLOUDS
       IF(TL(L).GE.TF .AND. U00L(L).NE.U00a) U00L(L)=
      *    1.d0-2.*(U00b*2.d-4*MPLUME/QSATMP)
 
       MCCONT=MCCONT+1
       IF(MCCONT.EQ.1) MC1=.TRUE.
 C****
-C**** DEPOSIT PART OF THE PLUME IN LOWER LAYER
-C**** If plume is too large, reduce it
+C**** IF PLUME MASS IS TOO LARGE FOR UPPER LAYER, LEAVE PART BEHIND IN LOWER LAYER
+C**** AND ADJUST TEMPERATURE, HUMIDITY, AND MOMENTUM THERE
 C****
       IF(MPLUME.GT..95*AIRM(L)) THEN
         DELTA=(MPLUME-.95*AIRM(L))/MPLUME
@@ -1113,15 +1132,13 @@ C****
         TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
 #endif
       END IF
-C****
-C**** CONVECTION IN UPPER LAYER   (WORK DONE COOLS THE PLUME)
-C****
+
+C**** WORK DONE BY CONVECTION IN UPPER LAYER REMOVES ENERGY FROM THE PLUME
       WORK=MPLUME*(SUP-SDN)*(PLK(L-1)-PLK(L))/PLK(L-1)
       DSM(L-1)=DSM(L-1)-WORK
       CCM(L-1)=MPLUME
-C****
+
 C**** CONDENSE VAPOR IN THE PLUME AND ADD LATENT HEAT
-C****
       call get_dq_cond(smp,qmp,plk(l),mplume,lhx,pl(l),dqsum,fqcond)
 
       IF(DQSUM.GT.0. .AND. QMP.gt.teeny) THEN
@@ -1135,8 +1152,10 @@ C**** save plume temperature after possible condensation
       TPOLD(L)=SMP*PLK(L)/MPLUME
 #endif
 
+C**** TOTAL CONDENSATE IN LAYER = NEWLY CONDENSED + ADVECTED FROM LOWER LAYER;
+C**** THE LATTER IS CALCULATED IN THE MICROPHYSICS SECTION
       COND(L)=DQSUM
-      CDHEAT(L)=SLH*COND(L)          ! cal CDHEAT before add CONDV
+      CDHEAT(L)=SLH*COND(L)          ! calculate CDHEAT before add CONDV
       CDHSUM=CDHSUM+CDHEAT(L)
       COND(L)=COND(L)+CONDV(L-1)     ! add in the vertical transported COND
 
@@ -1146,6 +1165,8 @@ C**** save plume temperature after possible condensation
         CDHSUM=CDHSUM-(VLAT(L-1)-VLAT(L))*CONDV(L-1)*BYSHA
       END IF
 
+C**** CALCULATE SLOPE PARAMETER FOR MARSHALL-PALMER SIZE DISTRIBUTION FOR
+C**** LIQUID, GRAUPEL, ICE (DEL GENIO ET AL. 2005, J. CLIM.)
       CONDMU=100.*COND(L)*PL(L)/(CCM(L-1)*TL(L)*RGAS)
       FLAMW=(1000.d0*PI*CN0/(CONDMU+teeny))**.25
       FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
@@ -1326,8 +1347,7 @@ C**** ENTRAINMENT
 c****
 
 c**** ENTRAINMENT USES THE PARAMETERIZATION OF GREGORY (2001, QJRMS)
-c**** WITH CONSTANT C = 0.3 (0.6) FOR THE MORE WEAKLY (STRONGLY)
-c**** ENTRAINING PLUME
+c**** WITH CONSTANT C = 0.3 (0.6) FOR THE LESS (MORE) ENTRAINING PLUME
 C****
 C     IF(IC.EQ.2.OR.(IC.EQ.1.AND.PL(L).GE.800.)) THEN
       TVP=(SMP/MPLUME)*PLK(L)*(1.+DELTX*QMP/MPLUME)
@@ -1380,6 +1400,14 @@ c      FPLUME = MPLUME*BYAM(L) ! and use this instead
       TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)+TMOM(xymoms,L,1:NTX)
      *     *FENTRA
 #endif
+
+C****
+C**** CONVECTIVE MOMENTUM TRANSPORT IS BASED ON GREGORY ET AL. (1997, QJRMS).
+C**** THE MOMENTUM OF THE RISING PARCEL IS CHANGED BY ENTRAINMENT AND BY THE
+C**** EFFECT OF THE CONVECTIVE SCALE HORIZONTAL PRESSURE GRADIENT, THE
+C**** LATTER PARAMETERIZED AS PROPORTIONAL TO THE CUMULUS MASS FLUX TIMES THE
+C**** VERTICAL SHEAR OF THE HORIZONTAL WIND
+c****
       DO K=1,KMAX
          UMTEMP=0.7*MPLUME**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
          VMTEMP=0.7*MPLUME**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
@@ -1432,7 +1460,7 @@ C**** CHANGE LAYER PROPERTIES DUE TO DETRAINMENT
       END IF
 
 C****
-C**** CHECK THE POSSIBILITY OF DOWNDRAFTS.  A DOWNDRAFT FORMS WHEN AN
+C**** CHECK THE POSSIBILITY OF DOWNDRAFT.  A DOWNDRAFT FORMS WHEN AN
 c**** EQUAL MIXTURE OF CLOUDY AND CLEAR AIR IS NEGATIVELY BUOYANT
 c****
 
@@ -1551,7 +1579,7 @@ C****
 
 C**** PARTICLES WITH FALLSPEEDS WITHIN +/- DWCU OF THE UPDRAFT SPEED ARE
 C**** ASSUMED TO DETRAIN AT THE CURRENT LEVEL; FIRST FIND SMALL PARTICLE END OF
-C**** THIS RANGE FOR GRAUPEL AND FLUFFY ICE (LOWER CRITICAL SIZE)
+C**** THIS RANGE (LOWER CRITICAL SIZE) FOR GRAUPEL AND FLUFFY ICE
 
       WV=WCU(L)-DWCU          ! apply the calculated cumulus updraft speed
       IF(WV.LT.0.d0) WV=0.d0
@@ -1672,7 +1700,7 @@ C**** UPPER CRITICAL SIZE FOR GRAUPEL
         DCG=((WV/19.3)*(PL(L)/1000.)**.4)**2.7
         DCG=MIN(DCG,1.D-2)
 
-C**** PRECIPITATING PART OF FROZEN CONDENSATE
+C**** PRECIPITATING PART OF FROZEN CONDENSATE (HAIL + SNOW) IN MIXED PHASE REGION
         CONDIP(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
      *    (DCI*DCI*DCI/FLAMI+3.*DCI*DCI/(FLAMI*FLAMI)+
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
@@ -1790,6 +1818,7 @@ C**** Add plume characteristics at LMAX
       IF(MAXLVL.LT.LMAX) MAXLVL=LMAX
       IF(LMCMIN.EQ.0) LMCMIN=LMIN
       IF(LMCMAX.LT.MAXLVL) LMCMAX=MAXLVL
+
 C****
 C**** DOWNDRAFT DESCENT AND TRANSPORT LOOP (4)
 C****
@@ -1798,6 +1827,8 @@ C****
       EDRAFT=0.
 
       IF(ETADN.GT.1d-10) THEN ! downdraft possible
+
+C**** DOWNDRAFT MASS, TEMPERATURE, HUMIDITY, MOMENTUM
       DDRAFT=DDR(LDRAFT)
       DDROLD=DDRAFT
       SMDN=SMDNL(LDRAFT)
@@ -1813,8 +1844,7 @@ C****
       TMOMDN(xymoms,:)=TMOMDNL(xymoms,LDRAFT,:)
 #endif
 
-C****
-C**** Loop from top over possible downdrafts
+C**** LOOP FROM TOP DOWN OVER POSSIBLE DOWNDRAFTS
 C****
       DO L=LDRAFT,1,-1
       LHX=VLAT(L)               ! LHX consistency
@@ -1824,6 +1854,9 @@ C****
       call get_dq_evap(smdn,qmdn,plk(l),ddraft,lhx,pl(l),cond(l)
      *     ,dqsum,fqcond1)
 
+C**** EVAPORATE CONVECTIVE CONDENSATE IN DOWNDRAFT AND UPDATE DOWNDRAFT
+C**** TEMPERATURE AND HUMIDITY; CURRENTLY ALL CONDENSATE IS ALLOWED TO
+C**** EVAPORATE IF POSSIBLE (FDDRT = 1)
       DQEVP=FDDRT*COND(L)       ! limit evap from condensate to fddrt of amount
       IF(DQEVP.GT.DQSUM) DQEVP=DQSUM           ! limit evaporation
       IF(DQEVP.GT.SMDN*PLK(L)/SLH) DQEVP=SMDN*PLK(L)/SLH
@@ -1837,6 +1870,8 @@ C****
       FQEVP = 0
       IF (COND(L).gt.0.) FQEVP = DQEVP/COND(L)
       QMDN=QMDN+DQEVP
+
+c**** REMOVE EVAPORATED WATER FROM CONVECTIVE CONDENSATE AMOUNT
       COND(L)=COND(L)-DQEVP
       TAUMCL(L)=TAUMCL(L)-DQEVP*FMC1
       CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
@@ -1873,12 +1908,17 @@ C**** ENTRAINMENT INTO DOWNDRAFTS
         QMIX=QMDN/(DDRUP+teeny)
         SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
         SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
+
         IF ((SVMIX-SVM1).GE.DTMIN1) THEN
           DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
         END IF
+
+C**** LIMIT SIZE OF DOWNDRAFT IF NEEDED
         IF(DDRAFT.GT..95d0*(AIRM(L-1)+DMR(L-1)))
      *    DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
         EDRAFT=DDRAFT-DDRUP
+
+C**** ENTRAIN INTO DOWNDRAFT, UPDATE TEMPERATURE AND HUMIDITY
         IF (EDRAFT.gt.0) THEN  ! usual case, entrainment into downdraft
           FENTRA=EDRAFT*BYAM(L)
           SENV=SM(L)*BYAM(L)
@@ -1892,6 +1932,8 @@ C**** ENTRAINMENT INTO DOWNDRAFTS
           DQMR(L)=DQMR(L)-EDRAFT*QENV
           DQMOMR(:,L)=DQMOMR(:,L)-QMOM(:,L)*FENTRA
           DMR(L)=DMR(L)-EDRAFT
+C**** EFFECT OF ENTRAINMENT AND CONVECTIVE PRESSURE GRADIENT ON
+C**** HORIZONTAL MOMENTUM OF DOWNDRAFT AIR
           DO K=1,KMAX        ! add in momentum entrainment
             UMTEMP=0.7*DDRAFT**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
             VMTEMP=0.7*DDRAFT**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
@@ -1939,7 +1981,7 @@ C**** ENTRAINMENT INTO DOWNDRAFTS
 
       LDMIN=L
       LLMIN=LDMIN        ! save LDMIN for diagnostics
-C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVELY BUOYANT
+C**** ALLOW DOWNDRAFT TO DESCEND BELOW CLOUD BASE IF IT IS NEGATIVELY BUOYANT
       IF (L.GT.1) THEN
         SMIX=SMDN/(DDRAFT+teeny)
         QMIX=QMDN/(DDRAFT+teeny)
@@ -1968,6 +2010,7 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVELY BUOYANT
       END DO
 C**** end of loop over downdrafts
 
+C**** UPDATE PROPERTIES OF LOWEST LAYER TO WHICH DOWNDRAFT PENETRATES
       DSM(LDMIN)=DSM(LDMIN)+SMDN
       DSMOM(xymoms,LDMIN)=DSMOM(xymoms,LDMIN) + SMOMDN(xymoms)
       DQM(LDMIN)=DQM(LDMIN)+QMDN
@@ -2172,6 +2215,7 @@ C**** save new 'environment' profile for static stability calc.
 #ifdef TRACERS_ON
       TM1(:,1:NTX) = TM(:,1:NTX)
 #endif
+
 C****
 C**** Partition condensate into precipitation and cloud water
 C****
@@ -2232,6 +2276,7 @@ C****
 C**** RE-EVAPORATION AND PRECIPITATION LOOP (6); INCLUDES CALCULATION OF
 C**** CONVECTIVE CLOUD FRACTION
 C****
+
 #ifdef SCM
       if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
           do L=1,LM
@@ -2626,6 +2671,7 @@ C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
           AIRXL = AIRXL+MCFLX(L)
         END DO
       END IF
+
 C****
 C**** CALCULATE CONVECTIVE CLOUD OPTICAL THICKNESS
 C****
