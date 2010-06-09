@@ -122,6 +122,14 @@ c
         module procedure len_of_r81D
       end interface
 
+      interface full_len_of_obj
+        module procedure full_len_of_text
+        module procedure len_of_int0D
+        module procedure len_of_int1D
+        module procedure len_of_r80D
+        module procedure len_of_r81D
+      end interface
+
       interface broadcast
         module procedure broadcast_0D_int
         module procedure broadcast_1D_int
@@ -844,6 +852,12 @@ c        if(do_enddef) rc2 = nf_enddef(fid)
       len_of_text = len_trim(cstr)
       return
       end function len_of_text
+      function full_len_of_text(cstr)
+      integer :: full_len_of_text
+      character(len=*) :: cstr
+      full_len_of_text = len(cstr)
+      return
+      end function full_len_of_text
       function len_of_int0D(i)
       integer :: len_of_int0D
       integer :: i

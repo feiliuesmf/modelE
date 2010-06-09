@@ -44,7 +44,7 @@ c
           enddo
           rc = nf_inq_attlen(fid,vid,trim(attname),attlen)
         endif
-        attlenx = len_of_obj(attval)
+        attlenx = full_len_of_obj(attval)
         if(attlen.gt.attlenx) then
           write(6,*) 'In read_attr:'
           write(6,*) 'For ',trim(varname)//':'//trim(attname)
