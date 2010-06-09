@@ -1065,7 +1065,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #else
           ntsurfsrc(n) = 3 !Terpene, industrial, ships
 #endif  /* TRACERS_AEROSOLS_SOA */
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.0   !fraction of aerosol that dissolves
@@ -1074,7 +1074,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCIA = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
@@ -1083,7 +1083,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCI1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0 !3D emissions
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.0   !fraction of aerosol that dissolves
@@ -1092,7 +1092,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCA1 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
@@ -1101,7 +1101,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCI2 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0 !industrial emissions
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.0   !fraction of aerosol that dissolves
@@ -1110,7 +1110,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCA2 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
@@ -1123,7 +1123,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #else
           ntsurfsrc(n) = 1 ! terpene emissions
 #endif  /* TRACERS_AEROSOLS_SOA */
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.2   !fraction of aerosol that dissolves
@@ -1132,7 +1132,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCA3 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
@@ -1141,22 +1141,20 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       n_OCA4 = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=1.   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCB') !Biomass organic mass
       n_OCB = n
+          call sync_param("OCB_om2oc",om2oc(n_OCB))
           ntm_power(n) = -11
-          tr_mm(n) = 15.6
+          tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.8   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-          call sync_param("OCB_om2oc",om2oc(n_OCB))
-#endif
       case ('Be7')
       n_Be7 = n
 CCC#ifdef SHINDELL_STRAT_EXTRA
