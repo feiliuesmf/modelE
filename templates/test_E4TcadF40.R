@@ -28,7 +28,7 @@ Preprocessor Options
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-#define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
+!#define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 !  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
