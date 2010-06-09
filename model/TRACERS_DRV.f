@@ -194,7 +194,6 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
-      call sync_param("OCB_om2oc",om2oc(n_OCB))
       call sync_param("BBinc",BBinc)
 #endif
 #ifdef TRACERS_SPECIAL_O18
@@ -1155,7 +1154,9 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.8   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+          call sync_param("OCB_om2oc",om2oc(n_OCB))
+#endif
       case ('Be7')
       n_Be7 = n
 CCC#ifdef SHINDELL_STRAT_EXTRA
