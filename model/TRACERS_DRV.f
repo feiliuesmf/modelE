@@ -104,7 +104,7 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer :: l,k,n,kr,m
+      integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracls
 #endif
@@ -329,9 +329,18 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
 ! allow any tracer to have a dynamic biomass burning src:
         inquire(file=trim(trname(n))//'_EPFC',exist=do_fire(n))
+#ifdef DYNAMIC_BIOMASS_BURNING
+        call stop_model('fire model disabled for the moment.',13)
+#endif
+
+! allow some tracers to have biomass burning source that
+! mix over PBL layers (these become 3D sources no lont in ntsurfsrc(n):
         if(.not. do_fire(n))then
           select case (trname(n))
           case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+#ifdef TRACERS_SPECIAL_Shindell
+     &          'CH4',
+#endif
      &          'NH3', 'SO2', 'BCB', 'OCB',
      &          'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
             call sync_param(trim(trname(n))//"_nBBsources",
@@ -339,6 +348,8 @@ C**** get rundeck parameter for cosmogenic source factor
             ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
           end select
         endif
+
+! other special cases:
 #ifndef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_AMP
         select case (trname(n))
@@ -348,23 +359,11 @@ C**** get rundeck parameter for cosmogenic source factor
         end select
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
-! special cases:
 #ifdef TRACERS_SPECIAL_Shindell
-        if(trname(n) == 'CH4')then
-         if(use_rad_ch4 /= 0)then
-           ntsurfsrc(n) = 0
-#ifdef WATER_MISC_GRND_CH4_SRC
-         else
-           ntsurfsrc(n)=ntsurfsrc(n)+3
-           ssname(n,ntsurfsrc(n)  )='GEIA_Misc_Ground_Source'
-           ssname(n,ntsurfsrc(n)-1)='GEIA_Lake'
-           ssname(n,ntsurfsrc(n)-2)='GEIA_Ocean'
-#endif
-         endif
-        endif
+        if(trname(n)=='CH4' .and. use_rad_ch4/=0) ntsurfsrc(n)=0
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) && (defined GFED_3D_BIOMASS)
-      call check_GFED_sectors(n) ! possible special 3D source sector
+        call check_GFED_sectors(n) ! possible special 3D source sector
 #endif
       enddo
 
@@ -9140,20 +9139,21 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif /* TRACERS_SPECIAL_Shindell */
 
       do n=1,ntm
-        if(n==n_CH4)then ! ------------------- methane --------------
+        if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
-#ifdef WATER_MISC_GRND_CH4_SRC
-         nread=ntsurfsrc(n)-3
-         call read_sfc_sources(n,nread,xyear,xday,.true.)
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  -nBBsources(n))=
-     &   1.698d-12*fearth0(I_0:I_1,J_0:J_1) ! 5.3558e-5 Jean
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1-nBBsources(n))=
-     &   5.495d-11*flake0(I_0:I_1,J_0:J_1)  ! 17.330e-4 Jean
-         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-2-nBBsources(n))=
-     &   1.141d-12*focean(I_0:I_1,J_0:J_1)  ! 3.5997e-5 Jean
-#else
-         nread=ntsurfsrc(n)
+         if(do_fire(n))then
+           nread=ntsurfsrc(n)
+         else 
+           nread=ntsurfsrc(n)+nBBsources(n)
+         end if
          if(nread>0) call read_sfc_sources(n,nread,xyear,xday,.true.)
+#ifdef WATER_MISC_GRND_CH4_SRC
+         do ns=1,ntsurfsrc(n) 
+           if(ssname(n,ns)=='gsfMGOLjal')sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+     &     1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
+     &     5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
+     &     1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
+         end do
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
          if(nread>0) call read_ncep_for_wetlands(end_of_day)
@@ -9406,7 +9406,7 @@ C**** at the start of any day
 #endif
       USE LAKES_COM, only : flake
       implicit none
-      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg,nfill
+      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -9767,7 +9767,7 @@ C****
      &      'stratOx','codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
+          call dynamic_biomass_burning(n,ntsurfsrc(n))
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -9812,12 +9812,7 @@ C****
       case ('CH4')
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-#ifdef WATER_MISC_GRND_CH4_SRC
-          nfill=ntsurfsrc(n)-3
-#else
-          nfill=ntsurfsrc(n)
-#endif
-          call dynamic_biomass_burning(n,nfill+1)
+          call dynamic_biomass_burning(n,ntsurfsrc(n))
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -9879,7 +9874,7 @@ C****
         end select
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
+          call dynamic_biomass_burning(n,ntsurfsrc(n))
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -9903,7 +9898,7 @@ C****
       case ('NH3')
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
+          call dynamic_biomass_burning(n,ntsurfsrc(n))
           ! better to add array that knows source index
           ! perhaps do_fire, changed to integer?
         endif
@@ -10160,7 +10155,7 @@ C**** aircraft source for fresh industrial BC
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell)
-      case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+      case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4',
      &      'NH3', 'SO2', 'SO4', 'BCB', 'OCB', 
      &      'M_ACC_SU', 'M_AKK_SU',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
@@ -10213,7 +10208,7 @@ C**** 3D volcanic source
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        if (imAER.ne.1) then
+        if ((imAER.ne.1) .or. (n<=ntm_chem)) then
 #endif
           bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
           bb_e=bb_i                   ! index of last BB source
@@ -10259,9 +10254,9 @@ C**** 3D biomass source
      &        OCB_src(:,J_0:J_1,:,jmon)
           end select
         endif ! imAER
-        call apply_tracer_3Dsource(nBiomass,n)
         call apply_tracer_3Dsource(nAircraft,n)
 #endif
+        call apply_tracer_3Dsource(nBiomass,n)
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_OM_SP
