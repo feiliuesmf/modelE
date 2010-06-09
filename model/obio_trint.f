@@ -32,6 +32,7 @@
       integer i,j,k,l
       integer ntr
       real sumo,areao,glb_carbon_invntry,ironFlux,glb_iron_invntry
+      real h1
 
       integer :: iTracer, iflg
       integer :: j_0, j_1, j_0h, j_1h
@@ -42,8 +43,9 @@
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
 
-      sumo =  getTotalOceanVolume()
+      sumo  =  getTotalOceanVolume()
       areao =  getTotalOceanArea()
+        h1  = avgDepthOfTopLayer()
 
       ! Form partial sum for each latitude for each tracer
       allocate(summ(ntrcr))
@@ -63,7 +65,7 @@
       sumFlux=0.   ! no surface flux
 #endif
       ironFlux= areaIntegration(atmFe(:,:,JMON))
-      ironFlux= ironFlux*solFe*1.d-3/max(p1d(2),1.e-3)
+      ironFlux= ironFlux*solFe*1.d-3/max(h1,1.d-3)
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
