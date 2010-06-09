@@ -37,7 +37,7 @@ $env{MPIDISTR}="intel";
 $env{COMPILER}="intel";
 $env{COMPILER_VERSION}="10";
 $env{ESMF_BOPT}="O";
-$env{NETCDFHOME}="";
+$env{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
 
 $ENV{MODELERC}="$scratchDir/modelErc.regression";
 open (MODELERC, ">$ENV{MODELERC}") or die('could not create $ENV{MODELERC} file.\n');
