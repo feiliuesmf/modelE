@@ -819,6 +819,10 @@ C**** The following general arrays are set in tracer_IC
       logical, dimension(ntm) :: do_fire
 !@var nBBsources number of sources attributed to biomass burning
       integer, dimension(ntm) :: nBBsources
+!@var emisPerFireByVegType tracer emissions per fire count as a
+!@+ function of 12 standard GISS (VDATA) vegetation types, or Ent
+!@+ remapped to them. Thus the "12" hardcode.
+      real*8, dimension(ntm,12) :: emisPerFireByVegType=0.d0
 !@var trpdens tracer particle density (kg/m^3)
 !@+               (=0 for non-particle tracers)
       real*8, dimension(ntm) :: trpdens
