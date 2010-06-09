@@ -20,6 +20,9 @@
 #ifdef TRACERS_WATER
      &     ,trw0,dowetdep
 #endif
+#ifdef TRACERS_SPECIAL_O18
+     &     ,n_H2O18,n_HDO,n_H2O17
+#endif
       USE GEOM, only : areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
      &     ia_dga,ia_src,ajl,cdl_jl_template
