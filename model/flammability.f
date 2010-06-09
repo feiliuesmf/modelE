@@ -118,40 +118,86 @@
 #if defined DYNAMIC_BIOMASS_BURNING && defined CALCULATE_FLAMMABILITY
       subroutine dynamic_biomass_burning(n,ns)
 !@sum dynamic_biomass_burning fills in the surface source ns for
-!@+ tracer n with biomass burning based on flammability and offline
-!@+ correlations of emissions with observed fire counts.
-!@auth Greg Faluvegi based on direction from Olga Pechony
-!@ver 1.0
+!@+ tracer n with biomass burning based on flammability, offline
+!@+ correlations of emissions with observed fire counts by vegetation
+!@+ type, and the GCM's online vegetation. For now, this is mapped
+!@+ onto the traditional VDATA( ) types, even if Ent is on.
+!@auth Greg Faluvegi based on direction from Olga Pechony, Igor A.
+!@ver 2.0
 
       use domain_decomp_atm,only: grid, get
-      use flammability_com, only: epfc,mfcc,flammability,first_prec,
-     &                            missing
-      use tracer_com, only: sfc_src
+      use flammability_com, only: mfcc,flammability,first_prec,missing
+      use tracer_com, only: sfc_src,emisPerFireByVegType
       use model_com, only: nday,DTsrc
+      use ghy_com, only: fearth
+#ifdef USE_ENT
+      use ent_com, only: entcells
+      use ent_mod, only: ent_get_exports
+     &                   ,n_covertypes !YKIM-temp hack
+      use ent_drv, only: map_ent2giss  !YKIM-temp hack
+#else
+      use veg_com, only: vdata
+#endif
 
       implicit none
    
-      integer :: J_0S, J_1S, I_0H, I_1H, i, j
+!@param nVtype number of vegetation types. In GCM this is hardcoded
+!@+ at 12. So as long as this references VDATA, you can't change it.
+!@+ emisPerFireByVegType is similarly dimensioned with 12 in TRACER_COM
+      integer, parameter :: nVtype=12
+      integer :: J_0S, J_1S, I_0H, I_1H, i, j, nv
       integer, intent(in) :: n,ns
+!@var emisPerFire emission per fire count, generally kg/m2/fire
+      real*8 :: emisPerFire
+!@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
+      real*8, dimension(nVtype):: PVT
+#ifdef USE_ENT
+      real*8 :: pvt0(n_covertypes)
+#endif
 
       call get(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &              I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-      ! units: sfc_src = kg/m2/s
-      ! units: epfc = kg/m2/#fire
-      ! units: flammability*mfcc = #fire/day
-      ! units: DTsrc*nday = s/day
-
       do j=J_0S,J_1S
         do i=I_0H,I_1H
+
+          ! only do calculation after enough precip averaging done,
+          ! and where flammability is defined:
           if(first_prec(i,j)==0 .and. flammability(i,j)/=missing)then
-            sfc_src(i,j,n,ns)=
-     &      epfc(i,j,n)*flammability(i,j)*mfcc/(nday*DTsrc)
+            ! Obtain the vegetation types in the box:
+            ! For now, the same way RAD_DRV does it, as per Greg F.'s 
+            ! e-mails with Igor A. Mar-Apr,2010:
+#ifdef USE_ENT
+            if(fearth(i,j)>0.d0) then
+              call ent_get_exports(entcells(i,j),
+     &                             vegetation_fractions=PVT0)
+              call map_ent2giss(pvt0,pvt) !YKIM temp hack:ent pfts->giss
+            else
+              pvt(:) = 0.d0 
+            end if
+#else
+            pvt(1:nVtype)=vdata(i,j,1:nVtype)
+#endif
+            ! Notes on units:
+            ! sfc_src = [kg/m2/s]
+            ! emisPerFire = [kg/m2/#fire]
+            ! emisPerFireByVegType = [kg/m2/#fire/wholebox_vegtype_frac]
+            ! flammability*mfcc = [#fire/day]
+            ! DTsrc*nday = [s/day]
+    
+            ! construct emisPerFire from emisPerFireByVegType:
+            emisPerFire = 0.d0
+            do nv=1,nVtype
+              emisPerFire = emisPerFire + 
+     &        pvt(nv)*emisPerFireByVegType(n,nv)*fearth(i,j) 
+            end do
+            sfc_src(i,j,n,ns) = 
+     &      emisPerFire*flammability(i,j)*mfcc/(nday*DTsrc)
           else
             sfc_src(i,j,n,ns)=0.d0
-          endif
-        enddo
-      enddo
+          end if
+        end do ! i
+      end do   ! j
     
       end subroutine dynamic_biomass_burning
 #endif

@@ -10,19 +10,12 @@
 
 ! main variables:
 !@var flammability unitless flammability coefficient
-!@var base_flam unitless flammability coefficient from a run with 
-!@+   baseline climate (e.g. GFED 1997-2002 period), monthly averages
 !@var vegetation density read from file for flammability calculation
       real*8, allocatable, dimension(:,:) :: flammability,veg_density
-#ifdef DYNAMIC_BIOMASS_BURNING
-!@param mfcc MODIS fire count calibration (goes with the input files)
-!@+ units are fires/day when multiplied by the unitless flammability
-      real*8, parameter :: mfcc=680.d0
-!@var epfc emission per fire count, defined for ntm tracers for now
-!@+ generally in kg/m2/s/fire
-      real*8, allocatable, dimension(:,:,:) :: epfc 
-#endif
-      real*8, parameter :: missing=-1.d30
+!@param mfcc MODIS fire count calibration (goes with EPFC by veg type
+!@+ params. Units=fires/day when multiplied by the unitless flammability
+      real*8, parameter :: mfcc=1122.d0
+      real*8, parameter :: missing=-1.d30 ! use it from CONST.f
 
 ! rest is for the running average:
 !@param maxHR_prec maximum number of sub-daily accumulations
@@ -59,10 +52,6 @@
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
-#ifdef DYNAMIC_BIOMASS_BURNING
-     & ,epfc
-      use tracer_com, only: ntm
-#endif 
  
       implicit none
       
@@ -84,9 +73,6 @@
       allocate( PRSfl       (I_0H:I_1H,J_0H:J_1H) )
       allocate( raP_acc     (I_0H:I_1H,J_0H:J_1H) )
       allocate( HRAfl       (I_0H:I_1H,J_0H:J_1H,maxHR_prec) )
-#ifdef DYNAMIC_BIOMASS_BURNING
-      allocate( epfc        (I_0H:I_1H,J_0H:J_1H,ntm) )
-#endif
 
       return
       end subroutine alloc_flammability
@@ -99,10 +85,6 @@
       use model_com, only: im,jm,Itime,ItimeI
       use flammability_com, only: flammability, veg_density, first_prec
      & ,missing
-#ifdef DYNAMIC_BIOMASS_BURNING
-     & ,epfc
-      use tracer_com, only: ntm,trname,do_fire
-#endif
       use domain_decomp_atm,only: grid, get, am_i_root, readt_parallel
       use filemanager, only: openunit, closeunit, nameunit
 
@@ -122,19 +104,6 @@
         first_prec(:,:)=1.d0
         flammability(:,:)=missing
       endif
-
-#ifdef DYNAMIC_BIOMASS_BURNING
-      epfc(:,:,:)=0.d0 ! by default no fire emissions for tracer
-      do n=1,ntm
-        if(do_fire(n)) then
-          fname=trim(trname(n))//'_EPFC'
-          call openunit(trim(fname),iu_data,.true.,.true.)
-          call readt_parallel(grid,iu_data,nameunit(iu_data),
-     &         epfc(:,:,n),1)
-          call closeunit(iu_data)
-        endif
-      enddo
-#endif
 
       return
       end subroutine init_flammability
