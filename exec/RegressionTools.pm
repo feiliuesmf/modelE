@@ -70,6 +70,8 @@ sub compileRundeck {
   make rundeck RUN=$expName RUNSRC=$rundeck;
   make vclean RUN=$expName;
   make gcm RUN=$expName $flags COMPILER=$compiler;
+  # for E4TcadF40 double setup workaround
+  ln -s /gpfsm/dnb53/gfaluveg/GHG_IC_1850 $expName/GHG_IC_1850
 EOF
 
   my $binDir = $expName . "_bin";
