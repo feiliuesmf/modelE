@@ -6132,6 +6132,9 @@ c NO3 clear sky optical thickness
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
+
+        call set_diag_rad(n,k)
+
 c NO3 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
