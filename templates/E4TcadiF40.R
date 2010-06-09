@@ -40,6 +40,7 @@ Preprocessor Options
 #define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
