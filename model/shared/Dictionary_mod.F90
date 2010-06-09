@@ -101,7 +101,7 @@ module Dictionary_mod
     type (KeyValuePair_type), pointer :: pairs(:) => null()
   end type Dictionary_type
 
-  integer, parameter :: MAX_PARAMS = 315
+  integer, parameter :: MAX_PARAMS = 318
   integer, parameter :: MAX_RPARAMS = 286
   integer, parameter :: MAX_IPARAMS = 450
   integer, parameter :: MAX_CPARAMS = 200
