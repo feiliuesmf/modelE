@@ -633,7 +633,7 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
         IF (QSUM_CON(NM)) NSUM_TCON(NM,itr) = NS
       END DO
       TITLE_TCON(NS,itr) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
-      name_Tconsrv(NS,itr) ="sum_chg_"//trim(sname)
+      name_Tconsrv(NS,itr) ="sum_chg_oc_"//trim(sname)
       lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
       units_Tconsrv(NS,itr) = SUM_UNIT
       SCALE_TCON(NS,itr) = 1.
