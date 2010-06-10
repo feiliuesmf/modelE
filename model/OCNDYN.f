@@ -4422,7 +4422,7 @@ C****
       USE SEAICE_COM, only : aRSI=>RSI
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
-#ifdef TRACERS_WATER
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
      *     , oTRPREC, oTRUNPSI
 #endif
       IMPLICIT NONE
@@ -5146,8 +5146,12 @@ C**** At North Pole
       Use DOMAIN_DECOMP_ATM, Only: agrid=>grid, get
       USE MODEL_COM, only: nstep=>itime
 
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+#ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : trw0, ntm
+#else
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : trw0, ntm
+#endif
 #endif
 #ifdef TRACERS_OCEAN
       Use AFLUXES, Only: aTRAC,atrac_glob
