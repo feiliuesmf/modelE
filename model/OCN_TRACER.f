@@ -573,7 +573,7 @@ C****
       TITLE_TCON(NI,itr) =
      *     "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
       SCALE_TCON(NI,itr) = INST_SC
-      name_tconsrv(NI,itr) ="inst_"//sname
+      name_tconsrv(NI,itr) ="inst_oc_"//sname
       lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
       units_tconsrv(NI,itr) = INST_UNIT
       NSUM_TCON(NI,itr) = -1
@@ -590,7 +590,7 @@ C****
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *         CONPT(N-1)
             name_tconsrv(NM,itr) =
-     *           "chg_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
+     *           "chg_oc_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
 c          else
 c            IF (.not. QSUM(N-1)) CHGSTR="     DELTA "
 c            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
