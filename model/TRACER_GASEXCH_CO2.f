@@ -227,7 +227,7 @@ c ---------------------------------------------------------------------
       trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(ntm_gasexch)
 
       !trconstflx comes in from SURFACE.f and has units kg,co2/kg,air/m2
-      !therefore trcnst needs to be myltiplied by byrho before it is sent to  PBL.f
+      !therefore trcnst needs to be multiplied by byrho before it is sent to  PBL.f
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
      .                * 1.0d6 / vol2mass(ntm_gasexch)    
 
