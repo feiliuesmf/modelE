@@ -98,6 +98,7 @@ C**** a default tracer if nothing else is defined
 C**** use only agcm data
       USE TRACER_COM, only : ntm, trname, itime_tr0, trdecay,
      *        t_qlimit, trw0, ntrocn, n_water, conc_from_fw
+      USE TRDIAG_COM, only : to_per_mil
 
 #endif  /* TRACERS_OCEAN_INDEP */
       INTEGER :: n_age = 0, n_obio = 0

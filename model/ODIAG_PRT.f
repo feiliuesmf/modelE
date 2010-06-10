@@ -127,11 +127,7 @@ C****
 
       USE ODIAG
 #ifdef TRACERS_OCEAN
-#ifdef TRACERS_OceanBiology
       USE OCN_TRACER_COM, only : to_per_mil
-#else
-      USE TRDIAG_COM, only : to_per_mil
-#endif
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJ,QS,QS700
@@ -1342,11 +1338,7 @@ C****
      &     ,sname_strlen,units_strlen,lname_strlen
       USE ODIAG
 #ifdef TRACERS_OCEAN
-#ifdef TRACERS_OceanBiology
       USE OCN_TRACER_COM, only : to_per_mil
-#else
-      USE TRDIAG_COM, only : to_per_mil
-#endif
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
