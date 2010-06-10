@@ -13,10 +13,12 @@ C****
       Use OCEAN,  Only: LMO
       Use SEAICE, Only: LMI
 
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      Use OCN_TRACER_COM, Only: NTM
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm_atm=>ntm
 #endif
-
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       Implicit None
       Save
 C****
@@ -96,7 +98,7 @@ C****
       Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
 #endif
 #ifdef TRACERS_WATER
-      Real*8 TRSIST(NTM,LMI,NMST)
+      Real*8 TRSIST(NTM_ATM,LMI,NMST)
 #endif
 
 !@param NMST no. of ocean straits

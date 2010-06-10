@@ -8,7 +8,10 @@
 !@+    Fury+Hecla blocked.
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm_atm=>ntm
+#endif
+#ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
       USE SEAICE, only : lmi
@@ -112,7 +115,7 @@ C****
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
-      REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
+      REAL*8, DIMENSION(NTM_ATM,LMI,NMST) :: TRSIST
 #endif
 
       END MODULE STRAITS

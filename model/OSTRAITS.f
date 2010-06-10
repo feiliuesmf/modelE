@@ -801,7 +801,7 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TRMST,LMO,NMST,NTM,SUBR,'trmst')
       CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
       CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
-c      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
+c      CALL CHECK3(TRSIST,NTM_ATM,LMI,NMST,SUBR,'trist')
 #endif /* def TRACERS_OCEAN */
 
       DO N=1,NMST
@@ -889,12 +889,12 @@ C****
 #ifdef TRACERS_WATER
 #  ifndef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
+     *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm_atm
      *     ,',',lmi,',',nmst,')'
 #  else /* ndef TRACERS_OCEAN */
       write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
-     *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
+     *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',
+     *     ntm_atm,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
      *     ,'):TRMST,TXMST,TZMST'
 #  endif /* ndef TRACERS_OCEAN */
 #else /* def TRACERS_WATER */
