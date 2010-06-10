@@ -354,7 +354,7 @@ C**** get rundeck parameter for cosmogenic source factor
         select case (trname(n))
         case ('M_OCC_OC') ! this handles OCT_src (terpene source)
           ntsurfsrc(n)=ntsurfsrc(n)+1
-          ssname(n,ntsurfsrc(n))="Terpene source"
+          ssname(n,ntsurfsrc(n))="Terpene_source"
         end select
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -6915,6 +6915,21 @@ c Surface industrial emissions
             units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
             scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
+        case('M_BC1_BC','M_OCC_OC')
+c Surface industrial emissions
+       do kr=1,ntsurfsrc(n)
+        k = k + 1
+        ijts_source(kr,n) = k  
+        ia_ijts(k) = ia_src
+            ia_ijts(k) = ia_src
+            sname_ijts(k) = trim(trname(n))//'_src_'//
+     &                      trim(ssname(n,kr))
+            lname_ijts(k) = trim(trname(n))//' source from '//
+     &                      trim(ssname(n,kr))
+        ijts_power(k) = -15.
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end do
         end select
       k = k + 1
         ijts_3Dsource(nBiomass,n)=k
