@@ -137,7 +137,9 @@ RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
 #include "aeros_AMPconstSRC_input_files"
- 
+
+OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
+
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 

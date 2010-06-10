@@ -2,18 +2,11 @@
 
 !-------Aerosol inputs, for imAER=5 --------------
 !----oxidants needed if not coupled to chem ----
-!---these are place-holders, right now must run coupled ----
-!AER_CHEM=OXID_E__1TgfF40_2x2.5
-!AER_OH_STRAT=Strat_OH_drewE_20
-!O3_FIELD=Ox_3D_field_bell
-!OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc
-!OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
+!
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
-!-------Aerosol inputs, for imAER=5 --------------
-!----oxidants needed if not coupled to chem ----
-!---these are place-holders, right now must run coupled ----
 AER_CHEM=OXID_E__1TgfF40_2x2.5
-OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
+!OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
+!OFFLINE_HNO3.nc=HNO3_dummy_1850_GISS2x2.nc
 !-----------------------------------------------
 !       AMP Radiation Input
 !
