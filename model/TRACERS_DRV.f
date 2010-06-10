@@ -1148,7 +1148,9 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           tr_wd_TYPE(n) = nPART
       case ('OCB') !Biomass organic mass
       n_OCB = n
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           call sync_param("OCB_om2oc",om2oc(n_OCB))
+#endif
           ntm_power(n) = -11
           tr_mm(n) = 15.6d0
           trpdens(n)=1.5d3   !kg/m3
