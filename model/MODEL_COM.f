@@ -346,7 +346,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       IMPLICIT NONE
       SAVE
 !@param NTIMEMAX maximum number of possible time accumulators
-      INTEGER, PARAMETER :: NTIMEMAX=10
+      INTEGER, PARAMETER :: NTIMEMAX=12
 !@var NTIMEACC actual number of time accumulators
       INTEGER :: NTIMEACC = 0
 !@var TIMING array that holds timing info
