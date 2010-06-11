@@ -1324,16 +1324,20 @@ C**** Save surface tracer concentration whether calculated or not
 
 ! original versions
              if (POCEAN.gt.0) then ! original coding
-            AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
+               if (MODDSF.EQ.0) THEN
+                 AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
      .            + pbl_args%Kw_gas * focean(i,j) ! m/s
      .            * (1.d0 - RSI(i,j)) ! only over open water
-            AIJ(i,j,ij_alpha) = AIJ(i,j,ij_alpha) 
+                 AIJ(i,j,ij_alpha) = AIJ(i,j,ij_alpha) 
      .           + pbl_args%alpha_gas * focean(i,j) ! mol,CO2/m3/uatm
      .           * (1.d0 - RSI(i,j)) ! only over open water
-            AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
-     .           + TRGASEX(n,ITYPE,I,J) * focean(i,j)
-     .           * 3600.*24.*365. ! mol,CO2/m2/yr
-     .           * (1.d0 - RSI(i,j)) ! only over open water
+               endif
+               if(NS==NIsurf) then
+                 AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
+     .                + TRGASEX(n,ITYPE,I,J) * focean(i,j)
+     .                * 3600.*24.*365.    ! mol,CO2/m2/yr
+     .                * (1.d0 - RSI(i,j)) ! only over open water
+               endif
             end if
 ! tracer diag versions
             if (ITYPE.eq.1) then 
