@@ -486,7 +486,7 @@ C     ------------------------------------------------------------------
       REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
       REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
       real*8, parameter :: byz_cm3 = 1.d-6 / Za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-      real*8, parameter :: byz_mm3 = 1.d-9 / Za720 ! 1d-9/depth in m (+conversion /m3 -> /mm3)
+      real*8, parameter :: byz_gcm3 = 1.d-3 * byz_cm3 ! g vs kg
       REAL*8 xsslt ! ,xdust
 
 
@@ -713,11 +713,11 @@ C**** sea salt, desert dust
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         table%mdpi(:,i,j) = 
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz_mm3/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz_mm3/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz_mm3/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz_mm3/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz_mm3/drym2g(5)
+        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J))*byz_gcm3/drym2g(1)
+        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J))*byz_gcm3/drym2g(3)
+        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J))*byz_gcm3/drym2g(4)
+        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J))*byz_gcm3/drym2g(6)
+        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J))*byz_gcm3/drym2g(5)
       end do
       end do
 
