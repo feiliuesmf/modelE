@@ -633,7 +633,7 @@ c
       use cdl_mod
       implicit none
       integer ::  i,j,k,kk,kx,n,n1,n2,khem
-      integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,
+      integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,k_pocean,k_popocn,
      & k_no2_1030=0,k_no2_1330=0,k_no2_1030c=0,k_no2_1330c=0
       logical :: div_by_area
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
@@ -682,12 +682,23 @@ C**** Fill in the undefined pole box duplicates
 
       k = k + 1
       k_clr = k
+      ia_taij(k) = ia_rad
       do j=j_0,j_1
         do i=i_0,i_1
           taij(i,j,k)=real(idacc(ia_rad))-aij_loc(i,j,ij_cldcv)
-          ia_taij(k) = ia_rad
         enddo
       enddo
+
+#ifdef TRACERS_GASEXCH_ocean
+      k = k + 1
+      k_pocean = k
+      ia_taij(k) = ia_ij(ij_pocean)
+      taij(:,:,k) = aij_loc(:,:,ij_pocean)
+      k = k + 1
+      k_popocn = k
+      ia_taij(k) = ia_ij(ij_popocn)
+      taij(:,:,k) = aij_loc(:,:,ij_popocn)
+#endif
 
 c
 c Tracer sums/means and ground conc
@@ -914,6 +925,18 @@ c
         case('NO2_1030c','NO2_1330c','NO2_1030','NO2_1330')
           div_by_area = .false.
         end select
+
+#ifdef TRACERS_GASEXCH_ocean
+        if(sname_taij(k)(1:5).eq.'Gas_E') div_by_area=.false.
+        if(sname_taij(k)(1:5).eq.'Solub') then
+          div_by_area = .false.
+          denom_taij(k) = k_pocean ! ocean only
+        endif
+        if(sname_taij(k)(1:5).eq.'Pisto') then
+          div_by_area = .false.
+          denom_taij(k) = k_popocn ! open ocean only
+        end if
+#endif
 
         if(div_by_area) then
           do j=j_0,j_1
