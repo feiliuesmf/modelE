@@ -485,7 +485,9 @@ C     ------------------------------------------------------------------
       INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iy,jy,iyc,jyc,iyp,jyp
       REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
       REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
-      REAL*8 xsslt,byz ! ,xdust
+      real*8, parameter :: byz_cm3 = 1.d-6 / Za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
+      real*8, parameter :: byz_mm3 = 1.d-9 / Za720 ! 1d-9/depth in m (+conversion /m3 -> /mm3)
+      REAL*8 xsslt ! ,xdust
 
 
       logical, save :: init = .false.
@@ -529,18 +531,16 @@ c read table sizes then close
         call closeUnit(ifile)
 
 !**** Pre-industrial mass densities
-c za720 should be changed to be consistent with top of level 5 in 20L
-        byz = 1d-6/za720        ! 1d-6/depth in m (+conversion /m3 -> /cm3)
         do m = 1, 12
           call readTable(RDFILE(1), SULDD(:,:,:,1,1), month=m,decade=1)
-          md1850(1,:,:,m) = byz * SUM(SULDD(:,:,1:5,1,1), DIM=3)
+          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:5,1,1), DIM=3)
           call readTable(RDFILE(3), NITDD(:,:,:,1,1), month=m,decade=1)
-          md1850(2,:,:,m) = byz * SUM(NITDD(:,:,1:5,1,1), DIM=3)
+          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:5,1,1), DIM=3)
           call readTable(RDFILE(4), OCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(3,:,:,m) = byz * SUM(OCADD(:,:,1:5,1,1), DIM=3)
+          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:5,1,1), DIM=3)
           call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
           call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(4,:,:,m) = byz * (
+          md1850(4,:,:,m) = byz_cm3 * (
      &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) + 
      &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
         end do
@@ -612,15 +612,13 @@ C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
         xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
-c za720 should be changed to be consistent with top of level 5 in 20L
-        byz = 1d-6/za720        ! 1d-6/depth in m (+conversion /m3 -> /cm3)
 
         do J=1,jma
           do I=1,ima
 c SUM to L=5 for low clouds only
 c Using 1890 not 1850 values here
             anfix(i,j,im) = 0.   !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +           +    byz * SUM(SSADD(I,J,1:5,im)) * Xsslt
+     +           +    byz_cm3 * SUM(SSADD(I,J,1:5,im)) * Xsslt
           end do
         end do
 
@@ -708,7 +706,6 @@ C      -----------------------------------------------------------------
   510 CONTINUE
 
 C**** Needed for aerosol indirect effect parameterization in GCM
-      byz=1d-9/za720
       do j=1,jma
       do i=1,ima
 C**** sea salt, desert dust
@@ -716,11 +713,11 @@ C**** sea salt, desert dust
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         table%mdpi(:,i,j) = 
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz/drym2g(5)
+        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz_mm3/drym2g(1)
+        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz_mm3/drym2g(3)
+        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz_mm3/drym2g(4)
+        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz_mm3/drym2g(6)
+        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz_mm3/drym2g(5)
       end do
       end do
 
