@@ -10273,9 +10273,13 @@ C**** 3D biomass source
      &        OCB_src(:,J_0:J_1,:,jmon)
           end select
         endif ! imAER
-        call apply_tracer_3Dsource(nAircraft,n)
+        if(n>ntm_chem)call apply_tracer_3Dsource(nAircraft,n)
 #endif
+#ifndef GFED_3D_BIOMASS
         call apply_tracer_3Dsource(nBiomass,n)
+#else
+        if(n>ntm_chem)call apply_tracer_3Dsource(nBiomass,n)
+#endif /* note that is a NOT defined */
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_OM_SP
