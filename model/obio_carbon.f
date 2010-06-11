@@ -15,7 +15,7 @@ c
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
      .                      ,excz,resz,remin,excp,resp,bn,cchlratio
-     .                      ,mgchltouMC
+     .                      ,mgchltouMC,bf
       USE obio_forc, only: wind,atmCO2,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
@@ -49,14 +49,16 @@ c
       integer :: nt,kmax
       real  :: rmmzoo,docexcz,rndep,docdep
       real  :: docbac,docdet,dicresz,sumdoc,sumutk,sumres,totgro
-      real  :: docexcp,dicresp,scco2,scco2arg,wssq,rkwco2
+      real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
       real  :: pHsfc
       real term
+      real bs
 
       logical vrbos
 
+      bs = 2.d0*bn
 
 ! Detrital, bacterial, and grazing components
       do k = 1,kmax
@@ -73,6 +75,16 @@ c
         term = - docexcz*pnoice
         rhs(k,ntyp,14) = term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
+
+!change: June 1, 2010
+        term = bn*docexcz*pnoice
+        rhs(k,1,ntyp) = term
+        P_tend(k,1) = P_tend(k,1) + term
+
+        term = bf*docexcz*pnoice
+        rhs(k,4,10) = term
+        P_tend(k,4) = P_tend(k,4) + term
+!endofchange
 
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
@@ -155,28 +167,52 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
         sumdoc = 0.0
         sumutk = 0.0
         sumres = 0.0
+!change June 1, 2010
+        docexcp = 0.0
+        dicresp = 0.0
+!endofchange
 
         do nt = 1,nchl
          !!totgro = gro(k,nt)*obio_P(k,nt+nnut)
          totgro = gro(k,nt)
-          docexcp = excp*totgro   !phyto production DOC
-           dicresp = resp*totgro   !phyto production DIC
+
+!change June 1, 2010
+          docexcp(nt) = excp*totgro   !phyto production DOC
+           dicresp(nt) = resp*totgro   !phyto production DIC
+!endofchange
+
 !change: March 15, 2010
 !dont account for ice here -- it is incorporated in gro/totgro
 
-            term = - docexcp 
+            term = - docexcp(nt) 
             rhs(k,nt+nnut,14) = term
             P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-            term = - dicresp 
+            term = - dicresp(nt)
             rhs(k,nt+nnut,15) = term
             P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-           sumdoc = sumdoc + docexcp
+!change June 1, 2010
+          term =  bn*(docexcp(nt)+dicresp(nt))
+          rhs(k,1,15) = term
+          P_tend(k,1) = P_tend(k,1) + term
+
+          term = bf*(docexcp(nt)+dicresp(nt))
+          rhs(k,4,15) = term
+          P_tend(k,4) = P_tend(k,4) + term
+!endofchange
+
+           sumdoc = sumdoc + docexcp(nt)
           sumutk = sumutk + totgro
-         sumres = sumres + dicresp
+         sumres = sumres + dicresp(nt)
 
         enddo !nt
+
+!change June 1, 2010
+         term = bs*(docexcp(1)+dicresp(1))
+         rhs(k,3,15) = term
+         P_tend(k,3) = P_tend(k,3) + term
+!endofchange
 
         term = sumdoc * mgchltouMC              !phyto prod DOC
         rhs(k,13,5) = term        
@@ -249,7 +285,9 @@ c Update DIC for sea-air flux of CO2
       term = tracflx1d(nt)           ! mol/m2/s
      .     * 3600.D0                 ! mol/m2/hr
      .     /dp1d(k)                  ! mol/m3/hr
-     .     * 1000.D0*pnoice          !units of uM/hr (=mili-mol/m3/hr)
+     .     * 1000.D0                 !units of uM/hr (=mili-mol/m3/hr)
+                                     !do not mulitply by pnoice here, 
+                                     !this is done in SURFACE.f (ptype)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
@@ -469,12 +507,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.39 $
-c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
+c_ $Revision: 2.40 $
+c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.40  2010/06/11 16:51:16  aromanou
+c_
+c_ remove superfluous pnoice factor. done in surface.f instead.
+c_
 c_ Revision 2.39  2010/03/29 20:42:00  aromanou
 c_
 c_ introducing cpp's for special cases with ocean carbon model runs:
@@ -1009,12 +1051,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.39 $
-c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
+c_ $Revision: 2.40 $
+c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.40  2010/06/11 16:51:16  aromanou
+c_
+c_ remove superfluous pnoice factor. done in surface.f instead.
+c_
 c_ Revision 2.39  2010/03/29 20:42:00  aromanou
 c_
 c_ introducing cpp's for special cases with ocean carbon model runs:
@@ -1294,12 +1340,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.39 $
-c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
+c_ $Revision: 2.40 $
+c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.40  2010/06/11 16:51:16  aromanou
+c_
+c_ remove superfluous pnoice factor. done in surface.f instead.
+c_
 c_ Revision 2.39  2010/03/29 20:42:00  aromanou
 c_
 c_ introducing cpp's for special cases with ocean carbon model runs:
