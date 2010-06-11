@@ -138,6 +138,7 @@ RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 #include "dry_depos_144x90_input_files"
 #include "aeros_AMPconstSRC_input_files"
 
+SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
 OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
