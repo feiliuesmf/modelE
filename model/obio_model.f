@@ -51,7 +51,7 @@
      .                    ,tracer =>tracer_loc        
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
-     .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es
+     .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
@@ -61,8 +61,9 @@
 #endif
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
-     . ,itime,iyear1,jdendofm,jyear,aMON
+     . ,itime,iyear1,jdendofm,jyear,aMON,dtsrc
      . ,xlabel,lrunid
+      USE CONSTANT, only: sday
 
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -905,17 +906,20 @@ cdiag     endif
        endif
 
        !compute total primary production per day
-       if (hour_of_day.eq.0) then
+!      if (mod(nstep,nday).eq.0) then
+!         pp2tot_day(i,j)=0.
+!       else
+          !sum pp over species and depth, NOT over day
           pp2tot_day(i,j)=0.
-        else
-          if (p1d(kdm+1).gt.200.) then    !total depth > 200m
+          if (p1d(kdm+1).gt.200.) then    !if total depth > 200m
           do nt=1,nchl
           do k=1,kdm
-              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)
+              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)  !mg,C/m2/hr
+     .                                       * 24.d0        !->mg,C/m2/day
           enddo
           enddo
           endif
-       endif
+!      endif
        if (vrbos) then
        write(*,'(a,3i5,e12.4)')'obio_model, pp:',
      .    nstep,i,j,pp2tot_day(i,j)
@@ -943,6 +947,7 @@ cdiag     endif
        OIJ(I,J,IJ_cyan) = OIJ(I,J,IJ_cyan) + tracer(i,j,1,7) ! surf ocean cyanobacteria
        OIJ(I,J,IJ_cocc) = OIJ(I,J,IJ_cocc) + tracer(i,j,1,8) ! surf ocean coccolithophores
        OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean herbivores
+       OIJ(I,J,IJ_pp) = OIJ(I,J,IJ_pp) + pp2tot_day(i,j)     ! surf ocean pp
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic

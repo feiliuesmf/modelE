@@ -72,19 +72,17 @@
 
       cexp = 0.
       do nt=nnut+1,nnut+nchl
-        k = kzc    !dont integrate over depth
+      do  k=1,kzc    
         cexp = cexp
      .        + obio_P(k,nt)*obio_ws(k,nt-nnut)/dp1d(k)    ! mgm3/hr 
      .        * mgchltouMC * 1.d-3                         ! -> uM,C/hr=mili-mol,C/m3/hr
      .        * 24.d0 * 365.d0 *dp1d(k)                    ! -> mol,C/m3/hr
      .        * 12.d0 * 1.d-15                             ! -> Pg,C/m2/yr
      .        * dxypo(j)                                   ! -> Pg,C/yr
-
 cdiag write(*,'(a,5i5,4e12.4)')'sinksettl, cexp1:',
 cdiag.   nstep,i,j,k,nt,obio_P(k,nt),obio_ws(k,nt-nnut),dp1d(k),cexp
       enddo
-
-      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp)  + cexp 
+      enddo
 
 cdiag write(*,'(a,3i5,e12.4)')'sinksettl, cexp1a:',
 cdiag.   nstep,i,j,cexp
@@ -115,8 +113,8 @@ cdiag.   nstep,i,j,cexp
 
       !diagnostic for carbon export at compensation depth
       !term2: settling C detritus contribution
-      cexp =  0.
-        k = kzc
+      !dont set cexp = 0 here, because adds to before
+      do k = 1,kzc
         nt= 1            !only the for carbon detritus
         cexp = cexp 
      .        + det(k,nt)*wsdet(k,nt)/dp1d(k)      ! micro-grC/lt/hr == mili,grC/m3/hr
@@ -124,9 +122,9 @@ cdiag.   nstep,i,j,cexp
      .        * 24.d0 * 365.d0 *dp1d(k)            ! -> mol,C/m2/yr
      .        * 12.d0 * 1.d-15                     ! -> Pgr,C/m2/yr
      .        * dxypo(j)                           ! -> Pg,C/yr
-
 cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp2:',
 cdiag.   nstep,i,j,k,det(k,nt),wsdet(k,nt),dp1d(k),cexp
+      enddo
 
       OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp
 

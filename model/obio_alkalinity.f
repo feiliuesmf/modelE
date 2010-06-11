@@ -21,23 +21,21 @@
 !        compensation depth
 ! sigma_Ca fraction of P converted to DOP, or fraction of C converted to DOC
 ! 1-sigma_Ca fraction of P NOT converted to DOP, or fraction of C NOT converted to DOC
-! kappa_Ca semi-labile DOP consumption rate constant
 ! alk tendency is also computed under ice.  this is because 
 ! alk changes due to sal and temp changes.
 ! alkalinity units should be umol/kg (uE/kg to go into obio_carbon)
 ! alk tendency computed here is in umol/m3/s, convert to umol/kg
+! *** a note on units: I assume here that units are umol,N/m3
 !-------------------------------------------------------------------------
 ! J_ALK = -rN:P* J_PO4 + 2*J_Ca
 ! J_PO4 = J_NO3/rN:P, tendency of phosphates
 ! J_NO3 : tendency of nitrates, P_tend(:,1)
 ! J_Ca = R* rC:P* (1-sigma_Ca)* Jprod, for  z<zc
 ! J_Ca = - dF_Ca/dz,   for z>zc
-! Jprod = kappa_Ca*[DOP]-J_PO4, for z<zc 
-! Jprod = 0, for z>zc
-! [DOP] concentration of dissolved organic phosphorus=[DOC]/rC:P
-! [DOC] concentration of dissolved organic C, this is based on phytoplankton
-! Distinguish two cases: DOC based on all species
-!                        DOC based on coccolithophores only
+! Jprod = pp, for z<zc 
+! Jprod = 0,  for z>zc
+! Distinguish two cases: pp based on all species
+!                        pp based on coccolithophores only
 ! F_Ca = R * rC:P * Fc * exp(-(z-zc)/d)
 !   Fc = (1-sigma_Ca) * integral_0_zc (J_DOC*dz)
 !
@@ -46,7 +44,7 @@
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
-     .      npratio,uMtomgm3,cnratio,kappa_Ca,bn
+     .      npratio,uMtomgm3,cnratio,bn
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,zc,alk1d,pnoice
 
@@ -88,14 +86,13 @@
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
       do k=1,kmax
-      J_PO4(k) = 0.1d0 * P_tend(k,1)    !approximate by nitrate conc tendency
+      J_PO4(k) =  P_tend(k,1)/npratio   !approximate by nitrate conc tendency
                                         !NO3/PO4 ratio from Conkright et al, 1994
-      term = -1.d0*npratio * J_PO4(k) 
+     .            /14.d0                ! ?
+      term = -1.d0*npratio * J_PO4(k)   !uM,N/hr= mili-mol,N/m3/hr
       rhs(k,15,1) = term
       A_tend(k)= term 
       enddo
-
-      term1=A_tend(1)
 
 !distinguish two cases: OCMIP uses total pp for Jprod, whereas here we also
 !consider the case where Jprod only includes coccolithophores
@@ -115,47 +112,40 @@
       endif
 
 !compute total primary production
-!and the Jprod term
+!and the Jprod term (production of organic phosphorus)
       do k=1,kmax
-        if (p1d(k+1) .le. p1d(kzc))  then
+        if (p1d(k) .le. p1d(kzc))  then
           pp=0.
           do nt=nchl1,nchl2
-             !pp2_1d is in mg,C/m3/hr
-             !pp is in mg,C/m2/hr     
-             pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.d-3)/bn/cnratio   
-
-cdiag        write(*,'(a,6i5,4e12.4)')'obio_alkalinity, pp:',
-cdiag.        nstep,i,j,k,nchl1,nchl2,pp2_1d(k,nt),
-cdiag.                    p1d(k+1),bn,cnratio
+             pp=pp+pp2_1d(k,nt)/dp1d(k)   !mgC/m3/hr
           enddo
-!         DOP = pp/uMtomgm3/cpratio     !convert to uM C
-!                                       !Jprod units uM/hr
-!         Jprod(k) = kappa_Ca*DOP-J_PO4(k)
-
-          Jprod(k) = pp/uMtomgm3/cpratio     !convert to uM C
-                                             !Jprod units uM/hr
+          Jprod(k) = pp/cpratio  !mgP/m3/hr
         else
-
           Jprod(k)=0.
         endif
+
+!     if(mod(nstep,48).eq.0.) 
+!    .write(*,'(a,5i5,5e12.4)')'obio_alkalinity1:',
+!    .            nstep,i,j,k,kzc,
+!    .            p1d(k),p1d(k+1),p1d(kzc),pp,Jprod(k)
       enddo
 
 !integrate net primary production down to zc
       Jprod_sum = 0.
       do k=1,kmax
-      if (p1d(k+1) .le. p1d(kzc))  then
-       Jprod_sum = Jprod_sum + Jprod(k)*dp1d(k)
+      if (p1d(k) .le. p1d(kzc))  then
+       Jprod_sum = Jprod_sum + Jprod(k)*dp1d(k)   ! mgP/m2/hr
       endif
       enddo
 
-      Fc = (1.d0-sigma_Ca)* Jprod_sum
+      Fc = (1.d0-sigma_Ca)* Jprod_sum     !mgP/m2/hr
 
 !compute downward flux of CaCO3
 !only below the euphotic zone (the compensation layer)
       do k=1,kmax+1
          if (p1d(k) .gt. p1d(kzc))  then
            F_Ca(k) = rain_ratio*cpratio*Fc
-     .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)
+     .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)    !mgC/m2/hr
          endif
       enddo
 
@@ -166,42 +156,37 @@ cdiag.                    p1d(k+1),bn,cnratio
 !    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
 
 #ifdef OBIO_ON_GARYocean
-      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(kzc)
-     .                *24.d0*365.d0*1.d-3*12.d0
-     .                *dxypo(J)*dp1d(kzc)*1.d-15
-!to convert this into units of Pgr,C/yr: 
-! * 24 *365          ! uM/hr -> uM/yr = mili-mol,C/m3/hr
-! * 1e-3             ! mol,C/m3/yr
-! * 361098046745487. ! mol,C/m/yr, better multiply by dxypo(J)
-! * p1d(kzc)         ! mol,C/yr
-! * 12.d0            ! gr,C/yr
-! * 1.d-15           ! Pgr,C/yr
+      do k=1,kzc
+      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(k)
+     .                *24.d0*365.d0*1.d-3
+     .                *dxypo(J)*1.d-15       !PgC/yr
+      enddo
 #endif
 
 !compute sources/sinks of CaCO3
       do k=1,kmax
-         if (p1d(k) .le. zc)  then
+         if (p1d(k) .le. p1d(kzc))  then
              !formation of calcium carbonate above compensation depth
-             J_Ca(k) = -1.d0*rain_ratio*cpratio*(1.-sigma_Ca)*Jprod(k)
+             J_Ca(k) = -1.d0*rain_ratio*cpratio*(1.-sigma_Ca)*Jprod(k)   !mgC/m3/hr
          else
              !dissolution of calcium carbonate below compensation depth
-             J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
+             J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)   !mgC/m3/hr
          endif
-       term = 2.d0* J_Ca(k) 
+       term = 2.d0* J_Ca(k)/cnratio  ! mgC/m3/hr -> mili-mol,N/m3/hr  
+                                     ! no need to multiply here by mol.weight
+                                     ! because already in cnratio (see obio_init)
        rhs(k,15,5) = term
        A_tend(k) = A_tend(k) + term      
+
+!     if(mod(nstep,48).eq.0.) 
+      if(j.eq.100.and.i.eq.1)
+     .write(*,'(a,4i5,3e12.4)')'obio_alkalinity2:',
+     .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
       enddo
 
-      term2=A_tend(1)-term1
-
-      !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,C/m3/hr
+      !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,N/m3/hr
       !convert A_tend terms into uE/kg/hr, the actual units of alkalinity 
-      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,C/m3/hr -> umol/m3/hr -> umol/kg/hr
-
-! surface boundary condition 
-! we probably do not need one here since the effects of buoyancy 
-! changes at the surface i.e. the E-P term are included in the 
-! total mass changes of the surface model boxes. YES/NO?
+      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,N/m3/hr -> umol/m3/hr -> umol/kg/hr
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 

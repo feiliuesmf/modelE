@@ -61,7 +61,8 @@ c
       integer, parameter :: EUZ_DEFINED=1
 
 
-      real, parameter :: rlamz=1.0,greff=0.25 !other zoopl. parameters
+      real, parameter :: rlamz=1.0            !Ivlev constant
+      real, parameter :: greff=0.25           !grazing efficiency     
       real, parameter :: drate=0.05/24.0      !phytoplankton death rate/hr
       real, parameter :: dratez1=0.1/24.0     !zooplankton death rate/hr
       real, parameter :: dratez2=0.5/24.0     !zooplankton death rate/hr
@@ -194,6 +195,10 @@ C endif
 
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
+#ifdef restoreIRON
+      !!!real*8 :: Iron_BottomSink = 0.002
+      real*8 :: Iron_BottomSink = 0.009
+#endif
       contains
 
 !------------------------------------------------------------------------------

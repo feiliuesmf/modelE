@@ -239,14 +239,20 @@ c  Detrital sinking rates m/h
       wsdeth(1) = 20.0/24.0     !nitrogen
 #endif
       wsdeth(2) = 50.0/24.0     !silica
-      wsdeth(3) = 20.0/24.0     !iron
+!     wsdeth(3) = 20.0/24.0     !iron
+!change June 1, 2010
+      wsdeth(3) =  5.0/24.0     !iron
+!endofchange
 c
 c  Detrital remineralization rates /hr
 !change: March 10, 2010
 !     remin(1) = 0.010/24.0            !nitrogen
       remin(1) = 0.020/24.0            !nitrogen
       remin(2) = 0.0001/24.0           !silica
-      remin(3) = 0.020/24.0            !iron
+!     remin(3) = 0.020/24.0            !iron
+!change June 1, 2010
+      remin(3) = 0.50/24.0            !iron
+!endofchange
       fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/hr
       fescavrate(2) = 50.0*fescavrate(1) !high fe scavenging rate/hr
 c
