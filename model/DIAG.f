@@ -1433,6 +1433,9 @@ C****
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
 !@+                    DUEMIS2
+!@+                    DuTrSConc dust aerosol surface concentration [kg/m^3]
+!@+                    DuAOD dust aer opt depth daily avg [1]
+!@+                    cDuAOD clear sky dust aer opt depth daily avg [1]
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
 !@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
@@ -1454,9 +1457,6 @@ C****
       USE DYNAMICS, only : ptropo,am,wsave,pk,phi,pmid
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
-#ifdef TRACERS_ON
-     *     ,trcsurf
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,dust_flux_glob
@@ -1495,6 +1495,9 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       USE TRDIAG_COM, only : sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+#endif
+#ifdef TRACERS_ON
+     *     ,trcsurf,trcSurfByVol
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -2304,7 +2307,7 @@ C**** cases where multiple records go to one file for dust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-          case ('DUEMIS','DUEMIS2','DUTRS', 'DULOAD')
+          case ('DUEMIS','DUEMIS2','DUTRS','DuTrSConc','DULOAD')
           kunit=kunit+1
           do n=1,Ntm_dust
             n1=n_fidx+n-1
@@ -2319,6 +2322,8 @@ C**** first set: no 'if' tests
 #endif
             CASE ('DUTRS')      ! Mixing ratio of dust tracers at surface [kg/kg]
               data=trcsurf(:,:,n1)
+            CASE ('DuTrSConc')  ! Concentration of dust tracers at surface [kg/m^3]
+              data=trcSurfByVol(:,:,n1)
             CASE ('DULOAD')     ! Dust load [kg/m^2]
               data=0.D0
               DO j=J_0,J_1
@@ -2334,7 +2339,27 @@ C**** first set: no 'if' tests
           end do
           cycle
 
+
 C**** other dust special cases
+
+          case ("DuAOD","cDuAOD") !tot dust aero opt dep, daily avg
+            kunit=kunit+1
+            if(mod(itime+1,Nday).ne.0) cycle ! don't cycle only at end of day
+            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+            data=0.
+            do n=1,Ntm_dust
+              n1=n_fidx+n-1
+              select case(namedd(k))
+              case('DuAOD')
+                data=ttausv_sum(:,:,n1)
+              case('cDuAOD')
+                data=ttausv_sum_cs(:,:,n1)
+              end select
+              data=data/ttausv_count
+              polefix=.true.
+              call write_data(data,kunit,polefix)
+            end do
+            cycle
 
 #ifdef TRACERS_DRYDEP
           CASE ('DUDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]

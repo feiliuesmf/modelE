@@ -227,8 +227,6 @@ C**** fluxes associated with variable lake fractions
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: depo_grav_glob
 #endif
 #endif
-!@var trcsurf global array of tracer mixing ratio at surface [kg/kg]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcsurf
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
 !@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
@@ -426,7 +424,6 @@ C**** fluxes associated with variable lake fractions
      &     ,STAT = IER)
 #endif
 #endif
-      ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),STAT = IER)
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif

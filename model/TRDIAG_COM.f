@@ -436,7 +436,12 @@ C**** include some extra troposphere only ones
 !@+ s means SFC and l1 means L=1 accumulations.
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::  ! (IM,JM)
      &  sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-#endif 
+#endif
+
+!@var trcsurf global array of tracer mixing ratio at surface [kg/kg]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcsurf
+!@var trcSurfByVol global array of tracer concentration at surface [kg/m^3]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcSurfByVol
 
 #ifdef NEW_IO
 #ifdef TRACERS_ON
@@ -1133,6 +1138,8 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE (  l1PM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
 #ifdef TRACERS_ON 
+      ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
+      ALLOCATE(trcSurfByVol(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
       ALLOCATE ( TAIJLS_loc(I_0H:I_1H,J_0H:J_1H,LM,ktaijl), stat=status)
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )

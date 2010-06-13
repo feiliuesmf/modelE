@@ -10079,12 +10079,13 @@ c latlon grid
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
       USE TRACER_COM
       USE CONSTANT, only : mair
-      USE FLUXES, only: tr3Dsource,trcsurf
+      USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
+      use trdiag_com, only : trcsurf
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param

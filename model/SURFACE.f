@@ -92,7 +92,7 @@ C****
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
 #ifdef TRACERS_ON
-     *     ,trsrfflx,trcsurf,gtracer
+     *     ,trsrfflx,gtracer
 #ifndef SKIP_TRACER_SRCS
      *     ,trsource
 #endif
@@ -130,6 +130,9 @@ C****
      *     ,  ijs_isoprene
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
+#ifdef TRACERS_ON
+      use trdiag_com, only: trcsurf,trcSurfByVol
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust, only : hbaij,ricntd
@@ -322,7 +325,11 @@ C****
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
-         trsrfflx = 0. ; if(NS==1)trcsurf = 0.
+         trsrfflx = 0.
+         if(NS==1) then
+           trcsurf = 0.
+           trcSurfByVol = 0.
+         end if
 #endif
 
       call loadbl
@@ -398,7 +405,7 @@ C****
 !$OMP&   depo_turb_glob,depo_grav_glob,uabl,vabl,tabl,qabl,eabl,
 !$OMP&   trcsurf,trmom,tij_evap,tij_grnd,ij_fwoc,tdiurn,ij_f0oi,
 !$OMP&   ij_evapi,ij_tsli,ij_shdtli,ij_evapo,ij_f0oc,ij_evhdt,ij_trhdt,
-!$OMP&   ij_f0li,ij_evapli,tgo,
+!$OMP&   ij_f0li,ij_evapli,tgo,trcSurfByVol,
 #ifdef TRACERS_ON
 !$OMP&    ntx, ntix, trm, itime_tr0, needtrs,
 #endif
@@ -1307,6 +1314,8 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +trs(nx)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+trs(nx)*ptype*byNIsurf
+            trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)+trs(nx)*ptype*rhosrf
+     &           *byNIsurf
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -1316,6 +1325,9 @@ C**** Save surface tracer concentration whether calculated or not
      *           *byaxyp(i,j),0d0)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
      *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
+            trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)+max((trm(i,j,1,n)
+     &           -trmom(mz,i,j,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
+     &           *rhosrf*byNIsurf
           end if
 
 #ifdef TRACERS_GASEXCH_ocean
