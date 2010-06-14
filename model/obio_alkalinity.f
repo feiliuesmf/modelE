@@ -54,6 +54,7 @@
       USE OCEAN, only: dxypo,lmm
 #else
       USE hycom_scalars, only: nstep
+      USE hycom_arrays, only: scp2
 #endif
 
       implicit none
@@ -159,7 +160,12 @@
       do k=1,kzc
       caexp = caexp + F_Ca(k)
      .                *24.d0*365.d0*1.d-3
-     .                *dxypo(J)*1.d-15       !PgC/yr
+     .                *1.d-15       !PgC/m2/yr
+#ifdef OBIO_ON_GARYocean
+     .                * dxypo(j)    ! -> Pg,C/yr
+#else
+     .                * scp2(i,j)   ! -> Pg,C/yr
+#endif
       enddo
 
 #ifdef OBIO_ON_GARYocean
