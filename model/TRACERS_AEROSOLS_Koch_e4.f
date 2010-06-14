@@ -1431,8 +1431,8 @@ ccOMP PARALLEL DO PRIVATE (L)
 #endif
         tr3Dsource(:,j_0:j_1,:,nChemistry,n_SO2)=0. ! SO2 chem source
         tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
-        tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
-        tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
+        if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
+        if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_AMP
         tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
 #endif
@@ -1470,7 +1470,7 @@ ccOMP PARALLEL DO PRIVATE (L)
           oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
           tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
-          trm(:,j_0:j_1,:,n_h2o2_s)=0.0
+          if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
 ccOMP END PARALLEL DO
       endif
 
