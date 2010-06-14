@@ -137,6 +137,15 @@ C**** ocean related parameters
      &     remap_a2o            ! atm A -> ocn A
      &    ,remap_o2a            ! ocn A -> atm A
 
+      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:) ::
+     *     BYDXYV, KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
+      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
+     *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
+      REAL*8, SAVE :: BYDXYPJM
+      REAL*8, SAVE, DIMENSION(LMO) :: UYPB
+      REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
+      REAL*8, PARAMETER :: FSLIP=0.
+
       contains
 
       subroutine gather_ocean (icase)
@@ -303,6 +312,38 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       RETURN
       end subroutine scatter_straits_from_global
 
+      subroutine alloc_odiff(grid)
+      use DOMAIN_DECOMP_1D, only: dist_grid, get
+      type (dist_grid) :: grid
+
+      integer :: J_0H, J_1H
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      allocate( BYDXYV(grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( KHP   (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( KHV   (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( TANP  (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( TANV  (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BYDXV (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BYDXP (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BYDYV (grid%j_strt_halo:grid%j_stop_halo) )
+      allocate( BYDYP (grid%j_strt_halo:grid%j_stop_halo) )
+      
+      allocate( UXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( UXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( UXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( UYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( UYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( UYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+      allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+
+      end subroutine alloc_odiff
+
       END Module OCEAN
 
       Module OCEAN_DYN
@@ -396,6 +437,7 @@ C****
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
 
+      USE OCEAN, only: alloc_odiff
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only: alloc_obio_forc
       USE obio_com,  only: alloc_obio_com
@@ -527,6 +569,7 @@ c??   call ALLOC_GM_COM(agrid)
 #ifdef TRACERS_GASEXCH_ocean
       call alloc_gasexch_com
 #endif
+      call alloc_odiff(ogrid)
 
       return
       end subroutine alloc_ocean

@@ -774,6 +774,9 @@ C**** Set atmospheric surface variables
 C***  Interpolate ocean surface velocity to the DYNSI grid
       IF (ISTART.gt.0) CALL OG2IG_uvsurf
 
+C***  Initialize ODIFF
+      call init_ODIFF(grid)
+
       RETURN
 C**** Terminate because of improper start up
   820 call stop_model('init_OCEAN: Error reading ocean IC',255)
@@ -783,6 +786,194 @@ C****
       RETURN
 C****
       END SUBROUTINE init_OCEAN
+
+
+      subroutine init_odiff(grid)
+      use OCEAN, only: BYDXYV, BYDXYPJM, UYPB, UYPA, FSLIP
+      USE DOMAIN_DECOMP_1D, ONLY : dist_grid, GET, AM_I_ROOT, 
+     &     HALO_UPDATE, NORTH, SOUTH
+      USE OCEAN, only: KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,
+     *     BYDYP,UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
+      use ocean, only: dxpo, dypo, dxvo, dyvo, cospo, cosvo, dxyvo,
+     &     rlat, IM, JM, LMO, dlat, dxypo, lmu, lmv, bydxypo
+      use constant, only: twopi, omega, radius, rhows
+      USE OCEANRES, only : akhmin, akhfac
+      implicit none
+      type (dist_grid) :: grid
+
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      integer :: I, IM1, J, L
+      integer :: ip1
+      logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      REAL*8 DSV,DSP,VLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
+
+      REAL*8, DIMENSION(grid%j_strt_halo:grid%j_stop_halo) ::
+     *     KYPXP,KXPYV,KYVXV,KXVYP
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,2) ::
+     *      DUDX,DUDY,DVDX,DVDY
+
+c**** Extract domain decomposition info
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+
+      DO J=J_0,J_1S
+C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
+c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
+c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
+C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
+        DSP=MIN(DXPO(J),DYPO(J))*2.*SQRT(3.)/TWOPI  ! tracer lat
+        DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
+        KHP(J)=AKHFAC*2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! A-grid
+        KHV(J)=AKHFAC*2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! V-grid
+        KHP(J)=MAX(KHP(J),AKHFAC*AKHMIN)
+        KHV(J)=MAX(KHV(J),AKHFAC*AKHMIN)
+        BYDXYV(J)=1D0/DXYVO(J)
+        BYDXV(J)=1D0/DXVO(J)
+        BYDXP(J)=1D0/DXPO(J)
+        BYDYV(J)=1D0/DYVO(J)
+        BYDYP(J)=1D0/DYPO(J)
+        KYPXP(J)=KHP(J)*DYPO(J)*BYDXP(J)
+        KXPYV(J)=KHV(J)*DXPO(J)*BYDYV(J)
+        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
+        KXVYP(J)=KHP(J)*DXVO(J)*BYDYP(J)
+C**** Discretisation errors need TANP/V to be defined like this
+        TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
+        VLAT = DLAT*(J+0.5-0.5*(1+JM))
+        TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
+c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
+      END DO
+      !make halo_update if 2 is not present
+      !barrier synchoronization is required before sending the message,
+      !j=2 is computed before the message is sent
+      if( HAVE_SOUTH_POLE ) then
+        KHV(1)=KHV(2)
+        BYDXV(1)=1D0/DXVO(1)
+        BYDYV(1)=1D0/DYVO(1)
+        BYDYP(1)=1D0/DYPO(1)
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
+c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
+      endif
+      if( HAVE_NORTH_POLE ) then
+        BYDXP(JM)=1D0/DXPO(JM)
+        BYDXYPJM=1D0/(DXYPO(JM)*IM)
+        TANP(JM) = 0
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
+c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
+      endif
+
+      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=NORTH)
+      CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
+     *                 FROM=SOUTH)
+
+C****
+C**** Calculate operators fixed in time for U and V equations
+C****
+      UXA=0. ; UXB=0. ; UXC=0. ; UYA=0. ; UYB=0. ; UYC=0.
+      VXA=0. ; VXB=0. ; VXC=0. ; VYA=0. ; VYB=0. ; VYC=0.
+      UYPB=0.; UYPA=0.
+
+      DO L=1,LMO
+C**** Calculate flux operators
+C**** i.e DUDX(1) and DUDX(2) are the coefficients of u1 and u2 for
+C**** calculating centered difference K_h du/dx
+C**** including metric terms in y derivatives
+        DUDX=0.
+        DUDY=0.
+        DVDX=0.
+        DVDY=0.
+        DO J=max(2,J_0S-1),J_1S
+          I=IM
+          DO IP1=1,IM
+            IF (L.LE.LMU(IP1,J)) DUDX(IP1,J,1) = KYPXP(J)
+            IF (L.LE.LMU(I,J)) THEN
+              DUDX(IP1,J,2) = -KYPXP(J)
+              IF (L.LE.LMU(I,J+1)) THEN
+                DUDY(I,J,1) =  KXPYV(J)*(1. +0.5*TANV(J)*DYVO(J))
+                DUDY(I,J,2) = -KXPYV(J)*(1. -0.5*TANV(J)*DYVO(J))
+              ELSE
+                DUDY(I,J,2) = -(1.-FSLIP)*2d0*KXPYV(J)
+              END IF
+            ELSE
+              IF (L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(J)
+            END IF
+            IF (L.LE.LMV(I,J+1)) DVDY(I,J+1,1) = KXVYP(J)*(1. +
+     *           0.5*TANP(J)*DYPO(J))
+            IF (L.LE.LMV(I,J)) THEN
+              DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
+              IF (L.LE.LMV(IP1,J)) THEN
+                DVDX(I,J,1) =  KYVXV(J)
+                DVDX(I,J,2) = -KYVXV(J)
+              ELSE
+                DVDX(I,J,2) = -(1.-FSLIP)*2d0*KYVXV(J)
+              END IF
+            ELSE
+              IF (L.LE.LMV(IP1,J)) DVDX(I,J,1) = (1.-FSLIP)*2d0*KYVXV(J)
+            END IF
+            I=IP1
+          END DO
+        END DO
+        CALL HALO_UPDATE(grid, DUDY(:,grid%j_strt_halo:grid%j_stop_halo,
+     *     :), FROM=SOUTH)
+C****
+C**** Combine to form tri-diagonal operators including first metric term
+C****
+        DO J=J_0S,J_1S
+          IM1=IM
+          DO I=1,IM
+            IF(L.LE.LMU(IM1,J)) THEN
+              UXA(IM1,J,L) = -DUDX(IM1,J,2)                  *BYDXYPO(J)
+              UXB(IM1,J,L) = (DUDX(I  ,J,2) -DUDX(IM1,J  ,1))*BYDXYPO(J)
+              UXC(IM1,J,L) =  DUDX(I  ,J,1)                  *BYDXYPO(J)
+              UYA(IM1,J,L) = -DUDY(IM1,J-1,2)                *BYDXYPO(J)
+     *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J)
+              UYB(IM1,J,L) =(DUDY(IM1,J  ,2)-DUDY(IM1,J-1,1))*BYDXYPO(J)
+     *                     + TANP(J)*TANP(J)*KHP(J)
+              UYC(IM1,J,L) = DUDY(IM1,J  ,1)                 *BYDXYPO(J)
+     *                     - 0.5*TANP(J)*KHP(J)*BYDYP(J)
+            END IF
+            IF (L.LE.LMV(I,J)) THEN
+              VXA(I,J,L) = -DVDX(IM1,J,2)                 *BYDXYV(J)
+              VXB(I,J,L) = (DVDX(I  ,J,2) - DVDX(IM1,J,1))*BYDXYV(J)
+              VXC(I,J,L) =  DVDX(I  ,J,1)                 *BYDXYV(J)
+              VYA(I,J,L) = -DVDY(I,J  ,2)                 *BYDXYV(J)
+     *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J)
+              VYB(I,J,L) = (DVDY(I,J+1,2) - DVDY(I  ,J,1))*BYDXYV(J)
+     *                   + TANV(J)*TANV(J)*KHV(J)
+              VYC(I,J,L) =  DVDY(I,J+1,1)                 *BYDXYV(J)
+     *                   - 0.5*TANV(J)*KHV(J)*BYDYV(J)
+            END IF
+            IM1=I
+          END DO
+        END DO
+C**** At North Pole
+        !following uses jm and jm-1 data, if both are not on same
+        !processor (need to check this), halo_update is required.
+        IF(HAVE_NORTH_POLE) THEN
+          IF(L.LE.LMU(1,JM)) THEN
+            DO I=1,IM
+              UYPB(L) = UYPB(L) - DUDY(I,JM-1,1)
+              UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM
+            END DO
+            UYPB(L) = UYPB(L)*BYDXYPJM
+          END IF
+        END IF
+      END DO
+!**  IFIRST block ends here
+      end subroutine init_odiff
 
       subroutine get_i1i2(q,im,n,i1,i2,nmax)
 c Finds the number of intervals over which q==true, and the
@@ -4482,31 +4673,23 @@ C**** (If longitudinal variation is wanted just make K arrays K(I,J))
 C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
-      USE CONSTANT, only : twopi,rhows,omega,radius
-      USE OCEANRES, only : akhmin, akhfac
+      use OCEAN, only: FSLIP
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,
-     *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,DLAT,
-     *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
+     *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,
+     *  lmu,lmv,dxpo,dypo,dxvo,dyvo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
       USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
       USE MODEL_COM, only: nstep=>itime
-
+      USE OCEAN, only: BYDXYV, KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,
+     *     BYDYP,UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
       IMPLICIT NONE
-      REAL*8, PARAMETER :: FSLIP=0.
 
-      REAL*8, DIMENSION(grid%j_strt_halo:grid%j_stop_halo) ::
-     *     KYPXP,KXPYV,KYVXV,KXVYP
-      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:) ::
-     *     BYDXYV, KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,BYDYP
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,2) ::
-     *      DUDX,DUDY,DVDX,DVDY
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo) ::
      *      FUX,FUY,FVX,FVY,BYMU,BYMV
 
-      INTEGER, SAVE :: IFIRST = 1
 C**** Local variables
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
@@ -4517,13 +4700,7 @@ C**** Local variables
      *     AU3D, BU3D, CU3D, RU3D, UU3D
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     AV3D, BV3D, CV3D, RV3D, UV3D
-      REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
-     *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
-      REAL*8, SAVE, DIMENSION(LMO) :: UYPB
-      REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
-
       REAL*8, INTENT(IN) :: DTDIFF
-      REAL*8, SAVE :: BYDXYPJM
       REAL*8 DSV,DSP,VLAT,DT2,DTU,DTV,VX,VY,VT,UT,UX,UY
       INTEGER I,J,L,IP1,IM1,II
 
@@ -4539,8 +4716,6 @@ c**** Extract domain decomposition info
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
-
-      IF(IFIRST.ne.0)  call initialize()
 
 C**** End of initialization from first call to ODIFF
 C****
@@ -4948,188 +5123,6 @@ C**** Restore unchanged UONP and VONP into prognostic locations in UO
       end if
 C****
       RETURN
-      CONTAINS
-      subroutine initialize()
-      IFIRST = 0
-
-        allocate( BYDXYV(grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( KHP   (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( KHV   (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( TANP  (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( TANV  (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( BYDXV (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( BYDXP (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( BYDYV (grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( BYDYP (grid%j_strt_halo:grid%j_stop_halo) )
-
-        allocate( UXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( UXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( UXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( UYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( UYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( UYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VXA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VXB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VXC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VYA(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VYB(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( VYC(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-
-
-      DO J=J_0,J_1S
-C**** Calculate KH = rho_0 BETA* L_Munk^3 where DX=L_Munk
-c      KHP(J)=2d0*RHOWS*OMEGA*COSP(J)*(DXP(J)**3)/RADIUS ! tracer lat
-c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
-C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
-        DSP=MIN(DXPO(J),DYPO(J))*2.*SQRT(3.)/TWOPI  ! tracer lat
-        DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
-        KHP(J)=AKHFAC*2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! A-grid
-        KHV(J)=AKHFAC*2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! V-grid
-        KHP(J)=MAX(KHP(J),AKHFAC*AKHMIN)
-        KHV(J)=MAX(KHV(J),AKHFAC*AKHMIN)
-        BYDXYV(J)=1D0/DXYVO(J)
-        BYDXV(J)=1D0/DXVO(J)
-        BYDXP(J)=1D0/DXPO(J)
-        BYDYV(J)=1D0/DYVO(J)
-        BYDYP(J)=1D0/DYPO(J)
-        KYPXP(J)=KHP(J)*DYPO(J)*BYDXP(J)
-        KXPYV(J)=KHV(J)*DXPO(J)*BYDYV(J)
-        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
-        KXVYP(J)=KHP(J)*DXVO(J)*BYDYP(J)
-C**** Discretisation errors need TANP/V to be defined like this
-        TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
-        VLAT = DLAT*(J+0.5-0.5*(1+JM))
-        TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
-c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
-      END DO
-      !make halo_update if 2 is not present
-      !barrier synchoronization is required before sending the message,
-      !j=2 is computed before the message is sent
-      if( HAVE_SOUTH_POLE ) then
-        KHV(1)=KHV(2)
-        BYDXV(1)=1D0/DXVO(1)
-        BYDYV(1)=1D0/DYVO(1)
-        BYDYP(1)=1D0/DYPO(1)
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
-c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
-      endif
-      if( HAVE_NORTH_POLE ) then
-        BYDXP(JM)=1D0/DXPO(JM)
-        BYDXYPJM=1D0/(DXYPO(JM)*IM)
-        TANP(JM) = 0
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
-c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
-      endif
-
-      CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,BYDXP(grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,TANV (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
-
-C****
-C**** Calculate operators fixed in time for U and V equations
-C****
-      UXA=0. ; UXB=0. ; UXC=0. ; UYA=0. ; UYB=0. ; UYC=0.
-      VXA=0. ; VXB=0. ; VXC=0. ; VYA=0. ; VYB=0. ; VYC=0.
-      UYPB=0.; UYPA=0.
-
-      DO L=1,LMO
-C**** Calculate flux operators
-C**** i.e DUDX(1) and DUDX(2) are the coefficients of u1 and u2 for
-C**** calculating centered difference K_h du/dx
-C**** including metric terms in y derivatives
-        DUDX=0.
-        DUDY=0.
-        DVDX=0.
-        DVDY=0.
-        DO J=max(2,J_0S-1),J_1S
-          I=IM
-          DO IP1=1,IM
-            IF (L.LE.LMU(IP1,J)) DUDX(IP1,J,1) = KYPXP(J)
-            IF (L.LE.LMU(I,J)) THEN
-              DUDX(IP1,J,2) = -KYPXP(J)
-              IF (L.LE.LMU(I,J+1)) THEN
-                DUDY(I,J,1) =  KXPYV(J)*(1. +0.5*TANV(J)*DYVO(J))
-                DUDY(I,J,2) = -KXPYV(J)*(1. -0.5*TANV(J)*DYVO(J))
-              ELSE
-                DUDY(I,J,2) = -(1.-FSLIP)*2d0*KXPYV(J)
-              END IF
-            ELSE
-              IF (L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(J)
-            END IF
-            IF (L.LE.LMV(I,J+1)) DVDY(I,J+1,1) = KXVYP(J)*(1. +
-     *           0.5*TANP(J)*DYPO(J))
-            IF (L.LE.LMV(I,J)) THEN
-              DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
-              IF (L.LE.LMV(IP1,J)) THEN
-                DVDX(I,J,1) =  KYVXV(J)
-                DVDX(I,J,2) = -KYVXV(J)
-              ELSE
-                DVDX(I,J,2) = -(1.-FSLIP)*2d0*KYVXV(J)
-              END IF
-            ELSE
-              IF (L.LE.LMV(IP1,J)) DVDX(I,J,1) = (1.-FSLIP)*2d0*KYVXV(J)
-            END IF
-            I=IP1
-          END DO
-        END DO
-        CALL HALO_UPDATE(grid, DUDY(:,grid%j_strt_halo:grid%j_stop_halo,
-     *     :), FROM=SOUTH)
-C****
-C**** Combine to form tri-diagonal operators including first metric term
-C****
-        DO J=J_0S,J_1S
-          IM1=IM
-          DO I=1,IM
-            IF(L.LE.LMU(IM1,J)) THEN
-              UXA(IM1,J,L) = -DUDX(IM1,J,2)                  *BYDXYPO(J)
-              UXB(IM1,J,L) = (DUDX(I  ,J,2) -DUDX(IM1,J  ,1))*BYDXYPO(J)
-              UXC(IM1,J,L) =  DUDX(I  ,J,1)                  *BYDXYPO(J)
-              UYA(IM1,J,L) = -DUDY(IM1,J-1,2)                *BYDXYPO(J)
-     *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J)
-              UYB(IM1,J,L) =(DUDY(IM1,J  ,2)-DUDY(IM1,J-1,1))*BYDXYPO(J)
-     *                     + TANP(J)*TANP(J)*KHP(J)
-              UYC(IM1,J,L) = DUDY(IM1,J  ,1)                 *BYDXYPO(J)
-     *                     - 0.5*TANP(J)*KHP(J)*BYDYP(J)
-            END IF
-            IF (L.LE.LMV(I,J)) THEN
-              VXA(I,J,L) = -DVDX(IM1,J,2)                 *BYDXYV(J)
-              VXB(I,J,L) = (DVDX(I  ,J,2) - DVDX(IM1,J,1))*BYDXYV(J)
-              VXC(I,J,L) =  DVDX(I  ,J,1)                 *BYDXYV(J)
-              VYA(I,J,L) = -DVDY(I,J  ,2)                 *BYDXYV(J)
-     *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J)
-              VYB(I,J,L) = (DVDY(I,J+1,2) - DVDY(I  ,J,1))*BYDXYV(J)
-     *                   + TANV(J)*TANV(J)*KHV(J)
-              VYC(I,J,L) =  DVDY(I,J+1,1)                 *BYDXYV(J)
-     *                   - 0.5*TANV(J)*KHV(J)*BYDYV(J)
-            END IF
-            IM1=I
-          END DO
-        END DO
-C**** At North Pole
-        !following uses jm and jm-1 data, if both are not on same
-        !processor (need to check this), halo_update is required.
-        IF(HAVE_NORTH_POLE) THEN
-          IF(L.LE.LMU(1,JM)) THEN
-            DO I=1,IM
-              UYPB(L) = UYPB(L) - DUDY(I,JM-1,1)
-              UYPA(I,L) = -DUDY(I,JM-1,2)*BYDXYPJM
-            END DO
-            UYPB(L) = UYPB(L)*BYDXYPJM
-          END IF
-        END IF
-      END DO
-!**  IFIRST block ends here
-      end subroutine initialize
       END SUBROUTINE ODIFF
 
       SUBROUTINE TOC2SST
