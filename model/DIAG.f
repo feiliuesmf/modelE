@@ -1493,11 +1493,11 @@ C****
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only : sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-#endif
 #ifdef TRACERS_ON
-     *     ,trcsurf,trcSurfByVol
+      use trdiag_com, only: trcsurf,trcSurfByVol
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &     sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM
