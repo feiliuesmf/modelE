@@ -1497,7 +1497,7 @@ C****
       use trdiag_com, only: trcsurf,trcSurfByVol
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-     &     sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &    ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM
