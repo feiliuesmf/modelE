@@ -60,7 +60,7 @@
 
       integer nt,k,kmax,nchl1,nchl2,i,j,kzc
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
-     .       J_Ca(kmax),term,term1,term2,DOP
+     .       J_Ca(kmax),term,term1,term2,DOP,caexp
       logical vrbos
 !--------------------------------------------------------------------------
 !find layer index for zc
@@ -155,12 +155,15 @@
 !    .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
 !    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
 
-#ifdef OBIO_ON_GARYocean
+      caexp = 0.d0
       do k=1,kzc
-      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + F_Ca(k)
+      caexp = caexp + F_Ca(k)
      .                *24.d0*365.d0*1.d-3
      .                *dxypo(J)*1.d-15       !PgC/yr
       enddo
+
+#ifdef OBIO_ON_GARYocean
+      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp
 #endif
 
 !compute sources/sinks of CaCO3

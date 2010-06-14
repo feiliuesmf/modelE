@@ -70,24 +70,6 @@
       if (kzc.lt.1) kzc=1
       if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
 
-      cexp = 0.
-      do nt=nnut+1,nnut+nchl
-      do  k=1,kzc    
-        cexp = cexp
-     .        + obio_P(k,nt)*obio_ws(k,nt-nnut)/dp1d(k)    ! mgm3/hr 
-     .        * mgchltouMC * 1.d-3                         ! -> uM,C/hr=mili-mol,C/m3/hr
-     .        * 24.d0 * 365.d0 *dp1d(k)                    ! -> mol,C/m3/hr
-     .        * 12.d0 * 1.d-15                             ! -> Pg,C/m2/yr
-     .        * dxypo(j)                                   ! -> Pg,C/yr
-cdiag write(*,'(a,5i5,4e12.4)')'sinksettl, cexp1:',
-cdiag.   nstep,i,j,k,nt,obio_P(k,nt),obio_ws(k,nt-nnut),dp1d(k),cexp
-      enddo
-      enddo
-
-cdiag write(*,'(a,3i5,e12.4)')'sinksettl, cexp1a:',
-cdiag.   nstep,i,j,cexp
-
-
       !detritus settling
       do nt = 1,ndet
         do k=1,kmax
@@ -110,28 +92,6 @@ cdiag.   nstep,i,j,cexp
 !        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
 !        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
       enddo ! nt
-
-      !diagnostic for carbon export at compensation depth
-      !term2: settling C detritus contribution
-      !dont set cexp = 0 here, because adds to before
-      do k = 1,kzc
-        nt= 1            !only the for carbon detritus
-        cexp = cexp 
-     .        + det(k,nt)*wsdet(k,nt)/dp1d(k)      ! micro-grC/lt/hr == mili,grC/m3/hr
-     .        * 1.d-3 /12.d0                       ! -> mol,C/m3/hr
-     .        * 24.d0 * 365.d0 *dp1d(k)            ! -> mol,C/m2/yr
-     .        * 12.d0 * 1.d-15                     ! -> Pgr,C/m2/yr
-     .        * dxypo(j)                           ! -> Pg,C/yr
-cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp2:',
-cdiag.   nstep,i,j,k,det(k,nt),wsdet(k,nt),dp1d(k),cexp
-      enddo
-
-      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp
-
-cdiag write(*,'(a,3i5,e12.4)')'sinksettl, cexp2a:',
-cdiag.   nstep,i,j,cexp
-
-
 
 #else     /* HYCOM */
 #ifndef noBIO            /****** for all runs except noBIO tests ********/
@@ -266,6 +226,36 @@ cdiag      endif
 #else
        errcon = .false.
 #endif
+#endif
+
+      !diagnostic for carbon export at compensation depth
+      cexp = 0.
+      do  k=1,kzc    
+        do nt=nnut+1,nnut+nchl
+           cexp = cexp
+     .        + obio_P(k,nt)*obio_ws(k,nt-nnut)/dp1d(k)    ! mgm3/hr 
+     .        * mgchltouMC * 1.d-3                         ! -> uM,C/hr=mili-mol,C/m3/hr
+     .        * 24.d0 * 365.d0 *dp1d(k)                    ! -> mol,C/m3/hr
+     .        * 12.d0 * 1.d-15                             ! -> Pg,C/m2/yr
+     .        * dxypo(j)                                   ! -> Pg,C/yr
+        enddo
+
+      !term2: settling C detritus contribution
+      !dont set cexp = 0 here, because adds to before
+      do k = 1,kzc
+        nt= 1            !only the for carbon detritus
+        cexp = cexp 
+     .        + det(k,nt)*wsdet(k,nt)/dp1d(k)      ! micro-grC/lt/hr == mili,grC/m3/hr
+     .        * 1.d-3 /12.d0                       ! -> mol,C/m3/hr
+     .        * 24.d0 * 365.d0 *dp1d(k)            ! -> mol,C/m2/yr
+     .        * 12.d0 * 1.d-15                     ! -> Pgr,C/m2/yr
+     .        * dxypo(j)                           ! -> Pg,C/yr
+cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp2:',
+cdiag.   nstep,i,j,k,det(k,nt),wsdet(k,nt),dp1d(k),cexp
+      enddo
+
+#ifdef OBIO_ON_GARYocean
+      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp
 #endif
 
       end subroutine obio_sinksettl

@@ -486,9 +486,9 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        !atmospheric deposition iron 
        atmFe_ij=atmFe(i,j,JMON)
-!#ifdef zeroFLUX
-!       atmFe_ij=0.d0
-!#endif
+#ifdef zero_ironflux
+        atmFe_ij=0.d0
+#endif
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
@@ -496,9 +496,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
        do nt=1,ntm
-#ifdef zeroFLUX
-          tracflx(i,j,nt) = 0.d0
-#endif
           tracflx1d(nt) = tracflx(i,j,nt)
 !         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
 !    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
@@ -844,6 +841,9 @@ cdiag     endif
        enddo
       endif
 
+      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
+     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16)
+
        !------------------------------------------------------------
       !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
       if(vrbos) write(*,*)'obio_model, strac conc2:',
@@ -906,20 +906,16 @@ cdiag     endif
        endif
 
        !compute total primary production per day
-!      if (mod(nstep,nday).eq.0) then
-!         pp2tot_day(i,j)=0.
-!       else
-          !sum pp over species and depth, NOT over day
-          pp2tot_day(i,j)=0.
-          if (p1d(kdm+1).gt.200.) then    !if total depth > 200m
+       !sum pp over species and depth, NOT over day
+       pp2tot_day(i,j)=0.
+       if (p1d(kdm+1).gt.200.) then    !if total depth > 200m
           do nt=1,nchl
           do k=1,kdm
               pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)  !mg,C/m2/hr
      .                                       * 24.d0        !->mg,C/m2/day
           enddo
           enddo
-          endif
-!      endif
+       endif
        if (vrbos) then
        write(*,'(a,3i5,e12.4)')'obio_model, pp:',
      .    nstep,i,j,pp2tot_day(i,j)
