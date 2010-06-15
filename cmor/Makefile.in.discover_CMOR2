@@ -1,15 +1,12 @@
 #!/usr/bin/env sh
-FC=/usr/local/intel/comp/10.1.021/bin/ifort
-NetCDF_MOD_DIR=/usr/local/other/netcdf/4.0.1_gnu/include
+FC=/usr/local/intel/Compiler/11.1/038/bin/intel64/ifort
 CPPFLAGS_USER=
 FFLAGS_USER= -convert big_endian
 MODULE_SUFFIX=mod
 PREFIX=/discover/nobackup/klo/CMOR2
-FCFLAGS= -g
+FCFLAGS=
 PYTHONEXEC=
 
-#DEBUG = -g
-DEBUG = -g
 
 # Library name
 LIBNAME = libcmor.a
@@ -25,36 +22,38 @@ LIBFILES = @LIBFILES@
 INCFILES = @INCFILES@
 
 # Temporary Files
-TMPFILES = *~ $(LIBFILES) *.mod a.out *.stb Test/IPCC_Fourth_Assessment *.log* *.dSYM Test/IPCC
+TMPFILES = *~ $(LIBFILES) *.mod a.out *.stb Test/IPCC_Fourth_Assessment *.LOG* *.dSYM Test/IPCC
 DISTFILES = libcmor.a
-DEPEND= makedepend -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@
+DEPEND= makedepend -c @DEBUG@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@
 
 all:    cmor
 	@echo
 depend:  $(LIBSOURCES)
 	${DEPEND}  $(LIBSOURCES)
 cmor.o: Src/cmor.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor.c
 cmor_variables.o: Src/cmor_variables.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_variables.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_variables.c
 cmor_axes.o: Src/cmor_axes.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_axes.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_axes.c
 cmor_tables.o: Src/cmor_tables.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_tables.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_tables.c
 cmor_grids.o: Src/cmor_grids.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_grids.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_grids.c
+cmor_md5.o: Src/cmor_md5.c include/cmor.h include/cmor_func_def.h include/cmor_md5.h
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_md5.c
 cmor_cfortran_interface.o: Src/cmor_cfortran_interface.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_cfortran_interface.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cmor_cfortran_interface.c
 cdTimeConv.o: Src/cdTime/cdTimeConv.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/cdTimeConv.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/cdTimeConv.c
 cdUtil.o: Src/cdTime/cdUtil.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/cdUtil.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/cdUtil.c
 timeConv.o: Src/cdTime/timeConv.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/timeConv.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/timeConv.c
 timeArith.o:Src/cdTime/timeArith.c include/cmor.h include/cmor_func_def.h
-	@CC@ -c $(DEBUG) @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/timeArith.c
+	@CC@ -c @DEBUG@ @MACROS@ @CFLAGS@  @NCCFLAGS@ @UDUNITS2FLAGS@ @UUIDFLAGS@ @ZFLAGS@ Src/cdTime/timeArith.c
 cmor_fortran_interface.o: Src/cmor_fortran_interface.f90
-	@FC@ -c @FCFLAGS@ $(DEBUG) Src/cmor_fortran_interface.f90
+	@FC@ -c @FCFLAGS@ @DEBUG@ @MACROS@ Src/cmor_fortran_interface.f90
 cmor:  $(LIBFILES) @MAKEDEPPYTHON@
 	@ar crv $(LIBNAME) $(LIBFILES) 
 	@ranlib $(LIBNAME)
@@ -86,9 +85,9 @@ backup: clean
 test:  cmor test_C @TEST_FORTRAN@ @MAKETESTPYTHON@
 	@echo "All C and Fortran Test passed successfully"
 test_C: cmor 
-	@rm -f ./ipcc_test_code ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/ipcc_test_code.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @HDF5CFLAGS@ @HDF5LDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ @ZLDFLAGS@ -o ipcc_test_code  @VERB@; ./ipcc_test_code @VERB@
-	@rm -f test_grid ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/test_grid.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @HDF5CFLAGS@ @HDF5LDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ @ZLDFLAGS@ -o test_grid @VERB@; ./test_grid @VERB@;
-	@rm -f test_lots_of_variables ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/test_lots_of_variables.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @HDF5CFLAGS@ @HDF5LDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ @ZLDFLAGS@ -o test_lots_of_variables @VERB@; ./test_lots_of_variables @VERB@;
+	@rm -f ./ipcc_test_code ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/ipcc_test_code.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ -o ipcc_test_code  @VERB@; ./ipcc_test_code @VERB@
+	@rm -f test_grid ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/test_grid.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ -o test_grid @VERB@; ./test_grid @VERB@;
+	@rm -f test_lots_of_variables ; @CC@ @CFLAGS@ @CPPFLAGS@  Test/test_lots_of_variables.c -L@prefix@/lib -I@prefix@/include  -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ -o test_lots_of_variables @VERB@; ./test_lots_of_variables @VERB@;
 python:
 	@echo "Building Python interface"
 	@${PYTHONEXEC} setup.py install @CDATPREFIX@
@@ -100,17 +99,28 @@ test_python: python
 	${PYTHONEXEC} Test/test_python_common.py @VERB@
 	${PYTHONEXEC} Test/cmor_speed_and_compression.py @VERB@
 	${PYTHONEXEC} Test/cmor_speed_and_compression_01.py @VERB@
-	${PYTHONEXEC} Test/cmor_speed_and_compression_02.py @VERB@
+#	${PYTHONEXEC} Test/cmor_speed_and_compression_02.py @VERB@
 	${PYTHONEXEC} Test/test_compression.py @VERB@
 	${PYTHONEXEC} Test/test_python_appending.py @VERB@
 	${PYTHONEXEC} Test/test_python_bounds_request.py @VERB@
 	${PYTHONEXEC} Test/test_python_new_tables.py @VERB@
-	${PYTHONEXEC} Test/test_python_index_coord.py @VERB@
+#	${PYTHONEXEC} Test/test_python_index_coord.py @VERB@
 	${PYTHONEXEC} Test/test_python_jamie.py @VERB@
 	${PYTHONEXEC} Test/test_python_jamie_2.py @VERB@
+	${PYTHONEXEC} Test/test_python_jamie_3.py @VERB@
+	${PYTHONEXEC} Test/test_python_jamie_4.py @VERB@
+	${PYTHONEXEC} Test/test_python_jamie_6.py @VERB@
+	${PYTHONEXEC} Test/test_python_memory_check.py @VERB@
+	${PYTHONEXEC} Test/test_python_open_close_cmor_multiple.py @VERB@
+	${PYTHONEXEC} Test/test_python_jamie_7.py
+	${PYTHONEXEC} Test/test_python_joerg_1.py
+	${PYTHONEXEC} Test/test_python_joerg_2.py
+	${PYTHONEXEC} Test/test_python_YYYMMDDHH_exp_fmt.py
+	${PYTHONEXEC} Test/test_python_region.py
+
 test_case:
 	@echo "Testing: "${TEST_NAME}" with input file: "${INPUT_FILE}
-	@rm -f ./${TEST_NAME} 2>/dev/null ; @FC@ @FCFLAGS@ $(DEBUG)  Test/${TEST_NAME}.f90 -L@prefix@/lib -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @HDF5CFLAGS@ @HDF5LDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ @ZFLAGS@ @ZLDFLAGS@ -o ${TEST_NAME} ;
+	@rm -f ./${TEST_NAME} 2>/dev/null ; @FC@ @FCFLAGS@ @DEBUG@  Test/${TEST_NAME}.f90 -L@prefix@/lib -L. -lcmor @NCCFLAGS@ @NCLDFLAGS@ @UDUNITS2LDFLAGS@ @UDUNITS2FLAGS@ @UUIDLDFLAGS@ @UUIDFLAGS@ @ZFLAGS@ @ZLDFLAGS@ -o ${TEST_NAME} ;
 	@./${TEST_NAME} @VERB@ < ${INPUT_FILE} ;
 	@ rm ./${TEST_NAME}
 ifeq (@MAKEDEPPYTHON@,python)
@@ -139,6 +149,9 @@ test_fortran: cmor
 	@env TEST_NAME="test_fortran_example_00" INPUT_FILE="Test/noinput" make test_case
 	@env TEST_NAME="test_fortran_example_01" INPUT_FILE="Test/noinput" make test_case
 	@env TEST_NAME="test_station_data" INPUT_FILE="Test/noinput" make test_case
+	@env TEST_NAME="test_cmor_grid_alejandro" INPUT_FILE="Test/alejandro.txt" make test_case
+	@env TEST_NAME="test_cmor_grid_alejandro" INPUT_FILE="Test/alejandro_1.txt" make test_case
+	@env TEST_NAME="test_cmor_grid_alejandro" INPUT_FILE="Test/alejandro_2.txt" make test_case
 	@env TEST_NAME="test_region" INPUT_FILE="Test/noinput" make test_case
 	@env TEST_NAME="test_sigma" INPUT_FILE="Test/noinput" make test_case
 	@env TEST_NAME="test_singleton" INPUT_FILE="Test/noinput" make test_case
