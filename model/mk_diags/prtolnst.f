@@ -15,10 +15,18 @@
       integer :: status,varid
       character(len=132) :: xlabel
       character(len=100) :: fromto
-      integer :: nmst,lmo,nvars,lmaxst,n,l,lmax
+      integer :: nmst,lmo,nvars,n,l,lmax,line_length
       integer :: dimids(7),did_zoc,did_zoce,did_nmst
       logical :: print_this
       real*4 :: vsum
+      character(len=160) :: dashes,header
+
+      do n=1,len(dashes)
+        dashes(n:n) = '-'
+      enddo
+      header=' Strait               Sum/Mean'//
+     &     '     1     2     3     4     5     6     7'//
+     &     '     8     9    10    11    12     13   14'
 
 c
 c get run ID, time/date info, etc.
@@ -39,7 +47,7 @@ c read olnst metadata
 c
       call get_var_int(fid,'lmst',lmst)
       call get_var_text(fid,'strait_name',name_st)
-      lmaxst = maxval(lmst)
+      line_length = 30 + 6*maxval(lmst)
 
 c
 c get the number of quantities in the file
@@ -71,8 +79,9 @@ c
         status = nf_get_att_text(fid,varid,'units',units)
         write(6,*)
         write(6,'(a)') trim(lname)//' ('//trim(units)//')'
-        write(6,902) ('------',l=1,lmaxst),(l,l=1,lmaxst),
-     &               ('------',l=1,lmaxst)
+        write(6,'(a)') dashes(1:line_length)
+        write(6,'(a)') header(1:line_length)
+        write(6,'(a)') dashes(1:line_length)
         do n=1,nmst
           lmax = lmst(n)
           vsum = sum(as(1:lmax,n))
@@ -88,6 +97,4 @@ c
       deallocate(as,name_st,lmst)
 
       return
-  902 FORMAT ('0',29('-'),6A6 / ' Strait',15X,'Sum/Mean',6I6 /
-     *        ' ',29('-'),6A6)
       end subroutine prtolnst
