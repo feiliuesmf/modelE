@@ -220,10 +220,13 @@ from older model versions for example.
 </p>
 
 <pre>
-   scaleacc acc-file name_of_acc-array
+   scaleacc acc-file acc-array-name[,name2,name3...]
 
-# Example: scale the JAN1901 "aij" accumulations of run E001xyz:
-   scaleacc JAN1901.accE001xyz.nc aij # output file will be JAN1901.aijE001xyz.nc
+# Examples:
+# scale the JAN1901 "aj" and "aij" accumulations of run E001xyz:
+   scaleacc JAN1901.accE001xyz.nc aj,aij # output files will be JAN1901.{aj,aij}E001xyz.nc
+# scale all available accumulations using the "all" request
+   scaleacc JAN1901.accE001xyz.nc all
 </pre>
 
 <p>
@@ -244,8 +247,10 @@ Final scaled outputs are written in netcdf format, but these are easily converti
 GISS-binary using one of the utilities documented <a href=#gissbin>here.</a>
   </li>
   <li>
-<tt>scaleacc</tt> processes only 1 accumulation array at a time.  To generate your
-favorite collection of outputs, write a tiny script which loops over categories.
+Individual diagnostics categories are requested by name rather than via the KDIAG namelist array.
+Several categories can be specfied with a comma-separated list, or this collection can be
+built up one category at a time. For simplicity,
+<a href=#remap>remapped output</a> must be generated using the latter approach.
   </li>
   <li>
 <tt>scaleacc</tt> does NOT perform time averaging - time averages are
@@ -294,6 +299,8 @@ Model E diagnostics categories configured for <tt>scaleacc</tt> include
   <li> <tt>oijl</tt>: Ocean R, longitude-latitude-depth
   </li>
   <li> <tt>olnst</tt>: Ocean R, straits
+  </li>
+  <li> <tt>toijl</tt>: Ocean R, longitude-latitude-depth tracer fields
   </li>
   <li> <tt>icij</tt>: Viscous-plastic ice dynamics, longitude-latitude fields
   </li>
