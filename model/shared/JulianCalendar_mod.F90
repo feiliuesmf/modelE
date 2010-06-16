@@ -91,7 +91,13 @@ module JulianCalendar_mod
 !@var AMONTH(0:12)  (3-4 letter) names for all months
 ! AMONTH(0) = 'IC' (i.e. initial conditions) only used early in a
 ! model run.  Should find a way to eliminate it.
+#ifdef COMPILER_PGI
+  ! hack to work around PGI internal error
+  character*4, parameter :: AMONTH(0:12) = (/ 'IC  ','JAN ','FEB ','MAR ', &
+   'APR ','MAY ','JUN ','JUL ','AUG ','SEP ','OCT ','NOV ','DEC '/)
+#else
   character*4, parameter :: AMONTH(0:12) = (/ 'IC  ', JULIAN_MONTHS%shortName /)
+#endif
 
 
 

@@ -1,8 +1,9 @@
 
-F90 = pgf90 -Mbyteswapio
+F90 = pgf90
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
-CPPFLAGS = -DCOMPILER_PGI
-FFLAGS = -O2
+CPPFLAGS += -DCOMPILER_PGI
+FFLAGS = -O2  -Mpreprocess -Mbyteswapio
+F90FLAGS = -O2  -Mpreprocess -Mbyteswapio
 LFLAGS = 
 ifeq ($(MP),YES)   # edit for PGI OpenMP compatability???
 FFLAGS += -Msmp

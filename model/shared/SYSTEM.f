@@ -1,4 +1,9 @@
 !@sum This file contains architecture specific code for SGI, IBM, Linux, DEC
+
+! hack for PGI : use the same settings as G95 (except for iargc)
+#ifdef COMPILER_PGI
+#define COMPILER_G95
+#endif
       MODULE RANDOM
 !@sum   RANDOM generates random numbers: 0<RANDom_nUmber<1
 !@auth  Reto Ruedy
@@ -244,7 +249,7 @@
 #endif
       implicit none
       character(*), intent(out) :: arg
-#if (! defined(COMPILER_NAG) ) && (! defined(COMPILER_G95) )
+#if ((! defined(COMPILER_NAG) ) && (! defined(COMPILER_G95) )) || (defined COMPILER_PGI)
       integer, external :: iargc
 #endif
       integer, intent(in) :: opt
