@@ -211,11 +211,11 @@ c  Create arrays
 
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          if (zz.gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
+          !!!if (zz.gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
-!         if (zz.gt. 4000.d0)tracer(i,j,k,2) = Pdeep(3)
+          !!!if (zz.gt. 4000.d0)tracer(i,j,k,2) = Pdeep(3)
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
@@ -230,7 +230,7 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          if (zz.gt. 4000.)tracer(i,j,k,4) = Pdeep(4)
+          !!!if (zz.gt. 4000.)tracer(i,j,k,4) = Pdeep(4)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo

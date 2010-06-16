@@ -204,8 +204,6 @@ c  Create arrays
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-! the following loop has parallelization problems....
-
       do 1000 j=1,jdm
       do 1000 i=1,idm
       do 1000 k=1,kdm
@@ -216,7 +214,7 @@ c  Create arrays
 
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
+          !!!if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
@@ -235,10 +233,10 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,4) = Pdeep(4)
+          !!!if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,4) = Pdeep(4)
 
-cdiag     write(*,'(a,3i5,e12.4,i5,2e12.4)')'obio_bioinit, iron:',
-cdiag.       i,j,k,Fer(i,j,k),ir(i,j),tracer(i,j,k,4),tracer(i,j,k,1)
+!         write(*,'(a,3i5,e12.4,i5,2e12.4)')'obio_bioinit, iron:',
+!    .       i,j,k,Fer(i,j,k),ir(i,j),tracer(i,j,k,4),tracer(i,j,k,1)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo
