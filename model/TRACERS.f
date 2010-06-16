@@ -815,8 +815,8 @@ C**** set particle properties
 
 #ifdef TRACERS_AMP
        if (n.le.ntmAMP) then
-        if(AMP_MODES_MAP(n).gt.0.and.DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
-     +  then
+        if(AMP_MODES_MAP(n).gt.0) then
+        if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) then
         if(AMP_NUMB_MAP(n).eq. 0) then    ! Mass
         tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
         else                              ! Number
@@ -826,6 +826,7 @@ C**** set particle properties
 
         call AMPtrdens(i,j,l,n)
         tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+        endif   
         endif   
        endif 
 #endif  

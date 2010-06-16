@@ -192,8 +192,12 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
       EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
      *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
       EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
+c     Biomass BC OC is Mixed
+c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
+c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
+c     Biomass BC OC is NOT mixed
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
 #endif
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
@@ -311,7 +315,7 @@ c -----------------------------------------------------------------
       IMPLICIT NONE
       Integer :: i,j,l,n
 
-         if(AMP_MODES_MAP(n).gt.0)
+         if(AMP_MODES_MAP(n).gt.0.and.sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))).gt.0. )
      &   AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)) = 
      &   sum(tr_mm(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
      & / sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n)))
