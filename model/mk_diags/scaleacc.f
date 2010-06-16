@@ -1,18 +1,22 @@
 !@sum scaleacc is a generic scaling routine for modelE acc-files.
 !@+   See conventions.txt for documentation.
 !@auth M. Kelley
-      subroutine scaleacc(fids,accname,ofile_base)
+      subroutine scaleacc(fids,accname,accfile)
       use regrid_to_latlon_mod, only : setup_remap,regrid_4d
       implicit none
       include 'netcdf.inc'
       integer :: fids(2)              ! input file IDs
       character(len=*) :: accname     ! name of acc-array to scale
-      character(len=80) :: ofile_base ! basename of output file
+      character(len=80) :: accfile    ! name of acc-file
 c
+      character(len=80) :: ofile_base ! basename of output file
       character(len=20) :: dcat,dcat_cdl
+      character(len=20) :: dcat_list(100)
+      integer :: ndcats,icat
       real*4, dimension(:), allocatable :: scale_acc
       integer, dimension(:), allocatable :: ia_acc,denom_acc
       character(len=30), dimension(:), allocatable :: sname_acc
+      character(len=30) :: vname
       real*4, dimension(:), allocatable :: xout,xden
       real*4, dimension(:,:,:,:,:), allocatable :: xcs
       real*4, dimension(:,:,:,:), allocatable :: xll
@@ -23,7 +27,7 @@ c
       integer, dimension(7) :: srt,cnt,accsizes,dimids,hemi_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
       integer :: fid,status,ofid,accid,varid,accid_hemis,
-     &     jdimid,accid_vmean
+     &     jdimid,accid_vmean,nvars
       real*4, parameter :: undef=-1.e30
       character(len=132) :: xlabel
       character(len=100) :: fromto
@@ -40,7 +44,44 @@ c
       status = nf_get_att_text(fid,nf_global,'xlabel',xlabel)
       status = nf_get_att_text(fid,nf_global,'fromto',fromto)
 
-      dcat = trim(accname)
+      if(trim(accname).eq.'all') then ! all diag. categories requested
+        status = nf_inq_nvars(fid,nvars)
+        ndcats = 0
+        do varid=1,nvars
+          vname=''
+          status = nf_inq_varname(fid,varid,vname)
+          if(index(vname,'_latlon').gt.0) cycle
+          if(vname(1:4).eq.'cdl_') then
+            ndcats = ndcats + 1
+            dcat_list(ndcats) = vname(5:len_trim(vname))
+          endif
+        enddo
+      else ! comma-separated list or single category
+        ndcats = 1
+        n = 1
+        do k=1,len_trim(accname)-1
+          if(accname(k:k).eq.',') then
+            if(k.eq.n) stop 'parse error'
+            dcat_list(ndcats) = accname(n:k-1)
+            n = k + 1
+            ndcats = ndcats + 1
+          endif
+          dcat_list(ndcats) = accname(n:len_trim(accname))
+        enddo
+      endif
+
+      if(remap_output .and. ndcats.gt.1) then
+        write(6,*) 'error: remapped output is currently available'
+        write(6,*) 'only for single-category requests (not via "all")'
+        stop
+      endif
+
+c
+c Loop over the requested diagnostics categories
+c
+      dcat_loop: do icat=1,ndcats
+
+      dcat = trim(dcat_list(icat))
 
       dcat_cdl = dcat
 
@@ -49,6 +90,8 @@ c
       call get_vdimsizes(fid,trim(dcat),ndims,accsizes)
       srt(:) = 1
       cnt(1:ndims) = accsizes(1:ndims)
+
+      write(6,*) 'processing ',trim(dcat)
 
 c
 c Find the size of the dimension along which to split the data
@@ -139,6 +182,9 @@ c
 c
 c Define the output file
 c
+      k = index(accfile,'.acc')
+      ofile_base = accfile(1:k)//trim(dcat)//
+     &     accfile(k+4:index(accfile,'.nc')-1)
       call parse_cdl(fid,dcat_cdl,ofile_base,xlabel,fromto,
      &     remap_output,remap_fid)
 
@@ -265,6 +311,21 @@ c
       enddo
 
       status = nf_close(ofid)
+
+c
+c Deallocate workspace arrays
+c
+      deallocate(ia_acc,denom_acc,scale_acc)
+      deallocate(sname_acc)
+      deallocate(xout,xden)
+
+      if(allocated(xout_hemis)) deallocate(xout_hemis)
+      if(allocated(xden_hemis)) deallocate(xden_hemis)
+
+      if(allocated(xout_vmean)) deallocate(xout_vmean)
+      if(allocated(xden_vmean)) deallocate(xden_vmean)
+
+      enddo dcat_loop ! end loop over diagnostics categories
 
       return
       end subroutine scaleacc
