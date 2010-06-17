@@ -33,7 +33,7 @@
      .                    ,rhs,alk1d
      .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
-     .                    ,wshc3d,Fescav3d 
+     .                    ,wshc3d,Fescav3d
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
@@ -318,6 +318,10 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
          rho_water = 1d0/VOLGSP(g,s,pres)
          dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
 
+         ! add missing part of density to get to the bottom of the layer
+         ! now pres is at the bottom of the layer
+         pres = pres + .5*MO(I,J,k)*GRAV
+
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
@@ -551,7 +555,6 @@ cdiag    endif
  104     format(i9,2i5,a,a/(25x,i3,7(1x,es9.2)))
 
        endif   !end of calculations for the beginning of day
-
 
        !------------------------------------------------------------
 #ifndef OBIO_RAD_coupling
@@ -841,8 +844,11 @@ cdiag     endif
        enddo
       endif
 
-      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
-     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16)
+      if (mod(nstep,24).eq.0) then   !twice a day
+      write(*,'(a,3i5,32(e12.4,1x))')'obio_model, ironrhs:',
+     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16),
+     .            (rhs_glob(i,j,12,ll),ll=1,16)
+      endif
 
        !------------------------------------------------------------
       !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
