@@ -2,11 +2,17 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
+
+pdE now also works for new-i/o runs, the various *ij*.nc files may
+    be displayed using AViewer, hence are left out of the PRT file.
+    In this case, "runID" need not be provided, the utility is model
+    indepedent and always runs in serial mode on the login node.
+
 runpbs was modified to not resubmit jobs that bombed - touch "I" to
        resubmit such a job anyway.
 
 The automatic restart procedure was changed to try to avoid submitting
-runs that got into trouble, or submitting the same job repeatedly.
+runs that got into trouble or submitting the same job repeatedly.
 
 The more efficient (by a factor of 1.5-2) nehalem nodes are available;
 you may access them using     "runpbs runID nh #cpus"  (new_highspeed)
@@ -25,8 +31,8 @@ follows:  ln -s runID.exe runID.exe_serial
 
 Runs compiled with intelMPI may now be bundled (run ... runID1+runID2+...)
 
-Currently there are  520 slow cpus and 2064 fast cpus on 4-cpu nodes
-                and 8256 cpus on 8-cpu nodes (4128 are super-efficient)
+Currently there are  520 slow cpus, 2064 fast cpus on 4-cpu nodes,
+   n*2064 cpus of 8-cpu nodes ((n-2)*2064 are super-efficient) with n=6 (and rising).
 
 Generalities:
 ============
@@ -195,6 +201,7 @@ qnodes      query how many and which types of nodes are free
 
 pdE         post-process acc-files (mix of uncompressed and *.gz files is ok)
               if runID.exe_serial is present, pdE will use it instead of runID.exe
+              also works for runs using new-i/o : pdE list_of_acc-files
 
 jE_to_lpl   extract an aplot-file for a selected field from *.jE* (budg.pg)
 qdf         display titles for ij-files, etc
