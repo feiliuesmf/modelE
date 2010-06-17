@@ -52,7 +52,7 @@ c
 c Loop over quantities.  An array xyz is printed if its
 c sole dimension name is nreg.
 c
-      write(6,'(a)') xlabel
+      write(6,'(a)') '1'//xlabel
       write(6,'(a16,a100)') '   (REGIONS)    ',fromto
       write(6,fmt=fmtreg) reshape((/namreg(1,1:23),namreg(2,1:23)/),
      &     (/23*2/) )

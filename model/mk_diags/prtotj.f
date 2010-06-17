@@ -40,8 +40,8 @@ c read otj metadata
 c
       call get_var_real(fid,'lato2',lats)
 
-      write(6,'(a)') xlabel
-      write(6,'(a)') fromto
+      write(6,'(a)') '1'//xlabel
+      write(6,'(a)') ' '//fromto
 
 c
 c print total transports by latitude
@@ -57,7 +57,7 @@ c
         title = 'Northward Transport of '//qtys(kq)//
      &       ' ('//trim(units)//')'
         write(6,*)
-        write(6,'(a)') title
+        write(6,'(a)') ' '//title
         write(6,'(a)') ' Lat   Atlantic   Pacific    Indian     Global'
         do j=1,jmo
           if(abs(lats(j)).gt.89.99) cycle
@@ -83,7 +83,7 @@ c
           title = 'Northward Transport of '//qtys(kq)//' in '//
      &         trim(basin(kb))//' Ocean '//' ('//trim(units)//')'
           write(6,*)
-          write(6,'(a)') title
+          write(6,'(a)') ' '//title
           write(6,'(a)')
      &         ' Lat      Total    Overturn   GM_flux   Hor_Gyre'
           do j=1,jmo

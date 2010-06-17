@@ -60,7 +60,7 @@ c
       inc=1+(jm-1)/24
 
       do nt=1,ntype
-        write(6,'(a)') xlabel
+        write(6,'(a)') '1'//xlabel
         write(6,'(a12,a16,a3,a100)')
      &       '0** BUDGETS ',terrain(nt),'** ',fromto
         write(6,fmtlat) nint(lat_dg(jm:inc:-inc))

@@ -62,8 +62,8 @@ c
       did_zoce = did_zoc
       status = nf_inq_dimid(fid,'zoce',did_zoce)
       status = nf_inq_dimid(fid,'nmst',did_nmst)
-      write(6,'(a)') xlabel
-      write(6,'(a)') fromto
+      write(6,'(a)') '1'//xlabel
+      write(6,'(a)') ' '//fromto
       do varid=1,nvars
         print_this = .true.
         dimids(1:2) = -1
@@ -78,7 +78,7 @@ c
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
         write(6,*)
-        write(6,'(a)') trim(lname)//' ('//trim(units)//')'
+        write(6,'(a)') ' '//trim(lname)//' ('//trim(units)//')'
         write(6,'(a)') dashes(1:line_length)
         write(6,'(a)') header(1:line_length)
         write(6,'(a)') dashes(1:line_length)

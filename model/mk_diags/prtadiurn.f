@@ -49,8 +49,8 @@ c
       status = nf_inq_dimid(fid,'ndiupt',dimids_fit(1))
       status = nf_inq_dimid(fid,'hour'  ,dimids_fit(2))
       do kr=1,ndiupt
-        write(6,'(a)') xlabel
-        write(6,'(a)') fromto
+        write(6,'(a)') '1'//xlabel
+        write(6,'(a)') ' '//fromto
         write(6,903) namdd(kr),ijdd(1,kr),ijdd(2,kr),(ih,ih=1,24)
         kq = 0
         do varid=1,nvars

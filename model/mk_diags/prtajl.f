@@ -154,8 +154,8 @@ c
         where(vmean.eq.missing) vmean=0.
         linect = linect + lm + 7
         if(linect.gt.60) then
-          write(6,'(a)') xlabel
-          write(6,'(a)') fromto
+          write(6,'(a)') '1'//xlabel
+          write(6,'(a)') ' '//fromto
           linect = lm+8
         endif
         write(6,901) title,(dash,j=1,jm,inc)
