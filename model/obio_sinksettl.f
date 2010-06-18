@@ -28,6 +28,18 @@
 ! --- phyto sinking and detrital settling
 !---------------------------------------------------------------
 
+      !find layer index for zc
+      kzc = 1
+      do k=kmax+1,1,-1
+           if (p1d(k).gt.zc) kzc = k
+      enddo
+      if (kzc.lt.1) kzc=1
+#ifdef OBIO_ON_GARYocean
+      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
+#else
+      if (kzc.gt.kmax) kzc=kmax
+#endif
+
 #ifdef OBIO_ON_GARYocean
 
 !the sinking term is given in units (m/hr)*(mgr,chl/m3)
@@ -63,14 +75,6 @@
       !diagnostic for total carbon export at compensation depth
       !total carbon = sinking phyto + settling C detritus
       !term1: sinking phytoplankton
-      !find layer index for zc
-      kzc = 1
-      do k=kmax+1,1,-1
-           if (p1d(k).gt.zc) kzc = k
-      enddo
-      if (kzc.lt.1) kzc=1
-      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
-
       !detritus settling
       do nt = 1,ndet
         do k=1,kmax

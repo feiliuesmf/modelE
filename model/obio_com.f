@@ -177,7 +177,7 @@ C endif
       integer :: day_of_month, hour_of_day
 
       real :: rhs
-      common /brhs/ rhs(kdm,15,16)      !secord arg-refers to tracer definition 
+      common /brhs/ rhs(kdm,ntrac,16)   !secord arg-refers to tracer definition 
                                         !we are not using n_inert (always ntrac-1)
                                         !second argument refers to process that
                                         !contributes to tendency 
