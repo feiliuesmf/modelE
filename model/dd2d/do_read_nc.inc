@@ -7,8 +7,12 @@
         rc = nf_inq_varid(fid,trim(varname),vid)
         if(rc.ne.nf_noerr) write(6,*) 'variable ',
      &       trim(varname),' not found in input file - skipping'
-        rc = nf_get_var_double(fid,vid,arr)
       endif
+#ifndef SERIAL_MODE
+      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
+      if(rc.ne.nf_noerr) return
+      if(grid%am_i_globalroot) rc = nf_get_var_double(fid,vid,arr)
 #ifndef SERIAL_MODE
       if(present(bcast_all)) then
         if(bcast_all) then

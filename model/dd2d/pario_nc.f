@@ -563,8 +563,9 @@ c define/overwrite the success flag for error checking
       if(present(bcast_all)) then
         if(bcast_all) bc_all=.true.
       endif
+      arr = impossible_int
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
-      if(grid%am_i_globalroot .or. bc_all) iarr = arr
+      if(arr.ne.impossible_int) iarr = arr
       end subroutine read_nc_0D_int
       subroutine read_nc_1D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -578,8 +579,9 @@ c define/overwrite the success flag for error checking
       if(present(bcast_all)) then
         if(bcast_all) bc_all=.true.
       endif
+      arr = impossible_int
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
-      if(grid%am_i_globalroot .or. bc_all) iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine read_nc_1D_int
       subroutine read_nc_2D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -593,8 +595,9 @@ c define/overwrite the success flag for error checking
       if(present(bcast_all)) then
         if(bcast_all) bc_all=.true.
       endif
+      arr = impossible_int
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
-      if(grid%am_i_globalroot .or. bc_all) iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine read_nc_2D_int
       subroutine read_nc_3D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -608,8 +611,9 @@ c define/overwrite the success flag for error checking
       if(present(bcast_all)) then
         if(bcast_all) bc_all=.true.
       endif
+      arr = impossible_int
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
-      if(grid%am_i_globalroot .or. bc_all) iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine read_nc_3D_int
       subroutine read_nc_2D_logical(grid,fid,varname,larr,bcast_all)
       integer :: fid
