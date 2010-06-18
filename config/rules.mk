@@ -217,6 +217,12 @@ endif
   INCS += -I$(NETCDFHOME)/include
 endif
 
+ifdef PNETCDFHOME
+  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
+  FFLAGS += -I$(PNETCDFHOME)/include
+  INCS += -I$(PNETCDFHOME)/include
+endif
+
 # access new interfaces in sub-directory.
 ifdef ESMF_Interface
 FFLAGS += -$(I)$(ESMF_Interface)
