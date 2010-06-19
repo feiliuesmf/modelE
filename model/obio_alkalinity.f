@@ -70,9 +70,7 @@
            if (p1d(k).gt.zc) kzc = k
       enddo
       if (kzc.lt.1) kzc=1
-#ifdef OBIO_ON_GARYocean
-      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
-#endif
+      if (kzc.gt.kmax) kzc=kmax
 
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
