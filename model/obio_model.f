@@ -33,11 +33,12 @@
      .                    ,rhs,alk1d
      .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
-     .                    ,wshc3d,Fescav3d
+     .                    ,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
      .                    ,obio_ws,wsdet
+     .                    ,cexpij
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -92,7 +93,8 @@
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,baclin,huge
       USE obio_com, only: ao_co2flux_loc,tracav_loc,
-     .     pCO2av,plevav_loc, ao_co2fluxav_loc
+     .     pCO2av,plevav_loc, ao_co2fluxav_loc,
+     .     cexpav,caexpav,pp2tot_dayav,cexp
       
 #endif
 
@@ -175,6 +177,9 @@
       ao_co2fluxav_loc  = 0.
       if (AM_I_ROOT()) then
       pCO2av=0.
+      pp2tot_dayav=0.
+      cexpav=0.
+      caexpav=0.
       endif
 
       call obio_bioinit(nn)
@@ -317,10 +322,6 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
          dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
-
-         ! add missing part of density to get to the bottom of the layer
-         ! now pres is at the bottom of the layer
-         pres = pres + .5*MO(I,J,k)*GRAV
 
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
@@ -555,6 +556,7 @@ cdiag    endif
  104     format(i9,2i5,a,a/(25x,i3,7(1x,es9.2)))
 
        endif   !end of calculations for the beginning of day
+
 
        !------------------------------------------------------------
 #ifndef OBIO_RAD_coupling
@@ -844,16 +846,13 @@ cdiag     endif
        enddo
       endif
 
-      if (mod(nstep,24).eq.0) then   !twice a day
-      write(*,'(a,3i5,32(e12.4,1x))')'obio_model, ironrhs:',
-     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16),
-     .            (rhs_glob(i,j,12,ll),ll=1,16)
-      endif
+!      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
+!     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16)
 
        !------------------------------------------------------------
       !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
-      if(vrbos) write(*,*)'obio_model, strac conc2:',
-     .    obio_P(1,:),det(1,:),car(1,:)
+!      if(vrbos) write(*,*)'obio_model, strac conc2:',
+!     .    obio_P(1,:),det(1,:),car(1,:)
 
        !update 3d tracer array
        do k=1,kmax
@@ -929,6 +928,9 @@ cdiag     endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
+
+       !update cexp array
+       cexpij(i,j) = cexp
 
 #ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
 #ifndef TRACERS_GASEXCH_ocean_CO2    

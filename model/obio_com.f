@@ -29,6 +29,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2          !partial pressure of CO2
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2_glob
+      real, ALLOCATABLE, DIMENSION(:,:)    :: cexpij        !detritus term (Pg,C/yr)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: cexp_glob
+      real, ALLOCATABLE, DIMENSION(:,:)    :: caexpij       !CaCO3 export term (Pg,C/yr)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: caexp_glob
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day_glob !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
@@ -37,9 +41,13 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav, tracav_loc
       real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav, plevav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av, pCO2av_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: cexpav, cexpav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: caexpav, caexpav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
-      real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
-      real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_glob
+      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
+      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2flux_glob
 #endif
 #ifdef OBIO_ON_GARYocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
@@ -83,7 +91,7 @@ c
 !$OMP THREADPRIVATE(/reducarr2/)
 
       real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d
-     .    ,saln1d,p1d,alk1d
+     .    ,saln1d,p1d,alk1d,cexp,caexp
       common /reducarr1/temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
@@ -177,7 +185,7 @@ C endif
       integer :: day_of_month, hour_of_day
 
       real :: rhs
-      common /brhs/ rhs(kdm,ntrac,16)   !secord arg-refers to tracer definition 
+      common /brhs/ rhs(kdm,ntrac,16)      !secord arg-refers to tracer definition 
                                         !we are not using n_inert (always ntrac-1)
                                         !second argument refers to process that
                                         !contributes to tendency 
@@ -241,6 +249,10 @@ c**** Extract domain decomposition info
       ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           
+      ALLOCATE(cexpij(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(cexp_glob(idm,jdm))           
+      ALLOCATE(caexpij(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(caexp_glob(idm,jdm))           
       ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(pp2tot_day_glob(idm,jdm))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
@@ -253,7 +265,13 @@ c**** Extract domain decomposition info
       ALLOCATE(plevav(idm,jdm,kdm))
       ALLOCATE(plevav_loc(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2av(idm,jdm))
+      ALLOCATE(pp2tot_dayav(idm,jdm))
+      ALLOCATE(cexpav(idm,jdm))
+      ALLOCATE(caexpav(idm,jdm))
       ALLOCATE(pCO2av_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(pp2tot_dayav_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(cexpav_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(caexpav_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2fluxav(idm,jdm))
       ALLOCATE(ao_co2fluxav_loc(i_0h:i_1h,j_0h:j_1h))
 #endif
@@ -271,10 +289,12 @@ c**** Extract domain decomposition info
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
  
       call pack_data( ogrid, pCO2, pCO2_glob )
+      call pack_data( ogrid, pp2tot_day, pp2tot_day_glob )
+      call pack_data( ogrid, cexpij, cexp_glob )
+      call pack_data( ogrid, caexpij, caexp_glob )
 
       end subroutine gather_pCO2
 
-!------------------------------------------------------------------------------
       subroutine gather_chl
 
 #ifdef OBIO_ON_GARYocean

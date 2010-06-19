@@ -127,6 +127,8 @@ c
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
      .    ,tracav,tracav_loc,pCO2av,ao_co2flux_loc,ao_co2flux_glob
      .    ,ao_co2fluxav,ao_co2fluxav_loc,diag_counter,plevav,plevav_loc
+     .    ,pp2tot_dayav,cexpav,caexpav,cexp_glob,caexp_glob
+     .    ,pp2tot_day_glob
 #endif 
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
@@ -935,7 +937,9 @@ ccc      call comparall(m,n,mm,nn,string)
 #ifdef TRACERS_OceanBiology
       !pco2
          pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)
-
+         pp2tot_dayav(i,j)=pp2tot_dayav(i,j)+pp2tot_day_glob(i,j)
+         cexpav(i,j)=cexpav(i,j)+cexp_glob(i,j)
+         caexpav(i,j)=caexpav(i,j)+caexp_glob(i,j)
 #endif
 
       enddo

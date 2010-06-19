@@ -6,11 +6,11 @@
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
-     .                   ,rhs,zc
+     .                   ,rhs,zc,cexp
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE ODIAG, only: ij_cexp,oij=>oij_loc
-      USE OCEAN, only: lmm,dxypo
+      USE OCEAN, only: dxypo
 #else
       USE hycom_dim, only: kdm
       USE hycom_scalars, only: nstep,baclin
@@ -20,7 +20,7 @@
       implicit none
 
       integer :: i,j,k,nt,kmax,kzc
-      real    :: trnd, cexp
+      real    :: trnd
       logical :: vrbos,errcon
 
 
@@ -28,17 +28,13 @@
 ! --- phyto sinking and detrital settling
 !---------------------------------------------------------------
 
-      !find layer index for zc
+      !find layer index for zc, max depth of sinking phytoplankton
       kzc = 1
       do k=kmax+1,1,-1
            if (p1d(k).gt.zc) kzc = k
       enddo
       if (kzc.lt.1) kzc=1
-#ifdef OBIO_ON_GARYocean
-      if (kzc.gt.lmm(i,j)) kzc=lmm(i,j)
-#else
       if (kzc.gt.kmax) kzc=kmax
-#endif
 
 #ifdef OBIO_ON_GARYocean
 
@@ -75,6 +71,7 @@
       !diagnostic for total carbon export at compensation depth
       !total carbon = sinking phyto + settling C detritus
       !term1: sinking phytoplankton
+
       !detritus settling
       do nt = 1,ndet
         do k=1,kmax
@@ -228,10 +225,10 @@ cdiag      endif
 
        end do  !ndet
 
-#else
+#else ! noBIO
        errcon = .false.
-#endif
-#endif
+#endif !noBIO
+#endif ! OBIO_ON_GARYocean
 
       !diagnostic for carbon export at compensation depth
       cexp = 0.
@@ -245,11 +242,9 @@ cdiag      endif
 #ifdef OBIO_ON_GARYocean
      .        * dxypo(j)                                   ! -> Pg,C/yr
 #else
-     .        * scp2(i,j)                                   ! -> Pg,C/yr
+     .        * scp2(i,j)                                  ! -> Pg,C/yr
 #endif
         enddo
-cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp1:',
-cdiag.   nstep,i,j,k,obio_P(k,nt),obio_ws(k,nt-nnut),dp1d(k)
 
       !term2: settling C detritus contribution
       !dont set cexp = 0 here, because adds to before
@@ -262,11 +257,11 @@ cdiag.   nstep,i,j,k,obio_P(k,nt),obio_ws(k,nt-nnut),dp1d(k)
 #ifdef OBIO_ON_GARYocean
      .        * dxypo(j)                           ! -> Pg,C/yr
 #else
-     .        * scp2(i,j)                                   ! -> Pg,C/yr
+     .        * scp2(i,j)                          ! -> Pg,C/yr
 #endif
-cdiag write(*,'(a,4i5,4e12.4)')'sinksettl, cexp2:',
-cdiag.   nstep,i,j,k,det(k,nt),wsdet(k,nt),dp1d(k),cexp
       enddo
+
+      !!write(*,'(a,3i5,e16.8)') 'obio_sinksettl, cexp:',nstep,i,j,cexp
 
 #ifdef OBIO_ON_GARYocean
       OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp

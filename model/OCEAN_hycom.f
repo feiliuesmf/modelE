@@ -26,6 +26,7 @@
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
      .                     ,itest_bio=>itest,jtest_bio=>jtest
+     .                     ,cexpav,caexpav,pp2tot_dayav
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
@@ -252,6 +253,7 @@ c
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av,pp2tot_day
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
      .                     ,itest_bio=>itest,jtest_bio=>jtest
+     .                     ,cexpav,caexpav,pp2tot_dayav
       USE obio_com,  only : tracav_loc, plevav_loc
 #endif
       USE HYCOM_ARRAYS_GLOB
@@ -382,6 +384,7 @@ css#endif
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
+     . ,cexpav,caexpav,pp2tot_dayav
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
      . ,pp2tot_day_glob
       i=itest_bio
@@ -409,6 +412,7 @@ css#endif
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,cexpav,caexpav,pp2tot_dayav
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
      . ,pp2tot_day_glob
       i=itest_bio
@@ -474,6 +478,7 @@ c
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
+     . ,cexpav,caexpav,pp2tot_dayav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
@@ -518,6 +523,7 @@ c
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,cexpav,caexpav,pp2tot_dayav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
       i=itest_bio
@@ -605,6 +611,7 @@ c
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
+     . ,cexpav,caexpav,pp2tot_dayav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')
@@ -649,6 +656,7 @@ c
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,cexpav,caexpav,pp2tot_dayav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
       i=itest_bio
