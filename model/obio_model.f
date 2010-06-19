@@ -38,14 +38,14 @@
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
      .                    ,obio_ws,wsdet
-     .                    ,cexpij
+     .                    ,cexp
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
 #ifdef TRACERS_Alkalinity
-     .                    ,zc
+     .                    ,zc,caexp
 #endif
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
@@ -53,10 +53,14 @@
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
+     .                 ,ij_cexp
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
 #endif
+#endif
+#ifdef TRACERS_Alkalinity
+      USE ODIAG, only: ij_fca
 #endif
       USE ODIAG, only : oij=>oij_loc
 #endif
@@ -94,8 +98,7 @@
      .                        ,time,lp,baclin,huge
       USE obio_com, only: ao_co2flux_loc,tracav_loc,
      .     pCO2av,plevav_loc, ao_co2fluxav_loc,
-     .     cexpav,caexpav,pp2tot_dayav,cexp
-      
+     .     cexpav,caexpav,pp2tot_dayav,cexpij
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -933,10 +936,10 @@ cdiag     endif
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 
+#ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
        !update cexp array
        cexpij(i,j) = cexp
 
-#ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
 #ifndef TRACERS_GASEXCH_ocean_CO2    
        !get ao_co2flux_glob array to save in archive
        ao_co2flux_loc(i,j)=ao_co2flux
@@ -960,6 +963,7 @@ cdiag     endif
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
        OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
+       OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp           ! carbon export
 
 #ifndef TRACERS_GASEXCH_ocean_CO2    
 ! NOT FOR GASEXCH EXPERIMENTS
@@ -971,6 +975,7 @@ cdiag     endif
 
 #ifdef TRACERS_Alkalinity
        OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
+       OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp               ! carbonate export
 #else
        OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
 #endif

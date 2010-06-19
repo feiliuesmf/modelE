@@ -9,7 +9,6 @@
      .                   ,rhs,zc,cexp
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
-      USE ODIAG, only: ij_cexp,oij=>oij_loc
       USE OCEAN, only: dxypo
 #else
       USE hycom_dim, only: kdm
@@ -262,9 +261,5 @@ cdiag      endif
       enddo
 
       !!write(*,'(a,3i5,e16.8)') 'obio_sinksettl, cexp:',nstep,i,j,cexp
-
-#ifdef OBIO_ON_GARYocean
-      OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp
-#endif
 
       end subroutine obio_sinksettl

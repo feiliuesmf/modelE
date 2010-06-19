@@ -46,11 +46,10 @@
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
      .      npratio,uMtomgm3,cnratio,bn
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,zc,alk1d,pnoice
+     .      rhs,zc,alk1d,pnoice,caexp
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
-      USE ODIAG, only: ij_fca,oij=>oij_loc
       USE OCEAN, only: dxypo,lmm
 #else
       USE hycom_scalars, only: nstep
@@ -61,7 +60,7 @@
 
       integer nt,k,kmax,nchl1,nchl2,i,j,kzc
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
-     .       J_Ca(kmax),term,term1,term2,DOP,caexp
+     .       J_Ca(kmax),term,term1,term2,DOP
       logical vrbos
 !--------------------------------------------------------------------------
 !find layer index for zc
@@ -165,10 +164,6 @@
      .                * scp2(i,j)   ! -> Pg,C/yr
 #endif
       enddo
-
-#ifdef OBIO_ON_GARYocean
-      OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp
-#endif
 
 !compute sources/sinks of CaCO3
       do k=1,kmax

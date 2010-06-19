@@ -249,10 +249,6 @@ c**** Extract domain decomposition info
       ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           
-      ALLOCATE(cexpij(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(cexp_glob(idm,jdm))           
-      ALLOCATE(caexpij(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(caexp_glob(idm,jdm))           
       ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(pp2tot_day_glob(idm,jdm))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
@@ -266,6 +262,10 @@ c**** Extract domain decomposition info
       ALLOCATE(plevav_loc(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2av(idm,jdm))
       ALLOCATE(pp2tot_dayav(idm,jdm))
+      ALLOCATE(cexpij(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(cexp_glob(idm,jdm))           
+      ALLOCATE(caexpij(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(caexp_glob(idm,jdm))           
       ALLOCATE(cexpav(idm,jdm))
       ALLOCATE(caexpav(idm,jdm))
       ALLOCATE(pCO2av_loc(i_0h:i_1h,j_0h:j_1h))
@@ -289,9 +289,11 @@ c**** Extract domain decomposition info
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
  
       call pack_data( ogrid, pCO2, pCO2_glob )
+#ifndef OBIO_ON_GARYocean
       call pack_data( ogrid, pp2tot_day, pp2tot_day_glob )
       call pack_data( ogrid, cexpij, cexp_glob )
       call pack_data( ogrid, caexpij, caexp_glob )
+#endif
 
       end subroutine gather_pCO2
 
