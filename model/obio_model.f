@@ -327,6 +327,10 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
 
+         !add missing part of density to get to the bottom of the layer
+         !now pres is at the bottom of the layer
+         pres=pres+MO(I,J,k)*GRAV*.5
+
          do nt=1,ntrac
          
                 trmo_unit_factor(k,nt) =  1d-3*1d-3*obio_tr_mm(nt)        ! milimoles/m3=> kg/m3
