@@ -144,6 +144,9 @@
          if (p1d(k) .gt. p1d(kzc))  then
            F_Ca(k) = rain_ratio*cpratio*Fc
      .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)    !mgC/m2/hr
+         else
+           F_Ca(k) = 0. ! is this right???
+c           F_Ca(k) = rain_ratio*cpratio*Fc ! or this???
          endif
       enddo
 
