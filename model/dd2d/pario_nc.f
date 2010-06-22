@@ -241,7 +241,10 @@ c define/overwrite the success flag for error checking
           rc = nf_put_var_int(fid,vid,success)
         endif
         rc = nf_close(fid)
+        if(rc.ne.nf_noerr)
+     &       write(6,*) 'error closing file'
       endif
+      call stoprc(rc,nf_noerr)
       return
       end subroutine par_close
 
