@@ -469,7 +469,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 C**** save some ocean diags regardless of PTYPE
 C**** SSH does not work for qflux/fixed SST configurations
          if(ns.eq.1) aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + 
-     *        pocean*focean(i,j)
+     *        pocean
          IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
            AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)*FOCEAN(I,J)
            AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)*FOCEAN(I,J)
