@@ -347,7 +347,6 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         ! [gro]= mg,chl/m3/hr, [dp]= m, 
         ! [cchlratio]= mgl/mgl,[phygross]=no units 
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-!    .               * p1d(k+1) * cchlratio
      .               * dp1d(k) * cchlratio
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
@@ -409,7 +408,6 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-!    .               * p1d(k+1) * cchlratio
      .               * dp1d(k) * cchlratio
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
@@ -475,7 +473,6 @@ cdiag.   obio_P(k,2)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-!    .               * p1d(k+1) * cchlratio
      .               * dp1d(k) * cchlratio
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
@@ -518,8 +515,7 @@ cdiag.   obio_P(k,2)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-!    .               * p1d(k+1) * cchlratio * pnoice
-     .               * dp1d(k) * cchlratio * pnoice
+     .               * dp1d(k) * cchlratio 
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
 !    .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
@@ -560,8 +556,7 @@ cdiag.   obio_P(k,2)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-!    .               * p1d(k+1) * cchlratio * pnoice
-     .               * dp1d(k) * cchlratio * pnoice
+     .               * dp1d(k) * cchlratio 
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
 !    .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
