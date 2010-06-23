@@ -969,6 +969,7 @@ c    *     ,SNFST0,TNFST0
 #endif
       use IndirectAerParam_mod, only: dCDNC_est
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
+      USE PARAM, only : get_param
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -1075,6 +1076,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       character(len=300) :: out_line
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
+      integer :: initial_GHG_setup
 
 #ifdef USE_ENT
       real*8 :: PVT0(N_COVERTYPES)
@@ -1896,9 +1898,10 @@ C**** Ozone:
 #ifdef TRACERS_SPECIAL_Shindell
 ! final (main) RCOMPX call can use tracer methane (or not):
       use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
-#ifdef INITIAL_GHG_SETUP
-      use_tracer_chem(2)=0 ! special case; model outputs climatology
-#endif /* INITIAL_GHG_SETUP */
+      call get_param('initial_GHG_setup', initial_GHG_setup)
+      if (initial_GHG_setup == 1) then
+        use_tracer_chem(2)=0    ! special case; model outputs climatology
+      end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
 

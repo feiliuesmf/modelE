@@ -7938,6 +7938,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      integer :: initial_GHG_setup
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -8018,28 +8019,29 @@ C**** ESMF: Each processor reads the global array: N2Oic
             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
           end do   ; end do   ; end do
          else
-#ifdef INITIAL_GHG_SETUP
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N2O
-          case default; ICfactor=1.d0
-          end select
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
-          end do   ; end do   ; end do
-#else
-          if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-          else; write(ghg_name,'(I4)') jyear; endif
-          ghg_file='GHG_IC_'//ghg_name
-          call openunit(ghg_file,iu_data,.true.,.true.)
+           call get_param('initial_GHG_setup', initial_GHG_setup)
+           if (initial_GHG_setup == 1) then
+             select case(PI_run)
+             case(1)     ; ICfactor=PIratio_N2O
+             case default; ICfactor=1.d0
+             end select
+             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+               trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+             end do   ; end do   ; end do
+           else
+             if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+             else; write(ghg_name,'(I4)') jyear; endif
+             ghg_file='GHG_IC_'//ghg_name
+             call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,3
             CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
             rad_to_file(m,:,I_0:I_1,J_0:J_1)=ghg_in(:,I_0:I_1,J_0:J_1)
           enddo
-          call closeunit(iu_data)
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(I,J,L,n) = rad_to_file(3,l,i,j)
-          end do   ; end do   ; end do
-#endif
+             call closeunit(iu_data)
+             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+               trm(I,J,L,n) = rad_to_file(3,l,i,j)
+             end do   ; end do   ; end do
+           end if
          endif
 #endif
 
@@ -8110,7 +8112,8 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           sum_ncep(:,:,:)=0.d0
 #endif
          else
-#ifdef INITIAL_GHG_SETUP
+           call get_param('initial_GHG_setup', initial_GHG_setup)
+           if (initial_GHG_setup == 1) then
           select case (fix_CH4_chemistry)
           case default
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
@@ -8120,7 +8123,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
               trm(I,J,L,n) = CH4ICX(I,J,L)
             end do   ; end do   ; end do
           end select
-#else
+        else
           if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
           else; write(ghg_name,'(I4)') jyear; endif
           ghg_file='GHG_IC_'//ghg_name
@@ -8133,7 +8136,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = rad_to_file(4,l,i,j)
           end do   ; end do   ; end do
-#endif
+        end if
          endif
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
            chem_tracer_save(2,L,I,J)=trm(I,J,L,n)
@@ -8558,7 +8561,8 @@ c**** earth
             trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
           end do   ; end do   ; end do
          else
-#ifdef INITIAL_GHG_SETUP
+           call get_param('initial_GHG_setup', initial_GHG_setup)
+           if (initial_GHG_setup == 1) then
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_CFC
           case default; ICfactor=1.d0
@@ -8566,7 +8570,7 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
           end do   ; end do   ; end do
-#else
+        else
           if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
           else; write(ghg_name,'(I4)') jyear; endif
           ghg_file='GHG_IC_'//ghg_name
@@ -8579,7 +8583,7 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = rad_to_file(5,l,i,j)
           end do   ; end do   ; end do
-#endif
+        end if
          endif
 #endif /* SHINDELL_STRAT_CHEM */
 

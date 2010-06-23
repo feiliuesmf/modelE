@@ -11,6 +11,7 @@ c
 C**** GLOBAL parameters and variables:
 c
 !!    use precision_mod, only : reduce_precision 
+      USE PARAM, only : get_param
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
@@ -203,6 +204,7 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
      &     surfIsop,zonalIsop
       
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
+      integer :: initial_GHG_setup
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
       real*8 :: qsat ! this is a function in UTILDBL.f
 #ifdef TRACERS_AEROSOLS_SOA
@@ -226,7 +228,8 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
       if(ih1030 < 0) ih1030 = IM+ih1030  
       if(ih1330 < 0) ih1330 = IM+ih1330  
 
-#ifdef INITIAL_GHG_SETUP
+      call get_param('initial_GHG_setup', initial_GHG_setup)
+      if (initial_GHG_setup == 1) then
 C-------- special section for ghg runs ---------
       write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
       call write_parallel(trim(out_line))
@@ -264,7 +267,7 @@ C-------- special section for ghg runs ---------
         endif
         call stop_model('Normal INITIAL_GHG_SETUP stop.',13)
       endif 
-#endif
+      end if
 
 C Some INITIALIZATIONS :
       byavog  = 1.d0/avog
