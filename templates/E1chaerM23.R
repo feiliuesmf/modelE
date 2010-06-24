@@ -80,7 +80,7 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 TRACERS_AEROSOLS_Koch_e4
 TRACER_NITRATE                      ! Nitrate aerosol
 TRAMP_eqsam_v03d                    ! EQSAM module for inorganic aerosol thermodynamic equilibrium
-TRDUST_COM TRDUST TRACERS_DUST      ! DUST
+TRDUST_COM TRDUST TRDUST_DRV        ! DUST
 TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! COSMO_SOURCES
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions

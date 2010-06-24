@@ -71,7 +71,7 @@ QUS3D                               ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDRYDEP                            ! dry deposition of tracers
-TRDUST_COM TRDUST                   ! dust tracer specific code
+TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"

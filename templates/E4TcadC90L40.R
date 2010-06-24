@@ -55,7 +55,7 @@ RES_CS90L40                         ! C90 horiz. resolution, top at 0.1mb, 40 la
      ! Codes used by the cubed-atmosphere configuration (FV dynamics)
 #include "cubed_sphere_source_files"
 
-TRDUST_COM TRDUST                   ! dust tracer specific code
+TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
 #include "tracer_shindell_source_files"

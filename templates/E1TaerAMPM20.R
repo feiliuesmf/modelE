@@ -41,7 +41,7 @@ CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
 ! ---TRACER SPECIFIC CODES----------
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
 !TRACER_NITRATE                     ! Nitrate aerosol chemistry
-TRDUST_COM TRDUST TRACERS_DUST      ! DUST
+TRDUST_COM TRDUST TRDUST_DRV        ! DUST
 ! --------------------------------- AMP Aerosols
 TRAMP_drv        |-extend_source  |  
 TRAMP_actv       |-extend_source  |  

@@ -41,7 +41,7 @@ QUS_DRV                             ! advection of T
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 QUS3D                               ! advection of Q and tracers
 
-TRDUST_COM TRDUST                   ! dust tracer specific code
+TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 
 #include "modelE4_source_files"

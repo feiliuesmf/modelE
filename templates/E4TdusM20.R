@@ -37,7 +37,7 @@ QUS3D                               ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code 
 TRACERS                             ! generic tracer code 
 TRDRYDEP                            ! dry deposition of tracers 
-TRDUST_COM TRDUST                   ! dust tracer specific code
+TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
