@@ -7836,6 +7836,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust,ONLY : hbaij,ricntd
+      use trdust_drv, only: init_dust
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL

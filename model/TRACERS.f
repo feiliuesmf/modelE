@@ -1117,6 +1117,7 @@ C**** check whether air mass is conserved
     (defined TRACERS_QUARZHEM)
       USE fluxes,ONLY : nstype,pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
+      use trdust_drv, only: io_trDust
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -1551,6 +1552,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         END SELECT
       END SELECT
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      call io_trDust(kunit,iaction)
+#endif
+
       call freemem
       RETURN
 
@@ -1611,6 +1617,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
     (defined TRACERS_QUARZHEM)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
+      use trdust_drv, only: def_rsf_trdust
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -1710,6 +1717,7 @@ c not yet      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
       call defvar(grid,fid,ricntd,'ricntd(dist_im,dist_jm)')
       call defvar(grid,fid,pprec,'pprec(dist_im,dist_jm)')
       call defvar(grid,fid,pevap,'pevap(dist_im,dist_jm,nstype)')
+      call def_rsf_trdust(fid)
 #endif
 
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1742,6 +1750,7 @@ c not yet      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
     (defined TRACERS_QUARZHEM)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
+      use trdust_drv, only: new_io_trdust
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -1908,6 +1917,12 @@ c not yet        call read_dist_data(grid,fid,'daily_z',daily_z)
 #endif
 
       end select
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      call new_io_trdust(fid,iaction)
+#endif
+
       return
       end subroutine new_io_tracer
 #endif /* TRACERS_ON */

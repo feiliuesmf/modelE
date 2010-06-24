@@ -1223,8 +1223,11 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : sOx_acc,l1Ox_acc,l1NO_acc
 #endif
+#ifdef TRACERS_ON
+      use trdiag_com, only: trcsurf,trcSurfByVol
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
@@ -1233,6 +1236,12 @@ C****
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : trp_acc, tre_acc
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      use tracers_dust, only: dustDiagSubdd_acc
+      use trdust_drv, only: accSubddDust
+#endif
+
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -1402,8 +1411,24 @@ C****
       return
       end subroutine reset_subdd
 
+c accSubdd
+      subroutine accSubdd
+!@sum  accSubdd accumulates variables for subdaily diagnostics
+!@auth Jan Perlwitz
+
+      implicit none
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      call accSubddDust(dustDiagSubdd_acc) ! in TRDUST_DRV.f
+#endif
+
+      return
+      end subroutine accSubdd
+
+c get_subdd
       subroutine get_subdd
-!@sum get_SUBDD saves instantaneous variables at sub-daily frequency
+!@sum get_SUBDD saves variables at sub-daily frequency
 !@+   every ABS(NSUBDD)
 !@+   Note that TMIN,TMAX,{ ,c,t,ct}AOD, are only output once/day.
 !@+   If there is a choice between outputting pressure levels or
@@ -1431,11 +1456,17 @@ C****
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
-!@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
-!@+                    DUEMIS2
-!@+                    DuTrSConc dust aerosol surface concentration [kg/m^3]
+!@+                    DuEMIS soil dust aerosol emission flux [kg/m^2/s]
+!@+                    DuEMIS2 soil dust aerosol emission flux [kg/m^2/s]
+!@+                            from cubed wind speed (only diagnostic)
+!@+                    DuDEPTURB turbulent depo of soil dust aer [kg/m^2/s]
+!@+                    DuDEPGRAV grav settling of soil dust aerosols [kg/m^2/s]
+!@+                    DuDEPWET wet deposition of soil dust aerosols [kg/m^2/s]
+!@+                    DuLOAD soil dust aer load of atmospheric column [kg/m^2]
+!@+                    DuSMIXR surface mix ratio of soil dust aerosols [kg/kg]
+!@+                    DuSCONC surface conc of soil dust aerosols [kg/m^3]
 !@+                    DuAOD dust aer opt depth daily avg [1]
-!@+                    cDuAOD clear sky dust aer opt depth daily avg [1]
+!@+                    DuCSAOD clear sky dust aer opt depth daily avg [1]
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
 !@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
@@ -1457,21 +1488,6 @@ C****
       USE DYNAMICS, only : ptropo,am,wsave,pk,phi,pmid
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,dust_flux_glob
-#ifdef TRACERS_DRYDEP
-     &     ,depo_turb_glob,depo_grav_glob
-#endif
-#ifdef TRACERS_WATER
-     &     ,trprec
-#else
-     &     ,trprec_dust
-#endif
-#endif
-#ifdef TRACERS_DUST
-     &     ,dust_flux2_glob
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,l1Ox_acc,l1NO_acc
 #endif
@@ -1493,12 +1509,6 @@ C****
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
-#ifdef TRACERS_ON
-      use trdiag_com, only: trcsurf,trcSurfByVol
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-     &    ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-#endif
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -2307,31 +2317,80 @@ C**** cases where multiple records go to one file for dust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-          case ('DUEMIS','DUEMIS2','DUTRS','DuTrSConc','DULOAD')
+          case ('DuEMIS','DuEMIS2','DuSMIXR','DuSCONC','DuLOAD')
           kunit=kunit+1
           do n=1,Ntm_dust
             n1=n_fidx+n-1
 C**** first set: no 'if' tests
             select case (namedd(k))
 
-            CASE ('DUEMIS')     ! Dust emission flux [kg/m^2/s]
-              data=dust_flux_glob(:,:,n)
+            CASE ('DuEMIS')     ! Dust emission flux [kg/m^2/s]
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustEmission(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustEmission(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
 #ifdef TRACERS_DUST
-            CASE ('DUEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
-              data=dust_flux2_glob(:,:,n)
+            CASE ('DuEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustEmission2(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustEmission2(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
 #endif
-            CASE ('DUTRS')      ! Mixing ratio of dust tracers at surface [kg/kg]
-              data=trcsurf(:,:,n1)
-            CASE ('DuTrSConc')  ! Concentration of dust tracers at surface [kg/m^3]
-              data=trcSurfByVol(:,:,n1)
-            CASE ('DULOAD')     ! Dust load [kg/m^2]
+            CASE ('DuSMIXR')      ! Mixing ratio of dust tracers at surface [kg/kg]
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustSurfMixR(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustSurfMixR(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
+            CASE ('DuSCONC')  ! Concentration of dust tracers at surface [kg/m^3]
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustSurfConc(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustSurfConc(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
+            CASE ('DuLOAD')     ! Dust load [kg/m^2]
+!$OMP PARALLEL DO PRIVATE(i,j,l)
+              do l=1,LmaxSUBDD
+                do j=j_0,j_1
+                  do i=i_0,i_1
+                    dustDiagSubdd_acc%dustMass(i,j,l,n)
+     &                   =dustDiagSubdd_acc%dustMass(i,j,l,n)
+     &                   /real(Nsubdd,kind=8)
+                  end do
+                end do
+              end do
+!$OMP END PARALLEL DO
               data=0.D0
-              DO j=J_0,J_1
-                DO l=1,LmaxSUBDD
-                  data(:,j)=data(:,j)+trm(:,j,l,n1)
-                END DO
-                data(:,j)=data(:,j)*byaxyp(:,j)
-              END DO
+!$OMP PARALLEL DO PRIVATE(i,j,l)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  do l=1,LmaxSUBDD
+                    data(i,j)=data(i,j)+dustDiagSubdd_acc%dustMass(i,j,l
+     &                   ,n)
+                  end do
+                  data(i,j)=data(i,j)*byaxyp(i,j)
+                  dustDiagSubdd_acc%dustMass(i,j,:,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
 
             end select
             polefix=.true.
@@ -2342,7 +2401,7 @@ C**** first set: no 'if' tests
 
 C**** other dust special cases
 
-          case ("DuAOD","cDuAOD") !tot dust aero opt dep, daily avg
+          case ("DuAOD","DuCSAOD") !tot dust aero opt dep, daily avg
             kunit=kunit+1
             if(mod(itime+1,Nday).ne.0) cycle ! don't cycle only at end of day
             if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
@@ -2352,7 +2411,7 @@ C**** other dust special cases
               select case(namedd(k))
               case('DuAOD')
                 data=ttausv_sum(:,:,n1)
-              case('cDuAOD')
+              case('DuCSAOD')
                 data=ttausv_sum_cs(:,:,n1)
               end select
               data=data/ttausv_count
@@ -2362,51 +2421,67 @@ C**** other dust special cases
             cycle
 
 #ifdef TRACERS_DRYDEP
-          CASE ('DUDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]
+          case ('DuDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
             n1=n_fidx+n-1
-            IF (dodrydep(n1)) THEN
-              data=depo_turb_glob(:,:,1,n1)+depo_turb_glob(:,:,2,n1)
-     *             +depo_turb_glob(:,:,3,n1)+depo_turb_glob(:,:,4,n1)
+            if (dodrydep(n1)) then
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustDepoTurb(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustDepoTurb(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
               polefix=.true.
               call write_data(data,kunit,polefix)
-            END IF
+            end if
           end do
           cycle
 
-          CASE ('DUDEPGRAV')      ! Gravit. settling flux of dust tracers [kg/m^2/s]
+          case ('DuDEPGRAV')      ! Gravit. settling flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
             n1=n_fidx+n-1
             IF (dodrydep(n1)) THEN
-              data=depo_grav_glob(:,:,1,n1)+depo_grav_glob(:,:,2,n1)
-     *             +depo_grav_glob(:,:,3,n1)+depo_grav_glob(:,:,4,n1)
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustDepoGrav(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustDepoGrav(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
               polefix=.true.
               call write_data(data,kunit,polefix)
-            END IF
+            end if
           end do
           cycle
 #endif
-          CASE ('DUDEPWET')         ! Wet deposition flux of dust tracers [kg/m^2/s]
+          case ('DuDEPWET')         ! Wet deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
             n1=n_fidx+n-1
 #ifdef TRACERS_WATER
-            IF (dowetdep(n1)) THEN
-              DO j=J_0,J_1
-                data(:,j)=trprec(n1,:,j)*byaxyp(:,j)/Dtsrc
-              END DO
-#else
-              DO j=J_0,J_1
-                data(:,j)=trprec_dust(n,:,j)*byaxyp(:,j)/Dtsrc
-              END DO
+            if (dowetdep(n1)) then
 #endif
-              polefix=.true.
-              call write_data(data,kunit,polefix)
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  data(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
+     &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
 #ifdef TRACERS_WATER
-            END IF
+            end if
 #endif
+            polefix=.true.
+            call write_data(data,kunit,polefix)
           end do
           cycle
 #endif
@@ -2424,6 +2499,8 @@ c****
 !@sum write out subdd data array with optional pole fix
       use domain_decomp_1d, only : grid,get,writei_parallel,
      &     hasSouthPole, hasNorthPole
+
+      implicit none
 
 ! need to add writei_parallel to domain_decomp_atm
       real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,

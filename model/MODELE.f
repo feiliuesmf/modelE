@@ -25,6 +25,7 @@
      &     ,oa,monacc,koa,acc_period
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
+     &     ,accSubdd
       USE DIAG_SERIAL, only : print_diags
 #ifdef BLK_2MOM
       USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
@@ -632,6 +633,7 @@ C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****
       if (Nsubdd.ne.0) then
+        call accSubdd
         if (mod(Itime+1,Nsubdd).eq.0) call get_subdd
       end if
 #ifdef TRACERS_DUST
