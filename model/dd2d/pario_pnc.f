@@ -238,19 +238,19 @@ c define/overwrite the success flag for error checking
       return
       end subroutine par_enddef
 
-      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,record)
       real*8 :: arr(:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_2D
-      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim,record)
       real*8 :: arr(:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_3D
-      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim,record)
       real*8 :: arr(:,:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_4D
-      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim,record)
       real*8 :: arr(:,:,:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_5D
@@ -313,41 +313,56 @@ c define/overwrite the success flag for error checking
       where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_4D_int
 
-      subroutine par_write_nc_2D_int(grid,fid,varname,iarr)
+      subroutine par_write_nc_2D_int(grid,fid,varname,iarr,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2))
       arr = iarr
-      call write_dist_data(grid,fid,varname,arr)
+      if(present(record)) then
+        call write_dist_data(grid,fid,varname,arr,record=record)
+      else
+        call write_dist_data(grid,fid,varname,arr)
+      endif
       end subroutine par_write_nc_2D_int
-      subroutine par_write_nc_3D_int(grid,fid,varname,iarr,jdim)
+      subroutine par_write_nc_3D_int(grid,fid,varname,iarr,jdim,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       integer, intent(in), optional :: jdim
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      integer :: jdim_
       arr = iarr
-      if(present(jdim)) then
-        call write_dist_data(grid,fid,varname,arr,jdim=jdim)
+      jdim_ = 2
+      if(present(jdim)) jdim_ = jdim
+      if(present(record)) then
+        call write_dist_data(grid,fid,varname,arr,jdim=jdim_,
+     &       record=record)
       else
-        call write_dist_data(grid,fid,varname,arr)
+        call write_dist_data(grid,fid,varname,arr,jdim=jdim_)
       endif
       end subroutine par_write_nc_3D_int
-      subroutine par_write_nc_4D_int(grid,fid,varname,iarr,jdim)
+      subroutine par_write_nc_4D_int(grid,fid,varname,iarr,jdim,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:,:)
       integer, intent(in), optional :: jdim
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
+      integer :: jdim_
       arr = iarr
-      if(present(jdim)) then
-        call write_dist_data(grid,fid,varname,arr,jdim=jdim)
+      jdim_ = 2
+      if(present(jdim)) jdim_ = jdim
+      if(present(record)) then
+        call write_dist_data(grid,fid,varname,arr,jdim=jdim_,
+     &       record=record)
       else
-        call write_dist_data(grid,fid,varname,arr)
+        call write_dist_data(grid,fid,varname,arr,jdim=jdim_)
       endif
       end subroutine par_write_nc_4D_int
 
@@ -419,27 +434,27 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
 #endif
       end subroutine broadcast_1D_r8
 
-      subroutine write_nc_0D(grid,fid,varname,arr)
+      subroutine write_nc_0D(grid,fid,varname,arr,record)
       real*8 :: arr
 #include "do_write_pnc.inc"
       end subroutine write_nc_0D
-      subroutine write_nc_1D(grid,fid,varname,arr)
+      subroutine write_nc_1D(grid,fid,varname,arr,record)
       real*8 :: arr(:)
 #include "do_write_pnc.inc"
       end subroutine write_nc_1D
-      subroutine write_nc_2D(grid,fid,varname,arr)
+      subroutine write_nc_2D(grid,fid,varname,arr,record)
       real*8 :: arr(:,:)
 #include "do_write_pnc.inc"
       end subroutine write_nc_2D
-      subroutine write_nc_3D(grid,fid,varname,arr)
+      subroutine write_nc_3D(grid,fid,varname,arr,record)
       real*8 :: arr(:,:,:)
 #include "do_write_pnc.inc"
       end subroutine write_nc_3D
-      subroutine write_nc_4D(grid,fid,varname,arr)
+      subroutine write_nc_4D(grid,fid,varname,arr,record)
       real*8 :: arr(:,:,:,:)
 #include "do_write_pnc.inc"
       end subroutine write_nc_4D
-      subroutine write_nc_5D(grid,fid,varname,arr)
+      subroutine write_nc_5D(grid,fid,varname,arr,record)
       real*8 :: arr(:,:,:,:,:)
 #include "do_write_pnc.inc"
       end subroutine write_nc_5D
@@ -469,41 +484,61 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
 #include "do_read_pnc.inc"
       end subroutine read_nc_5D
 
-      subroutine write_nc_0D_int(grid,fid,varname,iarr)
+      subroutine write_nc_0D_int(grid,fid,varname,iarr,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr
+      integer, intent(in), optional :: record
       real*8 :: arr
       if(grid%am_i_globalroot) arr = iarr
-      call write_data(grid,fid,varname,arr)
+      if(present(record)) then
+        call write_data(grid,fid,varname,arr,record=record)
+      else
+        call write_data(grid,fid,varname,arr)
+      endif
       end subroutine write_nc_0D_int
-      subroutine write_nc_1D_int(grid,fid,varname,iarr)
+      subroutine write_nc_1D_int(grid,fid,varname,iarr,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:)
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr))
       if(grid%am_i_globalroot) arr = iarr
-      call write_data(grid,fid,varname,arr)
+      if(present(record)) then
+        call write_data(grid,fid,varname,arr,record=record)
+      else
+        call write_data(grid,fid,varname,arr)
+      endif
       end subroutine write_nc_1D_int
-      subroutine write_nc_2D_int(grid,fid,varname,iarr)
+      subroutine write_nc_2D_int(grid,fid,varname,iarr,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2))
       if(grid%am_i_globalroot) arr = iarr
-      call write_data(grid,fid,varname,arr)
+      if(present(record)) then
+        call write_data(grid,fid,varname,arr,record=record)
+      else
+        call write_data(grid,fid,varname,arr)
+      endif
       end subroutine write_nc_2D_int
-      subroutine write_nc_3D_int(grid,fid,varname,iarr)
+      subroutine write_nc_3D_int(grid,fid,varname,iarr,record)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
+      integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
       if(grid%am_i_globalroot) arr = iarr
-      call write_data(grid,fid,varname,arr)
+      if(present(record)) then
+        call write_data(grid,fid,varname,arr,record=record)
+      else
+        call write_data(grid,fid,varname,arr)
+      endif
       end subroutine write_nc_3D_int
       subroutine write_nc_2D_logical(grid,fid,varname,larr)
       integer :: fid
@@ -618,74 +653,86 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       if(grid%am_i_globalroot .or. bc_all) larr = arr.eq.1d0
       end subroutine read_nc_2D_logical
 
-      subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_0D
-      subroutine defvar_1D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_1D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr(:)
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_1D
-      subroutine defvar_2D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_2D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr(:,:)
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_2D
-      subroutine defvar_3D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_3D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr(:,:,:)
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_3D
-      subroutine defvar_4D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_4D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_4D
-      subroutine defvar_5D(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_5D(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       real*8 :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_5D
 
-      subroutine defvar_0D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_0D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_0D_int
-      subroutine defvar_1D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_1D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr(:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_1D_int
-      subroutine defvar_2D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_2D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr(:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_2D_int
-      subroutine defvar_3D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_3D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr(:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_3D_int
-      subroutine defvar_4D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_4D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
       return
       end subroutine defvar_4D_int
-      subroutine defvar_5D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
+      subroutine defvar_5D_int(grid,fid,arr,varinfo,r4_on_disk,defby,
+     &     with_record_dim)
       integer :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_pnc.inc'
@@ -693,7 +740,7 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       end subroutine defvar_5D_int
 
       subroutine defvar_2D_logical(grid,fid,arr,varinfo,r4_on_disk,
-     &     defby)
+     &     defby,with_record_dim)
       logical :: arr(:,:)
 c netcdf file will represent logical as 0/1 int
       integer, parameter :: dtype=nf_int
@@ -702,7 +749,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine defvar_2D_logical
 
       subroutine defvar_2D_char(grid,fid,arr,varinfo,r4_on_disk,
-     &     defby)
+     &     defby, with_record_dim)
       character :: arr(:,:)
       integer, parameter :: dtype=nf_char
       include 'do_defvar_pnc.inc'
@@ -859,13 +906,14 @@ c        if(do_enddef) rc2 = nfmpi_enddef(fid)
 
       subroutine define_var(fid,dtype,
      &     varinfo_in,ndims_in,shp_in,im_in,jm_in,
-     &     ntiles,rc,vid,am_root)
+     &     ntiles,rc,vid,am_root,with_record_dim)
       integer :: fid,dtype,rc,vid
       character(len=*) :: varinfo_in
       integer :: ndims_in,shp_in(ndims_in),im_in,jm_in,ntiles
       logical :: am_root
       character(len=40) :: vname,dname
       character(len=80) :: varinfo
+      logical :: with_record_dim
       character*1, dimension(:), allocatable :: char_arr
       integer :: i,ndims,l,l1,l2,xdim,lv,dsize,status
      &     ,dsizx
@@ -972,6 +1020,16 @@ c
         else
           dsize8 = dsize
           status = nfmpi_def_dim(fid,trim(dname),dsize8,dids(xdim))
+        endif
+      endif
+c
+c if record dimension requested, add it
+c
+      if(with_record_dim) then
+        ndims = ndims + 1
+        if(nfmpi_inq_dimid(fid,'record',dids(ndims)).ne.nf_noerr) then
+          status = nfmpi_def_dim(fid,'record',nfmpi_unlimited,
+     &         dids(ndims))
         endif
       endif
 c

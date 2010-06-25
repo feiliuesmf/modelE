@@ -2,10 +2,12 @@
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
+      integer, intent(in), optional :: record
 #ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr_nohalo
-      integer :: nl,nk,jd,nd,ierr,vid,rc,arrsize
+      integer :: nl,nk,jd,nd,ierr,vid,did,rc,arrsize,td,rd
       integer*8, dimension(7) :: srt,cnt
+      integer*8 :: nrecs8
       rc = nfmpi_inq_varid(fid,trim(varname),vid)
       if(grid%am_i_globalroot .and. rc.ne.nf_noerr)
      &     write(6,*) 'variable ',
@@ -17,13 +19,27 @@
         jd=2
       endif
       nd = size(shape(arr))
+      td = nd+1
       cnt(1:nd) = shape(arr)
       srt(1:nd) = 1
-      srt(jd) = grid%js
       srt(jd-1:jd) = (/ grid%is, grid%js /)
       cnt(jd-1:jd) = 1+(/ grid%ie-grid%is, grid%je-grid%js /)
-      srt(nd+1) = grid%tile
-      cnt(nd+1) = 1
+      srt(td) = grid%tile
+      cnt(td) = 1
+      if(present(record)) then
+        nrecs8 = 0
+        rc = nfmpi_inq_unlimdim(fid,did)
+        rc = nfmpi_inq_dimlen(fid,did,nrecs8)
+        if(record.le.0 .or. nrecs8+1.lt.record) then
+          if(grid%am_i_globalroot) write(6,*)
+     &         'error in record dim spec. for variable ',trim(varname)
+          call stoprc(0,1)
+        endif
+        rd = td
+        if(grid%ntiles.gt.1) rd = rd + 1
+        srt(rd) = record
+        cnt(rd) = 1
+      endif
       if(grid%have_domain) then
         call get_nlnk(arr,jd,nl,nk)
       else
