@@ -7,7 +7,6 @@
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       use filemanager,only: nameunit,openunit,closeunit
-      use pario, only: defvar,read_dist_data,write_dist_data
       use resolution, only : im,jm
       use domain_decomp_atm, only: am_i_root,dist_grid,dread_parallel
      &     ,esmf_bcast,grid,write_parallel,get
@@ -35,6 +34,9 @@
       use tracer_com, only: trname
       use trdiag_com, only: trcsurf,trcSurfByVol
       use tracers_dust
+#ifdef NEW_IO
+      use pario, only: defvar,read_dist_data,write_dist_data
+#endif
 
       implicit none
 
