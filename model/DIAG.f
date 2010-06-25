@@ -1193,7 +1193,7 @@ C****
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,lm,itime
+      USE MODEL_COM, only : im,jm,lm,itime,itime0
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
 #ifdef TES_LIKE_DIAGS
@@ -1268,6 +1268,16 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 !@var lst level strings
       character*2, dimension(lm) :: lst
 
+      character*14, private :: adate_sv
+
+#ifdef NEW_IO_SUBDD
+      private :: write_2d,write_3d,in_subdd_list
+      interface write_subdd
+      module procedure write_2d
+      module procedure write_3d
+      end interface
+#endif
+
       contains
 
       subroutine init_subdd(aDATE)
@@ -1276,6 +1286,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       implicit none
       character*14, intent(in) :: adate
       integer :: i,j,k,l,kunit
+
+      adate_sv = adate
 
       call sync_param( "subdd" ,subdd)
       call sync_param( "subdd1" ,subdd1)
@@ -1303,6 +1315,7 @@ C**** calculate how many names
 C**** make array of names
         read(subddt,*) namedd(1:kdd)
 
+#ifndef NEW_IO_SUBDD
 C**** open units and position
         call open_subdd(aDATE)
 
@@ -1310,6 +1323,7 @@ C**** position correctly
         do kunit=1,kddunit
           call io_POS(iu_SUBDD(kunit),Itime-1,im*jm,Nsubdd)
         end do
+#endif
 
       end if
 
@@ -1346,6 +1360,12 @@ C**** initialise special subdd accumulation
       character*14, intent(in) :: adate
       character*12 name
       integer :: k,kunit,kk
+
+      adate_sv = adate
+
+#ifdef NEW_IO_SUBDD
+      return
+#endif
 
       kunit=0
       do k=1,kdd
@@ -1401,6 +1421,10 @@ C****
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
+
+#ifdef NEW_IO_SUBDD
+      return
+#endif
 
       if (nsubdd.ne.0) then
 C**** close and re-open units
@@ -1515,6 +1539,8 @@ c get_subdd
       IMPLICIT NONE
       REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
@@ -1886,6 +1912,10 @@ c          data=sday*prec/dtsrc
         kunit=kunit+1
         polefix=.true.
         call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+        datar8 = data ! doing this until "data" changed to real*8
+        call write_subdd(trim(namedd(k)),datar8,polefix)
+#endif
         cycle
  10     continue
 
@@ -2502,11 +2532,14 @@ c****
 
       implicit none
 
-! need to add writei_parallel to domain_decomp_atm
       real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: data
       integer kunit
       logical :: polefix
+
+#ifdef NEW_IO_SUBDD
+      return
+#endif
 
 c**** fix polar values
       if (polefix) then
@@ -2517,6 +2550,94 @@ c**** fix polar values
      *     nameunit(iu_subdd(kunit)),data,itime)
 
       end subroutine write_data
+
+#ifdef NEW_IO_SUBDD
+
+      subroutine write_2d(qtyname,data,polefix)
+      use pario, only : par_open,par_close,par_enddef,defvar,
+     &     write_data,write_dist_data
+      use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
+      character(len=*) :: qtyname
+      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
+      logical :: polefix
+c
+      integer fid
+      integer :: record
+      character(len=80) :: fname
+
+      if(.not. in_subdd_list(qtyname)) return
+
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
+      record = (1+itime-itime0)/nsubdd
+      if(record==1) then ! define this output file
+        fid = par_open(grid,trim(fname),'create')
+        call defvar(grid,fid,itime,'itime',
+     &       with_record_dim=.true.)
+        call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm)',
+     &       with_record_dim=.true.,r4_on_disk=.true.)
+        call par_enddef(grid,fid)
+      else
+        fid = par_open(grid,trim(fname),'write')
+      endif
+      if(polefix) then
+        if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
+        if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
+      endif
+      call write_data(grid,fid, 'itime', itime, record=record)
+      call write_dist_data(grid,fid, trim(qtyname), data, record=record)
+      call par_close(grid,fid)
+      return
+      end subroutine write_2d
+
+      subroutine write_3d(qtyname,data,polefix)
+      use pario, only : par_open,par_close,par_enddef,defvar,
+     &     write_data,write_dist_data
+      use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
+      character(len=*) :: qtyname
+      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: data
+      logical :: polefix
+c
+      integer fid,l
+      integer :: record
+      character(len=80) :: fname
+      if(.not. in_subdd_list(qtyname)) return
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
+      record = (1+itime-itime0)/nsubdd
+      if(record==1) then ! define this output file
+        fid = par_open(grid,trim(fname),'create')
+        call defvar(grid,fid,itime,'itime',
+     &       with_record_dim=.true.)
+        call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm,lm)',
+     &       with_record_dim=.true.,r4_on_disk=.true.)
+        call par_enddef(grid,fid)
+      else
+        fid = par_open(grid,trim(fname),'write')
+      endif
+      if(polefix) then
+        do l=1,size(data,3)
+          if(hasSouthPole(grid)) data(2:im,1,l) = data(1,1,l)
+          if(hasNorthPole(grid)) data(2:im,jm,l) = data(1,jm,l)
+        enddo
+      endif
+      call write_data(grid,fid, 'itime', itime, record=record)
+      call write_dist_data(grid,fid, trim(qtyname), data, record=record)
+      call par_close(grid,fid)
+      return
+      end subroutine write_3d
+
+      logical function in_subdd_list(qtyname)
+      character(len=*) :: qtyname
+      integer kq
+      do kq=1,kdd
+        if(trim(qtyname).eq.trim(namedd(kq))) then
+          in_subdd_list = .true.
+          return
+        endif
+      enddo
+      in_subdd_list = .false.
+      end function in_subdd_list
+
+#endif /* NEW_IO_SUBDD */
 
       end module subdaily
 
