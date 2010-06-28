@@ -22,10 +22,13 @@ c
      .  ,plevav,tracav
 #endif
 #ifdef TRACERS_OceanBiology    
-      USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
-     .                     ao_co2fluxav,diag_counter,tracav,plevav,
-     .                     cexp_glob,caexp_glob,pp2tot_day_glob,
-     .                     cexpav,caexpav,pp2tot_dayav
+      USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av
+     .                    ,ao_co2fluxav,diag_counter,tracav,plevav
+     .                    ,cexp_glob,pp2tot_day_glob
+     .                    ,cexpav,pp2tot_dayav
+#ifdef TRACERS_Alkalinity
+     .                    ,caexp_glob,caexpav
+#endif
 #endif
 c
       implicit none
@@ -109,9 +112,11 @@ c
         write(title,'(a)')'cexp, water'
         call write2giss(nop,cexp_glob,title)
 
+#ifdef TRACERS_Alkalinity
       !caexp
         write(title,'(a)')'caexp, water'
         call write2giss(nop,caexp_glob,title)
+#endif
 
       !pp2tot_day
         write(title,'(a)')'pp2tot_day, water'
@@ -172,7 +177,9 @@ c
         pco2av=pco2av/diag_counter
         pp2tot_dayav=pp2tot_dayav/diag_counter
         cexpav=cexpav/diag_counter
+#ifdef TRACERS_Alkalinity
         caexpav=caexpav/diag_counter
+#endif
       endif
         write(title,'(a)')'pCO2av'
         call write2giss(nop,pCO2av,title)
@@ -180,8 +187,10 @@ c
         call write2giss(nop,pp2tot_dayav,title)
         write(title,'(a)')'cexpav'
         call write2giss(nop,cexpav,title)
+#ifdef TRACERS_Alkalinity
         write(title,'(a)')'caexpav'
         call write2giss(nop,caexpav,title)
+#endif
       !ao_co2fluxav
       if (diag_counter .ne. 0.d0) then
         ao_co2fluxav=ao_co2fluxav/diag_counter

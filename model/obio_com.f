@@ -204,8 +204,9 @@ C endif
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
 #ifdef restoreIRON
-      !!!real*8 :: Iron_BottomSink = 0.002
-      real*8 :: Iron_BottomSink = 0.009
+!per year change dI/I, + for sink, - for source
+      !!!real*8 :: Iron_BC = 0.002
+      real*8 :: Iron_BC = -0.005
 #endif
       contains
 
@@ -240,12 +241,12 @@ c**** Extract domain decomposition info
 #endif
 
       ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),
      &            rikd3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl))
       ALLOCATE(acdom3d(i_0h:i_1h,j_0h:j_1h,kdm,nlt))
+      ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           

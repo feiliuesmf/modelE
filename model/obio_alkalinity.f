@@ -122,8 +122,7 @@
           Jprod(k)=0.
         endif
 
-!     if(mod(nstep,48).eq.0.) 
-!    .write(*,'(a,5i5,5e12.4)')'obio_alkalinity1:',
+!     write(*,'(a,5i5,5e12.4)')'obio_alkalinity1:',
 !    .            nstep,i,j,k,kzc,
 !    .            p1d(k),p1d(k+1),p1d(kzc),pp,Jprod(k)
       enddo
@@ -140,14 +139,10 @@
 
 !compute downward flux of CaCO3
 !only below the euphotic zone (the compensation layer)
-      do k=1,kmax+1
-         if (p1d(k) .gt. p1d(kzc))  then
+      F_Ca = 0.d0
+      do k=kzc,kmax+1
            F_Ca(k) = rain_ratio*cpratio*Fc
      .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)    !mgC/m2/hr
-         else
-           F_Ca(k) = 0. ! is this right???
-c           F_Ca(k) = rain_ratio*cpratio*Fc ! or this???
-         endif
       enddo
 
       !p1d(kzc) is really the compensation depth
@@ -166,6 +161,8 @@ c           F_Ca(k) = rain_ratio*cpratio*Fc ! or this???
 #else
      .                * scp2(i,j)   ! -> Pg,C/yr
 #endif
+!     write(*,'(a,5i5,3e12.4)')'obio_alkalinity, caexp:',
+!    . nstep,i,j,k,kzc,F_Ca(k),dxypo(j),caexp
       enddo
 
 !compute sources/sinks of CaCO3
@@ -184,9 +181,10 @@ c           F_Ca(k) = rain_ratio*cpratio*Fc ! or this???
        A_tend(k) = A_tend(k) + term      
 
 !     if(mod(nstep,48).eq.0.) 
-      if(j.eq.100.and.i.eq.1)
-     .write(*,'(a,4i5,3e12.4)')'obio_alkalinity2:',
-     .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
+!     if(j.eq.100.and.i.eq.1)
+!    .write(*,'(a,4i5,3e12.4)')'obio_alkalinity2:',
+!    .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
+
       enddo
 
       !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,N/m3/hr

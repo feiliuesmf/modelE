@@ -1368,17 +1368,19 @@ C**** Fill in maplet indices for sources and sinks
         if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
      *    'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
 
-        if (name(k)(1:5).eq."Solub") then  ! ocean only
+        if (name(k)(1:5).eq."Solub".or.
+     *     name(k)(1:5).eq."Gas_E" .or.
+     *     name(k)(1:5).eq."Pisto") then  ! ocean only
            ijtype(k)=3
            aij2(:,:,k) = aij(:,:,ij_pocean)*idacc(iacc(k))/
      *          (idacc(ia_ij(ij_pocean))+teeny)
-        end if
-        if(name(k)(1:5).eq."Gas_E" .or.
-     *     name(k)(1:5).eq."Pisto") then ! open ocean only
-           ijtype(k)=3
-           aij2(:,:,k) = aij(:,:,ij_popocn)*idacc(iacc(k))/
-     *          (idacc(ia_ij(ij_popocn))+teeny)
-        end if
+        end if 
+!       if(name(k)(1:5).eq."Gas_E" .or.
+!    *     name(k)(1:5).eq."Pisto") then ! open ocean only
+!          ijtype(k)=3
+!          aij2(:,:,k) = aij(:,:,ij_popocn)*idacc(iacc(k))/
+!    *          (idacc(ia_ij(ij_popocn))+teeny)
+!       end if
       end do
 
 #ifdef TRACERS_COSMO

@@ -65,6 +65,9 @@
       sumFlux=0.   ! no surface flux
 #endif
       ironFlux= areaIntegration(atmFe(:,:,JMON))
+#ifdef zero_ironflux
+      ironFlux=0.d0
+#endif
       ironFlux= ironFlux*solFe*1.d-3/max(h1,1.d-3)
 
       if (am_i_root()) then

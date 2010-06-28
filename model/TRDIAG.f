@@ -927,15 +927,17 @@ c
         end select
 
 #ifdef TRACERS_GASEXCH_ocean
-        if(sname_taij(k)(1:5).eq.'Solub') then
+       if(sname_taij(k)(1:5).eq.'Solub'.or.
+     .     sname_taij(k)(1:5).eq.'Gas_E' .or.
+     .     sname_taij(k)(1:5).eq.'Pisto') then
           div_by_area = .false.
           denom_taij(k) = k_pocean ! ocean only
         endif
-        if(sname_taij(k)(1:5).eq.'Gas_E' .or.
-     &     sname_taij(k)(1:5).eq.'Pisto') then
-          div_by_area = .false.
-          denom_taij(k) = k_popocn ! open ocean only
-        end if
+!       if(sname_taij(k)(1:5).eq.'Gas_E' .or.
+!    &     sname_taij(k)(1:5).eq.'Pisto') then
+!         div_by_area = .false.
+!         denom_taij(k) = k_popocn ! open ocean only
+!       end if
 #endif
 
         if(div_by_area) then

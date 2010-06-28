@@ -13,6 +13,7 @@ c
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
+      USE MODEL_COM,  only : nstep=>itime
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep

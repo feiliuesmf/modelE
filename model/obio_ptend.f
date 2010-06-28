@@ -27,7 +27,7 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d
 #ifdef restoreIRON
-     .                    ,Iron_BottomSink
+     .                    ,Iron_BC
 #endif
 
 #ifdef OBIO_ON_GARYocean
@@ -515,7 +515,7 @@ cdiag.   obio_P(k,2)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-     .               * dp1d(k) * cchlratio 
+     .               * dp1d(k) * cchlratio
 
 !       write(*,'(a,5i5,11e12.4)')'obio_ptend, pp:',
 !    .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
@@ -630,14 +630,27 @@ cdiag. upn,upa,upf,ups
       enddo
 
 #ifdef restoreIRON
-!iron bottom sink
-!restoring term to balance surface deposition at time scales of about 30years
-      k = kmax
-        if (p1d(kmax) >= 3700.) then        !for the lower 200m
-            term =  - obio_P(k,4) / (200/(Iron_BottomSink*3700))
-            term = term/(365*24)     !convert to per hr
+!iron bottom sink/source
+!whether sink or source is determined from Iron_BC
+!Iron_BC > 0 sink of iron through sedimentation
+!Iron_BC < 0 source of iron through sediment resuspension (Moore et al, 2004) 
+!     k = kmax
+!       if (p1d(kmax) >= 3700.) then        !for deep regions, bottom cell (lower 200m)
+!           term =  - obio_P(k,4) / (200/(Iron_BC*3700))
+!           term = term/(365*24)     !convert to per hr
+!           rhs(k,4,14) = term
+!           P_tend(k,4) = P_tend(k,4) + term
+!       endif
+!alternative
+        if (p1d(kmax) <= 1100.) then    !for shelf regions, bottom cell
+          !!do k = 1,kmax
+            k=kmax
+            term =  50.d0/(24.d0*dp1d(k))     ! in nano-moleFe/m3/hr
             rhs(k,4,14) = term
             P_tend(k,4) = P_tend(k,4) + term
+          !!enddo
+!       write(*,'(a,5i5,3e12.4)')'obio_ptend, iron source:',
+!    .  nstep,i,j,k,kmax,dp1d(kmax),P_tend(k,4)-term,term
         endif
 #endif
 
