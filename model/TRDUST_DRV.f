@@ -8,9 +8,8 @@
 
       use filemanager,only: nameunit,openunit,closeunit
       use resolution, only : im,jm
-      use domain_decomp_atm, only: am_i_root,dist_grid,dread_parallel
-     &     ,esmf_bcast,grid,write_parallel,get
-      use domain_decomp_1d, only: am_i_root,grid,pack_data,unpack_data
+      use domain_decomp_atm, only: am_i_root,grid,dread_parallel
+     &     ,esmf_bcast,write_parallel,get
 
       use resolution,only: im,jm,lm
       use model_com,only : coupled_chem,ioread,iowrite,irsfic,irsficno
@@ -568,7 +567,7 @@ c io_trDust
       subroutine io_trDust(kunit,iaction)
 !@sum  io_trDust I/O of specific dust aerosol diagnostics (not netcdf)
 !@auth Jan Perlwitz
-
+      use domain_decomp_1d, only: pack_data,unpack_data
       implicit none
 
 !@var kunit unit number of read/write
