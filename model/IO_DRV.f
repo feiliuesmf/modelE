@@ -6,11 +6,11 @@
 !@ver  beta.
 
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
-      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       USE MODEL_COM, only : ioread_single,iowrite_single,irerun,
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name
-      use pario, only : par_open,par_close
+      use pario, only : par_open,par_close,par_enddef
       IMPLICIT NONE
 !@var fname name of file to be read or written
       character(len=*) :: fname
@@ -21,7 +21,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
       integer :: fid,k,iorw
-      logical :: do_io_prog,do_io_acc,do_io_longacc,define_checkpoint
+      logical :: do_io_prog,do_io_acc,do_io_longacc,r4
       character(len=200) :: tmpname
 
       call set_ioptrs_acc_default
@@ -58,48 +58,21 @@ c for routines designed to accept only iowrite or ioread:
 
       ioerr=-1
 
-c
-c create/define file contents if necessary
-c
-      define_checkpoint =
-     &     (iaction.eq.iowrite .and. it.eq.itimei) ! istart=2
-     &     .or. trim(fname) == 'AIC'               ! istart=8,9
-      if(iaction.eq.iowrite_mon .or. iaction.eq.iowrite_single) then
-        fid = par_open(grid,trim(fname)//'.nc','create')
-        if(iaction.eq.iowrite_mon) then
-c end-of-month restart file, no acc arrays
-          call def_rsf_label(fid)
-          call def_rsf_prog(fid)
-          call def_rsf_longacc(fid,.false.)
-        else
-c end-of-month acc file, no prognostic arrays
-          call def_rsf_label(fid)
-          call def_acc_all(fid,.true.)     ! real*4 disk storage
-          call def_rsf_longacc(fid,.true.) ! real*4 disk storage
-          call def_acc_meta(fid)
-        endif
-        call par_close(grid,fid)!if(am_i_root())status=nf_enddef(fid)
-      elseif(define_checkpoint) then
-c rsf_file_name(1:2).nc at the beginning of a run
-        do k=1,2
-          fid=par_open(grid,trim(rsf_file_name(k))//'.nc','create')
-          call def_rsf_label(fid)
-          call def_rsf_prog(fid)
-          call def_acc_all(fid,.false.)
-          call def_rsf_longacc(fid,.false.)
-          call par_close(grid,fid)
-        enddo
-      endif
-
-c
-c open file using the appropriate mode
-c
-      if(iaction.le.iowrite) then
-        fid = par_open(grid,trim(fname)//'.nc','write')
-      elseif(iaction.ge.ioread) then
-        tmpname = trim(fname)//'.nc'
+      tmpname = trim(fname)//'.nc'
+      if(iorw.eq.ioread) then   ! open input file
         if(trim(fname) == 'AIC') tmpname=fname ! symbolic link w/o .nc suffix
         fid = par_open(grid,trim(tmpname),'read')
+      else                      ! define contents of output file
+        if(iaction.eq.iowrite) tmpname = 'checkpoint.nc'
+        fid = par_open(grid,trim(tmpname),'create')
+        call def_rsf_label(fid)
+        if(do_io_prog) call def_rsf_prog(fid)
+        r4 = .false.
+        if(iaction.eq.iowrite_single) r4=.true. ! real*4 disk storage
+        if(do_io_acc) call def_acc_all(fid,r4) 
+        if(do_io_longacc) call def_rsf_longacc(fid,r4)
+        if(iaction.eq.iowrite_single) call def_acc_meta(fid)
+        call par_enddef(grid,fid)
       endif
 
       call new_io_label  (fid,iaction,it)
@@ -160,6 +133,9 @@ c close input/output file
 c
       call par_close(grid,fid)
 
+      if(iaction.eq.iowrite .and. am_i_root()) then
+        call system('mv checkpoint.nc '//trim(fname)//'.nc')
+      endif
 
       RETURN
       END SUBROUTINE io_rsf
@@ -332,13 +308,11 @@ c idacc(5) is not additive
       call defvar(grid,fid,ntimeacc,'ntimeacc')
       call io_cputime(fid,iowrite)
 c rparam, iparam, cparam are dummy vars which hold the
-c parameter database in their attributes.  On disk,
-c their actual value will be set to the number of
-c parameters that are defined.
+c parameter database in their attributes.
       call defvar(grid,fid,intdum,'rparam')
       call defvar(grid,fid,intdum,'iparam')
       call defvar(grid,fid,intdum,'cparam')
-      call new_io_param(fid,iowrite,.false.,.false.)
+      call new_io_param(fid,iowrite,.false.)
       return
       end subroutine def_rsf_label
 
@@ -361,7 +335,6 @@ c parameters that are defined.
       select case (iaction)
       case (:iowrite) ! output to restart or acc file
         call write_data(grid, fid, 'itime', itime)
-        call write_caldate(fid)
         call write_data(grid, fid, 'itimee', itimee)
         call write_data(grid, fid, 'itime0', itime0)
         call write_data(grid, fid, 'itimei', itimei)
@@ -369,8 +342,6 @@ c parameters that are defined.
         call write_data(grid, fid, 'nday', nday)
         call write_data(grid, fid, 'ntimeacc', ntimeacc)
         call write_data(grid, fid, 'cputime', timing(1:ntimemax))
-        call io_cputime(fid,iowrite)
-        call new_io_param(fid,iowrite,.false.,.true.)
       case (ioread:) ! input from restart or acc file
         call read_attr(grid,fid,'global','xlabel',idum,xlabel)
         call read_data(grid,fid,'nday',nday_dummy,bcast_all=.true.)
@@ -391,7 +362,7 @@ c parameters that are defined.
           call read_data(grid,fid, 'cputime', timing(1:ntimemax),
      &         bcast_all=.true.)
           call io_cputime(fid,ioread)
-          call new_io_param(fid,ioread,.false.,.false.)
+          call new_io_param(fid,ioread,.false.)
         else
           call read_data(grid,fid,'itime', IhrX, bcast_all=.true.)
           IhrX=IhrX*24/nday_dummy
@@ -422,7 +393,7 @@ c write a text version of the date to a restart/acc file
 c manage the reading/writing of timing information. could be done better
       use model_com, only : iowrite,ioread,nday,itime,itime0
       use timings, only : ntimemax,ntimeacc,timestr,timing
-      use domain_decomp_atm, only: grid
+      use domain_decomp_atm, only: grid,esmf_bcast
       use pario, only : write_attr,read_attr
       implicit none
       integer :: fid,iaction
@@ -438,6 +409,7 @@ c manage the reading/writing of timing information. could be done better
       enddo
       select case (iaction)
       case (:iowrite)
+        call esmf_bcast(grid,timing)
         tsum = sum(timing(1:ntimeacc))+1d-20
         if(itime.gt.itime0) then
           min_per_day = (tsum/60.)*nday/dble(itime-itime0)
@@ -463,19 +435,18 @@ c manage the reading/writing of timing information. could be done better
       return
       end subroutine io_cputime
 
-      subroutine new_io_param(fid,iaction,ovrwrt,new_possible)
+      subroutine new_io_param(fid,iaction,ovrwrt)
 !@sum  new_io_param read/write parameter database from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com
       use domain_decomp_atm, only : grid
-      use pario, only : write_attr, read_attr, read_data, write_data,
-     &     par_enddef
+      use pario, only : write_attr, read_attr, get_natts
       use param
       implicit none
       integer fid   !@var fid file id
       integer iaction !@var iaction flag for reading or writing to file
-      logical :: ovrwrt,new_possible
+      logical :: ovrwrt
       integer :: l,m,n,plen,strlen,niparam,nrparam,ncparam
       character*1 :: ptype
       integer :: pvali(1000)
@@ -516,14 +487,10 @@ c strings with the character "|".
             endif
           end select
         enddo
-        if(new_possible) call par_enddef(grid,fid)
-        call write_data(grid, fid, 'iparam', niparam)
-        call write_data(grid, fid, 'rparam', nrparam)
-        call write_data(grid, fid, 'cparam', ncparam)
       case (ioread) ! input
-        call read_data(grid,fid,'iparam',niparam,bcast_all=.true.)
-        call read_data(grid,fid,'rparam',nrparam,bcast_all=.true.)
-        call read_data(grid,fid,'cparam',ncparam,bcast_all=.true.)
+        call get_natts(grid,fid,'iparam',niparam)
+        call get_natts(grid,fid,'rparam',nrparam)
+        call get_natts(grid,fid,'cparam',ncparam)
         do n=1,niparam
           call read_attr(grid,fid,'iparam',pname,plen,pvali,
      &         attnum=n)
