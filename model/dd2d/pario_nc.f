@@ -114,6 +114,8 @@ c
         module procedure read_attr_1D_int
       end interface
 
+      public :: get_natts
+
       interface len_of_obj
         module procedure len_of_text
         module procedure len_of_int0D
@@ -852,6 +854,24 @@ c        if(do_enddef) rc2 = nf_enddef(fid)
       call broadcast(attval)
       return
       end subroutine read_attr_1D_r8
+
+      subroutine get_natts(grid,fid,varname,natts)
+      type(dist_grid) :: grid
+      integer :: fid
+      character(len=*) :: varname
+      integer :: natts
+      integer :: rc,vid
+      if(grid%am_i_globalroot) then
+        rc = nf_inq_varid(fid,trim(varname),vid)
+        if(rc.ne.nf_noerr)
+     &       write(6,*) 'error: nonexistent variable ',trim(varname)
+      endif
+      call stoprc(rc,nf_noerr)
+      if(grid%am_i_globalroot)
+     &     rc = nf_inq_varnatts(fid,vid,natts)
+      call broadcast(natts)
+      return
+      end subroutine get_natts
 
       function len_of_text(cstr)
       integer :: len_of_text
