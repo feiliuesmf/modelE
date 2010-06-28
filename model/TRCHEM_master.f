@@ -11,7 +11,7 @@ c
 C**** GLOBAL parameters and variables:
 c
 !!    use precision_mod, only : reduce_precision 
-      USE PARAM, only : get_param
+      USE PARAM, only : get_param, is_set_param
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
@@ -228,45 +228,47 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
       if(ih1030 < 0) ih1030 = IM+ih1030  
       if(ih1330 < 0) ih1330 = IM+ih1330  
 
-      call get_param('initial_GHG_setup', initial_GHG_setup)
-      if (initial_GHG_setup == 1) then
-C-------- special section for ghg runs ---------
-      write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
-      call write_parallel(trim(out_line))
-      if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
-        rad_to_file(1,:,I_0:I_1,J_0:J_1)=
-     &  rad_to_chem(1,:,I_0:I_1,J_0:J_1)
-        rad_to_file(2,:,I_0:I_1,J_0:J_1)=
-     &  rad_to_chem(2,:,I_0:I_1,J_0:J_1)
-        do j=J_0,J_1
-          do i=I_0,I_1
-            rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*byavog*
-     &           axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
-            rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*byavog*
-     &           axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
-            rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*byavog*
-     &           axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
-          enddo
-        enddo 
-        if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
-        else; write(ghg_name,'(I4)')jyear; endif
-        ghg_file='GHG_IC_'//ghg_name
-        call openunit(ghg_file,iu,.true.,.false.)
-        do m=1,5
-          ghg_out(:,I_0:I_1,J_0:J_1)=rad_to_file(m,:,I_0:I_1,J_0:J_1)
-          CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
-        enddo
-        call closeunit(iu)          
-        if(AM_I_ROOT( ))then
-          write(6,*)'Stopping in masterchem to output inital'
-          write(6,*)'conditions for ghgs.: ',trim(ghg_file)
-          write(6,*)'You must now recompile'
-          write(6,*)'(rerun setup) after removing the'
-          write(6,*)'INITIAL_GHG_SETUP directive from your rundeck'
-          write(6,*)'Address questions to Greg Faluvegi. Thanks.'
-        endif
-        call stop_model('Normal INITIAL_GHG_SETUP stop.',13)
-      endif 
+      if (is_set_param('initial_GHG_setup')) then
+        call get_param('initial_GHG_setup', initial_GHG_setup)
+        if (initial_GHG_setup == 1) then
+C--------special section for ghg runs ---------
+          write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
+          call write_parallel(trim(out_line))
+          if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
+            rad_to_file(1,:,I_0:I_1,J_0:J_1)=
+     &           rad_to_chem(1,:,I_0:I_1,J_0:J_1)
+            rad_to_file(2,:,I_0:I_1,J_0:J_1)=
+     &           rad_to_chem(2,:,I_0:I_1,J_0:J_1)
+            do j=J_0,J_1
+              do i=I_0,I_1
+               rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*byavog*
+     &               axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
+               rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*byavog*
+     &               axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
+               rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*byavog*
+     &               axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
+              enddo
+            enddo 
+            if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
+            else; write(ghg_name,'(I4)')jyear; endif
+            ghg_file='GHG_IC_'//ghg_name
+            call openunit(ghg_file,iu,.true.,.false.)
+            do m=1,5
+             ghg_out(:,I_0:I_1,J_0:J_1)=rad_to_file(m,:,I_0:I_1,J_0:J_1)
+             CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
+            enddo
+            call closeunit(iu)          
+            if(AM_I_ROOT( ))then
+              write(6,*)'Stopping in masterchem to output inital'
+              write(6,*)'conditions for ghgs.: ',trim(ghg_file)
+              write(6,*)'You must now recompile'
+              write(6,*)'(rerun setup) after removing the'
+              write(6,*)'INITIAL_GHG_SETUP directive from your rundeck'
+              write(6,*)'Address questions to Greg Faluvegi. Thanks.'
+            endif
+            call stop_model('Normal INITIAL_GHG_SETUP stop.',13)
+          endif 
+        end if
       end if
 
 C Some INITIALIZATIONS :
