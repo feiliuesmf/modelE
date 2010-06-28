@@ -43,7 +43,7 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
 rvr: $(BIN_DIR)/RDconvert 
-csrvr: $(BIN_DIR)/RDijk2ll
+csrvr: RDijk2ll
 input: inputll2cs
 regrid: ll2cs ncll2cs ncGinoux
 
@@ -55,9 +55,11 @@ ifeq ($(COMPILER),Absoft)
 FFLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
 F90FLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
 else
-FFLAGS += -I$(MOD_DIR) -I$(MODEL_DIR)
-F90FLAGS += -I$(MOD_DIR) -I$(MODEL_DIR)
+FFLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
+F90FLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
 endif
+
+EXTRA_LFLAGS += -convert big_endian
 
 #
 #  targets
@@ -145,9 +147,7 @@ RDconvert.o: $(GCMLIB)
 $(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
-RDijk2ll.o: $(GCMLIB)
-
-$(BIN_DIR)/RDijk2ll: RDijk2ll.o $(GCMLIB)
+RDijk2ll: RDijk2ll2.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 inputll2cs: regrid.o ncio.o inputLL2CS.o 

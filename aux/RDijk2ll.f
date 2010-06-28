@@ -2,25 +2,24 @@
 !@sum On CS grid, convert i,j,k (with k=cube face index from 1..6)
 !@+   to absolute lat-lon coordinates
 !@auth Denis Gueyffier
-      use geom, only : geom_cs,lon2d_dg,lat2d_dg
-      use regrid_com
-      USE DOMAIN_DECOMP_1D, ONLY : init_app
-      use domain_decomp_atm, only : grid,init_grid,pack_data 
-      USE fms_mod,         only : fms_init, fms_end
       implicit none
       integer, parameter :: imt=90,jmt=90
       integer, parameter :: nrvr = 41 ! # of river mouths
       character*80 :: name,nameout,title,
      &     title1,title2,title3,title4,title5,title6,PROD
-      real*8,parameter :: undef=-1.d30  !missing value
+      real*8, parameter :: pi=3.141592653589793d0
+      real*8, parameter :: shiftwest = 2.*3.141592653589793d0/36.
+      real*8, parameter :: undef=-1.d30
+      real*8, parameter :: radian = pi/180d0
       real*4, dimension(imt,jmt,6) :: down_lat,down_lon
       real*4, dimension(imt,jmt,6) :: down_lat_911,down_lon_911
-      real*8, dimension(imt,jmt,6) :: lon_glob,lat_glob
+      real*8, dimension(imt,jmt,6) :: lon2d,lat2d,lon2d_dg,lat2d_dg
       integer, dimension(imt,jmt,6) :: idown,jdown,kdown
       integer, dimension(imt,jmt,6) :: id911,jd911,kd911
-      integer :: iu_RD,iu_TOPO,iu_MNAME,iu_MIJ,i,j,k
+      integer :: iu_RD,iu_TOPO,iu_MNAME,iu_MIJ,i,j,k,tile
       LOGICAL, dimension(imt,jmt) :: NODIR
       real*4 :: FOCEAN(imt,jmt,6)
+      real*8:: x,y
       character*8,dimension(nrvr) :: namervr
       character*2,dimension(nrvr) :: mouthI,mouthJ
       character*1,dimension(nrvr) :: mouthK
@@ -28,13 +27,6 @@
       real*4,dimension(nrvr) :: lat_rvr,lon_rvr
       iu_TOPO=30
 
-      call fms_init()
-
-      call init_app()
-      call init_grid(grid, imt, jmt, 20, CREATE_CAP=.true.)
-      call geom_cs
-
-      if (am_i_root()) then
 c*    Read ocean fraction
          if (imt .eq. 32) then
             name="Z_CS32_4X5"
@@ -78,8 +70,7 @@ c*     conversion char to int
           read(mouthJ(i),'(I2)') imouthJ(i)
           read(mouthK(i),'(I1)') imouthK(i)
           write(*,*) imouthI(i),imouthJ(i),imouthK(i)
-      enddo
-    
+      enddo   
     
       iu_RD=20
       if (imt .eq. 32) then
@@ -90,36 +81,45 @@ c*     conversion char to int
          nameout="RDdistocean_CS90.bin"
       endif
       name = trim(PROD) // '/' // name
-
+      
       write(*,*) name,imt,jmt
-
-c*    read i,j,k coordinates of downstream cells
-
-         open( iu_RD, FILE=name,FORM='unformatted',
-     &        STATUS='unknown')
-
-         read(iu_RD) title,idown,jdown,kdown
-         write(*,*) title
-         read(iu_RD) title,id911,jd911,kd911
-         write(*,*) title
-         close(iu_RD)
+      
+c* read i,j,k coordinates of downstream cells
+      
+      open( iu_RD, FILE=name,FORM='unformatted',
+     &     STATUS='unknown')
+      
+      read(iu_RD) title,idown,jdown,kdown
+      write(*,*) title
+      read(iu_RD) title,id911,jd911,kd911
+      write(*,*) title
+      close(iu_RD)
       write(*,*) "read RDijk2ll_CS"
-      endif
 
-c*    form global arrays for mapping (i,j,k) -> (lon,lat)
-      call pack_data(grid,lon2d_dg,lon_glob)
-      call pack_data(grid,lat2d_dg,lat_glob)
+      do tile=1,6
+         do j=1,imt
+            do i=1,imt
+               x = -1d0 + 2d0*(dble(i)-.5d0)/imt
+               y = -1d0 + 2d0*(dble(j)-.5d0)/imt
+               call csxy2ll(x,y,tile,lon2d(i,j,tile),lat2d(i,j,tile))
+               lon2d(i,j,tile) = lon2d(i,j,tile)-shiftwest
+               lat2d_dg(i,j,tile) = lat2d(i,j,tile)/radian
+               lon2d_dg(i,j,tile) = lon2d(i,j,tile)/radian
+               if (lon2d_dg(i,j,tile) .le. -180.d0) then
+                  lon2d_dg(i,j,tile)=lon2d_dg(i,j,tile)+360.d0
+               endif
+            enddo
+         enddo
+      enddo
 
-      write(*,*) "HERE"
-
-      if (am_i_root()) then
-
+      write(201,*) lon2d_dg 
+      write(201,*) lat2d_dg
 c*    convert i,j,k coordinates of river mouths to absolute lat-lon coordinates    
       do k=1,nrvr
-            lat_rvr(k)=lat_glob(imouthI(k),imouthJ(k)
-     &            ,imouthK(k))
-            lon_rvr(k)=lon_glob(imouthI(k),imouthJ(k)
-     &            ,imouthK(k))
+         lat_rvr(k)=lat2d_dg(imouthI(k),imouthJ(k)
+     &        ,imouthK(k))
+         lon_rvr(k)=lon2d_dg(imouthI(k),imouthJ(k)
+     &        ,imouthK(k))
       enddo
 
 c*    convert i,j,k coordinates of downstream cells to absolute lat-lon coordinates    
@@ -127,25 +127,25 @@ c*    convert i,j,k coordinates of downstream cells to absolute lat-lon coordina
         do j=1,jmt
           do i=1,imt
             if (FOCEAN(i,j,k) .lt. 1.e-6) then
-              down_lat(i,j,k)=lat_glob(idown(i,j,k),jdown(i,j,k)
+              down_lat(i,j,k)=lat2d_dg(idown(i,j,k),jdown(i,j,k)
      &            ,kdown(i,j,k))
-              down_lon(i,j,k)=lon_glob(idown(i,j,k),jdown(i,j,k)
+              down_lon(i,j,k)=lon2d_dg(idown(i,j,k),jdown(i,j,k)
      &            ,kdown(i,j,k))
 
 c*    dummy emergency directions
-              down_lat_911(i,j,k)=lat_glob(id911(i,j,k),jd911(i,j,k)
+              down_lat_911(i,j,k)=lat2d_dg(id911(i,j,k),jd911(i,j,k)
      &             ,kd911(i,j,k))
-              down_lon_911(i,j,k)=lon_glob(id911(i,j,k),jd911(i,j,k)
+              down_lon_911(i,j,k)=lon2d_dg(id911(i,j,k),jd911(i,j,k)
      &             ,kd911(i,j,k))
-            write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
-     &           down_lon_911(i,j,k)-lon_glob(i,j,k),
-     &           down_lat_911(i,j,k)-lat_glob(i,j,k)
+            write(130+k,200) lon2d_dg(i,j,k),lat2d_dg(i,j,k),
+     &           down_lon_911(i,j,k)-lon2d_dg(i,j,k),
+     &           down_lat_911(i,j,k)-lat2d_dg(i,j,k)
             else
               down_lat(i,j,k)=undef
               down_lon(i,j,k)=undef
               down_lat_911(i,j,k)=undef
               down_lon_911(i,j,k)=undef
-            write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
+            write(130+k,200) lon2d_dg(i,j,k),lat2d_dg(i,j,k),
      &           0.,0.
             end if
 
@@ -180,9 +180,50 @@ c*    output everything
 
       write(*,*) "wrote RD file"
 
-      endif
-
  200  format(4(1X,f8.3))
 
       end program RDijk2ll_CS
 c*
+
+      subroutine csxy2ll(x,y,tile,lon,lat)
+c converts x,y,tile to lon,lat (radians)
+c This routine places the center of tile 1 at the IDL.
+      implicit none
+      real*8 :: x,y ! input
+      integer :: tile ! input
+      real*8 :: lon,lat ! output
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      real*8,parameter :: pi=3.141592653589793d0
+      real*8 :: gx,gy,tmpx,tmpy,cosgx,tangx,tangy,coslon
+      gx = g*x
+      gy = g*y
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        tmpx = gx
+        tmpy = gy
+        gx = +tmpy
+        gy = -tmpx
+      elseif(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
+        tmpx = gx
+        tmpy = gy
+        gx = -tmpy
+        gy = -tmpx
+      endif
+      if(tile.eq.3 .or. tile.eq.6) then
+        tangx = tan(gx)
+        tangy = tan(gy)
+        lat = atan(1d0/sqrt(2d0*(tangx**2 +tangy**2)+1d-40))
+        lon = atan2(tangy,tangx)
+        if(tile.eq.6) lat = -lat
+      else
+        cosgx = cos(gx)
+        coslon = cosgx/sqrt(2d0-cosgx*cosgx)
+        lat = atan(coslon*sqrt(2d0)*tan(gy))
+        lon = sign(acos(coslon),gx)
+! add longitude offset to tiles 1,2,4,5. integer arithmetic.
+        lon = lon + (mod(tile,3)-1)*pi/2. -pi*(1-(tile/3))
+        if(lon.lt.-pi) lon=lon+2.*pi
+      endif
+      return
+      end subroutine csxy2ll
+
+
