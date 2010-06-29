@@ -19,7 +19,7 @@ c
      &                        write_parallel,writet8_column,
      &                        writet_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
-     &                        COUPLED_CHEM,JHOUR
+     &                        COUPLED_CHEM,JHOUR, itime, itimeI, itime0
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
      &                        bygrav,lhe
       USE DYNAMICS, only    : pedn,LTROPO
@@ -230,7 +230,7 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
 
       if (is_set_param('initial_GHG_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1) then
+        if (initial_GHG_setup == 1 .and. itime == itimeI) then
 C--------special section for ghg runs ---------
           write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
           call write_parallel(trim(out_line))
@@ -241,12 +241,12 @@ C--------special section for ghg runs ---------
      &           rad_to_chem(2,:,I_0:I_1,J_0:J_1)
             do j=J_0,J_1
               do i=I_0,I_1
-               rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*byavog*
-     &               axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
-               rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*byavog*
-     &               axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
-               rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*byavog*
-     &               axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
+                rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*
+     &               byavog*axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
+                rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*
+     &               byavog*axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
+                rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*
+     &               byavog*axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
               enddo
             enddo 
             if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
@@ -259,15 +259,16 @@ C--------special section for ghg runs ---------
             enddo
             call closeunit(iu)          
             if(AM_I_ROOT( ))then
-              write(6,*)'Stopping in masterchem to output inital'
+              write(6,*)'Kludge in masterchem to output inital'
               write(6,*)'conditions for ghgs.: ',trim(ghg_file)
-              write(6,*)'You must now recompile'
-              write(6,*)'(rerun setup) after removing the'
-              write(6,*)'INITIAL_GHG_SETUP directive from your rundeck'
-              write(6,*)'Address questions to Greg Faluvegi. Thanks.'
+              write(6,*)'First time step has used default values.'
+              write(6,*)'If you wish to produce a correct'
+              write(6,*)'first time step, then redo setup for this'
+              write(6,*)' rundeck with initial_GHG_setup setto 1.'
+              write(6,*)'Address questions to G. Faluvegi or T. Clune.'
+              write(6,*)'Thanks.'
             endif
-            call stop_model('Normal INITIAL_GHG_SETUP stop.',13)
-          endif 
+          end if
         end if
       end if
 

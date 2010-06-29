@@ -1900,7 +1900,7 @@ C**** Ozone:
       use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
       if (is_set_param('initial_GHG_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1) then
+        if (initial_GHG_setup == 1 .and. itime == itimeI) then
           use_tracer_chem(2)=0  ! special case; model outputs climatology
         end if
       end if

@@ -7767,7 +7767,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,dtsrc,ptop,q,wm,flice,jyear,
-     & PMIDL00
+     & PMIDL00, itimeI
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
@@ -8022,32 +8022,32 @@ C**** ESMF: Each processor reads the global array: N2Oic
          else
            if (is_set_param('initial_GHG_setup')) then
              call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1) then
+             if (initial_GHG_setup == 1 .and. itime == itimeI) then
                select case(PI_run)
-               case(1)     ; ICfactor=PIratio_N2O
+             case(1)     ; ICfactor=PIratio_N2O
                case default; ICfactor=1.d0
-               end select
-               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                 trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
-               end do   ; end do   ; end do
-             else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') jyear; endif
-               ghg_file='GHG_IC_'//ghg_name
-               call openunit(ghg_file,iu_data,.true.,.true.)
-               do m=1,3
-                 CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),
-     &                GHG_IN,0)
-                 rad_to_file(m,:,I_0:I_1,J_0:J_1)=
-     &                ghg_in(:,I_0:I_1,J_0:J_1)
-               enddo
-               call closeunit(iu_data)
-               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                 trm(I,J,L,n) = rad_to_file(3,l,i,j)
-               end do   ; end do   ; end do
-             end if
-           endif
-         end if
+             end select
+             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+               trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+             end do   ; end do   ; end do
+           else
+             if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+             else; write(ghg_name,'(I4)') jyear; endif
+             ghg_file='GHG_IC_'//ghg_name
+             call openunit(ghg_file,iu_data,.true.,.true.)
+             do m=1,3
+               CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,
+     &              0)
+               rad_to_file(m,:,I_0:I_1,J_0:J_1)=
+     &              ghg_in(:,I_0:I_1,J_0:J_1)
+             enddo
+             call closeunit(iu_data)
+             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+               trm(I,J,L,n) = rad_to_file(3,l,i,j)
+             end do   ; end do   ; end do
+           end if
+         endif
+       end if
 #endif
 
         case ('CFC11')   !!! should start April 1
@@ -8119,7 +8119,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
          else
            if (is_set_param('initial_GHG_setup')) then
              call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1) then
+             if (initial_GHG_setup == 1 .and. itime == itimeI) then
                select case (fix_CH4_chemistry)
                case default
                  call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
@@ -8149,7 +8149,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
          end if
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
            chem_tracer_save(2,L,I,J)=trm(I,J,L,n)
-     &     *byaxyp(i,j)*avog/(tr_mm(n)*2.69e20) ! to atm*cm
+     &          *byaxyp(i,j)*avog/(tr_mm(n)*2.69e20) ! to atm*cm
          end do   ; end do   ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
@@ -8572,7 +8572,7 @@ c**** earth
          else
            if (is_set_param('initial_GHG_setup')) then
              call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1) then
+             if (initial_GHG_setup == 1 .and. itime == itimeI) then
                select case(PI_run)
              case(1)     ; ICfactor=PIratio_CFC
                case default; ICfactor=1.d0
@@ -8585,16 +8585,18 @@ c**** earth
              else; write(ghg_name,'(I4)') jyear; endif
              ghg_file='GHG_IC_'//ghg_name
              call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,5
-             CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
-             rad_to_file(m,:,I_0:I_1,J_0:J_1)=ghg_in(:,I_0:I_1,J_0:J_1)
-            enddo
+             do m=1,5
+               CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,
+     &              0)
+               rad_to_file(m,:,I_0:I_1,J_0:J_1)=
+     &              ghg_in(:,I_0:I_1,J_0:J_1)
+             enddo
              call closeunit(iu_data)
              do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
                trm(I,J,L,n) = rad_to_file(5,l,i,j)
              end do   ; end do   ; end do
            end if
-         end if
+         endif
        end if
 #endif /* SHINDELL_STRAT_CHEM */
 
@@ -10093,13 +10095,14 @@ c latlon grid
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
       USE TRACER_COM
-      USE CONSTANT, only : mair
+      USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear
+      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
+      USE PARAM, only : get_param, is_set_param
       use trdiag_com, only : trcsurf
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
@@ -10134,14 +10137,22 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif
 
+#ifdef TRACERS_SPECIAL_Shindell
+      use RAD_COM, only: rad_to_chem
+      use TRCHEM_Shindell_COM, only: fact_cfc, 
+     &     use_rad_n2o, use_rad_ch4, use_rad_cfc
+#endif
+
       implicit none
       INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
+      integer :: initial_ghg_setup
       real*8 :: src_fact,bb_fact
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
+      real*8 :: byavog
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -10482,6 +10493,19 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
 
+
+      if (is_set_param('initial_ghg_setup')) then
+        call get_param('initial_GHG_setup', initial_GHG_setup)
+        if (initial_GHG_setup == 1 .and. itime == itimeI) then
+          byavog = 1.d+0/avog
+
+          if (use_rad_n2o > 0) call applyRadChem(3, n_N2O, 1.d+0)
+          if (use_rad_ch4 > 0) call applyRadChem(4, n_CH4, 1.d+0)
+          if (use_rad_cfc > 0) call applyRadChem(5, n_CFC, fact_CFC)
+
+        end if
+      end if
+
 C**** Call the model CHEMISTRY and OVERWRITEs:
       call masterchem ! does chemistry and over-writing.
                       ! tr3Dsource defined within, for both processes
@@ -10608,6 +10632,26 @@ C**** Apply chemistry and overwrite changes:
       enddo
 #endif
       return
+
+      contains
+
+      subroutine applyRadChem(index, n, factor)
+      integer, intent(in) :: index
+      integer, intent(in) :: n
+      real*8, intent(in) :: factor
+      
+      integer :: L
+      do L = 1, LM
+        tr3Dsource(I_0:I_1,J_0:J_1,L,nOverwrite,n) = 
+     &       (rad_to_chem(index,L,I_0:I_1,J_0:J_1)*2.69e20*byavog*
+     &       axyp(I_0:I_1,J_0:J_1)*tr_mm(n) * factor - 
+     &       trm(I_0:I_1,J_0:J_1,L,n)) / dtsrc
+      end do
+      call apply_tracer_3Dsource(nOverwrite,n)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n) = 0.d0
+
+      end subroutine applyRadChem
+
       END SUBROUTINE tracer_3Dsource
 #endif /* TRACERS_ON */
 
