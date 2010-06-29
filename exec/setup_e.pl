@@ -240,7 +240,7 @@ foreach $_ ( @data_files ) {
     }
 }
 
-print RUNIDULN "chmod -R ugo+rw . 2> /dev/null\n";
+print RUNIDULN "chmod -R ugo+r . 2> /dev/null\n";
 
 if ( $flag_missing_data_files ) { exit 1; }
 
