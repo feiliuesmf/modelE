@@ -26,7 +26,7 @@
       subroutine init_module_ent(iniENT_in, Jday, Jyear, focean1)
 !@sum initializes vegetation
       use param
-      use ent_com, only : entcells,Cint,Qfol,cnc_ij
+      use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use model_com, only : focean, FLICE
       use DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -121,6 +121,7 @@
         Cint(:,:)=0.0127D0      ! internal CO2
         Qfol(:,:)=3.D-6         ! surface mixing ratio
         cnc_ij(:,:) = 0.d0
+        excess_C(:,:) = 0.d0
 
       else ! i.e. *not* iniENT
 

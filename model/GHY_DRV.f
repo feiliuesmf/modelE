@@ -377,6 +377,7 @@ c**** prescribed dust emission
       use sle001, only : nsn,fb,fv
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
+      use ent_com, only : excess_C
 #endif
 #ifdef BIOGENIC_EMISSIONS
       use trdiag_com,ONLY : ijs_isoprene
@@ -426,6 +427,7 @@ cddd#endif
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
 #endif
+      real*8 :: delta_C
 
 ccc tracers
       byNIsurf=1.d0/real(NIsurf)
@@ -433,12 +435,16 @@ ccc tracers
 #ifdef TRACERS_GASEXCH_land_CO2
       !!! hack - assume 1 tracer
       n = 1
+c     redistribute excess_C in the atmosphere (assume the time scale
+c     of about a year)
+      delta_C = excess_C(i,j)/365d0*dtsurf
+      excess_C(i,j) = excess_C(i,j) - delta_C
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
       trsrfflx(i,j,n)=trsrfflx(i,j,n) +
-     &     (arauto+asoilresp-agpp)/dtsurf *axyp(i,j)*ptype
+     &     (arauto+asoilresp-agpp+delta_C)/dtsurf *axyp(i,j)*ptype
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     &     + (arauto+asoilresp-agpp) * axyp(i,j)*ptype
+     &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
 #endif
 
 #ifdef TRACERS_WATER
@@ -3683,6 +3689,8 @@ C**** Extract useful local domain parameters from "grid"
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      call accumulate_excess_C(0)
+
       ! update water and heat in land surface fractions if
       ! lake fraction changed
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
@@ -3861,6 +3869,8 @@ c****
 #ifdef TRACERS_DRYDEP
       CALL RDLAI ! read leaf area indices for tracer dry deposition
 #endif
+
+      call accumulate_excess_C(1)
 
       return
       end subroutine daily_earth
@@ -4086,6 +4096,66 @@ c**** hack to reset roughl for non-standard land ice fractions
       enddo
 
       end subroutine set_roughness_length
+
+
+      subroutine accumulate_excess_C(flag)
+!@sum accumulate the increment of total carbon stored by LSM
+!@auth I. ALeinov
+!@ver  1.0
+#ifdef USE_ENT
+      use constant, only : rhow
+      use model_com, only : im, focean, jm, flice
+      use geom, only : imaxj,AXYP
+      use ghy_com, only : ngm
+      use ent_com, only : entcells, excess_C
+      use ent_mod, only : ent_get_exports
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      implicit none
+      integer, intent(in) :: flag
+      real*8, pointer, dimension(:,:), save :: cell_C_old => null()
+      real*8 :: cell_C
+
+      integer i,j
+      integer :: J_0, J_1 ,I_0,I_1
+      integer :: counter = 0
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     &     I_STRT=I_0, I_STOP=I_1)
+
+      if (.not. associated(cell_C_old))
+     &     allocate( cell_C_old(I_0:I_1, J_0:J_1) )
+      
+      do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          if( focean(i,j) >= 1.d0 ) cycle
+          ! call get_fb_fv( fb, fv, i, j )
+
+          call ent_get_exports( entcells(i,j),
+     &         C_entcell=cell_C )
+
+          if ( flag == 0 ) then
+            cell_C_old(i,j) = cell_C
+          else
+            excess_C(i,j) = excess_C(i,j)
+     &           + cell_C_old(i,j) - cell_C
+          endif
+        end do
+      end do
+
+cddd      write(997,*) 'counter= ', counter
+cddd      do j=J_0,J_1
+cddd        do i=I_0,I_1
+cddd          write(997,*) i,j,excess_C(i,j)
+cddd        enddo
+cddd      enddo
+cddd      counter = counter + 1
+
+#else
+      ! do nothing
+      integer, intent(in) :: flag
+#endif
+      end subroutine accumulate_excess_C
+
 
       end module soil_drv
 
