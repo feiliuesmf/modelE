@@ -10633,6 +10633,7 @@ C**** Apply chemistry and overwrite changes:
 #endif
       return
 
+#ifdef TRACERS_SPECIAL_Shindell
       contains
 
       subroutine applyRadChem(index, n, factor)
@@ -10651,6 +10652,7 @@ C**** Apply chemistry and overwrite changes:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n) = 0.d0
 
       end subroutine applyRadChem
+#endif
 
       END SUBROUTINE tracer_3Dsource
 #endif /* TRACERS_ON */
