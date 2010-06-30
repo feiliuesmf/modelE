@@ -378,6 +378,7 @@ c**** prescribed dust emission
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
       use ent_com, only : excess_C
+      use constant, only : syr
 #endif
 #ifdef BIOGENIC_EMISSIONS
       use trdiag_com,ONLY : ijs_isoprene
@@ -437,7 +438,7 @@ ccc tracers
       n = 1
 c     redistribute excess_C in the atmosphere (assume the time scale
 c     of about a year)
-      delta_C = excess_C(i,j)/365d0*dtsurf
+      delta_C = excess_C(i,j)/syr*dtsurf
       excess_C(i,j) = excess_C(i,j) - delta_C
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
