@@ -146,6 +146,7 @@ C**** Set defaults for tracer attributes (all dimensioned ntm)
       itime_tr0=itime
       t_qlimit = .true.
       trdecay = 0.
+      do_fire = .false.
 #ifdef TRACERS_ON
       needtrs = .false.
       ntsurfsrc = 0
@@ -326,27 +327,49 @@ C**** get rundeck parameter for cosmogenic source factor
 #else
         call num_srf_sources(n,ntsurfsrc(n),.true.)
 #endif
-! allow any tracer to have a dynamic biomass burning src:
-        inquire(file=trim(trname(n))//'_EPFC',exist=do_fire(n))
-#ifdef DYNAMIC_BIOMASS_BURNING
-        call stop_model('fire model disabled for the moment.',13)
-#endif
 
-! allow some tracers to have biomass burning source that
-! mix over PBL layers (these become 3D sources no lont in ntsurfsrc(n):
-        if(.not. do_fire(n))then
-          select case (trname(n))
-          case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+#ifdef DYNAMIC_BIOMASS_BURNING
+! allow some tracers to have biomass burning based on fire model:
+        select case (trname(n))
+        case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2'
 #ifdef TRACERS_SPECIAL_Shindell
-     &          'CH4',
+     &  ,'CH4' ! in here to avoid potential Lerner tracers conflict
 #endif
-     &          'NH3', 'SO2', 'BCB', 'OCB',
-     &          'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
-            call sync_param(trim(trname(n))//"_nBBsources",
-     &                      nBBsources(n))
-            ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
-          end select
-        endif
+     &  )
+          do_fire(n)=.true.
+        end select
+#endif /* DYNAMIC_BIOMASS_BURNING */
+
+! allow some tracers to have biomass burning sources that mix over
+! PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
+        select case (trname(n))
+        case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+#ifdef TRACERS_SPECIAL_Shindell
+     &  'CH4', ! in here to avoid potential Lerner tracers conflict
+#endif
+     &  'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
+     &  'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
+          call sync_param(trim(trname(n))//"_nBBsources",
+     &    nBBsources(n))
+          if(nBBsources(n)>0)then
+            if(do_fire(n))then
+              if(am_i_root())write(6,*)
+     &        'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
+              call stop_model('nBBsource do_fire conflict',13)
+            else
+              ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
+            end if
+          end if
+        end select
+        if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
+          write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
+          call stop_model('do_fire+ntsurfsrc too large',13)
+        end if
+        if(ntsurfsrc(n)+nBBsources(n) > ntsurfsrcmax)then
+          write(6,*)trname(n),'ntsurfsrc+nBBsources > max of ',
+     &    ntsurfsrcmax
+          call stop_model('ntsurfsrc+nBBsources too large',13)
+        end if
 
 ! other special cases:
 #ifndef TRACERS_AEROSOLS_SOA
@@ -481,6 +504,14 @@ C         Interpolate CH4 altitude-dependence to model resolution:
      *            axyp(i,j)
             end do     ; end do
           end if
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00,1.0864168d-06,
+     &    6.3624935d-07, 4.7021388d-07, 1.0293500d-06, 1.7132404d-06,
+     &    1.4364367d-06, 3.0849296d-06, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif /* DYNAMIC_BIOMASS_BURNING */
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('O3')
@@ -614,6 +645,14 @@ C**** Get solar variability coefficient from namelist if it exits
 #ifdef TRACERS_DRYDEP
           F0(n) = 1.d-1
           HSTAR(n) = 1.d-2
+#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.1378230d-07,
+     &    3.2166037d-07, 1.5559274d-07, 4.1611088d-07, 5.7316458d-07,
+     &    2.1700112d-07, 3.0054335d-07, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
 #endif
           call check_aircraft_sectors ! special 3D source case
 
@@ -791,6 +830,14 @@ C          read the CFC initial conditions:
           end do     ; end do
           ntm_power(n) = -8
           tr_mm(n) = 28.01d0
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 7.0401156d-06,
+     &    1.8708386d-05, 1.0678024d-05, 2.6742857d-05, 4.0226296d-05,
+     &    2.3661527d-05, 4.4639346d-05, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
 
       case ('PAN')
       n_PAN = n
@@ -819,12 +866,28 @@ C          read the CFC initial conditions:
           ntm_power(n) = -10
           tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or
                            ! equivalently, kg/m2/s for species with tr_mm=1
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.1516259d-09,
+     &    1.1544214d-08, 6.9501711d-09, 1.7481154d-08, 2.5840087d-08,
+     &    1.5709551d-08, 3.5913079d-08, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
 
       case ('Paraffin')
       n_Paraffin = n
           ntm_power(n) = -10
           tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or
                            ! equivalently, kg/m2/s for species with tr_mm=1
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.5258348d-09,
+     &    5.6236904d-09, 3.1752858d-09, 1.0662656d-08, 1.5271524d-08,
+     &    8.0735774d-09, 2.6055675d-08, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
 
 #endif  /* TRACERS_SPECIAL_Shindell */
 
@@ -965,6 +1028,15 @@ C          read the CFC initial conditions:
 c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           HSTAR(N)=1.D5
 #endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 2.6305068d-07,
+     &    1.3513656d-07, 1.0093965d-07, 1.6911058d-07, 3.2019645d-07,
+     &    3.1232341d-07, 4.1607765d-07, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
+
       case ('SO4')
       n_SO4 = n
           ntm_power(n) = -11
@@ -1057,6 +1129,14 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=1.d-7 !m
           fq_aer(n)=0.6   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 8.2731990d-09,
+     &    1.7817767d-07, 8.5456378d-08, 2.5662467d-07, 3.3909114d-07,
+     &    1.1377826d-07, 2.9145593d-07, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
       case ('OCII') !Insoluble industrial organic mass
       n_OCII = n
           ntm_power(n) = -11
@@ -1157,6 +1237,14 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
           trradius(n)=3.d-7 !m
           fq_aer(n)=0.8   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,
+     &    1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,
+     &    2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
+#endif
       case ('Be7')
       n_Be7 = n
 CCC#ifdef SHINDELL_STRAT_EXTRA
@@ -1237,6 +1325,14 @@ CCC#endif
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
           HSTAR(n)=tr_RKD(n)*convert_HSTAR
+#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's AR5_EPFC_factors_corrected_NH3.xlsx file.
+          emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.2274993d-06,
+     &    3.8813269d-07, 3.5230462d-07, 4.0781484d-07, 8.8901584d-07,
+     &    1.1341459d-06, 1.4117913d-06, 0.0000000d+00, 0.0000000d+00,
+     &    0.0000000d+00, 0.0000000d+00/)
 #endif
       case ('NH4')
       n_NH4 = n
@@ -9183,11 +9279,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
-         if(do_fire(n))then
-           nread=ntsurfsrc(n)
-         else 
-           nread=ntsurfsrc(n)+nBBsources(n)
-         end if
+         nread=ntsurfsrc(n)+nBBsources(n)
          if(nread>0) call read_sfc_sources(n,nread,xyear,xday,.true.)
 #ifdef WATER_MISC_GRND_CH4_SRC
          do ns=1,ntsurfsrc(n) 
@@ -9235,15 +9327,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             endif
 #endif
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) */
-            nread=ntsurfsrc(n)
-            if(.not. do_fire(n)) then
-              select case (trname(n))
-              case ('Alkenes', 'CO', 'NOx', 'Paraffin',
-     &              'NH3', 'SO2', 'BCB', 'OCB',
-     &              'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC') ! do not include sulfate here
-                nread=nread+nBBsources(n)
-              end select
-            endif
+
+            nread=ntsurfsrc(n) ! default
+            select case (trname(n))
+            case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
+     &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
+     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
+              nread=nread+nBBsources(n)
+            end select
+
 #ifndef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_AMP
             select case (trname(n))
@@ -9808,11 +9900,7 @@ C****
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
      &      'stratOx','codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
-          ! better to add array that knows source index
-          ! perhaps do_fire, changed to integer?
-        endif
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
 #endif
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
@@ -9853,11 +9941,7 @@ C****
 #endif  /* TRACERS_TERP */
       case ('CH4')
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
-          ! better to add array that knows source index
-          ! perhaps do_fire, changed to integer?
-        endif
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
 #endif
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
@@ -9915,11 +9999,7 @@ C****
           src_fact=BBinc
         end select
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
-          ! better to add array that knows source index
-          ! perhaps do_fire, changed to integer?
-        endif
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
 #endif
 #ifndef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_AMP
@@ -9939,11 +10019,7 @@ C****
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
       case ('NH3')
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))then
-          call dynamic_biomass_burning(n,ntsurfsrc(n))
-          ! better to add array that knows source index
-          ! perhaps do_fire, changed to integer?
-        endif
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
 #endif
         if (imAER.ne.5) then
           do j=J_0,J_1
@@ -10233,10 +10309,12 @@ C**** aircraft source for fresh industrial BC
             src_index=n_SO2
 #endif
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
-            bb_fact=BBinc
+            if(.not.do_fire(n))bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
-            src_fact=om2oc(n)
-            bb_fact=BBinc
+            if(.not.do_fire(n))then
+              src_fact=om2oc(n)
+              bb_fact=BBinc
+            end if
           end select
 
 C**** 3D aircraft source - only SO2, no sulfate
@@ -10262,19 +10340,22 @@ C**** 3D biomass source
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         if ((imAER.ne.1) .or. (n<=ntm_chem)) then
 #endif
-          bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
-          bb_e=bb_i                   ! index of last BB source
-          if (.not. do_fire(src_index)) then
-            bb_e=ntsurfsrc(src_index)+nBBsources(src_index)
-          endif
-          do j=J_0,J_1; do i=I_0,I_1
-            blay=int(dclev(i,j)+0.5d0)
-            blsrc = axyp(i,j)*src_fact*bb_fact*
-     &        sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
-            do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
-            end do
-          end do; end do
+          if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
+            bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
+            if(do_fire(src_index))then
+              bb_e=bb_i ! index last BB source
+            else
+              bb_e=ntsurfsrc(src_index)+nBBsources(src_index) ! index last BB source
+            end if
+            do j=J_0,J_1; do i=I_0,I_1
+              blay=int(dclev(i,j)+0.5d0)
+              blsrc = axyp(i,j)*src_fact*bb_fact*
+     &         sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
+              do l=1,blay
+                tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
+              end do
+            end do; end do
+          end if 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         else
           select case(trname(n))
