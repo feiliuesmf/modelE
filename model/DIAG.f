@@ -1271,10 +1271,11 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       character*14, private :: adate_sv
 
 #ifdef NEW_IO_SUBDD
-      private :: write_2d,write_3d,in_subdd_list
+      private :: write_2d,write_3d,write_2d_tracer,in_subdd_list
       interface write_subdd
       module procedure write_2d
       module procedure write_3d
+      module procedure write_2d_tracer
       end interface
 #endif
 
@@ -2358,7 +2359,7 @@ C**** first set: no 'if' tests
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustEmission(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustEmission(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustEmission(i,j,n)=0.D0
                 end do
@@ -2369,7 +2370,7 @@ C**** first set: no 'if' tests
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustEmission2(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustEmission2(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustEmission2(i,j,n)=0.D0
                 end do
@@ -2380,7 +2381,7 @@ C**** first set: no 'if' tests
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustSurfMixR(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustSurfMixR(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustSurfMixR(i,j,n)=0.D0
                 end do
@@ -2390,7 +2391,7 @@ C**** first set: no 'if' tests
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustSurfConc(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustSurfConc(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustSurfConc(i,j,n)=0.D0
                 end do
@@ -2408,15 +2409,15 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-              data=0.D0
+              datar8=0.D0
 !$OMP PARALLEL DO PRIVATE(i,j,l)
               do j=j_0,j_1
                 do i=i_0,i_1
                   do l=1,LmaxSUBDD
-                    data(i,j)=data(i,j)+dustDiagSubdd_acc%dustMass(i,j,l
-     &                   ,n)
+                    datar8(i,j)=datar8(i,j)+dustDiagSubdd_acc%dustMass(i
+     &                   ,j,l,n)
                   end do
-                  data(i,j)=data(i,j)*byaxyp(i,j)
+                  datar8(i,j)=datar8(i,j)*byaxyp(i,j)
                   dustDiagSubdd_acc%dustMass(i,j,:,n)=0.D0
                 end do
               end do
@@ -2424,10 +2425,14 @@ C**** first set: no 'if' tests
 
             end select
             polefix=.true.
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix)
+#else
+            data=datar8
             call write_data(data,kunit,polefix)
+#endif
           end do
           cycle
-
 
 C**** other dust special cases
 
@@ -2435,18 +2440,24 @@ C**** other dust special cases
             kunit=kunit+1
             if(mod(itime+1,Nday).ne.0) cycle ! don't cycle only at end of day
             if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-            data=0.
+            datar8=0.
             do n=1,Ntm_dust
               n1=n_fidx+n-1
               select case(namedd(k))
               case('DuAOD')
-                data=ttausv_sum(:,:,n1)
+                datar8(:,:)=ttausv_sum(:,:,n1)
               case('DuCSAOD')
-                data=ttausv_sum_cs(:,:,n1)
+                datar8(:,:)=ttausv_sum_cs(:,:,n1)
               end select
-              data=data/ttausv_count
+              datar8=datar8/ttausv_count
               polefix=.true.
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
+     &             )
+#else
+              data=datar8
               call write_data(data,kunit,polefix)
+#endif
             end do
             cycle
 
@@ -2459,14 +2470,20 @@ C**** other dust special cases
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustDepoTurb(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustDepoTurb(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustDepoTurb(i,j,n)=0.D0
                 end do
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
+     &             )
+#else
+              data=datar8
               call write_data(data,kunit,polefix)
+#endif
             end if
           end do
           cycle
@@ -2479,14 +2496,20 @@ C**** other dust special cases
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustDepoGrav(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustDepoGrav(i,j,n)
      &                 /real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustDepoGrav(i,j,n)=0.D0
                 end do
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
+     &             )
+#else
+              data=datar8
               call write_data(data,kunit,polefix)
+#endif
             end if
           end do
           cycle
@@ -2501,7 +2524,7 @@ C**** other dust special cases
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  data(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
+                  datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
      &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
@@ -2511,7 +2534,12 @@ C**** other dust special cases
             end if
 #endif
             polefix=.true.
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix)
+#else
+            data=datar8
             call write_data(data,kunit,polefix)
+#endif
           end do
           cycle
 #endif
@@ -2624,6 +2652,52 @@ c
       call par_close(grid,fid)
       return
       end subroutine write_3d
+
+      subroutine write_2d_tracer(qtyname,trname,data,polefix)
+!@sum  write_2d_tracer writes separate high frequency output file for
+!@+    each tracer with variable qtyname
+
+      use pario, only : par_open,par_close,par_enddef,defvar,
+     &     write_data,write_dist_data
+      use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
+
+      implicit none
+
+      character(len=*) :: qtyname
+      character(len=*),intent(in) :: trname
+      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
+      logical :: polefix
+c
+      integer fid
+      integer :: record
+      character(len=80) :: fname
+
+      if(.not. in_subdd_list(qtyname)) return
+
+      fname = trim(qtyname)//'_'//trim(trname)//'_'//aDATE_sv(1:7)/
+     &     /'.nc'
+      record = (1+itime-itime0)/nsubdd
+      if(record==1) then ! define this output file
+        fid = par_open(grid,trim(fname),'create')
+        call defvar(grid,fid,itime,'itime',
+     &       with_record_dim=.true.)
+        call defvar(grid,fid,data,trim(qtyname)//'_'//trim(trname)/
+     &       /'(dist_im,dist_jm)',with_record_dim=.true.,r4_on_disk=
+     &       .true.)
+        call par_enddef(grid,fid)
+      else
+        fid = par_open(grid,trim(fname),'write')
+      endif
+      if(polefix) then
+        if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
+        if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
+      endif
+      call write_data(grid,fid, 'itime', itime, record=record)
+      call write_dist_data(grid,fid, trim(qtyname)//'_'//trim(trname)
+     &     ,data,record=record)
+      call par_close(grid,fid)
+      return
+      end subroutine write_2d_tracer
 
       logical function in_subdd_list(qtyname)
       character(len=*) :: qtyname
