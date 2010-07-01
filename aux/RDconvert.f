@@ -11,7 +11,7 @@
       USE LAKES, only : KDIREC,KD911,IFLOW,JFLOW,IFL911,JFL911
       USE LAKES_COM, only : NAMERVR
       USE FILEMANAGER, only : openunit,closeunit,nameunit
-      USE GEOM, only : lon2d_dg,lat2d_dg,dyv,geom_b,imaxj,lonlat_to_ij
+      USE GEOM, only : lon2d_dg,lat2d_dg,geom_b,imaxj,lonlat_to_ij
      *     ,lat_to_j
       IMPLICIT NONE
       character*80 filein,arg
@@ -92,16 +92,18 @@ C**** read in named rivers (if any)
         END DO
       END IF
  10   call closeunit (iu_RVR)
+c      write(*,*) NAMERVR
 
 C**** Create integral direction array KDIREC/KD911 from CDIREC
 
       ! Use unusual loop bounds to fill KDIREC/KD911 in halo
       DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
       DO I=I_0, I_1
-C**** KD: -16 = blank, 0-8 directions >8 named rivers, >48 emerg. dir
+C**** KD: -16 = blank, 0-8 directions, 9 recirculation, 
+C****      >9 named rivers, >48 emerg. dir
         KD= ICHAR(CDIREC(I,J)) - 48
         KDE=KD
-        NODIR(I,J) = (KD.eq.-16) .or. (KD.gt.8 .and. KD.lt.48)
+        NODIR(I,J) = (KD.eq.-16) .or. (KD.gt.9 .and. KD.lt.48)
         IF (KDE.gt.48) THEN
            KDE=KDE-48  ! emergency direction for no outlet boxes
            KD=0        ! normally no outlet
@@ -109,7 +111,7 @@ C**** KD: -16 = blank, 0-8 directions >8 named rivers, >48 emerg. dir
 
 C**** Default direction is down (if ocean box), or no outlet (if not)
 C**** Also ensure that all ocean boxes are done properly
-        IF ((KD.lt.0 .or. KD.gt.8)) THEN ! .or. FOCEAN(I,J).eq.1.) THEN
+        IF ((KD.lt.0 .or. KD.gt.9)) THEN ! .or. FOCEAN(I,J).eq.1.) THEN
           KDIREC(I,J)=0
           KD911(I,J) =0
         ELSE
@@ -127,14 +129,15 @@ C**** Check for specified river mouths
       END DO
       END DO
 
+      write(*,*) "IM, JM=",IM,JM
       INM=0
       DO J=1,JM
       DO I=1,IM
-C**** KD: -16 = blank, 0-8 directions >8 named rivers
+C**** KD: -16 = blank, 0-8 directions, 9 recirculation, >9 named rivers
         KD= ICHAR(CDIREC(I,J)) - 48
 C**** Check for specified river mouths
         IF (KD.GE.17 .AND. KD.LE.42) THEN
-          INM=INM+1
+          INM=INM+1        
           IF (CDIREC(I,J).ne.NAMERVR(INM)(1:1)) THEN
             WRITE(6,*)
      *           "Warning: Named river in RVR does not correspond"
@@ -202,6 +205,9 @@ c halo corner of a cubed sphere face - see later whether necessary here.
             IFLOW(I,J) = I+1
             JFLOW(I,J) = J
             IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
+          CASE (9) 
+            IFLOW(I,J) = -9999
+            JFLOW(I,J) = -9999
           END SELECT
 
 C****
@@ -309,23 +315,28 @@ C**** Next to pole too
 
 
       do j=1,jm
-        do i=1,im
+         do i=1,im
 C**** calculate lat/lon pairs for downstream box.
-          if (.not. nodir(i,j)) then
-            down_lat(i,j)=lat2d_dg(iflow(i,j),jflow(i,j))
-            down_lon(i,j)=lon2d_dg(iflow(i,j),jflow(i,j))
-          else
-            down_lat(i,j)=undef
-            down_lon(i,j)=undef
-          end if
-          if (.not. nodir(i,j) .and. ifl911(i,j).gt.0) then
-            down_lat_911(i,j)=lat2d_dg(ifl911(i,j),jfl911(i,j))
-            down_lon_911(i,j)=lon2d_dg(ifl911(i,j),jfl911(i,j))
-          else
-            down_lat_911(i,j)=undef
-            down_lon_911(i,j)=undef
-          end if
-        end do
+            if (.not. nodir(i,j)) then
+               if (iflow(i,j) .eq. -9999) then
+                  down_lat(i,j)=-9999.
+                  down_lon(i,j)=-9999.
+               else
+                  down_lat(i,j)=lat2d_dg(iflow(i,j),jflow(i,j))
+                  down_lon(i,j)=lon2d_dg(iflow(i,j),jflow(i,j))
+               endif
+            else
+               down_lat(i,j)=undef
+               down_lon(i,j)=undef
+            end if
+            if (.not. nodir(i,j) .and. ifl911(i,j).gt.0) then
+               down_lat_911(i,j)=lat2d_dg(ifl911(i,j),jfl911(i,j))
+               down_lon_911(i,j)=lon2d_dg(ifl911(i,j),jfl911(i,j))
+            else
+               down_lat_911(i,j)=undef
+               down_lon_911(i,j)=undef
+            end if
+         end do
       end do
 
 C**** output binary file
@@ -372,16 +383,24 @@ C**** read in binary file:
 C**** calculate I,J points corresponding to lat,lon
       do J=J_0,J_1
         do I=I_0,I_1
-          if (down_lon_loc(i,j).ne.undef) then
-            ll(1)=down_lon_loc(i,j)
-            ll(2)=down_lat_loc(i,j)
-            call lonlat_to_ij(ll,ij) 
-            IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
-            ll(1)=down_lon_911_loc(i,j)
-            ll(2)=down_lat_911_loc(i,j)
-            call lonlat_to_ij(ll,ij)
-            IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
-          end if
+           if (down_lon_loc(i,j).ne.undef .and. 
+     &          down_lon_loc(i,j).ne. -9999) then
+              ll(1)=down_lon_loc(i,j)
+              ll(2)=down_lat_loc(i,j)
+              call lonlat_to_ij(ll,ij) 
+              IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
+              ll(1)=down_lon_911_loc(i,j)
+              ll(2)=down_lat_911_loc(i,j)
+              call lonlat_to_ij(ll,ij)
+              IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
+           elseif (down_lon_loc(i,j) == -9999.) then
+              IFLOW(i,j)=-9999
+              JFLOW(i,j)=-9999
+              ll(1)=down_lon_911_loc(i,j)
+              ll(2)=down_lat_911_loc(i,j)
+              call lonlat_to_ij(ll,ij)
+              IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
+           end if
          END DO
       END DO
 
@@ -402,6 +421,7 @@ C**** calculate river directions from IFLOW,JFLOW
      *         ,JFLOW(I,J),IM,JM)
           IF (IFL911(I,J).gt.0) KD911(I,J)=get_dir(I,J,IFL911(I,J)
      *         ,JFL911(I,J),IM,JM)
+          IF (IFLOW(I,J) == -9999) KDIREC(I,J)=9
         END DO
       END DO
 
@@ -463,7 +483,7 @@ C direction:
 C                    2(b)
 C               3(c) ^  1(a)
 C                  \ | /
-C            4(d)<-- .-->8(h)    0 means desert
+C            4(d)<-- .-->8(h)    0 means desert, 9 means recirculation
 C                  / | \
 C               5(c) v  7(g)
 C                    6(f)
@@ -475,18 +495,18 @@ C 926 means Z(last 26th letter) ==> mouth Zambezi river.
 C 999 means that box 100% cover ocean.
 C
 C
-      character(len=1), dimension(44) :: cvalue = (/      
+      character(len=1), dimension(45) :: cvalue = (/      
      1    ' ','0'                          
-     2  , '1','2','3','4','5','6','7','8'  
+     2  , '1','2','3','4','5','6','7','8','9'  
      3  , 'a','b','c','d','e','f','g','h'  
      4  , 'A','B','C','D','E','F','G','H'  
      5  , 'I','J','K','L','M','N','O','P'  
      6  , 'Q','R','S','T','U','V','W','X'  
      7  , 'Y','Z'
      8  /)
-      real*4,           dimension(44) :: rvalue = (/       
+      real*4,           dimension(45) :: rvalue = (/       
      1     999. , 0.                           
-     2  ,   1.,   2.,  3.,  4.,  5.,  6.,  7.,  8.  
+     2  ,   1.,   2.,  3.,  4.,  5.,  6.,  7.,  8., 9.  
      3  ,  -1.,  -2., -3., -4., -5., -6., -7., -8.  
      4  ,  901.,902.,903.,904.,905.,906.,907.,908.  
      5  ,  909.,910.,911.,912.,913.,914.,915.,916.  
@@ -505,7 +525,7 @@ C
       do j = 1, jm
          symb = CDIREC(I,J)
          found = .false.
-         do k = 1, 44
+         do k = 1, 45
            if( symb == cvalue(k) ) then
              PDIREC(I,J) = rvalue(k) 
              found = .true.
@@ -514,7 +534,7 @@ C
          end do
          if( .not. found ) then
              write(6,*) ' File River Direction has wrong symbol=', symb
-             write(6,*) ' Good values are 0-8, a-h, A-Z'
+             write(6,*) ' Good values are 0-9, a-h, A-Z'
              STOP
          end if
       end do
@@ -527,7 +547,7 @@ C
       write(6,*) "by GISS utility: ijprt"
 
       call openunit(trim(ijprt_file),iu_RVR,.true.,.false.)
-      title="999->Ocean, 0-8 -> Octan dir, " //
+      title="999->Ocean, 0-9 -> Octan dir, " //
      a      "(-1)-(-8) -> a-h emergency dir, " //
      b      " 901-926 -> mouths(A-Z)"
       write(iu_RVR) title, PDIREC
