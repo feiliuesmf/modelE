@@ -1548,6 +1548,9 @@ c get_subdd
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
+      INTEGER :: DAY_OF_MONTH ! for daily averages
+
+      DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
      &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
@@ -2455,7 +2458,7 @@ C**** other dust special cases
               polefix=.true.
 #ifdef NEW_IO_SUBDD
               call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
-     &             )
+     &             ,record=day_of_month)
 #else
               data=datar8
               call write_data(data,kunit,polefix)
@@ -2655,7 +2658,7 @@ c
       return
       end subroutine write_3d
 
-      subroutine write_2d_tracer(qtyname,trname,data,polefix)
+      subroutine write_2d_tracer(qtyname,trname,data,polefix,record)
 !@sum  write_2d_tracer writes separate high frequency output file for
 !@+    each tracer with variable qtyname
 
@@ -2669,17 +2672,22 @@ c
       character(len=*),intent(in) :: trname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
       logical :: polefix
+      integer, intent(in), optional :: record
 c
       integer fid
-      integer :: record
+      integer :: rec
       character(len=80) :: fname
 
       if(.not. in_subdd_list(qtyname)) return
 
       fname = trim(qtyname)//'_'//trim(trname)//'_'//aDATE_sv(1:7)/
      &     /'.nc'
-      record = (1+itime-itime0)/nsubdd
-      if(record==1) then ! define this output file
+      if(present(record)) then
+        rec = record
+      else
+        rec = (1+itime-itime0)/nsubdd
+      endif
+      if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
         call defvar(grid,fid,itime,'itime',
      &       with_record_dim=.true.)
@@ -2694,9 +2702,9 @@ c
         if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
-      call write_data(grid,fid, 'itime', itime, record=record)
+      call write_data(grid,fid, 'itime', itime, record=rec)
       call write_dist_data(grid,fid, trim(qtyname)//'_'//trim(trname)
-     &     ,data,record=record)
+     &     ,data,record=rec)
       call par_close(grid,fid)
       return
       end subroutine write_2d_tracer
