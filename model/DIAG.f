@@ -1549,6 +1549,13 @@ c get_subdd
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTM_DUST) ::
+     &     DUST_array
+      CHARACTER(len=len(trname(1))) :: dust_names(ntm_dust)
+#endif
 
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
@@ -1559,6 +1566,8 @@ c get_subdd
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
 #ifdef TRACERS_DUST
       n_fidx=n_clay
 #else
@@ -1569,6 +1578,11 @@ c get_subdd
       n_fidx=n_sil1quhe
 #endif
 #endif
+#endif
+      do n=1,Ntm_dust ! have tracers_dust module compose the list?
+        n1=n_fidx+n-1
+        dust_names(n) = trname(n1)
+      enddo
 #endif
 
       kunit=0
@@ -2456,14 +2470,14 @@ C**** other dust special cases
               end select
               datar8=datar8/ttausv_count
               polefix=.true.
-#ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
-     &             ,record=day_of_month)
-#else
+              DUST_array(:,:,n) = datar8
               data=datar8
               call write_data(data,kunit,polefix)
-#endif
             end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),DUST_array,polefix,
+     &           record=day_of_month,suffixes=DUST_names)
+#endif
             cycle
 
 #ifdef TRACERS_DRYDEP
@@ -2586,23 +2600,28 @@ c**** fix polar values
 
 #ifdef NEW_IO_SUBDD
 
-      subroutine write_2d(qtyname,data,polefix)
+      subroutine write_2d(qtyname,data,polefix,record)
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
       character(len=*) :: qtyname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
       logical :: polefix
+      integer, intent(in), optional :: record
 c
       integer fid
-      integer :: record
+      integer :: rec
       character(len=80) :: fname
 
       if(.not. in_subdd_list(qtyname)) return
 
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
-      record = (1+itime-itime0)/nsubdd
-      if(record==1) then ! define this output file
+      if(present(record)) then
+        rec = record
+      else
+        rec = (1+itime-itime0)/nsubdd
+      endif
+      if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
         call defvar(grid,fid,itime,'itime',
      &       with_record_dim=.true.)
@@ -2616,32 +2635,50 @@ c
         if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
-      call write_data(grid,fid, 'itime', itime, record=record)
-      call write_dist_data(grid,fid, trim(qtyname), data, record=record)
+      call write_data(grid,fid, 'itime', itime, record=rec)
+      call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       call par_close(grid,fid)
       return
       end subroutine write_2d
 
-      subroutine write_3d(qtyname,data,polefix)
+      subroutine write_3d(qtyname,data,polefix,record,suffixes)
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
       character(len=*) :: qtyname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: data
       logical :: polefix
+      integer, intent(in), optional :: record
+      character(len=*), intent(in), optional :: suffixes(:)
+      character(len=80) :: qname
 c
-      integer fid,l
-      integer :: record
+      integer fid,l,rec
       character(len=80) :: fname
       if(.not. in_subdd_list(qtyname)) return
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
-      record = (1+itime-itime0)/nsubdd
-      if(record==1) then ! define this output file
+      if(present(record)) then
+        rec = record
+      else
+        rec = (1+itime-itime0)/nsubdd
+      endif
+      if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
         call defvar(grid,fid,itime,'itime',
      &       with_record_dim=.true.)
-        call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm,lm)',
-     &       with_record_dim=.true.,r4_on_disk=.true.)
+        if(present(suffixes)) then
+          if(size(suffixes).ne.size(data,3))
+     &         call stop_model('write_3d: bad sizes',255)
+          do l=1,size(data,3)
+            qname = trim(qtyname)//'_'//trim(suffixes(l))
+            call defvar(grid,fid,data(:,:,l),
+     &           trim(qname)//'(dist_im,dist_jm)',
+     &           with_record_dim=.true.,r4_on_disk=.true.)
+          enddo
+        else
+          call defvar(grid,fid,data,
+     &         trim(qtyname)//'(dist_im,dist_jm,lm)',
+     &         with_record_dim=.true.,r4_on_disk=.true.)
+        endif
         call par_enddef(grid,fid)
       else
         fid = par_open(grid,trim(fname),'write')
@@ -2652,8 +2689,16 @@ c
           if(hasNorthPole(grid)) data(2:im,jm,l) = data(1,jm,l)
         enddo
       endif
-      call write_data(grid,fid, 'itime', itime, record=record)
-      call write_dist_data(grid,fid, trim(qtyname), data, record=record)
+      call write_data(grid,fid, 'itime', itime, record=rec)
+      if(present(suffixes)) then
+        do l=1,size(data,3)
+          qname = trim(qtyname)//'_'//trim(suffixes(l))
+          call write_dist_data(grid,fid, trim(qname),
+     &         data(:,:,l), record=rec)
+        enddo
+      else
+        call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
+      endif
       call par_close(grid,fid)
       return
       end subroutine write_3d
