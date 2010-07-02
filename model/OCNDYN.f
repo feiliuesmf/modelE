@@ -719,6 +719,9 @@ C**** Initialize solar radiation penetration arrays
 C**** Initialize KPP mixing scheme
       call kmixinit(ZE)
 
+C***  Initialize ODIFF
+      call init_ODIFF(grid)
+
 c-------------------------------------------------------------------
 c End ocean-processors-only code region
       endif ocean_processors_only
@@ -774,8 +777,6 @@ C**** Set atmospheric surface variables
 C***  Interpolate ocean surface velocity to the DYNSI grid
       IF (ISTART.gt.0) CALL OG2IG_uvsurf
 
-C***  Initialize ODIFF
-      call init_ODIFF(grid)
 
       RETURN
 C**** Terminate because of improper start up
