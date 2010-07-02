@@ -1423,6 +1423,8 @@ C****
       implicit none
       character*14, intent(in) :: adate
 
+      adate_sv = adate
+
 #ifdef NEW_IO_SUBDD
       return
 #endif
