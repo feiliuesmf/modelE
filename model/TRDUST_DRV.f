@@ -688,45 +688,22 @@ c def_rsf_trdust
 !@var fid file id
       integer,intent(in) :: fid
 
-      integer :: n_fidx,n,n1
-
-#ifdef TRACERS_DUST
-      n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-      n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-
-      do n=1,Ntm_dust
-        n1=n_fidx+n-1
-        call defvar(grid,fid,dustDiagSubdd_acc%dustEmission(:,:,n)
-     &       ,'dustEmission'//'_'//trim(trname(n1))//'(dist_im,dist_jm)'
-     &       )
-        call defvar(grid,fid,dustDiagSubdd_acc%dustEmission2(:,:,n)
-     &       ,'dustEmission2'//'_'//trim(trname(n1))/
-     &       /'(dist_im,dist_jm)')
-        call defvar(grid,fid,dustDiagSubdd_acc%dustDepoTurb(:,:,n)
-     &       ,'dustDepoTurb'//'_'//trim(trname(n1))/
-     &       /'(dist_im,dist_jm)')
-        call defvar(grid,fid,dustDiagSubdd_acc%dustDepoGrav(:,:,n)
-     &       ,'dustDepoGrav'//'_'//trim(trname(n1))/
-     &       /'(dist_im,dist_jm)')
-        call defvar(grid,fid,dustDiagSubdd_acc%dustMassInPrec(:,:,n)
-     &       ,' dustMassInPrec'//'_'//trim(trname(n1))/
-     &       /'(dist_im,dist_jm)')
-        call defvar(grid,fid,dustDiagSubdd_acc%dustSurfMixR(:,:,n)
-     &       ,'dustSurfMixR'//'_'//trim(trname(n1))//'(dist_im,dist_jm)'
-     &       )
-        call defvar(grid,fid,dustDiagSubdd_acc%dustSurfConc(:,:,n),'
-     &       dustSurfConc'//'_'//trim(trname(n1))//'(dist_im,dist_jm)')
-        call defvar(grid,fid,dustDiagSubdd_acc%dustMass(:,:,:,n)
-     &       ,'dustMass'//'_'//trim(trname(n1))//'(dist_im,dist_jm,lm)')
-      end do
+      call defvar(grid,fid,dustDiagSubdd_acc%dustEmission(:,:,:)
+     &     ,'dustEmission'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustEmission2(:,:,:)
+     &     ,'dustEmission2'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustDepoTurb(:,:,:)
+     &     ,'dustDepoTurb'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustDepoGrav(:,:,:)
+     &     ,'dustDepoGrav'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustMassInPrec(:,:,:)
+     &     ,' dustMassInPrec'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustSurfMixR(:,:,:)
+     &     ,'dustSurfMixR'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustSurfConc(:,:,:),'
+     &     dustSurfConc'//'(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustMass(:,:,:,:)
+     &     ,'dustMass'//'(dist_im,dist_jm,lm,Ntm)')
 
       return
       end subroutine def_rsf_trdust
@@ -742,63 +719,41 @@ c new_io_trdust
 !@var iaction flag for reading or writing to file
       integer,intent(in) :: fid,iaction
 
-      integer :: n_fidx,n,n1
-
-#ifdef TRACERS_DUST
-      n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-      n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-
       select case (iaction)
       case (iowrite)            ! output to restart file
-        do n=1,Ntm_dust
-          n1=n_fidx+n-1
-          call write_dist_data(grid,fid,'dustEmission'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustEmission(:,:,n))
-          call write_dist_data(grid,fid,'dustEmission2'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustEmission2(:,:,n))
-          call write_dist_data(grid,fid,'dustDepoTurb'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustDepoTurb(:,:,n))
-          call write_dist_data(grid,fid,'dustDepoGrav'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustDepoGrav(:,:,n))
-          call write_dist_data(grid,fid,'dustMassInPrec'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustMassInPrec(:,:,n)
-     &         )
-          call write_dist_data(grid,fid,'dustSurfMixR'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustSurfMixR(:,:,n))
-          call write_dist_data(grid,fid,'dustSurfConc'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustSurfConc(:,:,n))
-          call write_dist_data(grid,fid,'dustMass'//'_'//trim(trname(n1)
-     &         ),dustDiagSubdd_acc%dustMass(:,:,:,n))
-        end do
+        call write_dist_data(grid,fid,'dustEmission'
+     &       ,dustDiagSubdd_acc%dustEmission(:,:,:))
+        call write_dist_data(grid,fid,'dustEmission2'
+     &       ,dustDiagSubdd_acc%dustEmission2(:,:,:))
+        call write_dist_data(grid,fid,'dustDepoTurb'
+     &       ,dustDiagSubdd_acc%dustDepoTurb(:,:,:))
+        call write_dist_data(grid,fid,'dustDepoGrav'
+     &       ,dustDiagSubdd_acc%dustDepoGrav(:,:,:))
+        call write_dist_data(grid,fid,'dustMassInPrec'
+     &       ,dustDiagSubdd_acc%dustMassInPrec(:,:,:))
+        call write_dist_data(grid,fid,'dustSurfMixR'
+     &       ,dustDiagSubdd_acc%dustSurfMixR(:,:,:))
+        call write_dist_data(grid,fid,'dustSurfConc'
+     &       ,dustDiagSubdd_acc%dustSurfConc(:,:,:))
+        call write_dist_data(grid,fid,'dustMass'
+     &       ,dustDiagSubdd_acc%dustMass(:,:,:,:))
       case (ioread)            ! input from restart file
-        do n=1,Ntm_dust
-          n1=n_fidx+n-1
-          call read_dist_data(grid,fid,'dustEmission'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustEmission(:,:,n))
-          call read_dist_data(grid,fid,'dustEmission2'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustEmission2(:,:,n))
-          call read_dist_data(grid,fid,'dustDepoTurb'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustDepoTurb(:,:,n))
-          call read_dist_data(grid,fid,'dustDepoGrav'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustDepoGrav(:,:,n))
-          call read_dist_data(grid,fid,'dustMassInPrec'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustMassInPrec(:,:,n)
-     &         )
-          call read_dist_data(grid,fid,'dustSurfMixR'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustSurfMixR(:,:,n))
-          call read_dist_data(grid,fid,'dustSurfConc'//'_'/
-     &         /trim(trname(n1)),dustDiagSubdd_acc%dustSurfConc(:,:,n))
-          call read_dist_data(grid,fid,'dustMass'//'_'//trim(trname(n1))
-     &         ,dustDiagSubdd_acc%dustMass(:,:,:,n))
-        end do
+        call read_dist_data(grid,fid,'dustEmission'
+     &       ,dustDiagSubdd_acc%dustEmission(:,:,:))
+        call read_dist_data(grid,fid,'dustEmission2'
+     &       ,dustDiagSubdd_acc%dustEmission2(:,:,:))
+        call read_dist_data(grid,fid,'dustDepoTurb'
+     &       ,dustDiagSubdd_acc%dustDepoTurb(:,:,:))
+        call read_dist_data(grid,fid,'dustDepoGrav'
+     &       ,dustDiagSubdd_acc%dustDepoGrav(:,:,:))
+        call read_dist_data(grid,fid,'dustMassInPrec'
+     &       ,dustDiagSubdd_acc%dustMassInPrec(:,:,:))
+        call read_dist_data(grid,fid,'dustSurfMixR'
+     &       ,dustDiagSubdd_acc%dustSurfMixR(:,:,:))
+        call read_dist_data(grid,fid,'dustSurfConc'
+     &       ,dustDiagSubdd_acc%dustSurfConc(:,:,:))
+        call read_dist_data(grid,fid,'dustMass'
+     &       ,dustDiagSubdd_acc%dustMass(:,:,:,:))
       end select
 
       return
