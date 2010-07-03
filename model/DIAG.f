@@ -2444,13 +2444,14 @@ C**** first set: no 'if' tests
 
             end select
             polefix=.true.
-#ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix)
-#else
+            DUST_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
-#endif
           end do
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
+     &         =DUST_names)
+#endif
           cycle
 
 C**** other dust special cases
@@ -2496,15 +2497,15 @@ C**** other dust special cases
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
-#ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
-     &             )
-#else
+              DUST_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
-#endif
             end if
           end do
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
+     &         =DUST_names)
+#endif
           cycle
 
           case ('DuDEPGRAV')      ! Gravit. settling flux of dust tracers [kg/m^2/s]
@@ -2522,17 +2523,18 @@ C**** other dust special cases
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
-#ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix
-     &             )
-#else
+              DUST_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
-#endif
             end if
           end do
-          cycle
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
+     &         =DUST_names)
 #endif
+          cycle
+#endif /*TRACERS_DRYDEP*/
+
           case ('DuDEPWET')         ! Wet deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
@@ -2553,15 +2555,17 @@ C**** other dust special cases
             end if
 #endif
             polefix=.true.
-#ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),trname(n1),datar8,polefix)
-#else
+            DUST_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
-#endif
           end do
-          cycle
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
+     &         =DUST_names)
 #endif
+          cycle
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
+
 C**** this prevents tokens that are not caught from messing up the file data
         case default
           kunit=kunit+1
