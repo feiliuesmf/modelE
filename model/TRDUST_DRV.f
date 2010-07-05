@@ -689,21 +689,21 @@ c def_rsf_trdust
       integer,intent(in) :: fid
 
       call defvar(grid,fid,dustDiagSubdd_acc%dustEmission(:,:,:)
-     &     ,'dustEmission'//'(dist_im,dist_jm,Ntm)')
+     &     ,'dustEmission'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustEmission2(:,:,:)
-     &     ,'dustEmission2'//'(dist_im,dist_jm,Ntm)')
+     &     ,'dustEmission2'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustDepoTurb(:,:,:)
-     &     ,'dustDepoTurb'//'(dist_im,dist_jm,Ntm)')
+     &     ,'dustDepoTurb'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustDepoGrav(:,:,:)
-     &     ,'dustDepoGrav'//'(dist_im,dist_jm,Ntm)')
+     &     ,'dustDepoGrav'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustMassInPrec(:,:,:)
-     &     ,' dustMassInPrec'//'(dist_im,dist_jm,Ntm)')
+     &     ,' dustMassInPrec'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustSurfMixR(:,:,:)
-     &     ,'dustSurfMixR'//'(dist_im,dist_jm,Ntm)')
+     &     ,'dustSurfMixR'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustSurfConc(:,:,:),'
-     &     dustSurfConc'//'(dist_im,dist_jm,Ntm)')
+     &     dustSurfConc'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustMass(:,:,:,:)
-     &     ,'dustMass'//'(dist_im,dist_jm,lm,Ntm)')
+     &     ,'dustMass'//'(dist_im,dist_jm,lm,Ntm_dust)')
 
       return
       end subroutine def_rsf_trdust
