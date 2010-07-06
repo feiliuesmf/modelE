@@ -6106,7 +6106,7 @@ c put in production of SO4 from gas phase
 c SO4 from industrial emissions
         do kr=1,ntsurfsrc(n_SO2)
           k = k + 1
-          ijts_source(1,n) = k
+          ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
           sname_ijts(k) = trim(trname(n))//'_src_'//
      &                    trim(ssname(n_SO2,kr))
