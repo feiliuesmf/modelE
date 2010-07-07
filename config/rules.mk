@@ -343,8 +343,12 @@ endif
 	cc -c -O2 -m64 $*.c
 
 ifneq ($(MACHINE),IRIX64)
+
 %.f: %.m4f
 	m4 $*.m4f > $*.f
+
+%.F90: %.m4F90
+	m4 $*.m4F90 > $*.F90
 endif
 
 
