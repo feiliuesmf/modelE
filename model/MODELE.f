@@ -1170,9 +1170,6 @@ C****
 #else
        USE GEOM, only : geom_b,imaxj
 #endif
-#ifdef CUBE_GRID
-      use fftw_com
-#endif
       USE DIAG_ZONAL, only : imlon
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc

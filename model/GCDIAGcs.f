@@ -379,7 +379,6 @@ c empty for now
       use diag_loc, only : tx
       use domain_decomp_atm, only : get, grid, am_i_root, sumxpe,
      &     halo_update
-      use fftw_com
       implicit none
       real*8, dimension(imlonh+1,nspher) :: ke,ke_part
       real*8, dimension(imlonh+1) :: xu,xv,xke
@@ -887,7 +886,6 @@ c      use diag_com, only : ajl=>ajl_loc,jl_ape
       use domain_decomp_atm, only : grid,am_i_root,sumxpe,esmf_bcast,
      &     halo_update
       use gcdiag
-      use fftw_com
       implicit none
       integer :: m5,ndt
 
@@ -1170,7 +1168,6 @@ c****
       use gcdiag
       use domain_decomp_atm, only : grid,sumxpe,am_i_root,
      &     halo_update
-      use fftw_com
       implicit none
 
       real*8, dimension(0:imlonh) :: an,bn
