@@ -9100,7 +9100,7 @@ c **** reads in files for dust/mineral tracers
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
-     $     ,flake0,jyear,p,t
+     $     ,flake0,jyear,p,t,lm
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
       USE RAD_COM, only: o3_yr
@@ -9157,6 +9157,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      &          trm_glbavg,factor,atm_glbavg
 #endif
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     &     :: daily_gz
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
 C****
@@ -9170,6 +9173,7 @@ C****
         call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
         daily_z = daily_z/grav
       endif
+      daily_gz = grav*daily_z
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
@@ -9274,6 +9278,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call get_aircraft_NOx(xyear,xday,daily_gz,.true.)
+#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
       do n=1,ntm
@@ -10175,6 +10182,7 @@ c latlon grid
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
+      use dynamics, only: phi
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
@@ -10229,7 +10237,11 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
       real*8 :: byavog
-
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     &     :: dummy3d
+#endif
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -10533,7 +10545,11 @@ C**** Allow overriding of transient emissions date:
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
-      call get_aircraft_NOx(xyear,xday)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call get_aircraft_NOx(xyear,xday,dummy3d,.false.)
+#else
+      call get_aircraft_NOx(xyear,xday,phi,.true.) ! read from disk
+#endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx

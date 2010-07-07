@@ -1639,7 +1639,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       enddo
 
-c not yet      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c daily_z is currently only needed for CS
+      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
       compstr='TRACERS_SPECIAL_Shindell'
@@ -1775,7 +1778,10 @@ c not yet      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
 #endif
         enddo
 
-c not yet        call write_dist_data(grid,fid,'daily_z',daily_z)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c daily_z is currently only needed for CS
+        call write_dist_data(grid,fid,'daily_z',daily_z)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
         call write_dist_data(grid,fid,'ss',ss,jdim=4)
@@ -1850,7 +1856,10 @@ c not yet        call write_dist_data(grid,fid,'daily_z',daily_z)
 #endif
         enddo
 
-c not yet        call read_dist_data(grid,fid,'daily_z',daily_z)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c daily_z is currently only needed for CS
+        call read_dist_data(grid,fid,'daily_z',daily_z)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
         call read_dist_data(grid,fid,'ss',ss,jdim=4)
