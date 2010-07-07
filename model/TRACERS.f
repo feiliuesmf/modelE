@@ -2205,7 +2205,7 @@ c not yet        call read_dist_data(grid,fid,'daily_z',daily_z)
      
       use TRACER_COM, only : trname,freq,nameT,res,ssname,Tyears,
      & ty_start,ty_end,delTyr
-      use string_funcs, only : lowercase
+      use StringUtilities_mod, only : toLowerCase
       implicit none
 
       integer, intent(in) :: n,ns
@@ -2222,8 +2222,8 @@ c not yet        call read_dist_data(grid,fid,'daily_z',daily_z)
       if(str(1:n1-1) /= 'name')error=4
       n2 = scan( str,' ')
       read(str(n1+1:n2-1),*)nameT(n,ns)
-      if(lowercase(trim(trname(n))) /=
-     &   lowercase(trim(nameT(n,ns))) )error=5
+      if(toLowerCase(trim(trname(n))) /=
+     &   toLowerCase(trim(nameT(n,ns))) )error=5
 
       str = str(n2+1:)            ! source name
       n1 = scan( str,'=')
