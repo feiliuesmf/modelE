@@ -1,7 +1,4 @@
 #include "rundeck_opts.h"
-#ifdef CUBE_GRID
-#define USE_FFTW
-#endif
       MODULE WORKJK
       USE MODEL_COM, ONLY : JM,LM
 !!!
@@ -1240,9 +1237,6 @@ c Check the count
       USE GEOM, only : IMAXJ,
      &     AREAG,BYDXYP,COSP,COSV,DXV,DXYP,DXYV,DYP,FCOR,WTJ
      &    ,BYDXYV,lat_dg
-#ifdef USE_FFTW
-      use fftw_com
-#endif
       USE DIAG_COM
       USE GCDIAG
       USE BDjkjl
@@ -4356,9 +4350,6 @@ C****
      &     ,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
       USE GCDIAG
-#ifdef USE_FFTW
-      use fftw_com
-#endif
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: X

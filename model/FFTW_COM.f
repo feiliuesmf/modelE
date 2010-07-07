@@ -1,6 +1,6 @@
       module fftw_com
 !@sum This module provides variables and routines 
-!@+   to compute FFTs using the externam FFTW library
+!@+   to compute FFTs using the external FFTW library
 !@auth Denis Gueyffier
 
       implicit none
@@ -11,12 +11,12 @@
       real *8,allocatable :: infftw(:)
       double complex, allocatable ::  outfftw(:)
 
-      contains
+      end module fftw_com
 
       subroutine fft0(M)
+      use fftw_com
       implicit none
       integer, intent(in) :: M
-      include "fftw3.f"
 
       Nsample=M
 c***  Allocate input/output arrays
@@ -35,6 +35,7 @@ c***  Create plan
 c*
 
       subroutine fftend
+      use fftw_com
       implicit none
 
       call dfftw_destroy_plan(plan_forward)
@@ -53,6 +54,7 @@ c*
 !@+   Gary Russell samples from 1 (->2 pi/ Nsample)  to Nsample(->2 pi )
 !@+   FFTW uses a more widespread convention (same as Matlab for example): 
 !@+   sampling from  0 (->0 )  to Nsample-1 (-> 2  pi (1 -1/ Nsample) ) 
+      use fftw_com
       implicit none
       real*8, intent(in) :: F(1:Nsample)
       real*8, intent(out) :: A(0:Nsample/2),B(0:Nsample/2)          
@@ -87,6 +89,7 @@ c*
       subroutine ffti(A,B,F)
 !@sum inverse fft
 !@auth Denis Gueyffier
+      use fftw_com
       implicit none
       real*8, intent(out) :: F(1:Nsample)
       real*8, intent(in) :: A(0:Nsample/2),B(0:Nsample/2)  
@@ -120,6 +123,7 @@ c*
       subroutine FFTE(F,E)
 !@sum  Spectral energy E from input gridpoint values F
 !@auth Denis Gueyffier
+      use fftw_com
       implicit none
       real*8, intent(in) :: F(1:Nsample)
       real*8, intent(out) :: E(0:Nsample/2)
@@ -136,6 +140,4 @@ c*
 
       end subroutine FFTE
 c*
-
-      end module fftw_com
 
