@@ -88,7 +88,7 @@ SOILCARB_global=soilcarb_top30cm_nmaps_4x5bin.dat
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
     ! resolution independent files

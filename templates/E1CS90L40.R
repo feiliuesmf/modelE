@@ -76,7 +76,7 @@ VEG=V_CS90 CROPS=CROPS_CS90
 CDN=CD_CS90                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RDdistocean_CS90.bin           ! river direction file
-TOP_INDEX=top_index_CS90      ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_CS90      ! only used if #define DO_TOPMODEL_RUNOFF
 GLMELT=GLMELT_CS90   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files

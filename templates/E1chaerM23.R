@@ -170,7 +170,7 @@ delta_O3=do3_shindell_72x46x49x12_2037-2107_E009TdsSxHp-SnHpM23
 GHG=GHG.Mar2004.txt
 ! e.g. GHGic=GHG_IC_1999
 dH2O=dH2O_by_CH4_monthly
-TOP_INDEX=top_index_72x46_a.ij.ext ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_72x46_a.ij.ext ! only used if #define DO_TOPMODEL_RUNOFF
 BC_dep=BC.Dry+Wet.depositions.ann
 !-----------------------------------------------
 ! choose these for trop-only chem model

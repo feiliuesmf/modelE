@@ -66,7 +66,7 @@ CROPS=CROPS2007_72X46N.cor4_nocasp       ! crops history
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=radfil33k                   ! rad.tables and history files

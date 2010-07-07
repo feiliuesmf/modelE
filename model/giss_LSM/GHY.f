@@ -20,7 +20,7 @@
 #define GHY_USE_LARGESCALE_PRECIP
 #define INTERCEPT_TEMPORAL
 #define LARGE_SCALE_PRECIP_INTERCEPT
-!#define do_topmodel_runoff
+!#define DO_TOPMODEL_RUNOFF
 !-----------------------------------------------------------------------
 
       module sle001
@@ -1456,8 +1456,8 @@ ccc in the topmodel expression for the runoff
 !        enddo
         do k=1,n
           rnff(k,ibv)=xku(k,ibv)*sl*dz(k)/sdstnc
-!/* #define do_topmodel_runoff */
-#ifdef do_topmodel_runoff
+!/* #define DO_TOPMODEL_RUNOFF */
+#ifdef DO_TOPMODEL_RUNOFF
           if ( ws(k,ibv) > 1.d-16 ) then
             f_k0_exp_k = (1.d0-fice(k,ibv))
      $           * xkus(k,ibv)*w(k,ibv)/ws(k,ibv)*dz(k)

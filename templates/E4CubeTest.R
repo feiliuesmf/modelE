@@ -97,7 +97,7 @@ CROPS=CROPS_CS32_4X5             ! crops history
 CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                      ! special regions-diag
 RVR=RDdistocean_CS32_4X5.bin     ! river directions
-TOP_INDEX=top_index_CS32         ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_CS32         ! only used if #define DO_TOPMODEL_RUNOFF
 
   ! ocean
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01   ! ocean initial conditions

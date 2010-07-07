@@ -79,7 +79,7 @@ VEG=V_CS48.1.cor2_no_crops.ext CROPS=CROPS_CS48.cor4.ext
 CDN=CD_CS48.ext                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin               ! river direction file
-TOP_INDEX=top_index_CS48.ext      ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_CS48.ext      ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
