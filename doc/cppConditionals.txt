@@ -200,7 +200,6 @@ USE_DD2D_UTILS
 USE_ENT
 USE_ESMF
 USE_FFTW
-USE_FV
 USE_FVCORE
 USE_FV_Q
 USE_GISS
@@ -228,7 +227,9 @@ code from other organizations.  (E.g. GMAO)
 USE_EXTEND_CUBE		        no longer used
 FV_LAND				no longer used
 USE_FVcubed			GMAO internal - DO NOT TOUCH
+USE_FV				GMAO internal - DO NOT TOUCH
 tempdebug			no longer used?
 _OPENMP				purely for openmp - no runtime equivalent
 CUBE_GRID			redundant; use CUBED_SPHERE
 USE_FVCUBED			redundant; use CUBED_SPHERE
+
