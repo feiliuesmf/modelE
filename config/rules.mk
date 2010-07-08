@@ -135,7 +135,7 @@ ifeq ($(FVCUBED),YES)
   ADIABATIC=YES
   AQUA_PLANET=YES
 
-  CPPFLAGS += -DUSE_FVCUBED 
+  CPPFLAGS += -DCUBED_SPHERE
 
   # For now, cubed-sphere tests do not build with CUBED_SPHERE directive
   # CPPFLAGS += -DCUBED_SPHERE
