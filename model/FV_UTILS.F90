@@ -601,9 +601,9 @@ contains
     character(len=*),  intent(in) :: config_file ! filename for resource file
 
 #ifdef CUBED_SPHERE
-    character(len=*) :: gridCompName = 'FVCORE'
+    character(len=*), parameter :: gridCompName = 'FVCORE'
 #else
-    character(len=*) :: gridCompName = 'FV dynamics'
+    character(len=*), parameter :: gridCompName = 'FV dynamics'
 #endif
 
     fv % vm  =vm
