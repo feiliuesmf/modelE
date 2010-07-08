@@ -14,6 +14,10 @@ export COMPILER
 
 export RUN_H = $(INCLUDE_DIR)/rundeck_opts.h
 
+# export global options from OPTS_MAIN line here
+export FVCUBED
+export FVCORE
+
 #MAKE1 = $(MAKE) -f make_subdirs.mk
 
 sinclude $(DECKS_DIR)/$(RUN).mk

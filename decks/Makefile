@@ -47,6 +47,7 @@ help:
 	$(MAKE) -C $(MODEL_DIR) help
 
 sinclude $(CONFIG_DIR)/rules.mk
+sinclude $(DECKS_DIR)/$(RUN).mk
 
 ifort_version:
 	@echo $(IFORT_RELEASE)
@@ -81,11 +82,11 @@ rundeck:
 
 depend: $(RUN).mk
 	$(MAKE) check_sanity RUN=$(RUN)
-	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 
 gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend
-	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
 setup: gcm
@@ -176,21 +177,21 @@ setup_gfdl: gcm $(SETUP_GFDL)
 
 
 aux rvr csrvr CMPE002: depend $(BIN_DIR)
-	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
-	$(MAKE) -C $(AUX_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
+	$(MAKE) -C $(AUX_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 auxinput: aux
-	$(MAKE) input -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) input -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 auxqflux: aux
-	$(MAKE) qflux -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) qflux -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 auxdeep: aux
-	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 clean vclean clean_all:
-	$(MAKE) -C $(MODEL_DIR) $@
-	$(MAKE) -C $(AUX_DIR) $@
+	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
+	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 
 exe: gcm
 	@if [ -n "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ] ; then \
@@ -248,7 +249,7 @@ unalias:
 
 htmldoc: depend
 	-rm -rf $(HTMLDOC_DIR)
-	$(MAKE) -C $(MODEL_DIR) htmldoc_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) htmldoc_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 config configure:
 	@if [ -f $(MODELERC) -a $(OVERWRITE) != YES ]; then \
@@ -265,15 +266,15 @@ update:
 	$(MAKE) -C $(MODEL_E_ROOT) $@ RELEASE=$(RELEASE)
 
 src_cpp_dir:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 etags:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 $(RUN).mk: $(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
 
-sinclude $(DECKS_DIR)/$(RUN).mk
+#sinclude $(DECKS_DIR)/$(RUN).mk
 
 FSRCS = $(addsuffix .f,$(strip $(OBJ_LIST)))
 
