@@ -15,7 +15,7 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       Use OCN_TRACER_COM, Only : ntm
 #endif
       Use SparseCommunicator_mod
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use cs2ll_utils, only : aoremap_type=>xgridremap_type
 #else
       use hntrp_mod, only :   aoremap_type=>hntrp_type

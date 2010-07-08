@@ -5,7 +5,7 @@
 !@+   -ocean uses latlon grid, atmosphere uses cubed-sphere grid
 !@auth Gary Russell & Denis Gueyffier
       use GEOM, only : ima=>IM, jma=>JM
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
      &     ,adlatm=>DLATM
 #endif
       use OCEAN, only : imo=>IM, jmo=>JM,odlatm=>DLATM,
@@ -38,7 +38,7 @@ C**** Non-standard regular latitude-longitude resolution
 C**** 
          call ocean_pack (oGRID,oA,oAGLOB)
          if (AM_I_ROOT())  Then
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
             Call HNTR80 (IMO,JMO,0d0,oDLATM, IMA,JMA,0d0,aDLATM, 0d0)
 #endif
             Call HNTR8P (oFOCEAN,oAGLOB,aAGLOB) 
@@ -86,7 +86,7 @@ C**** North Pole cell
             DENOM = oDXYP(JMO)*IMO*oFOCEAN(1,JMO) +
      +           oDXYP(JMO-1)*Sum(oFOCEAN(:,JMO-1))
             aA(1,JMA) = 0
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
             if (DENOM == 0)
      *           aA(1,JMA) = (oDXYP(JMO)*IMO
      *           *oFOCEAN(1,JMO)*oA(1,JMO) +

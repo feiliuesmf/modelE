@@ -13,7 +13,7 @@ C****
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
 #else
       use domain_decomp_1d, only : band_pack_type
@@ -51,7 +51,7 @@ C**** Needed for ADVSI (on ATM grid)
 !@+   On ice A grid for now
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       type(cs2llint_type) :: CS2ICEint_a,CS2ICEint_b
       type(ll2csint_type) :: i2a_uc,i2a_vc ,ICE2CSint
 c arrays for sea ice advection
@@ -107,7 +107,7 @@ C**** Ice dynamics diagnostics
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ,ICIJg
      &     ,DMUI,DMVI,UOSURF,VOSURF
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
 #else
       USE ICEDYN_COM, only : aUSI, aVSI
@@ -168,7 +168,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       ALLOCATE( RSISAVE(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &        CONNECT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
@@ -534,7 +534,7 @@ c temporarily empty.
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE DOMAIN_DECOMP_1D, only : hasSouthPole, hasNorthPole
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
       use cs2ll_utils, only : ll2csint_ij
@@ -619,7 +619,7 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
 c**** getting instance of (DMUA, DVMA) on the icedyn grid
       allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
      &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
      &     idmua,idmva)
       do j=iJ_0,iJ_1S
@@ -688,7 +688,7 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
         END DO
       END DO
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 c bundle the qtys to be interpolated
       allocate(alij_tmp(3,aI_0H:aI_1H,aJ_0H:aJ_1H))
       allocate(ilij_tmp(3,1:IMICDYN,iJ_0H:iJ_1H))
@@ -961,7 +961,7 @@ c-------------------------------------------------------------------
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
 C**** UI2rho = | tau |
 
-#ifdef CUBE_GRID /* calculate stress magnitude before regrid */
+#ifdef CUBED_SPHERE /* calculate stress magnitude before regrid */
       allocate(iUI2rho(1:IMICDYN,iJ_0H:iJ_1H))
       do j=iJ_0S,iJ_1S
         do i=1,imicdyn
@@ -1007,7 +1007,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       RETURN
       END SUBROUTINE DYNSI
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       SUBROUTINE ADVSI
 !@sum  ADVSI advects sea ice
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
@@ -1680,7 +1680,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : ICE_PACK=>PACK_DATA,am_i_root,
      &     HALO_UPDATE
       USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       USE ICEDYN_COM, only : CS2ICEint_a
       USE cs2ll_utils, only : cs2llint_ij
 #endif
@@ -1690,7 +1690,7 @@ C****
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
 c      character*80 :: title
 c      real*8, allocatable :: iA_glob(:,:)
 c      real*4, allocatable :: iA4_glob(:,:)
@@ -1730,7 +1730,7 @@ c     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
 c     &     iAb(1:IMICDYN,                             ! on ice B grid
 c     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
 c 
-c#ifdef CUBE_GRID
+c#ifdef CUBED_SPHERE
 c      real*8, allocatable :: aA_glob(:,:,:)
 c      real*4, allocatable :: a4_glob(:,:,:)
 c      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
@@ -1769,7 +1769,7 @@ c      end subroutine INT_IceB2AtmA
      &     osurf_tilt,bydts,usi,vsi,uice,vice,lon_dg,lat_dg
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
      &     GEOMICDYN,ICDYN_MASKS
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       USE ICEDYN, only : lon,lat,lonb,latb,uvm
       USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc
      &     ,ICE2CSint ,UVLLATUC,UVLLATVC,UVMATUC,UVMATVC,CONNECT
@@ -1793,7 +1793,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       integer :: imin,imax,jmin,jmax,iu_mask
       real*8 :: lonb_tmp(imicdyn)
       real*8, dimension(:,:), allocatable :: uvm_tmp
@@ -1805,7 +1805,7 @@ C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
 C**** Calculate spherical geometry
       call GEOMICDYN()
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 c Get the ice dynamics land mask from the ocean topo file
 c      call openunit("TOPO_OC",iu_mask,.true.,.true.)
 c      CALL READT_PARALLEL(grid_icdyn,iu_mask,NAMEUNIT(iu_mask),
@@ -1852,7 +1852,7 @@ C**** Initialise ice dynamics if ocean model needs initialising
          VSI=0.
       endif
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 C**** precompute some arrays for ice advection on the atm grid
       do j=agrid%j_strt,agrid%j_stop
         do i=agrid%i_strt,agrid%i_stop
@@ -2015,7 +2015,7 @@ c
       RETURN
       END SUBROUTINE init_icedyn
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       SUBROUTINE diag_ICEDYN
 !@sum  diag_ICEDYN prints out diagnostics for ice dynamics
 !@&    ESMF: It should only be called from a serial region.
@@ -2104,7 +2104,7 @@ C****
 C****
       RETURN
       END SUBROUTINE diag_ICEDYN
-#endif /* not CUBE_GRID */
+#endif /* not CUBED_SPHERE */
 
       SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF,AUSI,AVSI)
 !@sum calculate atmos. A grid winds from B grid
@@ -2114,7 +2114,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : get
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       use cs2ll_utils, only : ll2csint_lij
       use icedyn_com, only : ICE2CSint
 #else
@@ -2135,7 +2135,7 @@ C****
       REAL*8 :: hemi
       real*8, allocatable :: uvice(:,:,:),uvice_cs(:,:,:)
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       allocate(uvice(2,IMICDYN,grid%J_STRT_HALO:grid%J_STOP_HALO))
       do j=max(1,grid%J_STRT),min(grid%J_STOP,JMICDYN-1)
         do i=1,IMICDYN

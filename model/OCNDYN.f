@@ -315,7 +315,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       use DOMAIN_DECOMP_1D, only: hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, only : remap_a2o,remap_o2a
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use cs2ll_utils, only : init_xgridremap_type
       use regrid_com, only : xA2O_root,
      &     read_xgrid_file=>init_regrid_root
@@ -340,7 +340,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       INTEGER, INTENT(IN) :: istart
       LOGICAL :: iniStraits
       logical :: qexist(im)
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       integer, allocatable :: ones(:)
 #endif
 c**** Extract domain decomposition info
@@ -727,7 +727,7 @@ c End ocean-processors-only code region
       endif ocean_processors_only
 c-------------------------------------------------------------------
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call read_xgrid_file(xA2O_root,aim,ajm,6,im,jm,1)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))

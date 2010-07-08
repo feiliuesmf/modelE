@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
 !@sum  This version works for a nonorthogonal grid
@@ -70,7 +70,7 @@ C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       USE GEOM, only : cosip,sinip
 #else
       USE GEOM, only : bydyp,bydxp,cosip,sinip
@@ -104,7 +104,7 @@ C**** to be used in the PBL, at the primary grids
       DO I=1,IM
         DO J=J_0S,J_1S
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-#ifndef CUBE_GRID  /* bydyp on cubed sphere? */
+#ifndef CUBED_SPHERE  /* bydyp on cubed sphere? */
           DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
      2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
           DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
@@ -120,7 +120,7 @@ C**** to be used in the PBL, at the primary grids
         I=IM
         DO IP1=1,IM
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-#ifndef CUBE_GRID  /* bydxp on cubed sphere? */
+#ifndef CUBED_SPHERE  /* bydxp on cubed sphere? */
           DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
      2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
           DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
@@ -511,7 +511,7 @@ c****
       return
       end subroutine tropwmo
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       module zonalmean_mod
       contains
       subroutine zonalmean_ij2ij(arr,arr_zonal)
@@ -800,7 +800,7 @@ c**** Extract domain decomposition info
 #endif
 
       function nij_before_j0(j0)
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       use resolution, only : im,jm
       use domain_decomp_atm, only : grid
 #else
@@ -808,7 +808,7 @@ c**** Extract domain decomposition info
 #endif
       implicit none
       integer :: nij_before_j0,j0
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       nij_before_j0 = im*((grid%tile-1)*jm + (j0-1))
 #else
       nij_before_j0 = SUM(IMAXJ(1:J0-1))
@@ -818,14 +818,14 @@ c**** Extract domain decomposition info
 
       function nij_after_j1(j1)
       use resolution, only : im,jm
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       use domain_decomp_atm, only : grid
 #else
       use geom, only : imaxj
 #endif
       implicit none
       integer :: nij_after_j1,j1
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       nij_after_j1 = im*((6-grid%tile)*jm + (jm-j1))
 #else
       nij_after_j1 = SUM(IMAXJ(J1+1:JM))
@@ -837,7 +837,7 @@ c**** Extract domain decomposition info
       use resolution, only : im,jm
       implicit none
       integer :: nij_after_i1,i1
-#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+#ifdef CUBED_SPHERE
       nij_after_i1 = im-i1
 #else
       nij_after_i1 = 0

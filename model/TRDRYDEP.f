@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
 #define BIN_OLSON
 #endif
 
@@ -83,7 +83,7 @@ C*********************************************************************
 !@var IUSE per mil fraction of grid area with by land type element LDT
 !@var FRCLND land fraction 
       INTEGER, PARAMETER :: NPOLY   = 20,
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! Regridding causes the max. number of Olson types in a single gridcell to
 ! increase relative to the original 4x5 input file.  Temporarily increasing
 ! NTYPE for the cubed sphere until the Olson vegetation types are collapsed

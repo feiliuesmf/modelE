@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID) || defined(NEW_IO)
+#if defined(CUBED_SPHERE) || defined(NEW_IO)
 #else
 #define USE_ATM_GLOBAL_ARRAYS
 #endif

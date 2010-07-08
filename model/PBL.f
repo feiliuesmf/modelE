@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 #define PBL_USES_GCM_TENDENCIES
 #endif
 

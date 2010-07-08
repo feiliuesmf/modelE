@@ -1639,7 +1639,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       enddo
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 c daily_z is currently only needed for CS
       call defvar(grid,fid,daily_z,'daily_z'//ijldims)
 #endif
@@ -1778,7 +1778,7 @@ c daily_z is currently only needed for CS
 #endif
         enddo
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'daily_z',daily_z)
 #endif
@@ -1856,7 +1856,7 @@ c daily_z is currently only needed for CS
 #endif
         enddo
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'daily_z',daily_z)
 #endif
@@ -2244,7 +2244,7 @@ c daily_z is currently only needed for CS
       n1 = scan( str,'=')
       if(str(1:n1-1) /= 'res')error=7
       read(str(n1+1:n1+1),*)res(n,ns)
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
 #endif
 

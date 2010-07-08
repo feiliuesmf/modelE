@@ -484,7 +484,7 @@ contains
     VERIFY_(status)
 
   end subroutine AllocateFvExport3D
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
 #define USE_MAPL
 #endif
 

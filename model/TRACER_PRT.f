@@ -350,7 +350,7 @@ C**** No need to save current value
       end subroutine diagtcb
 #endif /* TRACERS_ON or TRACERS_OCEAN */
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID) /* skip prt routines */
+#ifndef CUBED_SPHERE /* skip prt routines */
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       SUBROUTINE DIAGTCP

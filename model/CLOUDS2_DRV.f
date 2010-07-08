@@ -18,7 +18,7 @@
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : imaxj,axyp,byaxyp, kmaxj
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       USE GEOM, only : ravj
 #endif
       USE RANDOM
@@ -493,7 +493,7 @@ C
         QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
       END DO
       END DO
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! note: clouds2 assumes w(l) is at the lower edge of layer l
       sd_cldil(I_0:I_1,2:lm) = wcpsig(I_0:I_1,j,1:lm-1)/DTsrc
 #endif
@@ -564,7 +564,7 @@ C****
           enddo
       endif
 #endif
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       ra = .5d0
 #else
 #ifdef ALT_CLDMIX_UV
@@ -1878,7 +1878,7 @@ C**** define local grid
       call halo_update(grid,t)
       call halo_update(grid,pk,jdim=3)   ! already haloed?
       call halo_update(grid,pmid,jdim=3) ! already haloed?
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! pva is already haloed
 #else
       call halo_update(grid,pva)

@@ -136,7 +136,7 @@
         flash=tune_lt_land*3.44d-5*(htcon**4.92d0) ! continent
       end if
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! rescale flash rate by gridbox area
       area_ref = 6d10 ! avg 2x2.5 tropical area for reference
       flash = flash * axyp(i,j)/area_ref

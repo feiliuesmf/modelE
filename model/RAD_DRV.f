@@ -38,7 +38,7 @@ C****
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00,jyear,iyear1
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
@@ -555,7 +555,7 @@ C****   Read in time history of well-mixed greenhouse gases
         if (H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           call openunit('dH2O',iu,.false.,.true.)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#if defined(CUBED_SPHERE)
           call read_qma(iu,plbx)
 #else
           call getqma(iu,lat_dg,plbx,dh2o,lm,jm)
@@ -2898,7 +2898,7 @@ C**** Same for upward thermal
       return
       end SUBROUTINE GHGHST
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#if defined(CUBED_SPHERE)
       subroutine read_qma (iu,plb)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy

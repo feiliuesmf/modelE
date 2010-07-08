@@ -1609,7 +1609,7 @@ C**** box in lat/lon case.
       do J=J_0,J_1
          do I=I_0,I_1
             wtbudg2(I,J) = axyp(I,J)/dxyp_budg(J_BUDG(I,J))
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
             wtbudg (I,J) = wtbudg2(I,J)
 #else
             wtbudg (I,J) = wtbudg2(I,J)*fim/real(imaxj(j),kind=8)
@@ -1782,7 +1782,7 @@ c temporary variant of inc_ajl without any weighting
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aijl,'aijl(dist_im,dist_jm,lm,kaijl)',
      &     r4_on_disk=r4_on_disk)
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       call defvar(grid,fid,aijk,'aijk(dist_im,dist_jm,lm,kaijk)',
      &     r4_on_disk=r4_on_disk)
 #endif
@@ -1879,7 +1879,7 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_dist_data(grid,fid,'oa',oa)
         call write_dist_data(grid,fid,'aij',aij)
         call write_dist_data(grid,fid,'aijl',aijl)
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
         call write_dist_data(grid,fid,'aijk',aijk)
 #endif
 
@@ -1908,7 +1908,7 @@ c for which scalars is bcast_all=.true. necessary?
         call read_dist_data(grid,fid,'oa',oa)
         call read_dist_data(grid,fid,'aij',aij)
         call read_dist_data(grid,fid,'aijl',aijl)
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
         call read_dist_data(grid,fid,'aijk',aijk)
 #endif
 
@@ -1989,7 +1989,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     lm,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : axyp
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
 #endif
       use domain_decomp_atm, only : grid
@@ -1999,7 +1999,7 @@ c for which scalars is bcast_all=.true. necessary?
       integer :: fid         !@var fid file id
       integer :: int_dummy
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
       call defvar(grid,fid,lat2d_dg,'lat(dist_im,dist_jm)')
       call defvar(grid,fid,lonbds,'lonbds(four,dist_im,dist_jm)')
@@ -2080,7 +2080,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,hemis_ij,'hemis_aij(one,shnhgm,kaij)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_aij','reduction','sum')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call defvar_cdl(grid,fid,cdl_ij_latlon,
      &     'cdl_aij_latlon(cdl_strlen,kcdl_aij_latlon)')
 #endif
@@ -2093,12 +2093,12 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,name_ijl,'sname_aijl(sname_strlen,kaijl)')
       call defvar_cdl(grid,fid,cdl_ijl,
      &     'cdl_aijl(cdl_strlen,kcdl_aijl)')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call defvar_cdl(grid,fid,cdl_ijl_latlon,
      &     'cdl_aijl_latlon(cdl_strlen,kcdl_aijl_latlon)')
 #endif
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       call write_attr(grid,fid,'aijk','reduction','sum')
       call write_attr(grid,fid,'aijk','split_dim',4)
       call defvar(grid,fid,ia_ijk,'ia_aijk(kaijk)')
@@ -2158,7 +2158,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     lm,ia_12hr,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : axyp
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
 #endif
       use domain_decomp_atm, only : grid
@@ -2168,7 +2168,7 @@ c for which scalars is bcast_all=.true. necessary?
       integer fid   !@var fid unit number of read/write
       integer :: i,n,ntime_dd,ntime_hd
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call write_dist_data(grid,fid,'lon',lon2d_dg)
       call write_dist_data(grid,fid,'lat',lat2d_dg)
       call write_dist_data(grid,fid,'lonbds',lonbds,jdim=3)
@@ -2218,7 +2218,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'denom_aij',denom_ij)
       call write_data(grid,fid,'sname_aij',name_ij)
       call write_cdl(grid,fid,'cdl_aij',cdl_ij)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call write_cdl(grid,fid,'cdl_aij_latlon',cdl_ij_latlon)
 #endif
 
@@ -2227,11 +2227,11 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'denom_aijl',denom_ijl)
       call write_data(grid,fid,'sname_aijl',name_ijl)
       call write_cdl(grid,fid,'cdl_aijl',cdl_ijl)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call write_cdl(grid,fid,'cdl_aijl_latlon',cdl_ijl_latlon)
 #endif
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       call write_data(grid,fid,'ia_aijk',ia_ijk)
       call write_data(grid,fid,'scale_aijk',scale_ijk)
       call write_data(grid,fid,'denom_aijk',denom_ijk)

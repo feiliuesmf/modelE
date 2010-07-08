@@ -46,7 +46,7 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       USE ATMDYN, only : DYNAM,SDRAG
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
@@ -160,7 +160,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #endif /* ADIABATIC */
       call alloc_drv()
 
-#if !defined(ADIABATIC) || defined( CUBE_GRID)
+#if !defined(ADIABATIC) || defined( CUBED_SPHERE)
 C****
 C**** INITIALIZATIONS
 C****
@@ -200,9 +200,9 @@ C**** Read input/ic files
       CALL INPUT (istart,ifile)
 #endif
 
-#if !defined(ADIABATIC) || defined( CUBE_GRID)
+#if !defined(ADIABATIC) || defined( CUBED_SPHERE)
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
 C**** Set run_status to "run in progress"
       if(istart > 0) call write_run_status("Run in progress...",1)
 #endif
@@ -307,7 +307,7 @@ C****
 #endif
 
 
-#if !defined( ADIABATIC ) || defined( CUBE_GRID)
+#if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
@@ -418,12 +418,12 @@ c     enddo
         endif
 #endif
 
-#if !defined( ADIABATIC ) || defined( CUBE_GRID)
+#if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
 #endif
 #ifdef SCM
@@ -839,7 +839,7 @@ C****
 C**** END OF MAIN LOOP
 C****
 
-#if !defined( ADIABATIC ) || defined( CUBE_GRID)
+#if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
@@ -852,7 +852,7 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
          call Finalize(fv, clock, fv_fname, fv_dfname)
 #endif
 
-#if !defined( ADIABATIC ) || defined( CUBE_GRID)
+#if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
@@ -1165,7 +1165,7 @@ C****
       USE SCMCOM, only : iu_scm_prt
 #endif
       USE SOMTQ_COM, only : mz,tmom,qmom
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
        use GEOM, only : geom_cs,imaxj
 #else
        USE GEOM, only : geom_b,imaxj
@@ -1210,7 +1210,7 @@ C****
       USE CONSTANT, only : hrday
       USE ESMF_MOD, only: ESMF_Clock
 #endif
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       USE ATMDYN, only : init_ATMDYN
 #endif
 #ifdef IRRIGATION_ON
@@ -1286,7 +1286,7 @@ C****
       SIG(:)  = (sige(1:lm)+sige(2:lm+1))*0.5d0
       DSIG(:) =  sige(1:lm)-sige(2:lm+1)
       byDSIG  =  1./DSIG
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       call geom_cs
 #else
 C**** CALCULATE SPHERICAL GEOMETRY
@@ -1520,7 +1520,7 @@ C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
       IF (ISTART.LE.2) THEN
 
-#if defined(SCM) || defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#if defined(SCM) || defined(CUBED_SPHERE)
 c in these cases, assume input U/V are on the A grid
         DO J=J_0,J_1
         DO I=I_0,I_1
@@ -1678,7 +1678,7 @@ C****
         call io_rsf("AIC",IhrX,irsfic,ioerr)
 c if starting with a different land mask, these maybe necessary
 c        iniSNOW = .TRUE.  ! Special for non-0k
-#ifndef CUBE_GRID /* iniPBL is inconvenient when not cold starting */
+#ifndef CUBED_SPHERE /* iniPBL is inconvenient when not cold starting */
         iniPBL=.TRUE.           ! Special for non-0k
 #endif
         if (ioerr.eq.1) goto 800
@@ -2061,10 +2061,10 @@ cddd#endif
         return
       end if                  !  Kradia>0; radiative forcing run
 
-#if !defined(ADIABATIC) || defined(CUBE_GRID)
+#if !defined(ADIABATIC) || defined(CUBED_SPHERE)
 
 C**** Initialize pbl (and read in file containing roughness length data)
-#ifndef CUBE_GRID /* until a better solution is found */
+#ifndef CUBED_SPHERE /* until a better solution is found */
       if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
 #endif
       if(istart.gt.0) CALL init_pbl(iniPBL)
@@ -2095,7 +2095,7 @@ C**** Initialize nudging
       CALL SETUP_RAD
 #endif
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       if (USE_UNR_DRAG==1) CALL init_UNRDRAG
 #endif
 
@@ -2108,7 +2108,7 @@ c not by the resolution module.  IMLON==IM for a latlon grid.
       CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       if(istart.gt.0) CALL init_ATMDYN
 #endif
       CALL init_RAD(istart)
@@ -2286,7 +2286,7 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
         do l=1,lm
         do j=J_0,J_1
         do i=I_0,imaxj(j)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
           call lat_interp_qma(lat2d(i,j),l,jmon,xdH2O)
 #else
           xdH2O = dH2O(j,l,jmon)

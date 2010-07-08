@@ -41,7 +41,6 @@ COMPILER_NAG
 COMPILER_XLF
 CONVERT_BIGENDIAN
 CUBED_SPHERE
-CUBE_GRID
 DEBUG
 DEBUG1
 DEBUG_DECOMP
@@ -218,7 +217,6 @@ WATER_MISC_GRND_CH4_SRC
 WATER_PROPORTIONAL
 WAVE_FORM
 WET_DEPO_Ina
-_OPENMP
 constCO2
 DO_TOPMODEL_RUNOFF
 pCO2_ONLINE
@@ -232,3 +230,5 @@ USE_EXTEND_CUBE		        no longer used
 FV_LAND				no longer used
 USE_FVcubed			GMAO internal - DO NOT TOUCH
 tempdebug			no longer used?
+_OPENMP				purely for openmp - no runtime equivalent
+CUBE_GRID			redundant; use CUBED_SPHERE

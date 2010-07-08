@@ -919,7 +919,7 @@ C*** Unpack read global data into local distributed arrays
       call write_attr(grid,fid,'hemis_taij','reduction','sum')
       call defvar_cdl(grid,fid,cdl_taij,
      &     'cdl_taij(cdl_strlen,kcdl_taij)')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call defvar_cdl(grid,fid,cdl_taij_latlon,
      &     'cdl_taij_latlon(cdl_strlen,kcdl_taij_latlon)')
 #endif
@@ -936,7 +936,7 @@ C*** Unpack read global data into local distributed arrays
      &     'sname_taijl(sname_strlen,ktaijl)')
       call defvar_cdl(grid,fid,cdl_taijl,
      &     'cdl_taijl(cdl_strlen,kcdl_taijl)')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call defvar_cdl(grid,fid,cdl_taijl_latlon,
      &     'cdl_taijl_latlon(cdl_strlen,kcdl_taijl_latlon)')
 #endif
@@ -981,7 +981,7 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'scale_taij',scale_taij(1:ktaij_out))
       call write_data(grid,fid,'sname_taij',sname_taij(1:ktaij_out))
       call write_cdl(grid,fid,'cdl_taij',cdl_taij)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call write_cdl(grid,fid,'cdl_taij_latlon',cdl_taij_latlon)
 #endif
 
@@ -990,7 +990,7 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'scale_taijl',scale_taijl(1:ktaijl_out))
       call write_data(grid,fid,'sname_taijl',sname_taijl(1:ktaijl_out))
       call write_cdl(grid,fid,'cdl_taijl',cdl_taijl)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call write_cdl(grid,fid,'cdl_taijl_latlon',cdl_taijl_latlon)
 #endif
 

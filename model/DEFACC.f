@@ -32,7 +32,7 @@ c      call il_defs
 !@auth M. Kelley
       use DIAG_COM
 c      use GEOM, only : jg_u, jg_ke
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       jgrid_u = 1
       jgrid_ke = 1
 #else
@@ -4403,7 +4403,7 @@ c
       call init_cdl_type('cdl_aij',cdl_ij_template)
       call add_dim(cdl_ij_template,'shnhgm',3)
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       ijstr='(tile,y,x) ;'
       do i=1,im
         x_dummy(i) = -1d0 + 2d0*(dble(i)-.5d0)/im
@@ -4456,7 +4456,7 @@ c
      &       long_name=trim(lname_ij(k)))
         call add_var(cdl_ij,
      &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
      &       'float '//trim(name_ij(k))//'(lat,lon) ;',
      &       units=trim(units_ij(k)),
@@ -5341,7 +5341,7 @@ c
       k=k+1
       IJL_U = k   ! e-w wind on model layers
       ia_ijl(k) = ia_dga
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! latlon B-grid config only wants this in DIAGIL
       name_ijl(k) = 'u'
       lname_ijl(k) = 'east-west velocity'
@@ -5351,7 +5351,7 @@ c
       k=k+1
       IJL_V = k   ! n-s wind on model layers
       ia_ijl(k) = ia_dga
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! latlon B-grid config only wants this in DIAGIL
       name_ijl(k) = 'v'
       lname_ijl(k) = 'north-south velocity'
@@ -5361,7 +5361,7 @@ c
       k=k+1
       IJL_W = k   ! vertical velocity
       ia_ijl(k) = ia_dga
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 ! latlon B-grid config only wants this in DIAGIL
       name_ijl(k) = 'w'
       lname_ijl(k) = 'vertical velocity'
@@ -5620,7 +5620,7 @@ c
       call merge_cdl(cdl_ij_template,cdl_heights,cdl_ijl_template)
       cdl_ijl = cdl_ijl_template ! invoke a copy method later
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call merge_cdl(cdl_ij_latlon_template,cdl_heights,
      &     cdl_ijl_latlon_template)
       cdl_ijl_latlon = cdl_ijl_latlon_template ! invoke a copy method later
@@ -5638,7 +5638,7 @@ c
      &       trim(tstr)//trim(zstr)//trim(hstr),
      &       units=trim(units_ijl(k)),
      &       long_name=trim(lname_ijl(k)))
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
         call add_var(cdl_ijl_latlon, 'float '//
      &       trim(name_ijl(k))//'('//trim(zstr)//',lat,lon);',
      &       units=trim(units_ijl(k)),

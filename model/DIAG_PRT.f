@@ -5284,7 +5284,7 @@ cddd      DEALLOCATE(tmp)
       USE DOMAIN_DECOMP_1D, ONLY : am_i_root
       IMPLICIT NONE
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
       CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
       CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)

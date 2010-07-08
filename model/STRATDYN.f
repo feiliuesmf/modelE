@@ -13,7 +13,7 @@ C****  ii) PK type variables should be done in dynamics and used here
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use cs2ll_utils, only : uv_derivs_type
 #endif
       IMPLICIT NONE
@@ -103,7 +103,7 @@ c base/top layer indices of moist convection
 c lowest level at which there are gravity waves
      &     LDRAG                       ! output
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       type(uv_derivs_type) :: dfm_type ! used for calculating defrm
       real*8 :: EK_globavg ! no horz variation of EK (quasi-uniform gridsize)
 #endif
@@ -520,7 +520,7 @@ C**** accumulated in the routines contained herein
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, READT_PARALLEL,
      &     AM_I_ROOT
       USE GEOM, only : areag
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       USE STRAT, only : EK_globavg,dfm_type
       use cs2ll_utils, only : init_uv_derivs_type
 #else
@@ -604,7 +604,7 @@ C****
         ZWT(:,:) = TEMP_LOCAL(:,:,4)
       call closeunit(iu_ZVAR)
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       CALL HALO_UPDATE(GRID, ZVART, from=SOUTH)
       CALL HALO_UPDATE(GRID, ZVARX, from=SOUTH)
       CALL HALO_UPDATE(GRID, ZVARY, from=SOUTH)
@@ -622,7 +622,7 @@ C****
 C**** define wave number array EK for GWDRAG
 C**** EKX is the mean wave number for wave lengths between a 1x1 degree
 C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       EK1=TWOPI/SQRT(AREAG/(6*IM*IM)) ! 2pi/grid_box_size
       EK2=TWOPI/SQRT(AREAG/(6*90*90)) ! 2pi/1deg_box_size
       IF(EK1.EQ.EK2) THEN
@@ -658,7 +658,7 @@ C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
 
       END SUBROUTINE init_GWDRAG
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID) /* ends with io_strat */
+#ifndef CUBED_SPHERE /* ends with io_strat */
 
       SUBROUTINE VDIFF (P,U,V,UT,VT,T,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere

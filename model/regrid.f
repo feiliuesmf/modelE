@@ -1,4 +1,4 @@
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       subroutine bilin_ll2cs_vec(grid,uin_glob,vin_glob,
      &     uout_loc,vout_loc,ims,jms,periodic)
 !@sum Bilinearly interpolate a vector field from latlon grid to cubed-sphere

@@ -268,7 +268,7 @@ C**** set units
 !@auth Gavin Schmidt
 !@ver  1.0
       USE GISSOUT
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       USE GEOM, only : lon_dg
 #endif
       IMPLICIT NONE
@@ -298,7 +298,7 @@ C**** set units
       INTEGER I,L
 
 C**** Allow for the possibility of wrap-around arrays
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       XCOOR(1:IM-I1+1) = LON_DG(I1:IM,ISHIFT)
       IF (I1.gt.1) XCOOR(IM-I1+2:IM) = LON_DG(1:I1-1,ISHIFT)
 #endif

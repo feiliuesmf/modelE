@@ -114,7 +114,7 @@ C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
       IF (JM.gt.24) THEN ! for finer that old 8x10
          do_glmelt=.true.
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
 c read a binary version of GLMELT
       call openunit("GLMELT",iu_GL,.true.,.true.)
       call readt_parallel(grid,iu_gl,nameunit(iu_gl),r8mask,1)

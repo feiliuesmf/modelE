@@ -43,7 +43,7 @@
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
 #endif
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       USE BDJLT
 #endif
       use domain_decomp_atm, only : am_i_root
@@ -64,7 +64,7 @@
       bydxyp = 1d0/dxyp
       byapo = bydxyp
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       call JLt_TITLEX ! needed for some extra titles
       onespo(1)  = fim
       onespo(jm) = fim
@@ -215,7 +215,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
 C****
 C**** NORTHWARD TRANSPORTS: Total and eddies
 C****
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       k = k + 1
       kk = jlnt_nt_tot
       per_area(k) = .false.
@@ -246,7 +246,7 @@ c
 C****
 C**** VERTICAL TRANSPORTS: Total and eddies
 C****
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       k = k + 1
       kk = jlnt_vt_tot
       per_area(k) = .false.
@@ -1051,7 +1051,7 @@ c must be used (reversed wrt Fortran).
 c
       cdl_taij = cdl_ij_template ! invoke a copy method later
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       cdl_taij_latlon = cdl_ij_latlon_template ! invoke a copy method later
       ijstr='(tile,y,x) ;'
 #else
@@ -1065,7 +1065,7 @@ c
      &       units=trim(units_taij(k)) )
         call add_var(cdl_taij,
      &       'float '//trim(sname_taij(k))//'_hemis(shnhgm) ;')
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
         call add_var(cdl_taij_latlon,
      &       'float '//trim(sname_taij(k))//'(lat,lon);',
      &       long_name=trim(lname_taij(k)),
@@ -1290,7 +1290,7 @@ c must be used (reversed wrt Fortran).
 c
       cdl_taijl = cdl_ijl_template ! invoke a copy method later
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       cdl_taijl_latlon = cdl_ijl_latlon_template ! invoke a copy method later
       tstr='(tile,'
       hstr=',y,x) ;'
@@ -1306,7 +1306,7 @@ c
      &       trim(tstr)//trim(zstr)//trim(hstr),
      &       long_name=trim(lname_taijl(k)),
      &       units=trim(units_taijl(k)) )
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
         call add_var(cdl_taijl_latlon,
      &       'float '//trim(sname_taijl(k))//
      &       '('//trim(zstr)//',lat,lon);',

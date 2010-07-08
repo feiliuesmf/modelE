@@ -237,7 +237,7 @@ C**** Local variables initialised in init_RAD
 !@var nrad_clay index of clay in arrays for optional aerosol interaction
       INTEGER :: nrad_clay
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 !@var JM_DH2O number of latitudes in CH4->H2O input file
 !@var LAT_DH2O latitudes in CH4->H2O input file (converted to radians)
       integer, parameter :: jm_dh2o=18
@@ -275,7 +275,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
      &     ,JM_DH2O
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -315,7 +315,7 @@ C**** Local variables initialised in init_RAD
      *     COSZ1   (I_0H:I_1H, J_0H:J_1H),
      *     COSZ_day(I_0H:I_1H, J_0H:J_1H),
      *     SUNSET  (I_0H:I_1H, J_0H:J_1H),
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
      *     dH2O(JM_DH2O, LM, 12),
 #else
      *     dH2O(J_0H:J_1H, LM, 12),

@@ -1238,7 +1238,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE MODEL_COM, only: itime,im,jm,fland,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &   esmf_bcast, write_parallel
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       USE DD2D_UTILS, only : 
 #else
       USE DOMAIN_DECOMP_1D, only : 
@@ -1260,7 +1260,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       character(len=300) :: out_line
       integer m,ii,ix,jj
       real*8 :: zm,zmcount
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       real*8 :: src_glob(IM,IM,6),src_flatglob(1-im:2*im,1-im:2*im)
 #else
       real*8, dimension(IM,JM) :: src_glob
@@ -1308,14 +1308,14 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
        if(nn_or_zon==0)then 
          call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob)
          call esmf_bcast(grid,src_glob)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
          ! Reorient the global array to the i-j index space of this
          ! processor. Implicit assumption (for now): wetlands exist on
          ! at least 2 faces; no data needed from the opposing face.
          call flatten_cube(src_glob,src_flatglob,im,grid%tile)
 #endif
        else
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
          call stop_model('alter_wetlands_source: zonal mean '//
      &        'to be implemented using zonalmean_ij2ij',255)
 #endif
@@ -1359,7 +1359,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
                  ix=0
                  do while(zmcount == 0.)
                    ix=ix+1
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
                    if(ix>2*im)
      &                  call stop_model('ix>2*im int wetl dist',255)
                    do jj=j-ix,j+ix

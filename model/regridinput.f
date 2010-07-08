@@ -77,7 +77,7 @@ c      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
 c*
 
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       subroutine interpRD(grid,ims,jms,imt,jmt)
 !@sum  Interpolates river directions from latlon grid to cubed sphere 
 !@+    using the following approach:

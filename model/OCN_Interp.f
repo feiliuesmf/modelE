@@ -9,7 +9,7 @@
 
 #ifdef BUNDLE_INTERP
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       subroutine bundle_interpolation(lstr, remap)
 !@auth Igor Aleinov, Denis Gueyffier, Maxwell Kelley 
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
@@ -361,7 +361,7 @@ c*   polar values are replaced by their longitudinal mean
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
      *                , sinpo, sinvo
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
@@ -656,7 +656,7 @@ c*    actual interpolation here
       call bundle_interpolation(lstr,remap_O2A)
 
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       if(hasNorthPole(agrid)) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
@@ -752,7 +752,7 @@ c*    actual interpolation here
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
      *                , sinpo, sinvo
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
@@ -899,7 +899,7 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       oWEIGHT(:,:) = 1.d0
       CALL INT_OG2AG(oUO1, aUO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
       CALL INT_OG2AG(oVO1, aVO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       if(hasNorthPole(aGRID)) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
@@ -1086,7 +1086,7 @@ C**** surface tracer concentration
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
        Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
@@ -1503,7 +1503,7 @@ C**** surface tracer concentration
      &     aWEIGHT6,oWEIGHT6)
 #endif
 
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
       if (oIM .eq. aIM .and. oJM .eq. aJM) then
          aDMUA1tmp(:,:) = aDMUA(:,:,1)
          aDMVA1tmp(:,:) = aDMVA(:,:,1)
@@ -1555,7 +1555,7 @@ C**** surface tracer concentration
             endif
          enddo
       enddo
-#endif /* not CUBE_GRID */
+#endif /* not CUBED_SPHERE */
 
       call ab_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
       call ab_add(lstr, aDMVA1tmp, oDMVA1tmp, shape(aDMVA1tmp), 'ij')
@@ -1619,7 +1619,7 @@ c*
 
       oSOLAR(3,:,:)=oSOLAR3tmp(:,:) 
 
-#ifdef CUBE_GRID
+#ifdef CUBED_SPHERE
       if (hasSouthPole(ogrid)) then
          oDMUA1sp =  SUM(oDMUA1tmp(:,  1)*oCOSI(:))*2/oIM
          oDMVA1sp = -SUM(oDMUA1tmp(:,  1)*oSINI(:))*2/oIM
@@ -2509,7 +2509,7 @@ c regrid DMVI from ice C to ocn C
       USE DOMAIN_DECOMP_1D, only : BAND_PACK, 
      &     hasNorthPole, hasSouthPole
       USE OCEAN, only : UO,VO
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       USE ICEDYN_COM, only : pack_a2i
 #endif
       implicit none
@@ -2520,7 +2520,7 @@ c regrid DMVI from ice C to ocn C
 c assumption: every dynsi PE is an ocean PE
       if(.not. oGRID%have_domain) return
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
 c DYNSI grid == ATM grid, so simply replicate ATM copy
 c (Note this requires that TOC2SST has been called first)
       call band_pack(pack_a2i, atm_uosurf, uosurf)

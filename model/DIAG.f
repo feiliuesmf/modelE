@@ -3,7 +3,7 @@
 #undef TRACERS_SPECIAL_O18
 #endif
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 #define SLP_FROM_T1
 #endif
 
@@ -666,7 +666,7 @@ c
       DO J=J_0,J_1
       DO I=I_0,I_1
         AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + BYAXYP(I,J)*
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
      &       WCP(I,J,L)
 #else
      &       W(I,J,L)
@@ -3001,7 +3001,7 @@ c**** find MSU channel 2,3,4 temperatures
       character(len=80) :: filenm
 !@var iu_REG unit number for regions file
       INTEGER iu_REG
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
 #define ASCII_REGIONS
 #endif
 #ifdef ASCII_REGIONS
@@ -3140,7 +3140,7 @@ c defaults for diurnal diagnostics
       enddo
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
-#ifndef CUBE_GRID
+#ifndef CUBED_SPHERE
 c if people still want to specify dd points as ij, let them
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
 #endif
@@ -3472,7 +3472,7 @@ c
 
       AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 
-#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+#ifndef CUBED_SPHERE
       CALL EPFLXI (U)  ! strat
 #endif
 

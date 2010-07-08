@@ -2385,7 +2385,7 @@ c      itcon_ss(n)=xx
 c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
 c      qsum(itcon_ss(n)) = .false.
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       Qf = .false.  ! no SLP filter
 #else
       Qf = .true.   ! SLP filter on
@@ -8020,7 +8020,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       real*8 carbstuff,ccnv,carb(8)
 #endif
 #if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID) /* 1-deg volc. emiss */
+#ifdef CUBED_SPHERE /* 1-deg volc. emiss */
       real*8 :: volc_lons(360),volc_lats(180),
      &     volc_pup(360,180),volc_emiss(360,180)
 #else /* volc. emiss on model grid, 1 extra lat at SP */
@@ -9278,7 +9278,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call get_aircraft_NOx(xyear,xday,daily_gz,.true.)
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
@@ -10110,7 +10110,7 @@ c! TRACERS_AMP
 !@sum Set mask array to 1 for all cells overlapping a lat-lon rectangle
 !@auth Kelley
       use domain_decomp_atm, only : get,grid
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg
 #else
       use geom, only : lon_to_i,lat_to_j
@@ -10127,7 +10127,7 @@ c! TRACERS_AMP
 
       latlon_mask(:,:) = 0d0
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       do j=j_0,j_1
       do i=i_0,i_1
         if(lon2d_dg(i,j) >= lon_w .and.
@@ -10237,7 +10237,7 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
       real*8 :: byavog
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: dummy3d
@@ -10545,7 +10545,7 @@ C**** Allow overriding of transient emissions date:
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#ifdef CUBED_SPHERE
       call get_aircraft_NOx(xyear,xday,dummy3d,.false.)
 #else
       call get_aircraft_NOx(xyear,xday,phi,.true.) ! read from disk
