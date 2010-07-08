@@ -1345,7 +1345,7 @@ C**** Fill in maplet indices for sources and sinks
      *   name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
      &   name(k)(1:5) .EQ. 'wtrsh' .OR. name(k)(1:8) .EQ. 'ext_band'
      &   .OR. name(k)(1:8) .EQ. 'sct_band' .OR. name(k)(1:8) .EQ.
-     &   'asf_band') ijtype(k)=2
+     &   'asf_band' .OR. name(k)(1:9) .EQ. 'stomatal_') ijtype(k)=2
 
         if (name(k)(5:6).eq.'CS') then
           ijtype(k)=3

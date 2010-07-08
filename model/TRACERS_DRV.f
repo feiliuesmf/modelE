@@ -5312,6 +5312,18 @@ C**** This needs to be 'hand coded' depending on circumstances
             scale_ijts(k) = 10.**(-ijts_power(k))
           endif
 #endif /* AUXILIARY_OX_RADF */
+#ifdef ACCMIP_LIKE_DIAGS
+          if(trname(n)=='Ox' .and. dodrydep(n))then
+            k = k+1
+            ijts_Sdrydep = k
+            ia_ijts(k) = ia_src
+            lname_ijts(k) = trim(trname(n))//' stomatal drydep flux'
+            sname_ijts(k) = 'stomatal_'//trim(trname(n))
+            ijts_power(k) = ntm_power(n)-4
+            units_ijts(k) = unit_string(ijts_power(k),'kg/m^2/s')
+            scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          end if
+#endif /* ACCMIP_LIKE_DIAGS */
         end select
         select case(trname(n))
         case('NOx','CO','Alkenes','Paraffin')
@@ -9402,7 +9414,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       end do ! ntm
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect),xyear,xday,.true.)
+      call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect),xyear,
+     & xday,.true.)
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP) */

@@ -180,7 +180,9 @@ c**** output
 #ifdef TRACERS_DRYDEP
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
+!@var stomatal_dep_vel turbulent deposition velocity via stomata(m/s)
         real*8, dimension(maxntm) :: dep_vel,gs_vel
+        real*8 :: stomatal_dep_vel
 #endif
 
 #ifdef TRACERS_WATER
@@ -699,7 +701,7 @@ C**** First, define some useful quantities
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
-     &     ,pbl_args%dep_vel,trnmm)
+     &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

@@ -122,7 +122,7 @@ C****
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc, jls_isrc, tij_surf,
      *      tij_surfbv, tij_evap,ijts_gasex,
-     *      tij_grnd, tij_drydep, tij_gsdep
+     *      tij_grnd, tij_drydep, tij_gsdep, ijts_Sdrydep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd,itcon_surf
 #endif
@@ -388,8 +388,8 @@ C****
 !$OMP&   GTEMPR,FLAKE,MWL,FSF,FLAG_DSWS,TRLNDI,tr_wd_type,dodrydep,
 !$OMP&   ntsurfsrc, trsource, PMID, lat2d, TRHR, hbaij,ricntd,pprec,
 !$OMP&   pevap,evapor,QCHECK,DQ1,TREVAPOR,TRSRFFLX,taijs,taijn,trdrydep,
-!$OMP&   IJTS_ISRC,JLS_ISRC,TIJ_DRYDEP,TIJ_GSDEP,itcon_dd,J_EVAP,
-!$OMP&   SNOWLI,E0,E1,TRSURF,DTH1,DMUA,DMVA,UFLUX1,VFLUX1,DDMS,
+!$OMP&   IJTS_ISRC,JLS_ISRC,TIJ_DRYDEP,TIJ_GSDEP,IJTS_SDRYDEP,itcon_dd,
+!$OMP&   J_EVAP,SNOWLI,E0,E1,TRSURF,DTH1,DMUA,DMVA,UFLUX1,VFLUX1,DDMS,
 !$OMP&   J_EVHDT,J_SHDT,J_TRHDT,J_LWCORR,J_TSRF,J_TYPE,J_TG1,J_TG2,
 !$OMP&   IJ_SHDT,IJ_TRSDN,IJ_TRSUP,IJ_SRTR,IJ_NETH,IJ_EVAP,IJ_WS,IJ_TS,
 !$OMP&   IJ_VS,IJ_TAUS,IJ_TAUUS,IJ_TAUVS,IJ_QS,IJ_RHs,IJ_TG1,IJ_PBLHT,
@@ -1053,6 +1053,13 @@ C****
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* pbl_args%gs_vel(n)
+#ifdef ACCMIP_LIKE_DIAGS
+! estimate stomatal tracer flux:
+          if(trname(n)=='Ox')
+     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
+     &         rtsdt*(pbl_args%stomatal_dep_vel)
+
+#endif
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)

@@ -52,7 +52,7 @@ c******************   TRACERS             ******************************
      *     ,tij_evap,tij_grnd,tij_soil,tij_snow,tre_acc
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd
+     *     ,tij_drydep,tij_gsdep,itcon_dd,ijts_Sdrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -595,6 +595,13 @@ ccc accumulate tracer dry deposition
      &         ptype*rtsdt*pbl_args%dep_vel(n)
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* pbl_args%gs_vel(n)
+#ifdef ACCMIP_LIKE_DIAGS
+! estimate stomatal tracer flux:
+          if(trname(n)=='Ox')
+     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
+     &         rtsdt*(pbl_args%stomatal_dep_vel)
+
+#endif
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)

@@ -158,8 +158,8 @@ C*********************************************************************
 
 
 #ifdef TRACERS_DRYDEP
-      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL
-     &                       ,trnmm)
+      SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL,
+     & stomatal_dep_vel,trnmm)
 !@sum  get_dep_vel computes the Bulk surface reistance to
 !@+    tracer dry deposition using a resistance-in-series model
 !@+    from a portion of the Harvard CTM dry deposition routine.
@@ -206,6 +206,7 @@ C
 !@var RSURFACE Bulk surface resistance for species K landtype LDT
 !@var RI internal resistance (minimum stomatal resistance for
 !@+   water vapor, per unit area of leaf)
+!@var RSTOMATAL Stomatal portion of RSURFACE for ozone, landtype LDT
 !@var RAD0 downward solar radiation flux at surface (w/m2)
 !@var RT correction term for bulk surface resistance for gases?
 !@var RIX ______ resistance
@@ -232,15 +233,18 @@ C
 !@var SUNCOS Cosine of solar zenith angle
 !@var IOLSON integer index for olson surface types?
 !@var VD deposition velocity temp array   (s m-1)
+!@var SVD stomatal deposition velocity temp array   (s m-1)
       REAL*8,  DIMENSION(ntm,NTYPE) :: RSURFACE
+      REAL*8,  DIMENSION(NTYPE) :: RSTOMATAL
       REAL*8,  DIMENSION(ntm)   :: TOTA,VD,HSTAR,F0,trnmm
       REAL*8,  DIMENSION(NTYPE) :: RI,RLU,RAC,RGSS,RGSO,RCLS,RCLO
       REAL*8 :: RT,RAD0,RIX,GFACT,GFACI,RDC,RIXX,RLUXX,RGSX,RCLX,VDS,
      &       DTMP1,DTMP2,DTMP3,DTMP4,CZH,DUMMY1,DUMMY2,DUMMY3,DUMMY4,
-     &       TEMPC,byTEMPC,BIOFIT,DIFFG,tr_mm_temp,SUNCOS
+     &       TEMPC,byTEMPC,BIOFIT,DIFFG,tr_mm_temp,SUNCOS,SVD
       REAL*8, INTENT(IN) :: OBK,ZHH,USTARR,TEMPK
 !@var dep_vel the deposition velocity = 1/bulk sfc. res. (m/s)
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: dep_vel
+      REAL*8, INTENT(OUT) :: stomatal_dep_vel
       INTEGER :: k,n,LDT,II,IW,IOLSON
       INTEGER, INTENT(IN) :: I,J,ITYPE  
       LOGICAL :: problem_point
@@ -252,6 +256,9 @@ C when defined in SCALERAD subroutine from Harvard CTM.
       SUNCOS = COSZ1(I,J)
 
 C* Initialize VD and RSURFACE and reciprocal: 
+      stomatal_dep_vel = 0.d0
+      SVD = 0.d0
+      RSTOMATAL(1:NTYPE) = 0.d0
       DO K = 1,ntm
         if(dodrydep(K))then
           RSURFACE(K,1:NTYPE) = 0.d0
@@ -455,6 +462,8 @@ C** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
                 DTMP3=1.d0/(RAC(LDT)+RGSX)
                 DTMP4=1.d0/(RDC+RCLX)
                 RSURFACE(K,LDT) = 1.d0/(DTMP1+DTMP2+DTMP3+DTMP4)
+                if(trname(K)=='Ox')
+     &          RSTOMATAL(LDT)=RIXX
               END IF                                 ! gases (above)
             
               IF (tr_wd_TYPE(K) == nPART) THEN ! aerosols (below)
@@ -473,11 +482,13 @@ C* Invert to get corresponding R
                 RSURFACE(K,LDT)=1.d0/MIN(VDS,1.d-4*REAL(IVSMAX(II)))
               END IF ! aerosols
 
-C*    Set max and min values for bulk surface resistances:
+C* Set max, min for bulk surface (and stomatal portion) resistances:
 
               RSURFACE(K,LDT)=MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))
              end if! dodrydep
             END DO ! K loop   
+            ! 1.d12 max in next line is from the ocean section below
+            RSTOMATAL(LDT)=MAX(1.d0, min(1.d12, RSTOMATAL(LDT)))
             END IF ! end ice and water exclusion          
           END IF   ! IJUSE ne 0   
         END DO   ! LDT loop
@@ -499,6 +510,8 @@ C* contribution of surface type LDT to the bulk surface resistance:
                 VD(K) = VD(K) + 
      &          .001d0*REAL(IJUSE(I,J,LDT))/RSURFACE(K,LDT)
                 TOTA(K)=TOTA(K)+.001d0*REAL(IJUSE(I,J,LDT))
+                if(trname(K)=='Ox')SVD = SVD + 
+     &          .001d0*REAL(IJUSE(I,J,LDT))/RSTOMATAL(LDT)
               end if  ! dodrydep
              END DO   ! K
             END IF   ! end ice and water exclusion
@@ -508,8 +521,11 @@ C* contribution of surface type LDT to the bulk surface resistance:
 C* Calculate the deposition velocity, to be returned:
 
         DO K = 1,ntm
-          if(dodrydep(K))dep_vel(K) = VD(K)/TOTA(K)
-        END DO        
+          if(dodrydep(K))then
+            dep_vel(K) = VD(K)/TOTA(K)
+            if(trname(K)=='Ox')stomatal_dep_vel=SVD/TOTA(K) 
+          end if
+        END DO       
          
       CASE(1:3) ! OCEAN, OCEAN ICE, LANDICE *******************
         
@@ -582,10 +598,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          end if  ! do drydep
         END DO   ! tracer loop                  
 
-
-c        do k=1,ntm
-c           write(12,*) dep_vel(k) 
-c        enddo
       CASE DEFAULT
         call stop_model('ITYPE error in TRDRYDEP',255)
       END SELECT
