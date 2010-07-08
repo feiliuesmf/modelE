@@ -3,7 +3,7 @@
 #include "mpi_defs.h"
 #endif
 
-#ifndef USE_FVCUBED
+#ifndef CUBED_SPHERE
 #define DOMAIN_DECOMP_ATM_IS_1D
 #endif
 
@@ -31,9 +31,9 @@
 
 ! retaining for now, but disabling, the MPP+FVCUBED coding in this file
 #undef USE_MPP
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
 #define USE_DD2D_UTILS
-#undef USE_FVCUBED
+#undef CUBED_SPHERE
 #endif
 
 #ifdef USE_DD2D_UTILS
@@ -383,7 +383,7 @@
 
       logical :: useCubedSphere
 
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
       useCubedSphere = .true.
 #else
       useCubedSphere = .false.

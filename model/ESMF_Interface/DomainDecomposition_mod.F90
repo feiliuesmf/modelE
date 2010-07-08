@@ -15,7 +15,7 @@ end module DOMAIN_DECOMP_1D
 #include "mpi_defs.h"
 #endif
 
-#ifndef USE_FVCUBED
+#ifndef CUBED_SPHEREa
 #define DOMAIN_DECOMP_ATM_IS_1D
 #endif
 

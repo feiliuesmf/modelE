@@ -202,7 +202,6 @@ USE_ESMF
 USE_FFTW
 USE_FV
 USE_FVCORE
-USE_FVCUBED
 USE_FV_Q
 USE_GISS
 USE_MPI
@@ -232,3 +231,4 @@ USE_FVcubed			GMAO internal - DO NOT TOUCH
 tempdebug			no longer used?
 _OPENMP				purely for openmp - no runtime equivalent
 CUBE_GRID			redundant; use CUBED_SPHERE
+USE_FVCUBED			redundant; use CUBED_SPHERE

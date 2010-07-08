@@ -406,13 +406,13 @@ c     enddo
 
       call Run(fv, clock)
 
-#ifndef USE_FVCUBED
+#ifndef CUBED_SPHERE
       CALL SDRAG (DTsrc)
 #endif
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
           call DIAGB
-#ifndef USE_FVCUBED
+#ifndef CUBED_SPHERE
           call EPFLUX (U,V,T,P)
 #endif
         endif
@@ -478,7 +478,7 @@ C****
 c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
 c GWDRAG, SDRAG considered as column physics so that their KE
 c dissipation gets included in the KE->PE adjustment
       CALL GWDRAG
@@ -594,7 +594,7 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
 
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
       IDACC(ia_filt)=IDACC(ia_filt)+1 ! prevent /0
 #else
 C**** SEA LEVEL PRESSURE FILTER
@@ -610,7 +610,7 @@ C**** SEA LEVEL PRESSURE FILTER
       END IF
 #endif
 #ifdef TRACERS_ON
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
 ! Reinitialize instantaneous consrv qtys (every timestep since
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter

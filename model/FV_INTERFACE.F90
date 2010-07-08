@@ -14,7 +14,7 @@ module FV_INTERFACE_MOD
   use esmf_mod
   use FV_UTILS
 
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
   use FV_CS_Mod
 #else
   use FV_LatLon_Mod
@@ -105,7 +105,7 @@ contains
 
 ! Phase number used to invoke the core's RunAddIncs routine changes
 ! between latlon and cubedsphere cores
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
     addIncsPhase = 1
 #else
     addIncsPhase = 91
@@ -280,7 +280,7 @@ contains
     USE MODEL_COM, only: U, V, T, DTsrc
     use FILEMANAGER
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
     use FV_StateMod, only: INTERP_AGRID_TO_DGRID
 #endif
 
@@ -320,7 +320,7 @@ contains
     select case (istart)
     case (:initial_start)
        ! Do a cold start.  Set Old = Current.
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
        Allocate(U_d(I_0:I_1,J_0:J_1+1,LM), &
                 V_d(I_0:I_1+1,J_0:J_1,LM))
        Allocate(U_temp(I_0:I_1,J_0:J_1,LM), &

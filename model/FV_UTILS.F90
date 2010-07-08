@@ -588,7 +588,7 @@ contains
 
   subroutine SetupForESMF(fv, vm, grid, cf, config_file)
     use DOMAIN_DECOMP_ATM, only : AM_I_ROOT
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
     use FVCubed_dycore_GridCompMod, only: SetServices
 #else
     use fvdycore_gridcompmod, only: SetServices
@@ -600,14 +600,10 @@ contains
     type (esmf_config), intent(inout) :: cf
     character(len=*),  intent(in) :: config_file ! filename for resource file
 
-#ifdef USE_FVCUBED
-    character(len=6)                 :: gridCompName
-
-    gridCompName = 'FVCORE'
+#ifdef CUBED_SPHERE
+    character(len=*) :: gridCompName = 'FVCORE'
 #else
-    character(len=11)                :: gridCompName
-
-    gridCompName = 'FV dynamics'
+    character(len=*) :: gridCompName = 'FV dynamics'
 #endif
 
     fv % vm  =vm
@@ -644,7 +640,7 @@ contains
     contains
 
       Subroutine write_layout(fname, fv)
-#ifdef USE_FVCUBED
+#ifdef CUBED_SPHERE
         Use MAPL_IOMod, only: GETFILE, Free_file
 #else
         Use GEOS_IOMod, only: GETFILE, Free_file
