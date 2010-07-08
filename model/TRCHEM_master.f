@@ -278,8 +278,8 @@ C Some INITIALIZATIONS :
       BYFJM   = 1.d0/real(JM)
       PRES2(:)= SIG(:)*(PSF-PTOP)+PTOP
 #ifdef SHINDELL_STRAT_CHEM
-      if(H2ObyCH4 /= 0.)               
-     &call stop_model('H2ObyCH4 not = 0 and strat chem is on.',255)
+      if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
+     &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
 C Not really related to chemistry, but convenient place to update
@@ -306,11 +306,11 @@ c Calculation of removal rates on dust surfaces:
       ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f
       if(Itime==ItimeI)then
         if(use_rad_n2o > 0)then
-          write(out_line,*) 'WARNING:use_rad_n2o overrides PIfact_N2O'
+          write(out_line,*) 'Warning:use_rad_n2o overrides PIfact_N2O'
           call write_parallel(trim(out_line))
         endif
         if(use_rad_cfc > 0)then
-          write(out_line,*) 'WARNING:use_rad_cfc overrides PIfact_CFC'
+          write(out_line,*) 'Warning:use_rad_cfc overrides PIfact_CFC'
           call write_parallel(trim(out_line))
         endif
       endif
@@ -476,6 +476,30 @@ c Tracers (converted from mass to number density):
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
      &   BYAXYP(I,J)*BYAM(L,I,J)
        enddo
+
+! If we are fixing methane for chemistry purposes set it's y here:
+! 0.55866d0 below is 1/1.79 (HALOE observations)
+      if(fix_CH4_chemistry == 1) then
+        if(lat2d_dg(i,j) < 0.) then         ! Southern Hemisphere
+          y(n_CH4,1:LS1-1)=y(nM,1:LS1-1)*ch4_init_sh*1.d-6 !troposphere
+          if(abs(lat2d_dg(i,j)) > 30.) then ! extratropics
+            y(n_CH4,LS1:LM)=                ! stratosphere
+     &      y(nM,LS1:LM)*ch4_init_sh*0.55866d0*1.d-6*CH4altX(LS1:LM)
+          else                              ! tropics
+            y(n_CH4,LS1:LM)=                ! stratosphere
+     &      y(nM,LS1:LM)*ch4_init_sh*0.55866d0*1.d-6*CH4altT(LS1:LM)
+          end if
+        else                                ! Northern Hemisphere
+          y(n_CH4,1:LS1-1)=y(nM,1:LS1-1)*ch4_init_sh*1.d-6 !troposphere
+          if(abs(lat2d_dg(i,j)) > 30.) then ! extratropics
+            y(n_CH4,LS1:LM)=                ! stratosphere
+     &      y(nM,LS1:LM)*ch4_init_nh*0.55866d0*1.d-6*CH4altX(LS1:LM)
+          else                              ! tropics
+            y(n_CH4,LS1:LM)=                ! stratosphere
+     &      y(nM,LS1:LM)*ch4_init_nh*0.55866d0*1.d-6*CH4altT(LS1:LM)
+          end if
+        end if
+      end if
 
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
@@ -1738,9 +1762,12 @@ C                 BEGIN OVERWRITING                              C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 C If fix_CH4_chemistry is turned on, reset the CH4 tracer everywhere
-C to initial conditions (in mixing ratio units) :
-      if(fix_CH4_chemistry == 1) call get_CH4_IC(1)
-   
+C to initial conditions and set the chemistry change to zero...
+      if(fix_CH4_chemistry == 1)then
+        tr3Dsource(:,:,:,nChemistry,n_CH4) = 0.d0 
+        call get_CH4_IC(1)
+      end if 
+
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Special cases of overwriting, when doing stratospheric chemistry C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
