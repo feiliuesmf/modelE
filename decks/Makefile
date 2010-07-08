@@ -175,7 +175,7 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@$(SETUP_GFDL) $(RUN)
 
 
-aux rvr csrvr CMPE002: depend
+aux rvr csrvr CMPE002: depend $(BIN_DIR)
 	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 	$(MAKE) -C $(AUX_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
