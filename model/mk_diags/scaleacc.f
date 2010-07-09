@@ -7,7 +7,7 @@
       include 'netcdf.inc'
       integer :: fids(2)              ! input file IDs
       character(len=*) :: accname     ! name of acc-array to scale
-      character(len=80) :: accfile    ! name of acc-file
+      character(len=200) :: accfile    ! name of acc-file
 c
       character(len=80) :: ofile_base ! basename of output file
       character(len=20) :: dcat,dcat_cdl
@@ -185,6 +185,8 @@ c
       k = index(accfile,'.acc')
       ofile_base = accfile(1:k)//trim(dcat)//
      &     accfile(k+4:index(accfile,'.nc')-1)
+      k = index(ofile_base,'/',back=.true.)
+      if(k.gt.0) ofile_base=ofile_base(k+1:len(ofile_base))
       call parse_cdl(fid,dcat_cdl,ofile_base,xlabel,fromto,
      &     remap_output,remap_fid)
 

@@ -70,8 +70,7 @@ cat > driver.f << EOF
       implicit none
       include 'netcdf.inc'
       integer :: status,ifids(2)
-      character(len=80) :: ifile
-      character(len=200) :: remap_file
+      character(len=200) :: ifile,remap_file
       character(len=20) :: accname
       integer :: i1,i2,nargs
       integer, external :: iargc
