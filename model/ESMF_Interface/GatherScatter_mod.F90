@@ -122,13 +122,13 @@ module GatherScatter_mod
     module procedure unpackj_4d     ! (j,k,l,m)
   end interface
 
-#ifdef USE_MPI
   interface localCopy
     module procedure localCopyReal8
     module procedure localCopyInteger
     module Procedure localCopyLogical
   end interface
 
+#ifdef USE_MPI
   include 'mpif.h'
 #endif
 
@@ -500,7 +500,7 @@ contains
     logical :: local_
 
     local_ = .false.
-    if (present(local)) local_ = local
+   if (present(local)) local_ = local
 
     if (local_) then
       call localCopyLogical(grid, arr_glob, arr_loc, getGlobalShape(grid, shp, dist_idx))
@@ -510,57 +510,6 @@ contains
     end if
   end subroutine scatterLogical
 
-  function getGlobalShape(grid, localShape, dist_idx) result(globalShape)
-    type (dist_grid), intent(in) :: grid
-    integer, intent(in) :: localShape(:)
-    integer, intent(in) :: dist_idx
-
-    integer :: globalShape(size(localShape))
-
-    globalShape = localShape
-    globalShape(dist_idx) = grid%jm_world
-
-  end function getGlobalShape
-
-  subroutine localCopyReal8(grid, arr_glob, arr_loc, globalShape)
-    type (dist_grid), intent(in) :: grid
-    integer, intent(in) :: globalShape(3)
-    real(kind=8) :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
-    real(kind=8) :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
-      
-    integer :: j_0, j_1
-      
-    call get(grid, j_strt=j_0, j_stop=j_1)
-    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
-    
-  end subroutine localCopyReal8
-
-  subroutine localCopyInteger(grid, arr_glob, arr_loc, globalShape)
-    type (dist_grid), intent(in) :: grid
-    integer, intent(in) :: globalShape(3)
-    integer :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
-    integer :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
-      
-    integer :: j_0, j_1
-      
-    call get(grid, j_strt=j_0, j_stop=j_1)
-    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
-    
-  end subroutine localCopyInteger
-
-  subroutine localCopyLogical(grid, arr_glob, arr_loc, globalShape)
-    type (dist_grid), intent(in) :: grid
-    integer, intent(in) :: globalShape(3)
-    logical :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
-    logical :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
-      
-    integer :: j_0, j_1
-      
-    call get(grid, j_strt=j_0, j_stop=j_1)
-    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
-    
-  end subroutine localCopyLogical
-    
 #endif
 
 #ifndef USE_ESMF
@@ -617,10 +566,7 @@ contains
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local ! unused in serial mode
 
-    integer :: nn
-
-    nn = product(shp)
-    arr_loc(1:nn) = arr_glob(1:nn)
+    call localCopyReal8(grid, arr_glob, arr_loc, getGlobalShape(grid, shp, dist_idx))
 
   end subroutine scatterReal8
 
@@ -632,10 +578,7 @@ contains
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local ! unused in serial mode
 
-    integer :: nn
-
-    nn = product(shp)
-    arr_loc(1:nn) = arr_glob(1:nn)
+    call localCopyInteger(grid, arr_glob, arr_loc, getGlobalShape(grid, shp, dist_idx))
 
   end subroutine scatterInteger
 
@@ -647,13 +590,67 @@ contains
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local ! unused in serial mode
 
-    integer :: nn
-
-    nn = product(shp)
-    arr_loc(1:nn) = arr_glob(1:nn)
+    call localCopyLogical(grid, arr_glob, arr_loc, getGlobalShape(grid, shp, dist_idx))
 
   end subroutine scatterLogical
 #endif
+
+  subroutine localCopyReal8(grid, arr_glob, arr_loc, globalShape)
+    type (dist_grid), intent(in) :: grid
+    integer, intent(in) :: globalShape(3)
+    real(kind=8) :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
+    real(kind=8) :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
+      
+    integer :: j_0, j_1
+      
+    call get(grid, j_strt=j_0, j_stop=j_1)
+    print*,' local shape:', shape(arr_loc)
+    print*,'global shape:', shape(arr_glob)
+    print*,'     j_0,j_1:', j_0, j_1 
+
+    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
+    
+  end subroutine localCopyReal8
+
+  subroutine localCopyInteger(grid, arr_glob, arr_loc, globalShape)
+    type (dist_grid), intent(in) :: grid
+    integer, intent(in) :: globalShape(3)
+    integer :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
+    integer :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
+      
+    integer :: j_0, j_1
+      
+    call get(grid, j_strt=j_0, j_stop=j_1)
+    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
+    
+  end subroutine localCopyInteger
+
+  subroutine localCopyLogical(grid, arr_glob, arr_loc, globalShape)
+    type (dist_grid), intent(in) :: grid
+    integer, intent(in) :: globalShape(3)
+    logical :: arr_glob(globalShape(1),globalShape(2),globalShape(3))
+    logical :: arr_loc(globalShape(1),grid%j_strt_halo:grid%j_stop_halo,globalShape(3))
+      
+    integer :: j_0, j_1
+      
+    call get(grid, j_strt=j_0, j_stop=j_1)
+    arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
+    
+  end subroutine localCopyLogical
+    
+  function getGlobalShape(grid, localShape, dist_idx) result(globalShape)
+    type (dist_grid), intent(in) :: grid
+    integer, intent(in) :: localShape(:)
+    integer, intent(in) :: dist_idx
+
+    integer :: globalShape(3)
+
+    print*,'huh: ', localShape
+    globalShape(1) = product(localShape(1:dist_idx-1))
+    globalShape(2) = grid%jm_world
+    globalShape(3) = product(localShape(dist_idx+1:))
+
+  end function getGlobalShape
 
   subroutine pack_1d(grd_dum,ARR,ARR_GLOB)
     type (dist_grid),  intent(in) :: grd_dum
