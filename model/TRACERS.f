@@ -1123,6 +1123,11 @@ C**** check whether air mass is conserved
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       USE param, only : sync_param
+      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+#endif
+
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1156,6 +1161,12 @@ C**** check whether air mass is conserved
     (defined TRACERS_QUARZHEM)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
       REAL*8,DIMENSION(Im,Jm,Nstype) :: pevap_glob
+#endif
+      real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc_glob
+     &     ,trcSurfByVol_acc_glob
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      real(kind=8),allocatable,dimension(:,:) :: sPM2p5_acc_glob
+     &     ,sPM10_acc_glob,l1PM2p5_acc_glob,l1PM10_acc_glob
 #endif
       INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
@@ -1200,20 +1211,29 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
      &    ss_glob(JPPJ,LM,img,jmg) )
-#ifdef INTERACTIVE_WETLANDS_CH4 
+#ifdef INTERACTIVE_WETLANDS_CH4
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
      &    ,DRA_ch4_glob(img,jmg,max_days,nra_ch4)
      &    ,HRA_ch4_glob(img,jmg,maxHR_ch4,nra_ch4)
      &    ,Rijncep_glob(img,jmg,nra_ncep)
      &    ,Rijch4_glob(img,jmg,nra_ch4) )
-      allocate( 
+      allocate(
      &     rfirst_mod(IM,J_0H:J_1H,nra_ch4) 
      &    ,rHch4(IM,J_0H:J_1H,nra_ch4)
      &    ,rDch4(IM,J_0H:J_1H,nra_ch4)
      &    ,r0ch4(IM,J_0H:J_1H,nra_ch4) )
-#endif     
-#endif     
+#endif
+#endif
+
+      allocate(trcSurfMixR_acc_glob(im,jm,ntm)
+     &        ,trcSurfByVol_acc_glob(im,jm,ntm))
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      allocate(sPM2p5_acc_glob(im,jm)
+     &        ,sPM10_acc_glob(im,jm)
+     &        ,l1PM2p5_acc_glob(im,jm)
+     &        ,l1PM10_acc_glob(im,jm))
+#endif
 
       SELECT CASE (IACTION)
 
@@ -1404,6 +1424,21 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #endif
 #endif
 
+       call pack_data(grid,trcSurfMixR_acc,trcSurfMixR_acc_glob)
+       call pack_data(grid,trcSurfByVol_acc,trcSurfByVol_acc_glob)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+       call pack_data(grid,sPM2p5_acc,sPM2p5_acc_glob)
+       call pack_data(grid,sPM10_acc,sPM10_acc_glob)
+       call pack_data(grid,l1PM2p5_acc,l1PM2p5_acc_glob)
+       call pack_data(grid,l1PM10_acc,l1PM10_acc_glob)
+#endif
+       header='accumulation arrays for subdd diagnostics for tracers'
+       if (am_i_root()) write(kunit,err=10) header,trcSurfMixR_acc_glob
+     &      ,trcSurfByVol_acc_glob
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
+     &      ,l1PM10_acc_glob
+#endif
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -1549,6 +1584,23 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call ESMF_BCAST( grid, first_ncep)
 #endif
 #endif
+
+          if (am_i_root()) read(kunit,err=10) header
+     &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
+     &         ,l1PM10_acc_glob
+#endif
+
+          call unpack_data(grid,trcSurfMixR_acc_glob,trcSurfMixR_acc)
+          call unpack_data(grid,trcSurfByVol_acc_glob,trcSurfByVol_acc)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+          call unpack_data(grid,sPM2p5_acc_glob,sPM2p5_acc)
+          call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
+          call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
+          call unpack_data(grid,l1PM10_acc_glob,l1PM10_acc)
+#endif
+
         END SELECT
       END SELECT
 
@@ -1622,6 +1674,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
 #endif
+      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+#endif
+
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -1713,6 +1770,17 @@ c daily_z is currently only needed for CS
 #endif
 #endif
 
+      call defvar(grid,fid,trcSurfMixR_acc
+     &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
+      call defvar(grid,fid,trcSurfByVol_acc
+     &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      call defvar(grid,fid,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,l1PM2p5_acc,'l1PM2p5_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,l1PM10_acc,'l1PM10_acc(dist_im,dist_jm)')
+#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       compstr='TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM'
@@ -1754,6 +1822,10 @@ c daily_z is currently only needed for CS
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: new_io_trdust
+#endif
+      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -1830,6 +1902,16 @@ c daily_z is currently only needed for CS
         call write_data(grid,fid,'i0_ncep',i0_ncep)
         call write_data(grid,fid,'first_ncep',first_ncep)
 #endif
+#endif
+
+        call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
+        call write_dist_data(grid,fid,'trcSurfByVol_acc'
+     &       ,trcSurfByVol_acc)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+        call write_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
+        call write_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
+        call write_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
+        call write_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1911,6 +1993,16 @@ c daily_z is currently only needed for CS
         call read_data(grid,fid,'first_ncep',first_ncep,
      &       bcast_all=.true.)
 #endif
+#endif
+
+        call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
+        call write_dist_data(grid,fid,'trcSurfByVol_acc'
+     &       ,trcSurfByVol_acc)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+        call read_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
+        call read_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
+        call read_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
+        call read_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

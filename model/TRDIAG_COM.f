@@ -441,7 +441,14 @@ C**** include some extra troposphere only ones
 !@var trcsurf global array of tracer mixing ratio at surface [kg/kg]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcsurf
 !@var trcSurfByVol global array of tracer concentration at surface [kg/m^3]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: trcSurfByVol
+      real(kind=8),allocatable,dimension(:,:,:) :: trcSurfByVol
+
+!@var trcSurfMixR_acc global array of tracers to accumulate mxixing ratio at
+!@var                 surface for subdd diagnostics [kg/kg]
+!@var trcSurfByVol_acc global array of tracers to accumulate concentration at
+!@var                  surface for subdd diagnostics [kg/m^3]
+      real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc
+     &     ,trcSurfByVol_acc
 
 #ifdef NEW_IO
 #ifdef TRACERS_ON
@@ -1140,6 +1147,8 @@ C*** Unpack read global data into local distributed arrays
 #ifdef TRACERS_ON 
       ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
       ALLOCATE(trcSurfByVol(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
+      ALLOCATE(trcSurfMixR_acc(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
+      ALLOCATE(trcSurfByVol_acc(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
       ALLOCATE ( TAIJLS_loc(I_0H:I_1H,J_0H:J_1H,LM,ktaijl), stat=status)
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )

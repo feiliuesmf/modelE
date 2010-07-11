@@ -85,6 +85,11 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
       real*8 :: ttausv_count = 0.d0
+!@var nTracerRadiaActive number of radiatively active tracers (always .le. Ntm)
+      integer :: nTracerRadiaActive
+!@var tracerRadiaActiveFlag array of flags of dimension Ntm, whose elements
+!@+                         are set to .true. for radiatively active tracers
+      logical,allocatable,dimension(:) :: tracerRadiaActiveFlag
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxNtraceFastj max expected rad code tracers passed to photolysis
 !@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
@@ -273,7 +278,8 @@ C**** Local variables initialised in init_RAD
      *     ,wfac
 #endif
 #ifdef TRACERS_ON
-     *     ,ttausv_sum,ttausv_sum_cs,ttausv_count
+     *     ,ttausv_sum,ttausv_sum_cs,ttausv_count,nTracerRadiaActive
+     &     ,tracerRadiaActiveFlag
 #endif
 #ifdef CUBED_SPHERE
      &     ,JM_DH2O
@@ -330,6 +336,7 @@ C**** Local variables initialised in init_RAD
      &     ttausv_cs_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
      &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
      &     ttausv_sum_cs(I_0H:I_1H,J_0H:J_1H,Ntm),
+     &     tracerRadiaActiveFlag(Ntm),
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
@@ -349,6 +356,10 @@ C**** Local variables initialised in init_RAD
       SRVISSURF = 0
       FSF=0
       TRSURF=0
+#ifdef TRACERS_ON
+      nTracerRadiaActive=0
+      tracerRadiaActiveFlag=.false.
+#endif
 
       RETURN
       END SUBROUTINE ALLOC_RAD_COM

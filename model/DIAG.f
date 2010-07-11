@@ -1193,6 +1193,7 @@ C****
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
+      use domain_decomp_atm, only: get,grid,am_i_root
       USE MODEL_COM, only : im,jm,lm,itime,itime0
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -1204,6 +1205,7 @@ C****
       use flammability_com, only : raP_acc
 #endif
 #ifdef TRACERS_ON
+      use rad_com, only: nTracerRadiaActive,tracerRadiaActiveFlag
 #ifndef SKIP_TRACER_DIAGS
       USE TRACER_COM, only : ntm, trm, trname
      *     , mass2vol, n_Ox, n_SO4,
@@ -1224,7 +1226,8 @@ C****
       USE TRCHEM_Shindell_COM, only : sOx_acc,l1Ox_acc,l1NO_acc
 #endif
 #ifdef TRACERS_ON
-      use trdiag_com, only: trcsurf,trcSurfByVol
+      use trdiag_com, only: trcsurf,trcSurfByVol,trcSurfMixR_acc
+     &     ,trcSurfByVol_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
@@ -1270,6 +1273,15 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       character*14, private :: adate_sv
 
+#ifdef TRACERS_ON
+!@var rTrname array with tracer names for subdd radiation diagnostics
+      character(len=8),allocatable,dimension(:) :: rTrname
+!@var TRACER_array tracer array for subdd diagnostics
+!@var rTRACER_array tracer array for subdd radiation diagnostic
+      real(kind=8),allocatable,dimension(:,:,:) :: TRACER_array
+     &     ,rTRACER_array
+#endif
+
 #ifdef NEW_IO_SUBDD
       private :: write_2d,write_3d,write_2d_tracer,in_subdd_list
       interface write_subdd
@@ -1286,7 +1298,10 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 !@auth Gavin Schmidt
       implicit none
       character*14, intent(in) :: adate
-      integer :: i,j,k,l,kunit
+      integer :: i,j,k,l,kunit,i_0h,i_1h,j_0h,j_1h
+
+      call get(grid,i_strt_halo=i_0h,i_stop_halo=i_1h,j_strt_halo=j_0h
+     &     ,j_stop_halo=j_1h)
 
       adate_sv = adate
 
@@ -1351,6 +1366,13 @@ C**** initialise special subdd accumulation
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       sPM2p5_acc=0.; sPM10_acc=0.; l1PM2p5_acc=0.; l1PM10_acc=0.
 #endif
+
+#ifdef TRACERS_ON
+      allocate(rTrname(nTracerRadiaActive))
+      allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
+      allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,ntm))
+#endif
+
       return
       end subroutine init_subdd
 
@@ -1445,6 +1467,24 @@ c accSubdd
 
       implicit none
 
+      integer :: i_0,i_1,j_0,j_1,i,j,n
+
+      call get(grid,i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
+
+#ifdef TRACERS_ON
+!$OMP PARALLEL DO PRIVATE(i,j,n)
+      do n=1,ntm
+        do j=j_0,j_1
+          do i=i_0,i_1
+            trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)+trcSurf(i,j,n)
+            trcSurfByVol_acc(i,j,n)=trcSurfByVol_acc(i,j,n)
+     &           +trcSurfByVol(i,j,n)
+          end do
+        end do
+      end do
+!$OMP END PARALLEL DO
+#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       call accSubddDust(dustDiagSubdd_acc) ! in TRDUST_DRV.f
@@ -1483,6 +1523,8 @@ c get_subdd
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
+!@+                    TrSMIXR surface mixing ratio for all tracers [kg/kg]
+!@+                    TrSCONC surface concentration for all tracers [kg/m^3]
 !@+                    DuEMIS soil dust aerosol emission flux [kg/m^2/s]
 !@+                    DuEMIS2 soil dust aerosol emission flux [kg/m^2/s]
 !@+                            from cubed wind speed (only diagnostic)
@@ -1494,8 +1536,8 @@ c get_subdd
 !@+                    DuSCONC surface conc of soil dust aerosols [kg/m^3]
 !@+                    DuAOD dust aer opt depth daily avg [1]
 !@+                    DuCSAOD clear sky dust aer opt depth daily avg [1]
-!@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
-!@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
+!@+                    AOD aer opt dep (1,nTracerRadiaActive in rad code) daily avg
+!@+                    tAOD aer opt dep (sum 1,nTracerRadiaActive) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
 !@+                    FRAC land fractions over 6 types
 !@+
@@ -1524,8 +1566,7 @@ c get_subdd
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
 #ifdef TRACERS_ON
-     & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ntrix
-      USE RADPAR, only : NTRACE
+     & ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pm_acc,pmb
@@ -1535,7 +1576,6 @@ c get_subdd
      *     ,o_more,n_more,m_more,x_more
 #endif
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -1544,7 +1584,7 @@ c get_subdd
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
-      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx
+      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx,nc
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
@@ -1860,24 +1900,6 @@ c          data=sday*prec/dtsrc
           end if
           data=tdiurn(:,:,6)
 
-#ifdef TRACERS_ON
-         case ("tAOD","ctAOD")!tot aero(+dust,etc) opt dep, daily avg
-           if(mod(itime+1,Nday).ne.0) then ! only at end of day
-             kunit=kunit+1
-             cycle
-           end if
-           if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-           data=0.
-           do n=1,NTRACE ! sum over rad code tracers is used
-             if(ntrix(n)>0)then
-               select case(namedd(k))
-                 case('tAOD') ; data=data+ttausv_sum(:,:,ntrix(n))
-                 case('ctAOD'); data=data+ttausv_sum_cs(:,:,ntrix(n))
-               end select
-             endif
-           enddo
-           data=data/ttausv_count
-#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            data=sPM2p5_acc/real(Nsubdd)
@@ -2323,25 +2345,118 @@ C**** cases using all levels up to LmaxSUBDD
           cycle
 
 #ifdef TRACERS_ON
+c***** for (c)tAOD the sum over tracers of aerosol optical depth
+          case ("tAOD","ctAOD")   !tot aero(+dust,etc) opt dep, daily avg
+            kunit=kunit+1
+            if (any(tracerRadiaActiveFlag)) then
+              polefix=.true.
+              if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
+              if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+              datar8=0.
+              do n=1,ntm        ! sum over rad code tracers is used
+                if(tracerRadiaActiveFlag(n))then
+                  select case(namedd(k))
+                  case('tAOD') ; datar8=datar8+ttausv_sum(:,:,n)
+                  case('ctAOD'); datar8=datar8+ttausv_sum_cs(:,:,n)
+                  end select
+                end if
+              end do
+              datar8=datar8/ttausv_count
+              data=datar8
+              call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),datar8,polefix,record
+     &             =day_of_month)
+#endif
+            else
+              write(6,*) 'Warning: No radiatively active tracers'
+              write(6,*) ' ',trim(namedd(k)),' not written'
+            end if
+            cycle
+
 C**** for (c)AOD multiple tracers are written to one file:
           case ('AOD','cAOD')!aerosol opt dep daily avg (all/clear sky)
             kunit=kunit+1
-            if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
-            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-            do n=1,NTRACE
-              if(ntrix(n) > 0)then
-                select case(namedd(k))
-                case('AOD')
-                  data=ttausv_sum(:,:,ntrix(n))/ttausv_count
-                case('cAOD')
-                  data=ttausv_sum_cs(:,:,ntrix(n))/ttausv_count
-                end select
-                polefix=.true.
-                call write_data(data,kunit,polefix)
-              endif
-            enddo
-            cycle
+            if (any(tracerRadiaActiveFlag)) then
+              polefix=.true.
+              if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
+              if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+              nc=0
+              do n=1,ntm
+                if(tracerRadiaActiveFlag(n))then
+                  nc=nc+1
+                  select case(namedd(k))
+                  case('AOD')
+                    datar8=ttausv_sum(:,:,n)/ttausv_count
+                  case('cAOD')
+                    datar8=ttausv_sum_cs(:,:,n)/ttausv_count
+                  end select
+                  rTrname(nc)=trname(n)
+                  rTRACER_array(:,:,nc)=datar8
+                  data=datar8
+                  call write_data(data,kunit,polefix)
+                end if
+              end do
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),rTRACER_array,polefix
+     &             ,record=day_of_month,suffixes=rTrname)
 #endif
+            else
+              write(6,*) 'Warning: No radiatively active tracers'
+              write(6,*) ' ',trim(namedd(k)),' not written'
+            end if
+            cycle
+
+c**** Mixing ratio for all tracers at surface [kg/kg]
+          case('TrSMIXR')
+            kunit=kunit+1
+            polefix=.true.
+            do n=1,ntm
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  datar8(i,j)=trcSurfMixR_acc(i,j,n)
+                  trcSurfMixR_acc(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
+              TRACER_array(:,:,n)=datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),TRACER_array,polefix
+     &           ,suffixes=trname)
+#endif
+            cycle
+
+c**** Concentration for all tracers at surface [kg/m^3]
+          case('TrSCONC')
+            kunit=kunit+1
+            polefix=.true.
+            do n=1,ntm
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  trcSurfByVol_acc(i,j,n)=trcSurfByVol_acc(i,j,n)
+     &                 /real(Nsubdd,kind=8)
+                  datar8(i,j)=trcSurfByVol_acc(i,j,n)
+                  trcSurfByVol_acc(i,j,n)=0.D0
+                end do
+              end do
+!$OMP END PARALLEL DO
+              TRACER_array(:,:,n)=datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),TRACER_array,polefix
+     &           ,suffixes=trname)
+#endif
+            cycle
+#endif /*TRACERS_ON*/
 
 C**** Write land,lake,ocean,and ice fractions to one file
 C**** Possbily will remove at some point, since kinda
@@ -2418,7 +2533,7 @@ C**** first set: no 'if' tests
 !$OMP END PARALLEL DO
             CASE ('DuLOAD')     ! Dust load [kg/m^2]
 !$OMP PARALLEL DO PRIVATE(i,j,l)
-              do l=1,LmaxSUBDD
+              do l=1,lm
                 do j=j_0,j_1
                   do i=i_0,i_1
                     dustDiagSubdd_acc%dustMass(i,j,l,n)
@@ -2432,7 +2547,7 @@ C**** first set: no 'if' tests
 !$OMP PARALLEL DO PRIVATE(i,j,l)
               do j=j_0,j_1
                 do i=i_0,i_1
-                  do l=1,LmaxSUBDD
+                  do l=1,lm
                     datar8(i,j)=datar8(i,j)+dustDiagSubdd_acc%dustMass(i
      &                   ,j,l,n)
                   end do
@@ -2458,7 +2573,7 @@ C**** other dust special cases
 
           case ("DuAOD","DuCSAOD") !tot dust aero opt dep, daily avg
             kunit=kunit+1
-            if(mod(itime+1,Nday).ne.0) cycle ! don't cycle only at end of day
+            if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
             if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
             datar8=0.
             do n=1,Ntm_dust

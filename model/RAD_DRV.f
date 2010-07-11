@@ -66,6 +66,9 @@ C****
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
+#ifdef TRACERS_ON
+     &     ,nTracerRadiaActive,tracerRadiaActiveFlag
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,maxNtraceFastj
 #endif
@@ -648,6 +651,14 @@ C**** Read in the factors used for alterations:
       print*,'RAD_DRV, wfac initializ= ', wfac
       call closeunit(iu_bio)
  20   format(i5,f15.4,f10.4)
+#endif
+
+#ifdef TRACERS_ON
+c**** set tracerRadiaActiveFlag for radiatively active tracer
+      do n=1,ntrace
+        if (ntrix(n) > 0) tracerRadiaActiveFlag(ntrix(n))=.true.
+      end do
+      nTracerRadiaActive=count(tracerRadiaActiveFlag)
 #endif
 
       RETURN
