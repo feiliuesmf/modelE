@@ -604,10 +604,6 @@ contains
     integer :: j_0, j_1
       
     call get(grid, j_strt=j_0, j_stop=j_1)
-    print*,' local shape:', shape(arr_loc)
-    print*,'global shape:', shape(arr_glob)
-    print*,'     j_0,j_1:', j_0, j_1 
-
     arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
     
   end subroutine localCopyReal8
