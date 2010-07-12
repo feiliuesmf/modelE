@@ -645,7 +645,6 @@ contains
 
     integer :: globalShape(3)
 
-    print*,'huh: ', localShape
     globalShape(1) = product(localShape(1:dist_idx-1))
     globalShape(2) = grid%jm_world
     globalShape(3) = product(localShape(dist_idx+1:))
