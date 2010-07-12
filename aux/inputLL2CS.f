@@ -64,9 +64,11 @@ c      call regridVEG(xll2cs_VEG)
 c      call regridSOIL(xll2cs_halfdeg)
 c      call regridSOIL(xll2cs_1x1)
 c      call regridGLMELT(xll2cs_GLMELT)
-      call regridVEGFRAC_LAI(xll2cs_halfdeg)
-      call regridGIC(xll2cs_GIC,xll2cs_GIC2)
-      call regridAIC(xll2cs_AIC)
+c      call regridVEGFRAC_LAI(xll2cs_halfdeg)
+c      call regridVEGFRAC_LAI(xll2cs_4x5)
+c      call regridGIC(xll2cs_GIC,xll2cs_GIC2)
+c      call regridAIC(xll2cs_AIC)
+      call regridRDSCAL(xll2cs_halfdeg)
 
       end program regrid_input
 c*
@@ -2236,4 +2238,182 @@ c      real*8 :: aint
       end subroutine areacs
 
 
+      subroutine regridRDSCAL(x2grids)
+c     
+c     regridding scalar quantities used to derive river directions 
+c     using simple sampling scheme (non conservative) 
+c
+      use regrid
+      implicit none
+      type(x_2grids), intent(in) :: x2grids
+      character*80 :: TITLE1,TITLE2,TITLE3,TITLE4,TITLE5,name
+      real*8,allocatable :: ttargglob(:,:,:)
+      real*8,allocatable :: tsource(:,:,:)
+      real*4,allocatable :: ttargupst4(:,:,:)
+      real*4,allocatable :: ttargdist4(:,:,:)
+      real*4,allocatable :: tsourc4(:,:,:)
+      integer, allocatable :: bassId(:,:,:),tbassId(:,:,:)
+      integer:: iu_RDSCAL,i,j,k,iunit,imt,jmt,ntt,ims,jms,nts,
+     &     status,nijt,ierr,ilon,jlat,tile
+      real*8, allocatable :: lon2dcs_dg(:,:,:),lat2dcs_dg(:,:,:),
+     &     lon2dcs(:,:,:),lat2dcs(:,:,:)
+      real*8 :: dlat_dg,dlon_dg,x,y
+      real*8,parameter :: pi = 3.1415926535897932d0 
+      real*8,parameter :: twopi = 2d0*pi         
+      real*8, parameter :: shiftwest = twopi/36.
+      real*8,parameter :: radian = pi/180d0      
 
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "imt jmt ntt ims jms nts",imt,jmt,ntt,ims,jms,nts
+
+      allocate( 
+     &     ttargglob(imt,jmt,ntt),
+     &     ttargupst4(imt,jmt,ntt),
+     &     ttargdist4(imt,jmt,ntt),
+     &     tbassId(imt,jmt,ntt),
+     &     tsourc4(ims,jms,nts),
+     &     tsource(ims,jms,nts),
+     &     bassId(ims,jms,nts),
+     &     lon2dcs(imt,jmt,ntt),
+     &     lat2dcs(imt,jmt,ntt),
+     &     lon2dcs_dg(imt,jmt,ntt),
+     &     lat2dcs_dg(imt,jmt,ntt)
+     &     )
+      
+      write(*,*) "alloc"
+
+c*   calculate lat/lon coordinates of CS cell centers
+      do tile=1,6
+         do j=1,jmt
+            do i=1,imt
+               x = -1d0 + 2d0*(dble(i)-.5d0)/imt
+               y = -1d0 + 2d0*(dble(j)-.5d0)/imt
+               call csxy2ll(x,y,tile,
+     &              lon2dcs(i,j,tile),lat2dcs(i,j,tile))
+               lon2dcs(i,j,tile) = lon2dcs(i,j,tile)-shiftwest
+               lat2dcs_dg(i,j,tile) = lat2dcs(i,j,tile)/radian
+               lon2dcs_dg(i,j,tile) = lon2dcs(i,j,tile)/radian
+               if(lon2dcs_dg(i,j,tile) .lt. -180.) 
+     &              lon2dcs_dg(i,j,tile)=lon2dcs_dg(i,j,tile)+360.
+            enddo
+         enddo
+      enddo
+
+      dlon_dg = 360./dble(ims)
+      dlat_dg=180./real(jms) ! even spacing (default)
+      IF (jms.eq.46) dlat_dg=180./REAL(jms-1) ! 1/2 box at pole for 4x5
+c*
+
+      iu_RDSCAL=20
+      name="STN-30p.bin"
+
+      write(*,*) name
+      open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='old')
+
+      write(*,*) "ims, jms, nts=",ims,jms,nts
+      read(iu_RDSCAL) TITLE1
+      write(*,*) TITLE1
+      read(iu_RDSCAL) TITLE2
+      write(*,*) TITLE2
+      read(iu_RDSCAL) TITLE3,bassId(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
+      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
+      tbassId(i,j,k)=bassId(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE3
+      read(iu_RDSCAL) TITLE4,tsourc4(:,:,:)
+      tsource(:,:,:)=tsourc4(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
+      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
+      ttargdist4(i,j,k)=tsource(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE4
+      read(iu_RDSCAL) TITLE5,tsourc4(:,:,:)
+      tsource(:,:,:)=tsourc4(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
+      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
+      ttargupst4(i,j,k)=tsource(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE5
+      close (iu_RDSCAL)
+
+      name="STN_C90"
+c      name="STN_CS32"
+
+      write(*,*) name
+      open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='unknown')
+      write(iu_RDSCAL) TITLE1
+      write(iu_RDSCAL) TITLE2
+      write(iu_RDSCAL) TITLE3,tbassId(:,:,:)
+      write(iu_RDSCAL) TITLE4,ttargdist4(:,:,:)
+      write(iu_RDSCAL) TITLE5,ttargupst4(:,:,:)
+      close(iu_RDSCAL)
+      write(*,*) "bassid=",bassId  
+
+      deallocate(ttargglob,tsource,ttargupst4,ttargdist4,bassId,
+     &             tbassId,lon2dcs_dg,lat2dcs_dg)
+
+      end subroutine regridRDSCAL
+c*
+
+      subroutine csxy2ll(x,y,tile,lon,lat)
+c converts x,y,tile to lon,lat (radians)
+c This routine places the center of tile 1 at the IDL.
+      implicit none
+      real*8 :: x,y ! input
+      integer :: tile ! input
+      real*8 :: lon,lat ! output
+      real*8,parameter :: pi = 3.1415926535897932d0 
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      real*8 :: gx,gy,tmpx,tmpy,cosgx,tangx,tangy,coslon
+      gx = g*x
+      gy = g*y
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        tmpx = gx
+        tmpy = gy
+        gx = +tmpy
+        gy = -tmpx
+      elseif(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
+        tmpx = gx
+        tmpy = gy
+        gx = -tmpy
+        gy = -tmpx
+      endif
+      if(tile.eq.3 .or. tile.eq.6) then
+        tangx = tan(gx)
+        tangy = tan(gy)
+        lat = atan(1d0/sqrt(2d0*(tangx**2 +tangy**2)+1d-40))
+        lon = atan2(tangy,tangx)
+        if(tile.eq.6) lat = -lat
+      else
+        cosgx = cos(gx)
+        coslon = cosgx/sqrt(2d0-cosgx*cosgx)
+        lat = atan(coslon*sqrt(2d0)*tan(gy))
+        lon = sign(acos(coslon),gx)
+! add longitude offset to tiles 1,2,4,5. integer arithmetic.
+        lon = lon + (mod(tile,3)-1)*pi/2. -pi*(1-(tile/3))
+        if(lon.lt.-pi) lon=lon+2.*pi
+      endif
+      return
+      end subroutine csxy2ll
