@@ -63,6 +63,13 @@ cgsfc      EQUIVALENCE (PIT(1,1),CONV(1,1,1))
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
+!@var WCP vertical mass flux in a constant-pressure vertical
+!@+   coordinate whose pressure levels are the global means of
+!@+   each layer.
+!@var WCPsig: WCP interpolated to terrain-following coordinate
+!@+   surfaces (sigma levels)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WCP,WCPsig
+
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
 !@var KEA KE on the A grid (m^2/s^2)
