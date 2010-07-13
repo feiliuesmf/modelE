@@ -2095,8 +2095,10 @@ C**** Initialize nudging
       CALL SETUP_RAD
 #endif
 
+#ifndef SCM
 #ifndef CUBED_SPHERE
       if (USE_UNR_DRAG==1) CALL init_UNRDRAG
+#endif
 #endif
 
 C****
