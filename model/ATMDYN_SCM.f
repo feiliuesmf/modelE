@@ -324,18 +324,6 @@ C**** Dummy routines
 
       end module ATMDYN
 
-      subroutine DIAG5A(M5,NDT)
-c     dummy of subroutine
-      IMPLICIT NONE
-      INTEGER :: M5,NDT
-      return
-      end subroutine DIAG5A
-
-      subroutine DIAG7A
-c     dummy of subroutine
-      return
-      end subroutine DIAG7A
-
       subroutine DIAG5D(M5,NDT,DUT,DVT)
 c     dummy of subroutine
       USE MODEL_COM, only : im,imh,jm,lm
