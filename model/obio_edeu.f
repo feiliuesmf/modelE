@@ -15,11 +15,10 @@ c  final is quanta for phytoplankton growth.
 
       USE obio_dim
       USE obio_incom, only : aw,bw,ac,bc,facirr,lam,Dmax,bbw
-     .                      ,rmus,nl450
+     .                      ,rmus,nl450,zc
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
-     *                      ,zc
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
@@ -151,9 +150,6 @@ cdiag        endif
 
        enddo  !k
  
-!define compensation depth
-      zc = 75. ! in meters (from OCMIP)
-
 !alternatively, zc is the depth of that light is 1% of top
 !     zc=0d0
 !     do k=1,kmax

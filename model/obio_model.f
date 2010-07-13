@@ -37,15 +37,15 @@
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
-     .                    ,obio_ws,wsdet
-     .                    ,cexp
+     .                    ,obio_ws
+     .                    ,cexp,flimit,kzc
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
 #ifdef TRACERS_Alkalinity
-     .                    ,zc,caexp
+     .                    ,caexp
 #endif
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
@@ -53,7 +53,7 @@
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
-     .                 ,ij_cexp
+     .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
@@ -110,7 +110,7 @@
       integer i,j,k,l,km,nn,mm 
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
-      integer ll
+      integer ll,ilim
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
@@ -300,7 +300,6 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
 #endif
-
        pCO2_ij=pCO2(i,j)
      
 #ifdef OBIO_ON_GARYocean
@@ -444,6 +443,14 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        enddo
       enddo
 #endif
+
+      !find layer index for zc, max depth of sinking phytoplankton
+      kzc = 1
+      do k=kmax+1,1,-1
+           if (p1d(k).gt.zc) kzc = k
+      enddo
+      if (kzc.lt.1) kzc=1
+      if (kzc.gt.kmax) kzc=kmax
 
 
 #ifdef OBIO_RAD_coupling
@@ -611,13 +618,16 @@ cdiag    enddo
           endif
           tot = tot + Ed(ichan)+Es(ichan)
 
-c         if (vrbos) then
-c         write(*,'(a,4i5,5e12.4)')'obio_model, tirrq: ',
-c    .         nstep,i,j,ichan,
-c    .         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
-c         endif
+!         if (ichan.eq.7) then
+!         write(*,'(a,4i5,7e12.4)')'obio_model, tirrq1: ',
+!    .         nstep,i,j,ichan,
+!    .         ovisdir_ij,eda_frac(ichan),
+!    .         ovisdif_ij,esa_frac(ichan),
+!    .         Ed(ichan),Es(ichan),tot
+!         endif
 
 #ifdef OBIO_ON_GARYocean
+       !integrate over all ichan
        OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
        OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
 #endif
@@ -632,8 +642,12 @@ c         endif
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,rod,ros,vrbos)
+
+!         write(*,'(a,4i5,4e12.4)')'obio_model, tirrq2: ',
+!    .         nstep,i,j,7,
+!    .         Ed(7),Es(7),rod(7),ros(7)
+
       
-      !check
       if (vrbos) then
         write(*,'(a,3i9)')
      .       'obio_model: counter days,   i,j,nstep=',i,j,nstep
@@ -693,9 +707,6 @@ cdiag.                  tot,ichan=1,nlt)
           tirrq(k) = 0.0
          enddo
 
-#ifdef TRACERS_Alkalinity
-         zc = 75d0  !initial set in case never makes it into edeu
-#endif
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
          if (vrbos) then
@@ -963,7 +974,19 @@ cdiag     endif
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
        OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
-       OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp           ! carbon export
+
+       OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
+       OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
+       OIJ(I,J,IJ_wsd)= OIJ(I,J,IJ_wsd)+ wsdet(4,1)           ! sink. vel. n/cdet at 74m
+
+       !limitation diags surface only (for now)
+       k = 1
+       do nt=1,nchl
+       do ilim=1,5
+       OIJ(I,J,IJ_lim(nt,ilim)) = OIJ(I,J,IJ_lim(nt,ilim)) 
+     .                          + flimit(k,nt,ilim) 
+       enddo
+       enddo
 
 #ifndef TRACERS_GASEXCH_ocean_CO2    
 ! NOT FOR GASEXCH EXPERIMENTS

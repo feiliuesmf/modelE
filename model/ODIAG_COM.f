@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=26,KOIJL=26,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=48,KOIJL=26,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -51,10 +51,14 @@
       INTEGER, DIMENSION(KOIJ) :: IGRID_OIJ,JGRID_OIJ
 #ifdef TRACERS_OceanBiology
 !@var ij_pCO2 surface ocean partial CO2 pressure
+       character(len=1)str1
+       character(len=4)str2
+       character(len=5)str3
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk
-     .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp
+     .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
+     .           ,ij_lim(4,5),ilim,ij_ndet
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
 #endif
@@ -1068,7 +1072,6 @@ c
       units_oijl(k) = 'KG/M^3'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
-
 C**** set properties for OIJ diagnostics
       do k=1,koij
         sname_oij(k) = 'unused'
@@ -1248,6 +1251,22 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
+      k=k+1
+      IJ_ndet=k
+      lname_oij(k)="N/C detritus at 74m"
+      sname_oij(k)="oij_ndet"
+      units_oij(k)="ugC/l"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_wsd=k
+      lname_oij(k)="sink vel n/cdet at 74m"
+      sname_oij(k)="oij_wsd"
+      units_oij(k)="m/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
 #ifdef TRACERS_Alkalinity
       k=k+1
       IJ_fca=k
@@ -1266,6 +1285,30 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
+      do nt=1,4
+      do ilim=1,5
+        if (nt.eq.1)str1 = 'd'  !diatoms
+        if (nt.eq.2)str1 = 'h'  !chloroph
+        if (nt.eq.3)str1 = 'b'  !cyanobact
+        if (nt.eq.4)str1 = 'c'  !coccoliths
+
+        if (ilim.eq.1)str2 = 'lim1'  !light limitation
+        if (ilim.eq.2)str2 = 'lim2'  !ice-light limitation
+        if (ilim.eq.3)str2 = 'lim3'  !nitr limitation
+        if (ilim.eq.4)str2 = 'lim4'  !silic limitation
+        if (ilim.eq.5)str2 = 'lim5'  !iron  limitation
+
+        str3=str1//str2
+
+        k=k+1
+        IJ_lim(nt,ilim) = k
+        lname_oij(k)=str3
+        sname_oij(k)=str3
+        units_oij(k)="?"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      enddo
+      enddo
 
 #endif
 

@@ -25,7 +25,7 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
-     .                    ,rhs,pp2_1d
+     .                    ,rhs,pp2_1d,flimit
 #ifdef restoreIRON
      .                    ,Iron_BC
 #endif
@@ -289,7 +289,7 @@ c Day: Grow
 cdiag if(vrbos)
 cdiag.write(*,*)'obio_ptend6: ',nstep,i,j,k,tirrq(k)
 
-      if (tirrq(k) .gt. 0.0)then
+CHECK if (tirrq(k) .gt. 0.0)then
         tirrqice = tirrq(k)*0.01  !reduce light in ice by half
 
 c Light-regulated growth
@@ -315,6 +315,7 @@ cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
 cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
+        rmml =0.d0; rmmlice=0.d0; rmmn=0.d0; rmms=0.d0; rmmf=0.d0;
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
          tnit = obio_P(k,1)/(rkn(nt)+obio_P(k,1))     !nitrate
           tmp = 1.0 - rnut2
@@ -333,6 +334,14 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron limitation
         rlim = min(rmml,rmmn,rmms,rmmf)
         rlimice = min(rmmlice,rmmn,rmms,rmmf)
+
+        !compute limiting factor array
+        flimit(k,nt,1) = rmml*pnoice
+        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,3) = rmmn*pnoice  
+        flimit(k,nt,4) = rmms*pnoice  
+        flimit(k,nt,5) = rmmf*pnoice  
+
         grate = rmuplsr(k,nt)*rlim*pnoice
      .          + rmuplsr(k,nt)*rlimice*(1.0-pnoice)
         rmu4(nt) = grate*framm
@@ -379,6 +388,7 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
+        rmml =0.d0; rmmlice=0.d0; rmmn=0.d0; rmms=0.d0; rmmf=0.d0;
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
         tnit  = obio_P(k,1)/(rkn(nt)+obio_P(k,1))      !nitrate
         tmp   = 1.0 - rnut2
@@ -396,6 +406,14 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron limitation
         rlim = min(rmml,rmmn,rmmf)
         rlimice = min(rmmlice,rmmn,rmmf)
+
+        !compute limiting factor array
+        flimit(k,nt,1) = rmml
+        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,3) = rmmn   
+        flimit(k,nt,4) = rmms   
+        flimit(k,nt,5) = rmmf
+
         grate = rmuplsr(k,nt)*rlim * pnoice
      .        + rmuplsr(k,nt)*rlimice * (1.0-pnoice)
         rmu4(nt) = grate*framm
@@ -422,6 +440,7 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 ! Cyanobacteria
         nt = 3
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
+        rmml =0.d0; rmmlice=0.d0; rmmn=0.d0; rmms=0.d0; rmmf=0.d0;
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
         tnit = obio_P(k,1)/(rkn(nt)+obio_P(k,1))      !nitrate
         tmp = 1.0 - rnut2
@@ -439,6 +458,13 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         rlim = min(rmml,rmmn,rmmf)
         rlimnfix = min(rmml,rmmf)         !limitation for N2 fixation
         rlimrkn = min(rmml,rkn(nt),rmmf)   !limitation at kn
+
+        !compute limiting factor array
+        flimit(k,nt,1) = rmml
+        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,3) = rmmn   
+        flimit(k,nt,4) = rmms   
+        flimit(k,nt,5) = rmmf
 
         grate = rmuplsr(k,nt)*rlim*pnoice
         rmu4(nt) = grate*framm
@@ -488,6 +514,7 @@ cdiag.   obio_P(k,2)
         nt = 4
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
+        rmml =0.d0; rmmlice=0.d0; rmmn=0.d0; rmms=0.d0; rmmf=0.d0;
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
         tnit = obio_P(k,1)/(rkn(nt)+obio_P(k,1))      !nitrate
         tmp = 1.0 - rnut2
@@ -503,6 +530,14 @@ cdiag.   obio_P(k,2)
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
         rlim = min(rmml,rmmn,rmmf)
+
+        !compute limiting factor array
+        flimit(k,nt,1) = rmml
+        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,3) = rmmn   
+        flimit(k,nt,4) = rmms   
+        flimit(k,nt,5) = rmmf
+
         grate = rmuplsr(k,nt)*rlim*pnoice
         rmu4(nt) = grate*framm 
         rmu3(nt) = grate*(1.0-framm)
@@ -530,6 +565,7 @@ cdiag.   obio_P(k,2)
         nt = 5
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
+        rmml =0.d0; rmmlice=0.d0; rmmn=0.d0; rmms=0.d0; rmmf=0.d0;
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
         tnit = obio_P(k,1)/(rkn(nt)+obio_P(k,1))      !nitrate
         tmp = 1.0 - rnut2
@@ -545,6 +581,14 @@ cdiag.   obio_P(k,2)
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
         rlim = min(rmml,rmmn,rmmf)
+
+        !compute limiting factor array
+        flimit(k,nt,1) = rmml
+        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,3) = rmmn   
+        flimit(k,nt,4) = rmms   
+        flimit(k,nt,5) = rmmf
+
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm * pnoice
         rmu3(nt) = grate*(1.0-framm) * pnoice
@@ -619,7 +663,7 @@ cdiag. upn,upa,upf,ups
         P_tend(k,3) = P_tend(k,3) - ups
         P_tend(k,4) = P_tend(k,4) - upf
 
-       endif !tirrq(k) .gt. 0.0
+CHECK  endif !tirrq(k) .gt. 0.0
       enddo  !kmax
 
 !  Fix up nitrogen uptake from N-fixation -- give back to water

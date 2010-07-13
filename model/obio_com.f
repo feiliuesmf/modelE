@@ -91,11 +91,11 @@ c
 !$OMP THREADPRIVATE(/reducarr2/)
 
       real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d
-     .    ,saln1d,p1d,alk1d,cexp,caexp
+     .    ,saln1d,p1d,alk1d,cexp,caexp,flimit
       common /reducarr1/temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
-     .                 ,alk1d(kdm)
+     .                 ,alk1d(kdm),flimit(kdm,nchl,5)
 !$OMP THREADPRIVATE(/reducarr1/)
 
       real atmFe_ij,covice_ij
@@ -122,9 +122,6 @@ c
       common /akpt/ A_tend(kdm)
 !$OMP THREADPRIVATE(/akpt/)
 #endif
-      real zc                                 !compensation depth
-      common /bzc/zc
-!$OMP THREADPRIVATE(/bzc/)
 
       real rmuplsr                            !growth+resp rate
       common /bgro/ rmuplsr(kdm,nchl)   
@@ -200,7 +197,7 @@ C endif
       real*8 :: ao_co2flux
 #endif
 #endif
-
+      integer kzc
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
 #ifdef restoreIRON

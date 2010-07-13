@@ -44,9 +44,9 @@
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
-     .      npratio,uMtomgm3,cnratio,bn
+     .      npratio,uMtomgm3,cnratio,bn,zc
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,zc,alk1d,pnoice,caexp
+     .      rhs,alk1d,pnoice,caexp,kzc
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
@@ -58,19 +58,11 @@
 
       implicit none
 
-      integer nt,k,kmax,nchl1,nchl2,i,j,kzc
+      integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
      .       J_Ca(kmax),term,term1,term2,DOP
       logical vrbos
 !--------------------------------------------------------------------------
-!find layer index for zc
-      kzc = 1
-      do k=kmax+1,1,-1
-           if (p1d(k).gt.zc) kzc = k
-      enddo
-      if (kzc.lt.1) kzc=1
-      if (kzc.gt.kmax) kzc=kmax
-
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
          A_tend(:) = 0.
@@ -86,7 +78,7 @@
       do k=1,kmax
       J_PO4(k) =  P_tend(k,1)/npratio   !approximate by nitrate conc tendency
                                         !NO3/PO4 ratio from Conkright et al, 1994
-     .            /14.d0                ! ?
+     .            /14.d0                !expressed as nitrates
       term = -1.d0*npratio * J_PO4(k)   !uM,N/hr= mili-mol,N/m3/hr
       rhs(k,15,1) = term
       A_tend(k)= term 
@@ -154,7 +146,7 @@
       caexp = 0.d0
       do k=1,kzc
       caexp = caexp + F_Ca(k)
-     .                *24.d0*365.d0*1.d-3
+     .                *24.d0*365.d0
      .                *1.d-15       !PgC/m2/yr
 #ifdef OBIO_ON_GARYocean
      .                * dxypo(j)    ! -> Pg,C/yr

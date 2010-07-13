@@ -6,7 +6,7 @@
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
-     .                   ,rhs,zc,cexp
+     .                   ,rhs,cexp,pnoice,kzc
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE OCEAN, only: dxypo
@@ -18,7 +18,7 @@
 
       implicit none
 
-      integer :: i,j,k,nt,kmax,kzc
+      integer :: i,j,k,nt,kmax
       real    :: trnd
       logical :: vrbos,errcon
 
@@ -26,14 +26,6 @@
 !---------------------------------------------------------------
 ! --- phyto sinking and detrital settling
 !---------------------------------------------------------------
-
-      !find layer index for zc, max depth of sinking phytoplankton
-      kzc = 1
-      do k=kmax+1,1,-1
-           if (p1d(k).gt.zc) kzc = k
-      enddo
-      if (kzc.lt.1) kzc=1
-      if (kzc.gt.kmax) kzc=kmax
 
 #ifdef OBIO_ON_GARYocean
 
@@ -234,14 +226,15 @@ cdiag      endif
       do  k=1,kzc    
         do nt=nnut+1,nnut+nchl
            cexp = cexp
-     .        + obio_P(k,nt)*obio_ws(k,nt-nnut)/dp1d(k)    ! mgm3/hr 
-     .        * mgchltouMC * 1.d-3                         ! -> uM,C/hr=mili-mol,C/m3/hr
-     .        * 24.d0 * 365.d0 *dp1d(k)                    ! -> mol,C/m3/hr
-     .        * 12.d0 * 1.d-15                             ! -> Pg,C/m2/yr
+     .        + obio_P(k,nt)*obio_ws(k,nt-nnut)   
+     .        * mgchltouMC              
+     .        * 12.d0              
+     .        * 24.d0 * 365.d0         
+     .        * 1.d-15            !mgm3 -> PgC/yr               
 #ifdef OBIO_ON_GARYocean
-     .        * dxypo(j)                                   ! -> Pg,C/yr
+     .        * dxypo(j)                      
 #else
-     .        * scp2(i,j)                                  ! -> Pg,C/yr
+     .        * scp2(i,j)                    
 #endif
         enddo
 
@@ -249,17 +242,15 @@ cdiag      endif
       !dont set cexp = 0 here, because adds to before
         nt= 1            !only the for carbon detritus
         cexp = cexp 
-     .        + det(k,nt)*wsdet(k,nt)/dp1d(k)      ! micro-grC/lt/hr == mili,grC/m3/hr
-     .        * 1.d-3 /12.d0                       ! -> mol,C/m3/hr
-     .        * 24.d0 * 365.d0 *dp1d(k)            ! -> mol,C/m2/yr
-     .        * 12.d0 * 1.d-15                     ! -> Pgr,C/m2/yr
+     .        + det(k,nt)*wsdet(k,nt)
+     .        * 24.d0 * 365.d0
+     .        * 1.d-15                 !ugC/l -> PgC/yr
 #ifdef OBIO_ON_GARYocean
-     .        * dxypo(j)                           ! -> Pg,C/yr
+     .        * dxypo(j) 
 #else
-     .        * scp2(i,j)                          ! -> Pg,C/yr
+     .        * scp2(i,j) 
 #endif
       enddo
 
-      !!write(*,'(a,3i5,e16.8)') 'obio_sinksettl, cexp:',nstep,i,j,cexp
 
       end subroutine obio_sinksettl

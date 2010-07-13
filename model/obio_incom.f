@@ -98,7 +98,8 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
       real ac,bc                !absorption and scattering coefficients of chlorophyll
       common /bopt/ ac(nchl,nlt),bc(nchl,nlt)
 
-      real, parameter :: solFe=0.02    !solubility of iron
+!     real, parameter :: solFe=0.02    !solubility of iron
+      real, parameter :: solFe=0.05    !solubility of iron
 
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       
@@ -129,6 +130,8 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       common/exifst3/wfac
 #endif
 
+!define compensation depth
+      real, parameter ::  zc = 75. ! in meters (from OCMIP)
 
 #ifdef TRACERS_Alkalinity
       real, parameter ::  rain_ratio=0.07
