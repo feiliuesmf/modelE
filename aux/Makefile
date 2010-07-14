@@ -63,14 +63,15 @@ endif
 ifeq ($(COMPILER),Intel)
 FFLAGS += -convert big_endian
 F90FLAGS += -convert big_endian
+EXTRA_LFLAGS += -convert big_endian
 else
   ifeq ($(COMPILER),gfortran)
   FFLAGS += -fconvert=big-endian
   F90FLAGS += -fconvert=big-endian
+  EXTRA_LFLAGS += -fconvert=big_endian
   endif
 endif
 
-EXTRA_LFLAGS += -convert big_endian
 
 #
 #  targets
