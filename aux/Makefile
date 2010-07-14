@@ -60,6 +60,14 @@ FFLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
 F90FLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
 endif
 
+ifeq ($(COMPILER),Intel)
+FFLAGS += -convert big_endian
+F90FLAGS += -convert big_endian
+elif ($(COMPILER),gfortran)
+FFLAGS += -fconvert big-endian
+F90FLAGS += -fconvert big-endian
+endif
+
 EXTRA_LFLAGS += -convert big_endian
 
 #
