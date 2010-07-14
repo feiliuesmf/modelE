@@ -98,7 +98,7 @@ sub runInBatch {
 #PBS -l select=$nodes:ncpus=$ncpus:proc=neha
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
-#PBS -N pbs/regression
+#PBS -N regression
 #PBS -j oe
 ##PBS -o foo
 #PBS $queueString
