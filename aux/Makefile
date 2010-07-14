@@ -65,8 +65,8 @@ FFLAGS += -convert big_endian
 F90FLAGS += -convert big_endian
 else
   ifeq ($(COMPILER),gfortran)
-  FFLAGS += -fconvert big-endian
-  F90FLAGS += -fconvert big-endian
+  FFLAGS += -fconvert=big-endian
+  F90FLAGS += -fconvert=big-endian
   endif
 endif
 
