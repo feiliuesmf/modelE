@@ -30,6 +30,7 @@ include $(SCRIPTS_DIR)/modelErc
 # configuration file with user-defined options:
 sinclude $(MODELERC)
 export COMPILER
+export MODELERC
 
 V =
 

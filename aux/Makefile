@@ -31,7 +31,8 @@ DEPENDFILE = NO_DEPENDFILE
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
 # configuration file with user-defined options:
-sinclude ~/.modelErc         
+MODELERC ?= $(HOMEDIR)/.modelErc
+sinclude $(MODELERC)
 
 
 # list of targets to be built by default
