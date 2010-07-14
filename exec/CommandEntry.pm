@@ -91,16 +91,16 @@ sub runInBatch {
   $ncpus = $NODE_SIZE if ($ncpus > $NODE_SIZE);
 
   $walltime = "3:00:00\n";
-  if ($queue == "datamove") {$walltime = "0:30:00\n"};
+#  if ($queue == "datamove") {$walltime = "0:30:00\n"};
 
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=$ncpus
+#PBS -l select=$nodes:ncpus=$ncpus:proc=neha
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
-#PBS -N regression
+#PBS -N pbs/regression
 #PBS -j oe
-#PBS -o foo
+##PBS -o foo
 #PBS $queueString
 
 cd \$PBS_O_WORKDIR

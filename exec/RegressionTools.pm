@@ -27,8 +27,7 @@ sub setModuleEnvironment {
 #    require perlModule;
     require "$ENV{MODULESHOME}/init/perl";
     module (purge);
-#    module (load, "comp/intel-9.1.042", "mpi/scali-5.3", "lib/mkl-9.0.017");
-    module (load, "comp/intel-9.1.052", "mpi/scali-5", "lib/mkl-9.1.023");
+    module (load, "comp/intel-10.1.023", "lib/mkl-10.1.2.024", "mpi/impi-3.2.1.009");
 }
 
 sub createTemporaryCopy {
@@ -66,12 +65,13 @@ sub compileRundeck {
 
   my $commandString = <<EOF;
   export MODELERC;
+  echo "MODELERC is $MODELERC";
+  echo "CONTENTS: ";
+  cat $MODELERC;
   cd $installDir/decks;
   make rundeck RUN=$expName RUNSRC=$rundeck;
   make vclean RUN=$expName;
-  make gcm RUN=$expName $flags COMPILER=$compiler;
-  # for E4TcadF40 double setup workaround
-  ln -s /gpfsm/dnb53/gfaluveg/GHG_IC_1850 $expName/GHG_IC_1850
+  make -j gcm RUN=$expName $flags COMPILER=$compiler;
 EOF
 
   my $binDir = $expName . "_bin";
@@ -81,7 +81,7 @@ EOF
     $commandString .= "cp $binDir/CMPE002 $resultsDir/CMPE002.$rundeck;\n";
   }
 
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "datamove", STDOUT_LOG_FILE => "$logFile"}));
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile"}));
 }
 
 sub runConfiguration {
@@ -188,6 +188,17 @@ $cmp $rundeck.SERIAL.1dy $expName.1dy$suffix;
 EOF
 
   return (CommandEntry -> new({COMMAND => $commandString, STDOUT_LOG_FILE => "$expName.log"}))
+}
+
+sub writeModelErcFile {
+    my $env = shift;
+    while (my ($var, $value) = each(%$env) ) {
+	$commandString .= "echo $var=$value >> $ENV{MODELERC}\n";
+    }
+    open FOO,">myfoo";
+    print FOO $commandString;
+    $commandString .= "mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR} \n";
+    return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
 sub cvsCheckout {

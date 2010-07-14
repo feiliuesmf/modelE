@@ -39,17 +39,8 @@ $env{COMPILER_VERSION}="10";
 $env{ESMF_BOPT}="O";
 $env{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
 
-$ENV{MODELERC}="$scratchDir/modelErc.regression";
-open (MODELERC, ">$ENV{MODELERC}") or die('could not create $ENV{MODELERC} file.\n');
-foreach my $var (@modelErcVariables) {
-    print MODELERC "$var=$env{$var}\n";
-}
-close MODELERC;
-
-`mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR}`;
-
 my $rundecks = ["E1M20","E1oM20","E1F20","E001tr","E4F40", 
-                 "test_E4TcadF40", "E4arobio_h4c", "E4arobio_g6c"];
+                 "E4TcadF40", "E4arobio_h4c", "E4arobio_g6c"];
 my $compilers = ["intel", "gfortran"];
 
 my $configurations;
@@ -58,7 +49,7 @@ $configurations -> {"intel"} -> {"E1oM20"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E1F20"}  = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4F40"}  = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E001tr"} = ["SERIAL", "MPI"];
-$configurations -> {"intel"} -> {"test_E4TcadF40"} = ["SERIAL", "MPI"];
+$configurations -> {"intel"} -> {"E4TcadF40"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4arobio_h4c"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4arobio_g6c"} = ["SERIAL", "MPI"];
 
@@ -67,7 +58,7 @@ $configurations -> {"gfortran"} -> {"E1oM20"} = ["SERIAL"];
 $configurations -> {"gfortran"} -> {"E1F20"}  = ["SERIAL"];
 $configurations -> {"gfortran"} -> {"E4F40"}  = ["SERIAL"];
 $configurations -> {"gfortran"} -> {"E001tr"} = ["SERIAL"];
-$configurations -> {"gfortran"} -> {"test_E4TcadF40"} = [];
+$configurations -> {"gfortran"} -> {"E4TcadF40"} = [];
 $configurations -> {"gfortran"} -> {"E4arobio_h4c"} = [];
 $configurations -> {"gfortran"} -> {"E4arobio_g6c"} = [];
 
@@ -86,7 +77,7 @@ if ($level eq "gentle") { # 3 lats per proc
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,15];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,30];
     $numProcessors -> {E4F40}  -> {MPI}    = [1,4,30];
-    $numProcessors -> {test_E4TcadF40}  -> {MPI}    = [1,4,30];
+    $numProcessors -> {E4TcadF40}  -> {MPI}    = [1,4,30];
     $numProcessors -> {E4arobio_H4c}  -> {MPI}    = [1,4,30];
     $numProcessors -> {E4arobio_g6c}  -> {MPI}    = [1,4,30];
 }
@@ -96,7 +87,7 @@ elsif ($level eq "aggressive") { # aggressive - 2 lats
     $numProcessors -> {E001tr} -> {MPI}    = [1,4,23];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,4,45];
     $numProcessors -> {E4F40}  -> {MPI}    = [1,4,45];
-    $numProcessors -> {test_E4TcadF40}  -> {MPI}    = [1,4,30];
+    $numProcessors -> {E4TcadF40}  -> {MPI}    = [1,4,30];
     $numProcessors -> {E4arobio_H4c}  -> {MPI}    = [1,4,30];
     $numProcessors -> {E4arobio_g6c}  -> {MPI}    = [1,4,30];
 }
@@ -106,19 +97,23 @@ else { # insane - 1 lat per proc
     $numProcessors -> {E001tr} -> {MPI}    = [1,44];
     $numProcessors -> {E1F20}  -> {MPI}    = [1,88];
     $numProcessors -> {E4F40}  -> {MPI}    = [1,88];
-    $numProcessors -> {test_E4TcadF40}  -> {MPI}    = [1,88];
+    $numProcessors -> {E4TcadF40}  -> {MPI}    = [1,88];
     $numProcessors -> {E4arobio_H4c}  -> {MPI}    = [1,44];
     $numProcessors -> {E4arobio_g6c}  -> {MPI}    = [1,88];
 }
 
 setModuleEnvironment();
-my $cvs = CommandEntry -> new(cvsCheckout(\%env));
-my $clean = CommandEntry -> new({COMMAND => "rm -rf $scratchDir/*;"});
-#my $clean = CommandEntry -> new({COMMAND => "ls;"});
+
 my $pool = CommandPool->new();
 
+my $cvs = CommandEntry -> new(cvsCheckout(\%env));
+my $clean = CommandEntry -> new({COMMAND => "rm -rf $scratchDir/*;"});
+
+$pool -> add($clean);
 $pool -> add($cvs);
-$pool -> setFinal($clean);
+
+$ENV{MODELERC}="$scratchDir/modelErc.regression";
+$pool -> add(CommandEntry -> new(writeModelErcFile(\%env)));
 
 $ENV{PATH}="/usr/local/other/gcc/4.5/bin:".$ENV{PATH};
 $ENV{LD_LIBRARY_PATH}="/usr/local/other/gcc/4.5/lib64:".$ENV{LD_LIBRARY_PATH};
@@ -172,15 +167,10 @@ open(REPORT,">Report");
 
 
 my $LINES_EXPECTED;
-#$LINES_EXPECTED -> {E1M20}   = [94,96];
-#$LINES_EXPECTED -> {E1oM20}  = [120,122];
-#$LINES_EXPECTED -> {E1F20}   = [94,96];
-#$LINES_EXPECTED -> {E001tr}  = [102,104];
-#$LINES_EXPECTED -> {$HYCOM}  = [139,141];
 
 $LINES_EXPECTED -> {E1M20}   = [4,5];
 $LINES_EXPECTED -> {E4F40}   = [4,15];
-$LINES_EXPECTED -> {test_E4TcadF40} = [4,15];
+$LINES_EXPECTED -> {E4TcadF40} = [4,15];
 $LINES_EXPECTED -> {E1oM20}  = [4,5];
 $LINES_EXPECTED -> {E1F20}   = [4,5];
 $LINES_EXPECTED -> {E001tr}  = [4,5];
