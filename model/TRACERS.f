@@ -1995,8 +1995,8 @@ c daily_z is currently only needed for CS
 #endif
 #endif
 
-        call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
-        call write_dist_data(grid,fid,'trcSurfByVol_acc'
+        call read_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
+        call read_dist_data(grid,fid,'trcSurfByVol_acc'
      &       ,trcSurfByVol_acc)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         call read_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
