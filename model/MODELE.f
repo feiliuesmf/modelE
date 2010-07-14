@@ -1264,6 +1264,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 CCCC      INTEGER :: stdin ! used to read 'I' file
+      integer, parameter :: MAXLEN_RUNID = 32
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -1836,12 +1837,12 @@ C***********************************************************************
 C**** initialize Lrunid (length of the identifying part of XLABEL)
 C****
       lid1 = INDEX(XLABEL,'(') -1
-      if (lid1.lt.1) lid1=17
+      if (lid1.lt.1) lid1=MAXLEN_RUNID+1
       lid2 = INDEX(XLABEL,' ') -1
-      if (lid2.lt.1) lid2=17
+      if (lid2.lt.1) lid2=MAXLEN_RUNID+1
       LRUNID = min(lid1,lid2)
-      IF (LRUNID.gt.16) call stop_model
-     *     ('INPUT: Rundeck name too long. Shorten to 16 char or less'
+      IF (LRUNID.gt.MAXLEN_RUNID) call stop_model
+     *     ('INPUT: Rundeck name too long. Shorten to 32 char or less'
      *     ,255)
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
