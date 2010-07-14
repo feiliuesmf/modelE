@@ -195,8 +195,6 @@ sub writeModelErcFile {
     while (my ($var, $value) = each(%$env) ) {
 	$commandString .= "echo $var=$value >> $ENV{MODELERC}\n";
     }
-    open FOO,">myfoo";
-    print FOO $commandString;
     $commandString .= "mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR} \n";
     return (CommandEntry -> new({COMMAND => $commandString}))
 }
