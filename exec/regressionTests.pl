@@ -40,7 +40,7 @@ $env{ESMF_BOPT}="O";
 $env{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
 
 my $rundecks = ["E1M20","E1oM20","E1F20","E001tr","E4F40", 
-                 "E4TcadF40", "E4arobio_h4c", "E4arobio_g6c"];
+                 "E4TcadF40", "E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
 my $compilers = ["intel", "gfortran"];
 
 my $configurations;
@@ -52,6 +52,7 @@ $configurations -> {"intel"} -> {"E001tr"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4TcadF40"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4arobio_h4c"} = ["SERIAL", "MPI"];
 $configurations -> {"intel"} -> {"E4arobio_g6c"} = ["SERIAL", "MPI"];
+$configurations -> {"intel"} -> {"SCMSGPCONT"} = ["SERIAL", "MPI"];
 
 $configurations -> {"gfortran"} -> {"E1M20"}  = ["SERIAL"];
 $configurations -> {"gfortran"} -> {"E1oM20"} = ["SERIAL"];
@@ -61,6 +62,7 @@ $configurations -> {"gfortran"} -> {"E001tr"} = ["SERIAL"];
 $configurations -> {"gfortran"} -> {"E4TcadF40"} = [];
 $configurations -> {"gfortran"} -> {"E4arobio_h4c"} = [];
 $configurations -> {"gfortran"} -> {"E4arobio_g6c"} = [];
+$configurations -> {"gfortran"} -> {"SCMSGPCONT"}  = ["SERIAL"];
 
 my $numProcessors;
     $numProcessors -> {E1M20}  -> {OPENMP} = [1,4];
@@ -68,6 +70,9 @@ my $numProcessors;
     $numProcessors -> {E1F20}  -> {OPENMP} = [1,4];
     $numProcessors -> {E001tr} -> {OPENMP} = [1,4];
     $numProcessors -> {E4F40}  -> {OPENMP} = [1,4];
+    $numProcessors -> {SCMSGPCONT}  -> {OPENMP} = [1,4];
+
+$numProcessors -> {SCMSGPCONT}  -> {MPI}    = [1]; # no effective MPI for SCM case
 
 my $level = "insane";
 
