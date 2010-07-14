@@ -55,9 +55,6 @@ include $(CONFIG_DIR)/rules.mk
 ifeq ($(COMPILER),Absoft)
 FFLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
 F90FLAGS += -p $(MOD_DIR) -I$(MODEL_DIR)
-else
-FFLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
-F90FLAGS += -I$(MOD_DIR) -I$(MODEL_DIR) -convert big_endian
 endif
 
 ifeq ($(COMPILER),Intel)
