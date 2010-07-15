@@ -1570,15 +1570,14 @@ c      enddo
 
        if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
      &      (J_TARG.lt.2 .or. J_TARG.gt.89)) then
-             write(0,*) 'Invalid grid coordinates for selected box ',
+             write(iu_scm_prt,*) 
+     &             'Invalid grid coordinates for selected box ',
      &             I_TARG,J_TARG
              STOP 100
        endif
 !      read scm data and initialize model
 !      note:  usavg,vsavg and wsavg filled from here
        call init_scmdata
-       write(0,*) 'return from init_scmdata'
-c      write(iu_scm_prt,*) 'return from init_scmdata'
 c      do L=1,LM
 c         write(iu_scm_prt,'(a6,i5,2(f10.4))') 'l u v ',l,
 c    &         u(i_targ,j_targ,l),v(i_targ,j_targ,l)

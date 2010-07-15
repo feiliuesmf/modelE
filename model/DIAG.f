@@ -869,7 +869,6 @@ C****
       INTEGER NT
 
 #ifdef SCM
-c     write(0,*) 'SCM - no diags   DIAGCA'
       return
 #endif
 
@@ -1160,7 +1159,6 @@ C****
       INTEGER :: I,IDACC5,N,NM
 
 #ifdef SCM
-c     write(0,*) 'SCM no diags    DIAG4A'
       return
 #endif
 
