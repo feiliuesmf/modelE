@@ -155,11 +155,11 @@ c
 !@var SCM_ATURB_FLAG     0-run with DRYCNV dry convection routine 
 !                        1-run with ATURB turbulence routine    
       SCM_ATURB_FLAG = 1
-      if (SCM_ATURB_FLAG.eq.0) then
-          write(0,*) 'RUN with DRYCNV routine '
-      elseif (SCM_ATURB_FLAG.eq.1) then
-          write(0,*) 'RUN with ATURB routine '
-      endif    
+c     if (SCM_ATURB_FLAG.eq.0) then
+c         write(0,*) 'RUN with DRYCNV routine '
+c     elseif (SCM_ATURB_FLAG.eq.1) then
+c         write(0,*) 'RUN with ATURB routine '
+c     endif    
   
       return
 

@@ -665,7 +665,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       INTEGER, INTENT(IN) :: partial
  
 #ifdef SCM
-c     write(0,*) 'SCM no diags   print_diags'
       return
 #endif
 

@@ -788,9 +788,6 @@ c
       call pass_scm_surface 
       call pass_scm_layers 
 
-c     write(0,*) "enter SCMDATA nstepscm ltim stim nrinit modint", 
-c    &            NSTEPSCM,ALTIME,ASTIME,NRINIT,MODINT 
-  
 c * * * * indices
       P(I_TARG,J_TARG) = AMEANPS - PTOP   
       call CALC_AMPK(LM)
@@ -1072,6 +1069,7 @@ c     first get temperature and humidity on an hourly basis
       ni = 1
       do ip = 1,NPARM  
          acld1hr(ip,ni) = acld3hr(ip,ni)
+         if (acld1hr(ip,ni).lt.0.0) acld1hr(ip,ni) = 0.0
       enddo
       do itp = 1,NTARM-1
          do ip = 1,NPARM 
@@ -1080,12 +1078,25 @@ c     first get temperature and humidity on an hourly basis
             do ii = 1,NARM
                i=ni+ii
                acld1hr(ip,i) = acld1hr(ip,i-1)+dx
+               if (acld1hr(ip,i).lt.0.0) acld1hr(ip,i) = 0.0
             enddo
          enddo
          ni = ni + NARM
       enddo
+      do itp = 1,20
+         do ip = 1,NPARM
+            write(iu_scm_prt,800) itp,ip,AP(ip),acld3hr(ip,itp)
+ 800        format(1x,'it ip  p cld3 ',i5,i5,f10.2,f10.3)
+         enddo
+      enddo
 
-
+      do itp = 1,25
+         do ip = 1,NPARM
+            write(iu_scm_prt,810) itp,ip,AP(ip),acld1hr(ip,itp)
+ 810        format(1x,'it ip p cld1 ',i5,i5,f10.2,f10.3)
+         enddo
+      enddo
+ 
 c     write(iu_scm_prt,*) 'to time step interpolation done'
 
 c     do l=1,LM
@@ -1096,8 +1107,6 @@ c     enddo
 
 c     for all the time steps
       do ihr = 1,MCT
-c        write(0,*) 'ihr = ',ihr
- 
          if (AMPS(ihr).gt.0.0) then
 C            fill pressure levels
 ccccc check how to fill pressure levels
@@ -1163,12 +1172,6 @@ c
 c                   deltap = APE(n-1)-APE(n)
                     sumat = sumat + deltap*t1hr(n-1,ihr)
                     sumaq = sumaq + deltap*q1hr(n-1,ihr)*100./grav
-
-c                 write(0,*) 'ihr n AMPS APE deltap ',ihr,n,
-c    &                    AMPS(ihr),APE(n),APE(n-1),deltap   
-c                 write(0,*) 'ihr n t1hr(n-1,ihr) sumat ',ihr,
-c    &                          n,t1hr(n-1,ihr),sumat
-  
                     sumaqh = sumaqh + deltap*hqa1hr(n-1,ihr)
                     sumaqv = sumaqv + deltap*vqa1hr(n-1,ihr)
                     sumath = sumath + deltap*hta1hr(n-1,ihr)
@@ -1182,7 +1185,6 @@ c    &                          n,t1hr(n-1,ihr),sumat
              enddo
 c            write(iu_scm_prt,*) 'sums done'
 c            write(iu_scm_prt,414) totpa,sumat
-c            write(0,414) totpa,sumat
 414          format(1x,'totpa  sumat ',f10.2,f12.2)
 c            write(iu_scm_prt,415) totpa,sumaq
 415          format(1x,'totpa  sumaq ',f10.2,f12.5)
@@ -1344,7 +1346,6 @@ c                  gcm layer completely contained within the arm layer
                      endif
                    enddo
                 elseif (NB.eq.NE) then
-c                   write(0,*) 'nb ne ',NB,NE 
 c                   gcm layer overlaps 2 different arm layers 
                     DELAG1 = SGE_P(L)-APE(NB)
                     QHR(L,ihr) = DELAG1*q1hr(NB-1,ihr)
@@ -1463,6 +1464,13 @@ c
              VSA_HR(LM,ihr) = 0.0
              HQA_HR(LM,ihr) = 0.0
              VQA_HR(LM,ihr) = 0.0
+             if (ihr.lt.25) then
+                 do l=1,LM
+                    write(iu_scm_prt,880) ihr,l,SG_P(l),ACLDHR(l,ihr)
+ 880                format(1x,'ihr l p acld ',i5,i5,f10.2,f10.3)
+                 enddo
+             endif
+
              DELTAP = SGE_P(LM)-SGE_P(LM+1)
              totpg = totpg + DELTAP
              sumgt = sumgt + DELTAP*THR(LM,ihr)

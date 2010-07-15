@@ -67,7 +67,6 @@ c     apply advective forcings from ARM Variational analysis to T and Q
       INTEGER L
 
 cccccc is there some other variable they keep or function for doing this
-c     write(0,*) 'enter SCM_FORCN     dtsrc ',dtsrc 
       do L = 1,LM
          T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG) 
 c        write(iu_scm_prt,*) 'FORCN -old tq  ',L,T(I_TARG,J_TARG,L),

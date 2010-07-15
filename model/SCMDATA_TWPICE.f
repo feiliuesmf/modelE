@@ -770,9 +770,6 @@ c
       call pass_scm_surface 
       call pass_scm_layers 
 
-c     write(0,*) "enter SCMDATA nstepscm ltim stim nrinit modint", 
-c    &            NSTEPSCM,ALTIME,ASTIME,NRINIT,MODINT 
-  
 c * * * * indices
       P(I_TARG,J_TARG) = AMEANPS - PTOP   
       call CALC_AMPK(LM)
@@ -1078,8 +1075,6 @@ c     enddo
 
 c     for all the time steps
       do ihr = 1,MCT
-c        write(0,*) 'ihr = ',ihr
- 
          if (AMPS(ihr).gt.0.0) then
 C            fill pressure levels
 ccccc check how to fill pressure levels
@@ -1145,12 +1140,6 @@ c
 c                   deltap = APE(n-1)-APE(n)
                     sumat = sumat + deltap*t1hr(n-1,ihr)
                     sumaq = sumaq + deltap*q1hr(n-1,ihr)*100./grav
-
-c                 write(0,*) 'ihr n AMPS APE deltap ',ihr,n,
-c    &                    AMPS(ihr),APE(n),APE(n-1),deltap   
-c                 write(0,*) 'ihr n t1hr(n-1,ihr) sumat ',ihr,
-c    &                          n,t1hr(n-1,ihr),sumat
-  
                     sumaqh = sumaqh + deltap*hqa1hr(n-1,ihr)
                     sumaqv = sumaqv + deltap*vqa1hr(n-1,ihr)
                     sumath = sumath + deltap*hta1hr(n-1,ihr)
@@ -1164,18 +1153,17 @@ c    &                          n,t1hr(n-1,ihr),sumat
              enddo
 c            write(iu_scm_prt,*) 'sums done'
 c            write(iu_scm_prt,414) totpa,sumat
-c            write(0,414) totpa,sumat
-414          format(1x,'totpa  sumat ',f10.2,f12.2)
+c414          format(1x,'totpa  sumat ',f10.2,f12.2)
 c            write(iu_scm_prt,415) totpa,sumaq
-415          format(1x,'totpa  sumaq ',f10.2,f12.5)
+c415          format(1x,'totpa  sumaq ',f10.2,f12.5)
 c            write(iu_scm_prt,416) totpa,sumaqh*QSC
-416          format(1x,'totpa  sumaqh ',f10.2,f12.5)
+c416          format(1x,'totpa  sumaqh ',f10.2,f12.5)
 c            write(iu_scm_prt,417) totpa,sumaqv*QSC
-417          format(1x,'totpa  sumaqv ',f10.2,f12.5)
+c417          format(1x,'totpa  sumaqv ',f10.2,f12.5)
 c            write(iu_scm_prt,418) totpa,sumath
-418          format(1x,'totpa  sumath ',f10.2,f12.5)
+c418          format(1x,'totpa  sumath ',f10.2,f12.5)
 c            write(iu_scm_prt,419) totpa,sumasv
-419          format(1x,'totpa  sumasv ',f10.2,f12.5)
+c419          format(1x,'totpa  sumasv ',f10.2,f12.5)
             
 C            redistribute ARM data from arm layers to gcm sigma layers
              totpg = 0.0
@@ -1326,7 +1314,6 @@ c                  gcm layer completely contained within the arm layer
                      endif
                    enddo
                 elseif (NB.eq.NE) then
-c                   write(0,*) 'nb ne ',NB,NE 
 c                   gcm layer overlaps 2 different arm layers 
                     DELAG1 = SGE_P(L)-APE(NB)
                     QHR(L,ihr) = DELAG1*q1hr(NB-1,ihr)

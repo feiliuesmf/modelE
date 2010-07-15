@@ -2001,7 +2001,6 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 #ifdef SCM
-c     write(0,*) 'SCM no diags    DIAG5A'
       return
 #endif
 
@@ -2327,7 +2326,6 @@ C****
       INTEGER :: J_0, J_1
 
 #ifdef SCM
-c     write(0,*) 'SCM no diags   DIAG7A '
       return
 #endif
 

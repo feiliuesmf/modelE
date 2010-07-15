@@ -250,7 +250,6 @@ C***  ...first update halo (J_0-1 values) of UKM,VKM, and PLIJ.
 
 #ifdef SCM
 C
-c     write(0,*) 'scm really update winds '
       i=I_TARG
       j=J_TARG
         KMAX=KMAXJ(J)
@@ -268,9 +267,6 @@ c       DO I=1,IM
             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
             CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L,I
      *           ,J)*RA(K))
-c           write(0,*) 'new winds L K u v   ',L,K,
-c    *              u(idi(k),idj(k),l),
-c    *              v(idi(k),idj(k),l)
           END DO ; END DO
 c       END DO
 #else
@@ -468,10 +464,6 @@ cccc if SCM - update winds ????
       i = I_TARG
       j= J_TARG
       do k=1,2
-c        write(0,*) 'in atm_diff  winds scm  k idij idjj ravj ',
-c    *      k,idij(k,I_TARG,J_TARG),idjj(k,J_TARG),ravj(k,j_TARG) 
-c        write(0,*) 'uflux  ',uflux1(I_TARG,J_TARG),
-c    *            '  vflux  ',vflux1(I_TARG,J_TARG)
          u(idij(k,i,j),idjj(k,j),1)=u(idij(k,i,j),idjj(k,j),1) -
      *          ravj(k,j)*uflux1(i,j)*dt*byam(1,I,J)
          v(idij(k,i,j),idjj(k,j),1)=v(idij(k,i,j),idjj(k,j),1) -
