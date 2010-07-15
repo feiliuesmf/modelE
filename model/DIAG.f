@@ -1196,6 +1196,7 @@ C****
       use domain_decomp_atm, only: get,grid,am_i_root
       USE MODEL_COM, only : im,jm,lm,itime,itime0
       USE FILEMANAGER, only : openunit, closeunit, nameunit
+      use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
 #ifdef TES_LIKE_DIAGS
      *                    ,kgz_max_more,pmnamemore
@@ -1273,6 +1274,20 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       character*14, private :: adate_sv
 
+!@var LmaxSUBDD_array array for three-dimensional fields for subdd diagnostics
+!@var ngm_array three-dimensional array for subdd ground diagnostics
+      real(kind=8),allocatable,dimension(:,:,:) :: LmaxSUBDD_array
+     &     ,ngm_array
+!@var kgz_max_suffixes array of names for subdd-diagnostic on pressure levels
+      character(len=7),allocatable,dimension(:) :: kgz_max_suffixes
+!@var kgz_max_array three-dimensional array for diagnostics on pressure levels
+      real(kind=8),allocatable,dimension(:,:,:) :: kgz_max_array
+#ifdef TES_LIKE_DIAGS
+!@var kgz_max_suffixes array of names for subdd-diagnostic on pressure levels
+      character(len=7),allocatable,dimension(:) :: kgz_max_more_suffixes
+!@var kgz_max_array three-dimensional array for diagnostics on more pressure levels
+      real(kind=8),allocatable,dimension(:,:,:) :: kgz_max_more_array
+#endif
 #ifdef TRACERS_ON
 !@var rTrname array with tracer names for subdd radiation diagnostics
       character(len=8),allocatable,dimension(:) :: rTrname
@@ -1367,6 +1382,14 @@ C**** initialise special subdd accumulation
       sPM2p5_acc=0.; sPM10_acc=0.; l1PM2p5_acc=0.; l1PM10_acc=0.
 #endif
 
+      allocate(LmaxSUBDD_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD))
+      allocate(ngm_array(i_0h:i_1h,j_0h:j_1h,ngm))
+      allocate(kgz_max_suffixes(kgz_max))
+      allocate(kgz_max_array(i_0h:i_1h,j_0h:j_1h,kgz_max))
+#ifdef TES_LIKE_DIAGS
+      allocate(kgz_max_more_suffixes(kgz_max_more))
+      allocate(kgz_max_more_array(i_0h:i_1h,j_0h:j_1h,kgz_max_more))
+#endif
 #ifdef TRACERS_ON
       allocate(rTrname(nTracerRadiaActive))
       allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
@@ -1549,7 +1572,6 @@ c get_subdd
      *     ,flice,nday,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
-      USE GHY_COM, only : gdeep,gsaveL,ngm
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
      *           ,ctem,cd3d,ci3d,cl3d,cdn3d,cre3d,clwp
@@ -1568,10 +1590,10 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn
      *     ,p_acc,pm_acc,pmb
 #ifdef TES_LIKE_DIAGS
-     *     ,kgz_max_more,t_more,q_more,pmnamemore
+     *     ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,o_more,n_more,m_more,x_more
 #endif
@@ -1636,24 +1658,24 @@ C**** simple diags (one record per file)
           do i=I_0,imaxj(j)
             ps=(p(i,j)+ptop)
             zs=bygrav*zatmo(i,j)
-            data(i,j)=slp(ps,tsavg(i,j),zs)
+            datar8(i,j)=slp(ps,tsavg(i,j),zs)
           end do
           end do
         case ("PS")             ! surface pressure (mb)
-          data=p+ptop
+          datar8=p+ptop
         case ("SAT")            ! surf. air temp (C)
-          data=tsavg-tf
+          datar8=tsavg-tf
         case ("US")             ! surf. u wind (m/s)
-          data=usavg
+          datar8=usavg
         case ("VS")             ! surf. v wind (m/s)
-          data=vsavg
+          datar8=vsavg
         case ("SST")            ! sea surface temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
-                data(i,j)=GTEMP(1,1,i,j)
+                datar8(i,j)=GTEMP(1,1,i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1661,9 +1683,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
-                data(i,j)=GTEMP(1,2,i,j)
+                datar8(i,j)=GTEMP(1,2,i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1671,9 +1693,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FLICE(I,J).gt.0) then
-                data(i,j)=GTEMP(1,3,i,j)
+                datar8(i,j)=GTEMP(1,3,i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1681,9 +1703,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=gtemp(1,4,i,j)
+                datar8(i,j)=gtemp(1,4,i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1691,9 +1713,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=gdeep(i,j,1)
+                datar8(i,j)=gdeep(i,j,1)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1701,9 +1723,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=gdeep(i,j,2)
+                datar8(i,j)=gdeep(i,j,2)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1711,9 +1733,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=gdeep(i,j,3)
+                datar8(i,j)=gdeep(i,j,3)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1721,9 +1743,9 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=wearth(i,j)
+                datar8(i,j)=wearth(i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1731,61 +1753,61 @@ C**** simple diags (one record per file)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=aiearth(i,j)
+                datar8(i,j)=aiearth(i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
         case ("QS")             ! surf spec humidity (kg/kg)
-          data=qsavg
+          datar8=qsavg
         case ("RS")             ! surf rel humidity
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              data(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
+              datar8(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
             enddo
           enddo
         case ("PREC")           ! precip (mm/day)
-c          data=sday*prec/dtsrc
-          data=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+c          datar8=sday*prec/dtsrc
+          datar8=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
 #ifdef CALCULATE_FLAMMABILITY
         case ("RAPR")   !running avg precip (mm/day)
-          data=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          datar8=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           raP_acc=0.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppmv)
-          data=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+          datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
           sOx_acc=0.
         case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppmv)
-          data=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+          datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
           l1Ox_acc=0.
         case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppmv)
-          data=l1NO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+          datar8=l1NO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
           l1NO_acc=0.
 #endif
         case ("MCP")       ! moist conv precip (mm/day)
-          data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
 #ifdef TRACERS_WATER
         case ("TRP1")
-          data=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
         case ("TRE1")
-          data=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(1,:,:)=0.
         case ("TRP2")
-          data=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
         case ("TRE2")
-          data=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(2,:,:)=0.
         case ("TRP3")
-          data=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
         case ("TRE3")
-          data=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(3,:,:)=0.
 #endif
         case ("SNOWD")     ! snow depth (w.e. mm)
@@ -1794,34 +1816,34 @@ c          data=sday*prec/dtsrc
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              data(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI+SNOWE(I
-     *             ,J)*PEARTH)/RHOW
+              datar8(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI
+     &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
         case ("SNOWC")     ! snow cover (fraction of grid)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              data(i,j)=0.d0
+              datar8(i,j)=0.d0
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
-              if(SNOWI(I,J) > 0.)data(i,j)=data(i,j)+POICE
+              if(SNOWI(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
               PEARTH=FEARTH(I,J)
-              if(SNOWE(I,J) > 0.)data(i,j)=data(i,j)+PEARTH
+              if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
-              if(SNOWLI(I,J) > 0.)data(i,j)=data(i,j)+PLANDI
-              data(i,j)=min(1.0,data(i,j))
+              if(SNOWLI(I,J) > 0.)datar8(i,j)=datar8(i,j)+PLANDI
+              datar8(i,j)=min(1.0,datar8(i,j))
             end do
           end do
         case ("QLAT")           ! latent heat (W/m^2)
-          data=qflux1*lhe
+          datar8=qflux1*lhe
         case ("QSEN")           ! sensible heat flux (W/m^2)
-          data=tflux1*sha
+          datar8=tflux1*sha
         case ("SWD")            ! solar downward flux at surface (W/m^2)
-          data=srdn*cosz1       ! multiply by instant cos zenith angle
+          datar8=srdn*cosz1       ! multiply by instant cos zenith angle
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
-          data=srdn*(1.-salb)*cosz1
+          datar8=srdn*(1.-salb)*cosz1
         case ("LWD")            ! LW downward flux at surface (W/m^2)
-          data=TRHR(0,:,:)
+          datar8=TRHR(0,:,:)
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1829,7 +1851,7 @@ c          data=sday*prec/dtsrc
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              data(i,j)=STBO*(POCEAN*GTEMPR(1,I,J)**4+
+              datar8(i,j)=STBO*(POCEAN*GTEMPR(1,I,J)**4+
      *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
@@ -1841,109 +1863,109 @@ c          data=sday*prec/dtsrc
               POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              data(i,j)=-SUM(TRHR(0:LM,I,J))+
+              datar8(i,j)=-SUM(TRHR(0:LM,I,J))+
      *             STBO*(POCEAN*GTEMPR(1,I,J)**4+
      *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
         case ("ICEF")           ! ice fraction over open water (%)
-          data=RSI*100.
+          datar8=RSI*100.
         case ("STX")            ! E-W surface stress (N/m^2)
-          data=uflux1
+          datar8=uflux1
         case ("STY")            ! N-S surface stress (N/m^2)
-          data=vflux1
+          datar8=vflux1
         case ("LCLD")           ! low level cloud cover (%)
-          data=0.               ! Warning: these can be greater >100!
+          datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               do l=1,llow
-                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+                datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              data(i,j)=data(i,j)*100./real(llow,kind=8)
+              datar8(i,j)=datar8(i,j)*100./real(llow,kind=8)
             end do
           end do
         case ("MCLD")           ! mid level cloud cover (%)
-          data=0.               ! Warning: these can be greater >100!
+          datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               do l=llow+1,lmid
-                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+                datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              data(i,j)=data(i,j)*100./real(lmid-llow,kind=8)
+              datar8(i,j)=datar8(i,j)*100./real(lmid-llow,kind=8)
             end do
           end do
         case ("HCLD")           ! high level cloud cover (%)
-          data=0.               ! Warning: these can be greater >100!
+          datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               do l=lmid+1,lhi
-                data(i,j)=data(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
+                datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              data(i,j)=data(i,j)*100./real(lhi-lmid,kind=8)
+              datar8(i,j)=datar8(i,j)*100./real(lhi-lmid,kind=8)
             end do
           end do
         case ("TCLD")           ! total cloud cover (%) (As seen by rad)
-          data=cfrac*100.
+          datar8=cfrac*100.
         case ("PTRO")           ! tropopause pressure (mb)
-          data = ptropo
+          datar8 = ptropo
         case ("TMIN")           ! min daily temp (C)
           if (mod(itime+1,Nday).ne.0) then ! only at end of day
             kunit=kunit+1
             cycle
           end if
-          data=tdiurn(:,:,9)
+          datar8=tdiurn(:,:,9)
         case ("TMAX")           ! max daily temp (C)
           if (mod(itime+1,Nday).ne.0) then ! only at end of day
             kunit=kunit+1
             cycle
           end if
-          data=tdiurn(:,:,6)
+          datar8=tdiurn(:,:,6)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
-           data=sPM2p5_acc/real(Nsubdd)
+           datar8=sPM2p5_acc/real(Nsubdd)
            sPM2p5_acc=0.
         case ("PM10") ! Nsubdd-step avg SFC PM10 (ppmm)
-           data=sPM10_acc/real(Nsubdd)
+           datar8=sPM10_acc/real(Nsubdd)
            sPM10_acc=0.
         case ("PM2p51") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
-           data=l1PM2p5_acc/real(Nsubdd)
+           datar8=l1PM2p5_acc/real(Nsubdd)
            l1PM2p5_acc=0.
         case ("PM101") ! Nsubdd-step avg L=1 PM10 (ppmm)
-           data=l1PM10_acc/real(Nsubdd)
+           datar8=l1PM10_acc/real(Nsubdd)
            l1PM10_acc=0.
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
-          data=trm(:,:,1,n_SO4)
+          datar8=trm(:,:,1,n_SO4)
 #ifdef TRACERS_HETCHEM
      *     +trm(:,:,1,n_SO4_d1)+trm(:,:,1,n_SO4_d2)+trm(:,:,1,n_SO4_d3)
 #endif
 #endif
 #ifdef CLD_AER_CDNC
         case ("CLWP")             !LWP (kg m-2)
-          data=clwp
+          datar8=clwp
 #endif
 #ifdef TRACERS_COSMO
         case ("7BEW")
-          data=Be7w_acc
+          datar8=Be7w_acc
           Be7w_acc=0.
 
         case ("7BED")
-          data=Be7d_acc
+          datar8=Be7d_acc
           Be7d_acc=0.
 
         case ("7BES")
-          data=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
+          datar8=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
 #endif
         case ("SMST") ! near surface soil moisture (kg/m^3)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                data(i,j)=soil_surf_moist(i,j)
+                datar8(i,j)=soil_surf_moist(i,j)
               else
-                data(i,j)=undef
+                datar8(i,j)=undef
               end if
             end do
           end do
@@ -1953,9 +1975,9 @@ c          data=sday*prec/dtsrc
         end select
         kunit=kunit+1
         polefix=.true.
+        data=datar8
         call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-        datar8 = data ! doing this until "data" changed to real*8
         call write_subdd(trim(namedd(k)),datar8,polefix)
 #endif
         cycle
@@ -1972,9 +1994,9 @@ C**** diags on soil levels
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
-                      data(i,j)=gsaveL(i,j,ks,1)
+                      datar8(i,j)=gsaveL(i,j,ks,1)
                     else
-                      data(i,j)=undef
+                      datar8(i,j)=undef
                     end if
                   end do
                 end do
@@ -1982,9 +2004,9 @@ C**** diags on soil levels
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
-                      data(i,j)=gsaveL(i,j,ks,2)
+                      datar8(i,j)=gsaveL(i,j,ks,2)
                     else
-                      data(i,j)=undef
+                      datar8(i,j)=undef
                     end if
                   end do
                 end do
@@ -1992,16 +2014,21 @@ C**** diags on soil levels
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
-                      data(i,j)=gsaveL(i,j,ks,3)
+                      datar8(i,j)=gsaveL(i,j,ks,3)
                     else
-                      data(i,j)=undef
+                      datar8(i,j)=undef
                     end if
                   end do
                 end do
               end select
               polefix=.true.
+              ngm_array(:,:,ks)=datar8
+              data=datar8
               call write_data(data,kunit,polefix)
             end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),ngm_array,polefix)
+#endif
             cycle
           end if
         end select
@@ -2016,21 +2043,25 @@ C**** get pressure level
               kunit=kunit+1
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
-                data=z_inst(kp,:,:)
+                datar8=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
-                data=rh_inst(kp,:,:)
+                datar8=rh_inst(kp,:,:)
               case ("Q")        ! specific humidity
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
-                  data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
+                  datar8(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
                 end do
               case ("T")        ! temperature (C)
-                data=t_inst(kp,:,:)
+                datar8=t_inst(kp,:,:)
               end select
               polefix=.true.
+              data=datar8
               call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),datar8,polefix)
+#endif
               cycle nameloop
             end if
           end do
@@ -2042,23 +2073,30 @@ C**** get pressure level
             do kp=1,kgz_max_more
               select case (namedd(k)(1:1))
               case ("Q")        ! specific humidity
-                data=q_more(kp,:,:)
+                datar8=q_more(kp,:,:)
               case ("T")        ! temperature (C)
-                data=t_more(kp,:,:)
+                datar8=t_more(kp,:,:)
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
-                data=o_more(kp,:,:)
+                datar8=o_more(kp,:,:)
               case ("X")        ! NOx tracer (ppmv)
-                data=x_more(kp,:,:)
+                datar8=x_more(kp,:,:)
               case ("M")        ! CO  tracer (ppmv)
-                data=m_more(kp,:,:)
+                datar8=m_more(kp,:,:)
               case ("N")        ! NO2 non-tracer (ppmv)
-                data=n_more(kp,:,:)
+                datar8=n_more(kp,:,:)
 #endif
               end select
               polefix=.true.
+              kgz_max_more_suffixes(kp)=trim(PMNAMEmore(kp))//'hPa'
+              kgz_max_more_array(:,:,kp)=datar8
+              data=datar8
               call write_data(data,kunit,polefix)
             end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),kgz_max_more_array,polefix
+     &           ,suffixes=kgz_max_more_suffixes)
+#endif
             cycle
           end if
 #endif
@@ -2068,26 +2106,33 @@ C**** get pressure level
               kunit=kunit+1
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
-                data=z_inst(kp,:,:)
+                datar8=z_inst(kp,:,:)
               case ("R")        ! relative humidity (wrt water)
-                data=rh_inst(kp,:,:)
+                datar8=rh_inst(kp,:,:)
               case ("Q")        ! specific humidity
 #ifndef TES_LIKE_DIAGS
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
-                  data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
+                  datar8(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
                 end do
 #endif
               case ("T")        ! temperature (C)
 #ifndef TES_LIKE_DIAGS
-                data=t_inst(kp,:,:)
+                datar8=t_inst(kp,:,:)
 #endif
               end select
               polefix=.true.
+              kgz_max_suffixes(kp)=trim(PMNAME(kp))//'hPa'
+              kgz_max_array(:,:,kp)=datar8
+              data=datar8
               call write_data(data,kunit,polefix)
             end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),kgz_max_array,polefix
+     &           ,suffixes=kgz_max_suffixes)
+#endif
             cycle
           end if
 
@@ -2100,68 +2145,69 @@ C**** diagnostics on model levels
               skip = .false.
               select case (namedd(k)(1:1))
               case ("t")        ! temperature (C)
-                if(have_south_pole) data(1:im,1)=
+                if(have_south_pole) datar8(1:im,1)=
      &          t(1,1,kp)*pk(kp,1, 1)-tf
-                if(have_north_pole) data(1:im,jm)=
+                if(have_north_pole) datar8(1:im,jm)=
      &          t(1,jm,kp)*pk(kp,1,jm)-tf
-                data(:,J_0S:J_1S)=
+                datar8(:,J_0S:J_1S)=
      &          t(:,J_0S:J_1S,kp)*pk(kp,:,J_0S:J_1S)-tf
               case ("r")        ! relative humidity
-                if(have_south_pole) data(1:im, 1)=q(1,1,kp)/
+                if(have_south_pole) datar8(1:im, 1)=q(1,1,kp)/
      &          qsat(t(1,1,kp)*pk(kp,1,1),lhe,pmid(kp,1,1))
-                if(have_north_pole) data(1:im,jm)=q(1,jm,kp)/
+                if(have_north_pole) datar8(1:im,jm)=q(1,jm,kp)/
      &          qsat(t(1,jm,kp)*pk(kp,1,jm),lhe,pmid(kp,1,jm))
                 do j=J_0S,J_1S; do i=i_0,i_1
-                  data(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
+                  datar8(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
      &            lhe,pmid(kp,i,j))
                 enddo         ; enddo
               case ("q")        ! specific humidity
-                if(have_south_pole) data(1:im, 1)=q(1, 1,kp)
-                if(have_north_pole) data(1:im,jm)=q(1,jm,kp)
-                data(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
+                if(have_south_pole) datar8(1:im, 1)=q(1, 1,kp)
+                if(have_north_pole) datar8(1:im,jm)=q(1,jm,kp)
+                datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
               case ("z")        ! geopotential height
-                if(have_south_pole) data(1:im, 1)=phi(1, 1,kp)
-                if(have_north_pole) data(1:im,jm)=phi(1,jm,kp)
-                data(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
+                if(have_south_pole) datar8(1:im, 1)=phi(1, 1,kp)
+                if(have_north_pole) datar8(1:im,jm)=phi(1,jm,kp)
+                datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
               case ("U")        ! E-W velocity
-                data=u(:,:,kp)
+                datar8=u(:,:,kp)
               case ("V")        ! N-S velocity
-                data=v(:,:,kp)
+                datar8=v(:,:,kp)
               case ("W")        ! vertical velocity
                 if(kp<lm) then
-                  data=wsave(:,:,kp)
+                  datar8=wsave(:,:,kp)
                 else
+                  datar8=undef
                   skip = .true.
                 end if
               case ("C")        ! estimate of cloud optical depth
-                data=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
+                datar8=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
      *               *tauss(kp,:,:)
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
+                    datar8(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
+                    datar8(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
+                    datar8(i,j)=1.d6*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*mNO2(i,j,kp)*mair/(46.0055
+                    datar8(i,j)=1.d6*mNO2(i,j,kp)*mair/(46.0055
      *                   *am(kp,i,j)*axyp(i,j))
                   end do
                 end do
@@ -2170,7 +2216,7 @@ C**** diagnostics on model levels
               case ("B")                ! Be7 tracer
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
+                    datar8(i,j)=1.d6*trm(i,j,kp,n_Be7)* mass2vol(n_Be7)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
@@ -2179,15 +2225,20 @@ C**** diagnostics on model levels
               case ("D")                ! HDO tracer (permil)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water
+                    datar8(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water
      *                   )*trw0(n_HDO))-1.)
                   end do
                 end do
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
+              LmaxSUBDD_array(:,:,kp)=datar8
+              data=datar8
               if(.not.skip) call write_data(data,kunit,polefix)
             end do
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix)
+#endif
             cycle
           end if
 C**** get model level
@@ -2196,65 +2247,65 @@ C**** get model level
               kunit=kunit+1
               select case (namedd(k)(1:1))
               case ("t")        ! temperature (C)
-                if(have_south_pole) data(1:im,1)=
+                if(have_south_pole) datar8(1:im,1)=
      &               t(1,1,l)*pk(l,1, 1)-tf
-                if(have_north_pole) data(1:im,jm)=
+                if(have_north_pole) datar8(1:im,jm)=
      &               t(1,jm,l)*pk(l,1,jm)-tf
-                data(:,J_0S:J_1S)=
+                datar8(:,J_0S:J_1S)=
      &               t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
               case ("r")        ! relative humidity
-                if(have_south_pole) data(1:im, 1)=q(1, 1,l)/
+                if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)/
      &               qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
-                if(have_north_pole) data(1:im,jm)=q(1,jm,l)/
+                if(have_north_pole) datar8(1:im,jm)=q(1,jm,l)/
      &               qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
                 do j=J_0S,J_1S; do i=i_0,i_1
-                  data(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
+                  datar8(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
      &                 lhe,pmid(l,i,j))
                 enddo
               enddo
               case ("q")        ! specific humidity
-                if(have_south_pole) data(1:im, 1)=q(1, 1,l)
-                if(have_north_pole) data(1:im,jm)=q(1,jm,l)
-                data(:,J_0S:J_1S)=q(:,J_0S:J_1S,l)
+                if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)
+                if(have_north_pole) datar8(1:im,jm)=q(1,jm,l)
+                datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,l)
               case ("z")        ! geopotential height
-                if(have_south_pole) data(1:im, 1)=phi(1, 1,l)
-                if(have_north_pole) data(1:im,jm)=phi(1,jm,l)
-                data(:,J_0S:J_1S)=phi(:,J_0S:J_1S,l)
+                if(have_south_pole) datar8(1:im, 1)=phi(1, 1,l)
+                if(have_north_pole) datar8(1:im,jm)=phi(1,jm,l)
+                datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,l)
               case ("U")        ! U velocity
-                data=u(:,:,l)
+                datar8=u(:,:,l)
               case ("V")        ! V velocity
-                data=v(:,:,l)
+                datar8=v(:,:,l)
               case ("W")        ! W velocity
-                data=wsave(:,:,l)
+                datar8=wsave(:,:,l)
               case ("C")        ! estimate of cloud optical depth
-                data=(1.-fss(l,:,:))*taumc(l,:,:)+fss(l,:,:)
+                datar8=(1.-fss(l,:,:))*taumc(l,:,:)+fss(l,:,:)
      *               *tauss(l,:,:)
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
+                    datar8(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
+                    datar8(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,l,n_CO)*mass2vol(n_CO)/
+                    datar8(i,j)=1.d6*trm(i,j,l,n_CO)*mass2vol(n_CO)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*mNO2(i,j,l)*mair/(46.0055
+                    datar8(i,j)=1.d6*mNO2(i,j,l)*mair/(46.0055
      *                   *am(l,i,j)*axyp(i,j))
                   end do
                 end do
@@ -2263,7 +2314,7 @@ C**** get model level
               case ("B")                ! Be7 tracer
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d6*trm(i,j,l,n_Be7)* mass2vol(n_Be7)/
+                    datar8(i,j)=1.d6*trm(i,j,l,n_Be7)* mass2vol(n_Be7)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
@@ -2272,14 +2323,18 @@ C**** get model level
               case ("D")                ! HDO tracer (permil)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1d3*(trm(i,j,l,n_HDO)/(trm(i,j,l,n_water
+                    datar8(i,j)=1d3*(trm(i,j,l,n_HDO)/(trm(i,j,l,n_water
      *                   )*trw0(n_HDO))-1.)
                   end do
                 end do
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
+              data=datar8
               call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+              call write_subdd(trim(namedd(k)),datar8,polefix)
+#endif
               cycle nameloop
             end if
           end do
@@ -2298,50 +2353,55 @@ C**** cases using all levels up to LmaxSUBDD
             select case(namedd(k))
 #ifdef TRACERS_HETCHEM
             case ("SO2")
-              data=trm(:,:,l,n_SO2)
+              datar8=trm(:,:,l,n_SO2)
             case ("SO4")
-              data=trm(:,:,l,n_SO4)
+              datar8=trm(:,:,l,n_SO4)
             case ("SO4_d1")
-              data=trm(:,:,l,n_SO4_d1)
+              datar8=trm(:,:,l,n_SO4_d1)
             case ("SO4_d2")
-              data= trm(:,:,l,n_SO4_d2)
+              datar8= trm(:,:,l,n_SO4_d2)
             case ("SO4_d3")
-              data=trm(:,:,l,n_SO4_d3)
+              datar8=trm(:,:,l,n_SO4_d3)
             case ("Clay")
-              data=trm(:,:,l,n_Clay)
+              datar8=trm(:,:,l,n_Clay)
             case ("Silt1")
-              data=trm(:,:,l,n_Silt1)
+              datar8=trm(:,:,l,n_Silt1)
             case ("Silt2")
-              data=trm(:,:,l,n_Silt2)
+              datar8=trm(:,:,l,n_Silt2)
             case ("Silt3")
-              data=trm(:,:,l,n_Silt3)
+              datar8=trm(:,:,l,n_Silt3)
 #endif
             case ("CLDSS")
-              data=100.d0*cldss(l,:,:) ! Cld cover LS(%)
+              datar8=100.d0*cldss(l,:,:) ! Cld cover LS(%)
             case ("CLDMC")
-              data=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
+              datar8=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
             case ("TAUSS")
-              data=tauss(l,:,:) ! LS cld tau
+              datar8=tauss(l,:,:) ! LS cld tau
             case ("TAUMC")
-              data=taumc(l,:,:) ! MC cld tau
+              datar8=taumc(l,:,:) ! MC cld tau
 #ifdef CLD_AER_CDNC
             case ("CTEM")
-              data=ctem(l,:,:) ! cld temp (K) at cld top
+              datar8=ctem(l,:,:) ! cld temp (K) at cld top
             case ("CL3D")
-              data=cl3d(l,:,:) ! cld LWC (kg m-3)
+              datar8=cl3d(l,:,:) ! cld LWC (kg m-3)
             case ("CI3D")
-              data=ci3d(l,:,:) ! cld IWC (kg m-3)
+              datar8=ci3d(l,:,:) ! cld IWC (kg m-3)
             case ("CD3D")
-              data=cd3d(l,:,:) ! cld thickness (m)
+              datar8=cd3d(l,:,:) ! cld thickness (m)
             case ("CDN3D")
-              data=cdn3d(l,:,:) ! cld CDNC (cm^-3)
+              datar8=cdn3d(l,:,:) ! cld CDNC (cm^-3)
             case ("CRE3D")
-              data=1.d-6*cre3d(l,:,:) ! cld Reff (m)
+              datar8=1.d-6*cre3d(l,:,:) ! cld Reff (m)
 #endif
             end select
             polefix=.true.
+            LmaxSUBDD_array(:,:,l)=datar8
+            data=datar8
             call write_data(data,kunit,polefix)
           end do
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix)
+#endif
           cycle
 
 #ifdef TRACERS_ON
