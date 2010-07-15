@@ -493,7 +493,7 @@ c for sulfur chemistry
       INTEGER, PARAMETER :: SNTM=17+ntm_soa/2  !for tracers for CDNC
 #endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL,MINLVL,ITER,IC,LFRZ,NSUB
-     *     ,LDMIN,LLMIN
+     *     ,LDMIN,LLMIN,LM1
 !@var LDRAFT the layer at which the downdraft orginates
 !@var LEVAP the layer at which evaporation of precip starts
 !@var LMAX, LMIN the base, top layers of a convective event
@@ -2145,11 +2145,12 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
 C**** Check for v. rare negative humidity error condition
       DO L=LDMIN,LMAX
         IF(QM(L).LT.0.d0) then
-          WRITE(0,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
+          WRITE(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
      $          ,qm(l),cmneg(l)
 C**** reduce subsidence post hoc.
-          IF (L.eq.1 .or. QM(L-1)+QM(L).lt.0) then
-            write(0,*) "Q neg cannot be fixed!",L,QM(L-1)
+          LM1=max(1,L-1)
+          IF (QM(LM1)+QM(L).lt.0) then
+            write(6,*) "Q neg cannot be fixed!",L,QM(LM1:L)
           ELSE
             QM(L-1)=QM(L-1)+QM(L)
             QM(L)=0.
@@ -2171,11 +2172,12 @@ C**** check for independent tracer errors
         IF (.not.t_qlimit(n)) cycle
         DO L=LDMIN,LMAX
           IF (TM(L,N).lt.0.) then
-            WRITE(0,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
+            WRITE(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
      $             ,j_debug,l,tm(l,n),cmneg(l)
 C**** reduce subsidence post hoc.
-            IF (L.eq.1 .or. TM(L-1,N)+TM(L,N).lt.0) THEN
-              write(0,*) trname(n)," neg cannot be fixed!",L,TM(L-1:L,N)
+            LM1=max(1,L-1)
+            IF (TM(LM1,N)+TM(L,N).lt.0) THEN
+              write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
             ELSE
               TM(L-1,N)=TM(L-1,N)+TM(L,N)
               TM(L,N)=0.

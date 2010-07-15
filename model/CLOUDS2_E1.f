@@ -1595,7 +1595,7 @@ C**** diagnostics
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
-        IF(QM(L).LT.0.d0) WRITE(0,*) ' Q neg: it,i,j,l,q',
+        IF(QM(L).LT.0.d0) WRITE(6,*) ' Q neg: it,i,j,l,q',
      *   itime,i_debug,j_debug,l,qm(l)
       END DO
 #ifdef TRACERS_ON
@@ -4015,7 +4015,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.39 2010/03/10 19:20:11 kostas Exp $
+!$Id: CLOUDS2_E1.f,v 1.40 2010/07/15 13:34:26 cdrar Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

@@ -1270,19 +1270,19 @@ C NOW SET U(1)=U(2) AND SAME FOR V
         end do
         CALL GLOBALSUM(grid, rms_part, rms, all=.true.)
         CALL GLOBALSUM(grid, area_part, area, all=.true.)
-        if(debug.and.am_i_root()) write(0,*) itime,kki,4d4*rms/area
+        if(debug.and.am_i_root()) write(6,*) itime,kki,4d4*rms/area
       end if
 
       if (kki > 2 .and. rms > rms0 .and. qcheck) then
         debug=.true.
         if(am_i_root())
-     *    write(0,*) 'VPICEDYN rms rose, kki:',itime,kki,
+     *    write(6,*) 'VPICEDYN rms rose, kki:',itime,kki,
      *      4d4*rms0/area,4d4*rms/area
       end if
       if (kki.eq.20) then
         rms=sqrt(rms/area)
         if(am_i_root())
-     *    write(0,*) "20 iterations in VPICEDYN: itime,rms",itime,rms
+     *    write(6,*) "20 iterations in VPICEDYN: itime,rms",itime,rms
       elseif (kki == 1 .or. rms > 25d-6*area) then
         USAVE=UICE(:,:,1)
         VSAVE=VICE(:,:,1)

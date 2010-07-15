@@ -1453,7 +1453,7 @@ C****
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
         if(q(i,j,l)<0) then
-           WRITE(0,*)'In Radia: Time,I,J,L,Q<0',ITime,I,J,L,Q,'->0'
+           WRITE(6,*)'In Radia: Time,I,J,L,Q<0',ITime,I,J,L,Q,'->0'
            Q(I,J,L)=0.
         end if
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)

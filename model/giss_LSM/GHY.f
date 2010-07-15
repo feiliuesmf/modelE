@@ -3930,8 +3930,8 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
      &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
                                 !print *,'err ', err
             if ( abs( err ) > tol(mc) ) then
-               write(0,*)
-     $              'ghy tracers not conserved at',ijdebug,' err=',err
+!!!            write(0,*)
+!!!  $              'ghy tracers not conserved at',ijdebug,' err=',err
                write(99,*)
      $              'ghy tracers not conserved at',ijdebug,' err=',err
      $              ,"mc= ",mc, "ibv= ",ibv

@@ -39,6 +39,7 @@ subroutine stop_model( message, retcode )
   call sys_flush(6)
 
   if ( retcode > 13 ) then
+    write (0,*) 'Model crashed due to ',message
 #ifdef USE_MPI
     !??? bad: the next line will prevent a job from terminating unless
     !???          all processors reach this point
