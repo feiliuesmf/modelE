@@ -44,7 +44,7 @@ C-------------------------------------------------------------------------------
       endif
       NARM = 2                        ! for 30 min time steps from hourly input 
       TAUARM = 0                      ! not used for now 
-      NRINIT = 48                     ! when to reinitialize t,q profiles to data
+      NRINIT = 0                      ! when to reinitialize t,q profiles to data
       IKT = 1                         ! index to data
  
       write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
