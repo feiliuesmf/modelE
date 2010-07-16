@@ -2246,22 +2246,25 @@ c
       use regrid
       implicit none
       type(x_2grids), intent(in) :: x2grids
-      character*80 :: TITLE1,TITLE2,TITLE3,TITLE4,TITLE5,name
+      character*80 :: TITLE1,TITLE2,TITLE3,TITLE4,TITLE5,
+     &     TITLE6,TITLE7,name
       real*8,allocatable :: ttargglob(:,:,:)
-      real*8,allocatable :: tsource(:,:,:)
+      real*8,allocatable :: ts(:,:,:),ts2(:,:,:),lon_dg(:),lat_dg(:)
       real*4,allocatable :: ttargupst4(:,:,:)
       real*4,allocatable :: ttargdist4(:,:,:)
-      real*4,allocatable :: tsourc4(:,:,:)
+      real*4,allocatable :: tsourc4(:,:,:),tlondg(:,:,:),tlatdg(:,:,:)
       integer, allocatable :: bassId(:,:,:),tbassId(:,:,:)
       integer:: iu_RDSCAL,i,j,k,iunit,imt,jmt,ntt,ims,jms,nts,
      &     status,nijt,ierr,ilon,jlat,tile
-      real*8, allocatable :: lon2dcs_dg(:,:,:),lat2dcs_dg(:,:,:),
-     &     lon2dcs(:,:,:),lat2dcs(:,:,:)
-      real*8 :: dlat_dg,dlon_dg,x,y
+      real*8 :: dlat_dg,dlon_dg,x,y,area
+      integer :: bId_max,imax,jmax
       real*8,parameter :: pi = 3.1415926535897932d0 
       real*8,parameter :: twopi = 2d0*pi         
       real*8, parameter :: shiftwest = twopi/36.
       real*8,parameter :: radian = pi/180d0      
+      REAL*8 :: fjeq
+
+
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -2277,37 +2280,29 @@ c
      &     ttargupst4(imt,jmt,ntt),
      &     ttargdist4(imt,jmt,ntt),
      &     tbassId(imt,jmt,ntt),
+     &     tlondg(imt,jmt,ntt),
+     &     tlatdg(imt,jmt,ntt),
      &     tsourc4(ims,jms,nts),
-     &     tsource(ims,jms,nts),
+     &     ts(ims,jms,nts),
+     &     ts2(ims,jms,nts),
      &     bassId(ims,jms,nts),
-     &     lon2dcs(imt,jmt,ntt),
-     &     lat2dcs(imt,jmt,ntt),
-     &     lon2dcs_dg(imt,jmt,ntt),
-     &     lat2dcs_dg(imt,jmt,ntt)
+     &     lon_dg(ims),lat_dg(jms)
      &     )
       
-      write(*,*) "alloc"
 
-c*   calculate lat/lon coordinates of CS cell centers
-      do tile=1,6
-         do j=1,jmt
-            do i=1,imt
-               x = -1d0 + 2d0*(dble(i)-.5d0)/imt
-               y = -1d0 + 2d0*(dble(j)-.5d0)/imt
-               call csxy2ll(x,y,tile,
-     &              lon2dcs(i,j,tile),lat2dcs(i,j,tile))
-               lon2dcs(i,j,tile) = lon2dcs(i,j,tile)-shiftwest
-               lat2dcs_dg(i,j,tile) = lat2dcs(i,j,tile)/radian
-               lon2dcs_dg(i,j,tile) = lon2dcs(i,j,tile)/radian
-               if(lon2dcs_dg(i,j,tile) .lt. -180.) 
-     &              lon2dcs_dg(i,j,tile)=lon2dcs_dg(i,j,tile)+360.
-            enddo
-         enddo
-      enddo
 
-      dlon_dg = 360./dble(ims)
-      dlat_dg=180./real(jms) ! even spacing (default)
-      IF (jms.eq.46) dlat_dg=180./REAL(jms-1) ! 1/2 box at pole for 4x5
+      FJEQ=.5*(1+jms)
+      DLAT_DG=180./REAL(jms)
+      LON_DG(1) = -180.+360./(2.*FLOAT(ims))
+      DO I=2,ims
+        LON_DG(I) = LON_DG(I-1)+360./FLOAT(ims)
+      END DO
+      LAT_DG(1)=-90.
+      LAT_DG(jms)=90.
+      DO J=2,jms-1
+        LAT_DG(J)=DLAT_DG*(J-FJEQ)    ! primary (tracer) latitudes
+      END DO
+
 c*
 
       iu_RDSCAL=20
@@ -2322,57 +2317,55 @@ c*
       read(iu_RDSCAL) TITLE2
       write(*,*) TITLE2
       read(iu_RDSCAL) TITLE3,bassId(:,:,:)
-      do k=1,ntt
-      do j=1,jmt
-      do i=1,imt
-      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
-      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
-      tbassId(i,j,k)=bassId(ilon,jlat,1)
-      enddo
-      enddo
-      enddo
       write(*,*) TITLE3
       read(iu_RDSCAL) TITLE4,tsourc4(:,:,:)
-      tsource(:,:,:)=tsourc4(:,:,:)
-      do k=1,ntt
-      do j=1,jmt
-      do i=1,imt
-      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
-      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
-      ttargdist4(i,j,k)=tsource(ilon,jlat,1)
-      enddo
-      enddo
-      enddo
       write(*,*) TITLE4
+      ts(:,:,:)=tsourc4(:,:,:)
       read(iu_RDSCAL) TITLE5,tsourc4(:,:,:)
-      tsource(:,:,:)=tsourc4(:,:,:)
+      write(*,*) TITLE5
+      ts2(:,:,:)=tsourc4(:,:,:)
       do k=1,ntt
       do j=1,jmt
       do i=1,imt
-      ilon=nint( .5*(ims+1) + lon2dcs_dg(i,j,k)/dlon_dg)
-      jlat=nint( .5*(jms+1) + lat2dcs_dg(i,j,k)/dlat_dg)
-      ttargupst4(i,j,k)=tsource(ilon,jlat,1)
+c*    for each cell, choose id of bassin with greatest area
+      call maxarea_bassId(x2grids,bassId,i,j,k,area,bId_max
+     &     ,ims,jms,nts,imax,jmax)
+      tbassId(i,j,k)=bId_max
+
+      if (i .ge. 31 .and. i .le. 33 .and. j .ge. 14 .and.
+     &     j .le. 16 .and. k == 3) then
+         write(*,*) i,j,k,bId_max,ts(imax,jmax,1)
+      endif
+
+c*    choose distance to the ocean of latlon cell with bass Id = bId_max 
+c*    and with largest exchange grid area 
+      ttargdist4(i,j,k)=ts(imax,jmax,1)
+      ttargupst4(i,j,k)=ts2(imax,jmax,1)
+      tlondg(i,j,k)=lon_dg(imax)
+      tlatdg(i,j,k)=lat_dg(jmax)
       enddo
       enddo
       enddo
-      write(*,*) TITLE5
       close (iu_RDSCAL)
 
       name="STN_C90"
 c      name="STN_CS32"
 
-      write(*,*) name
+      TITLE6="longitude of corresponding latlon grid cell"
+      TITLE7="latitude of corresponding latlon grid cell"
       open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='unknown')
       write(iu_RDSCAL) TITLE1
       write(iu_RDSCAL) TITLE2
       write(iu_RDSCAL) TITLE3,tbassId(:,:,:)
       write(iu_RDSCAL) TITLE4,ttargdist4(:,:,:)
       write(iu_RDSCAL) TITLE5,ttargupst4(:,:,:)
+      write(iu_RDSCAL) TITLE6,tlondg(:,:,:)
+      write(iu_RDSCAL) TITLE7,tlatdg(:,:,:)
       close(iu_RDSCAL)
-      write(*,*) "bassid=",bassId  
+      
 
-      deallocate(ttargglob,tsource,ttargupst4,ttargdist4,bassId,
-     &             tbassId,lon2dcs_dg,lat2dcs_dg)
+      deallocate(ttargglob,ts,ts2,ttargupst4,ttargdist4,bassId,
+     &             tbassId,lon_dg,lat_dg)
 
       end subroutine regridRDSCAL
 c*
@@ -2417,3 +2410,101 @@ c This routine places the center of tile 1 at the IDL.
       endif
       return
       end subroutine csxy2ll
+
+      subroutine maxarea_bassId(x2grids,bassId,ics,jcs,tile,
+     &     area_max,bId_max,ims,jms,nts,imax,jmax)
+!@sum  for each cell choose bassin Id with greatest area
+!@auth Denis Gueyffier
+      use regrid
+      implicit none
+      type (x_2grids), intent(in) :: x2grids
+      
+      integer, parameter :: bassMax=6119
+      real*8 :: area_max, area_cumul(bassMax+1),aream,bIdM
+      integer :: n,ics,jcs,tile,itile,icc,jcc,il,jl,
+     &     bId,ims,jms,nts,imax,jmax
+      integer :: bId_max(1)
+      integer :: bassId(ims,jms,nts)
+c      real*8 :: area(x2grids%imtarget,x2grids%jmtarget,
+c     &     x2grids%ntilestarget)
+
+      area_max = 0.d0
+      area_cumul = 0.d0
+c      area=0.0d0
+
+c      write(*,*) "ics,jcs,tile=",ics,jcs,tile
+
+      do n=1,x2grids%xgrid%ncells
+
+         itile=x2grids%xgrid%tile(n)
+         icc=x2grids%xgrid%ijcub(1,n)
+         jcc=x2grids%xgrid%ijcub(2,n)
+         il=x2grids%xgrid%ijlatlon(1,n)
+         jl=x2grids%xgrid%ijlatlon(2,n)
+         
+c         area(icc,jcc,itile) = area(icc,jcc,itile)
+c     &        + x2grids%xgrid%xgrid_area(n)
+
+         if ( (itile == tile)    .and. (icc == ics) 
+     &        .and. (jcc == jcs) ) then
+c     Sum up area for each separate bassin in the cell.
+c     bassin index shifted by 1 to make room for bass Id = -9999   
+            if (bassId(il,jl,1) == -9999) then
+               area_cumul(1)=
+     &                 area_cumul(1)
+     &              + x2grids%xgrid%xgrid_area(n)
+            endif
+            do bId=1,bassMax
+               if (bassId(il,jl,1) == bId) then
+               area_cumul(bId+1)=
+     &                 area_cumul(bId+1)
+     &              + x2grids%xgrid%xgrid_area(n)
+               endif
+            enddo
+         endif
+      enddo
+
+      area_max = maxval(area_cumul(:))
+      bId_max  = maxloc(area_cumul(:))-1
+      if (bId_max(1) == 0 ) bId_max(1)=-9999
+
+c     test area
+c      if (sum(area_cumul(:))-area(ics,jcs,tile) .gt. 1.e-10) then
+c         write(*,*) "warning area",ics,jcs,tile,bId_max
+c         stop
+c      endif
+
+
+      bIdM=bId_max(1)   ! id of bassin with max area
+
+c     Now find x-grid cell belonging to bassin id = bIdM
+c     with the largest area
+
+      aream=0.0d0
+
+      do n=1,x2grids%xgrid%ncells
+
+         itile=x2grids%xgrid%tile(n)
+         icc=x2grids%xgrid%ijcub(1,n)
+         jcc=x2grids%xgrid%ijcub(2,n)
+         il=x2grids%xgrid%ijlatlon(1,n)
+         jl=x2grids%xgrid%ijlatlon(2,n)
+         
+         if ( (itile == tile)    
+     &        .and. (icc == ics) 
+     &        .and. (jcc == jcs) 
+     &        .and. (bassId(il,jl,1) == bIdM) 
+     &        ) then
+
+            if (x2grids%xgrid%xgrid_area(n) .ge. aream) then
+               aream=x2grids%xgrid%xgrid_area(n)
+               imax=il
+               jmax=jl
+            endif
+         endif
+      enddo
+
+c      write(*,*) ics,jcs,tile,aream/sum(area_cumul(:))
+
+
+      end subroutine 
