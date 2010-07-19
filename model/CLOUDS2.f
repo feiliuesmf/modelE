@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+#define ALT_CDNC_INPUTS
+
       MODULE CLOUDS
 
 !@sum  CLOUDS column physics of moist conv. and large-scale condensation
@@ -524,6 +526,9 @@ c for sulfur chemistry
      *     ,MCDNO1,MCDNL1,CDNCB,fcnv,ATEMP,VVEL
      *     ,DSGL(LM,SNTM),DSS(SNTM)
      *     ,Repsis,Repsi,Rbeta,RCLD_C
+     *     ,AIRM_CDNC,TM_CDNC(NTM)
+     *     ,MNdO_max(LM),MNdL_max(LM)
+     *     ,MNdO_min(LM),MNdL_min(LM)
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
       real*8                    :: ncaero (nmodes)
@@ -791,6 +796,13 @@ C**** THAT DETRAINS AT CURRENT LAYER
         DWCU=DWCU+AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
       END DO
       DWCU=0.5*DWCU*BYDTsrc/real(LMCM)
+
+#ifdef CLD_AER_CDNC
+      MNdO_max(:)=teeny
+      MNdL_max(:)=teeny
+      MNdO_min(:)=teeny
+      MNdL_min(:)=teeny
+#endif
 
 C****
 C**** BEGIN OUTER LOOP (1) OVER BASE LAYERS
@@ -1179,81 +1191,90 @@ C**** LIQUID, GRAUPEL, ICE (DEL GENIO ET AL. 2005, J. CLIM.)
        DSS(N)=1.d-10
        DSGL(L,N)=1.d-10
       ENDDO
+#ifdef ALT_CDNC_INPUTS
+c aerosols in the updraft
+      tm_cdnc(:) = tmp(:)
+      airm_cdnc = mplume
+#else
+c ambient aerosols at this level
+      tm_cdnc(:) = tm(l,:)
+      airm_cdnc = airm(l)
+#endif
 C**** Here we change convective precip due to aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DO N=1,NTX
        select case (trname(ntix(n)))
         case('SO4')
-          DSGL(L,1)=tm(l,n)     !n=19
+          DSGL(L,1)=tm_cdnc(n)     !n=19
           DSS(1) = DSGL(L,1)
         case('seasalt1')
-          DSGL(L,2)=tm(l,n)     !n=21
+          DSGL(L,2)=tm_cdnc(n)     !n=21
           DSS(2) = DSGL(L,2)
         case('seasalt2')
-          DSGL(L,3)=tm(l,n)     !n=22
+          DSGL(L,3)=tm_cdnc(n)     !n=22
           DSS(3) = DSGL(L,3)
         case('OCIA')
-          DSGL(L,4)=tm(l,n)     !n=27
+          DSGL(L,4)=tm_cdnc(n)     !n=27
           DSS(4) = DSGL(L,4)
         case('OCB')
-          DSGL(L,5)=tm(l,n)     !n=28
+          DSGL(L,5)=tm_cdnc(n)     !n=28
           DSS(5) = DSGL(L,5)
         case('BCIA')
-          DSGL(L,6)=tm(l,n)     !n=24
+          DSGL(L,6)=tm_cdnc(n)     !n=24
           DSS(6) = DSGL(L,6)
         case('BCB')
-          DSGL(L,7)=tm(l,n)     !n=25
+          DSGL(L,7)=tm_cdnc(n)     !n=25
           DSS(7) = DSGL(L,7)
         case('OCII')
-          DSGL(L,8)=tm(l,n)     !n=26
+          DSGL(L,8)=tm_cdnc(n)     !n=26
           DSS(8) = DSGL(L,8)
         case('BCII')
-          DSGL(L,9)=tm(l,n)     !n=23
+          DSGL(L,9)=tm_cdnc(n)     !n=23
           DSS(9) = DSGL(L,9)
 #ifdef TRACERS_DUST
         case('Clay')
-          DSGL(L,10)=tm(l,n)    !n=23
+          DSGL(L,10)=tm_cdnc(n)    !n=23
           DSS(10) = DSGL(L,10)
         case('Silt1')
-          DSGL(L,11)=tm(l,n)    !n=23
+          DSGL(L,11)=tm_cdnc(n)    !n=23
           DSS(11) = DSGL(L,11)
         case('Silt2')
-          DSGL(L,12)=tm(l,n)    !n=23
+          DSGL(L,12)=tm_cdnc(n)    !n=23
           DSS(12) = DSGL(L,12)
         case('Silt3')
-          DSGL(L,13)=tm(l,n)    !n=23
+          DSGL(L,13)=tm_cdnc(n)    !n=23
           DSS(13) = DSGL(L,13)
 #endif
 #ifdef TRACERS_NITRATE
         case('NO3p')
-          DSGL(L,14)=tm(l,n)    !n=23
+          DSGL(L,14)=tm_cdnc(n)    !n=23
           DSS(14) = DSGL(L,14)
 #endif
 #ifdef TRACERS_HETCHEM
 C**** Here are dust particles coated with sulfate
         case('SO4_d1')
-          DSGL(L,15)=tm(l,n)    !n=20
+          DSGL(L,15)=tm_cdnc(n)    !n=20
           DSS(15) = DSGL(L,15)
         case('SO4_d2')
-          DSGL(L,16)=tm(l,n)    !n=21
+          DSGL(L,16)=tm_cdnc(n)    !n=21
           DSS(16) = DSGL(L,16)
         case('SO4_d3')
-          DSGL(L,17)=tm(l,n)    !n=22
+          DSGL(L,17)=tm_cdnc(n)    !n=22
           DSS(17) = DSGL(L,17)
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
         case('isopp1a')
-          DSGL(L,18)=tm(l,n)
+          DSGL(L,18)=tm_cdnc(n)
           DSS(18) = DSGL(L,18)
         case('isopp2a')
-          DSGL(L,19)=tm(l,n)
+          DSGL(L,19)=tm_cdnc(n)
           DSS(19) = DSGL(L,19)
 #ifdef TRACERS_TERP
         case('apinp1a')
-          DSGL(L,20)=tm(l,n)
+          DSGL(L,20)=tm_cdnc(n)
           DSS(20) = DSGL(L,20)
         case('apinp2a')
-          DSGL(L,21)=tm(l,n)
+          DSGL(L,21)=tm_cdnc(n)
           DSS(21) = DSGL(L,21)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -1270,12 +1291,22 @@ c         if(naerc(l,nm).gt.1.d-30) write(6,*)"mat",ncaero(nm),nm
        CALL GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
 #else
 C** This is for the old mass to number calculations nc. is
-       CALL GET_CC_CDNC(L,AIRM(L),DXYPIJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
+       CALL GET_CC_CDNC(L,AIRM_CDNC,DXYPIJ,PL(L),TL(L),DSS,
+     &      MCDNL1,MCDNO1)
 
 #endif
 #endif
       MNdO=MCDNO1
       MNdL=MCDNL1
+      MNdO_max(L)=max(MNdO_max(L),MCDNO1)
+      MNdL_max(L)=max(MNdL_max(L),MCDNL1)
+      if(MNdO_min(L)==teeny) then
+        MNdO_min(L)=MCDNO1
+        MNdL_min(L)=MCDNL1
+      else
+        MNdO_min(L)=min(MNdO_min(L),MCDNO1)
+        MNdL_min(L)=min(MNdL_min(L),MCDNL1)
+      endif
       MNdI = 0.06417127d0
       MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
       MCDNCI=MNdI
@@ -2744,8 +2775,16 @@ C**   Set CDNC for moist conv. clds (const at present)
           MNdL = 174.d0
           MNdI = 0.06417127d0
 #ifdef CLD_AER_CDNC
+#ifdef ALT_CDNC_INPUTS
+c (min+max)/2 of values from all updrafts at this level.
+c could average over all updrafts with appropriate weighting instead
+          MNdO=.5*(MNdO_max(L)+MNdO_min(L))
+          MNdL=.5*(MNdL_max(L)+MNdL_min(L))
+#else
+c values from the last updraft computation at its detrainment level
           MNdO=MCDNO1
           MNdL=MCDNL1
+#endif
 #endif
           MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
 c          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
@@ -2952,6 +2991,9 @@ c for sulfur chemistry
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
        real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
        real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
+       real*8 NEWCLD,SAVCLD
+       real*8, dimension(lm) :: vvel_sv,CLDSAV0
+       real*8, dimension(sntm,lm) :: dsu_sv
 #endif
 #ifdef BLK_2MOM
       integer,PARAMETER         :: mkx=1   ! lm
@@ -3128,6 +3170,9 @@ C**** initialize diagnostic arrays
       DO L=1,LP50
         CLEARA(L)=1.-CLDSAVL(L)
         IF(WMX(L).LE.0.) CLEARA(L)=1.
+#ifdef CLD_AER_CDNC
+        CLDSAV0(L) = 1.-CLEARA(L)
+#endif
       END DO
       DQUP=0.
       TOLDUP=TL(LP50)
@@ -3153,6 +3198,9 @@ C**** COMPUTE VERTICAL VELOCITY IN CM/S
          VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
       END IF
       VDEF=VVEL-VSUBL(L)
+#ifdef CLD_AER_CDNC
+      vvel_sv(l) = vvel ! save for opt. depth calc.
+#endif
 
       FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
 
@@ -3402,6 +3450,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
      *OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
+      DSU_SV(:,L) = DSU(:) ! save for opt. depth calc.
       SNd=CDNL1
 cC** Pass old and new cloud droplet number
       NEWCDN=SNd
@@ -4752,9 +4801,19 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
 #ifdef CLD_AER_CDNC
+#ifdef ALT_CDNC_INPUTS
+       VVEL = VVEL_sv(l)    ! retrieve value at this level
+       DSU(:) = DSU_SV(:,L) ! retrieve
+       NEWCLD = 1.-CLEARA(L)
+       SAVCLD = CLDSAV0(L) ! from prev. timestep
+#else
+c These choices always produce DCLD <= 0.
+       NEWCLD = CLDSSL(L)  ! = (1-CLEARA)*FSSL (updated)
+       SAVCLD = CLDSAVL(L) ! = (1-CLEARA)      (already updated)
+#endif
 !@auth Menon for CDNC prediction
-      CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
-     *CLDSAVL(L),VVEL,SME(L),DSU,OLDCDL(L),
+      CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,NEWCLD,
+     *SAVCLD,VVEL,SME(L),DSU,OLDCDL(L),
      *CDNL0,CDNL1)
       OLDCDL(L) = CDNL1
       SNd=CDNL1
@@ -4813,14 +4872,14 @@ C*** Using the AMP_actv interface from MATRIX
      *                                       )*dtB2M
       SNd=rablk(mkx)*1.0d-6            ! ndrop, [No/m^3], SNdL, [No/cc]
 C**** Old treatment to get CDNC for cloud changes within time steps
-       DCLD(L) = CLDSSL(L)-CLDSAVL(L) ! cloud fraction change
+       DCLD(L) = NEWCLD-SAVCLD ! cloud fraction change
 C** If previous time step is clear sky
-       if(CLDSAVL(L).eq.0.) then
+       if(SAVCLD.eq.0.) then
          SNd=SNd
        elseif (DCLD(L).le.0.d0) then
          SNd=OLDCDL(L)
        elseif(DCLD(L).gt.0.d0) then
-         SNd=( (OLDCDL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/CLDSSL(L)
+         SNd=( (OLDCDL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
         endif
       rablk=execute_bulk2m_driver('get','value','ni') + (
 c       nnuccc             ! change n due to contact droplets freez
