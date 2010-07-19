@@ -219,7 +219,7 @@ C*******************************************************************************
       USE TRACER_COM
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
-      real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL
+      real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
      *,SME,rho,PL,TL,WTURB
       integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU
@@ -305,7 +305,7 @@ c     WCDNL= EXPL*smalphaf
 C**** use Lohmann et al. 2007, ACPD,7,371-3761 formualtion
 C**Convert velocity term to cm/s
       alf=0.023   !cm^4/s
-      vterm = 1.d2*( VVEL + (1.33*(sqrt(SME))) )    ! SME is EGCM
+      vterm = 1.d2*( .01*VVEL + (1.33*(sqrt(SME))) )    ! SME is EGCM
 C* WTURB = 0.817*sqrt(egcm). To equate to 1.33*sqrt(egcm)
 c     vterm = 1.d2*( VVEL + (WTURB*1.63) )          
       if(vterm.gt.0.)  then 
@@ -418,7 +418,7 @@ C**************************************************************************
       USE TRACER_COM
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
-     *,OLDCDL,VVEL,SME,WTURB
+     *,OLDCDL,VVEL,SME,WTURB  ! VVEL is in cm/s
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
      *,LHX,WMUI,WCONST
@@ -470,7 +470,7 @@ C** Land Na (cm-3) is from sulfate+OC+BC+seasalt
 C**** use Lohmann et al. 2007, ACPD,7,371-3761 formualtion
 C**Convert velocity term to cm/s
       alf=0.023   !cm^4/s
-      vterm = 1.d2*( VVEL + (1.33*(sqrt(SME))) )    ! SME is EGCM
+      vterm = 1.d2*( .01*VVEL + (1.33*(sqrt(SME))) )    ! SME is EGCM
 C* WTURB = 0.817*sqrt(egcm). To equate to 1.33*sqrt(egcm)
 c     vterm = 1.d2*( VVEL + (WTURB*1.63) )          
       if(vterm.gt.0.)  then 
