@@ -6,7 +6,7 @@
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
+!@ver  2010/06/30 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
@@ -54,7 +54,7 @@ C**** 1-8 anti-clockwise from top RH corner
 !@dbparam variable_lk 1 if lakes are to be variable
 !@+       (temporary variable for development purposes)
       INTEGER :: variable_lk=0    ! default = 0
-!@dbparam lake_rise_max amount of lake rise (m) over sill level before 
+!@dbparam lake_rise_max amount of lake rise (m) over sill level before
 !@+       spillover into next box (only if lake covers >95% of box)
       REAL*8 :: lake_rise_max = 1d2 ! default 100m
 
@@ -200,7 +200,7 @@ C**** FH2=-ACEF2*(TLK2-TFL)*SHW+ACEF2*LHM
         FH1=ELAKE(1)-MLAKE(1)*TFL*SHW
         IF (FH1.lt.emin) THEN      ! all layer 2 froze, freeze layer 1
           ACEF1=FH1/(TFL*(SHI-SHW)-LHM)
-C**** limit freezing if lake would end up below 50cm depth 
+C**** limit freezing if lake would end up below 50cm depth
 C**** this implies ice will be colder than TFL
           IF (MLAKE(1)-ACEF1.lt.0.5d0*RHOW) THEN
             ENRGF1=FH1
@@ -380,7 +380,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
-     *     KD911,IFL911,JFL911 
+     *     KD911,IFL911,JFL911
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       integer :: i_0h,i_1h,j_0h,j_1h
@@ -655,12 +655,13 @@ c avoid nonexistent halo corners of a cube face.
           if (down_lon_loc(i,j).gt.-1000.) then
             ll(1)=down_lon_loc(i,j)
             ll(2)=down_lat_loc(i,j)
-            call lonlat_to_ij(ll,ij) 
+            call lonlat_to_ij(ll,ij)
             IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
             if(iflow(i,j).ge.i_0h .and. iflow(i,j).le.i_1h .and.
      &         jflow(i,j).ge.j_0h .and. jflow(i,j).le.j_1h) then
               DHORZ(I,J) = horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
             endif
+          ElseIf (DOWN_LON_LOC(I,J) == -9999)  Then  ;  KDIREC(I,J) = 9
           else  ! if land but no ocean, print warning
             IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *           FOCEAN(I,J).le.0 ) THEN
@@ -679,9 +680,9 @@ c avoid nonexistent halo corners of a cube face.
          endif
 C**** do we need get_dir? maybe only need to set KD=0 or >0?
          IF (IFLOW(I,J).gt. -99) KDIREC(I,J)=get_dir(I,J,IFLOW(I,J)
-     $        ,JFLOW(I,J),IM,JM)  
+     $        ,JFLOW(I,J),IM,JM)
          IF (IFL911(I,J).gt.-99) KD911(I,J)=get_dir(I,J,IFL911(I,J)
-     $        ,JFL911(I,J),IM,JM) 
+     $        ,JFL911(I,J),IM,JM)
 
         END DO
       END DO
@@ -712,11 +713,11 @@ C****
       SPEED0= .35d0  ! m/s
       SPMIN = .15d0  ! m/s
       SPMAX = 5.     ! m/s
-      DZDH1 = .00005 ! ratio 
+      DZDH1 = .00005 ! ratio
       DO JU = J_0, J_1S
         DO IU=I_0,IMAXJ(JU)
-          IF (FOCEAN(IU,JU).lt.1.) THEN
-            IF(KDIREC(IU,JU).gt.0) THEN
+          If (FOCEAN(IU,JU) < 1 .and. KDIREC(IU,JU) <= 8)  Then
+            If (KDIREC(IU,JU) >= 1)  Then
               JD=JFLOW(IU,JU)
               ID=IFLOW(IU,JU)
               DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
@@ -827,20 +828,18 @@ C****
         print*,"get_dir error",i,j,id,jd
         get_dir=0
       end if
-         
+
       return
       end function get_dir
 
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0 (based on LB265)
+!@ver  2010/07/14 (based on LB265)
+
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland,dtsrc,itime
-#ifdef SCM
-     *     ,I_TARG,J_TARG
-#endif
+     *     ,itocean,itoice,fland,dtsrc,itime,FLAKE0
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       use domain_decomp_1d, only: hasSouthPole, hasNorthPole
 
@@ -848,52 +847,80 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc
       USE GHY_COM, only : fearth
-#ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
-      USE FLUXES, only : trflowo,gtracer
-#endif
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
+      USE SEAICE_COM, only : rsi
+      Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
+
 #ifdef SCM
+      Use MODEL_COM, Only: I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
 #ifdef TRACERS_WATER
-     *     ,trlake,ntm
+      USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
+      USE FLUXES, only : trflowo,gtracer
+      Use LAKES_COM, Only: NTM,TRLAKE
 #endif
-      USE SEAICE_COM, only : rsi
-      USE TimerPackage_mod, only: startTimer => start
-      USE TimerPackage_mod, only: stopTimer => stop
-      IMPLICIT NONE
 
+      IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
       logical :: have_pole,have_south_pole,have_north_pole
       INTEGER :: ILOOP_MIN,ILOOP_MAX,JLOOP_MIN,JLOOP_MAX
-!@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
-      REAL*8 MWLSILL,MLM,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
+      Real*8 MWLSILL, !  lake mass (kg) below sill depth
+     *      MWlSILLD, !  downstream lake mass (kg) below sill depth
+     *       MLM,DMM,DGM,HLK1,DPE,FLFAC
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
 !@var URATE upstream fractional rate of river flow per time step
 !@+         (only for special case)
       REAL*8 :: URATE = 1d-6  ! roughly 10 day e-folding time
+      Logical*4 :: RVRFL
+
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
       REAL*8, DIMENSION(NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                      GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      * :: TRFLOW
 #endif
-      LOGICAL :: rvrfl
 
+C**** MWL (kg) = Lake water in cell, defined even when FLAKE = 0
+C****            such as ice sheets, deserts, and partial ocean cells
+C**** GML (J)  = Liquid lake enthalpy
+C**** TLAKE(C) = Lake surface temperature
 C****
-C**** LAKECB  MWL  Liquid lake mass  (kg)
-C****         GML  Liquid lake enthalpy  (J)
-C****         TLAKE  Lake surface temperature (C)
+C**** If FOCEAN > 0: FLAKE = 0
+C****                (ID,JD) = (IU,JU), allowing MWL to exit to ocean
+C**** If FOCEAN = 0: FLAKE is between 0 and 95% of (1-FLICE) of a cell
+C****                KDIREC = 0: MWL may not exit except via backwash
+C****                KDIREC = 1-8: counter-clockwise start (IU+1,JU+1)
+C****                              MWL exits via normal downstream flow
+C****                              MWL accepts backwash from KDIREC=0,9
+C****                KDIREC = 9: MWL swashes water to adjacent KDIREC=9
+C****                            MWL may backwash to upstream cells
+C****                            Caspian, Aral, Great Salt, Chad
 C****
-C**** Calculate net mass and energy changes due to river flow
+C**** Backwash River Flow (checked first), DMM (kg) < 0:
+C**** Water below sill depth = MWLSILLu = RHOW*FLAKEu*AXYPu*HLAKEu
+C**** Downstream water above upstream sill =
+C****   MWLSILLd = RHOW*FLAKEd*AXYPd * [HLAKEd + (ZATMOu-ZATOMd)/GRAV]
+C**** DMM = URATE*DTSRC * [FLAKEd*AXYPd*(MWLu-MWLSILLu) -
+C****                    - FLAKEu*AXYPu*(MWLd-MWLSILLd)] /
+C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
 C****
+C**** Normal Downstream Flow:
+C**** DMM = (MWLu-MWSILLu) * RATEu
+C****
+C**** Swash Water Back and Forth in Internal Sea, KDIRECu = KDIRECd = 9:
+C**** Water above sill = MWLSILLu = RHOW*FLAKE0u*AXYPu*HLAKEu
+C****                    MWLSILLd = RHOW*FLAKE0d*AXYPd*HLAKEd
+C**** DMM = URATE*DTSRC * [FLAKE0d*AXYPd*(MWLu-MWLSILLu) -
+C****                    - FLAKE0u*AXYPu*(MWLd-MWLSILLd)] /
+C****                     (FLAKE0u*AXYPu + FLAKE0d*AXYPd)
+
       call startTimer('RIVERF()')
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
@@ -927,14 +954,14 @@ C****
       CALL HALO_UPDATE(grid,  TRLAKE(:,1,:,:), jdim=3)
 #endif
 
-C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
+C**** Calculate fluxes downstream if lake mass is above sill height HLAKE (m)
 C**** Also allow flow into ocean fraction of same box if KDIREC=0
 C**** SPECIAL CASE: If the downstream box has FLAKE=0.95 and KDIREC=0 (i.e.
 C**** no outlet) then the only way to prevent excess water build up is
 C**** to allow a back-flux. Take account of mean topography change as
 C**** well. This is mainly an issue for the Caspian and Aral Seas.
 C**** EMERGENCY CASE: If excess accumulation occurs anyway, use emergency
-C**** river direction (KD911) if level is lake_rise_max m above orig depth. 
+C**** river direction (KD911) if level is lake_rise_max m above orig depth.
 C**** Loop now includes polar boxes
 
 ! note on MPI fixes: since different PEs can influence the downstream
@@ -943,21 +970,16 @@ C**** Loop now includes polar boxes
 ! If downstream box is outside the interior, cycle - this is dealt with on
 ! a separate PE
 
-      if(have_south_pole) then
-        jloop_min=1
-      else
-        jloop_min=j_0h
-      endif
-      if(have_north_pole) then
-        jloop_max=jm
-      else
-        jloop_max=j_1h
-      endif
+      If (HAVE_SOUTH_POLE)  Then  ;  JLOOP_MIN = 1
+                            Else  ;  JLOOP_MIN = J_0H  ;  EndIf
+      If (HAVE_NORTH_POLE)  Then  ;  JLOOP_MAX = JM
+                            Else  ;  JLOOP_MAX = J_1H  ;  EndIf
+
       DO JU=JLOOP_MIN,JLOOP_MAX
         if(i_0.eq.i_0h) then ! no I halo - latlon grid
           iloop_min=1
           iloop_max=IMAXJ(JU)
-        else
+        else                 !  Cube-Sphere grid
           iloop_min=i_0h
           iloop_max=i_1h
           if(ju.lt.1 .or. ju.gt.jm) then
@@ -965,162 +987,219 @@ c avoid nonexistent SW/NW/SE/NE halo corner of a cubed sphere face.
 c instead, mark nonexistent cells with a code in the KDIREC array?
             iloop_min=max(iloop_min,1)
             iloop_max=min(iloop_max,im)
-          else
           endif
         endif
+
         DO IU=ILOOP_MIN,ILOOP_MAX
+          If (KDIREC(IU,JU) == 9)  GoTo 400  !  large internal seas
 C**** determine whether we have an emergency:
-C**** i.e. no outlet, max extent, more than 100m above original height 
-          IF (KDIREC(IU,JU).eq.0 .and. FLAKE(IU,JU).gt.0 .and.
-     *      FLAKE(IU,JU).ge.0.95d0*(FLAKE(IU,JU)+FEARTH(IU,JU)).and.
-     *      MWL(IU,JU).gt.RHOW*(HLAKE(IU,JU)+lake_rise_max)*FLAKE(IU,JU)
-     *      *AXYP(IU,JU) .and. KD911(IU,JU).gt.0) THEN ! use emerg dirs 
+C**** i.e. no outlet, max extent, more than 100m above original height
+          If (KDIREC(IU,JU) == 0 .and.
+     *        FLAKE(IU,JU) > 0 .and.
+     *        FLAKE(IU,JU) >= .96875*(FLAKE(IU,JU)+FEARTH(IU,JU)) .and.
+     *        MWL(IU,JU) > (HLAKE(IU,JU)+LAKE_RISE_MAX)*
+     *                     FLAKE(IU,JU)*RHOW*AXYP(IU,JU) .and.
+     *        KD911(IU,JU) > 0)  Then
+C**** Use emergency directions
             KD=KD911(IU,JU)
             JD=JFL911(IU,JU)
             ID=IFL911(IU,JU)
-C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*(HLAKE(IU,JU)+lake_rise_max)*
-     *        FLAKE(IU,JU)*AXYP(IU,JU)
-          ELSE                  ! normal case
+     *                FLAKE(IU,JU)*AXYP(IU,JU)
+C**** Normal case: no emergency
+          ELSE
             KD=KDIREC(IU,JU)
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
-
-C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
           END IF
-C****
-          IF (KD.gt.0 .or. (FLAND(IU,JU).gt.0 .and. FOCEAN(IU,JU).gt.0))
-     *         THEN
 
+          If (KD == 0 .and. FLAND(IU,JU)*FOCEAN(IU,JU) == 0)  Cycle
 ! only calculate for downstream interior + halo boxes.
 ! this allows for calcs of halo -> interior & interior-> halo flow
-            IF (JD.gt.J_1H .or. JD.lt.J_0H ) CYCLE
-            IF (ID.gt.I_1H .or. ID.lt.I_0H ) CYCLE
+          If (JD > J_1H .or. JD < J_0H .or.
+     *        ID > I_1H .or. ID < I_0H)  Cycle
 
-            rvrfl=.false.
-C**** Check for special case:
-            IF (KDIREC(ID,JD).eq.0 .and. FLAKE(ID,JD).gt.0 .and.
-     *           FLAKE(ID,JD).ge.0.95d0*(FLAKE(ID,JD)+FEARTH(ID,JD)))
-     *           THEN
-              MWLSILLD = RHOW*(HLAKE(ID,JD)+BYGRAV*MAX(ZATMO(IU,JU)
-     *             -ZATMO(ID,JD),0d0))*AXYP(ID,JD)*FLAKE(ID,JD)
-              IF (MWL(ID,JD)-MWLSILLD.gt.0) THEN  ! potential back flux
-              IF (FLAKE(IU,JU).gt.0) THEN
-                IF (MWL(ID,JD)-MWLSILLD-FLAKE(ID,JD)*AXYP(ID,JD)*
-     &               (MWL(IU,JU)
-     *               -MWLSILL)/(FLAKE(IU,JU)*AXYP(IU,JU)).gt.0) THEN
-                  DMM=-(MWL(ID,JD)-MWLSILLD-FLAKE(ID,JD)*AXYP(ID,JD)
-     *                 *(MWL(IU,JU)-MWLSILL)/(FLAKE(IU,JU)*AXYP(IU,JU)))
-     *                 *URATE*DTsrc  ! <0
-                  rvrfl=.true.
-                END IF
-              ELSE
-                DMM=-(MWL(ID,JD)-MWLSILLD)*URATE*DTsrc ! <0
-                rvrfl=.true.
-              END IF
-              if (rvrfl) then
-                DGM=TLAKE(ID,JD)*DMM*SHW ! TLAKE always defined
-#ifdef TRACERS_WATER
-                DTM(:) = DMM*GTRACER(:,1,ID,JD)
-#endif
-              end if
-              END IF
-            END IF
-C**** Normal downstream flow
-            IF(.not.rvrfl .and. MWL(IU,JU).gt.MWLSILL) THEN
-              rvrfl=.true.
-              DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
-              IF (MWL(IU,JU)-DMM.lt.1d-6) DMM=MWL(IU,JU)
-              DMM=MIN(DMM,0.5d0*RHOW*AXYP(IU,JU)) ! minimise 'flood' events!
-              IF (FLAKE(IU,JU).gt.0) THEN
-                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
-                if(dmm>.95d0*mlm)write(0,*)itime,iu,ju,dmm,'->',.95*mlm
-                DMM=MIN(DMM,.95d0*MLM) 
-              END IF
-              DGM=TLAKE(IU,JU)*DMM*SHW  ! TLAKE always defined
-#ifdef TRACERS_WATER
-              if (flake(iu,ju).gt.0) then
-                DTM(:) = DMM*GTRACER(:,1,IU,JU)
-              else
-                DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)
-              end if
-#endif
-            END IF
+          RVRFL = .False.
+C****
+C**** Apply possible backwash river flow
+C****
+          If ((KDIREC(ID,JD) >= 1 .and. KDIREC(ID,JD) <= 8) .or.
+     *        FLAKE(ID,JD) == 0 .or.
+     *        FLAKE(ID,JD) < .96875*(FLAKE(ID,JD)+FEARTH(ID,JD)))
+     *          GoTo 200
+          MWLSILLD = RHOW * AXYP(ID,JD) * FLAKE(ID,JD) *
+     *      (HLAKE(ID,JD) + byGRAV*Max(ZATMO(IU,JU)-ZATMO(ID,JD),0d0))
+          If (MWL(ID,JD) <= MWLSILLD)  GoTo 200
+C**** Backwash river flow is invoked
+          If (FLAKE(IU,JU) > 0)  Then
+            DMM = URATE*DTSRC *
+     *            (FLAKE(ID,JD)*AXYP(ID,JD)*(MWL(IU,JU)-MWLSILL) -
+     -             FLAKE(IU,JU)*AXYP(IU,JU)*(MWL(ID,JD)-MWLSILLD)) /
+     /            (FLAKE(IU,JU)*AXYP(IU,JU) + FLAKE(ID,JD)*AXYP(ID,JD))
+            If (DMM < 0)  RVRFL = .True.
+          Else
+            DMM = - (MWL(ID,JD)-MWLSILLD)*URATE*DTsrc  !  < 0
+            RVRFL = .True.  ;  EndIf
 
-            IF (rvrfl) THEN
-              FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
-              EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
+          If (RVRFL)  Then
+            DGM = TLAKE(ID,JD)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
-              TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
+            DTM(:) = DMM*GTRACER(:,1,ID,JD)
+#endif
+          EndIf
+
+C****
+C**** Normal downstream river flow
+C****
+  200     If (RVRFL .or. MWL(IU,JU) <= MWLSILL)  GoTo 300
+          RVRFL = .True.
+          DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
+          If (MWL(IU,JU)-DMM < 1d-6)  DMM = MWL(IU,JU)
+          DMM = Min(DMM,.5*RHOW*AXYP(IU,JU)) ! minimise 'flood' events!
+          If (FLAKE(IU,JU) > 0)  Then
+            MLM = RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
+            If (DMM > .95d0*MLM)
+     *         Write (0,*) 'RIVERF:',ITIME,IU,JU,DMM,'->',.95*MLM
+            DMM = Min (DMM,.95d0*MLM)  ;  EndIf
+          DGM = TLAKE(IU,JU)*DMM*SHW  !  TLAKE always defined
+#ifdef TRACERS_WATER
+          If (FLAKE(IU,JU) > 0)
+            Then  ;  DTM(:) = DMM*GTRACER(:,1,IU,JU)
+            Else  ;  DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)  ;  EndIf
 #endif
 
-C**** calculate adjustments for poles
-              FLFAC=1.          ! default
-              if(have_pole) then
-                IF (JU.eq.1 .or. JU.eq.JM) THEN
-                  FLFAC=IM      ! pole exception upstream
-                ELSEIF (JD.eq.1 .or. JD.eq.JM) THEN
-                  FLFAC=1d0/real(IM) ! pole exception downstream
-                END IF
-              endif
-
-! check to ensure that arrays outside the interior are not updated. 
-              IF (JD.ge.J_0 .and. JD.le.J_1 .and.
-     *            ID.ge.I_0 .and. ID.le.I_1) THEN
-
-              IF (FOCEAN(ID,JD).le.0.) THEN
-                DPE=0.  ! DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
-
-                FLOW(ID,JD)  =  FLOW(ID,JD) +  DMM     *FLFAC
-                EFLOW(ID,JD) = EFLOW(ID,JD) + (DGM+DPE)*FLFAC
+  300     If (.not.RVRFL)  Cycle
+          FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
+          EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
-                TRFLOW(:,ID,JD)=TRFLOW(:,ID,JD) +DTM(:)*FLFAC
+          TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
 
-              ELSE ! Save river mouth flow to for output to oceans
+C**** Calculate adjustments for poles
+          FLFAC = 1  !  default = no pole adjustment
+          If (HAVE_POLE)  Then
+            If (JU==1 .or. JU==JM)  FLFAC = IM
+            If (JD==1 .or. JD==JM)  FLFAC = 1d0/IM  ;  EndIf
+
+! check to ensure that arrays outside the interior are not updated.
+          If (JD < J_0 .or. JD > J_1 .or.
+     *        ID < I_0 .or. ID > I_1)  Cycle
+
+          If (FOCEAN(ID,JD) == 0)  Then
+            DPE = 0  !  DMM*(ZATMO(IU,JU)-ZATMO(ID,JD))
+            FLOW(ID,JD)  =  FLOW(ID,JD) +  DMM     *FLFAC
+            EFLOW(ID,JD) = EFLOW(ID,JD) + (DGM+DPE)*FLFAC
+#ifdef TRACERS_WATER
+            TRFLOW(:,ID,JD)=TRFLOW(:,ID,JD) +DTM(:)*FLFAC
+#endif
+
+          Else ! Save river mouth flow to for output to oceans
 C**** DPE: also add potential energy change to ocean.
 C**** Normally ocean is at sea level (Duh!), but in some boxes ZATMO
 C**** may not be zero if there is land as well, while in the Caspian,
 C**** the ocean level is below zero.
 C**** Note: this is diasabled until PE of precip is properly calculated
 C**** in atmosphere as well. Otherwise, there is an energy imbalance.
-                DPE=0.  ! DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
+            DPE = 0  !  DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
 C**** possibly adjust mass (not heat) to allow for balancing of sea level
-                DMM=river_fac*DMM
-                FLOWO(ID,JD) = FLOWO(ID,JD)+ DMM     *FLFAC
-                EFLOWO(ID,JD)=EFLOWO(ID,JD)+(DGM+DPE)*FLFAC
+            DMM = RIVER_FAC * DMM
+            FLOWO(ID,JD) = FLOWO(ID,JD) +  DMM     *FLFAC
+            EFLOWO(ID,JD)=EFLOWO(ID,JD) + (DGM+DPE)*FLFAC
 #ifdef TRACERS_WATER
-                DTM(:)=river_fac*DTM(:)
-                TRFLOWO(:,ID,JD)=TRFLOWO(:,ID,JD)+DTM(:)*FLFAC
+            DTM(:) = RIVER_FAC * DTM(:)
+            TRFLOWO(:,ID,JD) = TRFLOWO(:,ID,JD) + DTM(:)*FLFAC
 #endif
 C**** accumulate river runoff diags (moved from ground)
-                CALL INC_AJ(ID,JD,ITOCEAN,J_RVRD,(1.-RSI(ID,JD))*DMM*
-     *               BYAXYP(ID,JD))
-                CALL INC_AJ(ID,JD,ITOCEAN,J_ERVR,(1.-RSI(ID,JD))*(DGM
-     *               +DPE)*BYAXYP(ID,JD))
-                CALL INC_AJ(ID,JD,ITOICE,J_RVRD,     RSI(ID,JD) *DMM
-     *               *BYAXYP(ID,JD)) 
-                CALL INC_AJ(ID,JD,ITOICE,J_ERVR,     RSI(ID,JD) *(DGM
-     *               +DPE)*BYAXYP(ID,JD))
-                AIJ(ID,JD,IJ_F0OC)=AIJ(ID,JD,IJ_F0OC)+
-     *               (DGM+DPE)*BYAXYP(ID,JD)
-                AIJ(ID,JD,IJ_FWOC)=AIJ(ID,JD,IJ_FWOC)+DMM*BYAXYP(ID,JD)
-              END IF
-              JR=JREG(ID,JD)
-              CALL INC_AREG(ID,JD,JR,J_RVRD,DMM*BYAXYP(ID,JD))
-              CALL INC_AREG(ID,JD,JR,J_ERVR,(DGM+DPE)*BYAXYP(ID,JD))
-              AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
-              AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
+            Call INC_AJ (ID,JD,ITOCEAN,J_RVRD,
+     *                   DMM*byAXYP(ID,JD)*(1-RSI(ID,JD)))
+            Call INC_AJ (ID,JD,ITOCEAN,J_ERVR,
+     *                   (DGM+DPE)*byAXYP(ID,JD)*(1-RSI(ID,JD)))
+            Call INC_AJ (ID,JD,ITOICE,J_RVRD,
+     *                   DMM*byAXYP(ID,JD)*RSI(ID,JD))
+            Call INC_AJ (ID,JD,ITOICE,J_ERVR,
+     *                   (DGM+DPE)*byAXYP(ID,JD)*RSI(ID,JD))
+            AIJ(ID,JD,IJ_F0OC) = AIJ(ID,JD,IJ_F0OC) +
+     +                           (DGM+DPE)*byAXYP(ID,JD)
+            AIJ(ID,JD,IJ_FWOC) = AIJ(ID,JD,IJ_FWOC) + DMM*byAXYP(ID,JD)
+          EndIf
+          JR=JREG(ID,JD)
+          Call INC_AREG (ID,JD,JR,J_RVRD,DMM*byAXYP(ID,JD))
+          Call INC_AREG (ID,JD,JR,J_ERVR,(DGM+DPE)*byAXYP(ID,JD))
+          AIJ(ID,JD,IJ_MRVR) = AIJ(ID,JD,IJ_MRVR) + DMM
+          AIJ(ID,JD,IJ_ERVR) = AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
-              TAIJN(ID,JD,TIJ_RVR,:)=TAIJN(ID,JD,TIJ_RVR,:)+DTM(:)
-     *             *BYAXYP(ID,JD)
+          TAIJN(ID,JD,TIJ_RVR,:) = TAIJN(ID,JD,TIJ_RVR,:) +
+     +                             DTM(:)*byAXYP(ID,JD)
 #endif
-            END IF  ! check on interior points
-            END IF
-          END IF
-        END DO
-      END DO
+          Cycle
+
+C****
+C**** KDIREC=9: Check river flow among 4 adjacent cells in same sea
+C**** Coding does not work for cells on opposite sides of IDL
+C**** Do not count transport twice inside same processor: KD=4 or 6
+C****
+  400     Do 440 KD=2,8,6
+          If (KD==2)
+     *       Then  ;  If (IU < I_0 .or. IU > I_1 .or. JU > J_1)  Cycle
+                      ID=IU  ;  JD=JU+1
+             Else  ;  If (JU < J_0 .or. JU > J_1 .or. IU > I_1)  Cycle
+                      ID=IU+1  ;  JD=JU  ;  EndIf
+
+          If (KDIREC(ID,JD) /= 9)  Cycle
+          If (FLAKE(IU,JU) + FLAKE(ID,JD) == 0)  Cycle
+          MWLSILL  = RHOW * HLAKE(IU,JU) * FLAKE0(IU,JU) * AXYP(IU,JU)
+          MWLSILLD = RHOW * HLAKE(ID,JD) * FLAKE0(ID,JD) * AXYP(ID,JD)
+          DMM = URATE*DTSRC *
+     *          (FLAKE0(ID,JD)*AXYP(ID,JD)*(MWL(IU,JU)-MWLSILL) -
+     -           FLAKE0(IU,JU)*AXYP(IU,JU)*(MWL(ID,JD)-MWLSILLD)) /
+     /          (FLAKE0(IU,JU)*AXYP(IU,JU) + FLAKE0(ID,JD)*AXYP(ID,JD))
+          If (DMM > 0)  GoTo 420
+
+C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
+          If (DMM < 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD))
+     *        DMM = 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD)
+          DGM = TLAKE(ID,JD)*DMM*SHW
+          JR = JREG(IU,JU)
+          Call INC_AREG (IU,JU,JR,J_RVRD,-DMM*byAXYP(IU,JU))
+          Call INC_AREG (IU,JU,JR,J_ERVR,-DGM*byAXYP(IU,JU))
+          AIJ(IU,JU,IJ_MRVR) = AIJ(IU,JU,IJ_MRVR) - DMM
+          AIJ(IU,JU,IJ_ERVR) = AIJ(IU,JU,IJ_ERVR) - DGM
+#ifdef TRACERS_WATER
+          DTM(:) = DMM*GTRACER(:,1,ID,JD)
+          TAIJN(IU,JU,TIJ_RVR,:) = TAIJN(IU,JU,TIJ_RVR,:) -
+     -                             DTM(:)*byAXYP(IU,JU)
+#endif
+          GoTo 430
+
+C**** DMM > 0: Move water from grid cell (IU,JU) to cell (ID,JD)
+  420     If (DMM > MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU))
+     *        DMM = MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU)
+          DGM = TLAKE(IU,JU)*DMM*SHW
+          JR = JREG(ID,JD)
+          Call INC_AREG (ID,JD,JR,J_RVRD,DMM*byAXYP(ID,JD))
+          Call INC_AREG (ID,JD,JR,J_ERVR,DGM*byAXYP(ID,JD))
+          AIJ(ID,JD,IJ_MRVR) = AIJ(ID,JD,IJ_MRVR) + DMM
+          AIJ(ID,JD,IJ_ERVR) = AIJ(ID,JD,IJ_ERVR) + DGM
+#ifdef TRACERS_WATER
+          DTM(:) = DMM*GTRACER(:,1,IU,JU)
+          TAIJN(ID,JD,TIJ_RVR,:) = TAIJN(ID,JD,TIJ_RVR,:) +
+     +                             DTM(:)*byAXYP(ID,JD)
+#endif
+
+C**** Update transportimg river arrays
+  430     FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
+          FLOW(ID,JD)  =  FLOW(ID,JD) + DMM
+          EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
+          EFLOW(ID,JD) = EFLOW(ID,JD) + DGM
+#ifdef TRACERS_WATER
+          TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
+          TRFLOW(:,ID,JD) = TRFLOW(:,ID,JD) + DTM(:)
+#endif
+  440     Continue
+
+        EndDo  !  End of Do IU= loop
+      EndDo    !  End of Do JU= loop
 
 C****
 C**** Apply net river flow to continental reservoirs
@@ -1150,11 +1229,11 @@ C**** remove pathologically small values
      *             /(MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)*SHW)
 C**** accumulate some diagnostics
               CALL INC_AJ(I,J,ITLAKE,J_RVRD, FLOW(I,J)*BYAXYP(I,J)*(1.
-     *             -RSI(I,J))) 
+     *             -RSI(I,J)))
               CALL INC_AJ(I,J,ITLAKE,J_ERVR,EFLOW(I,J)*BYAXYP(I,J)*(1.
-     *             -RSI(I,J))) 
+     *             -RSI(I,J)))
               CALL INC_AJ(I,J,ITLKICE,J_RVRD, FLOW(I,J)*BYAXYP(I,J)
-     *             *RSI(I,J)) 
+     *             *RSI(I,J))
               CALL INC_AJ(I,J,ITLKICE,J_ERVR,EFLOW(I,J)*BYAXYP(I,J)
      *             *RSI(I,J))
             ELSE
@@ -1276,7 +1355,7 @@ C**** loop over whole grid
 
 C**** gather diags + print out on root processor
       rvrout_root=0.
-      call sumxpe(rvrout, rvrout_root, increment=.true.) 
+      call sumxpe(rvrout, rvrout_root, increment=.true.)
 
       IF (AM_I_ROOT()) THEN
         DO INM=1,NRVR,6
@@ -1290,7 +1369,7 @@ C**** gather diags + print out on root processor
       DO N=1,NTM
         if (itime.ge.itime_tr0(n) .and. tr_wd_TYPE(n).eq.nWater) then
           rvrout_root=0.
-          call sumxpe(trvrout(:,N), rvrout_root, increment=.true.) 
+          call sumxpe(trvrout(:,N), rvrout_root, increment=.true.)
 
           IF (AM_I_ROOT()) THEN
             WRITE(out_line,*) "River outflow tracer concentration "
@@ -1346,7 +1425,7 @@ C****
       I_1H = grid%I_STOP_HALO
       njpol = grid%J_STRT_SKP-grid%J_STRT
 
-C**** Check for NaN/INF in lake data 
+C**** Check for NaN/INF in lake data
       CALL CHECK3B(MWL(I_0:I_1,J_0:J_1)  ,I_0,I_1,J_0,J_1,NJPOL,1,
      &     SUBR,'mwl')
       CALL CHECK3B(GML(I_0:I_1,J_0:J_1)  ,I_0,I_1,J_0,J_1,NJPOL,1,
@@ -1492,7 +1571,7 @@ C****
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *     ,j_implh 
+     *     ,j_implh
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use cubic_eq, only : cubicroot
       IMPLICIT NONE
@@ -1547,7 +1626,7 @@ C**** water that went to saturation
 
 C**** add saturation water already present under the lake
               mwtot1 = mwtot + FLAKE(I,J)*AXYP(I,J)*DMWLDF(I,J)
-              
+
 C**** solve for radius of lake area (normalized so that new_flake = x^2)
 C**** water forms cone (lake water) + cylinder (saturated soil)
               a = sqrt(AXYP(I,J))**3 / sqrt(PI)
@@ -1557,19 +1636,19 @@ C**** water forms cone (lake water) + cylinder (saturated soil)
 
               call cubicroot(a,b,c,d,x,n_roots)
               if (n_roots<1) call stop_model("lakes: no solution",255)
-  
+
 C**** we need positive root (there is one and only one)
               y = maxval( x(1:n_roots) )
 cddd              write(678,*) "abcd", a,b,c,d
 cddd              write(678,*) "root", y, a*y**3+b*y**2+c*y+d
 cddd              write(678,*) "new_flake",new_flake,y**2
-              
+
               new_flake = y**2
 
 cddd              write(678,*) "vol, dvol", mwtot1,
 cddd     &             1.d0/3.d0*sqrt(new_flake*AXYP(I,J)/PI)/TANLK(I,J)
 cddd     &             *new_flake*AXYP(I,J)*RHOW
-cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J),           
+cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J),
 cddd     &             1.d0/3.d0*sqrt(new_flake*AXYP(I,J)/PI)/TANLK(I,J)
 cddd     &             *new_flake*AXYP(I,J)*RHOW
 cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J) - mwtot1
@@ -1578,10 +1657,11 @@ C**** prevent confusion due to round-off errors
               new_flake = max( new_flake, FLAKE(I,J) )
               mwsat = (new_flake-FLAKE(I,J))*AXYP(I,J)*DMWLDF(I,J)
             endif
-            new_flake=min( new_flake, 0.95d0*(FLAKE(I,J)+FEARTH(I,J)) )
+            NEW_FLAKE = Min (NEW_FLAKE, .96875*(FLAKE(I,J)+FEARTH(I,J)))
 C**** prevent lakes flooding the snow in GHY
 C**** do not flood more than 4.9% of land per day
             new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
+            NEW_FLAKE = Nint(NEW_FLAKE*1048576) / 1048576d0
             hlk=0.
             hlkic=0.
             if (new_flake.gt.0) then
@@ -1589,7 +1669,7 @@ C**** do not flood more than 4.9% of land per day
               hlkic=(mwtot-mwsat)/(RHOW*new_flake*AXYP(I,J)) ! pot. new height including ice
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
-              IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5 
+              IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5
      *             .and. hlkic.gt.1.)) ) THEN ! new or surviving lake
                 HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it was not set
 C**** adjust for fearth changes
@@ -1612,7 +1692,7 @@ C**** save some diags
                     CALL INC_AJ(I,J,ITLAKE, J_RUN,PLAKE*DMWLDF(I,J)
      *                   *(new_flake-FLAKE(I,J)))
                     CALL INC_AJ(I,J,ITLKICE,J_RUN,PLKIC*DMWLDF(I,J)
-     *                   *(new_flake-FLAKE(I,J))) 
+     *                   *(new_flake-FLAKE(I,J)))
                     CALL INC_AJ(I,J,ITLAKE, J_ERUN,PLAKE*DGML(I,J)
      *                   *BYAXYP(I,J))
                     CALL INC_AJ(I,J,ITLKICE,J_ERUN,PLKIC*DGML(I,J)
@@ -1799,9 +1879,9 @@ C**** Complications due to ice or water going to earth if lake shrinks
               if (PLAKE.gt.0) call RESET_SURF_FLUXES(I,J,1,4,FEARTH_OLD,
      *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)))
 ! originally some ice, now different
-              if (PLKIC.gt.0 .and. PLKIC.ne.FLAKE(I,J)*RSI(I,J)) 
+              if (PLKIC.gt.0 .and. PLKIC.ne.FLAKE(I,J)*RSI(I,J))
      *             call RESET_SURF_FLUXES(I,J,2,4,
-     *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)),FEARTH(I,J)) 
+     *             FEARTH_OLD+PLAKE-FLAKE(I,J)*(1-RSI(I,J)),FEARTH(I,J))
             end if
           END IF   ! end loop of land points
         END DO
@@ -1843,7 +1923,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
-#ifdef SCM   
+#ifdef SCM
      *                     ,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
