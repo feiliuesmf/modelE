@@ -128,6 +128,7 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM,NTM) :: changeL
       REAL*8, DIMENSION(NTM)    :: PIfact
       REAL*8, DIMENSION(LM)     :: PRES2,rh
+      REAL*8 :: tempChangeNOx
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byam75,byavog,CH4FACT,r179,rlossN,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
@@ -895,29 +896,6 @@ C Save 3D radical arrays to pass to aerosol code:
       call ClOxfam(LM,I,J,ClOx_old) ! needed something from chemstep.
 #endif
 
-!     Accumulate NO2 10:30am/1:30pm tropo column diags in sunlight:
-      if(i>=ih1030.and.i<=ih1030+istep-1)then 
-        index1=ijs_NO2_1030; index2=ijs_NO2_1030c
-      elseif(i>=ih1330.and.i<=ih1330+istep-1)then  
-        index1=ijs_NO2_1330; index2=ijs_NO2_1330c
-      else  
-         index1=0 ; index2=0 
-      endif
-      if(index1/=0 .and. index2/=0)then
-       do L=1,min(maxl,LTROPO(I,J))
-         thick=1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
-         taijs(i,j,index1)=taijs(i,j,index1)+y(nNO2,L)*thick
-         if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
-       enddo
-      endif
-
-#ifdef ACCMIP_LIKE_DIAGS
-      do L=1,LM
-        !Save 3D NO separately from NOx (pppv here):
-        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
-     &  (1.d0-pNOx(i,j,l))*y(n_NOx,l)/y(nM,l)
-      enddo
-#endif
       call printDaytimeChemistryDiags()
       
       else
@@ -1520,23 +1498,6 @@ C       ACCUMULATE 3D NO3 diagnostic:
      &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
 #endif
      
-!       Accumulate NO2 10:30am/1:30pm tropo column diags in darkness:
-        if(i>=ih1030.and.i<=ih1030+istep-1)then
-          index1=ijs_NO2_1030; index2=ijs_NO2_1030c
-        elseif(i>=ih1330.and.i<=ih1330+istep-1)then
-          index1=ijs_NO2_1330; index2=ijs_NO2_1330c
-        else
-           index1=0 ; index2=0
-        endif
-        if(index1/=0 .and. index2/=0)then
-         if(L<=LTROPO(I,J))then
-           thick=
-     &     1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
-           taijs(i,j,index1)=taijs(i,j,index1)+y(nNO2,L)*thick
-           if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
-         endif
-        endif
-
        enddo  ! L loop
 
 CCCCCCCCCCCCCCCC END NIGHTTIME CCCCCCCCCCCCCCCCCCCC
@@ -1662,6 +1623,31 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
+        tempChangeNOx= ! this needed for several diags below:
+     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*AM(L,I,J))
+
+! Accumulate NO2 10:30am/1:30pm tropo column diags:
+! -- moved from sunlight/darkness sections because needed changeNOx
+! -- saved here in molecules/cm2
+        if(L<=min(maxl,LTROPO(I,J)))then
+          if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+            if(i>=ih1030.and.i<=ih1030+istep-1)then
+              index1=ijs_NO2_1030; index2=ijs_NO2_1030c
+            else if(i>=ih1330.and.i<=ih1330+istep-1)then
+              index1=ijs_NO2_1330; index2=ijs_NO2_1330c
+            else
+               index1=0 ; index2=0
+            end if
+            if(index1/=0 .and. index2/=0)then
+              thick= ! layer thickness in cm
+     &        1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+              taijs(i,j,index1)=taijs(i,j,index1)+thick*
+     &        pNOx(i,j,L)*(y(n_NOx,L)+tempChangeNOx)
+              if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
+            end if
+          end if ! sunlight criteria
+        end if ! troposphere criterion
+
 #ifdef ACCMIP_LIKE_DIAGS
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
@@ -1693,9 +1679,14 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*cpd ! (positive)
 
         !Save 3D NO2 separately from NOx (pppv here):
-        !Note NO accumulation was moved to sunlight section
+        ! need to add NOx change to match the NOx tracer diag:
         taijls(i,j,l,ijlt_NO2vmr)=taijls(i,j,l,ijlt_NO2vmr)+
-     &  pNOx(i,j,l)*y(n_NOx,l)/y(nM,l)
+     &  pNOx(i,j,l)*(y(n_NOx,l)+tempChangeNOx)/y(nM,l)
+
+        !Save 3D NO separately from NOx (pppv here):
+        ! need to add NOx change to match the NOx tracer diag:
+        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
+     &  (1.d0-pNOx(i,j,l))*(y(n_NOx,l)+tempChangeNOx)/y(nM,l)
 #endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
