@@ -6222,24 +6222,6 @@ c emissions of industrial NH3
         enddo
 
       case ('NO3p')
-c NO3 optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'NO3 optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-c NO3 clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = 'NO3 clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
 
         call set_diag_rad(n,k)
 
