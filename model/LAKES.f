@@ -1065,7 +1065,7 @@ C****
           DGM = TLAKE(IU,JU)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
           If (FLAKE(IU,JU) > 0)
-            Then  ;  DTM(:) = DMM*GTRACER(:,1,IU,JU)
+     *      Then  ;  DTM(:) = DMM*GTRACER(:,1,IU,JU)
             Else  ;  DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)  ;  EndIf
 #endif
 
