@@ -161,7 +161,7 @@ C**** Local parameters and variables and arguments:
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
      &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,ii,
-     &                          ih1030,ih1330,m,istep,index1,index2
+     &        ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,index2
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ss27_file,ghg_file,title
@@ -222,13 +222,22 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
       byavog = 1.d0/avog
 
 ! calculate what longitudes to accumulate for 10:30am/1:30pm NO2 diags:
+! Um... Does use of Jhour here assume starting the model at midnight?
       istep = NINT(real(IM)/24.) ! number of boxes per hour
       ! ih1030/1330 are westmost I index that hour (careful: int arith.)
       ih1030 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
       ih1330 = istep*(13-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
       if(ih1030 < 0) ih1030 = IM+ih1030  
       if(ih1330 < 0) ih1330 = IM+ih1330  
-
+      if(ih1030 > IM) ih1030 = ih1030-IM
+      if(ih1330 > IM) ih1330 = ih1330-IM
+      ih1330e=ih1330+istep-1
+      ih1030e=ih1030+istep-1
+      if(ih1030e < 0) ih1030e = IM+ih1030e  
+      if(ih1330e < 0) ih1330e = IM+ih1330e  
+      if(ih1030e > IM) ih1030e = ih1030e-IM
+      if(ih1330e > IM) ih1330e = ih1330e-IM
+ 
       if (is_set_param('initial_GHG_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
         if (initial_GHG_setup == 1 .and. itime == itimeI) then
@@ -1631,13 +1640,28 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! -- saved here in molecules/cm2
         if(L<=min(maxl,LTROPO(I,J)))then
           if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
-            if(i>=ih1030.and.i<=ih1030+istep-1)then
-              index1=ijs_NO2_1030; index2=ijs_NO2_1030c
-            else if(i>=ih1330.and.i<=ih1330+istep-1)then
-              index1=ijs_NO2_1330; index2=ijs_NO2_1330c
-            else
-               index1=0 ; index2=0
+
+            index1=0 ; index2=0
+
+            if(ih1030 < ih1030e)then ! normal case
+              if(i>=ih1030.and.i<=ih1030e)then
+                index1=ijs_NO2_1030; index2=ijs_NO2_1030c
+              end if 
+            else                     ! crossing date line
+              if(i<=ih1030.or.i>=ih1030e)then
+                index1=ijs_NO2_1030; index2=ijs_NO2_1030c
+              end if 
             end if
+            if(ih1330 < ih1330e)then ! normal case
+              if(i>=ih1330.and.i<=ih1330e)then
+                index1=ijs_NO2_1330; index2=ijs_NO2_1330c
+              end if
+            else                     ! crossing date line
+              if(i<=ih1330.or.i>=ih1330e)then
+                index1=ijs_NO2_1330; index2=ijs_NO2_1330c
+              end if
+            end if
+
             if(index1/=0 .and. index2/=0)then
               thick= ! layer thickness in cm
      &        1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
@@ -1645,6 +1669,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &        pNOx(i,j,L)*(y(n_NOx,L)+tempChangeNOx)
               if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
             end if
+
           end if ! sunlight criteria
         end if ! troposphere criterion
 
