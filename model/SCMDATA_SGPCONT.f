@@ -1083,26 +1083,6 @@ c     first get temperature and humidity on an hourly basis
          enddo
          ni = ni + NARM
       enddo
-      do itp = 1,20
-         do ip = 1,NPARM
-            write(iu_scm_prt,800) itp,ip,AP(ip),acld3hr(ip,itp)
- 800        format(1x,'it ip  p cld3 ',i5,i5,f10.2,f10.3)
-         enddo
-      enddo
-
-      do itp = 1,25
-         do ip = 1,NPARM
-            write(iu_scm_prt,810) itp,ip,AP(ip),acld1hr(ip,itp)
- 810        format(1x,'it ip p cld1 ',i5,i5,f10.2,f10.3)
-         enddo
-      enddo
- 
-c     write(iu_scm_prt,*) 'to time step interpolation done'
-
-c     do l=1,LM
-c        write(iu_scm_prt,*) 'l sig sige ',l,sig(l),sige(l)
-c     enddo
-
 
 
 c     for all the time steps
@@ -1464,12 +1444,6 @@ c
              VSA_HR(LM,ihr) = 0.0
              HQA_HR(LM,ihr) = 0.0
              VQA_HR(LM,ihr) = 0.0
-             if (ihr.lt.25) then
-                 do l=1,LM
-                    write(iu_scm_prt,880) ihr,l,SG_P(l),ACLDHR(l,ihr)
- 880                format(1x,'ihr l p acld ',i5,i5,f10.2,f10.3)
-                 enddo
-             endif
 
              DELTAP = SGE_P(LM)-SGE_P(LM+1)
              totpg = totpg + DELTAP
