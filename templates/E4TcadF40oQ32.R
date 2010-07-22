@@ -16,7 +16,7 @@ Preprocessor Options
 #define CHECK_OCEAN              ! needed to compile aux/file CMPE002
 #define TRAC_ADV_CPU
 #define USE_ENT                  ! include dynamic vegetation model
-#  OFF define NEW_IO
+!  OFF #define NEW_IO
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
@@ -166,7 +166,7 @@ DT_XVfilter=225. ! Shapiro filter on V in E-W direction; usually same as DT
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
-NIsurf=1         ! (surf.interaction NIsurf times per physics time step)
+NIsurf=2         ! (surf.interaction NIsurf times per physics time step)
 NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 
