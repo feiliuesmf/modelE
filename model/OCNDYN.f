@@ -5450,7 +5450,7 @@ C****
 C**** divide over depth and scale for time step
         DO J=j_0,j_1
           DO I=1,IMAXJ(J)
-            IF (FOCEAN(I,J).GT.0. .and. oGMELT(I,J).gt.0) THEN
+            If (L <= LMM(I,J) .and. oGMELT(I,J) > 0)  Then
               DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MIN(MAXGL,LMM(I,J))))
               MO(I,J,L) =MO(I,J,L)+oGMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+oEGMELT(I,J)*DZ
