@@ -791,7 +791,7 @@ C****
 
       subroutine init_odiff(grid)
       use OCEAN, only: BYDXYV, BYDXYPJM, UYPB, UYPA, FSLIP
-      USE DOMAIN_DECOMP_1D, ONLY : dist_grid, GET, AM_I_ROOT, 
+      USE DOMAIN_DECOMP_1D, ONLY : dist_grid, GET, AM_I_ROOT,
      &     HALO_UPDATE, NORTH, SOUTH
       USE OCEAN, only: KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,
      *     BYDYP,UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
@@ -1099,13 +1099,13 @@ C****
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
 !@var TRN2HEADER Character string label for individual records
-      CHARACTER*80 :: TRN2HEADER, 
+      CHARACTER*80 :: TRN2HEADER,
      .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
 #else
 #ifdef TRACERS_OceanBiology
       integer i,j,k
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
-      CHARACTER*80 :: TRN2HEADER, 
+      CHARACTER*80 :: TRN2HEADER,
      .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
 #endif
 #endif
@@ -4344,7 +4344,7 @@ C**** define tracer behaviour for ice formation
 #ifdef TRACERS_SPECIAL_O18
           FRAC(n)=fracls(n)
 #else
-          FRAC(n)=trw0(n)       ! removal based on default conc.  
+          FRAC(n)=trw0(n)       ! removal based on default conc.
 #endif
 #else
           FRAC(n)=0.            ! no removal of non-water tracers
@@ -4645,7 +4645,7 @@ C****
 #else
 #ifndef TRACERS_OceanBiology
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+trw0(:)*((1d0-oRSI(I,J))*oPREC(I
-     $           ,J)+oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)*DXYPO(J) 
+     $           ,J)+oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)*DXYPO(J)
 #endif
 #endif
 #endif
@@ -5420,36 +5420,30 @@ C****
       SUBROUTINE GLMELT(DT)
 !@sum  GLMELT adds glacial melt around Greenland and Antarctica to ocean
 !@auth Sukeshi Sheth/Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : dtsrc
+!@ver  2010/07/22
 
+      USE MODEL_COM, only : dtsrc
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMM, IMAXJ,DXYPO
      *     , MO, G0M, ZE, FOCEAN
-#ifdef TRACERS_OCEAN
-     *     , TRMO, NTM
-#endif
-
       USE OFLUXES, only : oGMELT, oEGMELT
-#ifdef TRACERS_WATER
-#ifdef TRACERS_OCEAN
-     *     , oTRGMELT
-#endif
-#endif
-
       use domain_decomp_1d, only : get
-
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : maxgl
+
+#ifdef TRACERS_WATER
+#ifdef TRACERS_OCEAN
+      Use OCEAN,   Only: TRMO
+      Use OFLUXES, Only: oTRGMELT
+#endif
+#endif
 
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT  !@var DT timestep for GLMELT call
       REAL*8 DZ
       INTEGER I,J,L
-
       integer :: j_0,j_1
 
       if(.not. ogrid%have_domain) return
-
       call get (ogrid, J_STRT=j_0, J_STOP=j_1)
 
       DO L=1,MAXGL
