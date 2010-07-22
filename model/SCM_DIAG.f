@@ -9,6 +9,8 @@ c     save diagnostics for run of MODELE SCM
      &                        I_TARG,J_TARG,dtsrc 
       USE CLOUDS_COM, only : SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
      &                cldss,cldmc,csizmc,csizss
+      USE CLOUDS, only : ncol
+      use DIAG_COM, only : npres,ntau,isccp_press,isccp_tau
       USE SCMCOM
       USE SCMDIAG
       USE RAD_COM, only : srhr,trhr
@@ -65,14 +67,6 @@ c    S             ,TRSLTS,TRSLTG,TRSLWV,TRSLBS,TTRUFG,LBOTCL,LTOPCL
 c    X             ,Z0(12)
 c
 c-------------------------------------------------------------------------------
-c
-C
-c     parameter (ntau=7,npres=7,ncol=100)
-c     real*8 mnptopI,mntauI
-c     COMMON /ISCCP/ fqI(ntau,npres),totcldareaI,mnptopI,
-c    +               mntauI,bxtauI(ncol),bxptopI(ncol),
-c    +               cldbdz(18,18),cldtdz(18,18)
-
 
       real*8 ARMT(LM),ARMQ(LM)
 C
@@ -183,18 +177,20 @@ c
 
 c             isccp record layout 
 c
-c             fqI(ntau,npres)     SCM (ISCCP diagnostics) fraction of model grid box
+c             isccp_sunlit        ISCCP   1-day 0-night
+c             isccp_ctp           ISCCP   cloud top pressure
+c             isccp_tauopt        ISCCP   optical thickness
+c             isccp_lowcld        ISCCP   low cloud fraction
+c             isccp_midcld        ISCCP   mid cloud fraction
+c             isccp_highcld       ISCCP   high cloud fraction
+c             isccp_fq(ntau,npres)ISCCP  fraction of model grid box
 c                                     covered by each of the 49 ISCCP D level cloud 
 c                                     types
-c             totcldareaI         SCM (ISCCP diagnostics) fraction of model grid box
+c             isccp_totcldarea    ISCCP  fraction of model grid box
 c                                     columns with cloud somewhere in them
 c                                     (sum over all fqI)
-c             mnptopI             SCM mean cloud top pressure (mb)
-c             mntauI              SCM mean optical thickness
-c             bxtauI(ncol)        SCM optical thickness in each column
-c             bxptopI(ncol)       SCM cloud top pressure (mb) in each column
-c             cldbdz(18,18)       SCM (cld diagnostics) cld base vs cld thickness
-c             cldtdz(18,18)       SCM (cld diagnostics) cld top vs cld thickness
+c             isccp_boxtau(ncol)  ISCCP optical thickness in each column
+c             isccp_boxptop(ncol) ISCCP cloud top pressure (mb) in each column
 c            
 C              
 C--- Added by J.W. starting ---C
@@ -320,6 +316,24 @@ c     Use the hourly version of the ARM data to save as a diagnostic
          ARMT(L) = THR(L,NSTEPSCM+IKT)
          ARMQ(L) = QHR(L,NSTEPSCM+IKT)
       enddo
+
+      write(iu_scm_prt,111) isccp_sunlit,isccp_ctp,isccp_tauopt,
+     &       isccp_lowcld,isccp_midcld,isccp_highcld,isccp_totcldarea
+111   format(1x,'ISCCP diags   sunlit cldptop tau  ',f4.0,f8.2,f8.2,
+     &           '    low mid high tot ',4(f8.3))
+
+c     do ic = 1,ncol
+c        write(iu_scm_prt,112) ic,isccp_boxptop(ic),isccp_boxtau(ic)
+c112     format(1x,' ic   ptop   tau  ',i5,f9.2,f10.4)
+c     enddo
+
+      write(iu_scm_prt,113) (isccp_tau(ic),ic=1,7)
+ 113  format(1x,10x,7(f10.4))
+      do L = 1,npres
+         write(iu_scm_prt,114) isccp_press(L),
+     &                          (isccp_fq(ic,L),ic=1,ntau)
+ 114     format(1x,I10,7(f10.4))
+      enddo
 C
 c     WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
 c    *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
@@ -338,7 +352,8 @@ c    *           ,GZPRT,ENTSCM,ENTDEEP,DETRAINDEEP
 c    *           ,SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS
 c    *           ,SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP 
 c    *           ,dTtot,dqtot,dTfrc,dqfrc,dTrad
-ccccc for TWP IC case 100 runs save less data
+
+
       WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
      *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
      *           CUMFLX,CUMHET, CUMOST,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
@@ -350,13 +365,12 @@ ccccc for TWP IC case 100 runs save less data
      *           SG_VER_S_ADV,SG_HOR_Q_ADV,SG_VER_Q_ADV,CLSAV,
      *           CLDFLG,DWNFLX,RHC,ALWP,ADWDT,ADWADV,ATLWUP,
      *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
-ccc  *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
-ccc  *           PRCCGRP,PRCCICE,MPLUMESCM,MPLUMEDEEP,
-ccc  *           GZPRT,ENTSCM,ENTDEEP,DETRAINDEEP
      *           SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS,
      *           SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP, 
      *           dTtot,dqtot,dTfrc,dqfrc,dTrad,dTHmc,dqmc,
-     *           dTHbl,dqbl,dTHss,dqss
+     *           dTHbl,dqbl,dTHss,dqss,isccp_sunlit,isccp_ctp,
+     *           isccp_tauopt,isccp_lowcld,isccp_midcld,isccp_highcld,
+     *           isccp_fq,isccp_totcldarea,isccp_boxtau,isccp_boxptop
 
 
 c     WRITE(3) TAU,P,fqI,totcldareaI,mnptopI,mntauI,bxtauI,bxptopI,

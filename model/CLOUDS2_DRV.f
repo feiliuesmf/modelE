@@ -118,7 +118,7 @@
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
       USE CLOUDS, only : tm,tmom,trdnl ! local  (i,j)
-     *     ,ntx,ntix              ! global (same for all i,j)
+     *     ,ntx,ntix             ! global (same for all i,j)
 #ifdef TRACERS_WATER
      *     ,trwml,trsvwml,trprmc,trprss
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -144,9 +144,9 @@
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
      *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
-     *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
+     *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
-     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
+     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1,ncol
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
@@ -158,10 +158,11 @@
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
      *                    SCM_ATURB_FLAG,iu_scm_prt,NRINIT
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
-     &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
-     &                    ENTSCM,ENTALL,ENTDEEP,
-     &                    DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,
-     &                    dTHss,dqss,SCM_SVWMXL
+     &         MPLUMESCM,MPLUMEALL,MPLUMEDEEP,ENTSCM,ENTALL,ENTDEEP,
+     &         DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,dTHss,dqss,
+     &         SCM_SVWMXL,isccp_sunlit,isccp_ctp,isccp_tauopt,
+     &         isccp_lowcld,isccp_midcld,isccp_highcld,isccp_fq,
+     &         isccp_totcldarea,isccp_boxtau,isccp_boxptop
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
@@ -251,6 +252,8 @@ C**** parameters and variables for isccp diags
       real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
       real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
       real*8 fq_isccp(ntau,npres),ctp,tauopt
+      real*8 boxtau(ncol),boxptop(ncol)
+      
       integer itau,itrop,nbox,sunlit,ipres
 C****
 
@@ -1211,7 +1214,8 @@ C**** set skt from radiative temperature
 
         call ISCCP_CLOUD_TYPES(sunlit,pfull,phalf,qv,
      &       cc,conv,dtau_s,dtau_c,skt,
-     &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
+     &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,
+     &       boxtau,boxptop,nbox,jerr)
         if(jerr.ne.0) jckerr = jckerr + 1
 
 C**** set ISCCP diagnostics
@@ -1233,6 +1237,20 @@ C**** Save area weighted isccp histograms
      &         fq_isccp(:,:)*axyp(i,j)
         end if
       end if
+c     save isccp diagnostics for SCM
+#ifdef SCM
+      if (I.eq.I_TARG.and.J.eq.J_TARG) then
+          isccp_sunlit = sunlit
+          isccp_ctp = ctp
+          isccp_tauopt = tauopt
+          isccp_lowcld = sum(fq_isccp(2:ntau,6:7))
+          isccp_midcld = sum(fq_isccp(2:ntau,4:5))
+          isccp_highcld = sum(fq_isccp(2:ntau,1:3))
+          isccp_fq(:,:) = fq_isccp(:,:)
+          isccp_boxtau = boxtau
+          isccp_boxptop = boxptop
+      endif
+#endif
 
 C**** Peak static stability diagnostic
       SSTAB=-1.d30

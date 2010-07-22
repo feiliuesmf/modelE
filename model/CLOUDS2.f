@@ -128,7 +128,12 @@ C     REAL*8 :: U00MAX = .99d0      ! maximum U00 for water clouds
       integer ntx
 #endif
 C**** ISCCP diag related variables
-      INTEGER,PARAMETER :: ncol =20    !@var ncol number of subcolumns
+#ifdef SCM
+      INTEGER,PARAMETER :: ncol = 100    !@var ncol number of subcolumns
+#else
+      INTEGER,PARAMETER :: ncol = 20    !@var ncol number of subcolumns
+#endif
+   
 !@var tautab look-up table to convert count value to optical thickness
 !@var invtau look-up table to convert optical thickness to count value
       real*8 :: tautab(0:255)
@@ -5093,7 +5098,7 @@ C----------
 
       SUBROUTINE ISCCP_CLOUD_TYPES(sunlit,pfull
      *     ,phalf,qv,cc,conv,dtau_s,dtau_c,skt,at,dem_s,dem_c,itrop
-     *     ,fq_isccp,meanptop,meantaucld,nbox,jerr)
+     *     ,fq_isccp,meanptop,meantaucld,boxtau,boxptop,nbox,jerr)
 !@sum  ISCCP_CLOUD_TYPES calculate isccp cloud diagnostics in a column
 !@auth Gavin Schmidt
 !@ver  2.0 (from isccp version 3.5)
@@ -5107,6 +5112,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
+!@@@@@ added boxtau,boxptop back to output      Audrey Wolf  
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

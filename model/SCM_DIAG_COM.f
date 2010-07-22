@@ -4,6 +4,8 @@
       MODULE SCMDIAG  
 
       USE RESOLUTION , only : LM 
+      USE DIAG_COM , only : npres,ntau
+      USE CLOUDS, only : ncol
 
       IMPLICIT NONE
 
@@ -19,6 +21,12 @@
      *       TRUFLBTOP,TRDFLBTOP,SRDFLBBOT,SRNFLBBOT,
      *       TRUFLBBOT,TRDFLBBOT
       real*8, DIMENSION(LM) :: SRFHRLCOL,TRFCRLCOL
+c     
+c     isccp diagnostics
+c
+      real*8 isccp_sunlit,isccp_ctp,isccp_tauopt,isccp_lowcld,
+     &       isccp_midcld,isccp_highcld,isccp_fq(ntau,npres),
+     &       isccp_totcldarea,isccp_boxtau(ncol),isccp_boxptop(ncol)
 c
 c     cumulus updraft speed
       real*8   WCUSCM(LM,2),WCUALL(LM,2,LM)
