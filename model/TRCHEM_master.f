@@ -274,7 +274,7 @@ C--------special section for ghg runs ---------
               write(6,*)'First time step has used default values.'
               write(6,*)'If you wish to produce a correct'
               write(6,*)'first time step, then redo setup for this'
-              write(6,*)' rundeck with initial_GHG_setup setto 1.'
+              write(6,*)' rundeck with initial_GHG_setup set to 0.'
               write(6,*)'Address questions to G. Faluvegi or T. Clune.'
               write(6,*)'Thanks.'
             endif
