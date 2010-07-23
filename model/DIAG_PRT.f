@@ -983,6 +983,7 @@ C****
      &     jl_trbdlht,jl_mcldht,jl_mcheat,jl_mcdeep,jl_mcshlw,jl_mcdry,
      &     jl_csizmc,jl_csizss,jl_damdc,jl_dammc,
      &     jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
+     &    ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
       USE GCDIAG
       USE WORKJK
       IMPLICIT NONE
