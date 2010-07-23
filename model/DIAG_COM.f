@@ -205,9 +205,10 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #endif
 !@param KAGC number of latitude-height General Circulation diags
 !@param KAGCX number of accumulated+derived GC diagnostics
-      INTEGER, PARAMETER, public :: KAGC=59+KEP, KAGCX=KAGC+100
+      INTEGER, PARAMETER, public :: KAGC=82+KEP, KAGCX=KAGC+100
 !@var AGC latitude-height General Circulation diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
+     &     ,AGC_out
 
 !@param KAIJK number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER, public :: KAIJK=15
@@ -859,11 +860,13 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 
 c declarations that facilitate switching between restart and acc
 c instances of arrays
-      target :: aj,aj_out,areg,areg_out
+      target :: aj,aj_out,areg,areg_out,agc,agc_out
       REAL*8, dimension(:,:,:), public, pointer ::
      &     AJ_ioptr
       REAL*8, dimension(:,:), public, pointer ::
      &     AREG_ioptr
+      REAL*8, dimension(:,:,:), public, pointer ::
+     &     AGC_ioptr
 #endif
 
       END MODULE DIAG_COM
@@ -882,6 +885,7 @@ c instances of arrays
      *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
+     &     ,AGC_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
      &     ,hemis_gc,vmean_gc,hemis_ij
 #ifdef TES_LIKE_DIAGS
@@ -955,6 +959,7 @@ c allocate master copies of budget- and JK-arrays on root
      &           AJL(JM_BUDG, LM, KAJL),
      &           ASJL(JM_BUDG,LM_REQ,KASJL),
      &           AGC(JMLAT,LM,KAGC),
+     &           AGC_out(JMLAT,LM,KAGC),
      &           STAT = IER)
         allocate(aj_out(jm_budg,kaj,ntype_out))
         allocate(hemis_j(3,kaj,ntype_out))
@@ -969,6 +974,7 @@ c allocate master copies of budget- and JK-arrays on root
      &           AJL(1,1,1),
      &           ASJL(1,1,1),
      &           AGC(1,1,1),
+     &           AGC_out(1,1,1),
      &        STAT = IER)
         allocate(aj_out(1,1,1))
         allocate(hemis_j(1,1,1))
@@ -1758,10 +1764,10 @@ c temporary variant of inc_ajl without any weighting
 !@ver  beta
       use model_com, only : idacc
       use diag_com, only : monacc,
-     &     aj=>aj_ioptr,areg=>areg_ioptr,
+     &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,                                  ! dist
-     &     ajl,asjl,agc,consrv,
+     &     ajl,asjl,consrv,
      &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
       use diag_com, only :  hdiurn
@@ -1831,10 +1837,10 @@ c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
       use diag_com, only : monacc,kaijl,
-     &     aj=>aj_ioptr,areg=>areg_ioptr,
+     &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,                                  ! dist
-     &     ajl,asjl,agc,consrv,
+     &     ajl,asjl,consrv,
      &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
       use diag_com, only :  hdiurn
@@ -2270,6 +2276,7 @@ c instances of the arrays used during normal operation.
       implicit none
       aj_ioptr     => aj
       areg_ioptr   => areg
+      agc_ioptr    => agc
       return
       end subroutine set_ioptrs_atmacc_default
 
@@ -2280,6 +2287,7 @@ c instances of the arrays containing derived outputs
       implicit none
       aj_ioptr     => aj_out
       areg_ioptr   => areg_out
+      agc_ioptr    => agc_out
       return
       end subroutine set_ioptrs_atmacc_extended
 

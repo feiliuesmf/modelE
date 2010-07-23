@@ -4212,13 +4212,18 @@ c
       END SUBROUTINE DIAGJ_PREP
 
       subroutine diagjl_prep
-      use model_com, only : lm,lm_req
+      use model_com, only : lm,lm_req,do_gwdrag
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
      &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool,
+     &     jl_sumdrg,jl_dumtndrg,jl_dushrdrg,
+     &     jl_mcdrgpm10,jl_dumcdrgm10,jl_dumcdrgp10,
+     &     jl_mcdrgpm20,jl_dumcdrgm20,jl_dumcdrgp20,
+     &     jl_mcdrgpm40,jl_dumcdrgm40,jl_dumcdrgp40,
+     &     jl_dudfmdrg,jl_dudtsdif,
      &     dxyp_budg,hemis_jl,vmean_jl
       implicit none
-      integer :: j,j1,j2,l,k,lr
+      integer :: j,j1,j2,l,k,lr,n
       real*8 :: hemfac
 
       if(.not.am_i_root()) return
@@ -4231,6 +4236,22 @@ c
           ajl(j,l,jl_rad_cool)=ajl(j,l,jl_srhr)+ajl(j,l,jl_trcr)
         enddo
       enddo
+
+      if(do_gwdrag) then
+        n = jl_mcdrgpm10
+        ajl(:,:,n) = ajl(:,:,jl_dumcdrgm10)+ajl(:,:,jl_dumcdrgp10)
+        n = jl_mcdrgpm20
+        ajl(:,:,n) = ajl(:,:,jl_dumcdrgm20)+ajl(:,:,jl_dumcdrgp20)
+        n = jl_mcdrgpm40
+        ajl(:,:,n) = ajl(:,:,jl_dumcdrgm40)+ajl(:,:,jl_dumcdrgp40)
+        n = jl_sumdrg
+        ajl(:,:,n) = sum( ajl(:,:,
+     &       (/
+     &       jl_dumtndrg, jl_dushrdrg,
+     &       jl_mcdrgpm10, jl_mcdrgpm20, jl_mcdrgpm40,
+     &       jl_dudfmdrg, jl_dudtsdif
+     &       /)              ), dim=3)
+      endif
 
 c
 c compute hemispheric/global means and vertical sums

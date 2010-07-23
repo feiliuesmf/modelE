@@ -8,7 +8,7 @@
       include 'netcdf.inc'
       integer :: fid                 ! input file ID
       character(len=160) :: progargs ! options string
-      real*4, dimension(:), allocatable :: lat_dg,vmean,plm,ple,pm
+      real*4, dimension(:), allocatable :: lat_dg,vmean,plm,ple,pgz,pm
       real*4, dimension(:,:), allocatable :: xjl,xjl_hemis,lats_dg
       character(len=30) :: units
       character(len=80) :: lname,title,outfile
@@ -17,7 +17,8 @@
       character(len=4) :: dash='----'
       character(len=20) :: latname
       real*4 :: prtfac,fglob,fnh,fsh
-      integer :: j,l,jm,lm,inc,lstr,prtpow,linect,nargs,k1,k2,lunit
+      integer :: j,l,jm,lm,kgz,km,inc,lstr,prtpow,linect,nargs,
+     &     k1,k2,lunit
       integer :: lats_per_zone,j1,j2,zone,nzones,lats_this_zone
       integer :: minj,maxj
       logical :: do_giss,all_lats
@@ -30,7 +31,7 @@ c
       character(len=80), parameter :: fmtlat =
      &     "('  P(MB)   MEAN G      NH      SH  ',32I4)"
       integer :: status,varid,varid_hemis,varid_vmean,nvars,dimids(2),
-     &     plm_dimid,ple_dimid, lat_dimid,lat2_dimid
+     &     plm_dimid,ple_dimid, lat_dimid,lat2_dimid,pgz_dimid
       character(len=132) :: xlabel
       character(len=100) :: fromto
 
@@ -93,7 +94,12 @@ c
       call get_var_real(fid,'ple',ple)
       status = nf_inq_dimid(fid,'plm',plm_dimid)
       status = nf_inq_dimid(fid,'ple',ple_dimid)
-
+      status = nf_inq_dimid(fid,'pgz',pgz_dimid)
+      if(status.eq.nf_noerr) then
+        call get_dimsize(fid,'pgz',kgz)
+        allocate(pgz(kgz))
+        call get_var_real(fid,'pgz',pgz)
+      endif
 c
 c get the number of quantities in the file
 c
@@ -122,6 +128,7 @@ c
       do varid_hemis=1,nvars
         status = nf_inq_varname(fid,varid_hemis,vname_hemis)
         lstr = len_trim(vname_hemis)
+        if(index(vname_hemis,'_hemis').eq.0) cycle
         if(vname_hemis(lstr-5:lstr).ne.'_hemis') cycle
         vname = vname_hemis(1:lstr-6)
         vname_vmean = trim(vname)//'_vmean'
@@ -139,6 +146,11 @@ c
         vmean = missing
         status = nf_get_var_real(fid,varid_vmean,vmean)
         status = nf_get_var_real(fid,varid,xjl)
+        if(any(xjl.eq.nf_fill_real)) then
+          write(6,*) 'undefined output: ',trim(vname)
+          write(6,*) 'run agcstat first'
+          cycle
+        endif
 
 c
 c form title string and rescale fields for ASCII output
@@ -169,19 +181,23 @@ c
             minj = 1; maxj = jm-1
           endif
         endif
+        km = lm
         if(dimids(2).eq.plm_dimid) then
           pm(:) = plm(:)
-        else
+        elseif(dimids(2).eq.ple_dimid) then
           pm(:) = ple(:)
+        elseif(dimids(2).eq.pgz_dimid) then
+          km = kgz
+          pm(1:kgz) = pgz(1:kgz)
         endif
 
 c
 c write binary output
 c
         if(do_giss) then
-          write(lunit) title,jm,lm,1,1,
+          write(lunit) title,jm,km,1,1,
      &         xjl,
-     &         lat_dg,pm,
+     &         lat_dg,pm(1:km),
      &         real(1.,kind=4),real(1.,kind=4),
      &         'LATITUDE        ',
      &         'PRESSURE (MB)   ',
@@ -196,11 +212,11 @@ c
         where(xjl.eq.missing) xjl=0.
         where(xjl_hemis.eq.missing) xjl_hemis=0.
         where(vmean.eq.missing) vmean=0.
-        linect = linect + lm + 7
+        linect = linect + km + 7
         if(linect.gt.60) then
           write(6,'(a)') '1'//xlabel
           write(6,'(a)') ' '//fromto
-          linect = lm+8
+          linect = km+8
         endif
         do zone=1,nzones
           j2 = min(maxj, jm -(zone-1)*lats_per_zone)
@@ -210,7 +226,7 @@ c
           call prtdashes(lats_this_zone)
           write(6,fmtlat) int(lat_dg(j2:j1:-inc))
           call prtdashes(lats_this_zone)
-          do l=lm,1,-1
+          do l=km,1,-1
             fsh  = xjl_hemis(1,l)
             fnh  = xjl_hemis(2,l)
             fglob= xjl_hemis(3,l)
@@ -231,6 +247,7 @@ c deallocate workspace
 c
       deallocate(lat_dg,lats_dg,vmean,xjl,xjl_hemis)
       deallocate(plm,ple,pm)
+      if(allocated(pgz)) deallocate(pgz)
 
 c
 c close binary output file

@@ -19,13 +19,28 @@
      &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
      &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
      &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
-     &    ,JK_totdtdt ,JK_eddvtpt
+     &    ,JK_totdtdt ,JK_eddvtpt, JK_rhoe
      &    ,JK_psi
+      INTEGER :: jk_dudt_econv,
+     *  jk_dudt_epdiv,jk_stdev_dp,
+     *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
+     *  jk_vt_se_eddy,jk_tot_vt_se,jk_psi_tem,jk_epflx_v,
+     *  jk_nt_eqgpv,jk_dyn_conv_eddy_geop,jk_nt_sheat_e,
+     *  jk_dyn_conv_dse,jk_seke,
+     *  jk_nt_dse_se,jk_nt_dse_e,
+     *  jk_nt_see,jk_tot_nt_se,
+     *  jk_nt_am_stand_eddy,
+     *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
+     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,jk_vstar
       INTEGER ::
      &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,
      &     jl_epflxv,jl_epflxn,jl_40,jl_47,jl_zmfntmom,jl_totntmom,
-     &     jl_dpb
+     &     jl_nt_lh_e,jl_vt_lh_e,jl_dpb,jl_dpsig,jl_dpsigv,jl_epflx_div
 
+      integer :: ! outputs from STRAT_DIAG
+     &     jk_dudt_sum1,jk_dudt_meanadv,jk_dudt_eddycnv,
+     &     jk_dudt_trnsadv,jk_dudt_epflxdiv,
+     &     jk_dudt_fderr1,jk_dudt_fderr2
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER ::
@@ -34,6 +49,7 @@
      &     IJK_BAREKEGEN
 
       end module gcdiag
+
 
       subroutine gc_defs
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,sha
@@ -81,6 +97,39 @@ c
       units_gc(k) = 'mb'
       scale_gc(k) = byim
       jgrid_gc(k) = 2
+c
+      k=k+1
+      jl_dpb = k ! only used as a denominator
+      sname_gc(k) = 'jl_dpb'
+c      lname_gc(k) = 'MASS AT SECONDARY LATITUDES' ! in DIAGB
+c      units_gc(k) = 'mb'
+      scale_gc(k) = 1.
+      jgrid_gc(k) = 2
+c
+      k=k+1
+      jl_dpsig = k ! only used as a denominator
+      sname_gc(k) = 'dp_dpsig'
+c      lname_gc(k) = 'PRESSURE DIFFERENCES (SIG,PT)'
+c      units_gc(k) = 'mb'
+      scale_gc(k) = 1
+      jgrid_gc(k) = 1
+c
+      k=k+1
+      jl_dpsigv = k ! only used as a denominator
+      sname_gc(k) = 'dp_dpsigv'
+c      lname_gc(k) = 'PRESSURE DIFFERENCES (SIG,UV)'
+c      units_gc(k) = 'mb'
+      scale_gc(k) = 1
+      jgrid_gc(k) = 2
+c
+      k=k+1
+      jk_rhoe = k ! only used as a denominator
+      sname_gc(k) = 'rhoe'
+c      lname_gc(k) = 'LAYER EDGE DENSITY'
+c      units_gc(k) = 'kg/m3'
+      scale_gc(k) = 1
+      jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_nptsavg1 = k
@@ -364,6 +413,7 @@ c
       scale_gc(k) = -100.*BYGRAV*BYIM
       jgrid_gc(k) = 2
       lgrid_gc(k) = edg_cp
+      denom_gc(k) = jk_rhoe
 c
       k=k+1
       jk_totvtam = k
@@ -374,6 +424,7 @@ c
       scale_gc(k) = -100.*BYGRAV*BYIM
       jgrid_gc(k) = 2
       lgrid_gc(k) = edg_cp
+      denom_gc(k) = jk_rhoe
 c
       k=k+1
       jk_sheth = k
@@ -461,6 +512,7 @@ c
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
       jgrid_gc(k) = 1
+      scale_gc(k) = SDAY
 c
       k=k+1
       jk_eddvtpt = k
@@ -478,6 +530,7 @@ c
       scale_gc(k) = .5*RGAS
       ia_gc(k) = ia_d5s
       jgrid_gc(k) = 1
+      denom_gc(k) = jl_dpsig
 c
       k=k+1
       jl_epflxv = k
@@ -488,6 +541,7 @@ c
       scale_gc(k) = .5*100.*BYGRAV*BYIM
       jgrid_gc(k) = 1
       lgrid_gc(k) = edg_cp
+      denom_gc(k) = jk_rhoe ! should be jl_rhoe instead
 c
       k=k+1
       jl_epflxn = k
@@ -496,6 +550,7 @@ c
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = 1.
       jgrid_gc(k) = 2
+      denom_gc(k) = jl_dpsigv ! why not jl_dpb
 c
       k=k+1
       jl_zmfntmom = k
@@ -518,6 +573,7 @@ c
       scale_gc(k) = 100.*bygrav*LHE*XWON*fim/DTsrc
       ia_gc(k) = ia_src
       jgrid_gc(k) = 2
+      denom_gc(k) = jl_dpb
 c
       k=k+1
       jl_totntlh = k
@@ -528,6 +584,7 @@ c
       scale_gc(k) = 100.*bygrav*LHE*XWON*fim/DTsrc
       ia_gc(k) = ia_src
       jgrid_gc(k) = 2
+      denom_gc(k) = jl_dpb
 c
       k=k+1
       jl_zmfvtlh = k     ! used in DIAGJK but not printed
@@ -548,14 +605,6 @@ c
       jgrid_gc(k) = 1
 c
       k=k+1
-      jl_dpb = k
-      sname_gc(k) = 'jl_dpb'
-      lname_gc(k) = 'MASS AT SECONDARY LATITUDES' ! in DIAGB
-      units_gc(k) = 'mb'
-      scale_gc(k) = 1. ! not printed
-      jgrid_gc(k) = 2
-c
-      k=k+1
       jl_47 = k
       sname_gc(k) = 'AJL47' !V-V*  =D((V-VI)*(T-TI)/DTHDP)/DP
       lname_gc(k) = 'unknown'
@@ -573,7 +622,217 @@ c
       pow_gc(k) = 9
       jgrid_gc(k) = 2
       lgrid_gc(k) = edg_cp
+      k = k + 1
+      jl_epflx_div = k                        ; jgrid_gc(k) = 1
+      sname_gc(k) = 'epflx_div'
+      lname_gc(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
+      units_gc(k) = 'm/s^2'
+      scale_gc(k) = 1.
+      pow_gc(k) = -6
+      denom_gc(k) = jl_dpsig
+      k = k + 1
+      jl_nt_lh_e = k
+      sname_gc(k) = 'nt_lh_eddy'        ; jgrid_gc(k) = 2
+      lname_gc(k) = 'N. TRANSPORT OF LATENT HEAT BY EDDIES (QDYN)'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = 100.*bygrav*xwon*lhe*fim/DTsrc
+      pow_gc(k) = 10
+      ia_gc(k) = ia_src
+      denom_gc(k) = jl_dpb
+      k = k + 1
+      jl_vt_lh_e = k
+      sname_gc(k) = 'vt_lh_eddy1'        ; jgrid_gc(k) = 1
+      lname_gc(k) = 'V. TRANSPORT OF LATENT HEAT BY EDDIES'
+      units_gc(k) = 'W/m^2'
+      scale_gc(k) = 100.*bygrav*xwon*lhe*byim/DTsrc
+      pow_gc(k) = 0
+      ia_gc(k) = ia_src
+c
+      k = k + 1
+      jk_dudt_econv = k                       ; jgrid_gc(k) = jgrid_u
+      sname_gc(k) = 'dudt_eddy_conv'
+      lname_gc(k) = 'DU/DT BY EDDY CONVERGENCE (CP)'
+      units_gc(k) = '10**-6 m/s^2'
+      scale_gc(k)= 1.D6
+      denom_gc(k) = jk_dpa
+      k = k + 1
+      jk_dudt_epdiv = k                       ; jgrid_gc(k) = jgrid_u
+      sname_gc(k) = 'dudt_epdiv'
+      lname_gc(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE (CP)'
+      units_gc(k) = 'm/s^2'
+      pow_gc(k) = -6
+      scale_gc(k) = 1.
+      k = k + 1
+      jk_dtempdt_econv = k                    ; jgrid_gc(k) = 1
+      sname_gc(k) = 'dtempdt_eddy_conv'
+      lname_gc(k) = 'DTEMP/DT BY EDDY CONVERGENCE (CP)'
+      units_gc(k) = 'K/DAY'
+      scale_gc(k) = SDAY
+      pow_gc(k) = -1
+      denom_gc(k) = jk_dpa
+      k = k + 1
+      jk_vt_se_eddy = k                       ; jgrid_gc(k) = 1
+      sname_gc(k) = 'vt_se_eddy'
+      lname_gc(k) ='VERTICAL TRANSPORT OF STATIC ENERGY BY EDDIES (CP)'
+      units_gc(k) = 'W/m^2'
+      scale_gc(k) = -100.*BYGRAV*BYIM
+      ia_gc(k) = ia_dga
+      k = k + 1
+      jk_tot_vt_se = k                        ; jgrid_gc(k) = 1
+      sname_gc(k) = 'tot_vt_se'
+      lname_gc(k) =
+     &    'TOTAL LARGE SCALE VERT. TRANS. OF STATIC ENRG (CP)'
+      units_gc(k) = 'W/m^2'
+      scale_gc(k) = -100.*BYGRAV*BYIM
+      pow_gc(k) = 1
+      ia_gc(k) = ia_dga
+      k = k + 1
+      jk_psi_tem = k                          ; jgrid_gc(k) = 2
+      sname_gc(k) = 'psi_tem'
+      lname_gc(k) = 'TRANSFORMED STREAM FUNCTION (CP)'
+      units_gc(k) = 'kg/s'
+      scale_gc(k) = 100.*BYGRAV*XWON
+      ia_gc(k) = ia_dga
+      pow_gc(k) = 9
+      lgrid_gc(k) = edg_cp
+c      k = k + 1
+c      jk_epflx_v = k                          ; jgrid_gc(k) = 1
+c      sname_gc(k) = 'epflx_vert_cp'
+c      lname_gc(k) = 'VERTICAL ELIASSEN-PALM FLUX (CP)'
+c      units_gc(k) = 'm^2/s^2'
+c      scale_gc(k) = -100.*BYGRAV*BYIM
+c      ia_gc(k) = ia_dga
+c      pow_gc(k) = -2
+      k = k + 1
+      jk_nt_eqgpv = k                         ; jgrid_gc(k) = 1
+      sname_gc(k) = 'nt_eddy_qgpv'
+      lname_gc(k) = 'NORTH. TRANS. OF EDDY Q-G POT. VORTICITY'
+      units_gc(k) = '10**-6 m/s^2'
+      scale_gc(k) = 1.D6
+      denom_gc(k) = jk_dpa
+      k = k + 1
+      jk_dyn_conv_eddy_geop = k               ; jgrid_gc(k) = 1
+      sname_gc(k) = 'dyn_conv_eddy_geop'
+      lname_gc(k) = 'DYNAMIC CONVERGENCE OF EDDY GEOPOTENTIAL'
+      units_gc(k) = 'W/(m^2*mb)'
+      scale_gc(k) = 1d2*BYGRAV
+      pow_gc(k) = -4
+      k = k + 1
+      jk_dyn_conv_dse = k                     ; jgrid_gc(k) = 1
+      sname_gc(k) = 'dyn_conv_dse'
+      lname_gc(k) = 'DYNAMIC CONVERGENCE OF DRY STATIC ENERGY'
+      units_gc(k) = 'W/(m^2*mb)'
+      scale_gc(k) = 1d2*BYGRAV
+      pow_gc(k) = -2
+      k = k + 1
+      jk_nt_dse_e = k                         ; jgrid_gc(k) = 2
+      sname_gc(k) = 'nt_dse_eddy'
+      lname_gc(k) = 'NORTH. TRANS. OF DRY STATIC ENERGY BY EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 11
+      k = k + 1
+      jk_nt_see = k                           ; jgrid_gc(k) = 2
+      sname_gc(k) = 'nt_se_eddy'
+      lname_gc(k) = 'NORTH.TRANSPORT OF STATIC ENERGY BY EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 11
+      k = k + 1
+      jk_tot_nt_se = k                        ; jgrid_gc(k) = 2
+      sname_gc(k) = 'tot_nt_se'
+      lname_gc(k) = 'TOTAL NORTHWARD TRANSPORT OF STATIC ENERGY'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 12
+      k = k + 1
+      jk_we_flx_nor = k                       ; jgrid_gc(k) = 2
+      sname_gc(k) = 'we_flx_nor'
+      lname_gc(k) = 'NORTHWARD WAVE ENERGY FLUX'
+c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
+      units_gc(k) = 'm^2/s^2'
+      scale_gc(k) = .25
+      k = k + 1
+      jk_we_flx_div = k                       ; jgrid_gc(k) = 1
+      sname_gc(k) = 'we_flx_div'
+      lname_gc(k) = 'DIVERGENCE OF THE WAVE ENERGY FLUX'
+      units_gc(k) = 'm/s^2'
+      scale_gc(k) = 1
+      pow_gc(k) = -6
+      k = k + 1
+      jk_del_qgpv = k                         ; jgrid_gc(k) = 2
+      sname_gc(k) = 'del_qgpv'
+      lname_gc(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
+      units_gc(k) = '1/(m*s)'
+      scale_gc(k) = 1.
+      pow_gc(k) = -12
+      k = k + 1
+      jk_wstar = k                            ; jgrid_gc(k) = 1
+      sname_gc(k) = 'wstar'
+      lname_gc(k) = 'W*    RESIDUAL VERTICAL VELOCITY'
+      units_gc(k) = 'mb/s'
+      pow_gc(k) = -5
+      scale_gc(k) = 1
+      lgrid_gc(k) = edg_cp
+      k = k + 1
+      jk_vstar = k                            ; jgrid_gc(k) = 2
+      sname_gc(k) = 'vstar'
+      lname_gc(k) = 'V* = V - D(V''TH''/DTHDP)/DP'
+      units_gc(k) = 'm/s'
+      pow_gc(k) = -2
+      denom_gc(k) = jk_dpb
 
+      if(kep.gt.0) then ! outputs from STRAT_DIAG
+      k = k + 1
+      jk_dudt_sum1 = k
+      sname_gc(k) = 'dudt_sum1'
+      lname_gc(k) = 'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_meanadv = k
+      sname_gc(k) = 'dudt_meanadv'
+      lname_gc(k) = 'DU/DT BY MEAN ADVECTION'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_eddycnv = k
+      sname_gc(k) = 'dudt_eddycnv'
+      lname_gc(k) = 'DU/DT BY EDDY CONVERGENCE'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_trnsadv = k
+      sname_gc(k) = 'dudt_trnsadv'
+      lname_gc(k) = 'DU/DT BY TRANSFORMED ADVECTION'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_epflxdiv = k
+      sname_gc(k) = 'dudt_epflxdiv'
+      lname_gc(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_fderr1 = k
+      sname_gc(k) = 'dudt_fderr1'
+      lname_gc(k) = 'DU/DT BY F.D. ERROR TERM 1'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_fderr2 = k
+      sname_gc(k) = 'dudt_fderr2'
+      lname_gc(k) = 'DU/DT BY F.D. ERROR TERM 2'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      endif ! kep.gt.0
 
       if(k.gt.kagc) then
         if(am_i_root()) then
@@ -581,6 +840,110 @@ c
         endif
         call stop_model( 'kagc too small', 255 )
       end if
+
+c
+c more derived JK-arrays
+c
+      k = KAGC
+
+      k = k + 1
+      jk_seke = k                             ; jgrid_gc(k) = jgrid_ke
+      sname_gc(k) = 'stand_eddy_ke'
+      lname_gc(k) = 'STANDING EDDY KINETIC ENERGY'
+      units_gc(k) = 'm^2/s^2'
+      scale_gc(k) = .5
+      k = k + 1
+      jk_nt_dse_se = k                        ; jgrid_gc(k) = 2
+      sname_gc(k) = 'nt_dse_stand_eddy'
+      lname_gc(k) = 'NOR. TRANS. OF DRY STAT. ENERGY BY STAND. EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 11
+      k = k + 1
+      jk_nt_lh_se = k
+      sname_gc(k) = 'nt_lh_stand_eddy'        ; jgrid_gc(k) = 2
+      lname_gc(k) = 'N. TRANSPORT OF LATENT HEAT BY STAND. EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = lhe*XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 9
+      k = k + 1
+      jk_nt_am_stand_eddy = k                 ; jgrid_gc(k) = 2
+      sname_gc(k) = 'nt_u_stand_eddy'
+      lname_gc(k) = 'NORTH. TRANS. ZONAL MOM. BY STAND. EDDIES'
+      units_gc(k) = 'm^2/s^2'
+      scale_gc(k) = 1.
+      k = k + 1
+      jk_refr_ind_wave1 = k  !!!!! Refraction Inicies must be in order
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave1'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave2'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave3'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave6'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave9'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jl_phi_amp_wave1 = k                    ; jgrid_gc(k) = 1
+      sname_gc(k) = 'phi_amp_wave1'
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave2'           ; jgrid_gc(k) = 1
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave3'           ; jgrid_gc(k) = 1
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave4'           ; jgrid_gc(k) = 1
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      jl_phi_phase_wave1 = k                  ; jgrid_gc(k) = 1
+      sname_gc(k) = 'phi_phase_wave1'
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave2'         ; jgrid_gc(k) = 1
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave3'         ; jgrid_gc(k) = 1
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave4'         ; jgrid_gc(k) = 1
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      jk_stdev_dp = k                         ; jgrid_gc(k) = 2
+      sname_gc(k) = 'stdev_dp'
+      lname_gc(k) = 'STANDARD DEVIATION OF PRESSURE DIFFERENCES'
+      units_gc(k) = 'MB'
+      scale_gc(k) = 1.
+c Check the count
+      if (k .gt. KAGCx) then
+        write (6,*) 'Increase KAGCx=',KAGCx,' to at least ',k
+        call stop_model('JK_TITLES: KAGCx too small',255)
+      end if
+
 
 c
       if (AM_I_ROOT()) then
@@ -606,20 +969,25 @@ c
      &     coordvalues=lat_gc)
       call add_coord(cdl_gc,'lat2',jmlat,units='degrees_north',
      &     coordvalues=lat_gc2)
+      call add_coord(cdl_gc,'pgz',kgz_max,units='mb',
+     &     coordvalues=pmb(1:kgz_max))
       call add_dim(cdl_gc,'shnhgm',3)
       call add_dim(cdl_gc,'lat_plus3',jmlat+3)
       call add_dim(cdl_gc,'lat2_plus3',jmlat+3)
       cdl_dum = cdl_gc
       call merge_cdl(cdl_dum,cdl_heights,cdl_gc)
 
-      do k=1,kagc
+      do k=1,kagcx
         if(trim(units_gc(k)).eq.'unused') cycle
         if(jgrid_gc(k).eq.1) then
           ystr='lat'
         else
           ystr='lat2'
         endif
-        if(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
+        if(sname_gc(k)(1:7).eq.'phi_amp' .or.
+     &     sname_gc(k)(1:9).eq.'phi_phase') then
+          zstr='(pgz,'
+        elseif(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
           zstr='(plm,'
         else
           zstr='(ple,'
@@ -630,7 +998,7 @@ c
      &       long_name=trim(lname_gc(k))
      &       )
         if(pow_gc(k).ne.0) then
-          write(powstr,'(i2)') pow_gc(k)
+          write(powstr,'(i3)') pow_gc(k)
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
@@ -2403,18 +2771,37 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       END SUBROUTINE DIAG7A
 
       subroutine diaggc_prep
-c For the latlon model, most derived GC outputs are still
-c calculated at print time.
-      use model_com, only : jm,lm
+c Calculate derived GC outputs
+      use constant, only : kapa,lhe,sha,radius,omega,rgas,tf,teeny
+      use model_com, only : im,jm,lm,ls1,byim,psfmpt,idacc,kep,
+     &     dtsrc,dt,ndaa,dsig
       use domain_decomp_atm, only : am_i_root
-      use diag_com, only : kagc,agc,jgrid_gc,hemis_gc,vmean_gc
+      use diag_com, only : kdiag,kagc,jgrid_gc,hemis_gc,vmean_gc,
+     &     agc_in=>agc, agc=>agc_out, ia_dga,
+     &     plm, pme=>ple_dn, ple
       use gcdiag
-      use geom, only : dxyp,dxyv,dxv
+      use geom, only : dxyp,dxyv,dxv,bydxyp,cosv,cosp,imaxj,fcor
       implicit none
-      integer :: j,j1,j2,k,l,jg
+      integer :: j,j1,j2,k,l,jg,ind,n,ldn,lup
       real*8, dimension(jm,2) :: wtj
+      integer, dimension(20) :: inds
+      real*8, dimension(jm) :: bydapo,dxcosv
+      real*8, dimension(lm) :: pkm
+      real*8, dimension(jm,lm) :: temp,vx,sheth,shethe
+      real*8 :: wtup,tedge
+      REAL*8, DIMENSION(JM,LM) :: ! outputs of EPFLXP
+     &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
 
       if(.not.am_i_root()) return
+
+      bydapo(:)=bydxyp(:)
+      bydapo(1)=bydapo(1)*byim
+      bydapo(jm)=bydapo(jm)*byim
+      dxcosv(:) = dxv(:)*cosv(:)
+
+      pkm(1:lm) = plm(1:lm)**kapa
+
+      agc(:,:,:) = agc_in(:,:,:)
 
 c stream function
       do j=1,jm
@@ -2423,6 +2810,274 @@ c stream function
           agc(j,l,jk_psi)=agc(j,l+1,jk_psi)-agc(j,l+1,jk_v)*dxv(j)
         enddo
       enddo
+
+c
+c conversions of northward transports from per unit length to
+c integrals around each latitude circle
+c
+      inds(1:6) = (/
+     &     jk_eddntsh, jk_eddntgeo, jk_totntdse,
+     &     jk_eddntlh, jk_totntlh,  jk_totntke /)
+      do k=1,6
+        ind = inds(k)
+        do j=2,jm
+          agc(j,:,ind) = agc(j,:,ind)*dxv(j)
+        enddo
+      enddo
+
+c
+c conversions to per unit area
+c
+      inds(1:2) = (/ JL_totvtlh, JL_zmfvtlh /)
+      do k=1,2
+        ind = inds(k)
+        do l=1,lm
+          agc(:,l,ind) = agc(:,l,ind)*bydapo(:)
+        enddo
+      enddo
+
+c
+c multiplications by p**kapa
+c
+      inds(1:2) = (/ jk_dtdtmadv, jk_dtdttem /)
+      do k=1,2
+        ind = inds(k)
+        do l=1,lm
+          agc(:,l,ind) = agc(:,l,ind)*pkm(l)
+        enddo
+      enddo
+
+c
+c Denominators which are zonally integrated p(:,:)-ptop (or psf-ptop)
+c
+      do j=1,jm
+        n = jl_dpsig
+        agc(j,1:ls1-1,n) = sum(agc(j,1:ls1-1,jk_dpa))/imaxj(j)
+        agc(j,ls1:lm,n) = idacc(ia_dga)*psfmpt
+        n = jl_dpsigv
+        agc(j,1:ls1-1,n) = sum(agc(j,1:ls1-1,jl_dpb))
+        agc(j,ls1:lm,n) = idacc(ia_dga)*im*psfmpt
+      enddo
+
+C****
+C**** Calculate a density field on tracer grid, edge pressure
+C****     (not quite ok if K-1 is underground?)
+c NOTE: THIS IS AT LAYER BOTTOM, NOT LAYER TOP.
+      temp(:,:) = tf + agc(:,:,jk_temp)/(agc(:,:,jk_dpa)+teeny)
+      do l=2,lm
+        do j=1,jm
+          wtup = (plm(l-1)-pme(l))/(plm(l-1)-plm(l))
+          tedge = (1.-wtup)*temp(j,l-1) + wtup*temp(j,l)
+          agc(j,l,jk_rhoe) = idacc(ia_dga)*100.*pme(l)/(rgas*tedge)
+        enddo
+      enddo
+      l = 1
+      agc(:,l,jk_rhoe) = idacc(ia_dga)*100.*pme(l)/(rgas*temp(:,l))
+
+c
+c Transformed Eulerian Mean diagnostics
+c
+C****
+C**** SHETH = V'TH'/DTH/DP
+C**** SHETHE = 4*SHETH AT INTERFACES x DXV
+C**** VX = V-V* IS D/DP(SHETH)
+C****
+      sheth = agc(:,:,jk_sheth)/(agc(:,:,jk_dpb)+teeny)
+
+      DO J=2,JM
+        SHETHE(J,LM)=SHETH(J,LM)
+        DO L=1,LM-1
+          WTUP=AGC(J,L,JK_DPB)/(AGC(J,L+1,JK_DPB)+AGC(J,L,JK_DPB)+teeny)
+          SHETHE(J,L)=(SHETH(J,L)*(1.-WTUP)+SHETH(J,L+1)*WTUP)
+        ENDDO
+        SHETHE(J,:) = SHETHE(J,:)*DXV(J)*IM*IDACC(ia_dga)
+      ENDDO
+      n = jk_psi_tem
+      agc(:,:,n) = agc(:,:,jk_psi) + shethe
+
+      DO J=2,JM
+        LDN=1
+        DO L=1,LM
+          LUP=L+1
+          IF (L.EQ.LM) LUP=LM
+          VX(J,L)=0.
+          IF (AGC(J,L,JK_DPB).gt.0.) then
+            IF (AGC(J,LDN,JK_DPB).EQ.0.) LDN=LDN+1
+            VX(J,L)=AGC(J,L,JK_DPB)*(
+     &           AGC(J,LUP,JK_SHETH)/AGC(J,LUP,JK_DPB)-
+     &           AGC(J,LDN,JK_SHETH)/AGC(J,LDN,JK_DPB))/
+     &           (PLE(LUP)-PLE(LDN) +.5*
+     &           (AGC(J,LUP,JK_DPB)/AGC(J,LUP,JK_NPTSAVG)-
+     &            AGC(J,LDN,JK_DPB)/AGC(J,LDN,JK_NPTSAVG)))
+          endif
+          LDN=L
+        ENDDO
+      ENDDO
+      n = jk_Vstar
+      agc(:,:,n) = agc(:,:,jk_v) - vx
+
+      n = jk_Wstar
+      agc(:,:,n) = 0.
+      DO L=2,LM-1
+        DO J=2,JM-1
+          AGC(J,L-1,N)=-(DXV(jm/2)/(IM*DXYV(J)))*
+     &         (AGC(J+1,L,JK_PSI_TEM)/DXV(J+1)
+     &         -AGC(J  ,L,JK_PSI_TEM)/DXV(J  ))
+        ENDDO
+      ENDDO
+
+c
+c NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
+c
+      n = jk_nt_eqgpv
+      agc(:,:,n) = 0.
+      DO L=1,LM
+      DO J=2,JM-1
+        AGC(J,L,N) = AGC(J,L,JK_DPA)*BYDXYP(J)*(
+     &   (AGC(J,  L,JK_EDDNTMOM)*DXCOSV(J  )/(AGC(J,  L,JK_DPB)+teeny)-
+     &    AGC(J+1,L,JK_EDDNTMOM)*DXCOSV(J+1)/(AGC(J+1,L,JK_DPB)+teeny)
+     &       )/COSP(J)
+     &      + FCOR(J)*(VX(J,L)+VX(J+1,L))/
+     &     (AGC(J,L,JK_DPB)+AGC(J+1,L,JK_DPB)+teeny) )
+      ENDDO
+      ENDDO
+
+c
+c some eddy northward transports
+c
+      n = jk_nt_dse_e
+      agc(:,:,n) = sha*agc(:,:,jk_eddntsh)+agc(:,:,jk_eddntgeo)
+      n = jk_nt_see
+      agc(:,:,n) = agc(:,:,jk_nt_dse_e)+lhe*agc(:,:,jk_eddntlh)
+      n = jk_tot_nt_se
+      agc(:,:,n) = agc(:,:,jk_totntdse)+lhe*agc(:,:,jk_totntlh)
+      n = jl_nt_lh_e
+      agc(:,:,n) = agc(:,:,jl_totntlh)-agc(:,:,jl_zmfntlh)
+      n = jk_totntmom
+      do l=1,lm
+        do j=2,jm
+          agc(j,l,n) = agc(j,l,n) + radius*omega*cosv(j)*agc(j,l,jk_v)
+        enddo
+      enddo
+
+c
+c some eddy vertical transports
+c
+      n = jl_vt_lh_e
+      agc(:,:,n)=agc(:,:,Jl_totvtlh)-agc(:,:,Jl_zmfvtlh)
+      n = jk_vt_se_eddy
+      agc(:,:,n) = agc(:,:,jk_eddvtdse)+lhe*agc(:,:,jk_eddvtlh)
+      n = jk_tot_vt_se
+      agc(:,:,n) = agc(:,:,jk_totvtdse)+lhe*agc(:,:,jk_totvtlh)
+
+c
+c tendency terms in the zonal momentum equation
+c
+      IF (KEP.gt.0) THEN  ! detailed breakdown from STRAT_DIAG package
+        CALL EPFLXP(.false.,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
+        agc(:,:,jk_dudt_sum1)     = duds*idacc(ia_dga)
+        agc(:,:,jk_dudt_meanadv)  = dmf *idacc(ia_dga)
+        agc(:,:,jk_dudt_eddycnv)  = def *idacc(ia_dga)
+        agc(:,:,jk_dudt_trnsadv)  = dmfr*idacc(ia_dga)
+        agc(:,:,jk_dudt_epflxdiv) = defr*idacc(ia_dga)
+        agc(:,:,jk_dudt_fderr1)   = er1 *idacc(ia_dga)
+        agc(:,:,jk_dudt_fderr2)   = er2 *idacc(ia_dga)
+      ELSE                ! tendencies from approximate eddy fluxes
+        agc(:,:,jk_dudt_econv) = 0.
+        agc(:,:,jk_dudt_epdiv) = 0.
+        do l=2,lm-1
+        do j=2,jm-1
+          if(agc(j,l,jk_dpa).gt.0.) then
+            n = jk_dudt_econv
+            agc(j,l,n) =
+     &           (AGC(J  ,L,JK_EDDNTMOM)*DXV(J)
+     &           -AGC(J+1,L,JK_EDDNTMOM)*DXV(J+1))/DXYP(J)
+     &           +.5*(  ! note using DPA as denom, not avg of DPB
+     &           AGC(J  ,L,JK_VTAMEDDY)-AGC(J  ,l-1,JK_VTAMEDDY)
+     &          +AGC(J+1,L,JK_VTAMEDDY)-AGC(J+1,l-1,JK_VTAMEDDY))
+          endif
+          n = jk_dudt_epdiv
+          agc(j,l,n) = 
+     &         ( AGC(J+1,L,JK_EPFLXNCP)*DXCOSV(J+1)-
+     &           AGC(J  ,L,JK_EPFLXNCP)*DXCOSV(J) )/(DXYP(J)*COSP(J))
+     &         +.5*(
+     &           AGC(J  ,l-1,JK_EPFLXVCP)-AGC(J  ,L,JK_EPFLXVCP)
+     &          +AGC(J+1,l-1,JK_EPFLXVCP)-AGC(J+1,L,JK_EPFLXVCP))/
+     &         (PLE(l-1)-PLE(L))
+        enddo
+        enddo
+      ENDIF
+
+c
+c rate of change of temperature and zonal wind
+c
+      if(IDACC(ia_dga).GT.1) then
+        do l=1,lm
+          n = JK_TOTDTDT
+          agc(:,l,n) = agc(:,l,n)*pkm(l)*idacc(ia_dga)/
+     &         ((IDACC(ia_dga)-1)*(DTsrc*NDAA+DT+DT))
+          n = JK_TOTDUDT
+          agc(:,l,n) = agc(:,l,n)*idacc(ia_dga)/
+     &         ((IDACC(ia_dga)-1)*(DTsrc*NDAA+DT+DT))
+        enddo
+      endif
+
+c
+c flux divergences/convergences
+c
+      DO L=1,LM
+C     agc(1,l,jk_dyn_conv_dse)=-AGC(2,l,JK_TOTNTDSE)
+        agc(1,l,jk_dyn_conv_dse)=0.
+        agc(jm,l,jk_dyn_conv_dse)=AGC(JM,l,JK_TOTNTDSE)*BYDAPO(JM)
+C     agc(1,l,jk_dyn_conv_eddy_geop)=-(AGC(2,l,JK_EDDNTGEO))
+        agc(1,l,jk_dyn_conv_eddy_geop)=0.
+        agc(jm,l,jk_dyn_conv_eddy_geop)=AGC(JM,l,JK_EDDNTGEO)*BYDAPO(JM)
+        DO J=2,JM-1
+          agc(j,l,jk_dyn_conv_dse)=
+     &         (AGC(J,l,JK_TOTNTDSE)-AGC(J+1,l,JK_TOTNTDSE))*BYDXYP(J)
+          agc(j,l,jk_dyn_conv_eddy_geop)=
+     &         (AGC(J,l,JK_EDDNTGEO)-AGC(J+1,l,JK_EDDNTGEO))*BYDXYP(J)
+        enddo
+      enddo
+      DO L=1,LM-1
+      DO J=1,JM
+        agc(j,l,jk_dyn_conv_dse)=
+     &       agc(j,l,jk_dyn_conv_dse)    +AGC(J,l,JK_TOTVTDSE)
+        agc(j,l+1,jk_dyn_conv_dse)=
+     &       agc(j,l+1,jk_dyn_conv_dse)  -AGC(J,l,JK_TOTVTDSE)
+        agc(j,l,jk_dyn_conv_eddy_geop)=
+     &       agc(j,l,jk_dyn_conv_eddy_geop)  +AGC(J,l,JK_VTGEOEDDY)
+        agc(j,l+1,jk_dyn_conv_eddy_geop)=
+     &       agc(j,l+1,jk_dyn_conv_eddy_geop)-AGC(J,l,JK_VTGEOEDDY)
+      ENDDO
+      ENDDO
+
+      n = jk_dtempdt_econv
+      agc(:,:,n) = 0.
+      do l=2,lm-1
+      do j=2,jm-1
+        if (AGC(J,L,JK_DPA).le.0.) cycle
+        AGC(J,L,N)=
+     &       (AGC(J,L,JK_EDDNTSH)-AGC(J+1,L,JK_EDDNTSH))/DXYP(J)
+     &      +(AGC(J,L,JK_EDDVTPT)-AGC(J,L-1,JK_EDDVTPT))*PKM(L)*IM
+      enddo
+      enddo
+
+      n = jl_epflx_div
+      agc(:,:,n) = 0.
+      DO J=2,JM-1
+        DO L=1,LM
+          AGC(J,L,N) =
+     &          agc(j,l,jl_dpsig)*bydapo(j)*
+     &         (AGC(J+1,L,JL_EPFLXN)*DXV(J+1)/AGC(J+1,L,JL_DPSIGV)
+     &         -AGC(J  ,L,JL_EPFLXN)*DXV(J  )/AGC(J  ,L,JL_DPSIGV))
+        ENDDO
+        agc(j, 1,n) = agc(j,1,n) +.5*byim*agc(j,1,jl_epflxv)/dsig(1)
+        do l=2,lm
+          agc(j,l,n) = agc(j,l,n) +.5*byim*
+     &         (agc(j,l,jl_epflxv)-agc(j,l-1,jl_epflxv))/dsig(l)
+        enddo
+      ENDDO
 
 c
 c compute hemispheric/global means and vertical sums

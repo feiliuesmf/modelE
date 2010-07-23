@@ -549,7 +549,7 @@ CW         WRITE (36,'('' TAU='',F12.0,''  IDUM(1)='',I6)') TAU,IDUM(1)
       RETURN
       END SUBROUTINE EPFLUX
 
-      SUBROUTINE EPFLXP
+      SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
 !@auth B. Suozzo/J. Lerner
 !@ver  1.0
@@ -579,9 +579,13 @@ C****
      &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,sname_strlen,units_strlen,lname_strlen
+     &     ,lname=>lname_gc,sname=>sname_gc,units=>units_gc,pow=>pow_gc
       USE GCDIAG
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
+      integer :: do_print
+      REAL*8, DIMENSION(JM,LM) :: ! output arrays
+     &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
 C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
 c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::
 c     *                                                             AEP
@@ -589,21 +593,21 @@ c     *                                                             AEP
 c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
 C**** diagnostic information for print out
 C**** this should be in an init_ep routine or something
-      integer, parameter :: njl_out=7
-      character(len=lname_strlen) :: lname(njl_out) = (/
-     *     'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2',
-     *     'DU/DT BY MEAN ADVECTION                     ',
-     *     'DU/DT BY EDDY CONVERGENCE                   ',
-     *     'DU/DT BY TRANSFORMED ADVECTION              ',
-     *     'DU/DT BY ELIASSEN-PALM DIVERGENCE           ',
-     *     'DU/DT BY F.D. ERROR TERM 1                  ',
-     *     'DU/DT BY F.D. ERROR TERM 2                  '/)
-      character(len=sname_strlen) :: sname(njl_out) = (/
-     *     'dudt_sum1    ','dudt_meanadv ','dudt_eddycnv '
-     *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
-     *     ,'dudt_fderr2  '/)
-      character(len=units_strlen) :: units(njl_out) = 'm/s^2'
-      integer, dimension(njl_out) :: pow = (/ -6,-6,-6,-6,-6,-6,-6 /)
+c      integer, parameter :: njl_out=7
+c      character(len=lname_strlen) :: lname(njl_out) = (/
+c     *     'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2',
+c     *     'DU/DT BY MEAN ADVECTION                     ',
+c     *     'DU/DT BY EDDY CONVERGENCE                   ',
+c     *     'DU/DT BY TRANSFORMED ADVECTION              ',
+c     *     'DU/DT BY ELIASSEN-PALM DIVERGENCE           ',
+c     *     'DU/DT BY F.D. ERROR TERM 1                  ',
+c     *     'DU/DT BY F.D. ERROR TERM 2                  '/)
+c      character(len=sname_strlen) :: sname(njl_out) = (/
+c     *     'dudt_sum1    ','dudt_meanadv ','dudt_eddycnv '
+c     *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
+c     *     ,'dudt_fderr2  '/)
+c      character(len=units_strlen) :: units(njl_out) = 'm/s^2'
+c      integer, dimension(njl_out) :: pow = (/ -6,-6,-6,-6,-6,-6,-6 /)
 
 C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
@@ -612,9 +616,8 @@ cgsfc      REAL*8, POINTER, DIMENSION(:,:) ::
 cgsfc /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
 cgsfc /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
       REAL*8, DIMENSION(JM,LM) ::
-     *   DUDS,DUR,DMF,DEF,DMFR,DEFR
+     *   DUR,BYDPJL
 CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR
-     *  ,ER1,ER2,BYDPJL
 C**** common needed to pass from XEP to individual arrays (better way??)
 C**** Not clear how many of these are actually used.
 cBMP /*  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR, */
@@ -781,24 +784,42 @@ C****
         DUDS(J,L) = (DUD(J,L)-ER2(J,L)) + DUDS(J,L)*SCALE1
       END DO
       END DO
+
+      do l=1,lm
+        do j=2,jm
+          dmf(j,l) = dmf(j,l)*bydxyv(j)
+          def(j,l) = def(j,l)*bydxyv(j)
+          dmfr(j,l) = dmfr(j,l)*bydxyv(j)
+          defr(j,l) = defr(j,l)*bydxyv(j)
+        enddo
+      enddo
+
+      if(do_print) then
       SCALEP=1
 CW      CALL WRITJL ('DUDT: EUL+SOURCE',DUDS,SCALEP)
 CW     /* CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALEP) ! AJK-47 DIAGJK */
-      CALL JLMAP (LNAME(1),SNAME(1),UNITS(1),POW(1),PMO,DUDS,SCALEP,ONES
-     *     ,ONES,LM,2,2)
-C****
-      CALL JLMAP (LNAME(2),SNAME(2),UNITS(2),POW(2),PMO,DMF,SCALEP
-     *     ,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (LNAME(3),SNAME(3),UNITS(3),POW(3),PMO,DEF,SCALEP
-     *     ,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (LNAME(4),SNAME(4),UNITS(4),POW(4),PMO,DMFR,SCALEP
-     *     ,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (LNAME(5),SNAME(5),UNITS(5),POW(5),PMO,DEFR,SCALEP
-     *     ,BYDXYV,ONES,LM,2,2)
-      CALL JLMAP (LNAME(6),SNAME(6),UNITS(6),POW(6),PMO,ER1,SCALEP,ONES
-     *     ,ONES,LM,2,2)
-      CALL JLMAP (LNAME(7),SNAME(7),UNITS(7),POW(7),PMO,ER2,SCALEP,ONES
-     *     ,ONES,LM,2,2)
+      n = jk_dudt_sum1
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,DUDS,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_meanadv
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,DMF,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_eddycnv
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,DEF,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_trnsadv
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,DMFR,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_epflxdiv
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,DEFR,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_fderr1
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,ER1,SCALEP,ONES,ONES,LM,2,2)
+      n = jk_dudt_fderr2
+      CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
+     *     ,PMO,ER2,SCALEP,ONES,ONES,LM,2,2)
+      endif ! do_print
 C****
 CW      DO L=1,LM
 CW      DO J=J_0STG,J_1STG
