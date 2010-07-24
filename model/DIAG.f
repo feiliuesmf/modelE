@@ -1205,22 +1205,7 @@ C****
 #endif
 #ifdef TRACERS_ON
       use rad_com, only: nTracerRadiaActive,tracerRadiaActiveFlag
-#ifndef SKIP_TRACER_DIAGS
-      USE TRACER_COM, only : ntm, trm, trname
-     *     , mass2vol, n_Ox, n_SO4,
-     *     n_SO4_d1,n_SO4_d2,n_SO4_d3,n_clay,n_clayilli,n_sil1quhe,
-     *     n_water, n_HDO, n_Be7, n_NOx, n_CO
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,Ntm_dust
-#endif
-#ifdef TRACERS_DRYDEP
-     &     ,dodrydep
-#endif
-#ifdef TRACERS_WATER
-     &     ,dowetdep, trw0
-#endif
-#endif /* SKIP_TRACER_DIAGS */
+      use tracer_com
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : sOx_acc,l1Ox_acc,l1NO_acc
 #endif
@@ -1240,7 +1225,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      use tracers_dust, only: dustDiagSubdd_acc
+      use tracers_dust, only: dustDiagSubdd_acc,dust_names,n_soilDust
       use trdust_drv, only: accSubddDust
 #endif
 
@@ -1288,19 +1273,26 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 #endif
 #ifdef TRACERS_ON
 !@var rTrname array with tracer names for subdd radiation diagnostics
-      character(len=8),allocatable,dimension(:) :: rTrname
+      character(len=len(trname(1))),allocatable,dimension(:) :: rTrname
 !@var TRACER_array tracer array for subdd diagnostics
 !@var rTRACER_array tracer array for subdd radiation diagnostic
       real(kind=8),allocatable,dimension(:,:,:) :: TRACER_array
      &     ,rTRACER_array
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var dust3d_array three-dimensional soil dust array for subdd diagnostics
+!@var dust4d_array four-dimensional soil dust array for subdd diagnostics
+      real(kind=8),allocatable,dimension(:,:,:) :: dust3d_array
+      real(kind=8),allocatable,dimension(:,:,:,:) :: dust4d_array
+#endif
 
 #ifdef NEW_IO_SUBDD
-      private :: write_2d,write_3d,write_2d_tracer,in_subdd_list
+      private :: write_2d,write_3d,in_subdd_list
       interface write_subdd
       module procedure write_2d
       module procedure write_3d
-      module procedure write_2d_tracer
+      module procedure write_4d
       end interface
 #endif
 
@@ -1392,6 +1384,11 @@ C**** initialise special subdd accumulation
       allocate(rTrname(nTracerRadiaActive))
       allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
       allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,ntm))
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      allocate(dust3d_array(i_0h:i_1h,j_0h:j_1h,ntm_dust))
+      allocate(dust4d_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD,ntm_dust))
 #endif
 
       return
@@ -1553,6 +1550,7 @@ c get_subdd
 !@+                    DuDEPGRAV grav settling of soil dust aerosols [kg/m^2/s]
 !@+                    DuDEPWET wet deposition of soil dust aerosols [kg/m^2/s]
 !@+                    DuLOAD soil dust aer load of atmospheric column [kg/m^2]
+!@+                    DuCONC three-dimensional soil dust concentrations [kg/m^3]
 !@+                    DuSMIXR surface mix ratio of soil dust aerosols [kg/kg]
 !@+                    DuSCONC surface conc of soil dust aerosols [kg/m^3]
 !@+                    DuAOD dust aer opt depth daily avg [1]
@@ -1596,26 +1594,17 @@ c get_subdd
      *     ,o_more,n_more,m_more,x_more
 #endif
 #endif
-#ifdef TRACERS_ON
-      USE TRACER_COM
-#endif
+
       IMPLICIT NONE
       REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
-      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx,nc
+      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTM_DUST) ::
-     &     DUST_array
-      CHARACTER(len=len(trname(1))) :: dust_names(ntm_dust)
-#endif
 
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
@@ -1625,25 +1614,6 @@ c get_subdd
      &               HAVE_NORTH_POLE=have_north_pole)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-#ifdef TRACERS_DUST
-      n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-      n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-      do n=1,Ntm_dust ! have tracers_dust module compose the list?
-        n1=n_fidx+n-1
-        dust_names(n) = trname(n1)
-      enddo
-#endif
 
       kunit=0
 C**** depending on namedd string choose what variables to output
@@ -1907,18 +1877,6 @@ c          datar8=sday*prec/dtsrc
           datar8=cfrac*100.
         case ("PTRO")           ! tropopause pressure (mb)
           datar8 = ptropo
-        case ("TMIN")           ! min daily temp (C)
-          if (mod(itime+1,Nday).ne.0) then ! only at end of day
-            kunit=kunit+1
-            cycle
-          end if
-          datar8=tdiurn(:,:,9)
-        case ("TMAX")           ! max daily temp (C)
-          if (mod(itime+1,Nday).ne.0) then ! only at end of day
-            kunit=kunit+1
-            cycle
-          end if
-          datar8=tdiurn(:,:,6)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
@@ -1980,6 +1938,27 @@ c          datar8=sday*prec/dtsrc
 #endif
         cycle
  10     continue
+
+c**** variables written at end of day only
+        select case (namedd(k))
+        case ("TMIN","TMAX")
+          kunit=kunit+1
+          if (mod(itime+1,Nday).ne.0) cycle ! except at end of day
+          polefix=.true.
+          select case (namedd(k))
+          case ("TMIN")         ! min daily temp (C)
+            datar8=tdiurn(:,:,9)
+          case ("TMAX")         ! max daily temp (C)
+            datar8=tdiurn(:,:,6)
+          end select
+          data=datar8
+          call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),datar8,polefix,record
+     &         =day_of_month)
+#endif
+          cycle
+        end select
 
 C**** diags on soil levels
         select case (namedd(k)(1:2))
@@ -2540,10 +2519,10 @@ C**** cases where multiple records go to one file for dust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-          case ('DuEMIS','DuEMIS2','DuSMIXR','DuSCONC','DuLOAD')
+        case ('DuEMIS','DuEMIS2','DuSMIXR','DuSCONC','DuLOAD')
           kunit=kunit+1
           do n=1,Ntm_dust
-            n1=n_fidx+n-1
+            n1=n_soilDust+n-1
 C**** first set: no 'if' tests
             select case (namedd(k))
 
@@ -2614,16 +2593,40 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-
             end select
             polefix=.true.
-            DUST_array(:,:,n)=datar8
+            dust3d_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
-     &         =DUST_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
+     &         =dust_names)
+#endif
+          cycle
+
+        case('DuCONC')      ! Dust concentration [kg/m^3]
+          kunit=kunit+1
+          polefix=.true.
+          do n=1,Ntm_dust
+            do l=1,LmaxSUBDD
+!$OMP PARALLEL DO PRIVATE(i,j)
+              do j=j_0,j_1
+                do i=i_0,i_1
+                  datar8(i,j) = dustDiagSubdd_acc%dustConc(i,j,l,n)
+     &                 *byaxyp(i,j)/real(Nsubdd,kind=8)
+                  dustDiagSubdd_acc%dustConc(i,j,l,n)=0.d0
+                end do
+              end do
+!$OMP END PARALLEL DO
+              dust4d_array(:,:,l,n) = datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+          end do
+#ifdef NEW_IO_SUBDD
+          call write_subdd(trim(namedd(k)),dust4d_array,polefix,suffixes
+     &         =dust_names)
 #endif
           cycle
 
@@ -2635,7 +2638,7 @@ C**** other dust special cases
             if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
             datar8=0.
             do n=1,Ntm_dust
-              n1=n_fidx+n-1
+              n1=n_soilDust+n-1
               select case(namedd(k))
               case('DuAOD')
                 datar8(:,:)=ttausv_sum(:,:,n1)
@@ -2644,13 +2647,13 @@ C**** other dust special cases
               end select
               datar8=datar8/ttausv_count
               polefix=.true.
-              DUST_array(:,:,n) = datar8
+              dust3d_array(:,:,n) = datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),DUST_array,polefix,
-     &           record=day_of_month,suffixes=DUST_names)
+            call write_subdd(trim(namedd(k)),dust3d_array,polefix,
+     &           record=day_of_month,suffixes=dust_names)
 #endif
             cycle
 
@@ -2658,7 +2661,7 @@ C**** other dust special cases
           case ('DuDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
-            n1=n_fidx+n-1
+            n1=n_soilDust+n-1
             if (dodrydep(n1)) then
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
@@ -2670,21 +2673,21 @@ C**** other dust special cases
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
-              DUST_array(:,:,n)=datar8
+              dust3d_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end if
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
-     &         =DUST_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
+     &         =dust_names)
 #endif
           cycle
 
           case ('DuDEPGRAV')      ! Gravit. settling flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
-            n1=n_fidx+n-1
+            n1=n_soilDust+n-1
             IF (dodrydep(n1)) THEN
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
@@ -2696,14 +2699,14 @@ C**** other dust special cases
               end do
 !$OMP END PARALLEL DO
               polefix=.true.
-              DUST_array(:,:,n)=datar8
+              dust3d_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end if
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
-     &         =DUST_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
+     &         =dust_names)
 #endif
           cycle
 #endif /*TRACERS_DRYDEP*/
@@ -2711,7 +2714,7 @@ C**** other dust special cases
           case ('DuDEPWET')         ! Wet deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
           do n=1,Ntm_dust
-            n1=n_fidx+n-1
+            n1=n_soilDust+n-1
 #ifdef TRACERS_WATER
             if (dowetdep(n1)) then
 #endif
@@ -2728,13 +2731,13 @@ C**** other dust special cases
             end if
 #endif
             polefix=.true.
-            DUST_array(:,:,n)=datar8
+            dust3d_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),DUST_array,polefix,suffixes
-     &         =DUST_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
+     &         =dust_names)
 #endif
           cycle
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
@@ -2781,6 +2784,9 @@ c**** fix polar values
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
+
+      implicit none
+
       character(len=*) :: qtyname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
       logical :: polefix
@@ -2822,6 +2828,9 @@ c
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
+
+      implicit none
+
       character(len=*) :: qtyname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: data
       logical :: polefix
@@ -2880,10 +2889,7 @@ c
       return
       end subroutine write_3d
 
-      subroutine write_2d_tracer(qtyname,trname,data,polefix,record)
-!@sum  write_2d_tracer writes separate high frequency output file for
-!@+    each tracer with variable qtyname
-
+      subroutine write_4d(qtyname,data,polefix,record,suffixes)
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
@@ -2891,19 +2897,16 @@ c
       implicit none
 
       character(len=*) :: qtyname
-      character(len=*),intent(in) :: trname
-      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
+      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:,:) :: data
       logical :: polefix
       integer, intent(in), optional :: record
+      character(len=*), intent(in), optional :: suffixes(:)
+      character(len=80) :: qname
 c
-      integer fid
-      integer :: rec
+      integer fid,l,n,rec
       character(len=80) :: fname
-
       if(.not. in_subdd_list(qtyname)) return
-
-      fname = trim(qtyname)//'_'//trim(trname)//'_'//aDATE_sv(1:7)/
-     &     /'.nc'
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
       if(present(record)) then
         rec = record
       else
@@ -2913,25 +2916,50 @@ c
         fid = par_open(grid,trim(fname),'create')
         call defvar(grid,fid,itime,'itime',
      &       with_record_dim=.true.)
-        call defvar(grid,fid,data,trim(qtyname)//'_'//trim(trname)/
-     &       /'(dist_im,dist_jm)',with_record_dim=.true.,r4_on_disk=
-     &       .true.)
+        if(present(suffixes)) then
+          if(size(suffixes).ne.size(data,4))
+     &         call stop_model('write_4d: bad sizes',255)
+          do n=1,size(data,4)
+            qname = trim(qtyname)//'_'//trim(suffixes(n))
+            call defvar(grid,fid,data(:,:,:,n),
+     &           trim(qname)//'(dist_im,dist_jm,lm)',
+     &           with_record_dim=.true.,r4_on_disk=.true.)
+          enddo
+        else
+          call defvar(grid,fid,data,
+     &         trim(qtyname)//'(dist_im,dist_jm,lm,ntm)',
+     &         with_record_dim=.true.,r4_on_disk=.true.)
+        endif
         call par_enddef(grid,fid)
       else
         fid = par_open(grid,trim(fname),'write')
       endif
       if(polefix) then
-        if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
-        if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
+        do n=1,size(data,4)
+          do l=1,size(data,3)
+            if(hasSouthPole(grid)) data(2:im,1,l,n) = data(1,1,l,n)
+            if(hasNorthPole(grid)) data(2:im,jm,l,n) = data(1,jm,l,n)
+          end do
+        end do
       endif
       call write_data(grid,fid, 'itime', itime, record=rec)
-      call write_dist_data(grid,fid, trim(qtyname)//'_'//trim(trname)
-     &     ,data,record=rec)
+      if(present(suffixes)) then
+        do n=1,size(data,4)
+          qname = trim(qtyname)//'_'//trim(suffixes(n))
+          call write_dist_data(grid,fid, trim(qname),
+     &         data(:,:,:,n), record=rec)
+        enddo
+      else
+        call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
+      endif
       call par_close(grid,fid)
       return
-      end subroutine write_2d_tracer
+      end subroutine write_4d
 
       logical function in_subdd_list(qtyname)
+
+      implicit none
+
       character(len=*) :: qtyname
       integer kq
       do kq=1,kdd

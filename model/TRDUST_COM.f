@@ -9,6 +9,7 @@
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
+      use tracer_com, only: trname
 
       IMPLICIT NONE
 
@@ -17,6 +18,11 @@
 !@param By4 1D0/4D0
       REAL*8,PARAMETER :: By4=1D0/4D0
 
+!@param n_soilDust index of first soil dust aerosol tracer
+      integer :: n_soilDust
+!@param dust_names names of soil dust aerosol tracers
+      character(len=len(trname(1))),allocatable,dimension(:) ::
+     &   dust_names(:)
 
 c**** rundeck parameter to switch between different emission schemes
 c****
@@ -207,11 +213,12 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 !@var  %dustSurfMixR   surface mixing mixing ratio of soil dust aerosols [kg/kg]
 !@var  %dustSurfConc   surface concentration of soil dust aerosols [kg/m^3]
 !@var  %dustMass       mass of soil dust aerosol [kg]
+!@var  %dustConc       dust concentration [kg/m] (later divided by grid box area)
       type dustDiagSubdd
       real(kind=8),allocatable,dimension(:,:,:) :: dustEmission
      &     ,dustEmission2,dustDepoTurb,dustDepoGrav,dustMassInPrec
      &     ,dustSurfMixR,dustSurfConc
-      real(kind=8),allocatable,dimension(:,:,:,:) :: dustMass
+      real(kind=8),allocatable,dimension(:,:,:,:) :: dustMass,dustConc
       end type dustDiagSubdd
 !@var dustDiagSubdd_acc structured variable to accumulate data for
 !+                      subdaily dust aerosol diagnostics
@@ -226,8 +233,6 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       SUBROUTINE alloc_dust(grid)
 !@sum  alloc_dust allocates dust/mineral tracer arrays
 !@auth Jan Perlwitz
-!@ver  1.0
-
 
       USE domain_decomp_atm, ONLY : dist_grid
       USE resolution,ONLY : Lm
@@ -250,6 +255,8 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       i_1h=grid%i_stop_halo
       j_0h=grid%j_strt_halo
       j_1h=grid%j_stop_halo
+
+      allocate(dust_names(ntm_dust))
 
       ALLOCATE(hbaij(i_0h:i_1h,j_0h:j_1h),ricntd(i_0h:i_1h,j_0h:j_1h),
      &     dryhr(i_0h:i_1h,j_0h:j_1h),frclay(i_0h:i_1h,j_0h:j_1h),
@@ -286,15 +293,18 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     ,Ntm_dust))
       allocate(dustDiagSubdd_acc%dustMass(i_0h:i_1h,j_0h:j_1h,Lm
      &     ,Ntm_dust))
+      allocate(dustDiagSubdd_acc%dustConc(i_0h:i_1h,j_0h:j_1h,Lm
+     &     ,Ntm_dust))
 
-      dustDiagSubdd_acc%dustEmission=0.D0
-      dustDiagSubdd_acc%dustEmission2=0.D0
-      dustDiagSubdd_acc%dustDepoTurb=0.D0
-      dustDiagSubdd_acc%dustDepoGrav=0.D0
-      dustDiagSubdd_acc%dustMassInPrec=0.D0
-      dustDiagSubdd_acc%dustSurfMixR=0.D0
-      dustDiagSubdd_acc%dustSurfConc=0.D0
-      dustDiagSubdd_acc%dustMass=0.D0
+      dustDiagSubdd_acc%dustEmission = 0.D0
+      dustDiagSubdd_acc%dustEmission2 = 0.D0
+      dustDiagSubdd_acc%dustDepoTurb = 0.D0
+      dustDiagSubdd_acc%dustDepoGrav = 0.D0
+      dustDiagSubdd_acc%dustMassInPrec = 0.D0
+      dustDiagSubdd_acc%dustSurfMixR = 0.D0
+      dustDiagSubdd_acc%dustSurfConc = 0.D0
+      dustDiagSubdd_acc%dustMass = 0.D0
+      dustDiagSubdd_acc%dustConc = 0.D0
 
       RETURN
       END SUBROUTINE alloc_dust

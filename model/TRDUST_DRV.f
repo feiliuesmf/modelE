@@ -7,13 +7,13 @@
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       use filemanager,only: nameunit,openunit,closeunit
-      use resolution, only : im,jm
+      use constant, only: rgas
+      use resolution, only: im,jm,lm
       use domain_decomp_atm, only: am_i_root,grid,dread_parallel
      &     ,esmf_bcast,write_parallel,get
-
-      use resolution,only: im,jm,lm
-      use model_com,only : coupled_chem,ioread,iowrite,irsfic,irsficno
-     &     ,irerun,JDperY,JMperY,itime
+      use model_com, only: coupled_chem,ioread,iowrite,irsfic,irsficno
+     &     ,irerun,JDperY,JMperY,itime,t
+      use dynamics, only: byam,pk,pmid
       use fluxes, only: dust_flux_glob,dust_flux2_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
@@ -24,13 +24,13 @@
      &     ,trprec_dust
 #endif
       use tracer_com,only: n_clay,n_clayilli,n_sil1quhe,ntm_dust,trm
+     &     ,trname
 #ifdef TRACERS_DRYDEP
      &     ,dodrydep
 #endif
 #ifdef TRACERS_WATER
      &     ,dowetdep
 #endif
-      use tracer_com, only: trname
       use trdiag_com, only: trcsurf,trcSurfByVol
       use tracers_dust
 #ifdef NEW_IO
@@ -56,7 +56,7 @@ c init_dust
 
       INCLUDE 'netcdf.inc'
 
-      integer :: i,ierr,j,io_data,k,ires
+      integer :: i,ierr,j,io_data,k,ires,n,n1
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
       REAL*8 :: zsum,tabsum
@@ -72,6 +72,24 @@ c**** temporary array to read in data
       qfirst=.FALSE.
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+
+#ifdef TRACERS_DUST
+      n_soilDust = n_clay
+#else
+#ifdef TRACERS_MINERALS
+      n_soilDust = n_clayilli
+#else
+#ifdef TRACERS_QUARZHEM
+      n_soilDust = n_sil1quhe
+#endif
+#endif
+#endif
+
+c**** initialize dust names
+      do n=1,Ntm_dust
+        n1=n_soilDust+n-1
+        dust_names(n) = trname(n1)
+      enddo
 
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
@@ -590,6 +608,7 @@ c io_trDust
       allocate(dustDiagSubdd_glob%dustSurfMixR(im,jm,Ntm_dust))
       allocate(dustDiagSubdd_glob%dustSurfConc(im,jm,Ntm_dust))
       allocate(dustDiagSubdd_glob%dustMass(im,jm,lm,Ntm_dust))
+      allocate(dustDiagSubdd_glob%dustConc(im,jm,lm,Ntm_dust))
 
       select case(iaction)
 
@@ -610,6 +629,8 @@ c io_trDust
      &       ,dustDiagSubdd_glob%dustSurfConc)
         call pack_data(grid,dustDiagSubdd_acc%dustMass
      &       ,dustDiagSubdd_glob%dustMass)
+        call pack_data(grid,dustDiagSubdd_acc%dustConc
+     &       ,dustDiagSubdd_glob%dustConc)
         header='For subdaily dust tracers diagnostics: dustDiagSubdd'
         if (am_i_root()) then
           write(kunit,iostat=iostat) header
@@ -621,6 +642,7 @@ c io_trDust
      &         ,dustDiagSubdd_glob%dustSurfMixR
      &         ,dustDiagSubdd_glob%dustSurfConc
      &         ,dustDiagSubdd_glob%dustMass
+     &         ,dustDiagSubdd_glob%dustConc
           if (iostat > 0) call stop_model
      &         ('In io_trdust_drv: Restart file write error',255)
         end if
@@ -630,14 +652,15 @@ c io_trDust
         case(ioread,irerun,irsfic,irsficno) ! restarts
           if (am_i_root()) then
             read(kunit,iostat=iostat) header
-     &           ,dustDiagSubdd_glob%dustEmission
-     &           ,dustDiagSubdd_glob%dustEmission2
-     &           ,dustDiagSubdd_glob%dustDepoTurb
-     &           ,dustDiagSubdd_glob%dustDepoGrav
-     &           ,dustDiagSubdd_glob%dustMassInPrec
-     &           ,dustDiagSubdd_glob%dustSurfMixR
-     &           ,dustDiagSubdd_glob%dustSurfConc
-     &           ,dustDiagSubdd_glob%dustMass
+     &         ,dustDiagSubdd_glob%dustEmission
+     &         ,dustDiagSubdd_glob%dustEmission2
+     &         ,dustDiagSubdd_glob%dustDepoTurb
+     &         ,dustDiagSubdd_glob%dustDepoGrav
+     &         ,dustDiagSubdd_glob%dustMassInPrec
+     &         ,dustDiagSubdd_glob%dustSurfMixR
+     &         ,dustDiagSubdd_glob%dustSurfConc
+     &         ,dustDiagSubdd_glob%dustMass
+     &         ,dustDiagSubdd_glob%dustConc
             if (iostat > 0) call stop_model
      &           ('In io trdust_drv: Restart file read error',255)
           end if
@@ -657,6 +680,8 @@ c io_trDust
      &         ,dustDiagSubdd_acc%dustSurfConc)
           call unpack_data(grid,dustDiagSubdd_glob%dustMass
      &         ,dustDiagSubdd_acc%dustMass)
+          call unpack_data(grid,dustDiagSubdd_glob%dustConc
+     &         ,dustDiagSubdd_acc%dustConc)
         end select
 
       end select
@@ -669,6 +694,7 @@ c io_trDust
       deallocate(dustDiagSubdd_glob%dustSurfMixR)
       deallocate(dustDiagSubdd_glob%dustSurfConc)
       deallocate(dustDiagSubdd_glob%dustMass)
+      deallocate(dustDiagSubdd_glob%dustConc)
 
       return
       end subroutine io_trDust
@@ -704,6 +730,8 @@ c def_rsf_trdust
      &     dustSurfConc'//'(dist_im,dist_jm,Ntm_dust)')
       call defvar(grid,fid,dustDiagSubdd_acc%dustMass(:,:,:,:)
      &     ,'dustMass'//'(dist_im,dist_jm,lm,Ntm_dust)')
+      call defvar(grid,fid,dustDiagSubdd_acc%dustConc(:,:,:,:)
+     &     ,'dustConc'//'(dist_im,dist_jm,lm,Ntm_dust)')
 
       return
       end subroutine def_rsf_trdust
@@ -737,6 +765,8 @@ c new_io_trdust
      &       ,dustDiagSubdd_acc%dustSurfConc(:,:,:))
         call write_dist_data(grid,fid,'dustMass'
      &       ,dustDiagSubdd_acc%dustMass(:,:,:,:))
+        call write_dist_data(grid,fid,'dustConc'
+     &       ,dustDiagSubdd_acc%dustConc(:,:,:,:))
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'dustEmission'
      &       ,dustDiagSubdd_acc%dustEmission(:,:,:))
@@ -754,6 +784,8 @@ c new_io_trdust
      &       ,dustDiagSubdd_acc%dustSurfConc(:,:,:))
         call read_dist_data(grid,fid,'dustMass'
      &       ,dustDiagSubdd_acc%dustMass(:,:,:,:))
+        call read_dist_data(grid,fid,'dustConc'
+     &       ,dustDiagSubdd_acc%dustConc(:,:,:,:))
       end select
 
       return
@@ -773,23 +805,11 @@ c accSubddDust
 
       type(dustDiagSubdd),intent(inout) :: dustDiagSubdd_acc
 
-      integer :: n_fidx,n,n1
+      integer :: l,n,n1
 
-#ifdef TRACERS_DUST
-      n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-      n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-
-!$OMP PARALLEL DO PRIVATE (n,n1)
+!$OMP PARALLEL DO PRIVATE (l,n,n1)
       do n=1,Ntm_dust
-        n1=n_fidx+n-1
+        n1=n_soilDust+n-1
         dustDiagSubdd_acc%dustEmission(:,:,n)
      &       =dustDiagSubdd_acc%dustEmission(:,:,n)+dust_flux_glob(:,:,n
      &       )
@@ -821,6 +841,11 @@ c accSubddDust
      &       =dustDiagSubdd_acc%dustSurfConc(:,:,n)+trcSurfByVol(:,:,n1)
         dustDiagSubdd_acc%dustMass(:,:,:,n)=dustDiagSubdd_acc%dustMass(:
      &       ,:,:,n)+trm(:,:,:,n1)
+        do l=1,lm
+          dustDiagSubdd_acc%dustConc(:,:,l,n) =
+     &         dustDiagSubdd_acc%dustConc(:,:,l,n) + trm(:,:,l,n1)
+     &         *byam(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
+        end do
       end do
 !$OMP END PARALLEL DO
 
