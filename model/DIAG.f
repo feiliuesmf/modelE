@@ -1368,9 +1368,6 @@ C**** initialise special subdd accumulation
 #ifdef TRACERS_SPECIAL_Shindell
       sOx_acc=0.; l1Ox_acc=0. ; l1NO_acc=0.
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      sPM2p5_acc=0.; sPM10_acc=0.; l1PM2p5_acc=0.; l1PM10_acc=0.
-#endif
 
       allocate(LmaxSUBDD_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD))
       allocate(ngm_array(i_0h:i_1h,j_0h:j_1h,ngm))

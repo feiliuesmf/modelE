@@ -1143,6 +1143,8 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE (   sPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( l1PM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE (  l1PM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+
+      sPM2p5_acc=0.d0; sPM10_acc=0.d0; l1PM2p5_acc=0.d0; l1PM10_acc=0.d0
 #endif
 #ifdef TRACERS_ON 
       ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
