@@ -794,6 +794,10 @@ DO JL=L,L
 ! Otherwise change the limits of M0a and M0b and restart (goto 11)
 !
   a=(y2-y1)/(x2-x1)
+  if (a.ge.0.d0) then
+    M0=M0+sum(soamass)*0.1d0
+    goto 11
+  endif
   b=y1-a*x1
   M0=-b/a
   if (((iternum==1).and.(M0==x2)).or.((iternum>1).and.(M0==x1))) goto 20
