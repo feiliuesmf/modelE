@@ -946,6 +946,8 @@ c instances of arrays
 #endif
      &         STAT = IER)
 
+      P_acc=0.d0; PM_acc=0.d0
+
       ALLOCATE( AIJK_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJK),
      &         AFLX_ST(LM+LM_REQ+1,I_0H:I_1H,J_0H:J_1H,5),
      &         STAT = IER)
@@ -1088,10 +1090,13 @@ c allocate master copies of budget- and JK-arrays on root
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "DIAG01"
+!@var header_subdd string label for subdaily accumulation arrays
+      character(len=80) :: header_subdd
 !@var it input/ouput value of hour
       INTEGER, INTENT(INOUT) :: it
       ! REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
       REAL*8,allocatable :: AFLX_ST_GLOB(:,:,:,:)
+      real(kind=8),allocatable,dimension(:,:) :: P_acc_glob,PM_acc_glob
 
       INTEGER :: J_0, J_1
 
@@ -1173,6 +1178,8 @@ C**** The regular model (Kradia le 0)
 
       call alloc_ijdiag_glob
 
+      allocate(P_acc_glob(im,jm),PM_acc_glob(im,jm))
+
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
         write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
@@ -1190,6 +1197,14 @@ C**** The regular model (Kradia le 0)
 #endif
      *     TDIURN_glob,OA_glob,it
         END IF
+
+c**** write accumulation arrays for subdaily diagnostics
+        call pack_data(grid,P_acc,P_acc_glob)
+        call pack_data(grid,PM_acc,PM_acc_glob)
+        header_subdd='accumulation variables for subdaily diagnostics'
+        if (am_i_root()) write(kunit,err=10) header_subdd,P_acc_glob
+     &       ,PM_acc_glob
+
       CASE (IOWRITE_SINGLE)     ! output in single precision
         MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
         MODULE_HEADER(i_xtra:80) = ',monacc(12)'
@@ -1235,6 +1250,12 @@ C**** The regular model (Kradia le 0)
 
         Call BCAST_Scalars()
         Call Scatter_Diagnostics()
+
+c**** read accumulation arrays for subdaily diagnostics
+        if (am_i_root()) read(kunit,err=10) header_subdd,P_acc_glob
+     &       ,PM_acc_glob
+        call unpack_data(grid,P_acc_glob,P_acc)
+        call unpack_data(grid,PM_acc_glob,PM_acc)
 
       CASE (IOREAD_SINGLE)      !
         call Gather_Diagnostics()  ! to keep global arrays in up-to-date
@@ -1302,10 +1323,13 @@ C**** The regular model (Kradia le 0)
       END SELECT
 
       call dealloc_ijdiag_glob
+
+      deallocate(P_acc_glob,PM_acc_glob)
       RETURN
 
  10   IOERR=1
       call dealloc_ijdiag_glob
+      deallocate(P_acc_glob,PM_acc_glob)
       RETURN
 
       Contains
@@ -1973,6 +1997,55 @@ c for which scalars is bcast_all=.true. necessary?
       end select
       return
       end subroutine new_io_longacc
+
+c def_rsf_subdd
+      subroutine def_rsf_subdd(fid)
+!@sum def_rsf_subdd defines write/read structure of accumulation arrays
+!@+                 for subdaily diagnostics to/from restart files
+!@auth Jan Perlwitz
+
+      use domain_decomp_atm, only: grid
+      use pario, only: defvar
+      use diag_com, only: P_acc,PM_acc
+
+      implicit none
+
+      integer,intent(in) :: fid
+
+      call defvar(grid,fid,P_acc,'P_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,PM_acc,'PM_acc(dist_im,dist_jm)')
+
+      return
+      end subroutine def_rsf_subdd
+
+c new_io_subdd
+      subroutine new_io_subdd(fid,iaction)
+!@sum new_io_subdd write/read of accumulation arrays for subdaily diagnostics
+!+                 to/from restart files
+!@auth Jan Perlwitz
+
+      use domain_decomp_atm, only: grid
+      use pario, only: read_dist_data,write_dist_data
+      use model_com, only: ioread,iowrite
+      use diag_com, only: P_acc,PM_acc
+
+      implicit none
+
+      integer,intent(in) :: iaction,fid
+
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'P_acc',P_acc)
+        call write_dist_data(grid,fid,'PM_acc',PM_acc)
+
+      case (ioread)             ! input from restart file
+        call read_dist_data(grid,fid,'P_acc',P_acc)
+        call read_dist_data(grid,fid,'PM_acc',PM_acc)
+
+      end select
+
+      return
+      end subroutine new_io_subdd
 
       subroutine def_meta_atmacc(fid)
 !@sum  def_meta_atmacc defines metadata in atm acc files

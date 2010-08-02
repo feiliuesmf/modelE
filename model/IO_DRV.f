@@ -108,6 +108,7 @@ c
 #ifdef TRACERS_ON
         call new_io_tracer (fid,iorw)
 #endif
+        call new_io_subdd  (fid,iorw)
       end if
 
 c
@@ -213,6 +214,7 @@ c
 #ifdef TRACERS_ON
       call def_rsf_tracer (fid)
 #endif
+      call def_rsf_subdd  (fid)
       return
       end subroutine def_rsf_prog
 

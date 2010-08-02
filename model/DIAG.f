@@ -1355,8 +1355,6 @@ C**** define lst
       end do
 
 C**** initialise special subdd accumulation
-      P_acc=0.
-      PM_acc=0.
 #ifdef TRACERS_COSMO
       BE7W_acc=0.
       BE7D_acc=0.
@@ -1583,8 +1581,7 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn
-     *     ,p_acc,pm_acc,pmb
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
 #ifdef TES_LIKE_DIAGS
      *     ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
