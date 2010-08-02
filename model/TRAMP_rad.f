@@ -304,6 +304,7 @@ c    write ss diagnostic on ds1 and ds2
         aesqsc(:,:,6)= aesqsc(:,:,8)
         aesqcb(:,:,4)= aesqcb(:,:,7)
         aesqcb(:,:,6)= aesqcb(:,:,8)
+
         ENDIF     ! AMP_RAD_KEY = 2
       endif
   
@@ -376,7 +377,7 @@ c     &        (1.57466,     0.484662)  ,(1.56485,     0.487992),
      &        (1.33059,  1.58222e-07)  ,(1.33447,  3.91074e-08)/
 
 
-       ! + Effective Radius [um] per Mode = geometric mass mean diameter
+       ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
          Reff_LEV(l,n) = DIAM(i,j,l,n) * 0.5e6
        ENDDO
@@ -415,19 +416,19 @@ c     &        (1.57466,     0.484662)  ,(1.56485,     0.487992),
           dry_Vf_LEV(l,n,s) = VMass(n,s) / (Sum(VMass(n,1:6)) + TINYNUMER)
       ! Core Shell Composition
           if (n.eq.14) then     ! BOC
-            MIX_OC(l,n) = VMass(n,3) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7))
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7))
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7))
+            MIX_OC(l,n) = VMass(n,3) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
+            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
+            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
           endif
           if (n.eq.15) then     ! BCS
             MIX_OC(l,n) = 0.d0
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7))
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7))
+            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
+            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
           endif
           if (n.ge.10.and.n.le.12) then ! BC123
             MIX_OC(l,n) = 0.d0
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7))
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7))
+            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
+            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
           endif
         ENDDO
       ENDDO
@@ -562,7 +563,6 @@ c -----------------------------------------------------------------
           AMP_EXT_CS = CS_EXT 
           AMP_SCA_CS = CS_SCA 
           AMP_Q55_CS = CS_QEX
-
       RETURN
       END SUBROUTINE SETUP_RAD
 c -----------------------------------------------------------------
