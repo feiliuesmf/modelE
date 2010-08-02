@@ -5614,36 +5614,6 @@ c chemical production
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-#ifdef BC_ALB
-c BC impact on grain size
-c         k = k + 1
-c         ijts_alb(2,n) = k
-c         ia_ijts(k) = ia_rad????
-c         lname_ijts(k) = 'BC impact on grain size'
-c         sname_ijts(k) = 'grain_BC'
-c         ijts_power(k) = -9
-c         units_ijts(k) = unit_string(ijts_power(k),' ')
-c         scale_ijts(k) = 10.**(-ijts_power(k))
-c BC impact on albedo
-        k = k + 1
-        ijts_alb(1,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'BC impact on albedo (%)'
-        sname_ijts(k) = 'alb_BC'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-
-c SW forcing from albedo change
-        k = k + 1
-        ijts_alb(2,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = 'BCalb SW radiative forcing'
-        sname_ijts(k) = 'swf_BCALB'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-#endif
 #ifdef TRACERS_AEROSOLS_Koch
 
         call set_diag_rad(n,k)
@@ -6896,6 +6866,37 @@ c**** additional wet deposition diagnostics
 
 C**** Additional Special IJ diagnostics
 C**** (not necessary associated with a particular tracer)
+#ifdef BC_ALB
+c BC impact on grain size
+c         k = k + 1
+c         ijts_alb(2,n) = k
+c         ia_ijts(k) = ia_rad????
+c         lname_ijts(k) = 'BC impact on grain size'
+c         sname_ijts(k) = 'grain_BC'
+c         ijts_power(k) = -9
+c         units_ijts(k) = unit_string(ijts_power(k),' ')
+c         scale_ijts(k) = 10.**(-ijts_power(k))
+c BC impact on albedo
+        k = k + 1
+        ijts_alb(1,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'BC impact on albedo (%)'
+        sname_ijts(k) = 'alb_BC'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+
+c SW forcing from albedo change
+        k = k + 1
+        ijts_alb(2,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'BCalb SW radiative forcing'
+        sname_ijts(k) = 'swf_BCALB'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       IF (diag_rad.eq.1) THEN
         k = k + 1
