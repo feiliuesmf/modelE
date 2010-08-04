@@ -6,7 +6,7 @@
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
-!@ver  2010/06/30 (based on LB265)
+!@ver  2010/08/04 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
@@ -835,11 +835,11 @@ C****
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
-!@ver  2010/07/14 (based on LB265)
+!@ver  2010/08/04 (based on LB265)
 
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland,dtsrc,itime,FLAKE0
+     *     ,itocean,itoice,fland,dtsrc,itime
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       use domain_decomp_1d, only: hasSouthPole, hasNorthPole
 
@@ -871,7 +871,7 @@ C****
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
       Real*8 MWLSILL, !  lake mass (kg) below sill depth
      *      MWlSILLD, !  downstream lake mass (kg) below sill depth
-     *       MLM,DMM,DGM,HLK1,DPE,FLFAC
+     *       MLM,DMM,DGM,HLK1,DPE,FLFAC, FLAKEU,FLAKED
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
@@ -915,11 +915,11 @@ C**** Normal Downstream Flow:
 C**** DMM = (MWLu-MWSILLu) * RATEu
 C****
 C**** Swash Water Back and Forth in Internal Sea, KDIRECu = KDIRECd = 9:
-C**** Water above sill = MWLSILLu = RHOW*FLAKE0u*AXYPu*HLAKEu
-C****                    MWLSILLd = RHOW*FLAKE0d*AXYPd*HLAKEd
-C**** DMM = URATE*DTSRC * [FLAKE0d*AXYPd*(MWLu-MWLSILLu) -
-C****                    - FLAKE0u*AXYPu*(MWLd-MWLSILLd)] /
-C****                     (FLAKE0u*AXYPu + FLAKE0d*AXYPd)
+C**** Water above sill = MWLSILLu = RHOW*FLAKEu*AXYPu*HLAKEu
+C****                    MWLSILLd = RHOW*FLAKEd*AXYPd*HLAKEd
+C**** DMM = URATE*DTSRC * [FLAKEd*AXYPd*(MWLu-MWLSILLu) -
+C****                    - FLAKEu*AXYPu*(MWLd-MWLSILLd)] /
+C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
 
       call startTimer('RIVERF()')
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
@@ -995,8 +995,7 @@ c instead, mark nonexistent cells with a code in the KDIREC array?
 C**** determine whether we have an emergency:
 C**** i.e. no outlet, max extent, more than 100m above original height
           If (KDIREC(IU,JU) == 0 .and.
-     *        FLAKE(IU,JU) > 0 .and.
-     *        FLAKE(IU,JU) >= .96875*(FLAKE(IU,JU)+FEARTH(IU,JU)) .and.
+     *        FLAKE(IU,JU) > .949d0*(FLAKE(IU,JU)+FEARTH(IU,JU)) .and.
      *        MWL(IU,JU) > (HLAKE(IU,JU)+LAKE_RISE_MAX)*
      *                     FLAKE(IU,JU)*RHOW*AXYP(IU,JU) .and.
      *        KD911(IU,JU) > 0)  Then
@@ -1025,8 +1024,7 @@ C****
 C**** Apply possible backwash river flow
 C****
           If ((KDIREC(ID,JD) >= 1 .and. KDIREC(ID,JD) <= 8) .or.
-     *        FLAKE(ID,JD) == 0 .or.
-     *        FLAKE(ID,JD) < .96875*(FLAKE(ID,JD)+FEARTH(ID,JD)))
+     *        FLAKE(ID,JD) <= .949d0*(FLAKE(ID,JD)+FEARTH(ID,JD)))
      *          GoTo 200
           MWLSILLD = RHOW * AXYP(ID,JD) * FLAKE(ID,JD) *
      *      (HLAKE(ID,JD) + byGRAV*Max(ZATMO(IU,JU)-ZATMO(ID,JD),0d0))
@@ -1148,15 +1146,18 @@ C****
 
           If (KDIREC(ID,JD) /= 9)  Cycle
           If (FLAKE(IU,JU) + FLAKE(ID,JD) == 0)  Cycle
-          MWLSILL  = RHOW * HLAKE(IU,JU) * FLAKE0(IU,JU) * AXYP(IU,JU)
-          MWLSILLD = RHOW * HLAKE(ID,JD) * FLAKE0(ID,JD) * AXYP(ID,JD)
+          FLAKEU   = Max (FLAKE(IU,JU), .01d0)
+          FLAKED   = Max (FLAKE(ID,JD), .01d0)
+          MWLSILL  = RHOW * HLAKE(IU,JU) * FLAKEU * AXYP(IU,JU)
+          MWLSILLD = RHOW * HLAKE(ID,JD) * FLAKED * AXYP(ID,JD)
           DMM = URATE*DTSRC *
-     *          (FLAKE0(ID,JD)*AXYP(ID,JD)*(MWL(IU,JU)-MWLSILL) -
-     -           FLAKE0(IU,JU)*AXYP(IU,JU)*(MWL(ID,JD)-MWLSILLD)) /
-     /          (FLAKE0(IU,JU)*AXYP(IU,JU) + FLAKE0(ID,JD)*AXYP(ID,JD))
+     *          (FLAKED*AXYP(ID,JD)*(MWL(IU,JU)-MWLSILL) -
+     -           FLAKEU*AXYP(IU,JU)*(MWL(ID,JD)-MWLSILLD)) /
+     /          (FLAKEU*AXYP(IU,JU) + FLAKED*AXYP(ID,JD))
           If (DMM > 0)  GoTo 420
 
 C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
+          If (MWL(ID,JD) <= 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD))  GoTo 430
           If (DMM < 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD))
      *        DMM = 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD)
           DGM = TLAKE(ID,JD)*DMM*SHW
@@ -1173,7 +1174,8 @@ C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
           GoTo 430
 
 C**** DMM > 0: Move water from grid cell (IU,JU) to cell (ID,JD)
-  420     If (DMM > MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU))
+  420     If (MWL(IU,JU) <= 1*RHOW*FLAKE(IU,JU)*AXYP(ID,JD))  GoTo 430
+          If (DMM > MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU))
      *        DMM = MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU)
           DGM = TLAKE(IU,JU)*DMM*SHW
           JR = JREG(ID,JD)
@@ -1657,11 +1659,10 @@ C**** prevent confusion due to round-off errors
               new_flake = max( new_flake, FLAKE(I,J) )
               mwsat = (new_flake-FLAKE(I,J))*AXYP(I,J)*DMWLDF(I,J)
             endif
-            NEW_FLAKE = Min (NEW_FLAKE, .96875*(FLAKE(I,J)+FEARTH(I,J)))
+            NEW_FLAKE = Min (NEW_FLAKE, .95d0*(FLAKE(I,J)+FEARTH(I,J)))
 C**** prevent lakes flooding the snow in GHY
 C**** do not flood more than 4.9% of land per day
             new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
-            NEW_FLAKE = Nint(NEW_FLAKE*1048576) / 1048576d0
             hlk=0.
             hlkic=0.
             if (new_flake.gt.0) then
