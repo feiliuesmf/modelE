@@ -2196,8 +2196,8 @@ C**** diagnostics on model levels
               case ("D")                ! HDO tracer (permil)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    datar8(i,j)=1d3*(trm(i,j,kp,n_HDO)/(trm(i,j,kp,n_water
-     *                   )*trw0(n_HDO))-1.)
+                    datar8(i,j)=1d3*(trm(i,j,kp,n_HDO)/
+     *                   (trm(i,j,kp,n_water)*trw0(n_HDO))-1.)
                   end do
                 end do
 #endif
