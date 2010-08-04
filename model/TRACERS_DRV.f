@@ -6878,7 +6878,7 @@ c         units_ijts(k) = unit_string(ijts_power(k),' ')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c BC impact on albedo
         k = k + 1
-        ijts_alb(1,n) = k
+        ijts_alb(1) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BC impact on albedo (%)'
         sname_ijts(k) = 'alb_BC'
@@ -6888,7 +6888,7 @@ c BC impact on albedo
 
 c SW forcing from albedo change
         k = k + 1
-        ijts_alb(2,n) = k
+        ijts_alb(2) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCalb SW radiative forcing'
         sname_ijts(k) = 'swf_BCALB'

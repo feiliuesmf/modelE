@@ -119,7 +119,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_aq tracer independent array for TAIJS aqueous change
       INTEGER ijts_aq(ntm)
 !@var ijts_alb BC impact on snow/ice albedo, grain size,sw and lw radiation
-      INTEGER ijts_alb(2,ntm)
+      INTEGER ijts_alb(2)
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
 !@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes

@@ -1706,6 +1706,10 @@ c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
       call GET_BC_DALBEDO(i,j,dALBsn1)
       dALBsn=dALBsn1
 #endif
+#if (defined TRACERS_AMP) && (defined BC_ALB)
+      call GET_BC_DALBEDO(i,j,dALBsn1)
+      dALBsn=dALBsn1
+#endif
       if (poice.gt.0.) then
         zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
@@ -2561,12 +2565,12 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
 #endif /* TRACERS_AMP */
          if (ntrace > 0) then
 #ifdef BC_ALB
-      if (ijts_alb(1,n_BCIA).gt.0)
-     * TAIJS(I,J,ijts_alb(1,n_BCIA))=TAIJS(I,J,ijts_alb(1,n_BCIA))
+      if (ijts_alb(1).gt.0)
+     * TAIJS(I,J,ijts_alb(1))=TAIJS(I,J,ijts_alb(1))
      *   + 100.d0*(ALBNBC(I,J)-ALB(I,J,1))
-      if (ijts_alb(2,n_BCIA).gt.0)
-     & taijs(i,j,ijts_alb(2,n_BCIA))
-     &     =taijs(i,j,ijts_alb(2,n_BCIA))
+      if (ijts_alb(2).gt.0)
+     & taijs(i,j,ijts_alb(2))
+     &     =taijs(i,j,ijts_alb(2))
      &         +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
 #endif /* BC_ALB */
 #ifdef TRACERS_AEROSOLS_Koch
