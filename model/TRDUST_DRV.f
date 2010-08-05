@@ -85,11 +85,13 @@ c**** temporary array to read in data
 #endif
 #endif
 
+#ifndef TRACERS_AMP
 c**** initialize dust names
       do n=1,Ntm_dust
         n1=n_soilDust+n-1
         dust_names(n) = trname(n1)
-      enddo
+      end do
+#endif
 
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
