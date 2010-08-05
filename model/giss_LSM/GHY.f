@@ -1222,8 +1222,8 @@ c     snowfs is the large scale snow fall.
       dripw_scale(1) = prs - snowfs
       htdripw(1) = htpr - htdrips(1)
       if ( snow_cover_same_as_rad .ne. 0 ) then
-#define TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
-#ifdef TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
+#define MELT_FRESH_SNOW_ON_WARM_GROUND
+#ifdef MELT_FRESH_SNOW_ON_WARM_GROUND
         !!! this water may need to be added to dripw_scale...
         do ibv=1,2
           if ( tp(1,ibv) > 0.d0 ) then
