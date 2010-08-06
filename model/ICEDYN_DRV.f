@@ -1524,6 +1524,7 @@ C**** Limit RSIX and RSIY so that sea ice is positive at the edges
       IF(RSI(I,J)+RSIY(I,J).lt.0.)  RSIY(I,J) =   -RSI(I,J)
       IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
       IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
+      IF(RSI(I,J)>1d0) RSI(I,J)=1d0
       GO TO 630
 C**** Sea ice crunches into itself and completely covers grid box
   620 RSI(I,J)   = 1d0
