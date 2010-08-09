@@ -618,12 +618,11 @@ c
      &     ktaij_,ktaij_out,taij=>taij_out,
      &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,
      &     ir_taij,ia_taij,denom_taij,lname_taij,sname_taij,units_taij,
-     &     sname_tij, lname_tij,
-     &     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
-     &     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
-     &     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     &     tij_uflx, tij_vflx, ijs_NO2_1330c, ijs_NO2_1030c, 
-     &     ijs_NO2_1330, ijs_NO2_1030
+     &     sname_tij, lname_tij, ijts_HasArea, ijts_clrsky, denom_ijts,
+     &     units_tij, scale_tij, lname_ijts,  sname_ijts,
+     &     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, dname_ijts,
+     &     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec,
+     &     dname_tij, ijts_pocean
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -632,14 +631,13 @@ c
       use geom, only : byaxyp,axyp,lat2d,areag
       use cdl_mod
       implicit none
-      integer ::  i,j,k,kk,kx,n,n1,n2,khem
-      integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,k_pocean,k_popocn,
-     & k_no2_1030=0,k_no2_1330=0,k_no2_1030c=0,k_no2_1330c=0
-      logical :: div_by_area
+      integer ::  i,j,k,kx,k1,n,n1,n2,khem
+      integer :: k_Be7,k_Pb210
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:), allocatable :: taij_tmp
       character(len=16) :: ijstr
       real*8, dimension(:,:), allocatable :: shnh_loc,shnh
+      character(len=sname_strlen), dimension(ktaij_) :: dname_taij
 
       logical :: have_south_pole, have_north_pole
       call get(grid, have_south_pole = have_south_pole,
@@ -673,32 +671,21 @@ C**** Fill in the undefined pole box duplicates
         denom_taij(k) = 0
         ia_taij(k) = ia_src
         sname_taij(k) = 'unused'
+        dname_taij(k) = ''
         lname_taij(k) = 'unused'
         units_taij(k) = 'unused'
         scale_taij(k) = 1.
       enddo
 
+      if(ijts_clrsky.gt.0) then
+        taijs(:,:,ijts_clrsky) =
+     &       real(idacc(ia_rad))-aij_loc(:,:,ij_cldcv)
+      endif
+      if(ijts_pocean.gt.0) then
+        taijs(:,:,ijts_pocean) = aij_loc(:,:,ij_pocean)
+      endif
+
       k = 0
-
-      k = k + 1
-      k_clr = k
-      ia_taij(k) = ia_rad
-      do j=j_0,j_1
-        do i=i_0,i_1
-          taij(i,j,k)=real(idacc(ia_rad))-aij_loc(i,j,ij_cldcv)
-        enddo
-      enddo
-
-#ifdef TRACERS_GASEXCH_ocean
-      k = k + 1
-      k_pocean = k
-      ia_taij(k) = ia_ij(ij_pocean)
-      taij(:,:,k) = aij_loc(:,:,ij_pocean)
-      k = k + 1
-      k_popocn = k
-      ia_taij(k) = ia_ij(ij_popocn)
-      taij(:,:,k) = aij_loc(:,:,ij_popocn)
-#endif
 
 c
 c Tracer sums/means and ground conc
@@ -711,6 +698,7 @@ c
         taij(i_0:i_1,j_0:j_1,k) = taijn(i_0:i_1,j_0:j_1,kx,n)
 
         sname_taij(k) = sname_tij(kx,n)
+        dname_taij(k) = dname_tij(kx,n)
         lname_taij(k) = lname_tij(kx,n)
         units_taij(k) = units_tij(kx,n)
         scale_taij(k) = scale_tij(kx,n)
@@ -722,30 +710,15 @@ c
 #endif
 
 #ifdef TRACERS_WATER
-        if(n.eq.n_water) then
-          k_water(kx) = k  ! water must go before any per_mil tracers
-        endif
-        if (to_per_mil(n).gt.0) then
-          if((kx-tij_mass)*(kx-tij_uflx)*(kx-tij_vflx).ne.0) then
-            do j=j_0,j_1; do i=i_0,i_1
-              taij(i,j,k) =
-     &             1d3*(taij(i,j,k)/trw0(n)-taijn(i,j,kx,n_water))
-            enddo       ; enddo
-            denom_taij(k) = k_water(kx)
-            if(n.eq.n_water) then ! save a non-per-mil denom
-              k = k+1
-              k_water(kx) = k
-              denom_taij(k-1) = k_water(kx)
-              do j=j_0,j_1; do i=i_0,i_1
-                taij(i,j,k) =  taijn(i,j,kx,n)
-              enddo       ; enddo
-              ia_taij(k) = ia_taij(k-1)
-            endif
-          endif
+        if(index(units_taij(k),'er mil').gt.0 .and. n.ne.n_water) then
+          do j=j_0,j_1; do i=i_0,i_1
+            taij(i,j,k) =
+     &           1d3*(taij(i,j,k)/trw0(n)-taijn(i,j,kx,n_water))
+          enddo       ; enddo
         endif
 #endif
 
-      enddo ! end loop over k
+      enddo ! end loop over kx
 
 #if (defined TRACERS_WATER) && (defined TRACERS_DRYDEP)
 c
@@ -761,7 +734,6 @@ c
         do i=i_0,i_1
           taij(i,j,k) = taijn(i,j,tij_drydep,n)+taijn(i,j,tij_gsdep,n)
           taij(i,j,k+1) = taij(i,j,k) + taijn(i,j,tij_prec,n)
-c ijt_mapk does not apply the scale factor to ratios.  workaround.
           taij(i,j,k) = taij(i,j,k)*100.
         enddo
         enddo
@@ -770,7 +742,7 @@ c ijt_mapk does not apply the scale factor to ratios.  workaround.
       endif
 #endif
 
-      end do ! end loop over tracers
+      enddo ! end loop over tracers
 
 #ifdef TRACERS_COSMO
       if (n_Be7.gt.0 .and. n_Be10.gt.0 .and. n_Pb210.gt.0) then
@@ -811,8 +783,8 @@ C****
         n2=n_HDO
 C**** precipitation
         k=k+1
-        denom_taij(k) = k_water(tij_prec)
         sname_taij(k) = "prec_ij_dex"
+        dname_taij(k) = sname_tij(tij_prec,n_Water)
         lname_taij(k) = "Deuterium excess in precip"
         units_taij(k) = "per mil"
         ir_taij(k) = ir_m45_130
@@ -826,8 +798,8 @@ C**** precipitation
         enddo
 C**** ground concentration
         k=k+1
-        denom_taij(k) = k_water(tij_grnd)
         sname_taij(k) = "grnd_ij_dex"
+        dname_taij(k) = sname_tij(tij_grnd,n_Water)
         lname_taij(k) = "Deuterium excess at Ground"
         units_taij(k) = "per mil"
         ir_taij(k) = ir_m45_130
@@ -849,8 +821,8 @@ C****
         n2=n_H2O17
 C**** precipitation
         k=k+1
-        denom_taij(k) = k_water(tij_prec)
         sname_taij(k) = "prec_ij_D17O"
+        dname_taij(k) = sname_tij(tij_prec,n_Water)
         lname_taij(k) = "D17O excess in precip"
         units_taij(k) = "per meg"
         ir_taij(k) = ir_m45_130
@@ -869,8 +841,8 @@ C**** precipitation
         end do
 C**** ground concentration
         k=k+1
-        denom_taij(k) = k_water(tij_grnd)
         sname_taij(k) = "grnd_ij_D17O"
+        dname_taij(k) = sname_tij(tij_grnd,n_Water)
         lname_taij(k) = "D17O excess at Ground"
         units_taij(k) = "per meg"
         ir_taij(k) = ir_m45_130
@@ -899,6 +871,7 @@ c
         k = k+1
 
         sname_taij(k) = sname_ijts(kx)
+        dname_taij(k) = dname_ijts(kx)
         lname_taij(k) = lname_ijts(kx)
         units_taij(k) = units_ijts(kx)
         ir_taij(k) = ir_log2    ! should be the correct default
@@ -907,40 +880,7 @@ c
 
         taij(i_0:i_1,j_0:j_1,k) = taijs(i_0:i_1,j_0:j_1,kx)
 
-        div_by_area = .true.
-
-        if(sname_taij(k)(1:3).eq.'tau') div_by_area = .false.
-        if(sname_taij(k)(1:3).eq.'swf') div_by_area = .false.
-        if(sname_taij(k)(1:3).eq.'lwf') div_by_area = .false.
-        if(sname_taij(k)(1:3).eq.'no_') div_by_area = .false.
-        if(sname_taij(k)(1:5).eq.'wtrsh') div_by_area = .false.
-        if(sname_taij(k)(1:4).eq.'ext_') div_by_area = .false.
-        if(sname_taij(k)(1:4).eq.'sct_') div_by_area = .false.
-        if(sname_taij(k)(1:4).eq.'asf_') div_by_area = .false.
-        if(sname_taij(k)(1:4).eq.'DIAM') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'DMS_con_') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'SO2_con_') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'SO4_con_') div_by_area = .false.
-        select case (trim(sname_taij(k)))
-        case('NO2_1030c','NO2_1330c','NO2_1030','NO2_1330')
-          div_by_area = .false.
-        end select
-
-#ifdef TRACERS_GASEXCH_ocean
-       if(sname_taij(k)(1:5).eq.'Solub'.or.
-     .     sname_taij(k)(1:5).eq.'Gas_E' .or.
-     .     sname_taij(k)(1:5).eq.'Pisto') then
-          div_by_area = .false.
-          denom_taij(k) = k_pocean ! ocean only
-        endif
-!       if(sname_taij(k)(1:5).eq.'Gas_E' .or.
-!    &     sname_taij(k)(1:5).eq.'Pisto') then
-!         div_by_area = .false.
-!         denom_taij(k) = k_popocn ! open ocean only
-!       end if
-#endif
-
-        if(div_by_area) then
+        if(ijts_HasArea(kx)) then
           do j=j_0,j_1
           do i=i_0,i_1
             taij(i,j,k) = taij(i,j,k)*byaxyp(i,j)
@@ -948,50 +888,35 @@ c
           enddo
         endif
 
-        if(sname_taij(k)(5:6).eq.'CS') then
-          do j=j_0,j_1
-          do i=i_0,i_1
-c ijt_mapk does not apply the scale factor to ratios.  workaround.
-            taij(i,j,k) = taij(i,j,k)*scale_taij(k)
-          enddo
-          enddo
-          scale_taij(k) = 1.
-          denom_taij(k) = k_clr
-        endif
+      enddo
 
-        if(sname_taij(k)=='NO2_1030c') k_no2_1030c = k
-        if(sname_taij(k)=='NO2_1030') k_no2_1030 = k
-        if(sname_taij(k)=='NO2_1330c') k_no2_1330c = k
-        if(sname_taij(k)=='NO2_1330') k_no2_1330 = k
-
-      end do
+      if(any(dname_taij(1:k).eq.'oicefr')) then      
+      k=k+1
+      sname_taij(k) = 'oicefr'
+      lname_taij(k) = lname_ij(ij_rsoi)
+      units_taij(k) = units_ij(ij_rsoi)
+      ia_taij(k) = ia_ij(ij_rsoi)
+      scale_taij(k) = scale_ij(ij_rsoi)
+      taij(:,:,k) = aij_loc(:,:,ij_rsoi)
+      endif
 
       ktaij_out = k
 
-c set this denominator by introducing denom_ijts to tracer code?
-      if(k_no2_1030.gt.0) then
-        k = k_no2_1030
-        denom_taij(k) = k_no2_1030c
-        do j=j_0,j_1
-        do i=i_0,i_1
-c ijt_mapk does not apply scale factor to ratios.  workaround.
-          taij(i,j,k) = taij(i,j,k)*scale_taij(k)
-        enddo
-        enddo
-        scale_taij(k) = 1.
-      endif
+c
+c find the indices of string-specified denominators 
+c
+      call FindStrings(dname_taij,sname_taij,denom_taij,ktaij_out)
 
-      if(k_no2_1330.gt.0) then
-        k = k_no2_1330
-        denom_taij(k) = k_no2_1330c
-        do j=j_0,j_1
-        do i=i_0,i_1
-c ijt_mapk does not apply scale factor to ratios.  workaround.
-          taij(i,j,k) = taij(i,j,k)*scale_taij(k)
-        enddo
-        enddo
-        scale_taij(k) = 1.
-      endif
+c      do k=1,ktaij_out
+c        if(len_trim(dname_taij(k)).gt.0) then
+c          do kk=1,ktaij_out
+c            if(trim(sname_taij(kk)).eq.trim(dname_taij(k))) then
+c              denom_taij(k) = kk
+c              exit
+c            endif
+c          enddo
+c        endif
+c      enddo
 
 c
 c if necessary, reallocate taij to be the right size

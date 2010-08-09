@@ -1221,8 +1221,8 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijs_NO2_1030, ijs_NO2_1030c,
-     *     ijs_NO2_1330, ijs_NO2_1330c
+     *     tij_uflx, tij_vflx, ijts_HasArea, denom_ijts, ijts_clrsky,
+     *     ijts_pocean, denom_tij, dname_tij
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1255,7 +1255,7 @@ C****
       CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      INTEGER ::  I,J,K,kx,L,N,kcolmn,nlines,jgrid,n1,n2
+      INTEGER ::  I,J,K,kx,kd,L,N,nd,kcolmn,nlines,jgrid,n1,n2
       REAL*8 :: DAYS,gm
 
       if (kdiag(8).ge.1) return
@@ -1264,6 +1264,14 @@ C****
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG)call open_ij(trim(acc_period)//'.ijt'//XLABEL(1:LRUNID)
      *     ,im,jm)
+
+c fill in some denominators if needed
+      if(ijts_clrsky.gt.0) then
+        taijs(:,:,ijts_clrsky) = real(idacc(ia_rad))-aij(:,:,ij_cldcv)
+      endif
+      if(ijts_pocean.gt.0) then
+        taijs(:,:,ijts_pocean) = aij(:,:,ij_pocean)
+      endif
 
 c**** always skip unused fields
       Qk = .true.
@@ -1292,13 +1300,21 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         ijtype(k) = 2
         aij1(:,:,k) = taijn(:,:,kx,n)
         aij2(:,:,k) = 1.
+!@auth Kelley postprocessing decisions use predeclared metadata
+        nd = denom_tij(kx,n)
+        if(nd.gt.0) then
+          ijtype(k)=3  ! ratio
+          aij2(:,:,k) = taijn(:,:,kx,nd)
+        endif
+        if(dname_tij(kx,n).eq.'oicefr') then
+          ijtype(k)=3  ! ratio
+          scale(k) = scale(k)/idacc(iacc(k)) ! ijt_mapk workaround
+          aij2(:,:,k)=aij(:,:,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
+        endif
 #ifdef TRACERS_WATER
-        if (to_per_mil(n).gt.0 .and. kx.ne.tij_mass .and. kx.ne.tij_uflx
-     *         .and. kx.ne.tij_vflx) then
-        aij1(:,:,k)=1d3*(taijn(:,:,kx,n)-taijn(:,:,kx,n_water)*trw0(n))
-        aij2(:,:,k)=taijn(:,:,kx,n_water)*trw0(n)
-        ijtype(k) = 3
-        scale(k) = 1
+        if (index(units(k),'er mil').gt.0) then
+          aij1(:,:,k)=1d3*(aij1(:,:,k)/trw0(n)-taijn(:,:,kx,n_water))
+          scale(k) = 1
         end if
 #endif
       end do
@@ -1341,46 +1357,20 @@ C**** Fill in maplet indices for sources and sinks
         aij2(:,:,k) = 1.
         scale(k) = scale_ijts(kx)
 
-        if (name(k)(1:3).eq.'tau'.or.name(k)(1:3).eq.'swf'.or.
-     *   name(k)(1:3).eq.'lwf' .OR. name(k)(1:3) .EQ. 'no_' .OR.
-     &   name(k)(1:5) .EQ. 'wtrsh' .OR. name(k)(1:8) .EQ. 'ext_band'
-     &   .OR. name(k)(1:8) .EQ. 'sct_band' .OR. name(k)(1:8) .EQ.
-     &   'asf_band' .OR. name(k)(1:9) .EQ. 'stomatal_') ijtype(k)=2
-
-        if (name(k)(5:6).eq.'CS') then
-          ijtype(k)=3
-          aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
-        endif
-
         if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
-          ijtype(k)=2
           scale(k)=real(idacc(iacc(k)))+teeny
         endif
-        if (name(k).eq.'NO2_1030') then
-          ijtype(k)=3
-          aij2(:,:,k) = taijs(:,:,ijs_NO2_1030c) ! denominator
-        endif
-        if (name(k).eq.'NO2_1330') then
-          ijtype(k)=3
-          aij2(:,:,k) = taijs(:,:,ijs_NO2_1330c) ! denominator
+
+!@auth Kelley postprocessing decisions use predeclared metadata
+        if(.not.ijts_HasArea(kx)) ijtype(k)=2 ! no need to divide by area
+        kd = denom_ijts(kx)
+        if(kd.gt.0) then
+          ijtype(k)=3  ! ratio; set denominator aij2
+          aij2(:,:,k) = taijs(:,:,kd)*
+     &       ( real(idacc(ia_ijts(kx)),kind=8)/
+     &         real(idacc(ia_ijts(kd)),kind=8) )
         endif
 
-        if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
-     *    'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
-
-        if (name(k)(1:5).eq."Solub".or.
-     *     name(k)(1:5).eq."Gas_E" .or.
-     *     name(k)(1:5).eq."Pisto") then  ! ocean only
-           ijtype(k)=3
-           aij2(:,:,k) = aij(:,:,ij_pocean)*idacc(iacc(k))/
-     *          (idacc(ia_ij(ij_pocean))+teeny)
-        end if 
-!       if(name(k)(1:5).eq."Gas_E" .or.
-!    *     name(k)(1:5).eq."Pisto") then ! open ocean only
-!          ijtype(k)=3
-!          aij2(:,:,k) = aij(:,:,ij_popocn)*idacc(iacc(k))/
-!    *          (idacc(ia_ij(ij_popocn))+teeny)
-!       end if
       end do
 
 #ifdef TRACERS_COSMO
@@ -1875,11 +1865,6 @@ c**** tracer amounts (divide by area) and Sources and sinks
         end do
 c**** tracer sums and means (no division by area)
       else if (nmap.eq.2) then
-        if (index(lname,' x POICE') .gt. 0) then  ! weight by sea ice
-          k1 = index(lname,' x ')
-          adenom(:,:)=aij(:,:,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
-          lname(k1:80)=''
-        end if
         do j=1,JM
         do i=1,im
           anum(i,j)=aij1(i,j)*byiacc*scale
@@ -1887,10 +1872,6 @@ c**** tracer sums and means (no division by area)
         end do
 c**** ratios (i.e. per mil diags)
       else if (nmap.eq.3) then
-        if (index(lname,' x POICE') .gt. 0) then  ! ignore weighting
-          k1 = index(lname,' x ')
-          lname(k1:80)=''
-        end if
         do j=1,JM
         do i=1,im
           anum(i,j)=aij1(i,j)*scale

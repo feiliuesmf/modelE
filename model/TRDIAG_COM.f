@@ -86,6 +86,15 @@ C**** TAIJN
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
       character(len=sname_strlen), dimension(ktaij,ntm) :: sname_tij
       character(len=units_strlen), dimension(ktaij,ntm) :: units_tij
+!@var DNAME_TIJ, DENOM_TIJ: Short names, indices of tij denominators.
+!@+   Currently, denom is specified along with the standard metadata,
+!@+   and the dnames are looked up afterward.  Exception: denominators
+!@+   that are not part of the taijn array must be specified using dname.
+!@+   For now the denom index indicates which _tracer_ index is to be
+!@+   used as a denominator.  Ratios of 2 accumulation types are
+!@+   not yet needed.
+      character(len=sname_strlen), dimension(ktaij,ntm) :: dname_tij=''
+      integer, dimension(ktaij,ntm) :: denom_tij=0
 !@var LNAME_TIJ: descriptions of tracer IJK diags
       character(len=lname_strlen), dimension(ktaij,ntm) ::
      &     lname_tij = 'unused'
@@ -93,7 +102,8 @@ C**** TAIJN
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER :: ijs_ai,ijs_isoprene,ijs_NO2_1030,ijs_NO2_1030c,
-     &ijs_NO2_1330,ijs_NO2_1330c,ijts_Sdrydep
+     &ijs_NO2_1330,ijs_NO2_1330c,ijts_Sdrydep,
+     &ijts_clrsky=0,ijts_pocean=0
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
@@ -173,12 +183,19 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
       character(len=lname_strlen), dimension(ktaijs) ::
      &     lname_ijts = 'unused'
+!@var DNAME_IJTS, DENOM_IJTS: Short names, indices of ijts denominators.
+!@+   Currently, dname is specified along with the standard metadata and
+!@+   the denom indices are looked up afterward.
+      character(len=sname_strlen), dimension(ktaijs) :: dname_ijts=''
+      integer, dimension(ktaijs) :: denom_ijts=0
 !@var SCALE_IJTS: printout scaling factor for tracer IJTS diagnostics
       REAL*8, dimension(ktaijs) :: scale_ijts
 !@var IA_IJTS: idacc-number for tracer source/sink IJ diags
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
+!@var ijts_HasArea: does accumulation need to be divided by grid area?
+      LOGICAL, DIMENSION(ktaijs) :: ijts_HasArea
 
 C**** TAIJLS 3D special tracer diagnostics
 

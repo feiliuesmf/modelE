@@ -23,7 +23,7 @@
       USE PARAM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
-      integer :: l,k,n
+      integer :: l,k,n,nd
       character*10, DIMENSION(NTM) :: CMR,CMRWT
       logical :: T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
@@ -208,6 +208,10 @@ C**** Average concentration over layers
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+        if (to_per_mil(n) .eq.1) then
+          denom_tij(k,n)=n_Water
+          scale_tij(k,n)=1.
+        endif
 C**** Surface concentration
       k = k+1
       tij_surf = k
@@ -216,6 +220,10 @@ C**** Surface concentration
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+        if (to_per_mil(n) .eq.1) then
+          denom_tij(k,n)=n_Water
+          scale_tij(k,n)=1.
+        endif
 C**** Surface concentration by volume (units kg/m^3)
       k = k+1
       tij_surfbv = k
@@ -238,7 +246,8 @@ C**** Tracers in precipitation (=Wet deposition)
           write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *         ' in Precip'
           units_tij(k,n)=cmrwt(n)
-          scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
+          scale_tij(k,n)=1.
+          denom_tij(k,n)=n_Water
         else
           write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_wet_dep'
           write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
@@ -257,17 +266,18 @@ C**** Tracers in evaporation
      *       ' in Evaporation'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(ijtc_power(n),cmrwt(n))
+          scale_tij(k,n)=1.
+          denom_tij(k,n)=n_Water
         else
           units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
+          scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
       endif
 C**** Tracers in river runoff
       k = k+1
       tij_rvr = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_rvr'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' in River Outflow'
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_rvr'
+        lname_tij(k,n) = trim(TRNAME(n))//' in River Outflow'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
           scale_tij(k,n)=1.
@@ -275,18 +285,21 @@ C**** Tracers in river runoff
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg')
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
+        denom_tij(k,n)=n_Water
 C**** Tracers in sea ice
       k = k+1
       tij_seaice = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_ice'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' in Sea Ice  x POICE'
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_ice'
+        lname_tij(k,n) = trim(TRNAME(n))//' in Sea Ice'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
           scale_tij(k,n)=1.
+          denom_tij(k,n)=n_Water
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,cmrwt(n))
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+          dname_tij(k,n) = 'oicefr'
+c        denom_tij(k,n)=n_Water ! if kg/kg units for non-water-isotopes
         end if
 C**** Tracers conc. in ground component (ie. water or ice surfaces)
       k = k+1
@@ -296,58 +309,64 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
      *       ' at Ground'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
+          denom_tij(k,n)=n_Water
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
 C**** Tracers conc. in lakes (layer 1)
       k = k+1
       tij_lk1 = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Lake1'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' Lakes layer 1'
+        sname_tij(k,n) = trim(TRNAME(n))//'_Lake1'
+        lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 1'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+        denom_tij(k,n)=n_Water
 C**** Tracers conc. in lakes (layer 2)
       k = k+1
       tij_lk2 = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Lake2'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' Lakes layer 2'
+        sname_tij(k,n) = trim(TRNAME(n))//'_Lake2'
+        lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 2'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+        denom_tij(k,n)=n_Water
 C**** Tracers conc. in soil water
       k = k+1
       tij_soil = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_Soil'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' Soil Water'
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_Soil'
+        lname_tij(k,n) = trim(TRNAME(n))//' Soil Water'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+        denom_tij(k,n)=n_Water
 C**** Tracers conc. in land snow water
       k = k+1
       tij_snow = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_Snow'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' Land Snow Water'
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_Snow'
+        lname_tij(k,n) = trim(TRNAME(n))//' Land Snow Water'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
         else
           units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg wat')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
+        denom_tij(k,n)=n_Water
 C**** Tracer ice-ocean flux
       k = k+1
       tij_icocflx = k
@@ -356,10 +375,12 @@ C**** Tracer ice-ocean flux
      *       ' Ice-Ocean Flux'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
+          denom_tij(k,n)=n_Water
+          scale_tij(k,n)=1.
         else
           units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
+          scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
         end if
-        scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
 C**** Tracers integrated E-W atmospheric flux
       k = k+1
       tij_uflx = k
@@ -420,6 +441,16 @@ C**** Tracers dry deposition flux.
       end if
 
       end do
+
+c
+c Collect denominator short names for later use
+c
+      do n=1,ntm
+      do k=1,ktaij
+        nd = denom_tij(k,n)
+        if(nd.gt.0) dname_tij(k,n) = sname_tij(k,nd)
+      enddo
+      enddo
 
       RETURN
       END SUBROUTINE set_generic_tracer_diags

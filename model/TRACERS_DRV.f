@@ -4926,7 +4926,7 @@ c Oxidants
       USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
       implicit none
-      integer k,n,n1,kr
+      integer k,n,n1,kr,ktaijs_out
       character*50 :: unit_string
       CHARACTER*17 :: cform
 
@@ -4937,6 +4937,8 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_aq(:)=0
       ijts_isrc(:,:)=0
       ijts_gasex(:,:)=0
+      ijts_HasArea(:) = .true. ! default applies to >50% of cases ???
+      denom_ijts(:) = 0
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0
@@ -4944,6 +4946,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
+
       do n=1,ntm
       select case (trname(n))
 
@@ -4970,28 +4973,34 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_gasex(1,n)  = k
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Piston Velocity'
         ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
 
       k = k+1  ! Gas Exchange Solubility coefficient
         ijts_gasex(2,n)  = k
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Solubility'
         ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
 
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
         units_ijts(k) = unit_string(ijtc_power(n),'molCFC/m2/yr')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
 
       case ('CO2n')
       k = k + 1
@@ -5007,28 +5016,34 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_gasex(1,n)  = k
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Piston Velocity'
         ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
 
       k = k+1  ! Gas Exchange Solubility coefficient
         ijts_gasex(2,n)  = k
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Solubility'
         ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
       
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
+        dname_ijts(k) = 'ocnfr'
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
         units_ijts(k) = unit_string(ijtc_power(n),'molCO2/m2/yr')
         scale_ijts(k) = 10.**(-ijtc_power(n))
+        ijts_HasArea(k) = .false.
 
       case ('SF6','SF6_c')
       k = k+1
@@ -5252,6 +5267,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
           k = k + 1
           ijts_fc(2,n) = k
           ia_ijts(k) = ia_rad_frc
@@ -5260,6 +5276,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
           k = k + 1
           ijts_fc(3,n) = k
           ia_ijts(k) = ia_rad_frc
@@ -5268,6 +5285,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
           k = k + 1
           ijts_fc(4,n) = k
           ia_ijts(k) = ia_rad_frc
@@ -5276,6 +5294,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 #ifdef AUXILIARY_OX_RADF
           if(trname(n)=='Ox')then
             k = k + 1
@@ -5286,6 +5305,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
             k = k + 1
             ijts_auxfc(2) = k
             ia_ijts(k) = ia_rad_frc
@@ -5294,6 +5314,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
             k = k + 1
             ijts_auxfc(3) = k
             ia_ijts(k) = ia_rad_frc
@@ -5302,6 +5323,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
             k = k + 1
             ijts_auxfc(4) = k
             ia_ijts(k) = ia_rad_frc
@@ -5310,6 +5332,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
           endif
 #endif /* AUXILIARY_OX_RADF */
 #ifdef ACCMIP_LIKE_DIAGS
@@ -5322,6 +5345,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             ijts_power(k) = ntm_power(n)-4
             units_ijts(k) = unit_string(ijts_power(k),'kg/m^2/s')
             scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+            ijts_HasArea(k) = .false.
           end if
 #endif /* ACCMIP_LIKE_DIAGS */
         end select
@@ -5627,6 +5651,7 @@ c BCI shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -5636,6 +5661,7 @@ c BCI longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCI shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -5645,6 +5671,7 @@ c BCI shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -5654,24 +5681,29 @@ c BCI longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCI clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCI'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCI'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
 
       case ('BCB')
@@ -5696,6 +5728,7 @@ c BCB shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCB longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -5705,6 +5738,7 @@ c BCB longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCB shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -5714,6 +5748,7 @@ c BCB shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCB longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -5723,24 +5758,29 @@ c BCB longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCB clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = trim(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = trim(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
 
       case ('OCII')
@@ -5845,6 +5885,7 @@ c OC shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -5854,6 +5895,7 @@ c OC longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -5863,6 +5905,7 @@ c OC shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -5872,24 +5915,29 @@ c OC longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
       case ('OCIA','OCA1','OCA2','OCA3')
         k = k + 1
@@ -5914,6 +5962,7 @@ c OC shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -5923,6 +5972,7 @@ c OC longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -5932,6 +5982,7 @@ c OC shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -5941,24 +5992,29 @@ c OC longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
       case ('OCB')
         k = k + 1
@@ -6120,6 +6176,7 @@ c SO4 shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SO4 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -6129,6 +6186,7 @@ c SO4 longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SO4 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -6138,6 +6196,7 @@ c SO4 shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SO4 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -6147,24 +6206,29 @@ c SO4 longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SO4 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SO4 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
 
 c#ifdef TRACERS_NITRATE
@@ -6204,6 +6268,7 @@ c NO3 shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c NO3 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -6213,6 +6278,7 @@ c NO3 longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c NO3 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -6222,6 +6288,7 @@ c NO3 shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c NO3 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -6231,24 +6298,29 @@ c NO3 longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c NO3 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c NO3 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c#endif
 #ifdef TRACERS_AMP
         case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
@@ -6423,6 +6495,7 @@ c SS shortwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SS longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -6432,6 +6505,7 @@ c SS longwave radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SS shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -6441,6 +6515,7 @@ c SS shortwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SS longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -6450,24 +6525,29 @@ c SS longwave surface radiative forcing
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SS clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_SS'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c SS clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_SS'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
        case ('seasalt2')
         k = k + 1
@@ -6547,6 +6627,7 @@ c dust optical thickness of four clay sub size classes
               ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
+              ijts_HasArea(k) = .false.
             end do
 c dust clear sky optical thickness of four clay sub size classes
             do kr=1,4
@@ -6556,9 +6637,11 @@ c dust clear sky optical thickness of four clay sub size classes
               lname_ijts(k) = trim(trname(n))//char(48+kr)/
      *             /' CS optical thickness'
               sname_ijts(k) = 'tau_CS_'//trim(trname(n))//char(48+kr)
+              dname_ijts(k) = 'clrsky'
               ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
               scale_ijts(k) = 10.**(-ijts_power(k))
+              ijts_HasArea(k) = .false.
             end do
           ELSE
             DO kr=1,6
@@ -6578,6 +6661,7 @@ c extinction optical thickness in six solar bands for four clay sub classes
                 ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
 c clear sky extinction optical thickness in six solar bands for four clay
 c sub classes
                 k=k+1
@@ -6591,9 +6675,11 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
+                dname_ijts(k) = 'clrsky'
                 ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
 c scattering optical thickness in six solar bands for four clay sub classes
                 k=k+1
                 ijts_sqscsub(1,kr,n,n1)=k
@@ -6609,6 +6695,7 @@ c scattering optical thickness in six solar bands for four clay sub classes
                 ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
 c clear sky scattering optical thickness in six solar bands for four clay
 c sub classes
                 k=k+1
@@ -6622,9 +6709,11 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
+                dname_ijts(k) = 'clrsky'
                 ijts_power(k) = -4
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
 c scattering asymmetry factor in six solar bands for four clay sub classes
                 k=k+1
                 ijts_sqcbsub(1,kr,n,n1)=k
@@ -6640,6 +6729,7 @@ c scattering asymmetry factor in six solar bands for four clay sub classes
                 ijts_power(k) = -2
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
 c clear sky scattering asymmetry factor in six solar bands for four clay
 c sub classes
                 k=k+1
@@ -6653,9 +6743,11 @@ c sub classes
      &               LEN_TRIM(trname(n)),',I1)'
                 WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &               TRIM(trname(n)),n1
+                dname_ijts(k) = 'clrsky'
                 ijts_power(k) = -2
                 units_ijts(k) = unit_string(ijts_power(k),' ')
                 scale_ijts(k) = 10.**(-ijts_power(k))
+                ijts_HasArea(k) = .false.
               END DO
             END DO
           END IF
@@ -6670,6 +6762,7 @@ c dust shortwave radiative forcing of four clay sub size classes
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
           end do
 c dust longwave radiative forcing of four clay sub size classes
           do kr=1,4
@@ -6682,6 +6775,7 @@ c dust longwave radiative forcing of four clay sub size classes
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
           end do
 c dust shortwave radiative forcing at surface of four clay sub size classes
           do kr=1,4
@@ -6694,6 +6788,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
           end do
 c dust longwave radiative forcing at surface of four sub size classes
           do kr=1,4
@@ -6706,6 +6801,7 @@ c dust longwave radiative forcing at surface of four sub size classes
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
           end do
         CASE('Silt1','Silt2','Silt3','Silt4',
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
@@ -6725,6 +6821,7 @@ c dust shortwave radiative forcing
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c dust longwave radiative forcing
           k = k + 1
           ijts_fc(2,n) = k
@@ -6734,6 +6831,7 @@ c dust longwave radiative forcing
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c dust shortwave radiative forcing at surface
           k = k + 1
           ijts_fc(3,n) = k
@@ -6743,6 +6841,7 @@ c dust shortwave radiative forcing at surface
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c dust longwave radiative forcing at surface
           k = k + 1
           ijts_fc(4,n) = k
@@ -6752,6 +6851,7 @@ c dust longwave radiative forcing at surface
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
         END SELECT
 #endif  /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
 
@@ -6895,6 +6995,7 @@ c SW forcing from albedo change
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -6904,6 +7005,7 @@ c SW forcing from albedo change
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'Aerosol Index'
           sname_ijts(k) = 'ain_CSN'
+          dname_ijts(k) = 'clrsky'
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -6925,9 +7027,11 @@ c SW forcing from albedo change
         ia_ijts(k) = ia_src
         write(lname_ijts(k),'(a18)')'NO2 10:30 trop col'
         sname_ijts(k) = 'NO2_1030'
+        dname_ijts(k) = 'NO2_1030c'
         ijts_power(k) = 15
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       k = k + 1
         ijs_NO2_1030c=k
         ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
@@ -6936,14 +7040,17 @@ c SW forcing from albedo change
         ijts_power(k) = 0
         units_ijts(k) = unit_string(ijts_power(k),'number of accum')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       k = k + 1
         ijs_NO2_1330=k
         ia_ijts(k) = ia_src
         write(lname_ijts(k),'(a18)')'NO2 13:30 trop col'
         sname_ijts(k) = 'NO2_1330'
+        dname_ijts(k) = 'NO2_1330c'
         ijts_power(k) = 15
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       k = k + 1
         ijs_NO2_1330c=k
         ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
@@ -6952,6 +7059,7 @@ c SW forcing from albedo change
         ijts_power(k) = 0
         units_ijts(k) = unit_string(ijts_power(k),'number of accum')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -6962,6 +7070,7 @@ c SW forcing from albedo change
       ia_ijts(k)=ia_src
       scale_ijts(k)=Sday/Dtsrc
       units_ijts(k)='1/d'
+      ijts_HasArea(k) = .false.
       k = k + 1
       ijts_spec(nDustEv2ij)=k
       lname_ijts(k)='No. dust events above threshold wind'
@@ -6969,6 +7078,7 @@ c SW forcing from albedo change
       ia_ijts(k)=ia_src
       scale_ijts(k)=Sday/Dtsrc
       units_ijts(k)='1/d'
+      ijts_HasArea(k) = .false.
       k = k + 1
       ijts_spec(nDustWthij)=k
       lname_ijts(k)='Threshold velocity for dust emission'
@@ -6976,6 +7086,7 @@ c SW forcing from albedo change
       ia_ijts(k)=ia_src
       scale_ijts(k)=1.
       units_ijts(k)='m/s'
+      ijts_HasArea(k) = .false.
 #endif
 
 #ifdef TRACERS_AMP
@@ -7055,6 +7166,7 @@ cc shortwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c longwave radiative forcing
       k = k + 1
         ijts_fc(2,n) = k
@@ -7064,6 +7176,7 @@ c longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c shortwave surface radiative forcing
       k = k + 1
         ijts_fc(3,n) = k
@@ -7073,6 +7186,7 @@ c shortwave surface radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c longwave surface radiative forcing
       k = k + 1
         ijts_fc(4,n) = k
@@ -7082,24 +7196,29 @@ c longwave surface radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c clear sky shortwave radiative forcing
       k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW cs forc'
         sname_ijts(k) = 'swf_CS_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c clear sky longwave radiative forcing
       k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW CS forc'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       ENDIF
 
 c Special Radiation Diagnostic
@@ -7120,6 +7239,7 @@ cc shortwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
@@ -7129,6 +7249,7 @@ c longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
@@ -7138,6 +7259,7 @@ c shortwave surface radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
@@ -7147,24 +7269,29 @@ c longwave surface radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_AMP'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_AMP'
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       ENDIF
 c end special radiation diagnostic
 
@@ -7182,16 +7309,97 @@ c         scale_ijts(k) = 10.**(-ijts_power(k))
 c      end do
 c      end do
 #endif
-      if (k .gt. ktaijs) then
+
+c
+c Append some denominator fields if necessary
+c
+      if(any(dname_ijts(1:k).eq.'clrsky')) then
+        k = k + 1
+        ijts_clrsky = k
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'CLEAR SKY FRACTION'
+        sname_ijts(k) = 'clrsky'
+        units_ijts(k) = '%'
+        scale_ijts(k) = 100.
+        ijts_HasArea(k) = .false.
+      endif
+
+      if(any(dname_ijts(1:k).eq.'ocnfr')) then
+        k = k + 1
+        ijts_pocean = k
+        lname_ijts(k) = 'OCEAN FRACTION'
+        units_ijts(k) = '%'
+        sname_ijts(k) = 'ocnfr'
+        ia_ijts(k) = ia_srf     ! ia_ij(ij_pocean) is not initialized yet :(
+        scale_ij(k) = 100.
+        ijts_HasArea(k) = .false.
+      endif
+
+      ktaijs_out = k
+      if (ktaijs_out .gt. ktaijs) then
         if (AM_I_ROOT())
      *       write (6,*)'ijt_defs: Increase ktaijs=',ktaijs
-     *       ,' to at least ',k
+     *       ,' to at least ',ktaijs_out
         call stop_model('ktaijs too small',255)
       end if
+
+c find indices of denominators
+      call FindStrings(dname_ijts,sname_ijts,denom_ijts,ktaijs_out)
+c      do k=1,ktaijs_out
+c        if(len_trim(dname_ijts(k)).gt.0) then
+c          do kk=ktaijs_out,1,-1
+c            if(trim(sname_ijts(kk)).eq.trim(dname_ijts(k))) then
+c              denom_ijts(k) = kk
+c              exit
+c            endif
+c          enddo
+c          if(denom_ijts(k).eq.0) then
+c            if(am_i_root()) then
+c              write(6,*)
+c     &             'init_ijts_diag: denominator '//trim(dname_ijts(k))
+c              write(6,*) 'not found for field '//trim(sname_ijts(k))
+c            endif
+c            call stop_model('init_ijts_diag: denominator not found',255)
+c          endif
+c        endif
+c      enddo
+
 #endif /* TRACERS_ON */
 
       return
       end subroutine init_ijts_diag
+
+#ifdef TRACERS_ON
+      subroutine FindStrings(StringsToFind,ListOfStrings,Indices,n)
+!@sum FindStrings finds the positions of a list of strings in a 2nd list.
+!     Needs optimization.
+      use diag_com, only : sname_strlen
+      implicit none
+      integer :: n
+      character(len=sname_strlen), dimension(n) ::
+     &     StringsToFind,ListOfStrings
+      integer, dimension(n) :: Indices
+      integer :: k,kk
+      logical :: found
+      do k=1,n
+        if(len_trim(StringsToFind(k)).gt.0) then
+          found = .false.
+          do kk=1,n
+            if(trim(ListOfStrings(kk)).eq.trim(StringsToFind(k))) then
+              Indices(k) = kk
+              found = .true.
+              exit
+            endif
+          enddo
+          if(.not.found) then
+            write(6,*) 'FindStrings: string '//
+     &           trim(StringsToFind(k))//' not found'
+            call stop_model('FindStrings: string not found',255)
+          endif
+        endif
+      enddo
+      end subroutine FindStrings
+#endif
 
       subroutine set_diag_rad(n,k)
 !@sum set_diag_rad sets special rad diags for aerosols
@@ -7219,15 +7427,18 @@ c optical thickness
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 c clear sky optical thickness
         k = k + 1
         ijts_tau(2,n) = k
         ia_ijts(k) = ia_rad
         lname_ijts(k) = trim(trname(n))//' clr sky optical thickness'
         sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),' ')
         scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
       ELSE
         DO kr=1,6
 c extinction optical thickness in six solar bands
@@ -7244,6 +7455,7 @@ c extinction optical thickness in six solar bands
           ijts_power(k) = -4
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c clear sky extinction optical thickness in six solar bands
           k=k+1
           ijts_sqex(2,kr,n)=k
@@ -7256,9 +7468,11 @@ c clear sky extinction optical thickness in six solar bands
      &         LEN_TRIM(trname(n)),')'
           WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
      &         TRIM(trname(n))
+          dname_ijts(k) = 'clrsky'
           ijts_power(k) = -4
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c scattering optical thickness in six solar bands
           k=k+1
           ijts_sqsc(1,kr,n)=k
@@ -7273,6 +7487,7 @@ c scattering optical thickness in six solar bands
           ijts_power(k) = -4
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c clear sky scattering optical thickness in six solar bands
           k=k+1
           ijts_sqsc(2,kr,n)=k
@@ -7285,9 +7500,11 @@ c clear sky scattering optical thickness in six solar bands
      &         LEN_TRIM(trname(n)),')'
           WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
      &         TRIM(trname(n))
+          dname_ijts(k) = 'clrsky'
           ijts_power(k) = -4
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c scattering asymmetry factor in six solar bands
           k=k+1
           ijts_sqcb(1,kr,n)=k
@@ -7303,6 +7520,7 @@ c scattering asymmetry factor in six solar bands
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
 c clear sky scattering asymmetry factor in six solar bands
           k=k+1
           ijts_sqcb(2,kr,n)=k
@@ -7315,9 +7533,11 @@ c clear sky scattering asymmetry factor in six solar bands
      &         LEN_TRIM(trname(n)),')'
           WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
      &         TRIM(trname(n))
+          dname_ijts(k) = 'clrsky'
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
         END DO
       END IF
 #endif
