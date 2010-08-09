@@ -176,7 +176,6 @@ c
          u_av(i,j,k)=   u_av(i,j,k)+   u(i,j,k)/(ny2-ny1+1)
          v_av(i,j,k)=   v_av(i,j,k)+   v(i,j,k)/(ny2-ny1+1)
       temp_av(i,j,k)=temp_av(i,j,k)+temp(i,j,k)/(ny2-ny1+1)
-      temp_av(i,j,k)=temp_av(i,j,k)+temp(i,j,k)/(ny2-ny1+1)
       saln_av(i,j,k)=saln_av(i,j,k)+saln(i,j,k)/(ny2-ny1+1)
       th3d_av(i,j,k)=th3d_av(i,j,k)+th3d(i,j,k)/(ny2-ny1+1)
       do nt=1,ntrcr
