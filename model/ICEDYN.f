@@ -1108,7 +1108,13 @@ C**** sin/cos ice-ocean turning angle
 C**** Set land masks for tracer and velocity points
        do j=j_0,j_1
         do i=2,nx1-1
+
+#if (defined CUBED_SPHERE) || (defined HYCOM1deg) ||\
+    (defined HYCOM2deg) 
           heffm(i,j)=nint(focean(i-1,j))
+#endif
+
+          heffm(i,j)=ceiling(focean(i-1,j))
         enddo
         heffm(1,j)=heffm(nx1-1,j)
         heffm(nx1,j)=heffm(2,j)
