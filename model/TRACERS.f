@@ -208,10 +208,12 @@ C**** Average concentration over layers
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+#ifdef TRACERS_WATER
         if (to_per_mil(n) .eq.1) then
           denom_tij(k,n)=n_Water
           scale_tij(k,n)=1.
         endif
+#endif
 C**** Surface concentration
       k = k+1
       tij_surf = k
@@ -220,10 +222,12 @@ C**** Surface concentration
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+#ifdef TRACERS_WATER
         if (to_per_mil(n) .eq.1) then
           denom_tij(k,n)=n_Water
           scale_tij(k,n)=1.
         endif
+#endif
 C**** Surface concentration by volume (units kg/m^3)
       k = k+1
       tij_surfbv = k
