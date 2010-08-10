@@ -896,6 +896,7 @@ C**** GLOBAL parameters and variables:
      & ,SF2_fact,SF3_fact,bin4_1991,bin4_1988,bin5_1988
 #endif
       USE MODEL_COM, only: JYEAR,JDAY,JMON
+      USE RAD_COM, only: s0_yr
 
       IMPLICIT NONE
       
@@ -903,41 +904,50 @@ C**** Local parameters and variables and arguments:
 C bin4_1988 fastj2 bin#4 photon flux for year 1988
 C bin4_1991 fastj2 bin#4 photon flux for year 1991
 C bin5_1988 fastj2 bin#5 photon flux for year 1988
-      integer :: yearx,iunit,i,iw
+      integer :: yearx,iunit,i,iw,wantYear
       logical, intent(in) :: end_of_day
       character(len=300) :: out_line
  
       if(.not. end_of_day .or. JDAY == 1) then
-        write(out_line,*) 'In READ_FL, JYEAR=',JYEAR
-        call write_parallel(trim(out_line))
+        if(s0_yr==0)then 
+          wantYear=jyear
+        else
+          wantYear=s0_yr
+        endif
         CALL openunit('FLTRAN',iunit,.false.,.true.)
         READ(iunit,*) ! 1 line of comments
-        do i = 1,10000 ! arbitrary large number
+        recLoop: do i = 1,10000 ! arbitrary large number
           READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
-          if(yearx == JYEAR) then
+          if(yearx == wantYear) then
             FL(1:NWWW)=FLX(1:NWWW)
           else
             DUMMY(1:NWWW)=FLX(1:NWWW)
           endif
 #ifdef SHINDELL_STRAT_CHEM
           if(yearx == 1988)then
-            if(yearx == JYEAR)then
+            if(yearx == wantYear)then
               bin4_1988=FL(4); bin5_1988=FL(5)
             else      
               bin4_1988=DUMMY(4); bin5_1988=DUMMY(5)
             endif
           else if(yearx == 1991)then
-            if(yearx == JYEAR)then
+            if(yearx == wantYear)then
               bin4_1991=FL(4)
             else
               bin4_1991=DUMMY(4)
             endif
           endif
-          IF(yearx >= JYEAR.and.yearx >= 1991) exit
+          if(yearx >= wantYear.and.yearx >= 1991) exit recLoop
 #else
           call stop_model('make sure rad_FL>0 works in trop-chem?',255)
 #endif
-        end do
+        end do recLoop
+
+        write(out_line,*)'READ_FL Using year ',wantYear,
+     &  ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &  ' bin5_now/1988= ',FL(5),bin5_1988
+        call write_parallel(trim(out_line))
+
         call closeunit(iunit)
       endif
 
