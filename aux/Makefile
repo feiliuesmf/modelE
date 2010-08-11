@@ -44,7 +44,7 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
 rvr: $(BIN_DIR)/RDconvert 
-csrvr: RDijk2ll
+csrvr: RDijk2llEM
 input: inputll2cs
 regrid: ll2cs ncll2cs ncGinoux
 
@@ -156,7 +156,10 @@ RDconvert.o: $(GCMLIB)
 $(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
-RDijk2ll: RDijk2ll2.o
+RDijk2ll: RDijk2ll.o
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
+
+RDijk2llEM: RDijk2llEM.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 inputll2cs: regrid.o ncio.o inputLL2CS.o 

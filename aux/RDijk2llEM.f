@@ -74,11 +74,11 @@ c*     conversion char to int
     
       iu_RD=20
       if (imt .eq. 32) then
-         name="RDtoO.CS32.INT"
-         nameout="RDdistocean_CS32.bin"
+         name="RDtoO.CS32EM.INT"
+         nameout="RDdistocean_CS32_EM.bin"
       elseif (imt .eq. 90) then
-         name="RDtoO.CS90.INT"
-         nameout="RDdistocean_CS90.bin"
+         name="RDtoO.CS90EM.INT"
+         nameout="RDdistocean_CS90_EM.bin"
       endif
       name = trim(PROD) // '/' // name
       
@@ -90,6 +90,8 @@ c* read i,j,k coordinates of downstream cells
      &     STATUS='unknown')
       
       read(iu_RD) title,idown,jdown,kdown
+      write(*,*) title
+      read(iu_RD) title,id911,jd911,kd911
       write(*,*) title
       close(iu_RD)
       write(*,*) "read RDijk2ll_CS"
@@ -131,13 +133,20 @@ c*    convert i,j,k coordinates of downstream cells to absolute lat-lon coordina
      &            ,kdown(i,j,k))
 
 c*    dummy emergency directions
-              down_lat_911(i,j,k)=down_lat(i,j,k)
-              down_lon_911(i,j,k)=down_lon(i,j,k)
+              down_lat_911(i,j,k)=lat2d_dg(id911(i,j,k),jd911(i,j,k)
+     &             ,kd911(i,j,k))
+              down_lon_911(i,j,k)=lon2d_dg(id911(i,j,k),jd911(i,j,k)
+     &             ,kd911(i,j,k))
+            write(130+k,200) lon2d_dg(i,j,k),lat2d_dg(i,j,k),
+     &           down_lon_911(i,j,k)-lon2d_dg(i,j,k),
+     &           down_lat_911(i,j,k)-lat2d_dg(i,j,k)
             else
               down_lat(i,j,k)=undef
               down_lon(i,j,k)=undef
               down_lat_911(i,j,k)=undef
               down_lon_911(i,j,k)=undef
+            write(130+k,200) lon2d_dg(i,j,k),lat2d_dg(i,j,k),
+     &           0.,0.
             end if
 
           enddo
@@ -151,7 +160,7 @@ c*    output everything
       if (imt .eq. 32) then
          title1="river directions from dist. to ocean, CS32, April 09"
       elseif (imt .eq. 90) then
-         title1="river dir. from dist. to ocean, CS90, August 2010"
+         title1="river dir. from dist. to ocean, CS90, April 28, 2010"
       endif
 
       title2="Named River Mouths:"
