@@ -10417,13 +10417,13 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      *     OCB_src,SO2_biosrc_3D,lmAER,OCBt_src,BCBt_src,OCI_src
      *     ,so2t_src,BBinc,om2oc
 
-      USE PBLCOM, only: dclev
 c Laki emissions
 c     USE DYNAMICS, only: LTROPO
 c     USE CONSTANT, only: sday
 c     USE MODEL_COM, only: jday,jyear
 c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
+      USE PBLCOM, only: dclev
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : itcon_AMP, itcon_AMPe,itcon_AMPm
@@ -10536,6 +10536,7 @@ C**** aircraft source for fresh industrial BC
      &              *0.01d0
             src_index=n_SO2
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
             if(.not.do_fire(n))bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
@@ -10543,8 +10544,10 @@ C**** aircraft source for fresh industrial BC
               src_fact=om2oc(n)
               bb_fact=BBinc
             end if
+#endif
           end select
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** 3D aircraft source - only SO2, no sulfate
         select case (trname(n))
         case ('SO2')
@@ -10554,7 +10557,9 @@ C**** 3D aircraft source - only SO2, no sulfate
           if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      &     call apply_tracer_3Dsource(nAircraft,n)
         end select
+#endif
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** 3D volcanic source
         select case (trname(n))
         case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
@@ -10562,6 +10567,7 @@ C**** 3D volcanic source
      &      so2_src_3d(:,J_0:J_1,:,1)*src_fact
           call apply_tracer_3Dsource(nVolcanic,n)
         end select
+#endif
 
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
