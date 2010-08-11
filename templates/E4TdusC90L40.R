@@ -54,7 +54,7 @@ Data input files:
 #include "IC_CS90_input_files"
 #include "static_ocn_2000_CS90_input_files"
 
-RVR=RDdistocean_CS90.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.bin         ! river direction file
 
 #include "landCS90_input_files"
 #include "rad_input_files"

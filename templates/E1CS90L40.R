@@ -75,7 +75,7 @@ TOPO=Z_CS90 SOIL=SOIL_CS90 ! soil/topography bdy.conds
 VEG=V_CS90 CROPS=CROPS_CS90 
 CDN=CD_CS90                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RDdistocean_CS90.bin           ! river direction file
+RVR=RDdistocean_CS90_EM.bin           ! river direction file
 TOP_INDEX=top_index_CS90      ! only used if #define DO_TOPMODEL_RUNOFF
 GLMELT=GLMELT_CS90   ! glacial melt distribution
 !                                             (end of section 2 of data input files)

@@ -54,7 +54,7 @@ TOPO=Z_C90fromZ1QX1N             ! atm topog and surf type fractions
 
 REMAP=remap288-180C90-90.nc      ! weights for atm-ocean regridding
 
-RVR=RDdistocean_CS90.bin         ! river direction file
+RVR=RDdistocean_CS90_EM.bin         ! river direction file
 
 #include "landCS90_input_files"
 #include "rad_input_files"
