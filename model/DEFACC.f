@@ -1548,12 +1548,45 @@ c
 c
 #ifdef CLD_AER_CDNC
       k=k+1
+      IJ_dzwm = k
+      lname_ij(k) = 'Warm Moist Cnv Cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzwm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_dzim = k
+      lname_ij(k) = 'Cold Moist Cnv cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzim'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_dzws = k
+      lname_ij(k) = 'Warm Large-scale cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzws'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_dzis = k
+      lname_ij(k) = 'Cold Large-scale cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
       IJ_3dNWM = k
       lname_ij(k) = '2D Warm Moist Cnv CDNC '
       units_ij(k) = 'cm^-3'
       name_ij(k) = 'Nwm3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
 c
       k=k+1
       IJ_3dNIM = k
@@ -1562,6 +1595,7 @@ c
       name_ij(k) = 'Nim3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
 c
       k=k+1
       IJ_3dRWM = k
@@ -1570,6 +1604,7 @@ c
       name_ij(k) = 'Rwm3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
 c
       k=k+1
       IJ_3dRIM = k
@@ -1578,6 +1613,7 @@ c
       name_ij(k) = 'Rim3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
 c
       k=k+1
       IJ_3dLWM = k
@@ -1586,6 +1622,7 @@ c
       name_ij(k) = 'Lwm3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
 c
       k=k+1
       IJ_3dLIM = k
@@ -1594,6 +1631,7 @@ c
       name_ij(k) = 'Lim3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
 c
       k=k+1
       IJ_3dNWS = k
@@ -1602,6 +1640,7 @@ c
       name_ij(k) = 'Nws3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
 c
       k=k+1
       IJ_3dNIS = k
@@ -1610,6 +1649,7 @@ c
       name_ij(k) = 'Nis3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
 c
       k=k+1
       IJ_3dRWS = k
@@ -1618,6 +1658,7 @@ c
       name_ij(k) = 'Rws3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
 c
       k=k+1
       IJ_3dRIS = k
@@ -1626,6 +1667,7 @@ c
       name_ij(k) = 'Ris3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
 c
       k=k+1
       IJ_3dLWS = k
@@ -1634,6 +1676,7 @@ c
       name_ij(k) = 'Lws3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
 c
       k=k+1
       IJ_3dLIS = k
@@ -1642,6 +1685,7 @@ c
       name_ij(k) = 'Lis3d'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
 #endif
 c
       k=k+1 !
@@ -5490,11 +5534,40 @@ c
 c
 #ifdef CLD_AER_CDNC
       k=k+1
+      IJL_CFWM=k
+      name_ijl(k) = 'cfwm'
+      lname_ijl(k) = 'Warm C Cloud Fraction'
+      units_ijl(k) = '1'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CFWS=k
+      name_ijl(k) = 'cfws'
+      lname_ijl(k) = 'Warm S Cloud Fraction'
+      units_ijl(k) = '1'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CFIM=k
+      name_ijl(k) = 'cfim'
+      lname_ijl(k) = 'Cold C Cloud Fraction'
+      units_ijl(k) = '1'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CFIS=k
+      name_ijl(k) = 'cfis'
+      lname_ijl(k) = 'Cold S Cloud Fraction'
+      units_ijl(k) = '1'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
       IJL_REWM=k
       name_ijl(k) = 'rewm'
       lname_ijl(k) = 'Warm C Reff'
       units_ijl(k) = 'um'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfwm
 c
       k=k+1
       IJL_REWS=k
@@ -5502,6 +5575,7 @@ c
       lname_ijl(k) = 'Warm S Reff'
       units_ijl(k) = 'um'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfws
 c
       k=k+1
       IJL_CDWM=k
@@ -5509,6 +5583,7 @@ c
       lname_ijl(k) = 'Warm C CDNC'
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfwm
 c
       k=k+1
       IJL_CDWS=k
@@ -5516,6 +5591,7 @@ c
       lname_ijl(k) = 'Warm S CDNC'
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfws
 c
       k=k+1
       IJL_CWWM=k
@@ -5523,6 +5599,7 @@ c
       lname_ijl(k) = 'Warm C LWC'
       units_ijl(k) = 'gm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfwm
 c
       k=k+1
       IJL_CWWS=k
@@ -5530,6 +5607,7 @@ c
       lname_ijl(k) = 'Warm S LWC'
       units_ijl(k) = 'gm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfws
 c
       k=k+1
       IJL_REIM=k
@@ -5537,6 +5615,7 @@ c
       lname_ijl(k) = 'Cold C Reff'
       units_ijl(k) = 'um'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfim
 c
       k=k+1
       IJL_REIS=k
@@ -5544,6 +5623,7 @@ c
       lname_ijl(k) = 'Cold S Reff'
       units_ijl(k) = 'um'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfis
 c
       k=k+1
       IJL_CDIM=k
@@ -5551,6 +5631,7 @@ c
       lname_ijl(k) = 'Cold C CDNC'
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfim
 c
       k=k+1
       IJL_CDIS=k
@@ -5558,6 +5639,7 @@ c
       lname_ijl(k) = 'Cold S CDNC'
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfis
 c
       k=k+1
       IJL_CWIM=k
@@ -5565,6 +5647,7 @@ c
       lname_ijl(k) = 'Cold C LWC'
       units_ijl(k) = 'gm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfim
 c
       k=k+1
       IJL_CWIS=k
@@ -5572,8 +5655,9 @@ c
       lname_ijl(k) = 'Cold S LWC'
       units_ijl(k) = 'gm-3'
       ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfis
+#endif /* CLD_AER_CDNC */
 
-#endif
       k=k+1        ! temperature (model layers)
       ijl_tempL    = k
       name_ijl(k)  = 'TempL'

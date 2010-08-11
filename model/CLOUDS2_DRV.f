@@ -56,12 +56,14 @@
      *     ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
+     *     ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
      *     ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris
      *     ,ij_3dlwm,ij_3dlws,ij_3dlim,ij_3dlis
      *     ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
      *     ,ij_wmclwp,ij_wmctwp
      *     ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis
+     *     ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis
 #endif
 #ifdef TRACERS_DUST
      &     ,idd_wet
@@ -300,7 +302,9 @@ C        not clear yet whether they still speed things up
       INTEGER :: n1,n_fidx
 #endif
 #endif
-
+#ifdef CLD_AER_CDNC
+      real*8 :: cldwt,cldwtdz
+#endif
       integer :: iThread
       integer :: numThreads
       integer :: I_0thread, I_1thread, imaxj_thread
@@ -847,29 +851,37 @@ C*** End Accumulate 3D convective latent heating
         END DO
 #ifdef CLD_AER_CDNC
         DO L =1,LM
-        IF (NMCW.ge.1) then
-          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)
-          AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)
-          AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
-          AIJL(I,J,L,IJL_REWM)= AIJL(I,J,L,IJL_REWM)+AREWM(L)
-          AIJL(I,J,L,IJL_CDWM)= AIJL(I,J,L,IJL_CDWM)+ACDNWM(L)
-          AIJL(I,J,L,IJL_CWWM)= AIJL(I,J,L,IJL_CWWM)+ALWWM(L)
-          call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
+          CLDWT = CLDMCL(L)!+teeny
+          CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))
+          IF(SVLATL(L).EQ.LHE) THEN
+            AIJL(I,J,L,IJL_CFWM)= AIJL(I,J,L,IJL_CFWM)+CLDWT
+            AIJL(I,J,L,IJL_REWM)= AIJL(I,J,L,IJL_REWM)+AREWM(L)*CLDWT
+            AIJL(I,J,L,IJL_CDWM)= AIJL(I,J,L,IJL_CDWM)+ACDNWM(L)*CLDWT
+            AIJL(I,J,L,IJL_CWWM)= AIJL(I,J,L,IJL_CWWM)+ALWWM(L)*CLDWT
+            AIJ(I,J,IJ_DZWM)=AIJ(I,J,IJ_DZWM)+CLDWTDZ
+            AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)*CLDWTDZ
+          ELSEIF(SVLATL(L).EQ.LHS) THEN
+            AIJL(I,J,L,IJL_CFIM)= AIJL(I,J,L,IJL_CFIM)+CLDWT
+            AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)*CLDWT
+            AIJL(I,J,L,IJL_CDIM)= AIJL(I,J,L,IJL_CDIM)+ACDNIM(L)*CLDWT
+            AIJL(I,J,L,IJL_CWIM)= AIJL(I,J,L,IJL_CWIM)+ALWIM(L)*CLDWT
+            AIJ(I,J,IJ_DZIM)=AIJ(I,J,IJ_DZIM)+CLDWTDZ
+            AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)*CLDWTDZ
+          ENDIF
+          IF (NMCW.ge.1) then
+            call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
 c         write(6,*)"IJL_REWM",AIJL(I,J,L,IJL_REWM),I,J,L,
 c     *   AIJL(I,J,L,IJL_CDWM),AIJL(I,J,L,IJL_CWWM),ALWWM(L)
-        ENDIF
-
-        IF (NMCI.ge.1) then
-          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
-          AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
-          AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
-          call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L)*AIRM(L))
-          AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)
-          AIJL(I,J,L,IJL_CDIM)= AIJL(I,J,L,IJL_CDIM)+ACDNIM(L)
-          AIJL(I,J,L,IJL_CWIM)= AIJL(I,J,L,IJL_CWIM)+ALWIM(L)
+          ENDIF
+          IF (NMCI.ge.1) then
+            call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L)*AIRM(L))
 c         write(6,*)"IJL_REIM",AIJL(I,J,L,IJL_REIM),I,J,L,
 c     *   AIJL(I,J,L,IJL_CDIM),AIJL(I,J,L,IJL_CWIM),ALWIM(L)
-        ENDIF
+          ENDIF
 
         ENDDO
 #endif
@@ -1380,28 +1392,35 @@ cQCON*     ,prcp
 
 #ifdef CLD_AER_CDNC
         DO L=1,LM
-         IF (NLSW.ge.1) then
-          AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)
-          AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)
-          AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)
-          AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)
-          AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)
-          AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)
-          call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
+          CLDWT = CLDSSL(L)!+teeny
+          CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))
+          IF(SVLHXL(L).EQ.LHE) THEN
+            AIJL(I,J,L,IJL_CFWS)= AIJL(I,J,L,IJL_CFWS)+CLDWT
+            AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)*CLDWT
+            AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)*CLDWT
+            AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)*CLDWT
+            AIJ(I,J,IJ_DZWS)=AIJ(I,J,IJ_DZWS)+CLDWTDZ
+            AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)*CLDWTDZ
+          ELSEIF(SVLHXL(L).EQ.LHS) THEN
+            AIJL(I,J,L,IJL_CFIS)= AIJL(I,J,L,IJL_CFIS)+CLDWT
+            AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)*CLDWT
+            AIJL(I,J,L,IJL_CDIS)= AIJL(I,J,L,IJL_CDIS)+ACDNIS(L)*CLDWT
+            AIJL(I,J,L,IJL_CWIS)= AIJL(I,J,L,IJL_CWIS)+ALWIS(L)*CLDWT
+            AIJ(I,J,IJ_DZIS)=AIJ(I,J,IJ_DZIS)+CLDWTDZ
+            AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)*CLDWTDZ
+            AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)*CLDWTDZ
+          ENDIF
+          IF (NLSW.ge.1) then
+            call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
 c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),NLSW,itime,l
-         ENDIF
-
-        IF(NLSI.ge.1) then
-         AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)
-         AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
-         AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
-         call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L)*AIRM(L))
-         AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)
-         AIJL(I,J,L,IJL_CDIS)= AIJL(I,J,L,IJL_CDIS)+ACDNIS(L)
-         AIJL(I,J,L,IJL_CWIS)= AIJL(I,J,L,IJL_CWIS)+ALWIS(L)
-        ENDIF
-
+          ENDIF
+          IF(NLSI.ge.1) then
+            call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L)*AIRM(L))
+          ENDIF
         ENDDO
 
 #endif

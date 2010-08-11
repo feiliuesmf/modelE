@@ -79,7 +79,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@param KAIJL number of AIJL accumulations
       INTEGER, PARAMETER, public :: KAIJL=18
 #ifdef CLD_AER_CDNC
-     &                                  + 12
+     &                                  + 16
 #endif
 #ifdef HTAP_LIKE_DIAGS
      &                                  +  3
@@ -93,6 +93,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
+     &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
      &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
@@ -479,6 +480,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
      *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ, IJ_RNFP1
+     *     ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
