@@ -1242,12 +1242,14 @@ C****
 !@var iu_subdd array of unit numbers for sub-daily diags output
       INTEGER, DIMENSION(kddmax) :: iu_subdd
 !@var subddt = subdd + subdd1 = all variables for sub-daily diags
-      CHARACTER*128 :: subddt = " "
+      CHARACTER*192 :: subddt = " "
 !@dbparam subdd string contains variables to save for sub-daily diags
 !@dbparam subdd1 additional string of variables for sub-daily diags
+!@dbparam subdd2 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64  :: subdd  = "SLP"
       CHARACTER*64  :: subdd1 = " "
+      character(len=64) :: subdd2 = ' '
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
@@ -1312,12 +1314,13 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       call sync_param( "subdd" ,subdd)
       call sync_param( "subdd1" ,subdd1)
+      call sync_param( "subdd2" ,subdd2)
       call sync_param( "Nsubdd",Nsubdd)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
 C**** combine strings subdd1 and subdd2:
-        subddt=trim(subdd)//' '//subdd1
+        subddt=trim(subdd)//' '//trim(subdd1)//' '//subdd2
 C**** calculate how many names
         k=0
         i=1
