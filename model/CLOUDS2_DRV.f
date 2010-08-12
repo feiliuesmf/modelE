@@ -851,6 +851,7 @@ C*** End Accumulate 3D convective latent heating
         END DO
 #ifdef CLD_AER_CDNC
         DO L =1,LM
+          IF(SVWMXL(L).LE.0.) CYCLE
           CLDWT = CLDMCL(L)!+teeny
           CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))
           IF(SVLATL(L).EQ.LHE) THEN
