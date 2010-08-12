@@ -11618,7 +11618,8 @@ C**** Local parameters and variables and arguments:
 !@+   The name was chosen to correspond to Koch et al. p. 23,802.
 !@var N index for tracer number loop
       INTEGER, INTENT(IN) :: NTX,ntix(ntm)
-      REAL*8, INTENT(OUT), DIMENSION(NTM) :: FQ,THLAW
+      REAL*8, INTENT(OUT), DIMENSION(NTM) :: THLAW
+      REAL*8, INTENT(INOUT), DIMENSION(NTM) :: FQ
       REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
      *  TM(NTM),pl, TRPR(ntm)
       REAL*8, PARAMETER :: BY298K=3.3557D-3
