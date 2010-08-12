@@ -638,6 +638,14 @@ c
 
       subroutine alloc_hycom_arrays_glob
       USE HYCOM_DIM, only : idm,jdm,kdm,ntrcr
+      use domain_decomp_1d, only : am_i_root
+
+      allocate(
+     &     depths(idm,jdm) 
+     &     )
+      depths = 0
+
+      if(.not.am_i_root()) return
 
       allocate( 
      . u(idm,jdm,2*kdm),v(idm,jdm,2*kdm) 
@@ -709,7 +717,6 @@ c
      .,gradx(idm,jdm),grady(idm,jdm) 
      .,depthu(idm,jdm),depthv(idm,jdm) 
      .,pvtrop(idm,jdm) 
-     .,depths(idm,jdm) 
      .,drag(idm,jdm) 
      .,glue(idm,jdm) 
      .,dampu(idm,jdm),dampv(idm,jdm) ) 
@@ -854,7 +861,6 @@ c
       depthu = 0
       depthv = 0
       pvtrop = 0
-      depths = 0
       drag = 0
       glue = 0
       dampu = 0
