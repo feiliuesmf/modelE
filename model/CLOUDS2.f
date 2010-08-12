@@ -2120,7 +2120,7 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
 C**** Check for v. rare negative humidity error condition
       DO L=LDMIN,LMAX
         IF(QM(L).LT.0.d0) then
-          WRITE(0,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
+          WRITE(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
      $          ,qm(l),cmneg(l)
 C**** reduce subsidence post hoc.
           LM1=max(1,L-1)
@@ -2147,7 +2147,7 @@ C**** check for independent tracer errors
         IF (.not.t_qlimit(n)) cycle
         DO L=LDMIN,LMAX
           IF (TM(L,N).lt.0.) then
-            WRITE(0,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
+            WRITE(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
      $             ,j_debug,l,tm(l,n),cmneg(l)
 C**** reduce subsidence post hoc.
             LM1=max(1,L-1)
