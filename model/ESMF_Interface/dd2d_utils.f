@@ -364,7 +364,7 @@ c
       integer, dimension(ntiles_max) ::
      &      tile_comms,tile_root_procs
       integer, dimension(:), allocatable :: proclist
-      logical :: swap_ne,swap_sw,on_ullr
+      logical :: swap_ne,swap_sw
 
       grid%am_i_globalroot = .true. ! initialize to serial-mode default
       grid%npx = npx
