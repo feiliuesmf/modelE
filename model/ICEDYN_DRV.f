@@ -1920,7 +1920,6 @@ c ice b-grid -> atm a-grid
 c Interpolate the ice dynamics velocity mask to atm cell edges, and
 c encode the "ocean-connectedness" of gridpoint i,j using:
 c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8].
-c Gridcells whose ocean fraction is <10% are not ocean-connected.
       allocate(uvm_tmp(imicdyn,j_0h:j_1h))
       uvm_tmp(1:imicdyn,j_0:j_1) = uvm(2:imicdyn+1,j_0:j_1)
       call ll2csint_ij(grid_icdyn,i2a_uc,uvm_tmp,uvmatuc)
@@ -1929,14 +1928,25 @@ c Gridcells whose ocean fraction is <10% are not ocean-connected.
       do j=agrid%j_strt,agrid%j_stop
         do i=agrid%i_strt,agrid%i_stop
           connect(i,j) = 0
-          if(afocean(i,j).gt.0.1d0) then
-            if(afocean(i-1,j).gt.0.1d0 .and. uvmatuc(i  ,j).gt.0.)
+c Gridcells whose ocean fraction is <10% are not ocean-connected.
+c          if(afocean(i,j).gt.0.1d0) then
+c            if(afocean(i-1,j).gt.0.1d0 .and. uvmatuc(i  ,j).gt.0.)
+c     &           connect(i,j) = connect(i,j) + 1
+c            if(afocean(i+1,j).gt.0.1d0 .and. uvmatuc(i+1,j).gt.0.)
+c     &           connect(i,j) = connect(i,j) + 2
+c            if(afocean(i,j-1).gt.0.1d0 .and. uvmatvc(i,j  ).gt.0.)
+c     &           connect(i,j) = connect(i,j) + 4
+c            if(afocean(i,j+1).gt.0.1d0 .and. uvmatvc(i,j+1).gt.0.)
+c     &           connect(i,j) = connect(i,j) + 8
+c          endif
+          if(afocean(i,j).gt.0.0d0) then
+            if(afocean(i-1,j).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 1
-            if(afocean(i+1,j).gt.0.1d0 .and. uvmatuc(i+1,j).gt.0.)
+            if(afocean(i+1,j).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 2
-            if(afocean(i,j-1).gt.0.1d0 .and. uvmatvc(i,j  ).gt.0.)
+            if(afocean(i,j-1).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 4
-            if(afocean(i,j+1).gt.0.1d0 .and. uvmatvc(i,j+1).gt.0.)
+            if(afocean(i,j+1).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 8
           endif
         enddo

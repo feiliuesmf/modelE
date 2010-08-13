@@ -75,6 +75,12 @@ C****
      &     uvll
 
       INTEGER I_0,I_1,J_0,J_1, I_0Y,I_1Y
+!@var coastfac: A proportionality factor to compute the component
+!@+   of advective velocity which limits ice buildup along
+!@+   coastlines.  (At some gridcells, negative feedbacks on
+!@+   ice production are not able to assert themselves when
+!@+   sea ice does not reside on the ocean grid.)
+      real*8 :: coastfac
 
 C**** Get grid parameters
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -136,9 +142,11 @@ C**** add tracers to advected arrays
       ENDDO ! j
 
 
+      CALL HALO_UPDATE(grid, MSI)
+
 C****
 C**** Interpolate to obtain latlon-oriented ice velocities at
-C**** cell edges, ans transform to CS orientation.  ll2csint_lij
+C**** cell edges, and transform to CS orientation.  ll2csint_lij
 C**** fills any halo cells in its outputs.
 C****
       do j=grid_icdyn%j_strt,grid_icdyn%j_stop
@@ -152,38 +160,48 @@ C****
       call ll2csint_lij(grid_icdyn,i2a_vc,uvll,uvllatvc,
      &     is_ll_vector=.true.)
 
+      coastfac =
+     &          1d-3 ! convert kg/m2 ice mass to ice thickness
+     &         *1d-1 ! 10 cm/s speed for 1 m thickness difference over ~100 km
+     &         *(real(im,kind=8)/90d0) ! scale by gridlength
+
       do j=j_0-1,j_1
       do i=i_0y,i_1y
         ull = uvllatvc(1,i,j+1)
         vll = uvllatvc(2,i,j+1)
-        vdxdt(i,j) = dlxsina(i,j+1)* ! note offset
-     &       (ull*ull2vcs(i,j+1)+vll*vll2vcs(i,j+1))
-c apply various constraints to advective velocity to prevent
-c excessive ice pile-up along coastlines
-        if(connect(i,j)*connect(i,j+1).eq.0) vdxdt(i,j)=0.
-        if(vdxdt(i,j).ne.0.) then ! no flow into single-gridcell inlets
-          if(connect(i,j  ).eq.8 .and. vdxdt(i,j).lt.0.) vdxdt(i,j) = 0.
-          if(connect(i,j+1).eq.4 .and. vdxdt(i,j).gt.0.) vdxdt(i,j) = 0.
-c uncomment the following line to zero out all near-coastal velocities
-c          if(connect(i,j)+connect(i,j+1).lt.30) vdxdt(i,j) = 0.
+        vdxdt(i,j) = (ull*ull2vcs(i,j+1)+vll*vll2vcs(i,j+1))
+        if(connect(i,j)*connect(i,j+1).eq.0) then
+          vdxdt(i,j)=0.
+        elseif(connect(i,j)+connect(i,j+1).lt.30) then
+          ! 
+          if(focean(i,j).lt.focean(i,j+1)) then
+            vdxdt(i,j) = vdxdt(i,j)
+     &           + dts*min(+10d0,max(0d0,msi(i,j)-msi(i,j+1))*coastfac)
+          else
+            vdxdt(i,j) = vdxdt(i,j)
+     &           + dts*max(-10d0,min(0d0,msi(i,j)-msi(i,j+1))*coastfac)
+          endif
         endif
+        vdxdt(i,j) = dlxsina(i,j+1)*vdxdt(i,j)
       enddo
       enddo
       do j=j_0,j_1
       do i=i_0-1,i_1
         ull = uvllatuc(1,i+1,j)
         vll = uvllatuc(2,i+1,j)
-        udydt(i,j) = dlysina(i+1,j)* ! note offset
-     &       (ull*ull2ucs(i+1,j)+vll*vll2ucs(i+1,j))
-c apply various constraints to advective velocity to prevent
-c excessive ice pile-up along coastlines
-        if(connect(i,j)*connect(i+1,j).eq.0) udydt(i,j)=0.
-        if(udydt(i,j).ne.0.) then ! no flow into single-gridcell inlets
-          if(connect(i  ,j).eq.2 .and. udydt(i,j).lt.0.) udydt(i,j) = 0.
-          if(connect(i+1,j).eq.1 .and. udydt(i,j).gt.0.) udydt(i,j) = 0.
-c uncomment the following line to zero out all near-coastal velocities
-c          if(connect(i,j)+connect(i+1,j).lt.30) udydt(i,j) = 0.
+        udydt(i,j) = (ull*ull2ucs(i+1,j)+vll*vll2ucs(i+1,j))
+        if(connect(i,j)*connect(i+1,j).eq.0) then
+          udydt(i,j)=0.
+        elseif(connect(i,j)+connect(i+1,j).lt.30) then
+          if(focean(i,j).lt.focean(i+1,j)) then
+            udydt(i,j) = udydt(i,j)
+     &           + dts*min(+10d0,max(0d0,msi(i,j)-msi(i+1,j))*coastfac)
+          else
+            udydt(i,j) = udydt(i,j)
+     &           + dts*max(-10d0,min(0d0,msi(i,j)-msi(i+1,j))*coastfac)
+          endif
         endif
+        udydt(i,j) = dlysina(i+1,j)*udydt(i,j)
       enddo
       enddo
 
