@@ -150,6 +150,7 @@ c documentation on these to be added when interfaces are finalized
 c documentation on these to be added when interfaces are finalized
       public :: cs2llint_type
       public :: init_cs2llint_type,cs2llint_ij,cs2llint_lij
+      public :: init_cs2llint_type2
       public :: cs2llint_lluv
       type cs2llint_type
         integer :: isdcs,iedcs,jsdcs,jedcs
@@ -528,7 +529,8 @@ c no communications required at this latitude
      &     isrc,jsrc,tsrc, idst,jdst,tdst
       type(redist_type), intent(out) :: redist
 c local vars
-      integer :: is,ie,js,je,npsrc,npdst,nproc,npx,npy,nbmax
+      integer, parameter :: nbmax=20 ! increase if necessary
+      integer :: is,ie,js,je,npsrc,npdst,nproc,npx,npy,nbmax2
       integer, dimension(:), allocatable ::
      &     isdst,iedst,jsdst,jedst,tiledst
       integer, dimension(:,:,:), allocatable :: itmp
@@ -580,12 +582,7 @@ c and the 2D-array counts/displacements for the send buffer
 c
       allocate(redist%js_pack(npdst), redist%je_pack(npdst))
       allocate(redist%nb_pack(js:je,npdst))
-      nbmax = 2
-      if(grid_dst%ntiles.eq.6 .and. grid_src%ntiles.eq.1 .and.
-     &     mod(grid_dst%nprocx,2).eq.1) then
-          nbmax = 4 ! 4 corners of the CS PEs centered on the NP/SP
-     &           +1 ! +1 for wraparound (needed if nprocx>=5)
-      endif
+      redist%nb_pack = 0
       allocate(redist%is_pack(nbmax,js:je,npdst),
      &         redist%ie_pack(nbmax,js:je,npdst))
       allocate(redist%send_cnts(nproc), redist%send_displs(nproc))
@@ -644,6 +641,7 @@ c for now, assume src pe set same as dst pe set
 c
       allocate(redist%js_unpack(npsrc), redist%je_unpack(npsrc))
       allocate(redist%nb_unpack(npy,npsrc))
+      redist%nb_unpack = 0
       allocate(redist%is_unpack(nbmax,npy,npsrc),
      &         redist%ie_unpack(nbmax,npy,npsrc))
       allocate(redist%recv_cnts(nproc), redist%recv_displs(nproc))
@@ -689,6 +687,33 @@ c
       call mpi_alltoall(itmp,            npy,MPI_INTEGER,
      &                  redist%nb_unpack,npy,MPI_INTEGER,
      &                  MPI_COMM_WORLD,ierr)
+      deallocate(itmp)
+
+c
+c resize arrays dimensioned by nbmax
+c
+      nbmax2 = maxval(redist%nb_pack)
+      allocate(itmp(nbmax,js:je,npdst))
+      itmp = redist%is_pack
+      deallocate(redist%is_pack)
+      allocate(redist%is_pack(nbmax2,js:je,npdst))
+      redist%is_pack(1:nbmax2,:,:) = itmp(1:nbmax2,:,:)
+      itmp = redist%ie_pack
+      deallocate(redist%ie_pack)
+      allocate(redist%ie_pack(nbmax2,js:je,npdst))
+      redist%ie_pack(1:nbmax2,:,:) = itmp(1:nbmax2,:,:)
+      deallocate(itmp)
+c
+      nbmax2 = maxval(redist%nb_unpack)
+      allocate(itmp(nbmax,npy,npsrc))
+      itmp = redist%is_unpack
+      deallocate(redist%is_unpack)
+      allocate(redist%is_unpack(nbmax2,npy,npsrc))
+      redist%is_unpack(1:nbmax2,:,:) = itmp(1:nbmax2,:,:)
+      itmp = redist%ie_unpack
+      deallocate(redist%ie_unpack)
+      allocate(redist%ie_unpack(nbmax2,npy,npsrc))
+      redist%ie_unpack(1:nbmax2,:,:) = itmp(1:nbmax2,:,:)
       deallocate(itmp)
 
       return
@@ -1408,6 +1433,212 @@ c
 
       return
       end subroutine init_cs2llint_type
+
+      subroutine init_cs2llint_type2(grid_cs,grid_ll, lons,lats,
+     &     cs2llint, setup_rot_pol)
+      use dd2d_utils, only : dist_grid
+      use geom, only : ll2csxy,csxy2ll,shiftwest,e1e2
+      use constant, only : pi,twopi
+      type(dist_grid), intent(in) :: grid_cs,grid_ll
+      real*8, dimension(grid_ll%npx,grid_ll%npy) :: lons,lats
+      type(cs2llint_type), intent(out) :: cs2llint
+      logical, intent(in), optional :: setup_rot_pol
+c local vars
+      integer :: imlon,jmlat,ilon,jlat,i,j,n,i1,i2,j1,j2,hemi
+      integer :: npts,tile
+      integer :: nproc,llproc,csproc
+      integer :: ierr
+      integer, dimension(:), allocatable :: jell
+      integer, dimension(:), allocatable :: ilist,jlist
+      real*8 :: dxh,xn,x,y,cs_xmin,cs_xmax,cs_ymin,cs_ymax,lonpass,
+     &     londum,angdum,corang,e1(2),e2(2)
+      real*8, dimension(:), allocatable :: ix,jy,edgang,xlist,ylist
+      imlon = grid_ll%npx
+      jmlat = grid_ll%npy
+
+      cs2llint%isdcs = grid_cs%isd
+      cs2llint%iedcs = grid_cs%ied
+      cs2llint%jsdcs = grid_cs%jsd
+      cs2llint%jedcs = grid_cs%jed
+
+      cs2llint%imlon = grid_ll%npx
+      cs2llint%jsdll = grid_ll%jsd
+      cs2llint%jedll = grid_ll%jed
+
+      nproc = grid_cs%nproc
+      cs2llint%nproc = nproc
+
+      allocate(cs2llint%send_cnts(nproc),cs2llint%send_displs(nproc))
+      allocate(cs2llint%recv_cnts(nproc),cs2llint%recv_displs(nproc))
+
+c collect info about the domain decomp of grid_ll
+c for now, assume cs pe set same as ll pe set and
+c that grid_ll has a j-only decomp
+      allocate(jell(nproc))
+
+      call mpi_allgather(max(grid_ll%je,grid_ll%js),1,MPI_INTEGER,
+     &     jell,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c
+c Set up the list of ll points that will be handled by this CS PE.
+c
+      allocate(ix(imlon*jmlat/2), jy(imlon*jmlat/2))
+      allocate(ilist(imlon*jmlat/2), jlist(imlon*jmlat/2))
+      allocate(xlist(imlon*jmlat/2), ylist(imlon*jmlat/2))
+      cs_xmin = -1d0 + 2d0*(grid_cs%is-1)/grid_cs%npx
+      cs_xmax = -1d0 + 2d0*(grid_cs%ie  )/grid_cs%npx
+      cs_ymin = -1d0 + 2d0*(grid_cs%js-1)/grid_cs%npx
+      cs_ymax = -1d0 + 2d0*(grid_cs%je  )/grid_cs%npx
+      dxh = 1d0/grid_cs%npx
+      xn = 1d0 - dxh
+      allocate(edgang(grid_cs%npx))
+      do j=1,grid_cs%npx ! compute pseudolatitudes
+        y = -1d0 + 2d0*(dble(j)-.5d0)/grid_cs%npx
+        call csxy2ll(xn,y,1,londum,edgang(j)) ! use tile 1 as reference
+      enddo
+      corang = edgang(grid_cs%npx)
+      npts = 0
+      cs2llint%send_cnts(:) = 0
+      llproc = 1
+      do jlat=1,jmlat
+        do while(jlat .gt. jell(llproc))
+          llproc = llproc+1
+        enddo
+        do ilon=1,imlon
+          if(abs(lats(ilon,jlat)).gt.pi/2.) cycle ! this ilon,jlat not needed
+          lonpass = lons(ilon,jlat) + shiftwest
+          if(lonpass.gt.pi) lonpass=lonpass-twopi
+          call ll2csxy(lonpass,lats(ilon,jlat),x,y,tile)
+          if(tile.ne.grid_cs%tile) cycle
+          if(x.le.cs_xmin .or. x.gt.cs_xmax) cycle
+          if(y.le.cs_ymin .or. y.gt.cs_ymax) cycle
+          npts = npts + 1
+          cs2llint%send_cnts(llproc) = cs2llint%send_cnts(llproc) + 1
+          ix(npts) = .5d0*(1d0+x)*grid_cs%npx+.5d0
+          jy(npts) = .5d0*(1d0+y)*grid_cs%npx+.5d0
+          ilist(npts) = ilon
+          jlist(npts) = jlat
+          xlist(npts) = x
+          ylist(npts) = y
+c adjust for grid discontinuity near cube edges using angle coordinate
+          if(abs(x) .gt. xn) then ! x-edge.  adjust jy
+            call csxy2ll(abs(x),y,1,londum,angdum)
+            if(abs(angdum).le.corang) then ! avoid corner triangles
+              j = jy(npts)
+              if(y.gt.0.) then
+                if(angdum.lt.edgang(j  )) j = j-1
+              else
+                if(angdum.gt.edgang(j+1)) j = j+1
+              endif
+              jy(npts) = j +
+     &           (angdum-edgang(j))/(edgang(j+1)-edgang(j))
+            endif
+          endif
+          if(abs(y) .gt. xn) then ! y-edge. adjust ix
+            call csxy2ll(abs(y),x,1,londum,angdum)
+            if(abs(angdum).le.corang) then ! avoid corner triangles
+              i = ix(npts)
+              if(x.gt.0.) then
+                if(angdum.lt.edgang(i  )) i = i-1
+              else
+                if(angdum.gt.edgang(i+1)) i = i+1
+              endif
+              ix(npts) = i +
+     &             (angdum-edgang(i))/(edgang(i+1)-edgang(i))
+            endif
+          endif
+        enddo
+      enddo
+      deallocate(edgang)
+      cs2llint%npts_interp = npts
+      allocate(cs2llint%ix(npts),cs2llint%jy(npts))
+      cs2llint%ix(1:npts) = ix(1:npts)
+      cs2llint%jy(1:npts) = jy(1:npts)
+      cs2llint%send_displs(1) = 0
+      do llproc=2,nproc
+        cs2llint%send_displs(llproc) =
+     &       cs2llint%send_displs(llproc-1)+cs2llint%send_cnts(llproc-1)
+      enddo
+
+c
+c CS PEs inform LL PEs about the interpolation pts they will be sending
+c
+      npts = count(lats(:,grid_ll%js:grid_ll%je).ge.-pi/2.)
+      cs2llint%npts_unpack = npts
+      call mpi_alltoall(cs2llint%send_cnts,1,MPI_INTEGER,
+     &                  cs2llint%recv_cnts,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      if(sum(cs2llint%recv_cnts) .ne. npts) then
+        write(6,*)
+     &       'bad counts in init_cs2llint_type for LL PE ',grid_ll%gid
+        call stop_model('bad counts in init_cs2llint_type',255)
+      endif
+      cs2llint%recv_displs(1) = 0
+      do csproc=2,nproc
+        cs2llint%recv_displs(csproc) =
+     &       cs2llint%recv_displs(csproc-1)+cs2llint%recv_cnts(csproc-1)
+      enddo
+      allocate(cs2llint%i_unpack(npts),cs2llint%j_unpack(npts))
+      call mpi_alltoallv(
+     &     ilist,             cs2llint%send_cnts,cs2llint%send_displs,
+     &          MPI_INTEGER,
+     &     cs2llint%i_unpack, cs2llint%recv_cnts,cs2llint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+      call mpi_alltoallv(
+     &     jlist,             cs2llint%send_cnts,cs2llint%send_displs,
+     &          MPI_INTEGER,
+     &     cs2llint%j_unpack, cs2llint%recv_cnts,cs2llint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+
+c
+c For better accuracy near the poles, interpolation of latlon-oriented
+c vector components on polar tiles is performed using
+c components defined with respect to a latlon coordinate system
+c having a rotated pole (RP) lying on Earth's equator.
+c Tabulate sin/cos of the local angles between geographic north
+c and RP-north.  Gnomonic grid shortcut: constant-x gridlines are
+c longitude lines in the RP system, so basis vector e2 contains the
+c rotation info.
+c In the NH, rotation from geographic north toward RP north is counted
+c as positive counterclockwise (positive clockwise in the SH).
+c
+      if(present(setup_rot_pol)) then
+      if(setup_rot_pol) then
+      if(grid_cs%tile.eq.3 .or. grid_cs%tile.eq.6) then
+        allocate(cs2llint%sinij(grid_cs%isd:grid_cs%ied,
+     &                          grid_cs%jsd:grid_cs%jed),
+     &           cs2llint%cosij(grid_cs%isd:grid_cs%ied,
+     &                          grid_cs%jsd:grid_cs%jed),
+     &           cs2llint%sinn(cs2llint%npts_interp),
+     &           cs2llint%cosn(cs2llint%npts_interp))
+c      call sincos_rp_north(grid,cs2llint%sinij,cs2llint%cosij) ! cube corners?
+        hemi = 1-2*(grid_cs%tile/6) ! -1 for SH, +1 for NH
+        do j=grid_cs%jsd,grid_cs%jed
+          y = -1d0 + 2d0*(dble(j)-.5d0)/grid_cs%npx
+          do i=grid_cs%isd,grid_cs%ied
+            x = -1d0 + 2d0*(dble(i)-.5d0)/grid_cs%npx
+            call e1e2(x,y,grid_cs%tile,e1,e2)
+            cs2llint%sinij(i,j) = -e2(1)*hemi
+            cs2llint%cosij(i,j) = +e2(2)
+          enddo
+        enddo
+        do n=1,cs2llint%npts_interp
+          call e1e2(xlist(n),ylist(n),grid_cs%tile,e1,e2)
+          cs2llint%sinn(n) = -e2(1)*hemi
+          cs2llint%cosn(n) = +e2(2)
+        enddo
+      endif
+      endif
+      endif
+c
+c deallocate workspace
+c
+      deallocate(ix,jy,ilist,jlist,xlist,ylist,jell)
+
+      return
+      end subroutine init_cs2llint_type2
 
       subroutine cs2llint_ij(grid_cs,cs2llint,arrcs,arrll)
       use dd2d_utils, only : dist_grid,halo_update
