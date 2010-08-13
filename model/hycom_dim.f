@@ -1,7 +1,8 @@
 #include "rundeck_opts.h"
 c-----------------------------------------------------------------------------
       module hycom_dim
-      USE DOMAIN_DECOMP_1D, only : DIST_GRID, aGrid => grid  ! aGrid is 'a' grd
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, only : aGrid => grid  ! aGrid is 'a' grd
 
       implicit none
 
@@ -21,27 +22,21 @@ c-----------------------------------------------------------------------------
      .ifv,ilv,isv,jfv,jlv,jsv,
      .msk
 
-#ifdef ATM4x5
 #ifdef HYCOM2deg
       integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
      .                             ,iold=181
-      integer, public, parameter :: iia=72,jja=46,iio=idm,jjo=jdm
 #endif
-#endif
-#ifdef ATM2x2h
-#ifdef HYCOM2deg
-      integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
-     .                             ,iold=181
-      integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
-#endif
-#endif
-#ifdef ATM2x2h
 #ifdef HYCOM1deg
       integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
      .                             ,iold=359
-      integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
 #endif
+#ifdef ATM4x5
+      integer, public, parameter :: iia=72,jja=46
 #endif
+#ifdef ATM2x2h
+      integer, public, parameter :: iia=144,jja=90
+#endif
+      integer, public, parameter :: iio=idm,jjo=jdm
 
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) \
    || (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES) \

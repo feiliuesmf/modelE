@@ -6,6 +6,13 @@ C****
 #undef TRACERS_ON
 #undef TRACERS_WATER
 #endif
+
+#ifdef CUBED_SPHERE
+#ifdef HYCOM1deg
+#define OCEAN_IMPORTEXPORT_ON_BGRID
+#endif
+#endif
+
       MODULE ICEDYN_COM
 !@sum  ICEDYN_COM holds global variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
@@ -560,7 +567,7 @@ C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
       INTEGER I,J,ip1,im1
-      REAL*8 USINP,DMUINP,duA,dvA
+      REAL*8 USINP,DMUINP,duA,dvA,rsib
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
       INTEGER :: iJ_1H  , iJ_0H
@@ -804,11 +811,16 @@ C**** Update halo for USI,UOSURF,VOSURF,PGFU
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
+#ifdef OCEAN_IMPORTEXPORT_ON_BGRID
+          GWATX(i,j)=UOSURF(im1,j)
+          GWATY(i,j)=VOSURF(im1,j)
+#else
           GWATX(i,j)=0.25*(UOSURF(im1,j)  +UOSURF(im1,j+1)
      &         +UOSURF(i,j)+UOSURF(i,j+1))                     ! ocean -> iceB  
-          PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB 
           GWATY(i,j)=0.25*(VOSURF(im1,j)  +VOSURF(im1,j+1)
      &         +VOSURF(i,j)+VOSURF(i,j+1))                     ! y component
+#endif
+          PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB 
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))       ! y component
           im1=i
         enddo
@@ -876,33 +888,35 @@ C**** Update halos for UICE and DMU
       CALL ICE_HALO(grid_ICDYN,  UICE, from=SOUTH     )
       CALL ICE_HALO(grid_ICDYN,   DMU, from=SOUTH     )
  
-      do j=iJ_0S,iJ_1STG
+      do j=iJ_0S,iJ_1S
         do i=1,imicdyn
           usi(i,j)=uice(i+1,j,1)
           if(abs(usi(i,j)).lt.1d-10) usi(i,j)=0
-        enddo
-        i=imicdyn
-        do ip1=1,imicdyn
-          DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
-C**** Rescale DMUI to be net momentum into ocean
-          DMUI(I,J) = 0.5*DMUI(I,J)*
-     &         (iFOCEAN(I,J)*iRSI(I,J)+iFOCEAN(ip1,J)*iRSI(ip1,J))
-          i=ip1
-        enddo
-      enddo
-
-      do j=iJ_0,iJ_1s
-        do i=1,imicdyn
           vsi(i,j)=vice(i+1,j,1)
           if(abs(vsi(i,j)).lt.1d-10) vsi(i,j)=0
         enddo
-        do i=1,imicdyn
+        i=imicdyn
+        do ip1=1,imicdyn
+C**** Rescale DMUI,DMVI to be net momentum into ocean
+#ifdef OCEAN_IMPORTEXPORT_ON_BGRID
+          rsib = (DXYN(J)*(
+     &         iFOCEAN(I,J)*iRSI(I,J)+iFOCEAN(ip1,J)*iRSI(ip1,J)
+     &         )  + DXYS(J+1)*(
+     &       iFOCEAN(I,J+1)*iRSI(I,J+1)+iFOCEAN(ip1,J+1)*iRSI(ip1,J+1)
+     &         ) )/DXYV(J+1)
+          DMUI(I,J) = dmu(i+1,j)*rsib
+          DMVI(I,J) = dmv(i+1,j)*rsib
+#else
+          DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
+          DMUI(I,J) = 0.5*DMUI(I,J)*
+     &         (iFOCEAN(I,J)*iRSI(I,J)+iFOCEAN(ip1,J)*iRSI(ip1,J))
           DMVI(I,J) = 0.5*(dmv(i,j)+dmv(i+1,j))
-C**** Rescale DMVI to be net momentum into ocean
           DMVI(I,J) = 0.5*DMVI(I,J)*
      &          (iFOCEAN(I,J  )*iRSI(I,J  )*DXYN(J)
      &          +iFOCEAN(I,J+1)*iRSI(I,J+1)*DXYS(J+1))
      &          /DXYV(J+1)
+#endif
+          i=ip1
         enddo
       enddo
 
@@ -915,6 +929,16 @@ C**** set north pole
       IF (hasNorthPole(grid_ICDYN)) THEN
         USI(:,jmicdyn)=0.
         VSI(:,jmicdyn)=0.
+#ifndef OCEAN_IMPORTEXPORT_ON_BGRID
+        j=jmicdyn
+        i=imicdyn
+        do ip1=1,imicdyn
+          DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
+          DMUI(I,J) = 0.5*DMUI(I,J)*
+     &         (iFOCEAN(I,J)*iRSI(I,J)+iFOCEAN(ip1,J)*iRSI(ip1,J))
+          i=ip1
+        enddo
+#endif
         DMUINP=0.
         do i=1,imicdyn
           DMUINP = DMUINP + DMUI(i,jmicdyn)

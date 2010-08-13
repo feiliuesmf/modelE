@@ -17,13 +17,14 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+      USE HYCOM_DYNSI_CPLER
       use filemanager, only : findunit
       use hycom_dim, only : ogrid
       implicit none
-      integer i,j,k,l,n,ia,ib,ja,jb,jp,iu1,iu2,iu3
+      integer i,j,k,l,n,nn,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
       logical, intent(in) :: iniOCEAN
-      real realat,sphdis,q
+      real realat,sphdis,q,loncor(4),latcor(4)
       integer idim,jdim,length,iz,jz,nt
       character util(idm*jdm+14)*2,preambl(5)*79
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
@@ -141,7 +142,27 @@ c
       if (i.lt.ii) then
       scpx(i,j)=sphdis(latij(i  ,j,1),lonij(i  ,j,1),
      .                 latij(i+1,j,1),lonij(i+1,j,1))
+#ifdef CUBED_SPHERE
+c Define cell areas using great-circle polygons.
+c In future, will be done for all cases.
+      loncor(1:2) = (/ lonij(i:i+1:+1,j ,4) /) ! List the 4 lons/lats
+      latcor(1:2) = (/ latij(i:i+1:+1,j ,4) /) ! of cell corners in
+      loncor(3:4) = (/ lonij(i+1:i:-1,jb,4) /) ! counterclockwise order
+      latcor(3:4) = (/ latij(i+1:i:-1,jb,4) /) ! for the area calculation
+      n = 4
+      do nn=1,4  ! check whether this cell is a triangle
+        if(abs(loncor(nn)-loncor(1+mod(nn,4))).lt.1d-3 .and.
+     &     abs(latcor(nn)-latcor(1+mod(nn,4))).lt.1d-3) then
+          loncor = cshift(loncor,nn)
+          latcor = cshift(latcor,nn)
+          n = 3
+          exit
+        endif
+      enddo
+      call gc_polyarea(loncor,latcor,n,scp2(i,j))
+#else
       scp2(i,j)=scpx(i,j)*scpy(i,j)
+#endif
       scp2i(i,j)=1./scp2(i,j)
       end if
 c
@@ -539,8 +560,10 @@ c
       call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
      .     'wgtkap')
 c
-      call cpl_wgt                      ! read in weights for coupler
       endif ! AM_I_ROOT
+c
+      call cpl_wgt                      ! read in weights for coupler
+      call init_hycom_dynsi_cpler
 c
 
       call esmf_bcast(ogrid,area)
@@ -565,6 +588,48 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       sphdis=max(sphdis,1.)
       return
       end
+
+      subroutine gc_polyarea(lon,lat,n,area)
+!@sum gc_polyarea calculates the area of a polygon on a sphere
+!@+   whose edges are great circles
+!@+   M. Kelley
+      USE CONSTANT, only: radius,twopi
+      implicit none
+      integer :: n
+      real*8, dimension(n) :: lon,lat ! input: lon,lat in degrees
+      real*8 :: area
+      real*8, dimension(3) :: vi,vip1,vn,cri,crip1,crn
+      integer :: i
+      real*8 :: twopibyn,cc
+      twopibyn = twopi/n
+      vn = v3d(lon(n),lat(n))
+      vi = v3d(lon(1),lat(1))
+      crn = cross3d(vn,vi)
+      cri = crn
+      area = 0.
+      do i=1,n-1
+        vip1 = v3d(lon(i+1),lat(i+1))
+        crip1 = cross3d(vi,vip1)
+        cc = sum(vi*cross3d(cri,crip1))
+        area = area + (twopibyn-atan2(cc,sum(cri*crip1)))
+        vi = vip1
+        cri = crip1
+      enddo
+      cc = sum(vi*cross3d(cri,crn))
+      area = area + (twopibyn-atan2(cc,sum(cri*crn)))
+      area = area*radius*radius
+      return
+      contains
+      function v3d(lon,lat)
+      real*8 :: lon,lat,v3d(3)
+      v3d(1:2) = cosd(lat)*(/cosd(lon),sind(lon)/); v3d(3) = sind(lat)
+      end function v3d
+      function cross3d(v1,v2)
+      real*8, dimension(3) :: v1,v2,cross3d
+      cross3d = cshift(v1,1)*cshift(v2,-1)-cshift(v1,-1)*cshift(v2,1)
+      end function cross3d
+      end subroutine gc_polyarea
+
 c
 c> Revision history
 c>

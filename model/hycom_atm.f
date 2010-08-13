@@ -33,8 +33,10 @@
       USE FLUXES, only : DMUA_loc => DMUA
       USE FLUXES, only : DMVA_loc => DMVA
       USE ICEDYN, only : grid_icdyn
+#ifndef CUBED_SPHERE
       USE ICEDYN_COM, only : pack_i2a ! to send dmui,dmvi to the atm grid
       USE ICEDYN_COM, only : pack_a2i
+#endif
       USE ICEDYN_COM, only : DMUI_loc => DMUI
       USE ICEDYN_COM, only : DMVI_loc => DMVI
       USE FLUXES, only : SOLAR_loc => SOLAR
@@ -95,8 +97,10 @@
       public SMELTI_loc
       public DMUA_loc
       public grid_icdyn
+#ifndef CUBED_SPHERE
       public pack_i2a
       public pack_a2i
+#endif
       public DMUI_loc
       public DMVA_loc
       public DMVI_loc
@@ -226,9 +230,9 @@
       contains
 
       subroutine alloc_hycom_atm
+#ifdef USE_ATM_GLOBAL_ARRAYS
       USE HYCOM_DIM, only : iia,jja ! actually should use IM,JM !!
 
-#ifdef USE_ATM_GLOBAL_ARRAYS
       ALLOCATE( SSS( im, jm ) )
       ALLOCATE( UOSURF( im, jm ) )
       ALLOCATE( VOSURF( im, jm ) )
@@ -254,8 +258,8 @@
      &     aswflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     asst_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     atempr_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     admui_loc(im,aJ_0H:aJ_1H),
-     &     admvi_loc(im,aJ_0H:aJ_1H)
+     &     admui_loc(aI_0H:aI_1H,aJ_0H:aJ_1H), ! temporary
+     &     admvi_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)  ! temporary
      &     )
 
 #ifdef TRACERS_GASEXCH_ocean

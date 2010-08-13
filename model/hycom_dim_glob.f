@@ -1,7 +1,13 @@
+#include "rundeck_opts.h"
+
       module hycom_dim_glob
 
+#ifndef CUBED_SPHERE
+      use hycom_dim, only : iia,jja
+#endif
+
       use hycom_dim, only : idm, jdm, ms, kdm, ntrcr,
-     &     iia,jja,iio,jjo,ii,jj,jchunk,kk,ii1,J_0,J_1,
+     &     iio,jjo,ii,jj,jchunk,kk,ii1,J_0,J_1,
      &     ogrid,
      &     ip_loc => ip,
      &     iu_loc => iu,
@@ -96,8 +102,12 @@ cddd     .     msk
       implicit none
       private
 
+#ifndef CUBED_SPHERE
+      public iia,jja
+#endif
+
       public idm, jdm, ms, kdm, ntrcr
-      public iia,jja,iio,jjo,ii,jj,jchunk,kk,ii1
+      public iio,jjo,ii,jj,jchunk,kk,ii1
       public gather_hycom_dim, alloc_hycom_dim_glob
       public ip
       public iu

@@ -90,8 +90,9 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
+      USE DOMAIN_DECOMP_ATM, only : grid,globalsum_atm=>globalsum
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
-     &                         haveLatitude, GLOBALSUM, ESMF_BCAST, GRID
+     &                         haveLatitude, globalsum
       USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data,
      &     band_pack
       USE HYCOM_ATM 
@@ -151,6 +152,7 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+      USE HYCOM_DYNSI_CPLER
 #ifdef TRACERS_GASEXCH_ocean_CO2
       use obio_diffmod
 #endif
@@ -169,7 +171,10 @@ c
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,nsub
-      integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),ipa(iia,jja)
+      integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)
+#ifdef USE_ATM_GLOBAL_ARRAYS
+      integer ipa(iia,jja)
+#endif
 #ifdef TRACERS_OceanBiology
       integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
@@ -203,6 +208,7 @@ c
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
      . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
+      real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_ocean
@@ -257,23 +263,36 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
           anirdif_loc(:,:)=0.
 #endif
  28     continue
-
+#ifdef CUBED_SPHERE
+        call reset_dynsi_accum
+#endif
 c$OMP END PARALLEL DO
       endif
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
 
-c first redistribute ice-ocean stresses to the atmospheric grid
-c Eventually we will call veci2o and combine atm- and ice-ocean
-c stresses after the respective regrids to HYCOM
+#ifdef CUBED_SPHERE
+! wind and ice stresses will be combined after regridding,
+      admui_loc = 0. ! so set atm-grid instance of ice stress to zero
+      admvi_loc = 0.
+      call do_dynsi_accum(dtsrc,3600.*real(nhr))
+#else
+c combine wind and ice stresses before regridding
+c first redistribute ice-ocean stresses to the atmospheric domain decomp
       call band_pack(pack_i2a, dmui_loc, admui_loc)
       call band_pack(pack_i2a, dmvi_loc, admvi_loc)
+#endif
+c
       eflow_gl=0.
-      call globalsum(grid, eflowo_loc, eflow_gl, all=.true.)
+      call globalsum_atm(grid, eflowo_loc, eflow_gl, all=.true.)
 c
       do 29 ia=aI_0,aI_1
+#ifdef CUBED_SPHERE
+      iam1 = ia ! avoid out-of-bounds indices in admui_loc==0
+#else
       iam1=mod(ia-2+iia,iia)+1
+#endif
       do 29 ja=aJ_0,aJ_1
       ipa_loc(ia,ja)=0
       if (focean_loc(ia,ja).eq.0.) goto 29
@@ -372,6 +391,19 @@ c
       call flxa2o(aemnp_loc,oemnp_loc)            !E - P everywhere
       call flxa2o(austar_loc,ustar_loc)           !friction velocity
       call flxa2o(aswflx_loc,sswflx_loc)          ! shortwave flux
+#ifdef CUBED_SPHERE
+c combine wind and ice stresses after regridding
+      tauxi_loc = 0.; tauyi_loc = 0.; ustari_loc = 0.
+      call veci2o(taux_dynsi,tauy_dynsi,tauxi_loc,tauyi_loc)
+      call scai2o(ustar_dynsi,ustari_loc)
+      do j=j_0,j_1
+        do i=1,idm
+          taux_loc(i,j) = taux_loc(i,j) + tauxi_loc(i,j)
+          tauy_loc(i,j) = tauy_loc(i,j) + tauyi_loc(i,j)
+          ustar_loc(i,j) = ustar_loc(i,j) + ustari_loc(i,j)
+        enddo
+      enddo
+#endif
       if(am_i_root()) then ! still using global grid for tracers
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
@@ -1316,10 +1348,13 @@ css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza_loc,ogeoza_loc)
       call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
       call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
-c these are latlonatm-specific.  eventually call veco2i instead.
+#ifdef CUBED_SPHERE
+      call veco2i(usf_loc,vsf_loc,uosurf_4dynsi_loc,vosurf_4dynsi_loc)
+#else
+c when atm is lat-lon, dynsi grid == atm grid
       call band_pack(pack_a2i, uosurf_loc, UOSURF_4DYNSI_loc)
       call band_pack(pack_a2i, vosurf_loc, VOSURF_4DYNSI_loc)
-
+#endif
       if(am_i_root()) then  ! still using global grid for tracers
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
