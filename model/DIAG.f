@@ -1207,7 +1207,8 @@ C****
       use rad_com, only: nTracerRadiaActive,tracerRadiaActiveFlag
       use tracer_com
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : sOx_acc,l1Ox_acc,l1NO_acc
+      USE TRCHEM_Shindell_COM, only : sOx_acc,sNOx_acc,sCO_acc
+     &     ,l1Ox_acc,l1NO2_acc
 #endif
 #ifdef TRACERS_ON
       use trdiag_com, only: trcsurf,trcSurfByVol,trcSurfMixR_acc
@@ -1367,7 +1368,7 @@ C**** initialise special subdd accumulation
       TRE_acc=0.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      sOx_acc=0.; l1Ox_acc=0. ; l1NO_acc=0.
+      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
 #endif
 
       allocate(LmaxSUBDD_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD))
@@ -1527,8 +1528,10 @@ c get_subdd
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl)
-!@+                    oAVG  (SFC Ox time-average vmr)
-!@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average vmr)
+!@+                    oAVG  (SFC Ox time-average ppbv)
+!@+                    nxAVG (SFC NOx time-average ppbv)
+!@+                    cAVG (SFC CO time-average ppbv)
+!@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average ppbv)
 !@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 mmr)
 !@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 vmr)
 !@+                    D*          (HDO on any model level)
@@ -1574,7 +1577,8 @@ c get_subdd
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,l1Ox_acc,l1NO_acc
+      USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
+     *     ,l1Ox_acc,l1NO2_acc
 #endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
@@ -1742,15 +1746,21 @@ c          datar8=sday*prec/dtsrc
           raP_acc=0.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppmv)
-          datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+        case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
+          datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sOx_acc=0.
-        case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppmv)
-          datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+        case ("nxAVG")   ! Nsubdd-step average SFC NOx tracer (ppbv)
+          datar8=sNOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
+          sNOx_acc=0.
+        case ("cAVG")   ! Nsubdd-step average SFC CO tracer (ppbv)
+          datar8=sCO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
+          sCO_acc=0.
+        case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppbv)
+          datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           l1Ox_acc=0.
-        case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppmv)
-          datar8=l1NO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
-          l1NO_acc=0.
+        case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppbv)
+          datar8=l1NO2_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
+          l1NO2_acc=0.
 #endif
         case ("MCP")       ! moist conv precip (mm/day)
           datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps

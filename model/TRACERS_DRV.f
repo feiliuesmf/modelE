@@ -10430,8 +10430,8 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,
-     & l1Ox_acc,l1NO_acc,mNO2
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,
+     & sCO_acc,l1Ox_acc,l1NO2_acc,mNO2
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
@@ -10941,11 +10941,14 @@ C**** Apply chemistry and overwrite changes:
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case('Ox')
-          sOx_acc(:,:)=sOx_acc(:,:)+1.d6*trcsurf(:,:,n)*mass2vol(n)
-          L1Ox_acc(:,:)=L1Ox_acc(:,:)+trm(:,:,1,n)*byam(1,:,:)*
-     &    byaxyp(:,:)*1.d6*mass2vol(n)
-        case('NOx') ! but doing NO2 not NOx
-          L1NO_acc(:,:)=L1NO_acc(:,:)+mNO2(:,:,1)*1.d6
+          sOx_acc(:,:)=sOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
+          l1Ox_acc(:,:)=l1Ox_acc(:,:)+trm(:,:,1,n)*byam(1,:,:)*
+     &    byaxyp(:,:)*1.d9*mass2vol(n)
+        case('NOx')
+          sNOx_acc(:,:)=sNOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
+          l1NO2_acc(:,:)=l1NO2_acc(:,:)+mNO2(:,:,1)*1.d9  ! note: NO2 not NOx
+        case('CO') 
+          sCO_acc(:,:)=sCO_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
 #endif
         end select
       enddo
