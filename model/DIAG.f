@@ -1985,6 +1985,8 @@ C**** diags on soil levels
                   end do
                 end do
               case ("GW")        ! ground wetness lvls 1-6, land (m)
+                ! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
+                ! and activate the corresponding lines where wtr_L is set
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
