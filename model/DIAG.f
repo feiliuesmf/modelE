@@ -2771,7 +2771,7 @@ c**** fix polar values
         if(hasnorthpole(grid)) data(2:im,jm)=data(1,jm)
       end if
       call writei_parallel(grid,iu_subdd(kunit),
-     *     nameunit(iu_subdd(kunit)),data,itime)
+     *     nameunit(iu_subdd(kunit)),data,itime+1)
 
       end subroutine write_data
 
@@ -2815,7 +2815,7 @@ c
         if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
-      call write_data(grid,fid, 'itime', itime, record=rec)
+      call write_data(grid,fid, 'itime', itime+1, record=rec)
       call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       call par_close(grid,fid)
       return
@@ -2872,7 +2872,7 @@ c
           if(hasNorthPole(grid)) data(2:im,jm,l) = data(1,jm,l)
         enddo
       endif
-      call write_data(grid,fid, 'itime', itime, record=rec)
+      call write_data(grid,fid, 'itime', itime+1, record=rec)
       if(present(suffixes)) then
         do l=1,size(data,3)
           qname = trim(qtyname)//'_'//trim(suffixes(l))
@@ -2939,7 +2939,7 @@ c
           end do
         end do
       endif
-      call write_data(grid,fid, 'itime', itime, record=rec)
+      call write_data(grid,fid, 'itime', itime+1, record=rec)
       if(present(suffixes)) then
         do n=1,size(data,4)
           qname = trim(qtyname)//'_'//trim(suffixes(n))
