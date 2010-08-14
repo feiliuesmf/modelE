@@ -1291,7 +1291,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 #endif
 
 #ifdef NEW_IO_SUBDD
-      private :: write_2d,write_3d,in_subdd_list
+      private :: write_2d,write_3d,write_4d,in_subdd_list
       interface write_subdd
       module procedure write_2d
       module procedure write_3d
@@ -1346,7 +1346,7 @@ C**** open units and position
 
 C**** position correctly
         do kunit=1,kddunit
-          call io_POS(iu_SUBDD(kunit),Itime-1,im*jm,Nsubdd)
+          call io_POS(iu_SUBDD(kunit),Itime,im*jm,Nsubdd)
         end do
 #endif
 
