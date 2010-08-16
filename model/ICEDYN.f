@@ -13,7 +13,7 @@ C submitted to JGR, 1999
 C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C - Further modularised May 2001
 C*************************************************************
-
+#include "rundeck_opts.h"
       MODULE ICEDYN
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
