@@ -1367,9 +1367,6 @@ C**** initialise special subdd accumulation
       TRP_acc=0.
       TRE_acc=0.
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
-#endif
 
       allocate(LmaxSUBDD_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD))
       allocate(ngm_array(i_0h:i_1h,j_0h:j_1h,ngm))
@@ -1532,8 +1529,8 @@ c get_subdd
 !@+                    nxAVG (SFC NOx time-average ppbv)
 !@+                    cAVG (SFC CO time-average ppbv)
 !@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average ppbv)
-!@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 mmr)
-!@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 vmr)
+!@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 ppmm)
+!@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 ppmm)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR

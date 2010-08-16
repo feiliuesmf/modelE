@@ -796,6 +796,9 @@ C**************  Not Latitude-Dependant ****************************
       allocate(     sCO_acc(I_0H:I_1H,J_0H:J_1H)         )
       allocate(    l1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
       allocate(    l1NO2_acc(I_0H:I_1H,J_0H:J_1H)        )
+
+      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
+
       allocate(       DU_O3(J_0H:J_1H)                   )
 #ifdef SHINDELL_STRAT_CHEM
       allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,LM)      )

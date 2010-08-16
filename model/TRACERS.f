@@ -1137,7 +1137,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
-     &     ,acetone
+     &     ,acetone, sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
 #ifdef SHINDELL_STRAT_CHEM
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
@@ -1183,6 +1183,8 @@ C**** check whether air mass is conserved
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
+      real(kind=8),allocatable,dimension(:,:) :: sOx_acc_glob,
+     & sNOx_acc_glob, sCO_acc_glob, l1Ox_acc_glob, l1NO2_acc_glob
 #ifdef INTERACTIVE_WETLANDS_CH4 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
      &     rHch4,rDch4,r0ch4,rfirst_mod
@@ -1245,7 +1247,12 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
-     &    ss_glob(JPPJ,LM,img,jmg) )
+     &    ss_glob(JPPJ,LM,img,jmg)
+     &    ,sOx_acc_glob(img,jmg)
+     &    ,sNOx_acc_glob(img,jmg)
+     &    ,sCO_acc_glob(img,jmg)
+     &    ,l1Ox_acc_glob(img,jmg) 
+     &    ,l1NO2_acc_glob(img,jmg))
 #ifdef INTERACTIVE_WETLANDS_CH4
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
@@ -1456,8 +1463,13 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='INTERACTIVE_WETLANDS_CH4: iday_ncep,i0_ncep,first_ncep'
         if(am_i_root())write(kunit,err=10)
      &  header,iday_ncep,i0_ncep,first_ncep
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+       call pack_data(grid,sOx_acc,sOx_acc_glob)
+       call pack_data(grid,sNOx_acc,sNOx_acc_glob)
+       call pack_data(grid,sCO_acc,sCO_acc_glob)
+       call pack_data(grid,l1Ox_acc,l1Ox_acc_glob)
+       call pack_data(grid,l1NO2_acc,l1NO2_acc_glob)
+#endif /* TRACERS_SPECIAL_Shindell */
 
        call pack_data(grid,trcSurfMixR_acc,trcSurfMixR_acc_glob)
        call pack_data(grid,trcSurfByVol_acc,trcSurfByVol_acc_glob)
@@ -1473,6 +1485,10 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &      ,l1PM10_acc_glob
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
+     &      ,l1NO2_acc_glob
 #endif
 
       CASE (IOREAD:)          ! input from restart file
@@ -1626,6 +1642,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &         ,l1PM10_acc_glob
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &         ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
+     &         ,l1NO2_acc_glob
+#endif
 
           call unpack_data(grid,trcSurfMixR_acc_glob,trcSurfMixR_acc)
           call unpack_data(grid,trcSurfByVol_acc_glob,trcSurfByVol_acc)
@@ -1634,6 +1654,13 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
           call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
           call unpack_data(grid,l1PM10_acc_glob,l1PM10_acc)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+          call unpack_data(grid,sOx_acc_glob,sOx_acc)
+          call unpack_data(grid,sNOx_acc_glob,sNOx_acc)
+          call unpack_data(grid,sCO_acc_glob,sCO_acc)
+          call unpack_data(grid,l1Ox_acc_glob,l1Ox_acc)
+          call unpack_data(grid,l1NO2_acc_glob,l1NO2_acc)
 #endif
 
         END SELECT
@@ -1666,7 +1693,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
-      deallocate(ss_glob)
+      deallocate(ss_glob,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,
+     & l1Ox_acc_glob,l1NO2_acc_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
@@ -1690,7 +1718,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
-     &,acetone
+     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
 #ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
@@ -1802,8 +1830,13 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,iday_ncep,'iday_ncep(nra_ncep)')
       call defvar(grid,fid,i0_ncep,'i0_ncep(nra_ncep)')
       call defvar(grid,fid,first_ncep,'first_ncep(nra_ncep)')
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+      call defvar(grid,fid,sOx_acc,'sOx_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,sNOx_acc,'sNOx_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,sCO_acc,'sCO_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,l1Ox_acc,'l1Ox_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,l1NO2_acc,'l1NO2_acc(dist_im,dist_jm)')
+#endif /* TRACERS_SPECIAL_Shindell */
 
       call defvar(grid,fid,trcSurfMixR_acc
      &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
@@ -1842,7 +1875,7 @@ c daily_z is currently only needed for CS
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
-     &,acetone
+     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
 #ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
@@ -1936,8 +1969,13 @@ c daily_z is currently only needed for CS
         call write_data(grid,fid,'iday_ncep',iday_ncep)
         call write_data(grid,fid,'i0_ncep',i0_ncep)
         call write_data(grid,fid,'first_ncep',first_ncep)
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+        call write_dist_data(grid,fid,'sOx_acc',sOx_acc)
+        call write_dist_data(grid,fid,'sNOx_acc',sNOx_acc)
+        call write_dist_data(grid,fid,'sCO_acc',sCO_acc)
+        call write_dist_data(grid,fid,'l1Ox_acc',l1Ox_acc)
+        call write_dist_data(grid,fid,'l1NO2_acc',l1NO2_acc)
+#endif /* TRACERS_SPECIAL_Shindell */
 
         call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
         call write_dist_data(grid,fid,'trcSurfByVol_acc'
@@ -2027,8 +2065,13 @@ c daily_z is currently only needed for CS
      &       bcast_all=.true.)
         call read_data(grid,fid,'first_ncep',first_ncep,
      &       bcast_all=.true.)
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+        call read_dist_data(grid,fid,'sOx_acc',sOx_acc)
+        call read_dist_data(grid,fid,'sNOx_acc',sNOx_acc)
+        call read_dist_data(grid,fid,'sCO_acc',sCO_acc)
+        call read_dist_data(grid,fid,'l1Ox_acc',l1Ox_acc)
+        call read_dist_data(grid,fid,'l1NO2_acc',l1NO2_acc)
+#endif /* TRACERS_SPECIAL_Shindell */
 
         call read_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
         call read_dist_data(grid,fid,'trcSurfByVol_acc'
