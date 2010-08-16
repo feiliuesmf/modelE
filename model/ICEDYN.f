@@ -1112,9 +1112,9 @@ C**** Set land masks for tracer and velocity points
 #if (defined CUBED_SPHERE) || (defined HYCOM1deg) ||\
     (defined HYCOM2deg) 
           heffm(i,j)=nint(focean(i-1,j))
-#endif
-
+#else
           heffm(i,j)=ceiling(focean(i-1,j))
+#endif
         enddo
         heffm(1,j)=heffm(nx1-1,j)
         heffm(nx1,j)=heffm(2,j)
