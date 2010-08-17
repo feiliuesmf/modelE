@@ -69,6 +69,7 @@ c
         module procedure write_nc_3D_int
         module procedure write_nc_2D_logical
         module procedure write_nc_1D_array_of_strings
+        module procedure write_nc_string
       end interface write_data
       interface read_data
         module procedure read_nc_0D
@@ -100,6 +101,7 @@ c
         module procedure defvar_5D_int
         module procedure defvar_2D_logical
         module procedure defvar_1D_array_of_strings
+        module procedure defvar_string
       end interface
 
       public :: write_attr
@@ -572,6 +574,41 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       endif
       rc = nfmpi_end_indep_data(fid)
       end subroutine write_nc_1D_array_of_strings
+      subroutine write_nc_string(grid,fid,varname,arr,record)
+      integer :: fid
+      character(len=*) :: varname
+      type(dist_grid), intent(in) :: grid
+      character(len=*) :: arr
+      integer, intent(in), optional :: record
+      integer :: rc,vid,did
+      integer*8 :: srt(2),cnt(2),nrecs8
+      rc = nfmpi_inq_varid(fid,trim(varname),vid)
+      if(grid%am_i_globalroot .and. rc.ne.nf_noerr)
+     &     write(6,*) 'variable ',
+     &     trim(varname),' not found in output file - stopping'
+      call stoprc(rc,nf_noerr)
+      if(present(record)) then
+        nrecs8 = 0
+        rc = nfmpi_inq_unlimdim(fid,did)
+        rc = nfmpi_inq_dimlen(fid,did,nrecs8)
+        if(record.le.0 .or. nrecs8+1.lt.record) then
+          if(grid%am_i_globalroot) write(6,*)
+     &         'error in record dim spec. for variable ',trim(varname)
+          call stoprc(0,1)
+        endif
+      endif
+      rc = nfmpi_begin_indep_data(fid)
+      if(grid%am_i_globalroot) then
+        if(present(record)) then
+          srt = (/ 1, record /)
+          cnt = (/ len(arr), 1 /)
+          rc = nfmpi_put_vara_text(fid,vid,srt,cnt,arr)
+        else
+          rc = nfmpi_put_var_text(fid,vid,arr)
+        endif
+      endif
+      rc = nfmpi_end_indep_data(fid)
+      end subroutine write_nc_string
 
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -767,6 +804,32 @@ c netcdf file will represent logical as 0/1 int
       deallocate(arr2d)
       return
       end subroutine defvar_1D_array_of_strings
+
+      subroutine defvar_1D_char(grid,fid,arr,varinfo,r4_on_disk,
+     &     defby, with_record_dim)
+      character :: arr(:)
+      integer, parameter :: dtype=nf_char
+      include 'do_defvar_pnc.inc'
+      return
+      end subroutine defvar_1D_char
+
+      subroutine defvar_string(grid,fid,arr,varinfo,with_record_dim)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: arr
+      character(len=*) :: varinfo
+      logical, intent(in), optional :: with_record_dim
+      character, allocatable :: arr1d(:)
+      allocate(arr1d(len(arr)))
+      if(present(with_record_dim)) then
+        call defvar_1D_char(grid,fid,arr1d,varinfo,
+     &       with_record_dim=with_record_dim)
+      else
+        call defvar_1D_char(grid,fid,arr1d,varinfo)
+      endif
+      deallocate(arr1d)
+      return
+      end subroutine defvar_string
 
       subroutine write_attr_text(grid,fid,varname,attname,attval)
       character(len=*) :: attval

@@ -2801,8 +2801,11 @@ c
       integer fid
       integer :: rec
       character(len=80) :: fname
+c      character(len=14) :: datestr
 
       if(.not. in_subdd_list(qtyname)) return
+
+c      datestr = 'yyyymmddhhmmss'
 
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
       if(present(record)) then
@@ -2814,6 +2817,8 @@ c
         fid = par_open(grid,trim(fname),'create')
         call defvar(grid,fid,itime,'itime',
      &       with_record_dim=.true.)
+c        call defvar(grid,fid,datestr,'date(date_strlen)',
+c     &       with_record_dim=.true.)
         call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm)',
      &       with_record_dim=.true.,r4_on_disk=.true.)
         call par_enddef(grid,fid)
@@ -2825,6 +2830,7 @@ c
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
       call write_data(grid,fid, 'itime', itime+1, record=rec)
+c      call write_data(grid,fid, 'date', datestr, record=rec)
       call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       call par_close(grid,fid)
       return
