@@ -78,12 +78,12 @@ c#endif
 #ifdef  TRACERS_SPECIAL_Shindell
       YI(1,5) = trm(i,j,l,n_HNO3)*yM*mass2vol(n_HNO3)*
      *     BYAXYP(I,J)*BYAM(L,I,J)   ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
-      YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*mass2vol(n_NO3p)*
-     *     BYAXYP(I,J)*BYAM(L,I,J) ) ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else 
 !off-line HNO3
       YI(1,5) = off_HNO3(i,j,l)*yM!*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
 #endif
+      YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*mass2vol(n_NO3p)*
+     *     BYAXYP(I,J)*BYAM(L,I,J) ) ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
       
       if (NO_SS) then
 ! estimated sea salt = NaCl
