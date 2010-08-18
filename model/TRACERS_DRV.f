@@ -258,10 +258,6 @@ C**** set super saturation parameter for isotopes if needed
        if(nday_ch4(n) > max_days .or. nday_ch4(n) < 1)
      & call stop_model('nday_ch4 out of range',255)
       end do
-      if(nisurf /= 1) call stop_model
-     &('nisurf no longer=1, please alter maxHR_ch4',255)
-      if(DTsrc /= 1800.) call stop_model
-     &('DTsrc no longer=1800, please alter maxHR_ch4',255)
 #endif
       PRES(1:LM)=PMIDL00(1:LM)
 #endif /* TRACERS_SPECIAL_Shindell */

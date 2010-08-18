@@ -48,9 +48,9 @@
 !@dbparam SW_lim lower limit on SW down flux for int wetl dist
 !@param nra_ch4 number of running averages needed for int-wetlands
 !@param nra_ncep # of ncep running averages needed for int-wetlands
-!@param maxHR_ch4 maximum number of sub-daily accumulations
 !@param nday_ncep number of days in ncep running averages
 !@param nday_ch4 number of days in running average
+!@var maxHR_ch4 maximum number of sub-daily accumulations
 !@var by_nday_ncep  1/real(nday_ncep)
 !@var by_nday_ncep  1/real(nday_ch4)
 !@var day_ncep daily NCEP temperature & precipitation 
@@ -68,12 +68,8 @@
 !@var first_mod whether in the first model averaging per.   (prec,temp)
 !@var PTBA variable to hold the pressure, temperature, beta, and alpha
 !@var PTBA1, PTBA2 for interpolations of PTBA
-      ! next line: 1800=dtsrc, 1=nisurf, but since those are not
-      ! parameters, I don't know how to soft-code this. There is a 
-      ! failsafe in the TRACERS_DRV, however.
-      integer, parameter :: nra_ch4 = 5, maxHR_ch4=24*1*3600/1800,
-     & nra_ncep=2, n__prec=1, n__temp=2, n__SW=3, n__SAT=4, n__gwet=5,
-     & max_days=28, nncep=4
+      integer, parameter :: nra_ch4 = 5, nra_ncep=2, n__prec=1,
+     &  n__temp=2, n__SW=3, n__SAT=4, n__gwet=5, max_days=28, nncep=4
       integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ns_wet=11
       real*8 :: topo_lim = 205.d0, sat_lim=-9.d0, 
      & gw_ulim=100.d0, gw_llim=18.d0, SW_lim=27.d0, ice_age=0.d0
@@ -95,6 +91,7 @@
      &                                          first_mod
       real*8, allocatable, dimension(:,:,:) ::  PTBA,PTBA1,PTBA2
       real*8, allocatable, dimension(:,:) :: add_wet_src
+      integer :: maxHR_ch4
 #endif
 #endif
       END MODULE TRACER_SOURCES
@@ -106,7 +103,8 @@
 !@auth G.Faluvegi
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get, write_parallel
-      use model_com, only     : lm
+      USE PARAM, only : get_param, is_set_param
+      use model_com, only : lm, DTsrc, NIsurf
       use tracer_com, only : ntm
       use tracer_sources
 
@@ -115,6 +113,8 @@
       type (dist_grid), intent(in) :: grid
       integer :: ier, J_1H, J_0H, I_1H, I_0H
       logical :: init = .false.
+      real*8 :: DTsrc_LOCAL
+      integer :: NIsurf_LOCAL
 
       if(init)return
       init=.true.
@@ -122,6 +122,19 @@
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
+
+#ifdef INTERACTIVE_WETLANDS_CH4
+      ! here I want to define how many surface calls expected in
+      ! each day, but real DTsrc and NIsurf are not available yet
+      ! so use local copy from the database:
+
+      DTsrc_LOCAL = DTsrc
+      if(is_set_param("DTsrc"))call get_param("DTsrc",DTsrc_LOCAL)
+      NIsurf_LOCAL = NIsurf
+      if(is_set_param("NIsurf"))call get_param("NIsurf",NIsurf_LOCAL)
+
+      maxHR_ch4=24*NIsurf_LOCAL*NINT(3600./DTsrc_LOCAL)
+#endif
  
       allocate(airNOx(I_0H:I_1H,J_0H:J_1H,LM))
       airNOx = 0.
