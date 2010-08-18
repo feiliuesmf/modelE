@@ -902,7 +902,7 @@ c
       stitle_j(k)= '0OCEAN TRNS CONV'
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
-      fmt_reg(k) = fmt912
+      fmt_j(k) = fmt912
 c
       k=k+1
       J_FTHERM= k ! ENERGY DIFFUSION INTO THERMOCLINE (W/m**2) dly odeep
