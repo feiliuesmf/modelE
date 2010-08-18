@@ -1745,7 +1745,7 @@ c
      &     ,ndyno,dto
       use odiag, only : koijl,oijl_out,oijl=>oijl_loc
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
-     &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
+     &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef TRACERS_OCEAN
@@ -1799,6 +1799,7 @@ c
       do j=j_0,j_1
       do i=1,imaxj(j)
         oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)/dxypo(j)
+        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/(dxypo(j)**2)
         oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)/dxypo(j)
         oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)/dxypo(j)
         oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)/dxypo(j)
