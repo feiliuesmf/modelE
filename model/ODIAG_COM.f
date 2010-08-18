@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=48,KOIJL=26,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=58,KOIJL=27,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
