@@ -1760,7 +1760,7 @@ c flow out of the bottom and top edges simultaneously.
               RM(I,J,L) = RM(I,J,L) + (FMUP_ctr(I,J)-FM_ctr)
               mnew = MO(I,J,L) + CMUP(I,J)-CM
               RZ(I,J,L) = (RZ(I,J,L)*MO(I,J,L) + (FZUP(I,J)-FZ) +3d0*
-     &             +((CMUP(I,J)+CM)*RM_lus-MO(I,J,L)*(FMUP(I,J)+FM)))
+     &             ((CMUP(I,J)+CM)*RM_lus-MO(I,J,L)*(FMUP(I,J)+FM)))
      &             / mnew
               MO(I,J,L) = mnew
               cmup(i,j) = cm
