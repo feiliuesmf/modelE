@@ -374,6 +374,30 @@ c        L =KVMF(K)
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
 C****
+C**** Vertical Mass Flux^2 (kg2/m4)
+C****
+      K=IJL_MFW2
+      DO L=1,LMO-1
+c     IF(KVMF(K).le.0)  GO TO 370
+c        L =KVMF(K)
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
+        SNAME='vert_ms_flx_sq_L'//LEVSTR(L)
+        DO J=1,JM
+          DO I=1,IMAXJ(J)
+            Q(I,J)=OIJL(I,J,L,K)*SCALE_OIJL(K)/
+     *           (IDACC(1)*DXYPO(J)*DXYPO(J))
+          END DO
+        END DO
+        Q(2:IM,JM)=Q(1,JM)
+        Q(2:IM,1)=Q(1,1)
+        TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
+        WRITE (TITLE(40:47),'(A5,I3)') "Level",L
+        WRITE (LNAME(40:47),'(A5,I3)') "Level",L
+        TITLE(51:80)=XLB
+        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
+      END DO
+C****
 C**** East-West or North-South Mass fluxes (kg/s)
 C****
       K=IJL_MFU

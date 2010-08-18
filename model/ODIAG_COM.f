@@ -36,7 +36,9 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_out
 
 !@var IJ_xxx Names for OIJ diagnostics
-      INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF
+      INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
+     *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB 
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
@@ -67,7 +69,7 @@
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
-     *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV
+     *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2
 !@var lname_oijl Long names for OIJL diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJL) :: LNAME_OIJL
 !@var sname_oijl Short names for OIJL diagnostics
@@ -801,10 +803,6 @@ C****
 
       byrho2 = .00097d0**2 ! reciprocal**2 of mean ocean density
 
-C**** Set names for OLNST diagnostics
-c      LN_KVM=1  ; LN_KVG=2  ; LN_WGFL=3 ; LN_WSFL=4
-c      LN_MFLX=5 ; LN_GFLX=6 ; LN_SFLX=7 ; LN_ICFL=8
-
 C**** set properties for OLNST diagnostics
       do k=1,kolnst
         sname_olnst(k) = 'unused'
@@ -1072,6 +1070,14 @@ c
       units_oijl(k) = 'KG/M^3'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
+      k=k+1
+      IJL_MFW2=k
+      lname_oijl(k) = "Ocean vertical mass flux squared"
+      sname_oijl(k) = "mfw2"
+      units_oijl(k) = "kg^2/m^4"
+      scale_oijl(k) = (2./ndyno)*(2./ndyno)
+      lgrid_oijl(k) = 2
+c
 C**** set properties for OIJ diagnostics
       do k=1,koij
         sname_oij(k) = 'unused'
@@ -1325,6 +1331,78 @@ c
       lname_oij(k)="Ocean bottom pressure anomaly"
       sname_oij(k)="oij_pb"
       units_oij(k)="Pa"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_SRHFLX=k
+      lname_oij(k)="Ocean surface downward heat flux"
+      sname_oij(k)="oij_srhflx"
+      units_oij(k)="W/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_SRWFLX=k
+      lname_oij(k)="Ocean surface downward fresh water flux"
+      sname_oij(k)="oij_srwflx"
+      units_oij(k)="kg/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_SRHFLXI=k
+      lname_oij(k)="Ocean surface downward heat flux from ice"
+      sname_oij(k)="oij_srhflxi"
+      units_oij(k)="W/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_SRWFLXI=k
+      lname_oij(k)="Ocean surface downward fresh water flux from ice"
+      sname_oij(k)="oij_srwflxi"
+      units_oij(k)="kg/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_SRSFLXI=k
+      lname_oij(k)="Ocean surface downward salt flux from ice"
+      sname_oij(k)="oij_srsflxi"
+      units_oij(k)="kg/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_ERVR=k
+      lname_oij(k)="Ocean input of energy from rivers"
+      sname_oij(k)="oij_ervr"
+      units_oij(k)="J/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_MRVR=k
+      lname_oij(k)="Ocean input of mass from rivers"
+      sname_oij(k)="oij_mrvr"
+      units_oij(k)="kg/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_EICB=k
+      lname_oij(k)="Ocean input of energy from icebergs"
+      sname_oij(k)="oij_eicb"
+      units_oij(k)="J/m^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_MICB=k
+      lname_oij(k)="Ocean input of mass from icebergs"
+      sname_oij(k)="oij_micb"
+      units_oij(k)="kg/m^2"
       ia_oij(k)=ia_src
       scale_oij(k)=1.
 

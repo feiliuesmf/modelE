@@ -20,7 +20,7 @@ C****
      &     south,north, hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
-     *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
+     *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx, ijl_sflx, ijl_mfw2,
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
 
 #ifdef TRACERS_OCEAN
@@ -284,6 +284,8 @@ c
           do n=1,nbyzm(j,l)
             do i=i1yzm(n,j,l),i2yzm(n,j,l)
               OIJL(I,J,L,IJL_MFW) = OIJL(I,J,L,IJL_MFW) + SMW(I,J,L)
+              OIJL(I,J,L,IJL_MFW2)= OIJL(I,J,L,IJL_MFW2)+
+     *             SMW(I,J,L)*SMW(I,J,L)
               OIJL(I,J,L,IJL_MO)  = OIJL(I,J,L,IJL_MO) +  MO(I,J,L)*byno
               OIJL(I,J,L,IJL_G0M) = OIJL(I,J,L,IJL_G0M) +G0M(I,J,L)*byno
               OIJL(I,J,L,IJL_S0M) = OIJL(I,J,L,IJL_S0M) +S0M(I,J,L)*byno

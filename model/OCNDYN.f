@@ -30,7 +30,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
-     *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
+     *    ijl_mo,ijl_g0m,ijl_s0m, ijl_gflx, ijl_sflx, ijl_mfw2,
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
 #ifdef TRACERS_OCEAN
      *    ,toijl=>toijl_loc,
@@ -175,6 +175,7 @@ C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
         OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
         OIJL(:,:,L,IJL_MFV) = OIJL(:,:,L,IJL_MFV) + SMV(:,:,L)
         OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
+        OIJL(:,:,L,IJL_MFW2)= OIJL(:,:,L,IJL_MFW2)+SMW(:,:,L)*SMW(:,:,L)
       END DO
 !$OMP END PARALLEL DO
 C**** Advection of Potential Enthalpy and Salt
@@ -4298,7 +4299,8 @@ C**** Surface stress is applied to V component at the North Pole
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
      *     , oDMSI, oDHSI, oDSSI
-
+      USE ODIAG, only : oij=>oij_loc,ij_srhflx,ij_srwflx,ij_srhflxi
+     *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : trw0
       Use OCEAN, Only: TRMO, NTM
@@ -4466,6 +4468,33 @@ C**** Updated using latest sea ice (this ensures that total column mass
 C**** is consistent for OGEOZ calculation).
         OPRESS(I,J) = oAPRESS(I,J)+GRAV*(
      *       (1.-oRSI(I,J))*oDMSI(1,I,J) + oRSI(I,J)*oDMSI(2,I,J))
+
+C**** Set some ocean diagnostics of net fluxes (downward +ve)
+C**** This includes atm/oc + si/oc, rivers + icebergs are separate 
+        OIJ(I,J,IJ_SRHFLX)  = OIJ(I,J,IJ_SRHFLX)  +     ! net heat
+     *       (ERUNO-oDHSI(1,I,J))*POCEAN +
+     *       (ERUNI-oDHSI(2,I,J))*POICE  - oEFLOWO(I,J)
+
+        OIJ(I,J,IJ_SRWFLX)  = OIJ(I,J,IJ_SRWFLX)  +     ! net fw
+     *       (RUNO-SRUNO-oDMSI(1,I,J)+oDSSI(1,I,J))*POCEAN+
+     *       (RUNI-SRUNI-oDMSI(2,I,J)+oDSSI(2,I,J))*POICE - oFLOWO(I,J)
+
+        OIJ(I,J,IJ_SRHFLXI) = OIJ(I,J,IJ_SRHFLXI) + ! ht from ice
+     *       oEMELTI(I,J) - oDHSI(1,I,J)*POCEAN + 
+     *       (oERUNOSI(I,J)- oDHSI(2,I,J))*POICE
+
+        OIJ(I,J,IJ_SRWFLXI) = OIJ(I,J,IJ_SRWFLXI) + ! fw from ice
+     *       oMELTI(I,J) - oSMELTI(I,J) -
+     *       (oDMSI(1,I,J)-oDSSI(1,I,J))*POCEAN +
+     *       (oRUNOSI(I,J)-oSRUNOSI(I,J)-oDMSI(2,I,J)+oDSSI(2,I,J))
+     *       *POICE
+
+        OIJ(I,J,IJ_SRSFLXI) = OIJ(I,J,IJ_SRSFLXI) + ! salt from ice
+     *       (SRUNO-oDSSI(1,I,J))*POCEAN +
+     *       (SRUNI-oDSSI(2,I,J))*POICE
+
+        OIJ(I,J,IJ_ERVR) = OIJ(I,J,IJ_ERVR) + oEFLOWO(I,J) ! energy from rivers
+        OIJ(I,J,IJ_MRVR) = OIJ(I,J,IJ_MRVR) + oFLOWO(I,J) ! fw from rivers
 
         END IF
       END DO
@@ -5429,7 +5458,7 @@ C****
       use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : maxgl
-
+      USE ODIAG, only : oij=>oij_loc, ij_eicb, ij_micb
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
       Use OCEAN,   Only: TRMO
@@ -5459,6 +5488,10 @@ C**** divide over depth and scale for time step
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+oTRGMELT(:,I,J)*DZ
 #endif
 #endif
+              OIJ(I,J,IJ_EICB)=OIJ(I,J,IJ_EICB)+oEGMELT(I,J)/(DXYPO(J)
+     *             *FOCEAN(I,J)) 
+              OIJ(I,J,IJ_MICB)=OIJ(I,J,IJ_MICB)+ oGMELT(I,J)/(DXYPO(J)
+     *             *FOCEAN(I,J)) 
             END IF
           END DO
         END DO
