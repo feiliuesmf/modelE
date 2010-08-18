@@ -149,9 +149,10 @@ c documentation on these to be added when interfaces are finalized
 
 c documentation on these to be added when interfaces are finalized
       public :: cs2llint_type
-      public :: init_cs2llint_type,cs2llint_ij,cs2llint_lij
+      public :: init_cs2llint_type,cs2llint_ij,cs2llint_lij,cs2llint_ijl
       public :: init_cs2llint_type2
-      public :: cs2llint_lluv
+      public :: cs2llint_lluv,cs2llint_lluv_3d
+
       type cs2llint_type
         integer :: isdcs,iedcs,jsdcs,jedcs
         integer ::       imlon,jsdll,jedll
@@ -1785,6 +1786,83 @@ c
       return
       end subroutine cs2llint_lij
 
+      subroutine cs2llint_ijl(grid_cs,cs2llint,arrcs,arrll)
+      use dd2d_utils, only : dist_grid,halo_update
+      type(dist_grid), intent(in) :: grid_cs
+      type(cs2llint_type), intent(in) :: cs2llint
+      real*8, dimension(cs2llint%isdcs:,cs2llint%jsdcs:,:) :: arrcs
+c      intent(in) :: arrcs
+      real*8, dimension(:,cs2llint%jsdll:,:), intent(out) :: arrll
+c local vars
+      integer :: i,j,l,lm,m,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8 :: wti,wtj
+
+      lm = size(arrcs,3)
+c
+c allocate send/recv buffers
+c
+      nproc = cs2llint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = lm*(cs2llint%send_cnts)
+      sdspl(:) = lm*(cs2llint%send_displs)
+      rcnts(:) = lm*(cs2llint%recv_cnts)
+      rdspl(:) = lm*(cs2llint%recv_displs)
+
+      allocate(bufsend(lm*cs2llint%npts_interp),
+     &         bufrecv(lm*cs2llint%npts_unpack))
+
+c
+c Interpolate and store in 1D send buffer
+c
+      call halo_update(grid_cs,arrcs)
+      call corner_fill_3D(grid_cs,arrcs,lm)
+      m = 0
+      do n=1,cs2llint%npts_interp
+        wti = cs2llint%ix(n)
+        wtj = cs2llint%jy(n)
+        i = wti
+        j = wtj
+        wti = wti-i
+        wtj = wtj-j
+        do l=1,lm
+          m = m + 1
+          bufsend(m) = 
+     &           wtj*(wti*arrcs(i+1,j+1,l)+(1.-wti)*arrcs(i,j+1,l))
+     &     +(1.-wtj)*(wti*arrcs(i+1,j  ,l)+(1.-wti)*arrcs(i,j  ,l))
+        enddo
+      enddo
+
+c
+c send interpolants to LL PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into latlon array
+c
+      m = 0
+      do n=1,cs2llint%npts_unpack
+        i = cs2llint%i_unpack(n)
+        j = cs2llint%j_unpack(n)
+        do l=1,lm
+          m = m + 1
+          arrll(i,j,l) = bufrecv(m)
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine cs2llint_ijl
+
       subroutine cs2llint_lluv(grid_cs,cs2llint,ui,vi,uo,vo)
 c special-purpose variant of cs2llint_ij for latlon-oriented vectors
       use dd2d_utils, only : dist_grid,halo_update
@@ -1906,6 +1984,135 @@ c
 
       return
       end subroutine cs2llint_lluv
+
+      subroutine cs2llint_lluv_3d(grid_cs,cs2llint,ui,vi,uo,vo)
+c special-purpose variant of cs2llint_ij for latlon-oriented vectors
+      use dd2d_utils, only : dist_grid,halo_update
+      type(dist_grid), intent(in) :: grid_cs
+      type(cs2llint_type), intent(in) :: cs2llint
+      real*8, dimension(cs2llint%isdcs:,cs2llint%jsdcs:,:) :: ui,vi
+c      intent(in) :: ui,vi
+      real*8, dimension(:,cs2llint%jsdll:,:), intent(out) :: uo,vo
+c local vars
+      integer :: i,j,l,lm,m,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8, dimension(:,:,:), allocatable :: urot,vrot
+      real*8 :: wti,wtj,urotn,vrotn
+
+      lm = size(ui,3)
+c
+c allocate send/recv buffers
+c
+      nproc = cs2llint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = lm*2*(cs2llint%send_cnts)
+      sdspl(:) = lm*2*(cs2llint%send_displs)
+      rcnts(:) = lm*2*(cs2llint%recv_cnts)
+      rdspl(:) = lm*2*(cs2llint%recv_displs)
+
+      allocate(bufsend(lm*2*cs2llint%npts_interp),
+     &         bufrecv(lm*2*cs2llint%npts_unpack))
+
+c
+c Interpolate and store in 1D send buffer
+c
+
+      call halo_update(grid_cs,ui)
+      call corner_fill_3D(grid_cs,ui,lm)
+      call halo_update(grid_cs,vi)
+      call corner_fill_3D(grid_cs,vi,lm)
+
+      if(grid_cs%tile.eq.3 .or. grid_cs%tile.eq.6) then
+c convert input u,v to rotated-pole orientation
+        allocate(urot(grid_cs%isd:grid_cs%ied,
+     &                grid_cs%jsd:grid_cs%jed,lm),
+     &           vrot(grid_cs%isd:grid_cs%ied,
+     &                grid_cs%jsd:grid_cs%jed,lm))
+        do l=1,lm
+          do j=grid_cs%jsd,grid_cs%jed
+            do i=grid_cs%isd,grid_cs%ied
+              urot(i,j,l) = ui(i,j,l)*cs2llint%cosij(i,j)
+     &                     +vi(i,j,l)*cs2llint%sinij(i,j)
+              vrot(i,j,l) = vi(i,j,l)*cs2llint%cosij(i,j)
+     &                     -ui(i,j,l)*cs2llint%sinij(i,j)
+            enddo
+          enddo
+        enddo
+        m = 0
+        do n=1,cs2llint%npts_interp
+          wti = cs2llint%ix(n)
+          wtj = cs2llint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          do l=1,lm
+            urotn = wtj*(wti*urot(i+1,j+1,l)+(1.-wti)*urot(i,j+1,l))
+     &        +(1.-wtj)*(wti*urot(i+1,j  ,l)+(1.-wti)*urot(i,j  ,l))
+            vrotn = wtj*(wti*vrot(i+1,j+1,l)+(1.-wti)*vrot(i,j+1,l))
+     &        +(1.-wtj)*(wti*vrot(i+1,j  ,l)+(1.-wti)*vrot(i,j  ,l))
+c rotate output u,v to original orientation
+            m = m + 1
+            bufsend(m) = urotn*cs2llint%cosn(n)
+     &                  -vrotn*cs2llint%sinn(n)
+            m = m + 1
+            bufsend(m) = vrotn*cs2llint%cosn(n)
+     &                  +urotn*cs2llint%sinn(n)
+          enddo
+        enddo
+        deallocate(urot,vrot)
+      else
+c no pole rotation for u,v interpolation on equatorial tiles
+        m = 0
+        do n=1,cs2llint%npts_interp
+          wti = cs2llint%ix(n)
+          wtj = cs2llint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          do l=1,lm
+            m = m + 1
+            bufsend(m) = wtj*(wti*ui(i+1,j+1,l)+(1.-wti)*ui(i,j+1,l))
+     &             +(1.-wtj)*(wti*ui(i+1,j  ,l)+(1.-wti)*ui(i,j  ,l))
+            m = m + 1
+            bufsend(m) = wtj*(wti*vi(i+1,j+1,l)+(1.-wti)*vi(i,j+1,l))
+     &             +(1.-wtj)*(wti*vi(i+1,j  ,l)+(1.-wti)*vi(i,j  ,l))
+          enddo
+        enddo
+      endif
+
+c
+c send interpolants to LL PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into latlon array
+c
+      m = 0
+      do n=1,cs2llint%npts_unpack
+        i = cs2llint%i_unpack(n)
+        j = cs2llint%j_unpack(n)
+        do l=1,lm
+          m = m + 1
+          uo(i,j,l) = bufrecv(m)
+          m = m + 1
+          vo(i,j,l) = bufrecv(m)
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine cs2llint_lluv_3d
 
       subroutine init_ll2csint_type(grid_ll,grid_cs,
      &     lons,lats, jlat_min,jlat_max,

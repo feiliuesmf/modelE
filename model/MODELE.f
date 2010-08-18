@@ -412,11 +412,11 @@ c     enddo
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
           call DIAGB
-#ifndef CUBED_SPHERE
-          call EPFLUX (U,V,T,P)
+#ifdef CUBED_SPHERE
+          call EPFLUX
 #endif
         endif
-#endif
+#endif /* USE_FVCORE */
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE

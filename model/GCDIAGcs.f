@@ -10,6 +10,7 @@
       module gcdiag
       use diag_zonal, only : imlon,imlonh,jmlat
       use cs2ll_utils
+      use dist_grid_mod, only : dist_grid
       implicit none
       save
 
@@ -17,10 +18,24 @@
 !@+   interpolation and coordination of processors
       type(cs2ll_type) :: cs2ll
 
+!@var cs2llint[a,b] info used during CS -> latlon interpolations
+!@+   in STRAT_DIAG.f
+      type(cs2llint_type) :: cs2llinta,cs2llintb
+
+!@var grid domain-decomposition object for the latlon diagnostics grid
+      type(dist_grid) :: grid
+
 !@var gclon,gclat,dxyp lons,lats,areas of the latlon grid used to
 !@+   compute AGC diagnostics
       real*8, dimension(imlon) :: gclon
       real*8, dimension(jmlat) :: gclat,dxyp,dxp
+
+!@var fim,byim,geometry-arrays: clones of variables defined
+!@+   in the lat-lon model, needed by STRAT_DIAG.f
+      real*8, parameter :: fim = imlon, byim = 1./fim
+      real*8, dimension(imlon) :: gclon2
+      real*8, dimension(jmlat) :: gclat2,
+     &     dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp,dyv,bydxyv
 
 !@var gc_xxx indices for AGC accumulations
       integer ::
@@ -38,6 +53,13 @@
      &     gc_eddvtgeo,
      &     gc_psi
 
+      integer ::
+     &     jl_dpb
+      integer :: ! outputs from STRAT_DIAG
+     &     jk_dudt_sum1,jk_dudt_meanadv,jk_dudt_eddycnv,
+     &     jk_dudt_trnsadv,jk_dudt_epflxdiv,
+     &     jk_dudt_fderr1,jk_dudt_fderr2
+
 !@var jlat_eq,jlat_45n,jlat_50n special latitudes for spectral analyses
       integer :: jlat_eq,jlat_50n,jlat_45n
 
@@ -47,18 +69,18 @@
 !@sum  gc_defs defines metadata for AGC diagnostics and
 !@+    initializes the cube-to-latlon infrastructure object cs2ll
 !@auth M. Kelley
-      use CONSTANT, only : rgas,lhe,bygrav,pi,radius
+      use CONSTANT, only : rgas,lhe,bygrav,pi,radius,omega
       use MODEL_COM, only : qcheck
       use GCDIAG
       use DIAG_COM
-      use domain_decomp_atm, only : grid,am_i_root
+      use domain_decomp_1d, only : init_grid
+      use domain_decomp_atm, only : grid_cs=>grid,am_i_root
       use cdl_mod
       implicit none
       integer :: ilon,jlat,k,kk
-      real*8 :: byim,dlon,dlat,sins,sinn
-      character(len=10) :: zstr,powstr
+      real*8 :: dlon,dlat,sins,sinn
+      character(len=10) :: ystr,zstr,powstr
       type(cdl_type) :: cdl_dum
-      byim = 1./imlon
 
       dlon = 2.*pi/imlon
       dlat = pi/jmlat
@@ -74,11 +96,46 @@
         dxp(jlat) = radius*dlon*cos(gclat(jlat))
         sins = sinn
       enddo
+
+c
+c set up arrays used by STRAT_DIAG.f
+c
+      cosp(:) = cos(gclat(:))
+      do ilon=1,imlon-1
+        gclon2(ilon) = .5*(gclon(ilon)+gclon(ilon+1))
+      enddo
+      gclon2(imlon) = pi
+      rapvs(1)  = 0.
+      rapvn(jmlat) = 0.
+      do jlat=2,jmlat
+        gclat2(jlat) = .5*(gclat(jlat-1)+gclat(jlat))
+        lat_gc2(jlat) = gclat2(jlat)*180./pi
+        cosv(jlat) = .5*(cosp(jlat-1)+cosp(jlat))
+        dxyv(jlat) = .5*(dxyp(jlat-1)+dxyp(jlat))
+        bydxyv(jlat) = 1./dxyv(jlat)
+        dyv(jlat) = radius*dlat
+        dxv(jlat) = radius*dlon*cosv(jlat)
+        rapvs(jlat)   = .25*dxyp(jlat)/dxyv(jlat)
+        rapvn(jlat-1) = .25*dxyp(jlat-1)/dxyv(jlat)
+      enddo
+      fcor(1)  = -omega*dxv(2)*dxv(2)/dlon
+      fcor(jmlat) = omega*dxv(jmlat)*dxv(jmlat)/dlon
+      do jlat=2,jmlat-1
+        fcor(jlat) = omega*(dxv(jlat)**2-dxv(jlat+1)**2)/dlon
+      end do
+
       jlat_eq = jmlat/2 ! slightly off the equator
       jlat_45n = nint(real(jmlat,kind=8)*.75d0)
       jlat_50n = nint(real(jmlat,kind=8)*140d0/180d0)
 
-      call init_cs2ll_type(grid,imlon,jmlat,cs2ll,gclon,gclat)
+      call init_grid(grid,imlon,jmlat,1)
+
+      call init_cs2ll_type(grid_cs,imlon,jmlat,cs2ll,gclon,gclat)
+
+      call init_cs2llint_type(grid_cs,grid,gclon,gclat,1,jmlat,
+     &     cs2llinta)
+      call init_cs2llint_type(grid_cs,grid,gclon2,gclat2,2,jmlat,
+     &     cs2llintb,setup_rot_pol=.true.)
 
 c
       do k=1,kagcx
@@ -97,14 +154,14 @@ c
 c
       k=k+1
       gc_dp = k
-      sname_gc(k) = 'dp'
+      sname_gc(k) = 'dp_cp1'
       lname_gc(k) =  'PRESSURE DIFFERENCES (CP)'
       units_gc(k) = 'mb'
       scale_gc(k) = byim
 c
       k=k+1
       gc_nptsavg = k
-      sname_gc(k) = 'npts_avg'
+      sname_gc(k) = 'npts_avg1'
       lname_gc(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE'
       units_gc(k) = '1'
 c
@@ -112,7 +169,7 @@ c
       gc_temp = k
       sname_gc(k) = 'temp'
       lname_gc(k) = 'TEMPERATURE'
-      units_gc(k) = 'K'
+      units_gc(k) = 'C'
       denom_gc(k) = gc_dp
 c
       k=k+1
@@ -122,6 +179,7 @@ c
       units_gc(k) = 'm'
       scale_gc(k) = BYGRAV
       denom_gc(k) = gc_dp
+      pow_gc(k) = 2
 c
       k=k+1
       gc_q = k
@@ -129,6 +187,7 @@ c
       lname_gc(k) = 'SPECIFIC HUMIDITY'
       units_gc(k) = 'kg/kg'
       denom_gc(k) = gc_dp
+      pow_gc(k) = -3
 c
       k=k+1
       gc_theta = k
@@ -144,6 +203,7 @@ c
       lname_gc(k) = 'ZONAL WIND (U COMPONENT)'
       units_gc(k) = 'm/s'
       denom_gc(k) = gc_dp
+      pow_gc(k) = -1
 c
       k=k+1
       gc_v = k
@@ -151,6 +211,7 @@ c
       lname_gc(k) = 'MERIDIONAL WIND (V COMPONENT)'
       units_gc(k) = 'm/s'
       denom_gc(k) = gc_dp
+      pow_gc(k) = -2
 c
       k=k+1
       gc_vvel = k
@@ -159,6 +220,7 @@ c
       units_gc(k) = 'mb/s'
       scale_gc(k) = -byim
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = -5
 c
       k=k+1
       gc_eddke = k
@@ -247,6 +309,7 @@ c
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = -1
 c
       k=k+1
       gc_totvtdse = k
@@ -255,6 +318,7 @@ c
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = 1
 c
       k=k+1
       gc_eddvtlh = k
@@ -279,6 +343,7 @@ c
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = -2
 c
       k=k+1
       gc_eddvtmom = k
@@ -287,6 +352,7 @@ c
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = -BYGRAV*BYIM
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = -3
 c
       k=k+1
       gc_totvtmom = k
@@ -295,6 +361,7 @@ c
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = -BYGRAV*BYIM
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = -2
 c
       k=k+1
       gc_psi = k  ! derived
@@ -303,6 +370,137 @@ c
       units_gc(k) = 'kg/s'
       scale_gc(k) = 100.*BYGRAV
       lgrid_gc(k) = edg_cp
+      pow_gc(k) = 9
+c
+      k=k+1
+      jl_dpb = k
+      sname_gc(k) = 'dpb'
+      lname_gc(k) =  'PRESSURE DIFFERENCES (B-grid, model layers)'
+      units_gc(k) = 'mb'
+      scale_gc(k) = byim
+      jgrid_gc(k) = 2
+c
+      if(kep.gt.0) then ! outputs from STRAT_DIAG
+      k = k + 1
+      jk_dudt_sum1 = k
+      sname_gc(k) = 'dudt_sum1'
+      lname_gc(k) = 'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_meanadv = k
+      sname_gc(k) = 'dudt_meanadv'
+      lname_gc(k) = 'DU/DT BY MEAN ADVECTION'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_eddycnv = k
+      sname_gc(k) = 'dudt_eddycnv'
+      lname_gc(k) = 'DU/DT BY EDDY CONVERGENCE'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_trnsadv = k
+      sname_gc(k) = 'dudt_trnsadv'
+      lname_gc(k) = 'DU/DT BY TRANSFORMED ADVECTION'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_epflxdiv = k
+      sname_gc(k) = 'dudt_epflxdiv'
+      lname_gc(k) = 'DU/DT BY ELIASSEN-PALM DIVERGENCE'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_fderr1 = k
+      sname_gc(k) = 'dudt_fderr1'
+      lname_gc(k) = 'DU/DT BY F.D. ERROR TERM 1'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      k = k + 1
+      jk_dudt_fderr2 = k
+      sname_gc(k) = 'dudt_fderr2'
+      lname_gc(k) = 'DU/DT BY F.D. ERROR TERM 2'
+      units_gc(k) = 'm/s^2'
+      jgrid_gc(k) = 2
+      pow_gc(k) = -6
+      endif ! kep.gt.0
+c
+      k = k + 1
+      !jk_del_qgpv = k
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'del_qgpv'
+      lname_gc(k) = 'Q-G POT. VORTICITY CHANGE OVER LATITUDES'
+      units_gc(k) = '1/(m*s)'
+      scale_gc(k) = 1.
+      pow_gc(k) = -12
+c
+      k = k + 1
+      !jk_refr_ind_wave1 = k  !!!!! Refraction Indices must be in order
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave1'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave2'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave3'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave6'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      jgrid_gc(k) = 2
+      sname_gc(k) = 'refr_ind_wave9'
+      lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
+      units_gc(k) = '10**-8 m^-2'
+      k = k + 1
+      !jl_phi_amp_wave1 = k
+      sname_gc(k) = 'phi_amp_wave1'
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave2'
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave3'
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      sname_gc(k) = 'phi_amp_wave4'
+      lname_gc(k) ='AMPLITUDE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_gc(k) = 'METERS'
+      k = k + 1
+      !jl_phi_phase_wave1 = k
+      sname_gc(k) = 'phi_phase_wave1'
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 1'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave2'
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 2'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave3'
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 3'
+      units_gc(k) = 'DEG WEST LONG'
+      k = k + 1
+      sname_gc(k) = 'phi_phase_wave4'
+      lname_gc(k) = 'PHASE OF GEOPOTENTIAL HEIGHT FOR WAVE NUMBER 4'
+      units_gc(k) = 'DEG WEST LONG'
 c
       if(k.gt.kagc) then
         if(am_i_root()) write (6,*)
@@ -327,34 +525,47 @@ c
       call init_cdl_type('cdl_gc',cdl_gc)
       call add_coord(cdl_gc,'lat',jmlat,units='degrees_north',
      &     coordvalues=lat_gc)
+      call add_coord(cdl_gc,'lat2',jmlat,units='degrees_north',
+     &     coordvalues=lat_gc2)
+      call add_coord(cdl_gc,'pgz',kgz_max,units='mb',
+     &     coordvalues=pmb(1:kgz_max))
       call add_dim(cdl_gc,'shnhgm',3)
       call add_dim(cdl_gc,'lat_plus3',jmlat+3)
+      call add_dim(cdl_gc,'lat2_plus3',jmlat+3)
       cdl_dum = cdl_gc
       call merge_cdl(cdl_dum,cdl_heights,cdl_gc)
 
       do k=1,kagc
         if(trim(units_gc(k)).eq.'unused') cycle
-        if(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
-          zstr='plm'
+        if(jgrid_gc(k).eq.1) then
+          ystr='lat'
         else
-          zstr='ple'
+          ystr='lat2'
+        endif
+        if(sname_gc(k)(1:7).eq.'phi_amp' .or.
+     &     sname_gc(k)(1:9).eq.'phi_phase') then
+          zstr='(pgz,'
+        elseif(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
+          zstr='(plm,'
+        else
+          zstr='(ple,'
         endif
         call add_var(cdl_gc,
-     &       'float '//trim(sname_gc(k))//'('//trim(zstr)//',lat) ;',
-     &       long_name=trim(lname_gc(k)),
-     &       units=trim(units_gc(k))
+     &       'float '//trim(sname_gc(k))//trim(zstr)//trim(ystr)//') ;',
+     &       units=trim(units_gc(k)),
+     &       long_name=trim(lname_gc(k))
      &       )
         if(pow_gc(k).ne.0) then
-          write(powstr,'(i2)') pow_gc(k)
+          write(powstr,'(i3)') pow_gc(k)
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
         call add_var(cdl_gc,
-     &       'float '//trim(sname_gc(k))//'_hemis('//
-     &       trim(zstr)//',shnhgm) ;')
+     &       'float '//trim(sname_gc(k))//'_hemis'//
+     &       trim(zstr)//'shnhgm) ;')
         if(denom_gc(k).gt.0) then
-          call add_var(cdl_gc,
-     &         'float '//trim(sname_gc(k))//'_vmean(lat_plus3) ;')
+          call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &         '_vmean('//trim(ystr)//'_plus3) ;')
         endif
       enddo
 
@@ -377,8 +588,8 @@ c empty for now
       use diag_com, only : agc=>agc_loc,speca,nspher,klayer,ple
       use dynamics, only : phi,sda,pit,ualij,valij
       use diag_loc, only : tx
-      use domain_decomp_atm, only : get, grid, am_i_root, sumxpe,
-     &     halo_update
+      use domain_decomp_atm, only : get, grid_cs=>grid, am_i_root,
+     &     sumxpe, halo_update
       implicit none
       real*8, dimension(imlonh+1,nspher) :: ke,ke_part
       real*8, dimension(imlonh+1) :: xu,xv,xke
@@ -417,15 +628,16 @@ c empty for now
       real*8, dimension(lmxmax) :: dpx
       integer, dimension(lmxmax) :: lmod,lcp
 
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo,lm) :: omega
+      real*8, dimension(grid_cs%i_strt_halo:grid_cs%i_stop_halo,
+     &                  grid_cs%j_strt_halo:grid_cs%j_stop_halo,lm) ::
+     &     omega
 
       integer :: i_0,i_1,j_0,j_1
 
-      j_0=grid%j_strt
-      j_1=grid%j_stop
-      i_0=grid%i_strt
-      i_1=grid%i_stop
+      j_0=grid_cs%j_strt
+      j_1=grid_cs%j_stop
+      i_0=grid_cs%i_strt
+      i_1=grid_cs%i_stop
 c
 c set up pointers that facilitate longitudinal sums across PEs
 c
@@ -480,22 +692,22 @@ c
 c Halo updates and fills of cube corners in preparation for interpolation.
 c Some quantities may already have been haloed - check later.
 c
-      call halo_update(grid,p)
-      call corner_fill_3D(grid,p,1)
-      call halo_update(grid,t)
-      call corner_fill_3D(grid,t,lm)
-      call halo_update(grid,tx)
-      call corner_fill_3D(grid,tx,lm)
-      call halo_update(grid,q)
-      call corner_fill_3D(grid,q,lm)
-      call halo_update(grid,phi)
-      call corner_fill_3D(grid,phi,lm)
-      call halo_update(grid,omega)
-      call corner_fill_3D(grid,omega,lm)
-      call halo_update(grid,ualij,jdim=3)
-      call corner_fill_4D(grid,ualij,lm,1)
-      call halo_update(grid,valij,jdim=3)
-      call corner_fill_4D(grid,valij,lm,1)
+      call halo_update(grid_cs,p)
+      call corner_fill_3D(grid_cs,p,1)
+      call halo_update(grid_cs,t)
+      call corner_fill_3D(grid_cs,t,lm)
+      call halo_update(grid_cs,tx)
+      call corner_fill_3D(grid_cs,tx,lm)
+      call halo_update(grid_cs,q)
+      call corner_fill_3D(grid_cs,q,lm)
+      call halo_update(grid_cs,phi)
+      call corner_fill_3D(grid_cs,phi,lm)
+      call halo_update(grid_cs,omega)
+      call corner_fill_3D(grid_cs,omega,lm)
+      call halo_update(grid_cs,ualij,jdim=3)
+      call corner_fill_4D(grid_cs,ualij,lm,1)
+      call halo_update(grid_cs,valij,jdim=3)
+      call corner_fill_4D(grid_cs,valij,lm,1)
 
 c
 c Loop over latitudes
@@ -508,16 +720,16 @@ c
 c
 c horizontal interpolation to this latitude circle
 c
-      call interp_to_jlat_4D(grid,cs2ll,ualij,uli,lm,1,jlat)
-      call interp_to_jlat_4D(grid,cs2ll,valij,vli,lm,1,jlat)
+      call interp_to_jlat_4D(grid_cs,cs2ll,ualij,uli,lm,1,jlat)
+      call interp_to_jlat_4D(grid_cs,cs2ll,valij,vli,lm,1,jlat)
 
-      call interp_to_jlat_3D(grid,cs2ll,p,psll,1,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,p,psll,1,jlat)
 
-      call interp_to_jlat_3D(grid,cs2ll,t,thll,lm,jlat)
-      call interp_to_jlat_3D(grid,cs2ll,tx,txll,lm,jlat)
-      call interp_to_jlat_3D(grid,cs2ll,q,qll,lm,jlat)
-      call interp_to_jlat_3D(grid,cs2ll,phi,phill,lm,jlat)
-      call interp_to_jlat_3D(grid,cs2ll,omega,omgll,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,t,thll,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,tx,txll,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,q,qll,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,phi,phill,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,omega,omgll,lm,jlat)
 
       pecp(2:lm+1) = ple(1:lm)
       pecp(1) = 1d30 ! ensure that all column mass is included
@@ -635,7 +847,8 @@ c
           agc(jlat,l,gc_nptsavg)=agc(jlat,l,gc_nptsavg)+nsum(l)
           agc(jlat,l,gc_u)   = agc(jlat,l,gc_u) + dpusum(l)
           agc(jlat,l,gc_v)   = agc(jlat,l,gc_v) + dpvsum(l)
-          agc(jlat,l,gc_temp) = agc(jlat,l,gc_temp) + dptxsum(l)
+          agc(jlat,l,gc_temp) = agc(jlat,l,gc_temp) +
+     &         (dptxsum(l)-tf*dpsum(l))
           agc(jlat,l,gc_hght) = agc(jlat,l,gc_hght) + dpphisum(l)
           agc(jlat,l,gc_q) = agc(jlat,l,gc_q) + dpqsum(l)
           agc(jlat,l,gc_theta) = agc(jlat,l,gc_theta) + dpthsum(l)
@@ -883,8 +1096,8 @@ C****
 c      use diag_com, only : ajl=>ajl_loc,jl_ape
       use diag_loc, only : lupa,ldna
       use dynamics, only : ualij,valij,pk,pdsig,sqrtp
-      use domain_decomp_atm, only : grid,am_i_root,sumxpe,esmf_bcast,
-     &     halo_update
+      use domain_decomp_atm, only : grid_cs=>grid,am_i_root,sumxpe,
+     &     esmf_bcast,halo_update
       use gcdiag
       implicit none
       integer :: m5,ndt
@@ -908,10 +1121,10 @@ c      use diag_com, only : ajl=>ajl_loc,jl_ape
 
       integer :: i_0,i_1,j_0,j_1
 
-      j_0=grid%j_strt
-      j_1=grid%j_stop
-      i_0=grid%i_strt
-      i_1=grid%i_stop
+      j_0=grid_cs%j_strt
+      j_1=grid_cs%j_stop
+      i_0=grid_cs%i_strt
+      i_1=grid_cs%i_stop
 
 C****
 C**** Note: KSPHER has been re-arranged from previous models to better
@@ -988,8 +1201,8 @@ c
       enddo
       call sumxpe(thgm_part,thgm)
       call sumxpe(gmean_part,gmean)
-      call esmf_bcast(grid,thgm)
-      call esmf_bcast(grid,gmean)
+      call esmf_bcast(grid_cs,thgm)
+      call esmf_bcast(grid_cs,gmean)
       do l=1,lm
         thgm(l)=thgm(l)/areag
         ldn=ldna(l)
@@ -1007,14 +1220,14 @@ c
 c Halo updates and fills of cube corners in preparation for interpolation.
 c Some quantities may already have been haloed - check later.
 c
-      call halo_update(grid,p)
-      call corner_fill_3D(grid,p,1)
-      call halo_update(grid,t)
-      call corner_fill_3D(grid,t,lm)
-      call halo_update(grid,ualij,jdim=3)
-      call corner_fill_4D(grid,ualij,lm,1)
-      call halo_update(grid,valij,jdim=3)
-      call corner_fill_4D(grid,valij,lm,1)
+      call halo_update(grid_cs,p)
+      call corner_fill_3D(grid_cs,p,1)
+      call halo_update(grid_cs,t)
+      call corner_fill_3D(grid_cs,t,lm)
+      call halo_update(grid_cs,ualij,jdim=3)
+      call corner_fill_4D(grid_cs,ualij,lm,1)
+      call halo_update(grid_cs,valij,jdim=3)
+      call corner_fill_4D(grid_cs,valij,lm,1)
 
 c
 c Loop over latitudes
@@ -1030,8 +1243,8 @@ c
 c
 c interpolate p,t to this latitude circle
 c
-      call interp_to_jlat_3D(grid,cs2ll,t,tll ,lm,jlat)
-      call interp_to_jlat_3D(grid,cs2ll,p,psll,1 ,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,t,tll ,lm,jlat)
+      call interp_to_jlat_3D(grid_cs,cs2ll,p,psll,1 ,jlat)
       do i=cs2ll%is(jlat),cs2ll%ie(jlat)
         if(psll(i).eq.0.) cycle ! valid lons sometimes noncontiguous
         sqrtpa(i) = sqrt(psll(i)*dxyp(jlat))
@@ -1056,8 +1269,8 @@ c
 c interpolate u,v to this latitude circle and
 c send wind data to the root PE for this jlat
 c
-        call interp_to_jlat_4D(grid,cs2ll,ualij,uli,lm,1,jlat)
-        call interp_to_jlat_4D(grid,cs2ll,valij,vli,lm,1,jlat)
+        call interp_to_jlat_4D(grid_cs,cs2ll,ualij,uli,lm,1,jlat)
+        call interp_to_jlat_4D(grid_cs,cs2ll,valij,vli,lm,1,jlat)
         do l=1,lm
         do i=cs2ll%is(jlat),cs2ll%ie(jlat)
           if(psll(i).eq.0.) then ! valid lons sometimes noncontiguous
@@ -1166,7 +1379,7 @@ c****
      &     ,kwp,re_and_im,ia_12hr
       use diag_loc, only : ldex
       use gcdiag
-      use domain_decomp_atm, only : grid,sumxpe,am_i_root,
+      use domain_decomp_atm, only : grid_cs=>grid,sumxpe,am_i_root,
      &     halo_update
       implicit none
 
@@ -1196,14 +1409,14 @@ c
 c Halo updates and fills of cube corners in preparation for interpolation.
 c Some quantities may already have been haloed - check later.
 c
-      call halo_update(grid,p)
-      call corner_fill_3D(grid,p,1)
-      call halo_update(grid,phi)
-      call corner_fill_3D(grid,phi,lm)
-      call halo_update(grid,ualij,jdim=3)
-      call corner_fill_4D(grid,ualij,lm,1)
-      call halo_update(grid,valij,jdim=3)
-      call corner_fill_4D(grid,valij,lm,1)
+      call halo_update(grid_cs,p)
+      call corner_fill_3D(grid_cs,p,1)
+      call halo_update(grid_cs,phi)
+      call corner_fill_3D(grid_cs,phi,lm)
+      call halo_update(grid_cs,ualij,jdim=3)
+      call corner_fill_4D(grid_cs,ualij,lm,1)
+      call halo_update(grid_cs,valij,jdim=3)
+      call corner_fill_4D(grid_cs,valij,lm,1)
 
 c
 c interpolate winds to the equator and send to global root
@@ -1212,8 +1425,8 @@ c
       ueq_loc=0d0
       veq_loc=0d0
       if(cs2ll%ni(jlat).gt.0) then ! this processor has valid lons at jlat
-        call interp_to_jlat_4D(grid,cs2ll,ualij,uli,lm,1,jlat)
-        call interp_to_jlat_4D(grid,cs2ll,valij,vli,lm,1,jlat)
+        call interp_to_jlat_4D(grid_cs,cs2ll,ualij,uli,lm,1,jlat)
+        call interp_to_jlat_4D(grid_cs,cs2ll,valij,vli,lm,1,jlat)
         do l=1,lm
           uil(:,l) = uli(l,:)
           vil(:,l) = vli(l,:)
@@ -1230,8 +1443,8 @@ c
       jlat = jlat_50n
       htrd_loc(:,:)=0d0
       if(cs2ll%ni(jlat).gt.0) then ! this processor has valid lons at jlat
-        call interp_to_jlat_3D(grid,cs2ll,phi,phill,lm,jlat)
-        call interp_to_jlat_3D(grid,cs2ll,p  ,psll ,1 ,jlat)
+        call interp_to_jlat_3D(grid_cs,cs2ll,phi,phill,lm,jlat)
+        call interp_to_jlat_3D(grid_cs,cs2ll,p  ,psll ,1 ,jlat)
         do i=cs2ll%is(jlat),cs2ll%ie(jlat)
           if(psll(i).eq.0.) then ! valid lons sometimes noncontiguous
             htrd_tmp(i,:) = 0. ! for pack_zonal
@@ -1283,15 +1496,20 @@ c
       end subroutine diag7a
 
       subroutine diaggc_prep
-      use model_com, only : lm
+      use model_com, only : lm,idacc,kep
       use domain_decomp_atm, only : am_i_root
-      use diag_com, only : kagc,agc,hemis_gc,vmean_gc
+      use diag_com, only : kagc,hemis_gc,vmean_gc,ia_dga,
+     &     agc_in=>agc, agc=>agc_out
       use gcdiag
       implicit none
       integer :: j,j1,j2,k,l
       real*8 :: hemfac
+      REAL*8, DIMENSION(JMLAT,LM) :: ! outputs of EPFLXP
+     &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
 
       if(.not.am_i_root()) return
+
+      agc(:,:,:) = agc_in(:,:,:)
 
 c stream function
       do j=1,jmlat
@@ -1300,6 +1518,20 @@ c stream function
           agc(j,l,gc_psi)=agc(j,l+1,gc_psi)-agc(j,l+1,gc_v)*dxp(j)
         enddo
       enddo
+
+c
+c outputs from the STRAT_DIAG package
+c
+      IF (KEP.gt.0) THEN
+        CALL EPFLXP(.false.,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
+        agc(:,:,jk_dudt_sum1)     = duds*idacc(ia_dga)
+        agc(:,:,jk_dudt_meanadv)  = dmf *idacc(ia_dga)
+        agc(:,:,jk_dudt_eddycnv)  = def *idacc(ia_dga)
+        agc(:,:,jk_dudt_trnsadv)  = dmfr*idacc(ia_dga)
+        agc(:,:,jk_dudt_epflxdiv) = defr*idacc(ia_dga)
+        agc(:,:,jk_dudt_fderr1)   = er1 *idacc(ia_dga)
+        agc(:,:,jk_dudt_fderr2)   = er2 *idacc(ia_dga)
+      endif
 
 c
 c compute hemispheric/global means and vertical sums

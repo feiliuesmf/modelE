@@ -31,7 +31,7 @@
 C**** KEP depends on whether stratos. EP flux diagnostics are calculated
 C**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
 !@param KEP number of lat/height E-P flux diagnostics
-      INTEGER, PARAMETER :: KEP=0
+      INTEGER, PARAMETER :: KEP=21
 
 C**** Based on model top, determine how much of stratosphere is resolved
 C****         PMTOP >= 10 mb,    ISTRAT = 0

@@ -2,7 +2,10 @@
 !@auth B. Suozzo/J/ Lerner
 !@ver  1.0
 
-      SUBROUTINE EPFLUX (U,V,T,P)
+      SUBROUTINE EPFLUX
+#ifndef CUBED_SPHERE
+     &     (U,V,T,P)
+#endif
 !@sum  EPFLUX calculates finite difference EP Flux on B-grid
 !@auth B. Suozzo/J. Lerner
 !@ver  1.0
@@ -27,42 +30,46 @@ C****                (L=1 is ground level)
 C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
-      USE MODEL_COM, only : im,jm,lm,byim,pdsigl00
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
-     *                          SOUTH, NORTH, ESMF_BCAST
+      USE MODEL_COM, only : lm,pdsigl00
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, SOUTH, NORTH,
+     &     HALO_UPDATEj
+#ifdef CUBED_SPHERE
+      USE MODEL_COM, only : ls1,psfmpt,dsig
+      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,byim, jl_dpb,
+     &     dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp,dxyp
+      USE GCDIAG, only : cs2llinta,cs2llintb
+      use cs2ll_utils, only : cs2llint_ij,cs2llint_ijl,cs2llint_lluv_3d
+      use model_com, only : pcs=>p,tcs=>t
+      use domain_decomp_atm, only : grid_cs=>grid
+      USE DYNAMICS, only : ualij,valij,conv
+      use geom, only : byaxyp
+#else
+      USE DOMAIN_DECOMP_1D, only : GRID
+      USE MODEL_COM, only : im,jm,byim
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE  DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
+#endif
+      USE  DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
 
       IMPLICIT NONE
+#ifdef CUBED_SPHERE
+      real*8, dimension(:,:,:), allocatable :: u,v,t,w, uijl,vijl,wcs
+      real*8, dimension(:,:), allocatable :: p
+      integer :: I_0cs,I_1cs,J_0cs,J_1cs, I_0Hcs,I_1Hcs,J_0Hcs,J_1Hcs
+#else
       REAL*8, INTENT(INOUT), 
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        U,V,T
       REAL*8, INTENT(IN), 
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
-
-C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
-c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::
-c     *                                                            AEP
-
+#endif
 C**** ARRAYS CALCULATED HERE:
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *                                                        UV,UW
-cgsfc      REAL*8, POINTER, DIMENSION(:,:) :: 
-cgsfcC**** The following quantities are added into AEP(,,1..19)
-cgsfc     *        FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,
-cgsfc     *        FER1,ER21,ER22,VR,WR,RX,UI,VI,WI
-C**** End of quantities added into AEP
+     *                                                        UV,UW,FD
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *        STB,TI,DUT,AX
-      REAL*8 FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     *        STB,TI,AX
+     *     ,VR,WR,RX,UI,VI,WI
       REAL*8  RXCL(LM),UCL(LM), WXXS(IM),WXXN(IM)
-C**** The following quantities are added into AEP(,,1..19)
-C**** (equivalenced to XEP)
-cBMP  COMMON /EPCOM1/ FMY, FEY,  FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR,
-cBMP *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI,  WI
-cgsfc      REAL*8, TARGET :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
-cBMP EQUIVALENCE replaced by pointers      EQUIVALENCE (XEP,FMY)
 
       REAL*8 :: XEP(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP)
 
@@ -80,14 +87,14 @@ c Use CPP to alias into XEP
 #define FER1(j,k) XEP(j,k,11)
 #define ER21(j,k) XEP(j,k,12)
 #define ER22(j,k) XEP(j,k,13)
-#define VR(j,k)   XEP(j,k,14)
-#define WR(j,k)   XEP(j,k,15)
-#define RX(j,k)   XEP(j,k,16)
-#define UI(j,k)   XEP(j,k,17)
-#define VI(j,k)   XEP(j,k,18)
-#define WI(j,k)   XEP(j,k,19)
-#define DUT(j,k)  XEP(j,k,20)
-#define DUD(j,k)  XEP(j,k,21)
+c#define VR(j,k)   XEP(j,k,14)
+c#define WR(j,k)   XEP(j,k,15)
+c#define RX(j,k)   XEP(j,k,16)
+c#define UI(j,k)   XEP(j,k,17)
+c#define VI(j,k)   XEP(j,k,18)
+c#define WI(j,k)   XEP(j,k,19)
+c#define DUT(j,k)  XEP(j,k,20)
+c#define DUD(j,k)  XEP(j,k,21)
 
 
       INTEGER I,J,L,N,IM1,IP1
@@ -108,6 +115,53 @@ C****
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
+#ifdef CUBED_SPHERE
+      CALL GET(grid_cs,
+     &     I_STRT=I_0cs,I_STOP=I_1cs,
+     &     J_STRT=J_0cs,J_STOP=J_1cs,
+     &     I_STRT_HALO=I_0Hcs,I_STOP_HALO=I_1Hcs,
+     &     J_STRT_HALO=J_0Hcs,J_STOP_HALO=J_1Hcs )
+      allocate(
+     &         uijl(I_0Hcs:I_1Hcs,J_0Hcs:J_1Hcs,lm),
+     &         vijl(I_0Hcs:I_1Hcs,J_0Hcs:J_1Hcs,lm),
+     &         wcs(I_0Hcs:I_1Hcs,J_0Hcs:J_1Hcs,lm) )
+      allocate(u(im,j_0h:j_1h,lm),v(im,j_0h:j_1h,lm))
+      allocate(t(im,j_0h:j_1h,lm),w(im,j_0h:j_1h,lm))
+      allocate(p(im,j_0h:j_1h))
+      do l=1,lm
+        do j=j_0cs,j_1cs
+        do i=i_0cs,i_1cs
+          uijl(i,j,l) = ualij(l,i,j)
+          vijl(i,j,l) = valij(l,i,j)
+          wcs(i,j,l) = conv(i,j,l)*byaxyp(i,j)
+        enddo
+        enddo
+      enddo
+      call cs2llint_ij(grid_cs,cs2llinta,pcs,p)
+      call cs2llint_ijl(grid_cs,cs2llinta,tcs,t)
+      call cs2llint_ijl(grid_cs,cs2llinta,wcs,w)
+      call cs2llint_lluv_3d(grid_cs,cs2llintb,uijl,vijl,u,v)
+
+      have_domain: if(grid%have_domain) then
+
+      do l=1,ls1-1
+        do j=j_0,j_1
+          agc(j,l,jl_dpb) = agc(j,l,jl_dpb) + dsig(l)*sum(p(:,j))
+        enddo
+      enddo
+      do l=ls1,lm
+        do j=j_0,j_1
+          agc(j,l,jl_dpb) = agc(j,l,jl_dpb) + dsig(l)*im*psfmpt
+        enddo
+      enddo
+      do l=1,lm
+        do j=j_0,j_1
+          w(:,j,l) = w(:,j,l)*dxyp(j)
+        enddo
+      enddo
+#endif
+
+
 C     Use IDACC(4) for calling frequency
 
 C**** Initialise for this call
@@ -121,9 +175,10 @@ C**** VI(J,L) ... ZONAL AVERAGE V-WIND (m s-1)
 C**** TI(J,L) ... ZONAL AVERAGE POTENTIAL TEMPERATURE (K)
 C**** WI(J,L) ... ZONAL AVERAGE VERTICAL WIND (mb m2 s-1)
 
-      CALL HALO_UPDATE(grid, U    , from = NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, V    , from = NORTH)
-      CALL HALO_UPDATE(grid, W    , from = SOUTH)
+      CALL HALO_UPDATE(grid, U, from = NORTH+SOUTH)
+      CALL HALO_UPDATE(grid, V, from = NORTH)
+      CALL HALO_UPDATE(grid, W, from = SOUTH)
+      CALL HALO_UPDATE(grid, T, from = SOUTH)
 
       CALL AVGVI (U,UI(:,:))
       CALL AVGVI (V,VI(:,:))
@@ -145,6 +200,12 @@ CW   *     WRITE (*,*) 'STB < .001 AT J,L,STB:',J,L,STB(J,L)
       END DO
       STB(:,1)  = 1d-2
 
+      CALL HALO_UPDATEj(grid, VI, from = NORTH)
+      CALL HALO_UPDATEj(grid, UI, from = NORTH+SOUTH)
+      CALL HALO_UPDATEj(grid, WI, from = SOUTH)
+      CALL HALO_UPDATEj(grid, TI, from = SOUTH)
+      CALL HALO_UPDATEj(grid, STB, from = SOUTH)
+
 C****
 C**** CORRELATIONS OF VARIOUS QUANTITIES
 C****
@@ -152,9 +213,6 @@ C****
 C**** FMY(j,l) .............. (VUdx) NORTHWARD MEAN MOMENTUM TRANSPORT
 C****                         (m3 s-1)
       DO L=1,LM
-        CALL HALO_UPDATE(grid, VI(:,L)   , from = NORTH)
-        CALL HALO_UPDATE(grid, UI(:,L)   , from = NORTH+SOUTH)
-        CALL HALO_UPDATE(grid, WI(:,L)   , from = SOUTH)
         
         IF (HAVE_SOUTH_POLE) FMY(1,L)=0.
         IF (HAVE_NORTH_POLE) FMY(JM,L)=0.
@@ -337,13 +395,7 @@ C****
 C**** RX(J,L) ..... ([V'TH']/[DTH/DP]) TRANSFORMATION GAUGE
 C****               (U-wind grid, level edges)  (m mb s-1)
 
-      CALL HALO_UPDATE(grid,T,FROM=SOUTH)
-
-
-      CALL HALO_UPDATE(grid, TI(:,1)  , from = SOUTH)
       DO L=2,LM
-        CALL HALO_UPDATE(grid, TI(:,L)  , from = SOUTH)
-        CALL HALO_UPDATE(grid, STB(:,L) , from = SOUTH)
       DO J=J_0STG,J_1STG
         RX(J,L) = 0.
         I=IM
@@ -363,9 +415,7 @@ C****               (U-wind grid, level edges)  (m mb s-1)
         RX(J,1) = 0
       END DO
 
-      Do L = 1, LM
-         CALL HALO_UPDATE(grid, RX(:,L), FROM=NORTH+SOUTH)
-      END DO
+      CALL HALO_UPDATEj(grid, RX, FROM=NORTH+SOUTH)
 
 C****
 C**** VR(J,L) ........  TRANSFORMED WIND
@@ -404,9 +454,10 @@ C**** FMYR(J,L)     (m3 s-2)
 C**** FMZR(J,L)     (m3 mb s-2)
 C**** CORR(J,L)     (m3 s-2)
 C****
+
+      CALL HALO_UPDATEj(grid, VR, from = NORTH)
+      CALL HALO_UPDATEj(grid, WR, from = SOUTH)
       DO L=1,LM
-        CALL HALO_UPDATE(grid, VR(:,L)  , from = NORTH)
-        CALL HALO_UPDATE(grid, WR(:,L)  , from = SOUTH)
 
       DO J=J_0S,J_1S
         FMYR(J,L)=.25*(VR(J,L)*DXV(J)+VR(J+1,L)*DXV(J+1))
@@ -521,8 +572,15 @@ c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
       END DO
       END DO
       END DO
+
+#ifdef CUBED_SPHERE
+      endif have_domain
+      deallocate(u,v,t,w,p, uijl,vijl,wcs)
+#endif
+
       RETURN
 C****
+#ifndef CUBED_SPHERE
       ENTRY EPFLXI (U)
       CALL GET(grid, J_STRT_HALO=J_0H)
       CALL AVGVI (U,AGC(J_0H,1,KAGC))
@@ -530,23 +588,8 @@ c      CALL AVGVI (U,AEP(1,1,KEP))
 CW          WRITE (36,'('' TAU='',F12.0)') TAU
 CW          CALL WRITJL ('U - INITIAL     ',AEP(1,1,KEP),1.)
       RETURN
+#endif
 C****
-      ENTRY EPFLXF (U)
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
-      CALL AVGVI (U,AX)
-      DO L=1,LM
-      DO J=J_0STG,J_1STG
-        AGC(J,L,KAGC-1) = AX(J,L)-AGC(J,L,KAGC)
-c       AEP(J,L,KEP-1) = AX(J,L)-AEP(J,L,KEP)
-      END DO
-      END DO
-CW          CALL WRITJL ('U - FINAL       ',AX,1.)
-CW          CALL WRITJL ('DU - TOTAL      ',AEP(1,1,KEP-1,1.)
-CW         WRITE (36,'('' TAU='',F12.0,''  IDUM(1)='',I6)') TAU,IDUM(1)
-      RETURN
       END SUBROUTINE EPFLUX
 
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
@@ -571,26 +614,30 @@ C****        COR(j,l),CORR(j,l) - same as above   m3 s-2
 C****        ER1,ER2 - error terms 1 and 2   m s-2
 C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
-      USE MODEL_COM, only : im,jm,lm,dsig,dtsrce=>dtsrc,fim
+      USE MODEL_COM, only : lm,dsig,dtsrce=>dtsrc
      *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
-      USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       USE DIAG_COM, only : ajl,kagc,kep,agc,jl_damdc,jl_dammc
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dudtsdif,jl_dudtvdif
      &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,sname_strlen,units_strlen,lname_strlen
      &     ,lname=>lname_gc,sname=>sname_gc,units=>units_gc,pow=>pow_gc
-      USE GCDIAG
+#ifdef CUBED_SPHERE
+      USE GCDIAG, only : im=>imlon,jm=>jmlat,byim,fim,
+     &     dxv,cosv,cosp,dxyp,dyv,bydxyv
+#else
       USE DIAG_SERIAL, only : JLMAP
+      USE MODEL_COM, only : im,jm,byim,fim
+      USE GEOM, only : dxv,cosv,cosp,dyv,bydxyv
+#endif
+      USE GCDIAG, only : jl_dpb,jk_dudt_sum1,jk_dudt_meanadv,
+     &     jk_dudt_eddycnv,jk_dudt_trnsadv,jk_dudt_epflxdiv,
+     &     jk_dudt_fderr1,jk_dudt_fderr2
       IMPLICIT NONE
       integer :: do_print
       REAL*8, DIMENSION(JM,LM) :: ! output arrays
      &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
-C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
-c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::
-c     *                                                             AEP
 
-c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
 C**** diagnostic information for print out
 C**** this should be in an init_ep routine or something
 c      integer, parameter :: njl_out=7
@@ -612,18 +659,9 @@ c      integer, dimension(njl_out) :: pow = (/ -6,-6,-6,-6,-6,-6,-6 /)
 C**** ARRAYS CALCULATED HERE:
       REAL*8 ONES(JM+LM),PMO(LM),DP(LM)
       REAL*8 DXCOSV(JM)
-cgsfc      REAL*8, POINTER, DIMENSION(:,:) :: 
-cgsfc /*    *   FMY,FEY,FMZ,FEZ,FMYR,FEYR,FMZR,FEZR,COR,CORR,FER1,ER21 */
-cgsfc /*    *  ,ER22,VR,WR,RX,UI,VI,WI,DUT,DUD */
-      REAL*8, DIMENSION(JM,LM) ::
-     *   DUR,BYDPJL
-CW   *  ,DMY,DMZ,DEY,DEZ,DMYR,DMZR,DEYR,DEZR
-C**** common needed to pass from XEP to individual arrays (better way??)
-C**** Not clear how many of these are actually used.
-cBMP /*  COMMON /EPCOM/ FMY, FEY, FMZ, FEZ, FMYR, FEYR, FMZR, FEZR, COR, */
-cBMP /* *     CORR, FER1, ER21, ER22, VR, WR, RX, UI, VI, WI, DUT, DUD */
+      REAL*8, DIMENSION(JM,LM) :: DUR,BYDPJL,DUD
+
       REAL*8,DIMENSION(JM,LM,KEP) :: XEP
-cBMP /*  EQUIVALENCE (XEP,FMY) */
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
       INTEGER I,J,L,N,JL
 
@@ -684,10 +722,6 @@ C****
       DO J=2,JM
         DMF(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
         DEF(J,L) =(FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
-C       DMY(J,L) =(FMY(J-1,L)*COSP(J-1)-FMY(J,L)*COSP(J))/COSV(J)
-C       DEY(J,L) =(FEY(J-1,L)*COSP(J-1)-FEY(J,L)*COSP(J))/COSV(J)
-C       DMYR(J,L)=(FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
-C       DEYR(J,L)=(FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
         DMFR(J,L)=(FMYR(J-1,L)*COSP(J-1)-FMYR(J,L)*COSP(J))/COSV(J)
         DEFR(J,L)=(FEYR(J-1,L)*COSP(J-1)-FEYR(J,L)*COSP(J))/COSV(J)
       END DO
@@ -698,19 +732,11 @@ C****
       DO J=2,JM
         DMF(J,LM)  = DMF(J,LM)  - FMZ(J,LM)/BYDPJL(J,LM)
         DEF(J,LM)  = DEF(J,LM)  - FEZ(J,LM)/BYDPJL(J,LM)
-CW      DMZ(J,LM)  = - FMZ(J,LM)/BYDPJL(J,LM)
-CW      DEZ(J,LM)  = - FEZ(J,LM)/BYDPJL(J,LM)
-CW      DMZR(J,LM) = - FMZR(J,LM)/BYDPJL(J,LM)
-CW      DEZR(J,LM) = - FEZR(J,LM)/BYDPJL(J,LM)
         DMFR(J,LM) = DMFR(J,LM) - FMZR(J,LM)/BYDPJL(J,LM)
         DEFR(J,LM) = DEFR(J,LM) - FEZR(J,LM)/BYDPJL(J,LM)
         DO L=1,LM-1
           DMF(J,L)  = DMF(J,L)+(FMZ(J,L+1)-FMZ(J,L))*BYDPJL(J,L)
           DEF(J,L)  = DEF(J,L)+(FEZ(J,L+1)-FEZ(J,L))*BYDPJL(J,L)
-CW        DMZ(J,L)  = (FMZ(J,L+1)-FMZ(J,L))*BYDPJL(J,L)
-CW        DEZ(J,L)  = (FEZ(J,L+1)-FEZ(J,L))*BYDPJL(J,L)
-CW        DMZR(J,L) = (FMZR(J,L+1)-FMZR(J,L))*BYDPJL(J,L)
-CW        DEZR(J,L) = (FEZR(J,L+1)-FEZR(J,L))*BYDPJL(J,L)
           DMFR(J,L) = DMFR(J,L) + 
      &         (FMZR(J,L+1)-FMZR(J,L))*BYDPJL(J,L)
           DEFR(J,L) = DEFR(J,L) + 
@@ -723,8 +749,6 @@ C****
       DO L=1,LM
         DO J=2,JM
           DMF(J,L)  = DMF(J,L)  + COR(J,L)
-C         DMY(J,L)  = DMY(J,L)  + COR(J,L)
-C         DMYR(J,L) = DMYR(J,L) + CORR(J,L)
           DMFR(J,L) = DMFR(J,L) + CORR(J,L)
         END DO
       END DO
@@ -748,20 +772,11 @@ C****
       END DO
       END DO
 C****
-C**** Let Transformed == Transformed - Eulerian
-C****
-CW      DO L=1,LM
-CW      DO J=J_0,J_1
-CW        DUR(J,L) = DUR(J,L) - DUD(J,L)
-CW        DMFR(J,L) = DMFR(J,L) - DMF(J,L)
-CW        DEFR(J,L) = DEFR(J,L) - DEF(J,L)
-CW      END DO
-CW      END DO
-C****
 C**** Print maps of EP fluxes
 C**** note: JLMAP (lname,sname,units,power,Pres,Array,ScalP,ScalJ,ScalL)
 C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
+#ifndef CUBED_SPHERE
       DO L=1,LM
       DO J=2,JM
         DUDS(J,L)=((AJL(J,L,JL_DUDFMDRG)+AJL(J,L,JL_DUMTNDRG))+
@@ -784,6 +799,7 @@ C****
         DUDS(J,L) = (DUD(J,L)-ER2(J,L)) + DUDS(J,L)*SCALE1
       END DO
       END DO
+#endif
 
       do l=1,lm
         do j=2,jm
@@ -794,6 +810,7 @@ C****
         enddo
       enddo
 
+#ifndef CUBED_SPHERE
       if(do_print) then
       SCALEP=1
 CW      CALL WRITJL ('DUDT: EUL+SOURCE',DUDS,SCALEP)
@@ -820,6 +837,7 @@ CW     /* CALL WRITJL ('DUDT: ENTIRE GCM',DUT,SCALEP) ! AJK-47 DIAGJK */
       CALL JLMAP (LNAME(n),SNAME(n),UNITS(n),POW(n)
      *     ,PMO,ER2,SCALEP,ONES,ONES,LM,2,2)
       endif ! do_print
+#endif /* not CUBED_SPHERE */
 C****
 CW      DO L=1,LM
 CW      DO J=J_0STG,J_1STG
@@ -845,9 +863,15 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
 !@sum  AVGI average a 3-dimensional array in the x-direction
 !@auth B. Suozzo
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,BYIM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET
+      USE MODEL_COM, only : lm
+#ifdef CUBED_SPHERE
+      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM
+#else
+      USE MODEL_COM, only : im,jm,BYIM
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE GEOM, only : imaxj
+#endif
+      USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
 
 !@var X input 3-D array
@@ -856,7 +880,7 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
 !@var XI output zonally averaged 2-D array
       REAL*8, INTENT(OUT), 
      &        DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: XI
-      INTEGER I,J,L
+      INTEGER I,J,L,NI
       REAL*8 XXI
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -875,10 +899,15 @@ C****
       DO L=1,LM
         DO J=J_0,J_1
           XXI=0.
-          DO I=1,IMAXJ(J)
+#ifdef CUBED_SPHERE
+          NI = IM
+#else
+          NI = IMAXJ(J)
+#endif
+          DO I=1,NI
             XXI = XXI + X(I,J,L)
           END DO
-          XI(J,L) = XXI/IMAXJ(J)
+          XI(J,L) = XXI/NI
         END DO
       END DO
       RETURN

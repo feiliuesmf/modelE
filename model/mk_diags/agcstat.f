@@ -14,7 +14,7 @@
       integer :: nargs,j,k,l,im,jm,jm_,lm,kgz
       real*4, parameter :: missing=-1.e30
       include 'netcdf.inc'
-      integer :: gc_fid,ij_fid,ijk_fid,vid
+      integer :: gc_fid,ij_fid,ijk_fid,vid,dids(7)
       integer :: status,varid,ij_nvars
       integer :: plm_id,ple_id, lat_id,lat2_id
       real*4, dimension(:,:,:), allocatable :: phi
@@ -35,6 +35,7 @@
       real*4 :: zeros_hemis(10000)
       integer :: ldn,lup
       INTEGER, PARAMETER, DIMENSION(5) :: MW=(/1,2,3,6,9/)
+      logical :: have_aijk
 
       zeros_hemis = 0.
       omega = 7.292e-5
@@ -64,7 +65,7 @@
       write(6,*) 'Searching for the following input files:'
       write(6,*) '   ',trim(gcfile)
       write(6,*) '   ',trim(ijfile)
-      write(6,*) '   ',trim(ijkfile)
+      write(6,*) '   ',trim(ijkfile),' (optional)'
 
 c
 c open input files
@@ -73,8 +74,10 @@ c
      &     'opening '//trim(gcfile))
       call handle_err(nf_open(ijfile,nf_nowrite,ij_fid),
      &     'opening '//trim(ijfile))
-      call handle_err(nf_open(ijkfile,nf_nowrite,ijk_fid),
-     &     'opening '//trim(ijkfile))
+      status = nf_open(ijkfile,nf_nowrite,ijk_fid)
+      have_aijk = status==nf_noerr
+      if(.not.have_aijk) write(6,*)
+     &     'no aijk-file: skipping standing eddy calculations'
 
       status = nf_inq_nvars(ij_fid,ij_nvars)
 
@@ -169,6 +172,7 @@ c
 c
 c standing eddies
 c
+      if(have_aijk) then
       allocate(dpuv(im,jm,lm),u3d(im,jm,lm),v3d(im,jm,lm),dse(im,jm,lm))
       allocate(seke(jm,lm),seuv(jm,lm),sedv(jm,lm))
       call get_var_real(ijk_fid,'dpb',dpuv)
@@ -201,6 +205,9 @@ c
       call put_var_real(gc_fid,'nt_u_stand_eddy_hemis',zeros_hemis)
       call put_var_real(gc_fid,'nt_dse_stand_eddy',sedv)
       call put_var_real(gc_fid,'nt_dse_stand_eddy_hemis',zeros_hemis)
+      deallocate(dpuv,u3d,v3d,dse)
+      deallocate(seke,seuv,sedv)
+      endif
 
 C****
 C**** D/DY OF Q-G POTENTIAL VORTICITY AND REFRACTION INDICES
@@ -217,6 +224,18 @@ C****
       call get_var_real(gc_fid,'temp',temp)
       call get_var_real(gc_fid,'pot_temp',theta)
       call get_var_real(gc_fid,'u',u)
+
+      ! shift u to secondary latitudes if necessary
+      status = nf_inq_varid(gc_fid,'u',vid)
+      status = nf_inq_vardimid(gc_fid,vid,dids)
+      if(dids(1).eq.lat_id) then
+        where(dpa.eq.0.) u=0.
+        do l=1,lm
+          do j=jm,2,-1
+            u(j,l) = .5*(u(j-1,l)+u(j,l))
+          enddo
+        enddo
+      endif
 
       do l=1,lm
         pmid(:,l) = ple(l) + .5*dpa(:,l)*im/(nptsavg(:,l)+teeny)
@@ -302,9 +321,6 @@ c
 
       deallocate(phi,ampltd,phase)
       deallocate(sinkx,coskx)
-
-      deallocate(dpuv,u3d,v3d,dse)
-      deallocate(seke,seuv,sedv)
 
       deallocate(dpa,temp,theta,u,
      &     n_sqr,dalphadp,dx,dqdy,
