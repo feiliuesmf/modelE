@@ -843,7 +843,7 @@ C                                        2000                     2050
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-
+      use resolution, only : lm_gcm=>lm
       use IndirectAerParam_mod
       IMPLICIT NONE
 
@@ -858,7 +858,9 @@ C--------------------------------------------------
 !@+              but it cannot exceed LX.
 !@+   Since the GCM uses 3 radiative equilibrium layers on top of the
 !@+   model atmosphere, the number LM of GCM layers may be at most LX-3.
-      INTEGER, PARAMETER :: LX = 54+3
+      !INTEGER, PARAMETER :: LX = 54+3
+      !INTEGER, PARAMETER :: LX = lm_gcm+4  ! should be sufficient
+      INTEGER, PARAMETER :: LX = max(lm_gcm,53)+4
 
 !     optional repartitioning of gases - OFFLINE use only
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
