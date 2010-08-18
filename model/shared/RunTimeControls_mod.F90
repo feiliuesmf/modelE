@@ -1145,10 +1145,10 @@ module RunTimeControls_mod
   logical, parameter :: trdiag_wetdepo = .false.
 #endif
 
-#if defined(TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND)
-  logical, parameter :: try_to_melt_fresh_snow_on_warm_ground = .true.
+#if defined(MELT_FRESH_SNOW_ON_WARM_GROUND)
+  logical, parameter :: melt_fresh_snow_on_warm_ground = .true.
 #else
-  logical, parameter :: try_to_melt_fresh_snow_on_warm_ground = .false.
+  logical, parameter :: melt_fresh_snow_on_warm_ground = .false.
 #endif
 
 #if defined(UNFINISHED_CROPS_CODE)
