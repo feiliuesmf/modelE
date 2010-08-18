@@ -2602,10 +2602,16 @@ C**** ADJUSTMENT TO CONSERVE CP*T DURING SUBSIDENCE
       END DO
 
 C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
+#ifdef CUBED_SPHERE
+      ! maximum at any level
+        AIRXL = MAXVAL(MCFLX(LMCMIN:LMCMAX))
+#else
+      ! sum over levels
         AIRXL = 0.
         DO L=LMCMIN,LMCMAX
           AIRXL = AIRXL+MCFLX(L)
         END DO
+#endif
       END IF
 
 C****

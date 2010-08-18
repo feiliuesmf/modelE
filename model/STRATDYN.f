@@ -246,6 +246,13 @@ C**** NOTE:  NM LE 2, NM EQ 4, NM GE 8  ARE ALLOWED FOR MC DRAG
         CLDHT=H0*LOG(PLE(LMC0)/PLE(LMC1))
 C
         WTX=FPLUME
+#ifdef CUBED_SPHERE /* should be done for all configs */
+c empirically compensate for redefinition of MC mass exchange as
+c the maximum at any level rather than as the sum over MC layers
+c (the sum depends on the number of layers)
+        WTX = WTX*10.
+        WTX = WTX/(1.+WTX)
+#endif
         IF (WTX.GT.1. OR. WTX.LT.0.) THEN
           PRINT *, 'WARNING IN GWDRAG, WTX INCORRECT',WTX,FPLUME,CLDDEP
           IF (WTX.GT.1.) WTX=1.
