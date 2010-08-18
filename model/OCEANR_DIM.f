@@ -10,7 +10,7 @@
       implicit none
 
       private
-
+      save
       public init_oceanr_grid  
 
       public I_0,  I_1,  J_0,  J_1, I_0H, I_1H, J_0H, J_1H
