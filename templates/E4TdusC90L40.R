@@ -37,7 +37,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
 
-STRATDYN                            ! stratospheric dynamics (incl. gw drag)
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
 

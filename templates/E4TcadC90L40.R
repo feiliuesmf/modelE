@@ -61,7 +61,7 @@ TRDIAG                              ! for offline postprocessing
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 
-STRATDYN                            ! stratospheric dynamics (incl. gw drag)
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
 RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model

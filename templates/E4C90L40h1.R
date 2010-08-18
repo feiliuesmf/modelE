@@ -26,7 +26,7 @@ RES_CS90L40                         ! C90 horiz resolution, top at 0.1mb, 40 lay
      ! Codes used by the cubed-atmosphere configuration (FV dynamics)
 #include "cubed_sphere_source_files"
 
-STRATDYN                            ! stratospheric dynamics (incl. gw drag)
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
 #include "hycom_source_files"
 cplercs                             ! coupler between cubed atmosphere and hycom
