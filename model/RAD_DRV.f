@@ -948,6 +948,9 @@ C     OUTPUT DATA
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
      *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
+#ifdef TRACERS_NITRATE
+     *     ,tr_mm,n_NH4,n_NO3p
+#endif
 #ifdef TRACERS_AEROSOLS_SOA
      *     ,n_isopp1a,n_isopp2a
 #ifdef TRACERS_TERP
@@ -1091,6 +1094,9 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 
 #ifdef USE_ENT
       real*8 :: PVT0(N_COVERTYPES)
+#endif
+#ifdef TRACERS_NITRATE
+      real*8 :: nh4_on_no3
 #endif
 
 C
@@ -1645,6 +1651,25 @@ C**** more than one tracer is lumped together for radiation purposes
           case ("BCIA")
            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
+! assume full neutralization of NO3p, if NH4 suffice
+           select case (trname(NTRIX(n)))
+           case ("NO3")
+            if (trm(i,j,l,NTRIX(n)) > 0.d0) then
+              nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
+     *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
+     *                       trm(i,j,l,n_NH4))
+              wttr(n)=(nh4_on_no3+trm(i,j,l,NTRIX(n)))/
+     *                trm(i,j,l,NTRIX(n))
+            endif
+           case ("SO4")
+            if (trm(i,j,l,NTRIX(n)) > 0.d0) then
+              nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
+     *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
+     *                       trm(i,j,l,n_NH4))
+              wttr(n)=(trm(i,j,l,n_NH4)-nh4_on_no3+trm(i,j,l,NTRIX(n)))/
+     *                trm(i,j,l,NTRIX(n))
+            endif
+           end select
            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
           end select
         end if
