@@ -28,7 +28,7 @@
       if(grid%have_domain) then
         call get_nlnk(arr,jd,nl,nk)
       else
-        cnt=0   ! empty domain
+        srt=1; cnt=0   ! empty domain
       endif
       arrsize = product(cnt(1:nd))
       allocate(arr_nohalo(arrsize))
