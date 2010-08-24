@@ -216,10 +216,10 @@ cdiag      endif
 
        end do  !ndet
 
-#else ! noBIO
+#else /* noBIO */
        errcon = .false.
-#endif !noBIO
-#endif ! OBIO_ON_GARYocean
+#endif /* noBIO */
+#endif /* OBIO_ON_GARYocean */
 
       !diagnostic for carbon export at compensation depth
       cexp = 0.
