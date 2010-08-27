@@ -50,9 +50,9 @@ c
      .    25., 28., 32., 37., 43., 50., 58., 67., 77., 88.,
      .   100.,113.,127.,142.,158.,175./
 c
-      real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
-ccc   real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
-ccc   real,parameter :: slak=2./86400.	! intfc nudging time scale: 12 hrs
+css   real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
+css   real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
+      real,parameter :: slak=2./86400.	! intfc nudging time scale: 12 hrs
 c --- linear taper functions (latitude and depth-dependent) for slak
       real tapr,wgtf,slakf
       tapr(q)=1.+9.*max(0.,1.-.02e-4*q)			! q = pressure (Pa)

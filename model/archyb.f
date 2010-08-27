@@ -8,7 +8,7 @@ c
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
      * ,xlabel,lrunid
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
-     &     ,thref,nhr
+     &     ,thref,nhr,g
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
@@ -20,13 +20,13 @@ c
       integer no,nop,length,nt
       real factor,vol,tts2,temavg,sst,dpsmo(idm,jdm,kdm)
      .    ,icearea,icevol,icearean,icevoln,iceareas,icevols
-      character flnm*40,intvl*3
-      character what*12
+      character flnm*40,intvl*4
+      character what*16
       real*4 real4(idm,jdm)
      .   ,time4,watcum4,empcum4,thref4,theta4(kdm),unused
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
-      logical, parameter :: smooth = .true.     ! smooth fields before saving
+      logical, parameter :: smooth = .false.     ! smooth fields before saving
       data unused/0./
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
@@ -47,10 +47,10 @@ c     call zebra(srfhgt,idm,ii1,jj)
       write (lp,*) 'shown below: sea surface temperature'
       call zebra(temp(1,1,1+nn),idm,ii1,jj)
 c
-      if (jdate.lt.100) then
-        write (intvl,'(i3.3)') jdate
+      if (jdate.le.9999) then
+        write (intvl,'(i4.4)') jdate
       else
-        stop 'jdate >100'
+        stop ' wrong jdate > 9999'
       endif
 c
       no=4096 
@@ -115,60 +115,64 @@ c
       no=no+1
       call r8tor4(ubavg(1,1,n),real4)
       if (smooth) call usmoo4(real4)
-      write (nop,rec=no) 'ubavg       ',0,real4
-      write (lp,100)     'ubavg       ',0,no
+      write (nop,rec=no) 'ubavg           ',0,real4
+      write (lp,100)     'ubavg           ',0,no
       no=no+1
       call r8tor4(vbavg(1,1,n),real4)
       if (smooth) call vsmoo4(real4)
-      write (nop,rec=no) 'vbavg       ',0,real4
-      write (lp,100)     'vbavg       ',0,no
+      write (nop,rec=no) 'vbavg           ',0,real4
+      write (lp,100)     'vbavg           ',0,no
       no=no+1
       call r8tor4(srfhgt,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'srfhgt      ',0,real4
-      write (lp,100)     'srfhgt      ',0,no
+      write (nop,rec=no) 'srfhgt (m)      ',0,real4
+      write (lp,100)     'srfhgt (m)      ',0,no
       no=no+1
       call r8tor4(dpmixl,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'mix_dpth    ',0,real4
-      write (lp,100)     'mix_dpth    ',0,no
+      write (nop,rec=no) 'mix_dpth        ',0,real4
+      write (lp,100)     'mix_dpth        ',0,no
       no=no+1
       call r8tor4(oice,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'icecover(%) ',0,real4
-      write (lp,100)     'iceconver(%)',0,no
+      write (nop,rec=no) 'icecover(%)     ',0,real4
+      write (lp,100)     'icecover(%)     ',0,no
 c
       do 75 k=1,kk
       kn=k+nn
       no=no+1
       call r8tor4(u(1,1,kn),real4)
       if (smooth) call usmoo4(real4)
-      write (nop,rec=no) 'u           ',k,real4
-      write (lp,100)     'u           ',k,no
+      write (nop,rec=no) 'u               ',k,real4
+      write (lp,100)     'u               ',k,no
       no=no+1
       call r8tor4(v(1,1,kn),real4)
       if (smooth) call vsmoo4(real4)
-      write (nop,rec=no) 'v           ',k,real4
-      write (lp,100)     'v           ',k,no
+      write (nop,rec=no) 'v               ',k,real4
+      write (lp,100)     'v               ',k,no
       no=no+1
-      call r8tor4(dpsmo(1,1,k),real4)
-      write (nop,rec=no) 'dp          ',k,real4
-      write (lp,100)     'dp          ',k,no
+      if (smooth) then
+        call r8tor4(dpsmo(1,1,k),real4)
+      else
+        call r8tor4(dp(1,1,kn),real4)
+      endif
+      write (nop,rec=no) 'dp              ',k,real4
+      write (lp,100)     'dp              ',k,no
       no=no+1
       call r8tor4(temp(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'temp        ',k,real4
-      write (lp,100)     'temp        ',k,no
+      write (nop,rec=no) 'temp            ',k,real4
+      write (lp,100)     'temp            ',k,no
       no=no+1
       call r8tor4(saln(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'saln        ',k,real4
-      write (lp,100)     'saln        ',k,no
+      write (nop,rec=no) 'saln            ',k,real4
+      write (lp,100)     'saln            ',k,no
       no=no+1
       call r8tor4(th3d(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'th3d        ',k,real4
-      write (lp,100)     'th3d        ',k,no
+      write (nop,rec=no) 'th3d            ',k,real4
+      write (lp,100)     'th3d            ',k,no
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- ifort miscomputes 'no' in the following loop:
 ccc      do nt=1,ntrcr
@@ -188,7 +192,7 @@ c --- code around compiler glitch:
       do nt=1,ntrcr
         call r8tor4(tracer(1,1,k,nt),real4)
         if (smooth) call psmoo4(real4)
-        write (what,'(a6,i2,4x)') 'tracer',nt
+        write (what,'(a6,i2,5x)') 'tracer',nt
         write (nop,rec=no+nt) what,k,real4
       write (lp,100)       what,k,no+nt
       end do
@@ -244,16 +248,16 @@ ccc      call zebra(diaflx(1,int(.8*jdm),k),idm,idm/3,idm/3)
 c
       no=no+1
       call r8tor4(uflxav(1,1,k),real4)
-      write (nop,rec=no) '  uflxav_'//intvl,k,real4
-      write (lp,100)     '  uflxav_'//intvl,k,no
+      write (nop,rec=no) '     uflxav_'//intvl,k,real4
+      write (lp,100)     '     uflxav_'//intvl,k,no
       no=no+1
       call r8tor4(vflxav(1,1,k),real4)
-      write (nop,rec=no) '  vflxav_'//intvl,k,real4
-      write (lp,100)     '  vflxav_'//intvl,k,no
+      write (nop,rec=no) '     vflxav_'//intvl,k,real4
+      write (lp,100)     '     vflxav_'//intvl,k,no
       no=no+1
       call r8tor4(diaflx(1,1,k),real4)
-      write (nop,rec=no) '  diaflx_'//intvl,k,real4
-      write (lp,100)     '  diaflx_'//intvl,k,no
+      write (nop,rec=no) '     diaflx_'//intvl,k,real4
+      write (lp,100)     '     diaflx_'//intvl,k,no
  58   continue
 c
 cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
@@ -267,7 +271,7 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 56 l=1,isp(j)
       do 56 i=ifp(j,l),ilp(j,l)
       pbavav(i,j)=pbavav(i,j)*factor
-      sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)
+      sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
       dpmxav(i,j)=dpmxav(i,j)*factor
  56   oiceav(i,j)=oiceav(i,j)*factor
 cc$OMP END PARALLEL DO
@@ -279,83 +283,83 @@ c     call zebra(sfhtav,idm,ii1,jj)
 c
       no=no+1
       call r8tor4(ubavav,real4)
-      write (nop,rec=no) '  ubavav_'//intvl,0,real4
-      write (lp,100)     '  ubavav_'//intvl,0,no
+      write (nop,rec=no) '     ubavav_'//intvl,0,real4
+      write (lp,100)     '     ubavav_'//intvl,0,no
       no=no+1
       call r8tor4(vbavav,real4)
-      write (nop,rec=no) '  vbavav_'//intvl,0,real4
-      write (lp,100)     '  vbavav_'//intvl,0,no
+      write (nop,rec=no) '     vbavav_'//intvl,0,real4
+      write (lp,100)     '     vbavav_'//intvl,0,no
       no=no+1
       call r8tor4(sfhtav,real4)
-      write (nop,rec=no) '  sfhtav_'//intvl,0,real4
-      write (lp,100)     '  sfhtav_'//intvl,0,no
+      write (nop,rec=no) '     sfhtav_'//intvl,0,real4
+      write (lp,100)     '     sfhtav_'//intvl,0,no
       no=no+1
       call r8tor4(dpmxav,real4)
-      write (nop,rec=no) '  dpmxav_'//intvl,0,real4
-      write (lp,100)     '  dpmxav_'//intvl,0,no
+      write (nop,rec=no) '     dpmxav_'//intvl,0,real4
+      write (lp,100)     '     dpmxav_'//intvl,0,no
       no=no+1
       call r8tor4(oiceav,real4)
-      write (nop,rec=no) '  oiceav_'//intvl,1,real4
-      write (lp,100)     '  oiceav_'//intvl,0,no
+      write (nop,rec=no) '     oiceav_'//intvl,1,real4
+      write (lp,100)     '     oiceav_'//intvl,0,no
 c
       do 57 k=1,kk
       no=no+1
       call r8tor4(uav(1,1,k),real4)
-      write (nop,rec=no) '     uav_'//intvl,k,real4
-      write (lp,100)     '     uav_'//intvl,k,no
+      write (nop,rec=no) '        uav_'//intvl,k,real4
+      write (lp,100)     '        uav_'//intvl,k,no
       no=no+1
       call r8tor4(vav(1,1,k),real4)
-      write (nop,rec=no) '     vav_'//intvl,k,real4
-      write (lp,100)     '     vav_'//intvl,k,no
+      write (nop,rec=no) '        vav_'//intvl,k,real4
+      write (lp,100)     '        vav_'//intvl,k,no
       no=no+1
       call r8tor4(dpav(1,1,k),real4)
-      write (nop,rec=no) '    dpav_'//intvl,k,real4
-      write (lp,100)     '    dpav_'//intvl,k,no
+      write (nop,rec=no) '       dpav_'//intvl,k,real4
+      write (lp,100)     '       dpav_'//intvl,k,no
       no=no+1
       call r8tor4(temav(1,1,k),real4)
-      write (nop,rec=no) '   temav_'//intvl,k,real4
-      write (lp,100)     '   temav_'//intvl,k,no
+      write (nop,rec=no) '      temav_'//intvl,k,real4
+      write (lp,100)     '      temav_'//intvl,k,no
       no=no+1
       call r8tor4(salav(1,1,k),real4)
-      write (nop,rec=no) '   salav_'//intvl,k,real4
-      write (lp,100)     '   salav_'//intvl,k,no
+      write (nop,rec=no) '      salav_'//intvl,k,real4
+      write (lp,100)     '      salav_'//intvl,k,no
       no=no+1
       call r8tor4(th3av(1,1,k),real4)
-      write (nop,rec=no) '  th3dav_'//intvl,k,real4
-      write (lp,100)     '  th3dav_'//intvl,k,no
+      write (nop,rec=no) '     th3dav_'//intvl,k,real4
+      write (lp,100)     '     th3dav_'//intvl,k,no
  57   continue
 c
 c --- time-averaged surface fluxes:
       no=no+1
       call r8tor4(eminpav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) ' emp m/s '//intvl,0,real4
-      write (lp,100)     ' emp m/s '//intvl,0,no
+      write (nop,rec=no) '  eminp m/s_'//intvl,0,real4
+      write (lp,100)     '  eminp m/s_'//intvl,0,no
       no=no+1
       call r8tor4(surflav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'hflx W/m2'//intvl,0,real4
-      write (lp,100)     'hflx W/m2'//intvl,0,no
+      write (nop,rec=no) ' htflx W/m2_'//intvl,0,real4
+      write (lp,100)     ' htflx W/m2_'//intvl,0,no
       no=no+1
       call r8tor4(salflav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'sfx g/m2s'//intvl,0,real4
-      write (lp,100)     'sfx g/m2s'//intvl,0,no
+      write (nop,rec=no) ' sflx g/m2s_'//intvl,0,real4
+      write (lp,100)     ' sflx g/m2s_'//intvl,0,no
       no=no+1
       call r8tor4(brineav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'brn g/m2s'//intvl,0,real4
-      write (lp,100)     'brn g/m2s'//intvl,0,no
+      write (nop,rec=no) 'brine g/m2s_'//intvl,0,real4
+      write (lp,100)     'brine g/m2s_'//intvl,0,no
       no=no+1
       call r8tor4(tauxav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'taux N/m2'//intvl,0,real4
-      write (lp,100)     'taux N/m2'//intvl,0,no
+      write (nop,rec=no) ' Tau_x N/m2_'//intvl,0,real4
+      write (lp,100)     ' Tau_x N/m2_'//intvl,0,no
       no=no+1
       call r8tor4(tauyav,real4)
       if (smooth) call psmoo4(real4)
-      write (nop,rec=no) 'tauy N/m2'//intvl,0,real4
-      write (lp,100)     'tauy N/m2'//intvl,0,no
+      write (nop,rec=no) ' Tau_y N/m2_'//intvl,0,real4
+      write (lp,100)     ' Tau_y N/m2_'//intvl,0,no
 c
       close (unit=nop)
  100  format (9x,a,' (layer',i3,') archived as record',i5)
