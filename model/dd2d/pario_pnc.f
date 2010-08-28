@@ -43,6 +43,9 @@ c
         module procedure par_write_nc_3D_int
         module procedure par_write_nc_4D_int
         module procedure par_write_nc_2D_logical
+        module procedure par_write_nc_3D_bundle
+        module procedure par_write_nc_4D_bundle
+        module procedure par_write_nc_5D_bundle
       end interface write_dist_data
       interface read_dist_data
         module procedure par_read_nc_2D
@@ -256,6 +259,22 @@ c define/overwrite the success flag for error checking
       real*8 :: arr(:,:,:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_5D
+
+      subroutine par_write_nc_3D_bundle(grid,fid,varnames,arr,jdim,
+     &     record)
+      real*8 :: arr(:,:,:)
+#include "do_par_write_bundle.inc"
+      end subroutine par_write_nc_3D_bundle
+      subroutine par_write_nc_4D_bundle(grid,fid,varnames,arr,jdim,
+     &     record)
+      real*8 :: arr(:,:,:,:)
+#include "do_par_write_bundle.inc"
+      end subroutine par_write_nc_4D_bundle
+      subroutine par_write_nc_5D_bundle(grid,fid,varnames,arr,jdim,
+     &     record)
+      real*8 :: arr(:,:,:,:,:)
+#include "do_par_write_bundle.inc"
+      end subroutine par_write_nc_5D_bundle
 
       subroutine par_read_nc_2D(grid,fid,varname,arr,jdim)
       real*8 :: arr(:,:)
