@@ -15,32 +15,18 @@
       private
 
       public alloc_gasexch_com
-#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
-      public gather_gasexch_com_arrays
-      public scatter_gasexch_com_arrays
-#endif
 
       public
      .  tracflx !  tracer flux at air-sea intfc
 
-#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
-      public 
-     .  tracflx_glob
-#endif
-
       public
      .  tracflx1d
 
-      public atracflx
-      public atrac
+      public atrac_loc
 
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atrac
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atrac_loc
 
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
-#ifndef OBIO_ON_GARYocean
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx_glob
-#endif
   
       real*8 tracflx1d(ntm)
       common /gasexch3/tracflx1d
@@ -53,57 +39,26 @@
       subroutine alloc_gasexch_com
 
       USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
-
+      use domain_decomp_atm, only : agrid=>grid
 #ifdef OBIO_ON_GARYocean
-      USE MODEL_COM, only : iia=>im,jja=>jm
       USE OCEANR_DIM, only : ogrid
 #else
-      USE hycom_dim_glob
       USE HYCOM_DIM, only : ogrid
 #endif
-      integer i_0,i_1,j_0,j_1
-      integer j_0h,j_1h
+      integer i_0h,i_1h,j_0h,j_1h
 
-      i_0=ogrid%I_STRT
-      i_1=ogrid%I_STOP
-      j_0=ogrid%J_STRT
-      j_1=ogrid%J_STOP
+      i_0h=ogrid%I_STRT_HALO
+      i_1h=ogrid%I_STOP_HALO
       j_0h=ogrid%J_STRT_HALO
       j_1h=ogrid%J_STOP_HALO
 
-      ALLOCATE(tracflx(i_0:i_1,j_0h:j_1h,ntm))
-#ifndef OBIO_ON_GARYocean
-      ALLOCATE(tracflx_glob(idm,jdm,ntm))
-#endif
+      ALLOCATE(tracflx(i_0h:i_1h,j_0h:j_1h,ntm))
 
-      ALLOCATE(atracflx(iia,jja,ntm))
-      ALLOCATE(atrac(iia,jja,ntm))
+      allocate(atrac_loc(agrid%i_strt_halo:agrid%i_stop_halo,
+     &                   agrid%j_strt_halo:agrid%j_stop_halo,
+     &                   ntm ))
 
       end subroutine alloc_gasexch_com
-
-
-!------------------------------------------------------------------------------
-#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
-      subroutine gather_gasexch_com_arrays
-
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
-
-      call pack_data( ogrid, tracflx,tracflx_glob )
-
-      end subroutine gather_gasexch_com_arrays
-#endif
-!------------------------------------------------------------------------------
-#ifndef OBIO_ON_GARYocean  /* only for HYCOM */
-      subroutine scatter_gasexch_com_arrays
-
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
-
-      call unpack_data( ogrid, tracflx_glob,tracflx )
-
-      end subroutine scatter_gasexch_com_arrays
-#endif
 
       END MODULE TRACER_GASEXCH_COM
 
@@ -113,48 +68,22 @@
          !ONLY FOR HYCOM
 #ifndef OBIO_ON_GARYocean
       subroutine init_gasexch_co2
-
-!this routine is called from inside OCEAN_hycom.f and only from ROOT 
-!therefore arrays here have to be global
-
-
-      USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
-      USE HYCOM_DIM, only : ogrid
-      USE hycom_atm, only : gtracer => gtracer_glob,gtracer_loc,focean
-      USE HYCOM_SCALARS, only : nstep
-
-      USE PARAM, only: get_param
-
-
+      USE hycom_atm, only : gtracer_loc,focean_loc
       USE TRACER_COM, only : ntm_gasexch  !tracers involved in air-sea gas exch
-
-      USE TRACER_GASEXCH_COM, only : atrac
-
-      USE obio_com, only : pCO2,pCO2_glob
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, agrid => grid,
-     &     pack_data, unpack_data, pack_block, unpack_block
+      USE TRACER_GASEXCH_COM, only : atrac_loc
+      use domain_decomp_atm, only : agrid=>grid
       implicit none
       integer nt,i,j
 
-      call pack_data(ogrid, pCO2, pCO2_glob)
-      call pack_block( agrid,GTRACER_loc,GTRACER)
-
-      if (AM_I_ROOT()) then
-
-      do j=1,jja
-      do i=1,iia
-      if (focean(i,j).gt.0.) then
+      do j=agrid%j_strt,agrid%j_stop
+      do i=agrid%i_strt,agrid%i_stop
+      if (focean_loc(i,j).gt.0.) then
           do nt=1,ntm_gasexch
-            GTRACER(nt,1,i,j)=atrac(i,j,nt)
+            GTRACER_loc(nt,1,i,j)=atrac_loc(i,j,nt)
           enddo
       endif
       enddo
       enddo
-
-      endif ! i am root
-
-      call unpack_data(ogrid, pCO2_glob, pCO2)
-      call unpack_block( agrid,GTRACER,GTRACER_loc)
 
       end subroutine init_gasexch_co2
 #endif

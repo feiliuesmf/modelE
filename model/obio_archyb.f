@@ -15,7 +15,7 @@ c
      || (defined TRACERS_ZEBRA)
      .     ,diag_counter
 #endif
-      USE HYCOM_DIM_GLOB, only : jj,jdm,kk,ntrcr,ii,idm,kdm,iia,jja
+      USE HYCOM_DIM_GLOB, only : jj,jdm,kk,ntrcr,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
@@ -208,12 +208,23 @@ c
       return
       end subroutine obio_archyb
 
+      module write2giss_mod
+      use model_com, only : im,jm,focean
+      use domain_decomp_1d, only : grid,pack_data
+      implicit none
+      real*8, dimension(im,jm) :: focean_glob
+      contains
+      subroutine write2giss_init
+      call pack_data(grid, focean, focean_glob)
+      end subroutine write2giss_init
+      end module write2giss_mod
+
       subroutine write2giss(nop,array_o,title)
 
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo
       USE HYCOM_CPLER, only: ssto2a_global
       USE HYCOM_SCALARS, only : onem
-      USE hycom_atm, only: focean
+      USE write2giss_mod, only: focean=>focean_glob
 
       integer nop
       real*4 array4(iia,jja)

@@ -98,7 +98,8 @@
      .                        ,time,lp,baclin,huge
       USE obio_com, only: ao_co2flux_loc,tracav_loc,
      .     pCO2av,plevav_loc, ao_co2fluxav_loc,
-     .     cexpav,caexpav,pp2tot_dayav,cexpij
+     .     cexpav,caexpav,pp2tot_dayav,cexpij,
+     .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -178,12 +179,16 @@
       tracav_loc = 0.
       plevav_loc=0.
       ao_co2fluxav_loc  = 0.
-      if (AM_I_ROOT()) then
-      pCO2av=0.
-      pp2tot_dayav=0.
-      cexpav=0.
-      caexpav=0.
-      endif
+      pCO2av_loc = 0
+      pp2tot_dayav_loc = 0
+      cexpav_loc = 0
+      caexpav_loc = 0
+c      if (AM_I_ROOT()) then
+c      pCO2av=0.
+c      pp2tot_dayav=0.
+c      cexpav=0.
+c      caexpav=0.
+c      endif
 
       call obio_bioinit(nn)
 #endif

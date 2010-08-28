@@ -41,7 +41,6 @@ C****
       USE OCN_TRACER_COM, only : t_qlimit,ntm
 #endif
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only: scatter_obio_forc_arrays
       USE obio_com, only: gather_chl
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2

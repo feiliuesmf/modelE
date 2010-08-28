@@ -10,23 +10,13 @@
       USE SEAICE, only : osurf_tilt
       USE HYCOM_ATM, only :
      &     focean_loc,gtemp_loc,gtempr_loc,
-     &     asst_loc,atempr_loc,sss_loc,im,jm
-#ifdef USE_ATM_GLOBAL_ARRAYS
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid,pack_data
-      USE HYCOM_ATM, only : focean
-#endif
+     &     asst_loc,atempr_loc,sss_loc
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : atrac
-#endif
 
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : avgq,tirrq3d,ihra,atmco2
-      USE obio_com,  only : gcmax,tracav,plevav,pCO2av
-     .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
-     .                     ,itest_bio=>itest,jtest_bio=>jtest
+      use obio_forc, only : atmco2
+      use write2giss_mod, only : write2giss_init
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
@@ -56,11 +46,6 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       osurf_tilt = 0
 #endif
 
-#ifdef USE_ATM_GLOBAL_ARRAYS
-c gather ocean fraction on atm grid into a global array for tracer code
-      call pack_data(agrid,  FOCEAN_loc, FOCEAN )
-#endif
-
       call sync_param( "itest", itest)
       call sync_param( "jtest", jtest)
       call sync_param( "iocnmx", iocnmx)
@@ -73,6 +58,7 @@ c gather ocean fraction on atm grid into a global array for tracer code
       call sync_param( "jerlv0", jerlv0)
 
 #ifdef TRACERS_OceanBiology
+      call write2giss_init ! to get global focean array
 #ifdef constCO2
       call get_param("atmCO2",atmCO2)   !need to do this here also
       print*, 'OCEAN_hycom, atmco2=',atmCO2
@@ -227,20 +213,15 @@ c
       RETURN
       END SUBROUTINE DUMMY_OCN
 c
-#ifndef NEW_IO
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
-     &     ESMF_BCAST
-      USE HYCOM_ATM, only :
-     &     gather_atm_before_checkpoint,
-     &     scatter_atm_after_checkpoint,
-     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
+     &     ESMF_BCAST, pack_column, unpack_column
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
 !!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
-      USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
+      USE HYCOM_DIM_GLOB, only : kk,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem,itest,jtest
@@ -251,15 +232,16 @@ c
       USE HYCOM_ARRAYS_GLOB_RENAMER, only : plevav_loc,tracav_loc
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only : atrac
+      use domain_decomp_atm, only : agrid=>grid
+      USE TRACER_GASEXCH_COM, only : atrac_loc
 #endif
 
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com,  only : gcmax,tracav,plevav,pCO2av,pp2tot_day
+      USE obio_com,  only : gcmax,pCO2av,pCO2av_loc,pp2tot_day
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
      .                     ,itest_bio=>itest,jtest_bio=>jtest
-      USE obio_com,  only : tracav_loc, plevav_loc
+      USE obio_com,  only : tracav_loc, plevav_loc, tracav, plevav
 #endif
       USE HYCOM_ARRAYS_GLOB
       USE param
@@ -271,6 +253,13 @@ c
       INTEGER, intent(in) :: iaction !@var iaction flag for reading or writing to file
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
+
+c global arrays for i/o
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
+     &     SSS,UOSURF,VOSURF,OGEOZA,asst,atempr
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GTEMPR,DMSI,DHSI,DSSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTEMP
+
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
@@ -290,7 +279,7 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       real, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
-     &     gcmax_glob(:,:,:)
+     &     gcmax_glob(:,:,:),atrac_glob(:,:,:)
       integer, allocatable :: ihra_glob(:,:)
 #endif
 
@@ -309,14 +298,18 @@ c
       if (AM_I_ROOT()) then
         allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
      &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm) )
+        allocate(atrac_glob(agrid%im_world,agrid%jm_world,
+     &       size(atrac_loc,3)))
       endif
       call pack_data(ogrid, avgq,    avgq_glob)
       call pack_data(ogrid, tirrq3d, tirrq3d_glob)
       call pack_data(ogrid, ihra,    ihra_glob)
       call pack_data(ogrid, gcmax,   gcmax_glob)
+      call pack_data(agrid, atrac_loc, atrac_glob)
 #endif
 
       ! move to global atm grid
+      call alloc_atm_globals
       call gather_atm_before_checkpoint
       call gather_hycom_arrays   !mkb Jun  6
 
@@ -328,6 +321,7 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)
+      call pack_data(ogrid, pCO2av_loc, pCO2av)
 #endif
 
       if (AM_I_ROOT()) then ! work on global grids here
@@ -387,7 +381,7 @@ css#endif
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
-     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
      . ,pp2tot_day_glob
@@ -397,19 +391,19 @@ css#endif
       write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1),pp2tot_day_glob(i,j)
+     &       ihra_glob(i,j),atrac_glob(10,20,1),pp2tot_day_glob(i,j)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
-     . ,atrac
+     . ,atrac_glob
       i=itest_bio
       j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j),atrac_glob(10,20,1)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -479,7 +473,7 @@ c
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
@@ -490,7 +484,7 @@ c
       write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &    ihra_glob(i,j),atrac(10,20,1),
+     &    ihra_glob(i,j),atrac_glob(10,20,1),
      .    pp2tot_day_glob(i,j)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
@@ -506,14 +500,14 @@ c
 #else
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac
+     . ,atrac_glob
       i=itest_bio
       j=jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j),atrac_glob(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -610,7 +604,7 @@ c
       if (nstep.eq.0)go to 222   !for a cold start the AIC file does not have this stuff.
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
      . ,tracav,plevav,pCO2av,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
@@ -622,7 +616,7 @@ c
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j),atrac_glob(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -637,14 +631,14 @@ c
 #else
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
-     . ,atrac
+     . ,atrac_glob
       i=itest_bio
       j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j),atrac_glob(10,20,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -701,6 +695,7 @@ c
 
       endif ! AM_I_ROOT
       call scatter_atm_after_checkpoint
+      call dealloc_atm_globals
       CALL ESMF_BCAST(ogrid, nstep0 )
       CALL ESMF_BCAST(ogrid, time0 )
 
@@ -709,9 +704,10 @@ c
       call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
       call unpack_data(ogrid, ihra_glob, ihra)
       call unpack_data(ogrid, gcmax_glob, gcmax)
+      call unpack_data(agrid, atrac_glob, atrac_loc)
       if (AM_I_ROOT()) then
         deallocate( avgq_glob,tirrq3d_glob,
-     &       ihra_glob, gcmax_glob )
+     &       ihra_glob, gcmax_glob, atrac_glob )
       endif
 #endif
 
@@ -723,17 +719,78 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       call unpack_data(ogrid, pp2tot_day_glob, pp2tot_day)
+      call unpack_data(ogrid, pCO2av, pCO2av_loc)
 #endif
 
       RETURN
  10   IOERR=1
       call scatter_atm_after_checkpoint
+      call dealloc_atm_globals
       ! why do we need return after error?
       call stop_model("error i/o in io_ocean",255)
       RETURN
 C****
+      contains
+      subroutine alloc_atm_globals
+      USE MODEL_COM, only : im,jm
+      use FLUXES, only: NSTYPE
+      if(am_i_root()) then
+        ALLOCATE( SSS( im, jm ) )
+        ALLOCATE( UOSURF( im, jm ) )
+        ALLOCATE( VOSURF( im, jm ) )
+        ALLOCATE( OGEOZA( im, jm ) )
+        ALLOCATE( GTEMP( 2 , NSTYPE, im, jm ) )
+        ALLOCATE( GTEMPR( NSTYPE, im, jm ) )
+        ALLOCATE( DMSI(  2  , im, jm ) )
+        ALLOCATE( DHSI(  2  , im, jm ) )
+        ALLOCATE( DSSI(  2  , im, jm ) )
+        ALLOCATE( asst( im, jm ) )
+        ALLOCATE( atempr( im, jm ) )
+      endif
+      end subroutine alloc_atm_globals
+      subroutine dealloc_atm_globals
+      if(am_i_root()) then
+        DEALLOCATE(SSS,UOSURF,VOSURF,
+     &       OGEOZA,GTEMP,GTEMPR,DMSI,DHSI,DSSI,asst,atempr)
+      endif
+      end subroutine dealloc_atm_globals
+      subroutine gather_atm_before_checkpoint
+      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      use hycom_atm
+      call pack_data( grid,  ASST_loc, ASST )
+      call pack_data( grid,  ATEMPR_loc, ATEMPR )
+      call pack_data( grid,  SSS_loc, SSS )
+      call pack_data( grid,  UOSURF_loc, UOSURF )
+      call pack_data( grid,  VOSURF_loc, VOSURF )
+      call pack_data( grid,  OGEOZA_loc, OGEOZA )
+      call pack_column( grid,  DMSI_loc, DMSI )
+      call pack_column( grid,  DHSI_loc, DHSI )
+      call pack_column( grid,  DSSI_loc, DSSI )
+      end subroutine gather_atm_before_checkpoint
+
+      subroutine scatter_atm_after_checkpoint
+      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      use hycom_atm
+      call unpack_data( grid,  ASST, ASST_loc )
+      call unpack_data( grid,  ATEMPR, ATEMPR_loc )
+      call unpack_data( grid,  SSS, SSS_loc )
+      call unpack_data( grid,  UOSURF, UOSURF_loc )
+      call unpack_data( grid,  VOSURF, VOSURF_loc )
+c UOSURF and VOSURF are also needed on the ice dynamics A-grid.
+c For the moment, HYCOM only runs with modelE configurations having
+c identical atmosphere and ice dynamics grids, so the atmospheric
+c copy of UOSURF,VOSURF can be used.
+      if(grid_icdyn%have_domain) then ! ice dyn may run on subset of PEs
+        call unpack_data( grid_icdyn,  UOSURF, UOSURF_4DYNSI_loc)
+        call unpack_data( grid_icdyn,  VOSURF, VOSURF_4DYNSI_loc) 
+      endif
+      call unpack_data( grid,  OGEOZA, OGEOZA_loc )
+      call unpack_column( grid,  DMSI, DMSI_loc )
+      call unpack_column( grid,  DHSI, DHSI_loc )
+      call unpack_column( grid,  DSSI, DSSI_loc )
+      end subroutine scatter_atm_after_checkpoint
+
       END SUBROUTINE io_ocean
-#endif /* not NEW_IO */
 
 #ifdef NEW_IO
       subroutine def_rsf_ocean(fid)
@@ -748,8 +805,16 @@ C****
      &     dmsi_loc,dhsi_loc,dssi_loc,asst_loc,atempr_loc
       USE HYCOM_SCALARS, only : nstep,time,oddev
       USE HYCOM_ARRAYS
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
+      use obio_dim, only : trname
+#endif
       implicit none
       integer fid   !@var fid file id
+      integer :: n
       character(len=14) :: str2d
       character(len=18) :: str3d
       character(len=20) :: str3d2
@@ -776,7 +841,14 @@ C****
       call defvar(grid,fid,uflxav,'uflxav'//str3d)
       call defvar(grid,fid,vflxav,'vflxav'//str3d)
       call defvar(grid,fid,diaflx,'diaflx'//str3d)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      do n=1,size(trname)
+        call defvar(grid,fid,tracer(:,:,:,n),
+     &       trim(trname(n))//str3d)
+      enddo
+#else
       call defvar(grid,fid,tracer,'tracer(idm,dist_jdm,kdm,ntrcr)')
+#endif
       call defvar(grid,fid,dpinit,'dpinit'//str3d)
       call defvar(grid,fid,oddev,'oddev')
       call defvar(grid,fid,uav,'uav'//str3d)
@@ -809,6 +881,20 @@ c exports to agcm on agcm grid
       call defvar(agrid,fid,dhsi_loc,'dhsi(two,dist_im,dist_jm)')
       call defvar(agrid,fid,dmsi_loc,'dmsi(two,dist_im,dist_jm)')
       call defvar(agrid,fid,dssi_loc,'dssi(two,dist_im,dist_jm)')
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+c      call defvar(grid,fid,nstep,'obio_nstep0')
+      call defvar(grid,fid,diag_counter,'obio_diag_counter')
+      call defvar(grid,fid,avgq,'avgq'//str3d)
+      call defvar(grid,fid,gcmax,'gcmax'//str3d)
+      call defvar(grid,fid,tirrq3d,'tirrq3d'//str3d)
+      call defvar(grid,fid,ihra,'ihra'//str2d)
+      call defvar(grid,fid,pCO2av,'pCO2av'//str2d)
+      call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
+      call defvar(grid,fid,tracav,'tracav(idm,dist_jdm,kdm,ntrcr)')
+      call defvar(grid,fid,plevav,'plevav'//str3d)
+      call defvar(agrid,fid,atrac,'atrac(dist_im,dist_jm,ntm)')
+#endif
 
 c write:
 c        WRITE (kunit,err=10) nstep,time
@@ -845,9 +931,17 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       USE HYCOM_SCALARS, only : nstep,time,nstep0,time0,baclin,oddev
       USE HYCOM_ARRAYS
       USE HYCOM_ARRAYS_GLOB, only : gather_hycom_arrays   ! for now
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
+      use obio_dim, only : trname
+#endif
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      integer :: n
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_data(grid,fid,'nstep',nstep)
@@ -868,7 +962,13 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'uflxav',uflxav)
         call write_dist_data(grid,fid,'vflxav',vflxav)
         call write_dist_data(grid,fid,'diaflx',diaflx)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        do n=1,size(trname)
+          call write_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
+        enddo
+#else
         call write_dist_data(grid,fid,'tracer',tracer)
+#endif
         call write_dist_data(grid,fid,'dpinit',dpinit)
         call write_data(grid,fid,'oddev',oddev)
         call write_dist_data(grid,fid,'uav',uav)
@@ -901,6 +1001,18 @@ c exports to agcm, sea ice components
         call write_dist_data(agrid,fid,'dhsi',dhsi_loc,jdim=3)
         call write_dist_data(agrid,fid,'dmsi',dmsi_loc,jdim=3)
         call write_dist_data(agrid,fid,'dssi',dssi_loc,jdim=3)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call write_data(grid,fid,'obio_diag_counter',diag_counter)
+        call write_dist_data(grid,fid,'avgq',avgq)
+        call write_dist_data(grid,fid,'gcmax',gcmax)
+        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call write_dist_data(grid,fid,'ihra',ihra)
+        call write_dist_data(grid,fid,'pCO2av',pCO2av)
+        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call write_dist_data(grid,fid,'tracav',tracav)
+        call write_dist_data(grid,fid,'plevav',plevav)
+        call write_dist_data(agrid,fid,'atrac',atrac)
+#endif
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
         call read_data(grid,fid,'time',time0,bcast_all=.true.)
@@ -925,7 +1037,13 @@ c exports to agcm, sea ice components
         call read_dist_data(grid,fid,'uflxav',uflxav)
         call read_dist_data(grid,fid,'vflxav',vflxav)
         call read_dist_data(grid,fid,'diaflx',diaflx)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        do n=1,size(trname)
+          call read_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
+        enddo
+#else
         call read_dist_data(grid,fid,'tracer',tracer)
+#endif
         call read_dist_data(grid,fid,'dpinit',dpinit)
         call read_data(grid,fid,'oddev',oddev,bcast_all=.true.)
         call read_dist_data(grid,fid,'uav',uav)
@@ -961,6 +1079,18 @@ c exports to agcm, sea ice components
         call read_dist_data(agrid,fid,'dhsi',dhsi_loc,jdim=3)
         call read_dist_data(agrid,fid,'dmsi',dmsi_loc,jdim=3)
         call read_dist_data(agrid,fid,'dssi',dssi_loc,jdim=3)
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call read_data(grid,fid,'obio_diag_counter',diag_counter)
+        call read_dist_data(grid,fid,'avgq',avgq)
+        call read_dist_data(grid,fid,'gcmax',gcmax)
+        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call read_dist_data(grid,fid,'ihra',ihra)
+        call read_dist_data(grid,fid,'pCO2av',pCO2av)
+        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call read_dist_data(grid,fid,'tracav',tracav)
+        call read_dist_data(grid,fid,'plevav',plevav)
+        call read_dist_data(agrid,fid,'atrac',atrac)
+#endif
       end select
       return
       end subroutine new_io_ocean
@@ -975,22 +1105,22 @@ c
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
       USE DOMAIN_DECOMP_1D, only: grid,pack_block,AM_I_ROOT
-      USE HYCOM_ATM, only : focean,gtemp,gtemp_loc,im,jm
+c      USE HYCOM_ATM, only : gtemp,gtemp_loc
       IMPLICIT NONE
       integer i,j
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
-      call pack_block( grid,  GTEMP_loc, GTEMP )
-      if (AM_I_ROOT()) then
+c      call pack_block( grid,  GTEMP_loc, GTEMP )
+c      if (AM_I_ROOT()) then
 
-      print *,'SUBR=',SUBR
-      write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
-      write(*,'(a)') 'focean'
-      write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
+c      print *,'SUBR=',SUBR
+c      write(*,'(10f7.2)') ((gtemp(1,1,i,j),i=1,10),j=15,20)
+c      write(*,'(a)') 'focean'
+c      write(*,'(10f7.2)') ((focean(i,j),i=1,10),j=15,20)
 
-      endif ! AM_I_ROOT
+c      endif ! AM_I_ROOT
       ! no need to sctter since nothing changed
 #endif /* USE_ATM_GLOBAL_ARRAYS */
       END SUBROUTINE CHECKO

@@ -8153,7 +8153,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef OBIO_ON_GARYocean
       Use AFLUXES, Only: aTRAC
 #else
-      USE TRACER_GASEXCH_COM, only : atrac
+      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
 #endif
       USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2

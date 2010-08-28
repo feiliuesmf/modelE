@@ -19,8 +19,6 @@
 !@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S)
       real, ALLOCATABLE, DIMENSION(:,:)    :: osolz
       real, ALLOCATABLE, DIMENSION(:,:)    :: owind           !wind speed in ocean grid (see hycom2.f)
-      real, ALLOCATABLE, DIMENSION(:,:)    :: osolz_glob
-      real, ALLOCATABLE, DIMENSION(:,:)    :: owind_glob      !wind speed in ocean grid (see hycom2.f)
 
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
@@ -34,10 +32,6 @@
 #ifdef OBIO_RAD_coupling
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir,ovisdif
      .                                         ,onirdir,onirdif
-      real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir_glob
-     .                                         ,ovisdif_glob
-     .                                         ,onirdir_glob
-     .                                         ,onirdif_glob
 #endif
 #ifndef OBIO_RAD_coupling
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa       !direct,diffuse downwelling irradiance
@@ -112,8 +106,6 @@
 
       ALLOCATE(osolz(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(owind(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(osolz_glob(idm,jdm))
-      ALLOCATE(owind_glob(idm,jdm))
 
       ALLOCATE(tirrq3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(   ihra(i_0h:i_1h,j_0h:j_1h))
@@ -130,32 +122,8 @@
      .        ,ovisdif(i_0h:i_1h,j_0h:j_1h)
      .        ,onirdir(i_0h:i_1h,j_0h:j_1h)
      .        ,onirdif(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(ovisdir_glob(idm,jdm),ovisdif_glob(idm,jdm)
-     .        ,onirdir_glob(idm,jdm),onirdif_glob(idm,jdm))
 #endif
 
       end subroutine alloc_obio_forc
-
-!------------------------------------------------------------------------------
-      subroutine scatter_obio_forc_arrays
-
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
-      USE HYCOM_DIM, only : ogrid
-#endif
-      USE DOMAIN_DECOMP_1D, ONLY: unpack_data
-
-      implicit none
-
-      call unpack_data( ogrid, owind_glob, owind )
-      call unpack_data( ogrid, osolz_glob, osolz )
-#ifdef OBIO_RAD_coupling
-      call unpack_data( ogrid, ovisdir_glob, ovisdir )
-      call unpack_data( ogrid, ovisdif_glob, ovisdif )
-      call unpack_data( ogrid, onirdir_glob, onirdir )
-      call unpack_data( ogrid, onirdif_glob, onirdif )
-#endif
-      end subroutine scatter_obio_forc_arrays
 
       END MODULE obio_forc
