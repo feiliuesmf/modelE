@@ -95,14 +95,7 @@ VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculation
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 
 #include "land144x90_input_files"
-!! To use rad input files consistent with other decks, change
-!! the following files to those within templates/rad_input_files
-!! (I.e. #include "rad_input_files"). Temporarily we
-!! have changed the settings for the Tcad and Tcadi decks, to be
-!! consistent with the FLTRAN file:
-#include "rad_input_files_Tcad"
-!! End of files that could be replaced with those in
-!!  templates/rad_input_files.
+#include "rad_input_files"
 #include "TAero2008_input_files"
 #include "O3_2010_144x90_input_files"
 !#include "O3_2005_input_files"
