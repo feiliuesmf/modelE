@@ -22,12 +22,20 @@ c
       real, allocatable :: heatfl(:,:)
       real*4, allocatable :: heatfl_r4(:,:),flux_r4(:,:,:)
 c
-      integer mo,ny1,ny2,dcd,mon1,i70,i45,ieq,status,ia,k00,ny
+      integer mo,dcd,mon1,i70,i45,ieq,status,ia,k00,ny
       real*8 :: area,avgbot
-      character flnm*80,runid*10,flnmout*30,title*80
+      character flnm*128,flnmout*30,title*80
       logical timav,cnvert
 c
-      read(*,'(a/i4/i4)') runid,ny1,ny2
+      namelist /hdiag_nml/ path0, path1, path2,
+     . hycomtopo, latlonij, basinmask, flnmcoso, flnmo2a,
+     . runid, ny1, ny2, monave_convert,solo_convert
+
+      open (10,file="hdiag.nml")
+      read (10,nml=hdiag_nml)
+      write (*,nml=hdiag_nml)
+      close(10)
+c
       write(*,'(3a,i4,a,i4)')
      .   'processing ',runid,' from yr ',ny1,' to ',ny2
       write(*,'(a,i2)') 'number of tracers =',ntrcr
@@ -88,6 +96,7 @@ c
 c     write(flnm,'(5a,i3,a,i3,2a,i4.4,2a)')trim(path1),trim(runid)
 c    . ,'/out',trim(runid),'_',dcd,'0_',dcd,'9/',amon(mo),ny
 c    . ,'.out',trim(runid)
+
       write(flnm,'(2a,i4.4,2a)')trim(path1),amon(mo),ny
      .  ,'.out',trim(runid)
 

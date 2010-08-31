@@ -15,8 +15,8 @@ c
 c --- read in array of lat/lon values
       write (lp,'(a/a)') 'subr. meshsz -- about to open lat/lon file',
      .   latlonij
-      open (unit=16,file=path0//latlonij,status='old',form='unformatted'
-     .   ,action='read')
+      open (unit=16,file=trim(path0)//latlonij,status='old',
+     .      form='unformatted',action='read')
       read (16) iz,jz
       if (iz.ne.idm .or. jz.ne.jdm) then
         write (lp,'(2(a,2i5))') 'error - idm,jdm =',iz,jz,

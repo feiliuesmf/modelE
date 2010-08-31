@@ -22,10 +22,10 @@ c    .   jdofm=(/30,60,90,120,150,180,210,240,270,300,330,360/)
 
       integer, parameter :: lp=6,itest=331,jtest=181
      .                     ,iatest=181,jatest=31
-      character(len=*),parameter:: 
-     .  path0='/discover/nobackup/projects/giss/prod_input_files/' !model input
-     . ,path1='./'                                                 !hycom input
-     . ,path2='./'                                                 !z output
+      character(len=128) :: 
+     .  path0='/discover/nobackup/projects/giss/prod_input_files/' ! directory input files for modelE
+     . ,path1='./'   ! directory hycom input files (.out)
+     . ,path2='./'   ! directory output diagnostic files 
      . ,hycomtopo='depth387x360.4bin_1'
      . ,latlonij='latlon387x360.4bin'
      . ,basinmask='ibasin387x360.txt_1'
@@ -35,4 +35,8 @@ c
       integer, parameter :: indoi=253,indoj1=118,indoj2=137
      .  ,idrk1=323,jdrk1=292,idrk2=342,jdrk2=299
 c
+      character(len=20) :: runid="Exxx"
+      integer           :: ny1=1800, ny2=1800
+      logical           :: monave_convert,solo_convert
+
       end module const_proc

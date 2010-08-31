@@ -409,12 +409,13 @@ c --- read in all weights
         stop ' wrong size in cpler'
       endif
 c
-      open(24,file=path0//flnmo2a,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
+      open(24,file=trim(path0)//flnmo2a,form='unformatted',
+     .     status='old',access='direct',recl=nsize2)
       read(24,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
       close(24)
 c
-      open(28,file=path0//flnmcoso,form='unformatted',status='old')
+      open(28,file=trim(path0)//flnmcoso,form='unformatted',
+     .        status='old')
       read(28) iz,jz,coso,sino
       close(28)
       if (iz.ne.idm .or. jz.ne.jdm) then

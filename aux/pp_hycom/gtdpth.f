@@ -13,7 +13,7 @@ c --- acquire basin depths
       if (diag)
      .   write (lp,'(a,a)') 'subr. gtdpth - open depth file ',hycomtopo
 c
-      open (unit=n1,file=path0//hycomtopo,status='old'
+      open (unit=n1,file=trim(path0)//hycomtopo,status='old'
      .    ,form='unformatted')
       read (n1) i,j
       if (i.ne.idm .or.j.ne.jdm) then
@@ -30,7 +30,8 @@ c
 c
       if (diag)
      .   write (lp,'(a,a)') 'subr. gtdpth - open mask file ',basinmask
-      open (unit=n2,file=path0//basinmask,status='old',form='formatted')
+      open (unit=n2,file=trim(path0)//basinmask,status='old',
+     .      form='formatted')
       do n=1,3
         read(n2,*)
         read(n2,'(4x,120i1)')((im(i,j),j=(n-1)*jdm/3+1,n*jdm/3),i=1,idm)

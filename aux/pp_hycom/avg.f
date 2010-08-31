@@ -8,12 +8,13 @@ c     in 4 basins averaged over year ny1:ny2 in avg_hf_[runid]_[decade].txt
 c --- Last index in flux & heatfl: 1: Atl; 2: Indian; 3: Pac; 4: global
 c --- Setting rhodot to true will remove model trend during ny1:ny2 period
 c
+      use const_proc
       use hycom_arrays, only: srfhgt,dpmixl,oice,depths,scp2
      .    ,u,v,dp,p,temp,saln,th3d,tracer,uflxav,vflxav,diaflx
      .    ,uflx,vflx,ubavg,vbavg,ubavav,vbavav,alloc_hycom_arrays,latij
      .    ,temav,salav,ubavg,vbavg,ubavav,vbavav
       use hycom_dimen
-      use const_proc
+c
       implicit none
 c
       integer, parameter :: maxyrs=10,ntime=maxyrs*12
@@ -29,9 +30,9 @@ c
       integer, allocatable :: im(:,:)
 c
       real year(ntime),dpav(ntime,kdm),dpavav(kdm),heatot
-      character flnm*132,runid*10,flnmout*30
+      character flnm*132,flnmout*30
 c
-      integer mo,ny1,ny2,dcd,mon1,i70,i45,ieq,status
+      integer mo,dcd,mon1,i70,i45,ieq,status
       logical timav,cnvert
 c
       character(len=*), parameter :: FMT1=
@@ -54,14 +55,18 @@ C
      & '(1x,a,t6,a,t16,a,t28,a,t40,a,t52,a)'
       character(len=*), parameter :: FMT6=
      & '(1x,i3,sp,t6,f6.1,t16,es10.3,t28,es10.3,t40,es10.3,t52,es10.3)'
-CTNL  open (10,file="hycomdata.nl")
-CTNL  read (10,nml=hycomdata_nl)
-CTNL  write (*,nml=hycomdata_nl)
-CTNL  close(10)
+
+      namelist /hdiag_nml/ path0, path1, path2,
+     . hycomtopo, latlonij, basinmask, flnmcoso, flnmo2a,
+     . runid, ny1, ny2, monave_convert,solo_convert
+
+      open (10,file="hdiag.nml")
+      read (10,nml=hdiag_nml)
+      write (*,nml=hdiag_nml)
+      close(10)
 c
-      read(*,'(a/i4/i4)') runid,ny1,ny2
       write(*,'(3a,i4,a,i4)')
-     .   'processing ',runid,' from yr ',ny1,' to ',ny2
+     .   'processing RunId=',trim(runid),' from yr ',ny1,' to ',ny2
       write(*,'(a,i2)') 'number of tracers =',ntrcr
 c
       call alloc_hycom_arrays
