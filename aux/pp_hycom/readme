@@ -31,11 +31,20 @@ in the dataset.
 
 To run the code:
 
+Please, look at file hdiag.nml
+Here is a minimum input parameters that user should 
+define for post processing. Default values are in 
+const_proc.f . Edit parameters and save file hdiag.nml .
+
+Program assumes that user has input files in directory with
+abs path=path1(see hdiag.nml) as MMMYYYY.out{RunId}
+
+
 $ make avg
-$ avg <input
+$ avg 
 
 $ make pltov_mon
-$ pltov_mon <input
+$ pltov_mon 
 
 $ make latlonz
 $ latlonz <input
