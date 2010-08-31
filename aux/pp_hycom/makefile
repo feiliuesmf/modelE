@@ -2,11 +2,13 @@ SHELL=/bin/sh
 
 #FC=    ifort -assume byterecl -convert big_endian
 #LD=    ifort -assume byterecl -convert big_endian
-FC=     ifort 
-LD=     ifort
 
-#FFLAGS = -traceback
-FFLAGS = 
+LEVEL_OPT = -g 
+LEVEL_OPT = -O2 
+
+FC=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C
+LD=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C
+
 LDFLAGS =  
 CPPFLAGS =
 LIBS =
@@ -59,9 +61,13 @@ hycom_dimen.o: hycom_dimen.f
 hycom_arrays.o: hycom_arrays.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c hycom_arrays.f
 latlonz.o: latlonz.f const_proc.f hycom_dimen.f hycom_arrays.f
-	$(LD) $(LDFLAGS) -c latlonz.f
+	$(LD) $(LDFLAGS) -c latlonz.F
 restep.o: restep.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c restep.f
 
 tar: makefile input readme $(latlonz_src) $(get2d_src) $(avg_src)
 	tar -cvf proc.tar makefile input readme $(latlonz_src) $(get2d_src) $(avg_src)
+
+clean: 
+	\rm *.o *.mod avg pltov_mon latlonz
+
