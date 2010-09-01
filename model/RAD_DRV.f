@@ -1651,6 +1651,7 @@ C**** more than one tracer is lumped together for radiation purposes
           case ("BCIA")
            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
+#ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
            select case (trname(NTRIX(n)))
            case ("NO3")
@@ -1670,6 +1671,7 @@ C**** more than one tracer is lumped together for radiation purposes
      *                trm(i,j,l,NTRIX(n))
             endif
            end select
+#endif
            TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
           end select
         end if
