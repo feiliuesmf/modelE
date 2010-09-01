@@ -17,8 +17,8 @@ c
 c
       implicit none
 c
-      integer, parameter :: maxyrs=10,ntime=maxyrs*12
-      integer :: ny,num,m,iday,k00,ia
+      integer :: ntime
+      integer :: ny,num,m,k00,ia
       real*8 :: tsum,ssum,sstsum,ssssum,arean3
      . ,annsst,annsss,annssh,anntem,annsal,annht,thin,ssh0
      . ,anndh,anndf,anndb,db,trc
@@ -29,12 +29,16 @@ c
      .       ,sunda(:),heatfl(:,:)
       integer, allocatable :: im(:,:)
 c
-      real year(ntime),dpav(ntime,kdm),dpavav(kdm),heatot
+      real :: dpavav(kdm), heatot
+      real, allocatable :: year(:), dpav(:,:)
       character flnm*132,flnmout*30
 c
       integer mo,dcd,mon1,i70,i45,ieq,status
       logical timav,cnvert
+      logical :: lexist
 c
+      character(len=9) :: ayears  ! string n1-n2 example "1905-1955"
+
       character(len=*), parameter :: FMT1=
      & '(a,         t10,a,     t24,a,     t38,a,      t52, a,      
      &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a)' 
@@ -68,6 +72,9 @@ c
       write(*,'(3a,i4,a,i4)')
      .   'processing RunId=',trim(runid),' from yr ',ny1,' to ',ny2
       write(*,'(a,i2)') 'number of tracers =',ntrcr
+
+      ntime=(ny2-ny1+1)*12
+      allocate(  year(ntime),dpav(ntime,kdm) )
 c
       call alloc_hycom_arrays
       call alloc_hycom_dimen
@@ -105,6 +112,8 @@ c
         print *,' wrong decade=',dcd
         stop 'wrong decade'
       endif
+      write(ayears,'(i4.4,a1,i4.4)') ny1,'-',ny2
+
 c
       do i=1,idm
       lat(i)=latij(i,340,3)
@@ -117,17 +126,25 @@ c
       if (lat(i+1).lt. 0. .and. lat(i).ge. 0.) ieq=i
       enddo
 c
-      write(flnmout,'(3a,i3,a)') 'mon_',trim(runid),'_',dcd,'.txt'
-      open(301,file=flnmout,form='formatted',status='unknown')
+      write(flnmout,'(5a)') 'mon_',trim(runid),'_',ayears,'.txt'
+      open(301,file=trim(path2)//flnmout, 
+     +     form='formatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
-      write(flnmout,'(3a,i3,a)') 'ann_',trim(runid),'_',dcd,'.txt'
-      open(302,file=flnmout,form='formatted',status='unknown')
+      write(flnmout,'(5a)') 'ann_',trim(runid),'_',ayears,'.txt'
+      open(302,file=trim(path2)//flnmout,
+     +     form='formatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
-      write(flnmout,'(3a,i3,a)') 'avg_ov_',trim(runid),'_',dcd,'.txt'
-      open(303,file=flnmout,form='formatted',status='unknown')
+      write(flnmout,'(5a)') 'avg_ov_',trim(runid),'_',ayears,'.txt'
+      open(303,file=trim(path2)//flnmout,
+     +     form='formatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
-      write(flnmout,'(3a,i3,a)') 'avg_hf_',trim(runid),'_',dcd,'.txt'
-      open(304,file=flnmout,form='formatted',status='unknown')
+      write(flnmout,'(5a)') 'avg_hf_',trim(runid),'_',ayears,'.txt'
+      open(304,file=trim(path2)//flnmout,
+     +     form='formatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
       write(301,fmt=FMT1) 
      & "Time  ","NINO3","Ice Extent","Ice Extent","Ocean Heat",
@@ -174,12 +191,17 @@ c
       cnvert=.false.
       do 152 mo=mo1,mo2
       n=n+1
-      iday=n*30.
-c     write(flnm,'(5a,i3,a,i3,2a,i4.4,2a)')trim(path1),trim(runid)
-c    . ,'/out',trim(runid),'_',dcd,'0_',dcd,'9/',amon(mo),ny
-c    . ,'.out',trim(runid)
-      write(flnm,'(2a,i4.4,2a)')trim(path1),amon(mo),ny
+      write(flnm,'(2a,i4.4,2a)') trim(path1),amon(mo),ny
      .  ,'.out',trim(runid)
+
+      inquire(file=flnm,exist=lexist)
+      if( .NOT. lexist ) then
+        write(*,'(3a)') "!!! ATTENTION !!! file=",trim(flnm),
+     +          " does not exist !!!!" 
+        write(*,'(3a)') " Calculations continue skip this file "
+        cycle
+      end if
+
       write (lp,'(2a)') 'reading: ',trim(flnm)
 c
       call getdat(flnm,year1,timav,cnvert)
