@@ -485,9 +485,7 @@ C     ------------------------------------------------------------------
       INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iy,jy,iyc,jyc,iyp,jyp
       REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
       REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
-      real*8, parameter :: byz_cm3 = 1.d-6 / Za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
-      real*8, parameter :: byz_gcm3 = 1.d-3 * byz_cm3 ! g vs kg
-      REAL*8 xsslt ! ,xdust
+      REAL*8 xsslt,byz ! ,xdust
 
 
       logical, save :: init = .false.
@@ -520,7 +518,7 @@ c read table sizes then close
         allocate( ssadd (ima,jma,lma,2) )
         if (.not.associated(A6JDAY)) allocate(A6JDAY(lma,6,ima,jma))
         allocate( A6YEAR2 (ima,jma,lma,2,6) )
-        allocate( md1850 (4,ima,jma,0:12) )
+        allocate( md1850 (4,ima,jma,2) )
         allocate( anfix (ima,jma,2) )
 
         allocate(table%anssdd(ima,jma))
@@ -529,21 +527,6 @@ c read table sizes then close
 
         read(ifile) plbaer
         call closeUnit(ifile)
-
-!**** Pre-industrial mass densities
-        do m = 1, 12
-          call readTable(RDFILE(1), SULDD(:,:,:,1,1), month=m,decade=1)
-          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:5,1,1), DIM=3)
-          call readTable(RDFILE(3), NITDD(:,:,:,1,1), month=m,decade=1)
-          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:5,1,1), DIM=3)
-          call readTable(RDFILE(4), OCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:5,1,1), DIM=3)
-          call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
-          call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(4,:,:,m) = byz_cm3 * (
-     &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) + 
-     &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
-        end do
 
       end if
 
@@ -612,13 +595,21 @@ C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
         xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
+c za720 should be changed to be consistent with top of level 5 in 20L
+        byz = 1d-6/za720        ! 1d-6/depth in m (+conversion /m3 -> /cm3)
 
         do J=1,jma
           do I=1,ima
 c SUM to L=5 for low clouds only
 c Using 1890 not 1850 values here
             anfix(i,j,im) = 0.   !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +           +    byz_cm3 * SUM(SSADD(I,J,1:5,im)) * Xsslt
+     +           +    byz * SUM(SSADD(I,J,1:5,im)) * Xsslt
+C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
+            md1850(1,i,j,im) = byz * SUM(SULDD(I,J,1:5,im,1))
+            md1850(2,i,j,im) = byz * SUM(NITDD(I,J,1:5,im,1))
+            md1850(3,i,j,im) = byz * SUM(OCADD(i,j,1:5,im,1))
+            md1850(4,i,j,im) = byz *(SUM(BCBDD(I,J,1:5,im,1))
+     *           + SUM(BCADD(I,J,1:5,im,1)))
           end do
         end do
 
@@ -695,29 +686,31 @@ C      -----------------------------------------------------------------
       MI=XMI
       WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
       WTMI=1.D0-WTMJ
-      IF(MI > 11) MI=0
-      MJ=MI+1
+
+      MI = 1
+      MJ = 2
 
       DO 510 J=1,jma
       DO 510 I=1,ima
       DO 510 N=1,6
       DO 510 L=1,lma
-      A6JDAY(L,N,I,J)=WTMI*A6YEAR2(I,J,L,1,N)+WTMJ*A6YEAR2(I,J,L,2,N)
+      A6JDAY(L,N,I,J)=WTMI*A6YEAR2(I,J,L,MI,N)+WTMJ*A6YEAR2(I,J,L,MJ,N)
   510 CONTINUE
 
 C**** Needed for aerosol indirect effect parameterization in GCM
+      byz=1d-9/za720
       do j=1,jma
       do i=1,ima
 C**** sea salt, desert dust
-        table%anssdd(i,j) = WTMI*anfix(i,j,1)+WTMJ*anfix(i,j,2)
+        table%anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         table%mdpi(:,i,j) = 
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J))*byz_gcm3/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J))*byz_gcm3/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J))*byz_gcm3/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J))*byz_gcm3/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J))*byz_gcm3/drym2g(5)
+        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz/drym2g(1)
+        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz/drym2g(3)
+        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz/drym2g(4)
+        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz/drym2g(6)
+        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz/drym2g(5)
       end do
       end do
 
@@ -843,7 +836,7 @@ C                                        2000                     2050
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-      use resolution, only : lm_gcm=>lm
+
       use IndirectAerParam_mod
       IMPLICIT NONE
 
@@ -858,9 +851,7 @@ C--------------------------------------------------
 !@+              but it cannot exceed LX.
 !@+   Since the GCM uses 3 radiative equilibrium layers on top of the
 !@+   model atmosphere, the number LM of GCM layers may be at most LX-3.
-      !INTEGER, PARAMETER :: LX = 54+3
-      !INTEGER, PARAMETER :: LX = lm_gcm+4  ! should be sufficient
-      INTEGER, PARAMETER :: LX = max(lm_gcm,53)+4
+      INTEGER, PARAMETER :: LX = 54+3
 
 !     optional repartitioning of gases - OFFLINE use only
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
@@ -1294,8 +1285,11 @@ C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
       real*8, dimension(:), allocatable :: redust, rodust, plbdust  !ron
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
-      REAL*8 V4TAUR(1800,24,5),FDATA(80),GDATA(80)
+      REAL*8 FDATA(80),GDATA(80)
      C      ,HTFLAT(49,4),SIZLAT(49),TAULAT(49)
+      real*8, dimension(:,:,:), allocatable :: V4TAUR               !rjh
+      INTEGER JVOLYI,JVOLYE,NVOLMON
+
 
 C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
       REAL*4 EPLMHC(72,46,12,4)
@@ -1743,7 +1737,8 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       INTEGER, SAVE :: IFIRST=1 ! ,NRFN0
       CHARACTER*80 EPSTAG,TITLE
 
-      REAL*4 OZONLJ(44,46),R72X46(72,46),VTAUR4(1800,24)
+      REAL*4 OZONLJ(44,46),R72X46(72,46)
+      real*4, dimension(:,:), allocatable :: VTAUR4               !rjh
       REAL*8 :: EJMLAT(47),E20LAT(20)
 #ifdef USE_RADIATION_E1
       REAL*8 :: filler(784)
@@ -2168,27 +2163,28 @@ C                  -----------------------------------------------------
   699 CONTINUE
 
 C-----------------------------------------------------------------------
-CR(7)        Read Makiko's Stratospheric binary data made in April, 2002
-C                               (1800 months (1850-1999) x 24 latitudes)
-C              If KyearV<0 use the 1800-month mean as background aerosol
-C              ---------------------------------------------------------
+CR(7)        Read Stratospheric Volcanic binary data 
+C            (NVOLMON months (years JVOLYI to JVOLYE) x 24 latitudes)
+C            If KyearV<0 use the NVOLMON-month mean as background aerosol
+C            ---------------------------------------------------------
       IF(MADVOL < 1) GO TO 799
       NRFU=NRFUN(7)
-      READ (NRFU) TITLE
-      IF(TITLE(1:13)=='Optical Depth')
-     &     call stop_model('rcomp1: use new RADN7',255)
-      REWIND (NRFU)
+      READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE
+      IF(TITLE(1:9).ne.'OD Header')
+     &     call stop_model('rcomp1: use new RADN7 header file',255)
+      ALLOCATE (V4TAUR(NVOLMON,24,5),VTAUR4(NVOLMON,24))          
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
         DO J=1,24
           SUMV=0.
-        DO I=1,1800
+        DO I=1,NVOLMON
           V4TAUR(I,J,K)=VTAUR4(I,J)
           SUMV=SUMV+VTAUR4(I,J)
         END DO
-          if(kyearv < 0) V4TAUR(1,J,K)=SUMV/1800
+          if(kyearv < 0) V4TAUR(1,J,K)=SUMV/NVOLMON
         END DO
       END DO
+
 
   799 CONTINUE
 
@@ -4524,23 +4520,29 @@ C--------------------------------
 C--------------------------------
  777  continue
 
-C                                          (Makiko's 1850-1999 data)
+C                                          (Volcanic data)
 C                                          -------------------------
       XYYEAR=JYEARV+JDAYVA/366.D0
-      IF(XYYEAR < 1850.D0) XYYEAR=1850.D0
-      XYI=(XYYEAR-1850.D0)*12.D0+1.D0
-      IF(XYI > 1799.999D0) XYI=1799.999D0
+      IF(XYYEAR < JVOLYI) XYYEAR=JVOLYI
+      XYI=(XYYEAR-JVOLYI)*12.D0+1.D0
+      IF(XYI > NVOLMON - .001D0) XYI=NVOLMON-.001D0
+      write(6,'(a,2f9.1,3i7)') 'VOLCYEAR=',
+     .   XYI,XYYEAR,JVOLYI,JYEARV,JDAYVA
       MI=XYI
       WMJ=XYI-MI
       WMI=1.D0-WMJ
       MJ=MI+1
       DO 250 J=1,24
       GDATA(J)=WMI*V4TAUR(MI,J,5)+WMJ*V4TAUR(MJ,J,5)
+      write(6,'(a,2I7,2f8.1,2f10.4)')'VOLCREFF:: ',MI,MJ,
+     . XYYEAR,XYI,V4TAUR(MI,J,5),V4TAUR(MJ,J,5)
   250 CONTINUE
       CALL RETERP(GDATA,E24LAT,NJ25,SIZLAT,EJMLAT,NJJM)
       DO 270 K=1,4
       DO 260 J=1,24
       FDATA(J)=WMI*V4TAUR(MI,J,K)+WMJ*V4TAUR(MJ,J,K)
+      write(6,'(a,3I7,2f8.1,2F10.4)')'VOLCAER:: ',K,MI,MJ,
+     . XYYEAR,XYI,V4TAUR(MI,J,K),V4TAUR(MJ,J,K)
   260 CONTINUE
       CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
   270 CONTINUE
