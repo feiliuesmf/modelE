@@ -4,6 +4,7 @@
 #endif
 
 #ifdef CUBED_SPHERE
+#undef NEW_IO_SUBDD
 #define SLP_FROM_T1
 #endif
 
@@ -1192,7 +1193,8 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: get,grid,am_i_root
-      USE MODEL_COM, only : im,jm,lm,itime,itime0
+      USE MODEL_COM, only : im,jm,lm,itime,itime0,nday,iyear1,jyear
+     &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -1265,12 +1267,12 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       real(kind=8),allocatable,dimension(:,:,:) :: LmaxSUBDD_array
      &     ,ngm_array
 !@var kgz_max_suffixes array of names for subdd-diagnostic on pressure levels
-      character(len=7),allocatable,dimension(:) :: kgz_max_suffixes
+      character(len=8),allocatable,dimension(:) :: kgz_max_suffixes
 !@var kgz_max_array three-dimensional array for diagnostics on pressure levels
       real(kind=8),allocatable,dimension(:,:,:) :: kgz_max_array
 #ifdef TES_LIKE_DIAGS
 !@var kgz_max_suffixes array of names for subdd-diagnostic on pressure levels
-      character(len=7),allocatable,dimension(:) :: kgz_max_more_suffixes
+      character(len=8),allocatable,dimension(:) :: kgz_max_more_suffixes
 !@var kgz_max_array three-dimensional array for diagnostics on more pressure levels
       real(kind=8),allocatable,dimension(:,:,:) :: kgz_max_more_array
 #endif
@@ -1562,8 +1564,7 @@ c get_subdd
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
      *     ,lhe,rhow,undef,stbo
-      USE MODEL_COM, only : lm,p,ptop,zatmo,dtsrc,u,v,focean
-     *     ,flice,nday,t,q
+      USE MODEL_COM, only : lm,p,ptop,zatmo,u,v,focean,flice,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
@@ -1585,7 +1586,7 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
 #ifdef TES_LIKE_DIAGS
      *     ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1604,6 +1605,16 @@ c get_subdd
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
 
+#ifdef NEW_IO_SUBDD
+!@var qinstant flag whether output is instanteneous or accumulated
+!@+            /averaged over nsubdd internal time units
+      logical :: qinstant
+!@var units_of_data units of data for netcdf output
+      character(len=24) :: units_of_data
+!@var long_name long name for netcdf output
+      character(len=lname_strlen+len(kgz_max_suffixes)) :: long_name
+#endif
+
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
@@ -1617,6 +1628,12 @@ c get_subdd
 C**** depending on namedd string choose what variables to output
       nameloop: do k=1,kdd
 
+#ifdef NEW_IO_SUBDD
+        qinstant = .true.
+        units_of_data = 'not yet set in get_subdd'
+        long_name = 'not yet set in get_subdd'
+#endif
+
 C**** simple diags (one record per file)
         select case (namedd(k))
         case ("SLP")            ! sea level pressure (mb)
@@ -1625,16 +1642,36 @@ C**** simple diags (one record per file)
             ps=(p(i,j)+ptop)
             zs=bygrav*zatmo(i,j)
             datar8(i,j)=slp(ps,tsavg(i,j),zs)
+#ifdef NEW_IO_SUBDD
+            units_of_data = '10^2 Pa'
+            long_name = 'Sea Level Pressure'
+#endif
           end do
           end do
         case ("PS")             ! surface pressure (mb)
           datar8=p+ptop
+#ifdef NEW_IO_SUBDD
+            units_of_data = '10^2 Pa'
+            long_name = 'Surface Pressure'
+#endif
         case ("SAT")            ! surf. air temp (C)
           datar8=tsavg-tf
+#ifdef NEW_IO_SUBDD
+            units_of_data = 'C'
+            long_name = 'Surface Air Temperature'
+#endif
         case ("US")             ! surf. u wind (m/s)
           datar8=usavg
+#ifdef NEW_IO_SUBDD
+            units_of_data = 'm/s'
+            long_name = 'U Component of Surface Air Velocity'
+#endif
         case ("VS")             ! surf. v wind (m/s)
           datar8=vsavg
+#ifdef NEW_IO_SUBDD
+            units_of_data = 'm/s'
+            long_name = 'V Component of Surface Air Velocity'
+#endif
         case ("SST")            ! sea surface temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1645,6 +1682,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'C'
+          long_name = 'Sea Surface Temperature'
+#endif
         case ("SIT")       ! surface sea/lake ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1655,6 +1696,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'C'
+          long_name = 'Surface Sea/Lake Ice Temperature'
+#endif
         case ("LIT")       ! surface land ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1665,6 +1710,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'C'
+          long_name = 'Surface Land Ice Temperature'
+#endif
         case ("GT1")      ! level 1 ground temp (LAND) (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1675,6 +1724,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'C'
+          long_name = 'Level 1 Ground Temperature, Land'
+#endif
         case ("GTD")   ! avg levels 2-6 ground temp (LAND) (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1685,6 +1738,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'C'
+          long_name = 'Average Levels 2-6 Ground Temperature, Land'
+#endif
         case ("GWD")  ! avg levels 2-6 ground liq water (m)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1695,6 +1752,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'm'
+          long_name = 'Average Levels 2-6 Ground Liquid Water, Land'
+#endif
         case ("GID")  ! avg levels 2-6 ground ice (m liq. equiv.)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1705,6 +1766,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'm liq. equiv.'
+          long_name = 'Average Levels 2-6 Ground Ice, Land'
+#endif
         case ("GW0")  ! ground lev 1 + canopy liq water (m)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1715,6 +1780,10 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'm'
+          long_name = 'Ground Level 1 + Canopy Liquid Water, Land'
+#endif
         case ("GI0")  ! ground lev 1 + canopy ice (m liq. equiv.)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1725,62 +1794,138 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'm liq. equiv.'
+          long_name = 'Ground Level 1 + Canopy Ice'
+#endif
         case ("QS")             ! surf spec humidity (kg/kg)
           datar8=qsavg
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/kg'
+#endif
         case ("RS")             ! surf rel humidity
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               datar8(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
+     &             *100.d0
             enddo
           enddo
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'Surface Relative Humidity'
+#endif
         case ("PREC")           ! precip (mm/day)
 c          datar8=sday*prec/dtsrc
           datar8=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'mm/day'
+          long_name = 'Precipitation'
+          qinstant = .false.
+#endif
 #ifdef CALCULATE_FLAMMABILITY
         case ("RAPR")   !running avg precip (mm/day)
           datar8=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           raP_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'mm/day'
+          long_name = 'Running Average of Precipitation'
+          qinstant = .false.
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
           datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sOx_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppbv'
+          long_name = 'Average Surface Ox Tracer'
+          qinstant = .false.
+#endif
         case ("nxAVG")   ! Nsubdd-step average SFC NOx tracer (ppbv)
           datar8=sNOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sNOx_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppbv'
+          long_name = 'Average Surface NOx Tracer'
+          qinstant = .false.
+#endif
         case ("cAVG")   ! Nsubdd-step average SFC CO tracer (ppbv)
           datar8=sCO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sCO_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppbv'
+          long_name = 'Average Surface CO Tracer'
+          qinstant = .false.
+#endif
         case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppbv)
           datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           l1Ox_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppbv'
+          long_name = 'Average Level 1 Ox Tracer'
+          qinstant = .false.
+#endif
         case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppbv)
           datar8=l1NO2_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           l1NO2_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppbv'
+          long_name = 'Average Level 1 NO2'
+          qinstant = .false.
+#endif
 #endif
         case ("MCP")       ! moist conv precip (mm/day)
           datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'mm/day'
+          long_name = 'Moist Convective Precipitation'
+          qinstant = .false.
+#endif
 #ifdef TRACERS_WATER
         case ("TRP1")
           datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
         case ("TRE1")
           datar8=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(1,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
         case ("TRP2")
           datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
         case ("TRE2")
           datar8=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(2,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
         case ("TRP3")
           datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
         case ("TRE3")
           datar8=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(3,:,:)=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/(s m^2)'
+          qinstant = .false.
+#endif
 #endif
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
@@ -1792,6 +1937,10 @@ c          datar8=sday*prec/dtsrc
      &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'w.e. mm'
+          long_name = 'Snow Depth'
+#endif
         case ("SNOWC")     ! snow cover (fraction of grid)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1805,17 +1954,41 @@ c          datar8=sday*prec/dtsrc
               datar8(i,j)=min(1.0,datar8(i,j))
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'fraction of grid area'
+          long_name = 'Snow Cover'
+#endif
         case ("QLAT")           ! latent heat (W/m^2)
           datar8=qflux1*lhe
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Latent Heat'
+#endif
         case ("QSEN")           ! sensible heat flux (W/m^2)
           datar8=tflux1*sha
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Sensible Heat Flux'
+#endif
         case ("SWD")            ! solar downward flux at surface (W/m^2)
           datar8=srdn*cosz1       ! multiply by instant cos zenith angle
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Solar Downward Flux at Surface'
+#endif
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           datar8=srdn*(1.-salb)*cosz1
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Solar Upward Flux at Surface'
+#endif
         case ("LWD")            ! LW downward flux at surface (W/m^2)
           datar8=TRHR(0,:,:)
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Longwave Downward Flux at Surface'
+#endif
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1828,6 +2001,10 @@ c          datar8=sday*prec/dtsrc
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Longwave Upward Flux at Surface'
+#endif
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + net surface emission
             do i=I_0,imaxj(j)
@@ -1841,12 +2018,28 @@ c          datar8=sday*prec/dtsrc
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'W/m^2'
+          long_name = 'Longwave Upward Flux at Top of Atmosphere'
+#endif
         case ("ICEF")           ! ice fraction over open water (%)
           datar8=RSI*100.
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'Ice Fraction Over Open Water'
+#endif
         case ("STX")            ! E-W surface stress (N/m^2)
           datar8=uflux1
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'N/m^2'
+          long_name = 'East-West Surface Stress'
+#endif
         case ("STY")            ! N-S surface stress (N/m^2)
           datar8=vflux1
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'N/m^2'
+          long_name = 'North-South Surface Stress'
+#endif
         case ("LCLD")           ! low level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -1854,9 +2047,13 @@ c          datar8=sday*prec/dtsrc
               do l=1,llow
                 datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              datar8(i,j)=datar8(i,j)*100./real(llow,kind=8)
+              datar8(i,j)=datar8(i,j)*100.d0/real(llow,kind=8)
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'Low Level Cloud Cover'
+#endif
         case ("MCLD")           ! mid level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -1864,9 +2061,13 @@ c          datar8=sday*prec/dtsrc
               do l=llow+1,lmid
                 datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              datar8(i,j)=datar8(i,j)*100./real(lmid-llow,kind=8)
+              datar8(i,j)=datar8(i,j)*100.d0/real(lmid-llow,kind=8)
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'Mid Level Cloud Cover'
+#endif
         case ("HCLD")           ! high level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -1874,50 +2075,106 @@ c          datar8=sday*prec/dtsrc
               do l=lmid+1,lhi
                 datar8(i,j)=datar8(i,j)+(cldss(l,i,j)+cldmc(l,i,j))
               end do
-              datar8(i,j)=datar8(i,j)*100./real(lhi-lmid,kind=8)
+              datar8(i,j)=datar8(i,j)*100.d0/real(lhi-lmid,kind=8)
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'High Level Cloud Cover'
+#endif
         case ("TCLD")           ! total cloud cover (%) (As seen by rad)
-          datar8=cfrac*100.
+          datar8=cfrac*100.d0
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'Total Cloud Cover (as seen by rad)'
+#endif
         case ("PTRO")           ! tropopause pressure (mb)
           datar8 = ptropo
+#ifdef NEW_IO_SUBDD
+          units_of_data = '10^2 Pa'
+          long_name = 'Tropopause Pressure'
+#endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            datar8=sPM2p5_acc/real(Nsubdd)
            sPM2p5_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppmm'
+          long_name = 'Surface Particulate Matter <= 2.5 um'
+          qinstant = .false.
+#endif
         case ("PM10") ! Nsubdd-step avg SFC PM10 (ppmm)
            datar8=sPM10_acc/real(Nsubdd)
            sPM10_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppmm'
+          long_name = 'Surface Particulate Matter <= 10 um'
+          qinstant = .false.
+#endif
         case ("PM2p51") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
            datar8=l1PM2p5_acc/real(Nsubdd)
            l1PM2p5_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppmm'
+          long_name = 'Layer 1 Particulate Matter <= 2.5 um'
+          qinstant = .false.
+#endif
         case ("PM101") ! Nsubdd-step avg L=1 PM10 (ppmm)
            datar8=l1PM10_acc/real(Nsubdd)
            l1PM10_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'ppmm'
+          long_name = 'Layer 1 Particulate Matter <= 10 um'
+          qinstant = .false.
+#endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           datar8=trm(:,:,1,n_SO4)
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg'
+          long_name = 'Layer 1 Sulfate Mass'
+#endif
 #ifdef TRACERS_HETCHEM
-     *     +trm(:,:,1,n_SO4_d1)+trm(:,:,1,n_SO4_d2)+trm(:,:,1,n_SO4_d3)
+          datar8 = datar8 + trm(:,:,1,n_SO4_d1) + trm(:,:,1,n_SO4_d2) +
+     &         trm(:,:,1,n_SO4_d3)
+#ifdef NEW_IO_SUBDD
+          long_name =
+     &         'Layer 1 Mass of Sulfate + Dust Coated with Sulfate'
+#endif
 #endif
 #endif
 #ifdef CLD_AER_CDNC
         case ("CLWP")             !LWP (kg m-2)
           datar8=clwp
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^2'
+          long_name = 'Cloud Liquid Water Path'
+#endif
 #endif
 #ifdef TRACERS_COSMO
         case ("7BEW")
           datar8=Be7w_acc
           Be7w_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^2'
+          qinstant = .false.
+#endif
 
         case ("7BED")
           datar8=Be7d_acc
           Be7d_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^2'
+          qinstant = .false.
+#endif
 
         case ("7BES")
           datar8=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
+#ifdef NEW_IO_SUBDD
+          units_of_data = '10^-6 kg/kg'
+#endif
 #endif
         case ("SMST") ! near surface soil moisture (kg/m^3)
           do j=J_0,J_1
@@ -1929,6 +2186,10 @@ c          datar8=sday*prec/dtsrc
               end if
             end do
           end do
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^3'
+          long_name = 'Near Surface Soil Moisture'
+#endif
 
         case default
           goto 10
@@ -1938,7 +2199,8 @@ c          datar8=sday*prec/dtsrc
         data=datar8
         call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-        call write_subdd(trim(namedd(k)),datar8,polefix)
+        call write_subdd(trim(namedd(k)),datar8,polefix,units_of_data
+     &       ,long_name=long_name,qinstant=qinstant)
 #endif
         cycle
  10     continue
@@ -1951,15 +2213,26 @@ c**** variables written at end of day only
           polefix=.true.
           select case (namedd(k))
           case ("TMIN")         ! min daily temp (C)
-            datar8=tdiurn(:,:,9)
+            datar8=tdiurn(:,:,9)-tf
+#ifdef NEW_IO_SUBDD
+            units_of_data = 'C'
+            long_name = 'Minimum Daily Surface Temperature'
+            qinstant=.false.
+#endif
           case ("TMAX")         ! max daily temp (C)
-            datar8=tdiurn(:,:,6)
+            datar8=tdiurn(:,:,6)-tf
+#ifdef NEW_IO_SUBDD
+            units_of_data = 'C'
+            long_name = 'Maximum Daily Surface Temperature'
+            qinstant=.false.
+#endif
           end select
           data=datar8
           call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),datar8,polefix,record
-     &         =day_of_month)
+          call write_subdd(trim(namedd(k)),datar8,polefix,units_of_data
+     &         ,long_name=long_name,record=day_of_month,qinstant=.false.
+     &         )
 #endif
           cycle
         end select
@@ -1981,6 +2254,10 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Soil Temperature Layers 1-6, Land'
+#endif
               case ("GW")        ! ground wetness lvls 1-6, land (m)
                 ! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
                 ! and activate the corresponding lines where wtr_L is set
@@ -1993,6 +2270,10 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm'
+                long_name = 'Ground Wetness Layers 1-6, Land'
+#endif
               case ("GI")  ! ground ice lvls 1-6, land (m, liq equiv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2003,6 +2284,10 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'liq. equiv. m'
+                long_name = 'Ground Ice Layers 1-6, Land'
+#endif
               end select
               polefix=.true.
               ngm_array(:,:,ks)=datar8
@@ -2010,7 +2295,8 @@ C**** diags on soil levels
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),ngm_array,polefix)
+            call write_subdd(trim(namedd(k)),ngm_array,polefix
+     &           ,units_of_data,long_name=long_name,positive='down')
 #endif
             cycle
           end if
@@ -2027,8 +2313,18 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm'
+                long_name = 'Geopotential Height at '//trim(PMNAME(kp))
+     &               //' hPa'
+#endif
               case ("R")        ! relative humidity (wrt water)
-                datar8=rh_inst(kp,:,:)
+                datar8=rh_inst(kp,:,:)*100.d0
+#ifdef NEW_IO_SUBDD
+                units_of_data = '%'
+                long_name = 'Relative Humidity at '// trim(PMNAME(kp))//
+     &               ' hPa'
+#endif
               case ("Q")        ! specific humidity
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
@@ -2036,14 +2332,24 @@ C**** get pressure level
      *                 ,PMB(kp))
                 end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'kg/kg'
+                long_name = 'Specific Humidity at ' //trim(PMNAME(kp))//
+     &               ' hPa'
+#endif
               case ("T")        ! temperature (C)
                 datar8=t_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Temperature at '//trim(PMNAME(kp))//' hPa'
+#endif
               end select
               polefix=.true.
               data=datar8
               call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),datar8,polefix)
+              call write_subdd(trim(namedd(k)),datar8,polefix
+     &             ,units_of_data,long_name=long_name)
 #endif
               cycle nameloop
             end if
@@ -2057,28 +2363,53 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Q")        ! specific humidity
                 datar8=q_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'kg/kg'
+                long_name = 'Specific Humidity'
+#endif
               case ("T")        ! temperature (C)
                 datar8=t_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Temperature'
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=o_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Ox Tracer'
+#endif
               case ("X")        ! NOx tracer (ppmv)
                 datar8=x_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NOx Tracer'
+#endif
               case ("M")        ! CO  tracer (ppmv)
                 datar8=m_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'CO Tracer'
+#endif
               case ("N")        ! NO2 non-tracer (ppmv)
                 datar8=n_more(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NO2 (not a tracer)'
+#endif
 #endif
               end select
               polefix=.true.
-              kgz_max_more_suffixes(kp)=trim(PMNAMEmore(kp))//'hPa'
+              kgz_max_more_suffixes(kp)=trim(PMNAMEmore(kp))//'_hPa'
               kgz_max_more_array(:,:,kp)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
             call write_subdd(trim(namedd(k)),kgz_max_more_array,polefix
-     &           ,suffixes=kgz_max_more_suffixes)
+     &           ,units_of_data,long_name=long_name,suffixes
+     &           =kgz_max_more_suffixes,positive='down')
 #endif
             cycle
           end if
@@ -2090,8 +2421,16 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm'
+                long_name = 'Geopotential Height'
+#endif
               case ("R")        ! relative humidity (wrt water)
-                datar8=rh_inst(kp,:,:)
+                datar8=rh_inst(kp,:,:)*100.d0
+#ifdef NEW_IO_SUBDD
+                units_of_data = '%'
+                long_name = 'Relative Humidity'
+#endif
               case ("Q")        ! specific humidity
 #ifndef TES_LIKE_DIAGS
                 do j=J_0,J_1
@@ -2101,20 +2440,29 @@ C**** get pressure level
                 end do
                 end do
 #endif
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'kg/kg'
+                long_name = 'Specific Humidity'
+#endif
               case ("T")        ! temperature (C)
 #ifndef TES_LIKE_DIAGS
                 datar8=t_inst(kp,:,:)
 #endif
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Temperature'
+#endif
               end select
               polefix=.true.
-              kgz_max_suffixes(kp)=trim(PMNAME(kp))//'hPa'
+              kgz_max_suffixes(kp)=trim(PMNAME(kp))//'_hPa'
               kgz_max_array(:,:,kp)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
             call write_subdd(trim(namedd(k)),kgz_max_array,polefix
-     &           ,suffixes=kgz_max_suffixes)
+     &           ,units_of_data,long_name=long_name,suffixes
+     &           =kgz_max_suffixes,positive='down')
 #endif
             cycle
           end if
@@ -2134,6 +2482,10 @@ C**** diagnostics on model levels
      &          t(1,jm,kp)*pk(kp,1,jm)-tf
                 datar8(:,J_0S:J_1S)=
      &          t(:,J_0S:J_1S,kp)*pk(kp,:,J_0S:J_1S)-tf
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Temperature'
+#endif
               case ("r")        ! relative humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1,1,kp)/
      &          qsat(t(1,1,kp)*pk(kp,1,1),lhe,pmid(kp,1,1))
@@ -2141,23 +2493,46 @@ C**** diagnostics on model levels
      &          qsat(t(1,jm,kp)*pk(kp,1,jm),lhe,pmid(kp,1,jm))
                 do j=J_0S,J_1S; do i=i_0,i_1
                   datar8(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
-     &            lhe,pmid(kp,i,j))
+     &            lhe,pmid(kp,i,j))*100.d0
                 enddo         ; enddo
+#ifdef NEW_IO_SUBDD
+                units_of_data = '%'
+                long_name = 'Relative Humidity'
+#endif
               case ("q")        ! specific humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=q(1,jm,kp)
                 datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'kg/kg'
+                long_name = 'Specific Humidity'
+#endif
               case ("z")        ! geopotential height
                 if(have_south_pole) datar8(1:im, 1)=phi(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=phi(1,jm,kp)
                 datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm'
+#endif
               case ("U")        ! E-W velocity
                 datar8=u(:,:,kp)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm/s'
+                long_name = 'U-Velocity'
+#endif
               case ("V")        ! N-S velocity
                 datar8=v(:,:,kp)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm/s'
+                long_name = 'V-Velocity'
+#endif
               case ("W")        ! vertical velocity
                 if(kp<lm) then
                   datar8=wsave(:,:,kp)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'Pa/s'
+                long_name = 'Vertical Velocity'
+#endif
                 else
                   datar8=undef
                   skip = .true.
@@ -2165,6 +2540,10 @@ C**** diagnostics on model levels
               case ("C")        ! estimate of cloud optical depth
                 datar8=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
      *               *tauss(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = '1'
+                long_name = 'Estimate of Cloud Optical Depth'
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
@@ -2173,6 +2552,10 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Ox Ozone Tracer'
+#endif
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2180,6 +2563,10 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NOx Tracer'
+#endif
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2187,6 +2574,10 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'CO Tracer'
+#endif
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2194,6 +2585,10 @@ C**** diagnostics on model levels
      *                   *am(kp,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NO2 (not a tracer)'
+#endif
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
@@ -2203,6 +2598,10 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Be7 Tracer'
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
@@ -2212,6 +2611,10 @@ C**** diagnostics on model levels
      *                   (trm(i,j,kp,n_water)*trw0(n_HDO))-1.)
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'permil'
+                long_name = 'HDO Tracer'
+#endif
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
@@ -2220,7 +2623,8 @@ C**** diagnostics on model levels
               if(.not.skip) call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix)
+            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix
+     &           ,units_of_data,long_name=long_name,positive='up')
 #endif
             cycle
           end if
@@ -2236,6 +2640,10 @@ C**** get model level
      &               t(1,jm,l)*pk(l,1,jm)-tf
                 datar8(:,J_0S:J_1S)=
      &               t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'C'
+                long_name = 'Temperature at Level '//trim(lst(l))
+#endif
               case ("r")        ! relative humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)/
      &               qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
@@ -2243,26 +2651,56 @@ C**** get model level
      &               qsat(t(1,jm,l)*pk(l,1,jm),lhe,pmid(l,1,jm))
                 do j=J_0S,J_1S; do i=i_0,i_1
                   datar8(i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),
-     &                 lhe,pmid(l,i,j))
+     &                 lhe,pmid(l,i,j))*100.d0
                 enddo
               enddo
+#ifdef NEW_IO_SUBDD
+                units_of_data = '%'
+                long_name = 'Relative Humidity at Level '//trim(lst(l))
+#endif
               case ("q")        ! specific humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)
                 if(have_north_pole) datar8(1:im,jm)=q(1,jm,l)
                 datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,l)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'kg/kg'
+                long_name = 'Specific Humidity at Level '//trim(lst(l))
+#endif
               case ("z")        ! geopotential height
                 if(have_south_pole) datar8(1:im, 1)=phi(1, 1,l)
                 if(have_north_pole) datar8(1:im,jm)=phi(1,jm,l)
                 datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,l)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm'
+                long_name = 'Geopotential Height at Level '//trim(lst(l)
+     &               )
+#endif
               case ("U")        ! U velocity
                 datar8=u(:,:,l)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm/s'
+                long_name = 'U-Velocity at Level '//trim(lst(l))
+#endif
               case ("V")        ! V velocity
                 datar8=v(:,:,l)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'm/s'
+                long_name = 'V-Velocity at Level '//trim(lst(l))
+#endif
               case ("W")        ! W velocity
                 datar8=wsave(:,:,l)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'Pa/s'
+                long_name = 'Vertical Velocity at Level '//trim(lst(l))
+#endif
               case ("C")        ! estimate of cloud optical depth
                 datar8=(1.-fss(l,:,:))*taumc(l,:,:)+fss(l,:,:)
      *               *tauss(l,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = '1'
+                long_name = 'Estimate of Cloud Optical Depth at Level '
+     &               //trim(lst(l))
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
@@ -2271,6 +2709,10 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Ox Ozone Tracer at Level '//trim(lst(l))
+#endif
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2278,6 +2720,10 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NOx Tracer at Level '//trim(lst(l))
+#endif
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2285,6 +2731,10 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'CO Tracer at Level '//trim(lst(l))
+#endif
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2292,6 +2742,10 @@ C**** get model level
      *                   *am(l,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NO2 (not a tracer) at Level '//trim(lst(l))
+#endif
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
@@ -2301,6 +2755,10 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Be7 Tracer at Level '//trim(lst(l))
+#endif
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
@@ -2310,13 +2768,18 @@ C**** get model level
      *                   )*trw0(n_HDO))-1.)
                   end do
                 end do
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'permil'
+                long_name = 'HDO Tracer at Level '//trim(lst(l))
+#endif
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
               data=datar8
               call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),datar8,polefix)
+              call write_subdd(trim(namedd(k)),datar8,polefix
+     &             ,units_of_data,long_name=long_name)
 #endif
               cycle nameloop
             end if
@@ -2337,44 +2800,117 @@ C**** cases using all levels up to LmaxSUBDD
 #ifdef TRACERS_HETCHEM
             case ("SO2")
               datar8=trm(:,:,l,n_SO2)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Sulfur Dioxide Mass'
+#endif
             case ("SO4")
               datar8=trm(:,:,l,n_SO4)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Sulfate Mass'
+#endif
             case ("SO4_d1")
               datar8=trm(:,:,l,n_SO4_d1)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Sulfate Coated With 0.1 to 1 um Dust'
+#endif
             case ("SO4_d2")
               datar8= trm(:,:,l,n_SO4_d2)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Sulfate Coated With 1 to 2 um Dust'
+#endif
             case ("SO4_d3")
               datar8=trm(:,:,l,n_SO4_d3)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Sulfate Coated With 2 to 4 um Dust'
+#endif
             case ("Clay")
               datar8=trm(:,:,l,n_Clay)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Sulfate Coated With 4 to 8 um Dust'
+#endif
             case ("Silt1")
               datar8=trm(:,:,l,n_Silt1)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Silt 1 to 2 um'
+#endif
             case ("Silt2")
               datar8=trm(:,:,l,n_Silt2)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Silt 2 to 4 um'
+#endif
             case ("Silt3")
               datar8=trm(:,:,l,n_Silt3)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg'
+              long_name = 'Mass of Silt 4 to 8 um'
+#endif
 #endif
             case ("CLDSS")
               datar8=100.d0*cldss(l,:,:) ! Cld cover LS(%)
+#ifdef NEW_IO_SUBDD
+              units_of_data = '%'
+              long_name = 'Large Scale Cloud Cover'
+#endif
             case ("CLDMC")
               datar8=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
+#ifdef NEW_IO_SUBDD
+              units_of_data = '%'
+              long_name = 'Moist Convective Cloud Cover'
+#endif
             case ("TAUSS")
               datar8=tauss(l,:,:) ! LS cld tau
+#ifdef NEW_IO_SUBDD
+              units_of_data = '1'
+              long_name = 'Large Scale Cloud Optical Depth'
+#endif
             case ("TAUMC")
               datar8=taumc(l,:,:) ! MC cld tau
+#ifdef NEW_IO_SUBDD
+              units_of_data = '1'
+              long_name = 'Moist Convective Cloud Optical Depth'
+#endif
 #ifdef CLD_AER_CDNC
             case ("CTEM")
               datar8=ctem(l,:,:) ! cld temp (K) at cld top
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'K'
+              long_name = 'Cloud Temperature at Cloud Top'
+#endif
             case ("CL3D")
               datar8=cl3d(l,:,:) ! cld LWC (kg m-3)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg/m^3'
+              long_name = 'Liquid Cloud Water'
+#endif
             case ("CI3D")
               datar8=ci3d(l,:,:) ! cld IWC (kg m-3)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'kg/m^3'
+#endif
             case ("CD3D")
               datar8=cd3d(l,:,:) ! cld thickness (m)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'm'
+              long_name = 'Cloud Thickness'
+#endif
             case ("CDN3D")
               datar8=cdn3d(l,:,:) ! cld CDNC (cm^-3)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'cm^3'
+#endif
             case ("CRE3D")
               datar8=1.d-6*cre3d(l,:,:) ! cld Reff (m)
+#ifdef NEW_IO_SUBDD
+              units_of_data = 'm'
+#endif
 #endif
             end select
             polefix=.true.
@@ -2383,7 +2919,8 @@ C**** cases using all levels up to LmaxSUBDD
             call write_data(data,kunit,polefix)
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix)
+          call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix
+     &         ,units_of_data,long_name=long_name,positive='up')
 #endif
           cycle
 
@@ -2399,8 +2936,18 @@ c***** for (c)tAOD the sum over tracers of aerosol optical depth
               do n=1,ntm        ! sum over rad code tracers is used
                 if(tracerRadiaActiveFlag(n))then
                   select case(namedd(k))
-                  case('tAOD') ; datar8=datar8+ttausv_sum(:,:,n)
-                  case('ctAOD'); datar8=datar8+ttausv_sum_cs(:,:,n)
+                  case('tAOD')
+                    datar8=datar8+ttausv_sum(:,:,n)
+#ifdef NEW_IO_SUBDD
+                    units_of_data='1'
+                    long_name = 'Total All Sky Aerosol Optical Depth'
+#endif
+                  case('ctAOD')
+                    datar8=datar8+ttausv_sum_cs(:,:,n)
+#ifdef NEW_IO_SUBDD
+                    units_of_data='1'
+                    long_name = 'Total Clear Sky Aerosol Optical Depth'
+#endif
                   end select
                 end if
               end do
@@ -2408,8 +2955,9 @@ c***** for (c)tAOD the sum over tracers of aerosol optical depth
               data=datar8
               call write_data(data,kunit,polefix)
 #ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),datar8,polefix,record
-     &             =day_of_month)
+              call write_subdd(trim(namedd(k)),datar8,polefix
+     &             ,units_of_data,long_name=long_name,record
+     &             =day_of_month,qinstant=.false.)
 #endif
             else
               write(6,*) 'Warning: No radiatively active tracers'
@@ -2431,8 +2979,16 @@ C**** for (c)AOD multiple tracers are written to one file:
                   select case(namedd(k))
                   case('AOD')
                     datar8=ttausv_sum(:,:,n)/ttausv_count
+#ifdef NEW_IO_SUBDD
+                    units_of_data='1'
+                    long_name = 'All Sky Aerosol Optical Depth of'
+#endif
                   case('cAOD')
                     datar8=ttausv_sum_cs(:,:,n)/ttausv_count
+#ifdef NEW_IO_SUBDD
+                    units_of_data='1'
+                    long_name = 'Clear Sky Aerosol Optical Depth of'
+#endif
                   end select
                   rTrname(nc)=trname(n)
                   rTRACER_array(:,:,nc)=datar8
@@ -2442,7 +2998,8 @@ C**** for (c)AOD multiple tracers are written to one file:
               end do
 #ifdef NEW_IO_SUBDD
               call write_subdd(trim(namedd(k)),rTRACER_array,polefix
-     &             ,record=day_of_month,suffixes=rTrname)
+     &             ,units_of_data,long_name=long_name,record
+     &             =day_of_month,suffixes=rTrname ,qinstant=.false.)
 #endif
             else
               write(6,*) 'Warning: No radiatively active tracers'
@@ -2465,13 +3022,18 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/kg'
+              long_name = 'Mixing Ratio at Surface of'
+#endif
               TRACER_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
             call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,suffixes=trname)
+     &           ,units_of_data,long_name=long_name,suffixes=trname
+     &           ,qinstant=.false.)
 #endif
             cycle
 
@@ -2490,13 +3052,18 @@ c**** Concentration for all tracers at surface [kg/m^3]
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/m^3'
+              long_name = 'Concentration at Surface of'
+#endif
               TRACER_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
             call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,suffixes=trname)
+     &           ,units_of_data,long_name=long_name,suffixes=trname
+     &           ,qinstant=.false.)
 #endif
             cycle
 #endif /*TRACERS_ON*/
@@ -2542,6 +3109,10 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/(s*m^2)'
+              long_name = 'Emission of'
+#endif
 #ifdef TRACERS_DUST
             CASE ('DuEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
 !$OMP PARALLEL DO PRIVATE(i,j)
@@ -2553,6 +3124,11 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/(s*m^2)'
+              long_name =
+     &             'Emission According to Cubic Formula (diag only) of'
+#endif
 #endif
             CASE ('DuSMIXR')      ! Mixing ratio of dust tracers at surface [kg/kg]
 !$OMP PARALLEL DO PRIVATE(i,j)
@@ -2564,6 +3140,10 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/kg'
+              long_name = 'Mixing Ratio at Surface of'
+#endif
             CASE ('DuSCONC')  ! Concentration of dust tracers at surface [kg/m^3]
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
@@ -2574,6 +3154,10 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/m^3'
+              long_name = 'Concentration at Surface of'
+#endif
             CASE ('DuLOAD')     ! Dust load [kg/m^2]
 !$OMP PARALLEL DO PRIVATE(i,j,l)
               do l=1,lm
@@ -2599,6 +3183,10 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
+#ifdef NEW_IO_SUBDD
+              units_of_data='kg/m^2'
+              long_name = 'Mass in Atmospheric Column of'
+#endif
             end select
             polefix=.true.
             dust3d_array(:,:,n)=datar8
@@ -2606,8 +3194,9 @@ C**** first set: no 'if' tests
             call write_data(data,kunit,polefix)
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
-     &         =dust_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix
+     &         ,units_of_data,long_name=long_name,suffixes=dust_names
+     &         ,qinstant=.false.)
 #endif
           cycle
 
@@ -2629,10 +3218,15 @@ C**** first set: no 'if' tests
               data=datar8
               call write_data(data,kunit,polefix)
             end do
+#ifdef NEW_IO_SUBDD
+            units_of_data='kg/m^3'
+            long_name = 'Concentration of'
+#endif
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),dust4d_array,polefix,suffixes
-     &         =dust_names)
+          call write_subdd(trim(namedd(k)),dust4d_array,polefix
+     &         ,units_of_data,long_name=long_name,suffixes=dust_names
+     &         ,qinstant=.false.,positive='up')
 #endif
           cycle
 
@@ -2648,8 +3242,16 @@ C**** other dust special cases
               select case(namedd(k))
               case('DuAOD')
                 datar8(:,:)=ttausv_sum(:,:,n1)
+#ifdef NEW_IO_SUBDD
+                units_of_data='1'
+                long_name = 'All Sky Optical Depth of'
+#endif
               case('DuCSAOD')
                 datar8(:,:)=ttausv_sum_cs(:,:,n1)
+#ifdef NEW_IO_SUBDD
+                units_of_data='1'
+                long_name = 'Clear Sky Optical Depth of'
+#endif
               end select
               datar8=datar8/ttausv_count
               polefix=.true.
@@ -2658,8 +3260,9 @@ C**** other dust special cases
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),dust3d_array,polefix,
-     &           record=day_of_month,suffixes=dust_names)
+            call write_subdd(trim(namedd(k)),dust3d_array,polefix
+     &           ,units_of_data,long_name=long_name,record=day_of_month
+     &           ,suffixes=dust_names ,qinstant=.false.)
 #endif
             cycle
 
@@ -2683,10 +3286,15 @@ C**** other dust special cases
               data=datar8
               call write_data(data,kunit,polefix)
             end if
+#ifdef NEW_IO_SUBDD
+            units_of_data='kg/(s*m^2)'
+            long_name = 'Turbulent Deposition of'
+#endif
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
-     &         =dust_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix
+     &         ,units_of_data,long_name=long_name,suffixes=dust_names
+     &         ,qinstant=.false.)
 #endif
           cycle
 
@@ -2709,10 +3317,15 @@ C**** other dust special cases
               data=datar8
               call write_data(data,kunit,polefix)
             end if
+#ifdef NEW_IO_SUBDD
+            units_of_data='kg/(s*m^2)'
+            long_name = 'Gravitational Settling of'
+#endif
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
-     &         =dust_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix
+     &         ,units_of_data,long_name=long_name,suffixes=dust_names
+     &         ,qinstant=.false.)
 #endif
           cycle
 #endif /*TRACERS_DRYDEP*/
@@ -2740,10 +3353,15 @@ C**** other dust special cases
             dust3d_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
+#ifdef NEW_IO_SUBDD
+            units_of_data='kg/(s*m^2)'
+            long_name = 'Wet Deposition of'
+#endif
           end do
 #ifdef NEW_IO_SUBDD
-          call write_subdd(trim(namedd(k)),dust3d_array,polefix,suffixes
-     &         =dust_names)
+          call write_subdd(trim(namedd(k)),dust3d_array,polefix
+     &         ,units_of_data,long_name=long_name,suffixes=dust_names
+     &         ,qinstant=.false.)
 #endif
           cycle
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
@@ -2786,26 +3404,151 @@ c**** fix polar values
 
 #ifdef NEW_IO_SUBDD
 
-      subroutine write_2d(qtyname,data,polefix,record)
+c get_calendarstring
+      subroutine get_calendarstring(qinstant,q24,year,mon,day,hour,itu
+     &     ,calendarstring)
+!@sum get_calendarstring provides calendarstring from year, month, day,
+!@+                      hour, and internal time unit depending on flags
+!@auth Jan Perlwitz
+
+      implicit none
+
+!@var q24 flag is true for output every 24 hours
+!@var qinstant flag is true for instantaneous variables
+      logical,intent(in) :: q24,qinstant
+!@var year,mon,day,hour,itu year,months,day,internal time unit
+      integer,intent(in) :: year,mon,day,hour,itu
+!@var calendar string with date and time
+!@+            format: 'year-mm-dd' or 'year-mm-dd hr:mm'
+      character(len=*),intent(out) :: calendarstring
+
+!@var modelDate string variable for model date
+      character(len=10) :: modelDate
+!@var hour_of_day hour of day
+      integer :: hour_of_day
+!@var minute_of_hour minute of hour
+      integer :: minute_of_hour
+!@var time_of_day string variable for time of day
+      character(len=5) :: time_of_day
+
+      real(kind=8) :: hrs
+
+      modelDate = '0000-00-00'
+      write(modelDate(1:4),'(i4)') year
+      if (mon <= 9) then
+        write(modelDate(7:7),'(i1)') mon
+      else
+        write(modelDate(6:7),'(i2)') mon
+      end if
+      if (day <= 9) then
+        write(modelDate(10:10),'(i1)') day
+      else
+        write(modelDate(9:10),'(i2)') day
+      end if
+      if (q24 .and. .not. qinstant) then
+        time_of_day = ''
+      else
+        time_of_day = '00:00'
+      end if
+      if (qinstant) then
+        hour_of_day = hour
+        minute_of_hour = int(mod((real(itu,kind=8) + 0.5)*dtsrc/3600.,
+     &       1.)*60.)
+      else if (.not. q24) then
+        hrs = (real(itu,kind=8) + 1. - nsubdd/2.)*dtsrc/3600.
+        hour_of_day = int(mod(hrs,24.))
+        minute_of_hour = int(mod(hrs,1.)*60.)
+      end if
+      if (qinstant .or. (.not. qinstant .and. .not. q24)) then
+        if (hour_of_day <= 9) then
+          write(time_of_day(2:2),'(i1)') hour_of_day
+        else
+          write(time_of_day(1:2),'(i2)') hour_of_day
+        end if
+        if (minute_of_hour <= 9) then
+          write(time_of_day(5:5),'(i1)') minute_of_hour
+        else
+          write(time_of_day(4:5),'(i2)') minute_of_hour
+        end if
+      end if
+      write(calendarstring,'(a10,a1,a5)') modelDate,' ',time_of_day
+
+      return
+      end subroutine get_calendarstring
+
+c get_referencetime_for_netcdf
+      subroutine get_referencetime_for_netcdf(qinstant,q24,itu
+     &     ,referencetime)
+!@sum get_referencetime_for_netcdf provides string with reference time of time
+!@+                                coordinate for high frequency netcdf-output
+!@auth Jan Perlwitz
+
+      implicit none
+
+!@var q24 flag is true for output every 24 hours
+!@var qinstant flag is true for instantaneous variables
+      logical,intent(in) :: q24,qinstant
+!@var itu internal time unit
+      integer,intent(in) :: itu
+!@var referencetime string with reference time of time coordinate for netcdf
+      character(len=*),intent(out) :: referencetime
+
+!@var calendarstring calendar string variable with date and time
+      character(len=50) :: calendarstring
+
+      integer :: year1,mon1,day1,jdate1,hour1
+      character(len=4) :: amon1
+
+      call getdte(itu,nday,iyear1,year1,mon1,day1,jdate1,hour1,amon1)
+      call get_calendarstring(qinstant,q24,year1,mon1,jdate1,hour1,itu
+     &     ,calendarstring)
+      if (q24) then
+        referencetime = 'days since '//trim(calendarstring)
+      else
+        referencetime = 'hours since '//trim(calendarstring)//' UTC'
+      end if
+
+      return
+      end subroutine get_referencetime_for_netcdf
+
+c write_2d
+      subroutine write_2d(qtyname,data,polefix,units_of_data,long_name
+     &     ,record,positive,qinstant)
+!@sum write_2d high frequency netcdf-output of two-dimensional arrays
+!@auth M. Kelley and Jan Perlwitz
+
+      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
-     &     write_data,write_dist_data
+     &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
       implicit none
 
-      character(len=*) :: qtyname
-      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
-      logical :: polefix
+      character(len=*),intent(in) :: qtyname
+      real*8,dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: data
+      logical,intent(in) :: polefix
+      character(len=*),intent(in) :: units_of_data
+      character(len=*),intent(in),optional :: long_name
       integer, intent(in), optional :: record
-c
-      integer fid
-      integer :: rec
+      character(len=*),intent(in),optional :: positive
+      logical,intent(in),optional :: qinstant
+
+      integer :: fid,rec,length_of_calendarstring
+      real(kind=8) :: time
+      logical :: q24,qinst
+      character(len=80) :: qname
       character(len=80) :: fname
-c      character(len=14) :: datestr
+      character(len=37) :: method
+      character(len=23) :: relation_to_itime
+      character(len=50) :: itimeUnits,referencetime
+      character(len=16) :: calendarstring
+      character(len=9) :: cform
+      character(len=3) :: cnsubdd
 
       if(.not. in_subdd_list(qtyname)) return
 
-c      datestr = 'yyyymmddhhmmss'
+      qinst = .true.
+      if (present(qinstant)) qinst = qinstant
 
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
       if(present(record)) then
@@ -2813,15 +3556,76 @@ c      datestr = 'yyyymmddhhmmss'
       else
         rec = (1+itime-itime0)/nsubdd
       endif
+      if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
+        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
+        q24 = .true.
+      else
+        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
+     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
+        q24 = .false.
+      end if
       if(rec==1) then ! define this output file
+        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
+     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call defvar(grid,fid,itime,'itime',
-     &       with_record_dim=.true.)
-c        call defvar(grid,fid,datestr,'date(date_strlen)',
-c     &       with_record_dim=.true.)
+        call write_attr(grid,fid,'global','xlabel',xlabel)
+        if (qinst) then
+          method = 'instantaneous value for current ITU'
+        else
+          if (q24) then
+            method = 'daily'
+          else
+            method = 'accumulated/averaged over nsubdd ITUs'
+          end if
+        end if
+        call write_attr(grid,fid,'global','calculation_method',method)
+        write(cnsubdd,'(i3)') nsubdd
+        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
+        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lon','units','degrees_east')
+        call write_attr(grid,fid,'lon','long_name','Longitude')
+        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lat','units','degrees_north')
+        call write_attr(grid,fid,'lat','long_name','Latitude')
+        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
+        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
+     &       ,'-01-01 00:00 UTC'
+        call write_attr(grid,fid,'itime','units',itimeUnits)
+        call write_attr(grid,fid,'itime','long_name'
+     &       ,'Internal Time Unit (ITU)')
+        call defvar(grid,fid,time,'time',with_record_dim=.true.
+     &       ,r4_on_disk=.true.)
+        call write_attr(grid,fid,'time','calendar','noleap')
+        call write_attr(grid,fid,'time','units',referencetime)
+        call write_attr(grid,fid,'time','long_name'
+     &       ,'Time Coordinate Relative to IYEAR1/01/01')
+        if (qinst) then
+          relation_to_itime = 'midpoint of last ITU'
+        else if (.not. q24) then
+          relation_to_itime = 'midpoint of nsubdd ITUs'
+        else
+          relation_to_itime = 'all ITUs of day'
+        end if
+        call write_attr(grid,fid,'time','relation_to_itime',
+     &       relation_to_itime)
+        call defvar(grid,fid,calendarstring,
+     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
+     &       )
+        call write_attr(grid,fid,'calendar','units','UTC')
+        call write_attr(grid,fid,'calendar','long_name'
+     &       ,'Date/Time of Midpoint')
+        call write_attr(grid,fid,'calendar','relation_to_itime',
+     &       relation_to_itime)
         call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm)',
      &       with_record_dim=.true.,r4_on_disk=.true.)
+        call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
+        if (present (long_name)) then
+          if (long_name /= 'not yet set in get_subdd') call
+     &         write_attr(grid,fid,trim(qtyname),'long_name',long_name)
+        end if
         call par_enddef(grid,fid)
+        call write_data(grid,fid,'lon',lon_dg(:,1))
+        call write_data(grid,fid,'lat',lat_dg(:,1))
       else
         fid = par_open(grid,trim(fname),'write')
       endif
@@ -2830,54 +3634,203 @@ c     &       with_record_dim=.true.)
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
       call write_data(grid,fid, 'itime', itime+1, record=rec)
-c      call write_data(grid,fid, 'date', datestr, record=rec)
+      call write_data(grid,fid,'time',time,record=rec)
+      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
+     &     ,calendarstring)
+      call write_data(grid,fid,'calendar',calendarstring,record=rec)
       call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       call par_close(grid,fid)
       return
       end subroutine write_2d
 
-      subroutine write_3d(qtyname,data,polefix,record,suffixes)
+c write_3d
+      subroutine write_3d(qtyname,data,polefix,units_of_data,long_name
+     &     ,record,suffixes,positive,qinstant)
+!@sum write_3d high frequency netcdf-output of three-dimensional arrays
+!@auth M. Kelley and Jan Perlwitz
+
+      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
-     &     write_data,write_dist_data
+     &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
       implicit none
 
-      character(len=*) :: qtyname
-      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: data
-      logical :: polefix
+      character(len=*),intent(in) :: qtyname
+      real*8,dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: data
+      logical,intent(in) :: polefix
+      character(len=*),intent(in) :: units_of_data
+      character(len=*),intent(in),optional :: long_name
       integer, intent(in), optional :: record
       character(len=*), intent(in), optional :: suffixes(:)
+      character(len=*),intent(in),optional :: positive
+      logical,intent(in),optional :: qinstant
+
+      integer :: fid,l,rec,level,ivertical,length_of_calendarstring
+      real(kind=8) :: time
+      real(kind=8),dimension(size(data,dim=3)) :: vertical
+      logical :: q24,qinst
       character(len=80) :: qname
-c
-      integer fid,l,rec
       character(len=80) :: fname
+      character(len=37) :: method
+      character(len=23) :: relation_to_itime
+      character(len=50) :: itimeUnits,referencetime,lname
+      character(len=16) :: calendarstring
+      character(len=9) :: cform
+      character(len=3) :: cnsubdd
+
       if(.not. in_subdd_list(qtyname)) return
+
+      if (present(suffixes)) then
+        if (size(suffixes) /= size(data,3)) call stop_model
+     &       ('write_3d: bad sizes',255)
+      end if
+
+      qinst = .true.
+      if (present(qinstant)) qinst=qinstant
+
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
       if(present(record)) then
         rec = record
       else
         rec = (1+itime-itime0)/nsubdd
       endif
+      if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
+        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
+        q24 = .true.
+      else
+        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
+     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
+        q24 = .false.
+      end if
       if(rec==1) then ! define this output file
+        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
+     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call defvar(grid,fid,itime,'itime',
-     &       with_record_dim=.true.)
-        if(present(suffixes)) then
-          if(size(suffixes).ne.size(data,3))
-     &         call stop_model('write_3d: bad sizes',255)
+        call write_attr(grid,fid,'global','xlabel',xlabel)
+        if (qinst) then
+          method = 'instantaneous value for current ITU'
+        else
+          if (q24) then
+            method = 'daily'
+          else
+            method = 'accumulated/averaged over nsubdd ITUs'
+          end if
+        end if
+        call write_attr(grid,fid,'global','calculation_method',method)
+        write(cnsubdd,'(i3)') nsubdd
+        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
+        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lon','units','degrees_east')
+        call write_attr(grid,fid,'lon','long_name','Longitude')
+        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lat','units','degrees_north')
+        call write_attr(grid,fid,'lat','long_name','Latitude')
+        if (present(positive)) then ! define vertical coordinates
+          call defvar(grid,fid,vertical,'level(level)',r4_on_disk=
+     &         .true.)
+          if (.not. (positive == 'up' .or. positive == 'down')) call
+     &         stop_model ('In subdd: Wrong netcdf positive-attribute'
+     &         ,255)
+          if (.not. present(suffixes)) then ! define sigma levels or soil layers
+            if (positive == 'down') then
+              call write_attr(grid,fid,'level','units','layer')
+              call write_attr(grid,fid,'level','long_name'
+     &             ,'Ground Layer')
+           else
+              call write_attr(grid,fid,'level','units','sigma_level')
+              call write_attr(grid,fid,'level','long_name'
+     &             ,'Sigma Level')
+            end if
+            do l=1,size(data,dim=3)
+              vertical(l) = real(l,kind=8)
+            end do
+          else if (qtyname(2:4) == 'ALL') then ! define vertical pressure coordinates
+            call write_attr(grid,fid,'level','units','10^2 Pa')
+            call write_attr(grid,fid,'level','long_name'
+     &           ,'Pressure Level')
+            do l=1,size(data,3)
+              if (index(suffixes(l)(1:4),'.') == 0) then
+                read(suffixes(l)(1:min(4,index(suffixes(l),'_')-1))
+     &               ,'(i4)') ivertical
+                vertical(l) = ivertical
+              else
+                read(suffixes(l)(1:min(4,index(suffixes(l)(1:4),'_')-1))
+     &               ,'(f4.2)') vertical(l)
+              end if
+            end do
+          end if
+          call write_attr(grid,fid,'level','positive',trim(positive))
+        end if
+        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
+        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
+     &       ,'-01-01 00:00 UTC'
+        call write_attr(grid,fid,'itime','units',itimeUnits)
+        call write_attr(grid,fid,'itime','long_name'
+     &       ,'Internal Time Unit (ITU)')
+        call defvar(grid,fid,time,'time',with_record_dim=.true.
+     &       ,r4_on_disk=.true.)
+        call write_attr(grid,fid,'time','calendar','noleap')
+        call write_attr(grid,fid,'time','units',referencetime)
+        call write_attr(grid,fid,'time','long_name'
+     &       ,'Time Coordinate Relative to IYEAR1/01/01')
+        if (qinst) then
+          relation_to_itime = 'midpoint of last ITU'
+        else if (.not. q24) then
+          relation_to_itime = 'midpoint of nsubdd ITUs'
+        else
+          relation_to_itime = 'all ITUs of day'
+        end if
+        call write_attr(grid,fid,'time','relation_to_itime',
+     &       relation_to_itime)
+        call defvar(grid,fid,calendarstring,
+     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
+     &       )
+        call write_attr(grid,fid,'calendar','units','UTC')
+        call write_attr(grid,fid,'calendar','long_name'
+     &       ,'Date/Time of Midpoint')
+        call write_attr(grid,fid,'calendar','relation_to_itime',
+     &       relation_to_itime)
+        if ((.not. present(positive)) .or. (present(suffixes) .and.
+     &       qtyname(2:4) /= 'ALL')) then
+                                ! define 2-dim fields with different names
           do l=1,size(data,3)
-            qname = trim(qtyname)//'_'//trim(suffixes(l))
+            if (qtyname(2:4) == 'ALL') then
+              qname = qtyname(1:1)//'_'//trim(suffixes(l))
+            else
+              qname = trim(qtyname)//'_'//trim(suffixes(l))
+            end if
             call defvar(grid,fid,data(:,:,l),
      &           trim(qname)//'(dist_im,dist_jm)',
      &           with_record_dim=.true.,r4_on_disk=.true.)
-          enddo
-        else
-          call defvar(grid,fid,data,
-     &         trim(qtyname)//'(dist_im,dist_jm,lm)',
-     &         with_record_dim=.true.,r4_on_disk=.true.)
+            call write_attr(grid,fid,trim(qname),'units',units_of_data)
+            if (present(long_name)) then
+              if (long_name /= 'not yet set in get_subdd') then
+                lname = trim(long_name)//' '//trim(suffixes(l))
+                call write_attr(grid,fid,trim(qname),'long_name',lname)
+              end if
+            end if
+          end do
+        else ! define 3-dimensional fields
+          if (qtyname(2:4) == 'ALL' .or. qtyname(3:5) == 'ALL') then
+            qname = qtyname(1:index(qtyname,'ALL')-1)
+          else
+            qname = qtyname
+          end if
+          call defvar(grid,fid,data,trim(qname)//
+     &         '(dist_im,dist_jm,level)',with_record_dim=.true.
+     &         ,r4_on_disk=.true.)
+          call write_attr(grid,fid,trim(qname),'units',units_of_data)
+          if (present(long_name)) then
+            if (long_name /= 'not yet set in get_subdd') call
+     &           write_attr(grid,fid,trim(qname),'long_name',long_name)
+          end if
         endif
         call par_enddef(grid,fid)
+        call write_data(grid,fid,'lon',lon_dg(:,1))
+        call write_data(grid,fid,'lat',lat_dg(:,1))
+        if (present(positive)) call write_data(grid,fid,'level',vertical
+     &       )
       else
         fid = par_open(grid,trim(fname),'write')
       endif
@@ -2888,61 +3841,195 @@ c
         enddo
       endif
       call write_data(grid,fid, 'itime', itime+1, record=rec)
-      if(present(suffixes)) then
+      call write_data(grid,fid,'time',time,record=rec)
+      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
+     &     ,calendarstring)
+      call write_data(grid,fid,'calendar',calendarstring,record=rec)
+      if ((.not. present(positive)) .or. (present(suffixes) .and.
+     &     qtyname(2:4) /= 'ALL')) then
         do l=1,size(data,3)
-          qname = trim(qtyname)//'_'//trim(suffixes(l))
-          call write_dist_data(grid,fid, trim(qname),
-     &         data(:,:,l), record=rec)
+          if (qtyname(2:4) == 'ALL') then
+            qname = qtyname(1:1)//'_'//trim(suffixes(l))
+          else
+            qname = trim(qtyname)//'_'//trim(suffixes(l))
+          end if
+          call write_dist_data(grid,fid,trim(qname),data(:,:,l),record
+     &         =rec)
         enddo
       else
-        call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
+        if (qtyname(2:4) == 'ALL' .or. qtyname(3:5) == 'ALL') then
+          qname = qtyname(1:index(qtyname,'ALL')-1)
+        else
+          qname = qtyname
+        end if
+        call write_dist_data(grid,fid,trim(qname),data,record=rec)
       endif
       call par_close(grid,fid)
       return
       end subroutine write_3d
 
-      subroutine write_4d(qtyname,data,polefix,record,suffixes)
+c write_4d
+      subroutine write_4d(qtyname,data,polefix,units_of_data,long_name
+     &     ,record,suffixes,positive,qinstant)
+!@sum write_4d high frequency netcdf-output of four-dimensional arrays
+!@auth M. Kelley and Jan Perlwitz
+
+      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
-     &     write_data,write_dist_data
+     &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
       implicit none
 
-      character(len=*) :: qtyname
+      character(len=*),intent(in) :: qtyname
       real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:,:) :: data
-      logical :: polefix
+      logical,intent(in) :: polefix
+      character(len=*),intent(in) :: units_of_data
+      character(len=*),intent(in),optional :: long_name
       integer, intent(in), optional :: record
       character(len=*), intent(in), optional :: suffixes(:)
+      character(len=*),intent(in),optional :: positive
+      logical,intent(in),optional :: qinstant
+
+      integer :: fid,l,n,rec,level,length_of_calendarstring
+      real(kind=8),dimension(size(data,dim=3)) :: vertical
+      real(kind=8) :: time
+      logical :: q24,qinst
       character(len=80) :: qname
-c
-      integer fid,l,n,rec
       character(len=80) :: fname
+      character(len=37) :: method
+      character(len=23) :: relation_to_itime
+      character(len=50) :: itimeUnits,referencetime,lname
+      character(len=16) :: calendarstring
+      character(len=9) :: cform
+      character(len=3) :: cnsubdd
+
       if(.not. in_subdd_list(qtyname)) return
+
+      if (present(suffixes)) then
+        if (size(suffixes) /= size(data,4)) call stop_model
+     &       ('write_4d: bad sizes',255)
+      end if
+
+      qinst = .true.
+      if (present(qinstant)) qinst = qinstant
+
       fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
       if(present(record)) then
         rec = record
       else
         rec = (1+itime-itime0)/nsubdd
       endif
+      if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
+        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
+        q24 = .true.
+      else
+        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
+     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
+        q24 = .false.
+      end if
       if(rec==1) then ! define this output file
+        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
+     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call defvar(grid,fid,itime,'itime',
-     &       with_record_dim=.true.)
-        if(present(suffixes)) then
-          if(size(suffixes).ne.size(data,4))
-     &         call stop_model('write_4d: bad sizes',255)
+        call write_attr(grid,fid,'global','xlabel',xlabel)
+        if (qinst) then
+          method = 'instantaneous value for current ITU'
+        else
+          if (q24) then
+            method = 'daily'
+          else
+            method = 'accumulated/averaged over nsubdd ITUs'
+          end if
+        end if
+        call write_attr(grid,fid,'global','calculation_method',method)
+        write(cnsubdd,'(i3)') nsubdd
+        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
+        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lon','units','degrees_east')
+        call write_attr(grid,fid,'lon','long_name','Longitude')
+        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
+        call write_attr(grid,fid,'lat','units','degrees_north')
+        call write_attr(grid,fid,'lat','long_name','Latitude')
+        do l=1,size(data,dim=3)
+          vertical(l) = real(l,kind=8)
+        end do
+        call defvar(grid,fid,vertical,'level(level)',r4_on_disk=.true.)
+        if (present(positive)) then
+          if (.not. (positive == 'up' .or. positive == 'down')) then
+            call stop_model ('In subdd: Wrong netcdf positive-attribute'
+     &           ,255)
+          else
+            if (positive == 'down') then
+              call write_attr(grid,fid,'level','units','layer')
+              call write_attr(grid,fid,'level','long_name'
+     &             ,'Ground Layer')
+            else
+              call write_attr(grid,fid,'level','units','sigma_level')
+              call write_attr(grid,fid,'level','long_name'
+     &             ,'Sigma Level')
+            end if
+            call write_attr(grid,fid,'level','positive',trim(positive))
+          end if
+        end if
+        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
+        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
+     &       ,'-01-01 00:00 UTC'
+        call write_attr(grid,fid,'itime','units',itimeUnits)
+        call write_attr(grid,fid,'itime','long_name'
+     &       ,'Internal Time Unit (ITU)')
+        call defvar(grid,fid,time,'time',with_record_dim=.true.
+     &       ,r4_on_disk=.true.)
+        call write_attr(grid,fid,'time','calendar','noleap')
+        call write_attr(grid,fid,'time','units',referencetime)
+        call write_attr(grid,fid,'time','long_name'
+     &       ,'Time Coordinate Relative to IYEAR1/01/01')
+        if (qinst) then
+          relation_to_itime = 'midpoint of last ITU'
+        else if (.not. q24) then
+          relation_to_itime = 'midpoint of nsubdd ITUs'
+        else
+          relation_to_itime = 'all ITUs of day'
+        end if
+        call write_attr(grid,fid,'time','relation_to_itime',
+     &       relation_to_itime)
+        call defvar(grid,fid,calendarstring,
+     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
+     &       )
+        call write_attr(grid,fid,'calendar','units','UTC')
+        call write_attr(grid,fid,'calendar','long_name'
+     &       ,'Date/Time of Midpoint')
+        call write_attr(grid,fid,'calendar','relation_to_itime',
+     &       relation_to_itime)
+        if (present(suffixes)) then
           do n=1,size(data,4)
             qname = trim(qtyname)//'_'//trim(suffixes(n))
-            call defvar(grid,fid,data(:,:,:,n),
-     &           trim(qname)//'(dist_im,dist_jm,lm)',
-     &           with_record_dim=.true.,r4_on_disk=.true.)
-          enddo
+            call defvar(grid,fid,data(:,:,:,n),trim(qname)//
+     &           '(dist_im,dist_jm,level)', with_record_dim=.true.
+     &           ,r4_on_disk=.true.)
+            call write_attr(grid,fid,trim(qname),'units',units_of_data)
+            if (present(long_name)) then
+              if (long_name /= 'not yet set in get_subdd') then
+                lname = trim(long_name)//' '//trim(suffixes(n))
+                call write_attr(grid,fid,trim(qname),'long_name',lname)
+              end if
+            end if
+          end do
         else
-          call defvar(grid,fid,data,
-     &         trim(qtyname)//'(dist_im,dist_jm,lm,ntm)',
-     &         with_record_dim=.true.,r4_on_disk=.true.)
+          call defvar(grid,fid,data,trim(qtyname)//
+     &         '(dist_im,dist_jm,level,ntm)',with_record_dim=.true.
+     &         ,r4_on_disk=.true.)
+          call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
+          if (present(long_name)) then
+            if (long_name /= 'not yet set in get_subdd') call
+     &           write_attr(grid,fid,trim(qtyname),'long_name',long_name
+     &           )
+          end if
         endif
         call par_enddef(grid,fid)
+        call write_data(grid,fid,'lon',lon_dg(:,1))
+        call write_data(grid,fid,'lat',lat_dg(:,1))
+        call write_data(grid,fid,'level',vertical)
       else
         fid = par_open(grid,trim(fname),'write')
       endif
@@ -2953,17 +4040,21 @@ c
             if(hasNorthPole(grid)) data(2:im,jm,l,n) = data(1,jm,l,n)
           end do
         end do
-      endif
+      end if
       call write_data(grid,fid, 'itime', itime+1, record=rec)
+      call write_data(grid,fid,'time',time,record=rec)
+      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
+     &     ,calendarstring)
+      call write_data(grid,fid,'calendar',calendarstring,record=rec)
       if(present(suffixes)) then
         do n=1,size(data,4)
           qname = trim(qtyname)//'_'//trim(suffixes(n))
-          call write_dist_data(grid,fid, trim(qname),
-     &         data(:,:,:,n), record=rec)
-        enddo
+          call write_dist_data(grid,fid,trim(qname),data(:,:,:,n),
+     &         record=rec)
+        end do
       else
         call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
-      endif
+      end if
       call par_close(grid,fid)
       return
       end subroutine write_4d
