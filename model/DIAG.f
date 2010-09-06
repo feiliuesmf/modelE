@@ -1194,7 +1194,7 @@ C****
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: get,grid,am_i_root
       USE MODEL_COM, only : im,jm,lm,itime,itime0,nday,iyear1,jyear
-     &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM
+     &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM,lrunid
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -3550,7 +3550,7 @@ c write_2d
       qinst = .true.
       if (present(qinstant)) qinst = qinstant
 
-      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.'//xlabel(1:lrunid)//'.nc'
       if(present(record)) then
         rec = record
       else
@@ -3689,7 +3689,7 @@ c write_3d
       qinst = .true.
       if (present(qinstant)) qinst=qinstant
 
-      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.'//xlabel(1:lrunid)//'.nc'
       if(present(record)) then
         rec = record
       else
@@ -3914,7 +3914,7 @@ c write_4d
       qinst = .true.
       if (present(qinstant)) qinst = qinstant
 
-      fname = trim(qtyname)//aDATE_sv(1:7)//'.nc'
+      fname = trim(qtyname)//aDATE_sv(1:7)//'.'//xlabel(1:lrunid)//'.nc'
       if(present(record)) then
         rec = record
       else
