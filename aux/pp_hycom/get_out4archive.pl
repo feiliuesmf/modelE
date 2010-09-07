@@ -70,7 +70,7 @@ if ( $startYear == -1 ){
 } else {
   print "Start year set to $startYear\n";
   if ( $startYear  < 0  ) {
-     print "\nStart year  shoul be >= 0\n";
+     print "\nStart year  should be >= 0\n";
      print "!!! Exit from script $command \n";
      exit(1);
   }
@@ -82,13 +82,13 @@ if ( $lastYear == -1 ){
 } else {
   print "Last  year set to $lastYear\n";
   if ( $lastYear  < 0  ) {
-     print "\nLast  year  shoul be >= 0\n";
+     print "\nLast  year  shoulb be >= 0\n";
      print "!!! Exit from script $command \n";
      exit(1);
   }
   my $diff = $lastYear - $startYear;
   if ( $diff < 0  ) {
-     print "\nLast year ( $lastYear ) shoul be >= Start year ( $startYear )\n";
+     print "\nLast year ( $lastYear ) should be >= Start year ( $startYear )\n";
      print "!!! Exit from script $command \n";
      exit(1);
   }
