@@ -137,11 +137,13 @@ ifeq ($(FVCUBED),YES)
 
   CPPFLAGS += -DCUBED_SPHERE
 
-  # For now, cubed-sphere tests do not build with CUBED_SPHERE directive
-  # CPPFLAGS += -DCUBED_SPHERE
   FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
   INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
   LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
+
+  FFLAGS +=-I$(FFTW_ROOT)/include
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3 -lm
+
 else
   CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
 endif
