@@ -3864,7 +3864,8 @@ c
 c
 c GCM logics...........  SNd0, SNdL [No/cc; ]SNdI Units also in /cc
 c
-       SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
+c       SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
+       SNdI = 0.06417127d0
 c      if(SNdI.gt.0.) write(6,*)"ICE CRY",SNdI, SNdI/dtB2M
        if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
        SNd=ndrop(mkx)*1.d-6                 ! ndrop, [No/m^3]
@@ -4801,7 +4802,8 @@ c      nnucmd              ! change n cond freezing Meyer's (prim ice nuc)
 c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
      * +execute_bulk2m_driver('get','nnucmt')
 
-       SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
+c       SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
+       SNdI = 0.06417127d0
        if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
       OLDCDL(L) = SNd
       OLDCDI(L) = SNdI
@@ -4818,6 +4820,7 @@ c To get effective radii in micron
 #endif
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd
+      SNdI = 0.06417127d0
       SCDNCI=SNdI
       If (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
 c     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
