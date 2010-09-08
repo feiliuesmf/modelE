@@ -450,7 +450,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       INTEGER I,J,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CONPT(NPTS)*10
-      REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac2
+      REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
@@ -553,13 +553,14 @@ C**** This is just an estimate for the initiallisation
      *             +LAKE_RISE_MAX,MLDLK(I,J)
               fac=(MWL(I,J)-(HLAKE(I,J)+LAKE_RISE_MAX)*FLAKE(I,J)*RHOW
      *             *AXYP(I,J))  ! excess mass
-                                ! fractional loss of layer 2 mass 
-              fac2=fac/(MWL(I,J)-MLDLK(I,J)*FLAKE(I,J)*RHOW*AXYP(I,J)) 
-              if (fac2.lt.1) then
+                                ! fractional loss of layer 1 mass 
+              fac1=fac/(MLDLK(I,J)*FLAKE(I,J)*RHOW*AXYP(I,J)) 
+              if (fac1.lt.1) then
 #ifdef TRACERS_WATER
-                TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)*(1d0-fac2)
+                TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)*(1d0-fac1)
 #endif
-                GML(I,J)=GML(I,J)*(1d0-fac/MWL(I,J))
+                MLDLK(I,J)=MLDLK(I,J)*(1-fac1)
+                GML(I,J)=GML(I,J)-fac*SHW*TLAKE(I,J)
                 MWL(I,J)=MWL(I,J)-fac
               else
                 call stop_model(
