@@ -50,6 +50,8 @@ C**** 1-8 anti-clockwise from top RH corner
       REAL*8 :: river_fac=1.    ! default = 1
 !@dbparam init_flake used to make sure FLAKE is properly initialised
 !@+       when using older restart files
+!@+       =0 for no change to lakes, =1 for a complete reset to initial values
+!@+       =2 removal of any excess water that may have accumulated 
       INTEGER :: init_flake=1   ! default = 1
 !@dbparam variable_lk 1 if lakes are to be variable
 !@+       (temporary variable for development purposes)
@@ -425,6 +427,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE FLUXES, only : gtemp,mlhc,gtempr
       USE SEAICE_COM, only : rsi
       USE PBLCOM, only : tsavg
+      USE GHY_COM, only : fearth
       USE LAKES
       USE LAKES_COM
 #ifdef SCM
@@ -447,7 +450,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       INTEGER I,J,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
       CHARACTER TITLEI*80, CONPT(NPTS)*10
-      REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
+      REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac2
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
@@ -533,6 +536,35 @@ C**** This is just an estimate for the initiallisation
 #ifdef TRACERS_WATER
               TRLAKE(:,:,I,J)=0.
 #endif
+            END IF
+          END DO
+        END DO
+      END IF
+
+      IF (init_flake.eq.2 .and. istart.le.9) THEN
+        print*,"Checking for excess water..."
+        DO J=J_0, J_1
+          DO I=I_0, I_1
+            if (FLAKE(I,J) > .949d0*(FLAKE(I,J)+FEARTH(I,J)) .and.
+     *           MWL(I,J) > (HLAKE(I,J)+LAKE_RISE_MAX)*FLAKE(I,J)*RHOW
+     *           *AXYP(I,J) ) then
+              print*,"Adjusting lake level:",i,j," from ",MWL(I,J)
+     *             /(FLAKE(I,J)*RHOW*AXYP(I,J))," to ",HLAKE(I,J)
+     *             +LAKE_RISE_MAX,MLDLK(I,J)
+              fac=(MWL(I,J)-(HLAKE(I,J)+LAKE_RISE_MAX)*FLAKE(I,J)*RHOW
+     *             *AXYP(I,J))  ! excess mass
+                                ! fractional loss of layer 2 mass 
+              fac2=fac/(MWL(I,J)-MLDLK(I,J)*FLAKE(I,J)*RHOW*AXYP(I,J)) 
+              if (fac2.lt.1) then
+#ifdef TRACERS_WATER
+                TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)*(1d0-fac2)
+#endif
+                GML(I,J)=GML(I,J)*(1d0-fac/MWL(I,J))
+                MWL(I,J)=MWL(I,J)-fac
+              else
+                call stop_model(
+     *               'INIT_LAKE: Inconsistent ml depth in lakes',255)
+              end if
             END IF
           END DO
         END DO
