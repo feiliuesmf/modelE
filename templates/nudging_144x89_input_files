@@ -1,5 +1,25 @@
 
 ! ------ nudging files: link names based on jyear-iyear1
+u18.nc=nudgeF_hold/uwnd.1968.GISS.144x89_MANIP.nc
+v18.nc=nudgeF_hold/vwnd.1968.GISS.144x89_MANIP.nc
+u19.nc=nudgeF_hold/uwnd.1969.GISS.144x89.nc
+v19.nc=nudgeF_hold/vwnd.1969.GISS.144x89.nc
+u20.nc=nudgeF_hold/uwnd.1970.GISS.144x89.nc
+v20.nc=nudgeF_hold/vwnd.1970.GISS.144x89.nc
+u21.nc=nudgeF_hold/uwnd.1971.GISS.144x89.nc
+v21.nc=nudgeF_hold/vwnd.1971.GISS.144x89.nc
+u22.nc=nudgeF_hold/uwnd.1972.GISS.144x89_MANIP.nc
+v22.nc=nudgeF_hold/vwnd.1972.GISS.144x89_MANIP.nc
+u23.nc=nudgeF_hold/uwnd.1973.GISS.144x89.nc
+v23.nc=nudgeF_hold/vwnd.1973.GISS.144x89.nc
+u24.nc=nudgeF_hold/uwnd.1974.GISS.144x89.nc
+v24.nc=nudgeF_hold/vwnd.1974.GISS.144x89.nc
+u25.nc=nudgeF_hold/uwnd.1975.GISS.144x89.nc
+v25.nc=nudgeF_hold/vwnd.1975.GISS.144x89.nc
+u26.nc=nudgeF_hold/uwnd.1976.GISS.144x89_MANIP.nc
+v26.nc=nudgeF_hold/vwnd.1976.GISS.144x89_MANIP.nc
+u27.nc=nudgeF_hold/uwnd.1977.GISS.144x89.nc
+v27.nc=nudgeF_hold/vwnd.1977.GISS.144x89.nc
 u28.nc=nudgeF_hold/uwnd.1978.GISS.144x89.nc
 v28.nc=nudgeF_hold/vwnd.1978.GISS.144x89.nc
 u29.nc=nudgeF_hold/uwnd.1979.GISS.144x89.nc
