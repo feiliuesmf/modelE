@@ -534,8 +534,10 @@ c
         if (AM_I_ROOT())
      .  write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
      .   /'' iyear1/jyear='',2i5)')
-     .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
-     . ,int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear
+CTNL .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday  ! crashes
+     .  int((nstep0+nstepi-1)/(3600*24)*baclin),itime/nday  ! if nstep0 too big
+CTNL . ,int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear ! crashes
+     . ,int((nstep0+nstepi-1)/3600*baclin),itime*24/nday,iyear1,jyear
       else
         if (AM_I_ROOT())
      .  write (lp,'(''starting date in ogcm/agcm '',2i12
