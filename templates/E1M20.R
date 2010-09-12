@@ -73,29 +73,14 @@ REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin           ! river direction file
 TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
-! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2000
-!    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_Ma_2008
-RADN3=miescatpar.abcdv2
-! updated aerosols need MADAER=3
+#include "rad_input_files"
+!GHG=GHG.Mar2004.txt
 TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
 TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
 TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
@@ -107,9 +92,6 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.Mar2004.txt
-dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
