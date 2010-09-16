@@ -423,6 +423,9 @@ if ( $rcode != 13 && $rcode != 12 ) {
     print "1st hour completed successfully\n";
 }
 
+## HACK needed for proper setup of mvapich2 runs
+#  (need to remove extra '\')
+$run_command =~ s/\\(?=\$PBS_NODEFILE)//g;
 
 ## Create executable script file RUNID
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
