@@ -207,6 +207,7 @@ C**** set super saturation parameter for isotopes if needed
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
+      call sync_param("gasPrecFracScal",gasPrecFracScal)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif
@@ -631,7 +632,7 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.0d0
+          F0(n) = 1.4d0
           HSTAR(n) = 1.d-2
 #endif
       case ('NOx')
@@ -11280,7 +11281,7 @@ c     cldinc=max(0.,cldsavt-fcloud)
       if(lhx.eq.lhe .and. fcloud.ge.1d-16) then
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
-        ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
+        ssfac0 = WMXTR*MAIR*1.D-6*Ppas/(CLDSAVT+teeny)
         ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
         do igas=1,hlawt_count
           n = hlawt_list(igas)
@@ -11601,7 +11602,8 @@ c     USE PBLCOM, only: wsavg
       USE TRACER_COM, only :
      &     gases_count,aero_count,water_count,hlawt_count,
 ! NB: these lists are often used for implicit loops
-     &     gases_list,aero_list,water_list,hlawt_list
+     &     gases_list,aero_list,water_list,hlawt_list,
+     &     gasPrecFracScal
 
 c      USE CLOUDS, only: NTIX,PL
       USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
@@ -11640,7 +11642,7 @@ c      fq(gases_list) = 0.D0
         bb_tmp = max(b_beta_DT,0.) ! necessary check?
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
-        ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+        ssfac0 = WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
         ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
         do igas=1,hlawt_count
           n = hlawt_list(igas)
@@ -11648,8 +11650,8 @@ c      fq(gases_list) = 0.D0
         enddo
         do igas=1,gases_count
           n = gases_list(igas)
-          thlaw(n) = min(tm(n),max(0d0,
-     &     bb_tmp*(ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
+          thlaw(n) = min( tm(n),max( 0d0,gasPrecFracScal*bb_tmp*
+     &    (ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
         enddo
       else
         thlaw(gases_list) = 0.
