@@ -30,7 +30,7 @@ C****
       implicit none
       integer i, j, k, m, last_day, kday, jday0, IH,
      *     months, month, iu_TOPO, iu_MLMAX, iu_SNOW, iu_OCNOUT
-      REAL*4 month_day(12)
+      REAL*4 month_day(12),focn4(im,jm),z4(im,jm)
       real*8 z1ox(im,jm),z12o_max
       CHARACTER*80 TITLE
       data month_day /31,28,31,30,31,30,31,31,30,31,30,31/
@@ -48,15 +48,16 @@ C****
 C**** Read in FOCEAN - ocean fraction
 C****
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,"TOPO",focean,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C*
       fland = 1.- focean
+      focn4(:,:) = focean(1:im,1:jm)
 C*
 C**** Read in aux. sea-ice file
 C*
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,IM*JM,DM,1)
+      CALL READT_PARALLEL(grid,iu_SICE,"SICE",DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -152,15 +153,20 @@ C****
       jday0=1
       IH=24*(JDAY0-1)
       TITLE = '  TGO = Ocean Temperature of Mixed Layer (C)'
-      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(1,:,:)),SNGL(FOCEAN),1.,0.,0)
+      z4 = TOCEAN(1,1:im,1:jm)
+      CALL MAP1(IM,JM,IH,TITLE,z4                 ,focn4,1.,0.,0)
       TITLE = ' TG2O = OCEAN TEMPERATURE OF SECOND LAYER (C)'
-      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(2,:,:)),SNGL(FOCEAN),1.,0.,0)
+      z4 = TOCEAN(2,1:im,1:jm)
+      CALL MAP1(IM,JM,IH,TITLE,z4                 ,focn4,1.,0.,0)
       TITLE = 'TG12O = OCEAN TEMPERATURE AT BOTTOM OF SECOND LAYER (C)'
-      CALL MAP1(IM,JM,IH,TITLE,SNGL(TOCEAN(3,:,:)),SNGL(FOCEAN),1.,0.,0)
+      z4 = TOCEAN(3,1:im,1:jm)
+      CALL MAP1(IM,JM,IH,TITLE,z4                 ,focn4,1.,0.,0)
       TITLE = '  Z1O = MIXED LAYER DEPTH (M)'
-      CALL MAP1(IM,JM,IH,TITLE,SNGL(Z1O),SNGL(FOCEAN),1.,0.,0)
+      z4 = Z1O(1:im,1:jm)
+      CALL MAP1(IM,JM,IH,TITLE,z4       ,focn4,1.,0.,0)
       TITLE = ' Z12O = DEPTH OF BOTTOM OF SECOND LAYER (M)'
-      CALL MAP1(IM,JM,IH,TITLE,SNGL(Z12O),SNGL(FOCEAN),1.,0.,0)
+      z4 = Z12O(1:im,1:jm)
+      CALL MAP1(IM,JM,IH,TITLE,z4        ,focn4,1.,0.,0)
 
 !AOO not sure if this is needed, but just in case ... part 3 of 3
       call finish_app()

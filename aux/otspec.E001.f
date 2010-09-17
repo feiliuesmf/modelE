@@ -22,6 +22,7 @@ C****
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
       use domain_decomp_1d, only : init_app, init_grid,grid, finish_app
+      use domain_decomp_atm, only : readt_parallel
 !AOO end of part 1 of 3
 !!    use model_com, only : ioread
       use model_com, only : im,jm,lm
@@ -30,7 +31,7 @@ C****
       USE MODEL_COM, only: lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
-      USE DIAG_COM, only : oa,koa
+      USE DIAG_COM, only : koa
       USE SEAICE_COM, only : rsi,snowi,msi,ssi
       USE SEAICE, only : ace1i,ac2oim
       USE FLUXES, only : sss
@@ -45,11 +46,11 @@ C****
       REAL*8 ARG,COSDAY(4),SINDAY(4),VFX(2), XCORR(2), SYEARS, OMEG, OE,
      *  CV(IM,JM,2),AV(IM,JM,4,2),BV(IM,JM,4,2),AE(IM,JM,4),BE(IM,JM,4)
       CHARACTER*80 TITLE(5),TITLE0, RunID, file_name
-      REAL*4 month_day(12)
+      REAL*4 month_day(12),focn4(im,jm)
       INTEGER ioerr,iu_TOPO,iu_MLMAX,iu_VFLX,iu_OHTLP,iu_OCNOUT
      *     ,iu_XCORR,iu_OHT
       INTEGER ItimeX
-      REAL*8 onht(jm,2),toceansv(3,IM,JM)
+      REAL*8 onht(jm,2),toceansv(3,IM,JM),oa(im,jm,koa)
       real*8 z1ox(im,jm),z12o_max
 C****
       character*4 month_name(12), tmonth, tyear
@@ -108,12 +109,12 @@ C****
 C**** Read in input files
 C****
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,IM*JM,DM,1)
+      CALL READT_PARALLEL(grid,iu_SICE,"SICE",DM,1)
 C*
 C**** Read in FOCEAN - ocean fraction
 C*
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,"TOPO",focean,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C*
 C**** Read in ocean data below mixed layer on December 31
@@ -129,6 +130,7 @@ C*
       CV = 0. ; AV = 0. ; BV = 0. ; AE = 0. ; BE = 0.
       AMPOT = 0. ; PHAOT = 0. ; COTS = 0.
       FLAND = 1. - FOCEAN
+      focn4(:,:) = focean(1:im,1:jm)
 C****
 C**** Calculate spherical geometry
 C****
@@ -292,16 +294,16 @@ C**** fix diagnostic polar boxes
         COTS(I,JM,:) = COTS(1,JM,:)
       END DO
       TAU4 = itime
-      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,1),SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,1) ,SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,1),focn4,1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,1),focn4,1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,1) ,focn4,1.,0.,0)
 C**** no ice dyn
       do i=1,3
         TITLE(i)=trim(TITLE(i))//" no IceD"
       end do
-      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,2),SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,2),SNGL(FOCEAN),1.,0.,0)
-      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,2) ,SNGL(FOCEAN),1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(1),AMPOT(1,1,2),focn4,1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(2),PHAOT(1,1,2),focn4,1.,0.,0)
+      CALL MAP1 (IM,JM,ITIME,TITLE(3),COTS(1,1,2) ,focn4,1.,0.,0)
 C****
 C**** Write ocean transports spectral coefficients to disk
 C****
@@ -316,7 +318,8 @@ C****
       call closeunit(iu_OHT)
 
 C**** save tocean data
-      TOCEANSV=TOCEAN
+      do j=1,jm ; do i=1,im
+      TOCEANSV(1:3,i,j) = TOCEAN(1:3,i,j) ; end do ; end do
 
 C**** Combine final restart file of PRESCRIBED OCEAN DATA model run
 C**** with mean & bottom temperature of 2nd ocean layer to create
@@ -326,7 +329,7 @@ C****
 C*
 C****  Set the ocean temperature below the mixed layer
 C*
-      tocean(2:3,:,:) = toceansv(2:3,:,:)
+      tocean(2:3,1:im,1:jm) = toceansv(2:3,:,:)
 C*
       ntimeacc = 1
       timing = 0

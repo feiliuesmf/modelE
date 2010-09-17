@@ -16,11 +16,12 @@ C****
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
       use domain_decomp_1d, only : init_app, init_grid,grid, finish_app
+      use domain_decomp_atm, only : readt_parallel
 !AOO end of part 1 of 3
 !!    use model_com, only : ioread
       use model_com, only : im,jm,lm
       USE STATIC_OCEAN
-      USE DIAG_COM, only : oa,koa
+      USE DIAG_COM, only : koa
       USE SEAICE_COM, only : rsi,snowi
       USE SEAICE, only : ace1i
       USE FLUXES, only : sss,fwsim
@@ -33,7 +34,7 @@ C****
      *     ,iu_SNOW,iok
       REAL*8 AVFX(IM,JM,2),GSR,GVFXSR(2),SYEAR,SYEARS
       real*8 VFSR, VF(2), XCORR(2)
-      REAL*8 ASR(im,jm),AVFXSR(im,jm,2)
+      REAL*8 ASR(im,jm),AVFXSR(im,jm,2),oa(im,jm,koa)
       REAL*4 OAS(IM,JM,8), month_day(12)
       CHARACTER*80 TITLE(4),TITLE0, RunID, file_name
       character*4 month_name(12), tmonth, tyear
@@ -84,7 +85,7 @@ C****
       years = last_year-first_year+1
       SYEARS = SYEAR*years
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,IM*JM,DM,1)
+      CALL READT_PARALLEL(grid,iu_SICE,"SICE",DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -93,7 +94,7 @@ C****
 C**** Read in FOCEAN - ocean fraction
 C****
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,"TOPO",focean,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C****
 C**** Zero out the vertical flux and its components
