@@ -121,7 +121,6 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 #include "static_ocn_params"
 #include "sdragF40_params"
 #include "gwdragF40_params"
-CDEF=1.5  ! overwrites value above
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
@@ -149,6 +148,10 @@ imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, imAER=5,
 aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
 #include "dust_params"
 #include "chemistry_params"
+
+! effective precipitating fraction of grid box for below-cloud washout
+! of soluable gases: A scaling/tuning in TRACERS_DRV:
+gasPrecFracScal=15.d0
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
