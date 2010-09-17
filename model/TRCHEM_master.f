@@ -88,6 +88,8 @@ C**** Local parameters and variables and arguments:
 !@var average tropospheric ch4 value near 569 hPa level
 !@var PRES2 local nominal pressure for verticle interpolations
 !@var thick thickness of each layer in various units
+!@var bythick recipricol thickness of each layer (1/m) saved on
+!@+ model layers. Should replace thick with 1/this too?
 !@var photO2_glob for O2->Ox diagnostic
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
@@ -127,7 +129,7 @@ C**** Local parameters and variables and arguments:
 !@var bysumOx reciprocal of sum of regional Ox tracers
       REAL*8, DIMENSION(LM,NTM) :: changeL
       REAL*8, DIMENSION(NTM)    :: PIfact
-      REAL*8, DIMENSION(LM)     :: PRES2,rh
+      REAL*8, DIMENSION(LM)     :: PRES2,rh,bythick
       REAL*8 :: tempChangeNOx
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byam75,byavog,CH4FACT,r179,rlossN,
@@ -461,10 +463,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       DO L=1,LM
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0  ! (LM,NTM)
-c Save presure, temperature, and rel. hum. in local arrays:
+c Save presure, temperature, thickness, rel. hum. in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)=TX(I,J,L)
        rh(L)=Q(i,j,l)/min(1.d0,QSAT(ta(L),lhe,pres(L)))
+       bythick(L)=1.d0/
+     & (rgas*bygrav*TX(i,j,L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*cboltz)
        y(nO2,L)=y(nM,L)*pfix_O2
@@ -965,10 +969,13 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 ! --------------------------------------------------------------------
         if (coupled_chem == 1) then
           ! Convert SO4 from mass (kg) to aerosol surface per grid box:
-          fact_so4 = BYAXYP(I,J)*BYAM(L,I,J)*28.0D0*y(nM,L) ! *96/96
-          ! sulfate(I,J,L)=(trm(I,J,L,n_SO4)*fact_so4*3.0D0)
-     &    ! /(3.9D-6*avog*1.1D0)
-          sulfate(I,J,L)=trm(I,J,L,n_SO4)*fact_so4*byavog*1.063636d7
+          ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
+          ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
+          ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
+          ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Recipricle
+          ! layer thickness below is in 1/m units:
+          sulfate(i,j,L)=trm(i,j,L,n_SO4)*1.76d2*byaxyp(i,j)*bythick(L)
+     &                   *max(0.1d0,rh(L)*1.33333d0)
         endif
 
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
@@ -2385,7 +2392,7 @@ C**** Local parameters and variables and arguments:
 !@var Ltop is number of levels with chemistry
 !@var beta branching ratio for (HO2+NO) reactions
 !@var pcon variable for some pressure conversions
-      REAL*8 :: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon
+      REAL*8:: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon,waterPPMV
       INTEGER             :: L,jj,nb,Ltop
       INTEGER, INTENT(IN) :: I,J
 #ifdef SHINDELL_STRAT_CHEM
@@ -2444,7 +2451,8 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           if(jj == 42)rr(jj,L)=rr(jj,L)/y(nM,L)!ROR+M really ROR
 !         for #6 & 91 (HO2+NO) calculate branching ratio here          
 !         Butkovskaya et al J.Phys.Chem 2007         
-          if(ta(L)<298.d0)then
+          waterPPMV=1.d6*y(nH2O,L)/y(nM,L)
+          if(ta(L)<298.d0 .and. waterPPMV > 100.)then
             beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
           else
             beta=0.d0
@@ -2459,7 +2467,7 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
         end do                ! bimolecular rates end
 
 #ifdef SHINDELL_STRAT_CHEM
-        rr(87,L)=rr(87,L)*1.76d0  ! N2O+O(1D)-->NO+NO 
+        rr(87,L)=rr(87,L)*2.50d0  ! N2O+O(1D)-->NO+NO 
 #endif
         do jj=1,nr3           ! trimolecular rates start
           rr(nr2+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
