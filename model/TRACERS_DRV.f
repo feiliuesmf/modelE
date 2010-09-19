@@ -11053,9 +11053,9 @@ c
             ELSE
               RKD=tr_RKD(NTIX(N))
             END IF
-c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
+c           clwc=WMXTR*MAIR*1.D-6*Ppas*BYGASC/(TEMP*FCLOUD)
 c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
-            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
+            ssfac=RKD*WMXTR*MAIR*1.D-6*Ppas/(CLDSAVT+teeny)
             if (.not.tr_conv) then  !stratiform
               thlaw=(ssfac*tr_lef*tm(l,NTIX(N))
      *        -TRWML(NTIX(N),L))/(1.D0+ssfac)
@@ -11539,13 +11539,13 @@ C
           IF(LHX.EQ.LHE) THEN                 ! if not frozen then:
             Ppas = PL*1.D2                 ! pressure to pascals
             tfac = (1.D0/TEMP - BY298K)*BYGASC
-            ssfac=WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+            ssfac=WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
             IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
               ssfac=(ssfac*tr_RKD(NTIX(N)))*DEXP(-tr_DHD(NTIX(N))*tfac)
             ELSE
               ssfac=(ssfac*tr_RKD(NTIX(N)))
             END IF
-c            ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+c            ssfac=RKD*WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
             thlaw=(ssfac*tm(l,NTIX(N))-TRPR(NTIX(N)))
      *            /(1.D0+ssfac)
             if (thlaw.lt.0.) thlaw=0.d0
