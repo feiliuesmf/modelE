@@ -61,7 +61,7 @@ hycom_dimen.o: hycom_dimen.f
 hycom_arrays.o: hycom_arrays.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c hycom_arrays.f
 latlonz.o: latlonz.f const_proc.f hycom_dimen.f hycom_arrays.f
-	$(LD) $(LDFLAGS) -c latlonz.F
+	$(LD) $(LDFLAGS) -c latlonz.f
 restep.o: restep.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c restep.f
 
