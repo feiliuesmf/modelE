@@ -998,9 +998,8 @@ c        if(do_enddef) rc2 = nfmpi_enddef(fid)
       logical :: with_record_dim
       character*1, dimension(:), allocatable :: char_arr
       integer :: i,ndims,l,l1,l2,xdim,lv,dsize,status
-     &     ,dsizx
+     &     ,dsizx,num_dist_dims,dist_dim_count
       integer :: dids(7)
-      logical :: is_dist
       integer*8 :: dsize8
       rc = 0
       varinfo=trim(varinfo_in)
@@ -1043,9 +1042,24 @@ c check whether variable is already defined
         rc = 1; return
       endif
 c
+c count the number of distributed dimensions
+c
+      num_dist_dims = 0
+      if(index(varinfo,'dist_').gt.0) then
+        do i=1,len_trim(varinfo)-4
+          if(varinfo(i:i+4).eq.'dist_') num_dist_dims = num_dist_dims+1
+        enddo
+        if(num_dist_dims.gt.2) then
+          if(am_root) write(6,*)
+     &         'error: number of distributed dimensions for variable ',
+     &         trim(vname),' exceeds 2'
+          rc = 1; return
+        endif
+      endif
+c
 c loop through dimensions and define them if necessary
 c
-      is_dist = .false.
+      dist_dim_count = 0
       if(ndims.gt.0) then
         l1=index(varinfo,'(')+1
         do xdim=1,ndims
@@ -1056,14 +1070,14 @@ c
           endif
           dname=varinfo(l1:l2)
           dsize = shp_in(xdim)
-          if(dname(1:6).eq.'dist_i') then
+          if(dname(1:5).eq.'dist_') then
             dname=dname(6:len_trim(dname))
-            dsize = im_in
-            is_dist = .true.
-          elseif(dname(1:6).eq.'dist_j') then
-            dname=dname(6:len_trim(dname))
-            dsize = jm_in
-            is_dist = .true.
+            dist_dim_count = dist_dim_count+1
+            if(dist_dim_count.lt.num_dist_dims) then
+              dsize = im_in
+            else
+              dsize = jm_in
+            endif
           endif
           if(nfmpi_inq_dimid(fid,trim(dname),dids(xdim)).eq.nf_noerr)
      &         then
@@ -1085,7 +1099,7 @@ c
 c
 c if more than one tile, add an extra dimension for distributed vars
 c
-      if(ntiles.gt.1 .and. is_dist) then
+      if(ntiles.gt.1 .and. num_dist_dims.gt.0) then
         ndims = ndims + 1
         xdim = ndims
         dname='tile'
