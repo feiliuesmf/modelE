@@ -487,10 +487,10 @@ c          call ESMF_BCAST(grid, TRICBIMP)
       call defvar(grid,fid,eaccpda,'eaccpda')
       call defvar(grid,fid,accpdg,'accpdg')
       call defvar(grid,fid,eaccpdg,'eaccpdg')
-      call defvar(grid,fid,dmicbimp,'dmicbimp(2)')
-      call defvar(grid,fid,micbimg,'micbimp(2)')
-      call defvar(grid,fid,deicbimp,'deicbimp(2)')
-      call defvar(grid,fid,eicbimg,'eicbimp(2)')
+      call defvar(grid,fid,dmicbimp,'dmicbimp(two)')
+      call defvar(grid,fid,micbimg,'micbimp(two)')
+      call defvar(grid,fid,deicbimp,'deicbimp(two)')
+      call defvar(grid,fid,eicbimg,'eicbimp(two)')
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsnowli,
      &     'trsnowli(ntm,dist_im,dist_jm)')
@@ -500,8 +500,8 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 #ifdef TRACERS_OCEAN
       call defvar(grid,fid,traccpda,'traccpda(ntm)')
       call defvar(grid,fid,traccpdg,'traccpdg(ntm)')
-c      call defvar(grid,fid,dtricbimp,'dtricbimp(ntm,2)')
-c      call defvar(grid,fid,tricbimg,'tricbimp(ntm,2)')
+c      call defvar(grid,fid,dtricbimp,'dtricbimp(ntm,two)')
+c      call defvar(grid,fid,tricbimg,'tricbimp(ntm,two)')
 #endif
 #endif
       return
@@ -553,6 +553,7 @@ c restart file
         mdwnimp(:,:) = 0.; edwnimp(:,:) = 0.
         accpda = 0.; eaccpda = 0.
         accpdg = 0.; eaccpdg = 0.
+        micbimp=0; eicbimp=0; dmicbimp=0; deicbimp=0
         call read_dist_data(grid,fid,'mdwnimp',mdwnimp)
         call read_dist_data(grid,fid,'edwnimp',edwnimp)
         call read_data(grid,fid,'accpda',accpda,bcast_all=.true.)
