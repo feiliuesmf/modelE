@@ -47,7 +47,16 @@ $ make pltov_mon
 $ pltov_mon 
 
 $ make latlonz
-$ latlonz <input
+Change parameters after -o output file
+                       -t "This title will be at output files"
+                       -i input files for averages and transfer on Levitus grid: 
+EXAMPLE:
+latlonz.ksh \
+     -o /discover/nobackup/ntausnev/Z_Deleted_Files/JAN2280_82.zoutEhMay2 \
+     -t "RunId=EhMay2 Mon=JAN YEAR=2280-82" \
+     -i /discover/nobackup/ntausnev/RUNS_ME/EhMay2/00HYC/outEhMay2_2280-2289/JAN228[0-2].outEhMay2.gz
+
+
 
 $ make get2d
 $ get2d <input
