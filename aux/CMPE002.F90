@@ -292,7 +292,8 @@
       use veg_com, only : Cint,Qfol,cnc_ij
 #endif
       use landice_com, only : snowli,tlandi,MdwnImp,EdwnImp
-      use landice, only : accpda,accpdg, eaccpda,eaccpdg
+      use landice, only : accpda,accpdg, eaccpda,eaccpdg,  &
+           micbimp,dmicbimp,eicbimp,deicbimp
       use pblcom, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg, &
            ustar_pbl,egcm,w2gcm,tgvavg,qgavg
       use pblcom, only : uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs,ipbl
@@ -524,6 +525,10 @@
         checks("accpdg",accpdg)
         checks("Eaccpda",Eaccpda)
         checks("Eaccpdg",Eaccpdg)
+	checks("micbimp",micbimp)
+	checks("dmicbimp",dmicbimp)
+	checks("eicbimp",eicbimp)
+	checks("deicbimp",deicbimp)
         ! bldat
         check("wsavg",wsavg)
         check("tsavg",tsavg)
