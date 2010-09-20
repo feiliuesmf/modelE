@@ -21,7 +21,7 @@
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg,snmin
+     *     ,eaccpdg,snmin,dmicbimp,micbimp,deicbimp,eicbimp
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
@@ -48,6 +48,7 @@
 #endif
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
+     *     ,icon_MICB,icon_HICB
       USE PARAM
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM, READT_PARALLEL
      &     ,AM_I_ROOT
@@ -199,10 +200,13 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
 
 C**** initiallise implicit accumulators (note that these arrays are
 C**** not used until at least one full year has passed)
-        MDWNIMP=0.
-        EDWNIMP=0.
+        MDWNIMP=0.  ;  EDWNIMP=0.
+        MICBIMP=0.  ;  EICBIMP=0.
+        dMICBIMP=0. ;  dEICBIMP=0.
 #ifdef TRACERS_WATER
         TRDWNIMP=0.
+c        TRICBIMP=0.
+c        dTRICBIMP=0.
 #endif
       end if
 
@@ -245,6 +249,14 @@ C**** Set conservation diagnostics for land ice mass, energy
       QCON=(/ F, F, F, T, T, F, F, F, T, F, F/)
       CALL SET_CON(QCON,CONPT0,"LNDI ENR","(10**6 J/M^2)   ",
      *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_HLI)
+
+C**** Set conservation diagnostics for implicit iceberg mass, energy
+      QCON=(/ F, F, F, F, F, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT0,"ICEBERG ","(KG/M^2)        ",
+     *     "(10**-7 KG/SM^2)",1d0,1d7,icon_MICB)
+      QCON=(/ F, F, F, F, F, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT0,"ICBRG EN","(10**6 J/M^2)   ",
+     *     "(10**-1 W/M^2)  ",1d-6,1d1,icon_HICB)
 C****
       END SUBROUTINE init_LI
 
@@ -381,13 +393,14 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@auth Original Development team
 !@ver  1.0
 !@calls LANDICE:LNDICE
-      USE CONSTANT, only : tf
-      USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice
+      USE CONSTANT, only : tf,sday,edpery
+      USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice,dtsrc
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE LANDICE, only : lndice,ace1li,ace2li,snmin
+      USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp
+     *     ,eicbimp,accpda,accpdg,eaccpda,eaccpdg
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
 #ifdef SCM
@@ -399,7 +412,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
      *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trdwnimp
+     *     ,ntm,trsnowli,trlndi,trdwnimp,tricbimp,traccpda,traccpdg
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
@@ -433,7 +446,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      INTEGER I,J,JR
+      INTEGER I,J,JR,N
       INTEGER :: J_0,J_1, J_0H, J_1H ,I_0,I_1
 
       call startTimer('GROUND_LI()')
@@ -530,6 +543,10 @@ C**** ACCUMULATE DIAGNOSTICS
       END IF
 
 C**** Accumulate diagnostics related to iceberg flux here also
+C**** remove source time step icb flux 
+      MICBIMP(:) = MICBIMP(:)-(/ ACCPDA,  ACCPDG /)*DTsrc/(EDPERY*SDAY)
+      EICBIMP(:) = EICBIMP(:)-(/EACCPDA, EACCPDG /)*DTsrc/(EDPERY*SDAY)
+
       CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-RSI(I,J))* GMELT(I,J)
      *     *BYAXYP(I,J))
       CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-RSI(I,J))*EGMELT(I,J)
@@ -544,6 +561,10 @@ C**** Accumulate diagnostics related to iceberg flux here also
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
 #ifdef TRACERS_WATER  /* TNL: inserted */
+c      DO N=1,NTM
+c        TRICBIMP(N,:) = TRICBIMP(N,:)-(/TRACCPDA(:), TRACCPDG(:)/)
+c     *       *DTsrc/(EDPERY*SDAY)
+c      END DO
 #ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
      *     *BYAXYP(I,J)
@@ -627,6 +648,87 @@ C****
 C****
       END SUBROUTINE conserv_HLI
 
+      SUBROUTINE conserv_MICB(MICB)
+!@sum  conserv_MICB calculates total amount of implicit iceberg
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,jm
+      USE GEOM, only : imaxj,axyp
+      USE LANDICE, only : micbimp
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      IMPLICIT NONE
+!@var MICB implicit mass of iceberg (kg/m^2)
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: MICB
+      INTEGER I,J
+      INTEGER :: J_0,J_1 ,I_0,I_1
+      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C**** since this is just diagnostic of hemispheric mean for now, we put
+C**** everything in one spot per hemisphere.
+C**** (how should we do this in CUBED_SPHERE?)
+
+      print*,"in conserv_MICB",micbimp
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        MICB(I,J) = 0.
+        IF (I.EQ.1 .and. J.eq.2)    MICB(I,J)=micbimp(1)/AXYP(I,J)
+        IF (I.EQ.1 .and. J.eq.JM-1) MICB(I,J)=micbimp(2)/AXYP(I,J)
+      END DO
+      END DO
+      IF(HAVE_SOUTH_POLE) MICB(2:im,1) =MICB(1,1)
+      IF(HAVE_NORTH_POLE) MICB(2:im,JM)=MICB(1,JM)
+
+      RETURN
+C****
+      END SUBROUTINE conserv_MICB
+
+      SUBROUTINE conserv_HICB(EICB)
+!@sum  conserv_HICB calculates implicit iceberg energy
+!@auth Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,jm
+      USE GEOM, only : imaxj,axyp
+      USE LANDICE, only : eicbimp
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      IMPLICIT NONE
+!@var EICB impicit iceberg energy (J/m^2)
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICB
+      INTEGER I,J
+      INTEGER :: J_0,J_1 ,I_0,I_1
+      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C**** since this is just diagnostic of hemispheric mean for now, we put
+C**** everything in one spot per hemisphere.
+C**** (how should we do this in CUBED_SPHERE?)
+      print*,"in conserv_HICB",eicbimp
+
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        EICB(I,J) = 0.
+        IF (I.EQ.1 .and. J.eq.2)    EICB(I,J)=eicbimp(1)/AXYP(I,J)
+        IF (I.EQ.1 .and. J.eq.JM-1) EICB(I,J)=eicbimp(2)/AXYP(I,J)
+      END DO
+      END DO
+      IF(HAVE_SOUTH_POLE) EICB(2:im,1) =EICB(1,1)
+      IF(HAVE_NORTH_POLE) EICB(2:im,JM)=EICB(1,JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_HICB
+
       SUBROUTINE daily_LI
 !@sum  daily_ice does daily landice things
 !@auth Gavin Schmidt
@@ -637,10 +739,10 @@ C****
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg
+     *     ,eaccpdg,micbimp,eicbimp,dmicbimp,deicbimp
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-     *     ,traccpda,traccpdg
+     *     ,traccpda,traccpdg   ! tricbimp,dtricbimp
 #endif
       USE TRDIAG_COM, only : to_per_mil
       USE TRACER_COM, only :  trw0, nWater, trname
@@ -674,6 +776,63 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+C**** Keep track of accumlated implicit iceberg amount
+C**** hemispheric masking (why isn't this in GEOM?)
+      do j=j_0,j_1; do i=i_0,i_1
+        if(lat2d(i,j).lt.0.) then
+          mask_s(i,j) = 1.
+        else
+          mask_s(i,j) = 0.
+        endif
+      enddo; enddo
+
+C**** For total cumulative accumulation, pre-remove accumulation up to
+C**** the day before
+
+      MICBIMP(:) = MICBIMP(:) - dMICBIMP(:) 
+      EICBIMP(:) = EICBIMP(:) - dEICBIMP(:) 
+c#ifdef TRACERS_WATER
+c      TRICBIMP(:,:) = TRCIBIMP(:,:) - dTRICBIMP(:,:) 
+c#endif
+
+C**** Calculate and save mass/energy/tracer accumulation to date for
+C**** this year
+! mass and energy (kg, J)
+      do j=j_0,j_1; do i=i_0,i_1
+        arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
+        arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
+      enddo; enddo
+      CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
+      CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
+      do j=j_0,j_1; do i=i_0,i_1
+        arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
+        arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
+      enddo; enddo
+      CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
+      CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
+
+      dMICBIMP(:)=(/ mdwnimp_SH, mdwnimp_NH /)
+      dEICBIMP(:)=(/ edwnimp_SH, edwnimp_NH /)
+      
+#ifdef TRACERS_WATER
+      DO ITM=1,NTM
+        do j=j_0,j_1; do i=i_0,i_1
+          arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
+          arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
+        enddo; enddo
+        CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
+        CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
+c        dTRICBIMP(ITM,:)=(/ trdwnimp_SH(itm), trdwnimp_NH(itm) /)
+      END DO
+#endif
+
+C**** For total cumulative accumulation, add back accumulation up to today
+      MICBIMP(:) = MICBIMP(:) + dMICBIMP(:) 
+      EICBIMP(:) = EICBIMP(:) + dEICBIMP(:) 
+c#ifdef TRACERS_WATER
+c      TRICBIMP(:,:) = TRCIBIMP(:,:) + dTRICBIMP(:,:) 
+c#endif
+
 C**** Every year update gmelt factors in order to balance downward
 C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
@@ -683,39 +842,6 @@ C**** we aren't getting that right anyway.
 
 ! only adjust after at least one full year
         IF (itime.ge.itimei+JDperY*nday .and. glmelt_on==1) THEN
-
-          do j=j_0,j_1; do i=i_0,i_1
-            if(lat2d(i,j).lt.0.) then
-              mask_s(i,j) = 1.
-            else
-              mask_s(i,j) = 0.
-            endif
-          enddo; enddo
-
-! mass and energy (kg, J)
-          do j=j_0,j_1; do i=i_0,i_1
-            arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
-            arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
-          enddo; enddo
-          CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
-          CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
-          do j=j_0,j_1; do i=i_0,i_1
-            arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
-            arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
-          enddo; enddo
-          CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
-          CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
-
-#ifdef TRACERS_WATER
-          DO ITM=1,NTM
-            do j=j_0,j_1; do i=i_0,i_1
-              arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
-              arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
-            enddo; enddo
-            CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
-            CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
-          END DO
-#endif
 
 C*** prevent iceberg sucking
           if(mdwnimp_NH.lt.0) then

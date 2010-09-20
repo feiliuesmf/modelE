@@ -111,7 +111,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER, public :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
-      INTEGER, PARAMETER, public :: NQUANT=22
+      INTEGER, PARAMETER, public :: NQUANT=24
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER, public :: KCON=170
 !@var CONSRV conservation diagnostics
@@ -127,9 +127,10 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, DIMENSION(NPTS+1,NQUANT), public :: NOFM
 !@var icon_xx indexes for conservation quantities
       INTEGER, public ::
-     &     icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM
-     *     ,icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OMSI
-     *     ,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI,icon_HLI
+     &     icon_AM,icon_KE,icon_MS,icon_TPE,icon_WM,icon_LKM,
+     *     icon_LKE,icon_EWM,icon_WTG,icon_HTG,icon_OCE,icon_OMSI,
+     *     icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI,icon_HLI,
+     *     icon_MICB,icon_HICB
 !@var KCMX actual number of conservation diagnostics
       INTEGER, public :: KCMX = 25 ! take up first 25 indexes for special cases
 !@var CONPT0 default titles for each point where conserv diags. are done
@@ -492,6 +493,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
      *     ,ij_kw, ij_alpha, ij_gasx
+     *     ,ij_sisnd,ij_tsice,ij_sirain,ij_sisnwf,ij_sigrfr
+     *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
+     *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
      &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,

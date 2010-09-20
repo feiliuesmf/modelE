@@ -842,7 +842,7 @@ c
       USE DIAG_COM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
-     *     ,icon_HLI,title_con
+     *     ,icon_HLI,icon_MICB,icon_HICB,title_con
       !USE SOIL_DRV, only: conserv_WTG,conserv_HTG
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
@@ -866,6 +866,7 @@ C****
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
+     *     ,conserv_MICB,conserv_HICB
       real*8 NOW
       INTEGER NT
 
@@ -911,6 +912,10 @@ C**** GROUND WATER AND ENERGY
 C**** LAND ICE MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_MLI,icon_MLI)
       CALL conserv_DIAG(M,conserv_HLI,icon_HLI)
+
+C**** ICEBERG MASS AND ENERGY
+      CALL conserv_DIAG(M,conserv_MICB,icon_MICB)
+      CALL conserv_DIAG(M,conserv_HICB,icon_HICB)
 
 C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
       CALL DIAGCO (M)
