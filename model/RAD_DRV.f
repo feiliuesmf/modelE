@@ -58,7 +58,7 @@ C****
 #endif
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
+     *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc,aer_rad_forc

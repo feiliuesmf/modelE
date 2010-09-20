@@ -232,9 +232,6 @@ C**** using the rad_forc_lev parameter.
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
-!@var SINJ,COSJ sines and cosines for zenith angle calculation
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: SINJ,COSJ
-
 !@var NTRIX Indexing array for optional aerosol interaction
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
 !@var WTTR weighting array for optional aerosol interaction
@@ -265,7 +262,7 @@ C**** Local variables initialised in init_RAD
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
-     *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SINJ, COSJ
+     *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR
 #ifdef TRACERS_SPECIAL_Shindell
@@ -327,8 +324,6 @@ C**** Local variables initialised in init_RAD
      *     dH2O(J_0H:J_1H, LM, 12),
 #endif
      *     ALB(I_0H:I_1H, J_0H:J_1H, 9),
-     *     SINJ(J_0H:J_1H),
-     *     COSJ(J_0H:J_1H),
      &     srnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
      &     trnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
 #ifdef TRACERS_ON
