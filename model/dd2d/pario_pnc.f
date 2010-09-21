@@ -154,6 +154,8 @@ c
 
       real*8, parameter :: impossible_int=huge(1d0)
 
+      public :: set_record_dimname
+
       contains
 
       function par_open(grid,fname,mode)
@@ -1123,7 +1125,8 @@ c if record dimension requested, add it
 c
       if(with_record_dim) then
         ndims = ndims + 1
-        if(nfmpi_inq_dimid(fid,'record',dids(ndims)).ne.nf_noerr) then
+        status = nfmpi_inq_unlimdim(fid,dids(ndims))
+        if(dids(ndims).le.0) then ! record dim needs defining
           status = nfmpi_def_dim(fid,'record',nfmpi_unlimited,
      &         dids(ndims))
         endif
@@ -1134,6 +1137,22 @@ c
       status = nfmpi_def_var(fid,trim(vname),dtype,ndims,dids,vid)
       return
       end subroutine define_var
+
+      subroutine set_record_dimname(grid,fid,record_dimname)
+      type(dist_grid), intent(in) :: grid
+      integer, intent(in) :: fid
+      character(len=*), intent(in) :: record_dimname
+      integer :: rc,did
+      rc = nfmpi_inq_unlimdim(fid,did)
+      if(did.gt.0) then
+        if(grid%am_i_globalroot) write(6,*)
+     &       'error in set_record_dimname: the record dimension ',
+     &       'has already been named'
+        call stoprc(0,1)
+      endif
+      rc = nfmpi_def_dim(fid,trim(record_dimname),nfmpi_unlimited,did)
+      return
+      end subroutine set_record_dimname
 
       end module pario
 
