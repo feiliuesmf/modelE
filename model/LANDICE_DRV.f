@@ -412,7 +412,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
      *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trdwnimp,tricbimp,traccpda,traccpdg
+     *     ,ntm,trsnowli,trlndi,trdwnimp  !,tricbimp,traccpda,traccpdg
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
