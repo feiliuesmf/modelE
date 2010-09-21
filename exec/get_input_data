@@ -3,7 +3,7 @@
 use File::Copy;
 use Getopt::Long;         #module to process command line options
 
-GetOptions("w") || die "problem in GetOptions";
+GetOptions("w", "t=s") || die "problem in GetOptions";
 
 if ( $#ARGV < 0 ) { 
     print "Usage: $0 [-w] RunID [data_dir]\n"; 
@@ -35,6 +35,11 @@ if ( -f $modelerc ) {
 
 $runID = shift;
 ($data_dir = shift) or $data_dir = $runID.'_data';
+
+$max_age = 365*100;
+if ( $opt_t ) {
+    $max_age = $opt_t;
+}
 
 if ( $opt_w ) {
     print "Will search for data files in: $DATA_PORTAL_URL\n";
@@ -69,17 +74,22 @@ foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
     if ( ! -f "$data_dir/$filename" ) {
-	print "Copying:     $filename\n";
 	create_path( "$data_dir/$filename" );
 	if ( $opt_w ) {
 	    my $file_dir = `dirname $data_dir/$filename`;
 	    chop $file_dir;
+	    print "Downloading:     $filename\n";
 	    `cd $file_dir &&  wget $DATA_PORTAL_URL/$filename`;
 	    $rcode = $? >> 8;
 	    if ( $rcode != 0 ) { die "download failed\n"; }
 	} else {
-	    copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
-		die "Can't copy $GCMSEARCHPATH/$filename\n";
+	    if ( -M "$GCMSEARCHPATH/$filename" < $max_age ) {
+		print "Copying:     $filename\n";
+		copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
+		    die "Can't copy $GCMSEARCHPATH/$filename\n";
+	    } else {
+		print "Too old:     $filename\n";
+	    }
 	}
     } else {
 	print "Already present:     $filename\n";
