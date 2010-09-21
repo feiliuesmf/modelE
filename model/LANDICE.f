@@ -488,9 +488,9 @@ c          call ESMF_BCAST(grid, TRICBIMP)
       call defvar(grid,fid,accpdg,'accpdg')
       call defvar(grid,fid,eaccpdg,'eaccpdg')
       call defvar(grid,fid,dmicbimp,'dmicbimp(two)')
-      call defvar(grid,fid,micbimg,'micbimp(two)')
+      call defvar(grid,fid,micbimp,'micbimp(two)')
       call defvar(grid,fid,deicbimp,'deicbimp(two)')
-      call defvar(grid,fid,eicbimg,'eicbimp(two)')
+      call defvar(grid,fid,eicbimp,'eicbimp(two)')
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsnowli,
      &     'trsnowli(ntm,dist_im,dist_jm)')
@@ -501,7 +501,7 @@ c          call ESMF_BCAST(grid, TRICBIMP)
       call defvar(grid,fid,traccpda,'traccpda(ntm)')
       call defvar(grid,fid,traccpdg,'traccpdg(ntm)')
 c      call defvar(grid,fid,dtricbimp,'dtricbimp(ntm,two)')
-c      call defvar(grid,fid,tricbimg,'tricbimp(ntm,two)')
+c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #endif
 #endif
       return
@@ -531,9 +531,9 @@ c      call defvar(grid,fid,tricbimg,'tricbimp(ntm,two)')
         call write_data(grid,fid,'accpdg',accpdg)
         call write_data(grid,fid,'eaccpdg',eaccpdg)
         call write_data(grid,fid,'dmicbimp',dmicbimp)
-        call write_data(grid,fid,'micbimp',micbimg)
+        call write_data(grid,fid,'micbimp',micbimp)
         call write_data(grid,fid,'deicbimp',deicbimp)
-        call write_data(grid,fid,'eicbimp',eicbimg)
+        call write_data(grid,fid,'eicbimp',eicbimp)
 #ifdef TRACERS_WATER
         call write_dist_data(grid,fid,'trsnowli',trsnowli,jdim=3)
         call write_dist_data(grid,fid,'trlndi',trlndi,jdim=3)
@@ -542,7 +542,7 @@ c      call defvar(grid,fid,tricbimg,'tricbimp(ntm,two)')
         call write_data(grid,fid,'traccpda',traccpda)
         call write_data(grid,fid,'traccpdg',traccpdg)
 c        call write_data(grid,fid,'dtricbimp',dtricbimp)
-c        call write_data(grid,fid,'tricbimp',tricbimg)
+c        call write_data(grid,fid,'tricbimp',tricbimp)
 #endif
 #endif
       case (ioread)            ! input from restart file
