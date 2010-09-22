@@ -673,8 +673,6 @@ C****
 C**** since this is just diagnostic of hemispheric mean for now, we put
 C**** everything in one spot per hemisphere.
 C**** (how should we do this in CUBED_SPHERE?)
-
-      print*,"in conserv_MICB",micbimp
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         MICB(I,J) = 0.
@@ -714,8 +712,6 @@ C****
 C**** since this is just diagnostic of hemispheric mean for now, we put
 C**** everything in one spot per hemisphere.
 C**** (how should we do this in CUBED_SPHERE?)
-      print*,"in conserv_HICB",eicbimp
-
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         EICB(I,J) = 0.
