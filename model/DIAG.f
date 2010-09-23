@@ -316,10 +316,8 @@ C**** Follows logic for geopotential section following this...
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (am(L-1,i,j)*axyp(i,j))
             x_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
-              chemL=1.d6*mNO2(i,j,L)*mair/46.0055/
-     &        (am(L,i,j)*axyp(i,j))
-              chemLm1=1.d6*mNO2(i,j,L-1)*mair/46.0055/
-     &        (am(L-1,i,j)*axyp(i,j))
+              chemL=1.d6*mNO2(i,j,L)
+              chemLm1=1.d6*mNO2(i,j,L-1)
             n_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
               chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
      &        (am(L,i,j)*axyp(i,j))
@@ -2586,8 +2584,7 @@ C**** diagnostics on model levels
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    datar8(i,j)=1.d6*mNO2(i,j,kp)*mair/(46.0055
-     *                   *am(kp,i,j)*axyp(i,j))
+                    datar8(i,j)=1.d6*mNO2(i,j,kp)
                   end do
                 end do
 #ifdef NEW_IO_SUBDD
@@ -2743,8 +2740,7 @@ C**** get model level
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    datar8(i,j)=1.d6*mNO2(i,j,l)*mair/(46.0055
-     *                   *am(l,i,j)*axyp(i,j))
+                    datar8(i,j)=1.d6*mNO2(i,j,l)
                   end do
                 end do
 #ifdef NEW_IO_SUBDD

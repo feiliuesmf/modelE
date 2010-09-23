@@ -408,7 +408,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
 !@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
-!@var mNO2 = 3D mass NO2 field saved for subdaily diagnostic purposes
+!@var mNO2 3D vol mixing ratio of NO2 saved for subdaily diagnostics
 !@var yCl2,yCl2O2 3D arrays to remember some non-tracer species...
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var title_aer_pf titles read from aerosol phase function file
