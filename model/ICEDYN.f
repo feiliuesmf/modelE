@@ -132,7 +132,7 @@ C**** some B-grid conservation quantities
 !@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JMICDYN) :: IMAXJ
 
-!@var PSTAR maximum sea ice pressure (Pa)
+!@var PSTAR maximum sea ice pressure per unit thickness (Pa/m)
       REAL*8, PARAMETER :: PSTAR=2.75d4
 
 !@var BYDTS reciprocal of timestep in ice dynamics code
