@@ -634,7 +634,7 @@ C****
      &     jk_dudt_eddycnv,jk_dudt_trnsadv,jk_dudt_epflxdiv,
      &     jk_dudt_fderr1,jk_dudt_fderr2
       IMPLICIT NONE
-      integer :: do_print
+      logical :: do_print
       REAL*8, DIMENSION(JM,LM) :: ! output arrays
      &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
 
