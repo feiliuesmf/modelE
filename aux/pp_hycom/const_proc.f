@@ -32,7 +32,7 @@ c    .   jdofm=(/30,60,90,120,150,180,210,240,270,300,330,360/)
      . ,flnmcoso='cososino387x360.8bin'
      . ,flnmo2a='ssto2a_2_1deg.8bin'
 c
-      integer, parameter :: indoi=253,indoj1=118,indoj2=137
+      integer, parameter :: indoi=252,indoj1=118,indoj2=133
      .  ,idrk1=323,jdrk1=292,idrk2=342,jdrk2=299
 c
       character(len=20) :: runid="Exxx"

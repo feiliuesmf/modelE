@@ -191,9 +191,9 @@ c     write(*,'(a,26f4.0)') 'Indo_in=',(flux(indoi,k,2),k=1,kdm)
 
 c --- subtract out portion due to indonesian throughflow
       do 39 k=1,kdm
-      do 29 i=indoi,idm
+      do 29 i=indoi+1,idm
  29   flux(i,k,2)=flux(i,k,2)+sunda(k)                !  Indian
-      do 39 i=indoi,idm
+      do 39 i=indoi+1,idm
  39   flux(i,k,3)=flux(i,k,3)-sunda(k)                !  Pacific
 c     write(*,'(a,26f4.0)') 'pa flux=',(flux(indoi,k,3),k=1,kdm)
 c     write(*,'(a,26f4.0)') 'in flux=',(flux(indoi,k,2),k=1,kdm)
