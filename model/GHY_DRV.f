@@ -2085,16 +2085,16 @@ ccc                               currently using only topography part
       end subroutine snow_cover
 
 
-      subroutine init_LSM(dtsurf,redogh,inisnow,istart)
+      subroutine init_LSM(dtsurf,redogh,inisnow,inilake,istart)
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
-      logical, intent(in) :: redogh, inisnow
+      logical, intent(in) :: redogh, inisnow, inilake
 
       call init_gh(dtsurf,istart)
 
 
       call init_veg( istart, redogh )
-      call init_land_surface(redogh,inisnow,istart)
+      call init_land_surface(redogh,inisnow,inilake,istart)
 
       end subroutine init_LSM
 
@@ -2300,7 +2300,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
 !******************************************************************
 
-      subroutine init_land_surface(redogh,inisnow,istart)
+      subroutine init_land_surface(redogh,inisnow,inilake,istart)
       !use veg_drv, only : spgsn
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use param, only : sync_param, get_param
@@ -2334,7 +2334,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 #endif
       implicit none
       integer, intent(in) :: istart
-      logical, intent(in) :: redogh, inisnow
+      logical, intent(in) :: redogh, inisnow, inilake
 
       !--- local
 #ifndef USE_ENT
@@ -2565,7 +2565,8 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       enddo
 
       ! initialize underwater fraction for variable lakes
-      if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 9 )
+      if ( inilake .or.
+     *    (init_flake > 0 .and. variable_lk > 0 .and. istart < 9))
      &     call init_underwater_soil
 
 
@@ -4132,7 +4133,7 @@ c**** hack to reset roughl for non-standard land ice fractions
 
       if (.not. associated(cell_C_old))
      &     allocate( cell_C_old(I_0:I_1, J_0:J_1) )
-      
+
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           if( focean(i,j) >= 1.d0 ) cycle

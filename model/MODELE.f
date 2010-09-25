@@ -950,13 +950,13 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds, 
+      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds,
      &     'min/day')
       call addColumn(report, column)
 
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds, 
+      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds,
      &     'min/day')
       call addColumn(report, column)
 
@@ -992,7 +992,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call delete(report)
 
       end subroutine reportProfile
-      
+
       end program GISS_modelE
 
 
@@ -1570,7 +1570,7 @@ c      enddo
 
        if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
      &      (J_TARG.lt.2 .or. J_TARG.gt.89)) then
-             write(iu_scm_prt,*) 
+             write(iu_scm_prt,*)
      &             'Invalid grid coordinates for selected box ',
      &             I_TARG,J_TARG
              STOP 100
@@ -2040,7 +2040,7 @@ C****
 !!! do we need it ? I.A.
       ISTART_kradia = ISTART
       if ( Kradia.gt.0 ) ISTART_kradia = 0
-      CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia)
+      CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,inilake,ISTART_kradia)
 cddd#ifdef USE_ENT
 cddd      CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 cddd#endif
