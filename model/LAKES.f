@@ -51,7 +51,7 @@ C**** 1-8 anti-clockwise from top RH corner
 !@dbparam init_flake used to make sure FLAKE is properly initialised
 !@+       when using older restart files
 !@+       =0 for no change to lakes, =1 for a complete reset to initial values
-!@+       =2 removal of any excess water that may have accumulated 
+!@+       =2 removal of any excess water that may have accumulated
       INTEGER :: init_flake=1   ! default = 1
 !@dbparam variable_lk 1 if lakes are to be variable
 !@+       (temporary variable for development purposes)
@@ -553,8 +553,8 @@ C**** This is just an estimate for the initiallisation
      *             +LAKE_RISE_MAX,MLDLK(I,J)
               fac=(MWL(I,J)-(HLAKE(I,J)+LAKE_RISE_MAX)*FLAKE(I,J)*RHOW
      *             *AXYP(I,J))  ! excess mass
-                                ! fractional loss of layer 1 mass 
-              fac1=fac/(MLDLK(I,J)*FLAKE(I,J)*RHOW*AXYP(I,J)) 
+                                ! fractional loss of layer 1 mass
+              fac1=fac/(MLDLK(I,J)*FLAKE(I,J)*RHOW*AXYP(I,J))
               if (fac1.lt.1) then
 #ifdef TRACERS_WATER
                 TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)*(1d0-fac1)
@@ -868,7 +868,7 @@ C****
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
-!@ver  2010/08/04 (based on LB265)
+!@ver  2010/09/27 (based on LB265)
 
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
@@ -911,7 +911,6 @@ C****
 !@var URATE upstream fractional rate of river flow per time step
 !@+         (only for special case)
       REAL*8 :: URATE = 1d-6  ! roughly 10 day e-folding time
-      Logical*4 :: RVRFL
 
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: DTM
@@ -936,16 +935,22 @@ C****                KDIREC = 9: MWL swashes water to adjacent KDIREC=9
 C****                            MWL may backwash to upstream cells
 C****                            Caspian, Aral, Great Salt, Chad
 C****
+C**** Check whether emergency directions are needed:
+C**** If (KDIRECu==0 and FLAKEu > .949*(FLAKEu+FEARTHu) and
+C****     MWLu > RHOW*FLAKEu*AXYPu*(HLAKEu+LAKE_RISE_MAX)):
+C****    ID,JD,KD = ID911u,JD911u,KS911u
+C****    MWLSILLu = RHOW*FLAKEu*AXYPu*(HLAKEu+LAKE_RISE_MAX)
+C**** Otherwise: MWLSILLu = RHOW*FLAKEu*AXYPu*HLAKEu
+C****
 C**** Backwash River Flow (checked first), DMM (kg) < 0:
-C**** Water below sill depth = MWLSILLu = RHOW*FLAKEu*AXYPu*HLAKEu
 C**** Downstream water above upstream sill =
 C****   MWLSILLd = RHOW*FLAKEd*AXYPd * [HLAKEd + (ZATMOu-ZATOMd)/GRAV]
 C**** DMM = URATE*DTSRC * [FLAKEd*AXYPd*(MWLu-MWLSILLu) -
 C****                    - FLAKEu*AXYPu*(MWLd-MWLSILLd)] /
 C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
 C****
-C**** Normal Downstream Flow:
-C**** DMM = (MWLu-MWSILLu) * RATEu
+C**** Downstream Regular, Emergency and to Ocean Flow:
+C**** DMM = (MWLu-MWLSILLu) * RATEu
 C****
 C**** Swash Water Back and Forth in Internal Sea, KDIRECu = KDIRECd = 9:
 C**** Water above sill = MWLSILLu = RHOW*FLAKEu*AXYPu*HLAKEu
@@ -1038,7 +1043,7 @@ C**** Use emergency directions
             ID=IFL911(IU,JU)
             MWLSILL = RHOW*(HLAKE(IU,JU)+lake_rise_max)*
      *                FLAKE(IU,JU)*AXYP(IU,JU)
-C**** Normal case: no emergency
+C**** No emergency, use normal directions
           ELSE
             KD=KDIREC(IU,JU)
             JD=JFLOW(IU,JU)
@@ -1052,7 +1057,6 @@ C**** Normal case: no emergency
           If (JD > J_1H .or. JD < J_0H .or.
      *        ID > I_1H .or. ID < I_0H)  Cycle
 
-          RVRFL = .False.
 C****
 C**** Apply possible backwash river flow
 C****
@@ -1068,23 +1072,20 @@ C**** Backwash river flow is invoked
      *            (FLAKE(ID,JD)*AXYP(ID,JD)*(MWL(IU,JU)-MWLSILL) -
      -             FLAKE(IU,JU)*AXYP(IU,JU)*(MWL(ID,JD)-MWLSILLD)) /
      /            (FLAKE(IU,JU)*AXYP(IU,JU) + FLAKE(ID,JD)*AXYP(ID,JD))
-            If (DMM < 0)  RVRFL = .True.
+            If (DMM >= 0)  GoTo 200
           Else
-            DMM = - (MWL(ID,JD)-MWLSILLD)*URATE*DTsrc  !  < 0
-            RVRFL = .True.  ;  EndIf
+            DMM = - (MWL(ID,JD)-MWLSILLD)*URATE*DTSRC  ;  EndIf
 
-          If (RVRFL)  Then
-            DGM = TLAKE(ID,JD)*DMM*SHW  !  TLAKE always defined
+          DGM = TLAKE(ID,JD)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
-            DTM(:) = DMM*GTRACER(:,1,ID,JD)
+          DTM(:) = DMM*GTRACER(:,1,ID,JD)
 #endif
-          EndIf
+          GoTo 300
 
 C****
-C**** Normal downstream river flow
+C**** Downstream regular, emergency and to ocean river flow
 C****
-  200     If (RVRFL .or. MWL(IU,JU) <= MWLSILL)  GoTo 300
-          RVRFL = .True.
+  200     If (MWL(IU,JU) <= MWLSILL)  Cycle
           DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
           If (MWL(IU,JU)-DMM < 1d-6)  DMM = MWL(IU,JU)
           DMM = Min(DMM,.5*RHOW*AXYP(IU,JU)) ! minimise 'flood' events!
@@ -1100,8 +1101,10 @@ C****
             Else  ;  DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)  ;  EndIf
 #endif
 
-  300     If (.not.RVRFL)  Cycle
-          FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
+C****
+C**** Apply Backwash and Downstream flow to FLOW and EFLOW arrays
+C****
+  300     FLOW(IU,JU)  =  FLOW(IU,JU) - DMM
           EFLOW(IU,JU) = EFLOW(IU,JU) - DGM
 #ifdef TRACERS_WATER
           TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
