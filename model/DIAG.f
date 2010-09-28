@@ -123,7 +123,7 @@ C**** Some local constants
      *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
      *     ,jk_cldwtr,jk_cldice
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
-     *     ,ij_p600,ij_p500,ijl_templ,ijl_gridh,ijl_husl
+     *     ,ij_p600,ij_p500,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
 #ifdef TES_LIKE_DIAGS
      *     ,t_more,q_more,kgz_max_more,PMBmore
 #ifdef TRACERS_SPECIAL_Shindell
@@ -427,11 +427,12 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             call inc_ajl(i,j,l,jl_dtdyn,tx(i,j,l)*pdsig(l,i,j))
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
             aijl(i,j,L,ijl_tempL)=aijl(i,j,L,ijl_tempL)+TX(i,j,L)
-#ifdef HTAP_LIKE_DIAGS
             aijl(i,j,L,ijl_husL)=aijl(i,j,L,ijl_husL)+Q(i,j,L)
+#ifdef HTAP_LIKE_DIAGS
             aijl(i,j,L,ijl_gridH)=aijl(i,j,L,ijl_gridH)+
      &      rgas/grav*TX(i,j,L)*log(pedn(l,i,j)/pedn(L+1,i,j))
 #endif
+            aijl(i,j,L,ijl_zL)=aijl(i,j,L,ijl_gridH)+phi(i,j,l)/grav
             DO IT=1,NTYPE
               CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
      *             DBYSD)

@@ -77,12 +77,12 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
 !@param KAIJL number of AIJL accumulations
-      INTEGER, PARAMETER, public :: KAIJL=18
+      INTEGER, PARAMETER, public :: KAIJL=20
 #ifdef CLD_AER_CDNC
      &                                  + 16
 #endif
 #ifdef HTAP_LIKE_DIAGS
-     &                                  +  3
+     &                                  +  1
 #endif
 !@var IJL_xxx,IJK_xxx AIJL diagnostic indices
 !@+   IJL/IJK refer to model versus constant-pressure levels
@@ -94,7 +94,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
-     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL
+     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc

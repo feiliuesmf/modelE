@@ -5657,7 +5657,7 @@ c
       ia_ijl(k) = ia_src
       denom_ijl(k) = ijl_cfis
 #endif /* CLD_AER_CDNC */
-
+c
       k=k+1        ! temperature (model layers)
       ijl_tempL    = k
       name_ijl(k)  = 'TempL'
@@ -5666,16 +5666,17 @@ c
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
-c
 #ifdef HTAP_LIKE_DIAGS
-      k=k+1        ! grid box geometric height (model layers)
+c
+      k=k+1        ! grid box geometric thickness (model layers)
       ijl_gridh    = k
       name_ijl(k)  = 'GridH'
-      lname_ijl(k) = 'Grid Box Geom Height'
+      lname_ijl(k) = 'Grid Box Geom Thickness'
       units_ijl(k) = 'm'
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
+#endif
 c
       k=k+1        ! specific humidity (model layers)
       ijl_husl     = k
@@ -5685,8 +5686,16 @@ c
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
-#endif
-
+c
+      k=k+1        ! grid box geometric height (model layers)
+      ijl_zL       = k
+      name_ijl(k)  = 'z'
+      lname_ijl(k) = 'Grid Box Geom Height'
+      units_ijl(k) = 'm'
+      scale_ijl(k) = 1.
+      ia_ijl(k)    = ia_dga
+      lgrid_ijl(k) = ctr_ml
+c
       if (k .gt. kaijl) then
         if(am_i_root())
      &       write (6,*) 'ijl_defs: Increase kaijl=',kaijl,' to ',k
