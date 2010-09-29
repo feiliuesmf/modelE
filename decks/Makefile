@@ -44,6 +44,15 @@ RUNSRC = E1M20
 
 ALIAS_LIST = CMPE001 qc
 
+ifeq ($(MPP),YES)
+  MPI=YES
+endif
+
+ifeq ($(ESMF),YES)
+  MPI=YES
+endif
+
+
 help:
 	$(MAKE) -C $(MODEL_DIR) help
 
@@ -132,16 +141,10 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
-ifneq ($(MPP),YES)
-ifneq ($(ESMF),YES)
+ifeq (MPI,YES)
+	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN)
+else
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
-else
-	echo PRUN
-	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN) 
-endif
-else
-	echo PRUN
-	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN) 
 endif
 
 $(SETUP_GFDL):
