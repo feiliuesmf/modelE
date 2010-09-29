@@ -432,7 +432,7 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             aijl(i,j,L,ijl_gridH)=aijl(i,j,L,ijl_gridH)+
      &      rgas/grav*TX(i,j,L)*log(pedn(l,i,j)/pedn(L+1,i,j))
 #endif
-            aijl(i,j,L,ijl_zL)=aijl(i,j,L,ijl_gridH)+phi(i,j,l)/grav
+            aijl(i,j,L,ijl_zL)=aijl(i,j,L,ijl_zL)+phi(i,j,l)/grav
             DO IT=1,NTYPE
               CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
      *             DBYSD)
