@@ -142,6 +142,9 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 
 !@var soil_surf_moist near surf soil moisture (kg/m^3) for subdd
       real*8, ALLOCATABLE, dimension(:,:) :: soil_surf_moist
+!@var fv_ij fraction of vegetation in the land surface cell
+!@+   (used only for diagnostic output)
+      real*8, ALLOCATABLE, dimension(:,:) :: fv_ij
       END MODULE GHY_COM
 
       SUBROUTINE ALLOC_GHY_COM(grid)
@@ -263,6 +266,8 @@ C**** Initialize to zero
 
       ALLOCATE( soil_surf_moist(I_0H:I_1H,J_0H:J_1H) )
       soil_surf_moist(:,:) = 0.d0
+      ALLOCATE( fv_ij(I_0H:I_1H,J_0H:J_1H) )
+      fv_ij(:,:) = 0.d0
 
       END SUBROUTINE ALLOC_GHY_COM
 
@@ -761,6 +766,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       call defvar(grid,fid,trsnowbv0,
      &     'trsnowbv0(ntm,bv,dist_im,dist_jm)')
 #endif
+      call defvar(grid,fid,fv_ij,'fv_ij(dist_im,dist_jm)')     
       return
       end subroutine def_rsf_soils
 
@@ -784,6 +790,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call write_dist_data(grid,fid,'tr_w_ij',tr_w_ij,jdim=5)
         call write_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
 #endif
+        call write_dist_data(grid,fid,'fv_ij',fv_ij)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'w_ij',w_ij,jdim=4)
         call read_dist_data(grid,fid,'ht_ij',ht_ij,jdim=4)
