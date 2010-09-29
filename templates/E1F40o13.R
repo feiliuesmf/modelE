@@ -73,9 +73,9 @@ OIC=OIC144X90LD.ZN_nocasp.CLEV94.DEC01S
 OFTAB=OFTABLE_NEW                   ! ocean function table
 AVR=AVR144X90N_nocasp.L13.modelE    ! ocean filter
 KBASIN=KB144X90.modelE              ! ocean basin designations
-TOPO_OC=Z144X90N_nocasp.1 ! ocean bdy.cond
+TOPO_OC=Z2HX2fromZ1QX1N   ! ocean bdy.cond
 CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS2007_144X90N_nocasp
-SOIL=S144X900098M.ext TOPO=Z144X90N_nocasp.1 ! bdy.cond
+SOIL=S144X900098M.ext TOPO=Z2HX2fromZ1QX1N   ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
 RVR=RD_modelE_F.RVR.bin      ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files

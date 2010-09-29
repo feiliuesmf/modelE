@@ -71,8 +71,8 @@ Data input files:
 AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext      ! initial ground conditions      ISTART=2
 OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
-TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
-TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
+TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations

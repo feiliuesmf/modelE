@@ -1,14 +1,14 @@
 E4arobio_g6c.R GISS Model E  coupled version          aromanou  08/04/2009
 
 E4arobio_g6c: obio in gary's ocean based on Larissa's E4F40o32.R
-E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.; 
-	  ocean: coupled to GISS ocean model (Russell - Schmidt), 
-	  32 vert. layers in the ocean 
-	  NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
-	  uses turbulence scheme (no dry conv), no grav.wave drag
-	  time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  
-	  filters: U,V in E-W direction (after every dynamics time step)              
-	  sea level pressure (after every physics time step)                 
+E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.;
+   ocean: coupled to GISS ocean model (Russell - Schmidt),
+   32 vert. layers in the ocean
+   NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
+   uses turbulence scheme (no dry conv), no grav.wave drag
+   time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs
+   filters: U,V in E-W direction (after every dynamics time step)
+   sea level pressure (after every physics time step)
 
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
@@ -116,8 +116,8 @@ Data input files:
 AIC=1JAN1918.rsfE31F40o32       ! XXXXXXXXX dont use this AIC, just for test purposess
 GIC=GIC.144X90.DEC01.1.ext      ! initial ground conditions      ISTART=2
 OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
-TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
-TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
+TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations
@@ -168,11 +168,11 @@ GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
 soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-cfle1=abw25b.dat                         ! seawater spectral absorp. 
+cfle1=abw25b.dat                         ! seawater spectral absorp.
                                          ! and scatt. coefs
-cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. 
+cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp.
                                          ! and scatt. coefs
-!!!!pco2table=pco2.tbl.asc               ! table to compute pco2 values 
+!!!!pco2table=pco2.tbl.asc               ! table to compute pco2 values
                                          ! from sst,sss,dic,alk
                                          ! if not defined pCO2_ONLINE
 nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
@@ -214,16 +214,16 @@ Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_SDRAG=1         ! conserve ang. mom.
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
 ! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1.
 
 ! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.95       ! deformation drag coefficient                                   
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000045 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=10.     ! Shear drag coefficient
+CMTN=0.2       ! default is 0.5
+CDEF=1.95       ! deformation drag coefficient
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
