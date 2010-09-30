@@ -141,7 +141,7 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
-ifeq (MPI,YES)
+ifeq ($(MPI),YES)
 	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN)
 else
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
