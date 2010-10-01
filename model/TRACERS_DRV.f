@@ -905,7 +905,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
@@ -927,7 +927,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
@@ -953,7 +953,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
@@ -975,7 +975,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
