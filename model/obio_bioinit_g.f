@@ -732,7 +732,15 @@ c------------------------------------------------------------------------------
       enddo
       call closeunit(iu_file)
 
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jgrd; do i=1,igrd; do k=1,kgrd
+cdiag   write(*,'(a,3i5,2e20.10)')'1111111111',
+cdiag.       i,j,k,nodc_depths(k),data(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
 !--------------------------------------------------------------
+! convert to Russell ocean grid
+! note that in obio_bioinit this part converts to modelE atmosph grid
 
       do k=1,kgrd
 
@@ -742,11 +750,6 @@ c------------------------------------------------------------------------------
         !mask
         data_mask(i,j)=0.d0
         if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-
-cdiag   if (k.eq.1)
-cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
-cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
-
 
       enddo    ! i-loop
       enddo    ! j-loop
@@ -760,62 +763,25 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
 
       enddo    ! k-loop
 
-cdiag do i=1,imo
-cdiag do j=1,jmo
-cdiag  write(*,'(a,3i5,e12.4)')'after hntr8p ',
-cdiag.    i,j,1,fldo(i,j,1)
-cdiag enddo
-cdiag enddo
+!ensure minima
+!fill in polar values
+      do k=1,kgrd; do i=1,imo; do j=1,jmo
+        if(fldo(i,j,k).lt.data_min(k)) fldo(i,j,k)=data_min(k)
+      enddo; enddo; enddo
 
-!correction for ocean cells with missing values
-      lcount=0
-      do j=1,jmo
-      do i=1,imo
-      !count missing values
-      if (lmom(i,j).gt.0.and.fldo(i,j,1).eq.-9999.d0)then
-         lcount=lcount+1
-      endif
-      enddo 
-      enddo 
-      print*, 'old lcount = ', lcount
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jmo; do i=1,imo; do k=1,kgrd
+cdiag   write(*,'(a,3i5,2e20.10)')'2222222222',
+cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
 
-      do j=1,jmo
-      do i=1,imo
-
-      !replace missing values over ocean
-      count_min=-9999.d0
-      if (lmom(i,j).gt.0.and.fldo(i,j,1).eq.-9999.d0)then
-         do jj=1,20
-         do ii=1,20
-         if (i+ii.le.imo.and.j+jj.le.jmo) then
-         if (lmom(i+ii,j+jj).gt.0.and.
-     .       fldo(i+ii,j+jj,1).ne.-9999.d0)then
-             count_min=fldo(i+ii,j+jj,1)
-             go to 100
-         endif
-         endif
-         enddo
-         enddo
- 100  continue
-
-      fldo(i,j,1)=count_min
-      endif
-
-      enddo 
-      enddo 
-
-      !recompute number of missing values over ocean
-      lcount=0
-      do j=1,jmo
-      do i=1,imo
-      !count missing values
-      if (lmom(i,j).gt.0.and.fldo(i,j,1).eq.-9999.d0)then
-         lcount=lcount+1
-!        print*,'lcount=',i,j,lcount
-      endif
-      enddo 
-      enddo 
-      print*, 'new lcount = ', lcount
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jmo; do i=1,imo; do k=1,kgrd
+cdiag   write(*,'(a,3i5,2e20.10)')'3333333333',
+cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
 
 
 !--------------------------------------------------------------
@@ -828,23 +794,22 @@ cdiag enddo
       fldoz(i,j,k)= -9999.
       enddo
 
-cdiag do k=1,kgrd
-cdiag write(*,'(a,3i5,e12.4)')'befr VLKtoLZ ',i,j,k,fldo(i,j,k)
-cdiag enddo
-
       IF (FOCEAN(i,j).gt.0) then
          lm=lmom(i,j)
           call VLKtoLZ(kgrd,lm,nodc_depths,ZOE,
      .                 fldo(i,j,:),fldo2(i,j,:),fldoz(i,j,:))   
       ENDIF
 
-cdiag do k=1,lmo
-cdiag write(*,'(a,3i5,2e12.4)')'aftr VLKtoLZ ',i,j,k,ZOE(k),fldo2(i,j,k)
-cdiag enddo
-
       enddo
       enddo
   
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jmo; do i=1,imo; do k=1,lmo
+cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
+cdiag.       i,j,k,ZOE(k),fldo2(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
+
       return
   
       end subroutine bio_inicond_g

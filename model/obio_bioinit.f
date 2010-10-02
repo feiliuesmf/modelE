@@ -705,7 +705,7 @@ c
       USE GEOM, only : DLATM
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
-      USE hycom_arrays_glob, only : dpinit
+      USE hycom_arrays_glob, only : dpinit,scp2
       USE hycom_scalars, only: onem
 
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
@@ -747,7 +747,6 @@ c
       call openunit(filename,iu_file,.false.,.true.)
 
 !NOTE: data starts from Greenwich
-!      missing values are -9999
        do k=1,kgrd
        data_min(k)=1.e10
        data_max(k)=-1.e10
@@ -764,81 +763,49 @@ c
       enddo
       call closeunit(iu_file)
 
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jgrd; do i=1,igrd; do k=1,kgrd
+cdiag   write(*,'(a,3i5,2e20.10)')'1111111111',
+cdiag.       i,j,k,nodc_depths(k),data(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
+
 !--------------------------------------------------------------
-!     do k=1,kgrd
-!      i1=0
-!      do i=1,igrd,5
-!      i1=i1+1
-!      j1=0
-!      do j=1,jgrd,4
-!      j1=j1+1
-
-!       sum1=0.
-!       isum=0
-!       do iii=1,5
-!       do jjj=1,4
-
-!           if (data(i+iii-1,j+jjj-1,k).ge.0.) then
-!              sum1=sum1+data(i+iii-1,j+jjj-1,k)
-!              isum=isum+1
-!           endif
-!        enddo
-!        enddo
-
-!         if (isum.gt.0) then
-!            data2(i1,j1,k)=sum1/float(isum)
-!         else
-!            data2(i1,j1,k)=-9999.
-!         endif
-!     enddo
-!     enddo
-!     enddo
-
-
 ! convert to the atmospheric grid
 ! this code is also present in obio_bioinit_g
+! but there it converts to Russell ocean grid
       do k=1,kgrd
       do i=1,igrd
       do j=1,jgrd
+
         !mask
         data_mask(i,j)=0.d0
         if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-cdiag   if (k.eq.1)
-cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
-cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
+
       enddo    ! i-loop
       enddo    ! j-loop
 
       !compute glb average and replace missing data
       call HNTR80(igrd,jgrd,180.d0,60.d0,
      .             iia,jja,0.d0,DLATM,-9999.d0)
+
       call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
       enddo    ! k-loop
 
+!ensure minima
+!fill in polar values
+      do k=1,kgrd; do i=1,iia; do j=1,jja
+        if(data2(i,j,k).lt.data_min(k)) 
+     .                data2(i,j,k)=data_min(k)
+      enddo; enddo; enddo
 
-!     !this is needed for dic
-!     do k=1,kgrd
-!     do i=1,iia
-!     do j=1,jja
-!     if (data2(i,j,k).gt.0) then
-!       if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
-!       if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
-!     endif
-!     enddo
-!     enddo
-!     enddo
 
-      !set to zero so that interpolation works
-      do k=1,kgrd
-      do i=1,iia
-      do j=1,jja
-        if (data2(i,j,k)<0.)data2(i,j,k)=0.
-!       if (k.eq.1)
-!    .  write(*,'(a,3i5,e12.4)')'obio_bioinit1:',
-!    .      i,j,k,data2(i,j,k)
-      enddo
-      enddo
-      enddo
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jja; do i=1,iia; do k=1,kgrd
+cdiag   write(*,'(a,3i5,2e20.10)')'2222222222',
+cdiag.       i,j,k,nodc_depths(k),data2(i,j,k)
+cdiag enddo; enddo; enddo
+cdiag endif
 
       !--------------------------------------------------------
       !***************** important! change to dateline
@@ -850,6 +817,8 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
 !     data2(iia/2+1:iia,:,:)=dummy1;
 
       !--------------------------------------------------------
+
+! inerpolate to the HYCOM ocean grid
 c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
@@ -866,24 +835,12 @@ c
  8    continue
 c$OMP END PARALLEL DO
 
-!     do j=1,jj
-!     do l=1,isp(j)
-!     do i=ifp(j,l),ilp(j,l)
-!       write(*,'(a,3i5,e12.4)')'obio_bioinit2:',
-!    .      i,j,1,fldo(i,j,1)
-!     enddo
-!     enddo
-!     enddo
-
-!     !this is needed for dic
-!     do k=1,kgrd
-!     do i=1,iio
-!     do j=1,jjo
-!       if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
-!       if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
-!     enddo
-!     enddo
-!     enddo
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jjo; do i=1,iio; do k=1,kgrd
+cdiag   write(*,'(a,3i5,3e20.10)')'3333333333',
+cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k),scp2(i,j)
+cdiag enddo; enddo; enddo
+cdiag endif
 
       !--------------------------------------------------------
       !use dpinit(i,j,k)/onem
@@ -935,14 +892,16 @@ cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
        enddo
 c$OMP END PARALLEL DO
 
-!     do j=1,jj
-!     do l=1,isp(j)
-!     do i=ifp(j,l),ilp(j,l)
-!       write(*,'(a,3i5,e12.4)')'obio_bioinit3:',
-!    .      i,j,1,fldo2(i,j,1)
-!     enddo
-!     enddo
-!     enddo
+cdiag if (filename.eq.'dic_inicond') then
+cdiag do j=1,jjo; do i=1,iio; 
+cdiag do k=1,kdm
+cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
+cdiag.       i,j,k,pinit(i,j,k),fldo2(i,j,k)
+cdiag enddo; 
+cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
+cdiag.       i,j,kdm+1,pinit(i,j,kdm+1),-9999. 
+cdiag enddo; enddo
+cdiag endif
 
       !--------------------------------------------------------
 
