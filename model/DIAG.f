@@ -4,7 +4,6 @@
 #endif
 
 #ifdef CUBED_SPHERE
-#undef NEW_IO_SUBDD
 #define SLP_FROM_T1
 #endif
 
@@ -1298,6 +1297,10 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
 #ifdef NEW_IO_SUBDD
       private :: write_2d,write_3d,write_4d,in_subdd_list
+     &     ,def_global_attr_subdd,def_xy_coord_subdd,time_subdd
+     &     ,get_calendarstring,get_referencetime_for_netcdf
+     &     ,def_time_coord_subdd,write_xy_coord_subdd
+     &     ,write_time_coord_subdd
       interface write_subdd
       module procedure write_2d
       module procedure write_3d
@@ -3406,6 +3409,123 @@ c**** fix polar values
 
 #ifdef NEW_IO_SUBDD
 
+c def_global_attr_subdd
+      subroutine def_global_attr_subdd(fid,q24,qinst)
+!@sum def_global_attr_subdd defines global attributes in subdd output files
+!@auth Jan Perlwitz
+
+      use pario, only: write_attr
+      use domain_decomp_atm, only: grid
+
+      implicit none
+
+      integer,intent(in) :: fid
+      logical,intent(in) :: q24,qinst
+
+      character(len=3) :: cnsubdd
+      character(len=37) :: method
+
+      call write_attr(grid,fid,'global','xlabel',xlabel)
+      if (qinst) then
+        method = 'instantaneous value for current ITU'
+      else
+        if (q24) then
+          method = 'daily'
+        else
+          method = 'accumulated/averaged over nsubdd ITUs'
+        end if
+      end if
+      call write_attr(grid,fid,'global','calculation_method',method)
+      write(cnsubdd,'(i3)') nsubdd
+      call write_attr(grid,fid,'global','nsubdd',cnsubdd)
+
+      return
+      end subroutine def_global_attr_subdd
+
+c def_xy_coord_subdd
+      subroutine def_xy_coord_subdd(fid)
+!@sum def_xy_coord_subdd defines x,y-coordinates in subdd output files
+!@auth Jan Perlwitz
+
+#ifdef CUBED_SPHERE
+      use geom, only: lon2d_dg,lat2d_dg,lonbds,latbds
+#else
+      use geom, only: lat_dg,lon_dg
+#endif
+      use geom, only: axyp
+      use pario, only: defvar,write_attr
+      use domain_decomp_atm, only: grid
+
+      implicit none
+
+      integer,intent(in) :: fid
+
+      logical :: qr4
+      character(len=8) :: dist_x,dist_y
+
+#ifdef CUBED_SPHERE
+      dist_x='dist_im'
+      dist_y='dist_jm'
+      qr4=.false.
+      call defvar(grid,fid,lon2d_dg,'lon('//trim(dist_x)//','//
+     &     trim(dist_y)//')',r4_on_disk=qr4)
+      call write_attr(grid,fid,'lon','units','degrees_east')
+      call write_attr(grid,fid,'lon','long_name','Longitude')
+      call write_attr(grid,fid,'lon','bounds','lonbds')
+      call defvar(grid,fid,lat2d_dg,'lat('//trim(dist_x)//','//
+     &     trim(dist_y)//')',r4_on_disk=qr4)
+      call write_attr(grid,fid,'lat','units','degrees_north')
+      call write_attr(grid,fid,'lat','long_name','Latitude')
+      call write_attr(grid,fid,'lat','bounds','latbds')
+      call defvar(grid,fid,lonbds,'lonbds(four,'//trim(dist_x)//','//
+     &     trim(dist_y)//')',r4_on_disk=qr4)
+      call write_attr(grid,fid,'lonbds','units','degrees_east')
+      call write_attr(grid,fid,'lonbds','long_name'
+     &     ,'Longitude Boundaries')
+      call defvar(grid,fid,latbds,'latbds(four,'//trim(dist_x)//','//
+     &     trim(dist_y)//')',r4_on_disk=qr4)
+      call write_attr(grid,fid,'latbds','units','degrees_north')
+      call write_attr(grid,fid,'latbds','long_name'
+     &     ,'Latitude Boundaries')
+#else
+      dist_x='dist_lon'
+      dist_y='dist_lat'
+      qr4=.true.
+      call defvar(grid,fid,lon_dg(:,1),'lon(lon)',r4_on_disk=qr4)
+      call write_attr(grid,fid,'lon','units','degrees_east')
+      call write_attr(grid,fid,'lon','long_name','Longitude')
+      call defvar(grid,fid,lat_dg(:,1),'lat(lat)',r4_on_disk=qr4)
+      call write_attr(grid,fid,'lat','units','degrees_north')
+      call write_attr(grid,fid,'lat','long_name','Latitude')
+#endif
+      call defvar(grid,fid,axyp,'axyp('//trim(dist_x)//','//trim(dist_y)
+     &     //')',r4_on_disk=qr4)
+      call write_attr(grid,fid,'axyp','units','m^2')
+      call write_attr(grid,fid,'axyp','long_name','Gridcell Area')
+
+      return
+      end subroutine def_xy_coord_subdd
+
+c time_subdd
+      real(kind=8) function time_subdd(q24,rec)
+!@sum time_subdd calculates value of time coordinate 'time' for subdd output
+!@auth Jan Perlwitz
+
+      implicit none
+
+      integer,intent(in) :: rec
+      logical,intent(in) :: q24
+
+      if (q24) then
+        time_subdd = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
+      else
+        time_subdd = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1)
+     &       ,kind=8)*24. + (rec - 1)*nsubdd*dtsrc/3600.
+      end if
+
+      return
+      end function time_subdd
+
 c get_calendarstring
       subroutine get_calendarstring(qinstant,q24,year,mon,day,hour,itu
      &     ,calendarstring)
@@ -3513,13 +3633,125 @@ c get_referencetime_for_netcdf
       return
       end subroutine get_referencetime_for_netcdf
 
+c def_time_coord_subdd
+      subroutine def_time_coord_subdd(fid,q24,qinst,time,calendarstring)
+!@sum def_time_coord_subdd defines time coordinates in subdd output files
+!@auth Jan Perlwitz
+
+      use pario, only: defvar,write_attr,set_record_dimname
+      use domain_decomp_atm, only: grid
+
+      implicit none
+
+      integer,intent(in) :: fid
+      real(kind=8),intent(in) :: time
+      logical,intent(in) :: q24,qinst
+      character(len=*),intent(in) :: calendarstring
+
+      integer :: length_of_calendarstring
+      character(len=23) :: relation_to_itime
+      character(len=50) :: itimeUnits,referencetime
+
+      call set_record_dimname(grid,fid,'time')
+      call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
+     &     ,referencetime)
+      call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
+      write(itimeUnits,'(a11,i4,a16)') 'ITUs since ',iyear1
+     &     ,'-01-01 00:00 UTC'
+      call write_attr(grid,fid,'itime','units',itimeUnits)
+      call write_attr(grid,fid,'itime','long_name'
+     &     ,'Internal Time Unit (ITU)')
+      call defvar(grid,fid,time,'time',with_record_dim=.true.
+     &     ,r4_on_disk=.true.)
+      call write_attr(grid,fid,'time','calendar','noleap')
+      call write_attr(grid,fid,'time','units',referencetime)
+      call write_attr(grid,fid,'time','long_name'
+     &     ,'Time Coordinate Relative to IYEAR1/01/01')
+      if (qinst) then
+        relation_to_itime = 'midpoint of last ITU'
+      else if (.not. q24) then
+        relation_to_itime = 'midpoint of nsubdd ITUs'
+      else
+        relation_to_itime = 'all ITUs of day'
+      end if
+      call write_attr(grid,fid,'time','relation_to_itime',
+     &     relation_to_itime)
+      call defvar(grid,fid,calendarstring,
+     &     'calendar(length_of_calendarstring)',with_record_dim=.true.)
+      call write_attr(grid,fid,'calendar','units','UTC')
+      call write_attr(grid,fid,'calendar','long_name'
+     &     ,'Date/Time of Midpoint')
+      call write_attr(grid,fid,'calendar','relation_to_itime',
+     &     relation_to_itime)
+
+      return
+      end subroutine def_time_coord_subdd
+
+c write_xy_coord_subdd
+      subroutine write_xy_coord_subdd(fid)
+!@sum write_xy_coord_subdd writes x,y-coordinates to subdd output files
+!@auth Jan Perlwitz
+
+#ifdef CUBED_SPHERE
+      use geom, only: lon2d_dg,lat2d_dg,lonbds,latbds
+#else
+      use geom, only: lat_dg,lon_dg
+#endif
+      use geom, only: axyp
+      use pario, only: write_data,write_dist_data
+      use domain_decomp_atm, only: grid
+
+      implicit none
+
+      integer,intent(in) :: fid
+
+#ifdef CUBED_SPHERE
+      call write_dist_data(grid,fid,'lon',lon2d_dg)
+      call write_dist_data(grid,fid,'lat',lat2d_dg)
+      call write_dist_data(grid,fid,'lonbds',lonbds,jdim=3)
+      call write_dist_data(grid,fid,'latbds',latbds,jdim=3)
+#else
+      call write_data(grid,fid,'lon',lon_dg(:,1))
+      call write_data(grid,fid,'lat',lat_dg(:,1))
+#endif
+      call write_dist_data(grid,fid,'axyp',axyp)
+
+      return
+      end subroutine write_xy_coord_subdd
+
+c write_time_coord_subdd
+      subroutine write_time_coord_subdd(fid,rec,time,qinst,q24
+     &     ,calendarstring)
+!@sum write_time_coord_subdd writes time coordinates to subdd output files
+!@auth Jan Perlwitz
+
+      use model_com, only: itime,jdate,jhour,jmon,jyear
+      use pario, only: write_data
+      use domain_decomp_atm, only: grid
+
+      implicit none
+
+      integer,intent(in) :: fid,rec
+      real(kind=8),intent(in) :: time
+      logical,intent(in) :: q24,qinst
+
+      character(len=*),intent(out) :: calendarstring
+
+      call write_data(grid,fid,'itime',itime+1,record=rec)
+      call write_data(grid,fid,'time',time,record=rec)
+      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
+     &     ,calendarstring)
+      call write_data(grid,fid,'calendar',calendarstring,record=rec)
+
+      return
+      end subroutine write_time_coord_subdd
+
 c write_2d
       subroutine write_2d(qtyname,data,polefix,units_of_data,long_name
      &     ,record,positive,qinstant)
 !@sum write_2d high frequency netcdf-output of two-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
@@ -3535,17 +3767,14 @@ c write_2d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,rec,length_of_calendarstring
+      integer :: fid,rec
       real(kind=8) :: time
-      logical :: q24,qinst
+      logical :: q24,qinst,qr4
       character(len=80) :: qname
       character(len=80) :: fname
-      character(len=37) :: method
-      character(len=23) :: relation_to_itime
-      character(len=50) :: itimeUnits,referencetime
-      character(len=16) :: calendarstring
       character(len=9) :: cform
-      character(len=3) :: cnsubdd
+      character(len=16) :: calendarstring
+      character(len=8) :: dist_x,dist_y
 
       if(.not. in_subdd_list(qtyname)) return
 
@@ -3559,89 +3788,49 @@ c write_2d
         rec = (1+itime-itime0)/nsubdd
       endif
       if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
-        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
         q24 = .true.
       else
-        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
-     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
         q24 = .false.
       end if
+      time = time_subdd(q24,rec)
+
       if(rec==1) then ! define this output file
-        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
-     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call write_attr(grid,fid,'global','xlabel',xlabel)
-        if (qinst) then
-          method = 'instantaneous value for current ITU'
-        else
-          if (q24) then
-            method = 'daily'
-          else
-            method = 'accumulated/averaged over nsubdd ITUs'
-          end if
-        end if
-        call write_attr(grid,fid,'global','calculation_method',method)
-        write(cnsubdd,'(i3)') nsubdd
-        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
-        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lon','units','degrees_east')
-        call write_attr(grid,fid,'lon','long_name','Longitude')
-        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lat','units','degrees_north')
-        call write_attr(grid,fid,'lat','long_name','Latitude')
-        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
-        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
-     &       ,'-01-01 00:00 UTC'
-        call write_attr(grid,fid,'itime','units',itimeUnits)
-        call write_attr(grid,fid,'itime','long_name'
-     &       ,'Internal Time Unit (ITU)')
-        call defvar(grid,fid,time,'time',with_record_dim=.true.
-     &       ,r4_on_disk=.true.)
-        call write_attr(grid,fid,'time','calendar','noleap')
-        call write_attr(grid,fid,'time','units',referencetime)
-        call write_attr(grid,fid,'time','long_name'
-     &       ,'Time Coordinate Relative to IYEAR1/01/01')
-        if (qinst) then
-          relation_to_itime = 'midpoint of last ITU'
-        else if (.not. q24) then
-          relation_to_itime = 'midpoint of nsubdd ITUs'
-        else
-          relation_to_itime = 'all ITUs of day'
-        end if
-        call write_attr(grid,fid,'time','relation_to_itime',
-     &       relation_to_itime)
-        call defvar(grid,fid,calendarstring,
-     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
-     &       )
-        call write_attr(grid,fid,'calendar','units','UTC')
-        call write_attr(grid,fid,'calendar','long_name'
-     &       ,'Date/Time of Midpoint')
-        call write_attr(grid,fid,'calendar','relation_to_itime',
-     &       relation_to_itime)
-        call defvar(grid,fid,data,trim(qtyname)//'(dist_im,dist_jm)',
-     &       with_record_dim=.true.,r4_on_disk=.true.)
+        call def_global_attr_subdd(fid,q24,qinst)
+        call def_xy_coord_subdd(fid)
+        call def_time_coord_subdd(fid,q24,qinst,time,calendarstring)
+#ifdef CUBED_SPHERE
+        dist_x='dist_im'
+        dist_y='dist_jm'
+        qr4=.true.
+#else
+        dist_x='dist_lon'
+        dist_y='dist_lat'
+        qr4=.true.
+#endif
+        call defvar(grid,fid,data,trim(qtyname)//'('//trim(dist_x)//','
+     &       //trim(dist_y)//')',with_record_dim=.true.,r4_on_disk=qr4)
         call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
         if (present (long_name)) then
           if (long_name /= 'not yet set in get_subdd') call
      &         write_attr(grid,fid,trim(qtyname),'long_name',long_name)
         end if
+
         call par_enddef(grid,fid)
-        call write_data(grid,fid,'lon',lon_dg(:,1))
-        call write_data(grid,fid,'lat',lat_dg(:,1))
+        call write_xy_coord_subdd(fid)
       else
         fid = par_open(grid,trim(fname),'write')
       endif
+
+      call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
+
       if(polefix) then
         if(hasSouthPole(grid)) data(2:im,1) = data(1,1)
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
-      call write_data(grid,fid, 'itime', itime+1, record=rec)
-      call write_data(grid,fid,'time',time,record=rec)
-      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
-     &     ,calendarstring)
-      call write_data(grid,fid,'calendar',calendarstring,record=rec)
       call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       call par_close(grid,fid)
+
       return
       end subroutine write_2d
 
@@ -3651,7 +3840,6 @@ c write_3d
 !@sum write_3d high frequency netcdf-output of three-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
@@ -3668,18 +3856,16 @@ c write_3d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,l,rec,level,ivertical,length_of_calendarstring
+      integer :: fid,l,rec,level,ivertical
       real(kind=8) :: time
       real(kind=8),dimension(size(data,dim=3)) :: vertical
-      logical :: q24,qinst
+      logical :: q24,qinst,qr4
       character(len=80) :: qname
       character(len=80) :: fname
-      character(len=37) :: method
-      character(len=23) :: relation_to_itime
-      character(len=50) :: itimeUnits,referencetime,lname
-      character(len=16) :: calendarstring
       character(len=9) :: cform
-      character(len=3) :: cnsubdd
+      character(len=50) :: lname
+      character(len=16) :: calendarstring
+      character(len=8) :: dist_x,dist_y
 
       if(.not. in_subdd_list(qtyname)) return
 
@@ -3698,36 +3884,18 @@ c write_3d
         rec = (1+itime-itime0)/nsubdd
       endif
       if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
-        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
         q24 = .true.
       else
-        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
-     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
         q24 = .false.
       end if
+      time = time_subdd(q24,rec)
+
       if(rec==1) then ! define this output file
-        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
-     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call write_attr(grid,fid,'global','xlabel',xlabel)
-        if (qinst) then
-          method = 'instantaneous value for current ITU'
-        else
-          if (q24) then
-            method = 'daily'
-          else
-            method = 'accumulated/averaged over nsubdd ITUs'
-          end if
-        end if
-        call write_attr(grid,fid,'global','calculation_method',method)
-        write(cnsubdd,'(i3)') nsubdd
-        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
-        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lon','units','degrees_east')
-        call write_attr(grid,fid,'lon','long_name','Longitude')
-        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lat','units','degrees_north')
-        call write_attr(grid,fid,'lat','long_name','Latitude')
+        call def_global_attr_subdd(fid,q24,qinst)
+        call def_xy_coord_subdd(fid)
+
+c define vertical coordinates
         if (present(positive)) then ! define vertical coordinates
           call defvar(grid,fid,vertical,'level(level)',r4_on_disk=
      &         .true.)
@@ -3764,35 +3932,19 @@ c write_3d
           end if
           call write_attr(grid,fid,'level','positive',trim(positive))
         end if
-        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
-        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
-     &       ,'-01-01 00:00 UTC'
-        call write_attr(grid,fid,'itime','units',itimeUnits)
-        call write_attr(grid,fid,'itime','long_name'
-     &       ,'Internal Time Unit (ITU)')
-        call defvar(grid,fid,time,'time',with_record_dim=.true.
-     &       ,r4_on_disk=.true.)
-        call write_attr(grid,fid,'time','calendar','noleap')
-        call write_attr(grid,fid,'time','units',referencetime)
-        call write_attr(grid,fid,'time','long_name'
-     &       ,'Time Coordinate Relative to IYEAR1/01/01')
-        if (qinst) then
-          relation_to_itime = 'midpoint of last ITU'
-        else if (.not. q24) then
-          relation_to_itime = 'midpoint of nsubdd ITUs'
-        else
-          relation_to_itime = 'all ITUs of day'
-        end if
-        call write_attr(grid,fid,'time','relation_to_itime',
-     &       relation_to_itime)
-        call defvar(grid,fid,calendarstring,
-     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
-     &       )
-        call write_attr(grid,fid,'calendar','units','UTC')
-        call write_attr(grid,fid,'calendar','long_name'
-     &       ,'Date/Time of Midpoint')
-        call write_attr(grid,fid,'calendar','relation_to_itime',
-     &       relation_to_itime)
+
+        call def_time_coord_subdd(fid,q24,qinst,time,calendarstring)
+
+c define physical variable
+#ifdef CUBED_SPHERE
+        dist_x='dist_im'
+        dist_y='dist_jm'
+        qr4=.true.
+#else
+        dist_x='dist_lon'
+        dist_y='dist_lat'
+        qr4=.true.
+#endif
         if ((.not. present(positive)) .or. (present(suffixes) .and.
      &       qtyname(2:4) /= 'ALL')) then
                                 ! define 2-dim fields with different names
@@ -3802,9 +3954,9 @@ c write_3d
             else
               qname = trim(qtyname)//'_'//trim(suffixes(l))
             end if
-            call defvar(grid,fid,data(:,:,l),
-     &           trim(qname)//'(dist_im,dist_jm)',
-     &           with_record_dim=.true.,r4_on_disk=.true.)
+            call defvar(grid,fid,data(:,:,l),trim(qname)//'('//
+     &           trim(dist_x)//','//trim(dist_y)//')',with_record_dim=
+     &           .true.,r4_on_disk=qr4)
             call write_attr(grid,fid,trim(qname),'units',units_of_data)
             if (present(long_name)) then
               if (long_name /= 'not yet set in get_subdd') then
@@ -3819,34 +3971,33 @@ c write_3d
           else
             qname = qtyname
           end if
-          call defvar(grid,fid,data,trim(qname)//
-     &         '(dist_im,dist_jm,level)',with_record_dim=.true.
-     &         ,r4_on_disk=.true.)
+          call defvar(grid,fid,data,trim(qname)//'('//trim(dist_x)//','
+     &         //trim(dist_y)//',level)',with_record_dim=.true.
+     &         ,r4_on_disk=qr4)
           call write_attr(grid,fid,trim(qname),'units',units_of_data)
           if (present(long_name)) then
             if (long_name /= 'not yet set in get_subdd') call
      &           write_attr(grid,fid,trim(qname),'long_name',long_name)
           end if
         endif
+
         call par_enddef(grid,fid)
-        call write_data(grid,fid,'lon',lon_dg(:,1))
-        call write_data(grid,fid,'lat',lat_dg(:,1))
+        call write_xy_coord_subdd(fid)
         if (present(positive)) call write_data(grid,fid,'level',vertical
      &       )
       else
         fid = par_open(grid,trim(fname),'write')
       endif
+
+      call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
+
+c write physical variable
       if(polefix) then
         do l=1,size(data,3)
           if(hasSouthPole(grid)) data(2:im,1,l) = data(1,1,l)
           if(hasNorthPole(grid)) data(2:im,jm,l) = data(1,jm,l)
         enddo
       endif
-      call write_data(grid,fid, 'itime', itime+1, record=rec)
-      call write_data(grid,fid,'time',time,record=rec)
-      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
-     &     ,calendarstring)
-      call write_data(grid,fid,'calendar',calendarstring,record=rec)
       if ((.not. present(positive)) .or. (present(suffixes) .and.
      &     qtyname(2:4) /= 'ALL')) then
         do l=1,size(data,3)
@@ -3867,6 +4018,7 @@ c write_3d
         call write_dist_data(grid,fid,trim(qname),data,record=rec)
       endif
       call par_close(grid,fid)
+
       return
       end subroutine write_3d
 
@@ -3876,7 +4028,6 @@ c write_4d
 !@sum write_4d high frequency netcdf-output of four-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use geom, only: lat_dg,lon_dg
       use pario, only : par_open,par_close,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
@@ -3893,18 +4044,16 @@ c write_4d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,l,n,rec,level,length_of_calendarstring
+      integer :: fid,l,n,rec,level
       real(kind=8),dimension(size(data,dim=3)) :: vertical
       real(kind=8) :: time
-      logical :: q24,qinst
+      logical :: q24,qinst,qr4
       character(len=80) :: qname
       character(len=80) :: fname
-      character(len=37) :: method
-      character(len=23) :: relation_to_itime
-      character(len=50) :: itimeUnits,referencetime,lname
-      character(len=16) :: calendarstring
       character(len=9) :: cform
-      character(len=3) :: cnsubdd
+      character(len=50) :: lname
+      character(len=16) :: calendarstring
+      character(len=8) :: dist_x,dist_y
 
       if(.not. in_subdd_list(qtyname)) return
 
@@ -3923,40 +4072,22 @@ c write_4d
         rec = (1+itime-itime0)/nsubdd
       endif
       if (present(record) .or. mod(nsubdd*dtsrc/3600.,24.) == 0.) then
-        time = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
         q24 = .true.
       else
-        time = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1),kind=8)
-     &       *24. + (rec - 1)*nsubdd*dtsrc/3600.
         q24 = .false.
       end if
+      time = time_subdd(q24,rec)
+
       if(rec==1) then ! define this output file
-        call get_referencetime_for_netcdf(qinst,q24,nsubdd-1
-     &       ,referencetime)
         fid = par_open(grid,trim(fname),'create')
-        call write_attr(grid,fid,'global','xlabel',xlabel)
-        if (qinst) then
-          method = 'instantaneous value for current ITU'
-        else
-          if (q24) then
-            method = 'daily'
-          else
-            method = 'accumulated/averaged over nsubdd ITUs'
-          end if
-        end if
-        call write_attr(grid,fid,'global','calculation_method',method)
-        write(cnsubdd,'(i3)') nsubdd
-        call write_attr(grid,fid,'global','nsubdd',cnsubdd)
-        call defvar(grid,fid,lon_dg(:,1),'lon(im)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lon','units','degrees_east')
-        call write_attr(grid,fid,'lon','long_name','Longitude')
-        call defvar(grid,fid,lat_dg(:,1),'lat(jm)',r4_on_disk=.true.)
-        call write_attr(grid,fid,'lat','units','degrees_north')
-        call write_attr(grid,fid,'lat','long_name','Latitude')
+        call def_global_attr_subdd(fid,q24,qinst)
+        call def_xy_coord_subdd(fid)
         do l=1,size(data,dim=3)
           vertical(l) = real(l,kind=8)
         end do
         call defvar(grid,fid,vertical,'level(level)',r4_on_disk=.true.)
+
+c define vertical coordinates
         if (present(positive)) then
           if (.not. (positive == 'up' .or. positive == 'down')) then
             call stop_model ('In subdd: Wrong netcdf positive-attribute'
@@ -3974,41 +4105,25 @@ c write_4d
             call write_attr(grid,fid,'level','positive',trim(positive))
           end if
         end if
-        call defvar(grid,fid,itime,'itime',with_record_dim=.true.)
-        write(itimeUnits,'(a11,i4,a16)') 'ITUs since ' ,iyear1
-     &       ,'-01-01 00:00 UTC'
-        call write_attr(grid,fid,'itime','units',itimeUnits)
-        call write_attr(grid,fid,'itime','long_name'
-     &       ,'Internal Time Unit (ITU)')
-        call defvar(grid,fid,time,'time',with_record_dim=.true.
-     &       ,r4_on_disk=.true.)
-        call write_attr(grid,fid,'time','calendar','noleap')
-        call write_attr(grid,fid,'time','units',referencetime)
-        call write_attr(grid,fid,'time','long_name'
-     &       ,'Time Coordinate Relative to IYEAR1/01/01')
-        if (qinst) then
-          relation_to_itime = 'midpoint of last ITU'
-        else if (.not. q24) then
-          relation_to_itime = 'midpoint of nsubdd ITUs'
-        else
-          relation_to_itime = 'all ITUs of day'
-        end if
-        call write_attr(grid,fid,'time','relation_to_itime',
-     &       relation_to_itime)
-        call defvar(grid,fid,calendarstring,
-     &       'calendar(length_of_calendarstring)',with_record_dim=.true.
-     &       )
-        call write_attr(grid,fid,'calendar','units','UTC')
-        call write_attr(grid,fid,'calendar','long_name'
-     &       ,'Date/Time of Midpoint')
-        call write_attr(grid,fid,'calendar','relation_to_itime',
-     &       relation_to_itime)
+
+        call def_time_coord_subdd(fid,q24,qinst,time,calendarstring)
+
+c define physical variable
+#ifdef CUBED_SPHERE
+        dist_x='dist_im'
+        dist_y='dist_jm'
+        qr4=.true.
+#else
+        dist_x='dist_lon'
+        dist_y='dist_lat'
+        qr4=.true.
+#endif
         if (present(suffixes)) then
           do n=1,size(data,4)
             qname = trim(qtyname)//'_'//trim(suffixes(n))
-            call defvar(grid,fid,data(:,:,:,n),trim(qname)//
-     &           '(dist_im,dist_jm,level)', with_record_dim=.true.
-     &           ,r4_on_disk=.true.)
+            call defvar(grid,fid,data(:,:,:,n),trim(qname)//'('//
+     &           trim(dist_x)//','//trim(dist_y)//',level)'
+     &           ,with_record_dim=.true.,r4_on_disk=qr4)
             call write_attr(grid,fid,trim(qname),'units',units_of_data)
             if (present(long_name)) then
               if (long_name /= 'not yet set in get_subdd') then
@@ -4018,9 +4133,9 @@ c write_4d
             end if
           end do
         else
-          call defvar(grid,fid,data,trim(qtyname)//
-     &         '(dist_im,dist_jm,level,ntm)',with_record_dim=.true.
-     &         ,r4_on_disk=.true.)
+          call defvar(grid,fid,data,trim(qtyname)//'
+     &         ('// trim(dist_x)//','//trim(dist_y)//',level,ntm)'
+     &         ,with_record_dim=.true.,r4_on_disk=qr4)
           call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
           if (present(long_name)) then
             if (long_name /= 'not yet set in get_subdd') call
@@ -4028,13 +4143,17 @@ c write_4d
      &           )
           end if
         endif
+
         call par_enddef(grid,fid)
-        call write_data(grid,fid,'lon',lon_dg(:,1))
-        call write_data(grid,fid,'lat',lat_dg(:,1))
+        call write_xy_coord_subdd(fid)
         call write_data(grid,fid,'level',vertical)
       else
         fid = par_open(grid,trim(fname),'write')
       endif
+
+      call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
+
+c write physical variable
       if(polefix) then
         do n=1,size(data,4)
           do l=1,size(data,3)
@@ -4043,11 +4162,6 @@ c write_4d
           end do
         end do
       end if
-      call write_data(grid,fid, 'itime', itime+1, record=rec)
-      call write_data(grid,fid,'time',time,record=rec)
-      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
-     &     ,calendarstring)
-      call write_data(grid,fid,'calendar',calendarstring,record=rec)
       if(present(suffixes)) then
         do n=1,size(data,4)
           qname = trim(qtyname)//'_'//trim(suffixes(n))
@@ -4058,10 +4172,14 @@ c write_4d
         call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       end if
       call par_close(grid,fid)
+
       return
       end subroutine write_4d
 
+c in_subdd_list
       logical function in_subdd_list(qtyname)
+!@sum in_subdd_list tests presence of qtyname in subdd list
+!@auth M. Kelley
 
       implicit none
 
