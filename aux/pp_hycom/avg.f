@@ -376,7 +376,6 @@ c
       flux(:,:,:)=0.
 c --- global domain
       do i=1,idm
-      ia=max(1,i-1)
       do j=1,jdm
       do k=1,kdm
         flux(i,k,4)=flux(i,k,4)-uflx(i,j,k)
@@ -386,7 +385,6 @@ c --- global domain
 
 c --- each basin
       do 81 i=1,idm
-      ia=max(1,i-1)
       do 81 j=1,jdm
       if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
         do k=1,kdm
@@ -408,7 +406,7 @@ c
 c --- convert to petawatt
       heatfl(i,l)=-.5*heatfl(i,l)*spcifh*rho * 1.e-9          !  N-ward > 0
       do 84 k=2,kdm
- 84   flux(i,k,l)=flux(i,k,l)+flux(i,k-1,l)
+ 84   flux(i,k,l)=flux(i,k,l)+flux(i,k-1,l)     ! vertical integral in k
 c
       i=i45                ! get max overturning rate at 45N in Atlantic
       flxmax=-999.
@@ -433,18 +431,11 @@ c
  35   sunda(k)=sunda(k)+uflx(i,j,k)
  26   sunda(k+1)=sunda(k+1)+sunda(k)
 c
-c     write(*,'(a,27f4.0)') 'sunda=',(sunda(k),k=1,kdm+1)
-c     write(*,'(a,26f4.0)') 'Indo_pa=',(flux(indoi,k,3),k=1,kdm)
-c     write(*,'(a,26f4.0)') 'Indo_in=',(flux(indoi,k,2),k=1,kdm)
-
 c --- subtract out portion due to indonesian throughflow
       do 39 k=1,kdm
-      do 29 i=indoi,idm
- 29   flux(i,k,2)=flux(i,k,2)+sunda(k)                !  Indian
-      do 39 i=indoi,idm
+      do 39 i=indoi+1,idm
+      flux(i,k,2)=flux(i,k,2)+sunda(k)                !  Indian
  39   flux(i,k,3)=flux(i,k,3)-sunda(k)                !  Pacific
-c     write(*,'(a,26f4.0)') 'pa flux=',(flux(indoi,k,3),k=1,kdm)
-c     write(*,'(a,26f4.0)') 'in flux=',(flux(indoi,k,2),k=1,kdm)
 c
       if (rhodot) then
       tinvrs=1./((ny2-ny1+1.)*365.*86400.)
@@ -461,21 +452,19 @@ c --- determine initial pressure field (needed for finding rho-dot)
 
 c --- subtract out portion of flux attributable to interface displacement
         do 34 k=2,kdm
-        do 36 j=1,jdm
-        do 36 i=1,idm
- 36     flux(i,k,4)=flux(i,k,4)
-     .         +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
         do 34 j=1,jdm
         do 34 i=1,idm
-          if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
-            flux(i,k,1)=flux(i,k,1)
-     .         +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-          elseif (im(i,j).eq.3.or.im(i,j).eq.4) then ! Indian
-            flux(i,k,2)=flux(i,k,2)
-     .         +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-          elseif (im(i,j).eq.5.or.im(i,j).eq.6) then ! Pacific
-            flux(i,k,3)=flux(i,k,3)
-     .         +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
+        flux(i,k,4)=flux(i,k,4)
+     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
+        if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
+          flux(i,k,1)=flux(i,k,1)
+     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
+        elseif (im(i,j).eq.3.or.im(i,j).eq.4) then ! Indian
+          flux(i,k,2)=flux(i,k,2)
+     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
+        elseif (im(i,j).eq.5.or.im(i,j).eq.6) then ! Pacific
+          flux(i,k,3)=flux(i,k,3)
+     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
           endif
  34     continue
       end if

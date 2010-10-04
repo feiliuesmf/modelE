@@ -16,7 +16,7 @@ c
       real :: pnew(idm,jdm,kdm+1),theta(kdm),year1
       integer*4 :: lenrec,isiz,jsiz,ksiz,nstep,lgth
       integer :: nrec,lev,imax(kdm),jmax(kdm),nt,iyr,imon,iday
-      character what*12,trcrid*12(ntrcr),info*17
+      character what*16,trcrid*12(ntrcr),info*17
       integer, parameter :: ni=11
 c
       lenrec=100
