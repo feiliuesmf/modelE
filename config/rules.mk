@@ -196,6 +196,13 @@ ifeq ($(AQUA_PLANET),YES)
   CPPFLAGS += -DNO_LAND_SURFACE
 endif
 
+ifdef PNETCDFHOME
+  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
+  FFLAGS += -I$(PNETCDFHOME)/include
+  INCS += -I$(PNETCDFHOME)/include
+endif
+
+
 ifeq ($(MPI),YES)
   ifeq ($(MPIDISTR),)
     # unknown distribution, just trying to add a mpi librarry ...
@@ -219,11 +226,11 @@ endif
   INCS += -I$(NETCDFHOME)/include
 endif
 
-ifdef PNETCDFHOME
-  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
-  FFLAGS += -I$(PNETCDFHOME)/include
-  INCS += -I$(PNETCDFHOME)/include
-endif
+#ifdef PNETCDFHOME
+#  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
+#  FFLAGS += -I$(PNETCDFHOME)/include
+#  INCS += -I$(PNETCDFHOME)/include
+#endif
 
 # access new interfaces in sub-directory.
 ifdef ESMF_Interface
