@@ -19,23 +19,14 @@
 
 RUNDECKS="E1M20 E1oM20 E1F20 E001tr"
 case `hostname` in
-    palm | explore* ) 
-	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
-        export MODES="serial other MPI OpenMP"
-        export USE_COMPILER=Intel8
-	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files;;
     discover* | borg* )
-        export BASELIBDIR=/usr/local/other/baselibs/v2_2rp2_213.34meta/Linux
+        export BASELIBDIR=/usr/local/other/baselibs/ESMF222rp3_NetCDF362b6_10.1.017_intelmpi/Linux
         export MODES="serial other MPI OpenMP"
         export NETCDFHOME=
-	export USE_COMPILER=Intel8
+        export MPIDISTR=intel
+	export USE_COMPILER=intel
+	export COMPILER_VERSION=10
 	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files;;
-    halem* )
-        export NOBACKUP=/scr/progress
-	export BASELIBDIR=/share/ESMA/baselibs/v2_2r0/OSF1
-        export MODES="serial MPI OpenMP"
-        export NETCDFHOME=/usr/local/unsupported
-	export GCMSEARCHPATH=/giss2/giss;;
     *) 
         export NOBACKUP=$HOME
 	export BASELIBDIR=/home/trayanov/baselibs/v2_2rp2_nb2/LinuxIA64
@@ -90,13 +81,15 @@ function environmentModules {
     source ${MODULESHOME}/init/bash
     module purge
     case `hostname` in
-	discover* | borg* )  module load comp/intel-10.1.023 lib/mkl-10.1.2.024 mpi/impi-3.2.1.009'
+	discover* | borg* )  module load comp/intel-10.1.023 lib/mkl-10.1.2.024 mpi/impi-3.2.1.009
     esac
     echo "****************"
     echo " module list: "
     module list | echo
     echo $USE_COMPILER
-    echo "****************"
+    echo "****************
+    export
+"
 }
 
 function setEnvironment {
@@ -448,14 +441,16 @@ function buildName {
 }    
 
 setUp
+
+echo "Hello"
+
 mkdir $SCRATCH
 pushd $SCRATCH
 
-logMessage "Regression testin on platform $HOSTNAME."
+logMessage "Regression testing on platform $HOSTNAME."
 logMessage "   Processing rundecks $RUNDECKS."
 logMessage "   Processing modes $MODES."
 logMessage " "
-
 
 for rundeck in $RUNDECKS; do
     logMessage "Beginning processing for rundeck $rundeck ..."

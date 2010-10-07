@@ -41,6 +41,7 @@ $env{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
 
 my $rundecks = ["E1M20","E1oM20","E1F20","E001tr","E4F40", 
                  "E4TcadF40", "E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
+#my $rundecks = ["E1M20"];
 my $compilers = ["intel", "gfortran"];
 
 my $configurations;
@@ -112,7 +113,7 @@ setModuleEnvironment();
 my $pool = CommandPool->new();
 
 my $cvs = CommandEntry -> new(cvsCheckout(\%env));
-my $clean = CommandEntry -> new({COMMAND => "rm -rf $scratchDir/*;"});
+my $clean = CommandEntry -> new({COMMAND => "rm -rf $scratchDir/* regression.o*;"});
 
 $pool -> add($clean);
 $pool -> add($cvs);
@@ -142,7 +143,7 @@ foreach my $compiler (@$compilers) {
 	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
 
 	    my $copy  = createTemporaryCopy(\%env, $tempDir);
-	    $copy -> {STDOUT_LOG_FILE} = "$env{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.buildlog";
+	    $copy -> {STDOUT_LOG_FILE} = "$env{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
 	    $pool -> add($copy, $cvs);
 	    my $build = compileRundeck(\%env, $tempDir, $compiler);
 	    $pool -> add($build, $copy);
@@ -173,14 +174,15 @@ open(REPORT,">Report");
 
 my $LINES_EXPECTED;
 
-$LINES_EXPECTED -> {E1M20}   = [4,5];
+$LINES_EXPECTED -> {E1M20}   = [4,8];
 $LINES_EXPECTED -> {E4F40}   = [4,15];
 $LINES_EXPECTED -> {E4TcadF40} = [4,15];
-$LINES_EXPECTED -> {E1oM20}  = [4,5];
-$LINES_EXPECTED -> {E1F20}   = [4,5];
-$LINES_EXPECTED -> {E001tr}  = [4,5];
+$LINES_EXPECTED -> {E1oM20}  = [4,8];
+$LINES_EXPECTED -> {E1F20}   = [4,8];
+$LINES_EXPECTED -> {E001tr}  = [4,8];
 $LINES_EXPECTED -> {$HYCOM}  = [10,12];
-$LINES_EXPECTED -> {E1arobio_mpi}  = [10,12];
+$LINES_EXPECTED -> {E4arobio_h4c}  = [4,5];
+$LINES_EXPECTED -> {E4arobio_g6c}  = [4,5];
 
 foreach my $compiler (@$compilers) {
     print LOG "Checking results for compiler $compiler: \n";
@@ -220,7 +222,7 @@ foreach my $compiler (@$compilers) {
 		    
 		    print LOG "$duration: ";
 		    
-		    $numLinesFound = `cd $resultsDir; $cmp $reference.$duration $rundeck.$configuration.$duration$suffix | wc -l`;
+		    $numLinesFound = `cd $resultsDir; ulimit -s unlimited; $cmp $reference.$compiler.$duration $rundeck.$configuration.$compiler.$duration$suffix | wc -l`;
 		    chomp($numLinesFound);
 		    
 		    my $lineRange = $LINES_EXPECTED -> {$rundeck};
@@ -236,7 +238,7 @@ foreach my $compiler (@$compilers) {
 			else {$consistent = 0;}
 		    }
 		    else {
-			$checklist -> {$rundeck} -> {"$configuration.$duration$suffix"} = "succeeded";
+			$checklist -> {$rundeck} -> {"$configuration.$compiler.$duration$suffix"} = "succeeded";
 			print LOG "succeeded ";
 		    }
 		}
@@ -248,12 +250,12 @@ foreach my $compiler (@$compilers) {
 	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
 	    if ($newSerial) {
 		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
-		`cd $resultsDir; cp $rundeck.SERIAL.1* $env{BASELINE_DIRECTORY}/$compiler/.; `;
+		`cd $resultsDir; cp $rundeck.SERIAL.$compiler.1* $env{BASELINE_DIRECTORY}/$compiler/.; `;
 	    }
 	}
 	else {
 	    foreach my $configuration (@{$configurations -> {$compiler} -> {$rundeck}}) {
-		my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.buildlog`;
+		my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.$compiler.buildlog`;
 		print REPORT "\nTail of Build Log for $rundeck.$configuration:\n";
 		print REPORT "$buildLogTail\n";
 	    }

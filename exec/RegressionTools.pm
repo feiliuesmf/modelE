@@ -58,7 +58,7 @@ sub compileRundeck {
 
   my $expName;
   if (@_) {$expName = shift}
-  else {$expName = "$rundeck.$configuration"};
+  else {$expName = "$rundeck.$configuration.$compiler"};
 
   my $logFile = "$resultsDir/$expName.buildlog";
   unlink($logFile); # delete it
@@ -97,7 +97,7 @@ sub runConfiguration {
 
     my $flags = "$standardFlags $extraFlags{$configuration}";
     $flags =~ s/(\$npes)/$npes/eeg;
-    my $expName = "$rundeck.$configuration";
+    my $expName = "$rundeck.$configuration.$compiler";
 
     my $suffix;
     my $logFile = "$resultsDir/$expName.runlog";
@@ -142,7 +142,7 @@ sub runSetup {
 
   my $expName;
   if (@_) {$expName = shift}
-  else {$expName = "$rundeck.$configuration"};
+  else {$expName = "$rundeck.$configuration.$compiler"};
 
   my $commandString = <<EOF;
 cd $dir/decks;
@@ -171,7 +171,7 @@ sub checkResults {
   my $expName;
 
   if (@_) {$expName = shift}
-  else {$expName = "$rundeck.$configuration"};
+  else {$expName = "$rundeck.$configuration.$compiler"};
 
   my $suffix;
   if ($configuration eq "SERIAL" or $configuration eq "SERIALMP") {
@@ -192,8 +192,11 @@ EOF
 
 sub writeModelErcFile {
     my $env = shift;
+    my $modelerc = $ENV{MODELERC};
+    my $commandString = "rm $modelerc\n";
+
     while (my ($var, $value) = each(%$env) ) {
-	$commandString .= "echo $var=$value >> $ENV{MODELERC}\n";
+	$commandString .= "echo $var=$value >> $modelerc\n";
     }
     $commandString .= "mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR} \n";
     return (CommandEntry -> new({COMMAND => $commandString}))
