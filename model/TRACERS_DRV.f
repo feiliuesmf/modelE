@@ -8132,7 +8132,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
      * BCB_src,OCB_src,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
-     * OCT_src,
+     * OCT_src,n_OCII,
 #endif  /* TRACERS_AEROSOLS_SOA */
      * DMS_AER,SS1_AER,SS2_AER,
      * SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D,
