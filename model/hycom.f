@@ -247,18 +247,18 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
          aswflx_loc(ia,ja)=0.
 #ifdef TRACERS_GASEXCH_ocean
         do nt=1,ntm
-        atracflx_loc(:,:,nt)=0.
+        atracflx_loc(ia,ja,nt)=0.
         enddo
 #endif
 #ifdef TRACERS_OceanBiology
-          awind_loc(:,:)=0.
-          asolz_loc(:,:)=0.
+          awind_loc(ia,ja)=0.
+          asolz_loc(ia,ja)=0.
 #endif
 #ifdef OBIO_RAD_coupling
-          avisdir_loc(:,:)=0.
-          avisdif_loc(:,:)=0.
-          anirdir_loc(:,:)=0.
-          anirdif_loc(:,:)=0.
+          avisdir_loc(ia,ja)=0.
+          avisdif_loc(ia,ja)=0.
+          anirdir_loc(ia,ja)=0.
+          anirdif_loc(ia,ja)=0.
 #endif
  28     continue
 #ifdef CUBED_SPHERE
