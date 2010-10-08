@@ -102,14 +102,11 @@ c
 
       integer :: nk
 
-#ifdef USE_ESMF
-      include 'mpif.h'
-#endif
 c
       call getLocalMaxMin(array, previous, 
      &     ijkAtMax, valMax, ijkAtMin, valMin)
-      call getGlobalExtreme(valMax, ijkAtMax, MPI_MAXLOC)
-      call getGlobalExtreme(valMin, ijkAtMin, MPI_MINLOC)
+      call getGlobalExtreme(valMax, ijkAtMax, 'max')
+      call getGlobalExtreme(valMin, ijkAtMin, 'min')
 
       if (am_i_root()) then
         print*,'  ', trim(name), ':'
@@ -175,19 +172,30 @@ c
 
       real*8, intent(inout) :: value
       integer, intent(inout) :: ijk(3)
-      integer, intent(in) :: operation
+      character(len=*), intent(in) :: operation
       
+#ifdef USE_ESMF
+      include 'mpif.h'
+#endif
       integer :: ierr
       real*8 :: inBuffer(2,3) ! 3 pairs of form {value, index}
       real*8 :: outBuffer(2,3) ! 3 pairs of form {value, index}
 
+      integer :: mpiOperation
 #ifdef USE_ESMF
       ! use MPI_Reduce to find maxval and associated indices
       inBuffer(1,1:3) = value
       inBuffer(2,1:3) = ijk
 
+      select case (operation)
+      case ('max','MAX','Max')
+        mpiOperation = MPI_MAXLOC
+      case ('min','MIN','Min')
+        mpiOperation = MPI_MINLOC
+      end select
+
       call MPI_REDUCE( inBuffer, outBuffer, 30, MPI_2DOUBLE_PRECISION, 
-     &     operation, 0, MPI_COMM_WORLD, ierr ); 
+     &     mpiOperation, 0, MPI_COMM_WORLD, ierr ); 
 
       if (am_i_root()) then
         ! copy results for output
