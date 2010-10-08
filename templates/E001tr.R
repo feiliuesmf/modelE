@@ -24,6 +24,7 @@ Preprocessor Options
 #define TRACERS_ON          ! include tracers code
 #define TRACERS_SPECIAL_Lerner ! also activate TRACER_SPECIAL_Lerner in Obj.modules !!
 #define TRACERS_WATER      ! include water tracers code
+#define NEW_IO
 End Preprocessor Options
 
 Run Options
@@ -31,7 +32,7 @@ STACKSIZE=131072
 
 Object modules: (in order of decreasing priority)
 RES_M23                             ! horiz/vert resolution
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
@@ -43,7 +44,7 @@ QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+TRDIAG_COM TRACER_PRT TRDIAG        ! tracer diagnostic printout
 ! use next line if #define TRACERS_SPECIAL_Lerner
 TRACER_SPECIAL_Lerner               ! routines called when TRACERS_SPECIAL_Lerner is activated
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
@@ -69,12 +70,12 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-tracers ESMF_Interface shared
+tracers ESMF_Interface shared dd2d
 
 Data input files:
     ! the first 4 files are specific to prescribed ocean runs
 AIC=AIC.RES_M23.D771201           ! initial conditions (atm.)
-GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
+GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
 OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
     ! if the prescr. ocean varies from year to year use instead:

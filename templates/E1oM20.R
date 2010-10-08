@@ -19,12 +19,13 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
@@ -61,13 +62,13 @@ POUT                                ! post-processing output
 SparseCommunicator_mod              ! sparse gather/scatter module
 
 Components:
-ESMF_Interface shared
+ESMF_Interface shared dd2d
 
 Data input files:
-! AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
-! GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
-! OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
-AIC=1JAN2006.rsfEAR4M20o13           ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
+AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
+GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)         and 300 year spin-up
+OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01 ! ocean initial conditions
+!AIC=1JAN2006.rsfEAR4M20o13           ! full IC (GIC,OIC not needed) ISTART=8 (spun up 380 yrs)
 OFTAB=OFTABLE_NEW                    ! ocean function table
 AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
@@ -199,7 +200,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
  &INPUTZ
    YEARI=1901,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=1901,MONTHE=1,DATEE=2,HOURE=0, KDIAG=13*0,
-   ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=2,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
 ! Instructions for related rundeck types

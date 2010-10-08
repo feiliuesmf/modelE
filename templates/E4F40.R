@@ -19,6 +19,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
+#define NEW_IO
 End Preprocessor Options
 
 Object modules:
@@ -31,7 +32,7 @@ FFT144                              ! Fast Fourier Transform
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
-IORSF                               ! old i/o
+IO_DRV                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
@@ -42,7 +43,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"    /* without "Ent" */
+#include "E4_components_nc"    /* without "Ent" */
 Ent
 
 Component Options:
@@ -50,7 +51,7 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_144x90_input_files"
+#include "IC_144x90_input_files_nc"
 #include "static_ocn_1880_144x90_input_files"
 
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file

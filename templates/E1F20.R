@@ -15,11 +15,12 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_F20  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 20 layers
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM GEOM_B IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
@@ -49,11 +50,11 @@ DIAG_RES_F                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+ESMF_Interface shared dd2d
 
 Data input files:
 AIC=AIC.RES_F20.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext.nc ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS2007_144X90N_nocasp

@@ -14,11 +14,12 @@ filters:    U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM GEOM_B IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
@@ -47,14 +48,14 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+ESMF_Interface shared dd2d
 
 Data input files:
     ! start up from restart file of earlier run
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
+GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice

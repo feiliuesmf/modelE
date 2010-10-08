@@ -13,6 +13,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
+#define NEW_IO
 #define TRAC_ADV_CPU
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
@@ -56,7 +57,7 @@ FFT144                              ! Fast Fourier Transform
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT_netcdf                ! diagn/post-processing output
-IORSF                               ! old i/o
+IO_DRV                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
@@ -68,6 +69,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
+TRDIAG
 
 #include "modelE4_source_files"
 RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
@@ -79,13 +81,14 @@ lightning                           ! Colin Price lightning model
 Components:
 #include "E4_components"    /* without "Ent" */
 Ent
+dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_144x90_input_files"
+#include "IC_144x90_input_files_nc"
 #include "static_ocn_1880_144x90_input_files"
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file

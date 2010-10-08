@@ -12,6 +12,7 @@ filters: U,V in E-W direction (after every dynamics time step)
          sea level pressure (after every physics time step)                 
 
 Preprocessor Options
+#define NEW_IO
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define ATM2x2h             !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
@@ -28,7 +29,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
 MODELE                              ! Main and model overhead
 ALLOC_DRV                           ! allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
@@ -109,11 +110,12 @@ obio_diffmod|-r8|
 TRACER_COM  TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+TRDIAG
 TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM
+Ent shared ESMF_Interface solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
@@ -121,7 +123,7 @@ OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext.nc ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.1deghycom_1
 CDN=CD144X90.ext                 ! neutral drag coefficient
 VEG=V144X90_no_crops.ext         ! vegatation file 
@@ -129,11 +131,7 @@ CROPS=CROPS_144X90N_nocasp.ext   ! crops
 SOIL=S144X900098M.ext            ! soil properties
 REG=REG2X2.5                     ! special regions-diag
 RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
-RADN3=miescatpar.abcdv2
+#include "rad_input_files"
 ! updated aerosols need MADAER=3
 TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
@@ -141,13 +139,6 @@ TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
 TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
@@ -159,9 +150,6 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.Mar2004.txt
-dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90_a.ij.ext
 ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
@@ -330,8 +318,8 @@ to_volume_MixRat=1    ! for tracer printout
 
  &INPUTZ
    YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
-   YEARE=2000,MONTHE=01,DATEE=01,HOURE=00, KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
+   YEARE=1800,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
+   ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=01,HOURE=01,IWRITE=1,JWRITE=1,
  &END
 ### Information below describes your run. Do not delete! ###
 Mon Nov  9 22:42:34 EST 2009
