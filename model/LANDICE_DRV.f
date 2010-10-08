@@ -136,7 +136,7 @@ C**** assumes a 72-column width slab - will need adjusting for CS
       END DO
       DO J=J_0,J_1
         DO I=I_0,I_1
-          LOC_GLM(I,J)=CGLM(I,J).eq."1" 
+          LOC_GLM(I,J)=CGLM(I,J).eq."1"
         ENDDO
       ENDDO
 C****
@@ -391,7 +391,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       SUBROUTINE GROUND_LI
 !@sum  GROUND_LI driver for applying surface fluxes to land ice fraction
 !@auth Original Development team
-!@ver  1.0
+!@ver  2010/10/06
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf,sday,edpery
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice,dtsrc
@@ -542,11 +542,6 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS*PLICE
       END IF
 
-C**** Accumulate diagnostics related to iceberg flux here also
-C**** remove source time step icb flux 
-      MICBIMP(:) = MICBIMP(:)-(/ ACCPDA,  ACCPDG /)*DTsrc/(EDPERY*SDAY)
-      EICBIMP(:) = EICBIMP(:)-(/EACCPDA, EACCPDG /)*DTsrc/(EDPERY*SDAY)
-
       CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-RSI(I,J))* GMELT(I,J)
      *     *BYAXYP(I,J))
       CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-RSI(I,J))*EGMELT(I,J)
@@ -561,10 +556,6 @@ C**** remove source time step icb flux
       AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
       AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
 #ifdef TRACERS_WATER  /* TNL: inserted */
-c      DO N=1,NTM
-c        TRICBIMP(N,:) = TRICBIMP(N,:)-(/TRACCPDA(:), TRACCPDG(:)/)
-c     *       *DTsrc/(EDPERY*SDAY)
-c      END DO
 #ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
      *     *BYAXYP(I,J)
@@ -728,7 +719,7 @@ C****
       SUBROUTINE daily_LI
 !@sum  daily_ice does daily landice things
 !@auth Gavin Schmidt
-!@ver  1.0
+!@ver  2010/10/08
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
@@ -783,12 +774,17 @@ C**** hemispheric masking (why isn't this in GEOM?)
       enddo; enddo
 
 C**** For total cumulative accumulation, pre-remove accumulation up to
-C**** the day before
-
-      MICBIMP(:) = MICBIMP(:) - dMICBIMP(:) 
-      EICBIMP(:) = EICBIMP(:) - dEICBIMP(:) 
+C**** the day before, also subtract daily ice berg mass that is added
+C**** to ocean in subroutine DAILY_OC
+      MICBIMP(:) = MICBIMP(:) - dMICBIMP(:) -
+     -             (/  ACCPDA,  ACCPDG /) / EDperY
+      EICBIMP(:) = EICBIMP(:) - dEICBIMP(:) -
+     -             (/ EACCPDA, EACCPDG /) / EDperY
 c#ifdef TRACERS_WATER
-c      TRICBIMP(:,:) = TRCIBIMP(:,:) - dTRICBIMP(:,:) 
+C     DO N=1,NTM
+C       TRICBIMP(N,:) = TRCIBIMP(N,:) - dTRICBIMP(N,:) -
+C    -                  (/ TRACCPDA(:), TRACCPDG(:) /) / EDPERY
+C     END DO
 c#endif
 
 C**** Calculate and save mass/energy/tracer accumulation to date for
@@ -809,7 +805,7 @@ C**** this year
 
       dMICBIMP(:)=(/ mdwnimp_SH, mdwnimp_NH /)
       dEICBIMP(:)=(/ edwnimp_SH, edwnimp_NH /)
-      
+
 #ifdef TRACERS_WATER
       DO ITM=1,NTM
         do j=j_0,j_1; do i=i_0,i_1
@@ -823,10 +819,10 @@ c        dTRICBIMP(ITM,:)=(/ trdwnimp_SH(itm), trdwnimp_NH(itm) /)
 #endif
 
 C**** For total cumulative accumulation, add back accumulation up to today
-      MICBIMP(:) = MICBIMP(:) + dMICBIMP(:) 
-      EICBIMP(:) = EICBIMP(:) + dEICBIMP(:) 
+      MICBIMP(:) = MICBIMP(:) + dMICBIMP(:)
+      EICBIMP(:) = EICBIMP(:) + dEICBIMP(:)
 c#ifdef TRACERS_WATER
-c      TRICBIMP(:,:) = TRCIBIMP(:,:) + dTRICBIMP(:,:) 
+C      TRICBIMP(:,:) = TRCIBIMP(:,:) + dTRICBIMP(:,:)
 c#endif
 
 C**** Every year update gmelt factors in order to balance downward
@@ -834,11 +830,11 @@ C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
-      IF (JDAY.eq.1) THEN   ! Jan 1. only
+      If (JDAY==1)  Then  !  Jan 1 only, EndIf at 500
 
 ! only adjust after at least one full year
-        IF (itime.ge.itimei+JDperY*nday .and. glmelt_on==1) THEN
-
+        If (ITIME >= ITIMEI+JDperY*NDAY .and. GLMELT_ON==1)  Then
+                                                        !  EndIf at 400
 C*** prevent iceberg sucking
           if(mdwnimp_NH.lt.0) then
             write(99,*) "Limiting NH icesheet replacement mass/energy",
@@ -957,16 +953,19 @@ C**** Set GL MELT arrays
         END DO
       END DO
 
-      END IF  ! run not in its first year
+  400 EndIf  !  run not in its first year
 
 C**** reset implicit accumulators
       MDWNIMP=0.
       EDWNIMP=0.
+      dMICBIMP(:) = 0
+      dEICBIMP(:) = 0
 #ifdef TRACERS_WATER
       TRDWNIMP=0.
+C     dTRICBIMP(:,:) = 0
 #endif
 
-      END IF  ! start of new year
+  500 EndIf  !  start of new year
 
       END SUBROUTINE daily_LI
 
@@ -1004,7 +1003,7 @@ C**** reset implicit accumulators
       I_1H = grid%I_STOP_HALO
       njpol = grid%J_STRT_SKP-grid%J_STRT
 
-C**** Check for NaN/INF in land ice data 
+C**** Check for NaN/INF in land ice data
       CALL CHECK3C(tlandi(:,I_0:I_1,J_0:J_1),2,I_0,I_1,J_0,J_1,NJPOL,
      &     SUBR,'tli')
       CALL CHECK3B(snowli(I_0:I_1,J_0:J_1) ,I_0,I_1,J_0,J_1,NJPOL,1,
