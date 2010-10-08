@@ -74,6 +74,7 @@
 !@+ [S00WM2max-S00WM2min] so that O3(altered) = O3(default) +
 !@+ add_sol*delta_O3_max_min
       integer :: use_sol_Ox_cycle = 0,  NFO3 = NFO3X
+      save use_sol_Ox_cycle
       real*8 :: add_sol, S0min, S0max
       character*40, dimension(NFO3X) :: DDFILE
       integer, dimension(NFO3X) :: IYEAR =
