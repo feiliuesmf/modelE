@@ -46,7 +46,15 @@ c
       character(len=  80) :: cmnd_title 
       integer :: num_args, cmnd_len, cmnd_status, iarg
       real :: factor
-
+c
+c      include 'netcdf.inc'
+c      integer, parameter :: nvar=11
+c      integer :: rc,fid,vid(nvar),nd(nvar),dimids(3)
+c      real*4 :: lons(360),lats(180)
+c      real*4, parameter :: missing=-9999.
+c      character(len=20), dimension(nvar) :: units,sname
+c      character(len=80), dimension(nvar) :: lname
+c
       namelist /hdiag_nml/ path0, path1, path2,
      . hycomtopo, latlonij, basinmask, flnmcoso, flnmo2a,
      . runid, ny1, ny2, monave_convert,solo_convert
@@ -286,6 +294,71 @@ c
       enddo
 
       close(40)
+
+cc
+cc write netcdf format
+cc
+c      nd(1:3) = 1
+c      sname(1)='lon'; units(1)='degrees_east'; lname(1)='longitude'
+c      sname(2)='lat'; units(2)='degrees_north'; lname(2)='latitude'
+c      sname(3)='z'; units(3)='m'; lname(3)='depth'
+c      nd(4:6) = 2
+c      sname(4)='ssh'; units(4)='cm'; lname(4)='sea surface height'
+c      sname(5)='zmix'; units(5)='m'; lname(5)='mixed layer depth'
+c      sname(6)='icefr'; units(6)='0:1'; lname(6)='sea ice coverage'
+c      nd(7:11) = 3
+c      sname(7)='u'; units(7)='cm/s'; lname(7)='eastward velocity'
+c      sname(8)='v'; units(8)='cm/s'; lname(8)='northward velocity'
+c      sname(9)='t'; units(9)='C'; lname(9)='temperature'
+c      sname(10)='s'; units(10)='psu'; lname(10)='salinity'
+c      sname(11)='r'; units(11)='kg/m3-1000';lname(11)='density (sigma2)'
+c
+c      do m=1,iia
+c        lons(m) = -180. + (m-.5)*(360./real(iia))
+c      enddo
+c      do m=1,jja
+c        lats(m) = -90. + (m-.5)*(180./real(jja))
+c      enddo
+c      rc = nf_create(trim(flnmout),nf_clobber,fid)
+c      rc = nf_def_dim(fid,'lon',iia,dimids(1))
+c      rc = nf_def_dim(fid,'lat',jja,dimids(2))
+c      rc = nf_def_dim(fid,'z',k33,dimids(3))
+c      rc = nf_def_var(fid,'lon',nf_float,1,dimids(1),vid(1))
+c      rc = nf_def_var(fid,'lat',nf_float,1,dimids(2),vid(2))
+c      rc = nf_def_var(fid,'z',nf_float,1,dimids(3),vid(3))
+c      do m=4,11
+c        rc = nf_def_var(fid,trim(sname(m)),nf_float,nd(m),dimids,vid(m))
+c        rc = nf_put_att_real(fid,vid(m),'missing_value',
+c     &       nf_float,1,missing)
+c      enddo
+c      do m=1,11
+c        rc = nf_put_att_text(fid,vid(m),'units',
+c     &       len_trim(units(m)),trim(units(m)))
+c        rc = nf_put_att_text(fid,vid(m),'long_name',
+c     &       len_trim(lname(m)),trim(lname(m)))
+c      enddo
+c      rc = nf_enddef(fid)
+c      rc = nf_put_var_real(fid,vid(1),lons)
+c      rc = nf_put_var_real(fid,vid(2),lats)
+c      rc = nf_put_var_real(fid,vid(3),z33)
+c      sshij = cshift(sshij,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(4),sshij)
+c      dpmixij = cshift(dpmixij,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(5),dpmixij)
+c      iceij = cshift(iceij,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(6),iceij)
+c      uz = cshift(uz,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(7),uz)
+c      vz = cshift(vz,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(8),vz)
+c      tz = cshift(tz,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(9),tz)
+c      sz = cshift(sz,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(10),sz)
+c      rz = cshift(rz,iia/2,1)
+c      rc = nf_put_var_real(fid,vid(11),rz)
+c      rc = nf_close(fid)
+
 c
 C     write(unit=*,fmt='(/,3a)') " +++ END PROGRAM ", __FILE__," +++ "
       end
