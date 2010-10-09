@@ -117,9 +117,15 @@ AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
 !!! AIC=1JAN1931.rsfE8F40o32        ! Larissa's restart              ISTART=8
 !!! AIC=1JAN1918.rsfE31F40o32       ! XXXXXXXXX dont use this AIC, just for test purposess
 GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
+
 OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
-TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
-TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
+TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
+TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+
+!OIC=OIC_compatible_with_TOPO_OC ! Levitus ocean intial conditions
+!TOPO=Z2HX2fromZ1QX1N            ! surface fractions and topography
+!TOPO_OC=Z2HX2fromZ1QX1N         ! ocean fraction and topography
+
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations
@@ -129,6 +135,9 @@ CROPS=CROPS_144X90N_nocasp.ext  ! crops
 SOIL=S144X900098M.ext           ! soil properties
 REG=REG2X2.5                    ! special regions-diag
 RVR=RD_modelE_F.RVR.bin         ! river direction file
+
+#include "rad_input_files"
+
 ! updated aerosols need MADAER=3
 TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
