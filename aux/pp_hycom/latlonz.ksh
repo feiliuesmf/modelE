@@ -3,20 +3,10 @@ USAGE="$0  arg1 ..."
 # SCRIPT: NAME_of_SCRIPT
 # AUTHOR: Nick Tausnev, ntausnev@giss.nasa.gov
 # DATE:   DATE_of_CREATION 7/9/2010 
-# REV:    1.1.A (Valid are A, B, D, T and P)
-#               (For Alpha, Beta, Dev, Test and Production)
 #
-# PLATFORM: (SPECIFY: AIX, HP-UX, Linux, Solaris 
-#                      or Not platform dependent)
-#
-# PURPOSE: Give a clear, and if necessary, long, description of the
-#          purpose of the shell script. This will also help you stay
-#          focused on the task at hand.
-#
-# REV LIST:
-#        DATE:  DATE_of_CREATION 7/9/2010 
-#        BY:	  AUTHOR_of_MODIFICATION   
-#        MODIFICATION: Describe what was modified, new features, etc-
+# PURPOSE: Average the hycom monthly out files 
+#          and convert at lat, lon, z grid
+#          in giss or netcdf formats
 #
 #
 # set -n   # Uncomment to check your syntax, without execution.
@@ -30,8 +20,8 @@ USAGE="$0  arg1 ..."
 
 
 # HARD CODING need change later 
-#latlonz_exe=/discover/nobackup/ntausnev/HYCOM_DIAG/aux/pp_hycom/latlonz
-latlonz_exe=./latlonz
+latlonz_exe=""
+make latlonz &&  latlonz_exe=./latlonz
 
 ##########################################################
 ############### DEFINE FUNCTIONS HERE ####################
@@ -52,6 +42,8 @@ example: ( input files can be zip files !!! )
      -t "RunId=EhMay2 Mon=JAN YEAR=2280-82" \\
      -i /discover/nobackup/ntausnev/RUNS_ME/EhMay2/00HYC/outEhMay2_2280-2289/JAN228[0-2].outEhMay2.gz
 
+     If output file has extention ".nc" result will be at netcdf format !
+ 
 ENDOFTEXT
 exit 1
 }
@@ -123,6 +115,8 @@ command="${latlonz_exe} $fileOUT \"$title\"  $files"
 print "\nExecution command:\n   $command"
 eval $command
 rm -rf ___work 2> /dev/null
+print "\nResult of the script:"
+ls -la $fileOUT
 
 print "\n\nScript: $0 ended"
 exit 0

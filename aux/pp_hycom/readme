@@ -56,7 +56,7 @@ latlonz.ksh \
      -t "RunId=EhMay2 Mon=JAN YEAR=2280-82" \
      -i /discover/nobackup/ntausnev/RUNS_ME/EhMay2/00HYC/outEhMay2_2280-2289/JAN228[0-2].outEhMay2.gz
 
-
+     If output file has suffix ".nc" result is written in netcdf format
 
 $ make get2d
 $ get2d <input

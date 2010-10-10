@@ -3,17 +3,17 @@ SHELL=/bin/sh
 #FC=    ifort -assume byterecl -convert big_endian
 #LD=    ifort -assume byterecl -convert big_endian
 
-#NC=/usr/local/other/netcdf/3.6.2_intel-10.1.013
+NC=/usr/local/other/netcdf/3.6.2_intel-10.1.013
 
 LEVEL_OPT = -g 
 LEVEL_OPT = -O2 
 
 FC=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C
-LD=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C #-I${NC}/include
+LD=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C -I${NC}/include
 
 LDFLAGS =  
 CPPFLAGS =
-LIBS = #-L${NC}/lib -lnetcdf
+LIBS = -L${NC}/lib -lnetcdf
 
 avg_obj=const_proc.o hycom_dimen.o hycom_arrays.o avg.o gethyb.o extrct.o \
 	prtmsk.o bigrid.o gtdpth.o meshsz.o restep.o findmx.o thruflow.o
