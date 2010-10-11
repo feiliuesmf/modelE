@@ -2466,6 +2466,19 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
+#endif
+ 	 
+#ifdef TRACERS_OBIO_RIVERS
+      k=k+1
+      IJ_rvrflo = k  ! Mass Outflow by Rivers without gmelt (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Outflow by Rivers without gmelt'
+      units_ij(k) = '10^5 kg/s'
+!      scale_ij(k) = 1.
+      scale_ij(k) = 1.d-5/DTsrc
+      name_ij(k) = 'FLOWO'
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_POCEAN
+
 #endif 	 
 c
       k=k+1 !

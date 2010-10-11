@@ -878,7 +878,7 @@ C****
 
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
-     *     jreg,j_rvrd,j_ervr,ij_fwoc
+     *     jreg,j_rvrd,j_ervr,ij_fwoc, ij_rvrflo
       USE GHY_COM, only : fearth
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
@@ -1138,7 +1138,7 @@ C**** in atmosphere as well. Otherwise, there is an energy imbalance.
             DPE = 0  !  DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
 C**** possibly adjust mass (not heat) to allow for balancing of sea level
             DMM = RIVER_FAC * DMM
-            FLOWO(ID,JD) = FLOWO(ID,JD) +  DMM     *FLFAC
+            FLOWO(ID,JD) = FLOWO(ID,JD) +  DMM     *FLFAC       
             EFLOWO(ID,JD)=EFLOWO(ID,JD) + (DGM+DPE)*FLFAC
 #ifdef TRACERS_WATER
             DTM(:) = RIVER_FAC * DTM(:)
@@ -1166,6 +1166,10 @@ C**** accumulate river runoff diags (moved from ground)
           TAIJN(ID,JD,TIJ_RVR,:) = TAIJN(ID,JD,TIJ_RVR,:) +
      +                             DTM(:)*byAXYP(ID,JD)
 #endif
+#ifdef TRACERS_OBIO_RIVERS
+          AIJ(ID,JD,IJ_rvrflo) = AIJ(ID,JD,IJ_rvrflo) + DMM
+#endif
+
           Cycle
 
 C****
