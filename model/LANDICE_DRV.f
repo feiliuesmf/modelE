@@ -5,7 +5,7 @@
 #endif
 !@sum  LANDICE_DRV contains drivers for LANDICE related routines
 !@auth Gavin Schmidt
-!@ver  1.0
+!@ver  2010/10/12
 !@cont init_LI,PRECIP_LI,GROUND_LI,daily_LI
 
       SUBROUTINE init_LI(istart)
@@ -21,7 +21,7 @@
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg,snmin,dmicbimp,micbimp,deicbimp,eicbimp
+     *     ,eaccpdg,snmin,micbimp,eicbimp
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
@@ -202,11 +202,9 @@ C**** initiallise implicit accumulators (note that these arrays are
 C**** not used until at least one full year has passed)
         MDWNIMP=0.  ;  EDWNIMP=0.
         MICBIMP=0.  ;  EICBIMP=0.
-        dMICBIMP=0. ;  dEICBIMP=0.
 #ifdef TRACERS_WATER
         TRDWNIMP=0.
 c        TRICBIMP=0.
-c        dTRICBIMP=0.
 #endif
       end if
 
@@ -726,10 +724,10 @@ C****
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
-     *     ,eaccpdg,micbimp,eicbimp,dmicbimp,deicbimp
+     *     ,eaccpdg,micbimp,eicbimp
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-     *     ,traccpda,traccpdg   ! tricbimp,dtricbimp
+     *     ,traccpda,traccpdg   ! tricbimp
 #endif
       USE TRDIAG_COM, only : to_per_mil
       USE TRACER_COM, only :  trw0, nWater, trname
@@ -773,62 +771,14 @@ C**** hemispheric masking (why isn't this in GEOM?)
         endif
       enddo; enddo
 
-C**** For total cumulative accumulation, pre-remove accumulation up to
-C**** the day before, also subtract daily ice berg mass that is added
-C**** to ocean in subroutine DAILY_OC
-      MICBIMP(:) = MICBIMP(:) - dMICBIMP(:) -
-     -             (/  ACCPDA,  ACCPDG /) / EDperY
-      EICBIMP(:) = EICBIMP(:) - dEICBIMP(:) -
-     -             (/ EACCPDA, EACCPDG /) / EDperY
+C**** Subtract daily ice berg mass that is added to ocean in DAILY_OC
+      MICBIMP(:) = MICBIMP(:) - (/  ACCPDA,  ACCPDG /) / EDPERY
+      EICBIMP(:) = EICBIMP(:) - (/ EACCPDA, EACCPDG /) / EDPERY
 c#ifdef TRACERS_WATER
 C     DO N=1,NTM
-C       TRICBIMP(N,:) = TRCIBIMP(N,:) - dTRICBIMP(N,:) -
+C       TRICBIMP(N,:) = TRCIBIMP(N,:) -
 C    -                  (/ TRACCPDA(:), TRACCPDG(:) /) / EDPERY
 C     END DO
-c#endif
-
-C**** Calculate and save mass/energy/tracer accumulation to date for
-C**** this year
-! mass and energy (kg, J)
-      do j=j_0,j_1; do i=i_0,i_1
-        arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
-        arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
-      enddo; enddo
-      If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-      If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
-      CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
-      CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
-      do j=j_0,j_1; do i=i_0,i_1
-        arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
-        arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
-      enddo; enddo
-      If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-      If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
-      CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
-      CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
-
-      dMICBIMP(:)=(/ mdwnimp_SH, mdwnimp_NH /)
-      dEICBIMP(:)=(/ edwnimp_SH, edwnimp_NH /)
-
-#ifdef TRACERS_WATER
-      DO ITM=1,NTM
-        do j=j_0,j_1; do i=i_0,i_1
-          arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
-          arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
-        enddo; enddo
-        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
-        CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
-        CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
-c        dTRICBIMP(ITM,:)=(/ trdwnimp_SH(itm), trdwnimp_NH(itm) /)
-      END DO
-#endif
-
-C**** For total cumulative accumulation, add back accumulation up to today
-      MICBIMP(:) = MICBIMP(:) + dMICBIMP(:)
-      EICBIMP(:) = EICBIMP(:) + dEICBIMP(:)
-c#ifdef TRACERS_WATER
-C      TRICBIMP(:,:) = TRCIBIMP(:,:) + dTRICBIMP(:,:)
 c#endif
 
 C**** Every year update gmelt factors in order to balance downward
@@ -837,6 +787,41 @@ C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
       If (JDAY==1)  Then  !  Jan 1 only, EndIf at 500
+
+C**** Calculate mass/energy/tracer accumulation for the past year
+        do j=j_0,j_1; do i=i_0,i_1
+          arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
+          arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
+        enddo; enddo
+        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+        CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
+        CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
+        do j=j_0,j_1; do i=i_0,i_1
+          arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
+          arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
+        enddo; enddo
+        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+        CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
+        CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
+        MICBIMP(:) = MICBIMP(:) + (/ MDWNIMP_SH, MDWNIMP_NH /)
+        EICBIMP(:) = EICBIMP(:) + (/ EDWNIMP_SH, EDWNIMP_NH /)
+C****   MICBIMP and EICBIMP are now only correct for root processor
+#ifdef TRACERS_WATER
+        DO ITM=1,NTM
+          do j=j_0,j_1; do i=i_0,i_1
+            arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
+            arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
+          enddo; enddo
+          If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+          If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+          CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
+          CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
+C         TRICBIMP(ITM,:) = TRCIBIMP(ITM,:) +
+C    +                      (/ TRDWNIMP_SH(:), TRDWNIMP_NH(:) /)
+        END DO
+#endif
 
 ! only adjust after at least one full year
         If (ITIME >= ITIMEI+JDperY*NDAY .and. GLMELT_ON==1)  Then
@@ -898,25 +883,27 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           end do
 #endif
 #endif   /* TNL: inserted */
-           accpda =  accpda + gm_relax*(mdwnimp_SH -  accpda)
-           accpdg =  accpdg + gm_relax*(mdwnimp_NH -  accpdg)
-          eaccpda = eaccpda + gm_relax*(edwnimp_SH - eaccpda)
-          eaccpdg = eaccpdg + gm_relax*(edwnimp_NH - eaccpdg)
+        EndIf
+
+         accpda =  accpda + gm_relax*(mdwnimp_SH -  accpda)
+         accpdg =  accpdg + gm_relax*(mdwnimp_NH -  accpdg)
+        eaccpda = eaccpda + gm_relax*(edwnimp_SH - eaccpda)
+        eaccpdg = eaccpdg + gm_relax*(edwnimp_NH - eaccpdg)
+        If (AM_I_ROOT())  Then
           write(6,*) "Mass (after): ",accpda,accpdg
           write(6,*) "Temp (after): ",(eaccpda/accpda+lhm)/shi,
      *         (eaccpdg/accpdg+lhm)/shi
-        END IF
-        call ESMF_BCAST(grid,  ACCPDA)
-        call ESMF_BCAST(grid,  ACCPDG)
-        call ESMF_BCAST(grid, EACCPDA)
-        call ESMF_BCAST(grid, EACCPDG)
+        EndIf
+C       call ESMF_BCAST(grid,  ACCPDA)
+C       call ESMF_BCAST(grid,  ACCPDG)
+C       call ESMF_BCAST(grid, EACCPDA)
+C       call ESMF_BCAST(grid, EACCPDG)
 
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-        if (AM_I_ROOT()) THEN
-          traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
-          traccpdg(:)=traccpdg(:)+gm_relax*(trdwnimp_NH(:)-traccpdg(:))
-
+        traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
+        traccpdg(:)=traccpdg(:)+gm_relax*(trdwnimp_NH(:)-traccpdg(:))
+        If (AM_I_ROOT())  Then
           do itm=1,ntm
             if (to_per_mil(itm).gt.0) then
               write(6,*) trim(trname(itm))," (after) (permil)",1000
@@ -927,8 +914,8 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
             end if
           end do
         ENDIF
-        call ESMF_BCAST(grid, TRACCPDA)
-        call ESMF_BCAST(grid, TRACCPDG)
+C       call ESMF_BCAST(grid, TRACCPDA)
+C       call ESMF_BCAST(grid, TRACCPDG)
 #endif
 #endif   /* TNL: inserted */
 ! accumulation (kg per source time step) per water column
@@ -961,14 +948,11 @@ C**** Set GL MELT arrays
 
   400 EndIf  !  run not in its first year
 
-C**** reset implicit accumulators
+C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       MDWNIMP=0.
       EDWNIMP=0.
-      dMICBIMP(:) = 0
-      dEICBIMP(:) = 0
 #ifdef TRACERS_WATER
       TRDWNIMP=0.
-C     dTRICBIMP(:,:) = 0
 #endif
 
   500 EndIf  !  start of new year
