@@ -802,6 +802,8 @@ C**** this year
         arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
         arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
       enddo; enddo
+      If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+      If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
       CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
       CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
 
@@ -814,6 +816,8 @@ C**** this year
           arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
           arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
         enddo; enddo
+        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
         CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
         CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
 c        dTRICBIMP(ITM,:)=(/ trdwnimp_SH(itm), trdwnimp_NH(itm) /)
