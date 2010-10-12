@@ -719,7 +719,7 @@ C****
       SUBROUTINE daily_LI
 !@sum  daily_ice does daily landice things
 !@auth Gavin Schmidt
-!@ver  2010/10/08
+!@ver  2010/10/12
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
@@ -794,6 +794,8 @@ C**** this year
         arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
         arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
       enddo; enddo
+      If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+      If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
       CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
       CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
       do j=j_0,j_1; do i=i_0,i_1
