@@ -74,7 +74,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E_AR5ir_NINT_oH (NetCDF output; WMUI_multiplier=2.; 1x1x26 HYCOM ocean)
+E_AR5ir_NINT_oH (E_AR5_NINT_oH + irrigation; irrig_cycl=1)
 
 
 &&PARAMETERS
@@ -128,6 +128,6 @@ jerlv0=1         ! default is 1
 
  &INPUTZ
  YEARI=1899,MONTHI=12,DATEI=01,HOURI=00, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1900,MONTHE=12,1GDATEE=02,HOURE=00, KDIAG=13*0,
+ YEARE=1900,MONTHE=12,DATEE=02,HOURE=00, KDIAG=13*0,
  ISTART=2,IRANDI=0, YEARE=1899,MONTHE=12,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
