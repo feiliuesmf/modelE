@@ -3,19 +3,45 @@
       program diffreport
       implicit none
       include 'netcdf.inc'
-      integer :: status,vtype,varid1,varid2,fid1,fid2
+      integer :: status,vtype,varid1,varid2,fid1,fid2,yesno_vid,nargs
       character(len=80) :: file1,file2
-      character(len=40) :: vname,pos_str
-      integer :: iargc,nvars,ndims,dsizes(7)
+      character(len=40) :: vname,pos_str,yesno,attname,yesno_list
+      integer :: iargc,nvars,ndims,dsizes(7),iatt,natts
       integer :: arrsize1,arrsize2
       real*8, dimension(:), allocatable :: arr1,arr2,arrdiff
       integer :: nmax_abs(1),nmax_rel(1)
       real*8 :: max_abs,max_rel
+      logical, dimension(:), allocatable :: dothisvar
+      logical :: print_usage
+
 c
-c get the number of arguments
+c parse command line
 c
-      if(iargc().ne.2) then
-        write(6,*) 'usage: diffreport file1 file2'
+      nargs = iargc()
+      if(nargs.ne.2 .and. nargs.ne.3) then
+        write(6,*) 'usage: diffreport file1 file2 [optional: YesNoList]'
+        write(6,*)
+        write(6,*)
+     &       '   Difference reports for selected variables can be'
+        write(6,*)
+     &       '   suppressed via the attributes of variable YesNoList.'
+        write(6,*)
+     &       '   Example: if file1 contains a variable'
+        write(6,*)
+        write(6,*)
+     &       '      double IsImportant ;'
+        write(6,*)
+     &       '             IsImportant:x = "no" ;'
+        write(6,*)
+     &       '             IsImportant:y = "no" ;'
+        write(6,*)
+     &       '             IsImportant:z = "yes" ;'
+        write(6,*)
+        write(6,*)
+     &       '   diffreport file1 file2 IsImportant'
+        write(6,*)
+        write(6,*)
+     &       '   will skip fields x and y, but not z.'
         stop
       endif
 
@@ -29,12 +55,39 @@ c
       call handle_err( nf_open(file2,nf_nowrite,fid2),
      &     'nonexistent/non-netcdf input file '//trim(file2) )
 
+      status = nf_inq_nvars(fid1,nvars)
+      allocate(dothisvar(nvars))
+      dothisvar = .true.
+
+c
+c check for a list of names to skip
+c
+      if(nargs.eq.3) then
+        call getarg(3,yesno_list)
+        status = nf_inq_varid(fid1,trim(yesno_list),yesno_vid)
+        if(status.eq.nf_noerr) then
+          dothisvar(yesno_vid) = .false.
+          status = nf_inq_varnatts(fid1,yesno_vid,natts)
+          do iatt=1,natts
+            attname = ''
+            status = nf_inq_attname(fid1,yesno_vid,iatt,attname)
+            yesno = ''
+            status = nf_get_att_text(fid1,yesno_vid,trim(attname),yesno)
+            if(nf_inq_varid(fid1,trim(attname),varid1).eq.nf_noerr)
+     &           dothisvar(varid1) = yesno.eq.'yes'
+          enddo
+        else
+          write(6,*) 'warning: nonexistent yesno_list '//
+     &         trim(yesno_list)
+        endif
+      endif
+
 c
 c loop over arrays
 c
-      status = nf_inq_nvars(fid1,nvars)
 
       do varid1=1,nvars
+        if(.not.dothisvar(varid1)) cycle
 c skip character arrays
         status = nf_inq_vartype(fid1,varid1,vtype)
         if(vtype.eq.nf_char) cycle
@@ -93,6 +146,8 @@ c close input files
 c
       status = nf_close(fid1)
       status = nf_close(fid2)
+
+      deallocate(dothisvar)
 
       end program diffreport
 

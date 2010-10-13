@@ -1803,10 +1803,12 @@ c temporary variant of inc_ajl without any weighting
       use diag_com, only :  hdiurn
 #endif
       use domain_decomp_atm, only : grid
-      use pario, only : defvar
+      use pario, only : defvar,write_attr
       implicit none
       integer fid   !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
+      real*8 :: r8dum
+      character(len=20) :: tmpstr
 
       call defvar(grid,fid,idacc,'monacc(twelve)')
       call defvar(grid,fid,idacc,'idacc(nsampl)')
@@ -1853,6 +1855,29 @@ c temporary variant of inc_ajl without any weighting
       call defvar(grid,fid,hdiurn,
      &     'hdiurn(ndiuvar,ndiupt,hr_in_month)',r4_on_disk=r4_on_disk)
 #endif
+
+      if(.not.r4_on_disk) then          ! reproducibility info
+        tmpstr = 'is_npes_reproducible' ! for checkpoint files
+        call defvar(grid,fid,r8dum,tmpstr)
+        call write_attr(grid,fid,tmpstr,'aisccp' ,'no')
+        call write_attr(grid,fid,tmpstr,'areg'   ,'no')
+        call write_attr(grid,fid,tmpstr,'speca'  ,'no')
+        call write_attr(grid,fid,tmpstr,'energy' ,'no')
+c       if(using Ocean R not on atm grid)
+c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
+#ifdef CUBED_SPHERE
+        call write_attr(grid,fid,tmpstr,'aj'     ,'no')
+        call write_attr(grid,fid,tmpstr,'ajl'    ,'no')
+        call write_attr(grid,fid,tmpstr,'asjl'   ,'no')
+        call write_attr(grid,fid,tmpstr,'agc'    ,'no')
+        call write_attr(grid,fid,tmpstr,'consrv' ,'no')
+#ifdef TRACERS_ON /* move these declarations to the tracer code? */
+        call write_attr(grid,fid,tmpstr,'tajln'  ,'no')
+        call write_attr(grid,fid,tmpstr,'tajls'  ,'no')
+        call write_attr(grid,fid,tmpstr,'tconsrv','no')
+#endif
+#endif
+      endif
 
       return
       end subroutine def_rsf_acc
