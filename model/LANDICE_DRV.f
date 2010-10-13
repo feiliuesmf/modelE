@@ -756,8 +756,11 @@ C****
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: mask_s,arr_s,arr_n
       INTEGER :: J_0,J_1,I_0,I_1,I,J,ITM
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -793,16 +796,16 @@ C**** Calculate mass/energy/tracer accumulation for the past year
           arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
           arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
         enddo; enddo
-        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+        If (have_south_pole) ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+        If (have_north_pole) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
         CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
         CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
         do j=j_0,j_1; do i=i_0,i_1
           arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
           arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
         enddo; enddo
-        If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-        If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+        If (have_south_pole) ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+        If (have_north_pole) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
         CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
         CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
         MICBIMP(:) = MICBIMP(:) + (/ MDWNIMP_SH, MDWNIMP_NH /)
@@ -814,8 +817,8 @@ C****   MICBIMP and EICBIMP are now only correct for root processor
             arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
             arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
           enddo; enddo
-          If (J_0==1)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
-          If (J_1==JM) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+          If (have_south_pole) ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+          If (have_north_pole) ARR_N(2:IM,J_1) = ARR_N(1,J_1)
           CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
           CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
 C         TRICBIMP(ITM,:) = TRCIBIMP(ITM,:) +
