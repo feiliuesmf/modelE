@@ -5,7 +5,7 @@
 #endif
 !@sum  LANDICE_DRV contains drivers for LANDICE related routines
 !@auth Gavin Schmidt
-!@ver  2010/10/12
+!@ver  2010/10/13
 !@cont init_LI,PRECIP_LI,GROUND_LI,daily_LI
 
       SUBROUTINE init_LI(istart)
@@ -30,7 +30,8 @@
      *     ,traccpda,traccpdg
 #endif
 #endif               /* TNL: inserted */
-      USE LANDICE_COM, only : tlandi,snowli,loc_glm,mdwnimp,edwnimp
+      Use LANDICE_COM, Only: TLANDI,SNOWLI, MDWNIMP,EDWNIMP,
+     *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trdwnimp
 #endif
@@ -55,14 +56,16 @@
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
-      REAL*8 FAC_SH,FAC_NH
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      *                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     FWAREA_s,FWAREA_n,
      &     r8mask ! dummy array to read in 0/1 mask
+      Logical*4,Dimension(GRID%I_STRT_HALO:grid%I_STOP_HALO,
+     *                    GRID%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     LOC_GLM  !  mask for GLMELT around Antarctica and Greenland
       LOGICAL :: do_glmelt = .false.
       INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
+      Real*8  :: DTSRCzY
       CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
       CHARACTER*72 :: TITLE
 
@@ -143,24 +146,28 @@ C****
 #endif
       call closeunit(iu_GL)
 
-C**** Calculate hemispheric areas (weighted by area and landmask)
+C**** Calculate hemispheric fractions (weighted by area and landmask)
 C**** This could be extended by a different number in GLMELT to
 C**** give ice sheet (rather than hemispheric) dependent areas
-      FWAREA_s(:,:)=0
-      FWAREA_n(:,:)=0
+      FSHGLM(:,:) = 0
+      FNHGLM(:,:) = 0
       DO J=J_0,J_1
         DO I=I_0,I_1
           IF (LOC_GLM(I,J) .and. FOCEAN(I,J).gt.0 ) THEN
             IF(LAT2D(I,J).LT.0.) THEN
-              FWAREA_s(I,J)=AXYP(I,J)*FOCEAN(I,J)
+              FSHGLM(I,J) = AXYP(I,J)*FOCEAN(I,J)
             ELSE
-              FWAREA_n(I,J)=AXYP(I,J)*FOCEAN(I,J)
+              FNHGLM(I,J) = AXYP(I,J)*FOCEAN(I,J)
             ENDIF
           END IF
         END DO
       END DO
-      CALL GLOBALSUM(grid, FWAREA_s, FWAREA_SH, all=.true.)
-      CALL GLOBALSUM(grid, FWAREA_n, FWAREA_NH, all=.true.)
+      Call GLOBALSUM (GRID, FSHGLM, FWAREA_SH, ALL=.True.)
+      Call GLOBALSUM (GRID, FNHGLM, FWAREA_NH, ALL=.True.)
+      If (FWAREA_SH > 0)
+     *  FSHGLM(I_0:I_1,J_0:J_1) = FSHGLM(I_0:I_1,J_0:J_1) / FWAREA_SH
+      If (FWAREA_NH > 0)
+     *  FNHGLM(I_0:I_1,J_0:J_1) = FNHGLM(I_0:I_1,J_0:J_1) / FWAREA_NH
 
       END IF
 
@@ -208,29 +215,27 @@ c        TRICBIMP=0.
 #endif
       end if
 
-! accumulation (kg per source time step) per water column
-      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
-      FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
-
-C**** Set GL MELT arrays
+C**** Set GMELT (kg per source time step)
+C****   from total hemispere ACCPDA (kg per year)
+      DTSRCzY = DTSRC / (SDAY*EDperY)
 #ifndef SCM
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           IF (LOC_GLM(I,J) .and. lat2D(I,J).lt.0 ) THEN ! SH
-             GMELT(I,J) =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
+             GMELT(I,J) =  ACCPDA*FSHGLM(I,J)*DTSRCzY  !  kg
+            EGMELT(I,J) = EACCPDA*FSHGLM(I,J)*DTSRCzY  !  J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J)= TRACCPDA(:)*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
+            TRGMELT(:,I,J) = TRACCPDA(:)*FSHGLM(I,J)*DTSRCzY  !  kg
 #endif
 #endif /* TNL: inserted */
           END IF
           IF (LOC_GLM(I,J) .and. lat2D(I,J).gt.0 ) THEN ! NH
-             GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
+             GMELT(I,J) =  ACCPDG*FNHGLM(I,J)*DTSRCzY  !  kg
+            EGMELT(I,J) = EACCPDG*FNHGLM(I,J)*DTSRCzY  !  J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
+            TRGMELT(:,I,J) = TRACCPDG(:)*FNHGLM(I,J)*DTSRCzY  !  kg
 #endif
 #endif /* TNL: inserted */
           END IF
@@ -717,7 +722,7 @@ C****
       SUBROUTINE daily_LI
 !@sum  daily_ice does daily landice things
 !@auth Gavin Schmidt
-!@ver  2010/10/12
+!@ver  2010/10/13
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
@@ -732,7 +737,8 @@ C****
       USE TRDIAG_COM, only : to_per_mil
       USE TRACER_COM, only :  trw0, nWater, trname
 #endif    /* TNL: inserted */
-      USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_glm
+      Use LANDICE_COM, Only: TLANDI,SNOWLI, MDWNIMP,EDWNIMP,
+     *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
@@ -749,7 +755,7 @@ C****
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation
 
-      REAL*8 mdwnimp_SH,mdwnimp_NH,edwnimp_SH,edwnimp_NH,FAC_SH,FAC_NH
+      Real*8 MDWNIMP_SH,MDWNIMP_NH, EDWNIMP_SH,EDWNIMP_NH, DTSRCzY
 #ifdef TRACERS_WATER
       REAL*8 trdwnimp_SH(NTM),trdwnimp_NH(NTM)
 #endif
@@ -897,10 +903,6 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           write(6,*) "Temp (after): ",(eaccpda/accpda+lhm)/shi,
      *         (eaccpdg/accpdg+lhm)/shi
         EndIf
-C       call ESMF_BCAST(grid,  ACCPDA)
-C       call ESMF_BCAST(grid,  ACCPDG)
-C       call ESMF_BCAST(grid, EACCPDA)
-C       call ESMF_BCAST(grid, EACCPDG)
 
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
@@ -917,32 +919,28 @@ C       call ESMF_BCAST(grid, EACCPDG)
             end if
           end do
         ENDIF
-C       call ESMF_BCAST(grid, TRACCPDA)
-C       call ESMF_BCAST(grid, TRACCPDG)
 #endif
 #endif   /* TNL: inserted */
-! accumulation (kg per source time step) per water column
-      FAC_SH=DTsrc/(EDPERY*SDAY*FWAREA_SH)
-      FAC_NH=DTsrc/(EDPERY*SDAY*FWAREA_NH)
 
-C**** Set GL MELT arrays
+C**** Set GMELT (kg of ice per source time step
+C****   from total hemisphere ACCPDA or ACCPDG (kg per year)
+      DTSRCzY = DTSRC / (SDAY*EDperY)
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          IF (LOC_GLM(I,J) .and. lat2D(I,J).lt.0 ) THEN ! SH
-              GMELT(I,J)  =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
-              EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
+          If (LAT2D(I,J) < 0)  Then  !  SH
+              GMELT(I,J) =  ACCPDA*FSHGLM(I,J)*DTSRCzY  !  kg
+             EGMELT(I,J) = EACCPDA*FSHGLM(I,J)*DTSRCzY  !  J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-              TRGMELT(:,I,J)=TRACCPDA(:)*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
+              TRGMELT(:,I,J)=TRACCPDA(:)*FSHGLM(I,J)*DTSRCzY  !  kg
 #endif
 #endif    /* TNL: inserted */
-          END IF
-          IF (LOC_GLM(I,J) .and. lat2D(I,J).gt.0 ) THEN ! NH
-             GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
-            EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
+          Else  !  NH
+              GMELT(I,J) =  ACCPDG*FNHGLM(I,J)*DTSRCzY  !  kg
+             EGMELT(I,J) = EACCPDG*FNHGLM(I,J)*DTSRCzY  !  J
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-            TRGMELT(:,I,J) = TRACCPDG(:)*FAC_NH*AXYP(I,J)*FOCEAN(I,J)  ! kg
+             TRGMELT(:,I,J) = TRACCPDG(:)*FNHGLM(I,J)*DTSRCzY  !  kg
 #endif
 #endif    /* TNL: inserted */
           END IF

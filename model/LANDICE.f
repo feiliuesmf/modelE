@@ -6,7 +6,7 @@
       MODULE LANDICE
 !@sum  LANDICE contains variables and routines dealing with land ice
 !@auth Original Development Team
-!@ver  1.0
+!@ver  2010/10/13
 !@cont PRECLI,LNDICE
       USE CONSTANT, only : lhm,rhoi,shi
 #ifdef TRACERS_WATER
@@ -43,25 +43,22 @@ C**** The net fluxes of glacier mass into the ocean (per hemisphere)
 !@var EACCPDG total energy flux per year for Greenland (kg/yr)
       REAL*8 :: ACCPDA, ACCPDG,  EACCPDA, EACCPDG
 
-C**** NOTE: ICB arrays are purely diagnostic and kept for 
+C**** NOTE: ICB arrays are purely diagnostic and kept for
 C**** accounting purposes only. They are not real icebergs!
-!@var MICBIMP mass of icebergs (implicit) in each hemisphere (kg)
-!@var EICBIMP energy of icebergs (implicit) in each hemisphere (J)
-!@var dMICBIMP change of mass of icebergs (implicit) in each
-!@+            hemisphere from beginning of year (kg)
-!@var dEICBIMP change of energy of icebergs (implicit) in each 
-!@+            hemisphere from beginning of year (J)
-      REAL*8, DIMENSION(2) :: MICBIMP,EICBIMP,dMICBIMP,dEICBIMP
+!@var MICBIMP( ) + Sum[MDWNIMP(over hemisphere)] = instantaneous
+!@+     mass of icebergs (implicit) in each hemisphere (kg)
+!@var EICBIMP( ) + Sum[EDWNIMP(over hemisphere)] = instantaneous
+!@+     energy of icebergs (implicit) in each hemisphere (J)
+      Real*8,Dimension(2) :: MICBIMP,EICBIMP
 
 #ifdef TRACERS_WATER /* TNL: inserted */
 #ifdef TRACERS_OCEAN
 !@var TRACCPDA total tracer flux per year for Antarctica (kg/yr)
 !@var TRACCPDG total tracer flux per year for Greenland (kg/yr)
       REAL*8 :: TRACCPDA(NTM), TRACCPDG(NTM)
-!@var TRICBIMP tracer content of icebergs (implicit) in each hemisphere (kg)
-!@var dTRICBIMP change in tracer content of icebergs (implicit) in each 
-!@+             hemisphere from beginning of year (kg)  (not implemented)
-c      REAL*8, DIMENSION(NTM,2) :: TRICBIMP,dTRICBIMP
+!@var TRICBIMP( ) + Sum[TRDWNIMP(over hemisphere)] = instantaneous
+!@var   tracer content of icebergs (implicit) in each hemisphere (kg)
+c      REAL*8, DIMENSION(NTM,2) :: TRICBIMP
 #endif
 #endif   /* TNL: inserted */
 
@@ -254,7 +251,7 @@ C**** CALCULATE TG2
       MODULE LANDICE_COM
 !@sum  LANDICE_COM contains the model arrays for land ice
 !@auth Gavin Schmidt
-!@ver  1.0
+!@ver  2010/10/13
 !@cont io_landice
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
@@ -268,9 +265,10 @@ C**** CALCULATE TG2
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLANDI
 !@var MDWNIMP downward implicit ice amount accumulator (kg)
 !@var EDWNIMP downward implicit energy amount accumulator (J)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MDWNIMP, EDWNIMP
-!@var LOC_GLM mask for glmelt around Antarctica and Greeland
-      LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: LOC_GLM
+!@var FSHGLM = fraction of SH GMELT water; Sum[FSHGLM(:,:)] = 1
+!@var FNHGLM = fraction of NH GMELT water; Sum[FNHGLM(:,:)] = 1
+      Real*8,Allocatable,Dimension(:,:) ::
+     *  MDWNIMP,EDWNIMP, FSHGLM,FNHGLM
 
 #ifdef TRACERS_WATER
 !@var TRSNOWLI tracer amount in land ice snow (kg/m^2)
@@ -292,7 +290,8 @@ C**** CALCULATE TG2
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
-      USE LANDICE_COM, ONLY : SNOWLI, TLANDI, MDWNIMP, EDWNIMP, LOC_GLM
+      Use LANDICE_COM, Only: SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
+     *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : ntm
@@ -312,7 +311,8 @@ C**** CALCULATE TG2
      *          TLANDI(2,I_0H:I_1H,J_0H:J_1H),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          EDWNIMP(I_0H:I_1H,J_0H:J_1H),
-     *          LOC_GLM(I_0H:I_1H,J_0H:J_1H),
+     *          FSHGLM(I_0H:I_1H,J_0H:J_1H),
+     *          FNHGLM(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H),
@@ -378,7 +378,7 @@ C**** Gather into global arrays
         IF (AM_I_ROOT())
      &       WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
      *       ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA,EACCPDG
-     *       ,dMICBIMP,dEICBIMP,MICBIMP,EICBIMP
+     *       ,MICBIMP,EICBIMP
 #ifdef TRACERS_WATER
 C**** Gather into global arrays
           CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )
@@ -388,7 +388,7 @@ C**** Gather into global arrays
      &         WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI_GLOB
      *         ,TRLNDI_GLOB,TRDWNIMP_GLOB
 #ifdef TRACERS_OCEAN
-     *         ,TRACCPDA,TRACCPDG    !,dTRICBIMP,TRICBIMP
+     *         ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
 #endif
 #endif
 
@@ -399,13 +399,13 @@ C**** Gather into global arrays
           IF (HEADER(1:LHEAD).EQ.MODULE_HEADER(1:LHEAD)) THEN
             READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
      *           ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA
-     *           ,EACCPDG,dMICBIMP,dEICBIMP,MICBIMP,EICBIMP
+     *           ,EACCPDG,MICBIMP,EICBIMP
           ELSEIF (HEADER(1:LHEAD).EQ."GLAIC01" .or. HEADER(1:LHEAD).EQ
      *           ."GLAIC02") THEN
             READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
             MDWNIMP_GLOB=0 ; EDWNIMP_GLOB=0
             ACCPDA=0 ; ACCPDG=0 ; EACCPDA=0 ; EACCPDG=0
-            dMICBIMP=0 ; dEICBIMP=0 ; MICBIMP=0 ; EICBIMP=0
+            MICBIMP(:) = 0  ;  EICBIMP(:) = 0
           ELSE
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
@@ -422,8 +422,6 @@ C****** Load data into distributed arrays
         call ESMF_BCAST(grid,  ACCPDG)
         call ESMF_BCAST(grid, EACCPDA)
         call ESMF_BCAST(grid, EACCPDG)
-        call ESMF_BCAST(grid, dMICBIMP)
-        call ESMF_BCAST(grid, dEICBIMP)
         call ESMF_BCAST(grid, MICBIMP)
         call ESMF_BCAST(grid, EICBIMP)
 
@@ -437,7 +435,7 @@ C****** Load data into distributed arrays
               READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
      *             ,TRDWNIMP_GLOB
 #ifdef TRACERS_OCEAN
-     *             ,TRACCPDA,TRACCPDG      !,dTRICBIMP,TRICBIMP
+     *             ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
 #endif
             ELSEIF (TRHEADER(1:LHEAD).EQ."TRGLAC01") THEN
               READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
@@ -454,7 +452,6 @@ C********* Load data into distributed arrays
 #ifdef TRACERS_OCEAN
           call ESMF_BCAST(grid, TRACCPDA)
           call ESMF_BCAST(grid, TRACCPDG)
-c          call ESMF_BCAST(grid, dTRICBIMP)
 c          call ESMF_BCAST(grid, TRICBIMP)
 #endif
         END SELECT
@@ -487,9 +484,7 @@ c          call ESMF_BCAST(grid, TRICBIMP)
       call defvar(grid,fid,eaccpda,'eaccpda')
       call defvar(grid,fid,accpdg,'accpdg')
       call defvar(grid,fid,eaccpdg,'eaccpdg')
-      call defvar(grid,fid,dmicbimp,'dmicbimp(two)')
       call defvar(grid,fid,micbimp,'micbimp(two)')
-      call defvar(grid,fid,deicbimp,'deicbimp(two)')
       call defvar(grid,fid,eicbimp,'eicbimp(two)')
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsnowli,
@@ -500,7 +495,6 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 #ifdef TRACERS_OCEAN
       call defvar(grid,fid,traccpda,'traccpda(ntm)')
       call defvar(grid,fid,traccpdg,'traccpdg(ntm)')
-c      call defvar(grid,fid,dtricbimp,'dtricbimp(ntm,two)')
 c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #endif
 #endif
@@ -530,9 +524,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
         call write_data(grid,fid,'eaccpda',eaccpda)
         call write_data(grid,fid,'accpdg',accpdg)
         call write_data(grid,fid,'eaccpdg',eaccpdg)
-        call write_data(grid,fid,'dmicbimp',dmicbimp)
         call write_data(grid,fid,'micbimp',micbimp)
-        call write_data(grid,fid,'deicbimp',deicbimp)
         call write_data(grid,fid,'eicbimp',eicbimp)
 #ifdef TRACERS_WATER
         call write_dist_data(grid,fid,'trsnowli',trsnowli,jdim=3)
@@ -541,7 +533,6 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #ifdef TRACERS_OCEAN
         call write_data(grid,fid,'traccpda',traccpda)
         call write_data(grid,fid,'traccpdg',traccpdg)
-c        call write_data(grid,fid,'dtricbimp',dtricbimp)
 c        call write_data(grid,fid,'tricbimp',tricbimp)
 #endif
 #endif
@@ -553,7 +544,7 @@ c restart file
         mdwnimp(:,:) = 0.; edwnimp(:,:) = 0.
         accpda = 0.; eaccpda = 0.
         accpdg = 0.; eaccpdg = 0.
-        micbimp=0; eicbimp=0; dmicbimp=0; deicbimp=0
+        MICBIMP(:) = 0  ;  EICBIMP(:) = 0
         call read_dist_data(grid,fid,'mdwnimp',mdwnimp)
         call read_dist_data(grid,fid,'edwnimp',edwnimp)
         call read_data(grid,fid,'accpda',accpda,bcast_all=.true.)
@@ -561,9 +552,7 @@ c restart file
         call read_data(grid,fid,'accpdg',accpdg,bcast_all=.true.)
         call read_data(grid,fid,'eaccpdg',eaccpdg,bcast_all=.true.)
         call read_data(grid,fid,'micbimp',micbimp,bcast_all=.true.)
-        call read_data(grid,fid,'dmicbimp',dmicbimp,bcast_all=.true.)
         call read_data(grid,fid,'eicbimp',eicbimp,bcast_all=.true.)
-        call read_data(grid,fid,'deicbimp',deicbimp,bcast_all=.true.)
 #ifdef TRACERS_WATER
         call read_dist_data(grid,fid,'trsnowli',trsnowli,jdim=3)
         call read_dist_data(grid,fid,'trlndi',trlndi,jdim=3)
@@ -574,7 +563,6 @@ c restart file
         call read_data(grid,fid,'traccpdg',traccpdg,
      &       bcast_all=.true.)
 c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
-c        call read_data(grid,fid,'dtricbimp',dtricbimp,bcast_all=.true.)
 #endif
 #endif
       end select
