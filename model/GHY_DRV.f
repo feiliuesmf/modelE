@@ -1871,7 +1871,7 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       aij(i,j,ij_irrW)=aij(i,j,ij_irrW)+airrig*ptype
       aij(i,j,ij_irrE)=aij(i,j,ij_irrE)+aeirrig*ptype
       aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
-     &    (airrig*ptype/dtsrc/1000.d0)/irrig_water_pot(i,j)
+     &     irrig_water_pot(i,j)*dtsrc*1000.d0
 #else
 c      aij(i,j,ij_irrW)=0.d0
 c      aij(i,j,ij_irrE)=0.d0

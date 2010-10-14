@@ -3269,11 +3269,11 @@ c
 #ifdef IRRIGATION_ON
       k=k+1
       IJ_IRRW_TOT = k
-      lname_ij(k) = 'FRACTION ACTUAL TO POTENTIAL'
-      units_ij(k) = '-'
+      lname_ij(k) = 'POTENTIAL IRRIGATION'
+      units_ij(k) = 'mm/d'
       name_ij(k) = 'irrig_w_tot'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
+      scale_ij(k) = SDAY/DTsrc
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0 ! per total grid area; =IJ_PSOIL for per earth
 c

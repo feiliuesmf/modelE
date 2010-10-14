@@ -53,8 +53,9 @@
 
 !**** Compute irrigation rate
       call irrigate_flux()
-      do i=I_0,I_1
-         do j=J_0,J_1
+
+      do j=J_0,J_1
+         do i=I_0,I_1
 !****      Initialize actual water and energy values
            call irrigate_extract(i,j)
          enddo
@@ -195,8 +196,8 @@
       if(am_I_root())
      &write(6,*) 'interp. irrigate to it,day,fr0',itime,jday,frac
 !**** Compute irrigation rate
-      do i=I_0,I_1
-         do j=J_0,J_1
+      do j=J_0,J_1
+         do i=I_0,I_1
 !****      Input irrigation values in m/s
            irrig_water_pot(i,j)= ( FRAC*irr_month_0(i,j)
      &                          + (1.d0-FRAC)*irr_month_1(i,j) )
