@@ -642,81 +642,98 @@ C****
 C****
       END SUBROUTINE conserv_HLI
 
-      SUBROUTINE conserv_MICB(MICB)
-!@sum  conserv_MICB calculates total amount of implicit iceberg
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE GEOM, only : imaxj,axyp
-      USE LANDICE, only : micbimp
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
-      IMPLICIT NONE
+      Subroutine CONSERV_MICB (MICB)
+!@sum  CONSERV_MICB calculates ice berg mass.  MICBIMP(1) + MDWNIMP_SH
+!@+      is distributed spatially into MICB (kg/m^2) according to FSHGLM
+!@auth Gavin Schmidt, Gary Russell
+!@ver  2010/10/14
+      Use MODEL_COM,         Only: IM,JM
+      Use GEOM,              Only: LAT2D,aDXYP
+      Use LANDICE_COM,       Only: FSHGLM,FNHGLM, MDWNIMP
+      Use LANDICE,           Only: MICBIMP
+      Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
+      Implicit None
 !@var MICB implicit mass of iceberg (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: MICB
+     &                  GRID%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &        MICB, ARR_S,ARR_N
+      Real*8  MDWNIMP_SH,MDWNIMP_NH
       INTEGER I,J
       INTEGER :: J_0,J_1 ,I_0,I_1
-      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+      Logical :: QSP,QNP
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
-     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      Call GET (GRID, J_STRT=J_0, J_STOP=J_1,
+     &          HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-C**** since this is just diagnostic of hemispheric mean for now, we put
-C**** everything in one spot per hemisphere.
-C**** (how should we do this in CUBED_SPHERE?)
-      DO J=J_0,J_1
-      DO I=I_0,IMAXJ(J)
-        MICB(I,J) = 0.
-        IF (I.EQ.1 .and. J.eq.2)    MICB(I,J)=micbimp(1)/AXYP(I,J)
-        IF (I.EQ.1 .and. J.eq.JM-1) MICB(I,J)=micbimp(2)/AXYP(I,J)
-      END DO
-      END DO
-      IF(HAVE_SOUTH_POLE) MICB(2:im,1) =MICB(1,1)
-      IF(HAVE_NORTH_POLE) MICB(2:im,JM)=MICB(1,JM)
+C**** Sum MDWNIMP (kg) into hemispheric values
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+         If (LAT2D(I,J) < 0)
+     *      Then  ;  ARR_S(I,J) = MDWNIMP(I,J)
+                     ARR_N(I,J) = 0
+            Else  ;  ARR_S(I,J) = 0
+                     ARR_N(I,J) = MDWNIMP(I,J)  ;  EndIf
+      EndDo  ;  EndDo
+      If (QSP)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+      If (QNP)  ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+      Call GLOBALSUM (GRID, ARR_S, MDWNIMP_SH, ALL=.True.)
+      Call GLOBALSUM (GRID, ARR_N, MDWNIMP_NH, ALL=.True.)
 
+C**** Distribute summed hemispheric values MICBIMP(:)+MDWNIMP_?H into
+C**** array MICB(I,J) acording to FSHGLM and FNHGLM
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+         MICB(I,J) = (FSHGLM(I,J)*(MICBIMP(1)+MDWNIMP_SH) +
+     +                FNHGLM(I,J)*(MICBIMP(2)+MDWNIMP_NH)) / aDXYP(I,J)
+      EndDo  ;  EndDo
       RETURN
-C****
       END SUBROUTINE conserv_MICB
 
-      SUBROUTINE conserv_HICB(EICB)
-!@sum  conserv_HICB calculates implicit iceberg energy
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE GEOM, only : imaxj,axyp
-      USE LANDICE, only : eicbimp
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
-      IMPLICIT NONE
+      Subroutine CONSERV_HICB (HICB)
+!@sum  CONSERV_HICB calculates ice berg mass.  EICBIMP(1) + EDWNIMP_SH
+!@+      is distributed spatially into HICB (J/m^2) according to FSHGLM
+!@auth Gavin Schmidt, Gary Russell
+!@ver  2010/10/14
+      Use MODEL_COM,         Only: IM,JM
+      Use GEOM,              Only: LAT2D,aDXYP
+      Use LANDICE_COM,       Only: FSHGLM,FNHGLM, EDWNIMP
+      Use LANDICE,           Only: EICBIMP
+      Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
+      Implicit None
 !@var EICB impicit iceberg energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: EICB
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &        HICB, ARR_S,ARR_N
+      Real*8  EDWNIMP_SH,EDWNIMP_NH
       INTEGER I,J
       INTEGER :: J_0,J_1 ,I_0,I_1
-      LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+      Logical :: QSP,QNP
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
-     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      Call GET (GRID, J_STRT=J_0, J_STOP=J_1,
+     &          HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-C**** since this is just diagnostic of hemispheric mean for now, we put
-C**** everything in one spot per hemisphere.
-C**** (how should we do this in CUBED_SPHERE?)
-      DO J=J_0,J_1
-      DO I=I_0,IMAXJ(J)
-        EICB(I,J) = 0.
-        IF (I.EQ.1 .and. J.eq.2)    EICB(I,J)=eicbimp(1)/AXYP(I,J)
-        IF (I.EQ.1 .and. J.eq.JM-1) EICB(I,J)=eicbimp(2)/AXYP(I,J)
-      END DO
-      END DO
-      IF(HAVE_SOUTH_POLE) EICB(2:im,1) =EICB(1,1)
-      IF(HAVE_NORTH_POLE) EICB(2:im,JM)=EICB(1,JM)
+C**** Sum EDWNIMP (J) into hemispheric values
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+         If (LAT2D(I,J) < 0)
+     *      Then  ;  ARR_S(I,J) = EDWNIMP(I,J)
+                     ARR_N(I,J) = 0
+            Else  ;  ARR_S(I,J) = 0
+                     ARR_N(I,J) = EDWNIMP(I,J)  ;  EndIf
+      EndDo  ;  EndDo
+      If (QSP)  ARR_S(2:IM,J_0) = ARR_S(1,J_0)
+      If (QNP)  ARR_N(2:IM,J_1) = ARR_N(1,J_1)
+      Call GLOBALSUM (GRID, ARR_S, EDWNIMP_SH, ALL=.True.)
+      Call GLOBALSUM (GRID, ARR_N, EDWNIMP_NH, ALL=.True.)
+
+C**** Distribute summed hemispheric values EICBIMP(:)+EDWNIMP_?H into
+C**** array HICB(I,J) acording to FSHGLM and FNHGLM
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+         HICB(I,J) = (FSHGLM(I,J)*(EICBIMP(1)+EDWNIMP_SH) +
+     +                FNHGLM(I,J)*(EICBIMP(2)+EDWNIMP_NH)) / aDXYP(I,J)
+      EndDo  ;  EndDo
       RETURN
-C****
       END SUBROUTINE conserv_HICB
 
       SUBROUTINE daily_LI
