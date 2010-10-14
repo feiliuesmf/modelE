@@ -2477,7 +2477,7 @@ c
       scale_ij(k) = 1.d-5/DTsrc
       name_ij(k) = 'FLOWO'
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+!      denom_ij(k) = IJ_POCEAN
 
 #endif 	 
 c
