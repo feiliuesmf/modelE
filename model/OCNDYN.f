@@ -879,6 +879,9 @@ c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
      *                 FROM=SOUTH)
       CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,KXPYV,FROM=SOUTH)
+      CALL HALO_UPDATE(grid,KYVXV,FROM=SOUTH)
+      CALL HALO_UPDATE(grid,KYPXP,FROM=SOUTH)
 
 C****
 C**** Calculate operators fixed in time for U and V equations
