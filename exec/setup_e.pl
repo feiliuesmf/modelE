@@ -33,6 +33,7 @@ $flag_wait=0;
 $MPIDISTR="";
 $debugger="";
 $QSUB_STRING="";
+$MPIRUN_COMMAND="";
 
 ## if $HOME/.modelErc is present get settings from there
 
@@ -55,6 +56,7 @@ if ( -f $modelerc ) {
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
 	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
 	$QSUB_STRING = $1 if /^ *QSUB_STRING *= *\"?([^ ^#][^#^"]*).*\n/;
+        $MPIRUN_COMMAND = $1 if /^ *MPIRUN_COMMAND *= *\"?([^ ^#][^#^"]*).*\n/;
     }
     close MODELERC;
 } else {
@@ -69,6 +71,7 @@ print "SAVEDISK = $SAVEDISK\n";
 print "MAILTO = $MAILTO\n";
 printf "UMASK = %03lo\n", $UMASK;
 print "QSUB_STRING = $QSUB_STRING\n";
+print "MPIRUN_COMMAND = $MPIRUN_COMMAND\n";
 
 while ($_ = $ARGV[0], /^-/) {
     shift;
@@ -299,6 +302,12 @@ if ( $uname =~ /IRIX64/ ) {
     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
     $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
 }
+
+# overwrite the command with the one from modelErc if present
+if ( $MPIRUN_COMMAND ) {
+    $mpi_run = $MPIRUN_COMMAND." ";
+}
+
 
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 
