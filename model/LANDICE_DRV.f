@@ -286,8 +286,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li,ij_erun2
-     *     ,ij_runli,j_run,j_implh,j_implm
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li
+     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 
@@ -383,8 +383,9 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
         CALL INC_AREG(I,J,JR,J_IMPLM, DIFS*PLICE)
         CALL INC_AREG(I,J,JR,J_IMPLH,ERUN2*PLICE)
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS*PLICE
-        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+ERUN2*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
+        AIJ(I,J,IJ_IMPMLI)=AIJ(I,J,IJ_IMPMLI)+ DIFS*PLICE
+        AIJ(I,J,IJ_IMPHLI)=AIJ(I,J,IJ_IMPHLI)+ERUN2*PLICE
       END IF
       END DO
       END DO
@@ -409,10 +410,10 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li,ij_erun2
-     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
+      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li
+     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run,ij_imphli,ij_impmli
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,j_rvrd,j_ervr,ij_mrvr,ij_ervr,ij_zsnow,ij_fwoc,ij_li
+     *     ,j_rvrd,j_ervr,ij_micb,ij_eicb,ij_zsnow,ij_fwoc,ij_li
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp  !,tricbimp,traccpda,traccpdg
@@ -542,7 +543,8 @@ C**** ACCUMULATE DIAGNOSTICS
 
         AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +(EDIFS+F1DT)*PLICE
         AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
-        AIJ(I,J,IJ_ERUN2)=AIJ(I,J,IJ_ERUN2)+EDIFS*PLICE
+        AIJ(I,J,IJ_IMPMLI)=AIJ(I,J,IJ_IMPMLI)+ DIFS*PLICE
+        AIJ(I,J,IJ_IMPHLI)=AIJ(I,J,IJ_IMPHLI)+EDIFS*PLICE
       END IF
 
       CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-RSI(I,J))* GMELT(I,J)
@@ -556,11 +558,11 @@ C**** ACCUMULATE DIAGNOSTICS
 
       CALL INC_AREG(I,J,JR,J_RVRD, GMELT(I,J)*BYAXYP(I,J))
       CALL INC_AREG(I,J,JR,J_ERVR,EGMELT(I,J)*BYAXYP(I,J))
-      AIJ(I,J,IJ_MRVR)=AIJ(I,J,IJ_MRVR) +  GMELT(I,J)
-      AIJ(I,J,IJ_ERVR)=AIJ(I,J,IJ_ERVR) + EGMELT(I,J)
+      AIJ(I,J,IJ_MICB)=AIJ(I,J,IJ_MICB) +  GMELT(I,J)
+      AIJ(I,J,IJ_EICB)=AIJ(I,J,IJ_EICB) + EGMELT(I,J)
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-      TAIJN(I,J,TIJ_RVR,:)=TAIJN(I,J,TIJ_RVR,:)+ TRGMELT(:,I,J)
+      TAIJN(I,J,TIJ_ICB,:)=TAIJN(I,J,TIJ_ICB,:)+ TRGMELT(:,I,J)
      *     *BYAXYP(I,J)
 #endif
 #endif  /* TNL: inserted */

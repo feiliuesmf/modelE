@@ -1576,7 +1576,7 @@ C**** UNESCO formula (1983)
 #ifdef TRACERS_WATER
      *         Trm,Tralpha,TRSIL,TRSNWIC,
 #endif
-     *         MSNWIC,HSNWIC,SSNWIC)
+     *         MSNWIC,HSNWIC,SSNWIC,DSNOW)
       IMPLICIT NONE
 !@var Tm ocean mixed layer temperature (C)
 !@var Sm ocean mixed layer salinity (psu)
@@ -1587,6 +1587,8 @@ C**** UNESCO formula (1983)
       REAL*8, DIMENSION(LMI), INTENT(INOUT) :: HSIL,SSIL
 !@var MSNWIC, HSNWIC, SSNWIC mass, energy and salt flux to ocean (<0)
       REAL*8, INTENT(OUT) :: MSNWIC, HSNWIC, SSNWIC
+!@var DSNOW mass of snow changed to seaice (kg/m^2)
+      REAL*8, INTENT(OUT) :: DSNOW
 !@var qsfix true if sea ice salinity is fixed
       LOGICAL, INTENT(IN) :: qsfix
 #ifdef TRACERS_WATER
@@ -1602,7 +1604,7 @@ C**** Be careful to avoid taking too much tracer from ocean box
       REAL*8 :: Tri(NTM)   
       REAL*8 :: TRICE(NTM,LMI), TRSNOW(NTM,2)
 #endif
-      REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow1,Esnow2,Eic,Erat1
+      REAL*8 Z0,MAXM,MAXME,Eoc,Esnow1,Esnow2,Eic,Erat1
      $     ,Erat2,Si,MSI1,Tf,Eratd
       REAL*8 SICE(LMI),HICE(LMI),HSNOW(2),MICE(LMI),SNOWL(2),FMSI2,
      $     TSNW(2),TSIL(LMI)

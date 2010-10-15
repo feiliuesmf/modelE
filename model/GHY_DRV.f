@@ -1658,12 +1658,11 @@ c***********************************************************************
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
-     *     ,j_lwcorr,ij_g05
-     *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_lai
-     *     ,ij_soilresp,ij_soilCpoolsum
-     *     ,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
-     *     ,ij_g24,ij_g25,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs
+     *     ,j_lwcorr,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_lai
+     *     ,ij_soilresp,ij_soilCpoolsum,ij_gbetat,ij_gbetpen,ij_gevppen
+     *     ,ij_gbsbet,ij_gbsevp,ij_gbst,ij_gvst,ij_gbvswt,ij_gconatm
+     *     ,ij_gconcan,ij_gdcevp,ij_gwtbl,ij_gvswet,ij_gwcevp
+     *     ,ij_pblht,ijdd,idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
@@ -1671,7 +1670,6 @@ c***********************************************************************
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
      &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE, ij_irrW_tot
-     &     ,ij_g35,ij_g36,ij_g37,ij_g38,ij_g39,ij_g40
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1739,7 +1737,7 @@ c***********************************************************************
       real*8 trhdt,tg1,shdt,ptype,srheat,srhdt
       real*8 warmer,spring,trheat,evhdt
       integer, parameter :: itype=4
-      integer :: kr,jr,ih,ihm
+      integer :: kr,jr,ih,ihm,k
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
@@ -1802,14 +1800,14 @@ ccc the following values are returned by PBL
       aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
       aij(i,j,ij_vsfr)=aij(i,j,ij_vsfr)+fv*ptype/nisurf
       aij(i,j,ij_bsfr)=aij(i,j,ij_bsfr)+fb*ptype/nisurf
-      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb*ptype*fb
-      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd*ptype*fv
-      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw*ptype*fv
-      aij(i,j,ij_g05)=aij(i,j,ij_g05)+(abetab/nisurf)*fb*ptype
-      aij(i,j,ij_g06)=aij(i,j,ij_g06)+(abetap/nisurf)*ptype
-      aij(i,j,ij_g11)=aij(i,j,ij_g11)+(abeta/nisurf)*ptype
-      aij(i,j,ij_g12)=aij(i,j,ij_g12)+(acna/nisurf)*ptype
-      aij(i,j,ij_g13)=aij(i,j,ij_g13)+(acnc/nisurf)*ptype*fv
+      aij(i,j,ij_gbsevp)=aij(i,j,ij_gbsevp)+aevapb*ptype*fb
+      aij(i,j,ij_gdcevp)=aij(i,j,ij_gdcevp)+aevapd*ptype*fv
+      aij(i,j,ij_gwcevp)=aij(i,j,ij_gwcevp)+aevapw*ptype*fv
+      aij(i,j,ij_gbsbet)=aij(i,j,ij_gbsbet)+(abetab/nisurf)*fb*ptype
+      aij(i,j,ij_gbetpen)=aij(i,j,ij_gbetpen)+(abetap/nisurf)*ptype
+      aij(i,j,ij_gbvswt)=aij(i,j,ij_gbvswt)+(abeta/nisurf)*ptype
+      aij(i,j,ij_gconatm)=aij(i,j,ij_gconatm)+(acna/nisurf)*ptype
+      aij(i,j,ij_gconcan)=aij(i,j,ij_gconcan)+(acnc/nisurf)*ptype*fv
       aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp*ptype
       aij(i,j,ij_ipp)=aij(i,j,ij_ipp)+aipp*ptype
       aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto*ptype
@@ -1818,28 +1816,21 @@ ccc the following values are returned by PBL
       aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp*ptype
       aij(i,j,ij_soilCpoolsum)=aij(i,j,ij_soilCpoolsum)
      &     + (asoilCpoolsum/nisurf)*ptype
-      aij(i,j,ij_g26)=aij(i,j,ij_g26)+(abetav/nisurf)*fv*ptype
-      aij(i,j,ij_g27)=aij(i,j,ij_g27)+(abetat/nisurf)*fv*ptype
-      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp*ptype
+      aij(i,j,ij_gvswet)=aij(i,j,ij_gvswet)+(abetav/nisurf)*fv*ptype
+      aij(i,j,ij_gbetat)=aij(i,j,ij_gbetat)+(abetat/nisurf)*fv*ptype
+      aij(i,j,ij_gevppen)=aij(i,j,ij_gevppen)+aepp*ptype
       aij(i,j,ij_evapsn)=aij(i,j,ij_evapsn)+(aevapbs+aevapvs)*ptype
       if (moddsf.eq.0) then
 !      Temperatures of bare soil layers
-        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)*ptype*fb
-        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)*ptype*fb
-        aij(i,j,ij_g38)=aij(i,j,ij_g38)+tp(3,1)*ptype*fb
-        aij(i,j,ij_g39)=aij(i,j,ij_g39)+tp(4,1)*ptype*fb
-        aij(i,j,ij_g40)=aij(i,j,ij_g40)+tp(5,1)*ptype*fb
-        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)*ptype*fb
+        do k=1,6
+          aij(i,j,ij_gbst+k-1)=aij(i,j,ij_gbst+k-1)+tp(k,1)*ptype*fb
+        end do
 !      Temperatures of canopy and vegetated soil layers
-        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)*ptype*fv
-        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)*ptype*fv
-        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)*ptype*fv
-        aij(i,j,ij_g35)=aij(i,j,ij_g35)+tp(3,2)*ptype*fv
-        aij(i,j,ij_g36)=aij(i,j,ij_g36)+tp(4,2)*ptype*fv
-        aij(i,j,ij_g37)=aij(i,j,ij_g37)+tp(5,2)*ptype*fv
-        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)*ptype*fv
-!      Water table depth
-        aij(i,j,ij_g25)=aij(i,j,ij_g25)+(fb*zw(1)+fv*zw(2))*ptype
+        do k=0,6
+          aij(i,j,ij_gvst+k)=aij(i,j,ij_gvst+k)+tp(k,2)*ptype*fv
+        end do
+!     Water table depth
+        aij(i,j,ij_gwtbl)=aij(i,j,ij_gwtbl)+(fb*zw(1)+fv*zw(2))*ptype
       end if
 ccc accumulate total heat storage
       if (moddsf.eq.0) then
@@ -1906,12 +1897,12 @@ c**** quantities accumulated for regions in diagj
 
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
-          if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-              EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
-              SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
+        if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
+          EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
+          SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
 c             write(iu_scm_prt,*) 'ghy_drv  evpflx shflx ptype ',
 c    &                  EVPFLX,SHFLX,ptype
-          endif
+        endif
       endif
 #endif
 
@@ -1938,8 +1929,8 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_rhs)=aij(i,j,ij_rhs)+qsrf*ptype/qsat(tsv,elhx,ps)
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
         aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
-        if(DDMS(I,J).lt.0.)   ! ddms < 0 for down draft
-     *     AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
+        if(DDMS(I,J).lt.0.)     ! ddms < 0 for down draft
+     *       AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
         aij(i,j,ij_gusti)=aij(i,j,ij_gusti)+gusti*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
@@ -1952,7 +1943,7 @@ chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
         aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+pbl_args%wsubtke*ptype
         aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+pbl_args%wsubwm*ptype
 #endif
-
+        
       endif
 
 c**** quantities accumulated hourly for diagDD
@@ -3899,12 +3890,10 @@ c****
      *     fearth
       !use veg_com, only : afb
       use diag_com, only : aij=>aij_loc
-     *     ,jreg,ij_evap,ij_f0e,ij_evape
-     *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
-     *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
-     *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
-     &     ,ij_zsnow,ij_g30,ij_g31,ij_g32,ij_g33,ij_g34
-     &     ,ij_g35,ij_g36,ij_g37,ij_g38,ij_g39,ij_g40
+     *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_evap,j_type
+     *     ,j_rsnow,ij_evap,ij_f0e,ij_evape,ij_gwtr,ij_tg1,ij_rsnw
+     *     ,ij_rsit,ij_snow,ij_gice, ij_gwtr1,ij_zsnow
+     *     ,ij_gbssnd,ij_gvssnd,ij_gbsw,ij_gvsw
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
@@ -3975,26 +3964,19 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
-!     Water in vegetated layers 0 (canopy), 1, 2 and
-!     bare soil layers 1,2,3
-        do k=1,3
-          aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+w_ij(k,1,i,j)
+!     Water in vegetated layers 0 (canopy) - 6 and
+!     bare soil layers 1-6
+        do k=1,6
+          aij(i,j,ij_gbsw+k-1)=aij(i,j,ij_gbsw+k-1)+w_ij(k,1,i,j)
      &         *pearth*fb
-          aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+w_ij(k-1,2,i,j)
+        end do
+        do k=0,6
+          aij(i,j,ij_gvsw+k)=aij(i,j,ij_gvsw+k)+w_ij(k,2,i,j)
      &         *pearth*fv
         end do
-!     Water in vegetated layers 3,4,5, and 6
-        aij(i,j,ij_g30)=aij(i,j,ij_g30)+w_ij(3,2,i,j)*pearth*fv
-        aij(i,j,ij_g31)=aij(i,j,ij_g31)+w_ij(4,2,i,j)*pearth*fv
-        aij(i,j,ij_g32)=aij(i,j,ij_g32)+w_ij(5,2,i,j)*pearth*fv
-        aij(i,j,ij_g10)=aij(i,j,ij_g10)+w_ij(6,2,i,j)*pearth*fv
-!     Water in bare layers 4,5,and 6
-        aij(i,j,ij_g33)=aij(i,j,ij_g33)+w_ij(4,1,i,j)*pearth*fb
-        aij(i,j,ij_g34)=aij(i,j,ij_g34)+w_ij(5,1,i,j)*pearth*fb
-        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)*pearth*fb
 
-        aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)*pearth*fb
-        aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)*pearth*fv
+        aij(i,j,ij_gbssnd)=aij(i,j,ij_gbssnd)+snowbv(1,i,j)*pearth*fb
+        aij(i,j,ij_gvssnd)=aij(i,j,ij_gvssnd)+snowbv(2,i,j)*pearth*fv
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
      &       ( fb*fr_snow_ij(1,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )

@@ -45,8 +45,8 @@
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
-     *     jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,
-     *     ij_mccvtp,ij_mccvbs,
+     *     jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,ij_sisnwf,
+     *     ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -905,6 +905,8 @@ C         EPRCP=PRCP*TPRCP*SHI
           ENRGP=ENRGP+EPRCP-PRCP*LHM
 cECON     ep=-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
+          AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) +
+     *         PRCP*FOCEAN(I,J)*RSI(I,J)
         END IF
         AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
@@ -1147,6 +1149,8 @@ C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHI
         ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
 cECON   ep1=-PRCPSS*100.*BYGRAV*LHM
         AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
+        AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) +
+     *         PRCPSS*FOCEAN(I,J)*RSI(I,J)
       END IF
 
 cECON if (abs(E1-ep1).gt.0.01) print*,"energy err1",i,j,(E1-ep1)
@@ -1163,6 +1167,11 @@ C**** PRECIPITATION DIAGNOSTICS
      *       ENRGP*FOCEAN(I,J)*(1.-RSI(I,J))
         AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC)+
      *       PRCP*FOCEAN(I,J)*(1.-RSI(I,J))
+        AIJ(I,J,IJ_PRECOO)=AIJ(I,J,IJ_PRECOO)+PRCP*FOCEAN(I,J)*(1.-RSI(I
+     *       ,J))
+        AIJ(I,J,IJ_PRECSI)=AIJ(I,J,IJ_PRECSI)+PRCP*FOCEAN(I,J)*RSI(I,J)
+        AIJ(I,J,IJ_PRECLI)=AIJ(I,J,IJ_PRECLI)+PRCP*FLICE(I,J)
+        AIJ(I,J,IJ_PRECGR)=AIJ(I,J,IJ_PRECGR)+PRCP*FEARTH(I,J)
 
       IF(ENRGP.LT.0.) THEN    ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3

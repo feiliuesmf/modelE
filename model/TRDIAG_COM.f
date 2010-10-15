@@ -75,7 +75,7 @@ C**** TAIJN
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
      *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx
-     *     ,tij_tusi,tij_tvsi
+     *     ,tij_tusi,tij_tvsi,tij_rvro,tij_icb
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
 !@var TAIJN lat/lon tracer diagnostics (all tracers)

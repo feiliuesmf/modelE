@@ -461,7 +461,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
      *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI, IJ_TGO2, IJ_EVAPO, ij_RHs,
      *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
-     *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
+     *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAXE, IJ_TMAXC, IJ_TMINC, IJ_TMNMX, IJ_PEVAP,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
@@ -496,15 +496,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_sisnd,ij_tsice,ij_sirain,ij_sisnwf,ij_sigrfr
      *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
      *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
-!@var IJ_Gxx names for old AIJG arrays (should be more specific!)
+     *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
+     *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
+!@var IJ_Gxx names for old AIJG arrays
       INTEGER, public ::
-     &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
-     *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
-     *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
-     *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29,
-     &     IJ_G30,IJ_G31,IJ_G32,IJ_G33,IJ_G34,
-     &     IJ_G35,IJ_G36,IJ_G37,IJ_G38,IJ_G39,
-     &     IJ_G40
+     *     ij_gbsw, ij_gbsbet, ij_gbetpen, ij_gvsw, ij_gbvswt,
+     *     ij_gconatm, ij_gconcan, ij_gevppen, ij_gbst, ij_gbsevp,
+     *     ij_gdcevp, ij_gwcevp, ij_gvst, ij_gwtbl, ij_gvswet,
+     *     ij_gbetat, ij_gbssnd, ij_gvssnd 
 !@var IJ_GWx names for gravity wave diagnostics
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8

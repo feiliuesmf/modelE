@@ -13,7 +13,7 @@
 !@auth Original Development team
 !@ver  1.0
 !@calls seaice:prec_si
-      USE CONSTANT, only : teeny,grav,tf
+      USE CONSTANT, only : teeny,grav,tf,bylhm
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,p,ptop
 #ifdef SCM
@@ -36,7 +36,8 @@
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
-     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio
+     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio,ij_sirain,ij_sisnwf
+     *     ,ij_sitopmlt
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
@@ -94,6 +95,10 @@ C**** Initialize work array
 #endif
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
+        AIJ(I,J,IJ_SIRAIN)=AIJ(I,J,IJ_SIRAIN)+MAX(PRCP+ENRGP*BYLHM,0d0)
+     *       *POICE
+        AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF)-MIN(ENRGP*BYLHM,0d0)*POICE
+
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
         CALL PREC_SI(SNOW,MSI2,HSIL,TSIL,SSIL,PRCP,ENRGP,RUN0,SRUN0
@@ -141,7 +146,8 @@ C**** Accumulate diagnostics for ice fraction
        CALL INC_AJ(I,J,ITYPE,J_IMELT,RUN0 *POICE)
        CALL INC_AJ(I,J,ITYPE,J_SMELT,SRUN0*POICE)
        CALL INC_AJ(I,J,ITYPE,J_HMELT,ERUN0*POICE)
-        IF (FOCEAN(I,J).gt.0) THEN
+       AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+RUN0*POICE
+       IF (FOCEAN(I,J).gt.0) THEN
           AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SRUN0)*POICE
           AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN0*POICE
           AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUN0*POICE
@@ -149,7 +155,7 @@ C**** Accumulate diagnostics for ice fraction
           TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
      *                    +TRUN0(:)*POICE
 #endif
-        END IF
+       END IF
 
 C**** Accumulate regional diagnostics
         CALL INC_AREG(I,J,JR,J_IMELT,RUN0 *POICE)
@@ -323,8 +329,8 @@ C****
      *     ,I_TARG,J_TARG
 #endif
       USE GEOM, only : axyp,imaxj
-      USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,ij_fwio,ij_htio
-     *     ,ij_stio,aij=>aij_loc 
+      USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,aij=>aij_loc,
+     *     ij_fwio,ij_htio,ij_stio,ij_sigrlt
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef SCM
@@ -404,6 +410,7 @@ C**** now include lat melt for lakes and any RSI < 1
      *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
 C**** accumulate diagnostics
+            AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)-RUN0*PWATER
             IF (FOCEAN(I,J).gt.0) THEN
               AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
               AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
@@ -500,7 +507,8 @@ C****
       USE LAKES_COM, only : mwl,gml,flake
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
-     *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
+     *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio,ij_sntosi,ij_tsice
+     *     ,ij_sihc,ij_sigrcg,ij_sitopmlt,ij_sibotmlt
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       USE TimerPackage_mod, only: startTimer => start
@@ -511,7 +519,7 @@ C****
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
       REAL*8 MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
-      REAL*8 MSNWIC,HSNWIC,SSNWIC,SM,TM
+      REAL*8 MSNWIC,HSNWIC,SSNWIC,SM,TM,Ti1,DSNOW
       INTEGER I,J,JR,ITYPE
       LOGICAL WETSNOW
 #ifdef TRACERS_WATER
@@ -630,7 +638,7 @@ C**** Calculate snow-ice possibility
 #ifdef TRACERS_WATER
      *         Trm,Tralpha,TRSIL,TRSNWIC,
 #endif
-     *         MSNWIC,HSNWIC,SSNWIC)
+     *         MSNWIC,HSNWIC,SSNWIC,DSNOW)
         else
           MSNWIC=0. ; SSNWIC=0. ; HSNWIC=0.
 #ifdef TRACERS_WATER
@@ -652,6 +660,9 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
         FLAG_DSWS(I,J)=WETSNOW
+        Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),1d3*SSIL(1)/(XSI(1)*(SNOW
+     *       +ACE1I))) 
+
 C**** pond_melt accumulation
         pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
         pond_melt(i,j)=MIN(pond_melt(i,j),0.5*(MSI2+SNOW+ACE1I))
@@ -664,9 +675,7 @@ C**** decay is slow if there is some melting, faster otherwise
         end if
 
 C**** saftey valve to ensure that melt ponds eventually disappear (Ti<-10)
-        if (Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
-     *       1d3*SSIL(1)/(XSI(1)*(SNOW+ACE1I))).lt.-10.) 
-     *       pond_melt(i,j)=0.  ! refreeze
+        if (Ti1 .lt.-10.) pond_melt(i,j)=0.  ! refreeze
 
 c        if (debug) write(6,'(A,4I4,4F11.6)') "ponds",i,j,jday,jhour,
 c     *       melt12,pond_melt(i,j),ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
@@ -692,6 +701,16 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
           AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
           AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+POICE*SNOW/RHOS
+          AIJ(I,J,IJ_SNTOSI)=AIJ(I,J,IJ_SNTOSI)+POICE*(DSNOW-MSNWIC)
+          AIJ(I,J,IJ_TSICE)=AIJ(I,J,IJ_TSICE)+Ti1*POICE
+          AIJ(I,J,IJ_SIHC)=AIJ(I,J,IJ_SIHC)+SUM(HSIL(:))*POICE
+          AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+POICE*(RUN+MFLUX)
+          IF (FMOC.lt.0) THEN   ! define as congelation growth
+            AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)-POICE*FMOC
+          ELSE                  ! basal melt
+            AIJ(I,J,IJ_SIBOTMLT)=AIJ(I,J,IJ_SIBOTMLT)+POICE*FMOC
+          END IF
+
           IF (FOCEAN(I,J).gt.0) THEN
             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUNOSI(I,J)-SRUNOSI(I,J))
      *           *POICE
@@ -748,7 +767,7 @@ C****
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
-     *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio
+     *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio,ij_sigrfr,ij_sigrcg
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
@@ -836,6 +855,11 @@ c         debug=i.eq.40.and.j.eq.41
         TRI(:) = DTRSI(:,2,I,J)
 #endif
 C**** ice formation diagnostics on the atmospheric grid
+! define open ocean ice formation as frazil ice growth    
+        AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POICE*ACEFO
+! define under ice formation as congelation ice growth    
+        AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)+POICE*ACEFI
+
         IF (FOCEAN(I,J).gt.0) THEN
           AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO) - POCEAN*(ACEFO-SALTO)
      *         - POICE*(ACEFI-SALTI)

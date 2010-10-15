@@ -1166,7 +1166,7 @@ c
       ir_ij(k) = ir_m265_95
 c
       k=k+1 !
-      IJ_PREC = k ! PREC (KG/m**2)       1 CN
+      IJ_PREC = k ! PREC (mm/day)       1 CN
       lname_ij(k) = 'PRECIPITATION'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'prec'
@@ -1175,7 +1175,39 @@ c
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
-      IJ_PRECMC = k ! PREC MC (KG/m**2)       1 CN
+      IJ_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER LAND ICE'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+c
+      k=k+1 !
+      IJ_PRECGR = k ! PREC OVER EARTH (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER EARTH'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_grnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+c
+      k=k+1 !
+      IJ_PRECOO = k ! PREC OVER OPEN OCEAN (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER OPEN OCEAN'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_oocn'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+c
+      k=k+1 !
+      IJ_PRECSI = k ! PREC OVER SEA ICE (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER SEA ICE'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_oice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+c
+      k=k+1 !
+      IJ_PRECMC = k ! PREC MC (mm/day)       1 CN
       lname_ij(k) = 'CONVECTIVE PRECIPITATION'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'prec_mc'
@@ -1184,7 +1216,7 @@ c
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
-      IJ_EVAP = k ! EVAP (KG/m**2)       1 SF
+      IJ_EVAP = k ! EVAP (mm/day)       1 SF
       lname_ij(k) = 'EVAPORATION'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap'
@@ -2638,7 +2670,7 @@ c
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_oice'
       ia_ij(k) = ia_src
-      scale_ij(k) = (1./DTsrc)
+      scale_ij(k) = 1./DTsrc
 c     iw built-in
       ir_ij(k) = ir_m530_190
       denom_ij(k) = IJ_RSOI
@@ -2693,16 +2725,6 @@ c
       denom_ij(k) = IJ_LI
 c
       k=k+1 !
-      IJ_ERUN2 = k ! F2DT OVER LAND ICE  (J/m**2)            1 PG
-      lname_ij(k) = 'BASAL ENERGY FLUX OVER LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'ERUN2'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
       IJ_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
       lname_ij(k) = 'SENS HEAT FLUX OVER LAND ICE'
       units_ij(k) = 'W/m^2'
@@ -2722,7 +2744,6 @@ c
       ir_ij(k) = ir_m38_106
       denom_ij(k) = IJ_LI
 c
-      k=k+1 !
       IJ_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
       lname_ij(k) = 'NET THERMAL RADIATION INTO LAND ICE'
       units_ij(k) = 'W/m^2'
@@ -2730,6 +2751,24 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
       ir_ij(k) = ir_m38_106
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPMLI = k ! IMPLICIT MASS FLUX OVER LAND ICE  (kg/m**2/s)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX INTO LAND ICE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'impm_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX OVER LAND ICE  (W/m**2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX INTO LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
       denom_ij(k) = IJ_LI
 c
       k=k+1 !
@@ -2926,9 +2965,9 @@ c
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m1325_475
 c
-      k=k+1 !
-      IJ_ERVR = k ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
-      lname_ij(k) = 'Energy Outflow by Rivers'
+      k=k+1 !     NOTE: INFLOW IS DEFINED AS MASS ENTERING A BOX
+      IJ_ERVR = k ! Energy Inflow by Rivers (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Inflow by Rivers'
       units_ij(k) = '10^10 W'
       name_ij(k) = 'ERVR'
       ia_ij(k) = ia_src
@@ -2936,23 +2975,49 @@ c
       ir_ij(k) = ir_m1325_475
 c
       k=k+1 !
-      IJ_MRVR = k ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
-      lname_ij(k) = 'Mass Outflow by Rivers'
+      IJ_MRVR = k ! Mass Inflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Inflow by Rivers'
       units_ij(k) = '10^5 kg/s'
       name_ij(k) = 'MRVR'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-5/DTsrc
       ir_ij(k) = ir_m1325_475
 c
-c     k=k+1 !
-c     IJ_SDRAG = k ! DU/DT BY SDRAG (M S-2)                       1 SD
-c     lname_ij(k) = 'STRATOSPHERIC DRAG'
-c     units_ij(k) = '10^-6 m/s^2'
-c     name_ij(k) = 'SDRAG'
-c     ia_ij(k) = ia_src
-c     scale_ij(k) = 1.d6/DTsrc
-c     ir_ij(k) = ir_m190_530
+      k=k+1 !
+      IJ_EICB = k ! Energy Inflow by Icebergs (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Inflow by Icebergs'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'EICB'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10/DTsrc
+      ir_ij(k) = ir_m1325_475
 c
+      k=k+1 !
+      IJ_MICB = k ! Mass Inflow by Icebergs (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Inflow by Icebergs'
+      units_ij(k) = '10^5 kg/s'
+      name_ij(k) = 'MICB'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-5/DTsrc
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !    NOTE: OUTFLOW IS DEFINED AS MASS LEAVING A BOX
+      IJ_ERVRO = k ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Outflow by Rivers'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'ERVRO'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10/DTsrc
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !
+      IJ_MRVRO = k ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Outflow by Rivers'
+      units_ij(k) = '10^5 kg/s'
+      name_ij(k) = 'MRVRO'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-5/DTsrc
+      ir_ij(k) = ir_m1325_475
 c
       k=k+1 !
       IJ_LKICE = k
@@ -2977,10 +3042,8 @@ c
       ia_ij(k) = ia_inst
       denom_ij(k) = IJ_LKICE
 c
-C**** Here I am adding all the previous AIJG to AIJ
-C**** actual number for Gxx = 100 + xx
       k=k+1
-      IJ_G01 = k
+      IJ_GBSW = k
       name_ij(k) = 'bs_wlay1' !
       lname_ij(k) = 'LAYER 1 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -2990,7 +3053,6 @@ C**** actual number for Gxx = 100 + xx
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G02 = k
       name_ij(k) = 'bs_wlay2' !
       lname_ij(k) = 'LAYER 2 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -3000,7 +3062,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G03 = k
       name_ij(k) = 'bs_wlay3' !
       lname_ij(k) = 'LAYER 3 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -3010,7 +3071,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G33 = k
       name_ij(k) = 'bs_wlay4' !
       lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -3020,7 +3080,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G34 = k
       name_ij(k) = 'bs_wlay5' !
       lname_ij(k) = 'LAYER 5 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -3030,7 +3089,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G04 = k
       name_ij(k) = 'bs_wlay6' !
       lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
       units_ij(k) = 'mm'
@@ -3040,7 +3098,7 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G05 = k
+      IJ_GBSBET = k
       name_ij(k) = 'bs_beta' !
       lname_ij(k) = 'BARE SOIL WETNESS, BETA'
       units_ij(k) = '%'
@@ -3049,7 +3107,7 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G06 = k
+      IJ_GBETPEN = k
       name_ij(k) = 'beta_pen' !
       lname_ij(k) = 'PENMAN SOIL WETNESS, BETA'
       units_ij(k) = '%'
@@ -3058,7 +3116,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_G07 = k
+      IJ_GVSW = k
       name_ij(k) = 'vs_wcan' !
       lname_ij(k) = 'VEGETATION CANOPY SOIL WATER'
       units_ij(k) = 'mm'
@@ -3068,7 +3126,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G08 = k
       name_ij(k) = 'vs_wlay1' !
       lname_ij(k) = 'LAYER 1 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3078,7 +3135,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G09 = k
       name_ij(k) = 'vs_wlay2' !
       lname_ij(k) = 'LAYER 2 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3088,7 +3144,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G30 = k
       name_ij(k) = 'vs_wlay3' !
       lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3098,7 +3153,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G31 = k
       name_ij(k) = 'vs_wlay4' !
       lname_ij(k) = 'LAYER 4 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3108,7 +3162,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G32 = k
       name_ij(k) = 'vs_wlay5' !
       lname_ij(k) = 'LAYER 5 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3118,7 +3171,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G10 = k
       name_ij(k) = 'vs_wlay6' !
       lname_ij(k) = 'LAYER 6 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
@@ -3128,7 +3180,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G11 = k
+      IJ_GBVSWT = k
       name_ij(k) = 'bvs_wet' !
       lname_ij(k) = 'BARE & VEGETATED SOIL WETNESS'
       units_ij(k) = '%'
@@ -3137,7 +3189,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_G12 = k
+      IJ_GCONATM = k
       name_ij(k) = 'cond_atm' !
       lname_ij(k) = 'CONDUCTANCE OF ATMOSPHERE'
       units_ij(k) = 'm/s'
@@ -3147,7 +3199,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_G13 = k
+      IJ_GCONCAN = k
       name_ij(k) = 'cond_can' !
       lname_ij(k) = 'CONDUCTANCE OF CANOPY'
       units_ij(k) = '.01 m/s'
@@ -3157,7 +3209,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G14 = k
+      IJ_GEVPPEN = k
       name_ij(k) = 'pev_pen' !
       lname_ij(k) = 'PENMAN POTENTIAL EVAPORATION'
       units_ij(k) = 'mm/day'
@@ -3167,7 +3219,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_G15 = k
+      IJ_GBST = k
       name_ij(k) = 'bs_tlay1' !
       lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3177,7 +3229,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G16 = k
       name_ij(k) = 'bs_tlay2' !
       lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3187,7 +3238,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G38 = k
       name_ij(k) = 'bs_tlay3' !
       lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3197,7 +3247,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G39 = k
       name_ij(k) = 'bs_tlay4' !
       lname_ij(k) = 'BARE SOIL LAYER 4 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3207,7 +3256,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G40 = k
       name_ij(k) = 'bs_tlay5' !
       lname_ij(k) = 'BARE SOIL LAYER 5 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3217,7 +3265,6 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G17 = k
       name_ij(k) = 'bs_tlay6' !
       lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3227,7 +3274,7 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G18 = k
+      IJ_GBSEVP = k
       name_ij(k) = 'bs_evap' !
       lname_ij(k) = 'BARE SOIL EVAPORATION'
       units_ij(k) = 'mm/day'
@@ -3237,7 +3284,7 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G19 = k
+      IJ_GDCEVP = k
       name_ij(k) = 'drycan_evap' !
       lname_ij(k) = 'DRY CANOPY EVAPORATION'
       units_ij(k) = 'mm/day'
@@ -3247,7 +3294,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G20 = k
+      IJ_GWCEVP = k
       name_ij(k) = 'wetcan_evap' !
       lname_ij(k) = 'WET CANOPY EVAPORATION'
       units_ij(k) = 'mm/day'
@@ -3442,7 +3489,7 @@ c
       scale_ij(k) = 1.
 c
       k=k+1
-      IJ_G21 = k
+      IJ_GVST = k
       name_ij(k) = 'can_temp' !
       lname_ij(k) = 'CANOPY TEMPERATURE'
       units_ij(k) = 'C'
@@ -3452,7 +3499,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G22 = k
       name_ij(k) = 'vs_tlay1' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3462,7 +3508,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G23 = k
       name_ij(k) = 'vs_tlay2' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3472,7 +3517,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G35 = k
       name_ij(k) = 'vs_tlay3' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3482,7 +3526,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G36 = k
       name_ij(k) = 'vs_tlay4' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 4 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3492,7 +3535,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G37 = k
       name_ij(k) = 'vs_tlay5' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 5 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3502,7 +3544,6 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G24 = k
       name_ij(k) = 'vs_tlay6' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
       units_ij(k) = 'C'
@@ -3512,7 +3553,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G25 = k
+      IJ_GWTBL = k
       name_ij(k) = 'wtbl_depth' !
       lname_ij(k) = 'AVERAGE WATER TABLE DEPTH'
       units_ij(k) = 'm'
@@ -3522,7 +3563,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_G26 = k
+      IJ_GVSWET = k
       name_ij(k) = 'vs_wetness' !
       lname_ij(k) = 'VEGETATED SOIL WETNESS'
       units_ij(k) = '%'
@@ -3531,7 +3572,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G27 = k
+      IJ_GBETAT = k
       name_ij(k) = 'beta_trans' !
       lname_ij(k) = 'TRANSPIRATION EFFICIENCY, BETAT'
       units_ij(k) = '%'
@@ -3540,7 +3581,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1
-      IJ_G28 = k
+      IJ_GBSSND = k
       name_ij(k) = 'bs_snowdp' !
       lname_ij(k) = 'SNOW DEPTH OVER BARE SOIL'
       units_ij(k) = 'mm H2O'
@@ -3550,7 +3591,7 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
-      IJ_G29 = k
+      IJ_GVSSND = k
       name_ij(k) = 'vs_snowdp' !
       lname_ij(k) = 'SNOW DEPTH OVER VEG SOIL'
       units_ij(k) = 'mm H2O'
@@ -3794,6 +3835,130 @@ c
         ia_ij(k) = ia_12hr
         scale_ij(k) = 2.
       END IF
+c
+      k=k+1
+      IJ_TSICE = k
+      lname_ij(k) = 'SEA ICE SURFACE TEMPERATURE'
+      units_ij(k) = 'K'
+      name_ij(k) = 'ts_oice'
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SISNWF = k
+      lname_ij(k) = 'SEA ICE SNOWFALL RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'prsn_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SIGRFR = k
+      lname_ij(k) = 'SEA ICE FRAZIL GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grfraz_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SIGRCG = k
+      lname_ij(k) = 'SEA ICE CONGELATION GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grcong_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SIGRLT = k   ! i.e. negative of lateral melt
+      lname_ij(k) = 'SEA ICE LATERAL GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grlat_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
+      lname_ij(k) = 'SNOW ICE FORMATION RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'snotoice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SITOPMLT = k
+      lname_ij(k) = 'SEA ICE SURFACE MELT RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'topmlt_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SIBOTMLT = k
+      lname_ij(k) = 'SEA ICE BASAL MELT RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'botmlt_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SIHC = k   ! note this is referenced to water at 0 deg C
+      lname_ij(k) = 'SEA ICE HEAT CONTENT'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'hc_oice'
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SISWD = k
+      lname_ij(k) = 'SEA ICE DOWNWARD SHORTWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swd_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SISWU = k
+      lname_ij(k) = 'SEA ICE UPWARD SHORTWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swu_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SILWD = k
+      lname_ij(k) = 'SEA ICE DOWNWARD LONGWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwd_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SILWU = k
+      lname_ij(k) = 'SEA ICE UPWARD LONGWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwu_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SISH = k
+      lname_ij(k) = 'SEA ICE SENSIBLE HEAT FLUX'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'sh_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
 c
       k=k+1 !
       IJ_CLR_SRINCG = k ! SRINCG*CLRSKY (W/m**2)            2 RD

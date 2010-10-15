@@ -878,7 +878,7 @@ C****
 
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
-     *     jreg,j_rvrd,j_ervr,ij_fwoc, ij_rvrflo
+     *     jreg,j_rvrd,j_ervr,ij_fwoc,ij_ervro,ij_mrvro, ij_rvrflo
       USE GHY_COM, only : fearth
       USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
@@ -892,7 +892,7 @@ C****
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr
+      USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr, tij_rvro
       USE FLUXES, only : trflowo,gtracer
       Use LAKES_COM, Only: NTM,TRLAKE
 #endif
@@ -1110,6 +1110,14 @@ C****
           TRFLOW(:,IU,JU) = TRFLOW(:,IU,JU) - DTM(:)
 #endif
 
+C**** diagnostics of outward flow (inward flow saved later)
+          AIJ(IU,JU,IJ_MRVRO) = AIJ(IU,JU,IJ_MRVRO) + DMM
+          AIJ(IU,JU,IJ_ERVRO) = AIJ(IU,JU,IJ_ERVRO) + DGM+DPE
+#ifdef TRACERS_WATER
+          TAIJN(IU,JU,TIJ_RVRO,:) = TAIJN(IU,JU,TIJ_RVRO,:) +
+     +                             DTM(:)*byAXYP(IU,JU)
+#endif
+
 C**** Calculate adjustments for poles
           FLFAC = 1  !  default = no pole adjustment
           If (HAVE_POLE)  Then
@@ -1206,10 +1214,14 @@ C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
           Call INC_AREG (IU,JU,JR,J_ERVR,-DGM*byAXYP(IU,JU))
           AIJ(IU,JU,IJ_MRVR) = AIJ(IU,JU,IJ_MRVR) - DMM
           AIJ(IU,JU,IJ_ERVR) = AIJ(IU,JU,IJ_ERVR) - DGM
+          AIJ(ID,JD,IJ_MRVRO)= AIJ(ID,JD,IJ_MRVRO)- DMM
+          AIJ(ID,JD,IJ_ERVRO)= AIJ(ID,JD,IJ_ERVRO)- DGM
 #ifdef TRACERS_WATER
           DTM(:) = DMM*GTRACER(:,1,ID,JD)
           TAIJN(IU,JU,TIJ_RVR,:) = TAIJN(IU,JU,TIJ_RVR,:) -
-     -                             DTM(:)*byAXYP(IU,JU)
+     *                             DTM(:)*byAXYP(IU,JU)
+          TAIJN(ID,JD,TIJ_RVRO,:)= TAIJN(ID,JD,TIJ_RVRO,:) -
+     *                             DTM(:)*byAXYP(ID,JD)
 #endif
           GoTo 430
 
@@ -1223,10 +1235,14 @@ C**** DMM > 0: Move water from grid cell (IU,JU) to cell (ID,JD)
           Call INC_AREG (ID,JD,JR,J_ERVR,DGM*byAXYP(ID,JD))
           AIJ(ID,JD,IJ_MRVR) = AIJ(ID,JD,IJ_MRVR) + DMM
           AIJ(ID,JD,IJ_ERVR) = AIJ(ID,JD,IJ_ERVR) + DGM
+          AIJ(IU,JU,IJ_MRVRO)= AIJ(IU,JU,IJ_MRVRO)+ DMM
+          AIJ(IU,JU,IJ_ERVRO)= AIJ(IU,JU,IJ_ERVRO)+ DGM
 #ifdef TRACERS_WATER
           DTM(:) = DMM*GTRACER(:,1,IU,JU)
           TAIJN(ID,JD,TIJ_RVR,:) = TAIJN(ID,JD,TIJ_RVR,:) +
-     +                             DTM(:)*byAXYP(ID,JD)
+     *                             DTM(:)*byAXYP(ID,JD)
+          TAIJN(IU,JU,TIJ_RVRO,:)= TAIJN(IU,JU,TIJ_RVRO,:) +
+     *                             DTM(:)*byAXYP(IU,JU)
 #endif
 
 C**** Update transportimg river arrays

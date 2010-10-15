@@ -64,7 +64,8 @@ C****
      *     ,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq,idd_eds,idd_dbl
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
-     *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx
+     *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx, ij_silwu, ij_silwd
+     *     ,ij_sish 
 #ifndef NO_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
@@ -1431,6 +1432,10 @@ C****
         OA(I,J,11)=OA(I,J,11)+EVHDT
         AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*PTYPE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*PTYPE
+        AIJ(I,J,IJ_SILWU)=AIJ(I,J,IJ_SILWU)+(DTSURF*TRHR(0,I,J)-TRHDT)
+     *       *PTYPE
+        AIJ(I,J,IJ_SILWD)=AIJ(I,J,IJ_SILWD)+DTSURF*TRHR(0,I,J)*PTYPE
+        AIJ(I,J,IJ_SISH) =AIJ(I,J,IJ_SISH) -SHDT*PTYPE   ! postive up
 C****
 !!!      CASE (3) ! land ice
       else if ( ITYPE == 3 ) then

@@ -921,7 +921,7 @@ C     OUTPUT DATA
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
      *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
      *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
-     *     ,ij_swcrf2,ij_lwcrf2
+     *     ,ij_swcrf2,ij_lwcrf2, ij_siswd, ij_siswu
 #ifdef ACCMIP_LIKE_DIAGS
      *     ,ij_fcghg ! array
 #endif
@@ -2276,6 +2276,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
 C****
 C**** Save relevant output in model arrays
 C****
+C**** (some generalisation and coherence needed in the rad surf type calc)
       FSF(1,I,J)=FSRNFG(1)   !  ocean
       FSF(2,I,J)=FSRNFG(3)   !  ocean ice
       FSF(3,I,J)=FSRNFG(4)   !  land ice
@@ -2372,6 +2373,9 @@ C**** Save clear sky/tropopause diagnostics here
      *     TRNFLB(LTROPO(I,J))
       AIJ(I,J,IJ_SRNTP)=AIJ(I,J,IJ_SRNTP)+SRNFLB(LTROPO(I,J))*CSZ2
       AIJ(I,J,IJ_TRNTP)=AIJ(I,J,IJ_TRNTP)+TRNFLB(LTROPO(I,J))
+      AIJ(I,J,IJ_SISWD)=AIJ(I,J,IJ_SISWD)+POICE*SRDFLB(1)*CSZ2 
+      AIJ(I,J,IJ_SISWU)=AIJ(I,J,IJ_SISWU)+
+     *     POICE*(SRDFLB(1)-FSRNFG(3))*CSZ2
 
       DO IT=1,NTYPE
          call inc_aj(i,j,it,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
@@ -2803,8 +2807,6 @@ c longwave GHG forcing at TOA
          enddo
 #endif /* ACCMIP_LIKE_DIAGS */
 
-c move this diag outside rad time step for improved averaging
-c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
   770    CONTINUE
   780    CONTINUE
 

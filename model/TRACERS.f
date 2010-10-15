@@ -277,11 +277,36 @@ C**** Tracers in evaporation
           scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
         end if
       endif
-C**** Tracers in river runoff
+C**** Tracers in river runoff (two versions - for inflow and outflow)
       k = k+1
       tij_rvr = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_rvr'
+        lname_tij(k,n) = trim(TRNAME(n))//' in River Inflow'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        end if
+        denom_tij(k,n)=n_Water
+      k = k+1
+      tij_rvro = k
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_rvro'
         lname_tij(k,n) = trim(TRNAME(n))//' in River Outflow'
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=unit_string(0,cmrwt(n))
+          scale_tij(k,n)=1.
+        else
+          units_tij(k,n)=unit_string(ijtc_power(n)+3,'kg/kg')
+          scale_tij(k,n)=10.**(-ijtc_power(n)-3)
+        end if
+        denom_tij(k,n)=n_Water
+C**** Tracers in iceberg runoff 
+      k = k+1
+      tij_icb = k
+        sname_tij(k,n) = trim(TRNAME(n))//'_in_icb'
+        lname_tij(k,n) = trim(TRNAME(n))//' in Iceberg Inflow'
         if (to_per_mil(n) .eq.1) then
           units_tij(k,n)=unit_string(0,cmrwt(n))
           scale_tij(k,n)=1.
