@@ -637,7 +637,7 @@ C**** Calculate snow-ice possibility
 #endif
      *         MSNWIC,HSNWIC,SSNWIC,DSNOW)
         else
-          MSNWIC=0. ; SSNWIC=0. ; HSNWIC=0.
+          MSNWIC=0. ; SSNWIC=0. ; HSNWIC=0. ; DSNOW=0.
 #ifdef TRACERS_WATER
           TRSNWIC = 0.
 #endif
