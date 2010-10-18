@@ -1340,15 +1340,15 @@ c
       sname_oij(k)="oij_srhflx"
       units_oij(k)="W/m^2"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_SRWFLX=k
       lname_oij(k)="Ocean surface downward fresh water flux"
       sname_oij(k)="oij_srwflx"
-      units_oij(k)="kg/m^2"
+      units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_SRHFLXI=k
@@ -1356,55 +1356,55 @@ c
       sname_oij(k)="oij_srhflxi"
       units_oij(k)="W/m^2"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_SRWFLXI=k
       lname_oij(k)="Ocean surface downward fresh water flux from ice"
       sname_oij(k)="oij_srwflxi"
-      units_oij(k)="kg/m^2"
+      units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_SRSFLXI=k
       lname_oij(k)="Ocean surface downward salt flux from ice"
       sname_oij(k)="oij_srsflxi"
-      units_oij(k)="kg/m^2"
+      units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_ERVR=k
       lname_oij(k)="Ocean input of energy from rivers"
       sname_oij(k)="oij_ervr"
-      units_oij(k)="J/m^2"
+      units_oij(k)="W/m^2"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_MRVR=k
       lname_oij(k)="Ocean input of mass from rivers"
       sname_oij(k)="oij_mrvr"
-      units_oij(k)="kg/m^2"
+      units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_EICB=k
       lname_oij(k)="Ocean input of energy from icebergs"
       sname_oij(k)="oij_eicb"
-      units_oij(k)="J/m^2"
+      units_oij(k)="W/m^2"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_MICB=k
       lname_oij(k)="Ocean input of mass from icebergs"
       sname_oij(k)="oij_micb"
-      units_oij(k)="kg/m^2"
+      units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      scale_oij(k)=1./dts
 
       k=k+1
       IJ_SF=k
