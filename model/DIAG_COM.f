@@ -493,7 +493,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
      *     ,ij_kw, ij_alpha, ij_gasx, ij_rvrflo
-     *     ,ij_sisnd,ij_tsice,ij_sirain,ij_sisnwf,ij_sigrfr
+     *     ,ij_sisnd,ij_tsice,ij_sisnwf,ij_sigrfr
      *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
      *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO

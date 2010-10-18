@@ -36,8 +36,7 @@
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
-     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio,ij_sirain,ij_sisnwf
-     *     ,ij_sitopmlt
+     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio,ij_sisnwf,ij_sitopmlt
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
@@ -95,8 +94,6 @@ C**** Initialize work array
 #endif
 
         AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
-        AIJ(I,J,IJ_SIRAIN)=AIJ(I,J,IJ_SIRAIN)+MAX(PRCP+ENRGP*BYLHM,0d0)
-     *       *POICE
         AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF)-MIN(ENRGP*BYLHM,0d0)*POICE
 
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
