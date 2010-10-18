@@ -1,4 +1,4 @@
-E4robio_g2Tr.R GISS Model E  coupled version          natassa   10/17/2010
+E4arobio_g2Tr.R GISS Model E  coupled version          natassa   10/17/2010
 
 based on E_AR5_NINT_oR.R GISS Model E  coupled version          larissa   10/08/2010
 !! E_AR5_NINT_oR is with NetCDF output;  

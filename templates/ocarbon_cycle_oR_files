@@ -6,6 +6,12 @@ TRDIAG
 TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!   OCEAN TRACERS       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+OCN_TRACER_COM
+OCN_TRACER
+
+
      ! ocean carbon cycle
 obio_dim         |-r8|
 obio_incom       |-r8|
