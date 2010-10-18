@@ -1,14 +1,14 @@
-E4arobio_g.R GISS Model E  coupled version          natassa   10/17/2010
+E4arobio_h.R GISS Model E  coupled version          natassa   10/18/2010
 
-based on E_AR5_NINT_oR.R GISS Model E  coupled version          larissa   10/08/2010
-!! E_AR5_NINT_oR is with NetCDF output;  
+E_AR5_NINT_oH.R GISS Model E  coupled version          tnl   10/12/2010
+E_AR5_NINT_oH: E4F40 coupled to 1x1deg 26-layer Hybrid-Isopycnal Coordinate Ocean Model (HYCOM)
                + WMUI_multiplier=2. (to adjust Planetary albedo close to 30%) 
                  (U00a=0.54; U00b=1.0)
-E4F40oQ32: E4F40 coupled to 1x1.25deg 32-layer GISS ocean model
-E4F40 = modelE as frozen in April 2010:
+
+E_AR5_NINT_oH : sibling E_AR5_NINT_oR
 modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 1850
-ocean: coupled to 1x1.25deg 32-layer GISS ocean model (Russell - Schmidt)
+ocean: coupled to 1x1deg 26-layer HYCOM
 uses turbulence scheme (no dry conv), grav.wave drag
 time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
 filters: U,V in E-W and N-S direction (after every physics time step)
@@ -18,37 +18,30 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define USE_ENT
 #define NEW_IO
-#define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-#define TRACERS_ON                  ! include tracers code
-#define OBIO_ON_GARYocean           ! obio on Russell ocean
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
-#define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
+#define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
+#define ATM2x2h                      ! 2x2.5 40 layer atm
+#define HYCOM1deg                    ! 1deg 26 layer hycom (387x360x26)
 #define TRACERS_OceanBiology
-#define pCO2_ONLINE
 #define OBIO_RAD_coupling
+#define pCO2_ONLINE
+! #define constCO2
+#define TRACERS_ON                  ! include tracers code
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
-!!!#define constCO2
-!!!#define restoreIRON
-!!!#define TRACERS_Alkalinity
-!!!#define Jprod_based_on_pp
-!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
-!!!!#define CHL_from_SeaWIFs
+! #define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-ORES_1Qx1_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
-OSTRAITS_1QX1_COM                   ! dynamic ocean modules
 DIAG_RES_F                          ! diagnostics
-FFT144 OFFT288E                     ! Fast Fourier Transform
+FFT144                              ! Fast Fourier Transform
 
     ! lat-lon grid specific source codes
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
-IO_DRV                              ! new i/o 
+IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
@@ -56,10 +49,9 @@ QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "modelE4_source_files"
-#include "dynamic_ocn_source_files"
-OCN_Int_LATLON                      ! atm-ocn regrid routines
+#include "hycom_source_files"
 
-#include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
+#include "ocarbon_cycle_oH_files"   
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -68,15 +60,14 @@ Ent
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
+OPTS_dd2d = NC_IO=PNETCDF             /* Parallel NETCDF */
 
 Data input files:
 #include "IC_144x90_input_files_AR5"
-#include "dynamic_ocn_288x180_input_files_AR5"
-TOPO=Z2HX2fromZ1QX1N.BS1            ! surface fractions and topography (1 cell Bering Strait)
-AIC=/discover/nobackup/mkelley5/E58F40oQ32/1JAN2251.rsfE58F40oQ32.nc
+#include "hycom_387x360_input_files"
+!!!AIC=1JAN2232.rsfEhMF01           ! initial condition from Nick Tau's run (ISTART=5)
 
-
-RVR=RD_Fb.RVR.bin                   ! river direction file (frac. ocean)
+RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -88,9 +79,8 @@ RVR=RD_Fb.RVR.bin                   ! river direction file (frac. ocean)
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
-
 Label and Namelist:  (next 2 lines)
-E4arobio_g (AR5 model + obio)
+E4arobio_h (AR5 model + obio)
 
 
 &&PARAMETERS
@@ -114,7 +104,6 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 #include "atmCompos_1850_params"
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 
-DTO=112.5
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
 ! parameters that control the Shapiro filter
@@ -129,13 +118,19 @@ NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 
 Nssw=48          ! until diurnal diags are fixed, Nssw has to be even
-                 ! obio needs that in order to always restart from hour 0
-                 ! then we need to do setups for a whole day
 Ndisk=720
 
+itest=-1         ! default is -1
+jtest=-1         ! default is -1
+iocnmx=2         ! default is 2
+brntop=50.       ! default is 50.
+brnbot=200.      ! default is 200.
+diapyn=2.e-7     ! default is 2.e-7
+diapyc=.2e-4     ! default is .2e-4
+jerlv0=1         ! default is 1
 
 !parameters that affect CO2 gas exchange
-!!! atmCO2=368.6      !uatm for year 2000 
+!!! atmCO2=368.6      !uatm for year 2000
 !!! atmCO2=285.226           !uatm for new preindustrial runs
 atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
@@ -143,7 +138,7 @@ to_volume_MixRat=1    ! for tracer printout
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1850,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
-   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=5,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
+ YEARI=1850,MONTHI=1,DATEI=01,HOURI=00, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2001,MONTHE=1,DATEE=02,HOURE=00, KDIAG=13*0,
+ ISTART=5,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
