@@ -1112,7 +1112,7 @@ C****
 
 C**** diagnostics of outward flow (inward flow saved later)
           AIJ(IU,JU,IJ_MRVRO) = AIJ(IU,JU,IJ_MRVRO) + DMM
-          AIJ(IU,JU,IJ_ERVRO) = AIJ(IU,JU,IJ_ERVRO) + DGM+DPE
+          AIJ(IU,JU,IJ_ERVRO) = AIJ(IU,JU,IJ_ERVRO) + DGM
 #ifdef TRACERS_WATER
           TAIJN(IU,JU,TIJ_RVRO,:) = TAIJN(IU,JU,TIJ_RVRO,:) +
      +                             DTM(:)*byAXYP(IU,JU)
