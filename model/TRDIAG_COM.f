@@ -68,7 +68,7 @@ C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along 
 !@+   with wet and dry deposition
 !@+   please just increase this if needed - don't bother with pp options
-      integer, parameter :: ktaij=20
+      integer, parameter :: ktaij=22
 
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
