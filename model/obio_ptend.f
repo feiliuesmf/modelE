@@ -86,7 +86,10 @@ c  P(9) = herbivores (mg chl m-3)
 
 
 !define no ice points based on covice (here: covice_ij)
-      pnoice=1.-covice_ij
+      pnoice(1)=1.-covice_ij
+      do k=2,kdm
+         pnoice(k)=1.
+      enddo
 
       bs = 2.0*bn
 
@@ -124,7 +127,7 @@ c  Start Model Space Loop
          dzoo1 = dratez1*Pzoo
          dzoo2 = dratez2*Pzoo*Pzoo
 
-         term = ((1.0-greff)*gzoo-dzoo1-dzoo2) * pnoice
+         term = ((1.0-greff)*gzoo-dzoo1-dzoo2) * pnoice(k)
          rhs(k,ntyp,ntyp) = term    !!!!!!!this also takes into accout P(5,6,7,8)
          P_tend(k,ntyp) = term
 
@@ -138,7 +141,7 @@ cdiag.        ptot,Pzoo,dratez1,dratez2,greff,P_tend(k,ntyp)
           zoo(nt) = gzoo*obio_P(k,nt)/ptot
           dphy(nt) = drate*obio_P(k,nt)
 
-          term = -zoo(nt) * pnoice
+          term = -zoo(nt) * pnoice(k)
           rhs(k,nt,ntyp) = term
           P_tend(k,nt) = term      !!nonlin term takes into accountP(ntyp),P(5:8)
 
@@ -146,7 +149,7 @@ cdiag     if (vrbos) write(*,*)
 cdiag.     'obio_ptend2: ',nstep,nt,i,j,k,gzoo,obio_P(k,nt),ptot,
 cdiag.      zoo(nt),P_tend(k,nt)
 
-          term = -dphy(nt) * pnoice           !death of phytoplankton
+          term = -dphy(nt) * pnoice(k)           !death of phytoplankton
           rhs(k,nt,nt) = term
           P_tend(k,nt) = P_tend(k,nt) + term
 
@@ -168,27 +171,27 @@ cdiag      endif
          exc = greff*gzoo
 
          !remineralization 
-         term = tfac(k)*remin(1)*det(k,1)/cnratio * pnoice
+         term = tfac(k)*remin(1)*det(k,1)/cnratio * pnoice(k)
          rhs(k,1,ntyp+1) = term    !put this in diff column
          P_tend(k,1) = term
 
          !regeneration from zooplankton
-         term = bn*(exc + regen*dzoo2) * pnoice
+         term = bn*(exc + regen*dzoo2) * pnoice(k)
          rhs(k,2,ntyp) = term
          P_tend(k,2) = term
 
          !remineralization 
-         term = tfac(k)*remin(2)*det(k,2) * pnoice
+         term = tfac(k)*remin(2)*det(k,2) * pnoice(k)
          rhs(k,3,ntyp+2) = term    !put this in diff column
          P_tend(k,3) = term
 
          !regeneration from zooplankton
-         term = bf*(exc + regen*dzoo2) * pnoice    
+         term = bf*(exc + regen*dzoo2) * pnoice(k)    
          rhs(k,4,ntyp) = term
          P_tend(k,4) = P_tend(k,4) + term
 
          !remineralization 
-         term = tfac(k)*remin(3)*det(k,3) * pnoice
+         term = tfac(k)*remin(3)*det(k,3) * pnoice(k)
          rhs(k,4,ntyp+3) = term                        !put this in diff column
          P_tend(k,4) = P_tend(k,4) + term
 
@@ -198,8 +201,8 @@ cdiag      endif
          P_tend(k,4) = P_tend(k,4) + term
 
 
-         term = exc*mgchltouMC*pnoice
-     *                  + regen*dzoo2*mgchltouMC*pnoice
+         term = exc*mgchltouMC*pnoice(k)
+     *                  + regen*dzoo2*mgchltouMC*pnoice(k)
          rhs(k,13,ntyp) = term             
          C_tend(k,1) = term
  
@@ -222,43 +225,43 @@ cdiag.     P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
          enddo
  
 !1st detrital fraction is carbon
-         term = dphyt*cchlratio * pnoice
+         term = dphyt*cchlratio * pnoice(k)
          rhs(k,ntyp+1,nnut+1) = term
          D_tend(k,1) = term
 
-         term = dzoo1*cchlratio * pnoice
-     .        + (1.0-regen)*dzoo2*cchlratio * pnoice
+         term = dzoo1*cchlratio * pnoice(k)
+     .        + (1.0-regen)*dzoo2*cchlratio * pnoice(k)
          rhs(k,ntyp+1,ntyp) = term
          D_tend(k,1) = D_tend(k,1) + term
 
-         term = -tfac(k)*remin(1)*det(k,1) * pnoice
+         term = -tfac(k)*remin(1)*det(k,1) * pnoice(k)
          rhs(k,ntyp+1,ntyp+1) = term
          D_tend(k,1) = D_tend(k,1) + term
 
 !2nd detrital fraction is silica
-         term = bs*dphy(nnut+1) * pnoice
+         term = bs*dphy(nnut+1) * pnoice(k)
          rhs(k,ntyp+2,nnut+1) = term
          D_tend(k,2) = term
 
-         term = bs*zoo(nnut+1) * pnoice
+         term = bs*zoo(nnut+1) * pnoice(k)
          rhs(k,ntyp+2,ntyp) = term
          D_tend(k,2) = D_tend(k,2) + term
 
-         term = -tfac(k)*remin(2)*det(k,2) * pnoice
+         term = -tfac(k)*remin(2)*det(k,2) * pnoice(k)
          rhs(k,ntyp+2,ntyp+2) = term
          D_tend(k,2) = D_tend(k,2) + term
 
 !3rd detrital fraction is iron
-         term = bf*dphyt * pnoice
+         term = bf*dphyt * pnoice(k)
          rhs(k,12,nnut+1) = term
          D_tend(k,3) = term
 
-         term = bf*dzoo1 * pnoice
-     .        + bf*(1.0-regen)*dzoo2 * pnoice
+         term = bf*dzoo1 * pnoice(k)
+     .        + bf*(1.0-regen)*dzoo2 * pnoice(k)
          rhs(k,12,ntyp) = term
          D_tend(k,3) = D_tend(k,3) + term
 
-         term = -tfac(k)*remin(3)*det(k,3) * pnoice
+         term = -tfac(k)*remin(3)*det(k,3) * pnoice(k)
          rhs(k,12,ntyp+3) = term
          D_tend(k,3) = D_tend(k,3) + term
 
@@ -336,14 +339,14 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         rlimice = min(rmmlice,rmmn,rmms,rmmf)
 
         !compute limiting factor array
-        flimit(k,nt,1) = rmml*pnoice
-        flimit(k,nt,2) = rmmlice*(1-pnoice)
-        flimit(k,nt,3) = rmmn*pnoice  
-        flimit(k,nt,4) = rmms*pnoice  
-        flimit(k,nt,5) = rmmf*pnoice  
+        flimit(k,nt,1) = rmml*pnoice(k)
+        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,3) = rmmn*pnoice(k)  
+        flimit(k,nt,4) = rmms*pnoice(k)  
+        flimit(k,nt,5) = rmmf*pnoice(k)  
 
-        grate = rmuplsr(k,nt)*rlim*pnoice
-     .          + rmuplsr(k,nt)*rlimice*(1.0-pnoice)
+        grate = rmuplsr(k,nt)*rlim*pnoice(k)
+     .          + rmuplsr(k,nt)*rlimice*(1.0-pnoice(k))
         rmu4(nt) = grate*framm
         rmu3(nt) = grate*(1.0-framm)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
@@ -409,13 +412,13 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
 
-        grate = rmuplsr(k,nt)*rlim * pnoice
-     .        + rmuplsr(k,nt)*rlimice * (1.0-pnoice)
+        grate = rmuplsr(k,nt)*rlim * pnoice(k)
+     .        + rmuplsr(k,nt)*rlimice * (1.0-pnoice(k))
         rmu4(nt) = grate*framm
         rmu3(nt) = grate*(1.0-framm)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
@@ -461,12 +464,12 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
 
-        grate = rmuplsr(k,nt)*rlim*pnoice
+        grate = rmuplsr(k,nt)*rlim*pnoice(k)
         rmu4(nt) = grate*framm
         rmu3(nt) = grate*(1.0-framm)
         rfix = 0.25*exp(-(75.0*obio_P(k,nt+nnut)))
@@ -477,7 +480,7 @@ c        rfix = min(rfix,0.2)
         graterkn = rmuplsr(k,nt)*rlimrkn
         gratenlim = graterkn - grate
         gratenfix = min(gratenlim,gratenfix1)  !N fix cannot exceed kn
-        gratenfix = max(gratenfix,0.0) * pnoice
+        gratenfix = max(gratenfix,0.0) * pnoice(k)
 
         gron = grate*obio_P(k,nt+nnut)
         gronfix(k) = gratenfix*obio_P(k,nt+nnut)
@@ -533,17 +536,17 @@ cdiag.   obio_P(k,2)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
 
-        grate = rmuplsr(k,nt)*rlim*pnoice
+        grate = rmuplsr(k,nt)*rlim*pnoice(k)
         rmu4(nt) = grate*framm 
         rmu3(nt) = grate*(1.0-framm)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
-        term = gro(k,nt) * pnoice
+        term = gro(k,nt) * pnoice(k)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
         gcmax1d(k) = max(gcmax1d(k),grate)
@@ -584,14 +587,14 @@ cdiag.   obio_P(k,2)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice)
+        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
 
         grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm * pnoice
-        rmu3(nt) = grate*(1.0-framm) * pnoice
+        rmu4(nt) = grate*framm * pnoice(k)
+        rmu3(nt) = grate*(1.0-framm) * pnoice(k)
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
         term = gro(k,nt)
@@ -747,19 +750,19 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr)
       enddo
       do nt = 1,nchl
        do k = 1,kmax
-         obio_ws(k,nt) = obio_wsh(nt)*viscfac(k)*pnoice
+         obio_ws(k,nt) = obio_wsh(nt)*viscfac(k)*pnoice(k)
        enddo
       enddo
       nt = 4
       do k = 1,kmax
-        obio_ws(k,nt) = wshc(k)*viscfac(k)*pnoice
+        obio_ws(k,nt) = wshc(k)*viscfac(k)*pnoice(k)
       enddo
       do nt = 1,nchl
         obio_ws(kmax+1,nt)=obio_ws(kmax,nt)
       enddo
       do nt = 1,ndet
        do k = 1,kmax
-         wsdet(k,nt) = wsdeth(nt)*viscfac(k)*pnoice
+         wsdet(k,nt) = wsdeth(nt)*viscfac(k)*pnoice(k)
        enddo
       enddo
 

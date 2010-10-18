@@ -140,7 +140,7 @@ c
 !$OMP THREADPRIVATE(/btfac/)
 
       real pnoice                    !pct ice-free
-      common /bpnoice/ pnoice  
+      common /bpnoice/ pnoice(kdm)  
 !$OMP THREADPRIVATE(/bpnoice/)
 
       real wsdet                              !detrital sinking rate

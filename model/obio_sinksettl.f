@@ -6,7 +6,7 @@
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
-     .                   ,rhs,cexp,pnoice,kzc
+     .                   ,rhs,cexp,kzc
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE OCEAN, only: dxypo

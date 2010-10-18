@@ -46,7 +46,7 @@
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
      .      npratio,uMtomgm3,cnratio,bn,zc
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,alk1d,pnoice,caexp,kzc
+     .      rhs,alk1d,caexp,kzc
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime

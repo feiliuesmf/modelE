@@ -35,7 +35,7 @@
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
-     .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
+     .                    ,tot_chlo,acdom3d,tot_chlo_glob
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc

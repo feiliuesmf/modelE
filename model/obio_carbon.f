@@ -62,7 +62,6 @@ c
 
 ! Detrital, bacterial, and grazing components
       do k = 1,kmax
-
 !change: March 15, 2010
 !       cchlratio = bn*cnratio
 !       mgchltouMC = cchlratio/uMtomgm3
@@ -72,16 +71,16 @@ c
         rmmzoo = obio_P(k,ntyp)/(Pzo+obio_P(k,ntyp))
 
         docexcz = excz*rmmzoo*obio_P(k,ntyp)  !zoopl production DOC
-        term = - docexcz*pnoice
+        term = - docexcz*pnoice(k)
         rhs(k,ntyp,14) = term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
 
 !change: June 1, 2010
-        term = bn*docexcz*pnoice
+        term = bn*docexcz*pnoice(k)
         rhs(k,1,ntyp) = term
         P_tend(k,1) = P_tend(k,1) + term
 
-        term = bf*docexcz*pnoice
+        term = bf*docexcz*pnoice(k)
         rhs(k,4,10) = term
         P_tend(k,4) = P_tend(k,4) + term
 !endofchange
@@ -92,29 +91,29 @@ c
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
         term = (docexcz*mgchltouMC
-     .                   +  docdet/uMtomgm3-docbac)*pnoice
+     .                   +  docdet/uMtomgm3-docbac)*pnoice(k)
         rhs(k,13,14) = term
         C_tend(k,1) = C_tend(k,1) + term
 
         !adjust detritus
-        term = - docdet * pnoice !carbon/nitrogen detritus
+        term = - docdet * pnoice(k) !carbon/nitrogen detritus
         rhs(k,10,14) = term
         D_tend(k,1) = D_tend(k,1) + term  
 
         !equivalent amount of DOC from detritus goes into 
         !nitrate, bypassing DON
-        term = docdet/cnratio * pnoice
+        term = docdet/cnratio * pnoice(k)
         rhs(k,1,14) = term
         P_tend(k,1) = P_tend(k,1) + term 
 
         !---------------------------------------------------------------
         !DIC
         dicresz = tzoo*resz*obio_P(k,ntyp) !zoopl production DIC (resp)
-        term = - dicresz*pnoice
+        term = - dicresz*pnoice(k)
         rhs(k,ntyp,15) =  term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
 
-        term = dicresz*mgchltouMC * pnoice
+        term = dicresz*mgchltouMC * pnoice(k)
         rhs(k,14,15) = term
         C_tend(k,2) = term
 #ifdef noBIO
@@ -125,7 +124,7 @@ c
 !    .     write(*,'(a,3i5,e12.4)')'dicterm1',
 !    .     nstep,i,j,term
 
-        term = docbac * pnoice
+        term = docbac * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
@@ -136,7 +135,7 @@ c
 !    .     write(*,'(a,3i5,e12.4)')'dicterm2',
 !    .     nstep,i,j,term
 
-        term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice
+        term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
@@ -330,7 +329,7 @@ c Update DIC for sea-air flux of CO2
       deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
       flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
       flxmolm3h = flxmolm3*3600.D0          !units of mol/m3/hr
-      term = flxmolm3h*1000.D0*pnoice       !units of uM/hr (=mili-mol/m^3/hr)
+      term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
@@ -338,7 +337,7 @@ c Update DIC for sea-air flux of CO2
 #endif
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
-      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
+      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)  ! air-sea co2 flux
      .            *3600.D0                                   ! mol/m2/hr
      .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
       if (vrbos) then
@@ -507,12 +506,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.40 $
-c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
+c_ $Revision: 2.41 $
+c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.41  2010/10/18 13:57:01  aromanou
+c_
+c_ new treatment for obio-ice dependence. first cut.
+c_
 c_ Revision 2.40  2010/06/11 16:51:16  aromanou
 c_
 c_ remove superfluous pnoice factor. done in surface.f instead.
@@ -1051,12 +1054,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.40 $
-c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
+c_ $Revision: 2.41 $
+c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.41  2010/10/18 13:57:01  aromanou
+c_
+c_ new treatment for obio-ice dependence. first cut.
+c_
 c_ Revision 2.40  2010/06/11 16:51:16  aromanou
 c_
 c_ remove superfluous pnoice factor. done in surface.f instead.
@@ -1340,12 +1347,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.40 $
-c_ $Date: 2010/06/11 16:51:16 $   ;  $State: Exp $
+c_ $Revision: 2.41 $
+c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.41  2010/10/18 13:57:01  aromanou
+c_
+c_ new treatment for obio-ice dependence. first cut.
+c_
 c_ Revision 2.40  2010/06/11 16:51:16  aromanou
 c_
 c_ remove superfluous pnoice factor. done in surface.f instead.
