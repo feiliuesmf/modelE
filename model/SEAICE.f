@@ -1718,7 +1718,7 @@ C**** output flux (positive down)
         TRSNWIC(:) = Tri(:)*MSNWIC*(1.-0.001d0*Si)
 #endif
       ELSE
-        MSNWIC = 0. ; HSNWIC = 0. ; SSNWIC = 0.
+        MSNWIC = 0. ; HSNWIC = 0. ; SSNWIC = 0. ; DSNOW=0.
 #ifdef TRACERS_WATER
         TRSNWIC = 0.
 #endif
