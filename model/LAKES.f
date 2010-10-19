@@ -444,7 +444,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
 
 c***      Type (ESMF_HaloDirection) :: direction
       Integer :: direction ! ESMF_HaloDirection not yet implemented
-      LOGICAL, INTENT(IN) :: inilake
+      LOGICAL, INTENT(InOut) :: inilake
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,INM
@@ -490,11 +490,12 @@ C****
 C**** Get parameters from rundeck
       call sync_param("river_fac",river_fac)
       call sync_param("init_flake",init_flake)
+      if (init_flake == 1 .and. istart < 9) inilake = .true.
       call sync_param("variable_lk",variable_lk)
       call sync_param("lake_rise_max",lake_rise_max)
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
-      if ((init_flake.eq.1.and.istart.lt.9) .or. INILAKE) THEN
+      if (INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
         FLAKE = FLAKE0
       end if

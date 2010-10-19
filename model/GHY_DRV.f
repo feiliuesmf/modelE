@@ -2339,7 +2339,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       real*8 :: ws_can, shc_can, ht_cap_can, fice_can, aa
       real*8 :: fb, fv
       integer :: reset_canopy_ic=0, reset_snow_ic=0
-      integer init_flake
+  !!  integer init_flake
       logical present_land
 #ifdef TRACERS_WATER
       real*8 trsoil_tot,wsoil_tot,fm,height_can
@@ -2353,7 +2353,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       call sync_param( "reset_canopy_ic", reset_canopy_ic )
       call sync_param( "reset_snow_ic", reset_snow_ic )
       call  get_param( "variable_lk", variable_lk )
-      call  get_param( "init_flake", init_flake )
+  !!  call  get_param( "init_flake", init_flake )
 
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
@@ -2559,8 +2559,9 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       enddo
 
       ! initialize underwater fraction for variable lakes
-      if ( inilake .or.
-     *    (init_flake > 0 .and. variable_lk > 0 .and. istart < 9))
+ !!   if ( inilake .or.
+ !!  *    (init_flake > 0 .and. variable_lk > 0 .and. istart < 9))
+      if ( inilake .and. variable_lk > 0 )
      &     call init_underwater_soil
 
 

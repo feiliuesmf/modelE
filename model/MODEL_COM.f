@@ -57,8 +57,9 @@ c$$$#endif
 
 !**** Model control parameters:
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
+!@dbparam init_topog_related : set =1 if IC and topography are incompatible
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
-      integer :: KOCEAN = 1, MFILTR = 1
+      integer :: KOCEAN = 1, MFILTR = 1, init_topog_related = 0
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 !@var ij_debug: if i > 0, print out some extra info on bad ij box
@@ -106,7 +107,7 @@ c$$$#endif
 !@dbparam  USE_UNR_DRAG   if 1 =>SDRAG is turned off and GWD is applied.
 !@+    if 0 => SDRAG is kept intact and alternative GWD is not employed.
       INTEGER :: USE_UNR_DRAG=0  ! default: SDRAG is kept intact.
-      
+
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
 !@dbparam NMONAV number of months in a diagnostic accuml. period

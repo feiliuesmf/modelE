@@ -1018,7 +1018,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
-     &     ,do_polefix,pednl00,pmidl00,ij_debug
+     &     ,do_polefix,pednl00,pmidl00,ij_debug,init_topog_related
       USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
      *     paleo_orb_par, calc_orb_par_year
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -1069,6 +1069,7 @@ C**** Rundeck parameters:
       call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
       call sync_param( "calc_orb_par_year", calc_orb_par_year )
       call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
+      call sync_param( "init_topog_related", init_topog_related )
 
 C**** Parameters derived from Rundeck parameters:
 
@@ -1153,7 +1154,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
-     *     ,USE_UNR_DRAG
+     *     ,USE_UNR_DRAG,init_topog_related
 
 #ifdef SCM
      *     ,I_TARG,J_TARG
@@ -1463,10 +1464,8 @@ C****
 
       IF (ISTART.LE.2) THEN
 
-C**** Set flag to initialise pbl and snow variables
-        iniPBL=.TRUE.
-        iniSNOW = .TRUE.  ! extract snow data from first soil layer
-        iniOCEAN = .TRUE. ! read in ocean ic
+C**** Set flag to initialise topography-related variables
+        init_topog_related = 1
 cddd#ifdef USE_ENT
 cddd        iniENT = .TRUE.
 cddd#endif
@@ -1659,9 +1658,7 @@ C****
       CASE (6)             ! converted model II' (B399) format (no snow)
         call io_rsf("AIC",IhrX,irsficno,ioerr)
         if (ioerr.eq.1) goto 800
-        iniSNOW = .TRUE.      ! extract snow data from first soil layer
-        inipbl  = .TRUE.      ! initialise pbl profiles
-        iniOCEAN = .TRUE.     ! read in ocean ic
+        init_topog_related = 1
         redoGH=.TRUE.
 C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
@@ -1671,6 +1668,7 @@ C****
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
+        inilake = .TRUE. ! use flake from topog file
 C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
@@ -1694,10 +1692,9 @@ C**** Check consistency of starting time
         ENDIF
       END IF
 
-C**** Set flag to initialise lake variables if they are not in I.C.
-      IF (ISTART.lt.8) inilake=.TRUE.
-
-      IF (ISTART.eq.5) then
+C**** Set flags to initialise some variables related to topography
+      IF (ISTART < 9 .and. init_topog_related == 1) then
+        iniOcean=.true.
         iniLAKE=.TRUE.
         iniPBL=.TRUE.
         iniSNOW = .TRUE.        ! extract snow data from first soil layer
