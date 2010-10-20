@@ -1593,7 +1593,9 @@ c get_subdd
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
      *     ,l1Ox_acc,l1NO2_acc,save_NO2column
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
       USE LIGHTNING, only : saveC2gLightning,saveLightning
+#endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
