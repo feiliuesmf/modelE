@@ -1011,11 +1011,6 @@ C**** arrays that could be general, but are only used by chemistry
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
 ! --- end of source-altering section ----------------------------
-
-!@dbparam gasPrecFracScal scaling factor on the effective precipitating 
-!@+ fraction for soluble gases for below-cloud washout.
-      real*8 :: gasPrecFracScal = 1.d0
-
 !@param nChemistry index for tracer chemistry 3D source
 !@param nOverwrite index for tracer overwrite 3D source
 !@param nOther index for tracer misc. 3D source

@@ -207,7 +207,6 @@ C**** set super saturation parameter for isotopes if needed
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
-      call sync_param("gasPrecFracScal",gasPrecFracScal)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif
@@ -10317,6 +10316,7 @@ c! TRACERS_AMP
 
       end do ! n - main tracer loop
 
+
       END SUBROUTINE set_tracer_2Dsource
 
       subroutine get_latlon_mask(lon_w,lon_e,lat_s,lat_n,latlon_mask)
@@ -10461,6 +10461,7 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
 
 C**** All sources are saved as kg/s
       do n=1,ntm
@@ -10852,10 +10853,10 @@ C**** Apply chemistry and overwrite changes:
 
        call EQSAM_DRV
 
-       call apply_tracer_3Dsource(1,n_NO3p) ! NO3 chem prod
 #ifdef TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
 #endif
+       call apply_tracer_3Dsource(1,n_NO3p) ! NO3 chem prod
        call apply_tracer_3Dsource(1,n_NH4)  ! NO3 chem prod
        call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3
 
@@ -11602,8 +11603,7 @@ c     USE PBLCOM, only: wsavg
       USE TRACER_COM, only :
      &     gases_count,aero_count,water_count,hlawt_count,
 ! NB: these lists are often used for implicit loops
-     &     gases_list,aero_list,water_list,hlawt_list,
-     &     gasPrecFracScal
+     &     gases_list,aero_list,water_list,hlawt_list
 
 c      USE CLOUDS, only: NTIX,PL
       USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
@@ -11650,8 +11650,8 @@ c      fq(gases_list) = 0.D0
         enddo
         do igas=1,gases_count
           n = gases_list(igas)
-          thlaw(n) = min( tm(n),max( 0d0,gasPrecFracScal*bb_tmp*
-     &    (ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
+          thlaw(n) = min( tm(n),max( 0d0,(FCLOUD*
+     &               ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
         enddo
       else
         thlaw(gases_list) = 0.

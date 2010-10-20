@@ -1967,10 +1967,14 @@ c      reduction in partial pressure as species dissolves
       henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)
       pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
 c again all except tmcl(n)
-      trdr(is)=mass2vol(is)*ppas/amass*bygasc
-     *    /temp*1.D-3  !M/kg
+      if(CLWC==0.)then
+        trdr(is)=0.d0
+      else
+        trdr(is)=mass2vol(is)*ppas/amass*bygasc
+     &  /temp*1.D-3/CLWC  !"CLWC" is newly added by Yunha Lee. This makes "mole/liter of cloud water/kg of tracer"  
+      end if
 c dissolved moles
-      trdmol(is)=trdr(is)*1000./tr_mm(is)
+      trdmol(is)=tmcl(isx)*1000./tr_mm(is)  !trdr(is) is replaced with tmcl(isx) by Yunha Lee. This makes "trdmol" to be the amount of tracer already dissolved in the cloud water. 
 
        case('H2O2','H2O2_s')
 
@@ -1992,9 +1996,13 @@ c      reduction in partial pressure as species dissolves
       henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
 c all except tmcl(n)
-      trdr(ih)=mass2vol(ih)*ppas/amass*bygasc/temp*1.D-3  !M/kg
+      if(CLWC==0.) then
+        trdr(ih)=0.d0
+      else
+        trdr(ih)=mass2vol(ih)*ppas/amass*bygasc/temp*1.D-3/CLWC  !"CLWC" is newly added by Yunha Lee. This makes "mole/liter of cloud water/kg of tracer"   !M/kg
+      end if
 c dissolved moles
-      trdmol(ih)=trdr(ih)*1000./tr_mm(ih)
+      trdmol(ih)=tmcl(ihx)*1000./tr_mm(ih)  !trdr(ih) is replaced with tmcl(ih) by Yunha Lee. This makes "trdmol" to be the amount of tracer already dissolved in the cloud water.
 
  400   CONTINUE
 
@@ -2022,22 +2030,30 @@ c can't be more than moles going in:
       endif
 c this part from dissolved gases
  21    dso4d=rk*exp(-ea/(gasc*temp))*rk1f
-     *    *trdr(ih)*trdr(is)*dtsrc*wa_vol
+     *    *trdr(ih)*trdr(is)*dtsrc*wa_vol  !mole/kg/kg
 
-      if (trdr(ih).lt.teeny.or.trdr(is).lt.teeny) then
+      if (tmcl(ihx).lt.teeny.or.tmcl(isx).lt.teeny) then   !"trdr" is replaced by "tmcl" by YUNHA LEE.
       dso4d=0.
       go to 22
       endif
 
 c check to make sure no overreaction: moles of production:
-      dso4dt=dso4d*trdr(ih)*trdr(is)
+      dso4dt=dso4d*tmcl(ihx)*tmcl(isx)  !"trdr [M/kg]" is replaced by "tmcl [kg]" by YUNHA LEE. This makes "dso4dt" to be "mole of SO4 formed". 
 c can't be more than moles going in:
       if (dso4dt.gt.trdmol(is)) then
-        dso4d=trdmol(is)/(trdr(ih)*trdr(is))
+        if(tmcl(ihx)==0. .or. tmcl(isx)==0.)then
+          dso4d=0.d0
+        else
+          dso4d=trdmol(is)/(tmcl(ihx)*tmcl(isx))  !"trdr" is replaced by "tmcl" by YUNHA LEE.
+        end if
       endif
       dso4dt=dso4d*trdr(ih)*trdr(is)
       if (dso4dt.gt.trdmol(ih)) then
-        dso4d=trdmol(ih)/(trdr(ih)*trdr(is))
+        if(tmcl(ihx)==0. .or. tmcl(isx)==0.)then
+          dso4d=0.d0
+        else
+          dso4d=trdmol(ih)/(tmcl(ihx)*tmcl(isx))   !"trdr" is replaced by "tmcl" by YUNHA LEE.
+        end if
       endif
 
  22   continue
@@ -2064,7 +2080,8 @@ c can't be more than moles going in:
          tr_left(isx)=(fcloud+sulfin(is))
        endif
 
-       dt_sulf(is)=dt_sulf(is)+sulfin(is)*tm(l,isx)+sulfinc(is)*trdr(is)
+       dt_sulf(is)=
+     & dt_sulf(is)+sulfin(is)*tm(l,isx)+sulfinc(is)*tmcl(isx) !trdr(is) is replaced by tmcl(isx) by YUNHA LEE. 
 
        case('H2O2','H2O2_s')
 
@@ -2086,7 +2103,8 @@ c can't be more than moles going in:
 
  401   CONTINUE
 
-       dt_sulf(ih)=dt_sulf(ih)+sulfin(ih)*tm(l,ihx)+sulfinc(ih)*trdr(ih)
+       dt_sulf(ih)=
+     & dt_sulf(ih)+sulfin(ih)*tm(l,ihx)+sulfinc(ih)*tmcl(ihx) !trdr(ih) is replaced by tmcl(isx) by YUNHA LEE.
 
       end select
       END DO

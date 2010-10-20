@@ -1442,7 +1442,7 @@ c    &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
 c    &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
 c    &     ,ntix,CLDSAVT)
       CALL GET_COND_FACTOR_array(
-     &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,0.
+     &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
      &     ,ntix,FPLUME)
       dtr(1:ntx) = fqcondt(1:ntx)*tmp(1:ntx)
@@ -2440,7 +2440,7 @@ c**** Washout of tracers in cloud
         TM_dum(:) = TM(L,:)
         CALL GET_WASH_factor_array(
      &       ntx,b_beta_dt,precip_mm,fwasht,told,lhx,
-     &   wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.false.)
+     &   wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.true.)
         dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)
@@ -4225,7 +4225,7 @@ c precip. tracer evap
       ELSE
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-        b_beta_DT = cldsavt*CM*dtsrc
+        b_beta_DT = cldsavt      !*CM*dtsrc
 c         saves cloud fraction at lowest precipitating level for washout
         cldprec=cldsavt
 cdmk added arguments above; THLAW added below (no way to factor this)
@@ -4255,7 +4255,7 @@ c apply certain removal processes before calculating washout in clouds
         if (wmxtr.lt.0.) wmxtr=0.
         CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
      &       tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l),
-     &       THWASH,pl(l),ntix,.false.) !washout
+     &       THWASH,pl(l),ntix,.true.) !washout
       END IF
 #endif
 
