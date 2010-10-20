@@ -1186,6 +1186,7 @@ C**** check whether air mass is conserved
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,csPM2p5_acc,csPM10_acc
 #endif
 
       IMPLICIT NONE
@@ -1229,6 +1230,7 @@ C**** check whether air mass is conserved
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       real(kind=8),allocatable,dimension(:,:) :: sPM2p5_acc_glob
      &     ,sPM10_acc_glob,l1PM2p5_acc_glob,l1PM10_acc_glob
+     &     ,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
       INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
@@ -1299,7 +1301,9 @@ C**** check whether air mass is conserved
       allocate(sPM2p5_acc_glob(im,jm)
      &        ,sPM10_acc_glob(im,jm)
      &        ,l1PM2p5_acc_glob(im,jm)
-     &        ,l1PM10_acc_glob(im,jm))
+     &        ,l1PM10_acc_glob(im,jm)
+     &        ,csPM2p5_acc_glob(im,jm)
+     &        ,csPM10_acc_glob(im,jm) )
 #endif
 
       SELECT CASE (IACTION)
@@ -1503,13 +1507,15 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        call pack_data(grid,sPM10_acc,sPM10_acc_glob)
        call pack_data(grid,l1PM2p5_acc,l1PM2p5_acc_glob)
        call pack_data(grid,l1PM10_acc,l1PM10_acc_glob)
+       call pack_data(grid,csPM2p5_acc,csPM2p5_acc_glob)
+       call pack_data(grid,csPM10_acc,csPM10_acc_glob)
 #endif
        header='accumulation arrays for subdd diagnostics for tracers'
        if (am_i_root()) write(kunit,err=10) header,trcSurfMixR_acc_glob
      &      ,trcSurfByVol_acc_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
-     &      ,l1PM10_acc_glob
+     &      ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
@@ -1665,7 +1671,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
-     &         ,l1PM10_acc_glob
+     &         ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &         ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
@@ -1679,6 +1685,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
           call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
           call unpack_data(grid,l1PM10_acc_glob,l1PM10_acc)
+          call unpack_data(grid,csPM2p5_acc_glob,csPM2p5_acc)
+          call unpack_data(grid,csPM10_acc_glob,csPM10_acc)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
           call unpack_data(grid,sOx_acc_glob,sOx_acc)
@@ -1714,6 +1722,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
 #ifdef TRACERS_AEROSOLS_Koch
       deallocate(snosiz_glob)
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      deallocate(sPM2p5_acc_glob, sPM10_acc_glob, l1PM2p5_acc_glob,
+     & l1PM10_acc_glob, csPM2p5_acc_glob, csPM10_acc_glob)
 #endif
 
       deallocate(Aijl_glob)
@@ -1765,6 +1778,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,csPM2p5_acc,csPM10_acc
 #endif
 
       implicit none
@@ -1872,6 +1886,8 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
       call defvar(grid,fid,l1PM2p5_acc,'l1PM2p5_acc(dist_im,dist_jm)')
       call defvar(grid,fid,l1PM10_acc,'l1PM10_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,csPM2p5_acc,'csPM2p5_acc(dist_im,dist_jm)')
+      call defvar(grid,fid,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1919,6 +1935,7 @@ c daily_z is currently only needed for CS
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,csPM2p5_acc,csPM10_acc
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -2010,6 +2027,8 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call write_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
         call write_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
+        call write_dist_data(grid,fid,'csPM2p5_acc',csPM2p5_acc)
+        call write_dist_data(grid,fid,'csPM10_acc',csPM10_acc)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2106,6 +2125,8 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call read_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
         call read_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
+        call read_dist_data(grid,fid,'csPM2p5_acc',csPM2p5_acc)
+        call read_dist_data(grid,fid,'csPM10_acc',csPM10_acc)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

@@ -449,10 +449,11 @@ C**** include some extra troposphere only ones
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-!@var sPM2p5_acc, sPM10_acc accumulation arrays for some SUBDD diags
-!@+ s means SFC and l1 means L=1 accumulations.
+!@var PM2p5_acc, PM10_acc accumulation arrays for some SUBDD diags
+!@+ s prefix means SFC and l1 means L=1 accumulations. c prefix means
+!@+ concentration units (kg/m3) rather than the mass mixing ratio
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::  ! (IM,JM)
-     &  sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc,csPM2p5_acc,csPM10_acc
 #endif
 
 !@var trcsurf global array of tracer mixing ratio at surface [kg/kg]
@@ -1158,10 +1159,13 @@ C*** Unpack read global data into local distributed arrays
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       ALLOCATE (  sPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE (   sPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE ( csPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE (  csPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( l1PM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE (  l1PM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
 
       sPM2p5_acc=0.d0; sPM10_acc=0.d0; l1PM2p5_acc=0.d0; l1PM10_acc=0.d0
+      csPM2p5_acc=0.d0; csPM10_acc=0.d0
 #endif
 #ifdef TRACERS_ON 
       ALLOCATE(trcsurf(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)

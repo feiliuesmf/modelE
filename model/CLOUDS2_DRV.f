@@ -47,6 +47,8 @@
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
      *     jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,ij_sisnwf,
      *     ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr,
+     *     saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI,
+     *     saveTCLDI,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -99,7 +101,7 @@
       USE COSMO_SOURCES, only : BE7W_acc
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE LIGHTNING, only : RNOx_lgt
+      USE LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc
@@ -769,6 +771,8 @@ C**** Error reports
       end if
 
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
+      saveLightning(i,j)=0.d0    ! default for subdaily diag
+      saveC2gLightning(i,j)=0.d0 ! default for subdaily diag
 ! Execute Colin Price Lightning parameterization:
 !     first, need the local freezing level:
       if(LMCMAX>0)then
@@ -779,7 +783,7 @@ C**** Error reports
             exit
           endif
         enddo
-        calL calc_lightning(i,j,LMCMAX,Lfreeze)
+        call calc_lightning(i,j,LMCMAX,Lfreeze)
       endif
 #endif
 
@@ -1242,10 +1246,14 @@ C**** set skt from radiative temperature
 
 C**** set ISCCP diagnostics
         AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit
+        saveSCLDI(i,j)=sunlit
         if (nbox.gt.0.and.sunlit.gt.0) then
           AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
           AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
           AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
+          saveCTPI(i,j)=ctp    ! saving just the
+          saveTAUI(i,j)=tauopt ! current value for
+          saveTCLDI(i,j)=1.d0  ! instantaneous SUBDDiags
 C**** note LOW CLOUDS:       ipres=6,7
 C****      MID-LEVEL CLOUDS: ipres=4,5
 C****      HIGH CLOUDS:      ipres=1,2,3
@@ -1253,6 +1261,9 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
           AIJ(I,J,IJ_LCLDI)=AIJ(I,J,IJ_LCLDI)+sum(fq_isccp(2:ntau,6:7))
           AIJ(I,J,IJ_MCLDI)=AIJ(I,J,IJ_MCLDI)+sum(fq_isccp(2:ntau,4:5))
           AIJ(I,J,IJ_HCLDI)=AIJ(I,J,IJ_HCLDI)+sum(fq_isccp(2:ntau,1:3))
+          saveLCLDI(i,j)=sum(fq_isccp(2:ntau,6:7)) ! saving just the
+          saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
+          saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
 C**** Save area weighted isccp histograms
           n=isccp_reg2d(i,j)
           if (n.gt.0) AISCCP(:,:,n) = AISCCP(:,:,n) +

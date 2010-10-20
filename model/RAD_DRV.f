@@ -83,7 +83,7 @@ C****
 #endif
       use RAD_COSZ0, only : cosz_init
       USE CLOUDS_COM, only : llow
-      USE DIAG_COM, only : iwrite,jwrite,itwrite
+      USE DIAG_COM, only : iwrite,jwrite,itwrite,save3dAOD
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -167,6 +167,7 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
+      call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
       if (istart.le.0) return
 
@@ -878,7 +879,7 @@ C     OUTPUT DATA
 #endif
 #ifdef TRACERS_ON
      &     ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save
-     &     ,ttausv_cs_save
+     &     ,ttausv_cs_save,aerAbs6SaveInst
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,ttausv_ntrace
@@ -921,7 +922,7 @@ C     OUTPUT DATA
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
      *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
      *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
-     *     ,ij_swcrf2,ij_lwcrf2, ij_siswd, ij_siswu
+     *     ,ij_swcrf2,ij_lwcrf2, ij_siswd, ij_siswu, save3dAOD
 #ifdef ACCMIP_LIKE_DIAGS
      *     ,ij_fcghg ! array
 #endif
@@ -2185,15 +2186,19 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
 #ifdef TRACERS_ON
 ! this to accumulate daily SUM of optical thickness for
 ! each active tracer. Will become average in DIAG.f.
+! Also saving the aerosol absorption (band 6) 3D, summed over species. 
+      aerAbs6SaveInst(i,j,:)=0.d0
       do n=1,NTRACE
         if(ntrix(n) > 0) then
           StauL=sum(ttausv(1:LM,n))
           ttausv_sum(i,j,ntrix(n))=ttausv_sum(i,j,ntrix(n))+StauL
           ttausv_sum_cs(i,j,ntrix(n))=ttausv_sum_cs(i,j,ntrix(n))
      &         +StauL*OPNSKY
+          aerAbs6SaveInst(i,j,:)=aerAbs6SaveInst(i,j,:) +
+     &    (aesqex(:,6,n)-aesqsc(:,6,n))
         endif
       enddo
-      IF (adiurn_dust == 1) THEN
+      IF (adiurn_dust == 1 .or. save3dAOD == 1) THEN
         ttausv_save(i,j,:,:)=0.D0
         DO n=1,NTRACE
           IF (ntrix(n) > 0) THEN

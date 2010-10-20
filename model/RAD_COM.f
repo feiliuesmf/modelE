@@ -90,6 +90,9 @@ C**** does not produce exactly the same as the default values.
 !@var tracerRadiaActiveFlag array of flags of dimension Ntm, whose elements
 !@+                         are set to .true. for radiatively active tracers
       logical,allocatable,dimension(:) :: tracerRadiaActiveFlag
+!@var aerAbs6SaveInst Band 6 sum over aerosols  of extinction-scattering,
+!@+   saved for instantaneous SUBDDiag output
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: aerAbs6SaveInst
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxNtraceFastj max expected rad code tracers passed to photolysis
 !@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
@@ -276,7 +279,7 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count,nTracerRadiaActive
-     &     ,tracerRadiaActiveFlag
+     &     ,tracerRadiaActiveFlag,aerAbs6SaveInst
 #endif
 #ifdef CUBED_SPHERE
      &     ,JM_DH2O
@@ -332,6 +335,7 @@ C**** Local variables initialised in init_RAD
      &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
      &     ttausv_sum_cs(I_0H:I_1H,J_0H:J_1H,Ntm),
      &     tracerRadiaActiveFlag(Ntm),
+     &     aerAbs6SaveInst(I_0H:I_1H,J_0H:J_1H,Lm),
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
@@ -400,6 +404,8 @@ C**** Local variables initialised in init_RAD
      &     SRDN_GLOB, CFRAC_GLOB, SALB_GLOB,
      &     FSRDIF_GLOB, DIRNIR_GLOB, DIFNIR_GLOB
 #ifdef TRACERS_ON
+      REAL*8,DIMENSION(:,:,:), allocatable :: !(Im,Jm,Lm)
+     &     aerAbs6SaveInst_glob
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8,DIMENSION(:,:,:,:),allocatable::chem_tracer_save_GLOB !(2,LM,IM,JM)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -450,6 +456,7 @@ C**** Local variables initialised in init_RAD
      &     DIFNIR_GLOB(img,jmg))
       allocate(RCLD_GLOB(lmg,img,jmg))
 #ifdef TRACERS_ON
+      allocate(aerAbs6SaveInst_glob(img,jmg,lmg))
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
       allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
@@ -533,6 +540,7 @@ C**** Local variables initialised in init_RAD
         CALL PACK_DATA(grid,trnflb_save,trnflb_save_glob)
 #endif
 #ifdef TRACERS_ON
+        CALL PACK_DATA(grid,aerAbs6SaveInst,aerAbs6SaveInst_glob)
         CALL PACK_DATA(grid,ttausv_save,ttausv_save_glob)
         CALL PACK_DATA(grid,ttausv_cs_save,ttausv_cs_save_glob)
         CALL PACK_DATA(grid,ttausv_sum,ttausv_sum_glob)
@@ -560,7 +568,7 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_ON
      &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
-     &      ,ttausv_save_glob,ttausv_cs_save_glob
+     &      ,ttausv_save_glob,ttausv_cs_save_glob,aerAbs6SaveInst_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &      ,ttausv_ntrace_glob
@@ -587,7 +595,7 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_ON
      &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
-     &       ,ttausv_save_glob,ttausv_cs_save_glob
+     &       ,ttausv_save_glob,ttausv_cs_save_glob,aerAbs6SaveInst_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &       ,ttausv_ntrace_glob
@@ -638,6 +646,7 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA(grid,ttausv_cs_save_glob,ttausv_cs_save)
           CALL UNPACK_DATA(grid,ttausv_sum_glob,ttausv_sum)
           CALL UNPACK_DATA(grid,ttausv_sum_cs_glob,ttausv_sum_cs)
+          CALL UNPACK_DATA(grid,aerAbs6SaveInst_glob,aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
           CALL UNPACK_DATA(grid,ttausv_ntrace_glob,ttausv_ntrace)
@@ -695,6 +704,7 @@ C**** Local variables initialised in init_RAD
       deallocate(ttausv_cs_save_glob)
       deallocate(ttausv_sum_glob)
       deallocate(ttausv_sum_cs_glob)
+      deallocate(aerAbs6SaveInst_glob)
 #endif
       end subroutine freemem
       END SUBROUTINE io_rad
@@ -754,6 +764,8 @@ C**** Local variables initialised in init_RAD
       call defvar(grid,fid,ttausv_sum_cs,
      &     'ttausv_sum_cs(dist_im,dist_jm,ntm)')
       call defvar(grid,fid,ttausv_count,'ttausv_count')
+      call defvar(grid,fid,aerAbs6SaveInst,
+     &     'aerAbs6SaveInst(dist_im,dist_jm,lm)')
 #endif
       return
       end subroutine def_rsf_rad
@@ -812,6 +824,7 @@ C**** Local variables initialised in init_RAD
         call write_data(grid, fid,'ttausv_count',ttausv_count)
         call write_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
         call write_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
+        call write_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         call write_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)
@@ -855,6 +868,7 @@ C**** Local variables initialised in init_RAD
      &       bcast_all=.true.)
         call read_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
         call read_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
+        call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         call read_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)

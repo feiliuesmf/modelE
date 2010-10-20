@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
   
       module lightning
-!@sum  lightning_com variables for lightning parameterization
+!@sum  lightning variables for lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
 !@ver  1.0 (taken from CB436Tds3M23)
       use model_com, only : LM
@@ -37,6 +37,10 @@
       data (HGT_lgt(2,2,i),i=1,16)/5.8,2.9,2.6,2.4,2.2,2.1,2.3,6.1,
      & 16.5,14.1,13.7,12.8,12.5,2.8,0.9,0.3/ 
 #endif
+!@var saveLightning array to save flash rate for SUBDD (instantaneous)
+!@var saveC2gLightning to save CtoG flash rate for SUBDD (instantaneous)
+      real*8,allocatable,dimension(:,:)::saveLightning,saveC2gLightning
+
       end module lightning 
       
       
@@ -45,6 +49,7 @@
 !@auth G.Faluvegi
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
+      use LIGHTNING, only : saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
       use LIGHTNING, only     : RNOx_lgt
 #endif
@@ -59,6 +64,9 @@
 #ifdef TRACERS_SPECIAL_Shindell
       allocate( RNOx_lgt(I_0H:I_1H,J_0H:J_1H) )
 #endif
+      allocate( saveC2gLightning(I_0H:I_1H,J_0H:J_1H) )
+      allocate(    saveLightning(I_0H:I_1H,J_0H:J_1H) )
+  
       return
       end subroutine alloc_lightning
      
@@ -71,10 +79,11 @@
 !@ver  1.0 (based on CB436Tds3M23)
 
       use lightning, only : JNlight,JSlight,tune_lt_land,tune_lt_sea
+     & ,saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
      & ,RNOx_lgt
 #endif
-      use model_com, only : fland
+      use model_com, only : fland,DTsrc
       use geom,      only : lat2d_dg,axyp,byaxyp
       use constant,  only : bygrav
       use dynamics,  only : gz
@@ -159,10 +168,20 @@
       cg=flash/(1.+zlt)
 
 ! *If* flash is indeed in flashes/min, accumulate it in flashes/m2:
-! I think you should get rid of these 60's in favor of DTsrc,
-! put since things are already scaled...
+!
+! Greg's note: I believe here aij should be accumulated in 
+! flashes/m2. Then upon output this is divided by the DTsrc so it's
+! in flashes/m2/s. Here it is being accumulated I think in what
+! looks to me like 2xflashes/m2. At the moment, this
+! is heavily scaled/tuned linearly for each resolution anyway. But
+! perhaps in the future, these "60.d0"s below should be changed to:
+! DTsrc/60 (the number of minutes in this timestep), then everything
+! retuned to be OK again? Let's do this before we link to fire model.
       aij(i,j,ij_flash)=aij(i,j,ij_flash) + flash*60.d0*byaxyp(i,j)
       aij(i,j,ij_CtoG) =aij(i,j,ij_CtoG)  +    cg*60.d0*byaxyp(i,j)
+! Also save for SUBDDdiags instantaneous output (in flashes/m2/s):
+      saveLightning(i,j)    =  flash*60.d0*byaxyp(i,j)/DTsrc
+      saveC2gLightning(i,j) =     cg*60.d0*byaxyp(i,j)/DTsrc
 
 #ifdef TRACERS_SPECIAL_Shindell
 ! Given the number of cloud-to-ground flashes, we can now calculate

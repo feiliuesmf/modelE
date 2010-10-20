@@ -68,7 +68,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=387
+      INTEGER, PARAMETER, public :: KAIJ=405
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -186,6 +186,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@dbparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=0 (off)
       INTEGER, public :: adiurn_dust=0
+!@dbparam save3dAOD flag to calculate ttasv_save in rad code even when 
+!@+ adiurn_dust is off.
+      INTEGER, public :: save3dAOD=0
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
 !@+       defaults set in DIAG_RES (depends on resolution)
       INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
@@ -306,6 +309,10 @@ C**** parameters and variables for ISCCP diags
      & O_more,N_more,X_more,M_more
 #endif
 #endif
+!@var save{H,M,L}CLDI,saveCTPI,saveTAUI,save{S,T}CLDI: SUBDDiag
+!@+  instantanwous save arrays for ISCCP cloud variables
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: saveHCLDI,
+     & saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI,saveTCLDI
 C**** Instantaneous constant pressure level fields
 !@var Z_inst saved instantaneous height field (at PMB levels)
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
@@ -889,6 +896,8 @@ c instances of arrays
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
      *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
+     *     ,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI
+     *     ,saveTCLDI
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
      &     ,AGC_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
@@ -939,6 +948,13 @@ c instances of arrays
      &         PM_acc(I_0H:I_1H,J_0H:J_1H),
      &         TDIURN(I_0H:I_1H,J_0H:J_1H,KTD),
      &         OA(I_0H:I_1H,J_0H:J_1H,KOA),
+     &         saveHCLDI(I_0H:I_1H,J_0H:J_1H),
+     &         saveMCLDI(I_0H:I_1H,J_0H:J_1H),
+     &         saveLCLDI(I_0H:I_1H,J_0H:J_1H),
+     &         saveCTPI(I_0H:I_1H,J_0H:J_1H),
+     &         saveTAUI(I_0H:I_1H,J_0H:J_1H),
+     &         saveSCLDI(I_0H:I_1H,J_0H:J_1H),
+     &         saveTCLDI(I_0H:I_1H,J_0H:J_1H),
 #ifdef TES_LIKE_DIAGS
      &         Q_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
      &         T_more(KGZmore,I_0H:I_1H,J_0H:J_1H),

@@ -290,8 +290,8 @@ C**** Files for an accumulation period (1-12 months)
         call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
-C**** Initiallise file for sub-daily diagnostics, controlled by
-C**** space-separated string segments in SUBDD & SUBDD1 in the rundeck
+C**** Initiallise file for sub-daily diagnostics, controlled by space-
+C**** separated string segments in SUBDD,SUBDD{1,2,3} in the rundeck
       call init_subdd(aDATE)
       call sys_flush(6)
 

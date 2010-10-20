@@ -1221,6 +1221,7 @@ C****
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,csPM2p5_acc,csPM10_acc
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
@@ -1247,15 +1248,14 @@ C****
       CHARACTER*10, DIMENSION(kddmax) :: namedd
 !@var iu_subdd array of unit numbers for sub-daily diags output
       INTEGER, DIMENSION(kddmax) :: iu_subdd
-!@var subddt = subdd + subdd1 = all variables for sub-daily diags
-      CHARACTER*192 :: subddt = " "
+!@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
+      CHARACTER*256 :: subddt = " "
 !@dbparam subdd string contains variables to save for sub-daily diags
 !@dbparam subdd1 additional string of variables for sub-daily diags
 !@dbparam subdd2 additional string of variables for sub-daily diags
+!@dbparam subdd3 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*64  :: subdd  = "SLP"
-      CHARACTER*64  :: subdd1 = " "
-      character(len=64) :: subdd2 = ' '
+      CHARACTER*64 :: subdd="SLP", subdd1=" ", subdd2=" ", subdd3=" "
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
@@ -1325,12 +1325,14 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       call sync_param( "subdd" ,subdd)
       call sync_param( "subdd1" ,subdd1)
       call sync_param( "subdd2" ,subdd2)
+      call sync_param( "subdd3" ,subdd3)
       call sync_param( "Nsubdd",Nsubdd)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
-C**** combine strings subdd1 and subdd2:
-        subddt=trim(subdd)//' '//trim(subdd1)//' '//subdd2
+C**** combine strings subdd, subdd1, subdd2, and subdd3:
+        subddt=
+     &  trim(subdd)//' '//trim(subdd1)//' '//trim(subdd2)//' '//subdd3
 C**** calculate how many names
         k=0
         i=1
@@ -1528,6 +1530,8 @@ c get_subdd
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
 !@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID,
 !@+                    GTALL, GWALL, GIALL (on soil levels)
+!@+                    {L,M,H}CLDI,CTPI,TAUI (ISCCP quantities)
+!@+                    LGTN, c2gLGTN (lightning flashs/cloud-to-ground)
 !@+                    TRP*, TRE* (water tracers only)
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    z*, r*, t*, q*  (on any model level)
@@ -1540,6 +1544,8 @@ c get_subdd
 !@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average ppbv)
 !@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 ppmm)
 !@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 ppmm)
+!@+                    cPM2p5,cPM10 (SFC time-average PM2.5, PM10 kg/m3)
+!@+                    NO2col NO2 column amount, instant., (kg/m2)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
@@ -1565,6 +1571,8 @@ c get_subdd
 !@+                    AOD aer opt dep (1,nTracerRadiaActive in rad code) daily avg
 !@+                    tAOD aer opt dep (sum 1,nTracerRadiaActive) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
+!@+                    ictAOD clr-sky sum AOD, 'instantaneous', 3D
+!@+                    itAAOD all-sky sum AOD ext-scat band6, instant., 3D
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
@@ -1583,21 +1591,25 @@ c get_subdd
      *     ,gtemp,gtempr
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
-     *     ,l1Ox_acc,l1NO2_acc
+     *     ,l1Ox_acc,l1NO2_acc,save_NO2column
 #endif
+      USE LIGHTNING, only : saveC2gLightning,saveLightning
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
 #ifdef TRACERS_ON
-     & ,ttausv_sum,ttausv_sum_cs,ttausv_count
+     & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
+     & ,aerAbs6SaveInst
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
+     * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
+     * ,saveSCLDI,saveTCLDI
 #ifdef TES_LIKE_DIAGS
-     *     ,t_more,q_more
+     * ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,o_more,n_more,m_more,x_more
+     * ,o_more,n_more,m_more,x_more
 #endif
 #endif
 
@@ -1881,7 +1893,14 @@ c          datar8=sday*prec/dtsrc
           long_name = 'Average Level 1 NO2'
           qinstant = .false.
 #endif
+        case ("NO2col") ! instantaneous NO2 column amount (kg/m2)
+          datar8=save_NO2column
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^2'
+          long_name = 'NO2 Column Amount'
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
+
         case ("MCP")       ! moist conv precip (mm/day)
           datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
@@ -2102,6 +2121,117 @@ c          datar8=sday*prec/dtsrc
           long_name = 'Tropopause Pressure'
 #endif
 
+! attempting here {L,M,H}CLDI,CTPI,TAUI,TCLDI (ISCCP quantities):
+! please use critically:
+        case ("HCLDI")      ! HIGH LEVEL CLOUDINESS (ISCCP)
+          if (isccp_diags.eq.1) then
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
+                if(saveSCLDI(i,j)==0.)then
+                  datar8(i,j) = undef
+                else if(saveSCLDI(i,j) > 1.)then        ! can remove
+                  call stop_model("greg temp stop1",13) ! two lines
+                else
+                  datar8(i,j) = 100.d0*saveHCLDI(i,j)!/1.
+                endif
+              end do
+            end do
+          else
+            datar8=undef
+          end if
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'high level cloudiness isccp'
+#endif
+        case ("MCLDI")      ! MID LEVEL CLOUDINESS (ISCCP)
+          if (isccp_diags.eq.1) then
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
+                if(saveSCLDI(i,j)==0.)then
+                  datar8(i,j) = undef
+                else
+                  datar8(i,j) = 100.d0*saveMCLDI(i,j)!/1.
+                endif
+              end do
+            end do
+          else
+            datar8=undef
+          end if
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'mid level cloudiness isccp'
+#endif
+        case ("LCLDI")      ! LOW LEVEL CLOUDINESS (ISCCP)
+          if (isccp_diags.eq.1) then
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
+                if(saveSCLDI(i,j)==0.)then
+                  datar8(i,j) = undef
+                else
+                  datar8(i,j) = 100.d0*saveLCLDI(i,j)!/1.
+                endif
+              end do
+            end do
+          else
+            datar8=undef
+          end if
+#ifdef NEW_IO_SUBDD
+          units_of_data = '%'
+          long_name = 'low level cloudiness isccp'
+#endif
+        case ("CTPI")      ! CLOUD TOP PRESSURE (ISCCP)
+          if (isccp_diags.eq.1) then
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
+                if(saveTCLDI(i,j)==0.)then
+                  datar8(i,j) = undef
+                else if(saveTCLDI(i,j) > 1.)then        ! can remove
+                  call stop_model("greg temp stop2",13) ! two lines
+                else
+                  datar8(i,j) = saveCTPI(i,j)!/1.
+                endif
+              end do
+            end do
+          else
+            datar8=undef
+          end if
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'mb'
+          long_name = 'cloud top pressure isccp'
+#endif
+        case ("TAUI")      ! CLOUD OPTICAL DEPTH (ISCCP)
+          if (isccp_diags.eq.1) then
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
+                if(saveTCLDI(i,j)==0.)then
+                  datar8(i,j) = undef
+                else
+                  datar8(i,j) = saveTAUI(i,j)!/1.
+                endif
+              end do
+            end do
+          else
+            datar8=undef
+          end if
+#ifdef NEW_IO_SUBDD
+          units_of_data = '1'
+          long_name = 'cloud optical depth isccp'
+#endif
+
+#if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
+        case ("LGTN")  ! lightning flash rate (flash/m2/s)
+          datar8 = saveLightning
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'flash/m^2/s'
+          long_name = 'Lightning Flash Rate'
+#endif
+        case ("c2gLGTN")!cloud-to-ground lightning flash rate(flash/m2/s)
+          datar8 = saveC2gLightning
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'flash/m^2/s'
+          long_name = 'Cloud to Ground Lightning Flash Rate'
+#endif
+#endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            datar8=sPM2p5_acc/real(Nsubdd)
@@ -2135,7 +2265,24 @@ c          datar8=sday*prec/dtsrc
           long_name = 'Layer 1 Particulate Matter <= 10 um'
           qinstant = .false.
 #endif
+        case ("cPM2p5") ! Nsubdd-step avg SFC PM2.5 (kg/m3)
+           datar8=csPM2p5_acc/real(Nsubdd)
+           csPM2p5_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^3'
+          long_name = 'Surface Particulate Matter <= 2.5 um'
+          qinstant = .false.
 #endif
+        case ("cPM10") ! Nsubdd-step avg SFC PM10 (kg/m3)
+           datar8=csPM10_acc/real(Nsubdd)
+           csPM10_acc=0.
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'kg/m^3'
+          long_name = 'Surface Particulate Matter <= 10 um'
+          qinstant = .false.
+#endif
+#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) */
+
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           datar8=trm(:,:,1,n_SO4)
@@ -2798,10 +2945,53 @@ C**** cases using all levels up to LmaxSUBDD
           case ("SO2", "SO4", "SO4_d1", "SO4_d2", "SO4_d3", "Clay",
      *         "Silt1", "Silt2", "Silt3", "CTEM", "CL3D", "CI3D", "CD3D"
      *         , "CLDSS", "CLDMC", "CDN3D", "CRE3D", "TAUSS", "TAUMC",
-     *         "CLWP")
+     *         "CLWP","itAOD","ictAOD","itAAOD")
           kunit=kunit+1
           do l=1,LmaxSUBDD
             select case(namedd(k))
+
+#ifdef TRACERS_ON
+c***** 3D i(c)tAOD instantaneous sum over tracers of aerosol opt depth
+c***** (keep in mind that depending on nRAD and NSUBDD, this could be
+c***** "instantaneous" is a relative term.)
+            case ("itAOD","ictAOD")   !tot aero(+dust,etc) opt dep, inst.
+              if (any(tracerRadiaActiveFlag)) then
+                datar8=0.
+                do n=1,ntm        ! sum over rad code tracers is used
+                  if(tracerRadiaActiveFlag(n))then
+                    select case(namedd(k))
+                    case('itAOD')
+                      datar8=datar8+ttausv_save(:,:,n,L)
+#ifdef NEW_IO_SUBDD
+                      units_of_data='1'
+                      long_name = 'Total All Sky Aerosol Optical Depth'
+#endif
+                    case('ictAOD')
+                      datar8=datar8+ttausv_cs_save(:,:,n,L)
+#ifdef NEW_IO_SUBDD
+                      units_of_data='1'
+                      long_name = 'Total Clear Sky Aerosol Optical Depth'
+#endif
+                    end select
+                  end if
+                end do
+              else
+                write(6,*) 'Warning: No radiatively active tracers'
+                write(6,*) ' ',trim(namedd(k)),' not written'
+              end if
+c***** 3D itAAOD instantaneous sum over tracers of aerosol opt depth
+c***** Band 6 extinction-scatter (so absorption)
+c***** (keep in mind that depending on nRAD and NSUBDD, this could be
+c***** "instantaneous" is a relative term.)
+            case ("itAAOD")   !tot abs aero opt dep, inst.
+              datar8=aerAbs6SaveInst(:,:,L)
+#ifdef NEW_IO_SUBDD
+              units_of_data='1'
+              long_name = 'Total All Sky Aerosol Optical Depth'
+#endif
+#endif /*TRACERS_ON*/
+
+
 #ifdef TRACERS_HETCHEM
             case ("SO2")
               datar8=trm(:,:,l,n_SO2)

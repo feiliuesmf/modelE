@@ -10400,7 +10400,7 @@ c latlon grid
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
       USE PARAM, only : get_param, is_set_param
-      use trdiag_com, only : trcsurf
+      use trdiag_com, only : trcsurf,trcSurfByVol
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
@@ -10431,7 +10431,8 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
      & sCO_acc,l1Ox_acc,l1NO2_acc,mNO2
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+      USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc,
+     &                      csPM2p5_acc,csPM10_acc
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -10896,7 +10897,7 @@ C**** Apply chemistry and overwrite changes:
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_SOA)
 ! This section is to accumulate/aggregate certain tracers' SURFACE and
 ! L=1 values into particulate matter PM2.5 and PM10 for use in the sub-
-! daily diags. Saved in ppmm. Also save Ox and NO2 (not NOx) in ppmv:
+! daily diags. Saved in ppmm or kg/m3. Also save Ox and NO2 in ppmv:
       do n=1,ntm
         select case (trname(n))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
@@ -10909,6 +10910,8 @@ C**** Apply chemistry and overwrite changes:
      &       'Clay','seasalt1','N_d1','SO4_d1')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
+          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)  + trcSurfByVol(:,:,n)
+          csPM10_acc(:,:)=csPM10_acc(:,:)    + trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+
      &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
@@ -10917,21 +10920,27 @@ C**** Apply chemistry and overwrite changes:
         case('Silt1','N_d2','SO4_d2')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.322d0*1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
+          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.322d0*trcSurfByVol(:,:,n)
+          csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.322d0*
      &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
      &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
         case('Silt2','N_d3','SO4_d3')
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
+          csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
      &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
         case('Silt3')
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 0.322d0*1.d6*trcsurf(:,:,n)
+          csPM10_acc(:,:)=csPM10_acc(:,:)  + 0.322d0*trcSurfByVol(:,:,n)
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  + 0.322d0*
      &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
         case('seasalt2')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.500d0*1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    +         1.d6*trcsurf(:,:,n)
+          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.500d0*trcSurfByVol(:,:,n)
+          csPM10_acc(:,:)=csPM10_acc(:,:)  +         trcSurfByVol(:,:,n)
           L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.500d0*
      &                        trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +

@@ -21,7 +21,7 @@ c
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
      &                        COUPLED_CHEM,JHOUR, itime, itimeI, itime0
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
-     &                        bygrav,lhe
+     &                        bygrav,lhe,undef
       USE DYNAMICS, only    : pedn,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
@@ -239,6 +239,11 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
       if(ih1330e < 0) ih1330e = IM+ih1330e  
       if(ih1030e > IM) ih1030e = ih1030e-IM
       if(ih1330e > IM) ih1330e = ih1330e-IM
+
+! meanwhile, initialize the instantaneous SUBDD of NO2 column:
+! I think it will be overwritten for all i,j, so this can be
+! a temporary check:
+      save_NO2column(I_0:I_1,J_0:J_1)=undef
  
       if (is_set_param('initial_GHG_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
@@ -1521,6 +1526,8 @@ CCCCCCCCCCCCCCCC END NIGHTTIME CCCCCCCCCCCCCCCCCCCC
       endif
 CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
+      save_NO2column(i,j)=0.d0 ! initialize sum outside L loop.
+
 #ifdef SHINDELL_STRAT_CHEM
       LL=LM
 #else
@@ -1679,6 +1686,17 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
           end if ! sunlight criteria
         end if ! troposphere criterion
+
+! Also save instantaneous NO2 tropospheric column for SUBDDiag:
+! Conversion is only from molecules/cm3 to molecules/cm3:
+! save_NO2column is initialized to 0 outside this L loop.
+! [note: we should consolodate all these "thick/byThick" guys.]
+        if(L<=min(maxl,LTROPO(I,J)))then
+          thick= ! layer thickness in cm
+     &    1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+          save_NO2column(i,j) = save_NO2column(i,j)+
+     &    thick*pNOx(i,j,L)*(y(n_NOx,L)+tempChangeNOx)
+        end if
 
 #ifdef ACCMIP_LIKE_DIAGS
 ! accumulate some 3D diagnostics in moles/m3/s units:

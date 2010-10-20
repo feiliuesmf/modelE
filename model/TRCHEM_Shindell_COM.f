@@ -580,6 +580,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var sCO_acc accumulated SURFACE CO (special for SUBDD)
 !@var l1Ox_acc accumulated L=1 ozone (Ox) (special for SUBDD)
 !@var l1NO2_acc accumulated L=1 NO2 (special for SUBDD)
+!@var save_NO2column instantaneous NO2 column (for SUBDD exporting)
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
@@ -623,7 +624,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      &                                       ,N2OICIN,CFCICIN
 #endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: sOx_acc,sNOx_acc,sCO_acc,
-     & l1Ox_acc,l1NO2_acc
+     & l1Ox_acc,l1NO2_acc,save_NO2column
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,BYFJM,
@@ -746,7 +747,7 @@ C**************  Not Latitude-Dependant ****************************
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
      & COICIN,OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2,l1NO2_acc,
-     & sNOx_acc,sCO_acc
+     & sNOx_acc,sCO_acc,save_NO2column
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
@@ -796,6 +797,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(     sCO_acc(I_0H:I_1H,J_0H:J_1H)         )
       allocate(    l1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
       allocate(    l1NO2_acc(I_0H:I_1H,J_0H:J_1H)        )
+      allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H)       )
 
       sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
 
