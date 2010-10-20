@@ -155,10 +155,6 @@ aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to
 #include "dust_params"
 #include "chemistry_params"
 
-! effective precipitating fraction of grid box for below-cloud washout
-! of soluable gases: A scaling/tuning in TRACERS_DRV:
-gasPrecFracScal=15.d0
-
 DTO=112.5        ! ocean dynamics timestep
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
