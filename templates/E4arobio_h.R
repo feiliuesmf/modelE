@@ -67,6 +67,7 @@ Data input files:
 #include "IC_144x90_input_files_AR5"
 #include "hycom_387x360_input_files"
 !!!AIC=1JAN2232.rsfEhMF01           ! initial condition from Nick Tau's run (ISTART=5)
+AIC=/discover/nobackup/projects/giss/prod_input_files/1JAN3051.rsfEh119c.nc
 
 RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
 
@@ -143,5 +144,5 @@ solFe=0.05            ! enhanced iron solubility
  &INPUTZ
  YEARI=1850,MONTHI=1,DATEI=01,HOURI=00, ! pick IYEAR1=YEARI (default) or < YEARI
  YEARE=2001,MONTHE=1,DATEE=02,HOURE=00, KDIAG=13*0,
- ISTART=5,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
+ ISTART=8,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END

@@ -74,7 +74,7 @@ Data input files:
 #include "IC_144x90_input_files_AR5"
 #include "dynamic_ocn_288x180_input_files_AR5"
 TOPO=Z2HX2fromZ1QX1N.BS1            ! surface fractions and topography (1 cell Bering Strait)
-AIC=/discover/nobackup/mkelley5/E58F40oQ32/1JAN2251.rsfE58F40oQ32.nc
+AIC=/discover/nobackup/projects/giss/prod_input_files/1JAN3051.rsfE119F40oQ32.nc
 
 
 RVR=RD_Fb.RVR.bin                   ! river direction file (frac. ocean)
@@ -148,5 +148,5 @@ solFe=0.05            ! enhanced iron solubility
  &INPUTZ
    YEARI=1850,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
    YEARE=2001,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=5,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
+   ISTART=8,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END
