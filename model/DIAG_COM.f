@@ -2410,47 +2410,4 @@ c instances of the arrays containing derived outputs
       return
       end subroutine set_ioptrs_atmacc_extended
 
-ccc was not sure where to dump these routines ... IA
-      module conserv_diags
-      implicit none
-
-      contains
-      subroutine declare_conserv_diags( grid, fid, name )
-      use domain_decomp_atm, only : dist_grid, get
-      use pario, only : defvar
-      implicit none
-      type (dist_grid), intent(in) :: grid
-      integer ::  fid
-      character(len=*) :: name
-      integer :: i_0h, i_1h, j_0h, j_1h
-      integer :: ier
-      real*8, allocatable :: buf(:,:)
-      call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
-     &     i_strt_halo=i_0h, i_stop_halo=i_1h )
-      allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
-      call defvar(grid, fid, buf, trim(name)//'(dist_im,dist_jm)')     
-      deallocate( buf )
-      end subroutine declare_conserv_diags
-
-      subroutine dump_conserv_diags( grid, fid, name, conserv )
-      use domain_decomp_atm, only : dist_grid, get
-      use pario, only : write_dist_data
-      implicit none
-      type (dist_grid), intent(in) :: grid
-      integer ::  fid
-      character(len=*) :: name
-      external :: conserv
-      integer :: i_0h, i_1h, j_0h, j_1h
-      integer :: ier
-      real*8, allocatable :: buf(:,:)
-      call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
-     &     i_strt_halo=i_0h, i_stop_halo=i_1h )
-      allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
-      call conserv(buf)
-      call write_dist_data(grid,fid,trim(name),buf)
-      deallocate( buf )
-      end subroutine dump_conserv_diags
-
-      end module conserv_diags
-
 #endif /* NEW_IO */
