@@ -33,6 +33,8 @@ C**** 1-8 anti-clockwise from top RH corner
 
 !@param MINMLD minimum mixed layer depth in lake (m)
       REAL*8, PARAMETER :: MINMLD = 1.
+!@param HLAKE_MIN minimum sill depth for lake (m)
+      REAL*8, PARAMETER :: HLAKE_MIN = 1.
 !@param TMAXRHO temperature of maximum density (pure water) (C)
       REAL*8, PARAMETER :: TMAXRHO = 4.
 !@param KVLAKE lake diffusion constant at mixed layer depth (m^2/s)
@@ -504,10 +506,11 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       call openunit("warn_lakes",iu_warn)
       DO J=J_0, J_1
         DO I=I_0, I_1
-          IF (FLAKE0(I,J)+FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
+          IF (FLAKE0(I,J)+FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.HLAKE_MIN)
+     *         THEN
             write(iu_warn,*) "Warning: Fixing HLAKE",i,j,FLAKE(I,J),
-     *           FLAKE0(I,J),HLAKE(I,J),"--> 1m"
-            HLAKE(I,J)=1.
+     *           FLAKE0(I,J),HLAKE(I,J),"--> ",HLAKE_MIN," m"
+            HLAKE(I,J)=HLAKE_MIN
           END IF
         END DO
       END DO
@@ -1603,7 +1606,7 @@ C****
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
-      USE LAKES, only : minmld,variable_lk
+      USE LAKES, only : minmld,variable_lk,hlake_min
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -1729,7 +1732,7 @@ C**** do not flood more than 4.9% of land per day
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5
      *             .and. hlkic.gt.1.)) ) THEN ! new or surviving lake
-                HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it was not set
+                HLAKE(I,J)=MAX(HLAKE(I,J),HLAKE_MIN)  ! in case it was not set
 C**** adjust for fearth changes
                 FRSAT=0.
                 IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
@@ -2096,6 +2099,130 @@ C**** save area diag
 C****
       END SUBROUTINE PRECIP_LK
 
+#ifdef IRRIGATION_ON
+      SUBROUTINE IRRIG_LK
+!@sum  IRRIG_LK driver for calculating irrigation fluxes from lakes/rivers
+!@auth Gavin Schmidt
+      USE CONSTANT, only : rhow,shw,teeny
+      USE MODEL_COM, only : im,jm,fland,itearth
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE GEOM, only : imaxj,axyp
+      USE DIAG_COM, only : jreg,aij=>aij_loc,ij_irrW_tot,ij_mwlir
+     *     ,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
+      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+#ifdef TRACERS_WATER
+     *     ,trlake,ntm
+#endif
+      USE LAKES, only : minmld,hlake_min
+      USE IRRIGATE_CROP, only : irrigate_extract
+      USE FLUXES,only : irrig_water_act, irrig_energy_act
+#ifdef TRACERS_WATER
+     *     ,irrig_tracer_act
+#endif
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
+      IMPLICIT NONE
+C**** grid box variables
+      REAL*8 M1,M2,E1,E2,DM,DE
+      REAL*8 :: MWL_to_irrig,GML_to_irrig,irrig_gw,irrig_gw_energy
+     *     ,irrig_water_actij,irrig_energy_actij 
+#ifdef TRACERS_WATER
+     *     ,TRML_to_irrig(NTM,2),TRML_temp(NTM,2)
+     *     ,irrig_tracer_actij(ntm),irrig_gw_tracer(ntm)
+#endif
+      INTEGER I,J,JR
+      INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
+
+      call startTimer('PRECIP_LK()')
+      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      CALL PRINTLK("IR")
+
+      DO J=J_0, J_1
+      DO I=I_0,IMAXJ(J)
+      JR=JREG(I,J)
+
+C**** Remove mass/energy associated with irrigation 
+      IF (FLAND(I,J).gt.0) THEN
+
+#ifdef TRACERS_WATER
+        TRML_temp(:,:) = TRLAKE(:,:,I,J)
+#endif
+C****   Compute actual irrigation every timestep 
+        call irrigate_extract(I,J,MWL(I,J),GML(I,J),MLDLK(I,J),TLAKE(I
+     *       ,J),FLAKE(I,J),HLAKE_MIN,MWL_to_irrig,GML_to_irrig,irrig_gw
+     *       ,irrig_gw_energy,irrig_water_actij,irrig_energy_actij
+#ifdef TRACERS_WATER
+     *       ,TRML_temp,TRML_to_irrig,irrig_tracer_actij,irrig_gw_tracer
+#endif
+     *       ) 
+
+C**** save fluxes for GHY
+        irrig_water_act(i,j) =irrig_water_actij
+        irrig_energy_act(i,j)=irrig_energy_actij
+#ifdef TRACERS_WATER
+        irrig_tracer_act(:,i,j)=irrig_tracer_actij(:)
+#endif
+
+C**** update lake mass/energy
+        MWL(I,J) = MWL(I,J) - MWL_to_irrig
+        GML(I,J) = GML(I,J) - GML_to_irrig
+#ifdef TRACERS_WATER
+        TRLAKE(:,:,I,J) = TRLAKE(:,:,I,J) - TRML_to_irrig(:,:)
+#endif
+
+C**** mixed layer depth and surface temperature adjustments
+        if (MWL_to_irrig.lt.MLDLK(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
+          MLDLK(I,J)=MLDLK(I,J) - MWL_to_irrig/(AXYP(I,J)*RHOW)
+          if (MLDLK(I,J).LT.MINMLD .AND. FLAKE(I,J).GT.0) THEN ! bring up from layer 2 
+            M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
+            M2=MWL(I,J)-M1
+            E1=TLAKE(I,J)*SHW*M1
+            E2=GML(I,J)-E1
+            DM=MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1  ! kg
+            DE=DM*E2/M2
+            TLAKE(I,J)=(E1+DE)/((M1+DM)*SHW)        ! deg C
+#ifdef TRACERS_WATER
+            TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DM*TRLAKE(:,2,I,J)/M2
+            TRLAKE(:,2,I,J)=TRLAKE(:,1,I,J)-DM*TRLAKE(:,2,I,J)/M2
+#endif
+            MLDLK(I,J) = MINMLD
+          end if
+        else ! all layer 1 and some layer 2 gone, relayer
+          MLDLK(I,J)=MWL(I,J)/(AXYP(I,J)*RHOW)
+          TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
+#ifdef TRACERS_WATER
+          TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
+          TRLAKE(:,2,I,J)=0.
+#endif
+        end if
+
+C****   Compute lake- and irrigation-related diagnostics
+        AIJ(I,J,IJ_MWLir)=AIJ(I,J,IJ_MWLir)+MWL_to_irrig
+        AIJ(I,J,IJ_GMLir)=AIJ(I,J,IJ_GMLir)+GML_to_irrig
+
+        AIJ(I,J,IJ_irrgw) =AIJ(I,J,IJ_irrgw) +irrig_gw
+        AIJ(I,J,IJ_irrgwE)=AIJ(I,J,IJ_irrgwE)+irrig_gw_energy
+
+        CALL INC_AJ(I,J,itearth, j_irgw , irrig_gw)
+        CALL INC_AJ(I,J,itearth, j_irgwE, irrig_gw_energy)
+
+      END IF
+      END DO  ! i loop
+      END DO  ! j loop
+
+      CALL PRINTLK("I2")
+
+      call stopTimer('PRECIP_LK()')
+      RETURN
+C****
+      END SUBROUTINE IRRIG_LK
+#endif
+
+
       SUBROUTINE GROUND_LK
 !@sum  GROUND_LK driver for applying surface fluxes to lake fraction
 !@auth Gavin Schmidt
@@ -2121,26 +2248,16 @@ C****
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
      *     ,aij=>aij_loc,ij_mwl,ij_gml
-#ifdef IRRIGATION_ON
-     *     ,ij_irrW_tot,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE,
-     *     j_irgw,j_irgwE
-#endif
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
 #endif
-      USE LAKES, only : lkmix,lksourc,byzeta,minmld
+      USE LAKES, only : lkmix,lksourc,byzeta,minmld,hlake_min
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GHY_COM, only : fearth
-#ifdef IRRIGATION_ON
-      USE IRRIGATE_CROP, only : irrigate_extract
-      USE FLUXES,only : irrig_water_act,irrig_energy_act,irrig_water_pot
-     &                 ,MWL_to_irrig,GML_to_irrig
-     &                 ,irrig_gw,irrig_gw_energy
-#endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
@@ -2156,9 +2273,6 @@ C**** output from LKSOURC
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0,TRO,TRI,TREVAP,TOTTRL
       REAL*8, DIMENSION(NTM,2) :: TRLAKEL
-#endif
-#ifdef IRRIGATION_ON
-      REAL*8 :: MWL_temp, GML_temp
 #endif
       INTEGER I,J,JR
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
@@ -2189,50 +2303,19 @@ C**** calculate flux over whole box
         ERUN0=             ERUNE*PEARTH
         MWL(I,J) = MWL(I,J) + RUN0*AXYP(I,J)
         GML(I,J) = GML(I,J) +ERUN0*AXYP(I,J)
-
-        AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)
-        AIJ(I,J,IJ_GML)=AIJ(I,J,IJ_GML)+GML(I,J)
-
-#ifdef IRRIGATION_ON
-        MWL_temp = MWL(I,J)
-        GML_temp = GML(I,J)
-
-C****   Compute actual irrigation every timestep & update MWL and GML
-        call irrigate_extract(I,J)
-
-C****   Compute mass/energy withdrawal from lakes/rivers
-        MWL_to_irrig(I,J) = MWL_temp - MWL(I,J)
-        GML_to_irrig(I,J) = GML_temp - GML(I,J)
-
-C****   Compute lake- and irrigation-related diagnostics
-!        AIJ(I,J,IJ_IRRW_TOT)=AIJ(I,J,IJ_IRRW_TOT)+irrig_water_pot(I,J)
-
-        AIJ(I,J,IJ_MWLir)=AIJ(I,J,IJ_MWLir)+MWL_to_irrig(I,J)
-        AIJ(I,J,IJ_GMLir)=AIJ(I,J,IJ_GMLir)+GML_to_irrig(I,J)
-
-        AIJ(I,J,IJ_irrgw)=AIJ(I,J,IJ_irrgw)+irrig_gw(I,J)
-        AIJ(I,J,IJ_irrgwE)=AIJ(I,J,IJ_irrgwE)+irrig_gw_energy(I,J)
-
-        CALL INC_AJ(I,J,itearth ,j_irgw ,irrig_gw(I,J))
-        CALL INC_AJ(I,J,itearth ,j_irgwE ,irrig_gw_energy(I,J))
-#endif
-
 #ifdef TRACERS_WATER
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
      *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*AXYP(I,J)
 #endif
+
+        AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)
+        AIJ(I,J,IJ_GML)=AIJ(I,J,IJ_GML)+GML(I,J)
+
         IF (FLAKE(I,J).gt.0) THEN
           HLK1=TLAKE(I,J)*MLDLK(I,J)*RHOW*SHW
-#ifdef IRRIGATION_ON
-          MLDLK(I,J)=MLDLK(I,J) + (RUN0-irrig_water_act(I,J)*rhow*dtsrc)
-     &                /(FLAKE(I,J)*RHOW)
-          TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0-irrig_energy_act(I,J)*dtsrc)
-     &                /(MLDLK(I,J)*FLAKE(I,J)*RHOW*SHW)
-#else
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
-#endif
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))

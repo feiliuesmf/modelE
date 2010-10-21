@@ -200,7 +200,7 @@ ccc extra stuff which was present in "earth" by default
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
-
+      
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : By3,sday
@@ -215,6 +215,7 @@ ccc extra stuff which was present in "earth" by default
 #endif
 #endif
 #ifdef TRACERS_WATER
+      use fluxes, only : irrig_tracer_act
       !!!use sle001, only : qm1
 #endif
       implicit none
@@ -255,7 +256,7 @@ ccc tracers variables
 #endif
         ! for non-zero irrigation the following line should be set
         ! to tracer flux due to irrigation
-        ghy_tr%trirrig(nx) = 0.d0 ! tracers in irrigation kg/m^2 s
+        ghy_tr%trirrig(nx) = irrig_tracer_act(n,i,j)*byaxyp(i,j)/ ptype ! tracers in irrigation kg/m^2 s
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
           ghy_tr%tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
@@ -930,6 +931,9 @@ c****
 #endif
 #ifdef IRRIGATION_ON
       use fluxes, only : irrig_water_act, irrig_energy_act
+#ifdef TRACERS_WATER
+     *     ,irrig_tracer_act
+#endif
 #endif
       use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
@@ -1669,7 +1673,7 @@ c***********************************************************************
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
-     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE, ij_irrW_tot
+     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1693,9 +1697,6 @@ c***********************************************************************
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
       use rad_com, only : trhr,fsf, cosz1
-#ifdef IRRIGATION_ON
-      use fluxes, only : irrig_water_pot
-#endif
       use sle001, only :
      &     tp
      &    ,fv,fb,atrg,ashg,alhg
@@ -1861,8 +1862,6 @@ c           for diagnostic purposes also compute gdeep 1 2 3
 #ifdef IRRIGATION_ON
       aij(i,j,ij_irrW)=aij(i,j,ij_irrW)+airrig*ptype
       aij(i,j,ij_irrE)=aij(i,j,ij_irrE)+aeirrig*ptype
-      aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
-     &     irrig_water_pot(i,j)*dtsrc*1000.d0
 #else
 c      aij(i,j,ij_irrW)=0.d0
 c      aij(i,j,ij_irrE)=0.d0
