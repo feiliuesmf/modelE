@@ -215,8 +215,9 @@ ccc extra stuff which was present in "earth" by default
 #endif
 #endif
 #ifdef TRACERS_WATER
+#ifdef IRRIGATION_ON
       use fluxes, only : irrig_tracer_act
-      !!!use sle001, only : qm1
+#endif
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -256,7 +257,11 @@ ccc tracers variables
 #endif
         ! for non-zero irrigation the following line should be set
         ! to tracer flux due to irrigation
-        ghy_tr%trirrig(nx) = irrig_tracer_act(n,i,j)*byaxyp(i,j)/ ptype ! tracers in irrigation kg/m^2 s
+#ifdef IRRIGATION_ON
+        ghy_tr%trirrig(nx) = irrig_tracer_act(n,i,j)*rhow/ ptype ! tracers in irrigation kg/m^2 s
+#else
+        ghy_tr%trirrig(nx) = 0.
+#endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
           ghy_tr%tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
@@ -476,6 +481,8 @@ ccc accumulate tracer evaporation and runoff
         trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
         !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
         gtracer(n,itype,i,j) = ghy_tr%atr_g(nx)   ! /dtsurf
+c        if (i.eq.130.and.j.eq.68) print*,"ghy gtr",n,
+c     *       gtracer(n,itype,i,j)
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
@@ -1667,7 +1674,7 @@ c***********************************************************************
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
      *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
      *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
-     *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
+     *     ,HR_IN_DAY,HR_IN_MONTH
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
      &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE

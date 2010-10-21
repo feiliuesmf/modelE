@@ -1262,7 +1262,7 @@ c     snowfs is the large scale snow fall.
 !     vegetated soil
 !!! flux down from canopy is not -f(1,2) any more !!
 !!! it is =  -dripw(2) - drips(2)
-!!! f(1,2) is a flux up from tyhe soil
+!!! f(1,2) is a flux up from the soil
         f(1,2) = -flmlt(2)*fr_snow(2) - flmlt_scale(2)
      &       - (dripw(2)-evapvg)*(1.d0-fr_snow(2))
      &       - irrig(2) ! adding irrigation water to veg soil
@@ -3393,8 +3393,9 @@ ccc (to make the data compatible with snow model)
 !-----------------------------------------------------------------------
 
 #ifdef TRACERS_WATER
-      subroutine check_wc(wc)
+      subroutine check_wc(wc,str)
       real*8 wc
+      character*4 str
 !!! removing test...
       return
 !!!! ;-(
@@ -3402,7 +3403,7 @@ ccc (to make the data compatible with snow model)
       !return
 
       if ( abs(wc-1000.d0) > 1.d-3 ) then
-        print *,"GHYTR: wc= ", wc, (wc-1000.d0)/1000.d0
+        print *,"GHYTR in ",str,": wc= ", wc, (wc-1000.d0)/1000.d0
         !call stop_model("GHY: wc != 1000",255)
       endif
 
@@ -3567,7 +3568,7 @@ ccc set internal vars
        endif
       enddo
 
-ccc set internak irrigation arrays
+ccc set internal irrigation arrays
       trirrig(:,:) = 0.d0
       if ( fv > 0.d0 ) trirrig(:,2) = trirrig_in(:)/fv
 
@@ -3596,7 +3597,7 @@ ccc canopy
         tr_w(:m,0,2) = tr_w(:m,0,2) + trpr(:m)*dts
         wi(0,2) = wi(0,2) + pr*dts
         if ( wi(0,2) > 0.d0 ) tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
-        call check_wc(tr_wcc(1,2))
+        call check_wc(tr_wcc(1,2),"ghy0")
 
       ! +- evap
       !gg if (tr_wd_TYPE(ntixw(mc)).eq.nWATER) THEN
@@ -3622,7 +3623,7 @@ ccc loops...
         tr_wcc(:m,2) = tr_w(:m,0,2)/wi(0,2)
       endif
       !gg end if
-      call check_wc(tr_wcc(1,2))
+      call check_wc(tr_wcc(1,2),"ghy1")
 
       ! -drip
         tr_w(:m,0,2) = tr_w(:m,0,2) + fc(1)*tr_wcc(:m,2)*dts
@@ -3630,7 +3631,7 @@ ccc loops...
 
       ! trivial value for bare soil
       if ( pr > 0.d0 ) tr_wcc(:m,1) = trpr(:m)/pr
-      call check_wc(tr_wcc(1,1))
+      if ( pr > 0.d0 ) call check_wc(tr_wcc(1,1),"ghy2")
 ccc end canopy
 
 
@@ -3679,7 +3680,7 @@ ccc snow
      &         tr_wsnc(:m,1,ibv) = tr_wsn(:m,1,ibv)/wsni(1,ibv)
 !!!
        !   tr_wsnc(:m,1,ibv) = 1000.d0
-          call check_wc(tr_wsnc(1,1,ibv))
+          call check_wc(tr_wsnc(1,1,ibv),"ghy3")
           ! sweep down
           do i=2,nlsn
             if ( flux_snow_tot(i-1,ibv) > EPSF ) then
@@ -3691,7 +3692,7 @@ ccc snow
      &             tr_wsnc(:m,i,ibv) = tr_wsn(:m,i,ibv)/wsni(i,ibv)
 !!!
        !       tr_wsnc(:m,i,ibv) = 1000.d0
-              call check_wc(tr_wsnc(1,i,ibv))
+              call check_wc(tr_wsnc(1,i,ibv),"ghy4")
               tr_wsn(:m,i-1,ibv) = tr_wsn(:m,i-1,ibv)
      &             - tr_wsnc(:m,i-1,ibv)*flux_dt
               wsni(i-1,ibv) = wsni(i-1,ibv) + flux_dt   ! extra?
@@ -3708,7 +3709,7 @@ ccc snow
      &             tr_wsnc(:m,i,ibv) = tr_wsn(:m,i,ibv)/wsni(i,ibv)
 !!!
        !       tr_wsnc(:m,i,ibv) = 1000.d0
-              call check_wc(tr_wsnc(1,i,ibv))
+              call check_wc(tr_wsnc(1,i,ibv),"ghy5")
               tr_wsn(:m,i+1,ibv) = tr_wsn(:m,i+1,ibv)
      &             - tr_wsnc(:m,i+1,ibv)*flux_dt
               wsni(i+1,ibv) = wsni(i+1,ibv) - flux_dt   ! extra?
@@ -3796,11 +3797,16 @@ ccc soil layers
         tr_w(:m,1,ibv) = tr_w(:m,1,ibv) +  tr_wcc(:m,ibv)*flux_dt
         wi(1,ibv) = wi(1,ibv) + flux_dt
         ! irrigation
+c        if (ijdebug.eq.130068) print*,"ghy6a",ibv,
+c     *       tr_w(1,1,ibv)-1d3*wi(1,ibv),tr_w(1,1,ibv),1d3*wi(1,ibv),
+c     *       trirrig(1,ibv)-1d3*irrig(ibv),trirrig(1,ibv),1d3*irrig(ibv)
         tr_w(:m,1,ibv) = tr_w(:m,1,ibv) +  trirrig(:m,ibv)*dts
         wi(1,ibv) = wi(1,ibv) + irrig(ibv)*dts
+c        if (ijdebug.eq.130068) print*,"ghy6b",ibv,
+c     *       tr_w(1,1,ibv)-1d3*wi(1,ibv),tr_w(1,1,ibv),1d3*wi(1,ibv)
         if ( wi(1,ibv) > 0.d0 )
      &       tr_wc(:m,1,ibv) = tr_w(:m,1,ibv)/wi(1,ibv)
-        call check_wc(tr_wc(1,1,ibv))
+        call check_wc(tr_wc(1,1,ibv),"ghy6")
 
 
         ! sweep down
@@ -3811,7 +3817,7 @@ ccc soil layers
             wi(i,ibv) = wi(i,ibv) + flux_dt
             if ( wi(i,ibv) > 0.d0 )
      &           tr_wc(:m,i,ibv) = tr_w(:m,i,ibv)/wi(i,ibv)
-            call check_wc(tr_wc(1,i,ibv))
+            call check_wc(tr_wc(1,i,ibv),"ghy7")
             tr_w(:m,i-1,ibv) = tr_w(:m,i-1,ibv)
      &           - tr_wc(:m,i-1,ibv)*flux_dt
           endif
@@ -3824,9 +3830,10 @@ ccc soil layers
             flux_dt = f(i+1,ibv)*dts
             tr_w(:m,i,ibv) = tr_w(:m,i,ibv) + tr_wc(:m,i+1,ibv)*flux_dt
             wi(i,ibv) = wi(i,ibv) + flux_dt
+            tr_wc(:m,i,ibv) = 0.0
             if ( wi(i,ibv) > 0.d0 )
      &           tr_wc(:m,i,ibv) = tr_w(:m,i,ibv)/wi(i,ibv)
-            call check_wc(tr_wc(1,i,ibv))
+            if ( wi(i,ibv) > 0.d0 ) call check_wc(tr_wc(1,i,ibv),"ghy8")
             tr_w(:m,i+1,ibv) = tr_w(:m,i+1,ibv)
      &           - tr_wc(:m,i+1,ibv)*flux_dt
           endif
@@ -4159,6 +4166,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &     tr_w, tr_wsn, gtracer )
       use constant, only : rhow
       use ghy_h, only : ngm, imt, nlsn, LS_NFRAC
+      use sle001, only : ijdebug
       implicit none
       integer, intent(in) :: ntg
       real*8, intent(in) :: fb, fv, fm, w(0:ngm,LS_NFRAC)
@@ -4182,6 +4190,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
      &       + fv*tr_w(:ntg,1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
      &       ) /                !*fr_snow(2)
      &       (rhow * tot_w1)    ! * dts
+c        if (ijdebug.eq.130068) print*,"ghy gtr0",gtracer(1)
       endif
 
       end subroutine compute_gtracer
