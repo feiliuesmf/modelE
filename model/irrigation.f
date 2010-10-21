@@ -294,13 +294,13 @@ C**** set default output
             m_avail = mwl - hlake_min*flake*m_to_kg
             m_avail = max(m_avail, 0.d0)
             T_irr = tlake
-            T_irr2 = (gml-mldlk*m_to_kg*tlake*shw)/(mwl-mldlk*m_to_kg)
-     *           /shw
-            print*,"irrig0",T_irr,T_irr2
+            T_irr2 =0.
+            if (mwl.gt.mldlk*m_to_kg+teeny) T_irr2 = (gml-mldlk*m_to_kg
+     *           *tlake*shw)/(mwl-mldlk*m_to_kg)/shw
          else
             m_avail = mwl
             T_irr = gml/(mwl*shw+teeny)
-            T_irr2 = gml/(mwl*shw+teeny)
+            T_irr2 = T_irr
          endif
 !        Check these limits !!!!
          T_irr = max(T_irr, 0.d0)
