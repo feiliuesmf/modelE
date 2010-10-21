@@ -299,7 +299,7 @@ C**** set default output
             T_irr2 =0.
             if (mwl.gt.flake*mldlk*m_to_kg+teeny) T_irr2 = 
      *           (gml-mldlk*m_to_kg*flake*tlake*shw)/
-     *           (mwl-mldlk*m_to_kg*flake)/shw 
+     *           (mwl-mldlk*m_to_kg*flake+teeny)/shw 
          else
             m_avail = mwl
             T_irr = gml/(mwl*shw+teeny)
