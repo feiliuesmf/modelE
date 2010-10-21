@@ -98,8 +98,9 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
       real ac,bc                !absorption and scattering coefficients of chlorophyll
       common /bopt/ ac(nchl,nlt),bc(nchl,nlt)
 
-      real, parameter :: solFe=0.02    !solubility of iron: this is the default
+!     real, parameter :: solFe=0.02    !solubility of iron: this is the default
 !     real, parameter :: solFe=0.05    !solubility of iron
+      real solFe                       !now defined in rundeck
 
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       

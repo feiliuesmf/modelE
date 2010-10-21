@@ -10,6 +10,7 @@
 !@auth Natassa Romanou/Watson Gregg
 !@ver  1.0
 
+      USE param
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es
@@ -236,6 +237,9 @@ c      endif
      .      latij_glob(itest,jtest,3),lonij_glob(itest,jtest,3)
 #endif
        endif
+
+       call sync_param( "solFe", solFe)
+       print*, 'solfe=',solFe
 
 !--------------------------------------------------------
 

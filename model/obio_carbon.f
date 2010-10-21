@@ -262,7 +262,7 @@ c pCO2
 !    .    '66666666666666',nstep,i,j,temp1d(1),saln1d(1),
      .               car(1,2),alk1d(1),
      .               obio_P(1,1),obio_P(1,3),pCO2_ij,
-     .               pHsfc,pnoice
+     .               pHsfc,pnoice(1)
       endif
 
 #else
@@ -506,12 +506,20 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.41 $
-c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
+c_ $Revision: 2.42 $
+c_ $Date: 2010/10/21 19:33:38 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.42  2010/10/21 19:33:38  aromanou
+c_
+c_ obio-ice treatement now within a CPP.
+c_ updated rundecks and ocean carbon files in templates.
+c_
+c_ Please use E4arobio_g.R and E4arobio_h.R for tests. These are
+c_ the AR5 versions of NINT NIRR runs.
+c_
 c_ Revision 2.41  2010/10/18 13:57:01  aromanou
 c_
 c_ new treatment for obio-ice dependence. first cut.
@@ -1054,12 +1062,20 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.41 $
-c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
+c_ $Revision: 2.42 $
+c_ $Date: 2010/10/21 19:33:38 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.42  2010/10/21 19:33:38  aromanou
+c_
+c_ obio-ice treatement now within a CPP.
+c_ updated rundecks and ocean carbon files in templates.
+c_
+c_ Please use E4arobio_g.R and E4arobio_h.R for tests. These are
+c_ the AR5 versions of NINT NIRR runs.
+c_
 c_ Revision 2.41  2010/10/18 13:57:01  aromanou
 c_
 c_ new treatment for obio-ice dependence. first cut.
@@ -1347,12 +1363,20 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.41 $
-c_ $Date: 2010/10/18 13:57:01 $   ;  $State: Exp $
+c_ $Revision: 2.42 $
+c_ $Date: 2010/10/21 19:33:38 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.42  2010/10/21 19:33:38  aromanou
+c_
+c_ obio-ice treatement now within a CPP.
+c_ updated rundecks and ocean carbon files in templates.
+c_
+c_ Please use E4arobio_g.R and E4arobio_h.R for tests. These are
+c_ the AR5 versions of NINT NIRR runs.
+c_
 c_ Revision 2.41  2010/10/18 13:57:01  aromanou
 c_
 c_ new treatment for obio-ice dependence. first cut.

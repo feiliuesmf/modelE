@@ -88,7 +88,11 @@ c  P(9) = herbivores (mg chl m-3)
 !define no ice points based on covice (here: covice_ij)
       pnoice(1)=1.-covice_ij
       do k=2,kdm
+#ifdef change_PNOICE
          pnoice(k)=1.
+#else
+         pnoice(k)=pnoice(1)
+#endif
       enddo
 
       bs = 2.0*bn

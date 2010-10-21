@@ -29,6 +29,7 @@ Preprocessor Options
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
+!!!!#define change_PNOICE           ! adjust ice-obio interactions
 End Preprocessor Options
 
 Object modules:
@@ -134,6 +135,8 @@ jerlv0=1         ! default is 1
 !!! atmCO2=285.226           !uatm for new preindustrial runs
 atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 

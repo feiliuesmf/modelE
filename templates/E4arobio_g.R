@@ -34,6 +34,7 @@ Preprocessor Options
 !!!#define Jprod_based_on_pp
 !!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
 !!!!#define CHL_from_SeaWIFs
+!!!!#define change_PNOICE           ! adjust ice-obio interactions
 End Preprocessor Options
 
 Object modules:
@@ -139,6 +140,8 @@ Ndisk=720
 !!! atmCO2=285.226           !uatm for new preindustrial runs
 atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 

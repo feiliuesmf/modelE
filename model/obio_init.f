@@ -6,7 +6,6 @@ c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-      USE PARAM, only: get_param
 
       USE obio_dim
       USE obio_incom
