@@ -1652,9 +1652,10 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
 #ifdef IRRIGATION_ON
-C****   Read potential irrigation daily
-        call irrigate_flux()
+C**** Read potential irrigation daily
+      call irrigate_flux(.true.)
 #endif
 
 C**** Update lake fraction as a function of lake mass at end of day
@@ -2107,7 +2108,7 @@ C****
       USE MODEL_COM, only : im,jm,fland,itearth
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : jreg,aij=>aij_loc,ij_irrW_tot,ij_mwlir
+      USE DIAG_COM, only : jreg,aij=>aij_loc,ij_mwlir
      *     ,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
@@ -2189,7 +2190,7 @@ C**** update lake mass/energy
 #ifdef TRACERS_WATER
               TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DM*TRLAKE(:,2,I,J)/
      *             (M2+teeny)
-              TRLAKE(:,2,I,J)=TRLAKE(:,1,I,J)-DM*TRLAKE(:,2,I,J)/
+              TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DM*TRLAKE(:,2,I,J)/
      *             (M2+teeny)
 #endif
               MLDLK(I,J) = MINMLD

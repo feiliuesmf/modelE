@@ -54,13 +54,13 @@
       call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
 !**** Compute irrigation rate
-      call irrigate_flux()
+      call irrigate_flux(.false.)
 
       end subroutine init_irrigate
 
 !-----------------------------------------------------------------------
 
-      subroutine irrigate_flux()
+      subroutine irrigate_flux(endofday)
 !@sum  Calculates daily irrigation from monthly irrigation data.  Routine
 !@sum  sets imon, irr_month_0, and irr_month_1 depending on jday and
 !@sum  jyear (cyclical case does not need jyear).
@@ -74,8 +74,10 @@
       USE DIAG_COM, only : aij=>aij_loc, ij_irrW_tot
       implicit none
 
+!@var endofday flag to determine whether this is an initial or daily call
+      logical, INTENT (IN) :: endofday ! true if called from daily
 !@var m_yr_mnth: title of the monthly irrigation data (YYYYMM)
-       integer :: m_yr_mnth
+      integer :: m_yr_mnth
 !@var JDLAST julian day that irrigate_flux was last called
       integer, SAVE :: jdlast=0
 !@var IMON counter to identify data for later of two months
@@ -200,7 +202,7 @@
               irrig_water_pot(i,j) = 0.d0
            endif
 C**** diagnostic
-           aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
+           if (endofday) aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
      &          irrig_water_pot(i,j)*sday*1000.d0
 
          enddo
@@ -318,8 +320,8 @@ C**** set default output
                irrig_gw        = irrig_water_act
                irrig_gw_energy = irrig_energy_act
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*gtracer(1,4,i,j)
-               irrig_gw_tracer  = irrig_gw*gtracer(1,4,i,j)
+               irrig_tracer_act = irrig_water_act*gtracer(:,4,i,j)
+               irrig_gw_tracer  = irrig_gw*gtracer(:,4,i,j)
 #endif
             endif
 
