@@ -296,7 +296,7 @@ C**** set default output
             T_irr = tlake
             T_irr2 =0.
             if (mwl.gt.mldlk*m_to_kg+teeny) T_irr2 = (gml-mldlk*m_to_kg
-     *           *tlake*shw)/(mwl-mldlk*m_to_kg)/shw
+     *           *flake*tlake*shw)/(mwl-mldlk*m_to_kg*flake)/shw
          else
             m_avail = mwl
             T_irr = gml/(mwl*shw+teeny)
@@ -325,19 +325,20 @@ C**** set default output
          elseif (m_avail >= m_irr_pot) then
 
             mwl_to_irrig = irrig_water_pot(i,j)*m_to_kg*dtsrc
-            if (mwl_to_irrig .gt. mldlk*m_to_kg) then ! need layer 2 water
-              gml_to_irrig = mldlk*m_to_kg*shw*T_irr + (mwl_to_irrig
-     *             -mldlk*m_to_kg)*shw*T_irr2
+            if (mwl_to_irrig .gt. mldlk*m_to_kg*flake) then ! need layer 2 water
+              gml_to_irrig = mldlk*m_to_kg*shw*T_irr*flake + 
+     *             (mwl_to_irrig-mldlk*m_to_kg*flake)*shw*T_irr2
 #ifdef TRACERS_WATER
               trml_to_irrig(:,1)=trml(:,1)
-              trml_to_irrig(:,2)=trml(:,2)/(mwl-mldlk*m_to_kg)
-     *             *(mwl_to_irrig-mldlk*m_to_kg)
+              trml_to_irrig(:,2)=trml(:,2)/(mwl-mldlk*m_to_kg*flake)
+     *             *(mwl_to_irrig-mldlk*m_to_kg*flake)
 #endif
             else
               gml_to_irrig = irrig_water_pot(i,j)*m_to_kg*dtsrc*shw
      *             *T_irr
 #ifdef TRACERS_WATER
-              trml_to_irrig(:,1)=trml(:,1)/(mldlk*m_to_kg)*mwl_to_irrig
+              trml_to_irrig(:,1)=trml(:,1)/(mldlk*m_to_kg*flake)
+     *             *mwl_to_irrig
               trml_to_irrig(:,2)=0.
 #endif
             end if
@@ -352,12 +353,12 @@ C**** set default output
 
             mwl_to_irrig = m_avail
             if (mwl_to_irrig .gt. mldlk*m_to_kg) then ! need layer 2 water
-              gml_to_irrig = mldlk*m_to_kg*shw*T_irr + (mwl_to_irrig
-     *             -mldlk*m_to_kg)*shw*T_irr2
+              gml_to_irrig = mldlk*m_to_kg*shw*T_irr*flake + 
+     *             (mwl_to_irrig-mldlk*m_to_kg*flake)*shw*T_irr2
 #ifdef TRACERS_WATER
               trml_to_irrig(:,1)=trml(:,1)
-              trml_to_irrig(:,2)=trml(:,2)/(mwl-mldlk*m_to_kg)
-     *             *(mwl_to_irrig-mldlk*m_to_kg)
+              trml_to_irrig(:,2)=trml(:,2)/(mwl-mldlk*m_to_kg*flake)
+     *             *(mwl_to_irrig-mldlk*m_to_kg*flake)
 #endif
             else
               gml_to_irrig = m_avail*shw*T_irr

@@ -2175,8 +2175,8 @@ C**** update lake mass/energy
 #endif
 
 C**** mixed layer depth and surface temperature adjustments
-        if (MWL_to_irrig.lt.MLDLK(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
-          MLDLK(I,J)=MLDLK(I,J) - MWL_to_irrig/(AXYP(I,J)*RHOW)
+        if (MWL_to_irrig.lt.MLDLK(I,J)*FLAKE(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
+          MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)*RHOW)
           if (MLDLK(I,J).LT.MINMLD .AND. FLAKE(I,J).GT.0) THEN ! bring up from layer 2 
             M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
             M2=MWL(I,J)-M1
@@ -2192,7 +2192,7 @@ C**** mixed layer depth and surface temperature adjustments
             MLDLK(I,J) = MINMLD
           end if
         else ! all layer 1 and some layer 2 gone, relayer
-          MLDLK(I,J)=MWL(I,J)/(AXYP(I,J)*RHOW)
+          MLDLK(I,J)=MWL(I,J)/(FLAKE(I,J)*AXYP(I,J)*RHOW)
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
 #ifdef TRACERS_WATER
           TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
