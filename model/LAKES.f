@@ -2159,14 +2159,14 @@ C****   Compute actual irrigation every timestep
      *       ,TRML_temp,TRML_to_irrig,irrig_tracer_actij,irrig_gw_tracer
 #endif
      *       ) 
-
-C**** save fluxes for GHY
+C**** save fluxes for GHY (m/s), (J/s), (kg/s)
         irrig_water_act(i,j) =irrig_water_actij
         irrig_energy_act(i,j)=irrig_energy_actij
 #ifdef TRACERS_WATER
         irrig_tracer_act(:,i,j)=irrig_tracer_actij(:)
 #endif
 
+        IF (MWL_to_irrig .gt. 0) THEN
 C**** update lake mass/energy
         MWL(I,J) = MWL(I,J) - MWL_to_irrig
         GML(I,J) = GML(I,J) - GML_to_irrig
@@ -2174,30 +2174,34 @@ C**** update lake mass/energy
         TRLAKE(:,:,I,J) = TRLAKE(:,:,I,J) - TRML_to_irrig(:,:)
 #endif
 
-C**** mixed layer depth and surface temperature adjustments
-        if (MWL_to_irrig.lt.MLDLK(I,J)*FLAKE(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
+! mixed layer depth and surface temperature adjustments for lakes
+        if (FLAKE(I,J).gt.0) THEN 
+          if (MWL_to_irrig.lt.MLDLK(I,J)*FLAKE(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
           MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)*RHOW)
-          if (MLDLK(I,J).LT.MINMLD .AND. FLAKE(I,J).GT.0) THEN ! bring up from layer 2 
-            M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
-            M2=MWL(I,J)-M1
-            E1=TLAKE(I,J)*SHW*M1
-            E2=GML(I,J)-E1
-            DM=MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1  ! kg
-            DE=DM*E2/M2
-            TLAKE(I,J)=(E1+DE)/((M1+DM)*SHW)        ! deg C
+            if (MLDLK(I,J).LT.MINMLD) THEN ! bring up from layer 2 
+              M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
+              M2=MWL(I,J)-M1
+              E1=TLAKE(I,J)*SHW*M1
+              E2=GML(I,J)-E1
+              DM=MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1 ! kg
+              DE=DM*E2/(M2+teeny)
+              TLAKE(I,J)=(E1+DE)/((M1+DM)*SHW) ! deg C
 #ifdef TRACERS_WATER
-            TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DM*TRLAKE(:,2,I,J)/M2
-            TRLAKE(:,2,I,J)=TRLAKE(:,1,I,J)-DM*TRLAKE(:,2,I,J)/M2
+              TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DM*TRLAKE(:,2,I,J)/
+     *             (M2+teeny)
+              TRLAKE(:,2,I,J)=TRLAKE(:,1,I,J)-DM*TRLAKE(:,2,I,J)/
+     *             (M2+teeny)
 #endif
-            MLDLK(I,J) = MINMLD
+              MLDLK(I,J) = MINMLD
+            end if
+          else ! all layer 1 and some layer 2 gone, relayer
+            MLDLK(I,J)=MWL(I,J)/(FLAKE(I,J)*AXYP(I,J)*RHOW)
+            TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
+#ifdef TRACERS_WATER
+            TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
+            TRLAKE(:,2,I,J)=0.
+#endif
           end if
-        else ! all layer 1 and some layer 2 gone, relayer
-          MLDLK(I,J)=MWL(I,J)/(FLAKE(I,J)*AXYP(I,J)*RHOW)
-          TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
-#ifdef TRACERS_WATER
-          TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+TRLAKE(:,2,I,J)
-          TRLAKE(:,2,I,J)=0.
-#endif
         end if
 
 C****   Compute lake- and irrigation-related diagnostics
@@ -2210,6 +2214,7 @@ C****   Compute lake- and irrigation-related diagnostics
         CALL INC_AJ(I,J,itearth, j_irgw , irrig_gw)
         CALL INC_AJ(I,J,itearth, j_irgwE, irrig_gw_energy)
 
+        END IF
       END IF
       END DO  ! i loop
       END DO  ! j loop
