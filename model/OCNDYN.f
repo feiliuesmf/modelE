@@ -1443,7 +1443,7 @@ c tracer arrays in straits
       call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
 #endif
 #endif
-      call declare_conserv_diags( grid, fid, 'wliqo' )
+      call declare_conserv_diags(grid, fid, 'wliqo(dist_imo,dist_jmo)')
       return
       end subroutine def_rsf_ocean
 

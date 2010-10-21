@@ -762,7 +762,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       call defvar(grid,fid,trsnowbv0,
      &     'trsnowbv0(ntm,bv,dist_im,dist_jm)')
 #endif
-      call declare_conserv_diags( grid, fid, 'wgrnd' )
+      call declare_conserv_diags( grid, fid, 'wgrnd(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_soils
 

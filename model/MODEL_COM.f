@@ -641,20 +641,20 @@ ccc was not sure where to dump these routines ... IA
       implicit none
 
       contains
-      subroutine declare_conserv_diags( grid, fid, name )
+      subroutine declare_conserv_diags( grid, fid, name_dims )
       use domain_decomp_atm, only : dist_grid, get
       use pario, only : defvar
       implicit none
       type (dist_grid), intent(in) :: grid
       integer ::  fid
-      character(len=*) :: name
+      character(len=*) :: name_dims
       integer :: i_0h, i_1h, j_0h, j_1h
       integer :: ier
       real*8, allocatable :: buf(:,:)
       call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
      &     i_strt_halo=i_0h, i_stop_halo=i_1h )
       allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
-      call defvar(grid, fid, buf, trim(name)//'(dist_im,dist_jm)')     
+      call defvar(grid, fid, buf, trim(name_dims))     
       deallocate( buf )
       end subroutine declare_conserv_diags
 
@@ -700,7 +700,7 @@ ccc was not sure where to dump these routines ... IA
 #ifdef BLK_2MOM
       call defvar(grid,fid,wmice,'wmice'//ijlstr)
 #endif
-      call declare_conserv_diags( grid, fid, 'watmo' )
+      call declare_conserv_diags( grid, fid, 'watmo(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_model
 

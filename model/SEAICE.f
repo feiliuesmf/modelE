@@ -2448,8 +2448,8 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
 #endif
-      call declare_conserv_diags( grid, fid, 'wlaki' )
-      call declare_conserv_diags( grid, fid, 'wseai' )
+      call declare_conserv_diags( grid, fid, 'wlaki(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'wseai(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_seaice
 

@@ -199,7 +199,7 @@ c            GO TO 10
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trlake,'trlake(ntm,d2,dist_im,dist_jm)')
 #endif
-      call declare_conserv_diags( grid, fid, 'wliql' )
+      call declare_conserv_diags( grid, fid, 'wliql(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_lakes
 

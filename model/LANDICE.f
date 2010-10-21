@@ -499,8 +499,8 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #endif
 #endif
-      call declare_conserv_diags( grid, fid, 'wlani' )
-      call declare_conserv_diags( grid, fid, 'wiceb' )
+      call declare_conserv_diags( grid, fid, 'wlani(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'wiceb(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_landice
 
