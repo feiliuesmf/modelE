@@ -2435,6 +2435,7 @@ C**** albedo calculations
       use seaice_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use conserv_diags
       implicit none
       integer fid   !@var fid file id
       call defvar(grid,fid,rsi,'rsi(dist_im,dist_jm)')
@@ -2447,6 +2448,8 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
 #endif
+      call declare_conserv_diags( grid, fid, 'wlaki' )
+      call declare_conserv_diags( grid, fid, 'wseai' )
       return
       end subroutine def_rsf_seaice
 
@@ -2458,9 +2461,11 @@ C**** albedo calculations
       use seaice_com
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
+      use conserv_diags
       implicit none
       integer fid      !@var fid unit number of read/write
       integer iaction  !@var iaction flag for reading or writing to file
+      external conserv_LMSI, conserv_OMSI
       select case (iaction)
       case (iowrite)            ! output to standard restart file
         call write_dist_data(grid, fid, 'rsi', rsi)
@@ -2473,6 +2478,8 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
         call write_dist_data(grid, fid, 'trsi', trsi, jdim=4)
 #endif
+        call dump_conserv_diags( grid, fid, 'wlaki', conserv_LMSI )
+        call dump_conserv_diags( grid, fid, 'wseai', conserv_OMSI )
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'rsi', rsi)
         call read_dist_data(grid, fid, 'snowi', snowi)

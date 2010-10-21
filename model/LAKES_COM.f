@@ -188,6 +188,7 @@ c            GO TO 10
       use lakes_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use conserv_diags
       implicit none
       integer fid   !@var fid file id
       call defvar(grid,fid,mldlk,'mldlk(dist_im,dist_jm)')
@@ -198,6 +199,7 @@ c            GO TO 10
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trlake,'trlake(ntm,d2,dist_im,dist_jm)')
 #endif
+      call declare_conserv_diags( grid, fid, 'wliql' )
       return
       end subroutine def_rsf_lakes
 
@@ -208,9 +210,11 @@ c            GO TO 10
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
       use lakes_com
+      use conserv_diags
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      external conserv_LKM
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'mldlk', mldlk)
@@ -221,6 +225,7 @@ c            GO TO 10
 #ifdef TRACERS_WATER
         call write_dist_data(grid, fid, 'trlake', trlake, jdim=4)
 #endif
+        call dump_conserv_diags( grid, fid, 'wliql', conserv_LKM )
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'mldlk', mldlk)
         call read_dist_data(grid, fid, 'mwl',   mwl)

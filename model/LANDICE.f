@@ -474,6 +474,7 @@ c          call ESMF_BCAST(grid, TRICBIMP)
       use landice
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use conserv_diags
       implicit none
       integer fid   !@var fid file id
       call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm)')
@@ -498,6 +499,8 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #endif
 #endif
+      call declare_conserv_diags( grid, fid, 'wlani' )
+      call declare_conserv_diags( grid, fid, 'wiceb' )
       return
       end subroutine def_rsf_landice
 
@@ -511,9 +514,11 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
      &     write_data,read_data
       use landice_com
       use landice
+      use conserv_diags
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      external conserv_MLI, conserv_MICB
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'snowli',snowli)
@@ -536,6 +541,8 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 c        call write_data(grid,fid,'tricbimp',tricbimp)
 #endif
 #endif
+        call dump_conserv_diags( grid, fid, 'wlani', conserv_MLI )
+        call dump_conserv_diags( grid, fid, 'wiceb', conserv_MICB )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'snowli',snowli)
         call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)

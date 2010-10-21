@@ -643,6 +643,7 @@ C**** keep track of min/max time over the combined diagnostic period
       use model_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use conserv_diags
       implicit none
       integer fid   !@var fid file id
       character(len=20) :: ijlstr
@@ -656,6 +657,7 @@ C**** keep track of min/max time over the combined diagnostic period
 #ifdef BLK_2MOM
       call defvar(grid,fid,wmice,'wmice'//ijlstr)
 #endif
+      call declare_conserv_diags( grid, fid, 'watmo' )
       return
       end subroutine def_rsf_model
 
@@ -666,9 +668,11 @@ C**** keep track of min/max time over the combined diagnostic period
       use model_com
       use domain_decomp_atm, only: grid
       use pario, only : write_dist_data,read_dist_data
+      use conserv_diags
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      external conserv_WM
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'u', u)
@@ -680,6 +684,7 @@ C**** keep track of min/max time over the combined diagnostic period
 #ifdef BLK_2MOM
         call write_dist_data(grid, fid, 'wmice', wmice)
 #endif
+        call dump_conserv_diags( grid, fid, 'watmo', conserv_WM )
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'u', u)
         call read_dist_data(grid, fid, 'v', v)

@@ -1378,6 +1378,7 @@ C****
 #endif
 #endif
       use pario, only : defvar
+      use conserv_diags
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -1442,6 +1443,7 @@ c tracer arrays in straits
       call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
 #endif
 #endif
+      call declare_conserv_diags( grid, fid, 'wliqo' )
       return
       end subroutine def_rsf_ocean
 
@@ -1464,10 +1466,12 @@ c tracer arrays in straits
      &     ,tracer=>tracer_loc,pCO2,pp2tot_day
 #endif
 #endif
+      use conserv_diags
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
+      external conserv_OMS
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'mo',mo)
@@ -1531,6 +1535,7 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
 #endif
 #endif
+        call dump_conserv_diags( grid, fid, 'wliqo', conserv_OMS )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'mo',mo)
         call read_dist_data(grid,fid,'uo',uo)

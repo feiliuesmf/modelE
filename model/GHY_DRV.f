@@ -899,7 +899,7 @@ c****
      &     fr_snow_ij,
      *     snowe,tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij,
-     &     soil_surf_moist, fv_ij
+     &     soil_surf_moist
 #ifndef USE_ENT
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
@@ -1536,9 +1536,6 @@ c**** save runoff for addition to lake mass/energy resevoirs
 c****
       e0(i,j,4)=e0(i,j,4)+af0dt
       e1(i,j,4)=e1(i,j,4)+af1dt
-
-c**** save fv for diagnostic output
-      fv_ij(i,j) = fv
 
       call ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt
