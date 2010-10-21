@@ -432,14 +432,14 @@ C**** Tracers integrated E-W sea ice flux
         sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
         lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
-        scale_tij(k,n) = (10.**-ntrocn(n))/DTsrc
+        scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 C**** Tracers integrated N-S sea ice flux
       k = k+1
       tij_tvsi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
-        scale_tij(k,n) = (10.**-ntrocn(n))/DTsrc
+        scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
@@ -2409,7 +2409,7 @@ c daily_z is currently only needed for CS
       case(11); message='read_emis_header: trans yrs step/years suspect'
       end select
       if(error > 0) then
-        if(error == 5 .and. checkname==.false.)then
+        if(error == 5 .and. .not. checkname)then
           continue
         else
           write(out_line,*) trim(header)
