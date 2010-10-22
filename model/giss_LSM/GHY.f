@@ -3935,7 +3935,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
                   tr_wsn(mc,i,ibv) = 0.d0
                endif
             enddo
-            err = trpr(mc)*dts + trdd(mc)*dts + trirrig(mc,ibv)
+            err = trpr(mc)*dts + trdd(mc)*dts + trirrig(mc,ibv)*dts
      &           + sum( tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv) )
      &           - sum( tr_w(mc,:,ibv) ) - sum( tr_wsn(mc,:,ibv) )
      &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
