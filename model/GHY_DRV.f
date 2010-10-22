@@ -477,12 +477,8 @@ ccc accumulate tracer evaporation and runoff
         n=ghy_tr%ntixw(nx)
         trevapor(n,itype,i,j) = trevapor(n,itype,i,j)
      &       + ghy_tr%atr_evap(nx)
-        !trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + aevap  !*rhow
         trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
-        !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
-        gtracer(n,itype,i,j) = ghy_tr%atr_g(nx)   ! /dtsurf
-c        if (i.eq.130.and.j.eq.68) print*,"ghy gtr",n,
-c     *       gtracer(n,itype,i,j)
+        gtracer(n,itype,i,j) = ghy_tr%atr_g(nx)
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo

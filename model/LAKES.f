@@ -2118,7 +2118,7 @@ C****
       USE IRRIGATE_CROP, only : irrigate_extract
       USE FLUXES,only : irrig_water_act, irrig_energy_act
 #ifdef TRACERS_WATER
-     *     ,irrig_tracer_act
+     *     ,irrig_tracer_act,gtracer
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -2173,6 +2173,7 @@ C**** update lake mass/energy
         GML(I,J) = GML(I,J) - GML_to_irrig
 #ifdef TRACERS_WATER
         TRLAKE(:,:,I,J) = TRLAKE(:,:,I,J) - TRML_to_irrig(:,:)
+        IF (MWL(I,J).eq.0) TRLAKE(:,:,I,J)=0.  ! round off issues
 #endif
 
 ! mixed layer depth and surface temperature adjustments for lakes
@@ -2181,10 +2182,10 @@ C**** update lake mass/energy
           MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)*RHOW)
             if (MLDLK(I,J).LT.MINMLD) THEN ! bring up from layer 2 
               M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
-              M2=MWL(I,J)-M1
+              M2=max(MWL(I,J)-M1,0d0)
               E1=TLAKE(I,J)*SHW*M1
               E2=GML(I,J)-E1
-              DM=MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1 ! kg
+              DM=max(MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1,0d0) ! kg
               DE=DM*E2/(M2+teeny)
               TLAKE(I,J)=(E1+DE)/((M1+DM)*SHW) ! deg C
 #ifdef TRACERS_WATER
@@ -2474,6 +2475,9 @@ C****
       USE MODEL_COM, only : qcheck
       USE GEOM, only : axyp
       USE LAKES_COM, only : tlake,mwl,mldlk,gml,flake
+#ifdef TRACERS_WATER
+     *         ,trlake
+#endif
       USE SEAICE, only : xsi,ace1i,rhoi
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -2481,8 +2485,8 @@ C****
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=4
       INTEGER I,J,N, J_0, J_1
-      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/41, 66, 12, 31/),
-     *                             JDIAG = (/27, 15, 36, 41/)
+      INTEGER, DIMENSION(NDIAG) :: IDIAG = (/112, 103, 131, 79/),
+     *                             JDIAG = (/66, 59, 33, 34/)
       REAL*8 HLK2,TLK2, TSIL(4)
 
       IF (.NOT.QCHECK) RETURN
@@ -2509,8 +2513,14 @@ C****
           END IF
           WRITE(99,*) STR,I,J,FLAKE(I,J),TLAKE(I,J),TLK2,MLDLK(I,J),HLK2
      *         ,RSI(I,J),MSI(I,J)/RHOI,SNOWI(I,J)/RHOW,TSIL(1:4)
+#ifdef TRACERS_WATER
+     *         ,TRLAKE(1,1:2,I,J),MWL(I,J)
+#endif
         ELSE
           WRITE(99,*) STR,I,J,TLAKE(I,J),MWL(I,J)
+#ifdef TRACERS_WATER
+     *         ,TRLAKE(1,1:2,I,J)
+#endif
         END IF
       END DO
 
