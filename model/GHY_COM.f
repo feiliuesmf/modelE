@@ -763,6 +763,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     'trsnowbv0(ntm,bv,dist_im,dist_jm)')
 #endif
       call declare_conserv_diags( grid, fid, 'wgrnd(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'egrnd(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_soils
 
@@ -778,7 +779,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
-      external conserv_WTG
+      external conserv_WTG, conserv_HTG
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'w_ij',w_ij,jdim=4)
@@ -789,6 +790,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call write_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
 #endif
         call dump_conserv_diags( grid, fid, 'wgrnd', conserv_WTG )
+        call dump_conserv_diags( grid, fid, 'egrnd', conserv_HTG )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'w_ij',w_ij,jdim=4)
         call read_dist_data(grid,fid,'ht_ij',ht_ij,jdim=4)

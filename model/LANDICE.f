@@ -500,7 +500,9 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
 #endif
 #endif
       call declare_conserv_diags( grid, fid, 'wlani(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'elani(dist_im,dist_jm)' )
       call declare_conserv_diags( grid, fid, 'wiceb(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'eiceb(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_landice
 
@@ -518,7 +520,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
-      external conserv_MLI, conserv_MICB
+      external conserv_MLI, conserv_MICB, conserv_HLI, conserv_HICB
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'snowli',snowli)
@@ -542,7 +544,9 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
 #endif
 #endif
         call dump_conserv_diags( grid, fid, 'wlani', conserv_MLI )
+        call dump_conserv_diags( grid, fid, 'elani', conserv_HLI )
         call dump_conserv_diags( grid, fid, 'wiceb', conserv_MICB )
+        call dump_conserv_diags( grid, fid, 'eiceb', conserv_HICB )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'snowli',snowli)
         call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)

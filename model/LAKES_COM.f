@@ -200,6 +200,7 @@ c            GO TO 10
       call defvar(grid,fid,trlake,'trlake(ntm,d2,dist_im,dist_jm)')
 #endif
       call declare_conserv_diags( grid, fid, 'wliql(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'eliql(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_lakes
 
@@ -214,7 +215,7 @@ c            GO TO 10
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
-      external conserv_LKM
+      external conserv_LKM, conserv_LKE
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'mldlk', mldlk)
@@ -226,6 +227,7 @@ c            GO TO 10
         call write_dist_data(grid, fid, 'trlake', trlake, jdim=4)
 #endif
         call dump_conserv_diags( grid, fid, 'wliql', conserv_LKM )
+        call dump_conserv_diags( grid, fid, 'eliql', conserv_LKE )
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'mldlk', mldlk)
         call read_dist_data(grid, fid, 'mwl',   mwl)

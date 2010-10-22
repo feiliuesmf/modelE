@@ -2449,7 +2449,10 @@ C**** albedo calculations
       call defvar(grid,fid,trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
 #endif
       call declare_conserv_diags( grid, fid, 'wlaki(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'elaki(dist_im,dist_jm)' )
       call declare_conserv_diags( grid, fid, 'wseai(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'eseai(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'sseai(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_seaice
 
@@ -2465,7 +2468,8 @@ C**** albedo calculations
       implicit none
       integer fid      !@var fid unit number of read/write
       integer iaction  !@var iaction flag for reading or writing to file
-      external conserv_LMSI, conserv_OMSI
+      external conserv_LMSI, conserv_LHSI, conserv_OMSI, conserv_OHSI
+     &     , conserv_OSSI
       select case (iaction)
       case (iowrite)            ! output to standard restart file
         call write_dist_data(grid, fid, 'rsi', rsi)
@@ -2479,7 +2483,10 @@ C**** albedo calculations
         call write_dist_data(grid, fid, 'trsi', trsi, jdim=4)
 #endif
         call dump_conserv_diags( grid, fid, 'wlaki', conserv_LMSI )
+        call dump_conserv_diags( grid, fid, 'elaki', conserv_LHSI )
         call dump_conserv_diags( grid, fid, 'wseai', conserv_OMSI )
+        call dump_conserv_diags( grid, fid, 'eseai', conserv_OHSI )
+        call dump_conserv_diags( grid, fid, 'sseai', conserv_OSSI )
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'rsi', rsi)
         call read_dist_data(grid, fid, 'snowi', snowi)

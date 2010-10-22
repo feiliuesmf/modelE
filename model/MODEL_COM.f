@@ -701,6 +701,9 @@ ccc was not sure where to dump these routines ... IA
       call defvar(grid,fid,wmice,'wmice'//ijlstr)
 #endif
       call declare_conserv_diags( grid, fid, 'watmo(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'ekatmo(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'epatmo(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'ewatmo(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_model
 
@@ -715,7 +718,7 @@ ccc was not sure where to dump these routines ... IA
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
-      external conserv_WM
+      external conserv_WM, conserv_KE, conserv_PE, conserv_EWM
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'u', u)
@@ -728,6 +731,9 @@ ccc was not sure where to dump these routines ... IA
         call write_dist_data(grid, fid, 'wmice', wmice)
 #endif
         call dump_conserv_diags( grid, fid, 'watmo', conserv_WM )
+        call dump_conserv_diags( grid, fid, 'ekatmo', conserv_KE )
+        call dump_conserv_diags( grid, fid, 'epatmo', conserv_PE )
+        call dump_conserv_diags( grid, fid, 'ewatmo', conserv_EWM  )
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'u', u)
         call read_dist_data(grid, fid, 'v', v)

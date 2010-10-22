@@ -1444,6 +1444,9 @@ c tracer arrays in straits
 #endif
 #endif
       call declare_conserv_diags(grid, fid, 'wliqo(dist_imo,dist_jmo)')
+      call declare_conserv_diags(grid, fid, 'ekliqo(dist_imo,dist_jmo)')
+      call declare_conserv_diags(grid, fid, 'epliqo(dist_imo,dist_jmo)')
+      call declare_conserv_diags(grid, fid, 'sliqo(dist_imo,dist_jmo)')
       return
       end subroutine def_rsf_ocean
 
@@ -1471,7 +1474,7 @@ c tracer arrays in straits
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
-      external conserv_OMS
+      external conserv_OMS, conserv_OKE, conserv_OCE, conserv_OSL
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'mo',mo)
@@ -1536,6 +1539,9 @@ c tracer arrays in straits
 #endif
 #endif
         call dump_conserv_diags( grid, fid, 'wliqo', conserv_OMS )
+        call dump_conserv_diags( grid, fid, 'ekliqo', conserv_OKE )
+        call dump_conserv_diags( grid, fid, 'epliqo', conserv_OCE )
+        call dump_conserv_diags( grid, fid, 'sliqo', conserv_OSL )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'mo',mo)
         call read_dist_data(grid,fid,'uo',uo)
