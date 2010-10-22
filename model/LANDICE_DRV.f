@@ -428,7 +428,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif   /* TNL: inserted */
-      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
+      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr , tij_icb
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
