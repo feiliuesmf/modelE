@@ -1911,16 +1911,16 @@ C**** Everywhere else
      +                             UKM(1:LMV(I,J-1),3,I,J)
           VO(I,J  ,1:LMV(I,J  )) = VO(I,J  ,1:LMV(I,J  )) +
      +                             UKM(1:LMV(I,J  ),4,I,J)
-
-c          VOD(IM1,J,1:LMU(IM1,J)) = VOD(IM1,J,1:LMU(IM1,J)) +
-c     +                             UKMD(1:LMU(IM1,J),1,I,J)
-c          VOD(I  ,J,1:LMU(I  ,J)) = VOD(I  ,J,1:LMU(I  ,J)) +
-c     +                             UKMD(1:LMU(I  ,J),2,I,J)
-c          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
-c     +                             UKMD(1:LMV(I,J-1),3,I,J)
-c          UOD(I,J  ,1:LMV(I,J  )) = UOD(I,J  ,1:LMV(I,J  )) +
-c     +                             UKMD(1:LMV(I,J  ),4,I,J)
-
+#ifndef DISABLE_KPP_DGRID_MIXING
+          VOD(IM1,J,1:LMU(IM1,J)) = VOD(IM1,J,1:LMU(IM1,J)) +
+     +                             UKMD(1:LMU(IM1,J),1,I,J)
+          VOD(I  ,J,1:LMU(I  ,J)) = VOD(I  ,J,1:LMU(I  ,J)) +
+     +                             UKMD(1:LMU(I  ,J),2,I,J)
+          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
+     +                             UKMD(1:LMV(I,J-1),3,I,J)
+          UOD(I,J  ,1:LMV(I,J  )) = UOD(I,J  ,1:LMV(I,J  )) +
+     +                             UKMD(1:LMV(I,J  ),4,I,J)
+#endif
           IM1=I
         END DO
       END DO
@@ -1929,8 +1929,10 @@ c     +                             UKMD(1:LMV(I,J  ),4,I,J)
         DO I=1,IM
           VO(I,J-1,1:LMV(I,J-1)) = VO(I,J-1,1:LMV(I,J-1)) +
      *                             UKM(1:LMV(I,J-1),3,I,J)
-c          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
-c     *                             UKMD(1:LMV(I,J-1),3,I,J)
+#ifndef DISABLE_KPP_DGRID_MIXING
+          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
+     *                             UKMD(1:LMV(I,J-1),3,I,J)
+#endif
         END DO
       end if
 
