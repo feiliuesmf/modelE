@@ -40,7 +40,10 @@
 
 c**** public functions:
       public hl0, set_snow, advnc, evap_limits, xklh
-      public get_soil_properties, check_wc
+      public get_soil_properties
+#ifdef TRACERS_WATER
+      public check_wc
+#endif
 
 ccc   physical constants and global model parameters
 ccc   converting constants from 1/kg to 1/m^3
