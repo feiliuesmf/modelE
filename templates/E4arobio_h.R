@@ -87,6 +87,7 @@ E4arobio_h (AR5 model + obio)
 
 &&PARAMETERS
 #include "dynamic_ocn_params"
+init_flake=0
 
 #include "sdragF40_params"
 #include "gwdragF40_params"
