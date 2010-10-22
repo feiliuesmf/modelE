@@ -1116,6 +1116,14 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_POPWAT = k
+      lname_ij(k) = 'OPEN WATER FRACTION'    ! (focean+flake)*(1-rsi)
+      units_ij(k) = '%'
+      name_ij(k) = 'opwatfr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
       IJ_PSOIL = k
       lname_ij(k) = 'SOIL FRACTION'
       units_ij(k) = '%'
@@ -2574,15 +2582,15 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_EVAPO = k ! EVAP*POCEAN  (KG/m**2)                  1 GD
-      lname_ij(k) = 'OCEAN EVAPORATION'
+      IJ_EVAPO = k ! EVAP*PWATER  (KG/m**2)                  1 GD
+      lname_ij(k) = 'OPEN WATER EVAPORATION'
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_ocn'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
 c     iw built-in
       ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_POPOCN
+      denom_ij(k) = IJ_POPWAT
 c
       k=k+1 !
       IJ_EVAPI = k ! EVAP*POICE  (KG/m**2)                   1 GD

@@ -65,7 +65,7 @@ C****
      *     ,idd_ev,idd_ldc,idd_dcf,ij_pblht,ndiuvar,NREG,ij_dskin
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
      *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx, ij_silwu, ij_silwd
-     *     ,ij_sish 
+     *     ,ij_sish ,ij_popwat
 #ifndef NO_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
@@ -1418,6 +1418,7 @@ C****
         OA(I,J,6)=OA(I,J,6)+TRHDT
         OA(I,J,7)=OA(I,J,7)+SHDT
         OA(I,J,8)=OA(I,J,8)+EVHDT
+        AIJ(I,J,IJ_POPWAT)=AIJ(I,J,IJ_POPWAT)+PTYPE
         AIJ(I,J,IJ_EVAPO)=AIJ(I,J,IJ_EVAPO)+EVAP*PTYPE
         IF (FOCEAN(I,J).gt.0) THEN
           AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC) +F0DT*PTYPE

@@ -526,8 +526,8 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public, dimension(2,4) :: IJ_fcghg
 #endif
 c weighting fractions
-      INTEGER, public ::
-     &     IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR,IJ_BSFR
+      INTEGER, public :: IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR
+     *     ,IJ_BSFR,IJ_POPWAT 
 c derived/composite diagnostics
       INTEGER, public ::
      *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
