@@ -6,9 +6,9 @@
       integer :: status,vtype,varid1,varid2,fid1,fid2,yesno_vid,nargs
       character(len=80) :: file1,file2
       character(len=40) :: vname,pos_str,yesno,attname,yesno_list
-      integer :: iargc,nvars,ndims,dsizes(7),iatt,natts
+      integer :: iargc,nvars,ndims,dsizes(7),iatt,natts,n,cnt0,cntn
       integer :: arrsize1,arrsize2
-      real*8, dimension(:), allocatable :: arr1,arr2,arrdiff
+      real*8, dimension(:), allocatable :: arr1,arr2,arrdiff,fd,fd1
       integer :: nmax_abs(1),nmax_rel(1)
       real*8 :: max_abs,max_rel
       logical, dimension(:), allocatable :: dothisvar
@@ -133,8 +133,20 @@ c relative
           nmax_rel = maxloc(arrdiff)
           call get_pos_str(nmax_rel,ndims,dsizes,pos_str)
           write(6,*) '          rel: ',max_rel,trim(pos_str)
-c
           deallocate(arrdiff)
+c fraction of differences containing more than 8 bits of information
+c          allocate(fd(arrsize1),fd1(arrsize1))
+c          fd = fraction(abs(arr1-arr2))
+c          cnt0 = count(fd.ne.0.)
+c          do n=1,8
+c            fd1 = fd-.5**n
+c            where(fd1.ge.0.) fd = fd1
+c            cntn = count(fd.ne.0.)
+c            if(cntn.eq.0) exit
+c          enddo
+c          write(6,*) '      % diffs > 8 bits wide: ',
+c     &         nint(100.*real(cntn,kind=8)/real(cnt0,kind=8))
+c          deallocate(fd,fd1)
         endif
 
 c deallocate arrays
