@@ -1678,11 +1678,6 @@ C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
         call io_rsf("AIC",IhrX,irsfic,ioerr)
-c if starting with a different land mask, these maybe necessary
-c        iniSNOW = .TRUE.  ! Special for non-0k
-#ifndef CUBED_SPHERE /* iniPBL is inconvenient when not cold starting */
-        iniPBL=.TRUE.           ! Special for non-0k
-#endif
         if (ioerr.eq.1) goto 800
       END SELECT
 
