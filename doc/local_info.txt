@@ -349,3 +349,20 @@ they are usually directed to the file job_number.borgmg.OU .
 While a batch job runs, this output can be seen in
 /discover/pbs_spool/job_number.borgmg.OU; after completion, the file is
 moved to the run directory.
+
+Parallel Compression of Large Files
+==============================================================
+
+Compression of multi-GB files takes minutes to hours using
+the standard serial gzip utility.  In certain circumstances it
+may be preferable to use "pigz",  a multithreaded version of gzip
+that can utilize the multiple cores on a compute node (but not
+across multiple nodes).  To invoke with compression level 9
+using n threads:
+
+pigz -9 -p n file_to_compress
+
+IMPORTANT: on Discover nodes, it is necessary to set
+"ulimit -v unlimited" before running pigz.
+If "-p n" is omitted, pigz will try to detect the number of cores
+available on a node, and uses 8 threads if unsuccessful.
