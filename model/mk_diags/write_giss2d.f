@@ -17,9 +17,10 @@
 
       include 'netcdf.inc'
       integer :: fid,status,varid,varid2,nvars,ndims,did1,did2,idim,jdim
+      integer :: vid1,vid2
       integer, dimension(7) :: dids,srt,cnt,dsizes,kmod,p1,p2
       character(len=30), dimension(7) :: dnames
-      character(len=30) :: diminfo
+      character(len=30) :: diminfo,varname
       character(len=1) :: str1
       character(len=3) :: str3
       character(len=6) :: ifmt='(ix.x)'
@@ -31,9 +32,9 @@
       integer :: ind,linfo,lrem,l1
 
       nargs = iargc()
-      if(nargs.ne.4) then
+      if(nargs.ne.4 .and. nargs.ne.5) then
         write(6,*)
-     &       'usage: write_giss2d infile outfile dimname1 dimname2'
+     &  'usage: write_giss2d infile outfile dimname1 dimname2 [varname]'
         stop
       endif
 
@@ -63,6 +64,16 @@ c get the number of quantities in the file
 c
       status = nf_inq_nvars(fid,nvars)
 
+      if(nargs.eq.5) then ! optional request of only 1 variable
+        call getarg(5,varname)
+        call handle_err(nf_inq_varid(fid,trim(varname),vid1),
+     &       'variable '//trim(varname)//' does not exist')
+        vid2 = vid1
+      else ! all variables
+        vid1 = 1
+        vid2 = nvars
+      endif
+
 c
 c check whether this is a modelE output file and try to extract
 c the time period from the filename
@@ -91,7 +102,7 @@ c
 c
 c Loop over quantities in the file
 c
-      do varid=1,nvars
+      do varid=vid1,vid2
         status = nf_inq_varndims(fid,varid,ndims)
         dids = -1
         status = nf_inq_vardimid(fid,varid,dids)
