@@ -89,7 +89,8 @@ C**** set GTEMP array for landice
             endif
 #endif
 #ifdef TRACERS_WATER
-            if (istart.ge.9) then
+            if (istart.ge.9) then ! need this if-test since TR.. may 
+                                  ! not be set yet at initial starts
             IF (SNOWLI(I,J).gt.SNMIN) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
@@ -191,7 +192,7 @@ C**** are calculated.
 C****
 C**** Initial average mass fluxes for Antarctica/Greenland
 
-      if (istart.lt.8 .or. ACCPDA.eq.0) then
+      if (istart.le.8 .and. ACCPDA.eq.0) then
 C**** Initiallise total mass/energy fluxes (only at start of run)
 C**** The net accumulation from IPCC2 report is 2016x10**12 kg/year
 C**** for Antarctica and for Greenland it is 316x10**12 kg/year
