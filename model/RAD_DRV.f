@@ -1659,7 +1659,7 @@ C**** more than one tracer is lumped together for radiation purposes
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
            select case (trname(NTRIX(n)))
-           case ("NO3")
+           case ("NO3p")
             if (trm(i,j,l,NTRIX(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
