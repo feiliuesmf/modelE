@@ -1205,6 +1205,7 @@ c
       name_ij(k) = 'pr_oocn'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
+      denom_ij(k) = IJ_POPWAT
 c
       k=k+1 !
       IJ_PRECSI = k ! PREC OVER SEA ICE (mm/day)       1 CN
@@ -1213,6 +1214,7 @@ c
       name_ij(k) = 'pr_oice'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
+      denom_ij(k) = IJ_RSOI
 c
       k=k+1 !
       IJ_PRECMC = k ! PREC MC (mm/day)       1 CN
