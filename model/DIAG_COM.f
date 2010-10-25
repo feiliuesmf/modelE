@@ -166,6 +166,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !+               is written, currently: up to first constant pressure layer
       integer, parameter, public :: lmax_dd2=ls1
 !@param NDIUVAR number of diurnal diagnostics
+#ifdef TRACERS_AMP
+      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
+#else
 #ifdef TRACERS_DUST
       INTEGER, PARAMETER, public :: NDIUVAR=73+14*lmax_dd2+6*npbl
      &     +4*(npbl-1)
@@ -174,6 +177,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER, public :: NDIUVAR=61
 #else
       INTEGER, PARAMETER, public :: NDIUVAR=56
+#endif
 #endif
 #endif
 !@param NDIUPT number of points where diurnal diagnostics are kept
@@ -785,7 +789,8 @@ c     names for npbl layers dust diagnostics
 c     names for npbl-1 layers dust diagnostics
      &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
-     *     ,idd_diam
+     *     ,idd_diam, idd_aot, idd_lwp, idd_ccn, idd_cdnc
+     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff

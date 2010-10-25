@@ -4742,12 +4742,14 @@ C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
      &    17.5, 30.  /),(/2,NDIUPT/))
 #else
 c defaults for diurnal diagnostics
-      NAMDD = (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)
+      NAMDD = (/ 'PITT', 'SGPL', 'NYCC', 'HOUS' /)
+c Pittsburgh, Southern Great Plains, NYC, Houston
       LLDD = RESHAPE( (/
-     &      132.5, -26.,
-     &      -97.5,  42.,
-     &        2.5,  14.,
-     &     -117.5,  -2.
+c        Longitude, Latitude
+     &      -79.9,  40.4,
+     &      -97.5,  36.4,
+     &      -74.0,  40.8,
+     &      -95.4,  29.8
      &     /),(/2,4/))
 #endif
       call sync_param( "LLDD", LLDD(1:2,1), 2*NDIUPT )

@@ -187,6 +187,9 @@
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only : AQsulfRATE
+#ifndef NO_HDIURN
+     &                       ,DIURN_LWP, DIURN_LWC
+#endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use tracer_sources, only : n__prec
