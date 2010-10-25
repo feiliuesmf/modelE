@@ -1,8 +1,32 @@
 #include "rundeck_opts.h"
       SUBROUTINE EQSAM_DRV
+!@sum
+!@+     This routine sets up for and calls the thermodynamic module for aerosol
+!@+     gas-particle partitioning.
+!@+
+!@+      A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
+!@auth Susanne Bauer
+
+
+!----------------------------------------------------------------------------------------------------------------------
+!     This routine sets up for and calls the thermodynamic module for aerosol
+!     gas-particle partitioning.
+!
+!     A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
+!
+!     EQSAM is called with control variable IOPT=1. 
+!
+!     Although EQSAM takes as input the total S(VI) (H2SO4+SO4=), since the
+!     aerosol model does not necessarily transfer all H2SO4 to the aerosol
+!     phase (depending on configuration), we pass only the particulate SO4
+!     as the total sulfate to EQSAM.
+!
+!     Also, this version of EQSAM takes as input the mineral cation 
+!     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
+!     of inorganic aerosol constituents, these cations are included.
+!----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM
-      USE AEROSOL_SOURCES, only: NH3_src_con, NH3_src_cyc
-     & ,off_HNO3,off_SS
+      USE AEROSOL_SOURCES, only: NH3_src_con, NH3_src_cyc,off_HNO3,off_SS
 
       USE MODEL_COM, only : im,jm,lm     ! dimensions
      $                     ,t            ! potential temperature (C)
@@ -17,21 +41,76 @@
       USE DOMAIN_DECOMP_ATM,only: GRID, GET
 
       IMPLICIT NONE
+
+      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1
       ! Call parameters for the EQSAM thermodynamic model. 
+
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
       INTEGER, PARAMETER :: NCO  = 36    ! fixed number of output variables
       INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
 !     INTEGER, PARAMETER :: IOPT =  2    ! =2 selects the solid      (dry) state and history
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
       INTEGER, PARAMETER :: IMAX =  1    ! only a single time step done
+      INTEGER, PARAMETER :: AUNIT1 =  66
 
-      REAL*4 :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
-      REAL*4 :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
-      REAL*8 :: yM,yS
-      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1
-C**** functions
+      ! Functions
       REAL*8 :: QSAT, AVOL
-      LOGICAL, SAVE :: NO_SS = .TRUE.
+
+      ! Variables
+    
+      REAL(8) :: ASO4      ! aerosol sulfate       [ug/m^3]
+      REAL(8) :: ANO3      ! aerosol nitrate       [ug/m^3]
+      REAL(8) :: ANH4      ! aerosol ammonium      [ug/m^3]
+      REAL(8) :: AH2O      ! aerosol water         [ug/m^3]
+      REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
+      REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
+      REAL(8) :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
+      REAL(8) :: TK        ! absolute temperature  [K]          
+      REAL(8) :: RH        ! relative humidity     [0-1]
+      REAL(8) :: RHD       ! RH of deliquescence   [0-1]
+      REAL(8) :: RHC       ! RH of crystallization [0-1]
+
+      REAL(4) :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
+      REAL(4) :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
+
+      ! Parameters.
+
+      REAL(4), PARAMETER :: MW_ANH4   = 18.03850  ! [g/mol]
+      REAL(4), PARAMETER :: MW_GNH3   = MW_ANH4   ! [g/mol] NH3  is passed as equivalent conc. of NH4+
+      REAL(4), PARAMETER :: MW_ANO3   = 62.00494  ! [g/mol]
+      REAL(4), PARAMETER :: MW_GHNO3  = MW_ANO3   ! [g/mol] HNO3 is passed as equivalent conc. of NO3-
+      REAL(4), PARAMETER :: MW_ASO4   = 96.0636   ! [g/mol]
+      REAL(4), PARAMETER :: MW_K      = 39.0983   ! [g/mol]
+      REAL(4), PARAMETER :: MW_CA     = 40.078    ! [g/mol]
+      REAL(4), PARAMETER :: MW_MG     = 24.3050   ! [g/mol]
+      REAL(4), PARAMETER :: MW_NA     = 22.989768 ! [g/mol]
+      REAL(4), PARAMETER :: MW_NACL   = 58.442468 ! [g/mol]
+
+      REAL(4), PARAMETER :: MASS_FRAC_K  = 0.0028  ! From Ghan et al. (2001).
+      REAL(4), PARAMETER :: MASS_FRAC_CA = 0.024   !   JGR, Vol. 106, p. 5295-5316.
+      REAL(4), PARAMETER :: MASS_FRAC_MG = 0.0038  !   on p. 5296
+      REAL(4), PARAMETER :: MASS_FRAC_NA = 0.014   !   "water sol. mass frac. in soil dust"
+
+      REAL(4), PARAMETER :: FRAC_DUST  = 0.1                              ! [1] fraction of dust conc. passed to EQSAM         
+      REAL(4), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
+      REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
+      REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
+      REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+
+      REAL(4), PARAMETER :: RMW_GNH3  = 1.0 / MW_GNH3          ! [mol/g]
+      REAL(4), PARAMETER :: RMW_ANH4  = 1.0 / MW_ANH4          ! [mol/g]
+      REAL(4), PARAMETER :: RMW_GHNO3 = 1.0 / MW_GHNO3         ! [mol/g]
+      REAL(4), PARAMETER :: RMW_ANO3  = 1.0 / MW_ANO3          ! [mol/g]
+      REAL(4), PARAMETER :: RMW_ASO4  = 1.0 / MW_ASO4          ! [mol/g]
+      REAL(4), PARAMETER :: RMW_NA    = 1.0 / MW_NA            ! [mol/g]
+      REAL(4), PARAMETER :: RMW_NACL  = 1.0 / MW_NACL          ! [mol/g]
+
+      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
+      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
+      REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05  ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
+      REAL(8), PARAMETER :: TINYNUMER = 1.0d-30
+
+      REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
@@ -42,11 +121,6 @@ C**** functions
 #endif
 
 
-      do n=1,ntm
-      if (trname(n).eq.'seasalt1')    NO_SS=.FALSE.
-      enddo   
-
-      if (NO_SS) CALL READ_OFFSS(OFF_SS)
       YI(1,:) = 0.d0
       YO(1,:) = 0.d0
 
@@ -54,100 +128,66 @@ C**** functions
       DO J=J_0,J_1                               
       DO I=I_0,I_1
 ! meteo
-      YI(1,1) = pk(l,i,j)*t(i,j,l)           !should be in [K]
-      YI(1,2) = q(i,j,l)/QSAT (pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
-      YI(1,11)= pmid(l,i,j)                  ! p in [hPa]
-! calculate M and set fixed ratios for O2 & H2:
-! chem trm in [kg/gb] -> molecule/cm3
-! conversion molecule/cm3 -> umol/m3: 1.d6 * 1.d6 /6.022e23
-      yS =  1.d6 * 1.d6 /6.022e23
-      yM    = YI(1,11)/(YI(1,1)*1.38d-19) * yS
-      YI(1,3) = trm(i,j,l,n_NH3)*yM*mass2vol(n_NH3)*
-     *     BYAXYP(I,J)*BYAM(L,I,J) ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
-      YI(1,3) = YI(1,3) + (trm(i,j,l,n_NH4)*yM*mass2vol(n_NH4)*
-     *     BYAXYP(I,J)*BYAM(L,I,J)) ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
-c#ifdef TRACERS_HETCHEM
-c      YI(1,4) = (trm(i,j,l,n_SO4)+trm(i,j,l,n_SO4_d1)+
-c     *          trm(i,j,l,n_SO4_d2)+trm(i,j,l,n_SO4_d3))
-c     *         * yM*mass2vol(n_SO4)*
-c     *         BYAXYP(I,J)*BYAM(L,I,J)    ! H2SO4    + SO4-- (p)   [umol/m^3 air]
-c#else
-      YI(1,4) = trm(i,j,l,n_SO4)*yM*mass2vol(n_SO4)*
-     *     BYAXYP(I,J)*BYAM(L,I,J) ! H2SO4    + SO4-- (p)   [umol/m^3 air]
-c#endif
+      TK = pk(l,i,j)*t(i,j,l)           ! in [K]
+      RH = q(i,j,l)/QSAT (pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
+c avol [m3/gb] mass of air pro m3      
+      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
+! gas and aerosol trm [kg/gb] -> [ug/m^3]
+      GNH3 = trm(i,j,l,n_NH3) *1.d9 /AVOL
+      ANH4 = trm(i,j,l,n_NH4) *1.d9 /AVOL
+      ASO4 = trm(i,j,l,n_SO4) *1.d9 /AVOL
+      ANO3 = trm(i,j,l,n_NO3p)*1.d9 /AVOL
 #ifdef  TRACERS_SPECIAL_Shindell
-      YI(1,5) = trm(i,j,l,n_HNO3)*yM*mass2vol(n_HNO3)*
-     *     BYAXYP(I,J)*BYAM(L,I,J)   ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
+      GHNO3= trm(i,j,l,n_HNO3) *1.d9 /AVOL
 #else 
-!off-line HNO3
-      YI(1,5) = off_HNO3(i,j,l)*yM!*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
+      GHNO3= off_HNO3(i,j,l)   *1.d9 * 1.292
 #endif
-      YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*mass2vol(n_NO3p)*
-     *     BYAXYP(I,J)*BYAM(L,I,J) ) ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
-      
-      if (NO_SS) then
-! estimated sea salt = NaCl
-      YI(1,6) = off_SS(i,j,l)*0.5 ! off_SS [kg/kg]
-     *         *yM*(mair/23.)*0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
-
-      YI(1,7) = off_SS(i,j,l)*0.5
-     *         *yM*(mair/36.5)*0.1  ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
-      else
-        YI(1,6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
-     *       *yM*(mair/23.)*
-     *       BYAXYP(I,J)*BYAM(L,I,J) *0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
-        YI(1,7) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
-     *       *yM*(mair/36.5)*
-     *       BYAXYP(I,J)*BYAM(L,I,J)*0.1 ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
-      endif
+      TOT_DUST = 0.d0
 #ifdef  TRACERS_DUST
-! estimated after Trochkine et al. 2003, dust = 10% Ca + 10% K + 20% Mg +[60% (Na, Al, Si, Fe)]
-      YI(1,8) = (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
-     *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.1
-     *         *yM*(mair/39.1)*
-     *         BYAXYP(I,J)*BYAM(L,I,J)   ! K+   (p) from Dust     [umol/m^3 air]
-      YI(1,9) = (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
-     *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.1 
-     *         *yM*(mair/40.)*
-     *         BYAXYP(I,J)*BYAM(L,I,J) ! Ca++ (p) from Dust     [umol/m^3 air]
-      YI(1,10)= (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
-     *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.2
-     *         *yM*(mair/24.3)*
-     *         BYAXYP(I,J)*BYAM(L,I,J) ! Mg++ (p) from Dust     [umol/m^3 air]  
+      TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
+     *           *1.d9 /AVOL
 #endif
 
+      H = MAX( MIN( RH, RHMAX ), RHMIN )
 
-      call EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,66)
+      YI(1,1)  = TK                               ! [K]
+      YI(1,2)  = H                                ! [0-1]
+      YI(1,3)  = GNH3*RMW_GNH3   + ANH4*RMW_ANH4  ! from [ug/m^3] to [umol/m^3]
+      YI(1,4)  =                   ASO4*RMW_ASO4  ! from [ug/m^3] to [umol/m^3]
+      YI(1,5)  = GHNO3*RMW_GHNO3 + ANO3*RMW_ANO3  ! from [ug/m^3] to [umol/m^3]
+      YI(1,6)  = TOT_DUST*CONV_NAION              ! from [ug dust/m^3] to [umol Na+/m^3]
+      YI(1,7)  = 0.0                              ! (HCl + Cl-)
+      YI(1,8)  = TOT_DUST*CONV_KION               ! from [ug dust/m^3] to [umol K+ /m^3]
+      YI(1,9)  = TOT_DUST*CONV_CAION              ! from [ug dust/m^3] to [umol Ca+/m^3]
+      YI(1,10) = TOT_DUST*CONV_MGION              ! from [ug dust/m^3] to [umol Mg+/m^3]
+      YI(1,11) = pmid(l,i,j)                      ! [hPa]
+      YI(1, :) = MAX( YI(1,:), 0.0E-10 )          ! Lower limit was 1.0E-10 before 102406.
+      YI(1,4)  = YI(1,4) + SMALL_SO4              ! EQSAM has crashed at low RH and low sulfate conc.
 
-      YO(1,12) = MAX(YO(1,12),1.D-30)
-      YO(1,20) = MAX(YO(1,20),1.D-30)
-      YO(1,10) = MAX(YO(1,10),1.D-30)
-      YO(1,19) = MAX(YO(1,19),1.D-30)
-      YO(1,9)  = MAX(YO(1,9),1.D-30)
-! Nitrate production   
-      tr3Dsource(i,j,l,1,n_NO3p)= ((YO(1,20)
-     *        /(yM*mass2vol(n_NO3p)* BYAXYP(I,J)*BYAM(L,I,J)) )
-     *        -trm(i,j,l,n_NO3p)) /dtsrc
+      CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,AUNIT1)
+
+
+      GHNO3 = MAX(YO(1, 9) * MW_GHNO3,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      GNH3  = MAX(YO(1,10) * MW_GNH3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      AH2O  = MAX(YO(1,12)           ,TINYNUMER)  ! already in [ugH2O/m^3]
+      ANH4  = MAX(YO(1,19) * MW_ANH4 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      ANO3  = MAX(YO(1,20) * MW_ANO3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
+      ASO4  = MAX( ASO4, TINYNUMER )              ! 
+!     RHD   = YO(1,36)                            ! [0-1]
+      RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
+      RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
+ 
+! Nitrate production   from [ug/m^3] -> trm [kg/gb]
+      tr3Dsource(i,j,l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm(i,j,l,n_NO3p)) /dtsrc
 ! Ammonia residual
-      tr3Dsource(i,j,l,1,n_NH3) = ((YO(1,10)
-     *        /(yM*mass2vol(n_NH3)* BYAXYP(I,J)*BYAM(L,I,J)) )
-     *        -trm(i,j,l,n_NH3)) /dtsrc
+      tr3Dsource(i,j,l,1,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm(i,j,l,n_NH3)) /dtsrc
 ! Ammonium production
-      tr3Dsource(i,j,l,1,n_NH4) = ((YO(1,19) 
-     *        /(yM*mass2vol(n_NH4)* BYAXYP(I,J)*BYAM(L,I,J)) )
-     *        -trm(i,j,l,n_NH4))/dtsrc
-! Aerosol Water [ug/m3]
-
-c aval [m3/gb] mass of air pro m3      
-c      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*
-c     *      (pk(l,i,j)*t(i,j,l)) /(pmid(l,i,j)     *100.)
-c      trm(i,j,l,n_AW) = YO(1,12) *AVOL * 1.d-9
+      tr3Dsource(i,j,l,1,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm(i,j,l,n_NH4)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
 ! Nitric Acid residual
-      tr3Dsource(i,j,l,3,n_HNO3) =((YO(1,9)
-     *        /(yM*mass2vol(n_HNO3)* BYAXYP(I,J)*BYAM(L,I,J)) )
-     *        -trm(i,j,l,n_HNO3))/dtsrc
+      tr3Dsource(i,j,l,3,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm(i,j,l,n_HNO3)) /dtsrc
 #endif
 
       ENDDO
