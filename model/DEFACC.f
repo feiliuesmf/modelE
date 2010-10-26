@@ -6069,6 +6069,9 @@ c
 #ifdef NEW_IO
       use cdl_mod
 #endif
+#ifdef TRACERS_AMP
+      use AERO_CONFIG, ONLY: nmodes
+#endif
       implicit none
       integer :: k,kk,l, lmax_dd0=5 ! why?
       character*2 lst(lm)
@@ -6392,15 +6395,90 @@ c
       lname_dd(k)=' MCP*100'
 
 #ifdef TRACERS_AMP
+c
+      k=k+1
+      IDD_lwp=k
+      name_dd(k)='LWP'
+      units_dd(k)='kg/m2'
+      scale_dd(k)= 1.
+      lname_dd(k)=' LWP'
+c
+      k=k+1
+      IDD_aot=k
+      name_dd(k)='AOT'
+      units_dd(k)=' '
+      scale_dd(k)= 1.
+      lname_dd(k)=' AOT'
+
+      k=k+1
+      IDD_so2=k
+      name_dd(k)='SO2'
+      units_dd(k)='ug/m3'
+      scale_dd(k)= 1.
+      lname_dd(k)=' SO2'
+c Mode Diagnostics
        idd_diam=k+1
-c        do l=1,lmax_dd2   first only one point later output co
-        do l=1,1
+        do l=1,nmodes
           k=k+1
-          name_dd(k)='DIAM_L'//lst(l)
+          name_dd(k)='DIAM_M'//lst(l)
           units_dd(k)='m'
           scale_dd(k)=1.
-          lname_dd(k)=' DIAM_L'//lst(l)
+          lname_dd(k)=' DIAM_M'//lst(l)
         end do
+
+       idd_numb=k+1
+        do l=1,nmodes
+          k=k+1
+          name_dd(k)='N_M'//lst(l)
+          units_dd(k)='#/m3'
+          scale_dd(k)=1.
+          lname_dd(k)=' N_M'//lst(l)
+        end do
+c Mass Tracer
+       idd_mass=k+1
+        do l=1,38
+          k=k+1
+          name_dd(k)='MASS_M'//lst(l)
+          units_dd(k)='ug/m3'
+          scale_dd(k)=1.
+          lname_dd(k)=' MASS_M'//lst(l)
+        end do
+c Column Diagnostics
+       idd_ncL=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='TotNumb_L'//lst(l)
+          units_dd(k)='#/cm3'
+          scale_dd(k)=1.
+          lname_dd(k)=' TotNumb_L'//lst(l)
+        end do
+
+       idd_ccn=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='CCN_L'//lst(l)
+          units_dd(k)='#/cm3'
+          scale_dd(k)=1.
+          lname_dd(k)=' CCN_L'//lst(l)
+        end do
+
+       idd_cdnc=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='CDNC_L'//lst(l)
+          units_dd(k)='#/cm3'
+          scale_dd(k)=1.
+          lname_dd(k)=' CDNC_L'//lst(l)
+        end do
+
+       idd_lwc=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='LWC_L'//lst(l)
+          units_dd(k)='kg/m3'
+          scale_dd(k)=1.
+          lname_dd(k)=' LWC_L'//lst(l)
+        end do     
 #endif 
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
