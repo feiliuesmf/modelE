@@ -223,7 +223,8 @@ C**** diagnostic
 !@auth Michael Puma
       USE CONSTANT, only : rhow,teeny,shw
       USE MODEL_COM, only : dtsrc
-      USE sle001, only : tp
+!      USE sle001, only : tp ! tp is not saved for each gridpoint
+      USE GHY_COM, only : tearth
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
       USE FLUXES, only : gtracer
@@ -308,7 +309,9 @@ C**** set default output
 !        Check these limits !!!!
          T_irr = max(T_irr, 0.d0)
          T_irr2 = max(T_irr2, 0.d0)
-         T_irr_g = max(tp(1,2),0.d0)
+! need to reconstuct local tp(1,2) using ground hydrology code
+!         T_irr_g = max(tp(1,2),0.d0)
+         T_irr_g = max(tearth(i,j),0.d0)
 
 !***     Set actual irrigation rates and update mwl and gml (if necessary)
          if (m_avail <= teeny) then
