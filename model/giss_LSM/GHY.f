@@ -39,7 +39,7 @@
       private
 
 c**** public functions:
-      public hl0, set_snow, advnc, evap_limits, xklh
+      public hl0, advnc, evap_limits, xklh
       public get_soil_properties
 #ifdef TRACERS_WATER
       public check_wc
@@ -3247,152 +3247,152 @@ ccc output
 
 !-----------------------------------------------------------------------
 
-      subroutine set_snow
-!@sum set_snow extracts snow from the first soil layer and initializes
-!@+   snow model prognostic variables
-!@+   should be called when model restarts from the old restart file
-!@+   ( which doesn''t contain new snow model (i.e. 3 layer) data )
-c
-c input:
-c snowd(2) - landsurface snow depth
-c w(k,2)   - landsurface water in soil layers
-c ht(k,2)  - landsurface heat in soil layers
-c fsn      - heat of fusion
-c shi      - specific heat of ice
-c shc(k,2) - heat capacity of soil layers
-c
-c output:
-c dzsn(lsn,2) - snow layer thicknesses
-c wsn(lsn,2)  - snow layer water equivalent depths
-c hsn(lsn,2)  - snow layer heat contents
-c tsn1(2)     - snow top temperature
-c isn(2)      - 0 if no snow, 1 if snow
-c nsn(2)      - number of snow layers
-c snowd(2)
-c w(k,2)
-c ht(k,2)
-c
-c calling sequence:
-c
-c     assignment of w,ht,snowd
-c     call ghinij(i,j,wfc1)
-c     call set_snow
-c note: only to be called when initializing from landsurface
-c       prognostic variables without the snow model.
-c
-      use snow_model, only: snow_redistr, snow_fraction
-      integer ibv
-
-c outer loop over ibv
-      do ibv=1,2
-
-c initalize all cases to nsn=1
-        nsn(ibv)=1
-
-ccc since we don''t know what kind of data we are dealing with,
-ccc better check it
-
-        if( snowd(ibv) .gt. w(1,ibv)-dz(1)*thetm(1,ibv)  ) then
-          write(99,*) 'snowd corrected: old=', snowd(ibv)
-          snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
-          write(99,*) '                 new=', snowd(ibv)
-          if ( snowd(ibv) .lt. -0.001d0 )
-     &         call stop_model('set_snow: neg. snow',255)
-          if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
-        endif
-
-c if there is no snow, set isn=0.  set snow variables to 0.d0
-        if(snowd(ibv).le.0.d0)then
-          dzsn(1,ibv)=0.d0
-          wsn(1,ibv)=0.d0
-          hsn(1,ibv)=0.d0
-          tsn1(ibv)=0.d0
-          fr_snow(ibv) = 0.d0
-        else
-
-c given snow, set isn=1.d0
-c!!!        dzsn(1,ibv)=snowd(ibv)/spgsn
-c!!!  replacing prev line considering rho_snow = 200
-          dzsn(1,ibv)=snowd(ibv) * 5.d0
-          wsn(1,ibv)=snowd(ibv)
-c!!! actually have to compute fr_snow and modify dzsn ...
-          fr_snow(ibv) = 1.d0
-
-c given snow, temperature of first layer can''t be positive.
-c the top snow temperature is the temperatre of the first layer.
-          if(fsn*w(1,ibv)+ht(1,ibv).lt.0.d0)then
-            tsn1(ibv)=(ht(1,ibv)+w(1,ibv)*fsn)/(shc(1,ibv)+w(1,ibv)*shi)
-          else
-            tsn1(ibv)=0.d0
-          endif
-
-c use snow temperature to get the heat of the snow
-          hsn(1,ibv)=tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
-
-c subtract the snow from the landsurface prognositic variables
-          w(1,ibv)=w(1,ibv)-wsn(1,ibv)
-          ht(1,ibv)=ht(1,ibv)-hsn(1,ibv)
-
-ccc and now limit all the snow to 5cm water equivalent
-          if ( snowd(ibv) .gt. 0.05d0 ) then
-            snowd(ibv) = 0.05d0
-            dzsn(1,ibv)= snowd(ibv) * 5.d0
-            wsn(1,ibv)= snowd(ibv)
-            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
-          endif
-ccc and now limit all the snow to 50cm water equivalent (for debug)
-cddd          if ( snowd(ibv) .gt. 0.0005d0 ) then
-cddd            snowd(ibv) = 0.5d0
+cddd      subroutine set_snow
+cddd!@sum set_snow extracts snow from the first soil layer and initializes
+cddd!@+   snow model prognostic variables
+cddd!@+   should be called when model restarts from the old restart file
+cddd!@+   ( which doesn''t contain new snow model (i.e. 3 layer) data )
+cdddc
+cdddc input:
+cdddc snowd(2) - landsurface snow depth
+cdddc w(k,2)   - landsurface water in soil layers
+cdddc ht(k,2)  - landsurface heat in soil layers
+cdddc fsn      - heat of fusion
+cdddc shi      - specific heat of ice
+cdddc shc(k,2) - heat capacity of soil layers
+cdddc
+cdddc output:
+cdddc dzsn(lsn,2) - snow layer thicknesses
+cdddc wsn(lsn,2)  - snow layer water equivalent depths
+cdddc hsn(lsn,2)  - snow layer heat contents
+cdddc tsn1(2)     - snow top temperature
+cdddc isn(2)      - 0 if no snow, 1 if snow
+cdddc nsn(2)      - number of snow layers
+cdddc snowd(2)
+cdddc w(k,2)
+cdddc ht(k,2)
+cdddc
+cdddc calling sequence:
+cdddc
+cdddc     assignment of w,ht,snowd
+cdddc     call ghinij(i,j,wfc1)
+cdddc     call set_snow
+cdddc note: only to be called when initializing from landsurface
+cdddc       prognostic variables without the snow model.
+cdddc
+cddd      use snow_model, only: snow_redistr, snow_fraction
+cddd      integer ibv
+cddd
+cdddc outer loop over ibv
+cddd      do ibv=1,2
+cddd
+cdddc initalize all cases to nsn=1
+cddd        nsn(ibv)=1
+cddd
+cdddccc since we don''t know what kind of data we are dealing with,
+cdddccc better check it
+cddd
+cddd        if( snowd(ibv) .gt. w(1,ibv)-dz(1)*thetm(1,ibv)  ) then
+cddd          write(99,*) 'snowd corrected: old=', snowd(ibv)
+cddd          snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
+cddd          write(99,*) '                 new=', snowd(ibv)
+cddd          if ( snowd(ibv) .lt. -0.001d0 )
+cddd     &         call stop_model('set_snow: neg. snow',255)
+cddd          if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
+cddd        endif
+cddd
+cdddc if there is no snow, set isn=0.  set snow variables to 0.d0
+cddd        if(snowd(ibv).le.0.d0)then
+cddd          dzsn(1,ibv)=0.d0
+cddd          wsn(1,ibv)=0.d0
+cddd          hsn(1,ibv)=0.d0
+cddd          tsn1(ibv)=0.d0
+cddd          fr_snow(ibv) = 0.d0
+cddd        else
+cddd
+cdddc given snow, set isn=1.d0
+cdddc!!!        dzsn(1,ibv)=snowd(ibv)/spgsn
+cdddc!!!  replacing prev line considering rho_snow = 200
+cddd          dzsn(1,ibv)=snowd(ibv) * 5.d0
+cddd          wsn(1,ibv)=snowd(ibv)
+cdddc!!! actually have to compute fr_snow and modify dzsn ...
+cddd          fr_snow(ibv) = 1.d0
+cddd
+cdddc given snow, temperature of first layer can''t be positive.
+cdddc the top snow temperature is the temperatre of the first layer.
+cddd          if(fsn*w(1,ibv)+ht(1,ibv).lt.0.d0)then
+cddd            tsn1(ibv)=(ht(1,ibv)+w(1,ibv)*fsn)/(shc(1,ibv)+w(1,ibv)*shi)
+cddd          else
+cddd            tsn1(ibv)=0.d0
+cddd          endif
+cddd
+cdddc use snow temperature to get the heat of the snow
+cddd          hsn(1,ibv)=tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+cddd
+cdddc subtract the snow from the landsurface prognositic variables
+cddd          w(1,ibv)=w(1,ibv)-wsn(1,ibv)
+cddd          ht(1,ibv)=ht(1,ibv)-hsn(1,ibv)
+cddd
+cdddccc and now limit all the snow to 5cm water equivalent
+cddd          if ( snowd(ibv) .gt. 0.05d0 ) then
+cddd            snowd(ibv) = 0.05d0
 cddd            dzsn(1,ibv)= snowd(ibv) * 5.d0
 cddd            wsn(1,ibv)= snowd(ibv)
 cddd            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
 cddd          endif
-
-ccc redistribute snow over the layers and recompute fr_snow
-ccc (to make the data compatible with snow model)
-          if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
-     &        call stop_model("ERR in init_snow: NaN", 255)
-
-          call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
-     &         1.d0, fr_snow(ibv) )
-          if ( fr_snow(ibv) > 0.d0 ) then
-            call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
-     &           nsn(ibv), 1.d0/fr_snow(ibv) )
-            if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
-     &        call stop_model("ERR in init_snow 2: NaN", 255)
-          else
-            snowd(ibv) = 0.d0
-            dzsn(1,ibv)=0.d0
-            wsn(1,ibv)=0.d0
-            hsn(1,ibv)=0.d0
-            tsn1(ibv)=0.d0
-            fr_snow(ibv) = 0.d0
-          endif
-
-        endif
-!!! debug : check if  snow is redistributed correctly
-        if ( dzsn(1,ibv) > 0.d0 .and. dzsn(1,ibv) < .099d0) then
-          call stop_model("set_snow: error in dz",255)
-        endif
-
-        if ( dzsn(1,ibv) > 0.d0 ) then
-          if (  wsn(1,ibv)/dzsn(1,ibv)  < .1d0)
-     &         call stop_model("set_snow: error in dz",255)
-        endif
-
-
-      enddo
-
-            if ( .not. ( hsn(1,1) > 0. .or.  hsn(1,1) <= 0. ) )
-     &        call stop_model("ERR in init_snow 2: NaN", 255)
-            if ( .not. ( hsn(1,2) > 0. .or.  hsn(1,2) <= 0. ) )
-     &        call stop_model("ERR in init_snow 2: NaN", 255)
-
-
-
-      return
-      end subroutine set_snow
-
+cdddccc and now limit all the snow to 50cm water equivalent (for debug)
+cdddcddd          if ( snowd(ibv) .gt. 0.0005d0 ) then
+cdddcddd            snowd(ibv) = 0.5d0
+cdddcddd            dzsn(1,ibv)= snowd(ibv) * 5.d0
+cdddcddd            wsn(1,ibv)= snowd(ibv)
+cdddcddd            hsn(1,ibv)= tsn1(ibv)*wsn(1,ibv)*shi-wsn(1,ibv)*fsn
+cdddcddd          endif
+cddd
+cdddccc redistribute snow over the layers and recompute fr_snow
+cdddccc (to make the data compatible with snow model)
+cddd          if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
+cddd     &        call stop_model("ERR in init_snow: NaN", 255)
+cddd
+cddd          call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
+cddd     &         1.d0, fr_snow(ibv) )
+cddd          if ( fr_snow(ibv) > 0.d0 ) then
+cddd            call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
+cddd     &           nsn(ibv), 1.d0/fr_snow(ibv) )
+cddd            if ( .not. ( hsn(1,ibv) > 0. .or.  hsn(1,ibv) <= 0. ) )
+cddd     &        call stop_model("ERR in init_snow 2: NaN", 255)
+cddd          else
+cddd            snowd(ibv) = 0.d0
+cddd            dzsn(1,ibv)=0.d0
+cddd            wsn(1,ibv)=0.d0
+cddd            hsn(1,ibv)=0.d0
+cddd            tsn1(ibv)=0.d0
+cddd            fr_snow(ibv) = 0.d0
+cddd          endif
+cddd
+cddd        endif
+cddd!!! debug : check if  snow is redistributed correctly
+cddd        if ( dzsn(1,ibv) > 0.d0 .and. dzsn(1,ibv) < .099d0) then
+cddd          call stop_model("set_snow: error in dz",255)
+cddd        endif
+cddd
+cddd        if ( dzsn(1,ibv) > 0.d0 ) then
+cddd          if (  wsn(1,ibv)/dzsn(1,ibv)  < .1d0)
+cddd     &         call stop_model("set_snow: error in dz",255)
+cddd        endif
+cddd
+cddd
+cddd      enddo
+cddd
+cddd            if ( .not. ( hsn(1,1) > 0. .or.  hsn(1,1) <= 0. ) )
+cddd     &        call stop_model("ERR in init_snow 2: NaN", 255)
+cddd            if ( .not. ( hsn(1,2) > 0. .or.  hsn(1,2) <= 0. ) )
+cddd     &        call stop_model("ERR in init_snow 2: NaN", 255)
+cddd
+cddd
+cddd
+cddd      return
+cddd      end subroutine set_snow
+cddd
 !-----------------------------------------------------------------------
 
 #ifdef TRACERS_WATER
