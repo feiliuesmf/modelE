@@ -314,7 +314,7 @@ chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 open I, ">I" or die "can't open 'I' for writing\n";
 ## Check signature
 $_ = <RFILE>;
-if ( ! /^\s*$runID/ ) {
+if ( ! /^\s*$runID[ (]/ ) {
     print "inconsistent Naming: $rfile is not start of $_\n" ;
     exit 1;
 }
