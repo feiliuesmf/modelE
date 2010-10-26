@@ -2972,7 +2972,8 @@ c***** "instantaneous" is a relative term.)
                       datar8=datar8+ttausv_cs_save(:,:,n,L)
 #ifdef NEW_IO_SUBDD
                       units_of_data='1'
-                      long_name = 'Total Clear Sky Aerosol Optical Depth'
+                      long_name =
+     &                     'Total Clear Sky Aerosol Optical Depth'
 #endif
                     end select
                   end if
