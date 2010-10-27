@@ -291,7 +291,7 @@ C**** Files for an accumulation period (1-12 months)
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
 C**** Initiallise file for sub-daily diagnostics, controlled by space-
-C**** separated string segments in SUBDD,SUBDD{1,2,3} in the rundeck
+C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       call init_subdd(aDATE)
       call sys_flush(6)
 

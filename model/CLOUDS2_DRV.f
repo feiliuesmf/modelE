@@ -6,7 +6,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
-     *     ,teeny,sday
+     *     ,teeny,sday,undef
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,focean,fland,flice,jyear,jmon
@@ -48,7 +48,7 @@
      *     jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,ij_sisnwf,
      *     ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr,
      *     saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI,
-     *     saveTCLDI,
+     *     saveTCLDI,saveMCCLDTP,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -404,6 +404,7 @@ C**** Find the ntx active tracers ntix(1->ntx)
 #endif
 
 #endif
+      saveMCCLDTP(:,:)=undef
 
 
       numThreads = 1 ! no openmp
@@ -810,6 +811,8 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
         AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
 #endif
+        ! Also save instantaneous MC cloud top pressure for SUBDDiags:
+        saveMCCLDTP(i,j)=PLE(LMCMAX+1)
 
         HCNDMC=0.
         DO L=1,LMCMAX

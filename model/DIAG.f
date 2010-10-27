@@ -1239,7 +1239,7 @@ C****
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
-      INTEGER, PARAMETER :: kddmax = 42
+      INTEGER, PARAMETER :: kddmax = 55
 !@var kdd total number of sub-daily diags
       INTEGER :: kdd
 !@var kddunit total number of sub-daily files
@@ -1249,13 +1249,15 @@ C****
 !@var iu_subdd array of unit numbers for sub-daily diags output
       INTEGER, DIMENSION(kddmax) :: iu_subdd
 !@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
-      CHARACTER*256 :: subddt = " "
+      CHARACTER*320 :: subddt = " "
 !@dbparam subdd string contains variables to save for sub-daily diags
 !@dbparam subdd1 additional string of variables for sub-daily diags
 !@dbparam subdd2 additional string of variables for sub-daily diags
 !@dbparam subdd3 additional string of variables for sub-daily diags
+!@dbparam subdd4 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
-      CHARACTER*64 :: subdd="SLP", subdd1=" ", subdd2=" ", subdd3=" "
+      CHARACTER*64 :: subdd="SLP", 
+     & subdd1=" ", subdd2=" ", subdd3=" ", subdd4=" "
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@dbparam LmaxSUBDD: the max L when writing "ALL" levels
@@ -1326,13 +1328,14 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       call sync_param( "subdd1" ,subdd1)
       call sync_param( "subdd2" ,subdd2)
       call sync_param( "subdd3" ,subdd3)
+      call sync_param( "subdd4" ,subdd4)
       call sync_param( "Nsubdd",Nsubdd)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
       if (nsubdd.ne.0) then
-C**** combine strings subdd, subdd1, subdd2, and subdd3:
-        subddt=
-     &  trim(subdd)//' '//trim(subdd1)//' '//trim(subdd2)//' '//subdd3
+C**** combine strings subdd, subdd1...4:
+        subddt=trim(subdd)//' '//
+     &  trim(subdd1)//' '//trim(subdd2)//' '//trim(subdd3)//' '//subdd4
 C**** calculate how many names
         k=0
         i=1
@@ -1551,7 +1554,7 @@ c get_subdd
 !@+                    SO4, RAPR
 !@+                    7BEW, 7BED, BE7ATM
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
-!@+                    TAUSS,TAUMC,CLDSS,CLDMC
+!@+                    TAUSS,TAUMC,CLDSS,CLDMC,MCCTP
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
 !@+                    TrSMIXR surface mixing ratio for all tracers [kg/kg]
@@ -1607,7 +1610,7 @@ c get_subdd
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
-     * ,saveSCLDI,saveTCLDI
+     * ,saveSCLDI,saveTCLDI,saveMCCLDTP
 #ifdef TES_LIKE_DIAGS
      * ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2131,8 +2134,6 @@ c          datar8=sday*prec/dtsrc
               do i=I_0,imaxj(j)
                 if(saveSCLDI(i,j)==0.)then
                   datar8(i,j) = undef
-                else if(saveSCLDI(i,j) > 1.)then        ! can remove
-                  call stop_model("greg temp stop1",13) ! two lines
                 else
                   datar8(i,j) = 100.d0*saveHCLDI(i,j)!/1.
                 endif
@@ -2187,8 +2188,6 @@ c          datar8=sday*prec/dtsrc
               do i=I_0,imaxj(j)
                 if(saveTCLDI(i,j)==0.)then
                   datar8(i,j) = undef
-                else if(saveTCLDI(i,j) > 1.)then        ! can remove
-                  call stop_model("greg temp stop2",13) ! two lines
                 else
                   datar8(i,j) = saveCTPI(i,j)!/1.
                 endif
@@ -2218,6 +2217,12 @@ c          datar8=sday*prec/dtsrc
 #ifdef NEW_IO_SUBDD
           units_of_data = '1'
           long_name = 'cloud optical depth isccp'
+#endif
+        case ("MCCTP")   ! MOIST CONVECTIVE CLOUD TOP PRESSURE
+          datar8=saveMCCLDTP
+#ifdef NEW_IO_SUBDD
+          units_of_data = 'mb'
+          long_name = 'moist convective cloud top pressure'
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)

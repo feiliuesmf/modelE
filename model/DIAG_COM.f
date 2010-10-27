@@ -314,9 +314,11 @@ C**** parameters and variables for ISCCP diags
 #endif
 #endif
 !@var save{H,M,L}CLDI,saveCTPI,saveTAUI,save{S,T}CLDI: SUBDDiag
-!@+  instantanwous save arrays for ISCCP cloud variables
+!@+  instantaneous save arrays for ISCCP cloud variables
+!@var saveMCCLDTP instnt.SUBDD moist convective cloud top pressure
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: saveHCLDI,
-     & saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI,saveTCLDI
+     & saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI,saveTCLDI,
+     & saveMCCLDTP
 C**** Instantaneous constant pressure level fields
 !@var Z_inst saved instantaneous height field (at PMB levels)
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
@@ -902,7 +904,7 @@ c instances of arrays
      *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
      *     ,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI
-     *     ,saveTCLDI
+     *     ,saveTCLDI,saveMCCLDTP
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
      &     ,AGC_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
@@ -960,6 +962,7 @@ c instances of arrays
      &         saveTAUI(I_0H:I_1H,J_0H:J_1H),
      &         saveSCLDI(I_0H:I_1H,J_0H:J_1H),
      &         saveTCLDI(I_0H:I_1H,J_0H:J_1H),
+     &         saveMCCLDTP(I_0H:I_1H,J_0H:J_1H),
 #ifdef TES_LIKE_DIAGS
      &         Q_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
      &         T_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
