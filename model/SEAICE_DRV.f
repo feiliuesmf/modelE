@@ -853,7 +853,7 @@ c         debug=i.eq.40.and.j.eq.41
 #endif
 C**** ice formation diagnostics on the atmospheric grid
 ! define open ocean ice formation as frazil ice growth    
-        AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POICE*ACEFO
+        AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POCEAN*ACEFO
 ! define under ice formation as congelation ice growth    
         AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)+POICE*ACEFI
 

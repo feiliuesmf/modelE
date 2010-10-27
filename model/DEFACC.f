@@ -3870,7 +3870,7 @@ c
       name_ij(k) = 'grfraz_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SIGRCG = k
@@ -3879,7 +3879,7 @@ c
       name_ij(k) = 'grcong_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SIGRLT = k   ! i.e. negative of lateral melt
@@ -3888,7 +3888,7 @@ c
       name_ij(k) = 'grlat_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
@@ -3897,7 +3897,7 @@ c
       name_ij(k) = 'snotoice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SITOPMLT = k
@@ -3906,7 +3906,7 @@ c
       name_ij(k) = 'topmlt_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SIBOTMLT = k
@@ -3915,7 +3915,7 @@ c
       name_ij(k) = 'botmlt_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
+      denom_ij(k) = IJ_POCEAN
 c
       k=k+1
       IJ_SIHC = k   ! note this is referenced to water at 0 deg C
