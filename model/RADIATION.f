@@ -485,7 +485,9 @@ C     ------------------------------------------------------------------
       INTEGER ia,idd,ndd,m,mi,mj,i,j,l,n,jyearx,iy,jy,iyc,jyc,iyp,jyp
       REAL*8 wti,wtj,cwti,cwtj,pwti,pwtj,xmi,wtmi,wtmj
       REAL*8 , PARAMETER :: Za720=2635. ! depth of low cloud region (m)
-      REAL*8 xsslt,byz ! ,xdust
+      real*8, parameter :: byz_cm3 = 1.d-6 / Za720 ! 1d-6/depth in m (+conversion /m3 -> /cm3)
+      real*8, parameter :: byz_gcm3 = 1.d-3 * byz_cm3 ! g vs kg
+      REAL*8 xsslt ! ,xdust
 
 
       logical, save :: init = .false.
@@ -518,7 +520,7 @@ c read table sizes then close
         allocate( ssadd (ima,jma,lma,2) )
         if (.not.associated(A6JDAY)) allocate(A6JDAY(lma,6,ima,jma))
         allocate( A6YEAR2 (ima,jma,lma,2,6) )
-        allocate( md1850 (4,ima,jma,2) )
+        allocate( md1850 (4,ima,jma,0:12) )
         allocate( anfix (ima,jma,2) )
 
         allocate(table%anssdd(ima,jma))
@@ -527,6 +529,21 @@ c read table sizes then close
 
         read(ifile) plbaer
         call closeUnit(ifile)
+
+!**** Pre-industrial mass densities
+        do m = 1, 12
+          call readTable(RDFILE(1), SULDD(:,:,:,1,1), month=m,decade=1)
+          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:5,1,1), DIM=3)
+          call readTable(RDFILE(3), NITDD(:,:,:,1,1), month=m,decade=1)
+          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:5,1,1), DIM=3)
+          call readTable(RDFILE(4), OCADD(:,:,:,1,1), month=m,decade=1)
+          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:5,1,1), DIM=3)
+          call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
+          call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
+          md1850(4,:,:,m) = byz_cm3 * (
+     &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) + 
+     &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
+        end do
 
       end if
 
@@ -595,21 +612,13 @@ C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 
 !!!   xdust=.33/(2000.*4.1888*(.40d-6)**3)     ! f/[rho*4pi/3*r^3] (/kg)
         xsslt=1.d0/(2000.*4.1888*(.44d-6)**3) ! x/particle-mass (/kg)
-c za720 should be changed to be consistent with top of level 5 in 20L
-        byz = 1d-6/za720        ! 1d-6/depth in m (+conversion /m3 -> /cm3)
 
         do J=1,jma
           do I=1,ima
 c SUM to L=5 for low clouds only
 c Using 1890 not 1850 values here
             anfix(i,j,im) = 0.   !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +           +    byz * SUM(SSADD(I,J,1:5,im)) * Xsslt
-C****   md1850(1:4,i,j,m)  !  mass density (kg/cm^3): SO4, NO3, OC, BCB
-            md1850(1,i,j,im) = byz * SUM(SULDD(I,J,1:5,im,1))
-            md1850(2,i,j,im) = byz * SUM(NITDD(I,J,1:5,im,1))
-            md1850(3,i,j,im) = byz * SUM(OCADD(i,j,1:5,im,1))
-            md1850(4,i,j,im) = byz *(SUM(BCBDD(I,J,1:5,im,1))
-     *           + SUM(BCADD(I,J,1:5,im,1)))
+     +           +    byz_cm3 * SUM(SSADD(I,J,1:5,im)) * Xsslt
           end do
         end do
 
@@ -686,31 +695,29 @@ C      -----------------------------------------------------------------
       MI=XMI
       WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYA
       WTMI=1.D0-WTMJ
-
-      MI = 1
-      MJ = 2
+      IF(MI > 11) MI=0
+      MJ=MI+1
 
       DO 510 J=1,jma
       DO 510 I=1,ima
       DO 510 N=1,6
       DO 510 L=1,lma
-      A6JDAY(L,N,I,J)=WTMI*A6YEAR2(I,J,L,MI,N)+WTMJ*A6YEAR2(I,J,L,MJ,N)
+      A6JDAY(L,N,I,J)=WTMI*A6YEAR2(I,J,L,1,N)+WTMJ*A6YEAR2(I,J,L,2,N)
   510 CONTINUE
 
 C**** Needed for aerosol indirect effect parameterization in GCM
-      byz=1d-9/za720
       do j=1,jma
       do i=1,ima
 C**** sea salt, desert dust
-        table%anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
+        table%anssdd(i,j) = WTMI*anfix(i,j,1)+WTMJ*anfix(i,j,2)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         table%mdpi(:,i,j) = 
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J)) * byz/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J)) * byz/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J)) * byz/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J)) * byz/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J)) * byz/drym2g(5)
+        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J))*byz_gcm3/drym2g(1)
+        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J))*byz_gcm3/drym2g(3)
+        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J))*byz_gcm3/drym2g(4)
+        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J))*byz_gcm3/drym2g(6)
+        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J))*byz_gcm3/drym2g(5)
       end do
       end do
 
@@ -836,7 +843,7 @@ C                                        2000                     2050
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-
+      use resolution, only : lm_gcm=>lm
       use IndirectAerParam_mod
       IMPLICIT NONE
 
@@ -851,7 +858,9 @@ C--------------------------------------------------
 !@+              but it cannot exceed LX.
 !@+   Since the GCM uses 3 radiative equilibrium layers on top of the
 !@+   model atmosphere, the number LM of GCM layers may be at most LX-3.
-      INTEGER, PARAMETER :: LX = 54+3
+      !INTEGER, PARAMETER :: LX = 54+3
+      !INTEGER, PARAMETER :: LX = lm_gcm+4  ! should be sufficient
+      INTEGER, PARAMETER :: LX = max(lm_gcm,53)+4
 
 !     optional repartitioning of gases - OFFLINE use only
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
