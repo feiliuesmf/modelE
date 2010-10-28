@@ -5474,6 +5474,9 @@ C****
         k = ij_pocean
         aij(i,j,k) = idacc(ia_ij(k))*focean(i,j)
 
+        k = ij_pwater
+        aij(i,j,k) = idacc(ia_ij(k))*focean(i,j)+aij(i,j,ij_lk)
+
         k = ij_tatm
         aij(i,j,k) = sum(aijl(i,j,:,ijk_tx))
 

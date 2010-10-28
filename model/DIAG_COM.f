@@ -533,7 +533,7 @@ C****      names, indices, units, idacc-numbers, etc.
 #endif
 c weighting fractions
       INTEGER, public :: IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR
-     *     ,IJ_BSFR,IJ_POPWAT 
+     *     ,IJ_BSFR,IJ_POPWAT,IJ_PWATER
 c derived/composite diagnostics
       INTEGER, public ::
      *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,

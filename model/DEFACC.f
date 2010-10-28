@@ -1104,7 +1104,7 @@ c
       lname_ij(k) = 'OCEAN FRACTION'
       units_ij(k) = '%'
       name_ij(k) = 'ocnfr'
-      ia_ij(k) = ia_srf
+      ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
       k=k+1 !
@@ -1120,6 +1120,14 @@ c
       lname_ij(k) = 'OPEN WATER FRACTION'    ! (focean+flake)*(1-rsi)
       units_ij(k) = '%'
       name_ij(k) = 'opwatfr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_PWATER = k
+      lname_ij(k) = 'WATER FRACTION'    ! (focean+flake)
+      units_ij(k) = '%'
+      name_ij(k) = 'pwatfr'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
@@ -3870,7 +3878,7 @@ c
       name_ij(k) = 'grfraz_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SIGRCG = k
@@ -3879,7 +3887,7 @@ c
       name_ij(k) = 'grcong_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SIGRLT = k   ! i.e. negative of lateral melt
@@ -3888,7 +3896,7 @@ c
       name_ij(k) = 'grlat_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
@@ -3897,7 +3905,7 @@ c
       name_ij(k) = 'snotoice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SITOPMLT = k
@@ -3906,7 +3914,7 @@ c
       name_ij(k) = 'topmlt_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SIBOTMLT = k
@@ -3915,7 +3923,7 @@ c
       name_ij(k) = 'botmlt_oice'
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
-      denom_ij(k) = IJ_POCEAN
+      denom_ij(k) = IJ_PWATER
 c
       k=k+1
       IJ_SIHC = k   ! note this is referenced to water at 0 deg C
