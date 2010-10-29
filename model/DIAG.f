@@ -5383,7 +5383,7 @@ C****
      &     kaij,hemis_ij,jgrid_ij,
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
      *     ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
-     *     ij_netrdp, ij_albp, ij_albg, ij_albv,
+     *     ij_netrdp, ij_albp, ij_albg, ij_albv,   ij_pwater, ij_lk,
      *     ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
