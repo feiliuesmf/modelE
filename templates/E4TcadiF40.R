@@ -125,7 +125,7 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.51  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 
