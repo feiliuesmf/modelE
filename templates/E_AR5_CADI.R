@@ -1,7 +1,7 @@
 E_AR5_CADI.R GISS Model E  1850 ocn/atm     Larissa    10/12/2010
 
 E_AR5_CADI: E_AR5_CAD + computed aerosol 1st indirect effect;
-            U00a=0.56, U00b=1.00, WMUI_multiplier = 2.
+            U00a=0.54, U00b=1.00, WMUI_multiplier = 2.
 
 E4F40: modelE as frozen (or not yet) in July 2009
 modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
@@ -128,7 +128,7 @@ E_AR5_CADI (E_AR5_CAD + computed aerosol 1st indirect effect)
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.56  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 
