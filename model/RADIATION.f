@@ -843,7 +843,9 @@ C                                        2000                     2050
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
-      use resolution, only : lm_gcm=>lm
+#ifndef USE_RAD_OFFLINE
+      use model_com, only : lm_gcm=>lm, lm_req
+#endif
       use IndirectAerParam_mod
       IMPLICIT NONE
 
@@ -856,12 +858,13 @@ C--------------------------------------------------
 !@+   The Radiation Model can accomodate  arbitrary vertical resolution,
 !@+              the number of layers may be time or location dependent,
 !@+              but it cannot exceed LX.
-!@+   Since the GCM uses 3 radiative equilibrium layers on top of the
-!@+   model atmosphere, the number LM of GCM layers may be at most LX-3.
-      !INTEGER, PARAMETER :: LX = 54+3
-      !INTEGER, PARAMETER :: LX = lm_gcm+4  ! should be sufficient
-      INTEGER, PARAMETER :: LX = max(lm_gcm,53)+4
-
+#ifndef USE_RAD_OFFLINE
+!@+   The GCM uses LM_REQ radiative equilibrium layers on top of the LM
+!@+   atmospheric layers
+      INTEGER, PARAMETER :: LX = lm_gcm+lm_req
+#else
+      INTEGER, PARAMETER :: LX = 57
+#endif
 !     optional repartitioning of gases - OFFLINE use only
 !@var MRELAY if not 0, gases/aerosols are repartitioned to new layering
 !@var KEEP10 if =10 N2 is kept, not repartitioned    (only if MRELAY>0)
@@ -3081,7 +3084,9 @@ C
 !!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+#ifndef USE_RAD_OFFLINE
       USE PARAM
+#endif
       IMPLICIT NONE
 
 !     In 2003, 9 decadal files and an ozone trend data file have been
@@ -3161,6 +3166,7 @@ C**** Deal with out-of-range years (incl. starts before 1850)
 
       IF(IFIRST==1) THEN
 
+#ifndef USE_RAD_OFFLINE
       call sync_param("use_sol_Ox_cycle",use_sol_Ox_cycle)
 
       if(use_sol_Ox_cycle==1)then
@@ -3172,7 +3178,7 @@ C**** Deal with out-of-range years (incl. starts before 1850)
         delta_O3_max_min(:,:,:,0)=delta_O3_max_min(:,:,:,12)
         call closeunit (idfile)
       endif
-
+#endif
       if(plbo3(1) < plb0(1)) plbo3(1)=plb0(1)                  ! ??
       IF(MADO3M < 0) then
 C****   Find O3 data files and fill array IYEAR from title(1:4)
@@ -4023,7 +4029,9 @@ C                                                                -------
 
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
+#ifdef TRACERS_AMP
       USE MODEL_COM, only :LM
+#endif
       IMPLICIT NONE
       INTEGER, optional :: GETAER_flag
 C     ---------------------------------------------------------------
@@ -4060,8 +4068,10 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC
+#ifdef TRACERS_AMP
       REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
       REAL*8, DIMENSION(LM,33) :: TAB
+#endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
       if ( present(GETAER_flag) ) goto 200
