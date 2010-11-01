@@ -8210,8 +8210,10 @@ C              ---------------------------------------------------------
       SKDFLB(L,17) = sum (SKDFLB(L,1:16))
       SKUFLB(L,17) = sum (SKUFLB(L,1:16))
       SKNFLB(L,17) = sum (SKNFLB(L,1:16))
-      SKFHRL(L,17) = sum (SKFHRL(L,1:16))
   560 CONTINUE
+      DO L=L1,NL
+        SKFHRL(L,17) = sum (SKFHRL(L,1:16))
+      END DO
 
       RETURN
       END SUBROUTINE SOLARM
