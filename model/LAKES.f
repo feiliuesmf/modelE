@@ -2179,10 +2179,11 @@ C**** update lake mass/energy
 ! mixed layer depth and surface temperature adjustments for lakes
         if (FLAKE(I,J).gt.0) THEN 
           if (MWL_to_irrig.lt.MLDLK(I,J)*FLAKE(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
-          MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)*RHOW)
-            if (MLDLK(I,J).LT.MINMLD) THEN ! bring up from layer 2 
-              M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J)  ! kg
-              M2=max(MWL(I,J)-M1,0d0)
+            MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)
+     *           *RHOW)
+            M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J) ! kg
+            M2=max(MWL(I,J)-M1,0d0)
+            if (MLDLK(I,J).LT.MINMLD .and. M2.gt.0) THEN ! bring up from layer 2 
               E1=TLAKE(I,J)*SHW*M1
               E2=GML(I,J)-E1
               DM=max(MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1,0d0) ! kg
@@ -2194,7 +2195,7 @@ C**** update lake mass/energy
               TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DM*TRLAKE(:,2,I,J)/
      *             (M2+teeny)
 #endif
-              MLDLK(I,J) = MINMLD
+              MLDLK(I,J) = MLDLK(I,J) + DM/(FLAKE(I,j)*AXYP(I,J)*RHOW)
             end if
           else ! all layer 1 and some layer 2 gone, relayer
             MLDLK(I,J)=MWL(I,J)/(FLAKE(I,J)*AXYP(I,J)*RHOW)
