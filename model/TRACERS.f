@@ -2580,8 +2580,7 @@ c****   Interpolate two months of data to current day
           if(xyear>k .or. (xyear==k.and.xday>=183)) then
             if(xyear<k+kstep .or. (xyear==k+kstep.and.xday<183))then
               ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-              alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
-     &              (365.d0*real(kstep))
+              alpha=real(xyear-k)/real(kstep)
               kx=k
               exit
             endif
@@ -2637,9 +2636,9 @@ c****   Interpolate two months of data to current day
         data(I_0:I_1,J_0:J_1)=sfc_a(I_0:I_1,J_0:J_1)*(1.d0-alpha) + 
      &  sfc_b(I_0:I_1,J_0:J_1)*alpha
 
-        write(out_line,'(a,1X,a,a4,F9.4,a16,I4,a8,I4,a22,F9.4)')
+        write(out_line,'(a,1X,a,a4,F9.4,a21,I4,a13,I4,a22,F9.4)')
      &  trim(nameT(n,ns)),trim(ssname(n,ns)),' at ',100.d0*alpha,
-     &  '% of period mid ',kx,' to mid ',kx+kstep,
+     &  '% of period this day ',kx,' to this day ',kx+kstep,
      &  ' and monthly fraction=',frac
         call write_parallel(trim(out_line))
  

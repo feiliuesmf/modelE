@@ -2460,8 +2460,7 @@ c**** Interpolate two months of data to current day
           if(jyear>k .or. (jyear==k.and.jday>=183)) then
             if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
               ipos=1+(k-yr1)/kstep ! (integer artithmatic)
-              alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
-     &              (365.d0*real(kstep))
+              alpha=real(jyear-k)/real(kstep)
               exit
             endif
           endif
@@ -2547,7 +2546,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
 
       write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period mid ',k,' to mid ',k+kstep,
+     &100.d0*alpha,' % of period this day ',k,' to this day ',k+kstep,
      &' and monthly fraction= ',frac
       call write_parallel(trim(out_line))
 
