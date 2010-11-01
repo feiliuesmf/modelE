@@ -1197,6 +1197,7 @@ c
       name_ij(k) = 'pr_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
+      denom_ij(k) = IJ_LI
 c
       k=k+1 !
       IJ_PRECGR = k ! PREC OVER EARTH (mm/day)       1 CN
@@ -1205,6 +1206,7 @@ c
       name_ij(k) = 'pr_grnd'
       ia_ij(k) = ia_src
       scale_ij(k) = SDAY/DTsrc
+      denom_ij(k) = IJ_PSOIL
 c
       k=k+1 !
       IJ_PRECOO = k ! PREC OVER OPEN OCEAN (mm/day)       1 CN
