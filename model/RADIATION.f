@@ -7,7 +7,7 @@
 
 
       implicit none
-      private 
+      private
 
       public :: AerosolTables_type
       public :: dCDNC_est
@@ -23,7 +23,7 @@
         real*8, pointer :: mdcur(:,:,:) => null()
       end type AerosolTables_type
 
-      real*8 :: DRYM2G(8) = 
+      real*8 :: DRYM2G(8) =
      &     (/4.667, 0.866, 4.448, 5.017, 9.000, 9.000, 1.000,1.000/)
 
 C     Layer  1    2    3    4    5    6    7    8    9
@@ -105,7 +105,7 @@ C     ------------------------------------------------------------------
       real*8, dimension(:), pointer ::  plbaer
       type (AerosolTables_type) :: table
 
-      real*4, allocatable, dimension(:,:,:,:,:) :: A6YEAR, 
+      real*4, allocatable, dimension(:,:,:,:,:) :: A6YEAR,
      &     PREDD, SUIDD, OCIDD, BCIDD
       REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
       save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD,md1850,anfix ! ,mddust
@@ -204,7 +204,7 @@ C                                       --------------------------------
       inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
       if(qexist) RDFILE=RDFGEN              !     generic names are used
       inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
-      if(.not.qexist) 
+      if(.not.qexist)
      &     call stop_model('updateAerosol: no TropAero files',255)
 
 !**** Pre-industrial data
@@ -402,7 +402,7 @@ C**** Needed for aerosol indirect effect parameterization in GCM
 C**** sea salt, desert dust
          table%anssdd(i,j) = WTMI*anfix(i,j,mi)+WTMJ*anfix(i,j,mj)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
-         table%mdpi(:,i,j) = 
+         table%mdpi(:,i,j) =
      &        WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
          table%mdcur(1,i,j) = SUM(A6JDAY(1:La720,1,I,J)) * byz/drym2g(1)
          table%mdcur(2,i,j) = SUM(A6JDAY(1:La720,3,I,J)) * byz/drym2g(3)
@@ -494,7 +494,7 @@ C     ------------------------------------------------------------------
       integer :: idxMonth0, idxMonth1
       integer :: idxDecade0, idxDecade1
       logical :: updateTable
-      
+
       integer, save :: decadeNow = -9999
       integer, save :: yearNow = -9999
       integer, save :: monthNow = -1
@@ -541,7 +541,7 @@ c read table sizes then close
           call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
           call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
           md1850(4,:,:,m) = byz_cm3 * (
-     &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) + 
+     &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) +
      &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
         end do
 
@@ -551,7 +551,7 @@ c read table sizes then close
       call getRefDecade(jjdaya, jyeara, idxMonth0, ndeca, fdeca, ldeca,
      &     idxDecade0)
 
-      updateTable = (idxMonth0 /= monthNow .or. 
+      updateTable = (idxMonth0 /= monthNow .or.
      &     idxDecade0 /= decadeNow )
 
       if (updateTable) then
@@ -564,13 +564,13 @@ c read table sizes then close
             mm = idxMonth0
             m = mm
             if (m == 0) m = 12
-            call getRefDecade(jjdaya, jyeara, idxMonth0, 
+            call getRefDecade(jjdaya, jyeara, idxMonth0,
      &         ndeca, fdeca, ldeca,
      &         idxDecade0)
           case (2)
             mm = idxMonth0 + 1
             m = mm
-            call getRefDecade(jjdaya, jyeara, idxMonth0+1, 
+            call getRefDecade(jjdaya, jyeara, idxMonth0+1,
      &         ndeca, fdeca, ldeca,
      &         idxDecade0)
           end select
@@ -588,10 +588,10 @@ c read table sizes then close
             end select
 
 !**** Sulfate
-            call readTable(RDFILE(1), SULDD(:,:,:,im,id), month=m, 
+            call readTable(RDFILE(1), SULDD(:,:,:,im,id), month=m,
      &           decade=idd)
 !**** Nitrate
-            call readTable(RDFILE(3), NITDD(:,:,:,im,id), month=m, 
+            call readTable(RDFILE(3), NITDD(:,:,:,im,id), month=m,
      &           decade=idd)
 !**** Organic Carbon
             call readTable(RDFILE(4), OCADD(:,:,:,im,id), month=m,
@@ -600,10 +600,10 @@ c read table sizes then close
             call readTable(RDFILE(5), BCADD(:,:,:,im,id), month=m,
      &           decade=idd)
 !**** Black Carbon from Biomass burning
-            call readTable(RDFILE(6), BCBDD(:,:,:,im,id), month=m, 
+            call readTable(RDFILE(6), BCBDD(:,:,:,im,id), month=m,
      &           decade=idd)
           end do
-        
+
 C**** Prepare for aerosol indirect effect parameterization:
 C     - Collect the monthly aerosol number densities (an) for the time
 C       independent aerosols (desert dust and sea salt)       an:  /cm^3
@@ -711,7 +711,7 @@ C**** Needed for aerosol indirect effect parameterization in GCM
 C**** sea salt, desert dust
         table%anssdd(i,j) = WTMI*anfix(i,j,1)+WTMJ*anfix(i,j,2)
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
-        table%mdpi(:,i,j) = 
+        table%mdpi(:,i,j) =
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
         table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J))*byz_gcm3/drym2g(1)
         table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J))*byz_gcm3/drym2g(3)
@@ -730,7 +730,7 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
 
       idxMonth0 = (day + day + 31 - (day+15)/61 + (day+14)/61) / 61.d+0
       if (idxMonth0 > 11) idxMonth0 = 0
-      
+
       end subroutine getRefMonth
 
       subroutine getRefDecade(day, year, month, ndeca, fdeca, ldeca,
@@ -749,7 +749,7 @@ C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
       else
         refYear = min(year + (day+15)/366,2050)
       end if
-      
+
       if (refYear < fdeca) then
         idxDecade0 = 1
       else if (refYear > ldeca) then
@@ -1813,7 +1813,7 @@ C              ---------------------------------------------------------
       TRACER(:,:) = 0
 
       IF(LASTVC > 0) CALL SETATM
-      IF(NL+1 > LX)   call stop_model('rcomp1: increase LX',255)
+      IF(NL > LX)   call stop_model('rcomp1: increase LX',255)
 
 C**** Use (global mean) pressures to get standard mid-latitude summer
 C**** values for height, density, temperature, ozone, water vapor
@@ -2175,7 +2175,7 @@ C                  -----------------------------------------------------
   699 CONTINUE
 
 C-----------------------------------------------------------------------
-CR(7)        Read Stratospheric Volcanic binary data 
+CR(7)        Read Stratospheric Volcanic binary data
 C            (NVOLMON months (years JVOLYI to JVOLYE) x 24 latitudes)
 C            If KyearV<0 use the NVOLMON-month mean as background aerosol
 C            ---------------------------------------------------------
@@ -2184,7 +2184,7 @@ C            ---------------------------------------------------------
       READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE
       IF(TITLE(1:9).ne.'OD Header')
      &     call stop_model('rcomp1: use new RADN7 header file',255)
-      ALLOCATE (V4TAUR(NVOLMON,24,5),VTAUR4(NVOLMON,24))          
+      ALLOCATE (V4TAUR(NVOLMON,24,5),VTAUR4(NVOLMON,24))
       DO K=1,5
         READ (NRFU) TITLE,VTAUR4
         DO J=1,24
@@ -10470,10 +10470,10 @@ C
       IF(JMONTH < 1) JJDAY=JDAY
       K=6
       IF (MADAER.eq.3) THEN ! newer aerosol fields
-      IF(KAEROS==1.OR.KAEROS > 3) 
+      IF(KAEROS==1.OR.KAEROS > 3)
      &       CALL updateAerosol2(JYRREF,JJDAY,a6jday, plbaer, table)
       ELSE
-      IF(KAEROS==1.OR.KAEROS > 3) 
+      IF(KAEROS==1.OR.KAEROS > 3)
      &       CALL updateAerosol(JYRREF,JJDAY, a6jday, plbaer, table)
       ENDIF
       IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST(JYRREF,JJDAY)
