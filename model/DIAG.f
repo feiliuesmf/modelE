@@ -123,6 +123,9 @@ C**** Some local constants
      *     ,jk_cldwtr,jk_cldice
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,o_inst,x_inst,n_inst,m_inst
+#endif
 #ifdef TES_LIKE_DIAGS
      *     ,t_more,q_more,kgz_max_more,PMBmore
 #ifdef TRACERS_SPECIAL_Shindell
@@ -339,6 +342,10 @@ C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
           L=1
           rh_inst(:,i,j) = undef ; t_inst(:,i,j) = undef
           z_inst(:,i,j) = undef
+#ifdef TRACERS_SPECIAL_Shindell
+          o_inst(:,i,j) = undef ; x_inst(:,i,j) = undef
+          n_inst(:,i,j) = undef ; m_inst(:,i,j) = undef
+#endif
  172      L=L+1
           PDN=PMID(L-1,I,J)
           PL=PMID(L,I,J)
@@ -385,6 +392,27 @@ C**** calculate geopotential heights + temperatures
             QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
             RH_inst(K,I,J)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
             T_inst(K,I,J) =TIJK
+#ifdef TRACERS_SPECIAL_Shindell
+            pfact=(PMB(K)-PL)/(PDN-PL)
+              chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
+     &        (am(L-1,i,j)*axyp(i,j))
+            o_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
+     &        (am(L-1,i,j)*axyp(i,j))
+            x_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*mNO2(i,j,L)
+              chemLm1=1.d6*mNO2(i,j,L-1)
+            n_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
+     &        (am(L-1,i,j)*axyp(i,j))
+            m_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+#endif
             if (qpress) then
               AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
               AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
@@ -1611,6 +1639,9 @@ c get_subdd
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
      * ,saveSCLDI,saveTCLDI,saveMCCLDTP
+#ifdef TRACERS_SPECIAL_Shindell
+     * ,o_inst,n_inst,m_inst,x_inst
+#endif
 #ifdef TES_LIKE_DIAGS
      * ,t_more,q_more
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2504,6 +2535,32 @@ C**** get pressure level
                 units_of_data = 'C'
                 long_name = 'Temperature at '//trim(PMNAME(kp))//' hPa'
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+              case ("O")        ! Ox  tracer (ppmv)
+                datar8=O_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Ox tracer at '//trim(PMNAME(kp))//' hPa'
+#endif
+              case ("X")        ! NOx  tracer (ppmv)
+                datar8=X_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NOx tracer at '//trim(PMNAME(kp))//' hPa'
+#endif
+              case ("M")        ! CO  tracer (ppmv)
+                datar8=M_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'CO tracer at '//trim(PMNAME(kp))//' hPa'
+#endif
+              case ("N")        ! NO2 non-tracer (ppmv)
+                datar8=N_inst(kp,:,:)
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NO2 at '//trim(PMNAME(kp))//' hPa'
+#endif
+#endif /* TRACERS_SPECIAL_Shindell */
               end select
               polefix=.true.
               data=datar8
@@ -2559,7 +2616,7 @@ C**** get pressure level
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer)'
 #endif
-#endif
+#endif /* TRACERS_SPECIAL_Shindell */
               end select
               polefix=.true.
               kgz_max_more_suffixes(kp)=trim(PMNAMEmore(kp))//'_hPa'
@@ -2574,7 +2631,7 @@ C**** get pressure level
 #endif
             cycle
           end if
-#endif
+#endif /* TES_LIKE_DIAGS */
 
           if (namedd(k)(2:4) .eq. "ALL") then
             do kp=1,kgz_max
@@ -2592,27 +2649,52 @@ C**** get pressure level
                 units_of_data = '%'
                 long_name = 'Relative Humidity'
 #endif
+
+#ifndef TES_LIKE_DIAGS /* note NOT defined */
               case ("Q")        ! specific humidity
-#ifndef TES_LIKE_DIAGS
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
                   datar8(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
                 end do
-#endif
 #ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity'
 #endif
               case ("T")        ! temperature (C)
-#ifndef TES_LIKE_DIAGS
                 datar8=t_inst(kp,:,:)
-#endif
 #ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature'
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+              case ("O")        ! Ox  tracer (ppmv)
+                datar8=o_inst(kp,:,:) 
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'Ox Tracer'
+#endif
+              case ("X")        ! NOx tracer (ppmv)
+                datar8=x_inst(kp,:,:) 
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NOx Tracer'
+#endif
+              case ("M")        ! CO  tracer (ppmv)
+                datar8=m_inst(kp,:,:) 
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'CO Tracer'
+#endif
+              case ("N")        ! NO2 non-tracer (ppmv)
+                datar8=n_inst(kp,:,:) 
+#ifdef NEW_IO_SUBDD
+                units_of_data = 'ppmv'
+                long_name = 'NO2 (not a tracer)'
+#endif
+#endif /* TRACERS_SPECIAL_Shindell */
+#endif /* NOT defined TES_LIKE_DIAGS */
               end select
               polefix=.true.
               kgz_max_suffixes(kp)=trim(PMNAME(kp))//'_hPa'

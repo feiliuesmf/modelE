@@ -279,6 +279,14 @@ C**** parameters and variables for ISCCP diags
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
+#ifdef TRACERS_SPECIAL_Shindell
+!@var O_inst saved instantaneous Ox tracer (at PMB lvls)
+!@var X_inst saved instantaneous NOx tracer (at PMB lvls)
+!@var N_inst saved instantaneous NO2 non-tracer (at PMB lvls)
+!@var M_inst saved instantaneous CO tracer (at PMB lvls)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     & O_inst,N_inst,X_inst,M_inst
+#endif
 #ifdef TES_LIKE_DIAGS
 !@param kgz_max_more is the actual number of TES pressure levels saved
       INTEGER, public :: kgz_max_more
@@ -312,7 +320,7 @@ C**** parameters and variables for ISCCP diags
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
      & O_more,N_more,X_more,M_more
 #endif
-#endif
+#endif /* TES_LIKE_DIAGS */
 !@var save{H,M,L}CLDI,saveCTPI,saveTAUI,save{S,T}CLDI: SUBDDiag
 !@+  instantaneous save arrays for ISCCP cloud variables
 !@var saveMCCLDTP instnt.SUBDD moist convective cloud top pressure
@@ -909,6 +917,9 @@ c instances of arrays
      &     ,AGC_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
      &     ,hemis_gc,vmean_gc,hemis_ij
+#ifdef TRACERS_SPECIAL_Shindell
+      USE DIAG_COM, ONLY : o_inst,n_inst,m_inst,x_inst
+#endif
 #ifdef TES_LIKE_DIAGS
       USE DIAG_COM, ONLY : T_more,Q_more,KGZmore
 #ifdef TRACERS_SPECIAL_Shindell
@@ -963,6 +974,12 @@ c instances of arrays
      &         saveSCLDI(I_0H:I_1H,J_0H:J_1H),
      &         saveTCLDI(I_0H:I_1H,J_0H:J_1H),
      &         saveMCCLDTP(I_0H:I_1H,J_0H:J_1H),
+#ifdef TRACERS_SPECIAL_Shindell
+     &         O_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         M_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         N_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         X_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+#endif
 #ifdef TES_LIKE_DIAGS
      &         Q_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
      &         T_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
