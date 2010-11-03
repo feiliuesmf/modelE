@@ -26,9 +26,10 @@ NH3_09=NH3_grassfire_AR5_1900-2000_2x2.5_h
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
 ! -------- aerosol, needed for imAER = 3 or 5 --------------
-DMS_SEA=DMS.2x2.5_AEROCOM.nc
+DMS_SEA=DMS_Kettle_Andreae_2x2.5
 SALT1=SALT_bin1_2000_2x2.5.nc
-SALT2=SALT_bin2_2000_2x2.5.nc
+SALT2=SALT_bin1_4_2000_2x2.5.nc  ! valis for coarse size range 1 - 4 um (r80=1.7)
+!SALT2=SALT_bin2_2000_2x2.5.nc ! valid for coarse size range 1 - 10 ym (r80=5)
 dust_bin1=DUST_bin1_2000_2x2.5.nc
 dust_bin2=DUST_bin2_2000_2x2.5.nc
 dust_bin3=DUST_bin3_2000_2x2.5.nc
