@@ -32,9 +32,11 @@ Preprocessor Options
 !  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
 !#define TRACERS_NITRATE
 !#define TRACERS_HETCHEM
-!#define BC_ALB                      !optional tracer BC affects snow albedo
+#define BC_ALB                      !optional tracer BC affects snow albedo
 #define TRACERS_AMP
 #define TRACERS_AMP_M1
+#define CLD_AER_CDNC                ! aerosol - cloud
+#define BLK_DRV              ! aerosol - cloud
 #define NEW_IO
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
@@ -73,7 +75,7 @@ TRDIAG
 !#include "tracer_shindell_source_files"
 !#include "tracer_aerosols_source_files"
 TRACERS_AEROSOLS_Koch_e4          
-
+CLD_AEROSOLS_Menon_MBLK_MAT BLK_DRV ! aerosol-cloud interactions
 !                                     Aerosol Micro Physics
 TRAMP_drv        |-extend_source  |  
 TRAMP_actv       |-extend_source  |  
@@ -125,7 +127,7 @@ Data input files:
 AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only)
 GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions
 
-#include "static_ocn_1880_144x90_input_files"
+#include "static_ocn_2000_144x90_input_files"
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 
@@ -190,14 +192,14 @@ imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, imAER=5,
 aer_int_yr=2000    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
 ad_interact_aer=1  ! 1=couples aerosols to radiation, 0=use climatology
 
-OFFLINE_DMS_SS=1   ! 1= read offline DMS and dust from aerocom file
+OFFLINE_DMS_SS=0   ! 1= read offline DMS and dust from aerocom file
 
 !------------------  AMP parameters
 AMP_DIAG_FC=  2    ! 2=nmode radiation calls  ||  1=one radiation call
-AMP_RAD_KEY = 3    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett
+AMP_RAD_KEY = 2    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett
 
 #include "dust_params"
-imDust=1           ! 0: PDF emission scheme, 1: AEROCOM
+imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
 
 
@@ -219,7 +221,7 @@ Ndisk=960
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=1999,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=2001,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1999,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=1999,MONTHI=6,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2010,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=1999,MONTHE=6,DATEE=1,HOURE=1,
  &END
