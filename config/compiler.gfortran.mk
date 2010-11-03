@@ -6,6 +6,14 @@ FFLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check
 F90FLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check -ffree-line-length-none
 LFLAGS =
 
+#
+# Set the following to ensure that the beginning/end of records
+# in sequential-access unformatted files have 4-byte markers
+# (this does impose a 2 GB limit on record sizes, however)
+#
+#FFLAGS += -frecord-marker=4
+#F90FLAGS += -frecord-marker=4
+
 # machine-specific options
 ifeq ($(MACHINE),IRIX64)
 FFLAGS += -mabi=64 
