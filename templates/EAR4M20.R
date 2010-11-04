@@ -78,7 +78,7 @@ TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_GACP_Tegen_72x46x9x8x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8

@@ -4001,7 +4001,7 @@ C----------
 
       SUBROUTINE ISCCP_CLOUD_TYPES(sunlit,pfull
      *     ,phalf,qv,cc,conv,dtau_s,dtau_c,skt,at,dem_s,dem_c,itrop
-     *     ,fq_isccp,meanptop,meantaucld,nbox,jerr)
+     *     ,fq_isccp,meanptop,meantaucld,boxtau,boxptop,nbox,jerr)
 !@sum  ISCCP_CLOUD_TYPES calculate isccp cloud diagnostics in a column
 !@auth Gavin Schmidt
 !@ver  2.0 (from isccp version 3.5)
@@ -4015,7 +4015,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.40 2010/07/15 13:34:26 cdrar Exp $
+!$Id: CLOUDS2_E1.f,v 1.41 2010/11/04 23:01:33 cdrar Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
