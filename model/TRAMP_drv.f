@@ -365,7 +365,7 @@ c profile
             tmp(idd_ncL+L-1)   =  sum(HD_NUMB(:))     *1.e-6 ! #/cm3    
 #ifdef CLD_AER_CDNC      
             tmp(idd_cdnc+L-1)  =  CDN3d(l,i,j)             
-#elseif
+#else
             tmp(idd_cdnc+L-1)  =  0.d0
 #endif    
             tmp(idd_lwc+L-1)   =  DIURN_LWC(i,j,l)         ! kg/kg(air)
