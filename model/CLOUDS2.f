@@ -1266,7 +1266,7 @@ C**** LIQUID, GRAUPEL, ICE (DEL GENIO ET AL. 2005, J. CLIM.)
       FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
-#if (defined CLD_AER_CDNC) & (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
        DSS(N)=1.d-10
@@ -1286,7 +1286,7 @@ c ambient aerosols at this level
 #endif
 #endif
 C**** Here we change convective precip due to aerosols
-#if (defined CLD_AER_CDNC) & (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
       DO N=1,NTX
        select case (trname(ntix(n)))
         case('SO4')
@@ -3258,7 +3258,7 @@ C**** is ice and temperatures after ice melt would still be below TFrez
       IF (LHP(L+1).eq.LHS .and.
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA)
      *     LHP(L)=LHP(L+1)
-#if (defined CLD_AER_CDNC) & (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
@@ -3351,7 +3351,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCI=SNdI
       WMUI=WMUIX*.001         ! .0001
       WMUSI=0.1
-#if (defined CLD_AER_CDNC) & (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
      *OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
