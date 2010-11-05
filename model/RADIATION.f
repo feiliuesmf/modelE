@@ -1318,7 +1318,6 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
       INTEGER, PARAMETER :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
       INTEGER, PARAMETER :: icycs0=11,  mcycs0=icycs0*12
       INTEGER  iMS0X
-      REAL*4 rMS0X
       REAL*4 yr1S0,yr2S0
       real,    ALLOCATABLE, DIMENSION(:,:):: UVLEAN
       real,    ALLOCATABLE, DIMENSION(:)  :: TSI1,TSI2
@@ -2301,15 +2300,12 @@ C                                      ---------------------------------
 
         READ(NRFU,'(a80)') TITLE
         READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(a5,f4.0)',err=910) TITLE(1:5),rMs0X
-        GOTO 912
-  910   call stop_model('rcomp1: Number of Records missing'//
-     &    ' in solar file.',255)
-  912   if (TITLE(1:5).ne.'MS0X=')
-     &    call stop_model('rcomp1: Number of Records missing'//
-     &    ' in solar file.',255)
-        iMS0X = rMs0X
-c        write(6,*) 'CHECK MS0X::',TITLE(1:5)//'<<<',iMS0X
+        READ(NRFU,'(a80)') TITLE
+        if(TITLE(1:5).ne.'MS0X=') then  ! old no_header file
+          backspace (NRFU)
+        else
+          read (title(6:80),*) iMs0X
+        endif
       END IF
       ALLOCATE (UVLEAN(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
       IF(KSOLAR < 2) THEN
@@ -2339,9 +2335,6 @@ C****   Read in annual-mean data
           ENDIF
         END DO
   908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
-        GOTO 949
-  909   call stop_model('rcomp1: Unexpected EOF: '//
-     &    'Check MS0X in solar file.',255)
       END IF
 
   949 CONTINUE
