@@ -1365,7 +1365,7 @@ C**** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
-#endif  ! (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC)
+#endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifdef TRACERS_AMP
@@ -1379,7 +1379,7 @@ C** This is for the old mass to number calculations nc. is
        CALL GET_CC_CDNC(L,AIRM_CDNC,DXYPIJ,PL(L),TL(L),DSS,
      &      MCDNL1,MCDNO1)
 
-#endif  ! (TRACERS_AMP)
+#endif  /* (TRACERS_AMP) */
       MNdO=MCDNO1
       MNdL=MCDNL1
       MNdO_max(L)=max(MNdO_max(L),MCDNO1)
@@ -1404,7 +1404,7 @@ C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
       Repsis=Repsi*Repsi
       Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
       RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
-#endif ! (CLD_AER_CDNC)
+#endif /* (CLD_AER_CDNC) */
       TAUMC1(L)=TAUMC1(L)+COND(L)*FMC1
 
 #ifdef TRACERS_WATER
@@ -3342,7 +3342,7 @@ C**** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
-#endif   !tracerpart and cld-aer part
+#endif   /* tracerpart and cld-aer part */
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdO = 59.68d0/(RWCLDOX**3)
       SNdL = 174.d0
@@ -3880,7 +3880,7 @@ C** If previous time step is clear sky
 C* If using an alternate definition for QAUT
        rablk=execute_bulk2m_driver('get','mprc')
        QAUT_B2M=rablk(mkx)
-#endif  !(cld-aer and BLK_2MOM)
+#endif  /* (cld-aer and BLK_2MOM) */
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd      ! we have already passed the grid box value
       SCDNCI=SNdI
