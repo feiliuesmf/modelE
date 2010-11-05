@@ -171,15 +171,15 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
+      SSM7 = 1.70d12*DSU(7)*0.6!*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
-     &               +DSU(19)*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
+     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*fq_aer(n_apinp1a)
-     &               +DSU(21)*fq_aer(n_apinp2a)
+     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
+     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
 #endif
      &               )! SOA
 #else
@@ -270,15 +270,15 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
+      SSM7 = 1.70d12*DSU(7)*0.6!*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
-     &               +DSU(19)*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
+     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*fq_aer(n_apinp1a)
-     &               +DSU(21)*fq_aer(n_apinp2a)
+     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
+     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
 #endif
      &               )! SOA with 100% solubility
 #else
@@ -448,15 +448,15 @@ c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
+      SSM7 = 1.70d12*DSU(7)*0.6!*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
-     &               +DSU(19)*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
+     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*fq_aer(n_apinp1a)
-     &               +DSU(21)*fq_aer(n_apinp2a)
+     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
+     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
 #endif
      &               )! SOA
 #else

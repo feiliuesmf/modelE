@@ -29,7 +29,7 @@
      &                    CUMFLX,DWNFLX,SCM_LWP_MC,SCM_LWP_SS,
      &                    SCM_IWP_MC,SCM_IWP_SS,SCM_WM_MC
 #endif
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
       USE mo_bulk2m_driver_gcm, ONLY: execute_bulk2m_driver
 #endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
@@ -49,7 +49,7 @@
 #endif
 #endif
 #endif
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifdef TRACERS_AMP
       USE CLOUDS_COM, only: NACTC,NAERC
       USE AERO_CONFIG, only: NMODES
@@ -159,7 +159,7 @@ C**** input variables
      *     ,FSSL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL
      *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
      *     ,QDNL,TDNL,U00L
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
      *     ,WMXICE
 #endif
 !@var PL layer pressure (mb)
@@ -172,7 +172,7 @@ C**** input variables
 !@var RH relative humidity
 !@var RH1 relative humidity to compare with the threshold humidity
 !@var WMX cloud water mixing ratio (kg/kg)
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 !@var WMXICE ice water mixing ratio (kg/kg)
 #endif
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
@@ -453,7 +453,7 @@ C
 !@param RHOG,RHOIP density of graupel and ice particles
 C
 #ifdef CLD_AER_CDNC
-      INTEGER, PARAMETER :: SNTM=17+ntm_soa/2  !for tracers for CDNC
+      INTEGER, PARAMETER :: SNTM=29 !17+ntm_soa/2  !for tracers for CDNC
 #endif
 C
 C              *******************************
@@ -720,14 +720,11 @@ c for sulfur chemistry
      *     ,AIRM_CDNC,TM_CDNC(NTM)
      *     ,MNdO_max(LM),MNdL_max(LM)
      *     ,MNdO_min(LM),MNdL_min(LM)
-#ifdef BLK_2MOM
 #ifdef TRACERS_AMP
       real*8                    :: ncaero (nmodes)
       integer                   ::nm
 #endif
 #endif
-#endif
-!
 #ifdef CLD_AER_CDNC
 !@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
 #endif
@@ -1269,12 +1266,15 @@ C**** LIQUID, GRAUPEL, ICE (DEL GENIO ET AL. 2005, J. CLIM.)
       FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
       FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
        DSS(N)=1.d-10
        DSGL(L,N)=1.d-10
       ENDDO
+#endif
+
+#ifdef CLD_AER_CDNC
 #ifdef ALT_CDNC_INPUTS
 c aerosols in the updraft
       tm_cdnc(:) = tmp(:)
@@ -1284,8 +1284,9 @@ c ambient aerosols at this level
       tm_cdnc(:) = tm(l,:)
       airm_cdnc = airm(l)
 #endif
+#endif
 C**** Here we change convective precip due to aerosols
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined CLD_AER_CDNC) || (defined TRACERS_AEROSOLS_Koch)
       DO N=1,NTX
        select case (trname(ntix(n)))
         case('SO4')
@@ -1364,9 +1365,9 @@ C**** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
-#endif
+#endif  ! (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC)
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifdef TRACERS_AMP
         do nm=1,nmodes
          ncaero(nm)=naerc(l,nm)*1.d-6
@@ -1378,8 +1379,7 @@ C** This is for the old mass to number calculations nc. is
        CALL GET_CC_CDNC(L,AIRM_CDNC,DXYPIJ,PL(L),TL(L),DSS,
      &      MCDNL1,MCDNO1)
 
-#endif
-#endif
+#endif  ! (TRACERS_AMP)
       MNdO=MCDNO1
       MNdL=MCDNL1
       MNdO_max(L)=max(MNdO_max(L),MCDNO1)
@@ -1404,7 +1404,7 @@ C** central value of 0.003 for alfa:Rotstayn&Daum, J.Clim,2003,16,21, Nov 2003.
       Repsis=Repsi*Repsi
       Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
       RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
-#endif
+#endif ! (CLD_AER_CDNC)
       TAUMC1(L)=TAUMC1(L)+COND(L)*FMC1
 
 #ifdef TRACERS_WATER
@@ -2892,7 +2892,7 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       integer, PARAMETER :: SNTM=17+ntm_soa/2
+       integer, PARAMETER :: SNTM=29 !17+ntm_soa/2
        real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT
      * ,CDNL0,NEWCDN,OLDCDN,SNd
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -2902,7 +2902,7 @@ c for sulfur chemistry
        real*8, dimension(lm) :: vvel_sv,CLDSAV0
        real*8, dimension(sntm,lm) :: dsu_sv
 #endif
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
       integer,PARAMETER         :: mkx=1   ! lm
       real*8,PARAMETER          :: mw0 = 2.094395148947515E-15
       real*8,PARAMETER          :: mi0 = 2.094395148947515E-15
@@ -3060,7 +3060,7 @@ C**** initialise vertical arrays
 c      AERTAU=0.
        DSGL(:,1:SNTM)=0.
 #endif
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
        WMXICE(:)=0.
 c      print *,sname,'WMX, WMXICE = ', WMX, WMXICE
 #endif
@@ -3258,13 +3258,12 @@ C**** is ice and temperatures after ice melt would still be below TFrez
       IF (LHP(L+1).eq.LHS .and.
      *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA)
      *     LHP(L)=LHP(L+1)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined TRACERS_AEROSOLS_Koch)
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
         DSS(N)=1.d-10
         DSGL(L,N)=1.d-10
       END DO
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DO N=1,NTX
         select case (trname(ntix(n)))
         case('SO4')
@@ -3343,8 +3342,7 @@ C**** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
-#endif
-#endif
+#endif   !tracerpart and cld-aer part
 C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdO = 59.68d0/(RWCLDOX**3)
       SNdL = 174.d0
@@ -3353,18 +3351,19 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCI=SNdI
       WMUI=WMUIX*.001         ! .0001
       WMUSI=0.1
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined TRACERS_AEROSOLS_Koch)
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
      *OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
       DSU_SV(:,L) = DSU(:) ! save for opt. depth calc.
+c     write(6,*)"Where is",DSU(L),l
       SNd=CDNL1
 cC** Pass old and new cloud droplet number
       NEWCDN=SNd
       OLDCDN=CDNL0
-c     if(SNd.gt.2000.) write(6,*)"SM CDNC",NEWCDN,OLDCDN,L
+c     if(SNd.gt.20.) write(6,*)"SM 11 CDNC",NEWCDN,OLDCDN,L
 #endif
-#ifdef BLK_2MOM
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 C Microphysical time step
        dtB2M=DTsrc
 C Set all tendencies to zero
@@ -3388,7 +3387,7 @@ c Set microphysics
         ELSE
           WMXICE(L) = WMX(L)
           mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
-         ncrys=OLDCDI(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
+          ncrys=OLDCDI(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
           if (WMX(L).eq.0.) ncrys=0.d0
           ndrop=0.0d0;mdrop=0.0d0
         ENDIF
@@ -3403,15 +3402,15 @@ c      ldummy=execute_bulk2m_driver('all'
 c    *           ,ndrop,mdrop,ncrys,mcrys,'end')
 #ifdef TRACERS_AMP
         do nm=1,nmodes
-        naero(mkx,nm)=nactc(l,nm)
-c        if(l.eq.1) then
-c       if(nactc(l,nm).gt.1.)write(6,*)"Call matrix",naero(mkx,nm)*1.e-6
-c     *,nm
+          naero(mkx,nm)=nactc(l,nm)
+c       if(l.eq.1) then
+c       if(nactc(l,nm).gt.1.)write(6,*)"Callmatrix",naero(mkx,nm)*1.e-6
 c        endif
         enddo
        ldummy=execute_bulk2m_driver('all'
      *           ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end')
-#else
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
        ldummy=execute_bulk2m_driver('all'
      *           ,ndrop,mdrop,ncrys,mcrys,'end')
 #endif
@@ -3419,23 +3418,21 @@ c Make calls to calculate hydrometeors' growth rates due to microphysical
 c processes
 c content      :       [kg water/kg air/s]
 c concentration:       [No/kg air/s]
-
 c Activation of cloud droplets: prescribed AP spectrum
 C*** For the originial HM scheme with fixed distributions for amm. sulfate
 c       ldummy=execute_bulk2m_driver('hugh','drop_nucl',dtB2M,mkx)
 
 C*** Use this if using the Lohmann or Gultepe scheme  for mass to number
+#ifdef TRACERS_AEROSOLS_Koch
         OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
         NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
-#ifdef TRACERS_AMP
-!#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-C*** Using the AMP_actv interface from MATRIX
-        ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#else
         ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx,
      &OLDCDNC,NEWCDNC)
 #endif
-
+#ifdef TRACERS_AMP
+C*** Using the AMP_actv interface from MATRIX
+        ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
 c Droplets' autoconversion: Beheng (concentration and content)
         ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
 c Freezing of cloud droplets (contact and immersion)
@@ -3833,8 +3830,8 @@ c
         if( (ndrop_res(mkx) .lt. 0) .or. (mdrop_res(mkx) .lt. 0)  .or.
      *      (ncrys_res(mkx) .lt. 0) .or. (mcrys_res(mkx) .lt. 0)) then
 c        call stop_model("BLK2MOM: Negative conc/cont...", 255)
-         write(6,*)"We reached -ve con.",ndrop_res(mkx),mdrop_res(mkx),
-     * ncrys_res(mkx), mcrys_res(mkx),l
+c         write(6,*)"We reached -ve con.",ndrop_res(mkx),mdrop_res(mkx),
+c     * ncrys_res(mkx), mcrys_res(mkx),l
          ndrop_res(mkx)=20.*1.d06
          mdrop_res(mkx)=1*1.d-06
          ncrys_res(mkx)=1*1.d-06
@@ -3864,11 +3861,12 @@ c
 c
 c GCM logics...........  SNd0, SNdL [No/cc; ]SNdI Units also in /cc
 c
-c       SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
+c      SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
        SNdI = 0.06417127d0
 c      if(SNdI.gt.0.) write(6,*)"ICE CRY",SNdI, SNdI/dtB2M
        if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
        SNd=ndrop(mkx)*1.d-6                 ! ndrop, [No/m^3]
+c      if(SNd.gt.20.) write(6,*)"SM 12 CDNC",SNd   ,l     
 C**** Old treatment to get CDNC for cloud changes within time steps
        DCLD(L) = FCLD-CLDSAVL(L) ! cloud fraction change
 C** If previous time step is clear sky
@@ -3882,16 +3880,15 @@ C** If previous time step is clear sky
 C* If using an alternate definition for QAUT
        rablk=execute_bulk2m_driver('get','mprc')
        QAUT_B2M=rablk(mkx)
-#endif
+#endif  !(cld-aer and BLK_2MOM)
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd      ! we have already passed the grid box value
       SCDNCI=SNdI
-c     if (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0 !set min ice crystal, do we need this, please check
       if (SCDNCI.le.0.0d0) SCDNCI=teeny         !set min ice crystal, do we need this, please check
       if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
 c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
-c     write(6,*)"CDNC LSS",SCDNCW,SNd,L
+c     if (SNd.gt.20.) write(6,*)"CDNC LSS",SCDNCW,SNd,L
 #endif
 C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
       IF(WMX(L).GT.0.) THEN
@@ -4225,7 +4222,7 @@ c precip. tracer evap
       ELSE
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-        b_beta_DT = cldsavt      !*CM*dtsrc
+        b_beta_DT = cldsavt  !*CM*dtsrc
 c         saves cloud fraction at lowest precipitating level for washout
         cldprec=cldsavt
 cdmk added arguments above; THLAW added below (no way to factor this)
@@ -4708,7 +4705,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdI = 0.06417127d0
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC ) || (defined BLK_2MOM)
 #ifdef ALT_CDNC_INPUTS
        VVEL = VVEL_sv(l)    ! retrieve value at this level
        DSU(:) = DSU_SV(:,L) ! retrieve
@@ -4720,6 +4717,7 @@ c These choices always produce DCLD <= 0.
        SAVCLD = CLDSAVL(L) ! = (1-CLEARA)      (already updated)
 #endif
 !@auth Menon for CDNC prediction
+#ifdef TRACERS_AEROSOLS_Koch
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,NEWCLD,
      *SAVCLD,VVEL,SME(L),DSU,OLDCDL(L),
      *CDNL0,CDNL1)
@@ -4729,9 +4727,13 @@ C** Pass old and new cloud droplet number
       NEWCDN=SNd
       OLDCDN=CDNL0
 c     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
-c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM UPD",NEWCDN,OLDCDN,L
 #endif
-#ifdef BLK_2MOM
+#ifdef TRACERS_AMP
+       OLDCDL(L)=SNd
+	   OLDCDI(L)=SNdi
+#endif
+#endif
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 c Update thermo if environment was changed
        tk0=TL(L)                 ! Temperature, [K]
        qk0=QL(L)                 ! Water vapor mixing ratio, [kq/kq]
@@ -4763,22 +4765,22 @@ c
      *           ,ndrop,mdrop,ncrys,mcrys,'end')
 c Get new drop & crys concentration
 c     ldummy=execute_bulk2m_driver('surabi','GET_CDNC_UPD',dtB2M,mkx)
+#ifdef TRACERS_AEROSOLS_Koch
 C*** Call Lohmann's or Gultepe's scheme for CDNC
         OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
         NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
-C***
+	    ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx,
+     &OLDCDNC,NEWCDNC)
+#endif
 #ifdef TRACERS_AMP
 C*** Using the AMP_actv interface from MATRIX
         ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#else
-        ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx,
-     &OLDCDNC,NEWCDNC)
 #endif
-
       rablk=execute_bulk2m_driver('get','value','nc') + (
      *  +execute_bulk2m_driver('get','npccn')
      *                                       )*dtB2M
       SNd=rablk(mkx)*1.0d-6            ! ndrop, [No/m^3], SNdL, [No/cc]
+c     if(SNd.gt.20.) write(6,*)"Finally out",SNd, l
 C**** Old treatment to get CDNC for cloud changes within time steps
        DCLD(L) = NEWCLD-SAVCLD ! cloud fraction change
 C** If previous time step is clear sky
@@ -4802,8 +4804,8 @@ c      nnucmd              ! change n cond freezing Meyer's (prim ice nuc)
 c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
      * +execute_bulk2m_driver('get','nnucmt')
 
-c       SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
-       SNdI = 0.06417127d0
+c      SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
+      SNdI = 0.06417127d0
        if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
       OLDCDL(L) = SNd
       OLDCDI(L) = SNdI
@@ -4826,7 +4828,7 @@ c To get effective radii in micron
 c     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
       If (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
-c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
+c     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),l
 #endif
 
         IF(LHX.EQ.LHE) THEN
@@ -7035,5 +7037,3 @@ C**** evaporating (DQ < 0, DQSUM > 0)
 
       return
       end subroutine get_dq_evap
-
-
