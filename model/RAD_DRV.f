@@ -909,7 +909,7 @@ C     OUTPUT DATA
      *     j_srrvis, j_srrnir, j_sravis, j_sranir,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
-     *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
+     *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb, idd_aot
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_wcldwt,jl_icldwt
@@ -1082,7 +1082,7 @@ C
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
 
-      INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
+      INTEGER, PARAMETER :: NLOC_DIU_VARb = 4
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
@@ -1109,7 +1109,7 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
-      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot /)
 
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -2468,6 +2468,7 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
               TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2

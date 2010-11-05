@@ -6404,14 +6404,6 @@ c
       scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
       lname_dd(k)=' MCP*100'
 
-#ifdef TRACERS_AMP
-c
-      k=k+1
-      IDD_lwp=k
-      name_dd(k)='LWP'
-      units_dd(k)='kg/m2'
-      scale_dd(k)= 1.
-      lname_dd(k)=' LWP'
 c
       k=k+1
       IDD_aot=k
@@ -6420,12 +6412,22 @@ c
       scale_dd(k)= 1.
       lname_dd(k)=' AOT'
 
+#ifdef TRACERS_AMP
+c
+      k=k+1
+      IDD_lwp=k
+      name_dd(k)='LWP'
+      units_dd(k)='kg/m2'
+      scale_dd(k)= 1.
+      lname_dd(k)=' LWP'
+
       k=k+1
       IDD_so2=k
       name_dd(k)='SO2'
       units_dd(k)='ug/m3'
       scale_dd(k)= 1.
       lname_dd(k)=' SO2'
+
 c Mode Diagnostics
        idd_diam=k+1
         do l=1,nmodes

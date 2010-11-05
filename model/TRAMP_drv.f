@@ -92,7 +92,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE DOMAIN_DECOMP_ATM,only: GRID, GET, am_i_root
 #ifndef NO_HDIURN
 c for the hourly diagnostic
+#ifdef CLD_AER_CDNC 
       USE CLOUDS_COM, only: CDN3D  ! CDNC
+#endif
       USE DIAG_COM, only: adiurn=>adiurn_loc,ndiuvar,iwrite,jwrite,itwrite,ndiupt,idd_diam
      *                    ,ijdd, idd_ccn, idd_cdnc, idd_lwp, idd_numb, idd_mass, idd_so2,
      *                     idd_lwc, idd_ncL
@@ -116,8 +118,9 @@ C**** functions
 #ifndef NO_HDIURN
 c for the hourly diagnostic
       REAL*8 :: TMP(NDIUVAR)
-      INTEGER, PARAMETER :: NLOC_DIU_VAR = nmodes + nmodes + 38 +  2 + (4 * LM)
-      INTEGER :: idxd(NLOC_DIU_VAR)
+      INTEGER, PARAMETER :: NLOC_DIU_VAR  = nmodes + nmodes + 38 +  2
+      INTEGER, PARAMETER :: NLOC_DIU_VARL = 4 * LM
+      INTEGER :: idxd(NLOC_DIU_VAR),idxl(NLOC_DIU_VARL) 
       INTEGER :: ih, ihm, kr,ii
       REAL*8 :: HD_NUMB(nmodes) 
 #endif
@@ -229,6 +232,8 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
           else
       tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(n)) *AVOL)
      *        -trm(i,j,l,n)) /dtsrc
+      if (DIAM(i,j,l,AMP_MODES_MAP(n))*1.e6.ge.0.1 ) HD_NUMB(AMP_MODES_MAP(n)) = AERO(AMP_AERO_MAP(n))
+
           endif   
        ENDDO
 
@@ -296,7 +301,8 @@ c - N_SSA, N_SSC, M_SSA_SU
 c     Hourly Station Diagnostic -------------------------------------------------------------------------------
 
       idxd=(/(idd_diam+i-1,i=1,nmodes), (idd_numb+i-1,i=1,nmodes), (idd_mass+i-1, i=1,38),
-     *        idd_so2, idd_lwp, (idd_ncL+i-1,i=1,LM),  (idd_ccn+i-1,i=1,LM), (idd_cdnc+i-1,i=1,LM),
+     *        idd_so2, idd_lwp /)
+      idxl=(/ (idd_ncL+i-1,i=1,LM),  (idd_ccn+i-1,i=1,LM), (idd_cdnc+i-1,i=1,LM),
      *        (idd_lwc+i-1,i=1,LM) /)
       ih=jhour+1
       ihm=ih+(jdate-1)*24
@@ -308,16 +314,16 @@ c     Hourly Station Diagnostic ------------------------------------------------
 c surface
             tmp(idd_diam:idd_diam+nmodes-1)=diam(i,j,1,1:nmodes)
             tmp(idd_numb:idd_numb+nmodes-1)= HD_NUMB(1:nmodes)    !  #/m3
-            tmp(idd_mass)  = AERO(1)               ! ug/m3;
-            tmp(idd_mass+1)= AERO(2)               ! ug/m3;
-            tmp(idd_mass+2)= AERO(3)               ! ug/m3;
-            tmp(idd_mass+3)= AERO(4)               ! ug/m3;
-            tmp(idd_mass+4)= AERO(6)               ! ug/m3;
-            tmp(idd_mass+5)= AERO(8)               ! ug/m3;
-            tmp(idd_mass+6)= AERO(9)               ! ug/m3;
-            tmp(idd_mass+7)= AERO(11)               ! ug/m3;
-            tmp(idd_mass+8)= AERO(12)               ! ug/m3;
-            tmp(idd_mass+9)= AERO(14)               ! ug/m3;
+            tmp(idd_mass)  =  AERO(1)               ! ug/m3;
+            tmp(idd_mass+1)=  AERO(2)               ! ug/m3;
+            tmp(idd_mass+2)=  AERO(3)               ! ug/m3;
+            tmp(idd_mass+3)=  AERO(4)               ! ug/m3;
+            tmp(idd_mass+4)=  AERO(6)               ! ug/m3;
+            tmp(idd_mass+5)=  AERO(8)               ! ug/m3;
+            tmp(idd_mass+6)=  AERO(9)               ! ug/m3;
+            tmp(idd_mass+7)=  AERO(11)               ! ug/m3;
+            tmp(idd_mass+8)=  AERO(12)               ! ug/m3;
+            tmp(idd_mass+9)=  AERO(14)               ! ug/m3;
             tmp(idd_mass+10)= AERO(15)               ! ug/m3;
             tmp(idd_mass+11)= AERO(17)               ! ug/m3;
             tmp(idd_mass+12)= AERO(18)               ! ug/m3;
@@ -348,32 +354,25 @@ c surface
             tmp(idd_mass+37)= AERO(53)               ! ug/m3;
             tmp(idd_so2)  = trm(i,j,l,n_SO2)* 1.d9 / AVOL!ug/m3
             tmp(idd_lwp)  = DIURN_LWP(i,j)           ! kg/m2
-c            print*,'NO3',kr,  AERO(1)
-c            print*,'NH4',kr,  AERO(2)
-c            print*,'numb',kr,   sum(HD_NUMB(:))         ! also profile all sizes???
-c            print*,'cdnc',kr,  CDN3d(l,i,j)             
-c            print*, 'lwc',kr,  DIURN_LWC(i,j,l)         ! kg/kg(air)
-            
+
+            ADIURN(idxd(:),kr,ih) =ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
+            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
+
       end if  ! level 1 only
 
-
 c profile
-
-
             tmp(idd_ccn+L-1)   =  sum(nactv(i,j,l,:)) *1.e-6 ! #/cm3
-            tmp(idd_ncL+L-1)   =  sum(HD_NUMB(:))     *1.e-6 ! #/cm3        
+            tmp(idd_ncL+L-1)   =  sum(HD_NUMB(:))     *1.e-6 ! #/cm3    
+#ifdef CLD_AER_CDNC      
             tmp(idd_cdnc+L-1)  =  CDN3d(l,i,j)             
+#elseif
+            tmp(idd_cdnc+L-1)  =  0.d0
+#endif    
             tmp(idd_lwc+L-1)   =  DIURN_LWC(i,j,l)         ! kg/kg(air)
          
-c            if (kr.eq.1) then
-c         print*,'NC, CCN, CDNC(',l,')'
-c         print*,sum(HD_NUMB(:))    *1.e-6,sum(nactv(i,j,l,:))*1.e-6, CDN3d(l,i,j)             
-c         print*,'UP', WUP
-c         endif
-            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
-c#ifndef NO_HDIURN
-            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
-c#endif
+            ADIURN(idxl(:),kr,ih) =ADIURN(idxl(:),kr,ih)+tmp(idxl(:))
+            HDIURN(idxl(:),kr,ihm)=HDIURN(idxl(:),kr,ihm)+tmp(idxl(:))
+
       end if
       end do
 #endif
