@@ -1201,7 +1201,12 @@ C**** cloud water diagnostics
       END DO
       AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
       AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
-
+#ifdef TRACERS_AMP
+#ifndef NO_HDIURN
+      DIURN_LWC(I,J,:) = WMX(:) * AIRM(:)
+      DIURN_LWP(I,J)   = WMSUM  
+#endif    
+#endif
 C**** Calculate ISCCP cloud diagnostics if required
       if (isccp_diags.eq.1) then
         do l=1,lm
