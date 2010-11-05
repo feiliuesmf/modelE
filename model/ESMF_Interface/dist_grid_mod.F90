@@ -263,6 +263,7 @@
 
   public :: getMpiCommunicator
   public :: getNumProcesses
+  public :: getNumAllProcesses
   public :: getMpiTag
   public :: incrementMpiTag
   public :: hasSouthPole
@@ -491,6 +492,7 @@
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
       grd_dum%private%numProcesses = npes_used
+      grd_dum%private%numAllProcesses = npes_world
       grd_dum%private%mpi_tag = 10  ! initial value
 
 ! Create a new MPI communicator including all the PEs with a nonzero
@@ -2100,6 +2102,11 @@
         type (dist_grid), intent(in) :: this
         numProcesses = this%private%numProcesses
       end function getNumProcesses
+
+      integer function getNumAllProcesses(this) result(numAllProcesses)
+        type (dist_grid), intent(in) :: this
+        numAllProcesses = this%private%numAllProcesses
+      end function getNumAllProcesses
 
       subroutine incrementMpiTag(this)
         type (dist_grid), intent(inout) :: this

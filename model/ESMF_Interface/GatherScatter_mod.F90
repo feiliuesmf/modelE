@@ -257,7 +257,7 @@ contains
     localType = createDecompMpiType(baseType,shp,dist_idx)
     globalType = getGlobalMpiType(baseType, shp, dist_idx, grid%JM_WORLD)
 
-    npes = getNumProcesses(grid)
+    npes = getNumAllProcesses(grid)
 
     allocate (rcounts(0:NPES-1), displs(0:NPES), stat=rc)
     call getAxisIndex(grid, ai)
@@ -306,7 +306,7 @@ contains
     localType = createDecompMpiType(baseType,shp, dist_idx)
     globalType = getGlobalMpiType(baseType, shp, dist_idx, grid%JM_WORLD)
 
-    npes = getNumProcesses(grid)
+    npes = getNumAllProcesses(grid)
 
     allocate (scounts(0:NPES-1), displs(0:NPES), stat=rc)
     call getAxisIndex(grid, ai)
@@ -422,7 +422,7 @@ contains
     type (ESMF_AxisIndex), pointer :: axisIndex(:,:)
     integer :: rc
     
-    allocate(axisIndex(getNumProcesses(grid),3))
+    allocate(axisIndex(getNumAllProcesses(grid),3))
     call ESMF_GridGetAllAxisIndex(grid%esmf_grid, globalAI=axisIndex, &
          &     horzRelLoc=ESMF_CELL_CENTER, &
          &     vertRelLoc=ESMF_CELL_CELL, rc=rc)

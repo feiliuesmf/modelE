@@ -5,6 +5,7 @@ module Hidden_mod
   type Hidden_type
     integer :: mpi_comm
     integer :: numProcesses
+    integer :: numAllProcesses
     integer :: mpi_tag
     
     logical :: hasSouthPole
