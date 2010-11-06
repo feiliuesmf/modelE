@@ -222,9 +222,10 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,TEMP_LOCAL)
             EOST0 = TEMP_LOCAL(:,:,2)
             IF (AM_I_ROOT())
-     *      WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
+     *      WRITE(6,*) 'Read End-of-month OSST ocean data from ',
+     *                 JMON-1,M
             IF(M.NE.LSTMON)
-     &         call stop_model('Read error: ocean data',255)
+     &         call stop_model('Read error: OSST ocean data',255)
           end if
         else   !  if (ocn_cycl==0.or.ocn_cycl>2) then
           YEAR_OCN=JYEAR
@@ -243,9 +244,10 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,TEMP_LOCAL)
           ERSI0 = TEMP_LOCAL(:,:,2)
           IF (AM_I_ROOT())
-     *    WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
+     *    WRITE(6,*) 'Read End-of-month SICE ocean data from ',
+     *               JMON-1,M,M1
           IF(M.NE.M1.OR.M.NE.LSTMON)
-     &         call stop_model('Read error: ocean data',255)
+     &         call stop_model('Read error: SICE ocean data',255)
         end if
       ELSE
 C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
@@ -275,7 +277,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
           IF (AM_I_ROOT())
-     *    WRITE(6,*) 'Read in ocean data for month',JMON,M
+     *    WRITE(6,*) 'Read in OSST ocean data for month',JMON,M
           IF(JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         end if
@@ -289,7 +291,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         IF (AM_I_ROOT())
-     *  WRITE(6,*) 'Read in ocean data for month',JMON,M,M1
+     *  WRITE(6,*) 'Read in SICE ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
      &       call stop_model('Error: Ocean data',255)
         if(ocn_cycl>2 .and. jmon==12) then
