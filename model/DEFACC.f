@@ -1156,6 +1156,14 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_LI = k ! PLICE                                       4 DA
+      lname_ij(k) = 'LAND ICE FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'landicefr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
       IJ_RSNW = k ! PSNOW (1)            1 GD
       lname_ij(k) = 'SNOW COVERAGE'
       units_ij(k) = '%'
@@ -2069,14 +2077,6 @@ c
       lname_ij(k) = 'SNOW AND ICE COVERAGE'
       units_ij(k) = '%'
       name_ij(k) = 'snowicefr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_LI = k ! PLICE                                       4 DA
-      lname_ij(k) = 'LAND ICE FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'landicefr'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
