@@ -279,7 +279,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           IF (AM_I_ROOT())
      *    WRITE(6,*) 'Read in OSST ocean data for month',JMON,M
           IF(JMON.NE.MOD(M-1,12)+1)
-     &       call stop_model('Error: Ocean data',255)
+     &       call stop_model('Error: OSST ocean data',255)
         end if
       else   !  if (ocn_cycl==0 .or. ocn_cyc>2) then
         CALL MREAD_PARALLEL
@@ -293,7 +293,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         IF (AM_I_ROOT())
      *  WRITE(6,*) 'Read in SICE ocean data for month',JMON,M,M1
         IF(M.NE.M1.OR.JMON.NE.MOD(M-1,12)+1)
-     &       call stop_model('Error: Ocean data',255)
+     &       call stop_model('Error: SICE ocean data',255)
         if(ocn_cycl>2 .and. jmon==12) then
           do m=12,0,-1
             CALL BACKSPACE_PARALLEL( iu_OSST )
