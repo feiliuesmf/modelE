@@ -7,7 +7,7 @@ module TRACERS_SOA
 !@+   tropospheric chemistry and aerosols to be activated.
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
-use DOMAIN_DECOMP_ATM,only: write_parallel
+use DOMAIN_DECOMP_ATM,only: write_parallel, am_i_root
 use TRACER_COM, only: ntm,nsoa,tr_mm,&
                       n_Isoprene,&
 #ifdef TRACERS_TERP
@@ -344,8 +344,10 @@ do i=1,ntm
   molec2ug(i)=tr_mm(i)*1.d12/avog
 enddo
 
-out_line="Initialization of SOA formation completed"
-call write_parallel(trim(out_line),crit=.true.)
+if (am_i_root()) then
+  out_line="Initialization of SOA formation completed"
+  call write_parallel(trim(out_line),crit=.true.)
+endif
 
 end subroutine soa_init
 
