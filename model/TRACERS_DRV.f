@@ -9057,55 +9057,54 @@ c read in AEROCOM seasalt
 c read in SO2 emissions
 c Industrial
       if (imPI.eq.0) then
-      if (imAER.eq.0) then
+        if (imAER.eq.0) then
 C    Initialize:
-        so2_src(:,:,:)= 0.d0
-        call openunit('SO2_IND',iuc,.false.,.true.)
-      do
-       READ(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       so2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
-      end do
-      call closeunit(iuc)
-      endif
-      endif
+          so2_src(:,:,:)= 0.d0
+          call openunit('SO2_IND',iuc,.false.,.true.)
+          do
+            READ(iuc,*) ii,jj,carbstuff
+            if (ii.eq.0) exit
+            if (jj<j_0 .or. jj>j_1) cycle
+            so2_src(ii,jj,1)=carbstuff/(sday*30.4)/12.d0
+          end do
+          call closeunit(iuc)
+        endif
+
 C Put aircraft for so2 and BC
-      if (imPI.eq.0) then
-      so2_src_3d(:,:,:,2)= 0.d0
-      bci_src_3d(:,:,:)=0.d0
-      craft(:,:,:) = 0d0
-      if (imAER.ne.1.and.imAER.ne.3.and.imAER.ne.5) then
+        so2_src_3d(:,:,:,2)= 0.d0
+        bci_src_3d(:,:,:)=0.d0
+        craft(:,:,:) = 0d0
+        if (imAER.ne.1.and.imAER.ne.3.and.imAER.ne.5) then
 
-      if ( AM_I_ROOT() ) then
-        write(6,*) 'Reading of the AIRCRAFT file now uses ',
-     &       'READT_PARALLEL which expects 80-character titles. ',
-     &       'Please expand the 56-character AIRCRAFT titles ',
-     &       'and then delete this warning/stop statement.'
-      endif
-      call stop_model('AIRCRAFT file',255)
+        if ( AM_I_ROOT() ) then
+          write(6,*) 'Reading of the AIRCRAFT file now uses ',
+     &         'READT_PARALLEL which expects 80-character titles. ',
+     &         'Please expand the 56-character AIRCRAFT titles ',
+     &         'and then delete this warning/stop statement.'
+        endif
+        call stop_model('AIRCRAFT file',255)
 
-      call openunit('AIRCRAFT',iuc2,.true.,.true.)
-      if (lm.eq.23) then
-        lmax = ls1+1
-      else
-        lmax = lm
-      endif
-      DO L=1,LMAX
-        CALL READT_PARALLEL(grid,iuc2,NAMEUNIT(iuc2),craft(:,:,l),0)
-      END DO
-      call closeunit(iuc2)
+        call openunit('AIRCRAFT',iuc2,.true.,.true.)
+        if (lm.eq.23) then
+          lmax = ls1+1
+        else
+          lmax = lm
+        endif
+        DO L=1,LMAX
+          CALL READT_PARALLEL(grid,iuc2,NAMEUNIT(iuc2),craft(:,:,l),0)
+        END DO
+        call closeunit(iuc2)
 
 c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
 c 4.d0d-4 converts to kg S
 c (for BC multiply this by 0.1)
-      so2_src_3d(:,j_0:j_1,:,2)=craft(:,j_0:j_1,:)*4.0d-4
-     *  *tr_mm(n_SO2)/32.d0/2.3d0/sday
-      bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0/2.d0
+        so2_src_3d(:,j_0:j_1,:,2)=craft(:,j_0:j_1,:)*4.0d-4
+     *    *tr_mm(n_SO2)/32.d0/2.3d0/sday
+        bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0/2.d0
 c divide by 2 because BC = 0.1 x S, not SO2
-      endif
-      endif
+        endif
+      endif ! imPI eq 0
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
@@ -9624,12 +9623,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           do n=1,ntm
             select case (trname(n))
             case ('SO2')
-              if (imPI.ne.1) then    ! these are all pollution
+              if (imPI.eq.0) then    ! these are all pollution
 c               if (imAER.eq.3) call get_ships(end_of_day,jday)  !reads in SO2, BC and POM sources
 c               if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
               endif
             case ('BCII')  !this does BC and OC
-              if (imPI.ne.1) call get_BCOC(end_of_day,jday)
+              if (imPI.eq.0) call get_BCOC(end_of_day,jday)
             case ('BCB', 'M_BOC_BC')  ! this does BCB and OCB and SO2
               if (imAER==3) call get_hist_BMB(end_of_day,jday)
             case ('NH3')
