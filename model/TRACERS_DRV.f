@@ -9905,13 +9905,13 @@ C**** Source over South America
         enddo; enddo
 C**** Source over South Africa
         source = .02d0*anngas*steppy
-        lat_n = -33.d0
-        lat_s = -34.d0
-        lon_e =  19.d0
-        lon_w =  18.d0
+        lat_n = -24.d0
+        lat_s = -28.d0
+        lon_e =  30.d0
+        lon_w =  24.d0
         call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
         do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)!*fearth(i,j)
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
         do j=j_0,j_1; do i=i_0,i_1
