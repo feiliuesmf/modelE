@@ -3963,7 +3963,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)*pearth
         aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth
-        aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
+        aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap*pearth
 !     Water in vegetated layers 0 (canopy) - 6 and
 !     bare soil layers 1-6
         do k=1,6
