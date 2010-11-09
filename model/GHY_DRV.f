@@ -200,7 +200,7 @@ ccc extra stuff which was present in "earth" by default
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
-      
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : By3,sday
@@ -1942,7 +1942,7 @@ chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
         aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+pbl_args%wsubtke*ptype
         aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+pbl_args%wsubwm*ptype
 #endif
-        
+
       endif
 
 c**** quantities accumulated hourly for diagDD
@@ -5121,8 +5121,8 @@ c**** wearth+aiearth are used in radiation only
 #endif
       use GEOM, only : AXYP
       use MODEL_COM, only : ITEARTH
-      USE DIAG_COM, only : j_implh,j_implm
-     *     ,JREG
+      Use DIAG_COM, Only: AIJ=>AIJ_LOC, J_IMPLM,J_IMPLH,
+     *                    IJ_IMPMLI,IJ_IMPHLI, JREG
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
@@ -5192,6 +5192,8 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
               CALL INC_AJ(I,J,ITEARTH,J_IMPLM,dw*fearth(i,j))
               CALL INC_AREG(I,J,JR,J_IMPLH,dh*fearth(i,j))
               CALL INC_AREG(I,J,JR,J_IMPLM,dw*fearth(i,j))
+              AIJ(I,J,IJ_IMPMLI) = AIJ(I,J,IJ_IMPMLI) + DW*FEARTH(I,J)
+              AIJ(I,J,IJ_IMPHLI) = AIJ(I,J,IJ_IMPHLI) + DH*FEARTH(I,J)
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 
