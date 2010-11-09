@@ -190,7 +190,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@dbparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=0 (off)
       INTEGER, public :: adiurn_dust=0
-!@dbparam save3dAOD flag to calculate ttasv_save in rad code even when 
+!@dbparam save3dAOD flag to calculate ttasv_save in rad code even when
 !@+ adiurn_dust is off.
       INTEGER, public :: save3dAOD=0
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
@@ -518,13 +518,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
      *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
+     *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
 !@var IJ_Gxx names for old AIJG arrays
       INTEGER, public ::
      *     ij_gbsw, ij_gbsbet, ij_gbetpen, ij_gvsw, ij_gbvswt,
      *     ij_gconatm, ij_gconcan, ij_gevppen, ij_gbst, ij_gbsevp,
      *     ij_gdcevp, ij_gwcevp, ij_gvst, ij_gwtbl, ij_gvswet,
-     *     ij_gbetat, ij_gbssnd, ij_gvssnd 
+     *     ij_gbetat, ij_gbssnd, ij_gvssnd
 !@var IJ_GWx names for gravity wave diagnostics
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
@@ -1680,7 +1681,7 @@ C**** get the nominal latitudes of the budget grid
 
       call set_budg_area()
 
-C**** Compute area weights of zonal bands, including adjustment for polar 
+C**** Compute area weights of zonal bands, including adjustment for polar
 C**** box in lat/lon case.
       do J=J_0,J_1
          do I=I_0,I_1
