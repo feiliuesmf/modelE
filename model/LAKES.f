@@ -1633,7 +1633,7 @@ C****
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *     ,j_implh, IJ_IMPMLI,IJ_IMPHLI, AIJ=>AIJ_LOC
+     *     ,j_implh, IJ_IMPMKI,IJ_IMPHKI, AIJ=>AIJ_LOC
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use cubic_eq, only : cubicroot
       IMPLICIT NONE
@@ -1910,8 +1910,8 @@ c                  CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT)
 c                  CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT)
                   CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT)
                   CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT)
-                  AIJ(I,J,IJ_IMPMLI) = AIJ(I,J,IJ_IMPMLI) + PLKIC*IMLT
-                  AIJ(I,J,IJ_IMPHLI) = AIJ(I,J,IJ_IMPHLI) + PLKIC*HMLT
+                  AIJ(I,J,IJ_IMPMKI) = AIJ(I,J,IJ_IMPMKI) + PLKIC*IMLT
+                  AIJ(I,J,IJ_IMPHKI) = AIJ(I,J,IJ_IMPHKI) + PLKIC*HMLT
 C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
