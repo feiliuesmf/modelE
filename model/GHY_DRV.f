@@ -5122,7 +5122,7 @@ c**** wearth+aiearth are used in radiation only
       use GEOM, only : AXYP
       use MODEL_COM, only : ITEARTH
       Use DIAG_COM, Only: AIJ=>AIJ_LOC, J_IMPLM,J_IMPLH,
-     *                    IJ_IMPMLI,IJ_IMPHLI, JREG
+     *                    IJ_IMPMGR,IJ_IMPHGR, JREG
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
@@ -5192,8 +5192,8 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
               CALL INC_AJ(I,J,ITEARTH,J_IMPLM,dw*fearth(i,j))
               CALL INC_AREG(I,J,JR,J_IMPLH,dh*fearth(i,j))
               CALL INC_AREG(I,J,JR,J_IMPLM,dw*fearth(i,j))
-              AIJ(I,J,IJ_IMPMLI) = AIJ(I,J,IJ_IMPMLI) + DW*FEARTH(I,J)
-              AIJ(I,J,IJ_IMPHLI) = AIJ(I,J,IJ_IMPHLI) + DH*FEARTH(I,J)
+              AIJ(I,J,IJ_IMPMGR) = AIJ(I,J,IJ_IMPMGR) + DW*FEARTH(I,J)
+              AIJ(I,J,IJ_IMPHGR) = AIJ(I,J,IJ_IMPHGR) + DH*FEARTH(I,J)
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 
