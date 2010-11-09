@@ -2774,20 +2774,58 @@ c
       denom_ij(k) = IJ_LI
 c
       k=k+1 !
-      IJ_IMPMLI = k ! IMPLICIT MASS FLUX (kg/s*m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT MASS FLUX to ICE BERGS'
-      units_ij(k) = 'kg/m^2/s'
+      IJ_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over LAND ICE'
+      units_ij(k) = 'kg/s*m^2'
       name_ij(k) = 'impm_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_LI
 c
       k=k+1 !
-      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX (W/m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT HEAT FLUX to ICE BERGS'
+      IJ_IMPMGR = k ! IMPLICIT MASS FLUX over GROUND (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over GROUND'
+      units_ij(k) = 'kg/s*m^2'
+      name_ij(k) = 'impm_gr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_IMPMKI = k ! IMPLICIT MASS FLUX over LAKE ICE (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over LAKE ICE'
+      units_ij(k) = 'kg/s*m^2'
+      name_ij(k) = 'impm_ki'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAND ICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'imph_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPHGR = k ! IMPLICIT HEAT FLUX over GROUND (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over GROUND'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_gr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_IMPHKI = k ! IMPLICIT HEAT FLUX over LAKE ICE (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAKE ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_ki'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_RSOI
 c
       k=k+1 !
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
