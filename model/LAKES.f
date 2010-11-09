@@ -1150,7 +1150,7 @@ C**** in atmosphere as well. Otherwise, there is an energy imbalance.
             DPE = 0  !  DMM*(ZATMO(IU,JU)-MIN(0d0,ZATMO(ID,JD)))
 C**** possibly adjust mass (not heat) to allow for balancing of sea level
             DMM = RIVER_FAC * DMM
-            FLOWO(ID,JD) = FLOWO(ID,JD) +  DMM     *FLFAC       
+            FLOWO(ID,JD) = FLOWO(ID,JD) +  DMM     *FLFAC
             EFLOWO(ID,JD)=EFLOWO(ID,JD) + (DGM+DPE)*FLFAC
 #ifdef TRACERS_WATER
             DTM(:) = RIVER_FAC * DTM(:)
@@ -1600,7 +1600,7 @@ C****
       SUBROUTINE daily_LAKE
 !@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
-!@ver  1.0
+!@ver  2010/11/09
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
 #ifdef SCM
@@ -1633,7 +1633,7 @@ C****
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *     ,j_implh
+     *     ,j_implh, IJ_IMPMLI,IJ_IMPHLI, AIJ=>AIJ_LOC
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use cubic_eq, only : cubicroot
       IMPLICIT NONE
@@ -1910,6 +1910,8 @@ c                  CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT)
 c                  CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT)
                   CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT)
                   CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT)
+                  AIJ(I,J,IJ_IMPMLI) = AIJ(I,J,IJ_IMPMLI) + PLKIC*IMLT
+                  AIJ(I,J,IJ_IMPHLI) = AIJ(I,J,IJ_IMPHLI) + PLKIC*HMLT
 C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
@@ -2126,7 +2128,7 @@ C****
 C**** grid box variables
       REAL*8 M1,M2,E1,E2,DM,DE
       REAL*8 :: MWL_to_irrig,GML_to_irrig,irrig_gw,irrig_gw_energy
-     *     ,irrig_water_actij,irrig_energy_actij 
+     *     ,irrig_water_actij,irrig_energy_actij
 #ifdef TRACERS_WATER
      *     ,TRML_to_irrig(NTM,2),TRML_temp(NTM,2)
      *     ,irrig_tracer_actij(ntm),irrig_gw_tracer(ntm)
@@ -2146,20 +2148,20 @@ C**** grid box variables
       DO I=I_0,IMAXJ(J)
       JR=JREG(I,J)
 
-C**** Remove mass/energy associated with irrigation 
+C**** Remove mass/energy associated with irrigation
       IF (FLAND(I,J).gt.0) THEN
 
 #ifdef TRACERS_WATER
         TRML_temp(:,:) = TRLAKE(:,:,I,J)
 #endif
-C****   Compute actual irrigation every timestep 
+C****   Compute actual irrigation every timestep
         call irrigate_extract(I,J,MWL(I,J),GML(I,J),MLDLK(I,J),TLAKE(I
      *       ,J),FLAKE(I,J),HLAKE_MIN,MWL_to_irrig,GML_to_irrig,irrig_gw
      *       ,irrig_gw_energy,irrig_water_actij,irrig_energy_actij
 #ifdef TRACERS_WATER
      *       ,TRML_temp,TRML_to_irrig,irrig_tracer_actij,irrig_gw_tracer
 #endif
-     *       ) 
+     *       )
 C**** save fluxes for GHY (m/s), (J/s), (kg/s)
         irrig_water_act(i,j) =irrig_water_actij
         irrig_energy_act(i,j)=irrig_energy_actij
@@ -2177,13 +2179,13 @@ C**** update lake mass/energy
 #endif
 
 ! mixed layer depth and surface temperature adjustments for lakes
-        if (FLAKE(I,J).gt.0) THEN 
+        if (FLAKE(I,J).gt.0) THEN
           if (MWL_to_irrig.lt.MLDLK(I,J)*FLAKE(I,J)*AXYP(I,J)*RHOW) then ! layer 1 only
             MLDLK(I,J)=MLDLK(I,J)-MWL_to_irrig/(FLAKE(I,j)*AXYP(I,J)
      *           *RHOW)
             M1=MLDLK(I,J)*RHOW*FLAKE(I,J)*AXYP(I,J) ! kg
             M2=max(MWL(I,J)-M1,0d0)
-            if (MLDLK(I,J).LT.MINMLD .and. M2.gt.0) THEN ! bring up from layer 2 
+            if (MLDLK(I,J).LT.MINMLD .and. M2.gt.0) THEN ! bring up from layer 2
               E1=TLAKE(I,J)*SHW*M1
               E2=GML(I,J)-E1
               DM=max(MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)-M1,0d0) ! kg
