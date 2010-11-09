@@ -2487,8 +2487,8 @@ c
       denom_ij(k) = IJ_POCEAN
 c
 #endif
-   	 
-#ifdef TRACERS_GASEXCH_ocean 	 
+
+#ifdef TRACERS_GASEXCH_ocean
       k=k+1
       IJ_Kw = k
       lname_ij(k) = 'Transfer Velocity'
@@ -2498,7 +2498,7 @@ c
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
- 	 
+
       k=k+1
       IJ_alpha = k
       lname_ij(k) = 'Solubility'
@@ -2508,18 +2508,18 @@ c
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
- 	 
+
       k=k+1
       IJ_gasx = k
       lname_ij(k) = 'Gas Exchange Flux'
-      units_ij(k) = 'mol/m2/yr' 
+      units_ij(k) = 'mol/m2/yr'
       scale_ij(k) = 1.
       name_ij(k) = 'trgasex'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
 #endif
- 	 
+
 #ifdef TRACERS_OBIO_RIVERS
       k=k+1
       IJ_rvrflo = k  ! Mass Outflow by Rivers without gmelt (10**5 kg/s)  E-5/DTS*1 RV
@@ -2531,7 +2531,7 @@ c
       ia_ij(k) = ia_src
 !      denom_ij(k) = IJ_POCEAN
 
-#endif 	 
+#endif
 c
       k=k+1 !
       IJ_TGO  = k               !      3 SF
@@ -2774,22 +2774,20 @@ c
       denom_ij(k) = IJ_LI
 c
       k=k+1 !
-      IJ_IMPMLI = k ! IMPLICIT MASS FLUX OVER LAND ICE  (kg/m**2/s)           1 SF
-      lname_ij(k) = 'IMPLICIT MASS FLUX INTO LAND ICE'
+      IJ_IMPMLI = k ! IMPLICIT MASS FLUX (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX to ICE BERGS'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'impm_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_LI
 c
       k=k+1 !
-      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX OVER LAND ICE  (W/m**2)           1 SF
-      lname_ij(k) = 'IMPLICIT HEAT FLUX INTO LAND ICE'
+      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX to ICE BERGS'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'imph_lndice'
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_LI
 c
       k=k+1 !
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
@@ -6381,7 +6379,7 @@ c
 !!    name_dd(k)='VERTVEL'
 !!    units_dd(k)='1d-5 m/s'
 !!    scale_dd(k)=1.
-!!    lname_dd(k)=' W TO-5 ' 
+!!    lname_dd(k)=' W TO-5 '
 c
       k=k+1
       IDD_CCV=k
@@ -6490,8 +6488,8 @@ c Column Diagnostics
           units_dd(k)='kg/m3'
           scale_dd(k)=1.
           lname_dd(k)=' LWC_L'//lst(l)
-        end do     
-#endif 
+        end do
+#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
