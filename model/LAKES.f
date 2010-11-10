@@ -1600,7 +1600,7 @@ C****
       SUBROUTINE daily_LAKE
 !@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
-!@ver  2010/11/09
+!@ver  2010/11/10
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
 #ifdef SCM
@@ -1633,7 +1633,8 @@ C****
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *     ,j_implh, IJ_IMPMKI,IJ_IMPHKI, AIJ=>AIJ_LOC
+     *                    ,J_IMPLH, AIJ=>AIJ_LOC,
+     *                     IJ_MLLtoGR,IJ_HLLtoGR,IJ_IMPMKI,IJ_IMPHKI
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use cubic_eq, only : cubicroot
       IMPLICIT NONE
@@ -1736,7 +1737,10 @@ C**** do not flood more than 4.9% of land per day
                 HLAKE(I,J)=MAX(HLAKE(I,J),HLAKE_MIN)  ! in case it was not set
 C**** adjust for fearth changes
                 FRSAT=0.
-                IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
+                If (NEW_FLAKE > FLAKE(I,J))  Then  !  EndIf at 300
+C**** Lake expands horizontally: use some lake water to saturate ground
+C**** fraction that will now be beneath lake
+C**** DMWFDF (kg/m^2) = Saturated Ground Water - Present Ground Water
                   if (MWL(I,J).gt.DMWLDF(I,J)*(new_flake
      *                 -FLAKE(I,J))*AXYP(I,J)) THEN
                     FRSAT=DMWLDF(I,J)*(new_flake-FLAKE(I,J))*AXYP(I,J)
@@ -1759,6 +1763,10 @@ C**** save some diags
      *                   *BYAXYP(I,J))
                     CALL INC_AJ(I,J,ITLKICE,J_ERUN,PLKIC*DGML(I,J)
      *                   *BYAXYP(I,J))
+                    AIJ(I,J,IJ_MLLtoGR) = AIJ(I,J,IJ_MLLtoGR) +
+     +                   DMWLDF(I,J)*(NEW_FLAKE - FLAKE(I,J))
+                    AIJ(I,J,IJ_HLLtoGR) = AIJ(I,J,IJ_HLLtoGR) +
+     +                   DGML(I,J)*byAXYP(I,J)
                   else
 C**** this is just here to see whether this ever happens.
                     print*,"dont saturate",i,j,(DMWLDF(I,J)*(new_flake
