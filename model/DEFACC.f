@@ -2827,6 +2827,22 @@ c
       scale_ij(k) = 1./DTsrc
       denom_ij(k) = IJ_RSOI
 c
+      K = K+1 
+      IJ_MLLtoGR  = K  !  MASS of EXPANDING LAKE to GROUND (kg/s*m^2)
+      LNAME_IJ(K) = 'MASS of EXPANDING LAKE to GROUND'
+      UNITS_IJ(K) = 'kg/s*m^2'
+      NAME_IJ(K)  = 'mlltogr'
+      IA_IJ(K)    = IA_12HR
+      SCALE_IJ(K) = 2 / SDAY
+c
+      K = K+1 
+      IJ_HLLtoGR  = K  !  HEAT of EXPANDING LAKE to GROUND (W/m^2)           1 SF
+      LNAME_IJ(K) = 'HEAT of EXPANDING LAKE to GROUND'
+      UNITS_IJ(K) = 'W/m^2'
+      NAME_IJ(K)  = 'hlltogr'
+      IA_IJ(K)    = IA_12HR
+      SCALE_IJ(K) = 2 / SDAY
+c
       k=k+1 !
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
       lname_ij(k) = 'SURFC AIR TEMPERATURE: LOWEST DIURNAL HIGH'
