@@ -519,6 +519,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
+     *     ,IJ_MLLtoGR,IJ_HLLtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
 !@var IJ_Gxx names for old AIJG arrays
       INTEGER, public ::
