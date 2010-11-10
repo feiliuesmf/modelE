@@ -1082,7 +1082,7 @@ C
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
 
-      INTEGER, PARAMETER :: NLOC_DIU_VARb = 4
+      INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
@@ -1109,7 +1109,7 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
-      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot /)
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
 
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -2181,6 +2181,25 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
           END SELECT
         END IF
       end do
+
+      DO KR=1,NDIUPT
+        IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+          TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE)) !*OPNSKY
+          DO INCH=1,NRAD
+            IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
+            IH=IHM
+            IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
+            ADIURN(idd_aot,KR,IH)=ADIURN(idd_aot,KR,IH)+TMP(idd_aot)
+#ifndef NO_HDIURN
+            IHM = IHM+(JDATE-1)*HR_IN_DAY
+            IF(IHM.LE.HR_IN_MONTH) THEN
+              HDIURN(idd_aot,KR,IHM)=HDIURN(idd_aot,KR,IHM)+TMP(idd_aot)
+            ENDIF
+#endif
+          ENDDO
+        ENDIF
+      ENDDO
+
 #endif
 
 #ifdef TRACERS_ON
@@ -2468,7 +2487,6 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
               TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
