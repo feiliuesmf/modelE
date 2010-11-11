@@ -76,8 +76,8 @@
       enddo
 
       p1d(1)=0.
-      do k=2,kdm
-      p1d(k)=p1d(k-1)+dp1d(k)
+      do k=2,kdm+1
+      p1d(k)=p1d(k-1)+dp1d(k-1)
       enddo
       do k=1,kdm
        z_cm(k) = p1d(k)*100.d0                !depth in cm
