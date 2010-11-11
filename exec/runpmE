@@ -59,12 +59,17 @@ if ( $dummy !~ /^QCRESTART_DATA/ ) { $tau = 0; $date = ''; }
 `echo ' ' >> I; echo "Stopped $date" >> I; echo "$error_message" >> I`;
 
 
-## check return code
-if( $rcode != 11 ) {
+## report a problem
+## no automatic restarts (for retcode==11) any more
+#if( $rcode != 11 ) {
   `echo "No automatic fixup for return code: $rcode" >> $runID.PRT`;
   `cat $runID.PRT | tail -100 | Mail -s $subj_msg $owner` if $owner;
   exit;
-}
+#}
+
+#####################################################################
+# the code below is left for historical reasons 
+# it is not supposed to be executed
 
 chdir "$CMRUNDIR/$runID" or die "$CMRUNDIR/$runID not found\n";
 

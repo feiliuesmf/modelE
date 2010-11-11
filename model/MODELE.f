@@ -81,7 +81,6 @@ c$$$      USE MODEL_COM, only: clock
       external sig_stop_model
 
 C**** Command line options
-      LOGICAL :: qcrestart=.false.
       CHARACTER*32 :: ifile
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
@@ -115,11 +114,7 @@ C**** Command line options
 C****
 C**** Processing command line options
 C****
-      call read_options( qcrestart, ifile )
-      if ( qcrestart ) then
-        call print_restart_info
-        call stop_model("Terminated normally: printed restart info",-1)
-      endif
+      call read_options( ifile )
 C****
 C**** Reading rundeck (I-file) options
 C****
@@ -2423,13 +2418,11 @@ C**** check tracers
       END SUBROUTINE CHECKT
 
 
-      subroutine read_options( qcrestart, ifile )
+      subroutine read_options( ifile )
 !@sum reads options from the command line (for now only one option)
 !@auth I. Aleinov
 !@ver 1.0
       implicit none
-!@var qcrestart true if "-r" is present
-      logical, intent(inout) :: qcrestart
       character(*),intent(inout)  :: ifile
       character*80 arg,arg1
 
@@ -2437,8 +2430,6 @@ C**** check tracers
         call nextarg( arg, 1 )
         if ( arg == "" ) exit          ! end of args
         select case (arg)
-        case ("-r")
-          qcrestart = .true.
         case ("-i")
           call nextarg( arg1, 0 )
           ifile=arg1
@@ -2452,40 +2443,6 @@ C**** check tracers
 
       return
       end subroutine read_options
-
-
-      subroutine print_restart_info
-!@sum prints timing information needed to restart the model
-!@auth I. Aleinov
-!@ver 1.0
-      USE MODEL_COM
-      USE FILEMANAGER, only : openunit,closeunit
-      use domain_decomp_atm, only: AM_I_ROOT
-      implicit none
-      integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
-      integer :: iu_rsf
-
-      call openunit(rsf_file_name(1),iu_rsf,.true.)
-      call io_label(iu_rsf,Itime1,itm,ioread,ioerr1)
-      call closeunit(iu_rsf)
-      call openunit(rsf_file_name(2),iu_rsf,.true.)
-      call io_label(iu_rsf,Itime2,itm,ioread,ioerr2)
-      call closeunit(iu_rsf)
-
-      if ( ioerr1==-1 ) ItimeMax = Itime1
-      if ( ioerr2==-1 ) ItimeMax = max( ItimeMax, Itime2 )
-
-      if ( Itime < 0 )
-     $     call stop_model("Could not read fort.1, fort.2",255)
-
-      call getdte(
-     &     ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      if (AM_I_ROOT())
-     &     write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
-     &     ItimeMax*24/Nday, Jmon, Jdate, Jyear
-
-      return
-      end subroutine print_restart_info
 
 
       subroutine print_and_check_PPopts
