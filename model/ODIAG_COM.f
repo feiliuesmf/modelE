@@ -1077,6 +1077,7 @@ c
       units_oijl(k) = 'KG/M^3'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
+#ifdef OCN_Mesoscales
       k=k+1
       IJL_MFW2=k
       lname_oijl(k) = "Ocean vertical mass flux squared"
@@ -1105,6 +1106,7 @@ c
       sname_oijl(k) = "veddy"
       units_oijl(k) = "m/s"
       scale_oijl(k) = 1
+#endif
 
 c
 C**** set properties for OIJ diagnostics
@@ -1317,7 +1319,7 @@ c
       IJ_rd=k
       lname_oij(k)="Rossby radius of deformation"
       sname_oij(k)="oij_rd"
-      units_oij(k)="???"
+      units_oij(k)="cm"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
@@ -1325,7 +1327,7 @@ c
       IJ_eke=k
       lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
       sname_oij(k)="oij_eke"
-      units_oij(k)="???"
+      units_oij(k)="cm2/s2"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 #endif
