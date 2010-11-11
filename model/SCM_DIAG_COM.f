@@ -5,7 +5,7 @@
 
       USE RESOLUTION , only : LM 
       USE DIAG_COM , only : npres,ntau
-      USE CLOUDS, only : ncol
+      USE CLOUDS_COM, only : ncol
 
       IMPLICIT NONE
 

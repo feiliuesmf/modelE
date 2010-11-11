@@ -74,6 +74,14 @@ C**** variables used (and saved) for gravity wave drag calculations
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: NAERC      ! = 1.0D-30  ![#/m3](l,nmodes)
 #endif
 #endif
+
+C**** ISCCP diagnostics related parameter
+#ifdef SCM
+      INTEGER,PARAMETER :: ncol = 100    !@var ncol number of subcolumns
+#else
+      INTEGER,PARAMETER :: ncol = 20    !@var ncol number of subcolumns
+#endif
+
       END MODULE CLOUDS_COM
 
       SUBROUTINE ALLOC_CLOUDS_COM(grid)

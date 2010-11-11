@@ -24,7 +24,7 @@
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     &     ,isccp_reg2d,ukm,vkm
+     &     ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
      *     ,oldnl,oldni,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
@@ -150,7 +150,7 @@
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
-     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1,ncol
+     *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci

@@ -29,6 +29,9 @@
      &                    CUMFLX,DWNFLX,SCM_LWP_MC,SCM_LWP_SS,
      &                    SCM_IWP_MC,SCM_IWP_SS,SCM_WM_MC
 #endif
+
+      USE CLOUDS_COM, only : ncol
+
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
       USE mo_bulk2m_driver_gcm, ONLY: execute_bulk2m_driver
 #endif
@@ -131,12 +134,8 @@ C****
       integer ntx
 #endif
 C**** ISCCP diag related variables
-#ifdef SCM
-      INTEGER,PARAMETER :: ncol = 100    !@var ncol number of subcolumns
-#else
-      INTEGER,PARAMETER :: ncol = 20    !@var ncol number of subcolumns
-#endif
-
+!!! @parameter ncol used to be set here  20 for gcm runs and 100 for scm runs
+!!!     now moved to CLOUDS_COM.f  for portability
 !@var tautab look-up table to convert count value to optical thickness
 !@var invtau look-up table to convert optical thickness to count value
       real*8 :: tautab(0:255)

@@ -8,8 +8,7 @@ c     save diagnostics for run of MODELE SCM
       USE MODEL_COM , only :  p,u,v,t,q,wm,NSTEPSCM,sige,sig,
      &                        I_TARG,J_TARG,dtsrc 
       USE CLOUDS_COM, only : SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
-     &                cldss,cldmc,csizmc,csizss
-      USE CLOUDS, only : ncol
+     &                cldss,cldmc,csizmc,csizss,ncol
       use DIAG_COM, only : npres,ntau,isccp_press,isccp_tau
       USE SCMCOM
       USE SCMDIAG
