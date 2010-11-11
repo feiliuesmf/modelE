@@ -35,6 +35,11 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=85
+#ifdef HEALY_LM_DIAGS
+     &                                 + 3
+      REAL*8, public :: CROPS_DIAG(IM,JM)
+#endif
+
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
      &     ,AJ_out
@@ -71,6 +76,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       INTEGER, PARAMETER, public :: KAIJ=405
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
+#endif
+#ifdef HEALY_LM_DIAGS 
+     &                                   + 1 
 #endif
 
 !@var AIJ latitude/longitude diagnostics
@@ -442,6 +450,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
      *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP,
      *     J_ALBP0,J_ALBG,J_IRGW,J_IRGWE
+#ifdef HEALY_LM_DIAGS
+     *     ,J_VTAU,J_CROPS,J_GHG
+#endif
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=sname_strlen), dimension(kaj), public :: name_j
       character(len=units_strlen), dimension(kaj), public :: units_j
@@ -521,6 +532,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
      *     ,IJ_MLLtoGR,IJ_HLLtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
+#ifdef HEALY_LM_DIAGS
+     &     ,IJ_CROPS
+#endif
 !@var IJ_Gxx names for old AIJG arrays
       INTEGER, public ::
      *     ij_gbsw, ij_gbsbet, ij_gbetpen, ij_gvsw, ij_gbvswt,

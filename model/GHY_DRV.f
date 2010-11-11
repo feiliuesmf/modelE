@@ -1678,6 +1678,9 @@ c***********************************************************************
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
 #endif
+#if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
+     &     ,ij_crops,j_crops,CROPS_DIAG
+#endif
 #ifdef TRACERS_DUST
       USE PBLCOM,ONLY : eabl,uabl,vabl,tabl,qabl
 #endif
@@ -1817,6 +1820,9 @@ ccc the following values are returned by PBL
       aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp*ptype
       aij(i,j,ij_soilCpoolsum)=aij(i,j,ij_soilCpoolsum)
      &     + (asoilCpoolsum/nisurf)*ptype
+#ifdef HEALY_LM_DIAGS 
+      aij(i,j,ij_crops)=aij(i,j,ij_crops)+CROPS_DIAG(i,j)*100.
+#endif
       aij(i,j,ij_gvswet)=aij(i,j,ij_gvswet)+(abetav/nisurf)*fv*ptype
       aij(i,j,ij_gbetat)=aij(i,j,ij_gbetat)+(abetat/nisurf)*fv*ptype
       aij(i,j,ij_gevppen)=aij(i,j,ij_gevppen)+aepp*ptype
@@ -1893,6 +1899,9 @@ c**** quantities accumulated for regions in diagj
         call inc_areg(i,j,jr,j_tg1 , tg1   *ptype)
         call inc_areg(i,j,jr,j_tg2 , tg2av *ptype)
       end if
+#ifdef RJH_LM_CROPS
+      call inc_areg(i,j,jr,j_crops,CROPS_DIAG(i,j)*ptype)
+#endif
 
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
@@ -2042,6 +2051,9 @@ c**** quantities accumulated for surface type tables in diagj
       call inc_aj(i,j,itearth,j_lwcorr, dlwdt*ptype)
       call inc_aj(i,j,itearth,j_erun ,(aeruns+aerunu)*ptype)
       call inc_aj(i,j,itearth,j_run  ,  (aruns+arunu)*ptype)
+#ifdef HEALY_LM_DIAGS
+      call inc_aj(i,j,itearth,j_crops  ,  CROPS_DIAG(i,j)*ptype)
+#endif
       if(moddsf.eq.0) then
         call inc_aj(i,j,itearth,j_tsrf,(ts-tf)*ptype)
         call inc_aj(i,j,itearth,j_tg1 ,    tg1*ptype)
@@ -3716,7 +3728,6 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
  !       hemi(:,J_0:JEQUATOR) = -1
  !       call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
  !     endif
-
       if (end_of_day )
      &     call update_vegetation_data( entcells,
      &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )

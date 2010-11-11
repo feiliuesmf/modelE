@@ -854,6 +854,9 @@ C     INPUT DATA  (i,j) dependent
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,O3natL,O3natLref
      *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
+#ifdef HEALY_LM_DIAGS
+     *             ,VTAULAT 
+#endif
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -926,6 +929,10 @@ C     OUTPUT DATA
 #ifdef ACCMIP_LIKE_DIAGS
      *     ,ij_fcghg ! array
 #endif
+#ifdef HEALY_LM_DIAGS
+     *     ,j_vtau,j_ghg
+#endif
+
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1022,6 +1029,13 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       integer :: nf,GFrefY,GFrefD,GFnowY,GFnowD
 !@var nfghg fulgas( ) index of radf diag ghgs:
       integer, dimension(4) :: nfghg=(/7,6,8,9/)
+#endif
+#ifdef HEALY_LM_DIAGS
+C  GHG Effective forcing relative to 1850
+       real*8 :: ghg_totforc, CO2I=285.2,N2OI=.2754,CH4I=.791  ! 1850  GHG's
+       real*8 ::              CO2R=337.9,N2OR=.3012,CH4R=1.547 ! RAD's 1979 Reference values
+       real*8 ::              FCO2,FN2O,FCH4                   ! Current Model GHG
+       real*8 :: Fe !! Function
 #endif
 #ifdef TRACERS_ON
 !@var StauL sum of ttausv over L
@@ -1316,6 +1330,20 @@ C**** SS clouds are considered as a block for each continuous cloud
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
       sv_fulgas_now(1:4)=fulgas(nfghg(1:4))
+#endif
+#ifdef HEALY_LM_DIAGS
+      FCO2=FULGAS(2)*CO2R
+      FN2O=FULGAS(6)*N2OR
+      FCH4=FULGAS(7)*CH4R
+c      
+c      write(6,*) 'RJH: GHG: CONC=',
+c     * FCO2,FN2O,FCH4
+      ghg_totforc=5.35d0*log(FCO2/CO2I)
+     *  +0.036d0*(sqrt(FCH4)-sqrt(CH4I))
+     *  -(Fe(FCH4,N2OI)-Fe(CH4I,N2OI))
+     *  + 0.12d0*(sqrt(FN2O)-sqrt(N2OI))
+     *  -(Fe(CH4I,FN2O)-Fe(CH4I,N2OI))
+c      write(6,*) 'RJH: GHG: FORC=',ghg_totforc
 #endif
 
       aj_alb_inds = (/ J_PLAVIS, J_PLANIR, J_ALBVIS, J_ALBNIR,
@@ -2520,6 +2548,11 @@ C****
          call inc_aj(I,J,IT,J_SRNFP1 ,SNFS(2,I,J)*CSZ2*FTYPE(IT,I,J))
          call inc_aj(I,J,IT,J_HATM   ,-(TNFS(2,I,J)-TNFS(1,I,J))
      *        *FTYPE(IT,I,J))
+#ifdef HEALY_LM_DIAGS
+         call inc_aj(I,J,IT,j_vtau ,10.*-20*VTAULAT(J)*FTYPE(IT,I,J))
+         call inc_aj(I,J,IT,j_ghg ,10.*ghg_totforc*FTYPE(IT,I,J))
+#endif
+
       END DO
 C**** Note: confusing because the types for radiation are a subset
          call inc_aj(I,J,ITOCEAN,J_SRNFG,(FSF(1,I,J)*CSZ2)*FOCEAN(I,J)
@@ -3738,4 +3771,13 @@ C**** Set the Black Carbon deposition array
 
       return
       end subroutine updBCd
+#ifdef HEALY_LM_DIAGS
+      real*8 function Fe(M,N)
+      real*8 M,N
+
+      Fe=0.47d0*log(1.+2.01d-5*(M*N)**(0.75)
+     .   +5.31d-15*M*(M*N)**(1.52)) 
+      return
+      end
+#endif
 

@@ -5,6 +5,9 @@
 !@auth I. Alienov, N. Kiang, Y. Kim
 
       use model_com, only : im,jm
+#ifdef HEALY_LM_DIAGS
+      use diag_com, only : CROPS_DIAG
+#endif
       use ent_mod
       implicit none
       private
@@ -210,6 +213,9 @@
      &         *(1.d0-cropdata_H(I0:I1,J0:J1))
         enddo
         vegdata(CROPS+COVEROFFSET,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+#ifdef HEALY_LM_DIAGS
+        CROPS_DIAG(I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+#endif
       endif
          
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)

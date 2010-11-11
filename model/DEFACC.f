@@ -944,6 +944,35 @@ c
       stitle_j(k)= 'no output'
       scale_j(k) = 1.
       ia_j(k) = ia_rad
+#ifdef HEALY_LM_DIAGS
+c
+      k=k+1
+      J_VTAU  = k ! Volcanic TAU*-20 (W/m^2)
+      name_j(k) = 'vol_tau_forc'
+      lname_j(k) = 'VOLCANIC OPTICAL DEPTH FORCING'
+      units_j(k) = 'W/m^2'
+      stitle_j(k)= ' VOLC (.1 W/m^2)'
+      scale_j(k) = 1.
+      ia_j(k) = ia_rad
+c
+      k=k+1
+      J_GHG  = k ! Greenhouse forcing (W/m^2)
+      name_j(k) = 'ghg_forc'
+      lname_j(k) = 'GREENHOUSE GAS EFFECTIVE FORCING'
+      units_j(k) = 'W/m^2'
+      stitle_j(k)= ' GHG Fe(.1 W/m^2)'
+      scale_j(k) = 1.
+      ia_j(k) = ia_rad
+c
+      k=k+1
+      J_CROPS  = k ! Crop cover (%)
+      name_j(k) = 'crop_cover'
+      lname_j(k) = 'CROP COVER'
+      units_j(k) = '%'
+      stitle_j(k)= ' CROP COVER '
+      scale_j(k) = 1.
+      ia_j(k) = ia_src
+#endif
 
 c fixups for cases when denominator indices were not yet defined.
 c change specifification of denominators to use name_j instead.
@@ -4673,6 +4702,18 @@ c      scale_ij(k) = 1.
       LNAME_IJ(K) = 'SURFACE VAPOR PRESSURE'
       UNITS_IJ(K) = 'mb'
       ia_ij(k) = IA_IJ(IJ_QS  )
+#ifdef HEALY_LM_DIAGS
+
+      k=k+1 !
+      IJ_CROPS  = k ! CROPS (%)                                1 GD
+      lname_ij(k) = 'CROP COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'crops'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_pct
+#endif
+
 
       if (AM_I_ROOT()) then
          if (k .gt. kaij) then

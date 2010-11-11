@@ -846,6 +846,9 @@ C                                        2000                     2050
 #ifndef USE_RAD_OFFLINE
       use model_com, only : lm_gcm=>lm, lm_req
 #endif
+#ifdef HEALY_LM_DIAGS
+      USE MODEL_COM, only : JM_DIAG=>jm
+#endif
       use IndirectAerParam_mod
       IMPLICIT NONE
 
@@ -999,6 +1002,9 @@ C----------------
       LOGICAL*4 :: flags
 !@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
+#ifdef HEALY_LM_DIAGS
+      REAL*8 :: VTAULAT(JM_DIAG)
+#endif
 
       COMMON/RADPAR_INPUT_IJDATA/    !              Input data to RCOMPX
      A              PLB,HLB,TLB,TLT,TLM,SHL,RHL,ULGAS
@@ -4477,6 +4483,10 @@ cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
       INTEGER, INTENT(IN), optional :: JYEARV,JDAYVA,GETVOL_flag
       INTEGER J,L,MI,MJ,K
       REAL*8 XYYEAR,XYI,WMI,WMJ,SIZVOL !nu ,SUMHTF
+#ifdef HEALY_LM_DIAGS
+      INTEGER, SAVE :: NJDG
+      REAL*8, SAVE :: EDGLAT(JM_DIAG)
+#endif
 
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
@@ -4515,6 +4525,14 @@ C                   ---------------------------------------------------
   120 CONTINUE
       EJMLAT(   1)=-90.D0
       EJMLAT(NJJM)= 90.D0
+#ifdef  HEALY_LM_DIAGS
+      NJDG=JM_DIAG+1
+      DO J=2,JM_DIAG
+      EDGLAT(J)=-90.D0+(J-1.5D0)*180.D0/(JM_DIAG-1)
+      END DO
+      EDGLAT(   1)=-90.D0
+      EDGLAT(NJDG)= 90.D0
+#endif
 
       HTPROF(:)=0
 
@@ -4559,9 +4577,13 @@ C                                          -------------------------
   260 CONTINUE
       CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
   270 CONTINUE
-!nu   DO J=1,46
+      DO J=1,46
       TAULAT(J) = SUM (HTFLAT(J,:))
-!nu   END DO
+      END DO
+#ifdef HEALY_LM_DIAGS
+      CALL RETERP(TAULAT,EJMLAT,NJJM,VTAULAT,EDGLAT,NJDG)
+#endif
+
 
       RETURN
 
