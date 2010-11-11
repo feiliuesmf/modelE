@@ -370,6 +370,9 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 #endif
 
+#ifdef OCN_Mesoscales
+      CALL OCN_mesosc
+#endif
       CALL TIMER (NOW,MSGSO)
 
 c-------------------------------------------------------------------

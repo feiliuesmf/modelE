@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=58,KOIJL=27,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=59,KOIJL=30,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -64,12 +64,19 @@
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
 #endif
+#ifdef OCN_Mesoscales
+     .           ,ij_eke,ij_rd
+#endif
 #endif
 
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2
+#ifdef OCN_Mesoscales
+     .     ,ijl_ueddy,ijl_veddy,ijl_n2
+#endif
+
 !@var lname_oijl Long names for OIJL diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJL) :: LNAME_OIJL
 !@var sname_oijl Short names for OIJL diagnostics
@@ -1078,6 +1085,28 @@ c
       scale_oijl(k) = (2./ndyno)*(2./ndyno)
       lgrid_oijl(k) = 2
 c
+      k=k+1
+      IJL_n2=k
+      lname_oijl(k) = "Brunt Vaisala frequency sq"
+      sname_oijl(k) = "n2"
+      units_oijl(k) = "1/sec"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      IJL_ueddy=k
+      lname_oijl(k) = "Eddy induced u velocity (Canuto)"
+      sname_oijl(k) = "ueddy"
+      units_oijl(k) = "m/s"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      IJL_veddy=k
+      lname_oijl(k) = "Eddy induced v velocity (Canuto)"
+      sname_oijl(k) = "veddy"
+      units_oijl(k) = "m/s"
+      scale_oijl(k) = 1
+
+c
 C**** set properties for OIJ diagnostics
       do k=1,koij
         sname_oij(k) = 'unused'
@@ -1279,6 +1308,24 @@ c
       lname_oij(k)="CaCO3 export flux at compensation depth"
       sname_oij(k)="oij_fca"
       units_oij(k)="Pgr,C/yr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+#endif
+
+#ifdef OCN_Mesoscales
+      k=k+1
+      IJ_rd=k
+      lname_oij(k)="Rossby radius of deformation"
+      sname_oij(k)="oij_rd"
+      units_oij(k)="???"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_eke=k
+      lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
+      sname_oij(k)="oij_eke"
+      units_oij(k)="???"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 #endif

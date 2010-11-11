@@ -277,6 +277,10 @@ c        CALL CHECKO ('STADVI')
 #endif
 #endif
 
+#ifdef OCN_Mesoscales
+      CALL OCN_mesosc
+#endif
+
         CALL TIMER (NOW,MSGSO)
 C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
