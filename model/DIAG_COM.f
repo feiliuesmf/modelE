@@ -2,7 +2,7 @@
       MODULE DIAG_COM
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
-!@ver  1.0
+!@ver  2010/11/12
       use resolution, only : ls1
       USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
       use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
@@ -77,8 +77,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
-#ifdef HEALY_LM_DIAGS 
-     &                                   + 1 
+#ifdef HEALY_LM_DIAGS
+     &                                   + 1
 #endif
 
 !@var AIJ latitude/longitude diagnostics
@@ -530,7 +530,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
-     *     ,IJ_MLLtoGR,IJ_HLLtoGR
+     *     ,IJ_MLKtoGR,IJ_HLKtoGR, IJ_MSNFLOOD,IJ_HSNFLOOD
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
