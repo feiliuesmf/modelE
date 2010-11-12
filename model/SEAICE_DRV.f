@@ -452,9 +452,9 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
             GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
-     *           )/(XSI(1)*ACE1I)) 
+     *           )/(XSI(1)*ACE1I))
             GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*ACE1I),1d3*SSI(2,I,J
-     *           )/(XSI(2)*ACE1I)) 
+     *           )/(XSI(2)*ACE1I))
             GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
@@ -480,7 +480,7 @@ C****
       SUBROUTINE GROUND_SI
 !@sum  GROUND_SI driver for applying surface + base fluxes to sea ice
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@ver  2010/11/12
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow,sday
       USE MODEL_COM, only : im,jm,dtsrc,fland,focean
@@ -506,6 +506,7 @@ C****
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio,ij_sntosi,ij_tsice
      *     ,ij_sihc,ij_sigrcg,ij_sitopmlt,ij_sibotmlt
+     *     ,IJ_MSNFLOOD,IJ_HSNFLOOD
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       USE TimerPackage_mod, only: startTimer => start
@@ -658,7 +659,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 #endif
         FLAG_DSWS(I,J)=WETSNOW
         Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),1d3*SSIL(1)/(XSI(1)*(SNOW
-     *       +ACE1I))) 
+     *       +ACE1I)))
 
 C**** pond_melt accumulation
         pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
@@ -702,6 +703,8 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AIJ(I,J,IJ_TSICE)=AIJ(I,J,IJ_TSICE)+Ti1*POICE
           AIJ(I,J,IJ_SIHC)=AIJ(I,J,IJ_SIHC)+SUM(HSIL(:))*POICE
           AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+POICE*(RUN+MFLUX)
+          AIJ(I,J,IJ_MSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*MSNWIC
+          AIJ(I,J,IJ_HSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*HSNWIC
           IF (FMOC.lt.0) THEN   ! define as congelation growth
             AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)-POICE*FMOC
           ELSE                  ! basal melt
@@ -725,7 +728,7 @@ C**** snow cover diagnostic now matches that seen by the radiation
           CALL INC_AJ(I,J,ITYPE,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
           CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI)
-          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE) 
+          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE)
           CALL INC_AREG(I,J,JR,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
           CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
@@ -852,9 +855,9 @@ c         debug=i.eq.40.and.j.eq.41
         TRI(:) = DTRSI(:,2,I,J)
 #endif
 C**** ice formation diagnostics on the atmospheric grid
-! define open ocean ice formation as frazil ice growth    
+! define open ocean ice formation as frazil ice growth
         AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POCEAN*ACEFO
-! define under ice formation as congelation ice growth    
+! define under ice formation as congelation ice growth
         AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)+POICE*ACEFI
 
         IF (FOCEAN(I,J).gt.0) THEN
@@ -920,7 +923,7 @@ C**** set gtemp array
                 GTEMPR(2,I,J) = ATSKIN + TF
             endif
         endif
-#endif     
+#endif
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
 #endif
@@ -1141,9 +1144,9 @@ C**** set GTEMP etc. array for ice
       DO I=I_0, I_1
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1)) 
+     *       )/(XSI(1)*MSI1))
         GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1)) 
+     *       )/(XSI(2)*MSI1))
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
@@ -1407,9 +1410,9 @@ C****
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
         GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1)) 
+     *       )/(XSI(1)*MSI1))
         GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1)) 
+     *       )/(XSI(2)*MSI1))
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
