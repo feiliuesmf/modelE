@@ -2856,19 +2856,19 @@ c
       scale_ij(k) = 1./DTsrc
       denom_ij(k) = IJ_RSOI
 c
-      K = K+1 
-      IJ_MLLtoGR  = K  !  MASS of EXPANDING LAKE to GROUND (kg/s*m^2)
-      LNAME_IJ(K) = 'MASS of EXPANDING LAKE to GROUND'
+      K = K+1
+      IJ_MLKtoGR  = K
+      LNAME_IJ(K) = 'MASS of EXPANDING LAKE SATURATES GROUND'
       UNITS_IJ(K) = 'kg/s*m^2'
-      NAME_IJ(K)  = 'mlltogr'
+      NAME_IJ(K)  = 'mlktogr'
       IA_IJ(K)    = IA_12HR
       SCALE_IJ(K) = 2 / SDAY
 c
-      K = K+1 
-      IJ_HLLtoGR  = K  !  HEAT of EXPANDING LAKE to GROUND (W/m^2)           1 SF
-      LNAME_IJ(K) = 'HEAT of EXPANDING LAKE to GROUND'
+      K = K+1
+      IJ_HLKtoGR  = K
+      LNAME_IJ(K) = 'HEAT of EXPANDING LAKE SATURATES GROUND'
       UNITS_IJ(K) = 'W/m^2'
-      NAME_IJ(K)  = 'hlltogr'
+      NAME_IJ(K)  = 'hlktogr'
       IA_IJ(K)    = IA_12HR
       SCALE_IJ(K) = 2 / SDAY
 c
@@ -4007,6 +4007,24 @@ c
       scale_ij(k)=1/DTsrc
       ia_ij(k) = ia_src
       denom_ij(k) = IJ_PWATER
+c
+      K = K+1
+      IJ_MSNFLOOD = K
+      LNAME_IJ(K) = 'ICE MASS FROZEN by SNOW FLOOD'
+      UNITS_IJ(K) = 'kg/s*m^2'
+      NAME_IJ(K)  = 'msnflood'
+      SCALE_IJ(K) = 1 / DTSRC
+      IA_IJ(K)    = IA_SRC
+      DENOM_IJ(K) = IJ_PWATER
+c
+      K = K+1
+      IJ_HSNFLOOD = K
+      LNAME_IJ(K) = 'ICE HEAT FROZEN by SNOW FLOOD'
+      UNITS_IJ(K) = 'W/m^2'
+      NAME_IJ(K)  = 'hsnflood'
+      SCALE_IJ(K) = 1 / DTSRC
+      IA_IJ(K)    = IA_SRC
+      DENOM_IJ(K) = IJ_PWATER
 c
       k=k+1
       IJ_SIHC = k   ! note this is referenced to water at 0 deg C
