@@ -1600,7 +1600,7 @@ C****
       SUBROUTINE daily_LAKE
 !@sum  daily_LAKE does lake things at the beginning of every day
 !@auth G. Schmidt
-!@ver  2010/11/10
+!@ver  2010/11/12
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
 #ifdef SCM
@@ -1634,7 +1634,7 @@ C****
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
      *                    ,J_IMPLH, AIJ=>AIJ_LOC,
-     *                     IJ_MLLtoGR,IJ_HLLtoGR,IJ_IMPMKI,IJ_IMPHKI
+     *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use cubic_eq, only : cubicroot
       IMPLICIT NONE
@@ -1763,9 +1763,9 @@ C**** save some diags
      *                   *BYAXYP(I,J))
                     CALL INC_AJ(I,J,ITLKICE,J_ERUN,PLKIC*DGML(I,J)
      *                   *BYAXYP(I,J))
-                    AIJ(I,J,IJ_MLLtoGR) = AIJ(I,J,IJ_MLLtoGR) +
+                    AIJ(I,J,IJ_MLKtoGR) = AIJ(I,J,IJ_MLKtoGR) +
      +                   DMWLDF(I,J)*(NEW_FLAKE - FLAKE(I,J))
-                    AIJ(I,J,IJ_HLLtoGR) = AIJ(I,J,IJ_HLLtoGR) +
+                    AIJ(I,J,IJ_HLKtoGR) = AIJ(I,J,IJ_HLKtoGR) +
      +                   DGML(I,J)*byAXYP(I,J)
                   else
 C**** this is just here to see whether this ever happens.
