@@ -1077,7 +1077,6 @@ c
       units_oijl(k) = 'KG/M^3'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
-#ifdef OCN_Mesoscales
       k=k+1
       IJL_MFW2=k
       lname_oijl(k) = "Ocean vertical mass flux squared"
@@ -1086,6 +1085,7 @@ c
       scale_oijl(k) = (2./ndyno)*(2./ndyno)
       lgrid_oijl(k) = 2
 c
+#ifdef OCN_Mesoscales
       k=k+1
       IJL_n2=k
       lname_oijl(k) = "Brunt Vaisala frequency sq"
