@@ -651,7 +651,7 @@ C****
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
       Use MODEL_COM,         Only: IM,JM
-      Use GEOM,              Only: LAT2D,aDXYP
+      Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, MDWNIMP
       Use LANDICE,           Only: MICBIMP
       Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
@@ -687,7 +687,7 @@ C**** Distribute summed hemispheric values MICBIMP(:)+MDWNIMP_?H into
 C**** array MICB(I,J) acording to FSHGLM and FNHGLM
       Do J=J_0,J_1  ;  Do I=I_0,I_1
          MICB(I,J) = (FSHGLM(I,J)*(MICBIMP(1)+MDWNIMP_SH) +
-     +                FNHGLM(I,J)*(MICBIMP(2)+MDWNIMP_NH)) / aDXYP(I,J)
+     +                FNHGLM(I,J)*(MICBIMP(2)+MDWNIMP_NH)) / AXYP(I,J)
       EndDo  ;  EndDo
       RETURN
       END SUBROUTINE conserv_MICB
@@ -698,7 +698,7 @@ C**** array MICB(I,J) acording to FSHGLM and FNHGLM
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
       Use MODEL_COM,         Only: IM,JM
-      Use GEOM,              Only: LAT2D,aDXYP
+      Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, EDWNIMP
       Use LANDICE,           Only: EICBIMP
       Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
@@ -734,7 +734,7 @@ C**** Distribute summed hemispheric values EICBIMP(:)+EDWNIMP_?H into
 C**** array HICB(I,J) acording to FSHGLM and FNHGLM
       Do J=J_0,J_1  ;  Do I=I_0,I_1
          HICB(I,J) = (FSHGLM(I,J)*(EICBIMP(1)+EDWNIMP_SH) +
-     +                FNHGLM(I,J)*(EICBIMP(2)+EDWNIMP_NH)) / aDXYP(I,J)
+     +                FNHGLM(I,J)*(EICBIMP(2)+EDWNIMP_NH)) / AXYP(I,J)
       EndDo  ;  EndDo
       RETURN
       END SUBROUTINE conserv_HICB
