@@ -1858,7 +1858,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
 
 
-      SUBROUTINE GET_SULFATE(L,temp,fcloud,
+      SUBROUTINE GET_SULFATE(L,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
      *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
@@ -1908,7 +1908,7 @@ c
       real*8, parameter :: dh1=-1.6736d4 !J/mol
       real*8, parameter :: rk=6.357d14    !1/(M*M*s)
       real*8, parameter :: ea=3.95d4 !J/mol
-      REAL*8,  INTENT(IN) :: fcloud,temp,wa_vol,wmxtr,LHX
+      REAL*8,  INTENT(IN) :: fcloud,temp_in,wa_vol,wmxtr,LHX
       real*8, dimension(lm,ntm) :: tm
       real*8, dimension(ntm) :: tmcl,sulfin,sulfout,tr_left
      *  ,sulfinc
@@ -1916,7 +1916,7 @@ c
 c     REAL*8,  INTENT(OUT)::
 !@var dt_sulf accumulated diagnostic of sulfate chemistry changes
       real*8, dimension(ntm), intent(inout) :: dt_sulf
-      real*8 finc,fcld0
+      real*8 finc,fcld0,temp
       INTEGER, INTENT(IN) :: L
       do n=1,ntx
         sulfin(N)=0.
@@ -1945,6 +1945,11 @@ c  gases may be allowed to dissolve (amount given by tr_left)
 C H2O2 + SO2 -> H2O + SO3 -> H2SO4
       amass=airm(l)*mb2kg*DXYPIJ
       Ppas = PL(L)*1.D2
+      ! calls to this subroutine are sometimes made at stages of
+      ! the cloud scheme at which some but not all tendencies have
+      ! been applied to temp_in, so we impose a lower limit
+      ! (liquid water is very unlikely to exist below 230 K)
+      temp = max(temp_in, 230d0) ! K
       tfac = (1./temp - by298k)*bygasc  !mol/J
 c  cloud liquid water content
       clwc=wmxtr*mair*ppas/temp*bygasc/1.D6/fcloud
