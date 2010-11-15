@@ -9,7 +9,7 @@
       character(len=*) :: accname     ! name of acc-array to scale
       character(len=200) :: accfile    ! name of acc-file
 c
-      character(len=80) :: ofile_base ! basename of output file
+      character(len=200) :: ofile_base ! basename of output file
       character(len=20) :: dcat,dcat_cdl
       character(len=20) :: dcat_list(100)
       integer :: ndcats,icat
