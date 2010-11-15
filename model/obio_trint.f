@@ -11,11 +11,10 @@
       use ocn_tracer_com, only : ntrcr=>ntm, obio_tr_mm
       use model_com, only : nstep=>itime
       use ocean, only: trmo
-      use ofluxes, only: oRSI
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
-      use hycom_arrays, only : tracer,dpinit,scp2,oice
+      use hycom_arrays, only : tracer,dpinit,scp2
       use hycom_scalars, only : nstep,onem
 #endif
 #ifdef TRACERS_GASEXCH_ocean
@@ -57,9 +56,9 @@
       ! size 1 in the uninteresting directions to match
       ! expected interface.
 #ifdef OBIO_ON_GARYocean
-      sumFlux= areaIntegration(tracflx(:,:,1)*(1-oRSI))
+      sumFlux= areaIntegration(tracflx(:,:,1))
 #else
-      sumFlux= areaIntegration(tracflx(:,:,1)*(1-oice))
+      sumFlux= areaIntegration(tracflx(:,:,1))
 #endif
 #else
       sumFlux=0.   ! no surface flux
@@ -133,15 +132,15 @@
      &           summ(iTracer), summ(iTracer)/sumo
          end do
        write(*,*)'----------   trmo conservation--------------------'
-       write(*,*)'global averaged flux=',
-     .            nstep,sumFlux
+       write(*,*)'global averaged flux (kg,C per s) =',
+     .            nstep,sumFlux*44.d0*1e-3/3.664d0     !convert mole,CO2/s->kg,C/s
        !volume integrated carbon inventory:
        !trmo units are Kg, summ is in Kg*m3
-       write(*,*)'global carbon inventory=',nstep,
-     .  ((summ(5)+summ(6)+summ(7)+summ(8)+summ(9)) * 1.d3/obio_tr_mm(5) !mol,C*m3
-     .  + summ(11) * 1.d3/obio_tr_mm(11)                                !mol,C*m3
-     .  +(summ(14)+summ(15))* 1.d3/obio_tr_mm(14)                       !mol,C*m3
-     .   )/sumo     !mol,C
+       write(*,*)'global carbon inventory (kg,C)=',nstep,
+     .   (summ(5)+summ(6)+summ(7)+summ(8)+summ(9)  ! kg,C*m3
+     . +  summ(11)                                 ! kg,C*m3
+     . +  summ(14)+summ(15)                        ! kg,C*m3
+     .                     )/sumo                  ! kg,C
        write(*,*)'----------------------------------------------------'
       endif
 #endif
@@ -165,9 +164,9 @@
 
 #ifdef OBIO_ON_GARYocean
       function volumeIntegration(quantity)
-      use ocean, only : dxypo, focean
+      use ocean, only : dxypo, focean,imaxj
       use oceanres,  only: dzo
-      real*8, intent(in) :: quantity(:,j_0h:,:,:)
+      real*8, intent(inout) :: quantity(:,j_0h:,:,:)
       real*8 :: volumeIntegration(size(quantity,4))
       
       real*8 :: partialIntegration(j_0h:j_1h,size(quantity,4))
@@ -182,7 +181,7 @@
       do k = 1, numLevels
         do j = j_0, j_1
           gridCellVolume = dzo(k) * dxypo(j)
-          do i= 1, idm
+          do i= 1, imaxj(j)
             do n = 1, numTracers
                if (focean(i,j) > 0) then
                  partialIntegration(j,n) = partialIntegration(j,n) + 
@@ -199,7 +198,7 @@
       end function volumeIntegration
 
       real*8 function areaIntegration(quantity)
-      use ocean, only : dxypo, focean
+      use ocean, only : dxypo, focean,imaxj
       real*8, intent(in) :: quantity(:,j_0h:)
       real*8 :: partialAreaIntegration(j_0h:j_1h)
       
@@ -211,7 +210,7 @@
       partialAreaIntegration = 0
       do j = j_0, j_1
         gridCellArea = dxypo(j)
-        do i= 1, idm
+        do i= 1, imaxj(j)
           if (focean(i,j) > 0) then
             partialAreaIntegration(j) = partialAreaIntegration(j) + 
      &            quantity(i,j) * gridCellArea

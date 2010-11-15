@@ -941,14 +941,23 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! because obio_carbon needs mol,CO2/m2/s (accumulated over itype)
+! because obio_carbon needs such. Units mol,CO2/m2/s (accumulated over itype)
 
           TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) +
      .          pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs(nx) 
      .         - pbl_args%alpha_gas * trgrnd(nx) ) 
      .         * 1d6/vol2mass(n)
-     .         * dtsurf/dtsrc   !in order to accumulate properly over time
-     .         * ptype          !units mol,co2/m2/s
+     .         * dtsurf/dtsrc      !in order to accumulate properly over time
+     .         * (1.d0-RSI(i,j))   !units mol,co2/m2/s
+
+       if (nstep.eq.48)
+     . write(*,'(a,3i5,6e12.4)')'SURFACE: test carbon flux: ',
+     . nstep,i,j,
+     . pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs(nx)
+     .         - pbl_args%alpha_gas * trgrnd(nx) )
+     .         * 1d6/vol2mass(n),
+     . dtsurf,dtsrc,1.d0-RSI(i,j),TRGASEX(n,ITYPE,I,J),
+     . focean(i,j)
 
 ! trsrfflx is positive up 
 ! units are kg,CO2/s
