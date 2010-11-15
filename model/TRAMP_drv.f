@@ -232,8 +232,9 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
           else
       tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(n)) *AVOL)
      *        -trm(i,j,l,n)) /dtsrc
+#ifndef NO_HDIURN
       if (DIAM(i,j,l,AMP_MODES_MAP(n))*1.e6.ge.0.1 ) HD_NUMB(AMP_MODES_MAP(n)) = AERO(AMP_AERO_MAP(n))
-
+#endif
           endif   
        ENDDO
 
