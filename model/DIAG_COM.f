@@ -73,7 +73,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=410
+      INTEGER, PARAMETER, public :: KAIJ=415
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
