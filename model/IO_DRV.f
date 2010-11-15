@@ -379,13 +379,15 @@ c write a text version of the date to a restart/acc file
       use domain_decomp_atm, only: grid
       implicit none
       integer :: fid
-      character(len=18) :: caldate
+      character(len=19) :: caldate
       character(len=2) :: cmo,cday
-      character(len=4) :: cyr,chr
+      character(len=4) :: cyr
+      character(len=5) :: chr
       write(cmo,'(i2.2)') jmon
       write(cday,'(i2.2)') jdate
       write(cyr,'(i4.4)') jyear
-      write(chr,'(f4.1)') real(jhour)
+!      write(chr,'(f4.1)') real(jhour)
+      write(chr,'(f5.2)') (real(mod(itime,nday))/real(nday))*24.
       caldate=cmo//'/'//cday//'/'//cyr//' hr '//chr
       call write_attr(grid,fid,'itime','caldate',caldate)
       return
