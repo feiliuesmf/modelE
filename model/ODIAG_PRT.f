@@ -1887,8 +1887,8 @@ C****
           enddo; enddo
         endif
         if(to_per_mil(n) .and. n.ne.n_Water) then
-          toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)
-     &         -trw0(n)*toijl_loc(:,:,:,TOIJL_conc,n_water))
+          toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/trw0(n)
+     &         -toijl_loc(:,:,:,TOIJL_conc,n_water))
         endif
       enddo
 #endif
