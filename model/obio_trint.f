@@ -42,6 +42,9 @@
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
 
+      call get(grid, j_strt = j_0, j_stop = j_1,
+
+
       sumo  =  getTotalOceanVolume()
       areao =  getTotalOceanArea()
         h1  = avgDepthOfTopLayer()
@@ -179,8 +182,10 @@
       numTracers = size(quantity,4)
 
       do k = 1, numLevels
+!do poles
         do j = j_0, j_1
-          gridCellVolume = dzo(k) * dxypo(j)
+          gridCellVolume = dzo(k) * dxypo(j) 
+          if (j.eq.jm) gridCellVolume = gridCellVolume * im
           do i= 1, imaxj(j)
             do n = 1, numTracers
                if (focean(i,j) > 0) then
@@ -210,6 +215,7 @@
       partialAreaIntegration = 0
       do j = j_0, j_1
         gridCellArea = dxypo(j)
+        if (j.eq.jm) gridCellArea = gridCellArea *im
         do i= 1, imaxj(j)
           if (focean(i,j) > 0) then
             partialAreaIntegration(j) = partialAreaIntegration(j) + 
