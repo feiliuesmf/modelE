@@ -452,39 +452,45 @@ GISS-binary files can be created from netcdf files using one of these programs:
 </p>
 
 <pre>
-write_giss2d       infile.nc outfile dimname1 dimname2 [varname]
-write_2d_as_giss4d infile.nc outfile dimname1 dimname2 [varname]
+write_giss2d       infile.nc outfile [ varname OR dimname1 dimname2 ]
+write_2d_as_giss4d infile.nc outfile [ varname OR dimname1 dimname2 ]
 </pre>
 
 <p>
 which behave identically save for the coordinate information
-written to "GISS 4D" files.  These programs split multidimensional
-variables whose netcdf dimension names include
-<tt>dimname1</tt> and <tt>dimname2</tt>
-into a sequence of fortran records.  If the optional argument
-<tt>varname</tt> is specified, only that netcdf variable is written.
-Each record contains a two-dimensional "slab" of data spanning the
-two dimensions <tt>dimname1</tt> and <tt>dimname2</tt>.  The 80-byte title of
-each fortran record is created from the <tt>long_name</tt> and
+written to "GISS 4D" files.
+If the optional argument <tt>varname</tt> is specified, only
+that netcdf variable is written to the GISS-binary file; otherwise
+all dimension-matched variables are written.
+If the optional arguments <tt>dimname1</tt> and <tt>dimname2</tt> are
+specified, dimension-matched variables are defined as those whose
+dimensions include <tt>dimname1</tt> and <tt>dimname2</tt>;
+otherwise all variables having two or more dimensions are written.
+If <tt>dimname1</tt> and <tt>dimname2</tt> are not specified,
+they are assumed to correspond to the first two dimensions of 3D+ variables.
+A two-dimensional variable is written as a single fortran
+record, and each record of a 3D+ variable contains a
+two-dimensional "slab" of data spanning the
+two dimensions <tt>dimname1</tt> and <tt>dimname2</tt>.
+The 80-byte title of
+each record is created from the <tt>long_name</tt> and
 <tt>units</tt> attributes of the variable being written, and
 contains the index information along the dimensions other than
 the slab dimensions <tt>dimname1 dimname2</tt>.  The slab
 dimensions need not be the first two of a given variable,
 nor consecutive.
 If <tt>long_name</tt> is absent, the netcdf variable name is used
-in the title.  Note that if several grids are present in the
-input file (e.g. staggered ones), several calls to these programs
-will be necessary to extract all quantities since variables on
-different grids will generally have different dimension names.
-The separate output files for each combination of dimensions
-can be merged using UNIX <tt>cat</tt>.  Examples:
+in the title.
+Examples:
 </p>
 
 <pre>
-write_giss2d JAN1901.aijE001xyz.nc JAN1901.aijE001xyz.giss2d lon lat    # extract aij variables dimensioned by lon and lat
-write_giss2d JAN1901.aijlE001xyz.nc JAN1901.aijlE001xyz.giss2d lon lat  # aijl fields split along the height dimension (plm, ple, or level)
+write_giss2d JAN1901.aijE001xyz.nc JAN1901.aijE001xyz.giss2d            # convert all variables in the input file
+write_giss2d JAN1901.aijE001xyz.nc JAN1901.aijE001xyz.giss2d lon lat    # extract only the aij variables dimensioned by lon and lat
+write_giss2d JAN1901.aijE001xyz.nc JAN1901.tsurfE001xyz.giss2d tsurf    # extract only the "tsurf" variable
 write_giss2d JAN1901.aijlE001xyz.nc JAN1901.aijlE001xyz.giss2d lon plm  # aijl variables split along the lat dimension to make "IL" records
-write_2d_as_giss4d JAN1901.ajlE001xyz.nc JAN1901.ajlE001xyz.giss4d lat_budg plm  # extract AJL fields located at layer midpoints
+write_giss2d JAN1901.aijlE001xyz.nc JAN1901.aijlE001xyz.giss2d          # all aijl variables will be split along their 3rd dimension
+write_2d_as_giss4d JAN1901.ajlE001xyz.nc JAN1901.ajlE001xyz.giss4d      # extract all AJL fields
 </pre>
 
 <!------------------------------------------------------------------------------->
