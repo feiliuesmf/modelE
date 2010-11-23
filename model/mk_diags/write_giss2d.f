@@ -1,11 +1,14 @@
       program write_giss2d
-!@sum For every variable in the input file having the
-!@+   two dimensions specified on the command line,
-!@+   write a fortran record with title*80,data to
-!@+   the output file.  The two dimensions need not
+!@sum Writes one or more variables in the input file as
+!@+   [title*80,real*4 data] fortran records to
+!@+   the output file.  If dimension names are specified on
+!@+   the command line, only the variables possessing the two
+!@+   dimensions are written; the two dimensions need not
 !@+   be the first two of a given variable, nor consecutive.
-!@+   Variables with more than these two dimensions are
+!@+   Variables with more than two dimensions are
 !@+   written one slab at a time.
+!@+   If a variable name is specified on the command line, only
+!@+   that variable is written.
 !@+   The title is created from attributes long_name/units.
 !@+   If long_name is absent, the netcdf variable name is used.
 !@auth M. Kelley
@@ -28,44 +31,45 @@
       real*4 :: shnhgm(3)
       character(len=30) :: run_info
       character(len=132) :: xlabel
-      logical :: is_modelE_output
+      logical :: is_modelE_output,single_pair_of_dims
       integer :: ind,linfo,lrem,l1
 
       nargs = iargc()
-      if(nargs.ne.4 .and. nargs.ne.5) then
+      if(nargs.lt.2 .or. nargs.gt.4) then
         write(6,*)
-     &  'usage: write_giss2d infile outfile dimname1 dimname2 [varname]'
+     &  'usage: write_giss2d infile outfile '//
+     &       '[ varname OR dimname1 dimname2 ]'
         stop
       endif
 
+      single_pair_of_dims = nargs.eq.4
+
       call getarg(1,infile)
       call getarg(2,outfile)
-      call getarg(3,dimname1)
-      call getarg(4,dimname2)
 
       call handle_err(nf_open(infile,nf_nowrite,fid),
      &     'opening '//trim(infile))
 
+      if(single_pair_of_dims) then
+        call getarg(3,dimname1)
+        call getarg(4,dimname2)
 c
-c Get info on the two requested dimensions
+c Get info on the two requested dimensions, allocate workspace
 c
-      call get_dimsize(fid,trim(dimname1),dsiz1)
-      call get_dimsize(fid,trim(dimname2),dsiz2)
-      status = nf_inq_dimid(fid,trim(dimname1),did1)
-      status = nf_inq_dimid(fid,trim(dimname2),did2)
-
-c
-c allocate workspace
-c
-      allocate(xout(dsiz1*dsiz2))
+        call get_dimsize(fid,trim(dimname1),dsiz1)
+        call get_dimsize(fid,trim(dimname2),dsiz2)
+        status = nf_inq_dimid(fid,trim(dimname1),did1)
+        status = nf_inq_dimid(fid,trim(dimname2),did2)
+        allocate(xout(dsiz1*dsiz2))
+      endif
 
 c
 c get the number of quantities in the file
 c
       status = nf_inq_nvars(fid,nvars)
 
-      if(nargs.eq.5) then ! optional request of only 1 variable
-        call getarg(5,varname)
+      if(nargs.eq.3) then ! optional request of only 1 variable
+        call getarg(3,varname)
         call handle_err(nf_inq_varid(fid,trim(varname),vid1),
      &       'variable '//trim(varname)//' does not exist')
         vid2 = vid1
@@ -104,10 +108,19 @@ c Loop over quantities in the file
 c
       do varid=vid1,vid2
         status = nf_inq_varndims(fid,varid,ndims)
+        if(ndims.lt.2) cycle
         dids = -1
         status = nf_inq_vardimid(fid,varid,dids)
-        if(count(dids.eq.did1).ne.1) cycle
-        if(count(dids.eq.did2).ne.1) cycle
+        if(single_pair_of_dims) then
+          if(count(dids.eq.did1).ne.1) cycle
+          if(count(dids.eq.did2).ne.1) cycle
+        else
+          did1 = dids(1)
+          did2 = dids(2)
+          status = nf_inq_dimlen(fid,dids(1),dsiz1)
+          status = nf_inq_dimlen(fid,dids(2),dsiz2)
+          allocate(xout(dsiz1*dsiz2))
+        endif
         do n=1,ndims
           if(dids(n).eq.did1) idim=n
           if(dids(n).eq.did2) jdim=n
@@ -183,12 +196,13 @@ c
             enddo
           endif
         enddo
+        if(.not.single_pair_of_dims) deallocate(xout)
       enddo
 
 c
 c deallocate workspace
 c
-      deallocate(xout)
+      if(single_pair_of_dims) deallocate(xout)
 
 c
 c close fortran output file
