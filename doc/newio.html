@@ -10,7 +10,7 @@
 <H1>NEW_IO</H1>
 
 <P>
-M. Kelley, March 2010
+M. Kelley, November 2010
 </P>
 
 <P>
@@ -31,6 +31,7 @@ Table of Contents
   <LI><a HREF="#gissbin">      HOW-TO convert netcdf to GISS-binary format</a>
   <LI><a HREF="#ncksprt">      HOW-TO print a netcdf variable in ASCII format</a>
   <LI><a HREF="#hemis">        HOW-TO extract hemispheric/global means</a>
+  <LI><a HREF="#subdd">        HOW-TO write "subdaily" diagnostics in netcdf format</a>
   <LI><a HREF="#add_diag">     HOW-TO add a new diagnostic to an existing category</a>
   <LI><a HREF="#add_diag_cat"> HOW-TO add a new category of diagnostic</a>
   <LI><a HREF="#plotting">     Plotting options</a>
@@ -55,6 +56,7 @@ To reconfigure a rundeck for NEW_IO, change the following:
   <li><tt>#define NEW_IO</tt> in the <tt>Preprocessor Options</tt> section</li>
   <li>in the <tt>Object Modules:</tt> section, replace <tt>IORSF</tt> by <tt>IO_DRV</tt>  If doing a tracer run, add <tt>TRDIAG</tt> somewhere.</li>
   <li>in the <tt>Components:</tt> section, add <tt>dd2d</tt></li>
+  <li>If you wish to use parallel-netcdf, add a line <tt>OPTS_dd2d = NC_IO=PNETCDF</tt> in the <tt>Component Options:</tt> section of the rundeck, and check that PNETCDFHOME is set in your .modelErc (see <a href="#local_info">Local information</a> for installation locations).
   <li>If ISTART=2: in the <tt>Data input files:</tt> section, set <tt>GIC=name_of_a_netcdf_gic.nc</tt>
          (The <a href="#local_info">Local information</a> section will point you to some existing netcdf GIC files)</li>
 </ul>
@@ -65,7 +67,7 @@ Most systems running modelE have a netcdf installation which is probably already
 in your .modelErc file.  However, your PATH environment variable may not include the location
 of two important helper programs: <tt>ncdump</tt> and <tt>ncgen</tt>.  If it doesn't, add
 <tt>NETCDFHOME/bin</tt> to your PATH (<tt>NETCDFHOME</tt> denoting whatever is present
-in your .modelErc)
+in your .modelErc).
 </p>
 
 <p>
@@ -118,13 +120,30 @@ to any two netcdf files from any source, actually):
 </pre>
 
 <p>
-Alternatively, the NCO utility <tt>ncdiff</tt> can be used to generate a file
-containing the differences which can then be viewed (or printed with
-<tt>ncksprt</tt>) to gain insights into a potential problem:
+To suppress reports for certain variables, an optional third command-line argument
+can be passed to <tt>diffreport</tt> specifying a dummy netcdf variable whose
+attributes contain a list of on/off switches.  One use of this feature in the
+modelE example above would be:
+</p>
+<pre>
+   diffreport fort.2.8proc.nc fort.2.1proc.nc is_npes_reproducible
+</pre>
+
+<p>
+Here, the <tt>is_npes_reproducible</tt> variable is defined by modelE to
+contain a list of (diagnostic) arrays known to have roundoff differences on
+different processor counts.
+</p>
+
+<p>
+For a broader look at a potential problem, the NCO utility <tt>ncdiff</tt>
+can be used to generate a file containing the differences which can then be
+viewed (or printed with <tt>ncksprt</tt>):
 </p>
 <pre>
    ncdiff fort.2.8proc.nc fort.2.1proc.nc diff.nc
 </pre>
+
 
 <!------------------------------------------------------------------------------->
 <P><HR><p>
@@ -433,8 +452,8 @@ GISS-binary files can be created from netcdf files using one of these programs:
 </p>
 
 <pre>
-write_giss2d       infile.nc outfile dimname1 dimname2
-write_2d_as_giss4d infile.nc outfile dimname1 dimname2
+write_giss2d       infile.nc outfile dimname1 dimname2 [varname]
+write_2d_as_giss4d infile.nc outfile dimname1 dimname2 [varname]
 </pre>
 
 <p>
@@ -442,7 +461,8 @@ which behave identically save for the coordinate information
 written to "GISS 4D" files.  These programs split multidimensional
 variables whose netcdf dimension names include
 <tt>dimname1</tt> and <tt>dimname2</tt>
-into a sequence of fortran records.
+into a sequence of fortran records.  If the optional argument
+<tt>varname</tt> is specified, only that netcdf variable is written.
 Each record contains a two-dimensional "slab" of data spanning the
 two dimensions <tt>dimname1</tt> and <tt>dimname2</tt>.  The 80-byte title of
 each fortran record is created from the <tt>long_name</tt> and
@@ -526,6 +546,32 @@ of surface air temperature can be printed using <tt>ncksprt</tt>
 <p>
 The <tt>scaleacc</tt> program defines the means of diagnostics which are ratios
 using the ratio of the means of the respective accumulations.
+</p>
+
+<!------------------------------------------------------------------------------->
+<P><HR><p>
+
+<p>
+<a name="subdd"><b>HOW-TO write "subdaily" diagnostics in netcdf format</b></a>
+</p>
+
+<p>
+(The reader is assumed to be familiar with the workings of the subdaily diagnostics code.)
+</p>
+
+<p>
+A line <tt>#define NEW_IO_SUBDD</tt> in the <tt>Preprocessor Options</tt> section of
+a rundeck is currently required to override the default output format for these
+diagnostics (one lat-lon slice per Fortran binary sequential-access record).
+Note that this option currently requires that the model be built with parallel
+netcdf.
+</p>
+
+<p>
+The default routine <tt>write_data</tt> outputs only one lat-lon slice per call;
+for simplicity/efficiency, an alternate interface <tt>write_subdd</tt> was
+introduced to allow output of 3- and higher-dimensional arrays in one call.
+The coding for the default format will soon be changed to use this interface.
 </p>
 
 <!------------------------------------------------------------------------------->
@@ -616,6 +662,9 @@ netcdf GIC files in /discover/nobackup/projects/giss/prod_input_files:
                      GIC.E046D3M20A.1DEC1955.ext.nc  for 4x5    lat-lon resolution
                      GIC.144X90.DEC01.1.ext.nc           2x2.5  lat-lon resolution
                      GIC.288X180.DEC01.1.ext.nc          1x1.25 lat-lon resolution
+
+
+PNETCDFHOME=/discover/nobackup/mkelley5/pnetcdf-1.2.0  (ifort 10.1.017, impi 3.2.011)
 
 remap files: /discover/nobackup/mkelley5/remap_files
 
