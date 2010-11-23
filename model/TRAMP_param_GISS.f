@@ -203,7 +203,7 @@ c F 40 model
       REAL(8), PARAMETER :: DG_DD2_EMIS = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1_EMIS = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
       REAL(8), PARAMETER :: DG_DS2_EMIS = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.060D+00 *2     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.1D+00 *2     ! set to match GISS sea salt emissions         
 !      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSC_EMIS = 1.000D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS_EMIS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
