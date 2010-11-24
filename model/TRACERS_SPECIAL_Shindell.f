@@ -1024,7 +1024,7 @@ C****
  
       IMPLICIT NONE
   
-      integer :: i,j,,ns,nsect,nn
+      integer :: i,j,ns,nsect,nn
       integer, intent(in) :: nt
       character*124 :: tr_sectors_are
       character*32 :: pname
