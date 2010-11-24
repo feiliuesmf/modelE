@@ -3,24 +3,31 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       logical, intent(in), optional :: no_xdim
-#ifndef SERIAL_MODE
-      real*8, dimension(:), allocatable :: arr1d
-      integer :: nl,nk,jd,nd,nsend,ierr,src_pe,tag,modpe,vid,rc
-      integer :: mpi_status(mpi_status_size)
+      integer :: jd,nd,jm,vid,rc
       integer, dimension(7) :: srt,cnt
+      real*8, dimension(:), allocatable :: arr1d
+#ifndef SERIAL_MODE
+      integer :: nl,nk,nsend,ierr,src_pe,tag,modpe
+      integer :: mpi_status(mpi_status_size)
       logical :: has_xdim
+#endif
+      if(present(jdim)) then
+        jd=jdim
+      else
+        jd=2
+      endif
+      nd = size(shape(arr))
+      srt(:) = 1
+      cnt(1:nd) = shape(arr)
+      jm = grid%npy
       if(grid%am_i_globalroot) then
         rc = nf_inq_varid(fid,trim(varname),vid)
         if(rc.ne.nf_noerr) write(6,*) 'variable ',
      &       trim(varname),' not found in output file - stopping'
       endif
       call stoprc(rc,nf_noerr)
+#ifndef SERIAL_MODE
       tag=1024
-      if(present(jdim)) then
-        jd=jdim
-      else
-        jd=2
-      endif
       if(present(no_xdim)) then
         has_xdim = .not.no_xdim
       elseif(jd.eq.1) then
@@ -28,7 +35,6 @@
       else
         has_xdim = .true.
       endif
-      nd = size(shape(arr))
 c if latlon model, call routines better suited for very thin
 c zonal strips if they are available
       if(grid%ntiles.eq.1 .and. has_xdim .and. jd.ne.4 .and.
@@ -45,8 +51,6 @@ c zonal strips if they are available
           nsend = nsend*size(arr,jd-1)
         endif
         allocate(arr1d(nsend))
-        srt(:) = 1
-        cnt(1:nd) = shape(arr)
         if(has_xdim) cnt(jd-1) = grid%npx
         cnt(nd+1) = 1
       endif
@@ -74,6 +78,17 @@ c zonal strips if they are available
       if(grid%am_i_rowroot) deallocate(arr1d)
       call mpi_barrier(MPI_COMM_WORLD, ierr)
 #else
-c call write_data when in serial mode
-      call write_data(grid,fid,varname,arr)
+      if(size(arr,jd).eq.jm .or. size(arr,jd).eq.1) then
+        if(size(arr,jd).eq.1) then      ! SCM hack: initialize global
+          allocate(arr1d(size(arr)*jm)) ! domain to zero
+          arr1d = 0.
+          rc = nf_put_var_double(fid,vid,arr1d)
+          deallocate(arr1d)
+        endif
+        srt(jd-1) = grid%i_strt
+        srt(jd)   = grid%j_strt
+        rc = nf_put_vara_double(fid,vid,srt,cnt,arr)
+      else
+        call stop_model('unrecognized jdim size in do_par_write_nc',255)
+      endif
 #endif

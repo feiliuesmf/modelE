@@ -3,26 +3,35 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       logical, intent(in), optional :: no_xdim
+      integer :: jd,nd,jm,vid,rc
+      integer, dimension(7) :: srt,cnt
 #ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr1d
-      integer :: nl,nk,jd,nd,nsend,ierr,dst_pe,tag,modpe,vid,rc
+      integer :: nl,nk,nsend,ierr,dst_pe,tag,modpe
       integer :: mpi_status(mpi_status_size)
-      integer, dimension(7) :: srt,cnt
       logical :: has_xdim
-      if(grid%am_i_globalroot) then
-        rc = nf_inq_varid(fid,trim(varname),vid)
-        if(rc.ne.nf_noerr) write(6,*) 'variable ',
-     &       trim(varname),' not found in input file - skipping'
-      endif
-      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      if(rc.ne.nf_noerr) return
-      if(grid%je.lt.grid%js) return ! empty domain
-      tag=1024
+#endif
       if(present(jdim)) then
         jd=jdim
       else
         jd=2
       endif
+      nd = size(shape(arr))
+      srt(:) = 1
+      cnt(1:nd) = shape(arr)
+      jm = grid%npy
+      if(grid%am_i_globalroot) then
+        rc = nf_inq_varid(fid,trim(varname),vid)
+        if(rc.ne.nf_noerr) write(6,*) 'variable ',
+     &       trim(varname),' not found in input file - skipping'
+      endif
+#ifndef SERIAL_MODE
+      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
+      if(rc.ne.nf_noerr) return
+#ifndef SERIAL_MODE
+      if(grid%je.lt.grid%js) return ! empty domain
+      tag=1024
       if(present(no_xdim)) then
         has_xdim = .not.no_xdim
       elseif(jd.eq.1) then
@@ -39,9 +48,6 @@
           nsend = nsend*size(arr,jd-1)
         endif
         allocate(arr1d(nsend))
-        srt(:) = 1
-        nd = size(shape(arr))
-        cnt(1:nd) = shape(arr)
         if(has_xdim) cnt(jd-1) = grid%npx
         cnt(nd+1) = 1
       endif
@@ -71,6 +77,11 @@ c read from netcdf file
       endif
       if(grid%am_i_rowroot) deallocate(arr1d)
 #else
-c call read_data when in serial mode
-      call read_data(grid,fid,varname,arr)
+      if(size(arr,jd).eq.jm .or. size(arr,jd).eq.1) then
+        srt(jd-1) = grid%i_strt
+        srt(jd)   = grid%j_strt
+        rc = nf_get_vara_double(fid,vid,srt,cnt,arr)
+      else
+        call stop_model('unrecognized jdim size in do_par_read_nc',255)
+      endif
 #endif
