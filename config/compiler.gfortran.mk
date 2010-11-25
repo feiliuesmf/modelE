@@ -24,6 +24,7 @@ endif
 # uncomment next two lines for extensive debugging
 # the following switch adds extra debugging
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -trap=INVALID,DIVBYZERO,OVERFLOW -B111 -C
-LFLAGS += -lefence
+FFLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow,denormal -fbacktrace
+F90FLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow,denormal -fbacktrace
+#LFLAGS += -lefence
 endif
