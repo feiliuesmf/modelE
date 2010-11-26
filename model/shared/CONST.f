@@ -210,7 +210,7 @@ C**** Useful conversion factors
       real*8, intent(in) :: T  ! temperature (K)
       real*8, parameter :: n0=1.827d-5, T0=291.15d0, C=120d0
 
-      visc_air = n0*sqrt((T/T0)**3)*(T+C)/(T0+C)
+      visc_air = n0*sqrt((T/T0)**3)*(T0+C)/(T+C)
 
       return
       end function
