@@ -407,6 +407,8 @@ contains
       type (Timer_type), pointer :: localTimer
       integer :: i
 
+      call initialize(globalList)
+
       do i = 1, getNumTimers(this)
          call addTimer(globalList, trim(getName(this, i)))
          localTimer => getTimer(this, i)
