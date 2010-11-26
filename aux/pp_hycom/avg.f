@@ -108,7 +108,7 @@ c --- read archive data
 c
       dcd=ny1/10
       if (runid(1:1).eq.' ') stop 'empty runid'
-      if (dcd.lt.180 .or. dcd.gt.330) then
+      if (dcd.lt.001 .or. dcd.gt.930) then
         print *,' wrong decade=',dcd
         stop 'wrong decade'
       endif

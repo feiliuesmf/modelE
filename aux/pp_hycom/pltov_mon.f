@@ -27,6 +27,8 @@ c
       character flnm*128,flnmout*30,title*80
       logical timav,cnvert
 c
+      character(len=9) :: ayears  ! string n1-n2 example "1905-1955"
+c
       namelist /hdiag_nml/ path0, path1, path2,
      . hycomtopo, latlonij, basinmask, flnmcoso, flnmo2a,
      . runid, ny1, ny2, monave_convert,solo_convert
@@ -71,7 +73,7 @@ c$OMP END PARALLEL DO
 c
       dcd=ny1/10
       if (runid(1:1).eq.' ') stop 'empty runid'
-      if (dcd.lt.180 .or. dcd.gt.330) then
+      if (dcd.lt.180 .or. dcd.gt.999) then
         print *,' wrong decade=',dcd
         stop 'wrong decade'
       endif
@@ -86,10 +88,21 @@ c
       if (lat(i+1).lt. 0. .and. lat(i).ge. 0.) ieq=i
       enddo
 c
-      write(flnmout,'(3a,i3,a)') 'mon_ov_',trim(runid),'_',dcd,'.tbin'
-      open(301,file=flnmout,form='unformatted',status='unknown')
-      write(flnmout,'(3a,i3,a)') 'mon_hf_',trim(runid),'_',dcd,'.tbin'
-      open(302,file=flnmout,form='unformatted',status='unknown')
+      write(ayears,'(i4.4,a1,i4.4)') ny1,'-',ny2
+      write(flnmout,'(5a)') 'mon_ov_',trim(runid),'_',ayears,'.tbin'
+      open(301,file=trim(path2)//flnmout, 
+     +     form='unformatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
+
+C     write(flnmout,'(3a,i3,a)') 'mon_ov_',trim(runid),'_',dcd,'.tbin'
+C     open(301,file=flnmout,form='unformatted',status='unknown')
+      write(flnmout,'(5a)') 'mon_hf_',trim(runid),'_',ayears,'.tbin'
+      open(302,file=trim(path2)//flnmout,
+     +     form='unformatted',status='unknown')
+      write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
+
+C     write(flnmout,'(3a,i3,a)') 'mon_hf_',trim(runid),'_',dcd,'.tbin'
+C     open(302,file=flnmout,form='unformatted',status='unknown')
 c
       do 151 ny=ny1,ny2
       do 152 mo=mo1,mo2

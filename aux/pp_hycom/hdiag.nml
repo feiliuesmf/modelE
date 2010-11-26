@@ -2,9 +2,9 @@
   ! You can add more parameter. Look at DEFAULT's values in file const_proc.f   
   ! Definitions namelist hdiag_nml are in  avg.f pltov_mon.f 
 
-      runid="EhCld0",      ! Name run id
-      ny1=2380,            ! Start year
-      ny2=2389,            ! Last  year for processing
-      path1="/discover/nobackup/ntausnev/RUNS_ME/EhCld0/z_OUT/outEhCld0_2380-2389/", ! Dir with input .out files
-      path2="/discover/nobackup/ntausnev/Z_Deleted_Files/Z_PP_CVS/EhCld0/RESULTS/",  ! Dir output results
+      runid="Eh127f9c",      ! Name run id
+      ny1=2000,            ! Start year
+      ny2=2005,            ! Last  year for processing
+      path1="/discover/nobackup/ntausnev/Z_Deleted_Files/Eh127f9c/outEh127f9c_2000-2009/" ! Dir with input .out files
+      path2="/discover/nobackup/ntausnev/Z_Deleted_Files/Eh127f9c/OUT/",  ! Dir output results
 /

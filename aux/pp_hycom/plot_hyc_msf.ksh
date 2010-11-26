@@ -18,12 +18,14 @@ USAGE="$0  arg1 ..."
 ##########################################################
 
 #INPUT FILES:
-num_files=2
-pathname_1=/discover/nobackup/ntausnev/RUNS_ME/Eh113_06/z_hdiag/avg_ov_Eh113_06_1901-1929.txt
+num_files=1
+pathname_1=/discover/nobackup/ntausnev/Z_Deleted_Files/Eh127f9c/OUT/avg_ov_Eh127f9c_2000-2005.txt
 pathname_2=/discover/nobackup/ntausnev/RUNS_ME/Eh113_06/z_hdiag/avg_ov_Eh113_06_2020-2029.txt
 
 pathname_3=/discover/nobackup/ntausnev/RUNS_ME/EhCld0/z_00HYC/avg_ov_EhCld0_239.txt
 pathname_4=/discover/nobackup/ntausnev/RUNS_ME/EhMay2/z_00HYC/avg_ov_EhMay2_239.txt
+
+#### You do not need to change the code below ###
 
 filename_1=${pathname_1##*/}
 filename_1_no_suffix=${filename_1%.txt}
@@ -56,6 +58,7 @@ ENDOFTEXT
 exit 1
 }
 
+# Shun Sun matlab script:
 cat > matlab_plot_msf.m << END_MATLAB_SCRIPT
 
 % matlab  -nojvm -nosplash -nodisplay < matlab_plot_msf.m  >/dev/null 2>&1
