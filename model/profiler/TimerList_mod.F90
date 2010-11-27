@@ -233,11 +233,7 @@ contains
 
       integer :: n
 
-      if (associated(this%list)) then
-         n = size(this%list)
-      else
-         n = 0
-      endif
+      n = size(this%list)
 
       if (n > 0) then
          allocate(tmpList(n))
