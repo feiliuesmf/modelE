@@ -3898,6 +3898,7 @@ C       IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
 C    *    /(WMUSI*FCLD+teeny)
         TEM=TEM*TEM
         IF(TEM.GT.10.) TEM=10.
+        IF(VDEF.GT.0..AND.RHO*WMX(L).GE.10.0d0) CM0=CM00
         CM1=CM0
         IF(BANDF) CM1=CM0*CBF
         IF(LHX.EQ.LHS) CM1=CM0
