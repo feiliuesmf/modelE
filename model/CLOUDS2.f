@@ -5564,7 +5564,8 @@ C----------
       USE CONSTANT, only : wtmair=>mair,Navo=>avog,bygrav,bymrat
       USE RANDOM, only : randu
       USE MODEL_COM, only : nlev=>lm,qcheck
-      USE CLOUDS, only : ncol,tautab,invtau
+      USE CLOUDS, only : tautab,invtau
+      USE CLOUDS_COM, only : ncol
       implicit none
 !@var  emsfc_lw    longwave emissivity of surface at 10.5 microns
       REAL*8, PARAMETER :: emsfc_lw=0.99d0
