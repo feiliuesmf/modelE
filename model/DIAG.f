@@ -1660,7 +1660,6 @@ c get_subdd
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
 
-#ifdef NEW_IO_SUBDD
 !@var qinstant flag whether output is instanteneous or accumulated
 !@+            /averaged over nsubdd internal time units
       logical :: qinstant
@@ -1668,7 +1667,6 @@ c get_subdd
       character(len=24) :: units_of_data
 !@var long_name long name for netcdf output
       character(len=lname_strlen+len(kgz_max_suffixes)) :: long_name
-#endif
 
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
@@ -1683,11 +1681,9 @@ c get_subdd
 C**** depending on namedd string choose what variables to output
       nameloop: do k=1,kdd
 
-#ifdef NEW_IO_SUBDD
         qinstant = .true.
         units_of_data = 'not yet set in get_subdd'
         long_name = 'not yet set in get_subdd'
-#endif
 
 C**** simple diags (one record per file)
         select case (namedd(k))
@@ -1697,36 +1693,26 @@ C**** simple diags (one record per file)
             ps=(p(i,j)+ptop)
             zs=bygrav*zatmo(i,j)
             datar8(i,j)=slp(ps,tsavg(i,j),zs)
-#ifdef NEW_IO_SUBDD
             units_of_data = '10^2 Pa'
             long_name = 'Sea Level Pressure'
-#endif
           end do
           end do
         case ("PS")             ! surface pressure (mb)
           datar8=p+ptop
-#ifdef NEW_IO_SUBDD
             units_of_data = '10^2 Pa'
             long_name = 'Surface Pressure'
-#endif
         case ("SAT")            ! surf. air temp (C)
           datar8=tsavg-tf
-#ifdef NEW_IO_SUBDD
             units_of_data = 'C'
             long_name = 'Surface Air Temperature'
-#endif
         case ("US")             ! surf. u wind (m/s)
           datar8=usavg
-#ifdef NEW_IO_SUBDD
             units_of_data = 'm/s'
             long_name = 'U Component of Surface Air Velocity'
-#endif
         case ("VS")             ! surf. v wind (m/s)
           datar8=vsavg
-#ifdef NEW_IO_SUBDD
             units_of_data = 'm/s'
             long_name = 'V Component of Surface Air Velocity'
-#endif
         case ("SST")            ! sea surface temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1737,10 +1723,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'C'
           long_name = 'Sea Surface Temperature'
-#endif
         case ("SIT")       ! surface sea/lake ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1751,10 +1735,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'C'
           long_name = 'Surface Sea/Lake Ice Temperature'
-#endif
         case ("LIT")       ! surface land ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1765,10 +1747,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'C'
           long_name = 'Surface Land Ice Temperature'
-#endif
         case ("GT1")      ! level 1 ground temp (LAND) (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1779,10 +1759,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'C'
           long_name = 'Level 1 Ground Temperature, Land'
-#endif
         case ("GTD")   ! avg levels 2-6 ground temp (LAND) (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1793,10 +1771,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'C'
           long_name = 'Average Levels 2-6 Ground Temperature, Land'
-#endif
         case ("GWD")  ! avg levels 2-6 ground liq water (m)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1807,10 +1783,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'm'
           long_name = 'Average Levels 2-6 Ground Liquid Water, Land'
-#endif
         case ("GID")  ! avg levels 2-6 ground ice (m liq. equiv.)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1821,10 +1795,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'm liq. equiv.'
           long_name = 'Average Levels 2-6 Ground Ice, Land'
-#endif
         case ("GW0")  ! ground lev 1 + canopy liq water (m)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1835,10 +1807,8 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'm'
           long_name = 'Ground Level 1 + Canopy Liquid Water, Land'
-#endif
         case ("GI0")  ! ground lev 1 + canopy ice (m liq. equiv.)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1849,15 +1819,11 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'm liq. equiv.'
           long_name = 'Ground Level 1 + Canopy Ice'
-#endif
         case ("QS")             ! surf spec humidity (kg/kg)
           datar8=qsavg
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/kg'
-#endif
         case ("RS")             ! surf rel humidity
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -1865,129 +1831,97 @@ C**** simple diags (one record per file)
      &             *100.d0
             enddo
           enddo
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'Surface Relative Humidity'
-#endif
         case ("PREC")           ! precip (mm/day)
 c          datar8=sday*prec/dtsrc
           datar8=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'mm/day'
           long_name = 'Precipitation'
           qinstant = .false.
-#endif
 #ifdef CALCULATE_FLAMMABILITY
         case ("RAPR")   !running avg precip (mm/day)
           datar8=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           raP_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'mm/day'
           long_name = 'Running Average of Precipitation'
           qinstant = .false.
-#endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
           datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sOx_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppbv'
           long_name = 'Average Surface Ox Tracer'
           qinstant = .false.
-#endif
         case ("nxAVG")   ! Nsubdd-step average SFC NOx tracer (ppbv)
           datar8=sNOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sNOx_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppbv'
           long_name = 'Average Surface NOx Tracer'
           qinstant = .false.
-#endif
         case ("cAVG")   ! Nsubdd-step average SFC CO tracer (ppbv)
           datar8=sCO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           sCO_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppbv'
           long_name = 'Average Surface CO Tracer'
           qinstant = .false.
-#endif
         case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppbv)
           datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           l1Ox_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppbv'
           long_name = 'Average Level 1 Ox Tracer'
           qinstant = .false.
-#endif
         case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppbv)
           datar8=l1NO2_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
           l1NO2_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppbv'
           long_name = 'Average Level 1 NO2'
           qinstant = .false.
-#endif
         case ("NO2col") ! instantaneous NO2 column amount (kg/m2)
           datar8=save_NO2column
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^2'
           long_name = 'NO2 Column Amount'
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
         case ("MCP")       ! moist conv precip (mm/day)
           datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'mm/day'
           long_name = 'Moist Convective Precipitation'
           qinstant = .false.
-#endif
 #ifdef TRACERS_WATER
         case ("TRP1")
           datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
         case ("TRE1")
           datar8=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(1,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
         case ("TRP2")
           datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
         case ("TRE2")
           datar8=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(2,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
         case ("TRP3")
           datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
         case ("TRE3")
           datar8=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(3,:,:)=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
-#endif
 #endif
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
@@ -1999,10 +1933,8 @@ c          datar8=sday*prec/dtsrc
      &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'w.e. mm'
           long_name = 'Snow Depth'
-#endif
         case ("SNOWC")     ! snow cover (fraction of grid)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -2016,41 +1948,29 @@ c          datar8=sday*prec/dtsrc
               datar8(i,j)=min(1.0,datar8(i,j))
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'fraction of grid area'
           long_name = 'Snow Cover'
-#endif
         case ("QLAT")           ! latent heat (W/m^2)
           datar8=qflux1*lhe
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Latent Heat'
-#endif
         case ("QSEN")           ! sensible heat flux (W/m^2)
           datar8=tflux1*sha
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Sensible Heat Flux'
-#endif
         case ("SWD")            ! solar downward flux at surface (W/m^2)
           datar8=srdn*cosz1       ! multiply by instant cos zenith angle
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Solar Downward Flux at Surface'
-#endif
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           datar8=srdn*(1.-salb)*cosz1
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Solar Upward Flux at Surface'
-#endif
         case ("LWD")            ! LW downward flux at surface (W/m^2)
           datar8=TRHR(0,:,:)
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Longwave Downward Flux at Surface'
-#endif
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
@@ -2063,10 +1983,8 @@ c          datar8=sday*prec/dtsrc
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Longwave Upward Flux at Surface'
-#endif
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + net surface emission
             do i=I_0,imaxj(j)
@@ -2080,28 +1998,20 @@ c          datar8=sday*prec/dtsrc
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'W/m^2'
           long_name = 'Longwave Upward Flux at Top of Atmosphere'
-#endif
         case ("ICEF")           ! ice fraction over open water (%)
           datar8=RSI*100.
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'Ice Fraction Over Open Water'
-#endif
         case ("STX")            ! E-W surface stress (N/m^2)
           datar8=uflux1
-#ifdef NEW_IO_SUBDD
           units_of_data = 'N/m^2'
           long_name = 'East-West Surface Stress'
-#endif
         case ("STY")            ! N-S surface stress (N/m^2)
           datar8=vflux1
-#ifdef NEW_IO_SUBDD
           units_of_data = 'N/m^2'
           long_name = 'North-South Surface Stress'
-#endif
         case ("LCLD")           ! low level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -2112,10 +2022,8 @@ c          datar8=sday*prec/dtsrc
               datar8(i,j)=datar8(i,j)*100.d0/real(llow,kind=8)
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'Low Level Cloud Cover'
-#endif
         case ("MCLD")           ! mid level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -2126,10 +2034,8 @@ c          datar8=sday*prec/dtsrc
               datar8(i,j)=datar8(i,j)*100.d0/real(lmid-llow,kind=8)
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'Mid Level Cloud Cover'
-#endif
         case ("HCLD")           ! high level cloud cover (%)
           datar8=0.               ! Warning: these can be greater >100!
           do j=J_0,J_1
@@ -2140,22 +2046,16 @@ c          datar8=sday*prec/dtsrc
               datar8(i,j)=datar8(i,j)*100.d0/real(lhi-lmid,kind=8)
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'High Level Cloud Cover'
-#endif
         case ("TCLD")           ! total cloud cover (%) (As seen by rad)
           datar8=cfrac*100.d0
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'Total Cloud Cover (as seen by rad)'
-#endif
         case ("PTRO")           ! tropopause pressure (mb)
           datar8 = ptropo
-#ifdef NEW_IO_SUBDD
           units_of_data = '10^2 Pa'
           long_name = 'Tropopause Pressure'
-#endif
 
 ! attempting here {L,M,H}CLDI,CTPI,TAUI,TCLDI (ISCCP quantities):
 ! please use critically:
@@ -2173,10 +2073,8 @@ c          datar8=sday*prec/dtsrc
           else
             datar8=undef
           end if
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'high level cloudiness isccp'
-#endif
         case ("MCLDI")      ! MID LEVEL CLOUDINESS (ISCCP)
           if (isccp_diags.eq.1) then
             do j=J_0,J_1
@@ -2191,10 +2089,8 @@ c          datar8=sday*prec/dtsrc
           else
             datar8=undef
           end if
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'mid level cloudiness isccp'
-#endif
         case ("LCLDI")      ! LOW LEVEL CLOUDINESS (ISCCP)
           if (isccp_diags.eq.1) then
             do j=J_0,J_1
@@ -2209,10 +2105,8 @@ c          datar8=sday*prec/dtsrc
           else
             datar8=undef
           end if
-#ifdef NEW_IO_SUBDD
           units_of_data = '%'
           long_name = 'low level cloudiness isccp'
-#endif
         case ("CTPI")      ! CLOUD TOP PRESSURE (ISCCP)
           if (isccp_diags.eq.1) then
             do j=J_0,J_1
@@ -2227,10 +2121,8 @@ c          datar8=sday*prec/dtsrc
           else
             datar8=undef
           end if
-#ifdef NEW_IO_SUBDD
           units_of_data = 'mb'
           long_name = 'cloud top pressure isccp'
-#endif
         case ("TAUI")      ! CLOUD OPTICAL DEPTH (ISCCP)
           if (isccp_diags.eq.1) then
             do j=J_0,J_1
@@ -2245,128 +2137,96 @@ c          datar8=sday*prec/dtsrc
           else
             datar8=undef
           end if
-#ifdef NEW_IO_SUBDD
           units_of_data = '1'
           long_name = 'cloud optical depth isccp'
-#endif
         case ("MCCTP")   ! MOIST CONVECTIVE CLOUD TOP PRESSURE
           datar8=saveMCCLDTP
-#ifdef NEW_IO_SUBDD
           units_of_data = 'mb'
           long_name = 'moist convective cloud top pressure'
-#endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
         case ("LGTN")  ! lightning flash rate (flash/m2/s)
           datar8 = saveLightning
-#ifdef NEW_IO_SUBDD
           units_of_data = 'flash/m^2/s'
           long_name = 'Lightning Flash Rate'
-#endif
         case ("c2gLGTN")!cloud-to-ground lightning flash rate(flash/m2/s)
           datar8 = saveC2gLightning
-#ifdef NEW_IO_SUBDD
           units_of_data = 'flash/m^2/s'
           long_name = 'Cloud to Ground Lightning Flash Rate'
-#endif
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            datar8=sPM2p5_acc/real(Nsubdd)
            sPM2p5_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppmm'
           long_name = 'Surface Particulate Matter <= 2.5 um'
           qinstant = .false.
-#endif
         case ("PM10") ! Nsubdd-step avg SFC PM10 (ppmm)
            datar8=sPM10_acc/real(Nsubdd)
            sPM10_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppmm'
           long_name = 'Surface Particulate Matter <= 10 um'
           qinstant = .false.
-#endif
         case ("PM2p51") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
            datar8=l1PM2p5_acc/real(Nsubdd)
            l1PM2p5_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppmm'
           long_name = 'Layer 1 Particulate Matter <= 2.5 um'
           qinstant = .false.
-#endif
         case ("PM101") ! Nsubdd-step avg L=1 PM10 (ppmm)
            datar8=l1PM10_acc/real(Nsubdd)
            l1PM10_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'ppmm'
           long_name = 'Layer 1 Particulate Matter <= 10 um'
           qinstant = .false.
-#endif
         case ("cPM2p5") ! Nsubdd-step avg SFC PM2.5 (kg/m3)
            datar8=csPM2p5_acc/real(Nsubdd)
            csPM2p5_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^3'
           long_name = 'Surface Particulate Matter <= 2.5 um'
           qinstant = .false.
-#endif
         case ("cPM10") ! Nsubdd-step avg SFC PM10 (kg/m3)
            datar8=csPM10_acc/real(Nsubdd)
            csPM10_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^3'
           long_name = 'Surface Particulate Matter <= 10 um'
           qinstant = .false.
-#endif
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) */
 
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           datar8=trm(:,:,1,n_SO4)
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg'
           long_name = 'Layer 1 Sulfate Mass'
-#endif
 #ifdef TRACERS_HETCHEM
           datar8 = datar8 + trm(:,:,1,n_SO4_d1) + trm(:,:,1,n_SO4_d2) +
      &         trm(:,:,1,n_SO4_d3)
-#ifdef NEW_IO_SUBDD
           long_name =
      &         'Layer 1 Mass of Sulfate + Dust Coated with Sulfate'
-#endif
 #endif
 #endif
 #ifdef CLD_AER_CDNC
         case ("CLWP")             !LWP (kg m-2)
           datar8=clwp
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^2'
           long_name = 'Cloud Liquid Water Path'
-#endif
 #endif
 #ifdef TRACERS_COSMO
         case ("7BEW")
           datar8=Be7w_acc
           Be7w_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^2'
           qinstant = .false.
-#endif
 
         case ("7BED")
           datar8=Be7d_acc
           Be7d_acc=0.
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^2'
           qinstant = .false.
-#endif
 
         case ("7BES")
           datar8=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
-#ifdef NEW_IO_SUBDD
           units_of_data = '10^-6 kg/kg'
-#endif
 #endif
         case ("SMST") ! near surface soil moisture (kg/m^3)
           do j=J_0,J_1
@@ -2378,10 +2238,8 @@ c          datar8=sday*prec/dtsrc
               end if
             end do
           end do
-#ifdef NEW_IO_SUBDD
           units_of_data = 'kg/m^3'
           long_name = 'Near Surface Soil Moisture'
-#endif
 
         case default
           goto 10
@@ -2406,18 +2264,14 @@ c**** variables written at end of day only
           select case (namedd(k))
           case ("TMIN")         ! min daily temp (C)
             datar8=tdiurn(:,:,9)-tf
-#ifdef NEW_IO_SUBDD
             units_of_data = 'C'
             long_name = 'Minimum Daily Surface Temperature'
             qinstant=.false.
-#endif
           case ("TMAX")         ! max daily temp (C)
             datar8=tdiurn(:,:,6)-tf
-#ifdef NEW_IO_SUBDD
             units_of_data = 'C'
             long_name = 'Maximum Daily Surface Temperature'
             qinstant=.false.
-#endif
           end select
           data=datar8
           call write_data(data,kunit,polefix)
@@ -2446,10 +2300,8 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Soil Temperature Layers 1-6, Land'
-#endif
               case ("GW")        ! ground wetness lvls 1-6, land (m)
                 ! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
                 ! and activate the corresponding lines where wtr_L is set
@@ -2462,10 +2314,8 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm'
                 long_name = 'Ground Wetness Layers 1-6, Land'
-#endif
               case ("GI")  ! ground ice lvls 1-6, land (m, liq equiv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2476,10 +2326,8 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'liq. equiv. m'
                 long_name = 'Ground Ice Layers 1-6, Land'
-#endif
               end select
               polefix=.true.
               ngm_array(:,:,ks)=datar8
@@ -2505,18 +2353,14 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm'
                 long_name = 'Geopotential Height at '//trim(PMNAME(kp))
      &               //' hPa'
-#endif
               case ("R")        ! relative humidity (wrt water)
                 datar8=rh_inst(kp,:,:)*100.d0
-#ifdef NEW_IO_SUBDD
                 units_of_data = '%'
                 long_name = 'Relative Humidity at '// trim(PMNAME(kp))//
      &               ' hPa'
-#endif
               case ("Q")        ! specific humidity
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
@@ -2524,42 +2368,30 @@ C**** get pressure level
      *                 ,PMB(kp))
                 end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity at ' //trim(PMNAME(kp))//
      &               ' hPa'
-#endif
               case ("T")        ! temperature (C)
                 datar8=t_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature at '//trim(PMNAME(kp))//' hPa'
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=O_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Ox tracer at '//trim(PMNAME(kp))//' hPa'
-#endif
               case ("X")        ! NOx  tracer (ppmv)
                 datar8=X_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NOx tracer at '//trim(PMNAME(kp))//' hPa'
-#endif
               case ("M")        ! CO  tracer (ppmv)
                 datar8=M_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'CO tracer at '//trim(PMNAME(kp))//' hPa'
-#endif
               case ("N")        ! NO2 non-tracer (ppmv)
                 datar8=N_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NO2 at '//trim(PMNAME(kp))//' hPa'
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
               end select
               polefix=.true.
@@ -2581,41 +2413,29 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Q")        ! specific humidity
                 datar8=q_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity'
-#endif
               case ("T")        ! temperature (C)
                 datar8=t_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature'
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=o_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Ox Tracer'
-#endif
               case ("X")        ! NOx tracer (ppmv)
                 datar8=x_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NOx Tracer'
-#endif
               case ("M")        ! CO  tracer (ppmv)
                 datar8=m_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'CO Tracer'
-#endif
               case ("N")        ! NO2 non-tracer (ppmv)
                 datar8=n_more(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer)'
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
               end select
               polefix=.true.
@@ -2639,16 +2459,12 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm'
                 long_name = 'Geopotential Height'
-#endif
               case ("R")        ! relative humidity (wrt water)
                 datar8=rh_inst(kp,:,:)*100.d0
-#ifdef NEW_IO_SUBDD
                 units_of_data = '%'
                 long_name = 'Relative Humidity'
-#endif
 
 #ifndef TES_LIKE_DIAGS /* note NOT defined */
               case ("Q")        ! specific humidity
@@ -2658,41 +2474,29 @@ C**** get pressure level
      *                 ,PMB(kp))
                 end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity'
-#endif
               case ("T")        ! temperature (C)
                 datar8=t_inst(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature'
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=o_inst(kp,:,:) 
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Ox Tracer'
-#endif
               case ("X")        ! NOx tracer (ppmv)
                 datar8=x_inst(kp,:,:) 
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NOx Tracer'
-#endif
               case ("M")        ! CO  tracer (ppmv)
                 datar8=m_inst(kp,:,:) 
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'CO Tracer'
-#endif
               case ("N")        ! NO2 non-tracer (ppmv)
                 datar8=n_inst(kp,:,:) 
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer)'
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #endif /* NOT defined TES_LIKE_DIAGS */
               end select
@@ -2725,10 +2529,8 @@ C**** diagnostics on model levels
      &          t(1,jm,kp)*pk(kp,1,jm)-tf
                 datar8(:,J_0S:J_1S)=
      &          t(:,J_0S:J_1S,kp)*pk(kp,:,J_0S:J_1S)-tf
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature'
-#endif
               case ("r")        ! relative humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1,1,kp)/
      &          qsat(t(1,1,kp)*pk(kp,1,1),lhe,pmid(kp,1,1))
@@ -2738,44 +2540,32 @@ C**** diagnostics on model levels
                   datar8(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
      &            lhe,pmid(kp,i,j))*100.d0
                 enddo         ; enddo
-#ifdef NEW_IO_SUBDD
                 units_of_data = '%'
                 long_name = 'Relative Humidity'
-#endif
               case ("q")        ! specific humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=q(1,jm,kp)
                 datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity'
-#endif
               case ("z")        ! geopotential height
                 if(have_south_pole) datar8(1:im, 1)=phi(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=phi(1,jm,kp)
                 datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm'
-#endif
               case ("U")        ! E-W velocity
                 datar8=u(:,:,kp)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm/s'
                 long_name = 'U-Velocity'
-#endif
               case ("V")        ! N-S velocity
                 datar8=v(:,:,kp)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm/s'
                 long_name = 'V-Velocity'
-#endif
               case ("W")        ! vertical velocity
                 if(kp<lm) then
                   datar8=wsave(:,:,kp)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'Pa/s'
                 long_name = 'Vertical Velocity'
-#endif
                 else
                   datar8=undef
                   skip = .true.
@@ -2783,10 +2573,8 @@ C**** diagnostics on model levels
               case ("C")        ! estimate of cloud optical depth
                 datar8=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
      *               *tauss(kp,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = '1'
                 long_name = 'Estimate of Cloud Optical Depth'
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
@@ -2795,10 +2583,8 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Ox Ozone Tracer'
-#endif
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2806,10 +2592,8 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NOx Tracer'
-#endif
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2817,20 +2601,16 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'CO Tracer'
-#endif
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*mNO2(i,j,kp)
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer)'
-#endif
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
@@ -2840,10 +2620,8 @@ C**** diagnostics on model levels
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Be7 Tracer'
-#endif
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
@@ -2853,10 +2631,8 @@ C**** diagnostics on model levels
      *                   (trm(i,j,kp,n_water)*trw0(n_HDO))-1.)
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'permil'
                 long_name = 'HDO Tracer'
-#endif
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
@@ -2882,10 +2658,8 @@ C**** get model level
      &               t(1,jm,l)*pk(l,1,jm)-tf
                 datar8(:,J_0S:J_1S)=
      &               t(:,J_0S:J_1S,l)*pk(l,:,J_0S:J_1S)-tf
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'C'
                 long_name = 'Temperature at Level '//trim(lst(l))
-#endif
               case ("r")        ! relative humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)/
      &               qsat(t(1,1,l)*pk(l,1,1),lhe,pmid(l,1,1))
@@ -2896,53 +2670,39 @@ C**** get model level
      &                 lhe,pmid(l,i,j))*100.d0
                 enddo
               enddo
-#ifdef NEW_IO_SUBDD
                 units_of_data = '%'
                 long_name = 'Relative Humidity at Level '//trim(lst(l))
-#endif
               case ("q")        ! specific humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,l)
                 if(have_north_pole) datar8(1:im,jm)=q(1,jm,l)
                 datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,l)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity at Level '//trim(lst(l))
-#endif
               case ("z")        ! geopotential height
                 if(have_south_pole) datar8(1:im, 1)=phi(1, 1,l)
                 if(have_north_pole) datar8(1:im,jm)=phi(1,jm,l)
                 datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,l)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm'
                 long_name = 'Geopotential Height at Level '//trim(lst(l)
      &               )
-#endif
               case ("U")        ! U velocity
                 datar8=u(:,:,l)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm/s'
                 long_name = 'U-Velocity at Level '//trim(lst(l))
-#endif
               case ("V")        ! V velocity
                 datar8=v(:,:,l)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'm/s'
                 long_name = 'V-Velocity at Level '//trim(lst(l))
-#endif
               case ("W")        ! W velocity
                 datar8=wsave(:,:,l)
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'Pa/s'
                 long_name = 'Vertical Velocity at Level '//trim(lst(l))
-#endif
               case ("C")        ! estimate of cloud optical depth
                 datar8=(1.-fss(l,:,:))*taumc(l,:,:)+fss(l,:,:)
      *               *tauss(l,:,:)
-#ifdef NEW_IO_SUBDD
                 units_of_data = '1'
                 long_name = 'Estimate of Cloud Optical Depth at Level '
      &               //trim(lst(l))
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
@@ -2951,10 +2711,8 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Ox Ozone Tracer at Level '//trim(lst(l))
-#endif
               case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2962,10 +2720,8 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NOx Tracer at Level '//trim(lst(l))
-#endif
               case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
@@ -2973,20 +2729,16 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'CO Tracer at Level '//trim(lst(l))
-#endif
               case ("n")                ! NO2 (not a tracer) (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     datar8(i,j)=1.d6*mNO2(i,j,l)
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'NO2 (not a tracer) at Level '//trim(lst(l))
-#endif
 #endif
 #ifdef TRACERS_COSMO
               case ("B")                ! Be7 tracer
@@ -2996,10 +2748,8 @@ C**** get model level
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'ppmv'
                 long_name = 'Be7 Tracer at Level '//trim(lst(l))
-#endif
 #endif
 #ifdef TRACERS_SPECIAL_O18
               case ("D")                ! HDO tracer (permil)
@@ -3009,10 +2759,8 @@ C**** get model level
      *                   )*trw0(n_HDO))-1.)
                   end do
                 end do
-#ifdef NEW_IO_SUBDD
                 units_of_data = 'permil'
                 long_name = 'HDO Tracer at Level '//trim(lst(l))
-#endif
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
@@ -3051,17 +2799,13 @@ c***** "instantaneous" is a relative term.)
                     select case(namedd(k))
                     case('itAOD')
                       datar8=datar8+ttausv_save(:,:,n,L)
-#ifdef NEW_IO_SUBDD
                       units_of_data='1'
                       long_name = 'Total All Sky Aerosol Optical Depth'
-#endif
                     case('ictAOD')
                       datar8=datar8+ttausv_cs_save(:,:,n,L)
-#ifdef NEW_IO_SUBDD
                       units_of_data='1'
                       long_name =
      &                     'Total Clear Sky Aerosol Optical Depth'
-#endif
                     end select
                   end if
                 end do
@@ -3075,127 +2819,87 @@ c***** (keep in mind that depending on nRAD and NSUBDD, this could be
 c***** "instantaneous" is a relative term.)
             case ("itAAOD")   !tot abs aero opt dep, inst.
               datar8=aerAbs6SaveInst(:,:,L)
-#ifdef NEW_IO_SUBDD
               units_of_data='1'
               long_name = 'Total All Sky Aerosol Optical Depth'
-#endif
 #endif /*TRACERS_ON*/
 
 
 #ifdef TRACERS_HETCHEM
             case ("SO2")
               datar8=trm(:,:,l,n_SO2)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Sulfur Dioxide Mass'
-#endif
             case ("SO4")
               datar8=trm(:,:,l,n_SO4)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Sulfate Mass'
-#endif
             case ("SO4_d1")
               datar8=trm(:,:,l,n_SO4_d1)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Sulfate Coated With 0.1 to 1 um Dust'
-#endif
             case ("SO4_d2")
               datar8= trm(:,:,l,n_SO4_d2)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Sulfate Coated With 1 to 2 um Dust'
-#endif
             case ("SO4_d3")
               datar8=trm(:,:,l,n_SO4_d3)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Sulfate Coated With 2 to 4 um Dust'
-#endif
             case ("Clay")
               datar8=trm(:,:,l,n_Clay)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Sulfate Coated With 4 to 8 um Dust'
-#endif
             case ("Silt1")
               datar8=trm(:,:,l,n_Silt1)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Silt 1 to 2 um'
-#endif
             case ("Silt2")
               datar8=trm(:,:,l,n_Silt2)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Silt 2 to 4 um'
-#endif
             case ("Silt3")
               datar8=trm(:,:,l,n_Silt3)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg'
               long_name = 'Mass of Silt 4 to 8 um'
 #endif
-#endif
             case ("CLDSS")
               datar8=100.d0*cldss(l,:,:) ! Cld cover LS(%)
-#ifdef NEW_IO_SUBDD
               units_of_data = '%'
               long_name = 'Large Scale Cloud Cover'
-#endif
             case ("CLDMC")
               datar8=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
-#ifdef NEW_IO_SUBDD
               units_of_data = '%'
               long_name = 'Moist Convective Cloud Cover'
-#endif
             case ("TAUSS")
               datar8=tauss(l,:,:) ! LS cld tau
-#ifdef NEW_IO_SUBDD
               units_of_data = '1'
               long_name = 'Large Scale Cloud Optical Depth'
-#endif
             case ("TAUMC")
               datar8=taumc(l,:,:) ! MC cld tau
-#ifdef NEW_IO_SUBDD
               units_of_data = '1'
               long_name = 'Moist Convective Cloud Optical Depth'
-#endif
 #ifdef CLD_AER_CDNC
             case ("CTEM")
               datar8=ctem(l,:,:) ! cld temp (K) at cld top
-#ifdef NEW_IO_SUBDD
               units_of_data = 'K'
               long_name = 'Cloud Temperature at Cloud Top'
-#endif
             case ("CL3D")
               datar8=cl3d(l,:,:) ! cld LWC (kg m-3)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg/m^3'
               long_name = 'Liquid Cloud Water'
-#endif
             case ("CI3D")
               datar8=ci3d(l,:,:) ! cld IWC (kg m-3)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'kg/m^3'
-#endif
             case ("CD3D")
               datar8=cd3d(l,:,:) ! cld thickness (m)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'm'
               long_name = 'Cloud Thickness'
-#endif
             case ("CDN3D")
               datar8=cdn3d(l,:,:) ! cld CDNC (cm^-3)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'cm^3'
-#endif
             case ("CRE3D")
               datar8=1.d-6*cre3d(l,:,:) ! cld Reff (m)
-#ifdef NEW_IO_SUBDD
               units_of_data = 'm'
-#endif
 #endif
             end select
             polefix=.true.
@@ -3223,16 +2927,12 @@ c***** for (c)tAOD the sum over tracers of aerosol optical depth
                   select case(namedd(k))
                   case('tAOD')
                     datar8=datar8+ttausv_sum(:,:,n)
-#ifdef NEW_IO_SUBDD
                     units_of_data='1'
                     long_name = 'Total All Sky Aerosol Optical Depth'
-#endif
                   case('ctAOD')
                     datar8=datar8+ttausv_sum_cs(:,:,n)
-#ifdef NEW_IO_SUBDD
                     units_of_data='1'
                     long_name = 'Total Clear Sky Aerosol Optical Depth'
-#endif
                   end select
                 end if
               end do
@@ -3264,16 +2964,12 @@ C**** for (c)AOD multiple tracers are written to one file:
                   select case(namedd(k))
                   case('AOD')
                     datar8=ttausv_sum(:,:,n)/ttausv_count
-#ifdef NEW_IO_SUBDD
                     units_of_data='1'
                     long_name = 'All Sky Aerosol Optical Depth of'
-#endif
                   case('cAOD')
                     datar8=ttausv_sum_cs(:,:,n)/ttausv_count
-#ifdef NEW_IO_SUBDD
                     units_of_data='1'
                     long_name = 'Clear Sky Aerosol Optical Depth of'
-#endif
                   end select
                   rTrname(nc)=trname(n)
                   rTRACER_array(:,:,nc)=datar8
@@ -3307,10 +3003,8 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
-#endif
               TRACER_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
@@ -3337,10 +3031,8 @@ c**** Concentration for all tracers at surface [kg/m^3]
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
-#endif
               TRACER_array(:,:,n)=datar8
               data=datar8
               call write_data(data,kunit,polefix)
@@ -3394,10 +3086,8 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/(s*m^2)'
               long_name = 'Emission of'
-#endif
 #ifdef TRACERS_DUST
             CASE ('DuEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
 !$OMP PARALLEL DO PRIVATE(i,j)
@@ -3409,11 +3099,9 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/(s*m^2)'
               long_name =
      &             'Emission According to Cubic Formula (diag only) of'
-#endif
 #endif
             CASE ('DuSMIXR')      ! Mixing ratio of dust tracers at surface [kg/kg]
 !$OMP PARALLEL DO PRIVATE(i,j)
@@ -3425,10 +3113,8 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
-#endif
             CASE ('DuSCONC')  ! Concentration of dust tracers at surface [kg/m^3]
 !$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
@@ -3439,10 +3125,8 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
-#endif
             CASE ('DuLOAD')     ! Dust load [kg/m^2]
 !$OMP PARALLEL DO PRIVATE(i,j,l)
               do l=1,lm
@@ -3468,10 +3152,8 @@ C**** first set: no 'if' tests
                 end do
               end do
 !$OMP END PARALLEL DO
-#ifdef NEW_IO_SUBDD
               units_of_data='kg/m^2'
               long_name = 'Mass in Atmospheric Column of'
-#endif
             end select
             polefix=.true.
             dust3d_array(:,:,n)=datar8
@@ -3503,10 +3185,8 @@ C**** first set: no 'if' tests
               data=datar8
               call write_data(data,kunit,polefix)
             end do
-#ifdef NEW_IO_SUBDD
             units_of_data='kg/m^3'
             long_name = 'Concentration of'
-#endif
           end do
 #ifdef NEW_IO_SUBDD
           call write_subdd(trim(namedd(k)),dust4d_array,polefix
@@ -3527,16 +3207,12 @@ C**** other dust special cases
               select case(namedd(k))
               case('DuAOD')
                 datar8(:,:)=ttausv_sum(:,:,n1)
-#ifdef NEW_IO_SUBDD
                 units_of_data='1'
                 long_name = 'All Sky Optical Depth of'
-#endif
               case('DuCSAOD')
                 datar8(:,:)=ttausv_sum_cs(:,:,n1)
-#ifdef NEW_IO_SUBDD
                 units_of_data='1'
                 long_name = 'Clear Sky Optical Depth of'
-#endif
               end select
               datar8=datar8/ttausv_count
               polefix=.true.
@@ -3571,10 +3247,8 @@ C**** other dust special cases
               data=datar8
               call write_data(data,kunit,polefix)
             end if
-#ifdef NEW_IO_SUBDD
             units_of_data='kg/(s*m^2)'
             long_name = 'Turbulent Deposition of'
-#endif
           end do
 #ifdef NEW_IO_SUBDD
           call write_subdd(trim(namedd(k)),dust3d_array,polefix
@@ -3602,10 +3276,8 @@ C**** other dust special cases
               data=datar8
               call write_data(data,kunit,polefix)
             end if
-#ifdef NEW_IO_SUBDD
             units_of_data='kg/(s*m^2)'
             long_name = 'Gravitational Settling of'
-#endif
           end do
 #ifdef NEW_IO_SUBDD
           call write_subdd(trim(namedd(k)),dust3d_array,polefix
@@ -3638,10 +3310,8 @@ C**** other dust special cases
             dust3d_array(:,:,n)=datar8
             data=datar8
             call write_data(data,kunit,polefix)
-#ifdef NEW_IO_SUBDD
             units_of_data='kg/(s*m^2)'
             long_name = 'Wet Deposition of'
-#endif
           end do
 #ifdef NEW_IO_SUBDD
           call write_subdd(trim(namedd(k)),dust3d_array,polefix
