@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=59,KOIJL=30,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=62,KOIJL=32,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -61,6 +61,8 @@
      .           ,ij_cocc,ij_doc,IJ_alk
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
      .           ,ij_lim(4,5),ilim,ij_ndet
+     .           ,ij_DICrhs1,ij_DICrhs2   
+     .           ,ij_DICrhs3,ij_DICrhs4,ij_DICrhs5,ij_xchl   
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
 #endif
@@ -1169,6 +1171,46 @@ c
       scale_oij(k)=1
 
       k=k+1
+      IJ_DICrhs1=k
+      lname_oij(k)="DIC rhs1"
+      sname_oij(k)="oij_DICrhs1"
+      units_oij(k)="mili-molC/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_DICrhs2=k
+      lname_oij(k)="DIC rhs2"
+      sname_oij(k)="oij_DICrhs2"
+      units_oij(k)="mili-molC/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_DICrhs3=k
+      lname_oij(k)="DIC rhs3"
+      sname_oij(k)="oij_DICrhs3"
+      units_oij(k)="mili-molC/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_DICrhs4=k
+      lname_oij(k)="DIC rhs4"
+      sname_oij(k)="oij_DICrhs4"
+      units_oij(k)="mili-molC/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_DICrhs5=k
+      lname_oij(k)="DIC rhs5"
+      sname_oij(k)="oij_DICrhs5"
+      units_oij(k)="mili-molC/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
       IJ_nitr=k
       lname_oij(k)="Surface ocean Nitrates"
       sname_oij(k)="oij_nitr"
@@ -1301,6 +1343,14 @@ c
       lname_oij(k)="sink vel n/cdet at 74m"
       sname_oij(k)="oij_wsd"
       units_oij(k)="m/hr"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_xchl=k
+      lname_oij(k)="C export due to chloroph"
+      sname_oij(k)="oij_xchl"
+      units_oij(k)="kg,C*m/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 

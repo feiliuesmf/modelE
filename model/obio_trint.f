@@ -63,11 +63,14 @@
 #else
       sumFlux=0.   ! no surface flux
 #endif
+      !see obio_ptend notes on whether to include ice effect
       ironFlux= areaIntegration(atmFe(:,:,JMON))
 #ifdef zero_ironflux
       ironFlux=0.d0
 #endif
-      ironFlux= ironFlux*solFe*1.d-3/max(h1,1.d-3)
+      !units [ironflux]=nano-mole,Fe/lt (nM)
+      !!!ironFlux= ironFlux*solFe*1.d-3/max(h1,1.d-3)
+      ironFlux= ironFlux*solFe*1.d-3      !mili-mol,Fe => mol,Fe
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
@@ -77,7 +80,7 @@
 
        write(*,*)'---------- carbon conservation--------------------'
        print*, 'area, volume ocean=', areao, sumo
-       write(*,*)'global averaged carbon flux=',
+       write(*,*)'global integral carbon flux (mol,CO2/s)=',
      .            nstep,sumFlux
        !volume integrated carbon inventory:
         glb_carbon_invntry = 
@@ -86,8 +89,10 @@
      .                    + summ(9)) * mgchltouMC * 1e-3     !mgm3*m3 -> uM*m3=mili,molC -> mol,C
      .                    + summ(11) *1e-3 /12               !micro-grC/lt*m3 -> mili,grC-> mol,C
      .                    +(summ(14)+summ(15))*1e-3          !mol,C (or mol,CO2)
-       write(*,*)'glb carbon inventory bfre=',nstep,carb_old
-       write(*,*)'glb carbon inventory aftr=',nstep,glb_carbon_invntry
+       write(*,*)'glb carbon inventory bfre (mol,C)=',
+     .            nstep,carb_old
+       write(*,*)'glb carbon inventory aftr (mol,C)=',
+     .            nstep,glb_carbon_invntry
        if (iflg.eq.0) then
         carb_old = glb_carbon_invntry
        else
@@ -103,7 +108,7 @@
 
        write(*,*)'-------------- iron conservation--------------------'
        print*, 'area, volume ocean=', areao, sumo
-       write(*,*)'global averaged iron deposition flux=',
+       write(*,*)'global integral iron deposition flux=',
      .            nstep,ironFlux
        !volume integrated iron inventory:
         glb_iron_invntry = (summ(4) + summ(13))    !nano-mol,Iron/m3
@@ -124,23 +129,22 @@
       endif
 
 #ifdef OBIO_ON_GARYocean
-      summ = volumeIntegration(trmo)
+      summ = FieldSum(trmo)
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
             write(*,*) 'total intgrl trmo:', iTracer, nstep, 
-     &           summ(iTracer), summ(iTracer)/sumo
+     &           summ(iTracer)
          end do
        write(*,*)'----------   trmo conservation--------------------'
-       write(*,*)'global averaged flux (kg,C per s) =',
-     .            nstep,sumFlux*44.d0*1e-3/3.664d0     !convert mole,CO2/s->kg,C/s
+       write(*,*)'global integral flux (kg,C per s) =',
+     .            nstep,sumFlux*12.d0*1e-3          !convert mole,CO2/s->kg,C/s
        !volume integrated carbon inventory:
-       !trmo units are Kg, summ is in Kg*m3
+       !trmo units are Kg,C, summ is in Kg,C
        write(*,*)'global carbon inventory (kg,C)=',nstep,
-     .   (summ(5)+summ(6)+summ(7)+summ(8)+summ(9)  ! kg,C*m3
-     . +  summ(11)                                 ! kg,C*m3
-     . +  summ(14)+summ(15)                        ! kg,C*m3
-     .                     )/sumo                  ! kg,C
+     .    summ(5)+summ(6)+summ(7)+summ(8)+summ(9)  ! kg,C
+     . +  summ(11)                                 ! kg,C
+     . +  summ(14)+summ(15)                        ! kg,C
        write(*,*)'----------------------------------------------------'
       endif
 #endif
@@ -163,6 +167,40 @@
       end function avgDepthOfTopLayer
 
 #ifdef OBIO_ON_GARYocean
+      function FieldSum(quantity)
+      use ocean, only : focean,imaxj
+      real*8, intent(inout) :: quantity(:,j_0h:,:,:)
+      real*8 :: FieldSum(size(quantity,4))
+
+      real*8 :: partialIntegration(j_0h:j_1h,size(quantity,4))
+      real*8 :: gridCell
+      integer :: numLevels, numTracers
+      integer :: i,j,k,n
+
+      partialIntegration = 0
+      numLevels = size(quantity,3)
+      numTracers = size(quantity,4)
+
+      do k = 1, numLevels
+        do j = j_0, j_1
+          gridCell = 1.d0
+          if (j.eq.jdm) gridCell = 1.d0 * idm
+          do i= 1, imaxj(j)
+            do n = 1, numTracers
+               if (focean(i,j) > 0) then
+                 partialIntegration(j,n) = partialIntegration(j,n) +
+     &                 quantity(i,j,k,n) * gridCell
+              end if
+            end do
+          end do
+        end do
+      end do
+
+      call globalSum(ogrid, partialIntegration, FieldSum,
+     &     all=.true.)
+
+      end function FieldSum
+
       function volumeIntegration(quantity)
       use ocean, only : dxypo, focean,imaxj
       use oceanres,  only: dzo

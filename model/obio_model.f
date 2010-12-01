@@ -40,6 +40,7 @@
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
+     .                    ,rhs_obio
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -55,6 +56,8 @@
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
      .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet
+     .                 ,ij_DICrhs1,ij_DICrhs2,ij_DICrhs3,ij_DICrhs4
+     .                 ,ij_DICrhs5,ij_xchl
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
@@ -124,13 +127,11 @@
 #else
       integer kn
 #endif
-      real*8, allocatable :: rhs_glob(:,:,:,:)
       character string*80
       character jstring*3
 
       logical vrbos,noon,errcon
 
-      allocate(rhs_glob(idm,jdm,ntrac,16))
       call start(' obio_model')
 !--------------------------------------------------------
       diagno_bio=.false.
@@ -843,26 +844,34 @@ cdiag     endif
 
 
       !------------------------------------------------------------
-      !integrate rhs vertically (volume integration)
+      !integrate rhs vertically 
       do ll= 1, 16
       do nt= 1, ntrac
-      rhs_glob(i,j,nt,ll) = 0.d0
+      rhs_obio(i,j,nt,ll) = 0.d0
       do k = 1, kdm
 #ifdef OBIO_ON_GARYocean
-          rhs_glob(i,j,nt,ll) = rhs_glob(i,j,nt,ll) +
-     .                 rhs(k,nt,ll)*dp1d(k)
+          rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
+     .                 rhs(k,nt,ll)*dp1d(k)    ! mili-mol,C/m2/hr
 #else
         if (dp1d(k) < huge) then
-          rhs_glob(i,j,nt,ll) = rhs_glob(i,j,nt,ll) +
-     .                 rhs(k,nt,ll)*dp1d(k)
+          rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
+     .                 rhs(k,nt,ll)*dp1d(k)    ! mili-mol,C/m2/hr
         endif
 #endif
       enddo  !k
-      if (vrbos)
-     .write(*,'(a,5i5,1x,e20.13)')'rhs_glob:',
-     .      nstep,i,j,nt,ll,rhs_glob(i,j,nt,ll)
+      if (vrbos.and.nt.eq.14)
+     .write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/hr):',
+     .      nstep,i,j,nt,ll,rhs_obio(i,j,14,ll)
       enddo  !ntrac
       enddo  !ll
+
+#ifdef OBIO_ON_GARYocean
+      OIJ(I,J,IJ_DICrhs1)=OIJ(I,J,IJ_DICrhs1)+rhs_obio(i,j,14,5)  
+      OIJ(I,J,IJ_DICrhs2)=OIJ(I,J,IJ_DICrhs2)+rhs_obio(i,j,14,10)  
+      OIJ(I,J,IJ_DICrhs3)=OIJ(I,J,IJ_DICrhs3)+rhs_obio(i,j,14,14)  
+      OIJ(I,J,IJ_DICrhs4)=OIJ(I,J,IJ_DICrhs4)+rhs_obio(i,j,14,15)  
+      OIJ(I,J,IJ_DICrhs5)=OIJ(I,J,IJ_DICrhs5)+rhs_obio(i,j,14,16)  
+#endif
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-16, 1,7'
@@ -874,7 +883,7 @@ cdiag     endif
       endif
 
 !      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
-!     .  nstep,i,j,(rhs_glob(i,j,4,ll),ll=1,16)
+!     .  nstep,i,j,(rhs_obio(i,j,4,ll),ll=1,16)
 
        !------------------------------------------------------------
       !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
@@ -987,6 +996,11 @@ cdiag     endif
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
        OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
        OIJ(I,J,IJ_wsd)= OIJ(I,J,IJ_wsd)+ wsdet(4,1)           ! sink. vel. n/cdet at 74m
+       OIJ(I,J,IJ_xchl) = OIJ(I,J,IJ_xchl) 
+     .                  + trmo(i,j,4,5)*obio_ws(4,1) 
+     .                  + trmo(i,j,4,6)*obio_ws(4,1) 
+     .                  + trmo(i,j,4,7)*obio_ws(4,1)
+     .                  + trmo(i,j,4,8)*obio_ws(4,1)   !total phyto cexp at 74m
 
        !limitation diags surface only (for now)
        k = 1
