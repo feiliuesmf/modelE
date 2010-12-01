@@ -61,11 +61,11 @@ C****
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
-     *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc,aer_rad_forc
+     *     ,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
-     *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
+     *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par
 #ifdef TRACERS_ON
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
@@ -172,91 +172,39 @@ C**** sync radiation parameters from input
       if (istart.le.0) return
 
 C**** Set orbital parameters appropriately
-C**** Set orbital parameters appropriately
-      if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
-        ! 0 BP is defined as 1950CE
-        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
-        write(out_line,*)
-     *  "   Calculating Orbital Params for year : ",
-     *  pyear,"     (CE);"
+      select case (variable_orb_par)
+      case(1) ! use parameters for model_year-orb_par_year_bp
+        pyear = JYEAR-orb_par_year_bp ! bp=before present model year
         call orbpar(pyear,eccn, obliq, omegt)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) 'calc_orb_par_year =',calc_orb_par_year
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-     *  "   Calculating Orbital Params for year : ",
-     *  pyear,"     (CE);"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) " Orbital Parameters Calculated:"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
-     *       " (default = ",eccn_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
-     *       obliq,
-     *       " (default = ",obliq_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f7.3,a,f7.3,a)')
-     *       "   Precession (degs from ve): ",
-     *       omegt," (default = ",omegt_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-      elseif (calc_orb_par.eq.1) then ! calculate from paleo-year
-        pyear=1950.-paleo_orb_yr ! since 0 BP is defined as 1950CE
+        if (am_i_root()) then
+          write(6,*) 'Variable orbital parameters, updated each year'
+          write(6,*) 'Current orbital parameters from year',pyear
+          write(6,*) '  Eccentricity:',eccn
+          write(6,*) '  Obliquity (degs):',obliq
+          write(6,*) '  Precession (degs from ve):',omegt
+        end if
+      case(0)  ! orbital parameters fixed from year orb_par_year_bp
+        pyear=1950.-orb_par_year_bp ! here "present" means "1950"
         call orbpar(pyear, eccn, obliq, omegt)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) " Orbital Parameters Calculated:"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear,"
-     *       (CE);", paleo_orb_yr," (BP)"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
-     *       " (default = ",eccn_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
-     *       obliq,
-     *       " (default = ",obliq_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f7.3,a,f7.3,a)')
-     *       "   Precession (degs from ve): ",
-     *       omegt," (default = ",omegt_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-      elseif(calc_orb_par_sp.eq.1) then
-        omegt=paleo_orb_par(3)
-        obliq=paleo_orb_par(2)
-        eccn=paleo_orb_par(1)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) " Orbital Parameters Specified:"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.0,a,f8.0,a)') "   Paleo-year: ",pyear,"
-     *       (CE);", paleo_orb_yr," (BP)"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
-     *       " (default = ",eccn_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
-     *       obliq,
-     *       " (default = ",obliq_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f7.3,a,f7.3,a)')
-     *       "   Precession (degs from ve): ",
-     *       omegt," (default = ",omegt_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-      else  ! set from defaults (defined in CONSTANT module)
+        if (am_i_root()) then
+          write(6,*) 'Fixed orbital parameters from year',pyear,' CE'
+          write(6,*) '  Eccentricity:',eccn
+          write(6,*) '  Obliquity (degs):',obliq
+          write(6,*) '  Precession (degs from ve):',omegt
+        end if
+      case(-1) ! orbital parameters fixed, directly set
+        eccn= orb_par(1) ; obliq=orb_par(2) ; omegt=orb_par(3)
+        if (am_i_root()) then
+          write(6,*) 'Orbital Parameters Specified:'
+          write(6,*) '  Eccentricity:',eccn
+          write(6,*) '  Obliquity (degs):',obliq
+          write(6,*) '  Precession (degs from ve):',omegt
+        end if
+      case default  ! set from defaults (defined in CONSTANT module)
         omegt=omegt_def
         obliq=obliq_def
         eccn=eccn_def
-      end if
+      end select
 
       call cosz_init
 

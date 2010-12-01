@@ -86,10 +86,10 @@ OPTS_giss_LSM = USE_ENT=YES
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
-CDN=CD144X90.ext 
-VEG=V144X90_no_crops.ext 
+CDN=CD144X90.ext
+VEG=V144X90_no_crops.ext
 CROPS=CROPS2007_144X90N_nocasp
-SOIL=S144X900098M.ext 
+SOIL=S144X900098M.ext
 TOPO=Z144X90N.1deghycom_1
 REG=REG2X2.5                      ! special regions-diag
 RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
@@ -111,7 +111,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr       ! need KSOLAR=2
 RADNE=topcld.trscat8
@@ -173,31 +173,28 @@ Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
 ! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1.
 
 ! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.5       ! deformation drag coefficient                                   
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000045 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=10.     ! Shear drag coefficient
+CMTN=0.2       ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
 QGWSHR=0 ! shear drag OFF
 QGWCNV=0 ! convective drag OFF
 
-calc_orb_par=1
-paleo_orb_yr=100.  !    (which is 1850 AD)
-
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=0.73    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.55    ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
@@ -227,8 +224,8 @@ albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
 
-calc_orb_par=1
-paleo_orb_yr=100.  !    (which is 1850 AD)
+variable_orb_par=0
+orb_par_year_bp=100 !   (which is 1850 AD)
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)

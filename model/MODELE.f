@@ -1018,8 +1018,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00,ij_debug,init_topog_related
-      USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
-     *     paleo_orb_par, calc_orb_par_year
+      USE RAD_COM, only : variable_orb_par,orb_par_year_bp,orb_par
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE PARAM
       implicit none
@@ -1063,11 +1062,9 @@ C**** Rundeck parameters:
       call sync_param( "IRAND", IRAND )
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
       call sync_param( "ij_debug",ij_debug , 2)
-      call sync_param( "calc_orb_par", calc_orb_par )
-      call sync_param( "paleo_orb_yr", paleo_orb_yr )
-      call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
-      call sync_param( "calc_orb_par_year", calc_orb_par_year )
-      call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
+      call sync_param( "variable_orb_par", variable_orb_par )
+      call sync_param( "orb_par_year_bp", orb_par_year_bp )
+      call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "init_topog_related", init_topog_related )
 
 C**** Parameters derived from Rundeck parameters:
@@ -2149,7 +2146,7 @@ C****
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,SUNSET,
      *     dh2o,H2ObyCH4,ghg_yr,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
-     *     calc_orb_par_year
+     *     variable_orb_par,orb_par_year_bp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
@@ -2199,35 +2196,20 @@ C**** Default calculation (no leap, VE=Mar 21 hr 0)
 c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
       EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
-C**** Set orbital parameters appropriately
-      if (calc_orb_par_year.ne.0.and.JDAY.eq.1) then ! calculate from paleo-year
-        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
-        ! 0 BP is defined as 1950CE
+C**** Update orbital parameters at start of year
+      if (variable_orb_par == 1.and.JDAY == 1) then
+        pyear = JYEAR - orb_par_year_bp ! bp=before present model year
         call orbpar(pyear, eccn, obliq, omegt)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) " Orbital Parameters Calculated:"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-     *  "   Calculating Orbital Params for year : ",
-     *  pyear,"     (CE);", ' JYEAR, IYEAR1,calc_orb_par_year=',
-     *  JYEAR,IYEAR1,calc_orb_par_year
-        call write_parallel(trim(out_line),unit=6)
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
-     *       " (default = ",eccn_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
-     *       obliq,
-     *       " (default = ",obliq_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,'(a,f7.3,a,f7.3,a)')
-     *       "   Precession (degs from ve): ",
-     *       omegt," (default = ",omegt_def,")"
-        call write_parallel(trim(out_line),unit=6)
-        write(out_line,*)
-        call write_parallel(trim(out_line),unit=6)
+        if (am_I_root()) then
+          write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
+          if (orb_par_year_bp.ne.0) write(6,*) 'offset by',
+     *      orb_par_year_bp,' years from model year'
+          write(6,*) "   Eccentricity: ",eccn
+          write(6,*) "   Obliquity (degs): ",obliq
+          write(6,*) "   Precession (degs from ve): ",omegt
+        end if
       end if
+
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
      *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
       call daily_cosz(sind,cosd,cosz_day,sunset)

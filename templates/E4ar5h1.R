@@ -2,12 +2,12 @@ E4ar5h1.R GISS Model E  coupled version          ssun   04/23/2010
 
 E4ar5h1: E4F40 (2x2.5x40 layers modelE) coupled to HYbrid Coordinate Ocean Model (HYCOM)
 
-E4F40 = modelE as frozen in April 2010; atmospheric composition from year 1850                               
+E4F40 = modelE as frozen in April 2010; atmospheric composition from year 1850
 ocean: 1x1deg 26-layer HYCOM, 387x360x26 grid points
 uses turbulence scheme (no dry conv),  grav.wave drag
-time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs  
-filters: U,V in E-W direction (after every dynamics time step)              
-         sea level pressure (after every physics time step)                 
+time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
+filters: U,V in E-W direction (after every dynamics time step)
+         sea level pressure (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -90,7 +90,7 @@ AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.1deghycom_apr10
 CDN=CD144X90.ext                 ! neutral drag coefficient
-VEG=V144X90_no_crops.ext         ! vegatation file 
+VEG=V144X90_no_crops.ext         ! vegatation file
 CROPS=CROPS2007_144X90N_nocasp   ! crops
 SOIL=S144X900098M.ext            ! soil properties
 REG=REG2X2.5                     ! special regions-diag
@@ -109,7 +109,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
 RADNE=topcld.trscat8
@@ -171,16 +171,16 @@ Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_SDRAG=1         ! conserve ang. mom.
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
 ! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1.
 
 ! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.5       ! deformation drag coefficient                                   
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000045 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=10.     ! Shear drag coefficient
+CMTN=0.2       ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
@@ -223,8 +223,8 @@ albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
 
-calc_orb_par=1
-paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
+variable_orb_par=0
+orb_par_year_bp=100  !  BP i.e. 1950-orb_par_year_bp AD = 1850 AD
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)

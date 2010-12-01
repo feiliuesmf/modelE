@@ -98,7 +98,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr       ! need KSOLAR=2
 RADNE=topcld.trscat8
@@ -171,8 +171,8 @@ dalbsnX=.024
 o3_yr=-1850
 CO2X=1.
 
-calc_orb_par=1
-paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
+variable_orb_par=0
+orb_par_year_bp=100  !  BP i.e. 1950-orb_par_year_bp AD = 1850 AD
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=180. ! Shapiro filter on U in E-W direction; usually same as DT (below)

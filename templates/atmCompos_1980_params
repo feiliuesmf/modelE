@@ -15,5 +15,5 @@ dalbsnX=.024
 o3_yr=-1980
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
-calc_orb_par=1
-paleo_orb_yr=-29.  !  BP i.e. 1950-paleo_orb_yr AD = 1980 AD
+variable_orb_par=0
+orb_par_year_bp=-30  !  BP i.e. 1950-orb_par_year_bp AD = 1980 AD

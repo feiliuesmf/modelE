@@ -30,20 +30,18 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
       real*8 OMEGT,OBLIQ,ECCN
 
 C**** Database parameters to control orbital parameter calculation
-C**** Note: setting calc_orb_par with paleo_orb_yr=-50 (i.e. year 2000)
+C**** Note: setting variable_orb_par=0, orb_par_year_bp=-50 (=year 2000)
 C**** does not produce exactly the same as the default values.
-!@dbparam calc_orb_par_year = PALEO YEAR (BP) to calculate orbital parameters
-!@+       on first timestep of each year. PALEO YEAR incremented yearly from
-!@+       the value of JYEAR so set IYEAR appropriately (1950 usually).
-      integer :: calc_orb_par_year = 0
-!@dbparam calc_orb_par = 1 to calc orbital parameters
-      integer :: calc_orb_par = 0
-!@dbparam paleo_orb_yr is paleo year (BP) for orbital calc
-      real*8 :: paleo_orb_yr = -50.  ! (i.e. 2000AD)
-!@dbparam calc_orb_par_sp = 1 to directly specify orbital parameters
-      integer :: calc_orb_par_sp = 0
-!@dbparam paleo_orb_par :: directly specifies orbital parameters
-      real*8, dimension(3) :: paleo_orb_par = (/ eccn_def, obliq_def,
+!@dbparam variable_orb_par 1 if orbital parameters are time dependent
+!@+       1 : use orb par from year "JYEAR - orb_par_year_bp"
+!@+       0 : use orb par from year orb_par_year_bp (BP=before 1950)
+!@+      -1 : set eccn/obliq/omegt to orb_par(1:3)
+!@+    else : set eccn/obliq/omegt to defaults of orb_par
+      integer :: variable_orb_par = -2
+!@dbparam orb_par_year_bp = offset from model_year or 1950 (fixed case)
+      integer :: orb_par_year_bp = 0
+!@dbparam orb_par :: directly specifies orbital parameters
+      real*8, dimension(3) :: orb_par = (/ eccn_def, obliq_def,
      *     omegt_def /)
 
 !@var dimrad_sv dimension sum of input fields saved for radia_only runs

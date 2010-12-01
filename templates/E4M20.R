@@ -62,7 +62,7 @@ AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, IS
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
-! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8 
+! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4M20.MXL65m   ! = end of preliminary run with KOCEAN=0,Kvflxo=1
 !! OHT=OTSPEC.E4M20.MXL65m.1956-1960 ! ocean horizontal heat transport
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
@@ -97,7 +97,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8
@@ -178,8 +178,8 @@ albsn_yr=1850
 dalbsnX=.024
 o3_yr=1850
 
-calc_orb_par=1
-paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
+variable_orb_par=0
+orb_par_year_bp=100   !  BP i.e. 1950-orb_par_year_bp AD = 1850 AD
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

@@ -104,7 +104,7 @@ RADN3=miescatpar.abcdv2
 
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
+RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
 RADNE=topcld.trscat8
@@ -234,8 +234,8 @@ o3_yr=2000                                      ! =???? , also change OSST,SICE
 CO2X=1.
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
-calc_orb_par=1
-paleo_orb_yr=-50.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
+variable_orb_par=0
+orb_par_year_bp=-50  !  BP i.e. 1950-orb_par_year AD = 2000 AD
 
 !--------- general aerosol parameters-------------
 aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
