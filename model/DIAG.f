@@ -3851,7 +3851,7 @@ c write_3d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,l,rec,level,ivertical
+      integer :: fid,l,rec,level,ivertical,l5
       real(kind=8) :: time
       real(kind=8),dimension(size(data,dim=3)) :: vertical
       logical :: q24,qinst,qr4
@@ -3861,6 +3861,7 @@ c write_3d
       character(len=50) :: lname
       character(len=16) :: calendarstring
       character(len=8) :: dist_x,dist_y
+      character(len=5) :: c5
 
       if(.not. in_subdd_list(qtyname)) return
 
@@ -3961,7 +3962,10 @@ c define physical variable
             end if
           end do
         else ! define 3-dimensional fields
-          if (qtyname(2:4) == 'ALL' .or. qtyname(3:5) == 'ALL') then
+          l5 = min(len_trim(qtyname),5)
+          c5 = ''
+          c5(1:l5) = qtyname(1:l5)
+          if (c5(2:4) == 'ALL' .or. c5(3:5) == 'ALL') then
             qname = qtyname(1:index(qtyname,'ALL')-1)
           else
             qname = qtyname
@@ -4005,7 +4009,10 @@ c write physical variable
      &         =rec)
         enddo
       else
-        if (qtyname(2:4) == 'ALL' .or. qtyname(3:5) == 'ALL') then
+        l5 = min(len_trim(qtyname),5)
+        c5 = ''
+        c5(1:l5) = qtyname(1:l5)
+        if (c5(2:4) == 'ALL' .or. c5(3:5) == 'ALL') then
           qname = qtyname(1:index(qtyname,'ALL')-1)
         else
           qname = qtyname
