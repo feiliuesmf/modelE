@@ -27,10 +27,13 @@ C**** some arrays here for compatility with new clouds
 #ifdef CLD_AER_CDNC
 !@var OLDNL old CDNC,OLDNI old ice crystal
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNL,OLDNI
-!@var LWC,Cld depth, cld tem,N, Re, LWP for 3 hrly diag save
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CI3D,CD3D,CTEM
+!@var N, Re, LWP for 3 hrly diag save
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CDN3D,CRE3D
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: CLWP
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+!@var LWC,Cld depth, cld tem for 3 hrly diag save
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CI3D,CD3D,CTEM
 #endif
 
 C**** variables saved for radiation calculations
@@ -98,9 +101,12 @@ C**** ISCCP diagnostics related parameter
 #endif
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+     *                       CL3D,CI3D,CD3D,CTEM,
+#endif
 #ifdef CLD_AER_CDNC
      *                       OLDNL,OLDNI,
-     *                       CL3D,CI3D,CD3D,CTEM,CDN3D,CRE3D,CLWP,
+     *                       CDN3D,CRE3D,CLWP,
 #endif
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
@@ -129,13 +135,15 @@ C**** ISCCP diagnostics related parameter
      *             CLDSAV(LM,I_0H:I_1H,J_0H:J_1H),
      *            CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H),
      *                FSS(LM,I_0H:I_1H,J_0H:J_1H),
-#ifdef CLD_AER_CDNC
-     *             OLDNL(LM,I_0H:I_1H,J_0H:J_1H),
-     *             OLDNI(LM,I_0H:I_1H,J_0H:J_1H),
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *             CTEM(LM,I_0H:I_1H,J_0H:J_1H),
      *             CD3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             CL3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             CI3D(LM,I_0H:I_1H,J_0H:J_1H),
+#endif
+#ifdef CLD_AER_CDNC
+     *             OLDNL(LM,I_0H:I_1H,J_0H:J_1H),
+     *             OLDNI(LM,I_0H:I_1H,J_0H:J_1H),
      *             CDN3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             CRE3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             CLWP(I_0H:I_1H,J_0H:J_1H),

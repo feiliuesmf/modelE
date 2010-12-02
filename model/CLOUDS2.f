@@ -10,12 +10,10 @@
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
-#ifdef CLD_AER_CDNC
-     *,kapa,mair,gasc
-#endif
       USE MODEL_COM, only : lm,dtsrc,itime,coupled_chem
-#ifdef CLD_AER_CDNC
-     * ,ptop,psf,ls1,sig,sige
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+      USE CONSTANT, only : kapa,mair,gasc
+      USE MODEL_COM, only : ptop,psf,ls1,sig,sige
 #endif
 #ifdef SCM
      &                      ,I_TARG,J_TARG
@@ -205,13 +203,17 @@ C**** new arrays must be set to model arrays in driver (after MSTCNV)
       REAL*8, DIMENSION(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
       REAL*8, DIMENSION(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
+      REAL*8, DIMENSION(LM) :: CDN3DL,CRE3DL
 !@var ALWWM and ALWIM  etc are liquid water contents
-!@var CTTEM,CD3DL,CL3DL,CI3DL,SMLWP are cld temp, cld thickness,cld water,LWP
-      REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CI3DL,CDN3DL,CRE3DL
+!@var SMLWP is LWP
       REAL*8 SMLWP
 !@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
       REAL*8, DIMENSION(LM)::SME
       INTEGER NLSW,NLSI,NMCW,NMCI
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+!@var CTTEM,CD3DL,CL3DL,CI3DL are cld temp, cld thickness,cld water
+      REAL*8, DIMENSION(LM) ::CTEML,CD3DL,CL3DL,CI3DL
 #endif
 C**** new arrays must be set to model arrays in driver (before LSCOND)
       REAL*8, DIMENSION(LM) :: TTOLDL,CLDSAVL,CLDSV1
@@ -352,8 +354,11 @@ C**** output variables
      *  ,AREWM,AREIM,AREWS,AREIS,ALWIM,ALWWM
      *  ,OLDCDL,OLDCDI
      *  ,SME
-     *  ,CTEML,CD3DL,CL3DL,CI3DL,SMLWP,CDN3DL,CRE3DL
+     *  ,SMLWP,CDN3DL,CRE3DL
      *  ,WMCLWP,WMCTWP
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+     *  ,CTEML,CD3DL,CL3DL,CI3DL
 #endif
      *  ,TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2
      *  ,FSSL,WTURB,TVL,W2L,GZL
@@ -2895,11 +2900,13 @@ c for sulfur chemistry
        real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT
      * ,CDNL0,NEWCDN,OLDCDN,SNd
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
-       real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
-       real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
        real*8 NEWCLD,SAVCLD
        real*8, dimension(lm) :: vvel_sv,CLDSAV0
        real*8, dimension(sntm,lm) :: dsu_sv
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+       real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
+       real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
       integer,PARAMETER         :: mkx=1   ! lm
@@ -3049,15 +3056,17 @@ C**** initialise vertical arrays
       fqtowt(:) = 0.
 #endif
 #ifdef CLD_AER_CDNC
-       CTEML=0.
-       CD3DL=0.
-       CL3DL=0.
-       CI3DL=0.
        CDN3DL=0.
        CRE3DL=0.
        SMLWP=0.
 c      AERTAU=0.
        DSGL(:,1:SNTM)=0.
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+       CTEML=0.
+       CD3DL=0.
+       CL3DL=0.
+       CI3DL=0.
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
        WMXICE(:)=0.
@@ -4935,7 +4944,7 @@ C**** CALCULATE OPTICAL THICKNESS
       END DO
 
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
 !Save variables for 3 hrly diagnostics
 c     AAA=1
 c     DO L=LP50,1,-1

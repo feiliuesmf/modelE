@@ -1557,7 +1557,7 @@ c get_subdd
 !@+   If there is a choice between outputting pressure levels or
 !@+   model levels, use lower case for the model levels:
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
-!@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
+!@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, SWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
 !@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID,
 !@+                    GTALL, GWALL, GIALL (on soil levels)
@@ -1614,8 +1614,12 @@ c get_subdd
       USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
+     *           ,svlat,svlhx
 #ifdef CLD_AER_CDNC
-     *           ,ctem,cd3d,ci3d,cl3d,cdn3d,cre3d,clwp
+     *           ,cdn3d,cre3d,clwp
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+     *           ,ctem,cd3d,ci3d,cl3d
 #endif
       USE DYNAMICS, only : ptropo,am,wsave,pk,phi,pmid
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
@@ -1631,7 +1635,7 @@ c get_subdd
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
-      USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
+      USE RAD_COM, only : trhr,srhr,srdn,salb,cfrac,cosz1
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
@@ -1654,8 +1658,11 @@ c get_subdd
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     TAUSUMW,TAUSUMI
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
-      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
+      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS,TAUL
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
@@ -1676,6 +1683,27 @@ c get_subdd
      &               HAVE_NORTH_POLE=have_north_pole)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
+
+      do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          tausumw(i,j) = 0.
+          tausumi(i,j) = 0.
+          do l=1,lm
+            taul = (1.-fss(l,i,j))*taumc(l,i,j)
+            if(svlat(l,i,j).eq.lhe) then
+              tausumw(i,j) = tausumw(i,j) + taul
+            else
+              tausumi(i,j) = tausumi(i,j) + taul
+            endif
+            taul = fss(l,i,j)*tauss(l,i,j)
+            if(svlhx(l,i,j).eq.lhe) then
+              tausumw(i,j) = tausumw(i,j) + taul
+            else
+              tausumi(i,j) = tausumi(i,j) + taul
+            endif
+          enddo
+        enddo
+      enddo
 
       kunit=0
 C**** depending on namedd string choose what variables to output
@@ -2000,6 +2028,14 @@ c          datar8=sday*prec/dtsrc
           end do
           units_of_data = 'W/m^2'
           long_name = 'Longwave Upward Flux at Top of Atmosphere'
+        case ("SWT")            ! SW net flux at TOA (P1) (W/m^2)
+          do j=J_0,J_1     ! sum up all heating rates + surface absorption
+            do i=I_0,imaxj(j)
+              datar8(i,j)=SUM(SRHR(0:LM,I,J))*cosz1(i,j)
+            end do
+          end do
+          units_of_data = 'W/m^2'
+          long_name = 'Solar Net Flux at Top of Atmosphere'
         case ("ICEF")           ! ice fraction over open water (%)
           datar8=RSI*100.
           units_of_data = '%'
@@ -2143,7 +2179,14 @@ c          datar8=sday*prec/dtsrc
           datar8=saveMCCLDTP
           units_of_data = 'mb'
           long_name = 'moist convective cloud top pressure'
-
+        case ("TAUSUMW")   ! WATER CLOUD OPTICAL DEPTH
+          datar8=tausumw
+          units_of_data = '1'
+          long_name = 'water cloud optical depth, vertical sum'
+        case ("TAUSUMI")   ! ICE CLOUD OPTICAL DEPTH
+          datar8=tausumi
+          units_of_data = '1'
+          long_name = 'ice cloud optical depth, vertical sum'
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
         case ("LGTN")  ! lightning flash rate (flash/m2/s)
           datar8 = saveLightning
@@ -2878,7 +2921,7 @@ c***** "instantaneous" is a relative term.)
               datar8=taumc(l,:,:) ! MC cld tau
               units_of_data = '1'
               long_name = 'Moist Convective Cloud Optical Depth'
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
             case ("CTEM")
               datar8=ctem(l,:,:) ! cld temp (K) at cld top
               units_of_data = 'K'
@@ -2894,6 +2937,8 @@ c***** "instantaneous" is a relative term.)
               datar8=cd3d(l,:,:) ! cld thickness (m)
               units_of_data = 'm'
               long_name = 'Cloud Thickness'
+#endif
+#ifdef CLD_AER_CDNC
             case ("CDN3D")
               datar8=cdn3d(l,:,:) ! cld CDNC (cm^-3)
               units_of_data = 'cm^3'

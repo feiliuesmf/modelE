@@ -26,7 +26,10 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      &     ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
-     *     ,oldnl,oldni,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
+     *     ,oldnl,oldni,clwp,cdn3d,cre3d  ! for 3 hrly diag
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+     *     ,ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
 #endif
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
@@ -155,8 +158,11 @@
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
      *     ,oldcdl,oldcdi,sme
-     *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
+     *     ,cdn3dl,cre3dl,smlwp
      *     ,wmclwp,wmctwp
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+     *     ,cteml,cd3dl,cl3dl,ci3dl
 #endif
 #ifdef SCM
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
@@ -612,15 +618,17 @@ C**** other fields where L is the leading index
       CLDSAVL(:)=CLDSAV(:,I,J)
       CLDSV1(:)=CLDSAV1(:,I,J)
       RH(:)=RHSAV(:,I,J)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+        CTEML(:) =CTEM(:,I,J)
+        CD3DL(:) =CD3D(:,I,J)
+        CL3DL(:) =CL3D(:,I,J)
+        CI3DL(:) =CI3D(:,I,J)
+#endif
 #ifdef CLD_AER_CDNC
         OLDCDL(:)=OLDNL(:,I,J)
         OLDCDI(:)=OLDNI(:,I,J)  ! OLDNI is for rsf save
         SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
-        CTEML(:) =CTEM(:,I,J)
 c       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
-        CD3DL(:) =CD3D(:,I,J)
-        CL3DL(:) =CL3D(:,I,J)
-        CI3DL(:) =CI3D(:,I,J)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
@@ -1319,14 +1327,16 @@ C**** WRITE TO GLOBAL ARRAYS
       CSIZSS(:,I,J)=CSIZEL(:)
 
       RHSAV(:,I,J)=RH(:)
-#ifdef CLD_AER_CDNC
-         OLDNL(:,I,J)=OLDCDL(:)
-         OLDNI(:,I,J)=OLDCDI(:)
-         EGCM(:,I,J) =SME(:)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
          CTEM(:,I,J) =CTEML(:)
          CD3D(:,I,J) =CD3DL(:)
          CL3D(:,I,J) =CL3DL(:)
          CI3D(:,I,J) =CI3DL(:)
+#endif
+#ifdef CLD_AER_CDNC
+         OLDNL(:,I,J)=OLDCDL(:)
+         OLDNI(:,I,J)=OLDCDI(:)
+         EGCM(:,I,J) =SME(:)
          CDN3D(:,I,J)=CDN3DL(:)
          CRE3D(:,I,J)=CRE3DL(:)
          CLWP(I,J) = SMLWP
