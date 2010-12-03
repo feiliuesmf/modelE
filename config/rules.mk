@@ -7,10 +7,6 @@ ifdef MOD_DIR
 VPATH = $(MOD_DIR)
 endif
 
-ifdef SYSTEM_MOD_DIRS
-VPATH += $(SYSTEM_MOD_DIRS)
-endif
-
 #VPATH = $(MODULES_CMPLR_OPT)
 #VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########
@@ -131,21 +127,24 @@ ifeq ($(FVCUBED),YES)
   FVCORE=YES
   MPP=YES
 
-  # For now, cubed-sphere testing requires ADIABATIC and AQUA_PLANET
+  # Testing options: ADIABATIC
   ADIABATIC=YES
-  AQUA_PLANET=YES
 
-  CPPFLAGS += -DCUBED_SPHERE
+  CUBED_SPHERE=YES
 
   FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
-  INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
-
-  FFLAGS +=-I$(FFTW_ROOT)/include
-  LIBS += -L$(FFTW_ROOT)/lib -lfftw3 -lm
-
-else
-  CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
+  FVINCS = $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp
+  INCS += $(FVINCS)
+  FVINCx = $(FVCUBED_ROOT)/$(MACHINE)/include
+  FVINCSx = $(FVINCx):$(FVINCx)/MAPL_Base:$(FVINCx)/FVdycoreCubed_GridComp
+  ifdef SYSTEM_MOD_DIRS
+    SYSTEM_MOD_DIRS = $(SYSTEM_MOD_DIRS):$(FVINCSx)
+  else
+    SYSTEM_MOD_DIRS = $(FVINCSx)
+  endif
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore
+  # this extra -lesmf would not be needed if the ESMF stuff came after this section
+  LIBS += -lesmf
 endif
 
 ifeq ($(FVCORE),YES)
@@ -154,26 +153,24 @@ ifeq ($(FVCORE),YES)
   endif
   CPPFLAGS += -DUSE_FVCORE 
   ifneq ($(FVCUBED),YES)
-     FVINC = -I$(FVCORE_ROOT)/$(MACHINE)/include
+    FVINC = -I$(FVCORE_ROOT)/$(MACHINE)/include
+    CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
+    INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio_r8 $(FVINC)/GMAO_cfio_r8 $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
+    LIBS += -L$(FVCORE_ROOT)/$(MACHINE)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
+    LIBS += -L${BASELIBDIR}/lib -lesmf
   endif
-  INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio_r8 $(FVINC)/GMAO_cfio_r8 $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
-  LIBS += -L$(FVCORE_ROOT)/$(MACHINE)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
-#  LIBS += -L${BASELIBDIR} -lesmf  -lmpi -lmpi++ -lstdc++  -lpthread ${NETCDF_STUBS} -lrt -lc
-  LIBS += -L${BASELIBDIR}/lib -lesmf
 endif
+
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
 endif
-ifeq ($(CUBE_GRID),YES)
-CPPFLAGS += -DCUBED_SPHERE
-FFLAGS +=-I$(FFTW_ROOT)/include
-FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -i4 -r8 -w -vec-report0 -align all -fno-alias
-LIBS += -L${BASELIBDIR}/lib -lesmf -lrt -lstdc++
-#-lstdc++ -lrt
-LIBS += -stack_temps -safe_cray_ptr -i_dynamic -i4 -r8 -w -vec-report0 -align all -fno-alias
-LIBS += -L$(FFTW_ROOT)/lib -lfftw3 -lm
 
+ifeq ($(CUBED_SPHERE),YES)
+  CPPFLAGS += -DCUBED_SPHERE
+  INCS += -I$(FFTW_ROOT)/include
+  LIBS += -L$(FFTW_ROOT)/lib -lfftw3
 endif
+
 ifeq ($(MPP),YES)  
 CPPFLAGS += -DUSE_MPP
 FFLAGS += -I$(MPPDIR)/include
@@ -190,10 +187,6 @@ endif
 
 ifeq ($(ADIABATIC),YES)
   CPPFLAGS += -DADIABATIC
-endif
-
-ifeq ($(AQUA_PLANET),YES)
-  CPPFLAGS += -DNO_LAND_SURFACE
 endif
 
 ifdef PNETCDFHOME
@@ -267,6 +260,10 @@ F90FLAGS_ALL = $(F90FLAGS) $(EXTRA_FFLAGS)
 else
 FFLAGS_ALL =  $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS)
 F90FLAGS_ALL = $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS)
+endif
+
+ifdef SYSTEM_MOD_DIRS
+VPATH += $(SYSTEM_MOD_DIRS)
 endif
 
 #

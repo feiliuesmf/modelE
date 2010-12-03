@@ -49,6 +49,7 @@ dd2d
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
+FVCUBED = YES
 
 Data input files:
   ! atmosphere, land surface, and sea ice

@@ -40,7 +40,7 @@ Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
-OPTS_MAIN = CUBE_GRID=YES FVCUBED=YES
+FVCUBED = YES
 
 Data input files:
 #include "IC_CS90_input_files"
