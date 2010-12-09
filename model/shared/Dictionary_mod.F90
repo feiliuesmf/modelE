@@ -103,7 +103,7 @@ module Dictionary_mod
 
   integer, parameter :: MAX_PARAMS = 340
   integer, parameter :: MAX_RPARAMS = 288
-  integer, parameter :: MAX_IPARAMS = 462
+  integer, parameter :: MAX_IPARAMS = 550
   integer, parameter :: MAX_CPARAMS = 200
   integer, parameter :: MAX_NAME_LEN = 32
   integer, parameter :: MAX_CHAR_LEN = 128
