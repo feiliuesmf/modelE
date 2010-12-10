@@ -10897,16 +10897,18 @@ C**** Apply chemistry and overwrite changes:
 ! This section is to accumulate/aggregate certain tracers' SURFACE and
 ! L=1 values into particulate matter PM2.5 and PM10 for use in the sub-
 ! daily diags. Saved in ppmm or kg/m3. Also save Ox and NO2 in ppmv:
+! For PM, we are for now excluding NO3p and N_d* species in these
+! diags because of known burden problems:
       do n=1,ntm
         select case (trname(n))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_AEROSOLS_SOA)
 ! 100% of these: <-----------------------------------------------------
-        case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
+        case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4',
 #ifdef TRACERS_AEROSOLS_SOA
      &       'isopp1a', 'isopp2a', 'apinp1a', 'apinp2a',
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &       'Clay','seasalt1','N_d1','SO4_d1')
+     &       'Clay','seasalt1','SO4_d1')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
           csPM2p5_acc(:,:)=csPM2p5_acc(:,:)  + trcSurfByVol(:,:,n)
@@ -10916,7 +10918,7 @@ C**** Apply chemistry and overwrite changes:
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
      &                 trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
 ! then, conditional or partial of these: <=============================
-        case('Silt1','N_d2','SO4_d2')
+        case('Silt1','SO4_d2')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.322d0*1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
           csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.322d0*trcSurfByVol(:,:,n)
@@ -10925,7 +10927,7 @@ C**** Apply chemistry and overwrite changes:
      &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
      &                         trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt2','N_d3','SO4_d3')
+        case('Silt2','SO4_d3')
           sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
           csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
           L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
