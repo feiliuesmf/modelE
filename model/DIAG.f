@@ -1609,7 +1609,7 @@ c get_subdd
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
-     *     ,lhe,rhow,undef,stbo
+     *     ,lhe,rhow,undef,stbo,bysha
       USE MODEL_COM, only : lm,p,ptop,zatmo,u,v,focean,flice,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
@@ -1621,7 +1621,7 @@ c get_subdd
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
-      USE DYNAMICS, only : ptropo,am,wsave,pk,phi,pmid
+      USE DYNAMICS, only : ptropo,am,byam,wsave,pk,phi,pmid
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1636,6 +1636,7 @@ c get_subdd
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srhr,srdn,salb,cfrac,cosz1
+     &     ,tausumw,tausumi
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
@@ -1658,9 +1659,6 @@ c get_subdd
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     TAUSUMW,TAUSUMI
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS,TAUL
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
@@ -1683,27 +1681,6 @@ c get_subdd
      &               HAVE_NORTH_POLE=have_north_pole)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
-
-      do j=J_0,J_1
-        do i=I_0,imaxj(j)
-          tausumw(i,j) = 0.
-          tausumi(i,j) = 0.
-          do l=1,lm
-            taul = (1.-fss(l,i,j))*taumc(l,i,j)
-            if(svlat(l,i,j).eq.lhe) then
-              tausumw(i,j) = tausumw(i,j) + taul
-            else
-              tausumi(i,j) = tausumi(i,j) + taul
-            endif
-            taul = fss(l,i,j)*tauss(l,i,j)
-            if(svlhx(l,i,j).eq.lhe) then
-              tausumw(i,j) = tausumw(i,j) + taul
-            else
-              tausumi(i,j) = tausumi(i,j) + taul
-            endif
-          enddo
-        enddo
-      enddo
 
       kunit=0
 C**** depending on namedd string choose what variables to output
@@ -2825,7 +2802,7 @@ C**** cases using all levels up to LmaxSUBDD
           case ("SO2", "SO4", "SO4_d1", "SO4_d2", "SO4_d3", "Clay",
      *         "Silt1", "Silt2", "Silt3", "CTEM", "CL3D", "CI3D", "CD3D"
      *         , "CLDSS", "CLDMC", "CDN3D", "CRE3D", "TAUSS", "TAUMC",
-     *         "CLWP","itAOD","ictAOD","itAAOD")
+     *         "RADHEAT","CLWP","itAOD","ictAOD","itAAOD")
           kunit=kunit+1
           do l=1,LmaxSUBDD
             select case(namedd(k))
@@ -2921,6 +2898,11 @@ c***** "instantaneous" is a relative term.)
               datar8=taumc(l,:,:) ! MC cld tau
               units_of_data = '1'
               long_name = 'Moist Convective Cloud Optical Depth'
+            case ("RADHEAT")
+              datar8=(SRHR(L,:,:)*COSZ1(:,:)+TRHR(L,:,:))*
+     &             SDAY*bysha*byam(l,:,:)
+              units_of_data = 'K/day'
+              long_name = 'Radiative Heating Rate'
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
             case ("CTEM")
               datar8=ctem(l,:,:) ! cld temp (K) at cld top

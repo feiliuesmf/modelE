@@ -75,6 +75,8 @@ C**** does not produce exactly the same as the default values.
 !@var srnflb_save  Net solar radiation (W/m^2)
 !@var trnflb_save  Net thermal radiation (W/m^2)
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: srnflb_save,trnflb_save
+!@var TAUSUMW,TAUSUMI column-sum water,ice cloud opt. depths (for diags)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: TAUSUMW,TAUSUMI
 !@var ttausv_save  Tracer optical thickness
 !@var ttausv_cs_save  Tracer optical thickness clear sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_save,
@@ -265,7 +267,7 @@ C**** Local variables initialised in init_RAD
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
-     *     ,FSRDIF,DIRNIR,DIFNIR
+     *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,ttausv_ntrace,maxNtraceFastj
 #endif
@@ -306,6 +308,8 @@ C**** Local variables initialised in init_RAD
      *     FSRDIF(I_0H:I_1H, J_0H:J_1H),
      *     DIRNIR(I_0H:I_1H, J_0H:J_1H),
      *     DIFNIR(I_0H:I_1H, J_0H:J_1H),
+     *     TAUSUMW(I_0H:I_1H, J_0H:J_1H),
+     *     TAUSUMI(I_0H:I_1H, J_0H:J_1H),
      *     SRDN(I_0H:I_1H, J_0H:J_1H),
      *     CFRAC(I_0H:I_1H, J_0H:J_1H),
      *     RCLD(LM, I_0H:I_1H, J_0H:J_1H),
