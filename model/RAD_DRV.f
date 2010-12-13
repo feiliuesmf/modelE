@@ -822,6 +822,7 @@ C     OUTPUT DATA
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
+     *     ,TAUSUMW,TAUSUMI
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -1548,6 +1549,8 @@ C**** effective cloud cover diagnostics
            exit
          end do
 
+         TAUSUMW(I,J) = OPTDW
+         TAUSUMI(I,J) = OPTDI
          if(optdw.gt.0.) then
             AIJ(I,J,IJ_optdw)=AIJ(I,J,IJ_optdw)+optdw
             AIJ(I,J,IJ_wtrcld)=AIJ(I,J,IJ_wtrcld)+1.
