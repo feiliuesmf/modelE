@@ -55,7 +55,7 @@
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
-     &     PIratio_CO_S,PIratio_other,
+     &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
 #ifdef SHINDELL_STRAT_CHEM
@@ -214,6 +214,7 @@ C**** set super saturation parameter for isotopes if needed
 !not params call sync_param("trans_emis_overr_yr", trans_emis_overr_yr )
 #endif /* TRACERS_ON */
 #ifdef TRACERS_SPECIAL_Shindell
+      call sync_param("allowSomeChemReinit",allowSomeChemReinit)
       call sync_param("which_trop",which_trop)
       call sync_param("PI_run",PI_run)
       call sync_param("PIratio_N",PIratio_N)
@@ -5949,7 +5950,7 @@ c OC clear sky longwave radiative forcing
 
         call set_diag_rad(n,k)
 
-c OC shortwave radiative forcing
+c OCI shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -5959,7 +5960,7 @@ c OC shortwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c OC longwave radiative forcing
+c OCI longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -5969,7 +5970,7 @@ c OC longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c OC shortwave surface radiative forcing
+c OCI shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -5979,7 +5980,7 @@ c OC shortwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c OC longwave surface radiative forcing
+c OCI longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -5989,18 +5990,18 @@ c OC longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c OC clear sky shortwave radiative forcing
+c OCI clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
-        sname_ijts(k) = 'swf_CS_OC'
+        sname_ijts(k) = 'swf_CS_'//TRIM(trname(n))
         dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c OC clear sky longwave radiative forcing
+c OCI clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -6021,6 +6022,75 @@ c OC clear sky longwave radiative forcing
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+#ifdef TRACERS_AEROSOLS_Koch
+
+        call set_diag_rad(n,k)
+
+c OCB shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
+        sname_ijts(k) = 'swf_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
+        sname_ijts(k) = 'lwf_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(3,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' SW surface rad forcing'
+        sname_ijts(k) = 'swf_surf_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(4,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' LW surface rad forcing'
+        sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' clr sky SW rad forcing'
+        sname_ijts(k) = 'swf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n))//' clr sky LW rad forcing'
+        sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+#endif
+
 
       case ('DMS')
         k = k + 1
@@ -8319,42 +8389,42 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #endif
 #ifdef SHINDELL_STRAT_CHEM
          if(use_rad_n2o <= 0)then
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N2O
-          case default; ICfactor=1.d0
-          end select
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
-          end do   ; end do   ; end do
+           select case(PI_run)
+           case(1)     ; ICfactor=PIratio_N2O
+           case default; ICfactor=1.d0
+           end select
+           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+           end do   ; end do   ; end do
          else
            if (is_set_param('initial_GHG_setup')) then
              call get_param('initial_GHG_setup', initial_GHG_setup)
              if (initial_GHG_setup == 1 .and. itime == itimeI) then
                select case(PI_run)
-             case(1)     ; ICfactor=PIratio_N2O
+               case(1)     ; ICfactor=PIratio_N2O
                case default; ICfactor=1.d0
-             end select
-             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-               trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
-             end do   ; end do   ; end do
-           else
-             if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-             else; write(ghg_name,'(I4)') jyear; endif
-             ghg_file='GHG_IC_'//ghg_name
-             call openunit(ghg_file,iu_data,.true.,.true.)
-             do m=1,3
-               CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,
-     &              0)
-               rad_to_file(m,:,I_0:I_1,J_0:J_1)=
-     &              ghg_in(:,I_0:I_1,J_0:J_1)
-             enddo
-             call closeunit(iu_data)
-             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-               trm(I,J,L,n) = rad_to_file(3,l,i,j)
-             end do   ; end do   ; end do
-           end if
-         endif
-       end if
+               end select
+               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+                 trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+               end do   ; end do   ; end do
+             else
+               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+               else; write(ghg_name,'(I4)') jyear; endif
+               ghg_file='GHG_IC_'//ghg_name
+               call openunit(ghg_file,iu_data,.true.,.true.)
+               do m=1,3
+                 CALL READT8_COLUMN
+     &           (grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
+                 rad_to_file(m,:,I_0:I_1,J_0:J_1)=
+     &           ghg_in(:,I_0:I_1,J_0:J_1)
+               enddo
+               call closeunit(iu_data)
+               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+                 trm(I,J,L,n) = rad_to_file(3,l,i,j)
+               end do   ; end do   ; end do
+             end if
+           endif
+         end if
 #endif
 
         case ('CFC11')   !!! should start April 1

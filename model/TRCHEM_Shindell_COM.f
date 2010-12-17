@@ -303,6 +303,9 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
+!@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
+!@+       to cold-start even if tracers don't. Warning: this includes
+!@+       model strat Q( ) spec. hum. reinitialization, and default =1!
 !@dbparam fix_CH4_chemistry (1=YES 0=NO) whether or not to used a fixed
 !@+       value for methane in the chemistry code. USE -1 for initial
 !@+       conditions from file CH4_IC (but L>LS1-1 only now!)
@@ -342,6 +345,7 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,Lmax_rad_O3       = LM
      &                 ,Lmax_rad_CH4      = LM
      &                 ,checktracer_on    = 0
+     &                 ,allowSomeChemReinit = 1
       REAL*8 ::             ch4_init_sh   = 1.750d0,
      &                      ch4_init_nh   = 1.855d0,
      &                      scale_ch4_IC_file= 1.d0, 
