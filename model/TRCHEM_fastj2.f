@@ -175,13 +175,14 @@ c Now do the rest of the aerosols
       do n=1,NTRACE
         skip_tracer=.false.
         select case (trname(ntrix(n)))
-        case ('SO4')      ; j=1
-        case ('seasalt1') ; j=2
-        case ('seasalt2') ; j=3
-        case ('OCIA')     ; j=4
-        case ('BCIA')     ; j=5
-        case ('BCB')      ; j=6
-        case ('NO3p')     ; j=7
+        case ('SO4')      ; j=1 
+        case ('seasalt1') ; j=2 
+        case ('seasalt2') ; j=3 
+        case ('OCIA')     ; j=4 
+        case ('OCB')      ; j=4 
+        case ('BCIA')     ; j=5 
+        case ('BCB')      ; j=6 
+        case ('NO3p')     ; j=7 
         case ('Clay')     ; j=8+iclay ; iclay=iclay+1
         case ('Silt1')    ; j=12
         case ('Silt2')    ; j=13
@@ -189,11 +190,13 @@ c Now do the rest of the aerosols
         case ('Silt4')    ; j=15
         case default      ; skip_tracer=.true.
         end select
-        if(j>15)call stop_model("set_prof: too many opt depths",13)
+        if(j>15 .or. n>16)
+     &  call stop_model("set_prof: too many opt depths",13)
         if(iclay>4)call stop_model("set_prof: too many clays",13)
         if(.not.skip_tracer)then
           do i=1,LM
-            AER2(j,i)=ttausv_ntrace(NSLON,NSLAT,j,i)
+            if(j.ne.4 .and. AER2(j,i).ne.0.)call stop_model('gsf',13)
+            AER2(j,i)=AER2(j,i)+ttausv_ntrace(NSLON,NSLAT,n,i)
           enddo
         endif
       enddo

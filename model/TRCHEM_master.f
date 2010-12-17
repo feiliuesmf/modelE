@@ -339,20 +339,24 @@ c 30 hours.  That fraction is: dt2/dtscr.  E.g. in the first hour it
 c is (dtsrc/24)/dtsrc = 1/24th of the chemistry change is applied.
 c This is to work around initial instabilities.
 
-      if(Itime-ItimeI <= 3)then
-        dt2=dtsrc/24.d0          ! e.g. 150.
-      elseif(Itime-ItimeI > 3 .and. Itime-ItimeI <= 6)then
-        dt2=dtsrc/12.d0          ! e.g. 300.
-      elseif(Itime-ItimeI > 6 .and. Itime-ItimeI <= 11)then
-        dt2=dtsrc/6.d0           ! e.g. 600.
-      elseif(Itime-ItimeI > 11 .and. Itime-ItimeI <= 30)then
-        dt2=dtsrc/2.4d0          ! e.g. 1500.
-      elseif(Itime-ItimeI > 30)then
-        dt2=dtsrc                ! e.g. 3600
+      if(allowSomeChemReinit == 1)then
+        if(Itime-ItimeI <= 3)then
+          dt2=dtsrc/24.d0          ! e.g. 150.
+        elseif(Itime-ItimeI > 3 .and. Itime-ItimeI <= 6)then
+          dt2=dtsrc/12.d0          ! e.g. 300.
+        elseif(Itime-ItimeI > 6 .and. Itime-ItimeI <= 11)then
+          dt2=dtsrc/6.d0           ! e.g. 600.
+        elseif(Itime-ItimeI > 11 .and. Itime-ItimeI <= 30)then
+          dt2=dtsrc/2.4d0          ! e.g. 1500.
+        elseif(Itime-ItimeI > 30)then
+          dt2=dtsrc                ! e.g. 3600
+        endif
+      else 
+        dt2=dtsrc
       endif
 
 c Calculate new photolysis rates every n_phot main timesteps:
-      MODPHOT= 0 !!!!!!!!!!!!MOD(Itime-ItimeI,n_phot)
+      MODPHOT= 0 ! old days was: MOD(Itime-ItimeI,n_phot)
 
 C CALCULATE TX, THE REAL TEMPERATURE:
 C (note this section is already done in DIAG.f)
@@ -376,7 +380,7 @@ C (note this section is already done in DIAG.f)
 
 #ifdef SHINDELL_STRAT_CHEM
 C info to set strat H2O based on tropical tropopause H2O and CH4:
-      if(Itime == ItimeI)then
+      if(Itime == ItimeI .and. allowSomeChemReinit == 1 )then
         avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
         avgTT_CH4_part(I_0:I_1,J_0:J_1)=0.d0
         countTT_part(I_0:I_1,J_0:J_1)=0.d0
@@ -556,23 +560,25 @@ c Set H2O, based on Q:
 #ifdef SHINDELL_STRAT_CHEM
 c Initialize stratospheric y(H2O) & GCM Q variable (!),
 c based on tropical tropopause H2O and CH4:
-       if(Itime == ItimeI .and. L > LTROPO(I,J)) then
-         y(nH2O,L) =  y(nM,L)*(avgTT_H2O/countTT +
-     &   2.d0*(avgTT_CH4/countTT-y(n_CH4,L)/y(nM,L)))
-         if(clim_interact_chem > 0)then 
-           fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
-           Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
-           if(fraQ < 1.)qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ
+       if(allowSomeChemReinit == 1) then
+         if(Itime == ItimeI .and. L > LTROPO(I,J)) then
+           y(nH2O,L) =  y(nM,L)*(avgTT_H2O/countTT +
+     &     2.d0*(avgTT_CH4/countTT-y(n_CH4,L)/y(nM,L)))
+           if(clim_interact_chem > 0)then 
+             fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
+             Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
+             if(fraQ < 1.)qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
-            do n=1,ntm
-              select case (tr_wd_type(n))
-              case (nWater)       ! water: initialise tracers
-                trm(i,j,l,n) = trm(i,j,l,n)*fraQ
-                if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fraQ
-              end select
-            end do
+              do n=1,ntm
+                select case (tr_wd_type(n))
+                case (nWater)       ! water: initialise tracers
+                  trm(i,j,l,n) = trm(i,j,l,n)*fraQ
+                  if(fraQ < 1.)trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fraQ
+                end select
+              end do
 #endif
+           end if
          end if
        end if
 #endif
@@ -581,7 +587,7 @@ c Initialize various other species:
 c - set [NO]=0 (where?) for first HOx calc, NO2 = NOx:
 c - set reactive species for use in family chemistry & nighttime NO2:
 
-       if(Itime == ItimeI)then 
+       if(Itime == ItimeI .and. allowSomeChemReinit == 1)then 
          y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
        else
          y(nAldehyde,L)=yAldehyde(I,J,L)
@@ -639,7 +645,7 @@ c
 c        1 = Sulfate (n_SO4)
 c        2 = Sea-Salt (fine) (n_seasalt1)
 c        3 = Sea-Salt (coarse) (n_seasalt2)
-c        4 = Organic Carbon (n_OCIA)
+c        4 = Organic Carbon (n_OCIA AND n_OCB)
 c        5 = Black Carbon (aged) (n_BCIA)
 c        6 = Black Carbon (biomass burning) (n_BCB)
 c        7 = Nitrate (n_NO3p)
@@ -1584,7 +1590,7 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
             changeL(L,n_HOCl)=changeL(L,n_HOCl)*CLTOT+
      &      trm(I,J,L,n_HOCl)*(CLTOT-1.D0)
 c           Conserve N wrt ClONO2 once inital Cl changes past:
-            if(Itime-ItimeI >= 6)then
+            if(Itime-ItimeI >= 6 .OR. allowSomeChemReinit .NE. 1)then ! note logic
               changeL(L,n_NOx)=changeL(L,n_NOx)-
      &        (trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
      &        (CLTOT-1.D0)*tr_mm(n_NOx)/tr_mm(n_ClONO2)
@@ -1628,7 +1634,7 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
             changeL(L,n_HOBr)=changeL(L,n_HOBr)*CLTOT+
      &      trm(I,J,L,n_HOBr)*(CLTOT-1.D0)
 c           Conserve N wrt BrONO2 once inital Br changes past:
-            if(Itime-ItimeI >= 6)then
+            if(Itime-ItimeI >= 6 .OR. allowSomeChemReinit .NE. 1)then ! note logic
               changeL(L,n_NOx)=changeL(L,n_NOx)-
      &        (trm(I,J,L,n_BrONO2)+changeL(L,n_BrONO2))*
      &        (CLTOT-1.D0)*tr_mm(n_NOx)/tr_mm(n_BrONO2)

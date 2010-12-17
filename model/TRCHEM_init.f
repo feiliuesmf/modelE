@@ -13,7 +13,8 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &    ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,nr2,nr3,nmm,nhet,
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
-     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone
+     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
+     &    allowSomeChemReinit
 #ifdef SHINDELL_STRAT_CHEM
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
@@ -54,7 +55,8 @@ c Set up arrays of reaction numbers involving each molecule:
       call reactn
 
 C Initialize a few (IM,JM,LM) arrays, first hour only:
-      IF(Itime == ItimeI) THEN
+      IF(Itime == ItimeI .and. allowSomeChemReinit == 1) THEN
+        ! allowSomeChemReinit condition b/c these are in RSF files:
         pHOx(I_0:I_1,J_0:J_1,:)     =1.d0
         pOx(I_0:I_1,J_0:J_1,:)      =1.d0
         pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
