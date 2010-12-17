@@ -120,7 +120,11 @@ module Dictionary_mod
     character(1) :: reserved(1) = 'u'
   end type ParamStr
 
+#ifdef COMPILER_XLF
+  type (ParamStr), target, save :: Params(MAX_PARAMS)
+#else
   type (ParamStr), target :: Params(MAX_PARAMS)
+#endif
   real*8, target :: Rdata(MAX_RPARAMS)
   integer, target :: Idata(MAX_IPARAMS)
   character*(MAX_CHAR_LEN), target :: Cdata(MAX_CPARAMS)
@@ -1252,7 +1256,7 @@ contains
 
   subroutine cleanDictionary(this)
 !@sum Restore data structure to pristine state
-    type (Dictionary_type), intent(in) :: this
+    type (Dictionary_type), intent(inout) :: this
     integer :: i
     do i = 1, size(this%pairs)
       call clean(this%pairs(i))

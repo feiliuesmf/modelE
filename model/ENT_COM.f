@@ -37,7 +37,7 @@
       contains
 
 #ifdef NEW_IO
-/* the pario module needs a regular data layout */
+!/* the pario module needs a regular data layout */
 #define ENT_IO_PLAIN_ARRAY
 #endif
 

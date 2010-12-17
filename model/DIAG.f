@@ -1950,7 +1950,7 @@ c          datar8=sday*prec/dtsrc
               if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
               if(SNOWLI(I,J) > 0.)datar8(i,j)=datar8(i,j)+PLANDI
-              datar8(i,j)=min(1.0,datar8(i,j))
+              datar8(i,j)=min(1.d0,datar8(i,j))
             end do
           end do
           units_of_data = 'fraction of grid area'

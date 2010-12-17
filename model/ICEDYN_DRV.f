@@ -2147,8 +2147,10 @@ C****
 !@auth M. Kelley
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : get
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      ! xlf bug: please leave lines in this order, i.e. grid=>grid_icdyn first
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : ll2csint_lij
       use icedyn_com, only : ICE2CSint

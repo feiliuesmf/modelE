@@ -3229,7 +3229,7 @@ c Switch the sign convention back to "positive downward".
       if (bvf(2) <= 0.0_r8) then
           return
       else
-          he_sq = min(h_4sq, byFc_sq * u0_sq / ( bvf(2) * bvf(2) ) )
+          he_sq = min(real(h_4sq,r8), byFc_sq * u0_sq / (bvf(2)*bvf(2)))
       end if
 
       const = he_sq * rho(2) * bvf(2) * wind(2)

@@ -253,13 +253,19 @@ ifeq ($(COMPARE_MODULES_HACK),NO)
 CMP_MOD = cmp -s
 endif
 
-# add fartran flags into a single string
+# add fortran flags into a single string
 ifeq ($(EXTERNAL_CPP),YES)
 FFLAGS_ALL =  $(FFLAGS) $(EXTRA_FFLAGS)
 F90FLAGS_ALL = $(F90FLAGS) $(EXTRA_FFLAGS)
 else
+# hack to deal with some compilers (xlf) not understanding -D etc.
+ifneq ($(CPP_FLAG_PREFIX),)
+FFLAGS_ALL =  $(FFLAGS) $(EXTRA_FFLAGS) $(addprefix $(CPP_FLAG_PREFIX),$(CPPFLAGS))
+F90FLAGS_ALL = $(F90FLAGS) $(EXTRA_FFLAGS) $(addprefix $(CPP_FLAG_PREFIX),$(CPPFLAGS))
+else
 FFLAGS_ALL =  $(FFLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS)
 F90FLAGS_ALL = $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS)
+endif
 endif
 
 ifdef SYSTEM_MOD_DIRS
