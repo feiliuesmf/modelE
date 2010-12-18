@@ -19,7 +19,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=62,KOIJL=32,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=64,KOIJL=32,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -39,6 +39,9 @@
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
      *     ,IJ_MRVR,IJ_EICB,IJ_MICB 
+#ifdef OCN_Mesoscales
+     .     ,ij_eke,ij_rd
+#endif
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
@@ -65,9 +68,6 @@
      .           ,ij_DICrhs3,ij_DICrhs4,ij_DICrhs5,ij_xchl   
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
-#endif
-#ifdef OCN_Mesoscales
-     .           ,ij_eke,ij_rd
 #endif
 #endif
 
@@ -1326,7 +1326,7 @@ c
       IJ_cexp=k
       lname_oij(k)="C export flux at compensation depth"
       sname_oij(k)="oij_cexp"
-      units_oij(k)="Pgr,C/yr"
+      units_oij(k)="mili-grC/m2/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
@@ -1359,25 +1359,7 @@ c
       IJ_fca=k
       lname_oij(k)="CaCO3 export flux at compensation depth"
       sname_oij(k)="oij_fca"
-      units_oij(k)="Pgr,C/yr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-#endif
-
-#ifdef OCN_Mesoscales
-      k=k+1
-      IJ_rd=k
-      lname_oij(k)="Rossby radius of deformation"
-      sname_oij(k)="oij_rd"
-      units_oij(k)="cm"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_eke=k
-      lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
-      sname_oij(k)="oij_eke"
-      units_oij(k)="cm2/s2"
+      units_oij(k)="mili-g,C/m2/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 #endif
@@ -1415,6 +1397,24 @@ c
       enddo
       enddo
 
+#endif
+
+#ifdef OCN_Mesoscales
+      k=k+1
+      IJ_rd=k
+      lname_oij(k)="Rossby radius of deformation"
+      sname_oij(k)="oij_rd"
+      units_oij(k)="cm"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_eke=k
+      lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
+      sname_oij(k)="oij_eke"
+      units_oij(k)="cm2/s2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
 #endif
 
       k=k+1
@@ -1669,10 +1669,8 @@ c
       call init_cdl_type('cdl_odepths',cdl_odepths)
       call add_coord(cdl_odepths,'zoc',lmo,
      &     units='m',coordvalues=zoc(1:lmo))
-      call add_varline(cdl_odepths,'zoc:positive = "down" ;')
       call add_coord(cdl_odepths,'zoce',lmo,
      &     units='m',coordvalues=zoc1(2:lmo+1))
-      call add_varline(cdl_odepths,'zoce:positive = "down" ;')
 
       call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
       call add_var(cdl_oij,'float oxyp(lato,lono) ;',
@@ -1727,8 +1725,6 @@ c
      &       'float '//trim(sname_ojl(k))//trim(zstr)//trim(ystr),
      &       long_name=trim(lname_ojl(k)),
      &       units=trim(units_ojl(k)) )
-        call add_varline(cdl_ojl,trim(sname_ojl(k))//
-     &       ':missing_value = -1.e30f ;')
       enddo
 
       cdl_olnst = cdl_odepths
