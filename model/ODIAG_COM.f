@@ -1326,7 +1326,7 @@ c
       IJ_cexp=k
       lname_oij(k)="C export flux at compensation depth"
       sname_oij(k)="oij_cexp"
-      units_oij(k)="Pgr,C/yr"
+      units_oij(k)="mili-grC/m2/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
@@ -1359,7 +1359,7 @@ c
       IJ_fca=k
       lname_oij(k)="CaCO3 export flux at compensation depth"
       sname_oij(k)="oij_fca"
-      units_oij(k)="Pgr,C/yr"
+      units_oij(k)="mili-g,C/m2/hr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 #endif

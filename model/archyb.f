@@ -12,6 +12,14 @@ c
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
+#ifdef TRACERS_OceanBiology
+      USE obio_com, only : pCO2av,ao_co2fluxav,diag_counter
+     .                    ,cexpav,pp2tot_dayav
+#ifdef TRACERS_Alkalinity
+     .                    ,caexpav
+#endif
+#endif
+
       use filemanager, only : findunit
 c
       implicit none
@@ -217,6 +225,24 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
  55   continue
 cc$OMP END PARALLEL DO
 c
+#ifdef TRACERS_OceanBiology
+      if (diag_counter .ne. 0.d0) then
+      do j=1,jj; do l=1,isp(j); do i=ifp(j,l),ilp(j,l)
+        ao_co2fluxav(i,j)=ao_co2fluxav(i,j)/diag_counter
+        pco2av(i,j)=pco2av(i,j)/diag_counter
+        pp2tot_dayav(i,j)=pp2tot_dayav(i,j)/diag_counter
+        cexpav(i,j)=cexpav(i,j)/diag_counter
+#ifdef TRACERS_Alkalinity
+        caexpav(i,j)=caexpav(i,j)/diag_counter
+#endif
+       enddo; enddo; enddo
+        i=243;j=1;
+        write(*,'(a,3i5,f10.3,4e12.4)')'2222222222',
+     .   nstep,i,j,diag_counter,ao_co2fluxav(i,j),
+     .   pco2av(i,j),pp2tot_dayav(i,j),cexpav(i,j)
+      endif
+#endif
+
       do 58 k=1,kk
 c
 cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
@@ -302,6 +328,37 @@ c
       write (nop,rec=no) '     oiceav_'//intvl,1,real4
       write (lp,100)     '     oiceav_'//intvl,0,no
 c
+#ifdef TRACERS_OceanBiology
+      no=no+1
+      call r8tor4(ao_co2fluxav,real4)
+      write (nop,rec=no) '  ao_co2flux'//intvl,1,real4
+      write (lp,100)     '  ao_co2flux'//intvl,0,no
+
+      no=no+1
+      call r8tor4(pco2av,real4)
+      write (nop,rec=no) '      pco2av'//intvl,1,real4
+      write (lp,100)     '      pco2av'//intvl,0,no
+
+      no=no+1
+      call r8tor4(pp2tot_dayav,real4)
+      write (nop,rec=no) 'pp2tot_dayav'//intvl,1,real4
+      write (lp,100)     'pp2tot_dayav'//intvl,0,no
+
+      no=no+1
+      write(*,*)'archyb1: ',cexpav(243,1)
+      call r8tor4(cexpav,real4)
+      write(*,*)'archyb2: ',real4(243,1)
+      write (nop,rec=no) '      cexpav'//intvl,1,real4
+      write (lp,100)     '      cexpav'//intvl,0,no
+
+#ifdef TRACERS_Alkalinity
+      no=no+1
+      call r8tor4(caexpav,real4)
+      write (nop,rec=no) '     caexpav'//intvl,1,real4
+      write (lp,100)     '     caexpav'//intvl,0,no
+#endif
+#endif
+c
       do 57 k=1,kk
       no=no+1
       call r8tor4(uav(1,1,k),real4)
@@ -369,7 +426,7 @@ c
 
 #if (defined TRACERS_OceanBiology) || (defined TRACERS_AGE_OCEAN) \
     || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_ZEBRA)
-      call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
+!     call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
 #endif
 
 cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
@@ -383,6 +440,17 @@ c
       tauxav(i,j)=0.
       tauyav(i,j)=0.
 c
+#ifdef TRACERS_OceanBiology
+        diag_counter =0 
+        ao_co2fluxav(i,j)=0.
+        pco2av(i,j)=0.
+        pp2tot_dayav(i,j)=0.
+        cexpav(i,j)=0.
+#ifdef TRACERS_Alkalinity
+        caexpav(i,j)=0.
+#endif
+#endif
+
       ubavav(i,j)=0.
       vbavav(i,j)=0.
       pbavav(i,j)=0.
