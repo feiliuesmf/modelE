@@ -40,7 +40,7 @@
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
-     .                    ,rhs_obio
+     .                    ,rhs_obio,chng_by
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -67,6 +67,16 @@
       USE ODIAG, only: ij_fca
 #endif
       USE ODIAG, only : oij=>oij_loc
+#endif
+#ifndef OBIO_ON_GARYocean    /* HYCOM only */
+     .    ,tracav_loc,ao_co2flux_loc,ao_co2fluxav_loc
+     .    ,diag_counter,plevav,plevav_loc
+     .    ,cexp_loc=>cexpij
+     .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
+     .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc
+#ifdef TRACERS_Alkalinity
+     .    ,caexp_loc=>caexpij,caexpav_loc
+#endif
 #endif
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
@@ -112,11 +122,11 @@
 
       implicit none
 
-      integer i,j,k,l,km,nn,mm 
+      integer i,j,k,l,km,nn,mm
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
-      real    tot,dummy(6),dummy1
+      real    tot,dummy(6),dummy1,plev
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
       Real*8,External   :: VOLGSP
@@ -185,12 +195,6 @@
       pp2tot_dayav_loc = 0
       cexpav_loc = 0
       caexpav_loc = 0
-c      if (AM_I_ROOT()) then
-c      pCO2av=0.
-c      pp2tot_dayav=0.
-c      cexpav=0.
-c      caexpav=0.
-c      endif
 
       call obio_bioinit(nn)
 #endif
@@ -281,6 +285,10 @@ c      endif
       !print out tracer integrals just before main loop
       call obio_trint(0)
 
+#ifndef OBIO_ON_GARYocean     /* HYCOM only */
+      diag_counter=diag_counter+1
+#endif
+
       call start('  obio main loop')
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
@@ -333,6 +341,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
+!!!!!!   rho_water = 1035.
          dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
 
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
@@ -349,7 +358,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
          if (nt.eq.4.or.nt.eq.13) 
-     .          trmo_unit_factor(k,nt) =  1d-9*1d-3*obio_tr_mm(nt)        ! nanomoles/m3=> kg/m3
+     .          trmo_unit_factor(k,nt) =  1d-6*1d-3*obio_tr_mm(nt)        ! nanomoles/lt=> kg/m3
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
          if (nt.eq.11)
@@ -358,7 +367,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 
          if (nt.ge.5.and.nt.le.9) 
      .          trmo_unit_factor(k,nt) =  
-     .               mgchltouMC*1d-3*1d-3*obio_tr_mm(nt)                  ! miligr,chl/m3=> kg/m3
+     .                          cchlratio * 1d-6                          ! miligr,chl/m3=> kg,C/m3
      .                       *  MO(I,J,k)*DXYPO(J)/rho_water              ! kg/m3 => kg
 
 #ifdef TRACERS_Alkalinity
@@ -461,6 +470,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
       enddo
       if (kzc.lt.1) kzc=1
       if (kzc.gt.kmax) kzc=kmax
+
+      if (vrbos) write(*,*) 'compensation depth, kzc = ',kzc
 
 
 #ifdef OBIO_RAD_coupling
@@ -851,19 +862,87 @@ cdiag     endif
       do k = 1, kdm
 #ifdef OBIO_ON_GARYocean
           rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
-     .                 rhs(k,nt,ll)*dp1d(k)    ! mili-mol,C/m2/hr
+     .                 rhs(k,nt,ll)*dp1d(k)    
 #else
         if (dp1d(k) < huge) then
           rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
-     .                 rhs(k,nt,ll)*dp1d(k)    ! mili-mol,C/m2/hr
+     .                 rhs(k,nt,ll)*dp1d(k)    
         endif
 #endif
       enddo  !k
-      if (vrbos.and.nt.eq.14)
-     .write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/hr):',
-     .      nstep,i,j,nt,ll,rhs_obio(i,j,14,ll)
+
+      if (vrbos) then
+      write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
+     .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
+      endif
       enddo  !ntrac
+
+      !convert all to mili-mol,C/m2
+      rhs_obio(i,j,5,ll) = rhs_obio(i,j,5,ll) * mgchltouMC
+      rhs_obio(i,j,6,ll) = rhs_obio(i,j,6,ll) * mgchltouMC
+      rhs_obio(i,j,7,ll) = rhs_obio(i,j,7,ll) * mgchltouMC
+      rhs_obio(i,j,8,ll) = rhs_obio(i,j,8,ll) * mgchltouMC
+      rhs_obio(i,j,9,ll) = rhs_obio(i,j,9,ll) * mgchltouMC
+      rhs_obio(i,j,10,ll) = rhs_obio(i,j,10,ll) / uMtomgm3
+
+      chng_by(i,j,1) = (rhs_obio(i,j,5,9)+rhs_obio(i,j,6,9)
+     .                  +rhs_obio(i,j,7,9)+rhs_obio(i,j,8,9))
+     .               +  rhs_obio(i,j,9,9)
+      chng_by(i,j,2) = (rhs_obio(i,j,5,5)+rhs_obio(i,j,6,6)
+     .               +  rhs_obio(i,j,7,7)+rhs_obio(i,j,8,8))
+     .               +  rhs_obio(i,j,10,5)
+      chng_by(i,j,3) = (rhs_obio(i,j,5,13)+rhs_obio(i,j,6,13)
+     .               +  rhs_obio(i,j,7,13)+rhs_obio(i,j,8,13))
+     .               + rhs_obio(i,j,14,6)
+      chng_by(i,j,4) = (rhs_obio(i,j,5,14)+rhs_obio(i,j,6,14)
+     .               +  rhs_obio(i,j,7,14)+rhs_obio(i,j,8,14))
+     .               +  rhs_obio(i,j,13,5)
+      chng_by(i,j,5) = (rhs_obio(i,j,5,15)+rhs_obio(i,j,6,15)
+     .               +  rhs_obio(i,j,7,15)+rhs_obio(i,j,8,15))
+     .               +  rhs_obio(i,j,14,5)
+      chng_by(i,j,6) =  rhs_obio(i,j,9,10) 
+     .                            + rhs_obio(i,j,13,9)
+      chng_by(i,j,7) =rhs_obio(i,j,9,11)
+     .                            + rhs_obio(i,j,10,7) 
+      chng_by(i,j,8) = rhs_obio(i,j,9,12)
+     .                            + rhs_obio(i,j,10,8)
+      chng_by(i,j,9) = rhs_obio(i,j,9,14)
+     .                            + rhs_obio(i,j,13,12) 
+      chng_by(i,j,10)= rhs_obio(i,j,9,15)
+     .                            + rhs_obio(i,j,14,15)
+      chng_by(i,j,11)= rhs_obio(i,j,10,14)
+     .                            + rhs_obio(i,j,13,13)
+      chng_by(i,j,12)= rhs_obio(i,j,10,9)
+     .                            + rhs_obio(i,j,13,10)
+      chng_by(i,j,13)= rhs_obio(i,j,10,10)
+     .                            + rhs_obio(i,j,14,10)
+      chng_by(i,j,14)= rhs_obio(i,j,13,14)
+     .                            + rhs_obio(i,j,14,14)
+ 
       enddo  !ll
+
+      if (vrbos) then
+      write(*,*) '_____________________________________________'
+      write(*,*) '---------------------------------------------'
+      write(*,'(a,3i10)') 'Conserv diagn, at ',nstep,i,j
+      write(*,'(a,3i10)') 'all units in mili-mol,C/m2/hr'   
+      write(*,*)'chng by grazing =', chng_by(i,j,1)
+      write(*,*)'chng by phyt dea=', chng_by(i,j,2)
+      write(*,*)'chng by growth  =', chng_by(i,j,3)
+      write(*,*)'chng by DOC prod=', chng_by(i,j,4)
+      write(*,*)'chng by DIC prod=', chng_by(i,j,5)
+      write(*,*)'chng by zoo graz=', chng_by(i,j,6)
+      write(*,*)'chng by zoo dea =', chng_by(i,j,7)
+      write(*,*)'chng by zoo dea =', chng_by(i,j,8)
+      write(*,*)'chng by excz    =', chng_by(i,j,9)
+      write(*,*)'chng by zoo prod=', chng_by(i,j,10)
+      write(*,*)'chng by docdet  =', chng_by(i,j,11)
+      write(*,*)'chng by regen   =', chng_by(i,j,12)
+      write(*,*)'chng by reminer =', chng_by(i,j,13)
+      write(*,*)'chng by docbac  =', chng_by(i,j,14)
+      write(*,*) '____________________________________________'
+      write(*,*) '--------------------------------------------'
+      endif
 
 #ifdef OBIO_ON_GARYocean
       OIJ(I,J,IJ_DICrhs1)=OIJ(I,J,IJ_DICrhs1)+rhs_obio(i,j,14,5)  
@@ -969,9 +1048,11 @@ cdiag     endif
        !update cexp array
        cexpij(i,j) = cexp
 
-#ifndef TRACERS_GASEXCH_ocean_CO2    
+#ifdef TRACERS_GASEXCH_ocean_CO2    
+       ao_co2flux_loc(i,j)=tracflx1d(1)
+#else
        !get ao_co2flux_glob array to save in archive
-       ao_co2flux_loc(i,j)=ao_co2flux
+       ao_co2flux_loc(i,j)=ao_co2flux 
 #endif
 #endif
 
@@ -1025,6 +1106,37 @@ cdiag     endif
 #else
        OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
 #endif
+
+#else    /* HYCOM ACCUMULATED DIAGNOSTICS */
+      ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + ao_co2flux_loc(i,j)
+      pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
+      pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j) 
+     .                      + pp2tot_day_loc(i,j)
+      cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
+      do k=1,kk
+        plev = max(0.,dpinit(i,j,k))
+        if (plev.lt.1.e30) then
+          plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
+
+          do nt=1,ntrcr
+            tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) +
+     .           tracer(i,j,k,nt)*plev
+          enddo !nt
+
+        endif
+      enddo  !k
+#ifdef TRACERS_Alkalinity
+            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
+#endif
+            if(i.eq.243.and.j.eq.1) then
+      print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
+            write(*,'(a,3i5,8e12.4)')'1111111111',
+     .      nstep,i,j,ao_co2flux_loc(i,j),ao_co2fluxav_loc(i,j)
+     .      ,pco2_loc(i,j),pCO2av_loc(i,j)
+     .      ,pp2tot_day_loc(i,j),pp2tot_dayav_loc(i,j)
+     .      ,cexp_loc(i,j),cexpav_loc(i,j)
+            endif
+
 #endif
 
 #ifdef OBIO_ON_GARYocean

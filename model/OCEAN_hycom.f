@@ -238,16 +238,17 @@ c
 
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com,  only : gcmax,pCO2av,pCO2av_loc,pp2tot_day
-     .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
-     .                     ,itest_bio=>itest,jtest_bio=>jtest
+      USE obio_com,  only : gcmax
+     .            ,pCO2av,pCO2av_loc,pp2tot_dayav,pp2tot_dayav_loc
+     .            ,ao_co2fluxav,ao_co2fluxav_loc
+     .            ,cexpav,cexpav_loc,diag_counter
+     .            ,pp2tot_day,pp2tot_day_glob
+     .            ,itest_bio=>itest,jtest_bio=>jtest
       USE obio_com,  only : tracav_loc, plevav_loc, tracav, plevav
 #endif
       USE HYCOM_ARRAYS_GLOB
       USE param
       IMPLICIT NONE
-      !!! hack
-      !!!real asst
 c
       INTEGER, intent(in) :: kunit   !@var kunit unit number of read/write
       INTEGER, intent(in) :: iaction !@var iaction flag for reading or writing to file
@@ -320,8 +321,11 @@ c
       call pack_data(ogrid, plevav_loc, plevav)
 #endif
 #ifdef TRACERS_OceanBiology
-      call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)
       call pack_data(ogrid, pCO2av_loc, pCO2av)
+      call pack_data(ogrid, pp2tot_dayav_loc, pp2tot_dayav)      !time integrated pp2tot_day
+      call pack_data(ogrid, ao_co2fluxav_loc,ao_co2fluxav)
+      call pack_data(ogrid, cexpav_loc, cexpav)
+      call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)      !instantaneous pp2tot_day
 #endif
 
       if (AM_I_ROOT()) then ! work on global grids here
@@ -337,9 +341,9 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a29)')
-     *     'atrac,avgq,gcmax,tirrq3d,ihra,tracav,pCO2av,diag_counter'
+     *'atrac,avgq,gcmax,tirrq,ihra,tracav,pCO2av,co2flxav,cexpav,diag_c'
       write (TRN2MODULE_HEADER(lhead+1:80),'(a29)')
-     *     'pp2tot_day'
+     *     'pp2tot_day,pp2tot_dayav'
 #else
 #ifdef TRACERS_GASEXCH_ocean
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
@@ -349,9 +353,9 @@ c
 #ifdef TRACERS_OceanBiology
       write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a63)')
-     *'avgq,gcmax,tirrq3d,ihra,tracav,pCO2av,diag_counter,ao_co2fluxav'
+     *'avgq,gcmax,tirrq3d,ihra,tracav,pCO2av,ao_co2fluxav,cexpav,diag_counter'
       write (TRN2MODULE_HEADER(lhead+1:80),'(a29)')
-     *     'pp2tot_day'
+     *     'pp2tot_day,pp2tot_dayav'
 #endif
 #endif
 
@@ -382,9 +386,9 @@ css#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_counter
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       i=itest_bio
       j=jtest_bio
       do k=1,kdm
@@ -409,9 +413,9 @@ css#endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_countere
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       i=itest_bio
       j=jtest_bio
       print*,'test point at:',itest_bio,jtest_bio
@@ -474,9 +478,9 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest_bio
       j=jtest_bio
@@ -518,9 +522,9 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       i=itest_bio
       j=jtest_bio
       print*, 'itest, jtest=',itest_bio,jtest_bio
@@ -605,9 +609,9 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac_glob,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest_bio
@@ -649,9 +653,9 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,ao_co2fluxav,cexpav,diag_counter
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
-     . ,pp2tot_day_glob
+     . ,pp2tot_day_glob,pp2tot_dayav
       i=itest_bio
       j=jtest_bio
       do k=1,kdm
@@ -718,8 +722,11 @@ c
       call unpack_data(ogrid, plevav, plevav_loc)
 #endif
 #ifdef TRACERS_OceanBiology
-      call unpack_data(ogrid, pp2tot_day_glob, pp2tot_day)
       call unpack_data(ogrid, pCO2av, pCO2av_loc)
+      call unpack_data(ogrid, pp2tot_dayav, pp2tot_dayav_loc)
+      call unpack_data(ogrid, ao_co2fluxav, ao_co2fluxav_loc)
+      call unpack_data(ogrid, cexpav, cexpav_loc)
+      call unpack_data(ogrid, pp2tot_day_glob, pp2tot_day)
 #endif
 
       RETURN
@@ -809,6 +816,9 @@ c copy of UOSURF,VOSURF can be used.
       USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     ao_co2fluxav=>ao_co2fluxav_loc,
+     &     pp2tot_dayav=>pp2tot_dayav_loc,
+     &     cexpav=>cexpav_loc,
      &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
       use obio_dim, only : trname
 #endif
@@ -890,6 +900,9 @@ c      call defvar(grid,fid,nstep,'obio_nstep0')
       call defvar(grid,fid,tirrq3d,'tirrq3d'//str3d)
       call defvar(grid,fid,ihra,'ihra'//str2d)
       call defvar(grid,fid,pCO2av,'pCO2av'//str2d)
+      call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav'//str2d)
+      call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav'//str2d)
+      call defvar(grid,fid,cexpav,'cexpav'//str2d)
       call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
       call defvar(grid,fid,tracav,'tracav(idm,dist_jdm,kdm,ntrcr)')
       call defvar(grid,fid,plevav,'plevav'//str3d)
@@ -935,6 +948,9 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     ao_co2fluxav=>ao_co2fluxav_loc,
+     &     pp2tot_dayav=>pp2tot_dayav_loc,
+     &     cexpav=>cexpav_loc,
      &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
       use obio_dim, only : trname
 #endif
@@ -1008,6 +1024,9 @@ c exports to agcm, sea ice components
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call write_dist_data(grid,fid,'ihra',ihra)
         call write_dist_data(grid,fid,'pCO2av',pCO2av)
+        call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call write_dist_data(grid,fid,'cexpav',cexpav)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
         call write_dist_data(grid,fid,'tracav',tracav)
         call write_dist_data(grid,fid,'plevav',plevav)
@@ -1086,6 +1105,9 @@ c exports to agcm, sea ice components
         call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call read_dist_data(grid,fid,'ihra',ihra)
         call read_dist_data(grid,fid,'pCO2av',pCO2av)
+        call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call read_dist_data(grid,fid,'cexpav',cexpav)
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
         call read_dist_data(grid,fid,'tracav',tracav)
         call read_dist_data(grid,fid,'plevav',plevav)

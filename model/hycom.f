@@ -123,11 +123,14 @@ c
       USE obio_dim
       USE obio_forc, only: owind_loc=>owind,osolz_loc=>osolz
       USE obio_com, only: dobio, gather_pCO2
-     .    ,tracav_loc,ao_co2flux_loc,ao_co2flux_glob
-     .    ,ao_co2fluxav,ao_co2fluxav_loc,diag_counter,plevav,plevav_loc
-     .    ,cexp_loc=>cexpij, caexp_loc=>caexpij
+     .    ,tracav_loc,ao_co2flux_loc,ao_co2fluxav_loc
+     .    ,diag_counter,plevav,plevav_loc
+     .    ,cexp_loc=>cexpij
      .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
-     .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc, caexpav_loc
+     .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc
+#ifdef TRACERS_Alkalinity
+     .    ,caexp_loc=>caexpij,caexpav_loc
+#endif
 #endif 
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
@@ -944,65 +947,63 @@ ccc      call comparall(m,n,mm,nn,string)
 
 !accumulate fields for diagnostic output
       call gather_dpinit 
-      if (AM_I_ROOT()) then
-      if (mod(nstep,trcfrq).eq.0) then
+!     if (AM_I_ROOT()) then
+!     if (mod(nstep,trcfrq).eq.0) then
 
-      diag_counter=diag_counter+1
-      print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
+!     diag_counter=diag_counter+1
+!     print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
 
-      endif  !trcfrq
-      endif  !AM_I_ROOT
+!     endif  !trcfrq
+!     endif  !AM_I_ROOT
 
-      if (mod(nstep,trcfrq).eq.0) then
+!     if (mod(nstep,trcfrq).eq.0) then
 
-        call start('  tracav')
+!       call start('  tracav')
 
-#ifdef TRACERS_OceanBiology
-        do j=j_0,j_1
-          do i=1,idm
-      !pco2
-            pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
-            pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j)
-     &                             +pp2tot_day_loc(i,j)
-            cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
-            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
-          enddo
-        enddo
-#endif
-
-        do j=j_0,j_1
-          do i=1,idm
-
-            do k=1,kk
-              plev = max(0.,dpinit_loc(i,j,k))
-              if (plev.lt.1.e30) then
-                plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
-                
-                do nt=1,ntrcr
-                  tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) + 
-     &                 tracer_loc(i,j,k,nt)*plev
-                enddo !nt
-
-              endif
-            enddo  !k
-
-#ifdef TRACERS_OceanBiology
-      !ao_co2flux
-            ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + 
-     &           ao_co2flux_loc(i,j)
-#endif
-          end do
-        end do
-
-        call stop('  tracav')
-      end if
-
-#ifndef OBIO_ON_GARYocean            /* NOT for Garys ocean */
-#ifdef TRACERS_OceanBiology
-      !gather ao_co2flux
-      call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-#endif
-#endif
+!#ifdef TRACERS_OceanBiology
+!        do j=j_0,j_1
+!          do i=1,idm
+!            ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + 
+!     &           ao_co2flux_loc(i,j)
+!            pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
+!            pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j)
+!     .                            + pp2tot_day_loc(i,j)
+!            cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
+!
+!            if(i.eq.243.and.j.eq.1) then
+!            write(*,'(a,3i5,8e12.4)')'1111111111',
+!     .      nstep,i,j,ao_co2flux_loc(i,j),ao_co2fluxav_loc(i,j)
+!     .      ,pco2_loc(i,j),pCO2av_loc(i,j)
+!     .      ,pp2tot_day_loc(i,j),pp2tot_dayav_loc(i,j)
+!     .      ,cexp_loc(i,j),cexpav_loc(i,j)
+!            endif
+!#ifdef TRACERS_Alkalinity
+!            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
+!#endif
+!          enddo
+!        enddo
+!#endif
+!
+!        do j=j_0,j_1
+!          do i=1,idm
+!
+!            do k=1,kk
+!              plev = max(0.,dpinit_loc(i,j,k))
+!              if (plev.lt.1.e30) then
+!                plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
+!                
+!                do nt=1,ntrcr
+!                  tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) + 
+!     &                 tracer_loc(i,j,k,nt)*plev
+!                enddo !nt
+!
+!              endif
+!            enddo  !k
+!          end do
+!        end do
+!
+!        call stop('  tracav')
+!      end if
 
 #endif
 
@@ -1234,17 +1235,18 @@ ccc     .     'barotrop. v vel. (mm/s)')
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
       || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
       || (defined TRACERS_ZEBRA)
+      diag_counter=0
       tracav_loc = 0
       plevav_loc = 0
 #ifdef TRACERS_OceanBiology
+      ao_co2fluxav_loc=0
       pCO2av_loc = 0
       pp2tot_dayav_loc = 0
       cexpav_loc = 0
+#ifdef TRACERS_Alkalinity
       caexpav_loc = 0
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      ao_co2fluxav_loc = 0
 #endif
 
  23   continue
@@ -1435,21 +1437,27 @@ c------------------------------------------------------------------
      .    plevav,plevav_loc
 #endif
 #ifdef TRACERS_OceanBiology
-      USE obio_com, only: gather_chl,
-     &     pCO2av_loc, pCO2av,
-     &     pp2tot_dayav_loc, pp2tot_dayav,
-     &     cexpav_loc, cexpav,
-     &     caexpav_loc, caexpav
+      USE obio_com, only: gather_chl
+     .    ,ao_co2fluxav_loc, ao_co2fluxav
+     .    ,pCO2av_loc, pCO2av
+     .    ,pp2tot_dayav_loc, pp2tot_dayav
+     .    ,cexpav_loc, cexpav
+#ifdef TRACERS_Alkalinity
+     .    ,caexpav_loc, caexpav
+#endif
 #endif
       implicit none 
 
 #ifdef TRACERS_OceanBiology
       call gather_chl
 
+      call pack_data(ogrid, ao_co2fluxav_loc, ao_co2fluxav)
       call pack_data(ogrid, pCO2av_loc, pCO2av)
       call pack_data(ogrid, pp2tot_dayav_loc, pp2tot_dayav)
       call pack_data(ogrid, cexpav_loc, cexpav)
+#ifdef TRACERS_Alkalinity
       call pack_data(ogrid, caexpav_loc, caexpav)
+#endif
 #endif
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
