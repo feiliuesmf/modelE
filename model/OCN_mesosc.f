@@ -131,12 +131,12 @@ c     vrbos=.true.
      .      n2,drhodx_cgs,drhody_cgs,drhodz_cgs,coriol,amld_cgs
      .     ,Rd,K0,Ustar,Vstar,Ustar_star,Vstar_star,i,j)
 
-      if (vrbos) then
-      write(*,'(a,5i5,14e12.4)')'MESOSCALES1:',
-     .   nstep,i,j,k,ndepi,z_cm(k),dens_cgs(k),uvel_cgs(k)
-     .  ,vvel_cgs(k),n2(k),drhodx_cgs(k),drhody_cgs(k)
-     .  ,drhodz_cgs(k),coriol,amld_cgs,Rd,K0,ustar(k),vstar(k)
-      endif
+!     if (vrbos) then
+!     write(*,'(a,5i5,14e12.4)')'MESOSCALES1:',
+!    .   nstep,i,j,k,ndepi,z_cm(k),dens_cgs(k),uvel_cgs(k)
+!    .  ,vvel_cgs(k),n2(k),drhodx_cgs(k),drhody_cgs(k)
+!    .  ,drhodz_cgs(k),coriol,amld_cgs,Rd,K0,ustar(k),vstar(k)
+!     endif
 c     if (nstep.eq.1) then
 c     if (vrbos) then
 c     do k=1,kdm

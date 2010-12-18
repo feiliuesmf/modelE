@@ -1748,6 +1748,9 @@ c
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
+#ifdef OCN_Mesoscales
+     &     ,ijl_ueddy,ijl_veddy,ijl_n2
+#endif
 #ifdef TRACERS_OCEAN
       use odiag, only :
      &     ktoijlx,toijl_out,divbya_toijl,kn_toijl,toijl_loc,toijl_conc
@@ -1781,6 +1784,13 @@ c
         oijl_out(i,j,l,ijl_mo) = mass
         oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)
         oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)
+
+#ifdef OCN_Mesoscales
+        oijl_out(i,j,l,ijl_n2) = oijl(i,j,l,ijl_n2)
+        oijl_out(i,j,l,ijl_ueddy) = oijl(i,j,l,ijl_ueddy)
+        oijl_out(i,j,l,ijl_veddy) = oijl(i,j,l,ijl_veddy)
+#endif
+
 c
 c compute potential temperature and potential density
 c
