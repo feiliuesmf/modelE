@@ -1669,8 +1669,10 @@ c
       call init_cdl_type('cdl_odepths',cdl_odepths)
       call add_coord(cdl_odepths,'zoc',lmo,
      &     units='m',coordvalues=zoc(1:lmo))
+      call add_varline(cdl_odepths,'zoc:positive = "down" ;')
       call add_coord(cdl_odepths,'zoce',lmo,
      &     units='m',coordvalues=zoc1(2:lmo+1))
+      call add_varline(cdl_odepths,'zoce:positive = "down" ;')
 
       call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
       call add_var(cdl_oij,'float oxyp(lato,lono) ;',
@@ -1725,6 +1727,8 @@ c
      &       'float '//trim(sname_ojl(k))//trim(zstr)//trim(ystr),
      &       long_name=trim(lname_ojl(k)),
      &       units=trim(units_ojl(k)) )
+        call add_varline(cdl_ojl,trim(sname_ojl(k))//
+     &       ':missing_value = -1.e30f ;')
       enddo
 
       cdl_olnst = cdl_odepths
