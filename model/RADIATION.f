@@ -493,7 +493,7 @@ C     ------------------------------------------------------------------
       logical, save :: init = .false.
       integer :: idxMonth0, idxMonth1
       integer :: idxDecade0, idxDecade1
-      logical :: updateTable
+      logical :: updateTable,qexist
 
       integer, save :: decadeNow = -9999
       integer, save :: yearNow = -9999
@@ -503,7 +503,12 @@ C     ------------------------------------------------------------------
 
       if (.not. init) then
         init = .true.
-        RDFILE=RDFGEN           !     generic names are used
+        inquire (file=RDFGEN(1),exist=qexist) ! decide whether specific or
+        if(qexist) RDFILE=RDFGEN              !     generic names are used
+        inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
+        if(.not.qexist)
+     &     call stop_model('updateAerosol: no TropAero files',255)
+
 c read table sizes then close
         call openunit (RDFILE(1),ifile,.true.,.true.) ! unformatted,old
         read(ifile) aertitle, ima, jma, lma, ndeca, fdeca, ldeca
