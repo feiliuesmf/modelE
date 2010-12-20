@@ -4,7 +4,7 @@ modelE1 (3.0) with:
 - Drew Shindell tropospheric and stratospheric chemistry (based on Greg's E001TdsSM23.R)
 - Dorothy Koch and Kostas Tsigaridis aerosols (based on Dorothy's E1TaerM20.R)
 
- Set imAER=3, aer_int_yr = 1890 to 2000 for historic 
+ Set imAER=3, aer_int_yr = 1890 to 2000 for historic
  Set imAER=5, aer_int_yr = 1850 or 2000 for AR5
  Set imAER=1 for AEROCOM emissions (but this hasn't been tested lately)
  Set emission input files to match (see below)
@@ -138,23 +138,10 @@ REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin               ! river direction file
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 !                                             (end of section 2 of data input files)
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k      ! 8/2003 version
-RADN3=miescatpar.abcdv2
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
-TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
-TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
-TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
-TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr    ! need KSOLAR=2
-! RADN9=Solar_spectrum.1500-2004_gsf ! need KSOLAR=9
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
+#include radAR4_input_files          ! rad.tables and history files
+#include TAero2003_input_files
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
@@ -167,11 +154,9 @@ O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 delta_O3=do3_shindell_72x46x49x12_2037-2107_E009TdsSxHp-SnHpM23
-GHG=GHG.Mar2004.txt
 ! e.g. GHGic=GHG_IC_1999
-dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46_a.ij.ext ! only used if #define DO_TOPMODEL_RUNOFF
-BC_dep=BC.Dry+Wet.depositions.ann
+
 !-----------------------------------------------
 ! choose these for trop-only chem model
 !-----------------------------------------------
@@ -242,7 +227,7 @@ Alkenes_05=AR5_emis/M/NOV09/2000/Alkenes_ind_AR5_2000_4x5_h
 Alkenes_06=AR5_emis/M/NOV09/2000/m_Alkenes_shp_AR5_2000_4x5_h
 Alkenes_07=AR5_emis/M/NOV09/2000/Alkenes_slv_AR5_2000_4x5_h
 Alkenes_08=AR5_emis/M/NOV09/2000/Alkenes_tra_AR5_2000_4x5_h
-Alkenes_09=AR5_emis/M/NOV09/2000/Alkenes_wst_AR5_2000_4x5_h 
+Alkenes_09=AR5_emis/M/NOV09/2000/Alkenes_wst_AR5_2000_4x5_h
 Alkenes_10=gsin/Alkenes_GEIA_vegetation_head_1
 Alkenes_11=AR5_emis/M/NOV09/2000/Alkenes_forestfire_AR5_2000_4x5_h
 Alkenes_12=AR5_emis/M/NOV09/2000/Alkenes_grassfire_AR5_2000_4x5_h
@@ -318,8 +303,8 @@ AER_OH_STRAT=Strat_OH_drewE_20
 ! TERPENE and Terpenes_01 are used, which differ significantly
 !TERPENE=terp_Guenther_4x5
 ! ------Dorothy's inputs needed for imAER = 3 -old historic emissions------------
-!SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000 
-!OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
+!SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000
+!OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond
 !BC_EM_1=BC_Bond_Feb09_4x5_h_1850-2000
 !BC_BIOMASS=BC_GFED_97-06_4x5
 !OC_BIOMASS=OC_GFED_97-06_4x5
@@ -427,7 +412,7 @@ cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! tuning param.: this setting works for 1850; use U00wtrX=1.28 for 1979
 
-!     if CLOUDS2_E1 is replaced by CLOUDS2, use: 
+!     if CLOUDS2_E1 is replaced by CLOUDS2, use:
 ! U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 ! U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 !     instead of:
@@ -458,7 +443,7 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
 SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR
 !       ---define-sectors-names/order------
 SECTORS_ARE='WETL AIR'
 !-fit-here--|
@@ -483,7 +468,7 @@ int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
 ns_wet=13       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
-topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
+topo_lim=205.d0 ! upper limit of topographic variation for new wetlands
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
 gw_ulim=100.d0  ! upper limit on ground wetness for new wetlands
 gw_llim=18.d0   ! lower limit on ground wetness for new wetlands
@@ -548,7 +533,7 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
-  
+
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
 aer_int_yr=2000    !used for imAER=3,5 select desired year (1890 to 2000) or 0 to use JYEAR
@@ -577,9 +562,9 @@ clim_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
                    ! 0 also turns off chem(H2O)-->Q( ) feedback
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
-use_rad_n2o=0      ! use the radiation code's N2O 
-use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted 
-use_rad_ch4=0      ! use rad code CH4, shut off sfc sources 
+use_rad_n2o=0      ! use the radiation code's N2O
+use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted
+use_rad_ch4=0      ! use rad code CH4, shut off sfc sources
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 which_trop=1       ! choose tropopause for chemistry purposes:

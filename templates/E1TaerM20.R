@@ -2,7 +2,7 @@ E1TaerM20.R GISS Model E  2004 modelE             Dorothy Koch  11/08
 
 E1TaerM20: Sample rundeck with interactive mass aerosols
   including sulfate, nitrate, sea salt, black and organic carbon
- Set imAER=3, aer_int_yr = 1890 to 2000 for historic 
+ Set imAER=3, aer_int_yr = 1890 to 2000 for historic
  Set imAER=5, aer_int_yr = 1850 or 2000 for AR5
  Set imAER=1 for AEROCOM emissions (but this hasn't been tested lately)
  Set emission input files to match (see below)
@@ -92,35 +92,8 @@ REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin               ! river direction file
 TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k      ! 8/2003 version
-RADN3=miescatpar.abcdv2
-!RADN2=LWTables33k.1a              ! rad.tables and history files
-!RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_Ma_2000             ! H2O continuum table
-! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2004
-!    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
-!  MADAER=1 (default) needs:
-TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
-TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
-TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
-TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
-! MADAER=3 needs: (temporary version)
-!TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-!TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-!TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-!TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-!TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-!TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
+#include radAR4_input_filesradAR4_input_files          ! rad.tables and history files
+#include TAero2003_input_files
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
@@ -132,9 +105,6 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.Mar2004.txt
-dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 !------- Needed for dry deposition ---------
@@ -174,8 +144,8 @@ AER_OH_STRAT=Strat_OH_drewE_20
 !TERPENE=terp_Guenther_4x5
 Terpenes_01=ORCHIDEE_Terpenes_1990_4x5_h
 ! ------Dorothy's inputs needed for imAER = 3 -old historic emissions------------
-!SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000 
-!OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
+!SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000
+!OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond
 !BC_EM_1=BC_Bond_Feb09_4x5_h_1850-2000
 !BC_BIOMASS=BC_GFED_97-06_4x5
 !OC_BIOMASS=OC_GFED_97-06_4x5
@@ -242,7 +212,7 @@ NH3_CON_09=NH3_tra_AR5_2000_4x5_h
 
 
 Label and Namelist:
-E1TaerM20 (ModelE1 4x5, 20 lyrs, with interactive aerosol tracers) 
+E1TaerM20 (ModelE1 4x5, 20 lyrs, with interactive aerosol tracers)
 DTFIX=300
 
 &&PARAMETERS
@@ -270,7 +240,7 @@ cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! tuning param.: this setting works for 1850; use U00wtrX=1.28 for 1979
 
-!     if CLOUDS2_E1 is replaced by CLOUDS2, use: 
+!     if CLOUDS2_E1 is replaced by CLOUDS2, use:
 ! U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 ! U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 !     instead of:
@@ -326,7 +296,7 @@ nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 !MADAER=3
-  
+
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
 aer_int_yr=2000    !used for imAER=3,5 select desired year (1890 to 2000) or 0 to use JYEAR
@@ -344,6 +314,6 @@ aircrafts_Tyr2=2000 !          set these two equal or omit them.
    QCHECK=.false.
    kdiag = 0,0,0,0,0,0,0,0,0,0,0,0,0,
    YEARI=1998,MONTHI=12,DATEI=1,HOURI=0, IYEAR1=1998 ! or earlier
-   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0,     
+   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0,
    ISTART=2,IRANDI=0, YEARE=1998,MONTHE=12,DATEE=1,HOURE=1,
  &END

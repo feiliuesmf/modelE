@@ -53,18 +53,18 @@ hycom_com|-r8| hycom_dim|-r8| kprf_com|-r8| hycom_atm|-r8|
 hycom_com_glob|-r8| hycom_dim_glob|-r8| hycom_com_glob_renamer|-r8|
 hycom2|-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
-archyb|-r8|                         ! continuity eqn. 
-barotp|-r8|                         ! barotropic eqn. 
+archyb|-r8|                         ! continuity eqn.
+barotp|-r8|                         ! barotropic eqn.
 bigrid|-r8|                         ! basin grid
-!blkd2a|-r8| 
+!blkd2a|-r8|
 blkpp2|-r8|             ! block data
 cnuitb|-r8|                         ! continuity eqn.
 cpler |-r8|                         ! coupler
 diapfc|-r8|                         ! diapycnal diffusion
-dpthuv|-r8| dpudpv|-r8|             ! off-center depth  
+dpthuv|-r8| dpudpv|-r8|             ! off-center depth
 eic8  |-r8|                         ! ice forming
 geopar|-r8|                         ! geography related parameters
-hybgn1a|-r8|                        ! grid generator 
+hybgn1a|-r8|                        ! grid generator
 inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
 matinv|-r8| mxkpp2|-r8|             ! partial KPP mixing scheme
 momtum|-r8|                         ! momemtum Eqn.
@@ -72,7 +72,7 @@ prtetc|-r8|                         ! print routines, etc.
 reflux|-r8|                         ! flux conversion
 sigetc|-r8|                         ! eqn.of state, etc.
 thermf|-r8|                         ! thermal forcing
-trcadv|-r8|                         ! tracer advection 
+trcadv|-r8|                         ! tracer advection
 tsadts|-r8| advem|-r8|              ! T/S advection advecting t/s
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -92,25 +92,13 @@ AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955 ! initial conditions (ground) and 300 year spin-up
 CDN=CD4X500S.ext
   ! VEG=V72X46.1.cor2.ext
-VEG=V72X46.1.cor2_no_crops.ext 
+VEG=V72X46.1.cor2_no_crops.ext
 CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn_20w              !!! hycom
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR.2deghycom_20w.bin         !!! hycom
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=radfil33k                   !     8/2003 version
-RADN3=miescatpar.abcdv2
-TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
-TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
-TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
-TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
-RADN7=STRATAER.VOL.1850-1999.Apr02
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
+#include radAR4_input_files          ! rad.tables and history files
+#include TAero2003_input_files
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
 O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
 O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
@@ -122,9 +110,6 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.Mar2004.txt
-dH2O=dH2O_by_CH4_monthly
-BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46_a.ij.ext
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
@@ -169,7 +154,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
