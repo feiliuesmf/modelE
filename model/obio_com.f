@@ -38,6 +38,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav, tracav_loc
       real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav, plevav_loc
@@ -63,7 +64,8 @@ c
       integer, parameter :: itest=1,  jtest=90     !equator Pacific
 #else
 !     integer, parameter :: itest=(220,320) equator Atlant; (245,275) 0.6S;274.5E Nino3
-      integer, parameter :: itest=316, jtest=258    !257.5E;-50.7S
+!     integer, parameter :: itest=316, jtest=258    !257.5E;-50.7S
+      integer, parameter :: itest=243, jtest=1      !equator,dateline
       real :: diag_counter
 #endif
 
@@ -254,6 +256,7 @@ c**** Extract domain decomposition info
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo_glob(idm,jdm))
       ALLOCATE(rhs_obio(i_0h:i_1h,j_0h:j_1h,ntrac,16))
+      ALLOCATE(chng_by(i_0h:i_1h,j_0h:j_1h,14))
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2flux_glob(idm,jdm))
