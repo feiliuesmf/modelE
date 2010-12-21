@@ -2644,6 +2644,10 @@ C--------------------------------
         CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
 #endif
+        ! considering this move to here from setgas:
+        ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
+        ! and might then need something like:
+        ! IF(KPFOZO==1)chem_out(1:NL0,1)=chem_out(1:NL0,1)*FPXOZO(1:NL0)
         if(use_tracer_chem(1) > 0) then
           U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
           FULGAS(3)=1.d0
@@ -3737,6 +3741,7 @@ C****
       ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
   340 CONTINUE
 
+      chem_out(:,4)=ULGAS(:,7) ! climatological CH4 saved for chemistry
       if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
      * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
 
@@ -3757,10 +3762,10 @@ C****
      *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
       ENDIF
 
-      chem_out(:,1)=ULGAS(:,3)              ! O3
+      chem_out(:,1)=ULGAS(:,3)!O3 considering move to RCOMPX; see above
 C     chem_out(:,2)= _________              ! set in RCOMPX
       chem_out(:,3)=ULGAS(:,6)              ! N2O
-      chem_out(:,4)=ULGAS(:,7)              ! CH4
+C     chem_out(:,4)=ULGAS(:,7) ! CH4 (moved above before tracer option)
       chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
 
 C-----------------
