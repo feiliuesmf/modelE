@@ -159,6 +159,10 @@ C**** input variables
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
      *     ,WMXICE
 #endif
+#ifdef mjo_subdd
+     *     ,DQMTOTAL,DQMSHLW,DQMDEEP
+     *     ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
+#endif
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -835,6 +839,15 @@ C**** zero out diagnostics
          DTOTW=0.
          DQCOND=0.
          DGDQM=0.
+#ifdef mjo_subdd
+         DQMTOTAL=0.
+         DQMSHLW=0.
+         DQMDEEP=0.
+         DQCTOTAL=0.
+         DQCSHLW=0.
+         DQCDEEP=0.
+         DQLSC=0.
+#endif
          DDMFLX=0.
          TDNL=0.
          QDNL=0.
@@ -2174,12 +2187,25 @@ C**** diagnostics
         IF(L.EQ.LLMIN) FCDH1=CDHSUM1-EVPSUM
         MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
         DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
-        IF(PLE(LMAX+1).GT.700.d0) DGSHLW(L)=DGSHLW(L)+
-     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
-        IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DGDEEP(L)=DGDEEP(L)+
-     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
-        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
+#ifdef mjo_subdd
+        DQMTOTAL(L)=DQMTOTAL(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
+#endif
+        IF(PLE(LMAX+1).GT.700.d0) THEN
+          DGSHLW(L)=DGSHLW(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+#ifdef mjo_subdd
+          DQMSHLW(L)=DQMSHLW(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
+#endif
+        ENDIF
+        IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) THEN
+          DGDEEP(L)=DGDEEP(L)+
+     *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+#ifdef mjo_subdd
+          DQMDEEP(L)=DQMDEEP(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
+#endif
+        ENDIF
+        DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 #ifdef SCM
         if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
@@ -2392,11 +2418,24 @@ C**** UPDATE TEMPERATURE DUE TO NET REEVAPORATION IN CLOUDS
          FCDH1=0.
          IF(L.EQ.LLMIN) FCDH1=CDHSUM1-EVPSUM
          DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
-         IF(PLE(LMAX+1).GT.700.d0) DPHASHLW(L)=DPHASHLW(L)-
-     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
-         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) DPHADEEP(L)=DPHADEEP(L)-
-     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
          DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
+#ifdef mjo_subdd
+         DQCTOTAL(L)=DQCTOTAL(L)-DQSUM*BYAM(L)*FMC1
+#endif
+         IF(PLE(LMAX+1).GT.700.d0) THEN
+           DPHASHLW(L)=DPHASHLW(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+#ifdef mjo_subdd
+           DQCSHLW(L)=DQCSHLW(L)-DQSUM*BYAM(L)*FMC1
+#endif
+         ENDIF
+         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) THEN
+           DPHADEEP(L)=DPHADEEP(L)-
+     *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+#ifdef mjo_subdd
+           DQCDEEP(L)=DQCDEEP(L)-DQSUM*BYAM(L)*FMC1
+#endif
+         ENDIF
 
 #ifdef TRACERS_WATER
       IF (PRCP+DQSUM.GT.0.) THEN
@@ -4493,6 +4532,9 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
+#ifdef mjo_subdd
+         DQLSC(L)=DQLSC(L)+FSSL(L)*(QL(L)-QOLD)
+#endif
       END DO  ! end of loop over L
 
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
@@ -4681,6 +4723,10 @@ c**** energy fix?
      *         FSSL(L+1)*(TNEWU-TOLDU)*AIRM(L+1)
         SSHR(L)=SSHR(L)+FSSL(L)*(TNEW-TOLD)*AIRM(L)
         SSHR(L+1)=SSHR(L+1)+FSSL(L+1)*(TNEWU-TOLDU)*AIRM(L+1)
+#ifdef mjo_subdd
+        DQLSC(L)=DQLSC(L)+FSSL(L)*(QNEW-QOLD)
+        DQLSC(L+1)=DQLSC(L+1)+FSSL(L+1)*(QNEWU-QOLDU)
+#endif
        DCTEI(L)=DCTEI(L)+FSSL(L)*(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
        DCTEI(L+1)=DCTEI(L+1)+FSSL(L+1)*(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
       END DO

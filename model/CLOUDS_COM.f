@@ -24,6 +24,23 @@ C**** some arrays here for compatility with new clouds
 !@var FSS grid fraction for large-scale clouds
 !@+   initialised as 1. for compatibility with previous clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSS
+#ifdef mjo_subdd
+!@var Cloud liquid and ice water content for subdaily output
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CLWC3D,CIWC3D
+!@var Source/sink from total, shallow,deep convection and large-scale condensation
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TMCDRY,SMCDRY,DMCDRY,
+     *                                         LSCDRY
+#endif
+#ifdef etc_subdd
+!@var liquid water path
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: LWP2D
+!@var ice water path
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: IWP2D
+#endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+!@var Total, shallow, deep and large-scale latent heating for subdaily output
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLH3D,SLH3D,DLH3D,LLH3D
+#endif
 #ifdef CLD_AER_CDNC
 !@var OLDNL old CDNC,OLDNI old ice crystal
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OLDNL,OLDNI
@@ -111,6 +128,15 @@ C**** ISCCP diagnostics related parameter
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *                       ,TLH3D,SLH3D,DLH3D,LLH3D
+#endif
+#ifdef etc_subdd
+     *                       ,LWP2D,IWP2D
+#endif
+#ifdef mjo_subdd
+     *                       ,CLWC3D,CIWC3D,TMCDRY,SMCDRY,DMCDRY,LSCDRY
+#endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
      *                       ,NACTC,NAERC
@@ -154,6 +180,24 @@ C**** ISCCP diagnostics related parameter
      *              CLDMC(LM,I_0H:I_1H,J_0H:J_1H),
      *             CSIZMC(LM,I_0H:I_1H,J_0H:J_1H),
      *             CSIZSS(LM,I_0H:I_1H,J_0H:J_1H),
+#ifdef mjo_subdd
+     *             CLWC3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CIWC3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             TMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
+     *             SMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
+     *             DMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
+     *             LSCDRY(LM,I_0H:I_1H,J_0H:J_1H),
+#endif
+#ifdef etc_subdd
+     *             LWP2D(I_0H:I_1H,J_0H:J_1H),
+     *             IWP2D(I_0H:I_1H,J_0H:J_1H),
+#endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *             TLH3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             SLH3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             DLH3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             LLH3D(LM,I_0H:I_1H,J_0H:J_1H),
+#endif
      *         STAT=IER)
 
       ALLOCATE(     ULS(I_0H:I_1H,J_0H:J_1H,LM),

@@ -39,6 +39,16 @@
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *     ,TLH3D,LLH3D,SLH3D,DLH3D
+#endif
+#ifdef etc_subdd
+     *     ,LWP2D,IWP2D
+#endif
+#ifdef mjo_subdd
+     *     ,CLWC3D,CIWC3D
+     *     ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
+#endif
       USE DIAG_COM, only : aij=>aij_loc,
      *     aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
@@ -154,6 +164,10 @@
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
      *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
+#ifdef mjo_subdd
+     *     ,DQMTOTAL,DQLSC
+     *     ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
+#endif
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
@@ -836,6 +850,7 @@ CCC  *         (DGDSM(L)+DPHASE(L))*(AXYP(I,J)*BYDSIG(L))
           call inc_ajl(i,j,l,jl_mcshlw,(DPHASHLW(L)+DGSHLW(L)))
           call inc_ajl(i,j,l,jl_mcdeep,(DPHADEEP(L)+DGDEEP(L)))
 C*** Begin Accumulate 3D convective latent heating
+C*** for monthly diags
          if(lh_diags.eq.1) then
           AIJL(I,J,L,IJL_MCTLH)=AIJL(I,J,L,IJL_MCTLH)+
      &         (DPHASE(L)+DGDSM(L))
@@ -844,6 +859,18 @@ C*** Begin Accumulate 3D convective latent heating
           AIJL(I,J,L,IJL_MCSLH)=AIJL(I,J,L,IJL_MCSLH)+
      &         (DPHASHLW(L)+DGSHLW(L))
          endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+C*** For subdaily diags
+         TLH3D(L,I,J)=TLH3D(L,I,J)+(DPHASE(L)+DGDSM(L))*BYAM(L)
+         SLH3D(L,I,J)=SLH3D(L,I,J)+(DPHASHLW(L)+DGSHLW(L))*BYAM(L)
+         DLH3D(L,I,J)=DLH3D(L,I,J)+(DPHADEEP(L)+DGDEEP(L))*BYAM(L)
+#endif
+#ifdef mjo_subdd
+C*** For subdaily diags
+         TMCDRY(L,I,J)=TMCDRY(L,I,J)+(DQCTOTAL(L)-DQMTOTAL(L))
+         SMCDRY(L,I,J)=SMCDRY(L,I,J)+(DQCSHLW(L)-DQMSHLW(L))
+         DMCDRY(L,I,J)=DMCDRY(L,I,J)+(DQCDEEP(L)-DQMDEEP(L))
+#endif
 C*** End Accumulate 3D convective latent heating
          call inc_ajl(i,j,l,jl_mcmflx,MCFLX(L))
          call inc_ajl(i,j,l,jl_cldmc,CLDMCL(L)*AIRM(L))
@@ -1200,10 +1227,24 @@ C**** PRECIPITATION DIAGNOSTICS
 C**** cloud water diagnostics
       WM1=0  ; WMI=0
       DO L=1,LP50
-        if(SVLHXL(L).eq.LHE)
-     *  aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
-        if(SVLHXL(L).eq.LHS)
-     *  aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
+        if(SVLHXL(L).eq.LHE) then
+        aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
+#ifdef mjo_subdd
+        CLWC3D(L,I,J)=CLWC3D(L,I,J)+WMX(L)
+#endif
+#ifdef etc_subdd
+        LWP2D(I,J)=LWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
+#endif
+        endif
+        if(SVLHXL(L).eq.LHS) then
+        aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
+#ifdef mjo_subdd
+        CIWC3D(L,I,J)=CIWC3D(L,I,J)+WMX(L)
+#endif
+#ifdef etc_subdd
+        IWP2D(I,J)=IWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
+#endif
+        endif
         WM1=WM1+WMX(L)*AIRM(L)
         IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
       END DO
@@ -1378,6 +1419,12 @@ C*** Begin Accumulate 3D heating by large scale condensation --
        if(lh_diags.eq.1) then
         AIJL(I,J,L,IJL_LLH)=AIJL(I,J,L,IJL_LLH)+SSHR(L)
        endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+       LLH3D(L,I,J)=LLH3D(L,I,J)+SSHR(L)*BYAM(L)
+#endif
+#ifdef mjo_subdd
+       LSCDRY(L,I,J)=LSCDRY(L,I,J)+DQLSC(L)
+#endif
 C*** End Accumulate 3D heating by large scale condensation --
        call inc_ajl(i,j,l,JL_MCLDHT,DCTEI(L))
        call inc_ajl(i,j,l,JL_RHE,RH1(L))
