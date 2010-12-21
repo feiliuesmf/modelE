@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE DYNAMICS
 !@sum  DYNAMICS contains all the pressure and momentum related variables
 !@auth Original development team
@@ -25,6 +27,10 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTP
+#ifdef etc_subdd
+!@var  TTROPO  Temperature at mid point of tropopause level, extra subdaily
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TTROPO
+#endif
 !@var  PTROPO  Pressure at mid point of tropopause level (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
 !@var  LTROPO  Tropopause layer
@@ -100,6 +106,9 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
      $                     SQRTP,PTROPO,LTROPO,PTOLD,DPDX_BY_RHO,
      $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
      $                     PS,SMASS,KEA,UALIJ,VALIJ,WCP,WCPsig
+#ifdef etc_subdd
+     $                     ,TTROPO     ! extra subdaily
+#endif
       USE DYNAMICS, only : t_dyn_a, t_dyn_b, t_dyn_c, t_dyn_d
       USE DYNAMICS, only : t_aflux, t_advecm, t_advecv
 
@@ -155,6 +164,9 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
+#ifdef etc_subdd
+     $          TTROPO(I_0H:I_1H,J_0H:J_1H),   ! extra subdaily
+#endif
      $          PTOLD(I_0H:I_1H,J_0H:J_1H),
      $          DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H), 
      $          DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
