@@ -824,6 +824,10 @@ C     OUTPUT DATA
      *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
+#ifdef mjo_subdd
+     *     ,SWHR,LWHR,SWHR_cnt,LWHR_cnt,OLR_acc,OLR_cnt
+     *     ,swu_avg,swu_cnt
+#endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -2352,6 +2356,9 @@ C****
         trnflb_save(i,j,1:lm)=trnflb(1:lm)
       END IF
 #endif
+#ifdef mjo_subdd
+      swu_avg(I,J)=swu_avg(I,J)+SRUFLB(1)*CSZ2
+#endif
 
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
@@ -2431,6 +2438,10 @@ C****
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
+
+#ifdef mjo_subdd
+       swu_cnt=swu_cnt+1.
+#endif
 
       if(kradia.gt.0) then
          call stopTimer('RADIA()')
@@ -2554,6 +2565,9 @@ C****
          AIJ(I,J,ij_srvdir)=AIJ(I,J,ij_srvdir)
      &        + FSRDIR(I,J)*SRVISSURF(I,J)
          AIJ(I,J,IJ_SRVISSURF)=AIJ(I,J,IJ_SRVISSURF)+SRVISSURF(I,J)
+#ifdef mjo_subdd
+         OLR_acc(I,J) = OLR_acc(I,J) -TNFS(3,I,J)
+#endif
 C**** CRF diags if required
          if (moddrf .ne. 0) go to 770
          if (cloud_rad_forc > 0) then
@@ -2823,14 +2837,27 @@ c longwave GHG forcing at TOA
   770    CONTINUE
   780    CONTINUE
 
+#ifdef mjo_subdd
+         OLR_cnt = OLR_cnt + 1.
+#endif
+
       DO J=J_0,J_1
       DO I=I_0,I_1
       DO L=1,LM
         AIJL(i,j,l,IJL_RC)=AIJL(i,j,l,IJL_RC)+
      &       (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))
+#ifdef mjo_subdd
+       SWHR(I,J,L)=SWHR(I,J,L)+
+     *             SRHR(L,I,J)*COSZ2(I,J)*bysha*byam(L,I,J)
+       LWHR(I,J,L)=LWHR(I,J,L)+TRHR(L,I,J)*bysha*byam(L,I,J)
+#endif
       END DO
       END DO
       END DO
+#ifdef mjo_subdd
+      SWHR_cnt=SWHR_cnt+1
+      LWHR_cnt=LWHR_cnt+1
+#endif
 
 C****
 C**** Update radiative equilibrium temperatures

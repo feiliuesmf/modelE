@@ -81,6 +81,18 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_cs_save  Tracer optical thickness clear sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_save,
      &     ttausv_cs_save
+#ifdef mjo_subdd
+!@var OLR_acc, OLR_cnt --  Net thermal radiation at TOA (W/m^2) for SUBDD
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: OLR_acc
+      REAL*8 :: OLR_cnt = 0.d0
+!@var SWHR,LWHR,SWHR_cnt,LWHR_cnt -- shortwave/longwave heating rates for SUBDD (C/d)
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: SWHR,LWHR
+      REAL*8 :: SWHR_cnt = 0.d0
+      REAL*8 :: LWHR_cnt = 0.d0
+!@var swu_avg,swu_cnt -- upward shortwave fluxes at srf for SUBDD (C/d)
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: swu_avg
+      REAL*8 :: swu_cnt = 0.d0
+#endif
 #ifdef TRACERS_ON
 !@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
@@ -268,6 +280,10 @@ C**** Local variables initialised in init_RAD
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI
+#ifdef mjo_subdd
+     *     ,SWHR_cnt,LWHR_cnt,SWHR,LWHR,OLR_acc,OLR_cnt
+     *     ,swu_avg,swu_cnt
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,ttausv_ntrace,maxNtraceFastj
 #endif
@@ -331,6 +347,12 @@ C**** Local variables initialised in init_RAD
      *     ALB(I_0H:I_1H, J_0H:J_1H, 9),
      &     srnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
      &     trnflb_save(I_0H:I_1H,J_0H:J_1H,Lm),
+#ifdef mjo_subdd
+     *     OLR_acc(I_0H:I_1H,J_0H:J_1H),
+     *     SWHR(I_0H:I_1H,J_0H:J_1H,Lm),
+     *     LWHR(I_0H:I_1H,J_0H:J_1H,Lm),
+     *     swu_avg(I_0H:I_1H,J_0H:J_1H),
+#endif
 #ifdef TRACERS_ON
      &     ttausv_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
      &     ttausv_cs_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
@@ -351,6 +373,16 @@ C**** Local variables initialised in init_RAD
 #endif
      *     STAT=IER)
 
+#ifdef mjo_subdd
+      OLR_acc=0.
+      OLR_cnt=0.
+      SWHR=0.
+      LWHR=0.
+      SWHR_cnt=0.
+      LWHR_cnt=0.
+      swu_avg=0.
+      swu_cnt=0.
+#endif
       KLIQ = 1
       dH2O = 0.
       SALB => ALB(:,:,1)
