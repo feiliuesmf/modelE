@@ -317,6 +317,9 @@ C****
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
+#ifdef etc_subdd
+     &   ,TTROPO  
+#endif
       USE DOMAIN_DECOMP_ATM, Only : grid, GET
       IMPLICIT NONE
       INTEGER I,J,L,IERR
@@ -343,14 +346,23 @@ C**** Find WMO Definition of Tropopause to Nearest L
         IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
         AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
+#ifdef etc_subdd
+        TTROPO(I,J)=TL(LTROPO(I,J))  ! extra subdaily
+#endif
       end do
       end do
 !$OMP  END PARALLEL DO
       IF (have_south_pole) THEN
+#ifdef etc_subdd
+        TTROPO(2:IM,1) = TTROPO(1,1)  ! extra subdaily
+#endif
         PTROPO(2:IM,1) = PTROPO(1,1)
         LTROPO(2:IM,1) = LTROPO(1,1)
       END IF
       IF (have_north_pole) THEN
+#ifdef etc_subdd
+        TTROPO(2:IM,1) = TTROPO(1,1)  ! extra subdaily
+#endif
         PTROPO(2:IM,JM)= PTROPO(1,JM)
         LTROPO(2:IM,JM)= LTROPO(1,JM)
       END IF
