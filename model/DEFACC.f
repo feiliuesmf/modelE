@@ -5806,8 +5806,8 @@ CC    Written out 3D latent heating profiles
       IJL_LLH=k
       name_ijl(k) = 'LLH'
       lname_ijl(k) = 'Heating by Large Scale Condensation'
-      units_ijl(k) = 'W/(m^2*mb)'
-      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      units_ijl(k) = 'C/d'
+      scale_ijl(k) = 86400./DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5815,8 +5815,8 @@ c
       IJL_MCTLH=k
       name_ijl(k) = 'CTLH'
       lname_ijl(k) = 'Heating by Moist Convection'
-      units_ijl(k) = 'W/(m^2*mb)'
-      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      units_ijl(k) = 'C/d'
+      scale_ijl(k) = 86400./DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5824,8 +5824,8 @@ c
       IJL_MCDLH=k
       name_ijl(k) = 'CDLH'
       lname_ijl(k) = 'Heating by Deep Convection'
-      units_ijl(k) = 'W/(m^2*mb)'
-      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      units_ijl(k) = 'C/d'
+      scale_ijl(k) = 86400./DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5833,8 +5833,8 @@ c
       IJL_MCSLH=k
       name_ijl(k) = 'CSLH'
       lname_ijl(k) = 'Heating by Shallow Convection'
-      units_ijl(k) = 'W/(m^2*mb)'
-      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      units_ijl(k) = 'C/d'
+      scale_ijl(k) = 86400./DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 
