@@ -3732,6 +3732,7 @@ C****
       ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
   340 CONTINUE
 
+      chem_out(:,4)=ULGAS(:,7) ! climatological CH4 saved for chemistry
       if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
      * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
 
@@ -3755,7 +3756,7 @@ C****
       chem_out(:,1)=ULGAS(:,3)              ! O3
 C     chem_out(:,2)= _________              ! set in RCOMPX
       chem_out(:,3)=ULGAS(:,6)              ! N2O
-      chem_out(:,4)=ULGAS(:,7)              ! CH4
+C     chem_out(:,4)=ULGAS(:,7) ! CH4 (moved above before tracer option)
       chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
 
 C-----------------
