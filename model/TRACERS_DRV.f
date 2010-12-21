@@ -7396,7 +7396,7 @@ c
         lname_ijts(k) = 'OCEAN FRACTION'
         units_ijts(k) = '%'
         sname_ijts(k) = 'ocnfr'
-        ia_ijts(k) = ia_srf     ! ia_ij(ij_pocean) is not initialized yet :(
+        ia_ijts(k) = ia_src     ! ia_ij(ij_pocean) is not initialized yet :(
         scale_ijts(k) = 100.
         ijts_HasArea(k) = .false.
       endif
