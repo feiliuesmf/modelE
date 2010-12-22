@@ -308,6 +308,7 @@ check_stop_reque.xxx  to stop/requeue the jobs in prod_runs/xxx.runs if needed
 bkup.xxx              to backup all new files to dirac
 scr_rsf.xxx           keep only the 1JAN and the last 12 rsfs       (x0 see PPD)
                       keep 1 1JAN/decade and the last 12 rsfs       (x  see PPD)
+mv_rsf.xxx            move all rsfs to $ARCHIVE/discover/runID
 do_ann.xxx            create ann acc/PRT-files and key ann.glob.mean.lists   (a)
                              and monthly global mean series                 (ma)
 add_ocn_lpl           add some ocean related ann.glob.mean.lists            (oa)
@@ -334,7 +335,7 @@ To use any of these utilities, do in ...../giss/exec
       Suggestions:
   execute check_stop_reque.xxx every hour
   execute bkup.xxx  once a day
-  execute scr_rsf.xxx  often enough to stay within your quota (100 GB is not much !!)
+  execute mv_rsf.xxx  often enough to stay within your quota 
   /home/rruedy/cronrar is what I currently use
 
 If staying within 100 GB is a real hardship, you might consider asking support
@@ -366,3 +367,6 @@ IMPORTANT: on Discover nodes, it is necessary to set
 "ulimit -v unlimited" before running pigz.
 If "-p n" is omitted, pigz will try to detect the number of cores
 available on a node, and uses 8 threads if unsuccessful.
+
+Note: Do not use pigz on login nodes, but start e.g. with "qsubI"
+      to get to a compute node.
