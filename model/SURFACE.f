@@ -12,6 +12,9 @@ C****
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows,grav,syr
+#ifdef mjo_subdd
+     *     ,undef
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,By3
@@ -20,6 +23,9 @@ C****
      *     ,idacc,ndasf,fland,flice,focean
      *     ,nday,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+#ifdef mjo_subdd
+     *     ,lm
+#endif
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
@@ -27,6 +33,9 @@ C****
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
+#ifdef mjo_subdd
+     *    ,phi,sda
+#endif
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef SCM
       USE SCMDIAG, only : EVPFLX,SHFLX
@@ -66,6 +75,13 @@ C****
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
      *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx, ij_silwu, ij_silwd
      *     ,ij_sish ,ij_popwat
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *     ,qlat_avg,pblht_acc
+#endif
+#ifdef mjo_subdd
+     *     ,PW_acc, E_acc, qsen_avg,sst_avg,p_avg,lwu_avg
+     *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
+#endif
 #ifndef NO_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
@@ -89,6 +105,9 @@ C****
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
       USE LAKES_COM, only : mwl,gml,flake
       USE LAKES, only : minmld
+#ifdef mjo_subdd
+      USE GHY_COM, only : FEARTH
+#endif
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
@@ -172,6 +191,9 @@ C****
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
      *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,EVAPLIM,F2
      *     ,FSRI(2),HTLIM,dlwdt,byNIsurf,TGO
+#ifdef mjo_subdd
+     *     ,PEARTH
+#endif
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1178,6 +1200,10 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHEAT*DTSURF+TRHDT+SHDT
      *       +EVHDT)*PTYPE
         AIJ(I,J,IJ_EVAP)=AIJ(I,J,IJ_EVAP)+EVAP*PTYPE
+#ifdef mjo_subdd
+C**** SUBDD E_acc for evaporation *** 
+        E_acc(I,J)=E_acc(I,J)+EVAP*PTYPE
+#endif
         IF(MODDSF.EQ.0) THEN
           AIJ(I,J,IJ_WS)=AIJ(I,J,IJ_WS)+WS*PTYPE
           AIJ(I,J,IJ_TS)=AIJ(I,J,IJ_TS)+(TS-TF)*PTYPE
@@ -1190,6 +1216,10 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_RHs)=AIJ(I,J,IJ_RHs)+QSRF*PTYPE/qsat(ts,elhx,ps)
           AIJ(I,J,IJ_TG1)=AIJ(I,J,IJ_TG1)+TG1*PTYPE
           AIJ(I,J,IJ_PBLHT)=AIJ(I,J,IJ_PBLHT)+pbl_args%dbl*PTYPE
+#if (defined mjo_subdd) || (defined etc_subdd)
+C**** SUBDD qblht_acc for PBL height *** YH Chen ***
+          pblht_acc(I,J)=pblht_acc(I,J)+pbl_args%dbl*PTYPE
+#endif
           if(DDMS(I,J).lt.0.) ! ddms < 0 for down draft
      *         AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
           AIJ(I,J,IJ_GUSTI)=AIJ(I,J,IJ_GUSTI)+pbl_args%gusti*PTYPE
@@ -1514,6 +1544,14 @@ c****   retrieve fluxes
         P1K=PK(1,I,J)
         tflux1(i,j)=-dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
         qflux1(i,j)=-dq1(i,j)*AM(1,I,J)/(dtsurf)
+#if (defined mjo_subdd) || (defined etc_subdd)
+C**** SUBDD qlat_avg for latent heat flux ***
+        qlat_avg(i,j)=qlat_avg(i,j)+qflux1(i,j)
+#endif
+#ifdef mjo_subdd
+C**** SUBDD qsen_avg for sensible, latent heat flux ***
+        qsen_avg(i,j)=qsen_avg(i,j)+tflux1(i,j)
+#endif
 C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
@@ -1561,6 +1599,44 @@ C**** For distributed implementation - ensure point is on local process.
       END IF
 C****
       END DO   ! end of surface time step
+
+#ifdef mjo_subdd
+C**** Accumulate subdaily precipitable water (kg/m^2) PW_acc ***
+C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        PW_acc(I,J)=PW_acc(I,J)+SUM(Q(I,J,:)*AM(:,I,J))
+        p_avg(I,J)=p_avg(I,J)+P(I,J)
+        if (FOCEAN(I,J).gt.0) then
+          sst_avg(i,j)=sst_avg(i,j)+GTEMP(1,1,i,j)
+        else
+          sst_avg(i,j)=undef
+        end if
+        PLAND=FLAND(I,J)
+        PWATER=1.-PLAND
+        POICE=RSI(I,J)*PWATER
+        POCEAN=PWATER-POICE
+        PEARTH=FEARTH(I,J)
+        PLICE=FLICE(I,J)
+        lwu_avg(i,j)=lwu_avg(i,j)+STBO*(POCEAN*GTEMPR(1,I,J)**4+
+     &         POICE *GTEMPR(2,I,J)**4+PLICE*GTEMPR(3,I,J)**4+
+     &         PEARTH*GTEMPR(4,I,J)**4)
+C**** Accumulate 3D subdaily quantities
+       DO K=1,LM
+        u_avg(I,J,K)=u_avg(I,J,K)+u(I,J,K)
+        v_avg(I,J,K)=v_avg(I,J,K)+v(I,J,K)
+        IF (K < LM) THEN
+          w_avg(I,J,K)=w_avg(I,J,K)+sda(I,J,K)*byaxyp(I,J)
+        END IF
+        t_avg(I,J,K)=t_avg(I,J,K)+t(I,J,K)*pk(K,I,J)
+        q_avg(I,J,K)=q_avg(I,J,K)+q(I,J,K)
+        r_avg(I,J,K)=r_avg(I,J,K)+q(I,J,K)/
+     &      qsat(t(I,J,K)*pk(K,I,J),lhe,pmid(K,I,J))
+        z_avg(I,J,K)=z_avg(I,J,K)+phi(I,J,K)*bygrav
+       END DO
+      END DO
+      END DO
+#endif
 
       call stopTimer('SURFCE()')
 
