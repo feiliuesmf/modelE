@@ -2957,6 +2957,9 @@ c for sulfur chemistry
       REAL*8,dimension(mkx)     :: tk0,qk0,pk0,w0,v0,r0,rablk
       REAL*8,dimension(mkx)     :: tk0new,qk0new
       REAL*8,dimension(mkx)     :: ndrop,mdrop,ncrys,mcrys
+      REAL*8,dimension(mkx)     :: nrain,mrain,mtau,rtau,ctau,dtau
+      REAL*8                    :: qrArray(5),row,mr0,piby6
+      REAL*8,dimension(mkx)     :: vrain
       REAL*8,dimension(mkx)     :: ndrop_old,mdrop_old
       REAL*8,dimension(mkx)     :: ndrop_new,mdrop_new
       REAL*8,dimension(mkx)     :: ndrop_blk,mdrop_blk
@@ -3423,6 +3426,20 @@ C Set thermodynamics
        v0=WTURB(L) !; v0=w3d(k,i,j) ! Sub-grid velocity, [m/s]
        r0=0.0  !RDTNDL(L)        ! tendency due to radiation, [K/s], not needed
 c      print*,"rad tendency",w0,v0,r0,L
+       piby6=4.*atan(1.0)/6.0; row=1.e+03
+       qrArray(1)=842.0e+00                      ! [m^(1-b)s]
+       qrArray(2)=  0.8e+00                      ! [unitless]
+       qrArray(3)=500.0e-06                      ! assumed mean rain diameter [m]
+       qrArray(4)=piby6*row*qrArray(3)**3        ! mean rain mass [kg]
+       qrArray(5)=1000.0e-06                     ! assumed rain conc [No/m^3]
+c      write(ou,*) 'k,   prebar(k)   vrain(k)    mrain(k)    nrain(k)'
+       vrain=min(qrArray(1)*qrArray(3)**qrArray(2),9.2)  ! [m/s]
+c      write(6,*)"VRAIN",vrain,l
+       mrain=100.d0*prebar(L)/vrain             ! [kq/m^3]
+       nrain=mrain/qrArray(4)                ! [No/m^3]
+       RHO=1d5*PL(L)/(RGAS*TL(L))
+       mrain=1.d3*mrain/RHO                  !kg water/kg air
+       nrain=1.d3*nrain/RHO                  !number/kg air
        ldummy=execute_bulk2m_driver('all'
      *           ,tk0,qk0,pk0,w0,v0,r0)
 c Set microphysics
@@ -3455,11 +3472,12 @@ c       if(nactc(l,nm).gt.1.)write(6,*)"Callmatrix",naero(mkx,nm)*1.e-6
 c        endif
         enddo
        ldummy=execute_bulk2m_driver('all'
-     *           ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end')
+     *           ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end',qr0=mrain,
+     *nr0=nrain)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
        ldummy=execute_bulk2m_driver('all'
-     *           ,ndrop,mdrop,ncrys,mcrys,'end')
+     *           ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
 #endif
 c Make calls to calculate hydrometeors' growth rates due to microphysical
 c processes
@@ -3481,7 +3499,9 @@ C*** Using the AMP_actv interface from MATRIX
         ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
 #endif
 c Droplets' autoconversion: Beheng (concentration and content)
-        ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
+c       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
+c Droplets' autoconversion: Seifert and Beheng (concentration and content)
+        ldummy=execute_bulk2m_driver('beheng','drop_auto',dtB2M,mkx)
 c Freezing of cloud droplets (contact and immersion)
         ldummy=execute_bulk2m_driver('hugh','drop_frzn',dtB2M,mkx)
 c Crystal nucleation: Ncrys=anuc(k)*wef**bnuc(k)
@@ -3956,10 +3976,15 @@ CC#ifdef CLD_AER_CDNC
 C** Choice of 2 different routines to get the autoconversion rate
 CC#ifdef BLK_2MOM
 C*** using an alternate QAUT definition based on Beheng (1994)
-CC        CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-CC     *     PRECNVL(L+1)*BYDTsrc)
-c     if (QAUT_B2M.lt.0.) write(6,*)"QAUT BLK_2M",QAUT_B2M,CM,WMX(L),L
+CC    if(FCLD.gt.teeny) then
+CC      CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
+CC   *  PRECNVL(L+1)*BYDTsrc)
+c       if (QAUT_B2M.lt.0.) write(6,*)"QAUT BLK_2M",QAUT_B2M,CM,WMX(L),L
 c       if(L.eq.1) write(6,*)"4th check BLK_2M",CM,QAUT_B2M,WMX(L)
+CC      if(CM.gt.1.d-03) CM=1.d-03
+CC    else
+CC      CM=0.d0
+CC    endif
 CC#else
 C** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
 CC         WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
