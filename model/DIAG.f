@@ -1229,6 +1229,13 @@ C****
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *     ,qlat_avg,pblht_acc
+#endif
+#ifdef mjo_subdd
+     *     ,E_acc,PW_acc,p_avg,qsen_avg,sst_avg,lwu_avg
+     *     ,u_avg,v_avg,w_avg,t_avg,r_avg,q_avg,z_avg
+#endif  
 #ifdef TES_LIKE_DIAGS
      *                    ,kgz_max_more,pmnamemore
 #endif
@@ -1401,6 +1408,28 @@ C**** define lst
       end do
 
 C**** initialise special subdd accumulation
+#if (defined mjo_subdd) || (defined etc_subdd)
+      P_acc=0.
+      PM_acc=0.
+      pblht_acc=0.
+      qlat_avg=0.
+#endif
+#ifdef mjo_subdd
+      E_acc=0.
+      PW_acc=0.
+      p_avg=0.
+      qsen_avg=0.
+      sst_avg=0.
+      lwu_avg=0.
+      bekeg=0.
+      u_avg=0.
+      v_avg=0.
+      w_avg=0.
+      t_avg=0.
+      r_avg=0.
+      q_avg=0.
+      z_avg=0.
+#endif
 #ifdef TRACERS_COSMO
       BE7W_acc=0.
       BE7D_acc=0.
@@ -1464,6 +1493,17 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
      *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
             end do
           case ("T", "Q", ! temps, spec hum PMB levels
+#if (defined ttc_subdd) || (defined etc_subdd)
+     &        "u","v", !u,v
+#endif
+#ifdef ttc_subdd
+     &        "a", !vorticity(a)
+#endif
+#ifdef etc_subdd
+     &        "w","I","F", !omega(w),convective cloud(I),stratiform cloud(F)
+     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E),shallow conv(S)
+     &        "K",             !baroclinic Eddy kinetic energy generation
+#endif
      &          "O", "X", "M", "N")! Ox, NOx, CO, NO2
 #ifdef TES_LIKE_DIAGS
             kunit=kunit+1
@@ -1581,6 +1621,9 @@ c get_subdd
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
 !@+                    7BEW, 7BED, BE7ATM
+!@+                    LWC,IWC,TLH,SLH,DLH,LLH,OLR,PW,EVP,PBH   ! mjo_subdd
+!@+                    SWH,LWH,TDRY,DDRY,SDRY,LDRY              ! mjo_subdd
+!@+                    LWP,IWP,TTRO,PBLH   ! additional etc_subdd
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC,MCCTP
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
@@ -1612,9 +1655,21 @@ c get_subdd
      *     ,lhe,rhow,undef,stbo,bysha
       USE MODEL_COM, only : lm,p,ptop,zatmo,u,v,focean,flice,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
+#ifdef ttc_subdd
+     *                ,cosu,sinu,dxv,dyp,bydxyp
+#endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
      *           ,svlat,svlhx
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *              ,TLH3D,LLH3D,SLH3D,DLH3D
+#endif
+#ifdef mjo_subdd
+     *              ,CLWC3D,CIWC3D,TMCDRY,DMCDRY,SMCDRY,LSCDRY
+#endif
+#ifdef etc_subdd
+     *              ,LWP2D,IWP2D
+#endif
 #ifdef CLD_AER_CDNC
      *           ,cdn3d,cre3d,clwp
 #endif
@@ -1622,6 +1677,12 @@ c get_subdd
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
       USE DYNAMICS, only : ptropo,am,byam,wsave,pk,phi,pmid
+#if (defined ttc_subdd) || (defined etc_subdd)
+     *     ,pedn
+#endif
+#ifdef etc_subdd
+     *     ,TTROPO
+#endif
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
      *     ,gtemp,gtempr
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1637,6 +1698,10 @@ c get_subdd
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srhr,srdn,salb,cfrac,cosz1
      &     ,tausumw,tausumi
+#ifdef mjo_subdd
+     &   ,OLR_acc,OLR_cnt,SWHR,LWHR,SWHR_cnt,LWHR_cnt
+     &   ,swu_avg,swu_cnt
+#endif
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
@@ -1644,6 +1709,23 @@ c get_subdd
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
      * ,saveSCLDI,saveTCLDI,saveMCCLDTP
+#if (defined ttc_subdd) || (defined etc_subdd)
+     * ,u_inst,v_inst
+#endif
+#ifdef ttc_subdd
+     * ,vt_inst
+#endif
+#ifdef etc_subdd
+     * ,omg_inst,bekeg,bekeg_inst
+     * ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
+#endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+     * ,qlat_avg,pblht_acc
+#endif
+#ifdef mjo_subdd
+     * ,E_acc,PW_acc,p_avg,qsen_avg,sst_avg,lwu_avg
+     * ,u_avg,v_avg,w_avg,t_avg,r_avg,q_avg,z_avg
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
      * ,o_inst,n_inst,m_inst,x_inst
 #endif
@@ -1682,6 +1764,9 @@ c get_subdd
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+#if (defined ttc_subdd) || (defined etc_subdd)
+      CALL SUBDIAGS_FIXED_PRESS
+#endif
       kunit=0
 C**** depending on namedd string choose what variables to output
       nameloop: do k=1,kdd
@@ -1704,6 +1789,12 @@ C**** simple diags (one record per file)
           end do
         case ("PS")             ! surface pressure (mb)
           datar8=p+ptop
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+          datar8=p_avg/Nsubdd+ptop ! average over subdaily period
+          p_avg=0.
+          qinstant = .false.
+#endif
             units_of_data = '10^2 Pa'
             long_name = 'Surface Pressure'
         case ("SAT")            ! surf. air temp (C)
@@ -1728,6 +1819,12 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+          datar8=sst_avg/Nsubdd
+          sst_avg=0.
+          qinstant = .false.
+#endif
           units_of_data = 'C'
           long_name = 'Sea Surface Temperature'
         case ("SIT")       ! surface sea/lake ice temp (C)
@@ -1896,6 +1993,48 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'mm/day'
           long_name = 'Moist Convective Precipitation'
           qinstant = .false.
+#if (defined mjo_subdd) || (defined etc_subdd)
+        case ("PBH")             !  PBL height (m)
+          datar8=pblht_acc/Nsubdd
+          pblht_acc=0.
+          units_of_data = 'm'
+          long_name = 'PBL Height'
+#endif
+#ifdef mjo_subdd
+        case ("EVP")           ! evaporation (mm/day)
+          datar8=sday*E_acc/(Nsubdd*dtsrc)
+          E_acc=0.
+          units_of_data = 'mm/day'
+          long_name = 'Evaporation'
+          qinstant = .false.
+        case ("PW")             ! precipitable water (kg/m^2)
+          datar8=PW_acc/Nsubdd
+          PW_acc=0.
+          units_of_data = 'kg/m^2'
+          long_name = 'Precipitable water'
+          qinstant = .false.
+        case ("OLR")           ! OLR (W/m^2)
+          datar8=OLR_acc/OLR_cnt ! average over Nsubdd steps
+          OLR_acc=0.
+          OLR_cnt=0.
+          units_of_data = 'W/m^2'
+          long_name = 'Outgoing Longwave Radiation at TOA'
+          qinstant = .false.
+#endif
+#ifdef etc_subdd 
+        case ("LWP")             !LWP (kg m-2)
+          datar8=LWP2D
+          LWP2D(:,:)=0.
+          units_of_data = 'kg/m^2'
+          long_name = 'Liquid Water Path'
+          qinstant = .false.
+        case ("IWP")             !IWP (kg m-2)
+          datar8=IWP2D
+          IWP2D(:,:)=0.
+          units_of_data = 'kg/m^2'
+          long_name = 'Ice Water Path'
+          qinstant = .false.
+#endif
 #ifdef TRACERS_WATER
         case ("TRP1")
           datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
@@ -1957,10 +2096,28 @@ c          datar8=sday*prec/dtsrc
           long_name = 'Snow Cover'
         case ("QLAT")           ! latent heat (W/m^2)
           datar8=qflux1*lhe
+#ifdef mjo_subdd
+C**** averaging mode ***
+          datar8=qlat_avg/Nsubdd*lhe ! accumulate over Nsubdd steps
+          qlat_avg=0.
+          qinstant = .false.
+#endif
+#ifdef etc_subdd
+C**** accumulating mode ***
+          datar8=qlat_avg*lhe ! average over Nsubdd steps
+          qlat_avg=0.
+          qinstant = .false.
+#endif
           units_of_data = 'W/m^2'
           long_name = 'Latent Heat'
         case ("QSEN")           ! sensible heat flux (W/m^2)
           datar8=tflux1*sha
+#ifdef mjo_subdd
+C**** averaging mode ***
+          datar8=qsen_avg/Nsubdd*sha ! average over Nsubdd steps
+          qsen_avg=0.
+          qinstant = .false.
+#endif
           units_of_data = 'W/m^2'
           long_name = 'Sensible Heat Flux'
         case ("SWD")            ! solar downward flux at surface (W/m^2)
@@ -1970,6 +2127,13 @@ c          datar8=sday*prec/dtsrc
         case ("SWU")            ! solar upward flux at surface (W/m^2)
 ! estimating this from the downward x albedo, since that's already saved
           datar8=srdn*(1.-salb)*cosz1
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+          datar8=swu_avg/swu_cnt   ! mean over subdaily period
+          swu_avg=0.
+          swu_cnt=0.
+          qinstant = .false.
+#endif
           units_of_data = 'W/m^2'
           long_name = 'Solar Upward Flux at Surface'
         case ("LWD")            ! LW downward flux at surface (W/m^2)
@@ -1988,6 +2152,12 @@ c          datar8=sday*prec/dtsrc
      *             PEARTH*GTEMPR(4,I,J)**4)
             end do
           end do
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+          datar8=lwu_avg/Nsubdd   ! mean over subdaily period
+          lwu_avg=0.
+          qinstant = .false.
+#endif
           units_of_data = 'W/m^2'
           long_name = 'Longwave Upward Flux at Surface'
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
@@ -2069,7 +2239,12 @@ c          datar8=sday*prec/dtsrc
           datar8 = ptropo
           units_of_data = '10^2 Pa'
           long_name = 'Tropopause Pressure'
-
+#ifdef etc_subdd
+        case ("TTRO")           ! tropopause pressure (mb)
+          datar8 = TTROPO
+          units_of_data = 'K'
+          long_name = 'Tropopause Temperature'
+#endif
 ! attempting here {L,M,H}CLDI,CTPI,TAUI,TCLDI (ISCCP quantities):
 ! please use critically:
         case ("HCLDI")      ! HIGH LEVEL CLOUDINESS (ISCCP)
@@ -2365,6 +2540,17 @@ C**** diags on soil levels
 C**** diags on fixed pressure levels or velocity
         select case (namedd(k)(1:1))
         case ("Z","R","T","Q",  ! heights, rel/spec humidity or temp
+#if (defined ttc_subdd) || (defined etc_subdd)
+     &        "u","v", !u,v
+#endif
+#ifdef ttc_subdd
+     &        "a", !vorticity(a)
+#endif
+#ifdef etc_subdd
+     &        "w","I","F", !omega(w),convective cloud(I),stratiform cloud(F)
+     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E),shallow conv(S)
+     &        "K",             !baroclinic eddy kinetic energy generation 
+#endif
      &        "O","X","M","N")  ! Ox, NOx, CO, NO2
 C**** get pressure level
           do kp=1,kgz_max
@@ -2395,6 +2581,56 @@ C**** get pressure level
                 datar8=t_inst(kp,:,:)
                 units_of_data = 'C'
                 long_name = 'Temperature at '//trim(PMNAME(kp))//' hPa'
+#if (defined ttc_subdd) || (defined etc_subdd)
+              case ("u")
+                datar8=u_inst(kp,:,:)
+                units_of_data = 'm/s'
+                long_name = 'u at '//trim(PMNAME(kp))//' hPa'
+              case ("v")
+                datar8=v_inst(kp,:,:)
+                units_of_data = 'm/s'
+                long_name = 'v at '//trim(PMNAME(kp))//' hPa'
+#endif
+#ifdef ttc_subdd
+              case ("a")
+                datar8=vt_inst(kp,:,:)
+                units_of_data = '1/s'
+                long_name = 'vorticity at '//trim(PMNAME(kp))//' hPa'
+#endif
+#ifdef etc_subdd
+              case ("w")
+                datar8=omg_inst(kp,:,:)
+                units_of_data = 'mb/s'
+                long_name = 'omega at '//trim(PMNAME(kp))//' hPa'
+              case ("I")
+                datar8=cldmc_inst(kp,:,:)
+                units_of_data = 'percent'
+              long_name = 'conv. cloud  at '//trim(PMNAME(kp))//' hPa'
+              case ("F")
+                datar8=cldss_inst(kp,:,:)
+                units_of_data = 'percent'
+            long_name = 'stratiform cld at '//trim(PMNAME(kp))//' hPa'
+              case ("H")
+                datar8=tlh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'TMCLH at '//trim(PMNAME(kp))//' hPa'
+              case ("L")
+                datar8=llh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'LLH at '//trim(PMNAME(kp))//' hPa'
+              case ("E")
+                datar8=dlh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'DLH at '//trim(PMNAME(kp))//' hPa'
+              case ("S")
+                datar8=slh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'SLH at '//trim(PMNAME(kp))//' hPa'
+              case ("K")
+                datar8=bekeg_inst(kp,:,:)
+                units_of_data = 'W/m^2'
+                long_name = 'BEKEG at '//trim(PMNAME(kp))//' hPa'
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=O_inst(kp,:,:)
@@ -2500,6 +2736,56 @@ C**** get pressure level
                 datar8=t_inst(kp,:,:)
                 units_of_data = 'C'
                 long_name = 'Temperature'
+#if (defined ttc_subdd) || (defined etc_subdd)
+              case ("u")
+                datar8=u_inst(kp,:,:)
+                units_of_data = 'm/s'
+                long_name = 'u '
+              case ("v")
+                datar8=v_inst(kp,:,:)
+                units_of_data = 'm/s'
+                long_name = 'v '
+#endif
+#ifdef ttc_subdd
+              case ("a")
+                datar8=vt_inst(kp,:,:)
+                units_of_data = '1/s'
+                long_name = 'vorticity '
+#endif
+#ifdef ttc_etc_subdd
+              case ("w")
+                datar8=omg_inst(kp,:,:)
+                units_of_data = 'mb/s'
+                long_name = 'omegaa '
+              case ("I")
+                datar8=cldmc_inst(kp,:,:)
+                units_of_data = 'percent'
+                long_name = 'conv. cloud '
+              case ("F")
+                datar8=cldss_inst(kp,:,:)
+                units_of_data = 'percent'
+                long_name = 'stratiform cld '
+              case ("H")
+                datar8=tlh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'TMCLH '
+              case ("L")
+                datar8=llh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'LLH '
+              case ("E")
+                datar8=dlh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'DLH '
+              case ("S")
+                datar8=slh_inst(kp,:,:)
+                units_of_data = 'K/day'
+                long_name = 'SLH '
+              case ("K")
+                datar8=bekeg_inst(kp,:,:)
+                units_of_data = 'W/m^2'
+                long_name = 'BEKEG at '//trim(PMNAME(kp))//' hPa'
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
               case ("O")        ! Ox  tracer (ppmv)
                 datar8=o_inst(kp,:,:) 
@@ -2549,6 +2835,16 @@ C**** diagnostics on model levels
      &          t(1,jm,kp)*pk(kp,1,jm)-tf
                 datar8(:,J_0S:J_1S)=
      &          t(:,J_0S:J_1S,kp)*pk(kp,:,J_0S:J_1S)-tf
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+                if(have_south_pole) datar8(1:im,1)=
+     &            t_avg(1,1,kp)/Nsubdd-tf
+                if(have_north_pole) datar8(1:im,jm)=
+     &            t_avg(1,jm,kp)/Nsubdd-tf
+                datar8(:,J_0S:J_1S)=
+     &            t_avg(:,J_0S:J_1S,kp)/Nsubdd-tf
+                t_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'C'
                 long_name = 'Temperature'
               case ("r")        ! relative humidity
@@ -2560,30 +2856,65 @@ C**** diagnostics on model levels
                   datar8(i,j)=q(i,j,kp)/qsat(t(i,j,kp)*pk(kp,i,j),
      &            lhe,pmid(kp,i,j))*100.d0
                 enddo         ; enddo
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+              if(have_north_pole) datar8(1:im,jm)=r_avg(1,jm,kp)/Nsubdd
+                datar8(:,J_0S:J_1S)=r_avg(:,J_0S:J_1S,kp)/Nsubdd
+                r_avg(:,:,kp)=0.
+#endif
                 units_of_data = '%'
                 long_name = 'Relative Humidity'
               case ("q")        ! specific humidity
                 if(have_south_pole) datar8(1:im, 1)=q(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=q(1,jm,kp)
                 datar8(:,J_0S:J_1S)=q(:,J_0S:J_1S,kp)
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+                if(have_south_pole) datar8(1:im,1)=q_avg(1,1,kp)/Nsubdd
+              if(have_north_pole) datar8(1:im,jm)=q_avg(1,jm,kp)/Nsubdd
+                datar8(:,J_0S:J_1S)=q_avg(:,J_0S:J_1S,kp)/Nsubdd
+                q_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'kg/kg'
                 long_name = 'Specific Humidity'
               case ("z")        ! geopotential height
                 if(have_south_pole) datar8(1:im, 1)=phi(1, 1,kp)
                 if(have_north_pole) datar8(1:im,jm)=phi(1,jm,kp)
                 datar8(:,J_0S:J_1S)=phi(:,J_0S:J_1S,kp)
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+                if(have_south_pole) datar8(1:im,1)=z_avg(1,1,kp)/Nsubdd
+              if(have_north_pole) datar8(1:im,jm)=z_avg(1,jm,kp)/Nsubdd
+                datar8(:,J_0S:J_1S)=z_avg(:,J_0S:J_1S,kp)/Nsubdd
+                z_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'm'
               case ("U")        ! E-W velocity
                 datar8=u(:,:,kp)
+#ifdef mjo_subdd
+C**** accumulating/averaging mode
+                datar8=u_avg(:,:,kp)/Nsubdd
+                u_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'm/s'
                 long_name = 'U-Velocity'
               case ("V")        ! N-S velocity
                 datar8=v(:,:,kp)
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+                datar8=v_avg(:,:,kp)/Nsubdd
+                v_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'm/s'
                 long_name = 'V-Velocity'
               case ("W")        ! vertical velocity
                 if(kp<lm) then
                   datar8=wsave(:,:,kp)
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+                  datar8=w_avg(:,:,kp)/(DTsrc*Nsubdd)
+                  w_avg(:,:,kp)=0.
+#endif
                 units_of_data = 'Pa/s'
                 long_name = 'Vertical Velocity'
                 else
@@ -2802,6 +3133,10 @@ C**** cases using all levels up to LmaxSUBDD
           case ("SO2", "SO4", "SO4_d1", "SO4_d2", "SO4_d3", "Clay",
      *         "Silt1", "Silt2", "Silt3", "CTEM", "CL3D", "CI3D", "CD3D"
      *         , "CLDSS", "CLDMC", "CDN3D", "CRE3D", "TAUSS", "TAUMC",
+#ifdef mjo_subdd
+     *         "LWC","IWC","TLH","SLH","DLH","LLH",
+     *         "SWH","LWH","TDRY","SDRY","DDRY","LDRY",
+#endif
      *         "RADHEAT","CLWP","itAOD","ictAOD","itAAOD")
           kunit=kunit+1
           do l=1,LmaxSUBDD
@@ -2843,6 +3178,71 @@ c***** "instantaneous" is a relative term.)
               long_name = 'Total All Sky Aerosol Optical Depth'
 #endif /*TRACERS_ON*/
 
+#ifdef mjo_subdd
+C**** accumulating/averaging mode ***
+            case ("LWC")
+              datar8(:,:)=CLWC3D(l,:,:)/Nsubdd
+              CLWC3D(l,:,:)=0.
+              units_of_data = 'kg/kg'
+              long_name = 'Cloud liquid water content'
+            case ("IWC")
+              datar8(:,:)=CIWC3D(l,:,:)/Nsubdd
+              CIWC3D(l,:,:)=0.
+              units_of_data = 'kg/kg'
+              long_name = 'Cloud ice water content'
+            case ("TLH")
+              datar8(:,:)=sday*TLH3D(l,:,:)/(Nsubdd*dtsrc)
+              TLH3D(l,:,:)=0.
+              units_of_data = 'K/day'
+              long_name = 'Total Heating by moist. conv.'
+            case ("SLH")
+              datar8(:,:)=sday*SLH3D(l,:,:)/(Nsubdd*dtsrc)
+              SLH3D(l,:,:)=0.
+              units_of_data = 'K/day'
+              long_name = 'Heating by shallow convection'
+            case ("DLH")
+              datar8(:,:)=sday*DLH3D(l,:,:)/(Nsubdd*dtsrc)
+              DLH3D(l,:,:)=0.
+              units_of_data = 'K/day'
+              long_name = 'Heating by deep convection'
+            case ("LLH")
+              datar8(:,:)=sday*LLH3D(l,:,:)/(Nsubdd*dtsrc)
+              LLH3D(l,:,:)=0.
+              units_of_data = 'K/day'
+              long_name = 'Heating by large-scale conden.'
+            case ("TDRY")
+              datar8(:,:)=sday*TMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              TMCDRY(l,:,:)=0.
+              units_of_data = 'kg/kg/day'
+              long_name = 'Total drying by moist. conv.'
+            case ("SDRY")
+              datar8(:,:)=sday*SMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              SMCDRY(l,:,:)=0.
+              units_of_data = 'kg/kg/day'
+              long_name = 'Drying by shallow convection'
+            case ("DDRY")
+              datar8(:,:)=sday*DMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              DMCDRY(l,:,:)=0.
+              units_of_data = 'kg/kg/day'
+              long_name = 'Drying by deep convection'
+            case ("LDRY")
+              datar8(:,:)=sday*LSCDRY(l,:,:)/(Nsubdd*dtsrc)
+              LSCDRY(l,:,:)=0.
+              units_of_data = 'kg/kg/day'
+              long_name = 'Drying by large-scale conden.'
+            case ("SWH")
+              datar8(:,:)=sday*SWHR(:,:,l)/SWHR_cnt
+              SWHR(:,:,l)=0.
+              IF (l.eq.LmaxSUBDD) SWHR_cnt=0.
+              units_of_data = 'K/day'
+              long_name = 'Shortwave Radiative Heating Rate'
+            case ("LWH")
+              datar8(:,:)=sday*LWHR(:,:,l)/LWHR_cnt
+              LWHR(:,:,l)=0.
+              IF (l.eq.LmaxSUBDD) LWHR_cnt=0.
+              units_of_data = 'K/day'
+              long_name = 'Longwave Radiative Heating Rate'
+#endif
 
 #ifdef TRACERS_HETCHEM
             case ("SO2")
@@ -3357,6 +3757,330 @@ C**** this prevents tokens that are not caught from messing up the file data
 c****
       return
       end subroutine get_subdd
+
+#if (defined ttc_subdd) || (defined etc_subdd)
+
+      subroutine subdiags_fixed_press
+!@sum compute subdaily variables at fixed pressure levels
+!@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
+!@+                    u*, v*, a*     (on any fixed pressure level)
+!@+                    G*,I*,F*,H*,L*,E*,S*,K* (on any fixed pressure level)
+!@+
+!@+   More options can be added as extra cases  in this routine
+!@+   Follows logic for geopotential/temperature section in diagA...
+!@auth Yonghua Chen
+      USE CONSTANT, only : undef
+#ifdef etc_subdd
+      USE RESOLUTION, only : PLbot
+#endif
+      USE MODEL_COM, only : jm,lm,p,ptop,u,v
+      USE GEOM, only : imaxj
+#if (defined etc_subdd) || (defined ttc_subdd)
+     *                ,cosu,sinu,dxv,dyp,bydxyp
+#endif
+      USE PBLCOM, only : usavg,vsavg
+#ifdef etc_subdd
+      USE CLOUDS_COM, only : cldss,cldmc
+     *              ,TLH3D,LLH3D,SLH3D,DLH3D
+#endif
+      USE DYNAMICS, only : pedn,pmid
+#ifdef etc_subdd
+     *     ,TTROPO,wsave
+#endif
+      USE DIAG_COM, only : pmb,u_inst,v_inst
+#ifdef ttc_subdd
+           ,vt_inst
+#endif
+#ifdef etc_subdd
+     *     ,omg_inst,bekeg,bekeg_inst
+     *     ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
+#endif
+
+      IMPLICIT NONE
+      REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
+      REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: u_pg,
+     &        v_pg,avt
+#ifdef etc_subdd
+      REAL*8, DIMENSION(LM) :: ppmid
+#endif
+      REAL*8 pfact,pdn,pl
+      LOGICAL qabove
+
+      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
+      REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
+      INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
+      LOGICAL :: polefix,have_south_pole,have_north_pole,skip
+
+      CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
+     &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &               HAVE_SOUTH_POLE=have_south_pole,
+     &               HAVE_NORTH_POLE=have_north_pole)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
+C**** U, V at fixed pressure level
+C**** first put u,v onto primary grid
+          do l=1,lm
+          do j=J_0,J_1
+           if(j.eq.1) then
+             u_pg(2:IM,j,l)=undef
+             v_pg(2:IM,j,l)=undef
+             u_pg(1,j,l)=0.5*(SUM(u(:,j,l)*cosu(:))*2/IM
+     *                       +SUM(v(:,j,l)*sinu(:))*2/IM)
+             v_pg(1,j,l)=0.5*(SUM(v(:,j,l)*cosu(:))*2/IM
+     *                       -SUM(u(:,j,l)*sinu(:))*2/IM)
+           else
+            if(j.eq.JM) then
+             u_pg(2:IM,j,l)=undef
+             v_pg(2:IM,j,l)=undef
+             u_pg(1,j,l)=0.5*(SUM(u(:,j,l)*cosu(:))*2/IM
+     *                       -SUM(v(:,j,l)*sinu(:))*2/IM)
+             v_pg(1,j,l)=0.5*(SUM(v(:,j,l)*cosu(:))*2/IM
+     *                       +SUM(u(:,j,l)*sinu(:))*2/IM)
+            else
+             do i=I_0,imaxj(j)
+              if (i.eq.1) then
+                u_pg(i,j,l)=(u(i,j,l)+u(IM,j,l)+
+     *                     u(i,j+1,l)+u(IM,j+1,l))/4.
+                v_pg(i,j,l)=(v(i,j,l)+v(IM,j,l)+
+     *                     v(i,j+1,l)+v(IM,j+1,l))/4.
+              else
+                u_pg(i,j,l)=(u(i,j,l)+u(i-1,j,l)+
+     *                       u(i,j+1,l)+u(i-1,j+1,l))/4.
+                v_pg(i,j,l)=(v(i,j,l)+v(i-1,j,l)+
+     *                       v(i,j+1,l)+v(i-1,j+1,l))/4.
+              end if
+             end do
+            end if
+           end if
+          end do
+          end do
+C**** interpolate u,v onto fixed pressure level
+         do J=J_0,J_1
+         do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          u_inst(:,i,j) = undef ; v_inst(:,i,j) = undef
+ 1721     L=L+1
+          pdn=pmid(L-1,I,J)
+          pl=pmid(L,I,J)
+          if (PMB(K).lt.pl .AND. L.lt.LM) goto 1721
+ 1741     continue
+          qabove = pmb(k).le.pedn(l-1,i,j)
+          pfact=(PMB(K)-PL)/(PDN-PL)
+          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+           if (j.eq.1.or.j.eq.jm) then
+           u_inst(K,1,J)=u_pg(1,J,1)-(u_pg(1,J,1)-usavg(1,J))*
+     *               (PMB(K)-pmid(1,1,J))/(p(1,J)+ptop-pmid(1,1,J))
+           v_inst(K,1,J)=v_pg(1,J,1)-(v_pg(1,J,1)-vsavg(1,J))*
+     *               (PMB(K)-pmid(1,1,J))/(p(1,J)+ptop-pmid(1,1,J))
+           else
+           u_inst(K,I,J)=u_pg(I,J,1)-(u_pg(I,J,1)-usavg(I,J))*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+           v_inst(K,I,J)=v_pg(I,J,1)-(v_pg(I,J,1)-vsavg(I,J))*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+           end if
+          else
+           if (qabove) then
+            if (j.eq.1.or.j.eq.jm) then
+            u_inst(K,1,J)=u_pg(1,J,L)+(u_pg(1,J,L-1)-u_pg(1,J,L))*pfact
+            v_inst(K,1,J)=v_pg(1,J,L)+(v_pg(1,J,L-1)-v_pg(1,J,L))*pfact
+            else
+            u_inst(K,I,J)=u_pg(I,J,L)+(u_pg(I,J,L-1)-u_pg(I,J,L))*pfact
+            v_inst(K,I,J)=v_pg(I,J,L)+(v_pg(I,J,L-1)-v_pg(I,J,L))*pfact
+            end if
+           end if
+          end if
+          if(K.LT.KGZ_max) then
+            K=K+1
+            if(PMB(K).LT.pl .and. L.LT.LM) goto 1721
+            goto 1741
+          end if
+         end do ! I
+         end do ! J
+
+#ifdef ttc_subdd
+C**** Vorticity (a) at fixed pressure level
+C**** First calculate avt on primary grid
+          do l=1,lm
+          do j=J_0,J_1
+           if (j.eq.1 .or. j.eq. JM) then
+             avt(:,j,l)=0.
+           else
+             do i=I_0,imaxj(j)
+              if (i.eq.1) then
+               avt(i,j,l)=(((u(i,j,l)+u(im,j,l))/2.*DXV(J)-
+     *                      (u(i,j+1,l)+u(im,j+1,l))/2.*DXV(J+1))
+     *                    +((v(i,j,l)+v(i,j+1,l))/2.-(v(im,j,l)+
+     *                       v(im,j+1,l))/2.)*DYP(J))*BYDXYP(J)
+              else
+               avt(i,j,l)=(((u(i,j,l)+u(i-1,j,l))/2.*DXV(J)-
+     *                      (u(i,j+1,l)+u(i-1,j+1,l))/2.*DXV(J+1))
+     *                    +((v(i,j,l)+v(i,j+1,l))/2.-(v(i-1,j,l)+
+     *                       v(i-1,j+1,l))/2.)*DYP(J))*BYDXYP(J)
+              end if
+             end do
+           end if
+          end do
+          end do
+C**** interpolate vorticity onto fixed pressure level
+         do J=J_0, J_1
+         if(j.eq.1.or.j.eq.jm) then
+          vt_inst(:,:,j)=undef
+         else
+         do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          vt_inst(:,i,j) = undef
+ 1722     L=L+1
+          pdn=pmid(L-1,I,J)
+          pl=pmid(L,I,J)
+          if (PMB(K).lt.pl .AND. L.lt.LM) goto 1722
+ 1742     continue
+          qabove = pmb(k).le.pedn(l-1,i,j)
+          pfact=(PMB(K)-PL)/(PDN-PL)
+          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+           vt_inst(K,I,J)=undef
+          else
+           if (qabove) then
+            vt_inst(K,I,J)=avt(I,J,L)+(avt(I,J,L-1)-avt(I,J,L))*pfact
+           end if
+          end if
+          if(K.LT.KGZ_max) then
+            K=K+1
+            if(PMB(K).LT.pl .and. L.LT.LM) goto 1722
+            goto 1742
+          end if
+         end do ! I
+         end if
+         end do ! J
+#endif
+#ifdef etc_subdd
+C**** omega (w) at fixed pressure levels
+       DO J=J_0,J_1
+        do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          omg_inst(:,i,j) = undef
+ 1723     L=L+1
+          pdn=pedn(L-1,I,J)
+          pl=pedn(L,I,J)
+          if (PMB(K).lt.pl .AND. L.lt.LM-1) goto 1723
+ 1743     continue
+          qabove = pmb(k).le.pedn(l-1,i,j)
+          pfact=(PMB(K)-PL)/(PDN-PL)
+          if (PMB(K).GT.pedn(2,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+           omg_inst(K,I,J)=(wsave(I,J,1)-wsave(I,J,1)*
+     *               (PMB(K)-pedn(2,I,J))/(p(I,J)+ptop-pedn(2,I,J)))
+          else
+           if (qabove) then
+            omg_inst(K,I,J)=wsave(I,J,L)+
+     *        (wsave(I,J,L-1)-wsave(I,J,L))*pfact
+           end if
+          end if
+          if(K < KGZ_max) then
+            K=K+1
+            if(PMB(K)<pl .and. L<LM) goto 1723
+            goto 1743
+          endif
+        enddo ! I
+       end do ! J
+
+C**** baroclinic eddy kinetic energy generation (K) at fixed pressure levels
+       DO L=1,LM 
+         ppmid(L)=0.5*(PLbot(L)+PLbot(L+1))
+       ENDDO
+       DO J=J_0,J_1
+        do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          bekeg_inst(:,i,j) = undef
+ 1724     L=L+1
+          pdn=ppmid(L-1)
+          pl=ppmid(L)
+          if (PMB(K).lt.pl .AND. L.lt.LM-1) goto 1724
+ 1744     continue
+          qabove = pmb(k).le.PLbot(l-1)
+          pfact=(PMB(K)-PL)/(PDN-PL)
+          if (PMB(K).GT.PLbot(2).AND.PMB(K).LT.(p(I,J)+ptop)) then
+           bekeg_inst(K,I,J)=(bekeg(1,I,J)-bekeg(1,I,J)*
+     *               (PMB(K)-PLbot(2))/(p(I,J)+ptop-PLbot(2)))
+          else
+           if (qabove) then
+            bekeg_inst(K,I,J)=bekeg(L,I,J)+
+     *        (bekeg(L-1,I,J)-bekeg(L,I,J))*pfact
+           end if
+          end if
+          if(K < KGZ_max) then
+            K=K+1
+            if(PMB(K)<pl .and. L<LM) goto 1724
+            goto 1744
+          endif
+        enddo ! I
+       end do ! J
+
+
+C**** Convective cloud (I),stratiform cloud (F),heating by total moist conv (H),
+C**** large-scale conden(L),deep conv(E),shallow conv(S) at fixed pressure levels
+       DO J=J_0,J_1
+        do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          cldmc_inst(:,i,j) = undef ; cldss_inst(:,i,j) = undef
+          tlh_inst(:,i,j) = undef ; llh_inst(:,i,j) = undef
+          dlh_inst(:,i,j) = undef ; slh_inst(:,i,j) = undef
+ 1725     L=L+1
+          pdn=pmid(L-1,I,J)
+          pl=pmid(L,I,J)
+          if (PMB(K).lt.pl .AND. L.lt.LM) goto 1725
+ 1745     continue
+          qabove = pmb(k).le.pedn(l-1,i,j)
+          pfact=(PMB(K)-PL)/(PDN-PL)
+          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+           cldmc_inst(K,I,J)=100.0d0*(cldmc(1,I,J)-cldmc(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J)))
+           cldss_inst(K,I,J)=100.0d0*(cldss(1,I,J)-cldss(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J)))
+           tlh_inst(K,I,J)=TLH3D(1,I,J)-TLH3D(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+           llh_inst(K,I,J)=LLH3D(1,I,J)-LLH3D(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+           dlh_inst(K,I,J)=DLH3D(1,I,J)-DLH3D(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+           slh_inst(K,I,J)=SLH3D(1,I,J)-SLH3D(1,I,J)*
+     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+          else
+           if (qabove) then
+            cldmc_inst(K,I,J)=cldmc(L,I,J)+
+     *                       (cldmc(L-1,I,J)-cldmc(L,I,J))*pfact
+            cldss_inst(K,I,J)=cldss(L,I,J)+
+     *                       (cldss(L-1,I,J)-cldmc(L,I,J))*pfact
+            tlh_inst(K,I,J)=TLH3D(L,I,J)+
+     *                      (TLH3D(L-1,I,J)-TLH3D(L,I,J))*pfact
+            llh_inst(K,I,J)=LLH3D(L,I,J)+
+     *                      (LLH3D(L-1,I,J)-LLH3D(L,I,J))*pfact
+            dlh_inst(K,I,J)=DLH3D(L,I,J)+
+     *                      (DLH3D(L-1,I,J)-DLH3D(L,I,J))*pfact
+            slh_inst(K,I,J)=SLH3D(L,I,J)+
+     *                      (SLH3D(L-1,I,J)-SLH3D(L,I,J))*pfact
+           end if
+          end if
+          if(K < KGZ_max) then
+            K=K+1
+            if(PMB(K)<pl .and. L<LM) goto 1725
+            goto 1745
+          endif
+        enddo ! I
+       end do ! J
+#endif
+      return
+      end subroutine subdiags_fixed_press
+
+#endif
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix

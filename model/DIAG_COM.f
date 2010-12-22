@@ -86,6 +86,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAIJL number of AIJL accumulations
       INTEGER, PARAMETER, public :: KAIJL=20
+#if (defined mjo_subdd) || (defined etc_subdd)
+     &                                  + 4
+#endif
 #ifdef CLD_AER_CDNC
      &                                  + 16
 #endif
@@ -279,6 +282,16 @@ C**** parameters and variables for ISCCP diags
 !@param PMB pressure levels for geopotential heights (extends to strat)
 !@param GHT ~mean geopotential heights at PMB level (extends to strat)
 !@param PMNAME strings describing PMB pressure levels
+#if (defined ttc_subdd) || (defined etc_subdd)
+      REAL*8, DIMENSION(KGZ), PARAMETER, public :: 
+     &     PMB=(/1000d0,925d0,850d0,700d0,600d0,500d0,400d0,300d0,
+     *     250d0,200d0,150d0,100d0,50d0/),
+     *     GHT=(/0.,900.,1500.,3000.,4500.,5600.,7800.,9500.,11500.,
+     *     14500.,15500.,16400.,20000./)
+      CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
+     *     "1000","925 ","850 ","700 ","600 ","500 ","400 ","300 ",
+     *     "250 ","200 ","150 ","100 ","50" /)
+#else
       REAL*8, DIMENSION(KGZ), PARAMETER, public ::
      &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0,10d0,
      *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
@@ -287,6 +300,7 @@ C**** parameters and variables for ISCCP diags
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var O_inst saved instantaneous Ox tracer (at PMB lvls)
 !@var X_inst saved instantaneous NOx tracer (at PMB lvls)
@@ -344,6 +358,47 @@ C**** Instantaneous constant pressure level fields
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
      &     Z_inst,RH_inst,T_inst
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: P_acc,PM_acc
+#if (defined ttc_subdd) || (defined etc_subdd)
+!@var u_inst saved instantaneous U (at PMB levels)
+!@var v_inst saved instantaneous V (at PMB levels)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     &     u_inst,v_inst
+#endif
+#ifdef ttc_subdd
+!@var vt_inst saved instantaneous Vorticity (at PMB levels)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: vt_inst
+#endif
+#ifdef etc_subdd
+!@var omg_inst saved instantaneous omega (at PMB levels)
+!@var bekeg saved accumulated baroclinic eddy kinetic energy generation (at model levels)
+!@var bekeg_inst saved accumulated baroclinic eddy kinetic energy generation (at PMB levels)
+!@var cldmc_inst saved instantaneous convective cloud fraction (at PMB levels)
+!@var cldss_inst saved instantaneous stratiform cloud fraction (at PMB levels)
+!@var tlh_inst saved instantaneous diabatic heating from moist convective (at PMB levels)
+!@var dlh_inst saved instantaneous diabatic heating from deep convective (at PMB levels)
+!@var slh_inst saved instantaneous diabatic heating from shallow convective (at PMB levels)
+!@var llh_inst saved instantaneous diabatic heating from large-scale condensation (at PMB levels)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     &     omg_inst,bekeg,bekeg_inst,
+     &     cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
+#endif
+#if (defined  mjo_subdd) || (defined etc_subdd)
+!@var qlat_avg,pblht_acc accumulated surface latent heat flux, PBL height for SUBDD
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::
+     &        pblht_acc,qlat_avg
+#endif
+#ifdef mjo_subdd
+!@var E_acc accumulated evaporation (special for SUBDD)
+!@var PW_acc accumulated integrated atmospheric water content (precipitable water) (special for SUBDD)
+!@var p_avg, qsen_avg,lwu_avg,sst_avg, accumulated surface pressure, sensible heat flux,
+!@     upward LW at sfc, sst, latent heat flux for SUBDD
+!@var u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg accumulated u,v,w,t,q,rh,gh for subdaily period
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: E_acc,PW_acc
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::
+     &        p_avg,qsen_avg,sst_avg,lwu_avg
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     &        u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
+#endif
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AFLX_ST
 
@@ -927,6 +982,23 @@ c instances of arrays
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
      *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
+#if (defined ttc_subdd) || (defined etc_subdd)
+     *     ,u_inst,v_inst
+#endif
+#ifdef ttc_subdd
+     *     ,vt_inst
+#endif
+#ifdef etc_subdd
+     *     ,omg_inst,bekeg,bekeg_inst
+     *     ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
+#endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+     *     ,qlat_avg,pblht_acc
+#endif
+#ifdef mjo_subdd
+     *     ,E_acc,PW_acc,p_avg,qsen_avg,sst_avg,lwu_avg
+     *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
+#endif
      *     ,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI
      *     ,saveTCLDI,saveMCCLDTP
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
@@ -980,6 +1052,43 @@ c instances of arrays
      &         TSFREZ_loc(I_0H:I_1H,J_0H:J_1H,KTSF),
      &         P_acc(I_0H:I_1H,J_0H:J_1H),
      &         PM_acc(I_0H:I_1H,J_0H:J_1H),
+#if (defined ttc_subdd) || (defined etc_subdd)
+     &         u_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         v_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+#endif
+#ifdef ttc_subdd
+     &         vt_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+#endif
+#ifdef etc_subdd
+     &         omg_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         bekeg(LM,I_0H:I_1H,J_0H:J_1H),
+     &         bekeg_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         cldmc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         cldss_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         tlh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         dlh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         slh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         llh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+#endif
+#if (defined mjo_subdd) || (defined etc_subdd)
+     &         qlat_avg(I_0H:I_1H,J_0H:J_1H),
+     &         pblht_acc(I_0H:I_1H,J_0H:J_1H),
+#endif
+#ifdef mjo_subdd
+     &         E_acc(I_0H:I_1H,J_0H:J_1H),
+     &         PW_acc(I_0H:I_1H,J_0H:J_1H),
+     &         p_avg(I_0H:I_1H,J_0H:J_1H),
+     &         qsen_avg(I_0H:I_1H,J_0H:J_1H),
+     &         sst_avg(I_0H:I_1H,J_0H:J_1H),
+     &         lwu_avg(I_0H:I_1H,J_0H:J_1H),
+     &         u_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         v_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         w_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         t_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         q_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         r_avg(I_0H:I_1H,J_0H:J_1H,LM),
+     &         z_avg(I_0H:I_1H,J_0H:J_1H,LM),
+#endif
      &         TDIURN(I_0H:I_1H,J_0H:J_1H,KTD),
      &         OA(I_0H:I_1H,J_0H:J_1H,KOA),
      &         saveHCLDI(I_0H:I_1H,J_0H:J_1H),
