@@ -11,6 +11,14 @@ ifeq ($(ESMF),YES)
 $(F90OBJS) : F90FLAGS+=-DUSE_MPI
 endif
 
+ifndef GISSCLIM_DIR
+       GISSCLIM_DIR := $(shell pwd)/../..
+endif
+ifndef CONFIG_DIR
+       CONFIG_DIR := $(GISSCLIM_DIR)/config
+endif
+
+
 include $(CONFIG_DIR)/base.mk
 include $(CONFIG_DIR)/rules.mk
 
