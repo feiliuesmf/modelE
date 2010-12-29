@@ -177,6 +177,9 @@ c**** output
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
+#ifdef TRACERS_AEROSOLS_OCEAN
+        real*8 :: OCocean_flux
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_DRYDEP
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
@@ -789,18 +792,24 @@ C****   4) tracers with interactive sources
           trcnst=pbl_args%DMS_flux*byrho
         case ('seasalt1', 'M_SSA_SS')
           call read_seasalt_sources(ws,itype,1,ilong,jlat
-     &         ,pbl_args%ss1_flux)
+     &         ,pbl_args%ss1_flux,trname(pbl_args%ntix(itr)))
           trcnst=pbl_args%ss1_flux*byrho
         case ('seasalt2', 'M_SSC_SS')
           call read_seasalt_sources(ws,itype,2,ilong,jlat
-     &         ,pbl_args%ss2_flux)
+     &         ,pbl_args%ss2_flux,trname(pbl_args%ntix(itr)))
           trcnst=pbl_args%ss2_flux *byrho
         case ('M_SSS_SS')
           call read_seasalt_sources(ws,itype,1,ilong,jlat
-     &         ,pbl_args%ss1_flux)
+     &         ,pbl_args%ss1_flux,trname(pbl_args%ntix(itr)))
           call read_seasalt_sources(ws,itype,2,ilong,jlat
-     &         ,pbl_args%ss2_flux)
+     &         ,pbl_args%ss2_flux,trname(pbl_args%ntix(itr)))
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
+#ifdef TRACERS_AEROSOLS_OCEAN
+        case ('OCocean')
+          call read_seasalt_sources(ws,itype,1,ilong,jlat
+     &         ,pbl_args%OCocean_flux,trname(pbl_args%ntix(itr)))
+          trcnst=pbl_args%OCocean_flux*byrho
+#endif  /* TRACERS_AEROSOLS_OCEAN */
         end select
 #endif
 

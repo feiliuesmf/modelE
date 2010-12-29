@@ -55,7 +55,7 @@ integer, dimension(ntm)  :: whichsoa
 integer, dimension(nsoa) :: issoa
 
 !@param soacomp number of different cases in Lambda calculations
-integer, parameter                 :: soacomp=10
+integer, parameter                 :: soacomp=11
 !@var Lambda empirical factor describing the affinity of species i with species j
 !@+          for the activity coefficient calculations. A value close to unity means
 !@+          high chemical similarity of the species. A value of -1.0 declares
@@ -67,22 +67,24 @@ integer, parameter                 :: imfisop=3
 integer, parameter                 :: imfocii=4
 integer, parameter                 :: imfocia=5
 integer, parameter                 :: imfocb=6
-integer, parameter                 :: imfbcii=7
-integer, parameter                 :: imfbcia=8
-integer, parameter                 :: imfbcb=9
-integer, parameter                 :: imfinorg=10
+integer, parameter                 :: imfococean=7
+integer, parameter                 :: imfbcii=8
+integer, parameter                 :: imfbcia=9
+integer, parameter                 :: imfbcb=10
+integer, parameter                 :: imfinorg=11
 !
-!                                   ter     aro    isop    ocii    ocia     ocb    bcii    bcia     bcb   inorg
-data Lambda(imfapin,1:soacomp)  / 1.00d0, 1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfaro,1:soacomp)   /-1.00d0, 1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfisop,1:soacomp)  /-1.00d0,-1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfocii,1:soacomp)  /-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.90d0, 0.85d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfocia,1:soacomp)  /-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.85d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfocb,1:soacomp)   /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfbcii,1:soacomp)  /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.80d0, 0.75d0, 0.70d0/
-data Lambda(imfbcia,1:soacomp)  /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.75d0, 0.70d0/
-data Lambda(imfbcb,1:soacomp)   /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.70d0/
-data Lambda(imfinorg,1:soacomp) /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0/
+!                                     ter     aro    isop    ocii    ocia     ocb   ococean   bcii    bcia    bcb    inorg
+data Lambda(imfapin,1:soacomp)    / 1.00d0, 1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfaro,1:soacomp)     /-1.00d0, 1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfisop,1:soacomp)    /-1.00d0,-1.00d0, 1.00d0, 0.80d0, 0.90d0, 0.85d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfocii,1:soacomp)    /-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.90d0, 0.85d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfocia,1:soacomp)    /-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.85d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfocb,1:soacomp)     /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.80d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfococean,1:soacomp) /-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.90d0,-1.00d0, 1.00d0, 0.70d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfbcii,1:soacomp)    /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.80d0, 0.75d0, 0.70d0/
+data Lambda(imfbcia,1:soacomp)    /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.75d0, 0.70d0/
+data Lambda(imfbcb,1:soacomp)     /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0, 0.70d0/
+data Lambda(imfinorg,1:soacomp)   /-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0,-1.00d0, 1.00d0/
 !
 ! enthalpies of vaporization (dH, in kJ/mol):
 !    0.     No temperature dependence on vapor pressure
@@ -209,7 +211,7 @@ contains
 
 subroutine soa_init
 
-use TRACER_COM, only: n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb
+!use TRACER_COM, only: n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean
 use CONSTANT, only: avog
 implicit none
 
@@ -256,6 +258,7 @@ mw(n_Terpenes)=10.d0*mw_c+16.d0*mw_h ! C10H16
 !mw(n_ocii)=170.d0
 !mw(n_ocia)=170.d0
 !mw(n_ocb)=170.d0
+!mw(n_ococean)=170.d0
 
 !
 ! High and low-NOx mass based stoicheiometric coefficients
@@ -402,7 +405,7 @@ end subroutine soa_apart
 
 subroutine soa_aerosolphase(III,JJJ,L,changeL,bypfactor)
 
-use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,&
+use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
 #ifdef TRACERS_NITRATE
                       n_nh4,n_no3p,&
 #endif
@@ -526,6 +529,9 @@ DO JL=L,L
 !
   PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)+&
       y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
+#ifdef TRACERS_AEROSOLS_OCEAN
+  PCP=PCP+y_ug(n_ococean)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
   if(SO4part) PCP=PCP+y_ug(n_msa)+y_ug(n_so4)
 #ifdef TRACERS_NITRATE
   if(NH4part) PCP=PCP+y_ug(n_nh4)+y_ug(n_no3p)
@@ -542,6 +548,9 @@ DO JL=L,L
   enddo
   AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)+&
           y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
+#ifdef TRACERS_AEROSOLS_OCEAN
+  AEROtot=AEROtot+y_mw(n_ococean)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
   if(SO4part) AEROtot=AEROtot+y_mw(n_msa)+y_mw(n_so4)
 #ifdef TRACERS_NITRATE
   if(NH4part) AEROtot=AEROtot+y_mw(n_nh4)+y_mw(n_no3p)
@@ -597,6 +606,9 @@ DO JL=L,L
     xmf(imfocii)=y_mw(n_ocii)/AEROtot
     xmf(imfocia)=y_mw(n_ocia)/AEROtot
     xmf(imfocb)=y_mw(n_ocb)/AEROtot
+#ifdef TRACERS_AEROSOLS_OCEAN
+    xmf(imfococean)=y_mw(n_ococean)/AEROtot
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 !
 ! If partitioning does not occur on some aerosol species, it's mole fraction equals to zero, no matter the real
 ! concentration is, in order not to affect the calculation of the activity coefficient.
@@ -657,6 +669,9 @@ DO JL=L,L
     meanmw=y_mw(n_ocii)*mw(n_ocii)/AEROtot
     meanmw=meanmw+y_mw(n_ocia)*mw(n_ocia)/AEROtot
     meanmw=meanmw+y_mw(n_ocb)*mw(n_ocb)/AEROtot
+#ifdef TRACERS_AEROSOLS_OCEAN
+    meanmw=meanmw+y_mw(n_ococean)*mw(n_ococean)/AEROtot
+#endif  /* TRACERS_AEROSOLS_OCEAN */
     meanmw=meanmw+y_mw(n_bcii)*mw(n_bcii)/AEROtot
     meanmw=meanmw+y_mw(n_bcia)*mw(n_bcia)/AEROtot
     meanmw=meanmw+y_mw(n_bcb)*mw(n_bcb)/AEROtot

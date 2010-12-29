@@ -2509,6 +2509,9 @@ C**** check tracers
       call stop_model('SOA_DIAGS needs TRACERS_AEROSOLS_SOA',255)
 #endif  /* TRACERS_AEROSOLS_SOA */
 #endif  /* SOA_DIAGS */
+#ifdef TRACERS_AEROSOLS_OCEAN
+      write(6,*) '...and oceanic organic aerosol sources'
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_DRYDEP
       write(6,*) '...and tracer dry deposition'
 #endif

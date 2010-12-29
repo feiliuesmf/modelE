@@ -923,6 +923,9 @@ C     OUTPUT DATA
      *     ,n_apinp1a,n_apinp2a
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     *     ,n_ococean
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_AEROSOLS_Koch
 c    *     ,SNFST0,TNFST0
 #endif  /* TRACERS_AEROSOLS_Koch */
@@ -1631,6 +1634,9 @@ C**** more than one tracer is lumped together for radiation purposes
      *           trm(i,j,l,n_apinp1a)+trm(i,j,l,n_apinp2a)+
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     *           trm(i,j,l,n_ococean)+
+#endif  /* TRACERS_AEROSOLS_OCEAN */
      *           trm(i,j,l,n_OCIA))*BYAXYP(I,J)
           case ("OCB") 
            TRACER(L,n)=trm(i,j,l,n_OCB)*BYAXYP(I,J)

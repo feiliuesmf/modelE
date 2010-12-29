@@ -12,7 +12,7 @@
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
      *       SSMAL,SSMAO,SSML,SSMO
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
       real*8,dimension(nt)::DSS,DSU,ncaero
       integer L,n,nmodes,nm 
 
@@ -72,7 +72,7 @@ C**OC: 0.2		3.35103E-14	5.89d-16	2.98E+10	1.70d12
 C**BC:0.09		3.05363E-15	5.89d-16	3.27E+11	1.70d12
 c
 c     SSM1 = 9.55d11*DSU(1)         ! all sulfate 
-c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
+c     SSM2 = 1.94d11*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
 c     SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
 c     SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
@@ -83,6 +83,7 @@ c    &               +DSU(19)*fq_aer(n_isopp2a)
 c    &               +DSU(20)*fq_aer(n_apinp1a)
 c    &               +DSU(21)*fq_aer(n_apinp2a)
 c    &               )! SOA
+c     SSM9 = 1.70d12*DSU(22)*fq_ssoc_oc ! OCocean
 c
 C** Land Na (cm-3) is from sulfate+OC+BC and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
@@ -130,11 +131,12 @@ c
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,
      *       SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3, SSM1a
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
       real*8,dimension(nt)::DSS,DSU
+      real*8 :: fq_ssoc_oc,fq_ssoc_ss
       integer L,n
 
       do n = 1,nt
@@ -163,12 +165,22 @@ C** but including nitrates
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif
       enddo
+      fq_ssoc_oc=0.d0 ! OCocean fraction of sea-spray is insoluble
+      fq_ssoc_ss=fq_aer(n_seasalt1)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (DSS(22) .gt. 0.d0 .and.
+     &    DSS(2) .gt. 0.d0) then
+        fq_ssoc_ss=fq_aer(n_seasalt1)*DSS(2)/trpdens(n_seasalt1)/
+     &    (DSS(22)/trpdens(n_ococean)+DSS(2)/trpdens(n_seasalt1))
+        fq_ssoc_oc=fq_ssoc_ss
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate
 C**nitrate,  vol radius = 0.3 um and effe rad = 0.15 um
 C** Choose value that works as for sulfates
       SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   
 c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
-      SSM2 = 1.89d10*DSU(2)         ! SS 0.01-1 um
+      SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
@@ -185,11 +197,16 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
 #else
       SSM8=0.d0
 #endif
+#ifdef TRACERS_AEROSOLS_OCEAN
+      SSM9 = 1.89d10*DSU(22)*fq_ssoc_oc ! OCocean
+#else
+      SSM9=0.d0
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 c
 C** Land Na (cm-3) is from sulfate+OC+BC + NO3 and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
 c
-      SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a       !SO4,OCIA,BCIA,BCB,OCB,SOA,NO3
+      SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7+SSM8+SSM9+SSM1a !SO4,OCIA,BCIA,BCB,OCB,SOA,NO3
       SSMAO=SSMAL+SSM2                           ! Land aerosols (SSMAL) + Sea-salt
 c
       IF(SSMAL.le.100.d0) SSMAL=100.d0
@@ -219,17 +236,18 @@ C*******************************************************************************
       USE TRACER_COM
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
-      real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL
+      real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
      *,SME,rho,PL,TL,WTURB
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
      *,FCLD,WCONST,LHX,WMUI,DXYPJ
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSMAL,SSML
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
       real*8 term1,term2,vterm,alf
       integer L,n
+      real*8 :: fq_ssoc_oc,fq_ssoc_ss
 
       do n = 1,nt
         DSU(n)=1.d-10                       
@@ -264,10 +282,20 @@ c     SSM6 = 3.27d11*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 3.27d11*DSU(7)         ! BCB with 80% solubility 
 c     SSM8 = 2.98d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility 
 
+      fq_ssoc_oc=0.d0 ! OCocean fraction of sea-spray is insoluble
+      fq_ssoc_ss=fq_aer(n_seasalt1)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (DSS(22) .gt. 0.d0 .and.
+     &    DSS(2) .gt. 0.d0) then
+        fq_ssoc_ss=fq_aer(n_seasalt1)*DSS(2)/trpdens(n_seasalt1)/
+     &    (DSS(22)/trpdens(n_ococean)+DSS(2)/trpdens(n_seasalt1))
+        fq_ssoc_oc=fq_ssoc_ss
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
       SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3)) !nitrate
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
-      SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
+      SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
@@ -284,9 +312,14 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
 #else
       SSM8=0.d0
 #endif
+#ifdef TRACERS_AEROSOLS_OCEAN
+      SSM9 = 1.89d10*DSU(22)*fq_ssoc_oc ! OCocean
+#else
+      SSM9=0.d0
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 c
 C** Na (cm-3) is from sulfate+OC+BC+sea-salt 
-      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
+      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM9+SSM1a !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
 c     write(6,*)"SSMAL",SSMAL,SSM1,SSM4,DSU(1),DSU(4),l
       IF(SSMAL.le.100.d0) SSMAL=100.d0
 
@@ -423,13 +456,14 @@ C**************************************************************************
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
      *,LHX,WMUI,WCONST
       real*8 term1,term2,vterm,alf
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
       real*8,dimension(nt)::DSU
 
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSMAL,SSML
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
 
       integer L
+      real*8 :: fq_ssoc_oc,fq_ssoc_ss
 
       SSMAL=0.d0
 
@@ -442,10 +476,20 @@ c     SSM6 = 3.27d11*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 3.27d11*DSU(7)         ! BCB with 80% solubility 
 c     SSM8 = 2.98d10*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility                   
 
+      fq_ssoc_oc=0.d0 ! OCocean fraction of sea-spray is insoluble
+      fq_ssoc_ss=fq_aer(n_seasalt1)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (DSU(22) .gt. 0.d0 .and. ! DSS should be used ideally, but result is the same, since it is not available here
+     &    DSU(2) .gt. 0.d0) then
+        fq_ssoc_ss=fq_aer(n_seasalt1)*DSU(2)/trpdens(n_seasalt1)/
+     &    (DSU(22)/trpdens(n_ococean)+DSU(2)/trpdens(n_seasalt1))
+        fq_ssoc_oc=fq_ssoc_ss
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
       SSM1a=(DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   !nitrate
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
-      SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
+      SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
@@ -462,9 +506,14 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
 #else
       SSM8=0.d0
 #endif
+#ifdef TRACERS_AEROSOLS_OCEAN
+      SSM9 = 1.89d10*DSU(22)*fq_ssoc_oc ! OCocean
+#else
+      SSM9=0.d0
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 c
 C** Land Na (cm-3) is from sulfate+OC+BC+seasalt 
-      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
+      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM9+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
       IF(SSMAL.le.100.d0) SSMAL=100.d0
 
 C**** use Lohmann et al. 2007, ACPD,7,371-3761 formualtion

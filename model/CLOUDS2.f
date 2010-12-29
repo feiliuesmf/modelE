@@ -35,7 +35,10 @@
 #endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,trname,t_qlimit,ntm_soa
+      USE TRACER_COM, only: ntm,trname,t_qlimit,ntm_soa,ntm_ococean
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                     ,n_ococean,n_seasalt1,trm,trpdens
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
@@ -1380,6 +1383,11 @@ C**** Here are dust particles coated with sulfate
           DSS(21) = DSGL(L,21)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+        case('OCocean')
+          DSGL(L,22)=tm(l,n)
+          DSS(22) = DSGL(L,22)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
         end select
       END DO      !end of n loop for tracers
 #endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
@@ -1462,6 +1470,19 @@ c    &     ,ntix,CLDSAVT)
      &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
      &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
      &     ,ntix,FPLUME)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (trm(i_debug,j_debug,L,n_ococean) .gt. 0.d0) then
+        do n=1,ntx
+          select case (trname(ntix(n)))
+          case ('seasalt1', 'OCocean')
+            fqcondt(n)=fqcondt(n)*
+     &        trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1)
+     &        /(trm(i_debug,j_debug,L,n_ococean)/trpdens(n_ococean)+
+     &          trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1))
+          end select
+        enddo
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
       dtr(1:ntx) = fqcondt(1:ntx)*tmp(1:ntx)
 #ifdef TRDIAG_WETDEPO
       IF (diag_wetdep == 1) trcond_mc(l,1:ntx)=trcond_mc(l,1:ntx)
@@ -2935,7 +2956,7 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       integer, PARAMETER :: SNTM=29 !17+ntm_soa/2
+       integer, PARAMETER :: SNTM=29+ntm_ococean !17+ntm_soa/2+ntm_ococean
        real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT
      * ,CDNL0,NEWCDN,OLDCDN,SNd
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -3390,6 +3411,11 @@ C**** Here are dust particles coated with sulfate
           DSS(21) = DSGL(L,21)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+        case('OCocean')
+          DSGL(L,22)=tm(l,n)
+          DSS(22) = DSGL(L,22)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
         end select
       END DO      !end of n loop for tracers
 #endif   /* tracerpart and cld-aer part */
@@ -4304,6 +4330,19 @@ cdmk added arguments above; THLAW added below (no way to factor this)
      &        NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
      &       ,FQTOWT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,PL(L)
      &       ,ntix,CLDSAVT)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (trm(i_debug,j_debug,L,n_ococean) .gt. 0.d0) then
+        do n=1,ntx
+          select case (trname(ntix(n)))
+          case ('seasalt1', 'OCocean')
+            fqcondt(n)=fqcondt(n)*
+     &        trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1)
+     &        /(trm(i_debug,j_debug,L,n_ococean)/trpdens(n_ococean)+
+     &          trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1))
+          end select
+        enddo
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
         DO N=1,NTX
           DTQWT(N) = DTQWT(N)
      &         +FQTOWT(N)*TR_LEF(N)*(TM_dum(N)+DTERT(N))
@@ -4471,6 +4510,19 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       CALL GET_COND_FACTOR_array(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
      &     ,FQCONDT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,pl(l)
      &     ,ntix,CLDSAVT)
+#ifdef TRACERS_AEROSOLS_OCEAN
+      if (trm(i_debug,j_debug,L,n_ococean) .gt. 0.d0) then
+        do n=1,ntx
+          select case (trname(ntix(n)))
+          case ('seasalt1', 'OCocean')
+            fqcondt(n)=fqcondt(n)*
+     &        trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1)
+     &        /(trm(i_debug,j_debug,L,n_ococean)/trpdens(n_ococean)+
+     &          trm(i_debug,j_debug,L,n_seasalt1)/trpdens(n_seasalt1))
+          end select
+        enddo
+      endif
+#endif  /* TRACERS_AEROSOLS_OCEAN */
       dtr(1:ntx) = fqcondt(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
       IF (diag_wetdep == 1) trcond_ls(l,1:ntx) =

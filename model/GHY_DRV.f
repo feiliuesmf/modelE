@@ -499,6 +499,10 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
           trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+#ifdef TRACERS_AEROSOLS_OCEAN
+        case ('OCocean')
+          trc_flux=pbl_args%OCocean_flux
+#endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_AMP
         case ('M_DD1_DU')
           trc_flux=sum(pbl_args%dust_flux(1:2))
