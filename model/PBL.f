@@ -424,7 +424,7 @@ c**** other local vars
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
       real*8 :: ws02
       real*8, parameter ::  tol=1d-3,w=.5d0
-      integer, parameter ::  itmax=50
+      integer, parameter ::  itmax=5
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1,tv
@@ -2744,7 +2744,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
      *     ,usurf,tstar,qstar,ustar0,dtime,test
      *     ,wstar3,wstar2h,usurfq,usurfh,ts
 
-      integer, parameter ::  itmax=100
+      integer, parameter ::  itmax=5
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
