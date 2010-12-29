@@ -118,7 +118,7 @@ c -----------------------------------------------------------------------
 c --- use the following if exch.coeff. = diapyc
 ccc        flngth(k)=diapyc*ennsq*g * baclin*froglp * onem
 c -----------------------------------------------------------------------
-        flngth(k)=min(diapyn*sqrt(ennsq),diapyc*ennsq*g)  ! min of two
+        flngth(k)=max(diapyn*sqrt(ennsq),diapyc*ennsq*g)  ! max of two
      .            * baclin*froglp * onem 
 c
       end if
