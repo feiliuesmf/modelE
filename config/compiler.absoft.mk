@@ -21,5 +21,5 @@ endif
 # use system cpp for preprocessing
 EXTERNAL_CPP = YES
 
-# absoft has non-standard flag for .mod and include files
+# absoft has non-standard flag for .mod files
 I = p
