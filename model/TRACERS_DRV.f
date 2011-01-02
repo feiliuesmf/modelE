@@ -1308,9 +1308,11 @@ CCC#endif
           tr_mm(n) = 75. !Na x 3.256
           trpdens(n)=2.2d3  !kg/m3 This is for non-hydrated
           trradius(n)=5.0d-6                 ! This is non-hydrated
+#ifdef TRACERS_AEROSOLS_Koch
           if (OFFLINE_DMS_SS.ne.1 .and. OFFLINE_SS.ne.1) then
             if (imAER.ne.1) trradius(n)=1.7d-6 ! This is non-hydrated
           endif
+#endif
           fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
       case ('OCocean') !Insoluble oceanic organic mass
@@ -8863,12 +8865,16 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
           end do; end do; end do
-#endif /* TRACERS_SPECIAL_Shindell */
 
-        case('Terpenes',
-     &       'isopp1g','isopp1a','isopp2g','isopp2a',
-     &       'apinp1g','apinp1a','apinp2g','apinp2a',
-     &       'OCocean')
+        case('Terpenes'
+#ifdef TRACERS_AEROSOLS_SOA
+     &      ,'isopp1g','isopp1a','isopp2g','isopp2a'
+     &      ,'apinp1g','apinp1a','apinp2g','apinp2a'
+#endif
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &      ,'OCocean'
+#endif
+     &      )
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
@@ -8877,6 +8883,7 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
           end do; end do; end do
+#endif /* TRACERS_SPECIAL_Shindell */
 
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
         case ('CO2n')
