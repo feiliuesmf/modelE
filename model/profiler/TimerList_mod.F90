@@ -156,7 +156,7 @@ contains
 
       subroutine checkTimerConsistenncy()
 #ifdef USE_PFUNIT
-         use pFUnit
+         use pFUnit, only: Exception, throw
 #endif
          use Timer_mod, only: isActive
          type (NamedTimer_type), pointer :: namedTimer
@@ -297,7 +297,7 @@ contains
 
    subroutine stopByName(this, name)
 #ifdef USE_PFUNIT
-      use pFUnit
+     use pFUnit, only: Exception, throw
 #endif
       use Timer_mod, only: stop
       type (TimerList_type), intent(inOut) :: this
