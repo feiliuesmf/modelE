@@ -1,0 +1,213 @@
+changequote([,])
+include([m4Iteration.m4])
+
+define([PROPERTIES_AND_TYPES],
+ [(tr_mm,real*8,,!@var TR_MM: molecular mass of each tracer (g/mole)),
+  (ntm_power,integer,,Power of 10 associated with each tracer (for printing)),
+  (t_qlimit,logical,.true.,if t_qlimit=.true. tracer is maintained as positive),
+  (ntsurfsrc,integer,0,no. of non-interactive surface sources for each tracer),
+  (needtrs,logical,.false.,true if surface tracer value from PBL is required),
+  (trdecay,real*8,0.d0,radioactive decay constant (1/s) (=0 for stable tracers)),
+  (itime_tr0,integer,,start time for each tracer (hours)),
+  (mass2vol,real*8,,mass to volume ratio = mair/tr_mm),
+  (vol2mass,real*8,,volume to mass ratio = tr_mm/mair),
+  (dodrydep,logical,,true if tracer should undergo dry deposition),
+  (F0,real*8,0.d0,reactivity factor for oxidation of biological substances),
+  (HSTAR,real*8,0.d0,Henry's Law const for tracer dry deposition. mole/(L atm)
+!@+   Same as the tr_RKD wet dep variable, except for units.
+!@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.),
+  (do_fire,logical,.false.,true if tracer should have emissions via flammability),
+  (nBBsources,integer,0, number of sources attributed to biomass burning),
+  (emisPerFireByVegType,real*8[[[,]]] dimension(12),0.0d0,emisPerFireByVegType tracer emissions per fire count as a
+!@+ function of 12 standard GISS (VDATA) vegetation types, or Ent
+!@+ remapped to them. Thus the "12" hardcode.),
+  (trpdens,real*8,0.d0,tracer particle density (kg/m^3)
+!@+               (=0 for non-particle tracers)),
+  (trradius,real*8,0.d0,tracer effective radius (m) (=0 for non particle tracers)),
+  (tr_wd_TYPE,integer,nGas,tracer wet dep type (gas, particle, water)),
+  (tr_RKD,real*8,0.d0,Henry's Law coefficient (in mole/Joule please !)),
+  (tr_DHD,real*8,0.d0,coefficient of temperature-dependence term of Henry's
+!@+   Law coefficient (in Joule/mole please !)),
+  (fq_aer,real*8,0.d0,fraction of aerosol that condenses),
+  (rc_washt,real*8,1.d-1,aerosol washout rate),
+  (isDust,integer,0,index array for testing if tracer is a dust type),
+  (tr_H2ObyCH4,real*8,0.d0,conc. of tracer in water from methane oxidation),
+  (dowetdep,logical,.false.,true if tracer has some form of wet deposition),
+  (ntrocn,integer,0,scaling power factor for ocean/ice tracer concentrations),
+  (conc_from_fw,logical,.true.,true if ocean conc is defined using fresh water),
+  (trglac,real*8,,tracer ratio in glacial runoff to ocean (kg/kg)),
+  (ntisurfsrc,integer,,no. of interactive surface sources for each tracer),
+  (TRLI0, real*8,0.d0,default tracer conc. for land ice (kg/kg))])dnl
+
+
+define([FIRST], [$1])
+
+define([PROPERTIES],
+    [(foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([FIRST],property_and_type),]))])dnl
+
+
+define([DECLARE_ACCESSORS],
+[public :: set_$1, $1 ]
+)dnl
+
+define([DECLARE_COMPONENT],
+[ifelse($4,,,!@var $1: $4
+)dnl
+    $2 :: $1 ifelse($3,,,= $3) ]
+)dnl
+
+
+define([SET_PROPERTY],
+[call setProperty(aTracer, '$1', $1(i))]
+)dnl
+
+define([CREATE_ACCESSORS],
+[  subroutine set_$1(oldIndex, value)
+    integer, intent(in) :: oldIndex
+    $2, intent(in) :: value
+    tracers(oldIndex)%$1 = value
+  end subroutine set_$1
+  
+  function $1(oldIndex)
+    integer, intent(in) :: oldIndex
+    $2 :: $1
+    $1 = tracers(oldIndex)%$1
+  end function $1
+])dnl
+
+module OldTracer_mod
+  implicit none
+  private
+
+  public :: OldTracer_type
+  public :: initializeOldTracers
+  public :: makeNewTracers
+  public :: addTracer
+
+  public :: nGAS, nPART, nWATER
+
+  foreach([property],PROPERTIES,[DECLARE_ACCESSORS(property)])
+
+  DECLARE_ACCESSORS(trw0)
+  DECLARE_ACCESSORS(TRSI0)
+
+  integer, parameter :: MAX_LEN_NAME = 8
+!**** parameters for tr_wd_TYPE
+!@param nGAS   index for wetdep tracer type = gas
+!@param nPART  index for wetdep tracer type = particle/aerosol
+!@param nWATER index for wetdep tracer type = water
+      integer, parameter :: nGAS=1, nPART=2, nWATER=3
+
+  type OldTracer_type
+    private
+    character(len=MAX_LEN_NAME) :: name
+
+foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([DECLARE_COMPONENT],property_and_type)])
+
+!@var TRSI0 default tracer conc. in sea ice (kg/m^2)
+      REAL*8 :: TRSI0 = 0.0
+!@var TRW0 default tracer concentration in water (kg/kg)
+      real*8 :: trw0 = 0.
+  end type OldTracer_type
+
+  interface trw0
+    module procedure trw0_all
+    module procedure trw0_one
+  end interface
+
+  interface trsi0
+    module procedure trsi0_all
+    module procedure trsi0_one
+  end interface
+
+  integer, save :: numTracers = 0
+  type (OldTracer_type), allocatable :: tracers(:)
+
+contains
+
+  subroutine initializeOldTracers()
+    allocate(tracers(0))
+  end subroutine initializeOldTracers
+
+  subroutine addTracer(name)
+    character(len=*), intent(in) :: name
+    type (OldTracer_type), allocatable :: tmp(:)
+
+    allocate(tmp(numTracers))
+    tmp = tracers
+    deallocate(tracers)
+
+    allocate(tracers(numTracers+1))
+    tracers(1:numTracers) = tmp
+    deallocate(tmp)
+
+    numTracers = numTracers + 1
+    tracers(numTracers)%name = trim(name)
+
+  end subroutine addTracer
+
+  function makeNewTracers() result (bundle)
+    use Tracers_mod, only: Tracer_type
+    use Tracers_mod, only: Tracer
+    use TracerBundle_mod, only: TracerBundle_type
+    use TracerBundle_mod, only: TracerBundle
+    use TracerBundle_mod, only: addTracer
+    use Tracers_mod, only: setProperty
+    use Tracers_mod, only: clean
+    type (TracerBundle_type), pointer :: bundle
+
+    type (Tracer_type) :: aTracer
+    integer :: i
+
+    bundle = TracerBundle()
+    do i = 1, numTracers
+      aTracer = Tracer(tracers(i)%name)
+      foreach([property],PROPERTIES,[SET_PROPERTY(property)])
+      SET_PROPERTY(trw0)
+      SET_PROPERTY(TRSI0)
+
+      call addTracer(bundle, aTracer)
+      call clean(aTracer)
+
+    end do
+    
+  end function makeNewTracers
+
+  foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([CREATE_ACCESSORS],property_and_type)]
+)
+
+subroutine set_trw0(oldIndex, value)
+  integer, intent(in) :: oldIndex
+  real*8, intent(in) :: value
+  tracers(oldIndex)%trw0 = value
+end subroutine set_trw0
+
+function trw0_all()
+  real*8 :: trw0_all(numTracers)
+  trw0_all = tracers(:)%trw0
+end function trw0_all
+
+function trw0_one(n)
+  integer, intent(in) :: n
+  real*8 :: trw0_one
+  trw0_one = tracers(n)%trw0
+end function trw0_one
+
+subroutine set_trsi0(oldIndex, value)
+  integer, intent(in) :: oldIndex
+  real*8, intent(in) :: value
+  tracers(oldIndex)%trsi0 = value
+end subroutine set_trsi0
+
+function trsi0_all()
+  real*8 :: trsi0_all(numTracers)
+  trsi0_all = tracers(:)%trsi0
+end function trsi0_all
+
+function trsi0_one(n)
+  integer, intent(in) :: n
+  real*8 :: trsi0_one
+  trsi0_one = tracers(n)%trsi0
+end function trsi0_one
+
+end module OldTracer_mod

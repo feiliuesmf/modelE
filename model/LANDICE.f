@@ -275,8 +275,6 @@ C**** CALCULATE TG2
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSNOWLI
 !@var TRLNDI tracer amount in land ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRLNDI
-!@var TRLI0 default tracer conc. for land ice (kg/kg)
-      REAL*8, DIMENSION(NTM) :: TRLI0
 !@var TDWNIMP downward implicit tracer amount accumulator (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRDWNIMP
 #endif

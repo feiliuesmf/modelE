@@ -1,4 +1,4 @@
-#include "rundeck_opts.h"
+|#include "rundeck_opts.h"
       
 
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
@@ -13,6 +13,47 @@
 C
       USE QUSDEF, only: nmom
       USE MODEL_COM, only: im,jm,lm
+      use OldTracer_mod, only: tr_mm
+      use OldTracer_mod, only: ntm_power
+      use OldTracer_mod, only: t_qlimit
+      use OldTracer_mod, only: ntsurfsrc
+      use OldTracer_mod, only: needtrs
+      use OldTracer_mod, only: trdecay
+
+      use OldTracer_mod, only: itime_tr0
+      use OldTracer_mod, only: mass2vol
+      use OldTracer_mod, only: vol2mass
+
+      use OldTracer_mod, only: dodrydep
+      use OldTracer_mod, only: F0
+      use OldTracer_mod, only: HSTAR
+
+      use OldTracer_mod, only: do_fire
+      use OldTracer_mod, only: nBBsources
+      use OldTracer_mod, only: emisPerFireByVegType
+      use OldTracer_mod, only: trpdens
+      use OldTracer_mod, only: trradius
+
+      use OldTracer_mod, only: tr_wd_TYPE
+      use OldTracer_mod, only: tr_RKD
+      use OldTracer_mod, only: tr_DHD
+      use OldTracer_mod, only: fq_aer
+      use OldTracer_mod, only: rc_washt
+      use OldTracer_mod, only: isDust
+
+      use OldTracer_mod, only: nGAS, nPART, nWATER
+
+      use OldTracer_mod, only: tr_H2ObyCH4
+      use OldTracer_mod, only: dowetdep
+      use OldTracer_mod, only: trw0
+      use OldTracer_mod, only: ntrocn
+      use OldTracer_mod, only: conc_from_fw
+      use OldTracer_mod, only: trglac
+      use OldTracer_mod, only: ntisurfsrc
+
+      use OldTracer_mod, only: trli0
+      use OldTracer_mod, only: trsi0
+
 C
       IMPLICIT NONE
       SAVE
@@ -795,70 +836,6 @@ C**** standard tracer and tracer moment arrays
 !@+   and used for vertical distribution of 3D emissions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: daily_z
 
-C**** The following general arrays are set in tracer_IC
-
-!@var T_QLIMIT: if t_qlimit=.true. tracer is maintained as positive
-      logical, dimension(ntm) :: t_qlimit
-!@var trdecay radioactive decay constant (1/s) (=0 for stable tracers)
-      real*8, dimension(ntm) :: trdecay
-!@dbparam ITIME_TR0: start time for each tracer (hours)
-      integer, dimension(ntm) :: itime_tr0
-#ifdef TRACERS_ON
-!@var NTM_POWER: Power of 10 associated with each tracer (for printing)
-      integer, dimension(ntm) :: ntm_power
-!@var TR_MM: molecular mass of each tracer (g/mole)
-      real*8, dimension(ntm) :: tr_mm
-!@var mass2vol: mass to volume ratio = mair/tr_mm
-      real*8, dimension(ntm) :: mass2vol
-!@var vol2mass: volume to mass ratio = tr_mm/mair
-      real*8, dimension(ntm) :: vol2mass
-!@var needtrs: true if surface tracer value from PBL is required
-      logical, dimension(ntm) :: needtrs
-#ifdef TRACERS_DRYDEP
-!@var dodrydep: true if tracer should undergo dry deposition
-      logical, dimension(ntm) :: dodrydep
-!@var F0 reactivity factor for oxidation of biological substances
-      real*8, dimension(ntm)  :: F0
-!@var HSTAR Henry's Law const for tracer dry deposition. mole/(L atm)
-!@+   Same as the tr_RKD wet dep variable, except for units.
-!@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.
-      real*8, dimension(ntm)  :: HSTAR
-#endif
-#endif
-!@var do_fire: true if tracer should have emissions via flammability
-      logical, dimension(ntm) :: do_fire
-!@var nBBsources number of sources attributed to biomass burning
-      integer, dimension(ntm) :: nBBsources
-!@var emisPerFireByVegType tracer emissions per fire count as a
-!@+ function of 12 standard GISS (VDATA) vegetation types, or Ent
-!@+ remapped to them. Thus the "12" hardcode.
-      real*8, dimension(ntm,12) :: emisPerFireByVegType=0.d0
-!@var trpdens tracer particle density (kg/m^3)
-!@+               (=0 for non-particle tracers)
-      real*8, dimension(ntm) :: trpdens
-!@var trradius tracer effective radius (m) (=0 for non particle tracers)
-      real*8, dimension(ntm) :: trradius
-
-!@var tr_wd_TYPE: tracer wet dep type (gas, particle, water)
-      integer, dimension(ntm) :: tr_wd_TYPE
-!@var tr_RKD: Henry's Law coefficient (in mole/Joule please !)
-      real*8, dimension(ntm) :: tr_RKD
-!@var tr_DHD: coefficient of temperature-dependence term of Henry's
-!@+   Law coefficient (in Joule/mole please !)
-      real*8, dimension(ntm) :: tr_DHD
-!@var fq_aer fraction of aerosol that condenses
-      real*8 fq_aer(ntm)
-!@var rc_washt aerosol washout rate
-      REAL*8 :: rc_washt(ntm)=1.D-1
-
-!@var isdust: index array for testing if tracer is a dust type
-      integer, dimension(ntm) :: isdust
-
-C**** parameters for tr_wd_TYPE
-!@param nGAS   index for wetdep tracer type = gas
-!@param nPART  index for wetdep tracer type = particle/aerosol
-!@param nWATER index for wetdep tracer type = water
-      integer, parameter :: nGAS=1, nPART=2, nWATER=3
 
 #ifdef TRACERS_WATER
 !@param nWD_TYPES number of tracer types for wetdep purposes
@@ -867,34 +844,12 @@ C**** parameters for tr_wd_TYPE
 C note, tr_evap_fact is not dimensioned as NTM:
       REAL*8, parameter, dimension(nWD_TYPES) :: tr_evap_fact=
      *     (/1.d0, 0.5d0,  1.d0/)
-!@var tr_H2ObyCH4 conc. of tracer in water from methane oxidation
-      real*8, dimension(ntm) :: tr_H2ObyCH4
-!@var dowetdep true if tracer has some form of wet deposition
-      logical, dimension(ntm) :: dowetdep
-#endif
-
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-!@var TRW0 default tracer concentration in water (kg/kg)
-      real*8, dimension(ntm) :: trw0
-!@var NTROCN scaling power factor for ocean/ice tracer concentrations
-      integer, dimension(ntm) :: ntrocn
-!@var conc_from_fw true if ocean conc is defined using fresh water
-      logical, dimension(ntm) :: conc_from_fw = .true.
-#endif
-
-#ifdef TRACERS_OCEAN
-!@var TRGLAC tracer ratio in glacial runoff to ocean (kg/kg)
-      real*8, dimension(ntm) :: trglac
 #endif
 
 C**** Diagnostic indices and meta-data
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=16
-!@var ntsurfsrc no. of non-interactive surface sources for each tracer
-      integer, dimension(ntm) :: ntsurfsrc
-!@var ntisurfsrc no. of interactive surface sources for each tracer
-      integer, dimension(ntm) :: ntisurfsrc
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
       integer, parameter :: nt3Dsrcmax=7
 !@var sfc_src array holds tracer sources that go into trsource( )

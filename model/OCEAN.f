@@ -25,8 +25,9 @@
      *     ,lmi, Ei
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
 #ifdef TRACERS_WATER
-     *     ,trsi,trsi0,ntm
+     *     ,trsi,ntm
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
+      USE TRACER_COM, only: trsi0
 #endif
       USE LANDICE_COM, only : snowli,tlandi
       USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr
@@ -863,7 +864,7 @@ C**** Set fluxed arrays for oceans
           GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
           SSS(I,J) = SSS0
 #ifdef TRACERS_WATER    
-          gtracer(:,1,i,j)=trw0(:)
+          gtracer(:,1,i,j)=trw0()
 #endif
         ELSE
           SSS(I,J) = 0.
@@ -1065,12 +1066,10 @@ C****
      *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt,gtempr
 #ifdef TRACERS_WATER
      *     ,dtrsi
+      USE TRACER_COM, only: trsi0
 #endif
       USE SEAICE, only : ace1i,ssi0,tfrez
       USE SEAICE_COM, only : rsi,msi,snowi
-#ifdef TRACERS_WATER
-     *     ,trsi0
-#endif
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
@@ -1158,8 +1157,8 @@ C**** Add salt for total mass
           DSSI(2,I,J)=SSI0*DMSI(2,I,J)
 #ifdef TRACERS_WATER
 C**** assume const mean tracer conc over freshwater amount
-          DTRSI(:,1,I,J)=TRSI0(:)*ACEFO
-          DTRSI(:,2,I,J)=TRSI0(:)*ACEFI
+          DTRSI(:,1,I,J)=TRSI0()*ACEFO
+          DTRSI(:,2,I,J)=TRSI0()*ACEFI
 #endif
 C**** store surface temperatures
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)

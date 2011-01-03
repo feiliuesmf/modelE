@@ -529,8 +529,8 @@ C**** This is just an estimate for the initiallisation
      *             +(MWL(I,J)-MLK1)*MAX(TLAKE(I,J),4d0))
               MLDLK(I,J) = MINMLD
 #ifdef TRACERS_WATER
-              TRLAKE(:,1,I,J)=MLK1*TRW0(:)
-              TRLAKE(:,2,I,J)=(MWL(I,J)-MLK1)*TRW0(:)
+              TRLAKE(:,1,I,J)=MLK1*TRW0()
+              TRLAKE(:,2,I,J)=(MWL(I,J)-MLK1)*TRW0()
 #endif
             ELSE
               TLAKE(I,J) = 0.

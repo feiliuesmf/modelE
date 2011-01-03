@@ -2261,8 +2261,6 @@ C**** albedo calculations
 #ifdef TRACERS_WATER
 !@var TRSI tracer amount in sea ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSI
-!@var TRSI0 default tracer conc. in sea ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: TRSI0
 #endif
 
       END MODULE SEAICE_COM
@@ -2283,7 +2281,7 @@ C**** albedo calculations
       USE SEAICE_COM, ONLY : RSI, SNOWI, MSI, HSI, SSI, pond_melt,
      *     flag_dsws
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, ONLY : TRSI, TRSI0
+      USE SEAICE_COM, ONLY : TRSI
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -2319,7 +2317,6 @@ C**** albedo calculations
 
 #ifdef TRACERS_WATER
       ALLOCATE( TRSI(NTM, LMI, I_0H:I_1H, J_0H:J_1H),
-     *     TRSI0(NTM),
      *     STAT=IER)
       TRSI(:, :, :, J_0H:J_1H) = 0.  ! default to prevent unecessary crash
 #endif

@@ -2153,7 +2153,7 @@ c daily_z is currently only needed for CS
 #endif /* TRACERS_ON */
 #endif /* NEW_IO */
 
-      subroutine num_srf_sources(nt,nsrc,checkname)
+      subroutine num_srf_sources(nt,checkname)
 !@sum reads headers from emission files to return
 !@+ source names and determine the number of sources
 !@+ from the number of files in the rundeck of the form:
@@ -2167,11 +2167,11 @@ c daily_z is currently only needed for CS
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE PARAM, only : sync_param
+      Use OldTracer_mod, only: set_ntsurfsrc
     
       implicit none
 
 !@var nsrc number of source to define ntsurfsrc(n)
-      integer, intent(out) :: nsrc
       integer, intent(in) :: nt
       integer :: n,iu,i,j,nsect,nn
       character*2 :: fnum
@@ -2180,6 +2180,7 @@ c daily_z is currently only needed for CS
       character*124 :: tr_sectors_are
       character(len=300) :: out_line
       logical :: qexist,checkname
+      integer :: nsrc
 
 ! loop through potential number of surface sources, checking if
 ! those files exist. If they do, obtain the source name by reading
@@ -2246,6 +2247,8 @@ c daily_z is currently only needed for CS
         call write_parallel(trim(out_line))
         call stop_model(trim(out_line),255)
       endif
+
+      call set_ntsurfsrc(nt, nsrc)
 
       end subroutine num_srf_sources
 

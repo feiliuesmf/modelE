@@ -34,8 +34,6 @@
       USE LINOZ_CHEM_COM, only: dsol
 #endif
 #ifdef TRACERS_WATER
-      USE LANDICE_COM, only : trli0    ! should these be in tracer_com?
-      USE SEAICE_COM, only : trsi0
 #ifdef TRDIAG_WETDEPO
       USE CLOUDS, ONLY : diag_wetdep
 #endif
@@ -103,6 +101,45 @@
       USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2, om2oc, BBinc
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
+      use OldTracer_mod, only: initializeOldTracers
+      use OldTracer_mod, only: addTracer
+      use OldTracer_mod, only: set_tr_mm, set_ntm_power
+      use OldTracer_mod, only: set_t_qlimit
+      use OldTracer_mod, only: set_ntsurfsrc
+      use OldTracer_mod, only: set_needtrs
+      use OldTracer_mod, only: set_trdecay
+      use OldTracer_mod, only: set_itime_tr0
+      use OldTracer_mod, only: set_mass2vol
+      use OldTracer_mod, only: set_vol2mass
+
+      use OldTracer_mod, only: dodrydep
+      use OldTracer_mod, only: F0
+      use OldTracer_mod, only: HSTAR
+
+      use OldTracer_mod, only: set_do_fire
+      use OldTracer_mod, only: set_nBBsources
+      use OldTracer_mod, only: set_emisPerFireByVegType
+      use OldTracer_mod, only: set_trpdens
+      use OldTracer_mod, only: set_trradius
+
+      use OldTracer_mod, only: set_tr_wd_TYPE
+      use OldTracer_mod, only: set_tr_RKD
+      use OldTracer_mod, only: set_tr_DHD
+      use OldTracer_mod, only: set_fq_aer
+      use OldTracer_mod, only: set_rc_washt
+      use OldTracer_mod, only: set_isDust
+
+      use OldTracer_mod, only: set_tr_H2ObyCH4
+      use OldTracer_mod, only: set_dowetdep
+      use OldTracer_mod, only: set_trw0
+      use OldTracer_mod, only: set_ntrocn
+      use OldTracer_mod, only: set_conc_from_fw
+      use OldTracer_mod, only: set_trglac
+      use OldTracer_mod, only: set_ntisurfsrc
+
+      use OldTracer_mod, only: set_trli0
+      use OldTracer_mod, only: set_trsi0
+
       implicit none
       integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
@@ -133,6 +170,10 @@
       real*8 :: atmCO2 = 280.d0
 #endif
 
+! temp storage for new tracer interfaces
+      integer :: values(ntm)
+      integer :: val
+
       INTEGER J_0, J_1, I_0, I_1
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -141,53 +182,35 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-C**** Set defaults for tracer attributes (all dimensioned ntm)
+      call initializeOldTracers()
+      do n=1,ntm
+        call addTracer(trname(n))
+      end do
 
-      itime_tr0=itime
-      t_qlimit = .true.
-      trdecay = 0.
-      do_fire = .false.
+
+!TODO remove this comment
+C**** Set defaults for tracer attributes (all dimensioned ntm)
+C**** Many defaults are now set in OldTracers_mod.F90
+
 #ifdef TRACERS_ON
-      needtrs = .false.
-      ntsurfsrc = 0
-      trpdens = 0.
-      trradius = 0.
 #ifdef TRACERS_SPECIAL_Lerner
       n_MPtable = 0
       tcscale = 0.
 #endif
 #endif /* TRACERS_ON */
-      tr_wd_TYPE = nGas       !other options are nPART or nWATER
-      tr_RKD = 0.
-      tr_DHD = 0.
-      fq_aer = 0.
-      isdust = 0
-#ifdef TRACERS_WATER
-      trli0 = 0.
-      trsi0 = 0.
-      tr_H2ObyCH4 = 0.
-      dowetdep = .false.
-#endif
 #ifdef TRACERS_SPECIAL_O18
       iso_index = 1             ! act like water by default
-#endif
-#ifdef TRACERS_DRYDEP
-      dodrydep = .false.
-      F0 = 0.
-      HSTAR = 0.   ! tr_RKD * convert_HSTAR
-#endif
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      trw0 = 0.
-      ntrocn = 0
-#endif
-#ifdef TRACERS_OCEAN
-      trglac = 0.
 #endif
 
 C**** Synchronise tracer related paramters from rundeck
 
 C**** Get itime_tr0 from rundeck if it exists
-      call sync_param("itime_tr0",itime_tr0,ntm)
+      values = iTime
+      call sync_param("itime_tr0",values,ntm)
+      do n = 1, ntm
+        call set_itime_tr0(n, values(n))
+      end do
+
 #ifdef TRACERS_WATER
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
@@ -316,13 +339,12 @@ C**** get rundeck parameter for cosmogenic source factor
 ! (I can enclose this in an ifdef if it causes problems
 ! for people). num_srf_sources routine also assigns
 ! sources to sectors, if desired:
-      nBBsources(:)=0
       do n=1,ntm
 ! general case:
 #ifdef TRACERS_AMP
-        call num_srf_sources(n,ntsurfsrc(n),.false.)
+        call num_srf_sources(n,.false.)
 #else
-        call num_srf_sources(n,ntsurfsrc(n),.true.)
+        call num_srf_sources(n,.true.)
 #endif
 
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -333,7 +355,7 @@ C**** get rundeck parameter for cosmogenic source factor
      &  ,'CH4' ! in here to avoid potential Lerner tracers conflict
 #endif
      &  )
-          do_fire(n)=.true.
+          call set_do_fire(n, .true.)
         end select
 #endif /* DYNAMIC_BIOMASS_BURNING */
 
@@ -346,15 +368,15 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
      &  'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
      &  'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
-          call sync_param(trim(trname(n))//"_nBBsources",
-     &    nBBsources(n))
+          call sync_param(trim(trname(n))//"_nBBsources",val)
+          call set_nBBsources(n, val)
           if(nBBsources(n)>0)then
             if(do_fire(n))then
               if(am_i_root())write(6,*)
      &        'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
               call stop_model('nBBsource do_fire conflict',13)
             else
-              ntsurfsrc(n)=ntsurfsrc(n)-nBBsources(n)
+              call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
             end if
           end if
         end select
@@ -394,52 +416,52 @@ C**** Define individual tracer characteristics
 #ifdef TRACERS_ON
       case ('Air')
       n_Air = n
-          ntm_power(n) = -2
-          tr_mm(n) = mair
+          call set_ntm_power(n, -2)
+          call set_tr_mm(n, mair)
 
       case ('CO2n')
       n_CO2n = n
-          ntm_power(n) = -6
-          tr_mm(n) = 44.d0     !grams
-          t_qlimit(n) = .false.
-          ntsurfsrc(n) = 1
-          needtrs(n)=.true.
+          call set_ntm_power(n, -6)
+          call set_tr_mm(n, 44.d0)     !grams
+          call set_t_qlimit(n,  .false.)
+          call set_ntsurfsrc(n,  1)
+          call set_needtrs(n, .true.)
 
       case ('CFCn')
       n_CFCn = n
-          ntm_power(n) = -12
-          !!tr_mm(n) = 136.0d0    !NCAR value
-          tr_mm(n) = 137.37d0     !note units are in gr
-          ntsurfsrc(n) = 1
-          needtrs(n)=.true.
+          call set_ntm_power(n, -12)
+          !!call set_tr_mm(n, 136.0d0    !NCAR value
+          call set_tr_mm(n, 137.37d0)!note units are in gr
+          call set_ntsurfsrc(n,  1)
+          call set_needtrs(n, .true.)
 
       case ('SF6')
       n_SF6 = n
-          ntm_power(n) = -14
-          tr_mm(n) = 146.01d0
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 146.01d0)
+          call set_ntsurfsrc(n,  1)
 
       case ('Rn222')
       n_Rn222 = n
-          ntm_power(n) = -21
-          tr_mm(n) = 222.d0
-          trdecay(n) = 2.1d-6
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -21)
+          call set_tr_mm(n, 222.d0)
+          call set_trdecay(n,  2.1d-6)
+          call set_ntsurfsrc(n,  1)
 
       case ('CO2')
       n_CO2 = n
-          ntm_power(n) = -6
-          tr_mm(n) = 44.d0
-          t_qlimit(n) = .false.
-          ntsurfsrc(n) = 6
+          call set_ntm_power(n, -6)
+          call set_tr_mm(n, 44.d0)
+          call set_t_qlimit(n,  .false.)
+          call set_ntsurfsrc(n,  6)
 
       case ('N2O')
       n_N2O = n
-          ntm_power(n) = -9
-          tr_mm(n) = 44.d0
+          call set_ntm_power(n, -9)
+          call set_tr_mm(n, 44.d0)
 #ifdef TRACERS_SPECIAL_Lerner
-          ntsurfsrc(n) = 1
-          n_MPtable(n) = 1
+          call set_ntsurfsrc(n,  1)
+          n_mptable(n) = 1
           tcscale(n_MPtable(n)) = 1.
 #endif
 #ifdef SHINDELL_STRAT_CHEM
@@ -455,27 +477,27 @@ C**** Define individual tracer characteristics
 
       case ('CFC11')   !!! should start April 1
       n_CFC11 = n
-          ntm_power(n) = -12
-          tr_mm(n) = 137.4d0
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 137.4d0)
+          call set_ntsurfsrc(n,  1)
 #ifdef TRACERS_SPECIAL_Lerner
-          n_MPtable(n) = 2
+          n_mptable(n) = 2
           tcscale(n_MPtable(n)) = 1.
 #endif
 
       case ('14CO2')   !!! should start 10/16
       n_14CO2 = n
-          ntm_power(n) = -18
-          tr_mm(n) = 46.d0
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -18)
+          call set_tr_mm(n, 46.d0)
+          call set_ntsurfsrc(n,  1)
 
       case ('CH4')
       n_CH4 = n
-          tr_mm(n) = 16.d0
+          call set_tr_mm(n, 16.d0)
 #ifdef TRACERS_SPECIAL_Lerner
-          ntsurfsrc(n) = 14
-          ntm_power(n) = -9
-          n_MPtable(n) = 3
+          call set_ntsurfsrc(n,  14)
+          call set_ntm_power(n, -9)
+          n_mptable(n) = 3
           tcscale(n_MPtable(n)) = 1.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -485,7 +507,7 @@ C**** This is only effective with a complete restart.
           call sync_param("ch4_init_nh",ch4_init_nh)
           call sync_param("fix_CH4_chemistry",fix_CH4_chemistry)
           call sync_param("scale_ch4_IC_file",scale_ch4_IC_file)
-          ntm_power(n) = -8
+          call set_ntm_power(n, -8)
 C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
@@ -513,9 +535,9 @@ C         Interpolate CH4 altitude-dependence to model resolution:
 
       case ('O3')
       n_O3 = n
-          ntm_power(n) = -8
-          tr_mm(n) = 48.d0
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 48.d0)
+          call set_ntsurfsrc(n,  1)
 #ifdef TRACERS_SPECIAL_Lerner
 C**** Get solar variability coefficient from namelist if it exits
           dsol = 0.
@@ -524,97 +546,97 @@ C**** Get solar variability coefficient from namelist if it exits
 
       case ('SF6_c')
       n_SF6_c = n
-          ntm_power(n) = -14
-          tr_mm(n) = 146.01d0
-          ntsurfsrc(n) = 1
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 146.01d0)
+          call set_ntsurfsrc(n,  1)
 #endif /* TRACERS_ON */
       case ('Water')
       n_Water = n
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-          trw0(n) = 1.
-          ntrocn(n)= 0
+          call set_trw0(n, 1.d+0)
+          call set_ntrocn(n, 0)
 #endif
 #ifdef TRACERS_WATER
-          ntm_power(n) = -4
-          tr_mm(n) = mwat
-          needtrs(n) = .true.
-          tr_wd_TYPE(n) = nWater
-          trli0(n) = 1.
-          trsi0(n) = 1.
-          tr_H2ObyCH4(n) = 1.
+          call set_ntm_power(n, -4)
+          call set_tr_mm(n, mwat)
+          call set_needtrs(n,  .true.)
+          call set_tr_wd_type(n, nWater)
+          call set_trli0(n, 1.d+0)
+          call set_trsi0(n, 1.d+0)
+          call set_tr_H2ObyCH4(n, 1.d+0)
 #endif
 #ifdef TRACERS_OCEAN
-          trglac(n) = 1.
+          call set_trglac(n, 1.d+0)
 #endif
 #ifdef TRACERS_SPECIAL_O18
-          iso_index(n) = 1  ! indexing for isotopic fractionation calcs
+          call set_iso_index(n, 1  ) ! indexing for isotopic fractionation calcs
 #endif
 
 #ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_O18
       case ('H2O18')
       n_H2O18 = n
-          ntm_power(n) = -7
-          tr_mm(n) = 20.
-          needtrs(n) = .true.
-          tr_wd_TYPE(n) = nWater
-          iso_index(n) = 2  ! indexing for isotopic fractionation calcs
-          trw0(n) = 2.228d-3   ! SMOW mass ratio of water molecules
-          trli0(n) = 0.980d0*trw0(n)  ! d=-20
-          trsi0(n) = fracls(n)*trw0(n)
-          tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
-          ntrocn(n) = -3
+          call set_ntm_power(n, -7)
+          call set_tr_mm(n, 20.)
+          call set_needtrs(n,  .true.)
+          call set_tr_wd_type(n, nwater)
+          call set_iso_index(n, 2  ) ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
+          call set_trsi0(n, fracls(n)*trw0(n))
+          call set_tr_H2ObyCH4(n, trw0(n)*1.023d0 ) ! d=+23 (ie. no frac from O2)
+          call set_ntrocn(n, -3)
 #ifdef TRACERS_OCEAN
-          trglac(n) = trw0(n)*0.98d0   ! d=-20
+          call set_trglac(n, trw0(n)*0.98d0   ) ! d=-20
 #endif
 
       case ('HDO')
       n_HDO = n
-          ntm_power(n) = -8
-          tr_mm(n) = 19.
-          needtrs(n) = .true.
-          tr_wd_TYPE(n) = nWater
-          iso_index(n) = 3  ! indexing for isotopic fractionation calcs
-          trw0(n) = 3.29d-4    ! SMOW mass ratio of water molecules
-          trli0(n) = 0.830d0*trw0(n)  ! d=-170
-          trsi0(n) = fracls(n)*trw0(n)
-          tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
-          ntrocn(n) = -4
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 19.)
+          call set_needtrs(n,  .true.)
+          call set_tr_wd_type(n, nwater)
+          call set_iso_index(n, 3  ) ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
+          call set_trsi0(n, fracls(n)*trw0(n))
+          call set_tr_H2ObyCH4(n, trw0(n)*0.93d0  ) ! d=-70
+          call set_ntrocn(n, -4)
 #ifdef TRACERS_OCEAN
-          trglac(n) = trw0(n)*0.84d0   ! d=-160
+          call set_trglac(n, trw0(n)*0.84d0   ) ! d=-160
 #endif
 
       case ('HTO')
       n_HTO = n
-          ntm_power(n) = -18
-          tr_mm(n) = 20.
-          needtrs(n) = .true.
-          tr_wd_TYPE(n) = nWater
-          iso_index(n) = 4  ! indexing for isotopic fractionation calcs
-          trw0(n) = 0. !2.22d-18   ! SMOW mass ratio of water molecules
-          trli0(n) = 0.
-          trsi0(n) = 0.
-          tr_H2ObyCH4(n) = 0.
-          trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
-          ntrocn(n) = -18
+          call set_ntm_power(n, -18)
+          call set_tr_mm(n, 20.)
+          call set_needtrs(n,  .true.)
+          call set_tr_wd_type(n, nwater)
+          call set_iso_index(n, 4  ) ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 0. !2.22d-18   ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0.)
+          call set_trsi0(n, 0.)
+          call set_tr_H2ObyCH4(n, 0.)
+          call set_trdecay(n,  1.77d-9)      ! =5.59d-2 /yr
+          call set_ntrocn(n, -18)
 #ifdef TRACERS_OCEAN
-          trglac(n) = 0.
+          call set_trglac(n, 0.)
 #endif
 
       case ('H2O17')
       n_H2O17 = n
-          ntm_power(n) = -7
-          tr_mm(n) = 19.
-          needtrs(n) = .true.
-          tr_wd_TYPE(n) = nWater
-          iso_index(n) = 5  ! indexing for isotopic fractionation calcs
-          trw0(n) = 4.020d-5   ! SMOW mass ratio of water molecules
-          trli0(n) = 0.98937d0*trw0(n)  ! d=-10.63 D17O=0
-          trsi0(n) = fracls(n)*trw0(n)
-          tr_H2ObyCH4(n) = trw0(n)*1.011596d0 ! d=+11.596 (some frac from O2)
-          ntrocn(n) = -3
+          call set_ntm_power(n, -7)
+          call set_tr_mm(n, 19.)
+          call set_needtrs(n,  .true.)
+          call set_tr_wd_type(n, nwater)
+          call set_iso_index(n, 5  ) ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
+          call set_trsi0(n, fracls(n)*trw0(n))
+          call set_tr_H2ObyCH4(n, trw0(n)*1.011596d0 ) ! d=+11.596 (some frac from O2)
+          call set_ntrocn(n, -3)
 #ifdef TRACERS_OCEAN
-          trglac(n) = trw0(n)*0.98937d0   ! d=-10.63 D17O=
+          call set_trglac(n, trw0(n)*0.98937d0   ) ! d=-10.63 D17O=
 #endif
 #endif  /* TRACERS_SPECIAL_O18 */
 
@@ -629,19 +651,19 @@ C**** Get solar variability coefficient from namelist if it exits
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-          ntm_power(n) = -8
-          tr_mm(n) = 48.d0
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 48.d0)
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.4d0
-          HSTAR(n) = 1.d-2
+          call set_F0(n,  1.4d0)
+          call set_HSTAR(n,  1.d-2)
 #endif
       case ('NOx')
       n_NOx = n
-          ntm_power(n) = -11
-          tr_mm(n) = 14.01d0
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 14.01d0)
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.d-1
-          HSTAR(n) = 1.d-2
+          call set_F0(n,  1.d-1)
+          call set_HSTAR(n,  1.d-2)
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -655,35 +677,35 @@ C**** Get solar variability coefficient from namelist if it exits
 
       case ('N2O5')
       n_N2O5 = n
-          ntm_power(n) = -12
-          tr_mm(n) = 108.02d0
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 108.02d0)
 
 #ifdef SHINDELL_STRAT_CHEM
       case ('ClOx')
       n_ClOx = n
-          ntm_power(n) = -11
-          tr_mm(n) = 51.5d0
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 51.5d0)
 C         Interpolate ClOx altitude-dependence to model resolution:
           CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES,ClOxalt,.true.)
 
       case ('BrOx')
       n_BrOx = n
-          ntm_power(n) = -14
-          tr_mm(n) = 95.9d0
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 95.9d0)
 C         Interpolate BrOx altitude-dependence to model resolution:
           CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES,BrOxalt,.true.)
 
       case ('HCl')
       n_HCl = n
-          ntm_power(n) = -10
-          tr_mm(n) = 36.5d0
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 36.5d0)
 C         Interpolate HCl altitude-dependence to model resolution:
           CALL LOGPINT(LCOalt,PCOalt,HClaltIN,LM,PRES,HClalt,.true.)
 
       case ('ClONO2')
       n_ClONO2 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 97.5d0
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 97.5d0)
 C         Interpolate ClONO2 altitude-dependence to model resolution:
           CALL
      &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PRES,ClONO2alt,.true.)
@@ -691,28 +713,28 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
 
       case ('HOCl')
       n_HOCl = n
-          ntm_power(n) = -12
-          tr_mm(n) = 52.5d0
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 52.5d0)
 
       case ('HBr')
       n_HBr = n
-          ntm_power(n) = -14
-          tr_mm(n) = 80.9d0
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 80.9d0)
 
       case ('HOBr')
       n_HOBr = n
-          ntm_power(n) = -14
-          tr_mm(n) = 96.9d0
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 96.9d0)
 
       case ('BrONO2')
       n_BrONO2 = n
-          ntm_power(n) = -14
-          tr_mm(n) = 141.9d0
+          call set_ntm_power(n, -14)
+          call set_tr_mm(n, 141.9d0)
 
       case ('CFC')
       n_CFC = n
-          ntm_power(n) = -12
-          tr_mm(n) = 137.4d0 !CFC11
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 137.4d0) !CFC11
 #ifdef SHINDELL_STRAT_CHEM
           if(AM_I_ROOT( ))then
 C          check on GHG file's 1995 value for CFCs:
@@ -749,45 +771,45 @@ C          read the CFC initial conditions:
 
       case ('HNO3')
       n_HNO3 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 63.018d0
-          tr_RKD(n) = 2.073d3 ! in mole/J = 2.1d5 mole/(L atm)
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 63.018d0)
+          call set_tr_RKD(n, 2.073d3 ) ! in mole/J = 2.1d5 mole/(L atm)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=1.d14
+          call set_HSTAR(n, 1.d14)
 #endif
 
       case ('H2O2')
       n_H2O2 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 34.016d0
-          tr_RKD(n) = 9.869d2    ! in mole/J = 1.d5 mole/(L atm)
-          tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 34.016d0)
+          call set_tr_RKD(n, 9.869d2    ) ! in mole/J = 1.d5 mole/(L atm)
+          call set_tr_DHD(n, -5.52288d4 ) ! in J/mole = -13.2 kcal/mole.
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=tr_RKD(n)*convert_HSTAR
-          F0(n) = 1.d0
+          call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+          call set_F0(n,  1.d0)
 #endif
 
 #ifdef SHINDELL_STRAT_EXTRA
       case ('GLT') ! generic linear tracer
       n_GLT = n
-          ntm_power(n) = -11
-          tr_mm(n) = mair
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, mair)
 
 #ifdef ACCMIP_LIKE_DIAGS
       case ('stratOx')
       n_stratOx = n
           ! assumes initial Ox conditions read in for Ox tracer
-          ntm_power(n) = -8
-          tr_mm(n) = 48.d0
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 48.d0)
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.0d0
-          HSTAR(n) = 1.d-2
+          call set_F0(n,  1.0d0)
+          call set_HSTAR(n,  1.d-2)
 #endif
       case('codirect')
       n_codirect = n
-          ntm_power(n) = -8
-          tr_mm(n) = 28.01d0
-          trdecay(n) = 2.31482d-7 ! 1/(50 days)
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 28.01d0)
+          call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
           ! not a radiactive decay, but functionally identical
 
 #endif /* ACCMIP_LIKE_DIAGS */
@@ -795,25 +817,25 @@ C          read the CFC initial conditions:
 
       case ('CH3OOH')
       n_CH3OOH = n
-          ntm_power(n) = -11
-          tr_mm(n) = 48.042d0
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 48.042d0)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 3.d2
+          call set_HSTAR(n,  3.d2)
 #endif
 
       case ('HCHO')
       n_HCHO = n
-          ntm_power(n) = -11
-          tr_mm(n) = 30.026d0
-          tr_RKD(n) = 6.218d1 ! mole/J = 6.3d3 mole/(L atm)
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 30.026d0)
+          call set_tr_RKD(n, 6.218d1 ) ! mole/J = 6.3d3 mole/(L atm)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=6.d3
+          call set_HSTAR(n, 6.d3)
 #endif
 
       case ('HO2NO2')
       n_HO2NO2 = n
-          ntm_power(n) = -12
-          tr_mm(n) = 79.018d0
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 79.018d0)
 
       case ('CO')
       n_CO = n
@@ -825,8 +847,8 @@ C          read the CFC initial conditions:
            CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PRES,COICL,.true.)
            COIC(I,J,:)=COICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-          ntm_power(n) = -8
-          tr_mm(n) = 28.01d0
+          call set_ntm_power(n, -8)
+          call set_tr_mm(n, 28.01d0)
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
           ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
@@ -838,30 +860,30 @@ C          read the CFC initial conditions:
 
       case ('PAN')
       n_PAN = n
-          ntm_power(n) = -11
-          tr_mm(n) = 121.054d0   ! assuming CH3COOONO2 = PAN
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 121.054d0)   ! assuming CH3COOONO2 = PAN)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 3.6d0
+          call set_HSTAR(n,  3.6d0)
 #endif
 
       case ('Isoprene')
       n_Isoprene = n
-          ntm_power(n) = -11
-          tr_mm(n) = 60.05d0 ! i.e. 5 carbons
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 60.05d0) ! i.e. 5 carbons
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.3d-2
+          call set_HSTAR(n,  1.3d-2)
 #endif
 
       case ('AlkylNit')
       n_AlkylNit = n
-          ntm_power(n) = -11
-          tr_mm(n) = mair !unknown molecular weight, so use air and make
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, mair) !unknown molecular weight, so use air and make
                           ! note in the diagnostics write-out...
 
       case ('Alkenes')
       n_Alkenes = n
-          ntm_power(n) = -10
-          tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 1.0d0) ! So, careful: source files now in Kmole/m2/s or
                            ! equivalently, kg/m2/s for species with tr_mm=1
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -874,8 +896,8 @@ C          read the CFC initial conditions:
 
       case ('Paraffin')
       n_Paraffin = n
-          ntm_power(n) = -10
-          tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 1.0d0) ! So, careful: source files now in Kmole/m2/s or
                            ! equivalently, kg/m2/s for species with tr_mm=1
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -891,10 +913,10 @@ C          read the CFC initial conditions:
 #ifdef TRACERS_TERP
       case ('Terpenes')
       n_Terpenes = n
-          ntm_power(n) = -11
-          tr_mm(n) = 120.10d0 ! i.e. 10 carbons
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 120.10d0) ! i.e. 10 carbons
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.3d-2
+          call set_HSTAR(n,  1.3d-2)
 #endif
 #endif  /* TRACERS_TERP */
 
@@ -902,36 +924,36 @@ C          read the CFC initial conditions:
       case ('isopp1g')
           n_isopp1g = n
           n_soa_i = n_isopp1g        !the first from the soa species
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+          call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = tr_RKD(n) * convert_HSTAR
+          call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
 #endif
 
       case ('isopp1a')
           n_isopp1a = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n) = 1.5d3         !kg/m3
-          trradius(n) = 3.d-7        !m
-          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)         !kg/m3
+          call set_trradius(n, 3.d-7) !m
+          call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, nPART
 
       case ('isopp2g')
           n_isopp2g = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+          call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = tr_RKD(n) * convert_HSTAR
+          call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
 #endif
 
       case ('isopp2a')
@@ -939,39 +961,45 @@ C          read the CFC initial conditions:
 #ifndef TRACERS_TERP
           n_soa_e = n_isopp2a        !the last from the soa species
 #endif  /* TRACERS_TERP */
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n) = 1.5d3         !kg/m3
-          trradius(n) = 3.d-7        !m
-          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)         !kg/m3
+          call set_trradius(n, 3.d-7) !m
+          call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, nPART
 
 #ifdef TRACERS_TERP
       case ('apinp1g')
           n_apinp1g = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+          call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = tr_RKD(n) * convert_HSTAR
+          call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
 #endif
 
       case ('apinp1a')
           n_apinp1a = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n) = 1.5d3         !kg/m3
-          trradius(n) = 3.d-7        !m
-          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)         !kg/m3
+          call set_trradius(n, 3.d-7) !m
+          call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, nPART
 
       case ('apinp2g')
           n_apinp2g = n
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+          call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
+          call set_tr_wd_type(n, ngas)
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
@@ -979,51 +1007,51 @@ C          read the CFC initial conditions:
           tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = tr_RKD(n) * convert_HSTAR
+          call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
 #endif
 
       case ('apinp2a')
           n_apinp2a = n
           n_soa_e = n_apinp2a        !the last from the soa species
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n) = 1.5d3         !kg/m3
-          trradius(n) = 3.d-7        !m
-          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)         !kg/m3
+          call set_trradius(n, 3.d-7) !m
+          call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, nPART
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 
       case ('DMS')
       n_DMS = n
-          ntm_power(n) = -12
+          call set_ntm_power(n, -12)
 ! the ocean source of DMS is actually interactive and therefore should
 ! not count for ntsurfsrc....
-          ntsurfsrc(n) = 0   ! ocean DMS concentration
-          ntisurfsrc(n)=1.
-          tr_mm(n) = 62.
-          needtrs(n)=.true.
+          call set_ntsurfsrc(n,  0)   ! ocean DMS concentration
+          call set_ntisurfsrc(n, 1)
+          call set_tr_mm(n, 62.d+0)
+          call set_needtrs(n, .true.)
 
       case ('MSA')
       n_MSA = n
-          ntm_power(n) = -13
-          tr_mm(n) = 96.  !(H2O2 34;SO2 64)
-          trpdens(n)=1.7d3   !kg/m3 this is sulfate value
-          trradius(n)=5.d-7 !m (SO4 3;BC 1;OC 3)
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -13)
+          call set_tr_mm(n, 96.d+0)  !(H2O2 34;SO2 64)
+          call set_trpdens(n, 1.7d3)   !kg/m3 this is sulfate value
+          call set_trradius(n, 5.d-7 ) !m (SO4 3;BC 1;OC 3)
+          call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 
       case ('SO2')
       n_SO2 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 64.
-          tr_RKD(n) =0.0118d0 !mole/J or  1.2  M/atm
-          tr_DHD(n) =-2.62d4! in J/mole= -6.27 kcal/mol
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 64.d+0)
+          call set_tr_RKD(n, 0.0118d0 ) !mole/J or  1.2  M/atm
+          call set_tr_DHD(n, -2.62d4) ! in J/mole= -6.27 kcal/mol
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
-          HSTAR(N)=1.D5
+c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+          CALL SET_HSTAR(N, 1.D5)
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -1036,96 +1064,96 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 
       case ('SO4')
       n_SO4 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 96.
-          trpdens(n)=1.7d3   !kg/m3 this is sulfate value
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 96.d+0)
+          call set_trpdens(n, 1.7d3)   !kg/m3 this is sulfate value
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 
 #ifdef TRACERS_HETCHEM
       case ('SO4_d1')
       n_SO4_d1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.   !!!! Sulfat
-          trpdens(n)=2.5d3   !kg/m3 this is clay density
-          trradius(n)=0.75D-06 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.   !!!! Sulfat)
+          call set_trpdens(n, 2.5d3)   !kg/m3 this is clay density
+          call set_trradius(n, 0.75D-06 ) !m
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('SO4_d2')
       n_SO4_d2 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !kg/m3 this is silt1 value
-          trradius(n)=2.2D-06 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, 2.65d3)   !kg/m3 this is silt1 value
+          call set_trradius(n, 2.2D-06 ) !m
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('SO4_d3')
       n_SO4_d3 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)=2.65d3   !this is silt2 value
-          trradius(n)=4.4D-06 !m this is silt2 value
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, 2.65d3)   !this is silt2 value
+          call set_trradius(n, 4.4D-06 ) !m this is silt2 value
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('N_d1')
       n_N_d1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 62.   ! NO3
-          trpdens(n)=2.5d3   !kg/m3 this is clay density
-          trradius(n)=0.75D-06 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 62.d+0)   ! NO3
+          call set_trpdens(n, 2.5d3)   !kg/m3 this is clay density
+          call set_trradius(n, 0.75D-06 ) !m
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('N_d2')
       n_N_d2 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 62.
-          trpdens(n)=2.65d3   !kg/m3 this is silt1 value
-          trradius(n)=2.2D-06 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 62.)
+          call set_trpdens(n, 2.65d3)   !kg/m3 this is silt1 value
+          call set_trradius(n, 2.2D-06 ) !m
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('N_d3')
       n_N_d3 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 62.
-          trpdens(n)=2.65d3   !this is silt2 value
-          trradius(n)=4.4D-06 !m this is silt2 value
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 62.)
+          call set_trpdens(n, 2.65d3)   !this is silt2 value
+          call set_trradius(n, 4.4D-06 ) !m this is silt2 value
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 #endif
 
       case ('BCII')  !Insoluble industrial BC
       n_BCII = n
-          ntm_power(n) = -12
-          ntsurfsrc(n) = 2  !Industrial, ships
-          tr_mm(n) = 12.
-          trpdens(n)=1.3d3   !kg/m3
-          trradius(n)=1.d-7 !m
-          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -12)
+          call set_ntsurfsrc(n,  2)  !Industrial, ships
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, 1.3d3)   !kg/m3
+          call set_trradius(n, 1.d-7 ) !m
+          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('BCIA') !Soluble (aged) industrial BC
       n_BCIA = n
-          ntm_power(n) = -12
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 12.
-          trpdens(n)=1.3d3   !kg/m3
-          trradius(n)=1.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -12)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, 1.3d3)   !kg/m3
+          call set_trradius(n, 1.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('BCB') !Biomass BC
       n_BCB = n
-          ntm_power(n) = -12
-          tr_mm(n) = 12.
-          trpdens(n)=1.3d3   !kg/m3
-          trradius(n)=1.d-7 !m
-          fq_aer(n)=0.6d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -12)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, 1.3d3)   !kg/m3
+          call set_trradius(n, 1.d-7 ) !m
+          call set_fq_aer(n, 0.6d0 ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
           ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
@@ -1136,104 +1164,104 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #endif
       case ('OCII') !Insoluble industrial organic mass
       n_OCII = n
-          ntm_power(n) = -11
+          call set_ntm_power(n, -11)
 #ifdef TRACERS_AEROSOLS_SOA
-          ntsurfsrc(n) = 2 !industrial, ships
+          call set_ntsurfsrc(n,  2) !industrial, ships
 #else
-          ntsurfsrc(n) = 3 !Terpene, industrial, ships
+          call set_ntsurfsrc(n,  3) !Terpene, industrial, ships
 #endif  /* TRACERS_AEROSOLS_SOA */
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCIA') !Aged industrial organic mass
       n_OCIA = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCI1') !Insoluble organic mass, 1st type: WIOC-SA
       n_OCI1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0 !3D emissions
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0) !3D emissions
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCA1') !Aged organic mass, 1st type
       n_OCA1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCI2') !Insoluble organic mass, 2nd type: WIOC-NA
       n_OCI2 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0 !industrial emissions
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=0.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0) !industrial emissions
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCA2') !Aged organic mass, 2nd type
       n_OCA2 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCI3') !Insoluble organic mass, 3rd type: WSOC-LS
       n_OCI3 = n
-          ntm_power(n) = -11
+          call set_ntm_power(n, -11)
 #ifdef TRACERS_AEROSOLS_SOA
-          ntsurfsrc(n) = 0
+          call set_ntsurfsrc(n,  0)
 #else
-          ntsurfsrc(n) = 1 ! terpene emissions
+          call set_ntsurfsrc(n,  1) ! terpene emissions
 #endif  /* TRACERS_AEROSOLS_SOA */
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=0.2d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 0.2d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCA3') !Aged organic mass, 3rd type
       n_OCA3 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCA4') !soluble organic mass, 4th type: WSOC-MS
       n_OCA4 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCB') !Biomass organic mass
       n_OCB = n
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           call sync_param("OCB_om2oc",om2oc(n_OCB))
 #endif
-          ntm_power(n) = -11
-          tr_mm(n) = 15.6d0
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=0.8d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
           ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
@@ -1245,93 +1273,93 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('Be7')
       n_Be7 = n
 CCC#ifdef SHINDELL_STRAT_EXTRA
-CCC          ntm_power(n) = -21        ! power of ten for tracer
+CCC          call set_ntm_power(n, -21        ! power of ten for tracer)
 CCC#else
-          ntm_power(n) = -23        ! power of ten for tracer
+          call set_ntm_power(n, -23)       ! power of ten for tracer
 CCC#endif
-          tr_mm(n) = 7.d0
-          trdecay(n) = 1.51d-7
-          trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
-          trradius(n) = 1.d-7  !appropriate for stratosphere
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART ! same as SO4
+          call set_tr_mm(n, 7.d0)
+          call set_trdecay(n,  1.51d-7)
+          call set_trpdens(n, 1.7d3)    !kg/m3 this is SO4 value
+          call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart) ! same as SO4
 
       case ('Be10')
       n_Be10 = n
 CCC#ifdef SHINDELL_STRAT_EXTRA
-CCC          ntm_power(n) = -21
+CCC          call set_ntm_power(n, -21)
 CCC#else
-          ntm_power(n) = -23
+          call set_ntm_power(n, -23)
 CCC#endif
-          tr_mm(n) = 10.d0
-          trpdens(n) = 1.7d3   !kg/m3 this is SO4 value
-          trradius(n) = 1.d-7  !appropriate for stratosphere
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART ! same as SO4
+          call set_tr_mm(n, 10.d0)
+          call set_trpdens(n, 1.7d3)   !kg/m3 this is SO4 value
+          call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart) ! same as SO4
 
       case ('Pb210')
           n_Pb210 = n
-          ntm_power(n) = -23
-          tr_mm(n) = 210.d0
-          trdecay(n) = 9.85d-10
-          trpdens(n) = 1.7d3    !kg/m3 this is SO4 value
-          trradius(n) = 3.d-7  !again S04 value
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART ! same as SO4
+          call set_ntm_power(n, -23)
+          call set_tr_mm(n, 210.d0)
+          call set_trdecay(n,  9.85d-10)
+          call set_trpdens(n, 1.7d3)    !kg/m3 this is SO4 value
+          call set_trradius(n, 3.d-7  ) !again S04 value
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart) ! same as SO4
 
       case ('H2O2_s')
       n_H2O2_s = n
-          ntm_power(n) = -10
-          tr_mm(n) = 34.016
-          tr_RKD(n) = 986.9
-          tr_DHD(n) = -5.52288d4 ! in J/mole = -13.2 kcal/mole.
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 34.016d0)
+          call set_tr_RKD(n, 986.9d0)
+          call set_tr_DHD(n, -5.52288d4 ) ! in J/mole = -13.2 kcal/mole.
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=tr_RKD(n)*convert_HSTAR
-          F0(n) = 1.d0
+          call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+          call set_F0(n,  1.d0)
 #endif
       case ('seasalt1')
       n_seasalt1 = n
-          ntsurfsrc(n) = 0   ! ocean bubbles
-          ntisurfsrc(n)=1.
-          ntm_power(n) = -10
-          tr_mm(n) = 75. !Na x 3.256
-          trpdens(n)=2.2d3  !kg/m3 This is for non-hydrated
-          trradius(n)=4.4d-7 ! This is non-hydrated
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntsurfsrc(n,  0)   ! ocean bubbles
+          call set_ntisurfsrc(n, 1)
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 75.d0) !Na x 3.256
+          call set_trpdens(n, 2.2d3)  !kg/m3 This is for non-hydrated
+          call set_trradius(n, 4.4d-7 ) ! This is non-hydrated
+          call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('seasalt2')
       n_seasalt2 = n
-          ntsurfsrc(n) = 0   ! ocean bubbles
-          ntisurfsrc(n)=1.
-          ntm_power(n) = -9
-          tr_mm(n) = 75. !Na x 3.256
-          trpdens(n)=2.2d3  !kg/m3 This is for non-hydrated
-          trradius(n)=5.0d-6                 ! This is non-hydrated
+          call set_ntsurfsrc(n,  0)   ! ocean bubbles
+          call set_ntisurfsrc(n, 1)
+          call set_ntm_power(n, -9)
+          call set_tr_mm(n, 75.d0) !Na x 3.256
+          call set_trpdens(n, 2.2d3)  !kg/m3 This is for non-hydrated
+          call set_trradius(n, 5.0d-6) ! This is non-hydrated
 #ifdef TRACERS_AEROSOLS_Koch
           if (OFFLINE_DMS_SS.ne.1 .and. OFFLINE_SS.ne.1) then
-            if (imAER.ne.1) trradius(n)=1.7d-6 ! This is non-hydrated
-          endif
+             if (imAER.ne.1) call set_trradius(n, 1.7d-6 ) ! This is non-hydrated
+          end if
 #endif
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('OCocean') !Insoluble oceanic organic mass
       n_OCocean = n
-          ntm_power(n) = -11
-          tr_mm(n) = 15.6
-          trpdens(n)=1.5d3   !kg/m3
-          trradius(n)=4.4d-7 !m, same as seasalt1
-          fq_aer(n)=1.0d0 ! same as seasalt
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 15.6d0)
+          call set_trpdens(n, 1.5d3)   !kg/m3
+          call set_trradius(n, 4.4d-7) !m, same as seasalt1
+          call set_fq_aer(n, 1.0d0) ! same as seasalt
+          call set_tr_wd_type(n, nPART)
       case ('NH3')
       n_NH3 = n
-          ntm_power(n) = -10
-          tr_mm(n) = 17.
-          tr_RKD(n) = 0.7303   !tr_RKD=74 M/atm
-          tr_DHD(n) = -2.84d4  !tr_DHD=-6.80 kcal/mole
-          tr_wd_TYPE(n) = nGAS
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 17.d0)
+          call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
+          call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
+          call set_tr_wd_type(n, ngas)
 #ifdef TRACERS_DRYDEP
-          HSTAR(n)=tr_RKD(n)*convert_HSTAR
+          call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
           ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -1343,391 +1371,391 @@ CCC#endif
 #endif
       case ('NH4')
       n_NH4 = n
-          ntsurfsrc(n) = 0
-          ntm_power(n) = -10
-          tr_mm(n) = 18.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntsurfsrc(n,  0)
+          call set_ntm_power(n, -10)
+          call set_tr_mm(n, 18.d0)
+          call set_trpdens(n, 1.7d3)
+          call set_trradius(n, 3.d-7)
+          call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('NO3p')
       n_NO3p = n
-          ntsurfsrc(n) = 0
-          ntm_power(n) = -11
-          tr_mm(n) = 62.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntsurfsrc(n,  0)
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 62.d0)
+          call set_trpdens(n, 1.7d3)
+          call set_trradius(n, 3.d-7)
+          call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
 
 #ifdef TRACERS_DUST
       CASE('Clay')
       n_clay=n
-          ntm_power(n)=-9
-          trpdens(n)=2.5d3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.5d3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Silt1')
       n_silt1=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65d3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65d3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Silt2')
       n_silt2=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65d3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65d3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Silt3')
       n_silt3=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65d3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65d3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Silt4')
       n_silt4=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65d3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65d3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=11.77D-06
+          call set_trradius(n, 11.77D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
 #else
 #ifdef TRACERS_MINERALS
       CASE('ClayIlli')          ! http://webmineral.com/data/Illite.shtml
       n_clayilli=n
-          ntm_power(n)=-9
-          trpdens(n)=2.61D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.61D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('ClayKaol')       ! http://www.webmineral.com/data/Kaolinite.shtml
       n_claykaol=n
-          ntm_power(n)=-9
-          trpdens(n)=2.63D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.63D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
       n_claysmec=n
-          ntm_power(n)=-9
-          trpdens(n)=2.35D3     ! for Montmorillonite
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.35D3     ! for Montmorillonite)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('ClayCalc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_claycalc=n
-          ntm_power(n)=-9
-          trpdens(n)=2.71D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.71D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_clayquar=n
-          ntm_power(n)=-9
-          trpdens(n)=DenQuarz   ! 2.62D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenQuarz)   ! 2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=0.46D-06
+          call set_trradius(n, 0.46D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil1quar=n
-          ntm_power(n)=-9
-          trpdens(n)=DenQuarz   ! 2.62D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenQuarz)   ! 2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil1Feld')       ! http://www.mindat.org/min-1624.html
       n_sil1feld=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil1Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil1calc=n
-          ntm_power(n)=-9
-          trpdens(n)=2.71D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.71D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil1hema=n
-          ntm_power(n)=-9
-          trpdens(n)=DenHema    ! 5.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenHema)    ! 5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil1Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil1gyps=n
-          ntm_power(n)=-9
-          trpdens(n)=2.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.3D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil2quar=n
-          ntm_power(n)=-9
-          trpdens(n)=DenQuarz   ! 2.62D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenQuarz)   ! 2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2Feld')       ! http://www.mindat.org/min-1624.html
       n_sil2feld=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil2calc=n
-          ntm_power(n)=-9
-          trpdens(n)=2.71D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.71D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil2hema=n
-          ntm_power(n)=-9
-          trpdens(n)=DenHema    ! 5.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenHema)    ! 5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil2gyps=n
-          ntm_power(n)=-9
-          trpdens(n)=2.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.3D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil3quar=n
-          ntm_power(n)=-9
-          trpdens(n)=DenQuarz   ! 2.62D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenQuarz)   ! 2.62D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3Feld')       ! http://www.mindat.org/min-1624.html
       n_sil3feld=n
-          ntm_power(n)=-9
-          trpdens(n)=2.65D3     ! assumed, varies strongly among types
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil3calc=n
-          ntm_power(n)=-9
-          trpdens(n)=2.71D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.71D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil3hema=n
-          ntm_power(n)=-9
-          trpdens(n)=DenHema    ! 5.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, DenHema)    ! 5.3D3
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil3gyps=n
-          ntm_power(n)=-9
-          trpdens(n)=2.3D3
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, 2.3D3)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
 #endif  /* TRACERS_MINERALS */
 #ifdef TRACERS_QUARZHEM
       CASE('Sil1QuHe')
       n_sil1quhe=n
-          ntm_power(n)=-9
-          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=1.47D-06
+          call set_trradius(n, 1.47D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil2QuHe')
       n_sil2quhe=n
-          ntm_power(n)=-9
-          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=2.94D-06
+          call set_trradius(n, 2.94D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
       CASE('Sil3QuHe')
       n_sil3quhe=n
-          ntm_power(n)=-9
-          trpdens(n)=(1-FrHeQu)*DenQuarz+FrHeQu*DenHema
+          call set_ntm_power(n, -9)
+          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
 #ifdef TRACERS_DRYDEP
-          trradius(n)=5.88D-06
+          call set_trradius(n, 5.88D-06)
 #endif
-          fq_aer(n)=5.D-1
-          rc_washt(n)=5.D-1
-          tr_wd_TYPE(n)=nPART
-          tr_mm(n) = 1.
-          isdust(n) = 1
+          call set_fq_aer(n, 5.D-1)
+          call set_rc_washt(n, 5.D-1)
+          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_mm(n, 1.d+0)
+          call set_isdust(n, 1)
 
 #endif  /* TRACERS_QUARZHEM */
 #endif  /* TRACERS_DUST */
@@ -1735,527 +1763,527 @@ CCC#endif
 C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('H2SO4')
       n_H2SO4 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 98.
-          trpdens(n)= DENS_SULF
-          trradius(n)= DG_ACC * .5d-6
-          fq_aer(n) = SOLU_ACC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 98.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_ACC * .5d-6)
+          call set_fq_aer(n, SOLU_ACC)
+          call set_tr_wd_type(n, npart)
       case ('M_NO3')
       n_M_NO3 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 62.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7 !m
-          fq_aer(n)=1.0d0   !fraction of aerosol that dissolves
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 62.d0)
+          call set_trpdens(n, 1.7d3)
+          call set_trradius(n, 3.d-7 ) !m
+          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_tr_wd_type(n, npart)
       case ('M_NH4')
       n_M_NH4 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 18.
-          trpdens(n)=1.7d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.0d0
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 18.d0)
+          call set_trpdens(n, 1.7d3)
+          call set_trradius(n, 3.d-7)
+          call set_fq_aer(n, 1.d+0)
+          call set_tr_wd_type(n, npart)
       case ('M_H2O')
       n_M_H2O = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = mwat
-          trpdens(n)=1.d3
-          trradius(n)=3.d-7
-          fq_aer(n)=1.0d0
-          tr_wd_TYPE(n) = nPART !nWater
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, mwat)
+          call set_trpdens(n, 1.d3)
+          call set_trradius(n, 3.d-7)
+          call set_fq_aer(n, 1.d+0)
+          call set_tr_wd_type(n, npart) !nWater
       case ('M_AKK_SU')
       n_M_AKK_SU = n
-          ntm_power(n) = -11
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_AKK * .5d-6
-          fq_aer(n)= SOLU_AKK
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_AKK * .5d-6)
+          call set_fq_aer(n,  SOLU_AKK)
+          call set_tr_wd_type(n, npart)
        case ('N_AKK_1')
       n_N_AKK_1 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_AKK * .5d-6
-          fq_aer(n) = SOLU_AKK
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_AKK * .5d-6)
+          call set_fq_aer(n, SOLU_AKK)
+          call set_tr_wd_type(n, npart)
        case ('M_ACC_SU')
       n_M_ACC_SU = n
-          ntm_power(n) = -11
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)= DG_ACC * .5d-6
-          fq_aer(n) = SOLU_ACC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_ACC * .5d-6)
+          call set_fq_aer(n, SOLU_ACC)
+          call set_tr_wd_type(n, npart)
        case ('N_ACC_1')
       n_N_ACC_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_ACC * .5d-6
-          fq_aer(n) = SOLU_ACC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_ACC * .5d-6)
+          call set_fq_aer(n, SOLU_ACC)
+          call set_tr_wd_type(n, npart)
        case ('M_DD1_SU')
       n_M_DD1_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_DD1 * .5d-6
-          fq_aer(n) = SOLU_DD1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_DD1 * .5d-6)
+          call set_fq_aer(n, SOLU_DD1)
+          call set_tr_wd_type(n, npart)
        case ('M_DD1_DU')
       n_M_DD1_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DD1 * .5d-6
-          fq_aer(n)= SOLU_DD1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DD1 * .5d-6)
+          call set_fq_aer(n,  SOLU_DD1)
+          call set_tr_wd_type(n, npart)
        case ('N_DD1_1')
       n_N_DD1_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DD1 * .5d-6
-          fq_aer(n)= SOLU_DD1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DD1 * .5d-6)
+          call set_fq_aer(n,  SOLU_DD1)
+          call set_tr_wd_type(n, npart)
        case ('M_DS1_SU')
       n_M_DS1_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_DS1 * .5d-6
-          fq_aer(n) = SOLU_DS1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_DS1 * .5d-6)
+          call set_fq_aer(n, SOLU_DS1)
+          call set_tr_wd_type(n, npart)
        case ('M_DS1_DU')
       n_M_DS1_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DS1 * .5d-6
-          fq_aer(n) = SOLU_DS1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DS1 * .5d-6)
+          call set_fq_aer(n, SOLU_DS1)
+          call set_tr_wd_type(n, npart)
        case ('N_DS1_1')
       n_ N_DS1_1= n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DS1 * .5d-6
-          fq_aer(n) = SOLU_DS1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DS1 * .5d-6)
+          call set_fq_aer(n, SOLU_DS1)
+          call set_tr_wd_type(n, npart)
        case ('M_DD2_SU')
       n_M_DD2_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_DD2 * .5d-6
-          fq_aer(n) = SOLU_DD2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_DD2 * .5d-6)
+          call set_fq_aer(n, SOLU_DD2)
+          call set_tr_wd_type(n, npart)
        case ('M_DD2_DU')
       n_M_DD2_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DD2 * .5d-6
-          fq_aer(n)= SOLU_DD2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DD2 * .5d-6)
+          call set_fq_aer(n,  SOLU_DD2)
+          call set_tr_wd_type(n, npart)
        case ('N_DD2_1')
       n_N_DD2_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DD2 * .5d-6
-          fq_aer(n)= SOLU_DD2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DD2 * .5d-6)
+          call set_fq_aer(n,  SOLU_DD2)
+          call set_tr_wd_type(n, npart)
         case ('M_DS2_SU')
       n_M_DS2_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_DS2 * .5d-6
-          fq_aer(n) = SOLU_DS2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_DS2 * .5d-6)
+          call set_fq_aer(n, SOLU_DS2)
+          call set_tr_wd_type(n, npart)
       case ('M_DS2_DU')
       n_M_DS2_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DS2 * .5d-6
-          fq_aer(n) = SOLU_DS2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DS2 * .5d-6)
+          call set_fq_aer(n, SOLU_DS2)
+          call set_tr_wd_type(n, npart)
       case ('N_DS2_1')
       n_N_DS2_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DS2 * .5d-6
-          fq_aer(n) = SOLU_DS2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DS2 * .5d-6)
+          call set_fq_aer(n, SOLU_DS2)
+          call set_tr_wd_type(n, npart)
       case ('M_SSA_SU')
       n_M_SSA_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_SSA * .5d-6
-          fq_aer(n) = SOLU_SSA
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_SSA * .5d-6)
+          call set_fq_aer(n, SOLU_SSA)
+          call set_tr_wd_type(n, npart)
       case ('M_SSA_SS')
       n_M_SSA_SS = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 75.
-          trpdens(n)= DENS_SEAS
-          trradius(n)=DG_SSA * .5d-6
-          fq_aer(n) = SOLU_SSA
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 75.d0)
+          call set_trpdens(n, DENS_SEAS)
+          call set_trradius(n, DG_SSA * .5d-6)
+          call set_fq_aer(n, SOLU_SSA)
+          call set_tr_wd_type(n, npart)
       case ('M_SSC_SS')
       n_M_SSC_SS = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 75.
-          trpdens(n)= DENS_SEAS
-          trradius(n)=DG_SSC * .5d-6
-          fq_aer(n) = SOLU_SSC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 75.d0)
+          call set_trpdens(n, DENS_SEAS)
+          call set_trradius(n, DG_SSC * .5d-6)
+          call set_fq_aer(n, SOLU_SSC)
+          call set_tr_wd_type(n, npart)
       case ('M_SSS_SS')
       n_M_SSS_SS = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 75.
-          trpdens(n)= DENS_SEAS
-          trradius(n)=DG_SSS * .5d-6
-          fq_aer(n) = SOLU_SSS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 75.d0)
+          call set_trpdens(n, DENS_SEAS)
+          call set_trradius(n, DG_SSS * .5d-6)
+          call set_fq_aer(n, SOLU_SSS)
+          call set_tr_wd_type(n, npart)
       case ('M_SSS_SU')
       n_M_SSS_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 75.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_SSS * .5d-6
-          fq_aer(n) = SOLU_SSS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 75.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_SSS * .5d-6)
+          call set_fq_aer(n, SOLU_SSS)
+          call set_tr_wd_type(n, npart)
       case ('M_OCC_SU')
       n_M_OCC_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_OCC * .5d-6
-          fq_aer(n) = SOLU_OCC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_OCC * .5d-6)
+          call set_fq_aer(n, SOLU_OCC)
+          call set_tr_wd_type(n, npart)
       case ('M_OCC_OC')
       n_M_OCC_OC = n
-          ntm_power(n) = -11
-          tr_mm(n) = 15.6
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_OCC * .5d-6
-          fq_aer(n)= SOLU_OCC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 15.6)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_OCC * .5d-6)
+          call set_fq_aer(n,  SOLU_OCC)
+          call set_tr_wd_type(n, npart)
       case ('N_OCC_1')
       n_N_OCC_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_OCC * .5d-6
-          fq_aer(n)= SOLU_OCC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_OCC * .5d-6)
+          call set_fq_aer(n,  SOLU_OCC)
+          call set_tr_wd_type(n, npart)
       case ('M_BC1_SU')
       n_M_BC1_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_BC1 * .5d-6
-          fq_aer(n) = SOLU_BC1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_BC1 * .5d-6)
+          call set_fq_aer(n, SOLU_BC1)
+          call set_tr_wd_type(n, npart)
       case ('M_BC1_BC')
       n_M_BC1_BC = n
-          ntm_power(n) = -11
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BC1 * .5d-6
-          fq_aer(n)= SOLU_BC1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC1 * .5d-6)
+          call set_fq_aer(n,  SOLU_BC1)
+          call set_tr_wd_type(n, npart)
       case ('N_BC1_1')
       n_N_BC1_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BC1 * .5d-6
-          fq_aer(n)= SOLU_BC1
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC1 * .5d-6)
+          call set_fq_aer(n,  SOLU_BC1)
+          call set_tr_wd_type(n, npart)
       case ('M_BC2_SU')
       n_M_BC2_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_BC2 * .5d-6
-          fq_aer(n) = SOLU_BC2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_BC2 * .5d-6)
+          call set_fq_aer(n, SOLU_BC2)
+          call set_tr_wd_type(n, npart)
       case ('M_BC2_BC')
       n_M_BC2_BC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BC2 * .5d-6
-          fq_aer(n) = SOLU_BC2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC2 * .5d-6)
+          call set_fq_aer(n, SOLU_BC2)
+          call set_tr_wd_type(n, npart)
       case ('N_BC2_1')
       n_N_BC2_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BC2 * .5d-6
-          fq_aer(n) = SOLU_BC2
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC2 * .5d-6)
+          call set_fq_aer(n, SOLU_BC2)
+          call set_tr_wd_type(n, npart)
       case ('M_BC3_SU')
       n_M_BC3_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_BC3 * .5d-6
-          fq_aer(n) = SOLU_BC3
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_BC3 * .5d-6)
+          call set_fq_aer(n, SOLU_BC3)
+          call set_tr_wd_type(n, npart)
       case ('M_BC3_BC')
       n_M_BC3_BC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BC3 * .5d-6
-          fq_aer(n) = SOLU_BC3
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC3 * .5d-6)
+          call set_fq_aer(n, SOLU_BC3)
+          call set_tr_wd_type(n, npart)
       case ('N_BC3_1')
       n_N_BC3_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_BCAR
-          trradius(n)= DG_BC3 * .5d-6
-          fq_aer(n) = SOLU_BC3
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BC3 * .5d-6)
+          call set_fq_aer(n, SOLU_BC3)
+          call set_tr_wd_type(n, npart)
       case ('M_DBC_SU')
       n_M_DBC_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_DBC * .5d-6
-          fq_aer(n) = SOLU_DBC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_DBC * .5d-6)
+          call set_fq_aer(n, SOLU_DBC)
+          call set_tr_wd_type(n, npart)
       case ('M_DBC_BC')
       n_M_DBC_BC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_DBC * .5d-6
-          fq_aer(n)= SOLU_DBC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_DBC * .5d-6)
+          call set_fq_aer(n,  SOLU_DBC)
+          call set_tr_wd_type(n, npart)
       case ('M_DBC_DU')
       n_M_DBC_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DBC * .5d-6
-          fq_aer(n)= SOLU_DBC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DBC * .5d-6)
+          call set_fq_aer(n,  SOLU_DBC)
+          call set_tr_wd_type(n, npart)
       case ('N_DBC_1')
       n_N_DBC_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_DBC * .5d-6
-          fq_aer(n)= SOLU_DBC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_DBC * .5d-6)
+          call set_fq_aer(n,  SOLU_DBC)
+          call set_tr_wd_type(n, npart)
       case ('M_BOC_SU')
       n_M_BOC_SU = n
-          ntm_power(n) = -11
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_BOC * .5d-6
-          fq_aer(n) = SOLU_BOC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 96.)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_BOC * .5d-6)
+          call set_fq_aer(n, SOLU_BOC)
+          call set_tr_wd_type(n, npart)
       case ('M_BOC_BC')
       n_M_BOC_BC = n
-          ntm_power(n) = -11
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BOC * .5d-6
-          fq_aer(n)= SOLU_BOC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BOC * .5d-6)
+          call set_fq_aer(n,  SOLU_BOC)
+          call set_tr_wd_type(n, npart)
       case ('M_BOC_OC')
       n_M_BOC_OC = n
-          ntm_power(n) = -11
-          tr_mm(n) = 15.6
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_BOC * .5d-6
-          fq_aer(n)= SOLU_BOC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 15.6)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_BOC * .5d-6)
+          call set_fq_aer(n,  SOLU_BOC)
+          call set_tr_wd_type(n, npart)
       case ('N_BOC_1')
       n_N_BOC_1 = n
-          ntm_power(n) = -11
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BOC * .5d-6
-          fq_aer(n)= SOLU_BOC
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BOC * .5d-6)
+          call set_fq_aer(n,  SOLU_BOC)
+          call set_tr_wd_type(n, npart)
       case ('M_BCS_SU')
       n_M_BCS_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_BCS * .5d-6
-          fq_aer(n) = SOLU_BCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_BCS * .5d-6)
+          call set_fq_aer(n, SOLU_BCS)
+          call set_tr_wd_type(n, npart)
       case ('M_BCS_BC')
       n_M_BCS_BC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BCS * .5d-6
-          fq_aer(n) = SOLU_BCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BCS * .5d-6)
+          call set_fq_aer(n, SOLU_BCS)
+          call set_tr_wd_type(n, npart)
       case ('N_BCS_1')
       n_N_BCS_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_BCS * .5d-6
-          fq_aer(n) = SOLU_BCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_BCS * .5d-6)
+          call set_fq_aer(n, SOLU_BCS)
+          call set_tr_wd_type(n, npart)
       case ('M_MXX_SU')
       n_M_MXX_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('M_MXX_BC')
       n_M_MXX_BC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 12.
-          trpdens(n)= DENS_BCAR
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 12.d0)
+          call set_trpdens(n, DENS_BCAR)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('M_MXX_OC')
       n_M_MXX_OC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('M_MXX_DU')
       n_M_MXX_DU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_DUST
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_DUST)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('M_MXX_SS')
       n_M_MXX_SS = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 75.
-          trpdens(n)= DENS_SEAS
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 75.d0)
+          call set_trpdens(n, DENS_SEAS)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('N_MXX_1')
       n_N_MXX_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_SEAS
-          trradius(n)=DG_MXX * .5d-6
-          fq_aer(n) = SOLU_MXX
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_SEAS)
+          call set_trradius(n, DG_MXX * .5d-6)
+          call set_fq_aer(n, SOLU_MXX)
+          call set_tr_wd_type(n, npart)
       case ('M_OCS_SU')
       n_M_OCS_SU = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 96.
-          trpdens(n)= DENS_SULF
-          trradius(n)=DG_OCS * .5d-6
-          fq_aer(n) = SOLU_OCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 96.d0)
+          call set_trpdens(n, DENS_SULF)
+          call set_trradius(n, DG_OCS * .5d-6)
+          call set_fq_aer(n, SOLU_OCS)
+          call set_tr_wd_type(n, npart)
       case ('M_OCS_OC')
       n_M_OCS_OC = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_OCS * .5d-6
-          fq_aer(n) = SOLU_OCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 15.6)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_OCS * .5d-6)
+          call set_fq_aer(n, SOLU_OCS)
+          call set_tr_wd_type(n, npart)
       case ('N_OCS_1')
       n_N_OCS_1 = n
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 1.
-          trpdens(n)= DENS_OCAR
-          trradius(n)=DG_OCS * .5d-6
-          fq_aer(n) = SOLU_OCS
-          tr_wd_TYPE(n) = nPART
+          call set_ntm_power(n, -11)
+          call set_ntsurfsrc(n,  0)
+          call set_tr_mm(n, 1.d+0)
+          call set_trpdens(n, DENS_OCAR)
+          call set_trradius(n, DG_OCS * .5d-6)
+          call set_fq_aer(n, SOLU_OCS)
+          call set_tr_wd_type(n, npart)
 #endif /* TRACERS_AMP */
 #endif /* TRACERS_ON */
       end select
 
 #ifdef TRACERS_WATER
 C**** Tracers that are soluble or are scavenged or are water => wet dep
-      if (tr_wd_TYPE(n).eq.nWater.or.tr_wd_TYPE(n) .EQ. nPART .or.
+      if (tr_wd_type(n).eq.nWater.or.tr_wd_type(n) .EQ. nPART .or.
      *  tr_RKD(n).gt.0) then
-        dowetdep(n)=.true.
+          call set_dowetdep(n, .true.)
       end if
 #endif
 #ifdef TRACERS_DRYDEP
 C**** If tracers are particles or have non-zero HSTAR or F0 do dry dep:
 C**** Any tracers that dry deposits needs the surface concentration:
-      if(HSTAR(n).GT.0..OR.F0(n).GT.0..OR.tr_wd_TYPE(n).eq.nPART) then
-        dodrydep(n)=.true.
-        needtrs(n)=.true.
+      if(HSTAR(n).GT.0..OR.F0(n).GT.0..OR.tr_wd_type(n).eq.nPART) then
+        call set_dodrydep(n, .true.)
+        call set_needtrs(n, .true.)
 #ifdef TRACERS_WATER
-        if (tr_wd_TYPE(n).eq.nWATER) call stop_model
+        if (tr_wd_type(n).eq.nWATER) call stop_model
      &       ('A water tracer should not undergo dry deposition.',255)
 #endif
       end if
@@ -2263,24 +2291,24 @@ C**** Any tracers that dry deposits needs the surface concentration:
 
 #ifdef TRACERS_ON
 C**** Define the conversion from mass to volume units here
-      mass2vol(n) = mair/tr_mm(n)
-      vol2mass(n) = tr_mm(n)/mair
-      to_conc(n)  = 0
+      call set_mass2vol(n, mair/tr_mm(n))
+      call set_vol2mass(n, tr_mm(n)/mair)
+      to_conc(n) = 0
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Aerosol tracer output should be mass mixing ratio
-      select case (tr_wd_TYPE(n))
-        case (nGAS)
-          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
+      select case (tr_wd_type(n))
+        case (ngas)
+          call set_to_volume_MixRat(n, 1    ) !gas output to volume mixing ratio
         case (nPART)
-          to_volume_MixRat(n) = 0    !aerosol output to mass mixing ratio
+          call set_to_volume_MixRat(n, 0    ) !aerosol output to mass mixing ratio
         case (nWATER)
-          to_volume_MixRat(n) = 0    !water output to mass mixing ratio
+          call set_to_volume_MixRat(n, 0    ) !water output to mass mixing ratio
         case default
-          to_volume_MixRat(n) = 0    !default output to mass mixing ratio
+          call set_to_volume_MixRat(n, 0    ) !default output to mass mixing ratio
       end select
 #endif
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
+      call set_to_volume_MixRat(n, 1    ) !gas output to volume mixing ratio
 #endif
 #endif /* TRACERS_ON */
 
@@ -8142,15 +8170,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
-     *     tr_mm,rnsrc,vol2mass
+     *     tr_mm,rnsrc,vol2mass,trsi0
 #if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
     (defined TRACERS_AMP)
      *     ,imAER,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
 #endif
 #ifdef TRACERS_WATER
-     *     ,trwm,trw0,tr_wd_TYPE,nWATER,n_HDO,n_H2O18
+     *     ,trwm,trw0,tr_wd_type,nWATER,n_HDO,n_H2O18
       USE LANDICE, only : ace1li,ace2li
-      USE LANDICE_COM, only : trli0,trsnowli,trlndi,snowli
+      USE LANDICE_COM, only : trsnowli,trlndi,snowli
       USE SEAICE, only : xsi,ace1i
       USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
@@ -8227,6 +8255,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : gtracer
       USE RADPAR, only : xnow
 #endif
+      use OldTracer_mod, only: trli0
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -9028,7 +9057,7 @@ C**** Initialise pbl profile if necessary
         do j=J_0,J_1
         do ipbl=1,npbl
 #ifdef TRACERS_WATER
-          if(tr_wd_TYPE(n).eq.nWATER)THEN
+          if(tr_wd_type(n).eq.nWATER)THEN
             trabl(ipbl,n,it,:,j) = trinit*qabl(ipbl,it,:,j)
           ELSE
 #endif
@@ -11059,7 +11088,7 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
-      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
+      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
      *     ,trname,ntm,lm,t_qlimit,fq_aer,trpdens
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
@@ -11110,8 +11139,8 @@ c
 C**** CALCULATE the fraction of tracer mass that becomes condensate:
 c
       thlaw=0.
-      SELECT CASE(tr_wd_TYPE(NTIX(N)))
-        CASE(nGAS)                            ! gas tracer
+      SELECT CASE(tr_wd_type(NTIX(N)))
+        CASE(ngas)                            ! gas tracer
           fq = 0.D0                           ! frozen and default case
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
@@ -11274,7 +11303,7 @@ c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
 
         CASE DEFAULT                                ! error
           call stop_model(
-     &    'tr_wd_TYPE(NTIX(N)) out of range in GET_COND_FACTOR',255)
+     &    'tr_wd_type(NTIX(N)) out of range in GET_COND_FACTOR',255)
       END SELECT
 c
       RETURN
@@ -11298,7 +11327,7 @@ C**** GLOBAL parameters and variables:
 ! NB: these lists are often used for implicit loops
      &     gases_list,aero_list,water_list,hlawt_list
 
-      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
+      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
      *     ,trname,ntm,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
@@ -11574,10 +11603,10 @@ c      enddo ! end loop over aerosols
 !@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
-      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
+      USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
      * tr_RKD,tr_DHD,LM,NTM,rc_washt
 #ifdef TRACERS_AEROSOLS_Koch
-c     * ,trname,n_seasalt1,n_seasalt2
+     * ,trname,n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
 c      USE CLOUDS, only: NTIX,PL
@@ -11601,8 +11630,8 @@ C**** Local parameters and variables and arguments:
       REAL*8 Ppas, tfac, ssfac, RKD, TRPR(ntm)
 C
       thlaw=0.
-      SELECT CASE(tr_wd_TYPE(NTIX(N)))
-        CASE(nGAS)                            ! gas
+      SELECT CASE(tr_wd_type(NTIX(N)))
+        CASE(ngas)                            ! gas
           fq = 0.D0                           ! frozen and default case
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
@@ -11646,7 +11675,7 @@ c         endif
 #endif
         CASE DEFAULT                          ! error
           call stop_model(
-     &    'tr_wd_TYPE(NTIX(N)) out of range in WASHOUT_TRACER',255)
+     &    'tr_wd_type(NTIX(N)) out of range in WASHOUT_TRACER',255)
       END SELECT
 c
       RETURN
@@ -11662,7 +11691,7 @@ c
 ! NOTE: FQ is only computed for the tracers in aero_list!
 c
 C**** GLOBAL parameters and variables:
-      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
+      USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
      * tr_RKD,tr_DHD,NTM,rc_washt
 #ifdef TRACERS_AEROSOLS_Koch
 c     * ,trname,n_seasalt1,n_seasalt2
@@ -11770,7 +11799,7 @@ c         endif
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_TYPE,nwater,trname
+      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_type,nwater,trname
 c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
@@ -11790,9 +11819,9 @@ C**** Local parameters and variables and arguments:
       real*8 tdegc,alph,fracvl,fracvs,kin_evap_prec
 #endif
 c
-      select case (tr_wd_TYPE(NTIX(N)))
+      select case (tr_wd_type(NTIX(N)))
       case default
-        fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+        fq=FQ0*tr_evap_fact(tr_wd_type(NTIX(N)))
         if(FQ0.ge.1.) fq=1.D0 ! total evaporation
 c
       case (nWater)
@@ -11813,7 +11842,7 @@ C**** no fractionation for ice evap
             fq = fq0
           end if
 #else
-          fq=FQ0*tr_evap_fact(tr_wd_TYPE(NTIX(N)))
+          fq=FQ0*tr_evap_fact(tr_wd_type(NTIX(N)))
           if(FQ0.ge.1.) fq=1.D0 ! total evaporation
 #endif
       end select
@@ -11829,7 +11858,7 @@ C**** no fractionation for ice evap
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_TYPE,nwater,trname
+      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_type,nwater,trname
      &     ,water_count,water_list
 c      USE CLOUDS, only: NTIX
 c
@@ -11848,14 +11877,17 @@ C**** Local parameters and variables and arguments:
       REAL*8, INTENT(IN) :: HEFF
 #ifdef TRACERS_SPECIAL_O18
       real*8 tdegc,alph,fracvl,fracvs,kin_evap_prec
-      integer :: iwat,n
+      integer :: iwat
 #endif
+      integer :: n
 c
 
       if(fq0.ge.1d0) then
         fq(1:ntx) = 1d0 ! total evaporation
       else
-        fq(1:ntx) = fq0*tr_evap_fact(tr_wd_type(ntix(1:ntx)))
+        do n = 1, ntx
+          fq(1:n) = fq0*tr_evap_fact(tr_wd_type(ntix(n)))
+        end do
       endif
 
 #ifdef TRACERS_SPECIAL_O18

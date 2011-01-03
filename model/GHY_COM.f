@@ -422,18 +422,20 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS03"
       REAL*8, ALLOCATABLE :: TRSNOWBV0_GLOB(:,:,:,:)
       REAL*8, ALLOCATABLE, TARGET :: TR_W_GLOB  (:,:,:,:,:)
-      REAL*8, POINTER :: ptr4(:,:,:,:)
+      REAL*8, allocatable :: localSlice(:,:,:,:)
+      REAL*8, allocatable :: globalSlice(:,:,:,:)
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a21,i3,a1,i2,a1,i2,a11,i3,a2)')
      *     'R8 dim(im,jm) TR_W(',NTM,',',NGM,',',LS_NFRAC
      *     ,'),TRSNOWBV(',ntm,'2)'
 #endif
 
-      call allocate_me
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
+
+      call allocate_me
 
       write(MODULE_HEADER(lhead+1:80),'(a7,i1,a1,i1,a23)')
      *   'R8 dim(',ngm+1,',',LS_NFRAC,',ijm):W,HT, SNWbv(2,ijm)'
@@ -448,9 +450,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       SNOWBV_GLOB)
 #ifdef TRACERS_WATER
         do m=1,LS_NFRAC
-          CALL PACK_BLOCK(grid,
-     &         TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H),ptr4 )
-          if (AM_I_ROOT()) TR_W_GLOB(:,:,m,:,:) = ptr4
+          localSlice = TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H)
+          CALL PACK_BLOCK(grid, localSlice, globalSlice)
+          if (AM_I_ROOT()) TR_W_GLOB(:,:,m,:,:) = globalSlice
         enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
@@ -499,9 +501,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
           do m=1,LS_NFRAC
-            if (AM_I_ROOT())  PTR4 = TR_W_GLOB(:,:,m,:,:)
-            CALL UNPACK_BLOCK(grid,ptr4,
-     &           TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H) )
+            if (AM_I_ROOT())  globalSlice = TR_W_GLOB(:,:,m,:,:)
+            CALL UNPACK_BLOCK(grid, globalSlice, localSlice)
+            TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H) = localSlice
           enddo
           CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
@@ -530,9 +532,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     W_GLOB(0:NGM,LS_NFRAC,img,jmg),
      &     HT_GLOB(0:NGM,LS_NFRAC,img,jmg) )
 #ifdef TRACERS_WATER
-      ALLOCATE( TRSNOWBV0_GLOB(NTM,2,img,jmg),
-     &     TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,img,jmg),
-     &     ptr4(NTM,0:NGM,img,jmg))
+      ALLOCATE(TRSNOWBV0_GLOB(NTM,2,img,jmg))
+      ALLOCATE(TR_W_GLOB(NTM,0:NGM,LS_NFRAC,img,jmg))
+      ALLOCATE(globalSlice(NTM,0:NGM,img,jmg))
+      ALLOCATE(localSlice(NTM,0:NGM,I_0H:I_1H,J_0H:J_1H))
 #endif
       end subroutine allocate_me
       subroutine deallocate_me
@@ -541,7 +544,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       HT_GLOB )
 #ifdef TRACERS_WATER
         DEALLOCATE( TRSNOWBV0_GLOB,
-     &       TR_W_GLOB, ptr4 )
+     &       TR_W_GLOB, localSlice, globalSlice )
 #endif
       end subroutine deallocate_me
 
@@ -553,7 +556,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT, get
       USE DOMAIN_DECOMP_1D, only : PACK_BLOCK  , PACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_BLOCK, UNPACK_COLUMN
       USE GHY_COM
@@ -573,14 +576,19 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
       REAL*8, ALLOCATABLE, TARGET ::  TR_WSN_IJ_GLOB(:,:,:,:,:)
-      REAL*8, POINTER :: ptr4(:,:,:,:)
-
+      REAL*8, allocatable :: localSlice(:,:,:,:)
+      REAL*8, allocatable :: globalSlice(:,:,:,:)
+      integer :: I_0H, I_1H, J_0H, J_1H
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
 #endif
 
       write (MODULE_HEADER(lhead+1:80),'(a29,I1,a)') 'I dim(2,ijm):'//
      *  'Nsn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
       call allocate_me
 
@@ -592,10 +600,12 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_COLUMN(grid, NSN_IJ,  NSN_IJ_GLOB)
         CALL PACK_COLUMN(grid, FR_SNOW_IJ,  FR_SNOW_IJ_GLOB)
 #ifdef TRACERS_WATER
-        ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
-        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,1,:,:), ptr4 )
-        ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
-        CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,2,:,:), ptr4 )
+        localSlice = TR_WSN_IJ(:,:,1,:,:)
+        CALL PACK_BLOCK(grid, localSlice, globalSlice)
+        if (AM_I_ROOT()) TR_WSN_IJ_GLOB(:,:,1,:,:) = globalSlice
+        localSlice = TR_WSN_IJ(:,:,2,:,:)
+        CALL PACK_BLOCK(grid, localSlice, globalSlice)
+        if (AM_I_ROOT()) TR_WSN_IJ_GLOB(:,:,2,:,:) = globalSlice
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER, NSN_IJ_glob, DZSN_IJ_glob
@@ -630,10 +640,12 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
 
-          ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
-          CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,1,:,:))
-          ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
-          CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,2,:,:))
+          if (AM_I_ROOT())  globalSlice = TR_WSN_IJ_GLOB(:,:,1,:,:)
+          CALL UNPACK_BLOCK(grid, globalSlice, localSlice)
+          TR_WSN_IJ(:,:,1,:,:) = localSlice
+          if (AM_I_ROOT())  globalSlice = TR_WSN_IJ_GLOB(:,:,2,:,:)
+          CALL UNPACK_BLOCK(grid, globalSlice, localSlice)
+          TR_WSN_IJ(:,:,2,:,:) = localSlice
         END SELECT
 #endif
       END SELECT
@@ -663,6 +675,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     FR_SNOW_IJ_GLOB(2,img,jmg) )
 #ifdef TRACERS_WATER
         ALLOCATE( TR_WSN_IJ_GLOB(NTM,NLSN,2,img,jmg) )
+      ALLOCATE(globalSlice(NTM,NLSN,img,jmg))
+      ALLOCATE(localSlice(NTM,NLSN,I_0H:I_1H,J_0H:J_1H))
 #endif
 
       end subroutine allocate_me
@@ -674,6 +688,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     FR_SNOW_IJ_GLOB )
 #ifdef TRACERS_WATER
         DEALLOCATE( TR_WSN_IJ_GLOB )
+        DEALLOCATE( globalSlice, localSlice)
 #endif
       end subroutine deallocate_me
 
