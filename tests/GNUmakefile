@@ -27,7 +27,7 @@ ifdef PFUNIT
   include $(PFUNIT)/include/pFUnit.makefile
 endif
 
-$(PFUNIT_TEST_EXECUTABLE) : ../model/profiler/libprofiler.a ../model/shared/libshared.a
+$(PFUNIT_TEST_EXECUTABLE) : ../model/profiler/libprofiler.a ../model/shared/libshared.a ../model/tracers/libtracers.a
 
 %.o : %.F90
 	$(FC) -c $(EXTRA_FFLAGS) $($(PFUNIT_FFLAGS_VARIABLE)) $<

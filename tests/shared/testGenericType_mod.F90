@@ -114,7 +114,8 @@ contains
          & 'Failed to detect conversion error.')
 
     i = GenericType('1.234', -1)
-    call assertFailedAssert('GenericType::GenericType() - no such type.')
+    call assertFailedAssert('GenericType::GenericType() - no such type.', &
+         & 'Failed to detect illegal type.')
 
   end subroutine testFailFromStringInteger
     

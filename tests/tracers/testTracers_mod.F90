@@ -1,11 +1,11 @@
 module testTracers_mod
   use pFUnit
   use Tracers_mod
+  use TracerBundle_mod
   use Dictionary_mod, only: Dictionary_type
   implicit none
   private
 
-  public :: testReadFromText
   public :: testGetIndex
   public :: testHasPropertySingle
   public :: testHasPropertyMulti
@@ -14,11 +14,15 @@ module testTracers_mod
   public :: testGetPropertySingle
   public :: testGetPropertyMulti
   public :: testCountHasProperty
-  public :: testGetSubset
-  public :: testCheckMandatory
+  public :: testGetSubsetA
+  public :: testGetSubsetB
+  public :: testCheckSubsetDefault
+  public :: testAddMandatoryA
+  public :: testAddMandatoryB
+  public :: testAddMandatoryC
   public :: testDefaultValues
-  public :: testWriteFormatted
-  public :: testWriteUnformatted
+  public :: testDefaultAddNewTracer
+  public :: testDefaultApplyOld
 
   public :: setUp
   public :: tearDown
@@ -27,8 +31,6 @@ module testTracers_mod
 
   type fixture
     type (TracerBundle_type) :: bundle
-    type (Dictionary_type) :: defaultValues
-    integer :: unit
     integer :: numTracers
   end type fixture
 
@@ -39,31 +41,27 @@ contains
     use Dictionary_mod, only: insert
     use FileManager
     type (fixture) :: this
-    integer :: unit
 
-    call openUnit('testTracers.txt', unit, qold=.false., qbin=.false.)
-    this%unit = unit
+    type (Tracer_type) :: speciesA, speciesB
+    
+    speciesA = Tracer('speciesA')
+    call setProperty(speciesA, 'molecularMass', 1.2d+0)
+    call setProperty(speciesA, 'optionA', .true.)
+    call setProperty(speciesA, 'optionC', .false.)
+    call setProperty(speciesA, 'optionD', 1)
 
-    write(unit,*)'{'
-    write(unit,*)' name = speciesA'
-    write(unit,*)' molecularMass = 1.2 ! g'
-    write(unit,*)' optionA = True'
-    write(unit,*)' optionC = False'
-    write(unit,*)'}'
-    write(unit,*)' '
-    write(unit,*)'{'
-    write(unit,*)' name = speciesB'
-    write(unit,*)' molecularMass = 2.3 ! g'
-    write(unit,*)' optionB = False'
-    write(unit,*)'}'
+    speciesB = Tracer('speciesB')
+    call setProperty(speciesB, 'molecularMass', 2.3d+0)
+    call setProperty(speciesB, 'optionB', .false.)
+    call setProperty(speciesB, 'optionD', 2)
 
-    rewind(unit)
-
+    this%bundle = TracerBundle()
+    call addTracer(this%bundle, speciesA)
+    call addTracer(this%bundle, speciesB)
     this%numTracers = 2
 
-    this%defaultValues = Dictionary()
-    call insert(this%defaultValues, 'optionC', .true.)
-    call insert(this%defaultValues, 'optionD',  1)
+    call clean(speciesA)
+    call clean(speciesB)
 
   end subroutine setUp
 
@@ -71,35 +69,12 @@ contains
     use Dictionary_mod, only: clean
     type (fixture) :: this
 
-    close(this%unit, status='delete')
-    this%unit = -1
-    call clean(this%defaultValues)
     call clean(this%bundle)
+
   end subroutine tearDown
-
-  subroutine testReadFromText(this)
-    type (fixture) :: this
-
-    integer :: unit
-
-    unit = this%unit
-    this%bundle = readFromText(unit, this%defaultValues)
-
-    call assertEqual(this%numTracers, getCount(this%bundle), &
-         & 'Incorrect number of tracers found.')
-
-  end subroutine testReadFromText
-
-  ! support routine
-  subroutine readTracers(this)
-    type (fixture) :: this
-    this%bundle = readFromText(this%unit, this%defaultValues)
-  end subroutine readTracers
 
   subroutine testGetIndex(this)
     type (fixture) :: this
-
-    call readTracers(this)
 
     call assertEqual(1, getIndex(this%bundle, 'speciesA'))
     call assertEqual(2, getIndex(this%bundle, 'speciesB'))
@@ -114,8 +89,6 @@ contains
     real(kind=r64) :: expected, found
     type (Tracer_type), pointer :: tracer
 
-    call readTracers(this)
-
     expected = 1.2d+0
     tracer => getTracer(this%bundle, 'speciesA')
     found = getProperty(tracer, 'molecularMass')
@@ -128,8 +101,6 @@ contains
     type (fixture) :: this
 
     real(kind=r64) :: expected, found
-
-    call readTracers(this)
 
     expected = 1.2d+0
     found = getProperty(this%bundle, 'speciesA', 'molecularMass')
@@ -146,7 +117,6 @@ contains
     type (Dictionary_type), pointer :: properties
     type (Tracer_type), pointer :: tracer
 
-    call readTracers(this)
     tracer => getTracer(this%bundle, 'speciesA')
 
     call setProperty(tracer, 'otherProperty', expected)
@@ -164,7 +134,6 @@ contains
     type (Dictionary_type), pointer :: properties
     type (Tracer_type), pointer :: tracer
 
-    call readTracers(this)
 
     expected = 2.1d+0
     tracer => getTracer(this%bundle, 'speciesB')
@@ -182,7 +151,6 @@ contains
     real(kind=r64) :: expected, found
     type (Tracer_type), pointer :: tracer
 
-    call readTracers(this)
     tracer => getTracer(this%bundle,'speciesA')
 
     call assertTrue(hasProperty(tracer, 'optionA'))
@@ -196,7 +164,6 @@ contains
 
     real(kind=r64) :: expected, found
 
-    call readTracers(this)
 
     call assertTrue(all(hasProperty(this%bundle, 'molecularMass')))
     call assertTrue(all([.true.,.false.] .eqv. hasProperty(this%bundle, 'optionA')))
@@ -207,50 +174,94 @@ contains
     use GenericType_mod
     type (fixture) :: this
 
-    type (Tracer_type), pointer :: subset(:)
-
-    call readTracers(this)
     call assertEqual(2, getCount(this%bundle, 'name'))
     call assertEqual(1, getCount(this%bundle, 'optionA'))
 
   end subroutine testCountHasProperty
 
-  subroutine testGetSubset(this)
+  subroutine testGetSubsetA(this)
     use GenericType_mod
     use KeyValuePair_mod
     type (fixture) :: this
 
     type (TracerBundle_type) :: subset
-    character(len=MAX_LEN_KEY) :: name
-
-    call readTracers(this)
 
     call makeSubset(this%bundle, withProperty='optionA', subset=subset)
     call assertEqual(1, getCount(subset))
     call assertTrue(associated(getTracer(subset, 'speciesA')))
+    call clean(subset)
 
-  end subroutine testGetSubset
+  end subroutine testGetSubsetA
 
-  subroutine testCheckMandatory(this)
+  subroutine testGetSubsetB(this)
+    use GenericType_mod
     use KeyValuePair_mod
     type (fixture) :: this
-    character(len=MAX_LEN_KEY) :: mandatoryProperties(2)
 
-    call readTracers(this)
+    type (TracerBundle_type) :: subset
 
-    mandatoryProperties(1) = 'name'
-    mandatoryProperties(2) = 'molecularMass'
+    call makeSubset(this%bundle, withProperty='optionD', subset=subset)
+    call assertEqual(2, getCount(subset))
+    call clean(subset)
 
-    call checkMandatory(this%bundle, mandatoryProperties)
-    if (catch(preserve=.true.)) return
+  end subroutine testGetSubsetB
 
-    mandatoryProperties(1) = 'optionA'
-    call checkMandatory(this%bundle, mandatoryProperties)
+  subroutine testCheckSubsetDefault(this)
+    use GenericType_mod
+    use KeyValuePair_mod
+    type (fixture) :: this
+
+    type (TracerBundle_type) :: subset
+    integer :: found
+
+    call addDefault(this%bundle, 'propertyA', -1)
+    call makeSubset(this%bundle, withProperty='optionD', subset=subset)
+
+    call addTracer(subset, Tracer('speciesC'))
+    call assertFalse(hasProperty(getTracer(subset, 'speciesC'), 'propertyB'))
+    call assertTrue(hasProperty(getTracer(subset, 'speciesC'), 'propertyA'))
+    found = getProperty(getTracer(subset, 'speciesC'), 'propertyA')
+    call assertEqual(-1, found)
+
+    call clean(subset)
+
+  end subroutine testCheckSubsetDefault
+
+  subroutine testAddMandatoryA(this)
+    use KeyValuePair_mod
+    type (fixture) :: this
+
+    call addMandatoryProperty(this%bundle,'molecularMass')
+    call addTracer(this%bundle,Tracer('otherTracer'))
     call assertFailedAssert( &
-         & "Tracers_mod::checkMandatory() - speciesB missing property 'optionA'.", &
+         & "TracerBundle_mod - species 'otherTracer' is missing mandatory property 'molecularMass'.", &
          & "Failed to detect missing mandatory option.")
 
-  end subroutine testCheckMandatory
+  end subroutine testAddMandatoryA
+
+  Subroutine testAddMandatoryB(this)
+    use KeyValuePair_mod
+    type (fixture) :: this
+
+    call addMandatoryProperty(this%bundle,'molecularMass')
+    call addTracer(this%bundle,Tracer('otherName'))
+    call assertFailedAssert( &
+         & "TracerBundle_mod - species 'otherName' is missing mandatory property 'molecularMass'.", &
+         & "Failed to detect missing mandatory option.")
+
+  end subroutine testAddMandatoryB
+
+  subroutine testAddMandatoryC(this)
+    use KeyValuePair_mod
+    type (fixture) :: this
+
+    call addMandatoryProperty(this%bundle, 'newProperty')
+
+    call assertFailedAssert( &
+         & "TracerBundle_mod - species 'speciesA' is missing mandatory property 'newProperty'.", &
+         & "Failed to detect missing mandatory option.")
+
+  end subroutine testAddMandatoryC
 
   subroutine testDefaultValues(this)
     use GenericType_mod
@@ -258,7 +269,8 @@ contains
     logical :: expectedOptionC, foundOptionC
     integer :: expectedOptionD, foundOptionD
     
-    call readTracers(this)
+    call addDefault(this%bundle, 'optionC', .true.)
+    call addDefault(this%bundle, 'optionD',  1)
 
     foundOptionC = getProperty(this%bundle, 'speciesA', 'optionC')
     expectedOptionC = .false.
@@ -274,44 +286,80 @@ contains
     
   end subroutine testDefaultValues
 
-  subroutine testWriteFormatted(this)
-    use FileManager
+! Check that a new tracers have defaults applied
+  subroutine testDefaultAddNewTracer(this)
+    use GenericType_mod
     type (fixture) :: this
-    type (TracerBundle_type) :: bundle
-    integer :: unit
-
-    call readTracers(this)
-
-    call openUnit('testTracersOut.txt', unit, qold=.false., qbin=.false.)
-    call writeFormatted(this%bundle, unit)
-    rewind(unit)
-
-    bundle = readFromText(unit)
-    call assertTrue(bundle == this%bundle)
-
-    close(unit, status ='delete')
-    call clean(bundle)
     
-  end subroutine testWriteFormatted
+    integer, parameter :: EXPECTED_VALUE = 1
+    integer, parameter :: OTHER_VALUE = 2
+    character(len=*), parameter :: NAME_1 = 'newTracer_1'
+    character(len=*), parameter :: NAME_2 = 'newTracer_2'
+    character(len=*), parameter :: PROPERTY = 'newProperty'
+    integer :: foundValue
 
-  subroutine testWriteUnformatted(this)
-    use FileManager
+    type (Tracer_type) :: aTracer
+    type (TracerBundle_type) :: aBundle
+
+!TODO - this is only needed because of unbalanced setUp/tearDown
+    this%bundle = TracerBundle()
+
+    aBundle = TracerBundle()
+    call addDefault(aBundle, PROPERTY, EXPECTED_VALUE)
+
+    call addTracer(aBundle, Tracer(NAME_1))
+
+    aTracer = Tracer(NAME_2)
+    call setProperty(aTracer, PROPERTY, OTHER_VALUE)
+    call addTracer(aBundle, aTracer)
+
+    foundValue = getProperty(aBundle, NAME_1, PROPERTY)
+    call assertEqual(EXPECTED_VALUE, foundValue, 'default should be applied')
+
+    foundValue = getProperty(aBundle, NAME_2, PROPERTY)
+    call assertEqual(OTHER_VALUE, foundValue, 'default value should not override') 
+
+    call clean(aTracer)
+    call clean(aBundle)
+
+  end subroutine testDefaultAddNewTracer
+
+! Check that a new default value is applied to existing tracers.
+  subroutine testDefaultApplyOld(this)
+    use GenericType_mod
     type (fixture) :: this
-    type (TracerBundle_type) :: bundle
-    integer :: unit
-
-    call readTracers(this)
-
-    call openUnit('testTracersOut.bin', unit, qold=.false., qbin=.true.)
-    call writeUnformatted(this%bundle, unit)
-    rewind(unit)
-
-    call readUnformatted(bundle, unit)
-    call assertTrue(bundle == this%bundle)
-
-    close(unit, status ='delete')
-    call clean(bundle)
     
-  end subroutine testWriteUnformatted
+    integer, parameter :: EXPECTED_VALUE = 1
+    integer, parameter :: OTHER_VALUE = 2
+    character(len=*), parameter :: NAME_1 = 'newTracer_1'
+    character(len=*), parameter :: NAME_2 = 'newTracer_2'
+    character(len=*), parameter :: PROPERTY = 'newProperty'
+    integer :: foundValue
+
+    type (Tracer_type) :: aTracer
+    type (TracerBundle_type) :: aBundle
+
+!TODO - this is only needed because of unbalanced setUp/tearDown
+    this%bundle = TracerBundle()
+
+    aBundle = TracerBundle()
+    call addTracer(aBundle, Tracer(NAME_1))
+
+    aTracer = Tracer(NAME_2)
+    call setProperty(aTracer, PROPERTY, OTHER_VALUE)
+    call addTracer(aBundle, aTracer)
+
+    call addDefault(aBundle, PROPERTY, EXPECTED_VALUE)
+
+    foundValue = getProperty(aBundle, NAME_1, PROPERTY)
+    call assertEqual(EXPECTED_VALUE, foundValue, 'should obtain default')
+
+    foundValue = getProperty(aBundle, NAME_2, PROPERTY)
+    call assertEqual(OTHER_VALUE, foundValue, 'should not override existing value')
+
+    call clean(aTracer)
+    call clean(aBundle)
+
+  end subroutine testDefaultApplyOld
 
 end module testTracers_mod
