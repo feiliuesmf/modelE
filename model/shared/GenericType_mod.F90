@@ -101,6 +101,8 @@ module GenericType_mod
     module procedure writeUnformatted_generic
   end interface
 
+  integer, parameter :: MAX_LEN_TYPE_STRING = 16
+
 contains
 
   ! Begin constructors
@@ -147,6 +149,7 @@ contains
     integer :: status
 
     generic%type = type
+
     select case (type)
     case (INTEGER_TYPE)
       read(string,'(i20)',iostat=status) generic%integerValue
@@ -156,9 +159,11 @@ contains
       generic%logicalValue = readLogical(toLowerCase(string), status)
     case (STRING_TYPE)
       generic%stringValue = string
+      status = 0
     case default
       generic%type = ILLEGAL_TYPE
       call throwException('GenericType::GenericType() - no such type.',14)
+      return
     end select
 
     if (status /= 0) then
@@ -186,7 +191,6 @@ contains
     function typeString(type)
       integer, intent(in) :: type
 
-      integer, parameter :: MAX_LEN_TYPE_STRING = 10
       character(len=MAX_LEN_TYPE_STRING) :: typeString
 
       select case (type)
@@ -198,6 +202,8 @@ contains
         typeString = 'logical'
       case (STRING_TYPE)
         typeString = 'string'
+      case default
+        typeString = 'unknown type'
       end select
     end function typeString
 
