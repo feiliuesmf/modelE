@@ -788,11 +788,21 @@ c
 C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(BEGIN,MDIAG,MDYN)
       RETURN
+      END SUBROUTINE DIAGA
 
-      ENTRY DIAGA0
+      SUBROUTINE DIAGA0
 c increment ajl(jl_dtdyn) by -t before dynamics.
 c ajl(jl_dtdyn) will be incremented by +t after the dynamics, giving
 c the tendency.
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE GEOM, only: imaxj
+      USE DYNAMICS, only: pk, pdsig
+      use MODEL_COM, only: LM, t
+      use DIAG_COM, only: jl_dtdyn
+      implicit none
+
+      integer :: I_0, I_1, J_0, J_1
+      integer :: I, J, L
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
@@ -807,7 +817,7 @@ c the tendency.
       END DO
       RETURN
 C****
-      END SUBROUTINE DIAGA
+      END SUBROUTINE DIAGA0
 
       subroutine get_dx_intervals(
      &     xesrc,nsrc,xedst,ndst,dx,lsrc,ldst,nxchng,nmax)

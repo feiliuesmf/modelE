@@ -579,18 +579,25 @@ c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
 #endif
 
       RETURN
+      END SUBROUTINE EPFLUX
 C****
 #ifndef CUBED_SPHERE
-      ENTRY EPFLXI (U)
-      CALL GET(grid, J_STRT_HALO=J_0H)
-      CALL AVGVI (U,AGC(J_0H,1,KAGC))
-c      CALL AVGVI (U,AEP(1,1,KEP))
-CW          WRITE (36,'('' TAU='',F12.0)') TAU
-CW          CALL WRITJL ('U - INITIAL     ',AEP(1,1,KEP),1.)
-      RETURN
+      subroutine EPFLXI(U)
+C****     U - Zonal wind (corners) (m s-1)
+      USE DOMAIN_DECOMP_1D, only : grid, get
+      USE MODEL_COM, only : im,jm,lm,pdsigl00
+      USE  DIAG_COM, only : agc=>agc_loc,KAGC
+      REAL*8, INTENT(INOUT), 
+     *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     *                                                        U
+
+      integer :: j_0h
+      call get(grid, j_strt_halo=j_0h)
+      call avgvi (u,agc(j_0h,1,KAGC))
+      return
 #endif
 C****
-      END SUBROUTINE EPFLUX
+      end subroutine epflxi
 
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
