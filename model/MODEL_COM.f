@@ -270,6 +270,30 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
 
+      type ModelE_Clock_type
+        integer :: iTime
+      end type ModelE_Clock_type
+      
+      type (ModelE_Clock_type) ::modelEclock
+      contains
+
+      logical function isBeginningOfDay(clock)
+      type (ModelE_Clock_type) :: clock ! fake OO for now
+
+      isBeginningOfDay = mod(Itime, NDAY) == 0
+      end function isBeginningOfDay
+
+      logical function isBeginningAccumPeriod(clock)
+      type (ModelE_Clock_type) :: clock ! fake OO for now
+      integer :: months
+
+      months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      isBeginningAccumPeriod = 
+     &     isBeginningOfDay(clock) .and. 
+     &     months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)
+
+      end function isBeginningAccumPeriod
+
       END MODULE MODEL_COM
 
       SUBROUTINE ALLOC_MODEL_COM(grid)

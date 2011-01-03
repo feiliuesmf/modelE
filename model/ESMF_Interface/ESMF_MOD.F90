@@ -16,6 +16,7 @@ Module ESMF_MOD_private
 
   ! Derived Types
   Public :: Grid
+  Public :: Clock
   Public :: Array
   Public :: Field
   Public :: AxisIndex
@@ -104,6 +105,11 @@ Module ESMF_MOD_private
      Integer :: LM
      Type (AxisIndex) :: global(N_DIMENSIONS)
   End Type Grid
+
+  type Clock
+     Private
+     Integer :: placeholder
+  end type Clock
 
 !!$  Type HaloDirection
 !!$     Private
@@ -947,10 +953,13 @@ Module ESMF_MOD
   Use ESMF_Mod_private, Only: ESMF_GridDestroy => Grid_Destroy
   Use ESMF_MOD_private, Only: ESMF_FieldSetDataPointer => Field_SetDataPointer
 
+  use ESMF_Mod_private, only: ESMF_Clock => Clock
+
   Implicit None
   Private
 
   Public :: ESMF_Grid
+  Public :: ESMF_Clock
   Public :: ESMF_Array
   Public :: ESMF_Field
   Public :: ESMF_AxisIndex

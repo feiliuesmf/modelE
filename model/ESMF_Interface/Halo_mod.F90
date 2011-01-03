@@ -247,10 +247,6 @@ contains
     integer :: nSendMessages, nRecvMessages
     integer :: index, i
 
-#ifdef USE_SYSUSAGE
-    call sysusage(3,1)
-#endif
-
     USABLE_FROM = usableFrom(from)
     bc_periodic = isPeriodic(bc_periodic_)
 
@@ -271,9 +267,6 @@ contains
     off(3) = 1+sz*(n-2)
     off(4) = 1+sz*(n-1)
 
-#ifdef USE_SYSUSAGE
-    call sysusage(4,1)
-#endif
     nSendMessages = 0
     nRecvMessages = 0
     call incrementMpiTag(grid)
@@ -312,17 +305,9 @@ contains
     call MPI_WaitAll(nSendMessages, requests,MPI_STATUSES_IGNORE,ierr)
 
 
-#ifdef USE_SYSUSAGE
-    call sysusage(4,2)
-#endif
-
     call freeMpiType(new_type)
 
-#ifdef USE_SYSUSAGE
-    call sysusage(3,2)
-#endif
-
-  End SUBROUTINE SendRecv
+  end subroutine SendRecv
 
   subroutine sendrecv_int(grid, arr, shp, dist_idx, from, &
        &     bc_periodic_)

@@ -1,5 +1,64 @@
 #include "rundeck_opts.h"
-      PROGRAM GISS_modelE
+      program main
+      call GISS_cap()
+      end program main
+
+      subroutine GISS_cap()
+!@sum Acquire configuration options from the command line and pass to
+!@+ the model.
+!@auth T. Clune
+C**** Command line options
+      logical :: qcRestart=.false.
+      integer, parameter :: MAX_LEN_IFILE = 32
+      character(len=MAX_LEN_IFILE) :: iFile
+
+      call read_options(qcRestart, iFile )
+      call GISS_modelE(qcRestart, iFile)
+
+      contains
+
+      subroutine read_options(qcRestart, iFile )
+!@sum Reads options from the command line
+!@auth I. Aleinov
+!@ver 1.0
+      implicit none
+!@var qcRestart true if "-r" is present
+!@var iFile is name of the file containing run configuration data
+      logical, intent(inout) :: qcRestart
+      character(*),intent(out)  :: ifile
+      integer, parameter :: MAX_LEN_ARG = 80
+      character(len=MAX_LEN_ARG) :: arg, value
+
+      iFile = "";
+      do
+        call nextarg( arg, 1 )
+        if ( arg == "" ) exit          ! end of args
+        select case (arg)
+        case ("-r")
+          qcRestart = .true.
+        case ("-i")
+          call nextarg( value, 0 )
+          iFile=value
+        ! new options can be included here
+        case default
+          print *,'Unknown option specified: ', arg
+          print *,'Aborting...'
+          call stop_model("Unknown option on a command line",255)
+        end select
+      enddo
+
+      if (iFile == "") then
+        print*, 'No configuration file specified on command line: '
+        print*, 'Aborting ...'
+        call stop_model("No configuration file on command line.",255)
+      end if
+
+      return
+      end subroutine read_options
+
+      end subroutine GISS_Cap
+
+      subroutine GISS_modelE(qcRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
@@ -8,9 +67,9 @@
       USE PARAM
       USE PARSER
       USE MODEL_COM
-      USE DOMAIN_DECOMP_1D, ONLY : init_app,AM_I_ROOT,ESMF_BCAST
-      USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid,sumxpe
-      use domain_decomp_atm, only : writei8_parallel
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only: grid,init_grid,sumxpe
+      use domain_decomp_atm, only: writei8_parallel
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -34,6 +93,7 @@
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end
 #endif
+      USE ESMF_MOD, only: ESMF_Clock
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fv_core_wrapper
       USE FV_INTERFACE_MOD, only: Initialize
@@ -42,8 +102,6 @@
       USE FV_INTERFACE_MOD, only: Finalize
       USE FV_INTERFACE_MOD, only: Compute_Tendencies
       USE FV_INTERFACE_MOD, only: init_app_clock
-c$$$      USE MODEL_COM, only: clock
-      USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
 #ifndef CUBED_SPHERE
@@ -61,9 +119,13 @@ c$$$      USE MODEL_COM, only: clock
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
-
       !use soil_drv, only : conserv_wtg, conserv_htg
-      IMPLICIT NONE
+      use SystemTimers_mod
+
+      implicit none
+C**** Command line options
+      logical, intent(in) :: qcRestart
+      character(len=*), intent(in) :: iFile
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ODA
@@ -80,15 +142,14 @@ c$$$      USE MODEL_COM, only: clock
       integer :: iflag=1
       external sig_stop_model
 
-C**** Command line options
-      CHARACTER*32 :: ifile
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
       real*8 :: tloopbegin, tloopend
+      Type (ESMF_CLOCK) :: clock
+
 #ifdef USE_FVCORE
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
       Type (FV_CORE_WRAPPER) :: fv
-      Type (ESMF_CLOCK) :: clock
       character(len=28) :: fv_fname, fv_dfname
       character(len=1)  :: suffix
 #endif
@@ -101,9 +162,11 @@ C**** Command line options
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
-#ifdef USE_SYSUSAGE
-      integer :: i_su, max_su=3
-#endif
+
+      if ( qcrestart ) then
+        call print_restart_info
+        call stop_model("Terminated normally: printed restart info",-1)
+      endif
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -112,48 +175,14 @@ C**** Command line options
 #endif
 
 C****
-C**** Processing command line options
-C****
-      call read_options( ifile )
-C****
 C**** Reading rundeck (I-file) options
 C****
       call openunit(trim(ifile),iu_IFILE,.false.,.true.)
       call parse_params(iu_IFILE)
       call closeunit(iu_IFILE)
 
-#ifdef USE_MPP
-      call fms_init( )
-#endif
+      call initializeModelE(I_0,I_1,J_0,J_1)
 
-      call init_app()
-      call initializeDefaultTimers()
-
-#ifdef SCM
-      call sync_param( "J_TARG", J_TARG )
-      call init_grid(grid, im, jm, lm, j_scm=j_targ)
-#else
-c initialize the atmospheric domain decomposition
-c for now, CREATE_CAP is only relevant to the cubed sphere grid
-      call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
-
-#endif
-
-      I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
-      J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
-
-#ifndef ADIABATIC
-
-
-#ifdef TRACERS_ON
-#ifdef RUNTIME_NTM
-! allocation of tracer arrays in physics modules needs to know NTM
-      call read_tracer_config
-#endif
-#endif
-
-#endif /* ADIABATIC */
-      call alloc_drv()
 
 #if !defined(ADIABATIC) || defined( CUBED_SPHERE)
 C****
@@ -189,11 +218,7 @@ c        print *,sname,'Before:im,jm        = ',im,jm
 
 
 C**** Read input/ic files
-#ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)
-#else
-      CALL INPUT (istart,ifile)
-#endif
 
 #if !defined(ADIABATIC) || defined( CUBED_SPHERE)
 
@@ -295,59 +320,20 @@ C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
 
-      call startTimer('Main Loop')
       DO WHILE (Itime.lt.ItimeE)
-#ifdef USE_SYSUSAGE
-        call sysusage(0,1)
-#endif
-
+        call startTimer('Main Loop')
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 
 c$$$         call test_save(__LINE__, itime)
-C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
-C**** write restart information alternately onto 2 disk files
-      IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
-         CALL RFINAL (IRAND)
-         call set_param( "IRAND", IRAND, 'o' )
-         call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-#if defined( USE_FVCORE )
-         fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
-         fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
-         call Checkpoint(fv, clock, fv_fname, fv_dfname)
-#endif
-         if (AM_I_ROOT())
-     *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
-     *     '0Restart file written on fort.',KDISK,'Year',
-     *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
-         KDISK=3-KDISK
-         CALL TIMER (NOW,MELSE)
+
+      if (mod(Itime-ItimeI,Ndisk).eq.0) then
+         call checkpointModelE(ModelEclock, kdisk, now, irand)
       END IF
-C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
-      IF (MOD(Itime,NDAY).eq.0) THEN
-C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-        if (kradia.le.0) call daily_DIAG
-C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
-        IF ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
-          write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
-          if (Kradia.ne.0 .and. Kradia<10) then
-            if (Kradia.gt.0) aDATE(4:7)='    '
-            call closeunit( iu_RAD )
-            call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
-          end if
-C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-          months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-          if ( months.ge.NMONAV ) then
-            call reset_DIAG(0)
-            if (Kvflxo.ne.0) then
-              call closeunit( iu_VFLXO )
-              call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
-            end if
-C**** reset sub-daily diag files
-            call reset_subdd(aDATE)
-          end if   !  beginning of acc.period
-        END IF     !  beginning of month
-      END IF       !  beginning of day
+      
+      if (isBeginningOfDay(modelEclock)) then
+        call startNewDay(modelEclock, kradia, iu_RAD, iu_VFLXO)
+      end if
 C****
 C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
@@ -387,9 +373,6 @@ c     enddo
 #endif
 ! ADIABATIC
 
-#ifdef USE_SYSUSAGE
-      call sysusage(1,1)
-#endif
       call startTimer('Atm. Dynamics')
 
 #ifndef USE_FVCORE
@@ -439,7 +422,6 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
 !$OMP  END PARALLEL DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
-      call stopTimer('Atm. Dynamics')
          CALL TIMER (NOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
@@ -449,9 +431,8 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (NOW,MTRACE)
 #endif
 #endif
-#ifdef USE_SYSUSAGE
-         call sysusage(1,2)
-#endif
+      call stopTimer('Atm. Dynamics')
+
 C****
 C**** Calculate tropopause level and pressure
 C****
@@ -561,15 +542,9 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
-#ifdef USE_SYSUSAGE
-      call sysusage(2,1)
-#endif
       call startTimer('OCEANS')
       CALL OCEANS
       call stopTimer('OCEANS')
-#ifdef USE_SYSUSAGE
-      call sysusage(2,2)
-#endif
          CALL CHECKT ('OCEANS')
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
@@ -645,44 +620,12 @@ C****
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
-      IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
-         call startTimer('Daily')
-      if (kradia.gt.0) then               ! radiative forcing run
-        CALL DAILY(.false.)
-        if(Kradia<10)  CALL daily_RAD(.true.)
-        if(Kradia<10)  call daily_EARTH(.false.)
-        if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-      else                                ! full model, kradia le 0
-           CALL DIAG5A (1,0)
-           CALL DIAGCA (1)
-        CALL DAILY(.true.)                 ! end_of_day
-        CALL daily_RAD(.true.)
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-           CALL TIMER (NOW,MELSE)
-
-        call daily_LAKE
-        call daily_EARTH(.true.)           ! end_of_day
-
-        call daily_OCEAN(.true.)           ! end_of_day
-        call daily_ICE
-        call daily_LI
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-        call daily_tracer(.true.)
-           CALL TIMER (NOW,MTRACE)
-#endif
-           CALL CHECKT ('DAILY ')
-           CALL TIMER (NOW,MSURF)
-           CALL DIAG5A (16,NDAY*NIdyn)
-           CALL DIAGCA (10)
-        call sys_flush(6)
-      end if   ! kradia: full model (or rad.forcing run)
-      CALL UPDTYPE
-      call stopTimer('Daily')
-      END IF   !  NEW DAY
-
+      if (isBeginningOfDay(modelEclock)) THEN ! NEW DAY
+        call dailyUpdates(modelEclock, Kradia, months, NOW)
+      end if                   !  NEW DAY
+       
 #ifdef USE_FVCORE
-      Call Compute_Tendencies(fv)
+       Call Compute_Tendencies(fv)
 #endif
 
       if (kradia.le.0) then   ! full model
@@ -729,8 +672,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C**** (after the end of a diagn. accumulation period)
-      IF (MOD(Itime,NDAY).eq.0) then
-      IF (months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)) then
+      if (isBeginningAccumPeriod(modelEclock)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
@@ -774,21 +716,21 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (NOW,MDIAG)
         CALL SUMXPE(TIMING, TIMING_glob, increment=.true.)
         if (am_i_root()) then
-        TOTALT=SUM(TIMING_glob(1:NTIMEACC))  ! over all processors
-        DO M=1,NTIMEACC
-          PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
-        END DO
-        TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
-        TOTALT=TOTALT/60.       ! seconds -> minutes
-        DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
-        WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
-     *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+          TOTALT=SUM(TIMING_glob(1:NTIMEACC)) ! over all processors
+          DO M=1,NTIMEACC
+            PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
+          END DO
+          TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
+          TOTALT=TOTALT/60.     ! seconds -> minutes
+          DTIME = NDAY*TOTALT/(Itime-Itime0) ! minutes/day
+          WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
+     *         '0TIME',DTIME,'(MINUTES) ',
+     *         (TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         end if
         TIMING = 0
         START= NOW
-
-      END IF ! beginning of accumulation period
-      END IF ! beginning of day
+        
+      END IF  ! beginning of accumulation period
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
       call stopTimer('Diagnostics')
@@ -824,11 +766,8 @@ c$$$      call test_save(__LINE__, itime-1)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 #endif
 ! ADIABATIC
-#ifdef USE_SYSUSAGE
-      call sysusage(0,2)
-#endif
-      END DO
       call stopTimer('Main Loop')
+      END DO
 
       call gettime(tloopend)
       if (AM_I_ROOT())
@@ -865,11 +804,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 #endif
 #endif
 
-#ifdef USE_SYSUSAGE
-      do i_su=0,max_su
-        call sysusage(i_su,3)
-      enddo
-#endif
+      call printSysTimers()
 
       IF (AM_I_ROOT())
      *   WRITE (6,'(/////4(1X,33("****")/)//,A,I8
@@ -896,8 +831,159 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       contains
 
+      subroutine initializeModelE(I_0, I_1, J_0, J_1)
+      USE DOMAIN_DECOMP_1D, ONLY : init_app
+      integer, intent(out) :: I_0, I_1
+      integer, intent(out) :: J_0, J_1
+
+      call initializeSysTimers()
+
+#ifdef USE_MPP
+      call fms_init( )
+#endif
+      call init_app()
+      call initializeDefaultTimers()
+
+#ifdef SCM
+!TODO push init_grid SCM option down into INIT_GRID.
+      call sync_param( "J_TARG", J_TARG )
+      call init_grid(grid, im, jm, lm, j_scm=j_targ)
+#else
+c initialize the atmospheric domain decomposition
+c for now, CREATE_CAP is only relevant to the cubed sphere grid
+      call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
+#endif
+
+      I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
+      J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
+
+#ifndef ADIABATIC
+
+#ifdef TRACERS_ON
+#ifdef RUNTIME_NTM
+! allocation of tracer arrays in physics modules needs to know NTM
+      call read_tracer_config
+#endif
+#endif
+
+#endif /* ADIABATIC */
+
+      call alloc_drv()
+
+      end subroutine initializeModelE
+
+      subroutine startNewDay(clock, kradia, iu_RAD, iu_VFLXO)
+      use MODEL_COM
+      type (ModelE_Clock_type), intent(inout) :: clock
+      integer, intent(in) :: kradia
+      integer ,intent(inout) :: iu_RAD
+      integer ,intent(inout) :: iu_VFLXO
+
+      character(len=16) :: aDate
+      integer :: months
+
+C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
+      if (kradia.le.0) call daily_DIAG
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
+      if ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
+        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+        if (Kradia.ne.0 .and. Kradia<10) then
+          if (Kradia.gt.0) aDATE(4:7)='    '
+          call closeunit( iu_RAD )
+          call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+        end if
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
+        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+        if ( months.ge.NMONAV ) then
+          call reset_DIAG(0)
+          if (Kvflxo.ne.0) then
+            call closeunit( iu_VFLXO )
+            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+          end if
+C**** reset sub-daily diag files
+          call reset_subdd(aDATE)
+        end if                  !  beginning of acc.period
+      end if                    !  beginning of month
+
+      end subroutine startNewDay
+
+      subroutine dailyUpdates(clock, Kradia, months, NOW)
+      use MODEL_COM, only: Jyear, JYear0, JMperY, JMON, JMON0
+      type (ModelE_Clock_type), intent(in) :: clock
+      integer, intent(in) :: Kradia
+      integer, intent(out) :: months
+      real*8, intent(inout) :: NOW
+      
+      call startTimer('Daily')
+      months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      if (kradia.gt.0) then     ! radiative forcing run
+        call DAILY(.false.)
+        if(Kradia<10)  CALL daily_RAD(.true.)
+        if(Kradia<10)  call daily_EARTH(.false.)
+        if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
+      else                      ! full model, kradia le 0
+        call DIAG5A (1,0)
+        call DIAGCA (1)
+        call DAILY(.true.)      ! end_of_day
+        call daily_RAD(.true.)
+        call TIMER (NOW,MELSE)
+        
+        call daily_LAKE
+        call daily_EARTH(.true.) ! end_of_day
+        
+        call daily_OCEAN(.true.) ! end_of_day
+        call daily_ICE
+        call daily_LI
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+        call daily_tracer(.true.)
+        call TIMER (NOW,MTRACE)
+#endif
+        call CHECKT ('DAILY ')
+        call TIMER (NOW,MSURF)
+        call DIAG5A (16,NDAY*NIdyn)
+        call DIAGCA (10)
+        call sys_flush(6)
+      end if                    ! kradia: full model (or rad.forcing run)
+      call UPDTYPE
+      call stopTimer('Daily')
+
+      end subroutine dailyUpdates
+
+!TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
+!TODO exist except when building an FV version
+      subroutine checkpointModelE(clock, kdisk, NOW, IRAND)
+!@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
+!@+ write restart information alternately onto 2 disk files
+      use MODEL_COM, only: rsf_file_name
+      use MODEL_COM, only: Jyear, aMon, Jdate, Jhour, itime
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: Checkpoint
+#endif
+      type (ModelE_Clock_type), intent(in) :: clock
+      integer, intent(inout) :: kdisk
+      real*8, intent(inout) :: NOW
+      integer, intent(inout) :: irand
+      
+      CALL rfinal(IRAND)
+      call set_param( "IRAND", IRAND, 'o' )
+      call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+#if defined( USE_FVCORE )
+      fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
+      fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
+      call checkpoint(fv, clock, fv_fname, fv_dfname)
+#endif
+      if (AM_I_ROOT())
+     *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
+     *     '0Restart file written on fort.',KDISK,'Year',
+     *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+      kdisk=3-kdisk
+      call timer(NOW,MELSE)
+
+      end subroutine checkpointModelE
+
       subroutine initializeDefaultTimers()
-      use TimerPackage_mod
+      use TimerPackage_mod, only: initialize
+      use TimerPackage_mod, only: addTimer
 
       call initialize()
       call addTimer('Main Loop')
@@ -991,8 +1077,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call delete(report)
 
       end subroutine reportProfile
-
-      end program GISS_modelE
+      
+      end subroutine GISS_modelE
 
 
       subroutine sig_stop_model
@@ -1125,11 +1211,8 @@ c     endif
 C****
       end subroutine init_Model
 
-#ifdef USE_FVCORE
       SUBROUTINE INPUT (istart,ifile,clock)
-#else
-      SUBROUTINE INPUT (istart,ifile)
-#endif
+
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
@@ -1205,8 +1288,8 @@ C****
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE CONSTANT, only : hrday
-      USE ESMF_MOD, only: ESMF_Clock
 #endif
+      USE ESMF_MOD, only: ESMF_Clock
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : init_ATMDYN
 #endif
@@ -1217,7 +1300,10 @@ cddd#ifdef USE_ENT
 cddd      USE ENT_DRV, only : init_module_ent
 cddd#endif
       IMPLICIT NONE
-      CHARACTER(*) :: ifile
+!@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
+      integer, intent(out) :: istart
+      character(*), intent(in) :: ifile
+      type (ESMF_Clock), intent(inout) :: clock
 !@var iu_AIC,iu_TOPO unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
@@ -1227,9 +1313,8 @@ cddd#endif
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
       INTEGER ::   HOURI=0 , DATEI=1, MONTHI=1, YEARI=-1, IHRI=-1,
      *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1,
-!@nlparam ISTART  postprocessing(-1)/start(1-8)/restart(>8)  option
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
-     *             ISTART, IRANDI=0
+     *     IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
       INTEGER ItimeX,IhrX, LMR
 
@@ -1243,7 +1328,6 @@ cddd#ifdef USE_ENT
 cddd     &     ,iniENT = .FALSE.
 cddd#endif
 #ifdef USE_FVCORE
-      type (ESMF_Clock) :: clock
       integer :: minti,minte
       character(len=1) :: suffix
 #endif
@@ -2400,31 +2484,38 @@ C**** check tracers
       END SUBROUTINE CHECKT
 
 
-      subroutine read_options( ifile )
-!@sum reads options from the command line (for now only one option)
+      subroutine print_restart_info
+!@sum prints timing information needed to restart the model
 !@auth I. Aleinov
 !@ver 1.0
+      USE MODEL_COM
+      USE FILEMANAGER, only : openunit,closeunit
+      use domain_decomp_atm, only: AM_I_ROOT
       implicit none
-      character(*),intent(inout)  :: ifile
-      character*80 arg,arg1
+      integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
+      integer :: iu_rsf
 
-      do
-        call nextarg( arg, 1 )
-        if ( arg == "" ) exit          ! end of args
-        select case (arg)
-        case ("-i")
-          call nextarg( arg1, 0 )
-          ifile=arg1
-        ! new options can be included here
-        case default
-          print *,'Unknown option specified: ', arg
-          print *,'Aborting...'
-          call stop_model("Unknown option on a command line",255)
-        end select
-      enddo
+      call openunit(rsf_file_name(1),iu_rsf,.true.)
+      call io_label(iu_rsf,Itime1,itm,ioread,ioerr1)
+      call closeunit(iu_rsf)
+      call openunit(rsf_file_name(2),iu_rsf,.true.)
+      call io_label(iu_rsf,Itime2,itm,ioread,ioerr2)
+      call closeunit(iu_rsf)
+
+      if ( ioerr1==-1 ) ItimeMax = Itime1
+      if ( ioerr2==-1 ) ItimeMax = max( ItimeMax, Itime2 )
+
+      if ( Itime < 0 )
+     $     call stop_model("Could not read fort.1, fort.2",255)
+
+      call getdte(
+     &     ItimeMax,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      if (AM_I_ROOT())
+     &     write(6,"('QCRESTART_DATA: ',I10,1X,I2,'-',I2.2,'-',I4.4)")
+     &     ItimeMax*24/Nday, Jmon, Jdate, Jyear
 
       return
-      end subroutine read_options
+      end subroutine print_restart_info
 
 
       subroutine print_and_check_PPopts
@@ -2547,3 +2638,4 @@ C**** check tracers
 
       return
       end subroutine print_and_check_PPopts
+
