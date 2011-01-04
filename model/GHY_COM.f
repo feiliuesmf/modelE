@@ -572,13 +572,13 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DZSN_IJ_GLOB,
      &     WSN_IJ_GLOB, HSN_IJ_GLOB
       REAL*8, ALLOCATABLE :: FR_SNOW_IJ_GLOB(:,:,:)
+      integer :: I_0H, I_1H, J_0H, J_1H
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSNOW01"
       REAL*8, ALLOCATABLE, TARGET ::  TR_WSN_IJ_GLOB(:,:,:,:,:)
       REAL*8, allocatable :: localSlice(:,:,:,:)
       REAL*8, allocatable :: globalSlice(:,:,:,:)
-      integer :: I_0H, I_1H, J_0H, J_1H
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a)')'R8 dim(',NTM,',',NLSN,',2,IM,JM):TRSNW'
 #endif
