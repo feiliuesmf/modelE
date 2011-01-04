@@ -89,6 +89,7 @@ lightning                           ! Colin Price lightning model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
+tracers
 Ent
 
 Component Options:

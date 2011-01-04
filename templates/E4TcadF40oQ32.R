@@ -88,6 +88,7 @@ OCN_Int_LATLON                      ! atm-ocn regrid routines
 Components:
 #include "E4_components"    /* without "Ent" */
 Ent
+tracers
 ! dd2d  /* needed for new i/o only */
 
 Component Options:

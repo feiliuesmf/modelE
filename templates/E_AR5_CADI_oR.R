@@ -85,6 +85,7 @@ OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
+tracers
 Ent
 
 Component Options:

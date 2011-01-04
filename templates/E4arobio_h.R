@@ -56,7 +56,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
-Ent
+tracers Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */

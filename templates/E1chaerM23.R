@@ -114,7 +114,7 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT_netcdf                         ! post-processing output
 
 Components:
-ESMF_Interface shared
+tracers ESMF_Interface shared
 
 Data input files:
     ! start up from restart file of earlier run

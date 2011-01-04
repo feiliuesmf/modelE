@@ -50,7 +50,7 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+tracers ESMF_Interface shared
 
 Data input files:
 AIC=AIC.RES_M53.D771201

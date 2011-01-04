@@ -59,7 +59,7 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT_netcdf                         ! post-processing output
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM
+tracers Ent shared ESMF_Interface solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

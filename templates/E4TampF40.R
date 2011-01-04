@@ -112,7 +112,7 @@ lightning                           ! Colin Price lightning model
 #include "static_ocn_source_files"
 
 Components:
-shared ESMF_Interface solvers giss_LSM
+tracers shared ESMF_Interface solvers giss_LSM
 Ent
 dd2d
 

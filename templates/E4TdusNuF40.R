@@ -56,6 +56,7 @@ NUDGE                               ! code for nudging winds
 
 Components:
 #include "E4_components"    /* without "Ent" */
+tracers
 Ent
 
 Component Options:

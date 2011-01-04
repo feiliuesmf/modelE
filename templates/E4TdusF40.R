@@ -51,6 +51,7 @@ RAD_native_O3                       ! for reading ozone to rad code at native GC
 
 Components:
 #include "E4_components"    /* without "Ent" */
+tracers
 Ent
 
 Component Options:

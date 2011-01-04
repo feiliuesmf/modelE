@@ -43,6 +43,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 Components:
 #include "E4_components"    /* without "Ent" */
+tracers
 Ent
 dd2d
 

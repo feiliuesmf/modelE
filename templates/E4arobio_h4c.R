@@ -115,7 +115,7 @@ TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM dd2d
+tracers Ent shared ESMF_Interface solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

@@ -81,6 +81,7 @@ lightning                           ! Colin Price lightning model
 
 Components:
 #include "E4_components"    /* without "Ent" */
+tracers
 Ent
 dd2d
 
