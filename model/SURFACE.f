@@ -3,8 +3,8 @@ C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
 #include "rundeck_opts.h"
 
-      SUBROUTINE SURFCE
-!@sum SURFCE calculates the surface fluxes which include
+      SUBROUTINE SURFACE
+!@sum SURFACE calculates the surface fluxes which include
 !@+   sensible heat, evaporation, thermal radiation, and momentum
 !@+   drag.  It also calculates instantaneous surface temperature,
 !@+   surface specific humidity, and surface wind components.
@@ -296,7 +296,7 @@ C**** Initialise constant indices
 
 C****
 
-      call startTimer('SURFCE()')
+      call startTimer('SURFACE()')
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -1074,7 +1074,7 @@ C****
           tdd = tdryd*axyp(i,j)*ptype                    ! kg
           td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
-            if (qcheck) write(99,*) "limiting tdryd surfce",i,j,n,tdd
+            if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,trs(nx),pbl_args%trtop(nx)
             tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(axyp(i,j)*ptype)
@@ -1642,8 +1642,8 @@ C**** Accumulate 3D subdaily quantities
       END DO
 #endif
 
-      call stopTimer('SURFCE()')
+      call stopTimer('SURFACE()')
 
       RETURN
 C****
-      END SUBROUTINE SURFCE
+      END SUBROUTINE SURFACE

@@ -516,9 +516,9 @@ C**** Calculate non-interactive tracer surface sources and sinks
          CALL TIMER (NOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
-      CALL SURFCE
+      CALL SURFACE
       call stopTimer('Surface')
-         CALL CHECKT ('SURFCE')
+         CALL CHECKT ('SURFACE')
          CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
 #ifdef CALCULATE_FLAMMABILITY
@@ -993,7 +993,7 @@ C**** reset sub-daily diag files
       call addTimer(' RADIA()')
       call addTimer(' Surface')
       call addTimer('  Precip')
-      call addTimer('  SURFCE()')
+      call addTimer('  SURFACE()')
       call addTimer(' DYNSI()')
       call addTimer(' UNDERICE()')
       call addTimer(' GROUND_SI()')
