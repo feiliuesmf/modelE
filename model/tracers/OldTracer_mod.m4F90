@@ -9,6 +9,8 @@ define([PROPERTIES_AND_TYPES],
   (needtrs,logical,.false.,true if surface tracer value from PBL is required),
   (trdecay,real*8,0.d0,radioactive decay constant (1/s) (=0 for stable tracers)),
   (itime_tr0,integer,,start time for each tracer (hours)),
+  (trsi0,real*8,0.d0, conc. in sea ice (kg/m^2)),
+  (trw0,real*8,0.d0,concentration in water (kg/kg)),
   (mass2vol,real*8,,mass to volume ratio = mair/tr_mm),
   (vol2mass,real*8,,volume to mass ratio = tr_mm/mair),
   (dodrydep,logical,,true if tracer should undergo dry deposition),
@@ -50,6 +52,15 @@ define([DECLARE_ACCESSORS],
 [public :: set_$1, $1 ]
 )dnl
 
+define([OVERLOAD_ACCESSORS],
+interface $1
+[module procedure $1_s
+ifelse($1,emisPerFireByVegType,,
+   module procedure $1_all
+   module procedure $1_m)]
+end interface
+)dnl
+
 define([DECLARE_COMPONENT],
 [ifelse($4,,,!@var $1: $4
 )dnl
@@ -68,11 +79,25 @@ define([CREATE_ACCESSORS],
     tracers(oldIndex)%$1 = value
   end subroutine set_$1
   
-  function $1(oldIndex)
+  function $1_s(oldIndex)
     integer, intent(in) :: oldIndex
-    $2 :: $1
-    $1 = tracers(oldIndex)%$1
-  end function $1
+    $2 :: $1_s
+    $1_s = tracers(oldIndex)%$1
+  end function $1_s
+
+ifelse($1,emisPerFireByVegType,,
+[  function $1_all()
+    $2 :: $1_all(size(tracers))
+    $1_all = tracers(:)%$1
+  end function $1_all
+
+  function $1_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    $2 :: $1_m(size(oldIndices))
+    $1_m = tracers(oldIndices(:))%$1
+  end function $1_m
+]
+)
 ])dnl
 
 module OldTracer_mod
@@ -87,9 +112,7 @@ module OldTracer_mod
   public :: nGAS, nPART, nWATER
 
   foreach([property],PROPERTIES,[DECLARE_ACCESSORS(property)])
-
-  DECLARE_ACCESSORS(trw0)
-  DECLARE_ACCESSORS(TRSI0)
+  foreach([property],PROPERTIES,[OVERLOAD_ACCESSORS(property)])
 
   integer, parameter :: MAX_LEN_NAME = 8
 !**** parameters for tr_wd_TYPE
@@ -104,21 +127,7 @@ module OldTracer_mod
 
 foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([DECLARE_COMPONENT],property_and_type)])
 
-!@var TRSI0 default tracer conc. in sea ice (kg/m^2)
-      REAL*8 :: TRSI0 = 0.0
-!@var TRW0 default tracer concentration in water (kg/kg)
-      real*8 :: trw0 = 0.
   end type OldTracer_type
-
-  interface trw0
-    module procedure trw0_all
-    module procedure trw0_one
-  end interface
-
-  interface trsi0
-    module procedure trsi0_all
-    module procedure trsi0_one
-  end interface
 
   integer, save :: numTracers = 0
   type (OldTracer_type), allocatable :: tracers(:)
@@ -163,8 +172,6 @@ contains
     do i = 1, numTracers
       aTracer = Tracer(tracers(i)%name)
       foreach([property],PROPERTIES,[SET_PROPERTY(property)])
-      SET_PROPERTY(trw0)
-      SET_PROPERTY(TRSI0)
 
       call addTracer(bundle, aTracer)
       call clean(aTracer)
@@ -175,39 +182,5 @@ contains
 
   foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([CREATE_ACCESSORS],property_and_type)]
 )
-
-subroutine set_trw0(oldIndex, value)
-  integer, intent(in) :: oldIndex
-  real*8, intent(in) :: value
-  tracers(oldIndex)%trw0 = value
-end subroutine set_trw0
-
-function trw0_all()
-  real*8 :: trw0_all(numTracers)
-  trw0_all = tracers(:)%trw0
-end function trw0_all
-
-function trw0_one(n)
-  integer, intent(in) :: n
-  real*8 :: trw0_one
-  trw0_one = tracers(n)%trw0
-end function trw0_one
-
-subroutine set_trsi0(oldIndex, value)
-  integer, intent(in) :: oldIndex
-  real*8, intent(in) :: value
-  tracers(oldIndex)%trsi0 = value
-end subroutine set_trsi0
-
-function trsi0_all()
-  real*8 :: trsi0_all(numTracers)
-  trsi0_all = tracers(:)%trsi0
-end function trsi0_all
-
-function trsi0_one(n)
-  integer, intent(in) :: n
-  real*8 :: trsi0_one
-  trsi0_one = tracers(n)%trsi0
-end function trsi0_one
 
 end module OldTracer_mod

@@ -395,7 +395,7 @@ C**** get rundeck parameter for cosmogenic source factor
 #ifdef TRACERS_AMP
         select case (trname(n))
         case ('M_OCC_OC') ! this handles OCT_src (terpene source)
-          ntsurfsrc(n)=ntsurfsrc(n)+1
+           call set_ntsurfsrc(n, ntsurfsrc(n)+1)
           ssname(n,ntsurfsrc(n))="Terpene_source"
         end select
 #endif
@@ -9665,9 +9665,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
               ntsurfsrc(n_SO4)=ntsurfsrc(n)
 #endif
 #ifdef TRACERS_AMP
-              ntsurfsrc(n_M_ACC_SU)=ntsurfsrc(n)
+              call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n))
 #ifndef TRACERS_AMP_M4
-              ntsurfsrc(n_M_AKK_SU)=ntsurfsrc(n)
+              call set_ntsurfsrc(n_M_AKK_SU, ntsurfsrc(n))
 #endif
 #endif
             endif
