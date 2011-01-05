@@ -1777,7 +1777,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           call set_tr_mm(n, 62.d0)
           call set_trpdens(n, 1.7d3)
           call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('M_NH4')
       n_M_NH4 = n
@@ -1995,7 +1995,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('M_OCC_OC')
       n_M_OCC_OC = n
           call set_ntm_power(n, -11)
-          call set_tr_mm(n, 15.6)
+          call set_tr_mm(n, 15.6d0)
           call set_trpdens(n, DENS_OCAR)
           call set_trradius(n, DG_OCC * .5d-6)
           call set_fq_aer(n,  SOLU_OCC)
@@ -2039,7 +2039,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_BC2_SU = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, DENS_SULF)
           call set_trradius(n, DG_BC2 * .5d-6)
           call set_fq_aer(n, SOLU_BC2)
@@ -2066,7 +2066,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_BC3_SU = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, DENS_SULF)
           call set_trradius(n, DG_BC3 * .5d-6)
           call set_fq_aer(n, SOLU_BC3)
@@ -2093,7 +2093,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_DBC_SU = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, DENS_SULF)
           call set_trradius(n, DG_DBC * .5d-6)
           call set_fq_aer(n, SOLU_DBC)
@@ -2102,7 +2102,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_DBC_BC = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, DENS_BCAR)
           call set_trradius(n, DG_DBC * .5d-6)
           call set_fq_aer(n,  SOLU_DBC)
@@ -2128,7 +2128,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('M_BOC_SU')
       n_M_BOC_SU = n
           call set_ntm_power(n, -11)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, DENS_SULF)
           call set_trradius(n, DG_BOC * .5d-6)
           call set_fq_aer(n, SOLU_BOC)
@@ -2144,7 +2144,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       case ('M_BOC_OC')
       n_M_BOC_OC = n
           call set_ntm_power(n, -11)
-          call set_tr_mm(n, 15.6)
+          call set_tr_mm(n, 15.6d0)
           call set_trpdens(n, DENS_OCAR)
           call set_trradius(n, DG_BOC * .5d-6)
           call set_fq_aer(n,  SOLU_BOC)
@@ -2206,7 +2206,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_MXX_OC = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6)
+          call set_tr_mm(n, 15.6d0)
           call set_trpdens(n, DENS_OCAR)
           call set_trradius(n, DG_MXX * .5d-6)
           call set_fq_aer(n, SOLU_MXX)
@@ -2251,7 +2251,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_M_OCS_OC = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6)
+          call set_tr_mm(n, 15.6d0)
           call set_trpdens(n, DENS_OCAR)
           call set_trradius(n, DG_OCS * .5d-6)
           call set_fq_aer(n, SOLU_OCS)
@@ -2268,6 +2268,11 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #endif /* TRACERS_AMP */
 #endif /* TRACERS_ON */
       end select
+
+#ifdef TRACERS_ON
+#ifdef TRACERS_AMP
+#endif /* TRACERS_AMP */
+#endif /* TRACERS_ON */
 
 #ifdef TRACERS_WATER
 C**** Tracers that are soluble or are scavenged or are water => wet dep
