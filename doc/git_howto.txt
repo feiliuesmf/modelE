@@ -61,7 +61,8 @@ that these variable are set to identical values on all computers.
                     =====================
 (apart from the initial "git clone ..." all commands are executed
 from inside of modelE directory tree)
-- to check out the main branch of modelE
+
+=== to check out the main branch of modelE
   (equivalent of "cvs checkout modelE")
 
     git clone <username>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
@@ -73,14 +74,28 @@ in it (this among other things will include entire history of the
 code so that a lot of Git operations can be performed without
 access to the main server).
 
-- to switch to a branch (after you downloaded the code with "git clone..."):
+=== to switch to a branch (after you downloaded the code with "git clone..."):
 
     git checkout <branch_name>
 
 this will switch the entire directory tree to the branch
-<branch_name>.
+<branch_name>. To see the list of available branches type 
 
-- to update the code in your working directory to the latest code
+    git branch -a
+
+If you want to switch to a remote branch (prefixed with "remotes")
+use a "short" <branch_name> for this branch (omitting
+"remotes/origin"). I.e. if you want to work with the branch 
+"remotes/origin/AR5_branch" just do
+
+    git checkout AR5_branch
+
+The first time you execute this command Git will say that it has 
+created a local branch AR5_branch which is "tracking" a remote 
+branch. Next time it will just switch the branch. 
+
+
+=== to update the code in your working directory to the latest code
 in the repository on simplex (equivalent of "cvs update"):
 
     git pull <username>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
@@ -95,7 +110,7 @@ working with more than one repository (not described in this
 document), it may become not obvious which repository is a
 default one. So it is better to specify it explicitly.
 
-- to commit your code to the central repository on simplex you have
+=== to commit your code to the central repository on simplex you have
 to execute two commands:
 
     git commit -a
