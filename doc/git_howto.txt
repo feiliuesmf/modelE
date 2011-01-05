@@ -117,7 +117,7 @@ up-to-date. In this case you have to do "git pull", resolve
 conflicts in your local directory and then repeat "git commit",
 "git push".
 
-Sometimes "git push" will request that you do local "git commit"
+Sometimes "git pull" will request that you do local "git commit"
 first. This is to prevent your local code from being corrupted
 by conflicts with imported code. In this case do "git commit -a"
 as advised by Git and repeat "pull". Typically Git produces
