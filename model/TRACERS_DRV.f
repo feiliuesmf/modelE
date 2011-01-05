@@ -2269,11 +2269,6 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #endif /* TRACERS_ON */
       end select
 
-#ifdef TRACERS_ON
-#ifdef TRACERS_AMP
-#endif /* TRACERS_AMP */
-#endif /* TRACERS_ON */
-
 #ifdef TRACERS_WATER
 C**** Tracers that are soluble or are scavenged or are water => wet dep
       if (tr_wd_type(n).eq.nWater.or.tr_wd_type(n) .EQ. nPART .or.
