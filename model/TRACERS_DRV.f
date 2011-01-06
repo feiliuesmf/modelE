@@ -2296,19 +2296,19 @@ C**** Define the conversion from mass to volume units here
       to_conc(n) = 0
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Aerosol tracer output should be mass mixing ratio
-      select case (tr_wd_type(n))
-        case (ngas)
-          call set_to_volume_MixRat(n, 1    ) !gas output to volume mixing ratio
+      select case (tr_wd_TYPE(n))
+        case (nGAS)
+          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
         case (nPART)
-          call set_to_volume_MixRat(n, 0    ) !aerosol output to mass mixing ratio
+          to_volume_MixRat(n) = 0    !aerosol output to mass mixing ratio
         case (nWATER)
-          call set_to_volume_MixRat(n, 0    ) !water output to mass mixing ratio
+          to_volume_MixRat(n) = 0    !water output to mass mixing ratio
         case default
-          call set_to_volume_MixRat(n, 0    ) !default output to mass mixing ratio
+          to_volume_MixRat(n) = 0    !default output to mass mixing ratio
       end select
 #endif
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-      call set_to_volume_MixRat(n, 1    ) !gas output to volume mixing ratio
+          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
 #endif
 #endif /* TRACERS_ON */
 
