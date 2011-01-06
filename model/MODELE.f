@@ -65,7 +65,7 @@ C**** Command line options
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
-      USE PARSER
+      Use Parser_mod
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
       USE DOMAIN_DECOMP_ATM, only: grid,init_grid,sumxpe
@@ -1220,7 +1220,6 @@ C****
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : timing,ntimeacc
       USE PARAM
-      !USE PARSER
       USE CONSTANT, only : grav,kapa,sday,by3,twopi
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia
