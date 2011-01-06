@@ -1,7 +1,3 @@
-*.a
-*.mod
-*.o
-*.smod
-*~
-/.current_options
 
+*.a
+/.current_options
