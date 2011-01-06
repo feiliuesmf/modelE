@@ -123,7 +123,7 @@ contains
   end subroutine sread_char
 
   subroutine parse_params( kunit )
-    use PARAM
+    use Dictionary_mod
     integer, parameter :: MAXDIM=64
     integer, intent(in) :: kunit
     character*256 bufs
@@ -389,7 +389,7 @@ contains
     real*8 :: real64Value
     integer :: status
     
-    read(string,'(g30.30)',iostat=status) real64Value
+    read(string,'(g37.30)',iostat=status) real64Value
     isReal64 = (status == 0)
 
   end function isReal64

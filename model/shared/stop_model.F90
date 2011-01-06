@@ -6,7 +6,7 @@
 subroutine stop_model( message, retcode )
 !@sum Aborts the execution of the program. Passes an error message and
 !@+ a return code to the calling script. Should be used instead of STOP
-  USE PARAM
+  use Dictionary_mod
   implicit none
 !@var message an error message (reason to stop)
   character*(*), intent (in) :: message
