@@ -34,6 +34,7 @@ Table of Contents
   <LI><a HREF="#subdd">        HOW-TO write "subdaily" diagnostics in netcdf format</a>
   <LI><a HREF="#add_diag">     HOW-TO add a new diagnostic to an existing category</a>
   <LI><a HREF="#add_diag_cat"> HOW-TO add a new category of diagnostic</a>
+  <LI><a HREF="#probs">        Troubleshooting</a>
   <LI><a HREF="#plotting">     Plotting options</a>
   <LI><a HREF="#rules">        How it works</a>
   <LI><a HREF="#local_info">   Local information</a>
@@ -626,6 +627,25 @@ than adding new code to modelE.
 
 <p>
 Recipe to be written.
+</p>
+
+<!------------------------------------------------------------------------------->
+<P><HR><p>
+
+<p>
+<A name="probs"><b>Troubleshooting</b></a>
+</p>
+
+<p>
+Known causes of aberrant behavior:
+<ul>
+  <li> Application of <tt>sumfiles/scaleacc</tt> to acc-files residing in a
+mass-storage facility.  Some facilities have commands to create temporary copies of
+slow-media (tape) files on higher-performance media.  The coding of <tt>sumfiles/scaleacc</tt>
+assumes that once a file has been successfully opened, its contents will remain available
+during execution.  Unfortunately, files can sometimes "disappear" before execution
+completes.
+</ul>
 </p>
 
 <!------------------------------------------------------------------------------->
