@@ -1636,7 +1636,7 @@ C****
      *                    ,J_IMPLH, AIJ=>AIJ_LOC,
      *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
-      use cubic_eq, only : cubicroot
+      use CubicEquation_mod, only : cubicroot
       IMPLICIT NONE
       integer i,j,J_0,J_1,I_0,I_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
