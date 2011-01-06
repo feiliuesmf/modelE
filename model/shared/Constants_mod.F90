@@ -202,7 +202,7 @@ module constant
 !@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
   real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
-CONTAINS
+contains
 
   real*8 function visc_air(T)
 !@sum visc_air dynamic viscosity of air (function of T) (kg/m s)
@@ -219,8 +219,8 @@ CONTAINS
 !@sum visc_air_kin kinematic viscosity of air (function of T) (m2/s)
 !@auth COARE formula - Andreas (1989) CRREL Rep. 89-11
     real*8, intent(in) :: T  ! temperature (K)
-    real*8, parameter :: nu0=1.326d-5, a0=6.542d-3, b0=8.301d-6,
-    *     c0=4.84d-9
+    real*8, parameter :: nu0=1.326d-5, a0=6.542d-3, b0=8.301d-6, &
+         &     c0=4.84d-9
     real*8 :: Tc  ! temperature in deg C
 
     Tc=T-tf
