@@ -489,6 +489,12 @@ sub print_main_index {
 	htm_link("$_", "$_"); print HTM "<BR>\n";
     }
 
+    while( <$doc_dir/*.html> ) {
+	s/$doc_dir\///;
+	print "txt loop $_ \n";
+	htm_link("$_", "$_"); print HTM "<BR>\n";
+    }
+
     print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
     print HTM 
       "<a href=\"http://simplex.giss.nasa.gov/cgi-bin/gitweb.cgi?p=modelE.git;a=summary\">\n";
