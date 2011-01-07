@@ -26,7 +26,7 @@
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
-      USE PARAM
+      USE Dictionary_mod
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
@@ -371,6 +371,7 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
      &  'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
      &  'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
+          val = nBBsources(n)
           call sync_param(trim(trname(n))//"_nBBsources",val)
           call set_nBBsources(n, val)
           if(nBBsources(n)>0)then
