@@ -5,21 +5,6 @@
 #define COMPILER_G95
 #endif
 
-      ! Use F90 system_clock for portable accuracy
-      module GETTIME_MOD
-      contains
-      subroutine GETTIME(ctime, cmax)
-      implicit none
-      real*8, intent(out) :: ctime
-      real*8, intent(out), optional :: cmax
-      integer :: counter, count_rate, count_max
-      call system_clock(counter,count_rate,count_max)
-      if( present(cmax) ) cmax = count_max/real(count_rate,kind=8)
-      ctime=counter/real(count_rate,kind=8)  ! convert to seconds
-      end subroutine GETTIME
-      end module GETTIME_MOD
-
-
       SUBROUTINE exit_rc (code)
 !@sum  exit_rc stops the run and sets a return code
 !@auth Reto A Ruedy
