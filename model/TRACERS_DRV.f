@@ -111,6 +111,9 @@
       use OldTracer_mod, only: set_itime_tr0
       use OldTracer_mod, only: set_mass2vol
       use OldTracer_mod, only: set_vol2mass
+      use OldTracer_mod, only: set_HSTAR
+      use OldTracer_mod, only: set_F0
+      use OldTracer_mod, only: set_dodrydep
 
       use OldTracer_mod, only: dodrydep
       use OldTracer_mod, only: F0
@@ -401,7 +404,9 @@ C**** get rundeck parameter for cosmogenic source factor
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_SPECIAL_Shindell
-        if(trname(n)=='CH4' .and. use_rad_ch4/=0) ntsurfsrc(n)=0
+        if (trname(n)=='CH4' .and. use_rad_ch4/=0) then
+          call set_ntsurfsrc(n,0)
+        end if
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) && (defined GFED_3D_BIOMASS)
         call check_GFED_sectors(n) ! possible special 3D source sector
@@ -942,7 +947,7 @@ C          read the CFC initial conditions:
           call set_trpdens(n, 1.5d3)         !kg/m3
           call set_trradius(n, 3.d-7) !m
           call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, nPART
+          call set_tr_wd_type(n, nPART)
 
       case ('isopp2g')
           n_isopp2g = n
@@ -967,7 +972,7 @@ C          read the CFC initial conditions:
           call set_trpdens(n, 1.5d3)         !kg/m3
           call set_trradius(n, 3.d-7) !m
           call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, nPART
+          call set_tr_wd_type(n, nPART)
 
 #ifdef TRACERS_TERP
       case ('apinp1g')
@@ -990,7 +995,7 @@ C          read the CFC initial conditions:
           call set_trpdens(n, 1.5d3)         !kg/m3
           call set_trradius(n, 3.d-7) !m
           call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, nPART
+          call set_tr_wd_type(n, nPART)
 
       case ('apinp2g')
           n_apinp2g = n
@@ -1000,12 +1005,6 @@ C          read the CFC initial conditions:
           call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
           call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           call set_tr_wd_type(n, ngas)
-          ntm_power(n) = -11
-          ntsurfsrc(n) = 0
-          tr_mm(n) = 15.6d0
-          tr_RKD(n) = 1.d4 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
-          tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
           call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
 #endif
@@ -1019,7 +1018,7 @@ C          read the CFC initial conditions:
           call set_trpdens(n, 1.5d3)         !kg/m3
           call set_trradius(n, 3.d-7) !m
           call set_fq_aer(n, 0.8d0)          !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, nPART
+          call set_tr_wd_type(n, nPART)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 
@@ -1076,28 +1075,28 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       n_SO4_d1 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.   !!!! Sulfat)
+          call set_tr_mm(n, 96.d0)   !!!! Sulfat
           call set_trpdens(n, 2.5d3)   !kg/m3 this is clay density
           call set_trradius(n, 0.75D-06 ) !m
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('SO4_d2')
       n_SO4_d2 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, 2.65d3)   !kg/m3 this is silt1 value
           call set_trradius(n, 2.2D-06 ) !m
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('SO4_d3')
       n_SO4_d3 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 96.)
+          call set_tr_mm(n, 96.d0)
           call set_trpdens(n, 2.65d3)   !this is silt2 value
           call set_trradius(n, 4.4D-06 ) !m this is silt2 value
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('N_d1')
       n_N_d1 = n
@@ -1106,25 +1105,25 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
           call set_tr_mm(n, 62.d+0)   ! NO3
           call set_trpdens(n, 2.5d3)   !kg/m3 this is clay density
           call set_trradius(n, 0.75D-06 ) !m
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('N_d2')
       n_N_d2 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 62.)
+          call set_tr_mm(n, 62.d+0)
           call set_trpdens(n, 2.65d3)   !kg/m3 this is silt1 value
           call set_trradius(n, 2.2D-06 ) !m
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
       case ('N_d3')
       n_N_d3 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 62.)
+          call set_tr_mm(n, 62.d0)
           call set_trpdens(n, 2.65d3)   !this is silt2 value
           call set_trradius(n, 4.4D-06 ) !m this is silt2 value
-          call set_fq_aer(n, 1.   ) !fraction of aerosol that dissolves
+          call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
           call set_tr_wd_type(n, npart)
 #endif
 
@@ -1398,7 +1397,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1411,7 +1410,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1424,7 +1423,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1437,7 +1436,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1450,7 +1449,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1465,7 +1464,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1478,7 +1477,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1491,7 +1490,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1504,7 +1503,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1517,7 +1516,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1530,7 +1529,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1543,7 +1542,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1556,7 +1555,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1569,7 +1568,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1582,7 +1581,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1595,7 +1594,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1608,7 +1607,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1621,7 +1620,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1634,7 +1633,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1647,7 +1646,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1660,7 +1659,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1673,7 +1672,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1686,7 +1685,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1699,7 +1698,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1712,7 +1711,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1727,7 +1726,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1740,7 +1739,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -1753,7 +1752,7 @@ CCC#endif
 #endif
           call set_fq_aer(n, 5.D-1)
           call set_rc_washt(n, 5.D-1)
-          call set_call set_tr_wd_type(n, nPART)
+          call set_tr_wd_type(n, nPART)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
@@ -9439,6 +9438,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
+      use OldTracer_mod, only: set_ntsurfsrc
 
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
@@ -9662,7 +9662,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
             if (trname(n).eq.'SO2') then ! set this AFTER reading
 #ifdef TRACERS_AEROSOLS_Koch
-              ntsurfsrc(n_SO4)=ntsurfsrc(n)
+              call set_ntsurfsrc(n_SO4,ntsurfsrc(n))
 #endif
 #ifdef TRACERS_AMP
               call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n))
@@ -11098,6 +11098,7 @@ C**** GLOBAL parameters and variables:
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p
       USE MODEL_COM, only  : dtsrc
 #endif
+      use OldTracer_mod, only: set_fq_aer
       IMPLICIT NONE
 C**** Local parameters and variables and arguments:
 !@param BY298K unknown meaning for now (assumed= 1./298K)
@@ -11229,42 +11230,42 @@ c only dissolve if the cloud has grown
       case('Clay')
          if ( ( TM(l,ntix(n_SO4_d1)) /trpdens(n_SO4)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          else
-            fq_aer(NTIX(N))  = 0.
+           call set_fq_aer(NTIX(N), 0.d0)
          endif
 #ifdef TRACERS_NITRATE
          if ( ( TM(l,ntix(n_N_d1)) /trpdens(n_NO3p)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          endif
 #endif
 
       case('Silt1')
         if ( ( TM(l,ntix(n_SO4_d2)) /trpdens(n_SO4)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          else
-            fq_aer(NTIX(N))  = 0.
+           call set_fq_aer(NTIX(N), 0.d0)
         endif
 #ifdef TRACERS_NITRATE
          if ( ( TM(l,ntix(n_N_d2)) /trpdens(n_NO3p)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          endif
 #endif
 
       case('Silt2')
         if ( ( TM(l,ntix(n_SO4_d3)) /trpdens(n_SO4)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          else
-            fq_aer(NTIX(N))  = 0.
+           call set_fq_aer(NTIX(N), 0.d0)
         endif
 #ifdef TRACERS_NITRATE
          if ( ( TM(l,ntix(n_N_d3)) /trpdens(n_NO3p)) >
      *      (( TM(l,ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
+           call set_fq_aer(NTIX(N), 1.d0)
          endif
 #endif
       end select
@@ -11337,6 +11338,7 @@ C**** GLOBAL parameters and variables:
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p, n_Clay,n_Silt1,n_Silt2
       USE MODEL_COM, only  : dtsrc
 #endif
+      use OldTracer_mod, only: set_fq_aer
       IMPLICIT NONE
 C**** Local parameters and variables and arguments:
 !@param BY298K unknown meaning for now (assumed= 1./298K)
@@ -11486,42 +11488,42 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
       n = n_Clay
       if ( ( TM(ntix(n_SO4_d1)) /trpdens(n_SO4)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       else
-        fq_aer(NTIX(N))  = 0.
+        call set_fq_aer(NTIX(N), 0.d0)
       endif
 #ifdef TRACERS_NITRATE
       if ( ( TM(ntix(n_N_d1)) /trpdens(n_NO3p)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       endif
 #endif
 
       n = n_Silt1
       if ( ( TM(ntix(n_SO4_d2)) /trpdens(n_SO4)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       else
-        fq_aer(NTIX(N))  = 0.
+        call set_fq_aer(NTIX(N), 0.d0)
       endif
 #ifdef TRACERS_NITRATE
       if ( ( TM(ntix(n_N_d2)) /trpdens(n_NO3p)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       endif
 #endif
 
       n = n_Silt2
       if ( ( TM(ntix(n_SO4_d3)) /trpdens(n_SO4)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       else
-        fq_aer(NTIX(N))  = 0.
+        call set_fq_aer(NTIX(N), 0.d0)
       endif
 #ifdef TRACERS_NITRATE
       if ( ( TM(ntix(n_N_d3)) /trpdens(n_NO3p)) >
      *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-        fq_aer(NTIX(N))  = 1.
+        call set_fq_aer(NTIX(N), 1.d0)
       endif
 #endif
 
