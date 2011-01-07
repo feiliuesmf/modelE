@@ -21,6 +21,7 @@ module Timer_mod
    public :: start
    public :: stop
    public :: reset
+   public :: resetGlobal
    public :: getAverageTripTime
 
    ! Accessor methods
@@ -188,6 +189,12 @@ contains
       this%minimumTime = huge(1._r64)
       this%synchronize = .false.
    end subroutine reset_
+
+   ! Needed for testing purposes only - otherwise can contribute roundoff that
+   ! plagues later tests.
+   subroutine resetGlobal()
+     globalExclusiveTime = 0
+   end subroutine resetGlobal
 
    subroutine addTime(this, dtInclusive, dtExclusive)
       type (Timer_type), intent(inout) :: this

@@ -48,6 +48,7 @@ contains
       type (Fixture) :: this
       call reset(this%timer)
       call reset(this%otherTimer)
+      call resetGlobal()
    end subroutine setUp
 
    subroutine tearDown(this)
@@ -95,8 +96,8 @@ contains
       dt1 = 1.234_r64
       call start(this%timer, time = 0._r64)
       call stop(this%timer,  time = dt1)
-      call assertEqual(dt1, getInclusiveTime(this%timer)) ! no tolerance
-      call assertEqual(dt1, getExclusiveTime(this%timer)) ! no tolerance
+      call assertEqual(dt1, getInclusiveTime(this%timer))
+      call assertEqual(dt1, getExclusiveTime(this%timer))
 
    end subroutine test_addTime
 

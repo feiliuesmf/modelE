@@ -118,6 +118,11 @@ ifeq ($(ESMF),YES)
   include $(CONFIG_DIR)/ESMF.default.mk
 endif
 
+
+ifdef PFUNIT
+  include $(CONFIG_DIR)/pFUnit.default.mk
+endif
+
 ifeq ($(FVCUBED),YES)
   ifndef FVCUBED_ROOT
      FVCUBED_ROOT = false

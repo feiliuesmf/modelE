@@ -109,6 +109,7 @@ contains
 !@+ inconsistent.
     integer :: i
 
+#ifdef USE_PFUNIT
     i = GenericType('1.234', INTEGER_TYPE)
     call assertFailedAssert('GenericType::GenericType() - cannot convert string "1.234" to integer.', &
          & 'Failed to detect conversion error.')
@@ -116,6 +117,7 @@ contains
     i = GenericType('1.234', -1)
     call assertFailedAssert('GenericType::GenericType() - no such type.', &
          & 'Failed to detect illegal type.')
+#endif
 
   end subroutine testFailFromStringInteger
     
@@ -124,9 +126,11 @@ contains
 !@+ inconsistent.
     logical :: flag
 
+#ifdef USE_PFUNIT
     flag = GenericType('fa', LOGICAL_TYPE)
     call assertFailedAssert('GenericType::GenericType() - cannot convert string "fa" to logical.', &
          & 'Failed to detect conversion error.')
+#endif
 
   end subroutine testFailFromStringLogical
     

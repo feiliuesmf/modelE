@@ -14,13 +14,24 @@ PFUNIT_LFLAGS+= -L$(SOURCE_DIR)/tracers -ltracers
 EXTRA_FFLAGS += -$I$(SOURCE_DIR)/profiler
 EXTRA_FFLAGS += -$I$(SOURCE_DIR)/shared
 EXTRA_FFLAGS += -$I$(SOURCE_DIR)/tracers
-EXTRA_FFLAGS += -DUSE_PFUNIT -g -O0 -traceback
+ifeq ($(USE_PFUNIT),YES)
+  CPPFLAGS += -DUSE_PFUNIT
+endif
+EXTRA_FFLAGS += -g -O0 -traceback
 PFUNIT_TEST_PATTERNS=test%
 MPI_FC=mpif90
 FC=ifort
 MPIRUN=mpirun
 PFUNIT_USE_MPI=YES
 PFUNIT_NPES=10
+
+clean: 
+	make pfunitdistclean
+	$(RM) *.o *_wrap.F90 *.mod suite_list
+
+distclean:
+	make clean
+	$(RM) *.a *.x 
 
 
 ifdef PFUNIT

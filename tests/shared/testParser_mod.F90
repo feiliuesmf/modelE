@@ -290,12 +290,14 @@ contains
     character(len=128) :: string
     character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
 
+#ifdef USE_PFUNIT
     call setTokenSeparators(parser, separators)
 
     tokens => splitTokens(parser, " my var = 3")
     call assertFailedAssert('Parser_mod: Illegal syntax.  "=" not first separator.', &
          & 'Failed to detect illegal syntax.')
     deallocate(tokens)
+#endif
 
   end subroutine testBadFirstSeparator
 
@@ -429,6 +431,7 @@ contains
 
     integer :: status
 
+#ifdef USE_PFUNIT
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
     write(unit,*) BEGIN_DATA
     write(unit,*) 'beta'
@@ -444,6 +447,7 @@ contains
          & 'Failed to detect syntax error in parse')
 
     close(unit, status='delete')
+#endif
   end subroutine testParseNoValue
 
   subroutine testWriteFormatted()

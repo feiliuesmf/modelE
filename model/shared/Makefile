@@ -21,3 +21,7 @@ endif
 include $(CONFIG_DIR)/base.mk
 include $(CONFIG_DIR)/rules.mk
 
+ifeq ($(USE_PFUNIT),YES)
+$(OBJS): F90FLAGS+=-DUSE_PFUNIT -I$(PFUNIT)/mod
+endif
+

@@ -231,11 +231,13 @@ contains
     use KeyValuePair_mod
     type (fixture) :: this
 
+#ifdef USE_PFUNIT
     call addMandatoryProperty(this%bundle,'molecularMass')
     call addTracer(this%bundle,Tracer('otherTracer'))
     call assertFailedAssert( &
          & "TracerBundle_mod - species 'otherTracer' is missing mandatory property 'molecularMass'.", &
          & "Failed to detect missing mandatory option.")
+#endif
 
   end subroutine testAddMandatoryA
 
@@ -243,11 +245,13 @@ contains
     use KeyValuePair_mod
     type (fixture) :: this
 
+#ifdef USE_PFUNIT
     call addMandatoryProperty(this%bundle,'molecularMass')
     call addTracer(this%bundle,Tracer('otherName'))
     call assertFailedAssert( &
          & "TracerBundle_mod - species 'otherName' is missing mandatory property 'molecularMass'.", &
          & "Failed to detect missing mandatory option.")
+#endif
 
   end subroutine testAddMandatoryB
 
@@ -255,12 +259,13 @@ contains
     use KeyValuePair_mod
     type (fixture) :: this
 
+#ifdef USE_PFUNIT
     call addMandatoryProperty(this%bundle, 'newProperty')
 
     call assertFailedAssert( &
          & "TracerBundle_mod - species 'speciesA' is missing mandatory property 'newProperty'.", &
          & "Failed to detect missing mandatory option.")
-
+#endif
   end subroutine testAddMandatoryC
 
   subroutine testDefaultValues(this)
