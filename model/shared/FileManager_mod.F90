@@ -1,4 +1,4 @@
-MODULE FILEMANAGER
+module FILEMANAGER
 !@sum  FILEMANAGER keeps data concerning the files and unit numbers
 !@ver  2.0
   implicit none
@@ -182,4 +182,4 @@ contains
     enddo
   end subroutine print_open_units
 
-END MODULE FILEMANAGER
+end module FILEMANAGER
