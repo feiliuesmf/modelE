@@ -247,7 +247,7 @@ do i=1,nsoa
 enddo
 
 ! Correct tr_mm in order to use the real MW of species in meanmw and activity coefficient calculations only
-mw=tr_mm
+mw=tr_mm()
 mw(n_Isoprene)=5.d0*mw_c+8.d0*mw_h ! C5H8
 #ifdef TRACERS_TERP
 mw(n_Terpenes)=10.d0*mw_c+16.d0*mw_h ! C10H16

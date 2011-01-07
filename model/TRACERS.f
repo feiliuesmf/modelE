@@ -20,7 +20,7 @@
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRDIAG_COM
-      USE PARAM
+      use Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: l,k,n,nd
@@ -1182,7 +1182,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
 #endif
-      USE param, only : sync_param
+      USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
@@ -2166,7 +2166,7 @@ c daily_z is currently only needed for CS
      & tr_sect_name, sect_name
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
-      USE PARAM, only : sync_param
+      use Dictionary_mod, only : sync_param
       Use OldTracer_mod, only: set_ntsurfsrc
     
       implicit none
@@ -2188,11 +2188,14 @@ c daily_z is currently only needed for CS
 ! been reached.
 
       nsrc=0
+      print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
       loop_n: do n=1,ntsurfsrcmax
         if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
         else ; write(fnum,'(I2)')n ; endif
         fname=trim(trname(nt))//'_'//fnum
-        inquire(file=fname,exist=qexist)
+        print*,'name: ', trim(fname)
+        inquire(file=trim(fname),exist=qexist)
+        print*,'name: ', trim(fname), qexist
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
@@ -2248,6 +2251,7 @@ c daily_z is currently only needed for CS
         call stop_model(trim(out_line),255)
       endif
 
+      print*,__LINE__,__FILE__,' nt = ', nt, nsrc
       call set_ntsurfsrc(nt, nsrc)
 
       end subroutine num_srf_sources
@@ -2665,7 +2669,7 @@ c****   Interpolate two months of data to current day
       USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,writet_parallel
       USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE PARAM, only : sync_param
+      use Dictionary_mod, only : sync_param
 
       implicit none
 

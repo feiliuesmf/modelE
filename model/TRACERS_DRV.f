@@ -8158,7 +8158,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 !@auth Jean Lerner
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,readt_parallel,
      &     readt8_column, skip_parallel
-      USE PARAM, only : get_param, is_set_param
+      USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1
@@ -10486,7 +10486,7 @@ c latlon grid
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
-      USE PARAM, only : get_param, is_set_param
+      USE Dictionary_mod, only : get_param, is_set_param
       use trdiag_com, only : trcsurf,trcSurfByVol
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)

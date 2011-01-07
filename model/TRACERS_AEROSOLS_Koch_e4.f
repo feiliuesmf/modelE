@@ -1342,7 +1342,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
      &                          ,OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
       USE FLUXES, only: gtemp !Jaegle
-      use param, only: sync_param
+      use Dictionary_mod, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
       integer jread
@@ -2341,7 +2341,7 @@ C
       USE TRACER_COM, only: itime_tr0,trname,n_SO2,n_BCIA
      *    ,nAircraft,nChemistry,nChemloss
       use AEROSOL_SOURCES, only: Laircrs,aircrafts_Tyr1,aircrafts_Tyr2
-      use param, only: sync_param
+      use Dictionary_mod, only: sync_param
 C
       IMPLICIT NONE
 c

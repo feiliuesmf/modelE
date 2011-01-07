@@ -13,7 +13,7 @@
       subroutine bundle_interpolation(lstr, remap)
 !@auth Igor Aleinov, Denis Gueyffier, Maxwell Kelley 
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
-      USE array_bundle, only : lookup_str, ab_bundle, ab_unbundle
+      USE ArrayBundle_mod, only : lookup_str, ab_bundle, ab_unbundle
       implicit none
       type (lookup_str) :: lstr
       type (xgridremap_type) :: remap
@@ -31,7 +31,7 @@ c
       subroutine bundle_interpolation(lstr, htype)
 !@auth Igor Aleinov, Denis Gueyffier, Maxwell Kelley 
       USE hntrp_mod, only : hntrp_type,band_pack_column,hntr8_band_lij
-      USE array_bundle, only : lookup_str,get_bounds,ab_copy,
+      USE ArrayBundle_mod, only : lookup_str,get_bounds,ab_copy,
      &     ab_bundle,ab_unbundle
       implicit none
       type (lookup_str) :: lstr
@@ -117,7 +117,7 @@ c
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
       use ocean, only : remap_a2o
-      USE array_bundle
+      USE ArrayBundle_mod
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE
@@ -398,7 +398,7 @@ c*   polar values are replaced by their longitudinal mean
       USE FLUXES, only : gtracer
 #endif
       use ocean, only : remap_O2A
-      USE array_bundle
+      USE ArrayBundle_mod
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE
@@ -1092,7 +1092,7 @@ C**** surface tracer concentration
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
       use ocean, only : remap_A2O
-      USE array_bundle
+      USE ArrayBundle_mod
 
       IMPLICIT NONE
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
@@ -2176,7 +2176,7 @@ c*
 #endif
 
       use ocean, only : remap_O2A
-      USE array_bundle
+      USE ArrayBundle_mod
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE

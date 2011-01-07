@@ -893,7 +893,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       use domain_decomp_1d, only : grid, am_i_root
       use domain_decomp_1d, only : pack_data, unpack_data
       use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
-      use param
+      use Dictionary_mod
       implicit none
 
       integer kunit   !@var kunit unit number of read/write

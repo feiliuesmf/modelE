@@ -28,7 +28,7 @@
 
       subroutine init_module_ent(iniENT_in, Jday, Jyear, focean1)
 !@sum initializes vegetation
-      use param
+      use Dictionary_mod
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use model_com, only : focean, FLICE

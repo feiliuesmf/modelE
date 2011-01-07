@@ -103,7 +103,7 @@
 !@auth G.Faluvegi
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get, write_parallel
-      USE PARAM, only : get_param, is_set_param
+      USE Dictionary_mod, only : get_param, is_set_param
       use model_com, only : lm, DTsrc, NIsurf
       use tracer_com, only : ntm
       use tracer_sources
@@ -316,7 +316,7 @@ C we change that.)
       use tracer_com, only: n_NOx,nAircraft,num_tr_sectors3D,
      & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
-      use param, only: sync_param
+      use Dictionary_mod, only: sync_param
 
       IMPLICIT NONE
 
@@ -1020,7 +1020,7 @@ C****
       USE TRACER_COM, only: trname,nBiomass,
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
-      use param, only: sync_param
+      use Dictionary_mod, only: sync_param
  
       IMPLICIT NONE
   

@@ -50,7 +50,7 @@
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
      *     ,icon_MICB,icon_HICB
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM, READT_PARALLEL
      &     ,AM_I_ROOT
       IMPLICIT NONE
@@ -768,7 +768,7 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
      *     ,trgmelt
 #endif
 #endif    /* TNL: inserted */
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
      *     ESMF_BCAST
       IMPLICIT NONE

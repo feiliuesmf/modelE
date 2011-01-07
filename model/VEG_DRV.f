@@ -21,7 +21,7 @@
 
       subroutine init_vegetation(redogh,istart)
 !@sum initializes vegetation
-      use param
+      use Dictionary_mod
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       integer, intent(in) :: istart
       logical, intent(in) :: redogh
@@ -38,7 +38,7 @@
       subroutine read_veg_data(redogh,istart)
 !@sum reads vegetation arrays and rundeck parameters
       use filemanager
-      use param
+      use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
@@ -127,7 +127,7 @@ c**** check whether ground hydrology data exist at this point.
       subroutine upd_gh
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
-      use param
+      use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
       use model_com, only : focean
       use geom, only : lat2d

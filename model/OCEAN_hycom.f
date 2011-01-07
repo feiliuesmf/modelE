@@ -33,7 +33,7 @@
 
       USE hycom_arrays_glob_renamer, only : temp_loc,saln_loc
 
-      USE param
+      USE Dictionary_mod
       implicit none
 
       logical, intent(in) :: iniOCEAN
@@ -247,7 +247,7 @@ c
       USE obio_com,  only : tracav_loc, plevav_loc, tracav, plevav
 #endif
       USE HYCOM_ARRAYS_GLOB
-      USE param
+      USE Dictionary_mod
       IMPLICIT NONE
 c
       INTEGER, intent(in) :: kunit   !@var kunit unit number of read/write

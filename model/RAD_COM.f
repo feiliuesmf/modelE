@@ -407,7 +407,7 @@ C**** Local variables initialised in init_RAD
       USE tracer_com,ONLY : Ntm
 #endif
       USE RAD_COM
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_BLOCK , PACK_BLOCK

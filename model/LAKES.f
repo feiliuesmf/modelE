@@ -437,7 +437,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
 #endif
       !USE GHY_COM, only : fearth
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
-      USE PARAM
+      USE Dictionary_mod
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE

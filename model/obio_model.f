@@ -10,7 +10,7 @@
 !@auth Natassa Romanou/Watson Gregg
 !@ver  1.0
 
-      USE param
+      USE Dictionary_mod
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es

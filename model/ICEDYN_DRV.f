@@ -1810,7 +1810,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
       use icedyn_com, only : pack_a2i,pack_i2a,ausi,avsi
 #endif
       USE FLUXES, only : uisurf,visurf
-      USE PARAM
+      use Dictionary_mod
 #ifdef NEW_IO
       use cdl_mod
 #endif

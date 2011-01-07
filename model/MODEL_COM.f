@@ -461,7 +461,7 @@ C****
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
-      USE PARAM
+      USE Dictionary_mod
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

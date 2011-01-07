@@ -300,7 +300,7 @@
      &     ent_read_state,ent_write_state,
      &     ent_read_state_plain,ent_write_state_plain
       use ent_mod
-      use param
+      use Dictionary_mod
       
       implicit none
 

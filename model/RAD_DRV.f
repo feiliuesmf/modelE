@@ -33,7 +33,7 @@ C****
 !@ver  1.0
 !@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
-      USE PARAM
+      USE Dictionary_mod
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00,jyear,iyear1
@@ -952,7 +952,7 @@ c    *     ,SNFST0,TNFST0
 #endif
       use IndirectAerParam_mod, only: dCDNC_est
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
-      USE PARAM, only : get_param, is_set_param
+      USE Dictionary_mod, only : get_param, is_set_param
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global

@@ -52,7 +52,7 @@
 
       use filemanager, only : openunit,closeunit,nameunit
       use domain_decomp_atm, only: grid, get, am_i_root, readt_parallel
-      use param
+      use Dictionary_mod
       use RADPAR, only: O3yr_max,plb0,plbO3,S00WM2,RATLS0,NLO3
       use RAD_native_O3
       implicit none

@@ -11,7 +11,7 @@ c
 C**** GLOBAL parameters and variables:
 c
 !!    use precision_mod, only : reduce_precision 
-      USE PARAM, only : get_param, is_set_param
+      USE Dictionary_mod, only : get_param, is_set_param
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,

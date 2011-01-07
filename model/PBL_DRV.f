@@ -390,7 +390,7 @@ c  Level 2 model. This is used when starting from a restart
 c  file that does not have this data stored.
 c -------------------------------------------------------------
       USE FILEMANAGER
-      USE PARAM
+      USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : imaxj,sinlat2d

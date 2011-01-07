@@ -64,7 +64,7 @@ C**** Command line options
 !@ver  2009/05/11 (Based originally on B399)
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
-      USE PARAM
+      USE Dictionary_mod
       Use Parser_mod
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
@@ -1106,7 +1106,7 @@ C**** reset sub-daily diag files
      &     ,do_polefix,pednl00,pmidl00,ij_debug,init_topog_related
       USE RAD_COM, only : variable_orb_par,orb_par_year_bp,orb_par
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      USE PARAM
+      USE Dictionary_mod
       implicit none
       INTEGER L,LCSDRAG
 
@@ -1219,7 +1219,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : timing,ntimeacc
-      USE PARAM
+      USE Dictionary_mod
       USE CONSTANT, only : grav,kapa,sday,by3,twopi
       USE MODEL_COM, only : im,jm,lm,wm,u,v,t,p,q,fearth0,fland
      *     ,focean,flake0,flice,hlake,zatmo,plbot,sig,dsig,sige,kradia

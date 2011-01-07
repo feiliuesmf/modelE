@@ -1849,7 +1849,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
      &     ,isccp_reg2d,UKM,VKM
       USE DIAG_COM, only : nisccp,isccp_late
      &     ,isccp_diags,ntau,npres
-      USE PARAM
+      USE Dictionary_Mod
       USE FILEMANAGER, only : openunit, closeunit
 
       IMPLICIT NONE

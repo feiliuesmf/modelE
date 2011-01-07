@@ -25,7 +25,7 @@ C**** These variables are used by both ozone and strat chem routines
       USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE CH4_SOURCES
-      USE PARAM
+      USE Dictionary_mod
       implicit none
       real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
       real*8 yedge1,yedgen,xlatmd

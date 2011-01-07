@@ -297,7 +297,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 !@auth Original Development Team
 !@ver  1.0
       USE FILEMANAGER, only : openunit,closeunit
-      USE PARAM
+      USE Dictionary_mod
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,focean_loc,lmm
@@ -1076,7 +1076,7 @@ C****
      *     ,irsficnt,irerun,lhead
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
      *     ,nstep=>itime
-      USE PARAM, only: get_param
+      USE Dictionary_mod, only: get_param
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEANR_DIM, only : ogrid
       USE obio_dim, only: ntrac

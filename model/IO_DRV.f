@@ -446,7 +446,7 @@ c manage the reading/writing of timing information. could be done better
       use model_com
       use domain_decomp_atm, only : grid
       use pario, only : write_attr, read_attr, get_natts
-      use param
+      use Dictionary_mod
       implicit none
       integer fid   !@var fid file id
       integer iaction !@var iaction flag for reading or writing to file

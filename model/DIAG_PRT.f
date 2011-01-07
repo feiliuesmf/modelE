@@ -210,7 +210,7 @@ C****
      &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday,pmidl00
       USE GEOM, only : DLAT,DXYP,LAT_DG
       USE DIAG_COM, only : keyct,keynr,ned,nkeynr
-      USE PARAM
+      USE Dictionary_mod
       IMPLICIT NONE
       PRIVATE
       SAVE

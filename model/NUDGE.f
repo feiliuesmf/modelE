@@ -67,7 +67,7 @@ c******************************************************************
       USE DOMAIN_DECOMP_1D, only: am_i_root, esmf_bcast, grid
       USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
-      USE PARAM
+      USE Dictionary_mod
       IMPLICIT NONE
       include 'netcdf.inc'
       character(len=3) :: nstr1,nstr2

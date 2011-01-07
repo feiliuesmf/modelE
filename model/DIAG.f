@@ -1249,7 +1249,7 @@ C****
 #ifdef TES_LIKE_DIAGS
      *                    ,kgz_max_more,pmnamemore
 #endif
-      USE PARAM
+      USE Dictionary_mod
 #ifdef CALCULATE_FLAMMABILITY
       use flammability_com, only : raP_acc
 #endif
@@ -5125,7 +5125,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
 #endif
       USE DIAG_LOC
-      USE PARAM
+      USE Dictionary_mod
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
@@ -5582,7 +5582,7 @@ c
       USE MODEL_COM, only : Itime,iyear1,nday,kradia,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files

@@ -1067,7 +1067,7 @@ C****
 #endif
       USE DIAG_COM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
      *     ,icon_LHSI,conpt0
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE

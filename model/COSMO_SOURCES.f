@@ -19,7 +19,7 @@
 !      IMPLICIT NONE
       USE COSMO_SOURCES, only : be7_src_3d, be10_src_3d,
      $     BE7W_acc, BE7D_acc, variable_phi
-      USE PARAM, only : sync_param
+      USE Dictionary_mod, only : sync_param
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, only : GRID, get
       INTEGER :: J_1H, J_0H, I_0H, I_1H

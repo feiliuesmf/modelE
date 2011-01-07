@@ -729,7 +729,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@auth Original Development Team
 !@ver  1.0
       USE FILEMANAGER
-      USE PARAM
+      USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_I_root,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL

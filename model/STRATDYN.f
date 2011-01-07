@@ -521,7 +521,7 @@ C****
 C**** DO_GWDRAG=true activates the printing of the diagnostics
 C**** accumulated in the routines contained herein
       USE FILEMANAGER
-      USE PARAM
+      USE Dictionary_mod
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, READT_PARALLEL,

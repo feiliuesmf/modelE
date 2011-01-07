@@ -34,7 +34,7 @@ cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_1D, only : DIST_GRID, GET
       use QUSCOM
-      USE PARAM
+      USE Dictionary_mod
       INTEGER, INTENT(IN) :: IM_GCM,JM_GCM,LM_GCM
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
 

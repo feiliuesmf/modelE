@@ -3093,7 +3093,7 @@ C
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifndef USE_RAD_OFFLINE
-      USE PARAM
+      USE Dictionary_mod
 #endif
       IMPLICIT NONE
 

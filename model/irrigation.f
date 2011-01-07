@@ -31,7 +31,7 @@
 
       subroutine init_irrigate()
       use filemanager, only : openunit
-      use param, only : sync_param
+      use Dictionary_mod, only : sync_param
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get
       implicit none
 
