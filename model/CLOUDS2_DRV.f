@@ -107,8 +107,8 @@
       USE LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc
-     *     ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
+      USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc,ijlt_prodSO4aq
+     * ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc,taijls=>taijls_loc
 #ifdef TRACERS_WATER
      *     ,jls_prec,tij_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -484,8 +484,8 @@ cECON !$omp*  E,E1,W1,ep,ep1,q0,q1,q2,
 !$omp*  ij_ctpi,ij_taui,ij_tcldi,ij_lcldi,ij_mcldi,ij_hcldi,
 !$omp*  isccp_reg2d,aisccp,ij_sstabx,taumc,cldmc,svlat,tauss,cldss,
 !$omp*  j_eprcp,csizss,prec,eprec,precss,p_acc,pm_acc,jl_sshr,
-!$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,
-!$omp*  jlnt_lscond,jls_incloud,ijts_aq,taijs,trp_acc,
+!$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,taijls,
+!$omp*  jlnt_lscond,jls_incloud,ijts_aq,ijlt_prodSO4aq,taijs,trp_acc,
 !$omp*  jls_prec,taijn,tij_prec,diag_wetdep,jls_trdpmc,ijts_trdpmc,
 !$omp*  jls_trdpls,ijts_trdpls,adiurn_dust,dowetdep,idd_wet,idxd
 !$omp*  )
@@ -1503,7 +1503,12 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
           endif
           end if
-#endif
+#ifdef ACCMIP_LIKE_DIAGS
+          if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0)
+     &    taijls(i,j,l,ijlt_prodSO4aq)=taijls(i,j,l,ijlt_prodSO4aq)+
+     &    (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
+#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP */
 #ifdef TRACERS_AMP
            if (trname(n).eq."M_ACC_SU") then
           AQsulfRATE(i,j,l)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
