@@ -36,7 +36,7 @@ Preprocessor Options
 #define TRACERS_AMP
 #define TRACERS_AMP_M1
 #define CLD_AER_CDNC                ! aerosol - cloud
-#define BLK_DRV              ! aerosol - cloud
+#define BLK_2MOM                    ! aerosol - cloud
 #define NEW_IO
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg

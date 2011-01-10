@@ -8,30 +8,22 @@ module RANDOM
 
   ! Parameters used for "burning" sequences of random numbers
   integer, parameter :: A_linear = 69069
-  ! integer, parameter :: A_linear = 65539 ! an alternate seed
+!!$$  integer, parameter :: A_linear = 65539  ! an alternate seed
 
   integer, parameter :: MAX_BITS = 31
   integer, parameter :: B_Half = 2**(MAX_BITS-1)
   integer, parameter :: B_linear = B_Half + (B_Half-1) ! 2147483647 = 2^31-1
+  real*8, parameter :: DENOMINATOR = (1.d+0/B_HALF)/2
 
 contains
 
-  function RANDU (X)
+  real*8 function RANDU (x)
 !@sum   RANDU calculates a random number based on the seed IX
-    real*8 X                       !@var X      dummy variable
-    real*8 :: RANDU                !@var RANDU  random number
-    integer :: IY                  !@var IY     dummy integer
-10  IY=IX*A_linear
-    select case (IY)
-    case (:-1)
-      IY=(IY+B_linear)+1
-    case (0)
-      IX=1
-      GO TO 10
-    end select
-    IX=IY
-    RANDU=dble(IY)*.465661287308D-9
-    return
+    real*8 :: x ! unused
+
+    ix = ix * A_LINEAR + 1
+    if (ix < 0) ix = ix + B_LINEAR
+    RANDU = ix / DENOMINATOR
   end function RANDU
 
   subroutine RINIT (INIT)
