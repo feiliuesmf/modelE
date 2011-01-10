@@ -7,8 +7,8 @@ module RANDOM
   integer, save :: IX            !@var IX     random number seed
 
   ! Parameters used for "burning" sequences of random numbers
-  integer, parameter :: A_linear = 69069
-  ! integer, parameter :: A_linear = 65539 ! an alternate seed
+!!$  integer, parameter :: A_linear = 69069 ! an alternate seed
+  integer, parameter :: A_linear = 65539 
 
   integer, parameter :: MAX_BITS = 31
   integer, parameter :: B_Half = 2**(MAX_BITS-1)
