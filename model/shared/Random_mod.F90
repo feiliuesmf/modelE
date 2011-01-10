@@ -17,7 +17,7 @@ module RANDOM
 
 contains
 
-  real function RANDU (x)
+  real*8 function RANDU (x)
 !@sum   RANDU calculates a random number based on the seed IX
     real*8 :: x ! unused
 
