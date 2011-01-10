@@ -150,7 +150,7 @@ c
       print*, 'Started AppGridCreateF'
       grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
 c is this needed?
-      call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
+!     call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
       print*, 'Finished AppGridCreateF'
 
       return

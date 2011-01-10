@@ -3,6 +3,8 @@
 module FV_UTILS
 
   USE ESMF_MOD
+  USE ESMFL_MOD
+  use ESMF_CUSTOM_mod, only: ESMF_AxisIndex, ESMF_GridGetAxisIndex
   USE CONSTANT, only: KAPA
 
   implicit none
@@ -480,7 +482,8 @@ contains
     logical       :: alloc
 
     alloc = .true.
-    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , status )
+!   call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , status )
+    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc=alloc , rc=status )
     VERIFY_(status)
 
   end subroutine AllocateFvExport3D
@@ -491,28 +494,31 @@ contains
 #ifdef USE_MAPL
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
     use MAPL_mod, only: MAPL_MetaComp
-    use MAPL_mod, only: MAPL_InternalStateGet
+    use MAPL_mod, only: MAPL_GetObjectFromGC
     use MAPL_mod, only: MAPL_Get
     use MAPL_mod, only: MAPL_ESMFStateWriteToFile
     use MAPL_mod, only: MAPL_GetResource
     use domain_decomp_atm, only: AM_I_ROOT
 
     Type (FV_CORE),    intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock), intent(inout) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
     logical, intent(in) :: isFinalize
 
     type (MAPL_MetaComp), pointer :: internalState
     type (ESMF_State) :: esmfInternalState
     integer :: hdr
+    integer :: rc
 
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+!      call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+       call ESMF_GridCompFinalize( fv % gc, importState=fv%import, exportState=fv%export, &
+                                   clock=clock, rc=rc)
     else
        ! workaround for RecordPhase since modelE is not using MAPL interface for alarms
-       call MAPL_InternalStateGet( fv % gc, internalSTate, rc=rc)
+       call MAPL_GetObjectFromGC( fv % gc, internalSTate)
        call MAPL_Get(internalState, internal_esmf_state=esmfInternalState, rc=rc)
        call MAPL_GetResource( internalState   , hdr,         &
                                default=0, &
@@ -589,14 +595,14 @@ contains
   subroutine SetupForESMF(fv, vm, grid, cf, config_file)
     use DOMAIN_DECOMP_ATM, only : AM_I_ROOT
 #ifdef CUBED_SPHERE
-    use FVCubed_dycore_GridCompMod, only: SetServices
+    use fvdycorecubed_gridcomp, only: SetServices
 #else
     use fvdycore_gridcompmod, only: SetServices
 #endif
 
     Type(FV_CORE), intent(inout) :: fv
     type (esmf_vm),   intent(in) :: vm
-    type (esmf_grid), intent(in) :: grid
+    type (esmf_grid), intent(inout) :: grid
     type (esmf_config), intent(inout) :: cf
     character(len=*),  intent(in) :: config_file ! filename for resource file
 
@@ -615,7 +621,11 @@ contains
 
     !  Create the dynamics component, using same layout as application
     !  ------------------------------------------------------------------
-    fv % gc = ESMF_GridCompCreate ( vm=vm, name=gridCompName, &
+!   fv % gc = ESMF_GridCompCreate ( vm=vm, name=gridCompName, &
+!        & grid=grid, gridcomptype=ESMF_ATM,              &
+!        & config=cf, rc=rc)
+
+    fv % gc = ESMF_GridCompCreate ( name=gridCompName, &
          & grid=grid, gridcomptype=ESMF_ATM,              &
          & config=cf, rc=rc)
     VERIFY_(rc)
@@ -653,13 +663,12 @@ contains
 
       Type (esmf_axisindex), pointer :: AI(:,:)
       Integer :: unit
-      Integer :: npes
+      Integer :: npes, my_pet
       Integer :: mppnx, mppny
 
       call esmf_vmget(fv % vm, petcount = npes, rc=rc)
       Allocate(AI(npes,3))
-      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
-           &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
+      call esmf_GRIDGetaxisindex(fv % grid, ai, my_pet)
 
       unit = GetFile(fname, form="formatted", rc=rc)
 
@@ -706,16 +715,17 @@ contains
   end subroutine SetupForESMF
 
   subroutine HumidityInit(fv, grid)
-    use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     use domain_decomp_atm, only : get
 
     Type(FV_CORE), intent(inout) :: fv
     Type(ESMF_GRID), intent(inout) :: grid
 
-    type (ESMF_Bundle)               :: bundle
+    type (ESMF_FieldBundle)               :: bundle
     type (ESMF_Field)                :: Qfield
     type (ESMF_Array)                :: Qarray
-    type (ESMF_FieldDataMap)         :: datamap
+!   type (ESMF_FieldDataMap)         :: datamap
+! 
+    type (ESMF_DistGrid)                  :: distGrid
 
     ! Specific Humidity - need to reserve space in FV import state
     call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
@@ -723,17 +733,20 @@ contains
     fv%q = 0.0
 !!$    Allocate(fv % Qtr(IM,J_0:J_1,LM))
 
-    Qarray = ESMF_ArrayCreate(fv % q, ESMF_DATA_REF, RC=rc)
+    call ESMF_GridGet    (grid, distGrid=distGrid, rc=rc)
+    Qarray = ESMF_ArrayCreate(fv % q, distGrid, copyflag=ESMF_DATA_REF, RC=rc)
+
     VERIFY_(rc)
-        call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
-    Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
-         datamap=datamap, name="Q", rc=rc)
+! Setdefault is not needed for ESMF4.0 -- ; defaultmap is default in ESMF_FieldCreate 
+!       call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
+    Qfield = ESMF_FieldCreate( grid, Qarray, &
+                              name="Q", rc=rc)
     VERIFY_(rc)
 
     ! First obtain a reference field from the state (avoids tedious details)
-    call ESMF_StateGetBundle (fv % import, 'QTR'  , bundle, rc=rc)
+    call ESMF_StateGet(fv % import, 'QTR'  , bundle, rc=rc)
     VERIFY_(rc)
-    Call ESMF_BundleAddField(bundle, Qfield, rc=rc)
+    Call ESMF_FieldBundleAdd(bundle, Qfield, rc=rc)
     VERIFY_(rc)
 
   end subroutine HumidityInit

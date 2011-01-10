@@ -65,7 +65,7 @@ contains
     integer,           intent(in) :: istart
     type (esmf_vm),    intent(in) :: vm
     type (esmf_grid),  intent(inout) :: grid
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock), intent(inout) :: clock
     character(len=*),  intent(in) :: config_file ! filename for resource file
     type (esmf_config)            :: cf
 
@@ -233,7 +233,7 @@ contains
     USE DOMAIN_DECOMP_ATM, only: am_I_root
 
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock), intent(inout) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname
 
     character(len=*), parameter :: SUFFIX_TEMPLATE = '.YYYYMMDD_HHMMz.bin'
@@ -259,7 +259,7 @@ contains
     USE DOMAIN_DECOMP_ATM, only: am_I_root
 
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (esmf_clock), intent(in) :: clock
+    type (esmf_clock), intent(inout) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname
 
     character(len=0) :: suffix = ''

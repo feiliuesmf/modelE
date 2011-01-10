@@ -221,11 +221,13 @@ module FV_CS_Mod
 
   subroutine GridSpecificInit(fv, clock)
     use FV_StateMod, only:FV_RESET_CONSTANTS
-    use FV_Control_Mod, only : z_tracer
+!   use FV_Control_Mod, only : z_tracer
     use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe, rgas, kapa
 
     Type(FV_CORE), intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+!   type (esmf_clock), intent(in) :: clock
+    type (esmf_clock), intent(inout) :: clock
+    logical :: z_tracer
 
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
