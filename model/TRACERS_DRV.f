@@ -11889,7 +11889,7 @@ c
         fq(1:ntx) = 1d0 ! total evaporation
       else
         do n = 1, ntx
-          fq(1:n) = fq0*tr_evap_fact(tr_wd_type(ntix(n)))
+          fq(n) = fq0*tr_evap_fact(tr_wd_type(ntix(n)))
         end do
       endif
 

@@ -397,14 +397,21 @@ c -----------------------------------------------------------------
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
-      Integer :: i,j,l,n
+      Integer :: i,j,l,n,x
+      real*8, dimension(:), allocatable :: trpdens_local
 
+      allocate(trpdens_local(ntm))
+      do x=1,ntm
+        trpdens_local(x)=trpdens(x)
+      enddo
  
          if(AMP_MODES_MAP(n).gt.0)
      &   AMP_dens(i,j,l,AMP_MODES_MAP(n)) = 
-     &   sum(trpdens(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
+     &   sum(trpdens_local(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
      & / (sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) + 1.0D-30)
-         if (AMP_dens(i,j,l,AMP_MODES_MAP(n)).le.0) AMP_dens(i,j,l,AMP_MODES_MAP(n)) = trpdens(AMP_MODES_MAP(n))
+         if (AMP_dens(i,j,l,AMP_MODES_MAP(n)).le.0) AMP_dens(i,j,l,AMP_MODES_MAP(n)) = trpdens_local(AMP_MODES_MAP(n))
+
+      deallocate(trpdens_local)
 
       RETURN
       END SUBROUTINE AMPtrdens
@@ -419,14 +426,21 @@ c -----------------------------------------------------------------
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
-      Integer :: i,j,l,n
+      Integer :: i,j,l,n,x
+      real*8, dimension(:), allocatable :: tr_mm_local
+
+      allocate(tr_mm_local(ntm))
+      do x=1,ntm
+        tr_mm_local(x)=tr_mm(x)
+      enddo
 
          if(AMP_MODES_MAP(n).gt.0.and.sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))).gt.0. )
      &   AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)) = 
-     &   sum(tr_mm(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
+     &   sum(tr_mm_local(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
      & / sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n)))
-         if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)).le.0) AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)) = tr_mm(AMP_MODES_MAP(n))
+         if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)).le.0) AMP_TR_MM(i,j,l,AMP_MODES_MAP(n)) = tr_mm_local(AMP_MODES_MAP(n))
 
+      deallocate(tr_mm_local)
 
       RETURN
       END SUBROUTINE AMPtrmass
