@@ -6,24 +6,26 @@ module RANDOM
   implicit none
   integer, save :: IX            !@var IX     random number seed
 
-  ! Parameters used for "burning" sequences of random numbers
-  integer, parameter :: A_linear = 69069
-!!$$  integer, parameter :: A_linear = 65539  ! an alternate seed
-
-  integer, parameter :: MAX_BITS = 31
-  integer, parameter :: B_Half = 2**(MAX_BITS-1)
-  integer, parameter :: B_linear = B_Half + (B_Half-1) ! 2147483647 = 2^31-1
-  real*8, parameter :: DENOMINATOR = (1.d+0/B_HALF)/2
+  ! Parameters used for generating sequences of random numbers
+  integer, parameter :: A_linear = 69069 ! Based on ifort ran() routine
+  integer, parameter :: MAX_BITS = 32
+  real*4, parameter :: SCALE = 1./real(2_8**MAX_BITS,4)
 
 contains
 
   real*8 function RANDU (x)
 !@sum   RANDU calculates a random number based on the seed IX
     real*8 :: x ! unused
+    integer, parameter :: MASK = x'ffffff00' ! to mimic ifort
 
     ix = ix * A_LINEAR + 1
-    if (ix < 0) ix = ix + B_LINEAR
-    RANDU = ix / DENOMINATOR
+
+    if (ix < 0) then
+      RANDU = 1.0 + (iand(ix, MASK) * SCALE)
+    else
+      RANDU = iand(ix, MASK) * SCALE
+    end if
+
   end function RANDU
 
   subroutine RINIT (INIT)
