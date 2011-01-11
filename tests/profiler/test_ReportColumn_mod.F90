@@ -184,6 +184,7 @@ contains
       integer :: fieldWidth
       real(kind=r64) :: time
 
+      call resetGlobal()
       fieldWidth = 6
       column = newColumn(MAXIMUM_TIME_COLUMN, fieldWidth)
       call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
@@ -200,6 +201,8 @@ contains
    subroutine test_getHeaderMinimumTime()
       type (ReportColumn_type) :: column
       integer :: fieldWidth
+
+      call resetGlobal()
       fieldWidth = 12
       column = newColumn(MINIMUM_TIME_COLUMN, fieldWidth)
       call assertEqual(fieldWidth, len(getHeader(column)))
@@ -240,6 +243,7 @@ contains
       integer :: fieldWidth
       real(kind=r64) :: time
 
+      call resetGlobal()
       fieldWidth = 6
       column = newColumn(AVERAGE_TIME_COLUMN, fieldWidth)
       call assertEqual(fieldWidth, len(getField(column, name = 'abcdefghij', timer=timer)))
