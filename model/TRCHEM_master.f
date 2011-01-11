@@ -645,7 +645,7 @@ c
 c        1 = Sulfate (n_SO4)
 c        2 = Sea-Salt (fine) (n_seasalt1)
 c        3 = Sea-Salt (coarse) (n_seasalt2)
-c        4 = Organic Carbon (n_OCIA AND n_OCB)
+c        4 = Organic Carbon (n_OCIA AND n_OCB AND SOAs)
 c        5 = Black Carbon (aged) (n_BCIA)
 c        6 = Black Carbon (biomass burning) (n_BCB)
 c        7 = Nitrate (n_NO3p)

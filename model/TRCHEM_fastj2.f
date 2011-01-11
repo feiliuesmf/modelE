@@ -178,8 +178,9 @@ c Now do the rest of the aerosols
         case ('SO4')      ; j=1 
         case ('seasalt1') ; j=2 
         case ('seasalt2') ; j=3 
-        case ('OCIA')     ; j=4 
+        case ('OCIA')     ; j=4 ! multiple tracers 
         case ('OCB')      ; j=4 
+        case ('isopp1a')  ; j=4 ! multiple tracers
         case ('BCIA')     ; j=5 
         case ('BCB')      ; j=6 
         case ('NO3p')     ; j=7 
@@ -190,7 +191,7 @@ c Now do the rest of the aerosols
         case ('Silt4')    ; j=15
         case default      ; skip_tracer=.true.
         end select
-        if(j>15 .or. n>16)
+        if(j>15 .or. n>17)
      &  call stop_model("set_prof: too many opt depths",13)
         if(iclay>4)call stop_model("set_prof: too many clays",13)
         if(.not.skip_tracer)then

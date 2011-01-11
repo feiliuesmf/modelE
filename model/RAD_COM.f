@@ -97,7 +97,7 @@ C**** does not produce exactly the same as the default values.
 !@var maxNtraceFastj max expected rad code tracers passed to photolysis
 !@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
 !@+   This is so clays are separate. Only needed for chemistry on.
-      integer, parameter :: maxNtraceFastj=16 
+      integer, parameter :: maxNtraceFastj=17 
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_ntrace
 #endif
 #endif
