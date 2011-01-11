@@ -34,6 +34,8 @@ contains
       real (kind=r64) :: maximumTimeExpected
       real (kind=r64) :: time
 
+      call resetGlobal()
+
       rank = processRank(info)
       npes = numProcesses(info)
 
