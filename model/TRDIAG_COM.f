@@ -15,7 +15,6 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
      *     , ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
-     *     ,ntmAMP
       USE AERO_CONFIG,only: nbins
 #endif
 #endif   /* TRACERS_ON or OCEAN */
