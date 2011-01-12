@@ -218,36 +218,29 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
       integer, parameter :: ntmAMP=51
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M1 */
 #ifdef TRACERS_AMP_M2
       integer, parameter :: ntmAMP=51
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M2 */
 #ifdef TRACERS_AMP_M3
       integer, parameter :: ntmAMP=41
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M3 */
 #ifdef TRACERS_AMP_M4
       integer, parameter :: ntmAMP=34
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M4 */
 #ifdef TRACERS_AMP_M5
       integer, parameter :: ntmAMP=45
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M5 */
 #ifdef TRACERS_AMP_M6
       integer, parameter :: ntmAMP=45
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M6 */
 #ifdef TRACERS_AMP_M7
       integer, parameter :: ntmAMP=35
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M7 */
 #ifdef TRACERS_AMP_M8
       integer, parameter :: ntmAMP=28
-      integer, parameter :: ntm_amp=5+ntmAMP
 #endif  /* TRACERS_AMP_M8 */
+      integer, parameter :: ntm_amp=ntmAMP+5
 #else
       integer, parameter :: ntm_amp=0
 #endif  /* TRACERS_AMP */
@@ -257,10 +250,10 @@ C**** Each tracer has a variable name and a unique index
      *                               ntm_terp+
      *                               ntm_shindell_strat+
      *                               ntm_soa
-#ifdef TRACERS_AMP 
+#ifdef TRACERS_AMP
 ! This is kept seperate, as ntm_dust needs to be set 
 c          (in order to calculate dust emissions), but not added to ntm.
-      integer, parameter :: ntm=ntm_amp
+      integer, parameter :: ntm=ntm_amp+ntm_chem
 #else
 !@param ntm number of tracers
       integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
@@ -461,37 +454,37 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    0 ,0 ,15,0 ,0 , !BCS,MXX
      *    0 ,0 , 0,16/)
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
-     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,        
+     *    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,
      *    11,12,13,14,15,16,17,18,19,20,
-     *    21,      24,   26,27,28,29,30,        
+     *    21,      24,   26,27,28,29,30,
      *    31,32,33,34,35,36,37,38,39,40,
      *    41,42,43,44,45,46,47,48,49,50,
      *    51,52,53,54   /)
 
       integer, parameter :: AMP_trm_nm1(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,8 ,8 ,8,  !ACC,DD1
-     *    11,11,11,14,14, !DS1,DD2
-     *    14,17,17,17,20, !DD2,DS2,SSA
-     *    20,22,          !SSA,SSC
-     *    23,23,23,26,26, !OCC,BC1
-     *    26,29,29,29,32, !BC1,BC2,BC3
-     *    32,32,35,35,35, !BC3,DBC
-     *    35,39,39,39,39, !DBC,BOC
-     *    43,43,43,46,46, !BCS,MXX
-     *    46,46,46,46/)
+     *             0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  !AKK
+     *    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+8 ,ntm_chem+8 ,ntm_chem+8,  !ACC,DD1
+     *    ntm_chem+11,ntm_chem+11,ntm_chem+11,ntm_chem+14,ntm_chem+14, !DS1,DD2
+     *    ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, !DD2,DS2,SSA
+     *    ntm_chem+20,ntm_chem+22,                                     !SSA,SSC
+     *    ntm_chem+23,ntm_chem+23,ntm_chem+23,ntm_chem+26,ntm_chem+26, !OCC,BC1
+     *    ntm_chem+26,ntm_chem+29,ntm_chem+29,ntm_chem+29,ntm_chem+32, !BC1,BC2,BC3
+     *    ntm_chem+32,ntm_chem+32,ntm_chem+35,ntm_chem+35,ntm_chem+35, !BC3,DBC
+     *    ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39,ntm_chem+39, !DBC,BOC
+     *    ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+46,ntm_chem+46, !BCS,MXX
+     *    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+46/)
       integer, parameter :: AMP_trm_nm2(ntmAMP)=(/
-     *    0 ,0 ,0 ,4 ,4,  !AKK
-     *    6 ,6 ,9 ,9 ,9,  !ACC,DD1
-     *    12,12,12,15,15, !DS1,DD2
-     *    15,18,18,18,21, !DD2,DS2,SSA
-     *    21,22,          !SSA,SSC
-     *    24,24,24,27,27, !OCC,BC1
-     *    27,30,30,30,33, !BC1,BC2,BC3
-     *    33,33,37,37,37, !BC3,DBC
-     *    37,41,41,41,41, !DBC,BOC
-     *    44,44,44,50,50, !BCS,MXX
-     *    50,50,50,50/)
+     *             0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  !AKK
+     *    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+9 ,ntm_chem+9 ,ntm_chem+9,  !ACC,DD1
+     *    ntm_chem+12,ntm_chem+12,ntm_chem+12,ntm_chem+15,ntm_chem+15, !DS1,DD2
+     *    ntm_chem+15,ntm_chem+18,ntm_chem+18,ntm_chem+18,ntm_chem+21, !DD2,DS2,SSA
+     *    ntm_chem+21,ntm_chem+22,                                     !SSA,SSC
+     *    ntm_chem+24,ntm_chem+24,ntm_chem+24,ntm_chem+27,ntm_chem+27, !OCC,BC1
+     *    ntm_chem+27,ntm_chem+30,ntm_chem+30,ntm_chem+30,ntm_chem+33, !BC1,BC2,BC3
+     *    ntm_chem+33,ntm_chem+33,ntm_chem+37,ntm_chem+37,ntm_chem+37, !BC3,DBC
+     *    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, !DBC,BOC
+     *    ntm_chem+44,ntm_chem+44,ntm_chem+44,ntm_chem+50,ntm_chem+50, !BCS,MXX
+     *    ntm_chem+50,ntm_chem+50,ntm_chem+50,ntm_chem+50/)
 #endif
 #ifdef TRACERS_AMP_M2
       integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/
@@ -815,6 +808,11 @@ C**** do igas=1,ntm_chem instances get corrected.
      *     n_M_MXX_SS=0,n_N_MXX_1 =0,n_M_OCS_SU=0,n_M_OCS_OC=0,
      *     n_N_OCS_1=0,n_M_SSS_SS=0,n_M_SSS_SU=0,
      *     n_H2SO4=0, n_N_SSA_1=0, n_N_SSC_1=0
+#ifdef TRACERS_AMP
+!@var ntmAMPi Index of the first AMP tracer
+!@var ntmAMPe Index of the last AMP tracer
+      integer :: ntmAMPi=0,ntmAMPe=0
+#endif
 
 C**** standard tracer and tracer moment arrays
 

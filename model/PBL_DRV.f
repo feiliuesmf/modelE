@@ -39,7 +39,7 @@
 #endif
 #endif
 #ifdef TRACERS_AMP
-     & ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMP
+     & ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
@@ -62,7 +62,7 @@
       REAL*8 Ts
 
 #ifdef TRACERS_ON
-      integer nx,n
+      integer nx,n,nAMP
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
@@ -246,21 +246,22 @@ c     ENDIF
            trnmm(n)     = tr_mm(n)
 #endif
 #ifdef TRACERS_AMP
-       if (n.le.ntmAMP) then
-        if(AMP_MODES_MAP(n).gt.0) then
-         if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) then
-          if(AMP_NUMB_MAP(n).eq. 0) then    ! Mass
-        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
+       if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
+         nAMP=n-ntmAMPi+1
+        if(AMP_MODES_MAP(nAMP).gt.0) then
+         if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
+          if(AMP_NUMB_MAP(nAMP).eq. 0) then    ! Mass
+        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
           else                              ! Number
-        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
-     +               *CONV_DPAM_TO_DGN(AMP_MODES_MAP(n))
+        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+     +               *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
           endif
 
            call AMPtrdens(i,j,l,n)
            call AMPtrmass(i,j,l,n)
 
-          trndens(n) =AMP_dens(i,j,l,AMP_MODES_MAP(n))
-          trnmm(n)   =AMP_TR_MM(i,j,l,AMP_MODES_MAP(n))
+          trndens(n) =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
+          trnmm(n)   =AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP))
         endif   
         endif   
        endif 

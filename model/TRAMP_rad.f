@@ -320,7 +320,7 @@ c -----------------------------------------------------------------
 
       USE AMP_AEROSOL, only: DIAM, Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,
      +                       dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
-      USE TRACER_COM,  only: TRM, ntmAMP, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP,trname
+      USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP,trname
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
@@ -332,7 +332,7 @@ c -----------------------------------------------------------------
       INTEGER, INTENT(IN) :: i,j,l
 
       ! Local
-      INTEGER n,w,s
+      INTEGER n,w,s,nAMP
       REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass
       REAL*8                          :: H2O, NO3 
       REAL(8), PARAMETER :: TINYNUMER = 1.0D-30 
@@ -383,18 +383,19 @@ c     &        (1.57466,     0.484662)  ,(1.56485,     0.487992),
        ENDDO
 
        ! + Mass and Number Concentration
-       DO n=1,ntmAMP 
+       DO n=ntmAMPi,ntmAMPe
+         nAMP=n-ntmAMPi+1
            if(trname(n) .eq.'M_NO3') NO3 =trm(i,j,l,n)
            if(trname(n) .eq.'M_H2O') H2O =trm(i,j,l,n)
-          if(AMP_NUMB_MAP(n).eq. 0) then  ! Volume fraction
-           if(trname(n)(6:8).eq.'_SU') VMass(AMP_MODES_MAP(n),1) =trm(i,j,l,n)/DENS_SULF
-           if(trname(n)(6:8).eq.'_BC') VMass(AMP_MODES_MAP(n),2) =trm(i,j,l,n)/DENS_BCAR
-           if(trname(n)(6:8).eq.'_OC') VMass(AMP_MODES_MAP(n),3) =trm(i,j,l,n)/DENS_OCAR
-           if(trname(n)(6:8).eq.'_DU') VMass(AMP_MODES_MAP(n),4) =trm(i,j,l,n)/DENS_DUST
-           if(trname(n)(6:8).eq.'_SS') VMass(AMP_MODES_MAP(n),5) =trm(i,j,l,n)/DENS_SEAS
+          if(AMP_NUMB_MAP(nAMP).eq. 0) then  ! Volume fraction
+           if(trname(n)(6:8).eq.'_SU') VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
+           if(trname(n)(6:8).eq.'_BC') VMass(AMP_MODES_MAP(nAMP),2) =trm(i,j,l,n)/DENS_BCAR
+           if(trname(n)(6:8).eq.'_OC') VMass(AMP_MODES_MAP(nAMP),3) =trm(i,j,l,n)/DENS_OCAR
+           if(trname(n)(6:8).eq.'_DU') VMass(AMP_MODES_MAP(nAMP),4) =trm(i,j,l,n)/DENS_DUST
+           if(trname(n)(6:8).eq.'_SS') VMass(AMP_MODES_MAP(nAMP),5) =trm(i,j,l,n)/DENS_SEAS
           else                           ! Number
 !          [ - ]                        [#/gb]         [m-2]      
-           NUMB_LEV(l,AMP_NUMB_MAP(n)) =trm(i,j,l,n) * bydxyp(j)
+           NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n) * bydxyp(j)
           endif
        ENDDO
 
