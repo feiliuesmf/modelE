@@ -170,6 +170,7 @@ c  Assume limiting temperature for ice of -40 deg C :
         endif
       enddo
 
+#ifndef TRACERS_AMP
 c Now do the rest of the aerosols
       iclay=0  
       do n=1,NTRACE
@@ -200,6 +201,7 @@ c Now do the rest of the aerosols
           enddo
         endif
       enddo
+#endif
 
 c Top of the atmosphere
       AER2(:,LM+1) = 0.d0

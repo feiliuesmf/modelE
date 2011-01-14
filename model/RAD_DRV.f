@@ -1728,11 +1728,8 @@ C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
       dALBsn = xdalbs*depobc(ilon,jlat)
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
-#if (defined TRACERS_AEROSOLS_Koch) && (defined BC_ALB)
-      call GET_BC_DALBEDO(i,j,dALBsn1)
-      dALBsn=dALBsn1
-#endif
-#if (defined TRACERS_AMP) && (defined BC_ALB)
+#if (defined BC_ALB) &&\
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP))
       call GET_BC_DALBEDO(i,j,dALBsn1)
       dALBsn=dALBsn1
 #endif

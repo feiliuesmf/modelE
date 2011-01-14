@@ -195,8 +195,8 @@ ad_interact_aer=1  ! 1=couples aerosols to radiation, 0=use climatology
 OFFLINE_DMS_SS=0   ! 1= read offline DMS and dust from aerocom file
 
 !------------------  AMP parameters
-AMP_DIAG_FC=  2    ! 2=nmode radiation calls  ||  1=one radiation call
-AMP_RAD_KEY = 2    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett
+AMP_DIAG_FC=  1    ! 2=nmode radiation calls  ||  1=one radiation call
+AMP_RAD_KEY = 1    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett
 
 #include "dust_params"
 imDust=0           ! 0: PDF emission scheme, 1: AEROCOM

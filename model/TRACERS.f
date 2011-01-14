@@ -808,7 +808,7 @@ C****
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname,trpdens
 #ifdef TRACERS_AMP
-     *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMP
+     *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
@@ -821,7 +821,7 @@ C****
      *     ,gbygz
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: fluxd, fluxu
-      integer n,najl,i,j,l
+      integer n,najl,i,j,l,nAMP
       integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
 
@@ -874,18 +874,19 @@ C**** set particle properties
                 tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-       if (n.le.ntmAMP) then
-        if(AMP_MODES_MAP(n).gt.0) then
-        if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) then
-        if(AMP_NUMB_MAP(n).eq. 0) then    ! Mass
-        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
+       if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
+         nAMP=n-ntmAMPi+1
+        if(AMP_MODES_MAP(nAMP).gt.0) then
+        if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
+        if(AMP_NUMB_MAP(nAMP).eq. 0) then    ! Mass
+        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
         else                              ! Number
-        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(n))
-     +            *CONV_DPAM_TO_DGN(AMP_MODES_MAP(n))
+        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+     +            *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
         endif
 
         call AMPtrdens(i,j,l,n)
-        tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+        tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
         endif   
         endif   
        endif 

@@ -5251,7 +5251,7 @@ C****
 #ifdef TRACERS_OCEAN
             GTRACER(:,1,I,J)=aTRAC(I,J,:)
 #else
-            GTRACER(:,1,I,J)=trw0(:)
+            GTRACER(:,1,I,J)=trw0()
 #endif
 #endif
           ELSE

@@ -2172,7 +2172,14 @@ c
       USE CONSTANT, only: rhow
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
       USE SEAICE_COM, only: trsi, snowi
-      USE TRACER_COM, only: trname,n_BCB,n_BCII,n_BCIA
+      USE TRACER_COM, only: trname
+#ifdef TRACERS_AEROSOLS_Koch
+     *                     ,n_BCB,n_BCII,n_BCIA
+#endif
+#ifdef TRACERS_AMP
+     *  ,n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
+     *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
+#endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn
       USE FLUXES, only: gtracer,gtemp
@@ -2209,6 +2216,13 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       INTEGER n,ic,ib
       INTEGER, INTENT(IN) :: i,j
       REAL*8, INTENT(OUT) :: bc_dalb
+#ifdef TRACERS_AEROSOLS_Koch
+      integer, parameter :: nspBC=3
+#endif
+#ifdef TRACERS_AMP
+      integer, parameter :: nspBC=7
+#endif
+      integer, dimension(nspBC) :: spBC
 c
 c tr_wsn_ij(n,nsl,2,i,j) tracer in snow layer l multiplied by fraction snow, kg/m2
 c wsn_ij(nsl,2,i,j)
@@ -2222,6 +2236,20 @@ c Maybe I need tracer in snow on sea ice, or mass of sea ice...?
 c Does trsi accumulate for ALL tracers?
 c fractions??
 c
+#ifdef TRACERS_AEROSOLS_Koch
+      spBC(1)=n_BCII
+      spBC(2)=n_BCIA
+      spBC(3)=n_BCB
+#endif
+#ifdef TRACERS_AMP
+      spBC(1)=n_M_BC1_BC
+      spBC(2)=n_M_BC2_BC
+      spBC(3)=n_M_BC3_BC
+      spBC(4)=n_M_DBC_BC
+      spBC(5)=n_M_BOC_BC
+      spBC(6)=n_M_BCS_BC
+      spBC(7)=n_M_MXX_BC
+#endif
       bc_dalb=0.
       scon=0.
       sconb=0.
@@ -2235,33 +2263,36 @@ c
       sconb=0.d0
       sconv=0.d0
       call get_fb_fv( fb, fv, i, j )
-      if (wsn_ij(1,1,i,j).gt.0.)  then
-      bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
-     *  tr_wsn_ij(n_BCIA,1,1,i,j)+tr_wsn_ij(n_BCB,1,1,i,j)
-      sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
+      if (wsn_ij(1,1,i,j).gt.0.) then
+        do n=1,nspBC
+          bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
+        enddo
+        sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
       endif
-      if (wsn_ij(1,2,i,j).gt.0.)  then
-      bcsnowv=tr_wsn_ij(n_BCII,1,2,i,j)+
-     *  tr_wsn_ij(n_BCIA,1,2,i,j)+tr_wsn_ij(n_BCB,1,2,i,j)
-      sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
+      if (wsn_ij(1,2,i,j).gt.0.) then
+        do n=1,nspBC
+          bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
+        enddo
+        sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
       scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
       if (snowi(i,j).gt.0.) then
-      icon=(gtracer(n_BCII,2,i,j)+gtracer(n_BCIA,2,i,j)+
-     *  gtracer(n_BCB,2,i,j))*1.d9
+        do n=1,nspBC
+          icon=icon+gtracer(spBC(n),2,i,j)*1.d9
+        enddo
       endif
-       bcc=DMAX1(icon,scon)
-       call GRAINS(i,j,rads)
+      bcc=DMAX1(icon,scon)
+      call GRAINS(i,j,rads)
 
-       do ib=1,28
-       if (bcc.gt.bc(ib).and.bcc.lt.bc(ib+1)) then
-       bc_dalb=-(daln(ib)
+      do ib=1,28
+        if (bcc.gt.bc(ib).and.bcc.lt.bc(ib+1)) then
+          bc_dalb=-(daln(ib)
      *       +(rads-100.d0)/900.d0*(dalo(ib)-daln(ib)))/100.
-       go to 33
-       endif
-       end do
- 33    continue
-       if (bcc.ge.bc(29)) bc_dalb=-(daln(29)
+          go to 33
+        endif
+      end do
+ 33   continue
+      if (bcc.ge.bc(29)) bc_dalb=-(daln(29)
      *    + (rads-100.d0)/900.d0*(dalo(29)-daln(29)))/100.
 c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
       RETURN

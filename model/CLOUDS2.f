@@ -10,7 +10,7 @@
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
-      USE MODEL_COM, only : lm,dtsrc,itime,coupled_chem
+      USE MODEL_COM, only : lm,dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
       USE CONSTANT, only : kapa,mair,gasc
       USE MODEL_COM, only : ptop,psf,ls1,sig,sige

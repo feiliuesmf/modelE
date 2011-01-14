@@ -1772,6 +1772,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           call set_tr_wd_type(n, npart)
       case ('M_NO3')
       n_M_NO3 = n
+          ntmAMPi=n ! always the first tracer in AMP
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
           call set_tr_mm(n, 62.d0)
@@ -2231,6 +2232,11 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           call set_tr_wd_type(n, npart)
       case ('N_MXX_1')
       n_N_MXX_1 = n
+#ifdef TRACERS_AMP
+          ntmAMPe=n ! always the last tracer in AMP
+          if (ntmAMPi+ntmAMP-1 /= ntmAMPe)
+     *      call stop_model( 'ntmAMPi+ntmAMP-1 /= ntmAMPe', 255 )
+#endif
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
           call set_tr_mm(n, 1.d+0)
@@ -10959,7 +10965,7 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
        call apply_tracer_3Dsource(1,n_H2O2_s)! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
-      DO n=1,ntmAMP
+      DO n=ntmAMPi,ntmAMPe
         tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
       ENDDO
         tr3Dsource(:,J_0:J_1,:,1,n_H2SO4)  = 0.d0! Aerosol Mirophysics
@@ -10969,7 +10975,7 @@ C**** Apply chemistry and overwrite changes:
 #endif
         call MATRIX_DRV
 
-      DO n=1,ntmAMP
+      DO n=ntmAMPi,ntmAMPe
        call apply_tracer_3Dsource(nChemistry,n) ! Aerosol Mirophysics !kt is the index correct?
       ENDDO
 
