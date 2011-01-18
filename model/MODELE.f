@@ -328,7 +328,7 @@ C****
 c$$$         call test_save(__LINE__, itime)
 
       if (mod(Itime-ItimeI,Ndisk).eq.0) then
-         call checkpointModelE(ModelEclock, kdisk, now, irand)
+         call checkpointModelE(ModelEclock, clock, kdisk, now, irand)
       END IF
       
       if (isBeginningOfDay(modelEclock)) then
@@ -950,7 +950,7 @@ C**** reset sub-daily diag files
 
 !TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
 !TODO exist except when building an FV version
-      subroutine checkpointModelE(clock, kdisk, NOW, IRAND)
+      subroutine checkpointModelE(ModelEclock, clock, kdisk, NOW, IRAND)
 !@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
 !@+ write restart information alternately onto 2 disk files
       use MODEL_COM, only: rsf_file_name
@@ -958,7 +958,8 @@ C**** reset sub-daily diag files
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint
 #endif
-      type (ModelE_Clock_type), intent(in) :: clock
+      type (ModelE_Clock_type), intent(in) :: ModelEclock
+      Type (ESMF_CLOCK), intent(in) :: clock
       integer, intent(inout) :: kdisk
       real*8, intent(inout) :: NOW
       integer, intent(inout) :: irand
