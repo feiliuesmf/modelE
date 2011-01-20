@@ -1,6 +1,6 @@
 
 
-!-------Aerosol inputs, for imAER=5 --------------
+!-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
@@ -22,10 +22,10 @@ NH3_06=NH3_ene_AR5_1850-2000_2x2.5_h
 NH3_07=NH3_tra_AR5_1850-2000_2x2.5_h
 NH3_08=NH3_forestfire_AR5_1900-2000_2x2.5_h
 NH3_09=NH3_grassfire_AR5_1900-2000_2x2.5_h
-! ------- aerosol, needed for imAER= 1 or 3 or 5-----------
+! ------- aerosol -----------
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
-! -------- aerosol, needed for imAER = 3 or 5 --------------
+! -------- aerosol --------------
 DMS_SEA=DMS_Kettle_Andreae_2x2.5
 SALT1=SALT_bin1_2000_2x2.5.nc
 SALT2=SALT_bin1_4_2000_2x2.5.nc  ! valis for coarse size range 1 - 4 um (r80=1.7)
@@ -34,7 +34,7 @@ dust_bin1=DUST_bin1_2000_2x2.5.nc
 dust_bin2=DUST_bin2_2000_2x2.5.nc
 dust_bin3=DUST_bin3_2000_2x2.5.nc
 dust_bin4=DUST_bin4_2000_2x2.5.nc
-!--------AR5 inputs for imAER=5 --------------------
+!--------AR5 inputs --------------------
 M_BC1_BC_01=BCII_awb_AR5_1850-2000_2x2.5_h
 M_BC1_BC_02=BCII_dom_AR5_1850-2000_2x2.5_h
 M_BC1_BC_03=BCII_ene_AR5_1850-2000_2x2.5_h

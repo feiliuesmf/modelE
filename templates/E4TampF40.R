@@ -187,9 +187,8 @@ SO2_nBBsources=2
 M_BC1_BC_nBBsources=2
 M_OCC_OC_nBBsources=2
 
-imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
-imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, imAER=5, aer_int_yr=1850
-aer_int_yr=2000    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
+imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, aer_int_yr=1850
+aer_int_yr=2000    !select desired year (1890 to 2000) or 0 to use JYEAR
 ad_interact_aer=1  ! 1=couples aerosols to radiation, 0=use climatology
 
 OFFLINE_DMS_SS=0   ! 1= read offline DMS and dust from aerocom file
