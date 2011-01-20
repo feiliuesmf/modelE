@@ -154,6 +154,27 @@ c deallocate arrays
       enddo
 
 c
+c report arrays present in file2 but not in file1
+c
+      status = nf_inq_nvars(fid2,nvars)
+      do varid2=1,nvars
+c skip character arrays
+        status = nf_inq_vartype(fid2,varid2,vtype)
+        if(vtype.eq.nf_char) cycle
+c get array name
+        status = nf_inq_varname(fid2,varid2,vname)
+c skip certain modelE arrays
+        if(trim(vname).eq.'cputime') cycle
+c
+        status = nf_inq_varid(fid1,vname,varid1)
+        if(status.ne.nf_noerr) then
+          write(6,*) 'file2 array '//trim(vname)//
+     &         ' is absent in file1: skipping'
+          cycle
+        endif
+      enddo
+
+c
 c close input files
 c
       status = nf_close(fid1)

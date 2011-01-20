@@ -595,9 +595,9 @@ C****     U - Zonal wind (corners) (m s-1)
       call get(grid, j_strt_halo=j_0h)
       call avgvi (u,agc(j_0h,1,KAGC))
       return
-#endif
 C****
       end subroutine epflxi
+#endif
 
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
