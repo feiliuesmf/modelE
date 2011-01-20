@@ -873,7 +873,6 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       end subroutine initializeModelE
 
       subroutine startNewDay(clock, kradia, iu_RAD, iu_VFLXO)
-      use MODEL_COM
       type (ModelE_Clock_type), intent(inout) :: clock
       integer, intent(in) :: kradia
       integer ,intent(inout) :: iu_RAD
