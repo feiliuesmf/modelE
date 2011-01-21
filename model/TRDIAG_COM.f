@@ -234,6 +234,9 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
      & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs
+#ifdef FAA_emission
+     & ,ijlt_FAANOX
+#endif
 #ifdef SOA_DIAGS
 !@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
 #ifdef TRACERS_TERP

@@ -3793,6 +3793,17 @@ C**** special one unique to HTO
         scale_jls(k) = 1./DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
       end if
+#ifdef FAA_emission 
+      if (trname(n).eq."Water") then
+          k = k + 1
+          jls_3Dsource(1,n) = k
+          sname_jls(k) = 'aircraft_source_of'//trname(n)
+          lname_jls(k) = 'CHANGE OF '//trname(n)//' BY AIRCRAFT'
+          jls_ltop(k) = LM
+          jls_power(k) = -2
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+       endif
+#endif
 #endif
 
 !#ifdef TRACERS_NITRATE
@@ -3905,6 +3916,18 @@ C**** special one unique to HTO
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
+#ifdef FAA_emission 
+        select case(trname(n))
+        case('CO','Alkenes','Paraffin')
+          k = k + 1
+          jls_3Dsource(nAircraft,n) = k
+          sname_jls(k) = 'aircraft_source_of'//trname(n)
+          lname_jls(k) = 'CHANGE OF '//trname(n)//' BY AIRCRAFT'
+          jls_ltop(k) = LM
+          jls_power(k) = -2
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end select
+#endif
         select case(trname(n))
         case('NOx','CO','Alkenes','Paraffin')
           k = k + 1
@@ -4129,6 +4152,16 @@ c volcanic source of SO4
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef FAA_emission
+c aircraft production of SO4
+        k = k + 1
+        jls_3Dsource(nAircraft,n) = k
+        sname_jls(k) = 'aircraft_source_of_'//trname(n)
+        lname_jls(k) = 'production of SO4 from aircraft'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 c biomass source of SO4
         k = k + 1
         jls_3Dsource(nBiomass,n) = k
@@ -4494,7 +4527,7 @@ c gravitational settling of OCII
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-      case ('OCIA','OCA1','OCA2','OCA3')
+      case ('OCIA')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_source_'//TRIM(trname(n))
@@ -4502,7 +4535,33 @@ c gravitational settling of OCII
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef FAA_emission
+        k = k + 1
+        jls_3Dsource(2,n) = k
+        sname_jls(k) = 'Aircraft_source_of'//trname(n)
+        lname_jls(k) = 'OCIA aircraft source'
+        jls_ltop(k) = LM
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 c gravitational settling of OCIA
+        k = k + 1
+        jls_grav(n) = k
+        sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
+        lname_jls(k) ='Grav Settling of '//TRIM(trname(n))
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      case ('OCA1','OCA2','OCA3')
+        k = k + 1
+        jls_3Dsource(1,n) = k
+        sname_jls(k) = 'Aging_source_'//TRIM(trname(n))
+        lname_jls(k) = TRIM(trname(n))//' aging source'
+        jls_ltop(k) = LM
+        jls_power(k) = 1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+c gravitational settling of OCA1,OCA2,OCA3
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
@@ -5255,6 +5314,17 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef FAA_emission
+       case('CO','Alkenes','Paraffin')
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trname(n)//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
         case('Ox','stratOx')
           k = k + 1
           ijts_fc(1,n) = k
@@ -5669,6 +5739,18 @@ c SOA clear sky longwave surface radiative forcing
 #ifdef TRACERS_WATER
       case ('Water', 'H2O18', 'H2O17', 'HDO', 'HTO' )
           ! nothing I can think of....
+
+#ifdef FAA_emission
+      if (trname(n).eq."Water") then
+          k = k + 1
+          ijts_3Dsource(1,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trname(n)//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+         endif
+#endif
 #endif
 
 #ifdef SHINDELL_STRAT_EXTRA
@@ -6097,7 +6179,26 @@ c OC clear sky longwave surface radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
 #endif
-      case ('OCIA','OCA1','OCA2','OCA3')
+      case ('OCIA')
+        k = k + 1
+        ijts_3Dsource(1,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = TRIM(trname(n))//' Aging source'
+        sname_ijts(k) = TRIM(trname(n))//'_Aging_Source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef FAA_emission
+        k = k + 1
+        ijts_3Dsource(2,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'OCIA Aircraft source'
+        sname_ijts(k) = 'OCIA_Aircraft_src'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
+      case ('OCA1','OCA2','OCA3')
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
@@ -6406,6 +6507,17 @@ c put in production of SO4 from gas phase
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef FAA_emission
+c production of SO4 from aircraft
+        k = k + 1
+        ijts_3Dsource(nAircraft,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO4 source from aircraft'
+        sname_ijts(k) = 'SO4_source_from_aircraft'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
         ia_ijts(k) = ia_src
@@ -7999,6 +8111,9 @@ c clear sky scattering asymmetry factor in six solar bands
 #ifdef HTAP_LIKE_DIAGS
       USE MODEL_COM, only: dtsrc
 #endif
+#ifdef FAA_emission
+      USE MODEL_COM, only: dtsrc
+#endif
       USE DIAG_COM
 #ifdef SOA_DIAGS
       use tracers_soa, only: issoa
@@ -8113,6 +8228,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 2
         units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+! #ifdef FAA_emission
+!       k = k + 1
+!         ijlt_FAANOX=k
+!         lname_ijlt(k) = 'NOx_FAA_emission'
+!         sname_ijlt(k) = 'NOX_FAA'
+!        ijlt_power(k) = -12
+!        units_ijlt(k) = unit_string(ijlt_power(k),'kg/s*m^2')
+!        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+! #endif
 #ifdef HTAP_LIKE_DIAGS
       k = k + 1
         ijlt_COp=k
@@ -9532,7 +9656,7 @@ C    Initialize:
           end do
           call closeunit(iuc)
         endif
-
+#ifndef FAA_emission
 C Put aircraft for so2 and BC
         so2_src_3d(:,:,:,2)= 0.d0
         bci_src_3d(:,:,:)=0.d0
@@ -9567,6 +9691,7 @@ c (for BC multiply this by 0.1)
         bci_src_3D(:,j_0:j_1,:)=so2_src_3D(:,j_0:j_1,:,2)*0.1d0/2.d0
 c divide by 2 because BC = 0.1 x S, not SO2
         endif
+#endif
       endif ! imPI eq 0
 c volcano - continuous
 C    Initialize:
@@ -10104,6 +10229,12 @@ c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 #ifdef TRACERS_OM_SP
         call get_hist_BMB(end_of_day)
 #endif
+
+C US FAA aviation emissions (must have chemistry and aerosols switched on) nu/mk
+#ifdef FAA_emission 
+         call read_daily_faa
+#endif
+
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
@@ -10853,9 +10984,10 @@ c latlon grid
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
       USE TRACER_COM
-      USE CONSTANT, only : mair, avog
+      USE CONSTANT, only : mair, avog,bygrav
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
+      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI,
+     *  jhour,zatmo
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       use dynamics, only: phi
       USE apply3d, only : apply_tracer_3Dsource
@@ -10864,6 +10996,9 @@ c latlon grid
       USE PARAM, only : get_param, is_set_param
       use trdiag_com, only : trcsurf,trcSurfByVol,taijls=>taijls_loc,
      & ijlt_prodSO4gs
+#ifdef FAA_emission
+     *,ijlt_FAANOX
+#endif
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
@@ -10902,6 +11037,9 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       use RAD_COM, only: rad_to_chem
       use TRCHEM_Shindell_COM, only: fact_cfc, 
      &     use_rad_n2o, use_rad_ch4, use_rad_cfc
+#endif
+#ifdef FAA_emission
+       USE FAA_COM
 #endif
 
       implicit none
@@ -10965,10 +11103,12 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('BCIA')
 C**** aircraft source for fresh industrial BC
+#ifndef FAA_emission
         if (imAER.ne.3.and.imAER.ne.5) tr3Dsource(:,J_0:J_1,:,2,n)
      *    = BCI_src_3d(:,J_0:J_1,:)
         if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      *    call apply_tracer_3Dsource(2,n) ! aircraft
+#endif
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -11009,6 +11149,7 @@ C**** aircraft source for fresh industrial BC
 #endif
           end select
 
+#ifndef FAA_emission
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** 3D aircraft source - only SO2, no sulfate
         select case (trname(n))
@@ -11019,6 +11160,7 @@ C**** 3D aircraft source - only SO2, no sulfate
           if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5)
      &     call apply_tracer_3Dsource(nAircraft,n)
         end select
+#endif
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -11073,17 +11215,21 @@ C**** 3D biomass source
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
      &        BCB_src(:,J_0:J_1,:,jmon)
+#ifndef FAA_emission
             select case (trname(n))
             case ('M_BC1_BC')
               tr3Dsource(:,J_0:J_1,:,nAircraft,n) =
      &          BCI_src_3d(:,J_0:J_1,:)
             end select
+#endif
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC')
             tr3Dsource(:,J_0:J_1,1:lmAER,nBiomass,n) =
      &        OCB_src(:,J_0:J_1,:,jmon)
           end select
         endif ! imAER
+#ifndef FAA_emission
         if(n>ntm_chem)call apply_tracer_3Dsource(nAircraft,n)
+#endif
 #endif
 #ifndef GFED_3D_BIOMASS
         call apply_tracer_3Dsource(nBiomass,n)
@@ -11206,7 +11352,90 @@ c Calculation of gas phase reaction rates for sulfur chemistry
        call apply_tracer_3Dsource(2,n_OCI3) ! OCI3 aging sink
        call apply_tracer_3Dsource(1,n_OCA3) ! OCA3 aging source
 #endif
-
+C nu/mk FAA hourly resolution aviation emmissions
+C Must have Shindell chemistry and Koch aerosols switched on
+#ifdef FAA_emission
+C water (g -> kg/s)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_Water)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_Water)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,1)*1231.0*
+     * (1.0d-3/3600.0)
+      call apply_tracer_3Dsource(1,n_Water)
+C Units NOx (g) -> kgN /s 
+C NOx
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,4)*(14.0/46.0)
+     * *(1.0d-3/3600.0)
+      call apply_tracer_3Dsource(nAircraft,n_NOx)
+!C ADD IJLT DIAG FOR FAA NOX -/divide by grid box area (to give kg/m2/s)
+!       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+!       taijls(i,j,l,ijlt_FAANOX)=taijls(i,j,l,ijlt_FAANOX)+
+!     * tr3Dsource(i,j,l,nAircraft,n_NOx)*dtsrc*byaxyp(i,j)
+!        end do; end do; end do
+C SO2 from fuel burn, fuel sulfur content and % emission as S(IV)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_SO2)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_SO2)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,1)
+     * *((600.d0/1000.d0)*((100.0d0-2.0d0)/100)*(64.0/32.0))
+     * *(1.0d-3/3600.0)
+      call apply_tracer_3Dsource(nAircraft,n_SO2)
+C BCIA
+      tr3Dsource(I_0:I_1,J_0:J_1,:,2,n_BCIA)  = 0.
+      do i=I_0,I_1; do j=J_0,J_1; do l=1,lm 
+      if ((daily_z(i,j,l)-(zatmo(i,j)*bygrav)) <= 914.4) then
+      tr3Dsource(i,j,l,2,n_BCIA)  =
+     * emiss_5d(i,j,l,jhour+1,5)      
+     * *(1.0d-3/3600.0)
+      else
+      tr3Dsource(i,j,l,2,n_BCIA)  =
+     * emiss_5d(i,j,l,jhour+1,1)*0.03      
+     * *(1.0d-3/3600.0)
+      endif
+      end do; end do; end do
+      call apply_tracer_3Dsource(2,n_BCIA)
+C CO
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_CO)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_CO)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,2)
+     * *(1.0d-3/3600.0)
+      call apply_tracer_3Dsource(nAircraft,n_CO)
+C OCIA 
+      tr3Dsource(I_0:I_1,J_0:J_1,:,2,n_OCIA)  = 0.
+      do i=I_0,I_1; do j=J_0,J_1; do l=1,lm 
+      if ((daily_z(i,j,l)-(zatmo(i,j)*bygrav)) <= 914.4) then
+      tr3Dsource(i,j,l,2,n_OCIA)  =
+     * emiss_5d(i,j,l,jhour+1,6)      
+     * *1.0d-3/3600.0
+      else
+      tr3Dsource(i,j,l,2,n_OCIA)  =
+     * emiss_5d(i,j,l,jhour+1,1)*0.03d0      
+     * *(1.0d-3/3600.0d0)
+      endif
+      end do; end do; end do
+      call apply_tracer_3Dsource(2,n_OCIA)
+C Sulfate
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_SO4)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_SO4)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,1)
+     * *((600.d0/1000.d0)*((2.0d0)/100)*(96.0d0/32.0d0))
+     * *(1.0d-3/3600.0d0)
+      call apply_tracer_3Dsource(nAircraft,n_SO4)
+C Alkenes (as TOG in CH4-equivalents)
+C CAREFUL - GF's change so tr_mm=1g/mol for Alkenes and Paraffin
+C (1/16=0.0625)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_Alkenes)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_Alkenes)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,3)*1.16d0
+     * *(1.0d-3/3600.0d0)*0.381*(0.0625)
+      call apply_tracer_3Dsource(nAircraft,n_Alkenes)
+C Paraffin (as TOG in CH4-equivalents)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_Paraffin)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_Paraffin)  =
+     * emiss_5d(I_0:I_1,J_0:J_1,:,jhour+1,3)*1.16d0
+     * *(1.0d-3/3600.0d0)*0.203*(0.0625)
+      call apply_tracer_3Dsource(nAircraft,n_Paraffin)
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
 C Apply non-chemistry 3D sources, so they can be "seen" by chemistry:
 C (Note: using this method, tracer moments are changed just like they
@@ -11234,6 +11463,7 @@ C**** Allow overriding of transient emissions date:
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
+#ifndef FAA_emission
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
 #ifdef CUBED_SPHERE
       call get_aircraft_NOx(xyear,xday,dummy3d,.false.)
@@ -11241,6 +11471,7 @@ C**** Allow overriding of transient emissions date:
       call get_aircraft_NOx(xyear,xday,phi,.true.) ! read from disk
 #endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
+#endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)

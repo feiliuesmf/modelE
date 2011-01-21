@@ -47,6 +47,9 @@ c set-up for MPI implementation
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
+#ifdef FAA_emission
+      call  alloc_faa_com(grid)
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       call alloc_aerosol_sources(grid)
 #endif
