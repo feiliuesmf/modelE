@@ -10437,9 +10437,6 @@ C**** 3D volcanic source
 
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        if (n<=ntm_chem) then
-#endif
           if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
             bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
             if(do_fire(src_index))then
@@ -10457,7 +10454,6 @@ C**** 3D biomass source
             end do; end do
           end if 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        endif ! n<=ntm_chem
         if(n>ntm_chem)call apply_tracer_3Dsource(nAircraft,n)
 #endif
 #ifndef GFED_3D_BIOMASS
