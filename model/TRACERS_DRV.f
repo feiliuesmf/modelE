@@ -2855,18 +2855,18 @@ C**** set some defaults
           qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
           qsum(itcon_surf(1,N)) = .false.
           itcon_mc(n) = 16
-          qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+          qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
           itcon_ss(n) = 17
-          qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+          qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
           qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
             itcon_dd(n,1)=18
-            qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+            qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
             qsum(itcon_dd(n,1)) = .false.
             itcon_dd(n,2)=19
-            qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+            qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
