@@ -29,8 +29,8 @@
 !@+     for transient NOx aircraft emissions (= means non transient)
       integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
 
-!@var airNOx 3D source of NOx from aircraft (on model levels)
-      real*8, dimension(:,:,:), allocatable :: airNOx
+!@var airtracer 3D source of NOx from aircraft (on model levels)
+      real*8, dimension(:,:,:), allocatable :: airtracer
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
@@ -136,8 +136,8 @@
       maxHR_ch4=24*NIsurf_LOCAL*NINT(3600./DTsrc_LOCAL)
 #endif
  
-      allocate(airNOx(I_0H:I_1H,J_0H:J_1H,LM))
-      airNOx = 0.
+      allocate(airtracer(I_0H:I_1H,J_0H:J_1H,LM))
+      airtracer = 0.
 
 #ifdef GFED_3D_BIOMASS
       allocate( GFED_BB(I_0H:I_1H,J_0H:J_1H,LbbGFED,ntm) )
@@ -214,8 +214,8 @@ C we change that.)
 #endif
 
 
-      SUBROUTINE get_aircraft_NOx(xyear,xday,phi,need_read)
-!@sum  get_aircraft_NOx to define the 3D source of NOx from aircraft
+      SUBROUTINE get_aircraft_tracer(xyear,xday,phi,need_read)
+!@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
       use model_com, only: itime,JDperY,im,jm,lm
@@ -224,9 +224,9 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft
+      use tracer_com, only: itime_tr0,trname,n_NOx,n_BCIA,nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
-     &     ,airNOx
+     &     ,airtracer
       IMPLICIT NONE
  
       integer, intent(IN) :: xyear,xday
@@ -236,13 +236,15 @@ C we change that.)
       logical, intent(IN) :: need_read
 
       character(len=300) :: out_line
-      integer, parameter :: nanns=0,nmons=1
+      integer, parameter :: nanns=0,nmons=2
       integer, dimension(nmons) :: mon_units, imon
       integer l,i,j,k,ll
-      character*12, dimension(nmons) :: mon_files=(/'NOx_AIRC'/)
-      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
+      character*12, dimension(nmons) :: 
+     *  mon_files=(/'NOx_AIRC','BCIA_AIRC'/)
+      integer, dimension(nmons) :: mon_tracers ! define them later
+      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1):: src
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,nmons):: src
 !@var zmod approx. geometric height at model layer(m), phi/grav
       real*8, dimension(LM)                :: zmod
 !@var zairL heights of AR5 aircraft emissions (km)
@@ -254,17 +256,22 @@ C we change that.)
       logical :: trans_emis=.false.
       integer :: yr1=0, yr2=0
  
-! Aircraft NOx source input is monthly, on 25 levels.
+! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
-      if (itime < itime_tr0(n_NOx)) return
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1) 
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=n_BCIA
+      do k=1,nmons
+        if (mon_tracers(k) == 0) then
+          call stop_model("mon_tracers(k) not defined",255)
+        endif
+        if (itime < itime_tr0(mon_tracers(k))) cycle
+        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+        CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
 ! Monthly sources are interpolated to the current day
 ! Units are KG(N)/m2/s, so no conversion is necessary:
 
-      k = 1
       if(aircraft_Tyr1==aircraft_Tyr2)then
         trans_emis=.false.; yr1=0; yr2=0
       else
@@ -274,38 +281,38 @@ C we change that.)
 
       if(need_read) then
 
-      call openunit(mon_files(k),mon_units(k),mon_bins(k))
-      call read_monthly_3Dsources(Laircr,mon_units(k),
-     & src(:,:,:,k),trans_emis,yr1,yr2,xyear,xday)
-      call closeunit(mon_units(k))
+        call openunit(mon_files(k),mon_units(k),mon_bins(k))
+        call read_monthly_3Dsources(Laircr,mon_units(k),
+     &   src(:,:,:,k),trans_emis,yr1,yr2,xyear,xday)
+        call closeunit(mon_units(k))
 
 ! Place aircraft sources onto model levels:
+        airtracer = 0.
+        do j=J_0,J_1
+          do i=I_0,I_1
+            zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
+            do LL=1,Laircr
+              if(src(i,j,LL,k) > 0.)then
+                loop_l: do L=1,LM
+                  if(zairL(LL) <= zmod(L)) then
+      airtracer(i,j,l) = airtracer(i,j,l) + src(i,j,LL,k)*axyp(i,j)
+                    exit loop_l
+                  endif
+                if(L==LM)call stop_model("aircraft level problem",255)
+                enddo loop_l
+              endif  ! is there a source?
+            enddo   ! LL
+          enddo    ! I
+        enddo     ! J
 
-      airNOx = 0.
-      do j=J_0,J_1
-       do i=I_0,I_1
-        zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
-        do LL=1,Laircr
-         if(src(i,j,LL,1) > 0.)then
-          loop_l: do L=1,LM
-            if(zairL(LL) <= zmod(L)) then
-              airNOx(i,j,l) = airNOx(i,j,l) + src(i,j,LL,1)*axyp(i,j)
-              exit loop_l
-            endif
-            if(L==LM)call stop_model("aircraft level problem",255)
-          enddo loop_l
-         endif  ! is there a source?
-        enddo   ! LL
-       enddo    ! I
-      enddo     ! J
+        endif                     ! need_read?
 
-      endif                     ! need_read?
-
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx) =
-     &     airNOx(I_0:I_1,J_0:J_1,:)
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,mon_tracers(k)) =
+     &    airtracer(I_0:I_1,J_0:J_1,:)
+      enddo ! k
 
       return
-      end subroutine get_aircraft_NOx
+      end subroutine get_aircraft_tracer
  
 
       subroutine check_aircraft_sectors

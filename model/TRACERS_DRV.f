@@ -2844,54 +2844,53 @@ C**** set some defaults
 #endif
 
         case ('BCII')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_3Dsrc(2,N) = 14
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
-     *         'Aircraft source'
-          qsum(itcon_3Dsrc(2,N)) = .true.
-          itcon_surf(1,N) = 15
-          qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
-          qsum(itcon_surf(1,N)) = .false.
-          itcon_mc(n) = 16
-          qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+          conpts(g-12) = 'Aging loss'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_surf(nOther,N) = g
+          qcon(itcon_surf(nOther,N)) = .true.
+          conpts(g-12) = 'Industrial src'
+          qsum(itcon_surf(nOther,N)) = .false.
+          g=g+1; itcon_mc(n) = g
+          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) = 17
-          qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+          g=g+1; itcon_ss(n) = g
+          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
           qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            itcon_dd(n,1)=18
-            qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+            g=g+1; itcon_dd(n,1)=g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
             qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=19
-            qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+            g=g+1; itcon_dd(n,2)=g
+            qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
 
         case ('BCIA')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_3Dsrc(2,N) = 14
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) =
-     *         'Aircraft source'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_mc(n) = 15
-          qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+          conpts(g-12) = 'Aging source'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_3Dsrc(nAircraft,N) = g
+          qcon(itcon_3Dsrc(nAircraft,N)) = .true.
+          conpts(g-12) = 'Aircraft source'
+          qsum(itcon_3Dsrc(nAircraft,N)) = .true.
+          g=g+1; itcon_mc(n) = g
+          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) = 16
-          qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+          g=g+1; itcon_ss(n) = g
+          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
           qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
-            itcon_dd(n,1)=17
-            qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+            g=g+1; itcon_dd(n,1)=g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
             qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=18
-            qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+            g=g+1; itcon_dd(n,2)=g
+            qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
@@ -4353,7 +4352,7 @@ c photolysis rate
 #endif
       case ('BCII')
         k = k + 1
-        jls_3Dsource(1,n) = k   ! defined but not output
+        jls_3Dsource(nChemistry,n) = k   ! defined but not output
         sname_jls(k) = 'unused'   ! 'Aging_sink_of'//trname(n)
         lname_jls(k) = 'unused'   ! 'BCII aging sink'
         jls_ltop(k) = LM
@@ -4377,14 +4376,14 @@ c gravitational settling of BCII
 
       case ('BCIA')
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'Aging_source_of'//trname(n)
         lname_jls(k) = 'BCIA aging source'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nAircraft,n) = k
         sname_jls(k) = 'Aircraft_source_of'//trname(n)
         lname_jls(k) = 'BCIA aircraft source'
         jls_ltop(k) = LM
@@ -5629,7 +5628,7 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
         k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nAircraft,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BCIA Aircraft source'
         sname_ijts(k) = 'BCIA_Aircraft_src'
@@ -9389,7 +9388,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
 #ifdef CUBED_SPHERE
-      call get_aircraft_NOx(xyear,xday,daily_gz,.true.)
+      call get_aircraft_tracer(xyear,xday,daily_gz,.true.)
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -10376,7 +10375,7 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('BCIA')
 C**** aircraft source for fresh industrial BC
-        call apply_tracer_3Dsource(nAircraft,n) ! aircraft
+      call apply_tracer_3Dsource(nAircraft,n) ! aircraft
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -10437,22 +10436,22 @@ C**** 3D volcanic source
 
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
-          if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
-            bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
-            if(do_fire(src_index))then
-              bb_e=bb_i ! index last BB source
-            else
-              bb_e=ntsurfsrc(src_index)+nBBsources(src_index) ! index last BB source
-            end if
-            do j=J_0,J_1; do i=I_0,I_1
-              blay=int(dclev(i,j)+0.5d0)
-              blsrc = axyp(i,j)*src_fact*bb_fact*
-     &         sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
-              do l=1,blay
-                tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
-              end do
-            end do; end do
-          end if 
+        if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
+          bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
+          if(do_fire(src_index))then
+            bb_e=bb_i ! index last BB source
+          else
+            bb_e=ntsurfsrc(src_index)+nBBsources(src_index) ! index last BB source
+          end if
+          do j=J_0,J_1; do i=I_0,I_1
+            blay=int(dclev(i,j)+0.5d0)
+            blsrc = axyp(i,j)*src_fact*bb_fact*
+     &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(am(1:blay,i,j))
+            do l=1,blay
+              tr3Dsource(i,j,l,nBiomass,n) = blsrc*am(l,i,j)
+            end do
+          end do; end do
+        end if 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         if(n>ntm_chem)call apply_tracer_3Dsource(nAircraft,n)
 #endif
@@ -10601,11 +10600,12 @@ C**** Allow overriding of transient emissions date:
 #endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
 #ifdef CUBED_SPHERE
-      call get_aircraft_NOx(xyear,xday,dummy3d,.false.)
+      call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
 #else
-      call get_aircraft_NOx(xyear,xday,phi,.true.) ! read from disk
+      call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
 #endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
+      call apply_tracer_3Dsource(nAircraft,n_BCIA)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
