@@ -22,13 +22,6 @@
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
-!@param Laircr the number of layers of aircraft data read from file
-
-      INTEGER, PARAMETER ::
-     &                      Laircrs      =19
-!@param aircrafts_Tyr1, aircrafts_Tyr2 the starting and ending years
-!@+     for transient SO2 aircraft emissions (= means non transient)
-      integer :: aircrafts_Tyr1=0,aircrafts_Tyr2=0      
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSinput ! DMSinput(im,jm,12)
 c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
@@ -68,7 +61,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ss_src !(im,jm,nsssrc)
       INTEGER, PARAMETER :: nso2src_3d  = 1
-!@var SO2_src_3D SO2 volcanic, aircraft sources (and biomass) (kg/s)
+!@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
