@@ -224,7 +224,14 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,n_NOx,n_BCIA,nAircraft
+      use tracer_com, only: itime_tr0,trname,
+#ifdef TRACERS_SPECIAL_Shindell
+     *                      n_NOx,
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+     *                      n_BCIA,
+#endif
+     *                      nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
      &     ,airtracer
       IMPLICIT NONE
@@ -236,13 +243,28 @@ C we change that.)
       logical, intent(IN) :: need_read
 
       character(len=300) :: out_line
-      integer, parameter :: nanns=0,nmons=2
+      integer, parameter :: nanns=0
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+      integer, parameter :: nmons=2
+#else
+      integer, parameter :: nmons=1
+#endif
       integer, dimension(nmons) :: mon_units, imon
       integer l,i,j,k,ll
       character*12, dimension(nmons) :: 
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'NOx_AIRC','BCIA_AIRC'/)
+#elif (defined TRACERS_SPECIAL_Shindell)
+     *  mon_files=(/'NOx_AIRC'/)
+#else
+     *  mon_files=(/'BCIA_AIRC'/)
+#endif
       integer, dimension(nmons) :: mon_tracers ! define them later
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
+#else
+      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
+#endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,nmons):: src
 !@var zmod approx. geometric height at model layer(m), phi/grav
@@ -259,8 +281,14 @@ C we change that.)
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_NOx
       mon_tracers(2)=n_BCIA
+#elif (defined TRACERS_SPECIAL_Shindell)
+      mon_tracers(1)=n_NOx
+#else
+      mon_tracers(1)=n_BCIA
+#endif
       do k=1,nmons
         if (mon_tracers(k) == 0) then
           call stop_model("mon_tracers(k) not defined",255)
@@ -271,15 +299,14 @@ C we change that.)
 
 ! Monthly sources are interpolated to the current day
 ! Units are KG(N)/m2/s, so no conversion is necessary:
+        if(aircraft_Tyr1==aircraft_Tyr2)then
+          trans_emis=.false.; yr1=0; yr2=0
+        else
+          trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
+        endif
+        if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
 
-      if(aircraft_Tyr1==aircraft_Tyr2)then
-        trans_emis=.false.; yr1=0; yr2=0
-      else
-        trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
-      endif
-      if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
-
-      if(need_read) then
+        if(need_read) then
 
         call openunit(mon_files(k),mon_units(k),mon_bins(k))
         call read_monthly_3Dsources(Laircr,mon_units(k),

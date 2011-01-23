@@ -10372,12 +10372,6 @@ C****
       call apply_tracer_3Dsource(1,n,.FALSE.)
 C****
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      case ('BCIA')
-C**** aircraft source for fresh industrial BC
-      call apply_tracer_3Dsource(nAircraft,n) ! aircraft
-#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
-
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4',
@@ -10417,14 +10411,6 @@ C**** aircraft source for fresh industrial BC
           end select
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-C**** 3D aircraft source - only SO2, no sulfate
-        select case (trname(n))
-        case ('SO2')
-          call apply_tracer_3Dsource(nAircraft,n)
-        end select
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** 3D volcanic source
         select case (trname(n))
         case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
@@ -10452,9 +10438,6 @@ C**** 3D biomass source
             end do
           end do; end do
         end if 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        if(n>ntm_chem)call apply_tracer_3Dsource(nAircraft,n)
-#endif
 #ifndef GFED_3D_BIOMASS
         call apply_tracer_3Dsource(nBiomass,n)
 #else
@@ -10599,13 +10582,22 @@ C**** Allow overriding of transient emissions date:
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
+#endif /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_AEROSOLS_Koch
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
+#endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
 #else
       call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
 #endif
-      call apply_tracer_3Dsource(nAircraft,n_NOx)
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
       call apply_tracer_3Dsource(nAircraft,n_BCIA)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
