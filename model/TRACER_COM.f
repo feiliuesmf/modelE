@@ -899,9 +899,6 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
     (defined TRACERS_AMP)
 C**** Aerosol specific switches and arrays
 
-!@dbparam imAER 0 determines emission choice: 0 present-day, 1 AEROCOM,
-c  2 Bond/Streets past, present, future using sector inputs; 3 historic
-      integer :: imAER = 1
 !!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission
       integer :: OFFLINE_DMS_SS = 0
 !!@dbparam OFFLINE_SS is 0 for standard case, 1 for offline seasalt emission

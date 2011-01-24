@@ -1,4 +1,4 @@
-!-------Aerosol inputs, for imAER=5 --------------
+!-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
 !AER_CHEM=OXID_E__1TgfF40_2x2.5
@@ -16,17 +16,14 @@ NH3_06=AR5_C90/transient/NH3_ene_AR5_1850-2000_C90_h
 NH3_07=AR5_C90/transient/NH3_tra_AR5_1850-2000_C90_h
 NH3_08=AR5_C90/transient/NH3_forestfire_AR5_1900-2000_C90_h
 NH3_09=AR5_C90/transient/NH3_grassfire_AR5_1900-2000_C90_h
-! ------- aerosol, needed for imAER= 1 or 3 or 5-----------
+! ------- aerosol -----------
 PSREF=ANN1955.mkE4C90x.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_1x1_pres.nc
-! -------- aerosol, needed for imAER = 3 or 5 --------------
+! -------- aerosol --------------
 DMS_SEA=DMS_Kettle_Andeae_C90
-! The following line is only needed for imAER=1
-! Note that if gas-phase chemistry is enabled, both
-! TERPENE and Terpenes_01 are used, which differ significantly
-!TERPENE=terp_Guenther_C90
 !SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
-!--------AR5 inputs for imAER=5 --------------------
+!--------AR5 inputs --------------------
+BCIA_AIRC=AR5_emis/F/T/BCIA_air_AR5_1910-2000_2x2.5
 BC_EM_1=AR5_C90/transient/BCII_awb_AR5_1850-2000_C90_h
 BC_EM_2=AR5_C90/transient/BCII_dom_AR5_1850-2000_C90_h
 BC_EM_3=AR5_C90/transient/BCII_ene_AR5_1850-2000_C90_h
