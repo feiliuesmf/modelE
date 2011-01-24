@@ -5670,7 +5670,7 @@ c BCI shortwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c BCI longwave radiative forcing
+c BCI longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
         ia_ijts(k) = ia_rad_frc
@@ -5691,12 +5691,34 @@ c BCI clear sky shortwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
-c BCI longwave radiative forcing
+c BCI clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCI'
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c BCI clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'BCI clr sky SW surface rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_BCI'
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c BCI clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'BCI clr sky LW surface rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_BCI'
         dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5774,6 +5796,30 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = trim(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c BCB clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n)) //
+     &       ' clr sky SW surface rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c BCB clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n)) //
+     &       ' clr sky LW surface rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
         dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5928,6 +5974,28 @@ c OC clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
+c OC clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = TRIM(trname(n))//' clr sky SW surf rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OC clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = TRIM(trname(n))//' clr sky LW surf rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
       case ('OCIA','OCA1','OCA2','OCA3')
         k = k + 1
@@ -6005,6 +6073,28 @@ c OCI clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
+c OCI clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = TRIM(trname(n))//' clr sky SW surf rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCI clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = TRIM(trname(n))//' clr sky LW surf rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//TRIM(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
       case ('OCB')
         k = k + 1
@@ -6077,6 +6167,30 @@ c OCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = trim(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n)) //
+     &       ' clr sky SW surface rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c OCB clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = trim(trname(n)) //
+     &       ' clr sky LW surface rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
         dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -6288,6 +6402,28 @@ c SO4 clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
+c SO4 clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'SO4 clr sky SW surface rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c SO4 clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'SO4 clr sky LW surface rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif
 
 c#ifdef TRACERS_NITRATE
@@ -6375,6 +6511,28 @@ c NO3 clear sky longwave radiative forcing
         ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c NO3 clear sky shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(7,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'NO3 clr sky SW surface rad forcing'
+        sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+        dname_ijts(k) = 'clrsky'
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
+c NO3 clear sky longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(8,n) = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'NO3 clr sky LW surface rad forcing'
+        sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
         dname_ijts(k) = 'clrsky'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -6607,6 +6765,28 @@ c SS clear sky longwave radiative forcing
           ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = 'SS clr sky LW rad forcing'
           sname_ijts(k) = 'lwf_CS_SS'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SS clear sky shortwave surface radiative forcing
+          k = k + 1
+          ijts_fc(7,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS clr sky SW surface rad forcing'
+          sname_ijts(k) = 'swf_CS_surf_SS'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SS clear sky longwave surface radiative forcing
+          k = k + 1
+          ijts_fc(8,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SS clr sky LW surface rad forcing'
+          sname_ijts(k) = 'lwf_CS_surf_SS'
           dname_ijts(k) = 'clrsky'
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -6855,6 +7035,62 @@ c dust longwave radiative forcing at surface of four sub size classes
             scale_ijts(k) = 10.**(-ijts_power(k))
             ijts_HasArea(k) = .false.
           end do
+c dust clear sky shortwave radiative forcing of four clay sub size classes
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(5,n,kr) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' clr sky SW radiative forcing'
+            sname_ijts(k) = 'swf_CS_'//trim(trname(n))//char(48+kr)
+            dname_ijts(k) = 'clrsky'
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          end do
+c dust clear sky longwave radiative forcing of four clay sub size classes
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(6,n,kr) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' clr sky LW radiative forcing'
+            sname_ijts(k) = 'lwf_CS_'//trim(trname(n))//char(48+kr)
+            dname_ijts(k) = 'clrsky'
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          end do
+c dust clear sky shortwave radiative forcing at surface of four clay sub size classes
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(7,n,kr) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' clr sky SW Surf radiative forcing'
+            sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))//char(48+kr)
+            dname_ijts(k) = 'clrsky'
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          end do
+c dust clear sky longwave radiative forcing at surface of four sub size classes
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(8,n,kr) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' clr sky LW Surf radiative forcing'
+            sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))//char(48+kr)
+            dname_ijts(k) = 'clrsky'
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          end do
         CASE('Silt1','Silt2','Silt3','Silt4',
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
@@ -6900,6 +7136,54 @@ c dust longwave radiative forcing at surface
           ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c dust clear sky shortwave radiative forcing
+          k = k + 1
+          ijts_fc(5,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n)) //
+     &         ' clr sky SW radiative forcing'
+          sname_ijts(k) = 'swf_CS_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c dust clear sky longwave radiative forcing
+          k = k + 1
+          ijts_fc(6,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n)) //
+     &         ' clr sky LW radiative forcing'
+          sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c dust clear sky shortwave radiative forcing at surface
+          k = k + 1
+          ijts_fc(7,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))
+     &         //' clr sky SW surf radiative forcing'
+          sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c dust clear sky longwave radiative forcing at surface
+          k = k + 1
+          ijts_fc(8,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))
+     &         //' clr sky LW surf radiative forcing'
+          sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -7837,6 +8121,22 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = -10 ! to match NOx
         units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef TRACERS_AEROSOLS_Koch
+      k = k + 1
+        ijlt_prodSO4aq=k
+        lname_ijlt(k) = 'SO4 aqueous chem source 3D'
+        sname_ijlt(k) = 'SO4aqSrc3D'
+        ijlt_power(k) = -15 ! to match ijts 2D
+        units_ijlt(k) = unit_string(ijlt_power(k),'kg/s*m^2')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_prodSO4gs=k
+        lname_ijlt(k) = 'SO4 gas phase source 3D'
+        sname_ijlt(k) = 'SO4gasSrc3D'
+        ijlt_power(k) = -15 ! to match ijts 2D
+        units_ijlt(k) = unit_string(ijlt_power(k),'kg/s*m^2')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+#endif /* TRACERS_AEROSOLS_Koch */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -10273,7 +10573,8 @@ c latlon grid
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
       USE Dictionary_mod, only : get_param, is_set_param
-      use trdiag_com, only : trcsurf,trcSurfByVol
+      use trdiag_com, only : trcsurf,trcSurfByVol,taijls=>taijls_loc,
+     & ijlt_prodSO4gs
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
@@ -10530,6 +10831,12 @@ c Calculation of gas phase reaction rates for sulfur chemistry
        call apply_tracer_3Dsource(1,n_MSA)  ! MSA chem source
        call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
+#ifdef ACCMIP_LIKE_DIAGS
+       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+         taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
+     &   tr3Dsource(i,j,l,nChemistry,n_SO4)*dtsrc*byaxyp(i,j)
+       end do; end do; end do
+#endif
        call apply_tracer_3Dsource(nChemistry,n_SO4)  ! SO4 chem source
        call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
