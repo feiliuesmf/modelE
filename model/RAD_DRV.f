@@ -376,11 +376,10 @@ C**** define weighting (only used for clays so far)
       TRRDRY(1:NTRACE)=
      * (/.15d0,.44d0, 1.7d0, .2d0, .2d0, .08d0, .08d0,0.15d0/)
 c augment BC by 50% (solar)
-c scale down NO3p (solar and thermal) until tracer burden is reasonable
       FSTASC(1:NTRACE)=
-     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,0.2d0/)
+     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,1.0d0/)
       FTTASC(1:NTRACE)=
-     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,0.2d0/)
+     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,1.0d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4,4, 5,6,3/)
       KRHTRA(1:NTRACE)=(/1,1,1,1,1, 0,0,1/)
