@@ -168,6 +168,7 @@ c        print *,sname,'jm        = ',jm
 c        print *,sname,'lm        = ',lm
 c        print *,sname,'dtsrc        = ',dtsrc
          kl0=12;il0=im;jl0=jm ;il0=1;jl0=1;kl0=1
+         nm0 = 1 ! or whatever, put a correct value here
 #ifdef TRACERS_AMP
          nm0=NMODES
 #endif
