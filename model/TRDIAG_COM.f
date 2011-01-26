@@ -149,13 +149,13 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@+   for tracer sub classes
       INTEGER ijts_sqcbsub(2,6,Ntm,MaxSubCl)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
-      INTEGER ijts_fc(6,ntm)
+      INTEGER ijts_fc(8,ntm)
 #ifdef AUXILIARY_OX_RADF
 !@var ijts_auxfc auxiliary Ox array for TAIJS SW/LW rad. forcings
       INTEGER ijts_auxfc(4)
 #endif
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
-      INTEGER ijts_fcsub(6,Ntm,MaxSubCl)
+      INTEGER ijts_fcsub(8,Ntm,MaxSubCl)
 !@var ijts_spec index for TAIJS diags. not associated with single tracer
       INTEGER :: ijts_spec(MaxSpec)
 !@var ijts_gasex index for TAIJS associated with atm/oc gas exchange
@@ -201,7 +201,7 @@ C**** TAIJLS 3D special tracer diagnostics
 !@param ktaijl number of TAIJLS tracer diagnostics;
       INTEGER, PARAMETER :: ktaijl=50
 #ifdef ACCMIP_LIKE_DIAGS 
-     &                            + 10
+     &                            + 12
 #endif
 #ifdef SOA_DIAGS
      &                            + 12
@@ -232,7 +232,7 @@ C**** TAIJLS 3D special tracer diagnostics
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
-     & ,ijlt_JH2O2
+     & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs
 #ifdef SOA_DIAGS
 !@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
 #ifdef TRACERS_TERP
