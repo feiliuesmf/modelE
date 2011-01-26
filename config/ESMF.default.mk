@@ -25,7 +25,7 @@ VPATH += ${ESMFINCLUDEDIR}
 
 FFLAGS += -I${ESMFINCLUDEDIR}
 F90FLAGS += -I${ESMFINCLUDEDIR}
-LIBS += -L${ESMFLIBDIR} -lesmf
+LIBS += ${ESMFLIBDIR}/libesmf.a
 
 # if we don't have netcdf library add netcdf_stubs
 ifndef NETCDFHOME
