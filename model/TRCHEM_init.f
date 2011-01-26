@@ -899,6 +899,7 @@ C**** GLOBAL parameters and variables:
 #endif
       USE MODEL_COM, only: JYEAR,JDAY,JMON
       USE RAD_COM, only: s0_yr
+      USE RADPAR, only: icycs0,icycs0f
 
       IMPLICIT NONE
       
@@ -906,19 +907,68 @@ C**** Local parameters and variables and arguments:
 C bin4_1988 fastj2 bin#4 photon flux for year 1988
 C bin4_1991 fastj2 bin#4 photon flux for year 1991
 C bin5_1988 fastj2 bin#5 photon flux for year 1988
-      integer :: yearx,iunit,i,iw,wantYear
+      integer :: yearx,iunit,i,iw,wantYear,firstYear,lastYear,icyc
       logical, intent(in) :: end_of_day
       character(len=300) :: out_line
+      logical :: found1988, found1991
  
+      ! only for start of years and restarts:
       if(.not. end_of_day .or. JDAY == 1) then
+
+        ! set year we are looking for based on rad code s0_yr:
         if(s0_yr==0)then 
           wantYear=jyear
         else
           wantYear=s0_yr
-        endif
+        end if
+
+        if(wantYear > 2000)then
+          icyc=icycs0f
+        else
+          icyc=icycs0
+        end if
+
+        ! scan the file to make sure needed years are there
+        ! and to see whether we need to cycle based on the 
+        ! initial few or last few years:
+
+        found1988=.false. ; found1991=.false.
         CALL openunit('FLTRAN',iunit,.false.,.true.)
         READ(iunit,*) ! 1 line of comments
-        recLoop: do i = 1,10000 ! arbitrary large number
+        i=0
+        scanLoop: do
+          i=i+1
+          READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
+          if(i==1)firstYear=yearx
+          if(yearx==1988)found1988=.true.
+          if(yearx==1991)found1991=.true.
+        end do scanLoop
+ 100    lastYear=yearx    
+        rewind(iunit)
+        if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+        if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+       
+        if(lastYear-firstYear+1 < icyc)
+     &  call stop_model('years in FLTRAN file < icyc',13)
+        if(wantYear < firstYear)then
+          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
+          call write_parallel(trim(out_line))
+          ! next line depends on integer arithmatic:
+          wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+          write(out_line,*)'Using: ',wantYear,' instead.'
+          call write_parallel(trim(out_line))
+        else if(wantYear > lastYear)then
+          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
+          call write_parallel(trim(out_line))
+          ! next line depends on integer arithmatic:
+          wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+          write(out_line,*)'Using: ',wantYear,' instead.'
+          call write_parallel(trim(out_line))
+        end if
+
+        ! now read file with appropriate (safe) target year:
+        READ(iunit,*) ! 1 line of comments
+        readLoop: do
           READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
           if(yearx == wantYear) then
             FL(1:NWWW)=FLX(1:NWWW)
@@ -939,11 +989,11 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
               bin4_1991=DUMMY(4)
             endif
           endif
-          if(yearx >= wantYear.and.yearx >= 1991) exit recLoop
+          if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
 #else
           call stop_model('make sure rad_FL>0 works in trop-chem?',255)
 #endif
-        end do recLoop
+        end do readLoop
 
         write(out_line,*)'READ_FL Using year ',wantYear,
      &  ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
@@ -962,11 +1012,12 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
 #else
   102 FORMAT(I4,6X,7E10.3)
 #endif
-      RETURN
- 101  call stop_model('Year not found in FLTRAN file',255)
-      RETURN
-      END SUBROUTINE READ_FL  
+      RETURN 
 
+ 101  CONTINUE ! This should no longer be reached.        
+      call stop_model("READ_FL end of file problem.",13)
+      RETURN 
+      END SUBROUTINE READ_FL  
 
 
       SUBROUTINE rd_prof(nj2)
