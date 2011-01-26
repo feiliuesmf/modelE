@@ -196,6 +196,65 @@ As with CVS we will have a Git repository viewer installed at
 </pre>
 </p>
 
+
+    <h3><A name="part1_1a"><b> Working with branches </b></A></h3>
+<p>
+Git treats branches as local objects, which means that by default 
+information about a new branch is not pushed to parent repository. 
+Also, <tt>git clone ...</tt> doesn't add the branches from the 
+remote repository to the local repository. To see all local branches
+one can execute
+<pre>
+    git branch
+</pre>
+Typically for a fresh clone this will show just a <tt>master</tt>
+branch. One can though see the branches in a remote repository with
+<pre>
+    git branch -r
+</pre>
+But if one wants to work with a remote branch one has to set up a
+local branch which is &quot;tracking&quot; a remote branch. For
+example, to work with <tt>origin/AR5_branch</tt> branch one can create
+a local branch with 
+<pre>
+    git checkout --track -b AR5_branch origin/AR5_branch
+</pre>
+Starting with the Git version 1.7 this command can be shortened to
+<pre>
+    git checkout AR5_branch
+</pre>
+Once a local branch has been created one can always switch to it with 
+<pre>
+    git checkout branch_name
+</pre>
+The fact that <tt>AR5_branch</tt> we have just created is tracking a
+remote branch means that <tt>git pull</tt> will update your local
+branch from a remote repository and <tt>git push</tt> will send your
+local changes to a remote branch. One should mention that if for a
+local branch we have chosen a name which is different from the name of
+a remote branch then <tt>git pull</tt> will still update the local
+branch from the remote one, but <tt>git push</tt> will have no
+effect. One can use this functionality to create ones own branch which
+one wants to periodically update from a public remote branch.
+</p>
+<p>
+To create a simple local branch (which will start from the current
+checked out state) typically one does
+<pre>
+    git checkout -b branch_name
+</pre>
+If one wants then to commit it to central repository (to make it
+available to other users) one can do it with 
+<pre>
+    git push origin branch_name
+</pre>
+</p>
+<p>
+
+
+</p>
+
+
     <h3><A name="part1_1a"><b> Using Git as a CVS server </b></A></h3>
 <p>
 Git is capable of simulating the behavior of CVS server, which 
