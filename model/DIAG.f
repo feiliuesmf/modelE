@@ -109,8 +109,8 @@ C**** Some local constants
       USE DIAG_COM, only : ia_dga,jreg,
      *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
-     *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
-     *     ,ij_rh700,ij_t700,ij_q700
+     *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_t100,ij_q850,ij_q500
+     *     ,ij_rh700,ij_t700,ij_q700,ij_q100,ij_rh100
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
@@ -365,6 +365,8 @@ C**** Use masking for 850 mb temp/humidity
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
+          CASE (100)            ! 100 mb
+            nT = IJ_T100 ; nQ = IJ_Q100 ; nRH = IJ_RH100 ; qpress=.true.
           END SELECT
 C**** calculate geopotential heights + temperatures
           IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
