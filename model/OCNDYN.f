@@ -2123,7 +2123,7 @@ C**** OKE at north pole
         EndDo
         OKE(2:IMO,JMO)=OKE(1,JMO)
       EndIf
-      OKE(:,:) = OKE(:,:)*.25
+      OKE(:,J_0:J_1) = OKE(:,J_0:J_1)*.25
 
       End Subroutine CONSERV_OKE
 
