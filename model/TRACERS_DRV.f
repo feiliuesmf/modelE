@@ -2877,7 +2877,7 @@ C**** set some defaults
           qsum(itcon_3Dsrc(nChemistry,N)) = .true.
           g=g+1; itcon_3Dsrc(nAircraft,N) = g
           qcon(itcon_3Dsrc(nAircraft,N)) = .true.
-          conpts(g-12) = 'Aircraft source'
+          conpts(g-12) = 'Aircraft Source'
           qsum(itcon_3Dsrc(nAircraft,N)) = .true.
           g=g+1; itcon_mc(n) = g
           qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
@@ -3936,8 +3936,8 @@ C**** special one unique to HTO
           units_jls(k) = unit_string(jls_power(k),'kg/s')
           k = k + 1
           jls_3Dsource(nAircraft,n) = k
-          sname_jls(k) = 'aircraft_source_of'//trname(n)
-          lname_jls(k) = 'CHANGE OF '//trname(n)//' BY AIRCRAFT'
+          sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+          lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY AIRCRAFT'
           jls_ltop(k) = LM
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -4102,8 +4102,8 @@ c volcanic production of SO2
 c aircraft production of SO2
         k = k + 1
         jls_3Dsource(nAircraft,n) = k
-        sname_jls(k) = 'aircraft_source_of_'//trname(n)
-        lname_jls(k) = 'production of SO2 from aircraft'
+        sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' aircraft source'
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -4385,8 +4385,8 @@ c gravitational settling of BCII
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(nAircraft,n) = k
-        sname_jls(k) = 'Aircraft_source_of'//trname(n)
-        lname_jls(k) = 'BCIA aircraft source'
+        sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' aircraft source'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -5260,7 +5260,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           k = k + 1
           ijts_3Dsource(nAircraft,n) = k
           ia_ijts(k) = ia_src
-          lname_ijts(k) = trname(n)//' Aircraft Source'
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
           sname_ijts(k) = trim(trname(n))//'_aircraft'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -5631,8 +5631,8 @@ c chemical production
         k = k + 1
         ijts_3Dsource(nAircraft,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'BCIA Aircraft source'
-        sname_ijts(k) = 'BCIA_Aircraft_src'
+        lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+        sname_ijts(k) = trim(trname(n))//'_aircraft'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -6130,8 +6130,8 @@ c production of SO2 from aircraft
         k = k + 1
         ijts_3Dsource(nAircraft,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO2 source from aircraft'
-        sname_ijts(k) = 'SO2_source_from_aircraft'
+        lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+        sname_ijts(k) = trim(trname(n))//'_aircraft'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -10587,7 +10587,12 @@ C**** Allow overriding of transient emissions date:
 #ifdef TRACERS_AEROSOLS_Koch
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
 #endif
+!#ifdef TRACERS_AMP
+!      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
+!#endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+!#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+!    (defined TRACERS_AMP)
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
 #else
@@ -10597,6 +10602,9 @@ C**** Allow overriding of transient emissions date:
 #ifdef TRACERS_AEROSOLS_Koch
       call apply_tracer_3Dsource(nAircraft,n_BCIA)
 #endif
+!#ifdef TRACERS_AMP
+!      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
+!#endif
 #ifdef TRACERS_SPECIAL_Shindell
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0

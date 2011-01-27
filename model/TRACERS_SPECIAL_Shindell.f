@@ -26,10 +26,10 @@
 #endif   
 
 !@param aircraft_Tyr1, aircraft_Tyr2 the starting and ending years
-!@+     for transient NOx aircraft emissions (= means non transient)
+!@+     for transient tracer aircraft emissions (= means non transient)
       integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
 
-!@var airtracer 3D source of NOx from aircraft (on model levels)
+!@var airtracer 3D source of tracer from aircraft (on model levels)
       real*8, dimension(:,:,:), allocatable :: airtracer
 
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -231,6 +231,9 @@ C we change that.)
 #ifdef TRACERS_AEROSOLS_Koch
      *                      n_BCIA,
 #endif
+!#ifdef TRACERS_AMP
+!     *                      n_M_BC1_BC,
+!#endif
      *                      nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
      &     ,airtracer
@@ -245,6 +248,8 @@ C we change that.)
       character(len=300) :: out_line
       integer, parameter :: nanns=0
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+!#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
+!    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       integer, parameter :: nmons=2
 #else
       integer, parameter :: nmons=1
@@ -254,15 +259,21 @@ C we change that.)
       character*12, dimension(nmons) :: 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'NOx_AIRC','BCIA_AIRC'/)
+!#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
+!     *  mon_files=(/'NOx_AIRC','M_BC1_BC_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell)
      *  mon_files=(/'NOx_AIRC'/)
-#else
+#elif (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'BCIA_AIRC'/)
+#else
+     *  mon_files=(/'M_BC1_BC_AIRC'/)
 #endif
       integer, dimension(nmons) :: mon_tracers ! define them later
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+!#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
+!    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-#else
+#else /* this is for both TRACERS_AEROSOLS_Koch and TRACERS_AMP */
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
 #endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -284,10 +295,15 @@ C we change that.)
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_NOx
       mon_tracers(2)=n_BCIA
+!#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
+!      mon_tracers(1)=n_NOx
+!      mon_tracers(2)=n_M_BC1_BC
 #elif (defined TRACERS_SPECIAL_Shindell)
       mon_tracers(1)=n_NOx
-#else
+#elif (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_BCIA
+#else
+      mon_tracers(1)=n_M_BC1_BC
 #endif
       do k=1,nmons
         if (mon_tracers(k) == 0) then
