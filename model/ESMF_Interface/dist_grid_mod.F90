@@ -378,7 +378,6 @@ MODULE dist_grid_mod
      
      logical :: useCubedSphere
      integer :: minIndex(3), maxIndex(3), indexArray(2,3)
-     type(ESMF_DistGrid) :: tmpDistGrid
      integer :: lbnd(3) 
      integer :: ubnd(3) 
      real(ESMF_KIND_R8), pointer :: xcoord(:)
