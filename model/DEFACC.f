@@ -1446,6 +1446,15 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_T100 = k !
+      lname_ij(k) = 'TEMPERATURE AT 100mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_100'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
       IJ_T300 = k !
       lname_ij(k) = 'TEMPERATURE AT 300mb'
       units_ij(k) = 'C'
@@ -1481,6 +1490,15 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
       denom_ij(k) = IJ_P850
+c
+      k=k+1
+      IJ_Q100 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_100'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
 c
       k=k+1
       IJ_Q300 = k
@@ -1524,6 +1542,15 @@ c
       lname_ij(k) = 'LAYER 1 RELATIVE HUMIDITY'
       units_ij(k) = '%'
       name_ij(k) = 'rh_layer1'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH100 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 100mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_100'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct

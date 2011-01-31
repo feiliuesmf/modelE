@@ -1,4 +1,4 @@
-!-------Aerosol inputs, for imAER=5 --------------
+!-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
 !AER_CHEM=OXID_E__1TgfF40_2x2.5
@@ -16,17 +16,14 @@ NH3_06=NH3_ene_AR5_1850-2000_2x2.5_h
 NH3_07=NH3_tra_AR5_1850-2000_2x2.5_h
 NH3_08=NH3_forestfire_AR5_1900-2000_2x2.5_h
 NH3_09=NH3_grassfire_AR5_1900-2000_2x2.5_h
-! ------- aerosol, needed for imAER= 1 or 3 or 5-----------
+! ------- aerosol -----------
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
-! -------- aerosol, needed for imAER = 3 or 5 --------------
+! -------- aerosol --------------
 DMS_SEA=DMS_Kettle_Andreae_2x2.5
-! The following line is only needed for imAER=1
-! Note that if gas-phase chemistry is enabled, both
-! TERPENE and Terpenes_01 are used, which differ significantly
-!TERPENE=terp_Guenther_2x2.5
 !SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
-!--------AR5 inputs for imAER=5 --------------------
+!--------AR5 inputs --------------------
+BCIA_AIRC=AR5_emis/F/T/BCIA_air_AR5_1910-2000_2x2.5
 BC_EM_1=BCII_awb_AR5_1850-2000_2x2.5_h
 BC_EM_2=BCII_dom_AR5_1850-2000_2x2.5_h
 BC_EM_3=BCII_ene_AR5_1850-2000_2x2.5_h

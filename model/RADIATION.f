@@ -1320,14 +1320,15 @@ C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
 
 C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 !@var iy1S0,MS0X first year, max.number of months for S0 history
-!@var icycs0,mcycs0 solar cycle in yrs,months used to extend S0 history
+!@var icycs0  solar cycle in yrs used to extend S0 history before 2000
+!@var icycs0f solar cycle in yrs used to extend S0 history after 2000
 !@var KSOLAR controls which data are used: <0 Thekaekara, else Lean:
 !@+          1: use monthly data, 2: use annual data, 0: constant data
 !@+          9: use annual data from file but with Thekaekara bins
       INTEGER :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
 
       INTEGER, PARAMETER :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
-      INTEGER, PARAMETER :: icycs0=11,  mcycs0=icycs0*12
+      INTEGER, PARAMETER :: icycs0=11,  icycs0f=12
       INTEGER  iMS0X
       REAL*4 yr1S0,yr2S0
       real,    ALLOCATABLE, DIMENSION(:,:):: UVLEAN
@@ -2792,7 +2793,7 @@ C-----------------------------------------------------------------------
       INTEGER, INTENT(IN) :: JYEARS,JJDAYS
       INTEGER, INTENT(IN), optional :: UPDSOL_flag
       INTEGER, SAVE :: LMOREF=0
-      INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J,NUV
+      INTEGER JMO,LMO,Is0x,K,I,NWSUV,II,J,NUV,icyc
       REAL*8 FLXSUM,FFLUX(3),UVNORM,XX,OCM,TAUK,UVWAVA,UVWAVB,AO33
 
       if ( present(UPDSOL_flag) ) goto 777
@@ -2809,20 +2810,23 @@ C                                          -----------------------------
       END IF
 C                                           Lean99 Solar Flux, UV Option
 C                                           ----------------------------
+      if(jyears > 2000) then
+        icyc = icycs0f
+      else
+        icyc = icycs0
+      end if
       if(Ksolar < 2) then    ! monthly data
+        icyc = icyc*12
         JMO=1+JJDAYS/30.5D0
         IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO > iMs0X) LMO=LMO-mcycs0*((LMO-iMs0X+mcycs0-1)/mcycs0)
-        IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+        IF(LMO > iMs0X) LMO=LMO-icyc*((LMO-iMs0X+icyc-1)/icyc)
+        IF(LMO < 1) LMO=LMO+icyc*((icyc-lmo)/icyc)
       else                    ! annual data
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
-c        write(6,*) 'SOLAR::A::',is0x,lmo,JYEARS,JJDAYS,JMO
-        IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
-c        write(6,*) 'SOLAR::B::',lmo,icycs0,Is0X
-        IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
-c        write(6,*) 'SOLAR::C::',lmo
+        IF(LMO > Is0X) LMO=LMO-icyc*((LMO-Is0X+icyc-1)/icyc)
+        IF(LMO < 1) LMO=LMO+icyc*((icyc-lmo)/icyc)
       end if
       LMOREF=LMO
 
@@ -2919,18 +2923,23 @@ C--------------------------------
       IF(KSOLAR < 1) RETURN   ! solar constant not time dependent
       IF(JYEARS < 1) RETURN   ! solar constant not time dependent
 
+      if(jyears > 2000) then
+        icyc = icycs0f
+      else
+        icyc = icycs0
+      end if
       if(Ksolar == 1) then    ! monthly data
+        icyc = icyc*12
         JMO=1+JJDAYS/30.5D0
         IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO > iMs0X) LMO=LMO-mcycs0*((LMO-iMs0X+mcycs0-1)/mcycs0)
-        IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
+        IF(LMO > iMs0X) LMO=LMO-icyc*((LMO-iMs0X+icyc-1)/icyc)
+        IF(LMO < 1) LMO=LMO+icyc*((icyc-lmo)/icyc)
       else                    ! annual data        ksolar=2,9
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
-        IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
-        IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
-c        write(6,*) 'UPDSOLAR::A::',LMO,JYEARS,JJDAYS,JMO
+        IF(LMO > Is0X) LMO=LMO-icyc*((LMO-Is0X+icyc-1)/icyc)
+        IF(LMO < 1) LMO=LMO+icyc*((icyc-lmo)/icyc)
       end if
 
       IF(LMO==LMOREF) RETURN  ! solar constant up-to-date
@@ -10145,7 +10154,7 @@ C
      *     ,QPGL,QGSH,QGNH,QGGL
       INTEGER KW,INDJ,INDI,INDX,KINDEX,I,JJDAYG,JYEARG,KWSKIP,J,IYEAR
      *     ,NSPACE,LMO,K,mavg,iyr1,lmax,icyc,JYEARS,M,JJDAYO,L,JJ,N,N1
-     *     ,N2,II,KAEROS,LL1,KA,JJDAY
+     *     ,N2,II,KAEROS,LL1,KA,JJDAY,icycf
 C
       KW=KWRU
       INDJ=MOD(INDEX,10)
@@ -10282,14 +10291,15 @@ C
         mavg = 12
         iyr1 = iy1s0
         lmax = ms0x
-        icyc = mcycs0
       else
         mavg = 1
         iyr1 = yr1s0
         lmax = nint( yr2s0-yr1s0+1 )
-        icyc = icycs0
       end if
+      icyc  = mavg*icycs0
+      icycf = mavg*icycs0f
       DO 370 J=JYRREF,JYRNOW
+      if(j > 2000) icyc = icycf  
       KWSKIP=0
       IF(J > JYRREF) KWSKIP=KLIMIT
       IF(J==JYRNOW) KWSKIP=0

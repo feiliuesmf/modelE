@@ -376,11 +376,10 @@ C**** define weighting (only used for clays so far)
       TRRDRY(1:NTRACE)=
      * (/.15d0,.44d0, 1.7d0, .2d0, .2d0, .08d0, .08d0,0.15d0/)
 c augment BC by 50% (solar)
-c scale down NO3p (solar and thermal) until tracer burden is reasonable
       FSTASC(1:NTRACE)=
-     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,0.2d0/)
+     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,1.0d0/)
       FTTASC(1:NTRACE)=
-     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,0.2d0/)
+     *        (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,1.0d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4,4, 5,6,3/)
       KRHTRA(1:NTRACE)=(/1,1,1,1,1, 0,0,1/)
@@ -2688,6 +2687,18 @@ c longwave forcing at surface (if required) of Clay sub size classes
      &                taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
      &                -rsign_aer*(tnfst(1,n,i,j)-tnfs(1,i,j))
+c shortwave forcing at surface clear sky (if required) of Clay sub size classes
+                 if (ijts_fcsub(7,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(7,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(7,ntrix(n),n1))
+     &                +rsign_aer*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
+     &                *(1.D0-cfrac(i,j))
+c longwave forcing at surface clear sky (if required) of Clay sub size classes
+                 if (ijts_fcsub(8,ntrix(n),n1) > 0)
+     &                taijs(i,j,ijts_fcsub(8,ntrix(n),n1))
+     &                =taijs(i,j,ijts_fcsub(8,ntrix(n),n1))
+     &                -rsign_aer*(tnfst(1,n,i,j)-tnfs(1,i,j))
+     &                *(1.D0-cfrac(i,j))
                CASE DEFAULT
                  SELECT CASE (trname(ntrix(n)))
                  CASE ('seasalt2')
@@ -2740,6 +2751,18 @@ c longwave forcing at surface (if required)
      &                taijs(i,j,ijts_fc(4,ntrix(n)))
      &                =taijs(i,j,ijts_fc(4,ntrix(n)))
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
+c shortwave forcing at surface clear sky (if required)
+                 if (ijts_fc(7,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(7,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(7,ntrix(n)))
+     &                +rsign_aer*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
+     &                *(1.d0-CFRAC(I,J))
+c longwave forcing at surface clear sky (if required)
+                 if (ijts_fc(8,ntrix(n)).gt.0)
+     &                taijs(i,j,ijts_fc(8,ntrix(n)))
+     &                =taijs(i,j,ijts_fc(8,ntrix(n)))
+     &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
+     &                *(1.d0-CFRAC(I,J))
                END SELECT
 #ifdef  TRACERS_AMP
          IF (AMP_DIAG_FC == 2) THEN
