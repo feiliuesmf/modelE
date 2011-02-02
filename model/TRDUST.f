@@ -46,6 +46,12 @@ c**** input
       wsubwm=pbl_args%wsubwm
       mcfrac=pbl_args%mcfrac
 
+      qdust = .false.
+      dsteve1 = 0.D0
+      dsteve2 = 0.D0
+      soilvtrsh = 0.D0
+      pdfint = 0.D0
+
       IF (imDUST == 2) THEN
 
 c**** legacy dust emission
