@@ -1003,7 +1003,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
      &       trm(i,j,L,n_M_BOC_SU)+trm(i,j,L,n_M_BCS_SU)+
      &       trm(i,j,L,n_M_MXX_SU))
 #else
-            trm(i,j,L,n_SO4)
+     &      trm(i,j,L,n_SO4)
 #endif
      &      *1.76d2*byaxyp(i,j)*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
