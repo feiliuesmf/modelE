@@ -1,4 +1,3 @@
-
 NOTE: The full documentation on how to run the model is in doc/HOWTO.html. 
 This summary is not complete, and not necessarily up-to-date either.
 
@@ -79,5 +78,4 @@ The following is a list of targets currently supported by Makefile:
  htmldoc - create web-based documentation for this RUN
 
 If you run "gmake" without arguments it will print a short help.
-
 
