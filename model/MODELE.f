@@ -84,7 +84,7 @@ C**** Command line options
      &     ,oa,monacc,koa,acc_period
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
-     &     ,accSubdd
+     &     ,accSubdd,close_subdd
       USE DIAG_SERIAL, only : print_diags
 #ifdef BLK_2MOM
       USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
@@ -779,6 +779,10 @@ C**** END OF MAIN LOOP
 C****
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
+
+C**** CLOSE SUBDAILY OUTPUT FILES
+      CALL CLOSE_SUBDD
+
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
