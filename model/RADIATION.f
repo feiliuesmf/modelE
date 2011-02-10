@@ -1290,7 +1290,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
       real*8, dimension(:), pointer ::  plbaer
       real*8, dimension(:,:,:,:), pointer :: A6JDAY => null()
-      type (AerosolTables_type), save :: table
+      type (AerosolTables_type) :: table
 
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
