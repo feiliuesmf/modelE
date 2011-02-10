@@ -67,9 +67,10 @@ C****
      *  WIST(NMST) = (/ 32d3, 25d3, 15d3, 10d3, 15d3, 35d3,
      *                   1d3,  2d3, 25d3, 40d3, 25d3 /)
       Character*20,Parameter :: NAME_ST(NMST) = (/
-     *  'Dolphin & Union', 'Dease  ', 'Fury & Hecla', 'Nares',
-     *  'Gibraltar'      , 'English', 'Dardanelles' , 'Bosporous',
-     *  'Bab al Mandab'  , 'Malacca', 'Salat Sunda' /)
+     *     'Dolphin & Union', 'Dease          ', 'Fury & Hecla   ',
+     *     'Nares          ', 'Gibraltar      ', 'English        ',
+     *     'Dardanelles    ', 'Bosporous      ', 'Bab al Mandab  ',
+     *     'Malacca        ', 'Salat Sunda    ' /)
 
       Real*8 ::
      *   MMST(LMO,NMST), !  mass of water in strait (kg)

@@ -62,7 +62,7 @@ C****
      *     -.7d0, .7d0/), (/ NMST,2 /) ),
      *  WIST(NMST) = (/ 15d3, 25d3 /)
       Character*20,Parameter :: NAME_ST(NMST) = (/
-     *     'Gibraltar'   , 'Bab al Mandab' /)
+     *     'Gibraltar   ', 'Bab al Mandab' /)
 
       Real*8 ::
      *   MMST(LMO,NMST), !  mass of water in strait (kg)
