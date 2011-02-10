@@ -166,7 +166,11 @@ c avol [m3/gb] mass of air pro m3
 c conversion trm [kg/gb] -> [ug /m^3]
       GAS(1) = trm(i,j,l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
 c conversion trm [kg/kg] -> [ug /m^3]
+#ifdef  TRACERS_SPECIAL_Shindell
+      GAS(2) = trm(i,j,l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
+#else
       GAS(2) = off_HNO3(i,j,l)*1.d9 * 1.292 !   [ug HNO3/m^3]
+#endif
 c conversion trm [kg/gb] -> [ug /m^3]
       GAS(3) = trm(i,j,l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
 !  [kg/s] -> [ug/m3/s]

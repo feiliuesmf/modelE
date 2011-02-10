@@ -1286,7 +1286,7 @@ C****
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
-      INTEGER, PARAMETER :: kddmax = 55
+      INTEGER, PARAMETER :: kddmax = 55, not_open=-999
 !@var kdd total number of sub-daily diags
       INTEGER :: kdd
 !@var kddunit total number of sub-daily files
@@ -1294,7 +1294,7 @@ C****
 !@var namedd array of names of sub-daily diags
       CHARACTER*10, DIMENSION(kddmax) :: namedd
 !@var iu_subdd array of unit numbers for sub-daily diags output
-      INTEGER, DIMENSION(kddmax) :: iu_subdd
+      INTEGER, DIMENSION(kddmax) :: iu_subdd = not_open
 !@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
       CHARACTER*320 :: subddt = " "
 !@dbparam subdd string contains variables to save for sub-daily diags
@@ -1345,7 +1345,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 #endif
 
 #ifdef NEW_IO_SUBDD
-      private :: write_2d,write_3d,write_4d,in_subdd_list
+      private :: write_2d,write_3d,write_4d,get_subdd_index
      &     ,def_global_attr_subdd,def_xy_coord_subdd,time_subdd
      &     ,get_calendarstring,get_referencetime_for_netcdf
      &     ,def_time_coord_subdd,write_xy_coord_subdd
@@ -1555,18 +1555,39 @@ C****
 
       adate_sv = adate
 
-#ifdef NEW_IO_SUBDD
-      return
-#endif
-
       if (nsubdd.ne.0) then
 C**** close and re-open units
-        call closeunit ( iu_SUBDD(1:kddunit) )
+        call close_subdd
+#ifndef NEW_IO_SUBDD
         call open_subdd( aDATE )
+#endif
       end if
 C****
       return
       end subroutine reset_subdd
+
+      subroutine close_subdd
+!@sum close_subdd closes sub daily diag files
+!@auth Gavin Schmidt
+#ifdef NEW_IO_SUBDD
+      use pario, only : par_close
+#endif
+      implicit none
+      integer :: n
+      if (nsubdd.ne.0) then
+#ifdef NEW_IO_SUBDD
+        do n=1,size(iu_subdd)
+          if(iu_subdd(n) .ne. not_open) then
+            call par_close(grid,iu_subdd(n))
+          endif
+        enddo
+#else
+        call closeunit ( iu_SUBDD(1:kddunit) )
+#endif
+        iu_SUBDD(:) = not_open
+      endif
+      return
+      end subroutine close_subdd
 
 c accSubdd
       subroutine accSubdd
@@ -4465,7 +4486,7 @@ c write_2d
 !@sum write_2d high frequency netcdf-output of two-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use pario, only : par_open,par_close,par_enddef,defvar,
+      use pario, only : par_open,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
@@ -4480,7 +4501,7 @@ c write_2d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,rec
+      integer :: fid,rec,iq
       real(kind=8) :: time
       logical :: q24,qinst,qr4
       character(len=80) :: qname
@@ -4489,7 +4510,8 @@ c write_2d
       character(len=16) :: calendarstring
       character(len=8) :: dist_x,dist_y
 
-      if(.not. in_subdd_list(qtyname)) return
+      iq = get_subdd_index(qtyname)
+      if(iq.le.0) return
 
       qinst = .true.
       if (present(qinstant)) qinst = qinstant
@@ -4509,6 +4531,7 @@ c write_2d
 
       if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
+        iu_subdd(iq) = fid
         call def_global_attr_subdd(fid,q24,qinst)
         call def_xy_coord_subdd(fid)
         call def_time_coord_subdd(fid,q24,qinst,time,calendarstring)
@@ -4531,8 +4554,11 @@ c write_2d
 
         call par_enddef(grid,fid)
         call write_xy_coord_subdd(fid)
-      else
+      elseif(iu_subdd(iq)==not_open) then
         fid = par_open(grid,trim(fname),'write')
+        iu_subdd(iq) = fid
+      else
+        fid = iu_subdd(iq)
       endif
 
       call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
@@ -4542,7 +4568,6 @@ c write_2d
         if(hasNorthPole(grid)) data(2:im,jm) = data(1,jm)
       endif
       call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
-      call par_close(grid,fid)
 
       return
       end subroutine write_2d
@@ -4553,7 +4578,7 @@ c write_3d
 !@sum write_3d high frequency netcdf-output of three-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use pario, only : par_open,par_close,par_enddef,defvar,
+      use pario, only : par_open,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
@@ -4569,7 +4594,7 @@ c write_3d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,l,rec,level,ivertical,l5
+      integer :: fid,l,rec,level,ivertical,l5,iq
       real(kind=8) :: time
       real(kind=8),dimension(size(data,dim=3)) :: vertical
       logical :: q24,qinst,qr4
@@ -4581,7 +4606,8 @@ c write_3d
       character(len=8) :: dist_x,dist_y
       character(len=5) :: c5
 
-      if(.not. in_subdd_list(qtyname)) return
+      iq = get_subdd_index(qtyname)
+      if(iq.le.0) return
 
       if (present(suffixes)) then
         if (size(suffixes) /= size(data,3)) call stop_model
@@ -4606,6 +4632,7 @@ c write_3d
 
       if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
+        iu_subdd(iq) = fid
         call def_global_attr_subdd(fid,q24,qinst)
         call def_xy_coord_subdd(fid)
 
@@ -4702,8 +4729,11 @@ c define physical variable
         call write_xy_coord_subdd(fid)
         if (present(positive)) call write_data(grid,fid,'level',vertical
      &       )
-      else
+      elseif(iu_subdd(iq)==not_open) then
         fid = par_open(grid,trim(fname),'write')
+        iu_subdd(iq) = fid
+      else
+        fid = iu_subdd(iq)
       endif
 
       call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
@@ -4737,7 +4767,6 @@ c write physical variable
         end if
         call write_dist_data(grid,fid,trim(qname),data,record=rec)
       endif
-      call par_close(grid,fid)
 
       return
       end subroutine write_3d
@@ -4748,7 +4777,7 @@ c write_4d
 !@sum write_4d high frequency netcdf-output of four-dimensional arrays
 !@auth M. Kelley and Jan Perlwitz
 
-      use pario, only : par_open,par_close,par_enddef,defvar,
+      use pario, only : par_open,par_enddef,defvar,
      &     write_data,write_dist_data,write_attr
       use domain_decomp_atm, only : grid,hasNorthPole,hasSouthPole
 
@@ -4764,7 +4793,7 @@ c write_4d
       character(len=*),intent(in),optional :: positive
       logical,intent(in),optional :: qinstant
 
-      integer :: fid,l,n,rec,level
+      integer :: fid,l,n,rec,level,iq
       real(kind=8),dimension(size(data,dim=3)) :: vertical
       real(kind=8) :: time
       logical :: q24,qinst,qr4
@@ -4775,7 +4804,8 @@ c write_4d
       character(len=16) :: calendarstring
       character(len=8) :: dist_x,dist_y
 
-      if(.not. in_subdd_list(qtyname)) return
+      iq = get_subdd_index(qtyname)
+      if(iq.le.0) return
 
       if (present(suffixes)) then
         if (size(suffixes) /= size(data,4)) call stop_model
@@ -4800,6 +4830,7 @@ c write_4d
 
       if(rec==1) then ! define this output file
         fid = par_open(grid,trim(fname),'create')
+        iu_subdd(iq) = fid
         call def_global_attr_subdd(fid,q24,qinst)
         call def_xy_coord_subdd(fid)
         do l=1,size(data,dim=3)
@@ -4867,8 +4898,11 @@ c define physical variable
         call par_enddef(grid,fid)
         call write_xy_coord_subdd(fid)
         call write_data(grid,fid,'level',vertical)
-      else
+      elseif(iu_subdd(iq)==not_open) then
         fid = par_open(grid,trim(fname),'write')
+        iu_subdd(iq) = fid
+      else
+        fid = iu_subdd(iq)
       endif
 
       call write_time_coord_subdd(fid,rec,time,qinst,q24,calendarstring)
@@ -4891,28 +4925,26 @@ c write physical variable
       else
         call write_dist_data(grid,fid, trim(qtyname), data, record=rec)
       end if
-      call par_close(grid,fid)
 
       return
       end subroutine write_4d
 
-c in_subdd_list
-      logical function in_subdd_list(qtyname)
-!@sum in_subdd_list tests presence of qtyname in subdd list
+      integer function get_subdd_index(qtyname)
+!@sum get_subdd_index finds qtyname in subdd list
 !@auth M. Kelley
 
       implicit none
 
       character(len=*) :: qtyname
       integer kq
+      get_subdd_index = 0
       do kq=1,kdd
         if(trim(qtyname).eq.trim(namedd(kq))) then
-          in_subdd_list = .true.
-          return
+          get_subdd_index = kq
+          exit
         endif
       enddo
-      in_subdd_list = .false.
-      end function in_subdd_list
+      end function get_subdd_index
 
 #endif /* NEW_IO_SUBDD */
 
