@@ -24,6 +24,7 @@ Table of Contents
   <LI><a HREF="#model_state">  HOW-TO examine a quantity in the restart file</a>
   <LI><a HREF="#diffreport">   HOW-TO compare restart files</a>
   <LI><a HREF="#defvar">       HOW-TO save a quantity in the restart file</a>
+  <LI><a HREF="#pdE">          HOW-TO obtain scaled diagnostics (short version)</a>
   <LI><a HREF="#scaleacc">     HOW-TO obtain scaled diagnostics</a>
   <LI><a HREF="#sumfiles">     HOW-TO do time averages</a>
   <LI><a HREF="#remap">        HOW-TO obtain lat-lon outputs from a cubed-sphere run</a>
@@ -34,6 +35,7 @@ Table of Contents
   <LI><a HREF="#subdd">        HOW-TO write "subdaily" diagnostics in netcdf format</a>
   <LI><a HREF="#add_diag">     HOW-TO add a new diagnostic to an existing category</a>
   <LI><a HREF="#add_diag_cat"> HOW-TO add a new category of diagnostic</a>
+  <LI><a HREF="#special_cat">  Special diagnostic calculations</a>
   <LI><a HREF="#probs">        Troubleshooting</a>
   <LI><a HREF="#plotting">     Plotting options</a>
   <LI><a HREF="#rules">        How it works</a>
@@ -58,6 +60,7 @@ To reconfigure a rundeck for NEW_IO, change the following:
   <li>in the <tt>Object Modules:</tt> section, replace <tt>IORSF</tt> by <tt>IO_DRV</tt>  If doing a tracer run, add <tt>TRDIAG</tt> somewhere.</li>
   <li>in the <tt>Components:</tt> section, add <tt>dd2d</tt></li>
   <li>If you wish to use parallel-netcdf, add a line <tt>OPTS_dd2d = NC_IO=PNETCDF</tt> in the <tt>Component Options:</tt> section of the rundeck, and check that PNETCDFHOME is set in your .modelErc (see <a href="#local_info">Local information</a> for installation locations).
+If your run writes restart files larger than 1-2 GB, this option is highly recommended.
   <li>If ISTART=2: in the <tt>Data input files:</tt> section, set <tt>GIC=name_of_a_netcdf_gic.nc</tt>
          (The <a href="#local_info">Local information</a> section will point you to some existing netcdf GIC files)</li>
 </ul>
@@ -279,6 +282,10 @@ set of acc-files constituting a particular time period
 (see <a href=#sumfiles>the next section</a>),
 and then applying <tt>scaleacc</tt> to the resulting "sum of files".
   </li>
+  <li>
+<tt>scaleacc</tt> does not calculate diagnostics defined using nontrivial operations
+on time-mean output; <a href=#special_cat>special standalone programs </a> have been created for this purpose.
+  </li>
 </ul>
 Model E diagnostics categories configured for <tt>scaleacc</tt> include
 <ul>
@@ -498,6 +505,19 @@ write_2d_as_giss4d JAN1901.ajlE001xyz.nc JAN1901.ajlE001xyz.giss4d      # extrac
 <P><HR><p>
 
 <p>
+<A name="pdE"><b>HOW-TO obtain scaled diagnostics (short version)</b></a>
+</p>
+
+R. Ruedy has created a NEW_IO version of the <tt>pdE</tt> script which
+executes the commands described in the previous sections.  It collects
+the printed tables for all diagnostics categories into a single text
+file, and offers the option to convert netcdf to GISS-format files.
+Execute <tt>pdE</tt> without arguments to see the syntax of its usage.
+
+<!------------------------------------------------------------------------------->
+<P><HR><p>
+
+<p>
 <A name="ncksprt"><b>HOW-TO print a netcdf variable in ASCII format</b></a>
 </p>
 
@@ -617,6 +637,22 @@ Finally, for outputs that are simple functions of already-existing outputs,
 it may be more expedient to calculate/extract them using generic tools rather
 than adding new code to modelE.
 </p>
+
+<!------------------------------------------------------------------------------->
+<P><HR><p>
+
+<p>
+<A name="special_cat"><b>Special diagnostic calculations</b></a>
+</p>
+
+Special-purpose programs for outputs not fitting the generic-postprocessing mold include:
+<ul>
+  <li> <tt>agcstat</tt>: calculates standing-eddy statistics, refractive indices, etc. from time-mean output,
+and places the results into the <tt>agc</tt> output file
+  </li>
+  <li> <tt>prtostat</tt>: prints selected ocean circulation statistics from time-mean output
+  </li>
+</ul>
 
 <!------------------------------------------------------------------------------->
 <P><HR><p>
