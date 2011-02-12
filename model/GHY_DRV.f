@@ -208,7 +208,7 @@ ccc extra stuff which was present in "earth" by default
       USE clouds_com,ONLY : ddml,fss
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth
-      use tracers_dust,only : d_dust,ers_data,hbaij,ricntd
+      use tracers_dust,only : nAerocomDust,d_dust,ers_data,hbaij,ricntd
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,minfr
@@ -348,8 +348,8 @@ c**** used in PBL.f to calculate wspdf
         pbl_args%mcfrac=0.D0
       END IF
 c**** prescribed dust emission
-      pbl_args%d_dust(1:Ntm_dust)=d_dust(i,j,1:Ntm_dust,jday)/Sday
-     &     /axyp(i,j)/ptype
+      pbl_args%d_dust(1:nAerocomDust)=d_dust(i,j,1:nAerocomDust,jday)
+     &     /Sday/axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%minfr(:)=minfr(i,j,:)

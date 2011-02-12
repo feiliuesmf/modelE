@@ -440,7 +440,7 @@ C**** dust - to be changed soon
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
-      NTRACE=NTRACE+ntm_min+15  ! add mineral tracers
+      NTRACE = NTRACE + ntm_minerals ! add mineral tracers
 c tracer 7 is dust
       ITR(n1:NTRACE) = (/7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
      &     7,7,7,7,7,7,7,7,7,7,7,7,7,7/)
@@ -482,7 +482,7 @@ C**** dust - to be changed soon
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
-      NTRACE=NTRACE+Ntm_quhe    ! add quartz/hematite aggregate tracers
+      NTRACE = NTRACE + ntm_quarzhem ! add quartz/hematite aggregate tracers
 c tracer 7 is dust
       ITR(n1:NTRACE) = (/7,7,7/)
       KRHTRA(n1:NTRACE)= 0.  ! no deliq for quartz/hematite aggregates
