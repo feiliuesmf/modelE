@@ -84,7 +84,7 @@ C**** Command line options
      &     ,oa,monacc,koa,acc_period
       USE SOIL_DRV, only: daily_earth, ground_e
       USE SUBDAILY, only : nsubdd,init_subdd,get_subdd,reset_subdd
-     &     ,accSubdd
+     &     ,accSubdd,close_subdd
       USE DIAG_SERIAL, only : print_diags
 #ifdef BLK_2MOM
       USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
@@ -779,6 +779,10 @@ C**** END OF MAIN LOOP
 C****
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
+
+C**** CLOSE SUBDAILY OUTPUT FILES
+      CALL CLOSE_SUBDD
+
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
@@ -951,7 +955,7 @@ C**** reset sub-daily diag files
 
 !TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
 !TODO exist except when building an FV version
-      subroutine checkpointModelE(ModelEclock, clock, kdisk, NOW, IRAND)
+      subroutine checkpointModelE(ModelEclock, clock1, kdisk, NOW,IRAND)
 !@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
 !@+ write restart information alternately onto 2 disk files
       use MODEL_COM, only: rsf_file_name
@@ -960,7 +964,7 @@ C**** reset sub-daily diag files
       USE FV_INTERFACE_MOD, only: Checkpoint
 #endif
       type (ModelE_Clock_type), intent(in) :: ModelEclock
-      Type (ESMF_CLOCK), intent(in) :: clock
+      Type (ESMF_CLOCK), intent(in) :: clock1
       integer, intent(inout) :: kdisk
       real*8, intent(inout) :: NOW
       integer, intent(inout) :: irand
@@ -971,7 +975,7 @@ C**** reset sub-daily diag files
 #if defined( USE_FVCORE )
       fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
       fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
-      call checkpoint(fv, clock, fv_fname, fv_dfname)
+      call checkpoint(fv, clock1, fv_fname, fv_dfname)
 #endif
       if (AM_I_ROOT())
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')

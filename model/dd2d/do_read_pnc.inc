@@ -3,6 +3,8 @@
       type(dist_grid), intent(in) :: grid
       logical, intent(in), optional :: bcast_all
       integer :: vid,rc,ierr,nd,arrsize,shp(7)
+      integer*8, dimension(7) :: srt,cnt
+      real*8 :: arr_dum
       logical :: bcast_all_
       bcast_all_ = .false.
       if(present(bcast_all)) bcast_all_ = bcast_all
@@ -15,7 +17,17 @@
       if(bcast_all_) then
         rc = nfmpi_get_var_double_all(fid,vid,arr)
       else
-        rc = nfmpi_begin_indep_data(fid)
-        if(grid%am_i_globalroot) rc = nfmpi_get_var_double(fid,vid,arr)
-        rc = nfmpi_end_indep_data(fid)
+c        if(grid%am_i_globalroot) then
+c          rc = nfmpi_get_var_double(fid,vid,arr)
+c        else
+c        endif
+        nd = size(shape(arr))
+        srt(:) = 1
+        cnt(:) = 0
+        if(grid%am_i_globalroot) then
+          if(nd.gt.0) cnt(1:nd) = shape(arr)
+          rc = nfmpi_get_vara_double_all(fid,vid,srt,cnt,arr)
+        else
+          rc = nfmpi_get_vara_double_all(fid,vid,srt,cnt,arr_dum)
+        endif
       endif

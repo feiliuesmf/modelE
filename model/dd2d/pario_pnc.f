@@ -3,7 +3,6 @@ c A version of the pario module built on the Parallel-NetCDF
 c library provided by ANL.
 c   http://www.mcs.anl.gov/parallel-netcdf
 c
-
       module pario
 
 #ifdef OFFLINE
@@ -219,7 +218,7 @@ c define/overwrite the success flag for error checking
         rc = nfmpi_redef(fid)
       elseif(trim(mode).eq.'write') then
         call write_data(grid,fid,'write_status',fail)
-        rc = nfmpi_sync(fid)
+c        rc = nfmpi_sync(fid)
       endif
       par_open = fid
       return
@@ -583,17 +582,23 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       character(len=*) :: arr(:)
+      integer*8 :: srt(2),cnt(2)
       integer :: rc,vid
+      character :: char_dum
       rc = nfmpi_inq_varid(fid,trim(varname),vid)
       if(grid%am_i_globalroot .and. rc.ne.nf_noerr)
      &     write(6,*) 'variable ',
      &     trim(varname),' not found in output file - stopping'
       call stoprc(rc,nf_noerr)
-      rc = nfmpi_begin_indep_data(fid)
+      srt(:) = 1
       if(grid%am_i_globalroot) then
-        rc = nfmpi_put_var_text(fid,vid,arr)
+        cnt(:) = (/ len(arr(1)), size(arr,1) /)
+        rc = nfmpi_put_vara_text_all(fid,vid,srt,cnt,arr)
+      else
+        cnt(:) = 0
+        char_dum = 'x'
+        rc = nfmpi_put_vara_text_all(fid,vid,srt,cnt,char_dum)
       endif
-      rc = nfmpi_end_indep_data(fid)
       end subroutine write_nc_1D_array_of_strings
       subroutine write_nc_string(grid,fid,varname,arr,record)
       integer :: fid
@@ -603,11 +608,14 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       integer, intent(in), optional :: record
       integer :: rc,vid,did
       integer*8 :: srt(2),cnt(2),nrecs8
+      character :: char_dum
       rc = nfmpi_inq_varid(fid,trim(varname),vid)
       if(grid%am_i_globalroot .and. rc.ne.nf_noerr)
      &     write(6,*) 'variable ',
      &     trim(varname),' not found in output file - stopping'
       call stoprc(rc,nf_noerr)
+      srt(:) = 1
+      cnt(:) = 0
       if(present(record)) then
         nrecs8 = 0
         rc = nfmpi_inq_unlimdim(fid,did)
@@ -617,18 +625,16 @@ c      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
      &         'error in record dim spec. for variable ',trim(varname)
           call stoprc(0,1)
         endif
+        srt(2) = record
+        cnt(2) = 1
       endif
-      rc = nfmpi_begin_indep_data(fid)
       if(grid%am_i_globalroot) then
-        if(present(record)) then
-          srt = (/ 1, record /)
-          cnt = (/ len(arr), 1 /)
-          rc = nfmpi_put_vara_text(fid,vid,srt,cnt,arr)
-        else
-          rc = nfmpi_put_var_text(fid,vid,arr)
-        endif
+        cnt(1) = len(arr)
+        rc = nfmpi_put_vara_text_all(fid,vid,srt,cnt,arr)
+      else
+        char_dum = 'x'
+        rc = nfmpi_put_vara_text_all(fid,vid,srt,cnt,char_dum)
       endif
-      rc = nfmpi_end_indep_data(fid)
       end subroutine write_nc_string
 
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
@@ -1197,3 +1203,10 @@ c
       enddo
       return
       end subroutine copy_from_1D
+
+      subroutine copy_0D(in,out)
+      implicit none
+      real*8 in,out
+      out = in
+      return
+      end subroutine copy_0D
