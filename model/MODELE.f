@@ -79,6 +79,7 @@ c$$$      USE MODEL_COM, only: clock
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+      logical :: start9
 
 C**** Command line options
       CHARACTER*32 :: ifile
@@ -295,7 +296,8 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-
+      start9 = .false.
+      if (istart==9) start9=.true.
       call startTimer('Main Loop')
       DO WHILE (Itime.lt.ItimeE)
 #ifdef USE_SYSUSAGE
@@ -308,22 +310,25 @@ C****
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
-      IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
-         CALL RFINAL (IRAND)
-         call set_param( "IRAND", IRAND, 'o' )
-         call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+      if (Ndisk > 0) then
+        IF (MOD(Itime-ItimeI,Ndisk).eq.0.or.start9) THEN
+          start9 = .false.
+          CALL RFINAL (IRAND)
+          call set_param( "IRAND", IRAND, 'o' )
+          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
 #if defined( USE_FVCORE )
-         fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
-         fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
-         call Checkpoint(fv, clock, fv_fname, fv_dfname)
+          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
+          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
+          call Checkpoint(fv, clock, fv_fname, fv_dfname)
 #endif
-         if (AM_I_ROOT())
-     *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
+          if (AM_I_ROOT())
+     *      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
-         KDISK=3-KDISK
-         CALL TIMER (NOW,MELSE)
-      END IF
+          KDISK=3-KDISK
+          CALL TIMER (NOW,MELSE)
+        END IF
+      end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
