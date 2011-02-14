@@ -144,10 +144,14 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_minerals: Number of TRACERS_MINERALS tracers.
 #ifdef TRACERS_MINERALS
       integer, parameter :: ntm_minerals=20
+#else
+      integer, parameter :: ntm_minerals = 0
 #endif  /* TRACERS_MINERALS */
 !@var ntm_quarzhem: Number of TRACERS_QUARZHEM tracers.
 #ifdef TRACERS_QUARZHEM
       integer, parameter :: ntm_quarzhem=3
+#else
+      integer, parameter :: ntm_quarzhem = 0
 #endif  /* TRACERS_QUARZHEM */
       integer, parameter :: ntm_dust = ntm_minerals + ntm_quarzhem
 #endif /* TRACERS_MINERALS || TRACERS_QUARZHEM */
