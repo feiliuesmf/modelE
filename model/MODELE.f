@@ -141,6 +141,7 @@ C**** Command line options
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+      logical :: start9
 
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
@@ -320,17 +321,20 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-
+      start9 = .false.
+      if (istart == 9) start9 = .true.
       DO WHILE (Itime.lt.ItimeE)
         call startTimer('Main Loop')
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 
 c$$$         call test_save(__LINE__, itime)
-
-      if (mod(Itime-ItimeI,Ndisk).eq.0) then
+      if (Ndisk > 0) then
+        if (mod(Itime-ItimeI,Ndisk).eq.0 .or. start9) then
+         start9 = .false.
          call checkpointModelE(ModelEclock, clock, kdisk, now, irand)
-      END IF
+        END IF
+      end if
       
       if (isBeginningOfDay(modelEclock)) then
         call startNewDay(modelEclock, kradia, iu_RAD, iu_VFLXO)
@@ -955,7 +959,7 @@ C**** reset sub-daily diag files
 
 !TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
 !TODO exist except when building an FV version
-      subroutine checkpointModelE(ModelEclock, clock, kdisk, NOW, IRAND)
+      subroutine checkpointModelE(ModelEclock, clock1, kdisk, NOW,IRAND)
 !@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
 !@+ write restart information alternately onto 2 disk files
       use MODEL_COM, only: rsf_file_name
@@ -964,7 +968,7 @@ C**** reset sub-daily diag files
       USE FV_INTERFACE_MOD, only: Checkpoint
 #endif
       type (ModelE_Clock_type), intent(in) :: ModelEclock
-      Type (ESMF_CLOCK), intent(in) :: clock
+      Type (ESMF_CLOCK), intent(in) :: clock1
       integer, intent(inout) :: kdisk
       real*8, intent(inout) :: NOW
       integer, intent(inout) :: irand
@@ -975,7 +979,7 @@ C**** reset sub-daily diag files
 #if defined( USE_FVCORE )
       fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
       fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
-      call checkpoint(fv, clock, fv_fname, fv_dfname)
+      call checkpoint(fv, clock1, fv_fname, fv_dfname)
 #endif
       if (AM_I_ROOT())
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')

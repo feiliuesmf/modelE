@@ -43,6 +43,9 @@
       use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
      &   ,fracSiltPDFscheme
 #endif
+#ifdef TRACERS_QUARZHEM
+     &   ,DenHema,DenQuarz,FreeFe,FrHeQu
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
 #ifdef GFED_3D_BIOMASS
@@ -1484,7 +1487,7 @@ CCC#endif
       CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
       n_claysmec=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.35D3     ! for Montmorillonite)
+          call set_trpdens(n, 2.35D3)     ! for Montmorillonite
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -8448,7 +8451,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trsnowli,trlndi,snowli
       USE SEAICE, only : xsi,ace1i
-      USE SEAICE_COM, only : rsi,msi,snowi,trsi,trsi0,ssi
+      USE SEAICE_COM, only : rsi,msi,snowi,trsi,ssi
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth

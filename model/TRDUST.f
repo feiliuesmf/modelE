@@ -300,7 +300,7 @@ c**** output
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE socpbl,ONLY : t_pbl_args
       USE tracer_com,ONLY : Ntm_dust,trname,n_clay,n_clayilli
-      USE tracers_dust,ONLY : CWiCub,FClWiCub,FSiWiCub,
+      use tracers_dust,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
      &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac
@@ -319,7 +319,7 @@ c**** output
 
       INTEGER :: n1
       REAL*8 :: vtrsh
-      REAL*8 :: d_dust(Ntm_dust)
+      real(kind=8) :: d_dust(nAerocomDust)
       REAL*8 :: frtrac
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
@@ -476,7 +476,7 @@ c**** prescribed AEROCOM dust emission
           dsrcflx=d_dust(4)
         END SELECT
 
-#endif
+#endif /* TRACERS_MINERALS */
 
 #ifdef TRACERS_QUARZHEM
 
@@ -489,7 +489,7 @@ c**** prescribed AEROCOM dust emission
           dsrcflx=d_dust(4)
         END SELECT
 
-#endif
+#endif /* TRACERS_QUARZHEM */
 
         SELECT CASE(trname(n))
 #ifdef TRACERS_MINERALS
@@ -497,21 +497,21 @@ c**** prescribed AEROCOM dust emission
           frtrac=minfr(n1)
 #ifdef TRACERS_QUARZHEM
      &         -MIN((1.D0-FreeFe)*minfr(9),minfr(n1))
-#endif
-#endif
+#endif /* TRACERS_QUARZHEM */
+#endif /* TRACERS_MINERALS */
 #ifdef TRACERS_QUARZHEM
         CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
           frtrac=MIN((1.D0-FreeFe)*minfr(9),minfr(6))
-#endif
+#endif /* TRACERS_QUARZHEM */
 #ifdef TRACERS_MINERALS
         CASE DEFAULT
           frtrac=minfr(n1)
-#endif
+#endif /* TRACERS_MINERALS */
         END SELECT
 
         dsrcflx=dsrcflx*frtrac
 
-#endif
+#endif /* TRACERS_MINERALS || TRACERS_QUARZHEM */
 
 #else
 
