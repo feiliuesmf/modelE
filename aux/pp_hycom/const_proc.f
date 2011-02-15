@@ -1,10 +1,10 @@
       module const_proc
       implicit none
       real, parameter :: spval = -0.03125, onem=9806., onecm=98.06
-     .    ,g=9.806, rho =1000., dz=1., spcifh=4185, flag=-9999.
+     .    ,g=9.806, rho =1000., dz=1., spcifh=4185, flag=-999.
      .    ,epsil_p=0.01                             ! 1cm cutoff
       integer, parameter :: iorign=1, jorign=1,julian=365
-      logical, parameter :: diag=.false., rhodot=.false.
+      logical, parameter :: diag=.true., rhodot=.false.
       integer, dimension(12),parameter :: 
 c    .   jdofm=(/30,60,90,120,150,180,210,240,270,300,330,360/)
      .   jdofm=(/31,59,90,120,151,181,212,243,273,304,334,365/)
@@ -37,6 +37,6 @@ c
 c
       character(len=20) :: runid="Exxx"
       integer           :: ny1=1800, ny2=1800
-      logical           :: monave_convert,solo_convert
+      logical           :: monave_convert,solo_convert,timav,cnvert
 
       end module const_proc

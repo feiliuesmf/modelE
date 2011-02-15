@@ -33,7 +33,7 @@ c
       integer n,ia,ja,io,jo
       real flda(iia,jja),fldo(idm,jdm),dp(idm,jdm),wgt
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO PRIVATE(io,jo,wgt)
       do 16 ja=1,jja
       do 16 ia=1,iia
       if (kij(ia,ja).eq.0) then  
@@ -125,7 +125,7 @@ c$OMP END PARALLEL DO
 c
 c --- mapping nward/eward from ogcm grid to agcm grid
 c
-c$OMP PARALLEL DO
+c$OMP PARALLEL DO PRIVATE(io,jo,wgt)
       do 16 ja=1,jja
       do 16 ia=1,iia
       if (kij(ia,ja).eq.0) then
@@ -182,10 +182,14 @@ c
 
       if (diag) then
         do k=1,kdm
-        write(*,'(2i4,a,f8.1/(5(5f9.2,5x,5f9.2/)))')
-     .   itest,jtest, ' p  xho   input grd z=',z33(k),
-     . (( p(i,j,k+1),j=jtest-2,jtest+2)
-     . ,(xrho(i,j,k),j=jtest-2,jtest+2),i=itest-2,itest+2)
+        write(*,'(2i4,a,i5/(5f9.2))')
+     .   itest,jtest, '  p    input grd k=',k,
+     .  ((p(i,j,k+1),j=jtest-2,jtest+2),i=itest-2,itest+2)
+        enddo
+        do k=1,kdm
+        write(*,'(2i4,a,i5/(5f9.2))')
+     .   itest,jtest, '  xho   input grd k=',k,
+     .   ((xrho(i,j,k),j=jtest-2,jtest+2),i=itest-2,itest+2)
         enddo
       endif
 
@@ -200,6 +204,7 @@ c
 c --- define pressure at mass points (2 per layer) for use in grdtrns
 c
       dpth=z33(2)
+c$OMP PARALLEL DO PRIVATE(pbot,ptop,pmid,pedg)
       do 26 j=1,jdm
       do 26 i=1,idm
       if(p(i,j,kdm+1).le.0.) goto 26
@@ -230,6 +235,7 @@ c --- put uppermost depth point at sea surface and lowest point at bottom
         enddo
       endif
  26    continue
+c$OMP END PARALLEL DO
 
       xrhoz=flag
       call grdtrns(0,puv,x2k,dum,idm,jdm,2*kdm,coord,lrfi,xrhoz,xrhoz,
@@ -237,11 +243,9 @@ c --- put uppermost depth point at sea surface and lowest point at bottom
 c
       if (diag) then
         do k=1,k33
-        write(*,'(2i4,a,f8.1/(5(5f9.2,5x,5f9.2/)))')
-     .   itest,jtest, ' aft grd z=',z33(k),
-     . ((xrhoz(i,j,k),j=jtest-2,jtest+2)
-     . ,(xrhoz(i,j,k),j=jtest-2,jtest+2)
-     .               ,i=itest-2,itest+2)
+        write(*,'(2i4,a,f8.1/(5f9.2))')
+     .   itest,jtest,'  xrhoz after grdtrns z=',z33(k),
+     .   ((xrhoz(i,j,k),j=jtest-2,jtest+2),i=itest-2,itest+2)
         enddo
       endif
 
@@ -249,8 +253,9 @@ c --- done with vertical interpolation; next: horizontal interpolation
 
       do 17 k=1,k33
 c
-      do i=1,idm
+c$OMP PARALLEL DO
       do j=1,jdm
+      do i=1,idm
         if (k.ge.2) then
           dp(i,j)=min(z33(k),p(i,j,kdm+1))-min(z33(k-1),p(i,j,kdm+1))
         elseif (k.eq.1) then
@@ -258,24 +263,25 @@ c
         endif
       enddo
       enddo
+c$OMP END PARALLEL DO
 
       call o2a_2d(dp,xrhoz(1,1,k),xijz(1,1,k))
 
+c$OMP PARALLEL DO
       do i=1,iia
       do j=1,jja
       if (z33(k).gt.pij(i,j)) xijz(i,j,k)=flag
       enddo
       enddo
+c$OMP END PARALLEL DO
 
  17   continue
 
       if (diag) then
         do k=1,k33
-        write(*,'(2i4,a,f8.1/(5(5f9.2,5x,5f9.2/)))')
-     .   iatest,jatest, ' aft o2a z=',z33(k),
-     . ((xijz(i,j,k),i=iatest-2,iatest+2)
-     . ,(xijz(i,j,k),i=iatest-2,iatest+2)
-     .              ,j=jatest+2,jatest-2,-1)
+        write(*,'(2i4,a,f8.1/(5f9.2))')
+     .   iatest,jatest,'  xyz after o2a z=',z33(k),
+     .   ((xijz(i,j,k),i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
         enddo
       endif
 c
@@ -314,6 +320,7 @@ c
 c --- define pressure at mass points (2 per layer) for use in grdtrns
 c
       dpth=z33(2)
+c$OMP PARALLEL DO PRIVATE(pbot,ptop,pmid,pedg)
       do 26 j=1,jdm
       do 26 i=1,idm
       if(p(i,j,kdm+1).le.0.) goto 26
@@ -347,6 +354,7 @@ c --- put uppermost depth point at sea surface and lowest point at bottom
         enddo
       endif
  26   continue
+c$OMP END PARALLEL DO
 
       urhoz=flag
       vrhoz=flag
@@ -359,6 +367,7 @@ c --- done with vertical interpolation; next: horizontal interpolation
 
       do 17 k=1,k33
 c
+c$OMP PARALLEL DO
       do i=1,idm
       do j=1,jdm
         if (k.ge.2) then
@@ -368,9 +377,11 @@ c
         endif
       enddo
       enddo
+c$OMP END PARALLEL DO
 
       call o2a_2dvec(dp,urhoz(1,1,k),vrhoz(1,1,k),uz(1,1,k),vz(1,1,k))
 
+c$OMP PARALLEL DO
       do i=1,iia
       do j=1,jja
       if (z33(k).gt.pij(i,j)) then
@@ -379,16 +390,20 @@ c
       endif
       enddo
       enddo
+c$OMP END PARALLEL DO
 
  17   continue
 
       if (diag) then
         do k=1,k33
-        write(*,'(2i4,a,f8.1/(5(5f9.2,5x,5f9.2/)))')
-     .   iatest,jatest, ' aft o2a z=',z33(k),
-     . ((uz(i,j,k),i=iatest-2,iatest+2)
-     . ,(vz(i,j,k),i=iatest-2,iatest+2)
-     .              ,j=jatest+2,jatest-2,-1)
+        write(*,'(2i4,a,f8.1/(5f9.2))')
+     .   iatest,jatest,'  uz after o2a z=',z33(k),
+     .  ((uz(i,j,k),i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
+        enddo
+        do k=1,k33
+        write(*,'(2i4,a,f8.1/(5f9.2))')
+     .   iatest,jatest,'  vz after o2a z=',z33(k),
+     .  ((vz(i,j,k),i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
         enddo
       endif
 c
