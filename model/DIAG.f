@@ -890,6 +890,7 @@ C****  10  AFTER DAILY
 C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
+#ifndef SCM
       EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
@@ -897,10 +898,6 @@ C****
      *     ,conserv_MICB,conserv_HICB
       real*8 NOW
       INTEGER NT
-
-#ifdef SCM
-      return
-#endif
 
 C**** ATMOSPHERIC ANGULAR MOMENTUM
       CALL conserv_DIAG(M,conserv_AM,icon_AM)
@@ -956,6 +953,9 @@ C**** Tracer calls are dealt with separately
 #endif
 C****
       CALL TIMER (NOW,MDIAG)
+
+#endif /* not SCM */
+
       RETURN
       END SUBROUTINE DIAGCA
 
