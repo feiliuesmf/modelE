@@ -168,7 +168,7 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
 
       INTEGER :: J_0,J_1, I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-      INTEGER :: dummy
+      INTEGER :: ice_nskip_plus_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -261,10 +261,12 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         if (jmon.eq.1) then
           if (ocn_cycl.eq.1) CALL REWIND_PARALLEL( iu_OSST )
           CALL REWIND_PARALLEL( iu_SICE )
-          call READ_PARALLEL(dummy, iu_SICE)
+          ice_nskip_plus_1 = 2 ! now skip the first record of the file
+        else
+          ice_nskip_plus_1 = 1
         end if
-        CALL READT_PARALLEL
-     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),TEMP_LOCAL,1)
+        CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),TEMP_LOCAL,
+     *       ice_nskip_plus_1)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         if (ocn_cycl.eq.1) then
