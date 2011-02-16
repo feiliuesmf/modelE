@@ -47,14 +47,14 @@ c --- optional: locate north pole in grid
       end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       do n=1,4
-        call extrct(lat4(1,1,n),latij(1,1,n))
-        call extrct(lon4(1,1,n),lonij(1,1,n))
+        call extrct(lat4(1,1,n),iorign,jorign,latij(1,1,n))
+        call extrct(lon4(1,1,n),iorign,jorign,lonij(1,1,n))
       end do
 c
 c$OMP PARALLEL DO
       do 56 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
-      jb=mod(j        ,jdm)+1
+      jb=mod(j      ,jdm)+1
       do 56 i=1,idm
       if (i.lt.idm) then
         scpx(i,j)=sphdis(latij(i  ,j,1),lonij(i  ,j,1),
