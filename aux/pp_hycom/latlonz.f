@@ -1,28 +1,29 @@
-
       program latlonz3d
-
+c
+c <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 c  (1) read in monthly output files (*.out) from hycom
 c      average them
 c  (2) convert selected (11) fields to lat/lon/z grid of 1x1x33
 c      in giss or netcdf format
+c <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 c
       use const_proc
-      use hycom_arrays, only: depths,srfhgt,dpmixl,oice,u,v,dp,p
+      use hycom_arrays, only: depths,srfhgt,dpmixl,covice,u,v,dp,p
      .   ,temp,saln,th3d,tracer,alloc_hycom_arrays
       use hycom_dimen
       use hycom_o2a
 
       implicit none
 c
-      real :: year1
+      real :: day0,day1
       integer, allocatable :: im(:,:)
 c
       integer mo,mon1,i70,i45,ieq,status,ia,k00,ny,m,mm,nt
       integer :: nrec
-      real*8 :: area,avgbot
+      real*8  :: area,avgbot
       character flnmin*128,ttl*80,ttl1*80,ttl2*80
      .         ,flnmann*80,flnmout*128
-      logical timav,cnvert
+      logical :: succes
       character*26 ttlt(ntrcr)
       character*26,dimension(8),parameter::
      .  ttl0=(/'sea surface height (cm)   '
@@ -172,7 +173,7 @@ c
      .                            ,j=jatest-10,jatest+10)
       i=iatest
       j=jatest
-      write(*,'(a,3i4,f6.0)') 'chk kij=',i,j,kij(i,j),depthij(i,j)
+      write(*,'(a,3i4,f7.1)') 'chk kij=',i,j,kij(i,j),depthij(i,j)
       end if
 
       srfhgt_av=0.
@@ -201,13 +202,14 @@ c
 c --- read archive data
       timav=.true.
       cnvert=.false.
-      call getdat(flnmin,year1,timav,cnvert)
+      print *,'read data from ',flnmin
+      call getdat(flnmin,day0,day1,succes)
 c
       do  i=1,idm
       do  j=1,jdm
       srfhgt_av(i,j)=srfhgt_av(i,j)+srfhgt(i,j)  *factor
       dpmixl_av(i,j)=dpmixl_av(i,j)+dpmixl(i,j,1)*factor
-        oice_av(i,j)=  oice_av(i,j)+  oice(i,j)  *factor
+        oice_av(i,j)=  oice_av(i,j)+covice(i,j)  *factor
       do k=1,kdm
        p_av(i,j,k+1)= p_av(i,j,k+1)+ p(i,j,k+1)*factor
          u_av(i,j,k)=   u_av(i,j,k)+   u(i,j,k)*factor
@@ -255,7 +257,8 @@ c       call prtmsk(kij,dpmixij,worka,iia,iia,jja,0.,1.,'dpmxl_ij')
 c       call prtmsk(kij,temp,worka,iia,iia,jja,0.,1.,'sst')
         i=iatest
         j=jatest
-        print *,'chk     t   s   u  v  trc  at ',i,j,depthij(i,j)
+        print '(2i4,f7.1,3x,4(a,9x),a)',i,j,depthij(i,j),
+     .     ' t ',' s ',' u ',' v ','trc'
         do k=1,k33
         write(*,'(i2,f7.0,5f12.4)')k,z33(k),tz(i,j,k),sz(i,j,k)
      .     ,uz(i,j,k),vz(i,j,k),trz(i,j,k,1)
@@ -263,16 +266,16 @@ c       call prtmsk(kij,temp,worka,iia,iia,jja,0.,1.,'sst')
 
         i=iatest
         j=jatest
-        print *,'chk     temp  ',i,j
+        print *,'temp  at (i-1,j),(i,j),(i+1),(i,j-1),(i,j+1)',i,j
         do k=1,k33
-        write(*,'(i2,5f12.4)') k,tz(i-1,i,k),tz(i,j,k),tz(i+1,j,k)
+        write(*,'(i2,5f12.4)') k,tz(i-1,j,k),tz(i,j,k),tz(i+1,j,k)
      .        ,tz(i,j-1,k),tz(i,j+1,k)
         enddo
 
         do k=1,k33
-        print *,'chk  final  temp ', iatest,jatest,k
+        print *,'  final  temp ', iatest,jatest,k
         do j=jatest+3,jatest-3,-1
-          write(*,'(11f7.1)') (tz(i,j,k),i=iatest-3,iatest+3)
+          write(*,'(11f7.2)') (tz(i,j,k),i=iatest-3,iatest+3)
         enddo
         enddo
       endif   !  diag
@@ -305,7 +308,6 @@ c
       end if 
 
       if( need_netcdf ) call write_netcdf
-
 c
 C     write(unit=*,fmt='(/,3a)') " +++ END PROGRAM ", __FILE__," +++ "
 

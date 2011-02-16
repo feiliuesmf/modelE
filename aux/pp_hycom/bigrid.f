@@ -12,6 +12,7 @@ c
       real, intent (in) :: depth(idm,jdm)
       integer ia,ib,ja,jb,nfill,nzero,jsec,jfrst,jlast,nwet,npts
 c
+      jchunk=23			! optimal for 8 threads
       nwet=0
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk) REDUCTION(+:nwet)
       do 17 j=1,jdm

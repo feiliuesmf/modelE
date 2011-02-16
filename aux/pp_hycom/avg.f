@@ -1,17 +1,23 @@
       program avg
-c --- get key monthly mean variables in mon_[runid]_[decade].txt
-c --- get key annual  mean variables in ann_[runid]_[decade].txt
-c --- get MOC in lat/rho space in 4 basins averaged over year ny1:ny2  
+c
+c<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+c --- output key monthly mean variables in mon_[runid]_[decade].txt
+c --- output key annual  mean variables in ann_[runid]_[decade].txt
+c --- output MOC in lat/rho space in 4 basins averaged over year ny1:ny2  
 c     in avg_ov_[runid]_[decade].txt: flux(idm,kdm,4)
-c --- get northward heatflux as a function of lat in "heatfl(idm,4)"
+c --- output northward heatflux as a function of lat in "heatfl(idm,4)"
 c     in 4 basins averaged over year ny1:ny2 in avg_hf_[runid]_[decade].txt
 c --- Last index in flux & heatfl: 1: Atl; 2: Indian; 3: Pac; 4: global
 c --- Setting rhodot to true will remove model trend during ny1:ny2 period
+c<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 c
-      use const_proc
-      use hycom_arrays, only: srfhgt,dpmixl,oice,depths,scp2
+      use const_proc,   only: path0,path1,path2,hycomtopo,latlonij
+     .    ,basinmask,flnmcoso,flnmo2a,runid,ny1,ny2,spcifh,julian
+     .    ,idrk1,idrk2,jdrk1,jdrk2,indoi,indoj1,indoj2,rhodot,amon
+     .    ,monlg,rho,monave_convert,solo_convert,cnvert,timav,mo1,mo2
+      use hycom_arrays, only: srfhgt,dpmixl,covice,depths,scp2
      .    ,u,v,dp,p,temp,saln,th3d,tracer,uflxav,vflxav,diaflx
-     .    ,uflx,vflx,ubavg,vbavg,ubavav,vbavav,alloc_hycom_arrays,latij
+     .    ,uflx,vflx,ubavg,vbavg,alloc_hycom_arrays,latij
      .    ,temav,salav,ubavg,vbavg,ubavav,vbavav
       use hycom_dimen
 c
@@ -24,7 +30,7 @@ c
      . ,anndh,anndf,anndb,db,trc
      . ,glbsal,glbtem,glbdep,sum1,sum2,sum3,area,avgbot,vol
 
-      real :: iceextn,iceexts,nino3,year1,flxmax,x1,x2,thrufl,tinvrs
+      real :: iceextn,iceexts,nino3,day0,day1,flxmax,x1,x2,thrufl,tinvrs
       real, allocatable :: pinit(:,:,:),pfinl(:,:,:),lat(:),flux(:,:,:)
      .       ,sunda(:),heatfl(:,:)
       integer, allocatable :: im(:,:)
@@ -34,7 +40,6 @@ c
       character flnm*132,flnmout*30
 c
       integer mo,dcd,mon1,i70,i45,ieq,status
-      logical timav,cnvert
       logical :: lexist
 c
       character(len=9) :: ayears  ! string n1-n2 example "1905-1955"
@@ -100,9 +105,9 @@ c$OMP PARALLEL DO REDUCTION(+:area,avgbot)
  10   area=area+scp2(i,j)
 c$OMP END PARALLEL DO
       avgbot=avgbot/area
-      write (lp,104) avgbot,area
- 104  format(' mean basin depth (m) and area (10^6 km^2):',f9.3,
-     .       -12p,f9.3)
+      write (*,104) avgbot,area
+ 104  format(' mean basin depth (m) and area (10^6 km^2):',f9.1,
+     .       -12p,f9.1)
 c
 c --- read archive data
 c
@@ -181,11 +186,11 @@ C
       anntem=0.
       annsal=0.
       annssh=0.
-      annht=0.
-      ubavav=0.
-      vbavav=0.
-      uflxav=0.
-      vflxav=0.
+      annht =0.
+      ubavav(:,:)=0.
+      vbavav(:,:)=0.
+      uflxav(:,:,:)=0.
+      vflxav(:,:,:)=0.
 c
       timav=.true.
       cnvert=.false.
@@ -202,42 +207,42 @@ c
         cycle
       end if
 
-      write (lp,'(2a)') 'reading: ',trim(flnm)
+      write (*,'(2a)') 'reading: ',trim(flnm)
+      call get_time(flnm,year(n))
 c
-      call getdat(flnm,year1,timav,cnvert)
+      call getdat(flnm,day0,day1,lexist)
+      if (.not.lexist) stop '(file open or read error)'
 c
-      year(n)=year1
-c
-      write(*,'(a,f9.2)') 'cpl model yr =',year1
+      write(*,'(a,f9.2)') 'cpl model yr =',year(n)
 c
 c --- compute total icea volume and ice extent (for each hemisphere)
 c
       iceextn=0.
       iceexts=0.
-      ssh0=0.
-      sstsum=0.
-      ssssum=0.
-      tsum=0.
-      ssum=0.
-      trc=0.
-      nino3=0.
-      arean3=0.
+      ssh0   =0.
+      sstsum =0.
+      ssssum =0.
+      tsum   =0.
+      ssum   =0.
+      trc    =0.
+      nino3  =0.
+      arean3 =0.
       vol=0.
       if (idm.ne.387.and.jdm.ne.360) stop 'reset nino3 domain'
-c$OMP PARALLEL DO REDUCTION(+:tsum,ssum,trc,vol,ssh0,sstsun,ssssum
-c$OMP.                                          ,iceextn,iceexts)
+c$OMP PARALLEL DO REDUCTION(+:tsum,ssum,trc,vol,ssh0,sstsum,ssssum
+c$OMP.                       ,iceextn,iceexts)
       do 5 j=1,jdm
       do 5 k=1,kdm
       do 5 l=1,isp(j)
       do 5 i=ifp(j,l),ilp(j,l)
       if (k.eq.1) then
         if (i.lt.equat) then
-          iceextn=iceextn+oice(i,j)*scp2(i,j)
+          iceextn=iceextn+covice(i,j)*scp2(i,j)
         else
-          iceexts=iceexts+oice(i,j)*scp2(i,j)
+          iceexts=iceexts+covice(i,j)*scp2(i,j)
         end if
 c
-        ssh0   =    ssh0+srfhgt(i,j)*scp2(i,j)      ! srfhgt in cm
+        ssh0   =   ssh0+srfhgt(i,j)*scp2(i,j)      ! srfhgt in cm
         sstsum = sstsum+temp(i,j,1)*scp2(i,j)
         ssssum = ssssum+saln(i,j,1)*scp2(i,j)
 c
@@ -271,24 +276,25 @@ c --- save annual field
 c
 c --- calculate flux
       timav=.true.
-      cnvert=.true.
-      call getdat(flnm,year1,timav,cnvert)
-
+      call getdat(flnm,day0,day1,lexist)
+      if (.not.lexist) stop 'file open or read error'
+c
 c$OMP PARALLEL DO
       do 13 j=1,jdm
       do 13 i=1,idm
       ubavav(i,j)=ubavav(i,j)+ubavg(i,j,1)*mon1/julian
       vbavav(i,j)=vbavav(i,j)+vbavg(i,j,1)*mon1/julian
       do 13 k=1,kdm
-      uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)  !uflx: Sv*intvl
- 13   vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)
+      uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)		! uflx: Sv*intvl
+ 13   vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)		! vflx: Sv*intvl
 c$OMP END PARALLEL DO
 c
  152  continue
-      uflxav=uflxav/(365.*86400.)    ! => annual in Sv
-      vflxav=vflxav/(365.*86400.)    ! => annual in Sv
+      uflxav(:,:,:)=uflxav(:,:,:)/(365.*86400.)		! => annual in Sv
+      vflxav(:,:,:)=vflxav(:,:,:)/(365.*86400.)		! => annual in Sv
 c
       flux(:,:,:)=0.
+c$OMP PARALLEL DO
       do 181 j=1,jdm
       do 181 i=1,idm
       if(im(i,j).eq.1.or.im(i,j).eq.2) then          ! Atlantic
@@ -297,6 +303,7 @@ c
         enddo
       endif
  181   continue
+c$OMP END PARALLEL DO
 c
       do 184 k=2,kdm
       do 184 i=1,idm
@@ -310,7 +317,7 @@ c
         k00=k
       endif
  185  continue
-c     write(lp,*) ' yr n=',n,' flxmax_i45 =',i45,flxmax,' at k=',k00
+c     write(*,*) ' yr n=',n,' flxmax_i45 =',i45,flxmax,' at k=',k00
       x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
       x2=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
 c
@@ -319,28 +326,29 @@ c
      .   ,annssh/area,annht*1.e-6,flxmax,-x2,x1
  151  continue
 c
-      temav=0.
-      salav=0.
-      uflxav=0.
-      vflxav=0.
-      ubavav=0.
-      vbavav=0.
-      heatfl=0.
-
-      write(*,'(a,2i6)') 'overturning stream function is averaged from
-     . yr =',ny1,ny2
+      temav(:,:,:) =0.
+      salav(:,:,:) =0.
+      uflxav(:,:,:)=0.
+      vflxav(:,:,:)=0.
+      ubavav(:,:)=0.
+      vbavav(:,:)=0.
+      heatfl(:,:)=0.
+c
+      write(*,'(2(a,i6))') 'overturning stream function is averaged over
+     . years',ny1,' -',ny2
       timav=.true.
-      cnvert=.true.
-
+c
       do 153 ny=ny1,ny2
       do 154 mo=mo1,mo2
       write(flnm,'(2a,i4.4,2a)')trim(path1),amon(mo),ny
      .  ,'.out',trim(runid)
-      write (lp,'(2a)') 'reading: ',trim(flnm)
+      write (*,'(2a)') 'reading: ',trim(flnm)
       mon1=monlg(mod(mo-1,12)+1)
 c
 c --- read archive data
-      call getdat(flnm,year1,timav,cnvert)
+      call getdat(flnm,day0,day1,lexist)
+      if (.not.lexist) stop 'file open or read error'
+c
 c$OMP PARALLEL DO
       do 113 i=1,idm
       ia=max(1,i-1)
@@ -350,8 +358,8 @@ c$OMP PARALLEL DO
       do 113 k=1,kdm
       temav(i,j,k)=temav(i,j,k)+temp(i,j,k)*mon1
       salav(i,j,k)=salav(i,j,k)+saln(i,j,k)*mon1
-      uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)  !uflx: Sv*intvl
-      vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)
+      uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)		! Sv*intvl
+      vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)		! Sv*intvl
       heatfl(i,4)=heatfl(i,4)+(temp(i,j,k)+temp(ia,j,k))*uflx(i,j,k)
       if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
         heatfl(i,1)=heatfl(i,1)+(temp(i,j,k)+temp(ia,j,k))*uflx(i,j,k)
@@ -365,27 +373,28 @@ c$OMP END PARALLEL DO
 c
  154  continue
  153  continue   ! ny=ny1,ny2
-      uflx=uflxav/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
-      vflx=vflxav/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
-      temp=temav/((ny2-ny1+1)*julian)          ! => mean of ny1~ny2
-      saln=salav/((ny2-ny1+1)*julian)          ! => mean of ny1~ny2
-      ubavav=ubavav/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
-      vbavav=vbavav/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
-      heatfl=heatfl/((ny2-ny1+1)*julian*86400) ! => mean of ny1~ny2
+      uflx(:,:,:)=uflxav(:,:,:)/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
+      vflx(:,:,:)=vflxav(:,:,:)/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
+      ubavav(:,:)=ubavav(:,:)/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
+      vbavav(:,:)=vbavav(:,:)/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
+      heatfl(:,:)=heatfl(:,:)/((ny2-ny1+1)*julian*86400) ! => mean of ny1~ny2
 c
       flux(:,:,:)=0.
 c --- global domain
-      do i=1,idm
+c$OMP PARALLEL DO
       do j=1,jdm
       do k=1,kdm
+      do i=1,idm
         flux(i,k,4)=flux(i,k,4)-uflx(i,j,k)
       enddo
       enddo
       enddo
+c$OMP END PARALLEL DO
 
 c --- each basin
-      do 81 i=1,idm
+c$OMP PARALLEL DO
       do 81 j=1,jdm
+      do 81 i=1,idm
       if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
         do k=1,kdm
           flux(i,k,1)=flux(i,k,1)-uflx(i,j,k)
@@ -400,6 +409,7 @@ c --- each basin
         enddo
       endif
  81   continue
+c$OMP END PARALLEL DO
 c
       do 84 l=1,4
       do 84 i=1,idm
@@ -419,7 +429,7 @@ c
       x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
       x2=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
       x2=-x2               ! take only absolute value
-c     write(lp,'(a,i4,f6.2,a,i2,a,2f6.1)')
+c     write(*,'(a,i4,f6.2,a,i2,a,2f6.1)')
 c    . 'chk flxmax_i45 =',i45,flxmax,' at k=',k00,'; Drake/Indo=',x1,x2
 
 c --- diagnose indonesian throughflow
@@ -438,35 +448,38 @@ c --- subtract out portion due to indonesian throughflow
  39   flux(i,k,3)=flux(i,k,3)-sunda(k)                !  Pacific
 c
       if (rhodot) then
-      tinvrs=1./((ny2-ny1+1.)*365.*86400.)
+        tinvrs=1./((ny2-ny1+1.)*365.*86400.)
 c
 c --- determine final pressure field (needed for finding rho-dot)
-      pfinl=p
+        pfinl(:,:,:)=p(:,:,:)
 
-      write(flnm,'(5a,i3,a,i3,2a,i4.4,2a)')trim(path1),trim(runid)
-     . ,'/out',trim(runid),'_',dcd,'0_',dcd,'9/','DEC',ny1-1
-     . ,'.out',trim(runid)
-        write(lp,*) ' input 0 file=',trim(flnm)
+        write(flnm,'(5a,i3,a,i3,2a,i4.4,2a)')trim(path1),trim(runid)
+     .   ,'/out',trim(runid),'_',dcd,'0_',dcd,'9/','DEC',ny1-1
+     .   ,'.out',trim(runid)
+        write(*,*) ' input 0 file=',trim(flnm)
 c --- determine initial pressure field (needed for finding rho-dot)
-        call getdat(flnm,year1,timav,cnvert)
-
+        call getdat(flnm,day0,day1,lexist)
+        if (.not.lexist) stop '(file open or read error)'
+c
 c --- subtract out portion of flux attributable to interface displacement
-        do 34 k=2,kdm
+c$OMP PARALLEL DO
         do 34 j=1,jdm
+        do 34 k=2,kdm
         do 34 i=1,idm
         flux(i,k,4)=flux(i,k,4)
-     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-        if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
+     .   +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6	! => Sv
+        if (im(i,j).eq.1.or.im(i,j).eq.2) then		! Atlantic
           flux(i,k,1)=flux(i,k,1)
-     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-        elseif (im(i,j).eq.3.or.im(i,j).eq.4) then ! Indian
+     .     +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6	! => Sv
+        elseif (im(i,j).eq.3.or.im(i,j).eq.4) then	! Indian
           flux(i,k,2)=flux(i,k,2)
-     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-        elseif (im(i,j).eq.5.or.im(i,j).eq.6) then ! Pacific
+     .     +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6	! => Sv
+        elseif (im(i,j).eq.5.or.im(i,j).eq.6) then	! Pacific
           flux(i,k,3)=flux(i,k,3)
-     .       +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6 ! => Sv
-          endif
+     .     +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6	! => Sv
+        endif
  34     continue
+c$OMP END PARALLEL DO
       end if
 c
       do l=1,4
@@ -479,4 +492,31 @@ c
       close (304)
 
       stop '(normal finish of avg)'
+      end
+
+
+      subroutine get_time(flnm,year)
+
+! --- extract year and julian day from file name
+
+      character*(*),intent(IN)  :: flnm
+      real         ,intent(OUT) :: year
+
+      character*3,parameter :: month(12) =
+     .  (/'JAN','FEB','MAR','APR','MAY','JUN',
+     .    'JUL','AUG','SEP','OCT','NOV','DEC'/)
+      real,parameter :: endmon(0:12) =
+     .  (/0.,31.,59.,90.,120.,151.,181.,212.,243.,273.,304.,334.,365./)
+
+      year=0.
+      do n=1,12
+       i=index(flnm,month(n))
+       if (i.gt.0) then
+        read(flnm(i+3:i+6),'(f4.0)') year
+        year=year+endmon(n)/365.
+        exit
+       end if
+      end do
+      print *,'julian day in input file:',year
+      return
       end

@@ -549,6 +549,7 @@ c read table sizes then close
      &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) +
      &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
         end do
+        md1850(:,:,:,0) = md1850(:,:,:,12)
 
       end if
 
