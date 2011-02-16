@@ -177,20 +177,20 @@ c these routines are only needed when running on multiple CPUs
       integer :: chunksize
       if(grid%am_i_globalroot) then
         if(trim(mode).eq.'create') then
-c          rc = nf_create(trim(fname),nf_clobber,fid)
-          rc = nf_create(trim(fname),nf_64bit_offset,fid) ! when files get big
+          rc = nf_create(trim(fname),nf_clobber,fid)
+cc          rc = nf_create(trim(fname),nf_64bit_offset,fid) ! when files get big
           if(rc.ne.nf_noerr) write(6,*)
      &         'error creating ',trim(fname)
         elseif(trim(mode).eq.'write') then
-c          rc = nf_open(trim(fname),nf_write,fid)
-          chunksize = 1024*1024*128
-          rc = nf__open(trim(fname),nf_write,chunksize,fid)
+          rc = nf_open(trim(fname),nf_write,fid)
+c          chunksize = 1024*1024*128
+c          rc = nf__open(trim(fname),nf_write,chunksize,fid)
           if(rc.ne.nf_noerr) write(6,*)
      &         'error opening ',trim(fname)
         elseif(trim(mode).eq.'read') then
-c          rc = nf_open(trim(fname),nf_nowrite,fid)
-          chunksize = 1024*1024*128
-          rc = nf__open(trim(fname),nf_nowrite,chunksize,fid)
+          rc = nf_open(trim(fname),nf_nowrite,fid)
+c          chunksize = 1024*1024*128
+c          rc = nf__open(trim(fname),nf_nowrite,chunksize,fid)
           if(rc.ne.nf_noerr) then
             write(6,*) 'error opening ',trim(fname)
           else
