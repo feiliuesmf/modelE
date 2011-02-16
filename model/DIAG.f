@@ -365,7 +365,7 @@ C**** Use masking for 850 mb temp/humidity
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
           CASE (300)            ! 300 mb
             nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
-          CASE (100)            ! 300 mb
+          CASE (100)            ! 100 mb
             nT = IJ_T100 ; nQ = IJ_Q100 ; nRH = IJ_RH100 ; qpress=.true.
           END SELECT
 C**** calculate geopotential heights + temperatures
