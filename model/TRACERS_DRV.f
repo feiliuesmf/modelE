@@ -9364,7 +9364,7 @@ c read in DMS source
       else  ! AEROCOM DMS
 c these netcdf reads are still latlon-specific.
 c will call read_dist_data for cubed sphere compatibility
-        status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+        status=NF_OPEN('DMS_FLUX',NCNOWRIT,ncidu)
         status=NF_INQ_VARID(ncidu,'dms',id1)
         start(1)=i_0
         start(2)=j_0
