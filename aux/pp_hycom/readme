@@ -9,11 +9,11 @@ make latlonz
 
 ===============================================================================================================
 (1) avg:
- --- get key monthly mean variables in mon_[runid]_[ny1-ny2].txt
- --- get key annual  mean variables in ann_[runid]_[ny1-ny2].txt
- --- get MOC in lat/rho space in 4 basins averaged over year ny1:ny2  
+ --- output key monthly mean variables in mon_[runid]_[ny1-ny2].txt
+ --- output key annual  mean variables in ann_[runid]_[ny1-ny2].txt
+ --- output MOC in lat/rho space in 4 basins averaged over year ny1:ny2  
      in avg_ov_[runid]_[ny1-ny2].txt: flux(idm,kdm,4)
- --- get northward heatflux as a function of lat in "heatfl(idm,4)"
+ --- output northward heatflux as a function of lat in "heatfl(idm,4)"
      in 4 basins averaged over year ny1:ny2 in avg_hf_[runid]_[ny1-ny2].txt
 
 Get executable: 
