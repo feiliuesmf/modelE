@@ -1301,7 +1301,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       type (AerosolTables_type), save :: table
 #else
       type (AerosolTables_type) :: table
-endif
+#endif
 
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
