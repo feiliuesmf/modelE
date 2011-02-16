@@ -177,8 +177,8 @@ c these routines are only needed when running on multiple CPUs
       integer :: chunksize
       if(grid%am_i_globalroot) then
         if(trim(mode).eq.'create') then
-          rc = nf_create(trim(fname),nf_clobber,fid)
-cc          rc = nf_create(trim(fname),nf_64bit_offset,fid) ! when files get big
+c          rc = nf_create(trim(fname),nf_clobber,fid)
+          rc = nf_create(trim(fname),nf_64bit_offset,fid) ! when files get big
           if(rc.ne.nf_noerr) write(6,*)
      &         'error creating ',trim(fname)
         elseif(trim(mode).eq.'write') then
