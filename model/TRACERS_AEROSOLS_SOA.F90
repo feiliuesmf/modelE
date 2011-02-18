@@ -827,7 +827,7 @@ DO JL=L,L
 ! No solution found, aerosol phase set to previous values, chemistry still applies to gas-phase species
 !
 30 continue
-  write(out_line,"('WARNING: Too many iteration steps. SOA forced to previous values. M0=',e,' PCP=',e)") M0,PCP
+  write(out_line,"('WARNING: Too many iteration steps. SOA forced to previous values. M0=',1pe9.2,' PCP=',1pe9.2)") M0,PCP
   call write_parallel(trim(out_line),crit=.true.)
   goto 60
 !
