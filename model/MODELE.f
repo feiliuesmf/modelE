@@ -463,7 +463,9 @@ C**** Calculate tropopause level and pressure
 C****
       CALL CALC_TROP
 C**** calculate some dynamic variables for the PBL
+#ifndef SCM
       CALL PGRAD_PBL
+#endif
 C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
 
