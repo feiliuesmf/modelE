@@ -14,7 +14,10 @@
       use model_com, only: coupled_chem,ioread,iowrite,irsfic,irsficno
      &     ,irerun,JDperY,JMperY,itime,t
       use dynamics, only: byam,pk,pmid
-      use fluxes, only: dust_flux_glob,dust_flux2_glob
+      use fluxes, only: dust_flux_glob
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
+     &     ,dust_flux2_glob
+#endif
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -815,9 +818,11 @@ c accSubddDust
         dustDiagSubdd_acc%dustEmission(:,:,n)
      &       =dustDiagSubdd_acc%dustEmission(:,:,n)+dust_flux_glob(:,:,n
      &       )
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
         dustDiagSubdd_acc%dustEmission2(:,:,n)
      &       =dustDiagSubdd_acc%dustEmission(:,:,n)+dust_flux2_glob(:,:
      &       ,n)
+#endif
 #ifdef TRACERS_DRYDEP
         if (dodrydep(n1)) then
           dustDiagSubdd_acc%dustDepoTurb(:,:,n)

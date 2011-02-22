@@ -5256,7 +5256,7 @@ c dummy variables
      1       dum,dum1,dum2,dum3,dum4,dumt,qdumt,dumqv,
      1       dumqss,dumqsi,dums,dume
 c my Local
-        real*8       :: p0,w0,v0,r0,ra,dtmic,polysvp
+        real*8       :: p0,w0,v0,r0,ra,dtmic
         integer :: k=1
         LOGICAL :: lnucl,make_distribution
         character*29 :: sname='surabi_make_drop_activation: '
@@ -5869,7 +5869,7 @@ c Output ra
 c Local
       integer      :: k,kl
       real*8,dimension(size(p,1))  :: sw,si
-      real*8       :: dum,dumw,dumi,tk,qk,pk,polysvp
+      real*8       :: dum,dumw,dumi,tk,qk,pk
       character*16 :: sname='hugh_make_supi: '
       kl=size(p,1)
       do k=1,kl
@@ -5898,7 +5898,7 @@ c Output ra
 c Local
       integer      :: k,kl
       real*8,dimension(size(p,1))  :: sw,si
-      real*8       :: dum,dumw,dumi,tk,qk,pk,polysvp
+      real*8       :: dum,dumw,dumi,tk,qk,pk
       character*16 :: sname='hugh_make_supw: '
       kl=size(p,1)
       do k=1,kl
@@ -5926,7 +5926,7 @@ c===================================================================
       real*8,intent(inout),dimension(kl) :: si   ! ice   supersaturation
 c Local
       integer      :: k
-      real*8       :: dum,dumw,dumi,tk,qk,pk,polysvp
+      real*8       :: dum,dumw,dumi,tk,qk,pk
       character*19 :: sname='brm_make_supsat1d: '
       do k=1,kl
             qk = q(k)

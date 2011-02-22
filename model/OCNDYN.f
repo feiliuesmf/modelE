@@ -5348,7 +5348,7 @@ C**** just scaling due to area differences for fluxes
           FIELDO(:,I,1  )=FIELDO(:,1,  1)
         END DO
       ELSE
-        FIELDO = FIELDA
+        FIELDO(:,:IMA,:JMA) = FIELDA
       END IF
 C****
       RETURN
@@ -5386,7 +5386,7 @@ C**** just scaling due to area differences for fluxes
           FIELDA(:,I,1  )=FIELDA(:,1,  1)
         END DO
       ELSE
-        FIELDA = FIELDO
+        FIELDA = FIELDO(:,:IMA,:JMA)
       END IF
 C****
       RETURN

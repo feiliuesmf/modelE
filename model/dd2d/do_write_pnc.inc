@@ -2,15 +2,25 @@
       integer :: fid
       character(len=*) :: varname
       integer, intent(in), optional :: record
-      integer :: vid,did,rc,nd
+      integer :: vid,did,rc,nd,ierr
       integer*8, dimension(7) :: srt,cnt
       integer*8 :: nrecs8
+      real*8 :: arr_dum
       rc = nfmpi_inq_varid(fid,trim(varname),vid)
       if(grid%am_i_globalroot .and. rc.ne.nf_noerr) then
         write(6,*) 'variable ',
      &       trim(varname),' not found in output file - stopping'
       endif
       call stoprc(rc,nf_noerr)
+      nd = size(shape(arr))
+      srt(:) = 1
+      cnt(:) = 0
+      if(nd.eq.0) then ! to use collective i/o on zero-dimensional data,
+        call copy_0D(arr,arr_dum) ! it must be identical on all processes
+        call broadcast(arr_dum)
+      else
+        arr_dum = 0.
+      endif
       if(present(record)) then
         nrecs8 = 0
         rc = nfmpi_inq_unlimdim(fid,did)
@@ -20,20 +30,12 @@
      &         'error in record dim spec. for variable ',trim(varname)
           call stoprc(0,1)
         endif
+        cnt(nd+1) = 1
+        srt(nd+1) = record
       endif
-      rc = nfmpi_begin_indep_data(fid)
       if(grid%am_i_globalroot) then
-        if(present(record)) then
-          nd = size(shape(arr))
-          if(nd.gt.0) then
-            cnt(1:nd) = shape(arr)
-            srt(1:nd) = 1
-          endif
-          cnt(nd+1) = 1
-          srt(nd+1) = record
-          rc = nfmpi_put_vara_double(fid,vid,srt,cnt,arr)
-        else
-          rc = nfmpi_put_var_double(fid,vid,arr)
-        endif
+        if(nd.gt.0) cnt(1:nd) = shape(arr)
+        rc = nfmpi_put_vara_double_all(fid,vid,srt,cnt,arr)
+      else
+        rc = nfmpi_put_vara_double_all(fid,vid,srt,cnt,arr_dum)
       endif
-      rc = nfmpi_end_indep_data(fid)

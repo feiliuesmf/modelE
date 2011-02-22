@@ -1,13 +1,13 @@
-      subroutine extrct(work,array)
+      subroutine extrct(work,iorign,jorign,array)
 c
 c --- copy [work(iorign,jorign)...work(iorign+idm-1,jorign+jdm-1)] into 'array'
 c --- this version   c y c l i c   in j
       use hycom_dimen, only : idm,jdm,i,j
-      use const_proc, only: iorign,jorign
       implicit none
 c
       real*4, intent (in)  :: work(idm,idm)	!input array is real*4
       real,   intent (out) :: array(idm,jdm)
+      integer,intent(IN)   :: iorign,jorign
       integer :: jp
 c
 c$OMP PARALLEL DO PRIVATE(jp)

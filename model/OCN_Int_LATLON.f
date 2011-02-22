@@ -60,7 +60,7 @@ c _par are parallelized versions
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(:,:) = aA(:,:)
+        oA(:aIM,:) = aA(:,:)
       else
 
       if(AM_I_ROOT()) then
@@ -209,7 +209,7 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(:,:,:) = aA(:,:,:)
+        oA(:,:aIM,:) = aA(:,:,:)
       else
 
       if(AM_I_ROOT()) then
@@ -285,7 +285,7 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(:,:,oN) = aA(:,:,oN)
+        oA(:aIM,:,oN) = aA(:,:,oN)
       else
 
       if(AM_I_ROOT()) then
@@ -360,7 +360,7 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(oNin,:,:) = aA(oNin,:,:)
+        oA(oNin,:aIM,:) = aA(oNin,:,:)
       else
 
       if(AM_I_ROOT()) then
@@ -436,7 +436,7 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(:,oN,:,:) = aA(:,oN,:,:)
+        oA(:,oN,:aIM,:) = aA(:,oN,:,:)
       else
 
       if(AM_I_ROOT()) then
@@ -598,8 +598,8 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aWEIGHT(:,:), aFOCEAN(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oU(:,:,oN) = aU(:,:,oN)
-        oV(:,:,oN) = aV(:,:,oN)
+        oU(:aIM,:,oN) = aU(:,:,oN)
+        oV(:aIM,:,oN) = aV(:,:,oN)
       else
 
       if(AM_I_ROOT()) then
@@ -726,8 +726,8 @@ C***  Scatter global array oA_glob to the ocean grid
      *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oU(:,:) = aU(:,:)
-        oV(:,:) = aV(:,:)
+        oU(:aIM,:) = aU(:,:)
+        oV(:aIM,:) = aV(:,:)
       else
 
       if(AM_I_ROOT()) then
@@ -817,7 +817,7 @@ C***  Scatter global array oA_glob to the ocean grid
       logical :: copypole_
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(:,:) = aA(:,:)
+        oA(:aIM,:) = aA(:,:)
         return
       endif
 
@@ -889,7 +889,7 @@ C***  Interpolate aA from atmospheric grid to ocean grid
       real*8, dimension(:,:), allocatable :: aA2d,oA2d
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oA(oNin,:,:) = aA(oNin,:,:)
+        oA(oNin,:aIM,:) = aA(oNin,:,:)
       else
         allocate(aA2d(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
         allocate(oA2d(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
@@ -932,8 +932,8 @@ C***  Local vars
       real*8, dimension(:,:), allocatable :: aUtmp,aVtmp
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        oU(:,:,oN) = aU(:,:,oN)
-        oV(:,:,oN) = aV(:,:,oN)
+        oU(:aIM,:,oN) = aU(:,:,oN)
+        oV(:aIM,:,oN) = aV(:,:,oN)
         return
       endif
 
@@ -1045,7 +1045,7 @@ c      Module Procedure INT_OG2AG_Vector1
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
 
-        aA(:,:) = oA(:,:)
+        aA(:,:) = oA(:aIM,:)
       else
 
       AvgPole_ = .true.
@@ -1236,7 +1236,7 @@ C***  Scatter global array aA_glob to the atmospheric grid
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
 
         DO N=1,aN
-          aA(:,:,N) = oA(:,:,N)
+          aA(:,:,N) = oA(:aIM,:,N)
         END DO
       else
 
@@ -1434,8 +1434,8 @@ C***  Scatter global array aA_glob to the atm. grid
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
 
-        aUO1(:,:) = oUO1(:,:)
-        aVO1(:,:) = oVO1(:,:)
+        aUO1(:,:) = oUO1(:aIM,:)
+        aVO1(:,:) = oVO1(:aIM,:)
       else
 
       if(AM_I_ROOT()) then
@@ -1528,7 +1528,7 @@ C***  Scatter global arrays to the atmospheric grid
       logical :: AvgPole_
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        aA(:,:) = oA(:,:)
+        aA(:,:) = oA(:aIM,:)
         return
       endif
 
@@ -1680,7 +1680,7 @@ C***  Interpolate oA from ocean grid to atmospheric grid
       integer :: n, jmin,jmax
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        aA(:,:,1:aN) = oA(:,:,1:aN)
+        aA(:,:,1:aN) = oA(:aIM,:,1:aN)
         return
       endif
 

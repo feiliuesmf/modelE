@@ -44,6 +44,13 @@ c
      &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AMP
+     &                        n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
+     &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
+     &                        n_M_SSA_SU,n_M_OCC_SU,n_M_BC1_SU,
+     &                        n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU,
+     &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU,
+#endif
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
@@ -985,8 +992,21 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Recipricle
           ! layer thickness below is in 1/m units:
-          sulfate(i,j,L)=trm(i,j,L,n_SO4)*1.76d2*byaxyp(i,j)*bythick(L)
-     &                   *max(0.1d0,rh(L)*1.33333d0)
+          sulfate(i,j,L)=
+#ifdef TRACERS_AMP
+     &      (trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
+     &       trm(i,j,L,n_M_DD1_SU)+trm(i,j,L,n_M_DS1_SU)+
+     &       trm(i,j,L,n_M_DD2_SU)+trm(i,j,L,n_M_DS2_SU)+
+     &       trm(i,j,L,n_M_SSA_SU)+trm(i,j,L,n_M_OCC_SU)+
+     &       trm(i,j,L,n_M_BC1_SU)+trm(i,j,L,n_M_BC2_SU)+
+     &       trm(i,j,L,n_M_BC3_SU)+trm(i,j,L,n_M_DBC_SU)+
+     &       trm(i,j,L,n_M_BOC_SU)+trm(i,j,L,n_M_BCS_SU)+
+     &       trm(i,j,L,n_M_MXX_SU))
+#else
+     &      trm(i,j,L,n_SO4)
+#endif
+     &      *1.76d2*byaxyp(i,j)*bythick(L)
+     &      *max(0.1d0,rh(L)*1.33333d0)
         endif
 
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
