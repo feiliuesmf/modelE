@@ -18,7 +18,13 @@
       real*8, parameter :: missing=-1.d30 ! use it from CONST.f
 
 ! rest is for the running average:
-!@param maxHR_prec maximum number of sub-daily accumulations
+!@dbparam allowFlammabilityReinit (default 1=YES) allows the
+!@+ flammability to initialize to missing when Itime=ItimeI and
+!@+ the averaging period to start from the beginning (thus no emissions
+!@+ for nday_prec days.) Override this with allowFlammabilityReinit=0
+!@+ in the rundeck, and values from the AIC file should be used (if 
+!@+ present.) 
+!@var maxHR_prec maximum number of sub-daily accumulations
 !@param nday_prec number of days in running average for prec
 !@var DRAfl daily running average of model prec for flammability
 !@var ravg_prec period running average of model prec for flammability
@@ -28,16 +34,15 @@
 !@var iDfl "daily"  index for averages of model prec
 !@var i0fl ponter to current index in running sum of model prec
 !@var first_prec whether in the first model averaging per. for prec
-      ! next line: 1800=dtsrc, 1=#calls per step, but since those are
-      ! not parameters, I don't know how to soft-code this. There is a
-      ! failsafe in flammability_drv, however:
-      integer, parameter :: maxHR_prec=24*1*3600/1800, nday_prec=30
+      integer, parameter :: nday_prec=30
+      integer :: allowFlammabilityReinit = 1
       real*8, allocatable, dimension(:,:,:):: DRAfl
       real*8, allocatable, dimension(:,:)  :: ravg_prec,PRSfl,iHfl,iDfl,
      &                                        i0fl,first_prec
       real*8, allocatable, dimension(:,:,:):: HRAfl
 !@var raP_acc accumulate running avg precip for SUBDD output
       real*8, allocatable, dimension(:,:):: raP_acc
+      integer :: maxHR_prec
 
       end module flammability_com
 
@@ -48,19 +53,32 @@
 !@auth Greg Faluvegi
 !@ver  1.0
       use domain_decomp_atm, only: dist_grid, get
-      use model_com, only: im
+      use param, only : get_param, is_set_param
+      use model_com, only: im, dtsrc
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
  
       implicit none
       
+      real*8 :: DTsrc_LOCAL
       type (dist_grid), intent(in) :: grid
       integer :: ier, J_1H, J_0H, I_1H, I_0H
 
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
+
+      ! maxHR_prec is to be defined as the number of precip
+      ! running-average steps that define one day. (The 1.d0
+      ! in the line is left in to represent the number of calls 
+      ! per DTsrc timestep. 
+      ! I believe the real DTsrc is not available yet so I use
+      ! a local copy from the database:
+
+      DTsrc_LOCAL = DTsrc
+      if(is_set_param("DTsrc"))call get_param("DTsrc",DTsrc_LOCAL)
+      maxHR_prec = NINT(24.d0*1.d0*3600.d0/DTsrc_LOCAL)
 
       allocate( flammability(I_0H:I_1H,J_0H:J_1H) )
       allocate( veg_density (I_0H:I_1H,J_0H:J_1H) )
@@ -83,8 +101,9 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony
 !@ver  1.0 
       use model_com, only: im,jm,Itime,ItimeI
+      use param, only: sync_param
       use flammability_com, only: flammability, veg_density, first_prec
-     & ,missing
+     & ,missing,allowFlammabilityReinit
       use domain_decomp_atm,only: grid, get, am_i_root, readt_parallel
       use filemanager, only: openunit, closeunit, nameunit
 
@@ -100,7 +119,10 @@
       call readt_parallel(grid,iu_data,nameunit(iu_data),veg_density,1)
       call closeunit(iu_data)
 
-      if(Itime==ItimeI)then
+      call sync_param
+     &("allowFlammabilityReinit",allowFlammabilityReinit)
+
+      if(Itime==ItimeI .and. allowFlammabilityReinit==1 )then
         first_prec(:,:)=1.d0
         flammability(:,:)=missing
       endif
@@ -117,7 +139,7 @@
       use domain_decomp_1d, only: get,grid,am_i_root,
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
-     & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec,flammability
+     & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec,flammability,raP_acc
 
       implicit none
 
@@ -178,6 +200,9 @@
        header='CALCULATE_FLAMMABILITY: flammability(i,j)'
         call pack_data(grid,flammability(:,:),general_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,general_glob
+       header='CALCULATE_FLAMMABILITY: raP_acc(i,j)'
+        call pack_data(grid,raP_acc(:,:),general_glob(:,:))
+        if(am_i_root())write(kunit,err=10)header,general_glob
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -205,6 +230,8 @@
           call unpack_data(grid,general_glob(:,:),ravg_prec(:,:))
           if(am_i_root())read(kunit,err=10)header,general_glob
           call unpack_data(grid,general_glob(:,:),flammability(:,:))
+          if(am_i_root())read(kunit,err=10)header,general_glob
+          call unpack_data(grid,general_glob(:,:),raP_acc(:,:))
 
         END SELECT
       END SELECT
@@ -245,12 +272,13 @@
       call defvar(grid,fid,first_prec,'first_prec(dist_im,dist_jm)')
       call defvar(grid,fid,ravg_prec,'ravg_prec(dist_im,dist_jm)')
       call defvar(grid,fid,flammability,'flammability(dist_im,dist_jm)')
+      call defvar(grid,fid,raP_acc,'raP_acc(dist_im,dist_jm)')
 
       return
       end subroutine def_rsf_flammability
 
       subroutine new_io_flammability(fid,iaction)
-!@sum  new_io_flammability read/write lake arrays from/to restart files
+!@sum  new_io_flammability read/write arrays from/to restart files
 !@auth Greg Faluvegi (directly from M. Kelley's new_io_lakes)
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
@@ -271,6 +299,7 @@
         call write_dist_data(grid, fid, 'first_prec', first_prec )
         call write_dist_data(grid, fid, 'ravg_prec', ravg_prec )
         call write_dist_data(grid, fid, 'flammability', flammability )
+        call write_dist_data(grid, fid, 'raP_acc', raP_acc )
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'drafl', drafl )
         call read_dist_data(grid, fid, 'hrafl', hrafl )
@@ -281,6 +310,7 @@
         call read_dist_data(grid, fid, 'first_prec', first_prec )
         call read_dist_data(grid, fid, 'ravg_prec', ravg_prec )
         call read_dist_data(grid, fid, 'flammability', flammability )
+        call read_dist_data(grid, fid, 'raP_acc', raP_acc )
       end select
       return
       end subroutine new_io_flammability

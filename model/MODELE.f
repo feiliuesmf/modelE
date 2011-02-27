@@ -79,6 +79,7 @@ c$$$      USE MODEL_COM, only: clock
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+      logical :: start9
 
 C**** Command line options
       CHARACTER*32 :: ifile
@@ -295,7 +296,8 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-
+      start9 = .false.
+      if (istart==9) start9=.true.
       call startTimer('Main Loop')
       DO WHILE (Itime.lt.ItimeE)
 #ifdef USE_SYSUSAGE
@@ -308,22 +310,25 @@ C****
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
 C**** write restart information alternately onto 2 disk files
-      IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
-         CALL RFINAL (IRAND)
-         call set_param( "IRAND", IRAND, 'o' )
-         call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+      if (Ndisk > 0) then
+        IF (MOD(Itime-ItimeI,Ndisk).eq.0.or.start9) THEN
+          start9 = .false.
+          CALL RFINAL (IRAND)
+          call set_param( "IRAND", IRAND, 'o' )
+          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
 #if defined( USE_FVCORE )
-         fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
-         fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
-         call Checkpoint(fv, clock, fv_fname, fv_dfname)
+          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
+          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
+          call Checkpoint(fv, clock, fv_fname, fv_dfname)
 #endif
-         if (AM_I_ROOT())
-     *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
+          if (AM_I_ROOT())
+     *      WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
-         KDISK=3-KDISK
-         CALL TIMER (NOW,MELSE)
-      END IF
+          KDISK=3-KDISK
+          CALL TIMER (NOW,MELSE)
+        END IF
+      end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
@@ -458,7 +463,9 @@ C**** Calculate tropopause level and pressure
 C****
       CALL CALC_TROP
 C**** calculate some dynamic variables for the PBL
+#ifndef SCM
       CALL PGRAD_PBL
+#endif
 C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
 
@@ -2120,8 +2127,6 @@ C****
   800 WRITE (6,'(A,I4/" ",A)')
      *  '0ERROR ENCOUNTERED READING AIC ISTART=', ISTART,XLABEL(1:80)
       call stop_model('INPUT: READ ERROR FOR AIC',255)
-  830 WRITE(6,*) 'READ ERROR FOR GIC'
-      call stop_model('INPUT: READ ERROR FOR GIC',255)
   850 WRITE (6,'(A)')
      *  '0ERRORS ON BOTH RESTART DATA SETS. TERMINATE THIS JOB'
       call stop_model('INPUT: ERRORS ON BOTH RESTART FILES',255)

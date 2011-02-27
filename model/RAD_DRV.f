@@ -2239,8 +2239,8 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
           ttausv_sum(i,j,ntrix(n))=ttausv_sum(i,j,ntrix(n))+StauL
           ttausv_sum_cs(i,j,ntrix(n))=ttausv_sum_cs(i,j,ntrix(n))
      &         +StauL*OPNSKY
-          aerAbs6SaveInst(i,j,:)=aerAbs6SaveInst(i,j,:) +
-     &    (aesqex(:,6,n)-aesqsc(:,6,n))
+          aerAbs6SaveInst(i,j,1:lm)=aerAbs6SaveInst(i,j,1:lm) +
+     &    (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
         endif
       enddo
       IF (adiurn_dust == 1 .or. save3dAOD == 1) THEN

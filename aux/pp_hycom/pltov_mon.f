@@ -15,7 +15,7 @@ c
       use const_proc
       implicit none
 c
-      real :: year1,flxmax,x1,x2,thrufl,tinvrs
+      real :: day0,day1,flxmax,x1,x2,thrufl,tinvrs
       real, allocatable :: pinit(:,:,:),pfinl(:,:,:),lat(:),flux(:,:,:)
      .       ,sunda(:)
       integer, allocatable :: im(:,:)
@@ -25,7 +25,7 @@ c
       integer mo,dcd,mon1,i70,i45,ieq,status,ia,k00,ny
       real*8 :: area,avgbot
       character flnm*128,flnmout*30,title*80
-      logical timav,cnvert
+      logical succes
 c
       character(len=9) :: ayears  ! string n1-n2 example "1905-1955"
 c
@@ -119,7 +119,7 @@ c
 c --- read archive data
       timav=.true.
       cnvert=.true.
-      call getdat(flnm,year1,timav,cnvert)
+      call getdat(flnm,day0,day1,succes)
 
 c$OMP PARALLEL DO
       do 13 i=1,idm

@@ -49,6 +49,7 @@ C**** momentum passes through model top.
       INTEGER LDEF ! ,LDEFM
 !@var LBREAK,LSHR,LD2 levels for various GW drag terms
       INTEGER :: LBREAK,LSHR,LD2 = LM   ! need default for LD2
+      INTEGER :: LPCNV     !  200mb level, for Convective Waves  
 
 !@dbparam QGWMTN =1 turns on GW Mountain Wave drag terms
 !@dbparam QGWSHR =1 turns on GW Shear drag terms
@@ -274,8 +275,8 @@ c (the sum depends on the number of layers)
         CN(4)=WSRC+10.
         UR(4)=UR(3)
         VR(4)=VR(3)
-        LD(3)=10
-        LD(4)=10
+        LD(3)=LPCNV
+        LD(4)=LPCNV
         WT(3)=WTX
         WT(4)=WTX
 C**** If convection is penetrating (i.e. above PCONPEN) do second set
@@ -536,7 +537,7 @@ C**** accumulated in the routines contained herein
 #endif
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ekofj, cmtn,Cshear
-     *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd
+     *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd,LPCNV  
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
       REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -592,6 +593,7 @@ C**** need testing for other resolutions
         IF (PLEVE.GE.300.) LSHR=L
 c        IF (PLEV.GE.200.) LDEFM=L
         IF (PLEV.GE.0.2d0) LD2=L
+        IF (PLEV.GE.200.) LPCNV=L   !  200mb layer for CW 3 & 4  
       END DO
       if (AM_I_ROOT()) then
       WRITE (*,*) ' LEVEL FOR DEFORMATION IS: LDEF,PDEF= ',LDEF,
@@ -978,7 +980,7 @@ C****
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
       USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
      *     ,QGWCNV,EKOFJ,pk,pmid 
-     *     ,pbreaktop,defthresh,pconpen,ang_gwd
+     *     ,pbreaktop,defthresh,pconpen,ang_gwd,LPCNV  
       USE STRAT, only : PL,PLE,TL,THL,RHO,BVF,DL,DUT,DVT,UL,VL,
      &     DP, DTIME, BYDTIME, CORIOL, AIRXS,
      &     UR, WT, CN, USRC, DUSDIF, MU_TOP, DUGWD, MU_INC, EK,

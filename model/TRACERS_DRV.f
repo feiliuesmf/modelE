@@ -4530,7 +4530,8 @@ c gravitational settling of OCII
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-      case ('OCIA')
+
+      case ('OCIA','OCA1','OCA2','OCA3')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_source_'//TRIM(trname(n))
@@ -4539,32 +4540,18 @@ c gravitational settling of OCII
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #ifdef FAA_emission
-        k = k + 1
-        jls_3Dsource(2,n) = k
-        sname_jls(k) = 'Aircraft_source_of'//trname(n)
-        lname_jls(k) = 'OCIA aircraft source'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        select case(trname(n))
+        case ('OCIA')
+          k = k + 1
+          jls_3Dsource(2,n) = k
+          sname_jls(k) = 'Aircraft_source_of'//trname(n)
+          lname_jls(k) = 'OCIA aircraft source'
+          jls_ltop(k) = LM
+          jls_power(k) = -1
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end select
 #endif
-c gravitational settling of OCIA
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
-        lname_jls(k) ='Grav Settling of '//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-      case ('OCA1','OCA2','OCA3')
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Aging_source_'//TRIM(trname(n))
-        lname_jls(k) = TRIM(trname(n))//' aging source'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-c gravitational settling of OCA1,OCA2,OCA3
+c gravitational settling of OCIA,OCA1,OCA2,OCA3
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
@@ -6182,7 +6169,7 @@ c OC clear sky longwave surface radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
 #endif
-      case ('OCIA')
+      case ('OCIA','OCA1','OCA2','OCA3')
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
@@ -6192,24 +6179,18 @@ c OC clear sky longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef FAA_emission
-        k = k + 1
-        ijts_3Dsource(2,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'OCIA Aircraft source'
-        sname_ijts(k) = 'OCIA_Aircraft_src'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        select case (trname(n))
+        case ('OCIA')
+          k = k + 1
+          ijts_3Dsource(2,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = 'OCIA Aircraft source'
+          sname_ijts(k) = 'OCIA_Aircraft_src'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end select
 #endif
-      case ('OCA1','OCA2','OCA3')
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = TRIM(trname(n))//' Aging source'
-        sname_ijts(k) = TRIM(trname(n))//'_Aging_Source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
 
