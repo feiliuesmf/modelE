@@ -45,6 +45,9 @@
       use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
      &   ,fracSiltPDFscheme
 #endif
+#ifdef TRACERS_QUARZHEM
+     &   ,DenHema,DenQuarz,FreeFe,FrHeQu
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
 #ifdef GFED_3D_BIOMASS

@@ -40,12 +40,16 @@
 #else
 #ifdef TRACERS_MINERALS
      &     ,n_clayilli
-#else
+#endif /* TRACERS_MINERALS */
 #ifdef TRACERS_QUARZHEM
      &     ,n_sil1quhe
-#endif
-#endif
-#endif
+#endif /* TRACERS_QUARZHEM */
+#endif /* TRACERS_DUST */
+#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP */
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      use tracers_dust,only : nAerocomDust
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : Mtrac
@@ -138,7 +142,7 @@ c**** input
 !@var pbl_args%pevap evaporation at previous time step [kg/m^2]
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
-        REAL*8 :: d_dust(Ntm_dust)
+        real(kind=8) :: d_dust(nAerocomDust)
 !@var pbl_args%mcfrac fractional area with moist convection in grid cell
         REAL(KIND=8) :: mcfrac
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)

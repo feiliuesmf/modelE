@@ -83,16 +83,34 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_koch=0
 #endif  /* TRACERS_AEROSOLS_Koch */
-!@var ntm_dust: Number of TRACERS_DUST tracers.
+
+!@var ntm_dust: Number of dust aerosol tracers.
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)
 #ifdef TRACERS_DUST_Silt4
       integer, parameter :: ntm_dust=5
 #else
       integer, parameter :: ntm_dust=4
 #endif  /* TRACERS_DUST_Silt4 */
+#else /* TRACERS_MINERALS || TRACERS_QUARZHEM */
+!@var ntm_minerals: Number of TRACERS_MINERALS tracers.
+#ifdef TRACERS_MINERALS
+      integer, parameter :: ntm_minerals = 20
+#else
+      integer, parameter :: ntm_minerals = 0
+#endif  /* TRACERS_MINERALS */
+!@var ntm_quarzhem: Number of TRACERS_QUARZHEM tracers.
+#ifdef TRACERS_QUARZHEM
+      integer, parameter :: ntm_quarzhem = 3
+#else
+      integer, parameter :: ntm_quarzhem = 0
+#endif  /* TRACERS_QUARZHEM */
+      integer, parameter :: ntm_dust = ntm_minerals + ntm_quarzhem
+#endif /* TRACERS_MINERALS || TRACERS_QUARZHEM */
 #else
       integer, parameter :: ntm_dust=0
-#endif  /* TRACERS_DUST */
+#endif
 
 !@var ntm_het: Number of TRACERS_HETCHEM tracers.
 #ifdef TRACERS_HETCHEM
@@ -144,18 +162,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_om_sp=0
 #endif  /* TRACERS_OM_SP */
-!@var ntm_minerals: Number of TRACERS_MINERALS tracers.
-#ifdef TRACERS_MINERALS
-      integer, parameter :: ntm_minerals=20
-#else
-      integer, parameter :: ntm_minerals=0
-#endif  /* TRACERS_MINERALS */
-!@var ntm_quarzhem: Number of TRACERS_QUARZHEM tracers.
-#ifdef TRACERS_QUARZHEM
-      integer, parameter :: ntm_quarzhem=3
-#else
-      integer, parameter :: ntm_quarzhem=0
-#endif  /* TRACERS_QUARZHEM */
 !@var ntm_ocean: Number of TRACERS_OCEAN tracers.
 #ifdef TRACERS_OCEAN
       integer, parameter :: ntm_ocean=0
@@ -219,7 +225,6 @@ c          (in order to calculate dust emissions), but not added to ntm.
       integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
      *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
      *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
-     *                          ntm_minerals+ntm_quarzhem+
      *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra
 #endif

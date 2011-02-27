@@ -139,8 +139,10 @@ c**** wind speed
      &     wsubwm_com
 
 c****
-c**** declaration for prescribed daily dust emissions
+c**** declarations for prescribed daily dust emissions
 c****
+!@param nAerocomDust Number of AEROCOM dust classes
+      integer,parameter :: nAerocomDust = 4
 !@var d_dust prescribed daily dust emissions [kg] (e.g. AEROCOM)
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: d_dust
 
@@ -267,7 +269,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwm_com(i_0h:i_1h,j_0h:j_1h),
      &     prelay(i_0h:i_1h,j_0h:j_1h,LM),
-     &     d_dust(i_0h:i_1h,j_0h:j_1h,Ntm_dust,JDperY),
+     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,JDperY),
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     minfr(i_0h:i_1h,j_0h:j_1h,Mtrac),
 #endif
