@@ -27,7 +27,8 @@
      &     (/4.667, 0.866, 4.448, 5.017, 9.000, 9.000, 1.000,1.000/)
 
 C     Layer  1    2    3    4    5    6    7    8    9
-      INTEGER, PARAMETER :: La720=3 ! top low cloud level (aerosol-grid)
+      INTEGER :: La720=3 ! top low cloud level (aerosol-grid)
+                         ! =3 for original hard-coded 9-level aerosols
 
       REAL*8, dimension(13) :: AERMIX=(/
 C      Pre-Industrial+Natural 1850 Level  Industrial Process  BioMBurn
@@ -535,20 +536,31 @@ c read table sizes then close
         read(ifile) plbaer
         call closeUnit(ifile)
 
+!**** Find top aerosol level in the low cloud region (surface->720mb)
+        la720 = 1
+        do while (plbaer(la720+1) .gt. 720.)
+          la720 = la720 + 1
+        end do
+        if (la720 > 1) then
+          if (720.-plbaer(la720+1) > plbaer(la720)-720.)
+     *      la720 = la720 - 1
+        end if
+        
 !**** Pre-industrial mass densities
         do m = 1, 12
           call readTable(RDFILE(1), SULDD(:,:,:,1,1), month=m,decade=1)
-          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:5,1,1), DIM=3)
+          md1850(1,:,:,m) = byz_cm3 * SUM(SULDD(:,:,1:la720,1,1), DIM=3)
           call readTable(RDFILE(3), NITDD(:,:,:,1,1), month=m,decade=1)
-          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:5,1,1), DIM=3)
+          md1850(2,:,:,m) = byz_cm3 * SUM(NITDD(:,:,1:la720,1,1), DIM=3)
           call readTable(RDFILE(4), OCADD(:,:,:,1,1), month=m,decade=1)
-          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:5,1,1), DIM=3)
+          md1850(3,:,:,m) = byz_cm3 * SUM(OCADD(:,:,1:la720,1,1), DIM=3)
           call readTable(RDFILE(5), BCBDD(:,:,:,1,1), month=m,decade=1)
           call readTable(RDFILE(6), BCADD(:,:,:,1,1), month=m,decade=1)
           md1850(4,:,:,m) = byz_cm3 * (
-     &         SUM(BCBDD(:,:,1:5,1,1), DIM=3) +
-     &         SUM(BCADD(:,:,1:5,1,1), DIM=3) )
+     &         SUM(BCBDD(:,:,1:la720,1,1), DIM=3) +
+     &         SUM(BCADD(:,:,1:la720,1,1), DIM=3) )
         end do
+        md1850(:,:,:,0) = md1850(:,:,:,12)
 
       end if
 
@@ -623,7 +635,7 @@ C       aerosols (Sulfates,Nitrates,Organic & Black Carbons)  md: kg/cm3
 c SUM to L=5 for low clouds only
 c Using 1890 not 1850 values here
             anfix(i,j,im) = 0.   !!! xdust*mddust(i,j) ! aerosol number (/cm^3)
-     +           +    byz_cm3 * SUM(SSADD(I,J,1:5,im)) * Xsslt
+     +           +    byz_cm3 * SUM(SSADD(I,J,1:la720,im)) * Xsslt
           end do
         end do
 
@@ -718,11 +730,16 @@ C**** sea salt, desert dust
 C**** SU4,NO3,OCX,BCB,BCI (reordered: no sea salt, no pre-ind BCI)
         table%mdpi(:,i,j) =
      &       WTMI*md1850(:,i,j,mi) + WTMJ*md1850(:,i,j,mj) !1:4
-        table%mdcur(1,i,j) = SUM (A6JDAY(1:5,1,I,J))*byz_gcm3/drym2g(1)
-        table%mdcur(2,i,j) = SUM (A6JDAY(1:5,3,I,J))*byz_gcm3/drym2g(3)
-        table%mdcur(3,i,j) = SUM (A6JDAY(1:5,4,I,J))*byz_gcm3/drym2g(4)
-        table%mdcur(4,i,j) = SUM (A6JDAY(1:5,6,I,J))*byz_gcm3/drym2g(6)
-        table%mdcur(5,i,j) = SUM (A6JDAY(1:5,5,I,J))*byz_gcm3/drym2g(5)
+        table%mdcur(1,i,j) = SUM (A6JDAY(1:la720,1,I,J)) * 
+     *    byz_gcm3/drym2g(1)
+        table%mdcur(2,i,j) = SUM (A6JDAY(1:la720,3,I,J)) * 
+     *    byz_gcm3/drym2g(3)
+        table%mdcur(3,i,j) = SUM (A6JDAY(1:la720,4,I,J)) * 
+     *    byz_gcm3/drym2g(4)
+        table%mdcur(4,i,j) = SUM (A6JDAY(1:la720,6,I,J)) * 
+     *    byz_gcm3/drym2g(6)
+        table%mdcur(5,i,j) = SUM (A6JDAY(1:la720,5,I,J)) * 
+     *    byz_gcm3/drym2g(5)
       end do
       end do
 
@@ -1295,7 +1312,12 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
       real*8, dimension(:), pointer ::  plbaer
       real*8, dimension(:,:,:,:), pointer :: A6JDAY => null()
+      ! workaround for xlf bug
+#ifdef COMPILER_XLF
       type (AerosolTables_type), save :: table
+#else
+      type (AerosolTables_type) :: table
+#endif
 
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6

@@ -185,7 +185,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     +4*(npbl-1)
 #else
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      INTEGER, PARAMETER, public :: NDIUVAR=61
+      INTEGER, PARAMETER, public :: NDIUVAR=62
 #else
       INTEGER, PARAMETER, public :: NDIUVAR=56
 #endif

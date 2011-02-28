@@ -43,6 +43,9 @@
       use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
      &   ,fracSiltPDFscheme
 #endif
+#ifdef TRACERS_QUARZHEM
+     &   ,DenHema,DenQuarz,FreeFe,FrHeQu
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
 #ifdef GFED_3D_BIOMASS
@@ -1484,7 +1487,7 @@ CCC#endif
       CASE('ClaySmec')       ! http://www.webmineral.com/data/Rectorite.shtml
       n_claysmec=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.35D3     ! for Montmorillonite)
+          call set_trpdens(n, 2.35D3)     ! for Montmorillonite
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -9361,7 +9364,7 @@ c read in DMS source
       else  ! AEROCOM DMS
 c these netcdf reads are still latlon-specific.
 c will call read_dist_data for cubed sphere compatibility
-        status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+        status=NF_OPEN('DMS_FLUX',NCNOWRIT,ncidu)
         status=NF_INQ_VARID(ncidu,'dms',id1)
         start(1)=i_0
         start(2)=j_0

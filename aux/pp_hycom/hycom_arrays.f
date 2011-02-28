@@ -2,91 +2,94 @@ c   ----------------------------------------------------------------------------
       module hycom_arrays
       implicit none
       real, allocatable ::
-     . u(:,:,:),v(:,:,:)      ! velocity components
-     .,dp(:,:,:),dpold(:,:,:)   ! layer thickness
-     .,dpu(:,:,:),dpv(:,:,:)  ! layer thickness at u,v points
-     .,p(:,:,:)                       ! interface pressure
-     .,pu(:,:,:),pv(:,:,:)    ! interface pres. at u,v points
-     .,latij(:,:,:),lonij(:,:,:)      ! latitude/longitude
-     .,corio(:,:)                         ! coriolis parameter
-     .,potvor(:,:)                        ! potential vorticity
-     .,temp(:,:,:)                    ! temperature
-     .,saln(:,:,:)                    ! salinity
-     .,th3d(:,:,:)                    ! potential density
-     .,thstar(:,:,:)                  ! virtual potential density
-     .,wgtkap(:,:)                    ! scale factor of ref2
-     .,psikk(:,:)                         ! init.montg.pot. in bottom layer
-     .,thkk(:,:)                          ! init.thstar in bottom layer
-     .,dpmixl(:,:,:)                      ! Kraus-Turner mixed layer depth
-     .,srfhgt(:,:)                        ! sea surface height
+     . u(:,:,:),v(:,:,:)		! velocity components
+     .,dp(:,:,:),dpold(:,:,:)		! layer thickness
+     .,dpu(:,:,:),dpv(:,:,:)		! layer thickness at u,v points
+     .,p(:,:,:)				! interface pressure
+     .,pu(:,:,:),pv(:,:,:)		! interface pres. at u,v points
+     .,latij(:,:,:),lonij(:,:,:)	! latitude/longitude
+     .,corio(:,:)			! coriolis parameter
+     .,potvor(:,:)			! potential vorticity
+     .,temp(:,:,:)			! temperature
+     .,saln(:,:,:)			! salinity
+     .,th3d(:,:,:)			! potential density
+     .,thstar(:,:,:)			! virtual potential density
+     .,wgtkap(:,:)			! scale factor of ref2
+     .,psikk(:,:)			! initl.montg.pot. in bottom layer
+     .,thkk(:,:)			! initl.thstar in bottom layer
+     .,dpmixl(:,:,:)			! mixed layer depth
+     .,srfhgt(:,:)			! sea surface height
 c
       real, allocatable ::
-     . montg(:,:,:)                     ! montgomery potential
-     .,defor1(:,:),defor2(:,:)        ! deformation components
-     .,ubavg(:,:,:),vbavg(:,:,:)      ! barotropic velocity
-     .,pbavg(:,:,:)                       ! barotropic pressure
-     .,ubrhs(:,:),vbrhs(:,:)          ! rhs of barotropic u,v eqns.
-     .,utotm(:,:),vtotm(:,:)          ! total (barotrop.+baroclin.)..
-     .,utotn(:,:),vtotn(:,:)          ! ..velocities at 2 time levels
-     .,uflux(:,:),vflux(:,:)          ! horizontal mass fluxes
-     .,uflux1(:,:),vflux1(:,:)        ! more mass fluxes
-     .,uflux2(:,:),vflux2(:,:)        ! more mass fluxes
-     .,uflux3(:,:),vflux3(:,:)        ! more mass fluxes
-     .,uflx(:,:,:),vflx(:,:,:)    ! more mass fluxes
-     .,bolusu(:,:,:),bolusv(:,:,:)  ! thickness (bolus) fluxes
+     . montg(:,:,:)			! montgomery potential
+     .,defor1(:,:),defor2(:,:)		! deformation components
+     .,ubavg(:,:,:),vbavg(:,:,:)	! barotropic velocity
+     .,pbavg(:,:,:)			! barotropic pressure
+     .,ubrhs(:,:),vbrhs(:,:)		! rhs of barotropic u,v eqns.
+     .,utotm(:,:),vtotm(:,:)		! total (barotrop.+baroclin.)...
+     .,utotn(:,:),vtotn(:,:)		! ...velocities at 2 time levels
+     .,uflux(:,:),vflux(:,:)		! horizontal mass fluxes
+     .,uflux1(:,:),vflux1(:,:)		! more mass fluxes
+     .,uflux2(:,:),vflux2(:,:)		! more mass fluxes
+     .,uflux3(:,:),vflux3(:,:)		! more mass fluxes
+     .,uflx(:,:,:),vflx(:,:,:)		! more mass fluxes
+     .,bolusu(:,:,:),bolusv(:,:,:)	! thickness (bolus) fluxes
 c
       real, allocatable ::
      .   uav(:,:,:),  vav(:,:,:)
      .,dpuav(:,:,:),dpvav(:,:,:)
      .,temav(:,:,:),salav(:,:,:)
      .,th3av(:,:,:), dpav(:,:,:)
-     .,ubavav(:,:),vbavav(:,:),pbavav(:,:),sfhtav(:,:)
+     .,ubavav(:,:),vbavav(:,:)
+     .,pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
-     .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
+     .,salflav(:,:),brineav(:,:)
+     .,eminpav(:,:),surflav(:,:)
      .,tauxav(:,:),tauyav(:,:)
-     .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
-     .,dpmxav(:,:),oiceav(:,:)
+     .,ufxcum(:,:,:),vfxcum(:,:,:)
+     .,dpinit(:,:,:),dpmxav(:,:),oiceav(:,:)
 c
       real, allocatable ::
-     . util1(:,:),util2(:,:)          ! arrays for temporary storage
-     .,util3(:,:),util4(:,:)          ! arrays for temporary storage
+     . util1(:,:),util2(:,:)		! arrays for temporary storage
+     .,util3(:,:),util4(:,:)		! arrays for temporary storage
 c
-     .,scpx(:,:),scpy(:,:)            ! mesh size at p pts in x,y dir.
-     .,scux(:,:),scuy(:,:)            ! mesh size at u pts in x,y dir.
-     .,scvx(:,:),scvy(:,:)            ! mesh size at v pts in x,y dir.
-     .,scqx(:,:),scqy(:,:)            ! mesh size at q pts in x,y dir.
-     .,scu2(:,:),scv2(:,:)            ! grid box size at u,v pts
-     .,scp2(:,:),scq2(:,:)            ! grid box size at p,q pts
-     .,scuxi(:,:),scvyi(:,:)          ! inverses of scux,scvy
-     .,scp2i(:,:),scq2i(:,:)          ! inverses of scp2,scq2
+     .,scpx(:,:),scpy(:,:)		! mesh size at p pts in x,y dir.
+     .,scux(:,:),scuy(:,:)		! mesh size at u pts in x,y dir.
+     .,scvx(:,:),scvy(:,:)		! mesh size at v pts in x,y dir.
+     .,scqx(:,:),scqy(:,:)		! mesh size at q pts in x,y dir.
+     .,scu2(:,:),scv2(:,:)		! grid box size at u,v pts
+     .,scp2(:,:),scq2(:,:)		! grid box size at p,q pts
+     .,scuxi(:,:),scvyi(:,:)		! inverses of scux,scvy
+     .,scp2i(:,:),scq2i(:,:)		! inverses of scp2,scq2
 c
-     .,pgfx(:,:),pgfy(:,:)            ! horiz. presssure gradient
-     .,gradx(:,:),grady(:,:)          ! horiz. presssure gradient
-     .,depthu(:,:),depthv(:,:)        ! bottom pres. at u,v points
-     .,pvtrop(:,:)                        ! pot.vort. of barotropic flow
-     .,depths(:,:)                        ! water depth
-     .,drag(:,:)                          ! bottom drag
-     .,glue(:,:)                          ! regional viscosity enhancement
-     .,dampu(:,:),dampv(:,:)          ! coastal wave damping coeff.
+     .,pgfx(:,:),pgfy(:,:)		! horiz. presssure gradient
+     .,gradx(:,:),grady(:,:)		! horiz. presssure gradient
+     .,depthu(:,:),depthv(:,:)		! bottom pres. at u,v points
+     .,pvtrop(:,:)			! pot.vort. of barotropic flow
+     .,depths(:,:)			! water depth
+     .,drag(:,:)			! bottom drag
+     .,glue(:,:)			! regional viscosity enhancement
+     .,dampu(:,:),dampv(:,:)		! coastal wave damping coeff.
 c
       real, allocatable ::
-     . uja(:,:),ujb(:,:)                  ! velocities at lateral
-     .,via(:,:),vib(:,:)                  !          neighbor points
-     .,pbot(:,:)                          ! bottom pressure at t=0
-     .,tracer(:,:,:,:)                    ! inert tracer (optional)
-     .,diadff(:,:,:)                      ! effective diapycnal diffusivity
-     .,tprime(:,:)                        ! temp.change due to surflx
-     .,sgain(:,:)                         ! salin.changes from diapyc.mix.
-     .,surflx(:,:)                        ! surface thermal energy flux
-     .,salflx(:,:)                        ! surface salinity flux
-c    .,thkice(:,:)                        ! grid-cell avg. ice thknss (cm)
-c    .,covice(:,:)                        ! ice coverage (rel.units)
-c    .,temice(:,:)                        ! ice surf.temp.
-c    .,odhsi(:,:)                         ! heat borrowed from frozen
-     .,odmsi(:,:)                         ! newly formed ice
+     . uja(:,:),ujb(:,:)		! velocities at lateral
+     .,via(:,:),vib(:,:)		!          neighbor points
+     .,pbot(:,:)			! bottom pressure at t=0
+     .,tracer(:,:,:,:)			! inert tracer (optional)
+     .,diadff(:,:,:)			! effective diapycnal diffusivity
+     .,tprime(:,:)			! temp.change due to surflx
+     .,sgain(:,:)			! salin.changes from diapyc.mix.
+     .,surflx(:,:)			! surface thermal energy flux
+     .,salflx(:,:)			! surface salinity flux
+     .,thkice(:,:)			! grid-cell avg. ice thknss (cm)
+     .,covice(:,:)			! ice coverage (rel.units)
+c    .,temice(:,:)			! ice surf.temp.
+c    .,odhsi(:,:)			! heat borrowed from frozen
+     .,odmsi(:,:)			! newly formed ice
      .,omlhc(:,:)
-     .,dmfz(:,:)                          ! ice mass due to freezing
+     .,dmfz(:,:)			! ice mass due to freezing
+     .,thmix(:,:),tmix(:,:),smix(:,:),umix(:,:),vmix(:,:)
 c
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
@@ -163,15 +166,15 @@ c
      .,temav(I_0H:I_1H,J_0H:J_1H,kdm),salav(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,th3av(I_0H:I_1H,J_0H:J_1H,kdm), dpav(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,ubavav(I_0H:I_1H,J_0H:J_1H),vbavav(I_0H:I_1H,J_0H:J_1H)
-     &     ,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H) 
+     .,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H) 
      .,uflxav(I_0H:I_1H,J_0H:J_1H,kdm),vflxav(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,diaflx(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,salflav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
-     &     ,eminpav(I_0H:I_1H,J_0H:J_1H) 
+     .,eminpav(I_0H:I_1H,J_0H:J_1H) 
      .,surflav(I_0H:I_1H,J_0H:J_1H) 
      .,tauxav(I_0H:I_1H,J_0H:J_1H),tauyav(I_0H:I_1H,J_0H:J_1H) 
      .,ufxcum(I_0H:I_1H,J_0H:J_1H,kdm),vfxcum(I_0H:I_1H,J_0H:J_1H,kdm)
-     &     ,dpinit(I_0H:I_1H,J_0H:J_1H,kdm) 
+     .,dpinit(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,dpmxav(I_0H:I_1H,J_0H:J_1H),oiceav(I_0H:I_1H,J_0H:J_1H) ) 
 c 
       allocate( 
@@ -200,19 +203,24 @@ c
      . uja(I_0H:I_1H,J_0H:J_1H),ujb(I_0H:I_1H,J_0H:J_1H) 
      .,via(I_0H:I_1H,J_0H:J_1H),vib(I_0H:I_1H,J_0H:J_1H) 
      .,pbot(I_0H:I_1H,J_0H:J_1H) 
-     .,tracer(I_0H:I_1H,J_0H:J_1H,kdm,ntrcr) 
+     .,tracer(I_0H:I_1H,J_0H:J_1H,2*kdm,ntrcr) 
      .,diadff(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,tprime(I_0H:I_1H,J_0H:J_1H) 
      .,sgain(I_0H:I_1H,kdm) 
      .,surflx(I_0H:I_1H,J_0H:J_1H) 
      .,salflx(I_0H:I_1H,J_0H:J_1H) 
-c    .,thkice(I_0H:I_1H,J_0H:J_1H) 
-c    .,covice(I_0H:I_1H,J_0H:J_1H) 
+     .,thkice(I_0H:I_1H,J_0H:J_1H) 
+     .,covice(I_0H:I_1H,J_0H:J_1H) 
 c    .,temice(I_0H:I_1H,J_0H:J_1H) 
 c    .,odhsi(I_0H:I_1H,J_0H:J_1H) 
      .,odmsi(I_0H:I_1H,J_0H:J_1H) 
      .,omlhc(I_0H:I_1H,J_0H:J_1H) 
-     .,dmfz(I_0H:I_1H,J_0H:J_1H) ) 
+     .,dmfz(I_0H:I_1H,J_0H:J_1H)
+     .,thmix(I_0H:I_1H,J_0H:J_1H)
+     .,tmix(I_0H:I_1H,J_0H:J_1H)
+     .,smix(I_0H:I_1H,J_0H:J_1H)
+     .,umix(I_0H:I_1H,J_0H:J_1H)
+     .,vmix(I_0H:I_1H,J_0H:J_1H) )
 c 
       allocate( klist(I_0H:I_1H,J_0H:J_1H) 
      .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )

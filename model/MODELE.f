@@ -141,6 +141,7 @@ C**** Command line options
       CHARACTER*8 :: flg_go='___GO___'      ! green light
       integer :: iflag=1
       external sig_stop_model
+      logical :: start9
 
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
@@ -320,17 +321,20 @@ C****
 C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
-
+      start9 = .false.
+      if (istart == 9) start9 = .true.
       DO WHILE (Itime.lt.ItimeE)
         call startTimer('Main Loop')
 
 #if !defined( ADIABATIC ) || defined( CUBED_SPHERE)
 
 c$$$         call test_save(__LINE__, itime)
-
-      if (mod(Itime-ItimeI,Ndisk).eq.0) then
+      if (Ndisk > 0) then
+        if (mod(Itime-ItimeI,Ndisk).eq.0 .or. start9) then
+         start9 = .false.
          call checkpointModelE(ModelEclock, clock, kdisk, now, irand)
-      END IF
+        END IF
+      end if
       
       if (isBeginningOfDay(modelEclock)) then
         call startNewDay(modelEclock, kradia, iu_RAD, iu_VFLXO)
@@ -439,7 +443,9 @@ C**** Calculate tropopause level and pressure
 C****
       CALL CALC_TROP
 C**** calculate some dynamic variables for the PBL
+#ifndef SCM
       CALL PGRAD_PBL
+#endif
 C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
 
