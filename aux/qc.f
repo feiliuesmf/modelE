@@ -5,7 +5,7 @@
       USE CONSTANT
       USE MODEL_COM
       USE TIMINGS
-      USE PARAM
+      USE Dictionary_mod
       USE FILEMANAGER
       IMPLICIT NONE
       CHARACTER*80 FILEIN
