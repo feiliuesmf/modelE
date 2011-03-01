@@ -162,10 +162,8 @@ C**** input variables
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
      *     ,WMXICE
 #endif
-#ifdef mjo_subdd
      *     ,DQMTOTAL,DQMSHLW,DQMDEEP
      *     ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
-#endif
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -788,7 +786,7 @@ C     PGRAD = 0.7d0
       PGRAD = 0.7                  ! to maintain bit compatibility
       CONTCE1=entrainment_cont1
       CONTCE2=entrainment_cont2
-      FDDRT = 1.d0
+      FDDRT = .5d0
 C**** initiallise arrays of computed output
       TAUMCL=0
       SVWMXL=0
@@ -842,7 +840,6 @@ C**** zero out diagnostics
          DTOTW=0.
          DQCOND=0.
          DGDQM=0.
-#ifdef mjo_subdd
          DQMTOTAL=0.
          DQMSHLW=0.
          DQMDEEP=0.
@@ -850,7 +847,6 @@ C**** zero out diagnostics
          DQCSHLW=0.
          DQCDEEP=0.
          DQLSC=0.
-#endif
          DDMFLX=0.
          TDNL=0.
          QDNL=0.
@@ -1533,8 +1529,8 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       ETAL1=EPLUME/MPOLD
       FENTR=ETAL1*FPOLD
       ENT(L)=0.001d0*FENTR/(GZL(L)*FPOLD)
-      FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
-c      FPLUME = MPLUME*BYAM(L) ! and use this instead
+C     FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
+      FPLUME = MPLUME*BYAM(L) ! and use this instead
       FENTRA = EPLUME*BYAM(L)
       DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
       DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
@@ -1624,12 +1620,15 @@ C****
 
       SMIX=.5*(SUP+SMP/MPLUME)
       QMIX=.5*(QUP+QMP/MPLUME)
-C     WMIX=.5*(WMUP+WMDN)
-C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-      SVMIX=SMIX                    ! *(1.+DELTX*QMIX)
-      SVUP=SUP                      ! *(1.+DELTX*QUP)
+C     WMUP=WML(L)
+C     WMDN=COND(L)/MPLUME
+      WMIX=.5*(WMUP+COND(L)/MPLUME)
+C     SVMIX=SMIX*(1.+DELTX*QMIX)
+      SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
+C     SVUP=SUP*(1.+DELTX*QUP)
+      SVUP=SUP*(1.+DELTX*QUP-WMUP)
       DMMIX=(SVUP-SVMIX)*PLK(L)
-C    *  +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
+     *  +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
       IF(DMMIX.LT.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
 
 C**** NO DOWNDRAFT IF BUOYANT
@@ -1921,8 +1920,12 @@ C**** ENTRAINMENT INTO DOWNDRAFTS
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         SMIX=SMDN/(DDRUP+teeny)
         QMIX=QMDN/(DDRUP+teeny)
-        SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
-        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        WMIX=COND(L)/(DDRUP+teeny)
+C       SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX)
+        SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX-WMIX)
+C       SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1)
+     *       -WML(L-1))
 
         IF ((SVMIX-SVM1).GE.DTMIN1) THEN
           DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
@@ -2000,8 +2003,12 @@ C**** ALLOW DOWNDRAFT TO DESCEND BELOW CLOUD BASE IF IT IS NEGATIVELY BUOYANT
       IF (L.GT.1) THEN
         SMIX=SMDN/(DDRAFT+teeny)
         QMIX=QMDN/(DDRAFT+teeny)
-        SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
-        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        WMIX=COND(L-1)/(DDRAFT+teeny)
+C       SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX)
+        SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX-WMIX)
+C       SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1)
+     *       -WML(L-1))
         IF (L.LE.LMIN.AND.SVMIX.GE.SVM1) EXIT
         DDM(L-1)=DDRAFT
         DDROLD=DDRAFT
@@ -2209,22 +2216,16 @@ C**** diagnostics
         MCFLX(L)=MCFLX(L)+CCM(L)*FMC1
         DGDSM(L)=DGDSM(L)+(PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
-#ifdef mjo_subdd
         DQMTOTAL(L)=DQMTOTAL(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
-#endif
         IF(PLE(LMAX+1).GT.700.d0) THEN
           DGSHLW(L)=DGSHLW(L)+
      *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
-#ifdef mjo_subdd
           DQMSHLW(L)=DQMSHLW(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
-#endif
         ENDIF
         IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) THEN
           DGDEEP(L)=DGDEEP(L)+
      *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
-#ifdef mjo_subdd
           DQMDEEP(L)=DQMDEEP(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
-#endif
         ENDIF
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
@@ -2440,22 +2441,16 @@ C**** UPDATE TEMPERATURE DUE TO NET REEVAPORATION IN CLOUDS
          IF(L.EQ.LLMIN) FCDH1=CDHSUM1-EVPSUM
          DPHASE(L)=DPHASE(L)-(SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
          DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
-#ifdef mjo_subdd
          DQCTOTAL(L)=DQCTOTAL(L)-DQSUM*BYAM(L)*FMC1
-#endif
          IF(PLE(LMAX+1).GT.700.d0) THEN
            DPHASHLW(L)=DPHASHLW(L)-
      *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
-#ifdef mjo_subdd
            DQCSHLW(L)=DQCSHLW(L)-DQSUM*BYAM(L)*FMC1
-#endif
          ENDIF
          IF(PLE(LMIN)-PLE(LMAX+1).GE.450.d0) THEN
            DPHADEEP(L)=DPHADEEP(L)-
      *     (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
-#ifdef mjo_subdd
            DQCDEEP(L)=DQCDEEP(L)-DQSUM*BYAM(L)*FMC1
-#endif
          ENDIF
 
 #ifdef TRACERS_WATER
@@ -3959,7 +3954,7 @@ c      SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
 c      if(SNdI.gt.0.) write(6,*)"ICE CRY",SNdI, SNdI/dtB2M
        if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
        SNd=ndrop(mkx)*1.d-6                 ! ndrop, [No/m^3]
-c      if(SNd.gt.20.) write(6,*)"SM 12 CDNC",SNd   ,l     
+c      if(SNd.gt.20.) write(6,*)"SM 12 CDNC",SNd   ,l
 C**** Old treatment to get CDNC for cloud changes within time steps
        DCLD(L) = FCLD-CLDSAVL(L) ! cloud fraction change
 C** If previous time step is clear sky
@@ -4609,9 +4604,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
 C**** ACCUMULATE SOME DIAGNOSTICS
          HCNDSS=HCNDSS+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
          SSHR(L)=SSHR(L)+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
-#ifdef mjo_subdd
          DQLSC(L)=DQLSC(L)+FSSL(L)*(QL(L)-QOLD)
-#endif
       END DO  ! end of loop over L
 
       PRCPSS=MAX(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
@@ -4800,10 +4793,8 @@ c**** energy fix?
      *         FSSL(L+1)*(TNEWU-TOLDU)*AIRM(L+1)
         SSHR(L)=SSHR(L)+FSSL(L)*(TNEW-TOLD)*AIRM(L)
         SSHR(L+1)=SSHR(L+1)+FSSL(L+1)*(TNEWU-TOLDU)*AIRM(L+1)
-#ifdef mjo_subdd
         DQLSC(L)=DQLSC(L)+FSSL(L)*(QNEW-QOLD)
         DQLSC(L+1)=DQLSC(L+1)+FSSL(L+1)*(QNEWU-QOLDU)
-#endif
        DCTEI(L)=DCTEI(L)+FSSL(L)*(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
        DCTEI(L+1)=DCTEI(L+1)+FSSL(L+1)*(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
       END DO
@@ -4862,7 +4853,7 @@ c     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
 #endif
 #ifdef TRACERS_AMP
        OLDCDL(L)=SNd
-	   OLDCDI(L)=SNdi
+         OLDCDI(L)=SNdi
 #endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
@@ -4901,7 +4892,7 @@ c     ldummy=execute_bulk2m_driver('surabi','GET_CDNC_UPD',dtB2M,mkx)
 C*** Call Lohmann's or Gultepe's scheme for CDNC
         OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
         NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
-	    ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx,
+          ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx,
      &OLDCDNC,NEWCDNC)
 #endif
 #ifdef TRACERS_AMP
@@ -5277,7 +5268,8 @@ c*******************************************************************************
       REAL*8, INTENT(IN) :: RHOIP,RHOG
 !@var RHOG,RHOIP density of graupel and ice particles
       REAL*8, INTENT(OUT) :: CONDP,CONDP1
-!@var CONDP,CONDP1 precipitating part of convective condensate
+!@var CONDP precipitating part of convective condensate
+!@var CONDP1 precipitating and detrained parts of convective condensate
       REAL*8 WV,VT
 !@var WV,VT convective updraft speed and precip terminal velocity
       REAL*8 FG,FI

@@ -102,6 +102,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &     IJL_W,IJK_RH,IJL_RC,IJL_MC
       INTEGER, public :: IJL_CF, IJL_MCamFX, IJL_cldwtr,IJL_cldice
      &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
+     &    ,IJL_LDRY,IJL_TMCDRY,IJL_DMCDRY,IJL_SMCDRY
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
@@ -680,7 +681,7 @@ c derived/composite diagnostics
 !@dbparam isccp_diags: if 1 accumulate ISCCP cloud data (default 0)
       INTEGER, public :: isccp_diags = 0
 
-!@dbparam lh_diags: if 1 accumulate 3D latent heating profiles (default 0)
+!@dbparam lh_diags: if 1 accumulate 3D drying & latent heating profiles (default 0)
       INTEGER, public :: lh_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
