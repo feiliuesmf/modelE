@@ -6,7 +6,7 @@
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
       USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx
-     *     ,teeny,sday,undef
+     *     ,teeny,sday,undef,bysha
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate
      *     ,ntype,itime,focean,fland,flice,jyear,jmon
@@ -68,6 +68,7 @@
      *     ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
      *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
+     *     ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry
      *     ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
@@ -117,8 +118,8 @@
       USE LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc,ijlt_prodSO4aq
-     * ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc,taijls=>taijls_loc
+      USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc
+     *     ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
      *     ,jls_prec,tij_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -164,10 +165,8 @@
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
      *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
-#ifdef mjo_subdd
      *     ,DQMTOTAL,DQLSC
      *     ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
-#endif
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
      *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
@@ -243,6 +242,7 @@ c     *           TLS,QLS,TMC,QMC
 
 !@param ENTCON fractional rate of entrainment (km**-1)
       REAL*8,  PARAMETER :: ENTCON = .2d0
+      REAL*8, PARAMETER :: SLHE=LHE*BYSHA
 
       INTEGER I,J,K,L,N,LL  !@var I,J,K,L,N loop variables
       INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM,KMAX_NONPOLAR
@@ -498,8 +498,8 @@ cECON !$omp*  E,E1,W1,ep,ep1,q0,q1,q2,
 !$omp*  ij_ctpi,ij_taui,ij_tcldi,ij_lcldi,ij_mcldi,ij_hcldi,
 !$omp*  isccp_reg2d,aisccp,ij_sstabx,taumc,cldmc,svlat,tauss,cldss,
 !$omp*  j_eprcp,csizss,prec,eprec,precss,p_acc,pm_acc,jl_sshr,
-!$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,taijls,
-!$omp*  jlnt_lscond,jls_incloud,ijts_aq,ijlt_prodSO4aq,taijs,trp_acc,
+!$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,
+!$omp*  jlnt_lscond,jls_incloud,ijts_aq,taijs,trp_acc,
 !$omp*  jls_prec,taijn,tij_prec,diag_wetdep,jls_trdpmc,ijts_trdpmc,
 !$omp*  jls_trdpls,ijts_trdpls,adiurn_dust,dowetdep,idd_wet,idxd
 !$omp*  )
@@ -858,6 +858,12 @@ C*** for monthly diags
      &         (DPHADEEP(L)+DGDEEP(L))
           AIJL(I,J,L,IJL_MCSLH)=AIJL(I,J,L,IJL_MCSLH)+
      &         (DPHASHLW(L)+DGSHLW(L))
+          AIJL(I,J,L,IJL_TMCDRY)=AIJL(I,J,L,IJL_TMCDRY)+
+     &         (DQCTOTAL(L)-DQMTOTAL(L))
+          AIJL(I,J,L,IJL_DMCDRY)=AIJL(I,J,L,IJL_DMCDRY)+
+     &         (DQCDEEP(L)-DQMDEEP(L))
+          AIJL(I,J,L,IJL_SMCDRY)=AIJL(I,J,L,IJL_SMCDRY)+
+     &         (DQCSHLW(L)-DQMSHLW(L))
          endif
 #if (defined mjo_subdd) || (defined etc_subdd)
 C*** For subdaily diags
@@ -1418,6 +1424,7 @@ C**** update running-average of precipitation (in mm/day):
 C*** Begin Accumulate 3D heating by large scale condensation --
        if(lh_diags.eq.1) then
         AIJL(I,J,L,IJL_LLH)=AIJL(I,J,L,IJL_LLH)+SSHR(L)
+        AIJL(I,J,L,IJL_LDRY)=AIJL(I,J,L,IJL_LDRY)+DQLSC(L)
        endif
 #if (defined mjo_subdd) || (defined etc_subdd)
        LLH3D(L,I,J)=LLH3D(L,I,J)+SSHR(L)*BYAM(L)
@@ -1550,12 +1557,7 @@ C**** TRACERS: Use only the active ones
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
           endif
           end if
-#ifdef ACCMIP_LIKE_DIAGS
-          if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0)
-     &    taijls(i,j,l,ijlt_prodSO4aq)=taijls(i,j,l,ijlt_prodSO4aq)+
-     &    (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
-#endif /* ACCMIP_LIKE_DIAGS */
-#endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP */
+#endif
 #ifdef TRACERS_AMP
            if (trname(n).eq."M_ACC_SU") then
           AQsulfRATE(i,j,l)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
