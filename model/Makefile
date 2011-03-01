@@ -81,7 +81,7 @@ do_components: $(COMPONENTS:=_dir)
 
 do_main $(RUN).bin:   $(OBJS) #  $(COMPONENTS:=_dir)
 	@echo "===> linking"
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
+	$(F90) ModelE_Main.F90 $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
 	  $(COMPLIBS) $(LIBS) -o $(RUN).bin  $(LINK_OUTPUT)
 	@echo "===> linking ok"
 	@echo

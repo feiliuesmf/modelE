@@ -1,5 +1,5 @@
 MODEL_COM                           ! model variables 
-MODELE                              ! Main and model overhead
+MODELE                              ! ModelE cap - initialization and main loop
 ALLOC_DRV                           ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM                          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
