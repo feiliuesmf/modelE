@@ -25,8 +25,6 @@ C**** some arrays here for compatility with new clouds
 !@+   initialised as 1. for compatibility with previous clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSS
 #ifdef mjo_subdd
-!@var Cloud liquid and ice water content for subdaily output
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CLWC3D,CIWC3D
 !@var Source/sink from total, shallow,deep convection and large-scale condensation
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TMCDRY,SMCDRY,DMCDRY,
      *                                         LSCDRY
@@ -38,6 +36,8 @@ C**** some arrays here for compatility with new clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: IWP2D
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
+!@var Cloud liquid and ice water content for subdaily output
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CLWC3D,CIWC3D
 !@var Total, shallow, deep and large-scale latent heating for subdaily output
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLH3D,SLH3D,DLH3D,LLH3D
 #endif
@@ -129,13 +129,13 @@ C**** ISCCP diagnostics related parameter
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #if (defined mjo_subdd) || (defined etc_subdd)
-     *                       ,TLH3D,SLH3D,DLH3D,LLH3D
+     *                       ,CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D
 #endif
 #ifdef etc_subdd
      *                       ,LWP2D,IWP2D
 #endif
 #ifdef mjo_subdd
-     *                       ,CLWC3D,CIWC3D,TMCDRY,SMCDRY,DMCDRY,LSCDRY
+     *                       ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
@@ -181,8 +181,6 @@ C**** ISCCP diagnostics related parameter
      *             CSIZMC(LM,I_0H:I_1H,J_0H:J_1H),
      *             CSIZSS(LM,I_0H:I_1H,J_0H:J_1H),
 #ifdef mjo_subdd
-     *             CLWC3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CIWC3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             TMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
      *             SMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
      *             DMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
@@ -193,6 +191,8 @@ C**** ISCCP diagnostics related parameter
      *             IWP2D(I_0H:I_1H,J_0H:J_1H),
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
+     *             CLWC3D(LM,I_0H:I_1H,J_0H:J_1H),
+     *             CIWC3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             TLH3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             SLH3D(LM,I_0H:I_1H,J_0H:J_1H),
      *             DLH3D(LM,I_0H:I_1H,J_0H:J_1H),

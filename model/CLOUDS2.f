@@ -3522,7 +3522,7 @@ C*** Using the AMP_actv interface from MATRIX
 c Droplets' autoconversion: Beheng (concentration and content)
 c       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
 c Droplets' autoconversion: Seifert and Beheng (concentration and content)
-        ldummy=execute_bulk2m_driver('beheng','drop_auto',dtB2M,mkx)
+c       ldummy=execute_bulk2m_driver('beheng','drop_auto',dtB2M,mkx)
 c Freezing of cloud droplets (contact and immersion)
         ldummy=execute_bulk2m_driver('hugh','drop_frzn',dtB2M,mkx)
 c Crystal nucleation: Ncrys=anuc(k)*wef**bnuc(k)

@@ -40,13 +40,13 @@
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
 #if (defined mjo_subdd) || (defined etc_subdd)
+     *     ,CLWC3D,CIWC3D
      *     ,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
 #ifdef etc_subdd
      *     ,LWP2D,IWP2D
 #endif
 #ifdef mjo_subdd
-     *     ,CLWC3D,CIWC3D
      *     ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
       USE DIAG_COM, only : aij=>aij_loc,
@@ -1239,6 +1239,7 @@ C**** cloud water diagnostics
         CLWC3D(L,I,J)=CLWC3D(L,I,J)+WMX(L)
 #endif
 #ifdef etc_subdd
+        CLWC3D(L,I,J)=WMX(L)
         LWP2D(I,J)=LWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
 #endif
         endif
@@ -1248,6 +1249,7 @@ C**** cloud water diagnostics
         CIWC3D(L,I,J)=CIWC3D(L,I,J)+WMX(L)
 #endif
 #ifdef etc_subdd
+        CIWC3D(L,I,J)=WMX(L)
         IWP2D(I,J)=IWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
 #endif
         endif
