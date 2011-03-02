@@ -1247,9 +1247,6 @@ C****
      &     nwav_dag,ndiupt,hr_in_day
      *     ,klayer,idd_w,ijdd
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
-#ifdef etc_subdd
-     &     ,bekeg
-#endif
       USE GCDIAG
       USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
      &     ,pit
@@ -2010,10 +2007,6 @@ C**** ACCUMULATE HERE
       DO I=1,IMAXJ(J)
         AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
      &       (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
-#ifdef etc_subdd
-        bekeg(K,I,J)=bekeg(K,I,J)-  
-     &       (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
-#endif
       ENDDO
       ENDDO ! K
       ENDDO ! J

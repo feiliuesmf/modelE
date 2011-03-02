@@ -76,10 +76,10 @@ C****
      *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx, ij_silwu, ij_silwd
      *     ,ij_sish ,ij_popwat
 #if (defined mjo_subdd) || (defined etc_subdd)
-     *     ,qlat_avg,pblht_acc
+     *     ,qsen_avg,qlat_avg,pblht_acc
 #endif
 #ifdef mjo_subdd
-     *     ,PW_acc, E_acc, qsen_avg,sst_avg,p_avg,lwu_avg
+     *     ,PW_acc, E_acc,sst_avg,p_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
 #endif
 #ifndef NO_HDIURN
@@ -1549,11 +1549,8 @@ c****   retrieve fluxes
         tflux1(i,j)=-dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
         qflux1(i,j)=-dq1(i,j)*AM(1,I,J)/(dtsurf)
 #if (defined mjo_subdd) || (defined etc_subdd)
-C**** SUBDD qlat_avg for latent heat flux ***
+C**** SUBDD qsen_avg,qlat_avg for sensible/latent heat flux ***
         qlat_avg(i,j)=qlat_avg(i,j)+qflux1(i,j)
-#endif
-#ifdef mjo_subdd
-C**** SUBDD qsen_avg for sensible, latent heat flux ***
         qsen_avg(i,j)=qsen_avg(i,j)+tflux1(i,j)
 #endif
 C**** Diurnal cycle of temperature diagnostics
