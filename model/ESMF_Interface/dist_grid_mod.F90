@@ -566,12 +566,6 @@ MODULE dist_grid_mod
      Allocate(AI(NPES_WORLD,3))
      call ESMF_GridGetAxisIndex(distGrid%ESMF_GRID, AI, my_pet)
 
-      write(*,23), " DE : ",my_pet, &
-           "  (",AI(my_pet+1,1)%min, " , ",AI(my_pet+1,1)%max, &
-         ") - (",AI(my_pet+1,2)%min, " , ",AI(my_pet+1,2)%max, &
-         ") - (",AI(my_pet+1,3)%min, " , ",AI(my_pet+1,3)%max
-23  format(7(a,i3))
-
 ! original:
      Do p = 1, npes_world
        distGrid%private%lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
