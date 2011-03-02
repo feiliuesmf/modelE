@@ -29,7 +29,7 @@ trailingCommentRegExp = re.compile('!')
 
 def markWillContinue(line):
     if trailingCommentRegExp.search(line):
-        statement = line.replace('!','& !')
+        statement = line.replace('!','& !',1)
     else:
         statement = line.rstrip() + ' &\n'
     return statement
