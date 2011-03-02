@@ -5,7 +5,7 @@ EC12:  This is a coarse resolution of E_AR5_M20.
 
 Preprocessor Options
 #define USE_ENT
-#define NEW_IO
+!#define NEW_IO
 End Preprocessor Options
 
 Object modules:
@@ -17,7 +17,7 @@ FFT36                         ! Fast Fourier Transform
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
-IO_DRV                              ! old i/o
+IORSF                              ! old i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
@@ -39,7 +39,7 @@ Data input files:
 #include "IC_36x24_input_files.nc"
 #include "static_ocn_1880_36x24_input_files"
 
-RVR=RD8X10.RVR           ! river direction file
+RVR=RD8X10.RVR.bin           ! river direction file
 
 #include "land36x24_input_files"
 #include "rad_input_files"
@@ -75,6 +75,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 aer_rad_forc=0
 cloud_rad_forc=1
+crops_yr=-1
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
