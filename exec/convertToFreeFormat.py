@@ -6,7 +6,7 @@
 # convention, the fixed format file has th e '.f' suffix and the free
 # format file has '.F90'.
 
-# There are two situations that this script willl process incorrectly.
+# There is are two situations that this script willl process incorrectly.
 #
 # Case 1:  A fortran token contains an internal space character.  In fixed 
 #          format, spaces are not signficant and the following line is legal:
@@ -14,15 +14,8 @@
 #                        ^ - interior space
 #          In free format it must be expressed as:
 #               if (x .ne. y) then
-# Case 2:  An statement containing the F90 'not-equal-to' operator "!=" and is 
-#          continued on the next line.   An examlpe would be:
-#
-#          c23456789012345678901234567890
-#                if (i != 0)
-#               *  i = i + 1
-#
-# Fortunately these are both farely rare constructs.
-#
+# Case 2:  Continuations that are sandwiched by #ifdef constructs can be wrong.
+
 
 import sys
 import os
