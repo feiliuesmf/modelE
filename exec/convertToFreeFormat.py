@@ -25,7 +25,7 @@ import tempfile
 emptyRegexp = re.compile('^(\s*)\n')
 commentRegexp= re.compile('^([!cC#]|\s+!)',re.IGNORECASE)
 continueRegexp = re.compile('^     \S')
-trailingCommentRegExp = re.compile('\s*\S+\s+!')
+trailingCommentRegExp = re.compile('!')
 
 def markWillContinue(line):
     if trailingCommentRegExp.search(line):
