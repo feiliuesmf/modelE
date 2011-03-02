@@ -35,7 +35,7 @@ def markWillContinue(line):
     return statement
 
 def markContinuesPrevious(line):
-    return '     &' + line[6:]
+    return '      ' + line[6:]
 
 def convertToFreeFormat(lines):
     newLines = []
