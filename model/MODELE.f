@@ -1,9 +1,5 @@
 #include "rundeck_opts.h"
-      program main
-      call GISS_cap()
-      end program main
-
-      subroutine GISS_cap()
+      subroutine modelE_mainDriver()
 !@sum Acquire configuration options from the command line and pass to
 !@+ the model.
 !@auth T. Clune
@@ -56,7 +52,7 @@ C**** Command line options
       return
       end subroutine read_options
 
-      end subroutine GISS_Cap
+      end subroutine modelE_mainDriver
 
       subroutine GISS_modelE(qcRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine

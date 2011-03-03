@@ -5826,7 +5826,7 @@ c
       ia_ijl(k)    = ia_src
       lgrid_ijl(k) = ctr_ml
 c
-CC    Written out 3D latent heating profiles
+CC    3D drying and latent heating profiles
       if (lh_diags.eq.1) then
 
       k=k+1
@@ -5864,8 +5864,40 @@ c
       scale_ijl(k) = 86400./DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_LDRY=k
+      name_ijl(k) = 'LSCDRY'
+      lname_ijl(k) = 'Drying by Large Scale Condensation (Q2)'
+      units_ijl(k) = 'kg/kg/d'
+      scale_ijl(k) = 86400./DTsrc
+      ia_ijl(k) = ia_src
+c      
+      k=k+1
+      IJL_TMCDRY=k
+      name_ijl(k) = 'TMCDRY'
+      lname_ijl(k) = 'Drying by Moist Convection (Q2)'
+      units_ijl(k) = 'kg/kg/d'
+      scale_ijl(k) = 86400./DTsrc
+      ia_ijl(k) = ia_src
+c      
+      k=k+1
+      IJL_DMCDRY=k
+      name_ijl(k) = 'DMCDRY'
+      lname_ijl(k) = 'Drying by Deep Convection (Q2)'
+      units_ijl(k) = 'kg/kg/d'
+      scale_ijl(k) = 86400./DTsrc
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_SMCDRY=k
+      name_ijl(k) = 'SMCDRY'
+      lname_ijl(k) = 'Drying by Shallow Convection (Q2)'
+      units_ijl(k) = 'kg/kg/d'
+      scale_ijl(k) = 86400./DTsrc
+      ia_ijl(k) = ia_src
 
-      endif
+      endif ! lh_diags==1
 
 c
 #ifdef CLD_AER_CDNC

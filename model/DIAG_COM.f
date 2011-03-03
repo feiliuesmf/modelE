@@ -87,7 +87,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@param KAIJL number of AIJL accumulations
       INTEGER, PARAMETER, public :: KAIJL=20
 #if (defined mjo_subdd) || (defined etc_subdd)
-     &                                  + 4
+     &                                  + 8
 #endif
 #ifdef CLD_AER_CDNC
      &                                  + 16
@@ -102,6 +102,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &     IJL_W,IJK_RH,IJL_RC,IJL_MC
       INTEGER, public :: IJL_CF, IJL_MCamFX, IJL_cldwtr,IJL_cldice
      &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
+     &    ,IJL_LDRY,IJL_TMCDRY,IJL_DMCDRY,IJL_SMCDRY
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
@@ -370,8 +371,8 @@ C**** Instantaneous constant pressure level fields
 #endif
 #ifdef etc_subdd
 !@var omg_inst saved instantaneous omega (at PMB levels)
-!@var bekeg saved accumulated baroclinic eddy kinetic energy generation (at model levels)
-!@var bekeg_inst saved accumulated baroclinic eddy kinetic energy generation (at PMB levels)
+!@var lwc_inst saved instantaneous cloud liquid water content (at PMB levels)
+!@var iwc_inst saved instantaneous cloud ice water content (at PMB levels)
 !@var cldmc_inst saved instantaneous convective cloud fraction (at PMB levels)
 !@var cldss_inst saved instantaneous stratiform cloud fraction (at PMB levels)
 !@var tlh_inst saved instantaneous diabatic heating from moist convective (at PMB levels)
@@ -379,23 +380,23 @@ C**** Instantaneous constant pressure level fields
 !@var slh_inst saved instantaneous diabatic heating from shallow convective (at PMB levels)
 !@var llh_inst saved instantaneous diabatic heating from large-scale condensation (at PMB levels)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
-     &     omg_inst,bekeg,bekeg_inst,
+     &     omg_inst,lwc_inst,iwc_inst,
      &     cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
 #endif
 #if (defined  mjo_subdd) || (defined etc_subdd)
-!@var qlat_avg,pblht_acc accumulated surface latent heat flux, PBL height for SUBDD
+!@var qsen_avg,qlat_avg,pblht_acc accumulated surface sensible/latent heat flux, PBL height for SUBDD
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::
-     &        pblht_acc,qlat_avg
+     &        pblht_acc,qlat_avg, qsen_avg
 #endif
 #ifdef mjo_subdd
 !@var E_acc accumulated evaporation (special for SUBDD)
 !@var PW_acc accumulated integrated atmospheric water content (precipitable water) (special for SUBDD)
-!@var p_avg, qsen_avg,lwu_avg,sst_avg, accumulated surface pressure, sensible heat flux,
+!@var p_avg, lwu_avg,sst_avg, accumulated surface pressure, 
 !@     upward LW at sfc, sst, latent heat flux for SUBDD
 !@var u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg accumulated u,v,w,t,q,rh,gh for subdaily period
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: E_acc,PW_acc
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::
-     &        p_avg,qsen_avg,sst_avg,lwu_avg
+     &        p_avg,sst_avg,lwu_avg
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
      &        u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
 #endif
@@ -680,7 +681,7 @@ c derived/composite diagnostics
 !@dbparam isccp_diags: if 1 accumulate ISCCP cloud data (default 0)
       INTEGER, public :: isccp_diags = 0
 
-!@dbparam lh_diags: if 1 accumulate 3D latent heating profiles (default 0)
+!@dbparam lh_diags: if 1 accumulate 3D drying & latent heating profiles (default 0)
       INTEGER, public :: lh_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
@@ -989,14 +990,14 @@ c instances of arrays
      *     ,vt_inst
 #endif
 #ifdef etc_subdd
-     *     ,omg_inst,bekeg,bekeg_inst
+     *     ,omg_inst,iwc_inst,lwc_inst
      *     ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
-     *     ,qlat_avg,pblht_acc
+     *     ,qsen_avg,qlat_avg,pblht_acc
 #endif
 #ifdef mjo_subdd
-     *     ,E_acc,PW_acc,p_avg,qsen_avg,sst_avg,lwu_avg
+     *     ,E_acc,PW_acc,p_avg,sst_avg,lwu_avg
      *     ,u_avg,v_avg,w_avg,t_avg,q_avg,r_avg,z_avg
 #endif
      *     ,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI
@@ -1060,9 +1061,9 @@ c instances of arrays
      &         vt_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
 #endif
 #ifdef etc_subdd
+     &         lwc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         iwc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         omg_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         bekeg(LM,I_0H:I_1H,J_0H:J_1H),
-     &         bekeg_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         cldmc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         cldss_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         tlh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -1072,13 +1073,13 @@ c instances of arrays
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
      &         qlat_avg(I_0H:I_1H,J_0H:J_1H),
+     &         qsen_avg(I_0H:I_1H,J_0H:J_1H),
      &         pblht_acc(I_0H:I_1H,J_0H:J_1H),
 #endif
 #ifdef mjo_subdd
      &         E_acc(I_0H:I_1H,J_0H:J_1H),
      &         PW_acc(I_0H:I_1H,J_0H:J_1H),
      &         p_avg(I_0H:I_1H,J_0H:J_1H),
-     &         qsen_avg(I_0H:I_1H,J_0H:J_1H),
      &         sst_avg(I_0H:I_1H,J_0H:J_1H),
      &         lwu_avg(I_0H:I_1H,J_0H:J_1H),
      &         u_avg(I_0H:I_1H,J_0H:J_1H,LM),
