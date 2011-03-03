@@ -5383,6 +5383,99 @@ c chemical production
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        select case(trname(n))
+        case('isopp1a')
+          ! In the radiation code the RCOMPX call for isopp1a
+          ! currently contains isopp1a+isopp2a and if TRACERS_TERP
+          ! also apinp1a+apinp2a, so using SOA in stead of trname:
+           
+          call set_diag_rad(n,k)
+
+c SOA shortwave radiative forcing
+          k = k + 1
+          ijts_fc(1,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA SW radiative forcing'
+          sname_ijts(k) = 'swf_SOA'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA longwave radiative forcing
+          k = k + 1
+          ijts_fc(2,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA LW radiative forcing'
+          sname_ijts(k) = 'lwf_SOA'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA shortwave surface radiative forcing
+          k = k + 1
+          ijts_fc(3,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA SW surface rad forcing'
+          sname_ijts(k) = 'swf_surf_SOA'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA longwave surface radiative forcing
+          k = k + 1
+          ijts_fc(4,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA LW surface rad forcing'
+          sname_ijts(k) = 'lwf_surf_SOA'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA clear sky shortwave radiative forcing
+          k = k + 1
+          ijts_fc(5,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA clr sky SW rad forcing'
+          sname_ijts(k) = 'swf_CS_SOA'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA clear sky longwave radiative forcing
+          k = k + 1
+          ijts_fc(6,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA clr sky LW rad forcing'
+          sname_ijts(k) = 'lwf_CS_SOA'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA clear sky shortwave surface radiative forcing
+          k = k + 1
+          ijts_fc(7,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA clr sky SW surface rad forcing'
+          sname_ijts(k) = 'swf_CS_surf_SOA'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c SOA clear sky longwave surface radiative forcing
+          k = k + 1
+          ijts_fc(8,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = 'SOA clr sky LW surface rad forcing'
+          sname_ijts(k) = 'lwf_CS_surf_SOA'
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+        end select ! isopp1a representing SOA as a group
 #endif  /* TRACERS_AEROSOLS_SOA*/
 
       case ('CH4')
