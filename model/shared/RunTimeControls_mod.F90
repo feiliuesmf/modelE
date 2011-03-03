@@ -383,12 +383,6 @@ module RunTimeControls_mod
   logical, parameter :: gfdl_nudge = .false.
 #endif
 
-#if defined(GFED_3D_BIOMASS)
-  logical, parameter :: gfed_3d_biomass = .true.
-#else
-  logical, parameter :: gfed_3d_biomass = .false.
-#endif
-
 #if defined(GHY_FD_1_HACK)
   logical, parameter :: ghy_fd_1_hack = .true.
 #else

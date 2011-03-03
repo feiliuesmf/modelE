@@ -23,8 +23,6 @@ SECTORS_ARE='WET'
 !-----
 aircraft_Tyr1=1910 ! for non-transient emissions,
 aircraft_Tyr2=2000 ! set these two equal or omit them.
-! biomass_Tyr1= 0 ! for non-transient emissions,
-! biomass_Tyr2= 0 ! set these two equal or omit them.
 
 ! Colin Price lightning model needs resolution-dependant tuning:
 tune_lt_land=1.4322d0 ! =2.2d0*2.17d0 then *0.5*1.2*0.5 for 2x2.5 model

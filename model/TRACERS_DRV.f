@@ -48,9 +48,6 @@
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
-#ifdef GFED_3D_BIOMASS
-     & ,biomass_Tyr1,biomass_Tyr2
-#endif
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
@@ -257,10 +254,6 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
       call sync_param("aircraft_Tyr1",aircraft_Tyr1)
       call sync_param("aircraft_Tyr2",aircraft_Tyr2)
-#ifdef GFED_3D_BIOMASS
-      call sync_param("biomass_Tyr1",biomass_Tyr1)
-      call sync_param("biomass_Tyr2",biomass_Tyr2)
-#endif
 #ifdef SHINDELL_STRAT_CHEM
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
@@ -409,9 +402,6 @@ C**** get rundeck parameter for cosmogenic source factor
         if (trname(n)=='CH4' .and. use_rad_ch4/=0) then
           call set_ntsurfsrc(n,0)
         end if
-#endif
-#if (defined TRACERS_SPECIAL_Shindell) && (defined GFED_3D_BIOMASS)
-        call check_GFED_sectors(n) ! possible special 3D source sector
 #endif
       enddo
 
@@ -9805,10 +9795,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef INTERACTIVE_WETLANDS_CH4
          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
-#ifdef GFED_3D_BIOMASS
-         if(fix_CH4_chemistry/=1.or.ntsurfsrc(n)/=0)
-     &   call get_GFED_biomass_burning(n,xyear,xday)
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
         else !-------------------------------------- general ---------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -9894,12 +9880,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
               if (COUPLED_CHEM.ne.1)
      &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
             end select
-#ifdef GFED_3D_BIOMASS
-            select case (trname(n))
-            case ('NOx','CO','Alkenes','Paraffin')
-              call get_GFED_biomass_burning(n,xyear,xday)
-            end select
-#endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           endif ! n=n_...
@@ -10836,11 +10816,7 @@ C**** 3D biomass source
             end do
           end do; end do
         end if 
-#ifndef GFED_3D_BIOMASS
         call apply_tracer_3Dsource(nBiomass,n)
-#else
-        if(n>ntm_chem)call apply_tracer_3Dsource(nBiomass,n)
-#endif /* note that is a NOT defined */
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_OM_SP
@@ -11013,25 +10989,6 @@ C**** Allow overriding of transient emissions date:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
-#ifdef GFED_3D_BIOMASS
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_CH4) = 0.d0
-      if(fix_CH4_chemistry/=1.or.ntsurfsrc(n_CH4)/=0)then
-        call dist_GFED_biomass_burning(n_CH4)
-        call apply_tracer_3Dsource(nBiomass,n_CH4)
-      endif
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_NOx) = 0.d0
-      call dist_GFED_biomass_burning(n_NOx)
-      call apply_tracer_3Dsource(nBiomass,n_NOx)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_CO) = 0.d0
-      call dist_GFED_biomass_burning(n_CO)
-      call apply_tracer_3Dsource(nBiomass,n_CO)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_Alkenes) = 0.d0
-      call dist_GFED_biomass_burning(n_Alkenes)
-      call apply_tracer_3Dsource(nBiomass,n_Alkenes)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_Paraffin) = 0.d0
-      call dist_GFED_biomass_burning(n_Paraffin)
-      call apply_tracer_3Dsource(nBiomass,n_Paraffin)
-#endif /*GFED_3D_BIOMASS*/
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
