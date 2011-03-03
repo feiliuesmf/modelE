@@ -763,6 +763,9 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@var iu_OHT unit number for reading in ocean heat transports & z12o_max
       INTEGER :: iu_OHT,iu_GIC
       INTEGER :: I,J,m,ISTART,ioerr
+      logical :: postProc = .false.
+      logical :: readGIC = .false.
+
 !@var z12o_max maximal mixed layer depth (m) for qflux model
       real*8 :: z12o_max
       real*8 z1ox(grid%i_strt_halo:grid%i_stop_halo,
@@ -781,7 +784,13 @@ C****   set conservation diagnostic for ocean heat
      *       "(W/M^2)         ",1d-6,1d0,icon_OCE)
       end if
 
-      if (istart.le.0) then
+      if (istart<1) then
+        postProc = .true.
+      else if (istart<3) then
+        readGIC = .true.
+      end if
+
+      if (postProc) then
         if(kocean.ge.1) call init_ODEEP(.false.)
         return
       end if
@@ -790,7 +799,7 @@ C****   set conservation diagnostic for ocean heat
 
 C**** if starting from AIC/GIC files need additional read for ocean
 
-      if (istart.le.2) then
+      if (readGIC) then
 #ifdef NEW_IO
         fid = par_open(grid,'GIC','read')
         call new_io_ocean (fid,ioread)

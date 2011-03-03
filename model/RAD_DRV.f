@@ -27,7 +27,7 @@ C****
 
       END SUBROUTINE CALC_ZENITH_ANGLE
 
-      SUBROUTINE init_RAD(istart)
+      SUBROUTINE init_RAD(postProc)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
 !@ver  1.0
@@ -93,7 +93,8 @@ C****
       use IndirectAerParam_mod, only: dCDNC_est, aermix
       IMPLICIT NONE
 
-      INTEGER L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
+      logical, intent(in) :: postProc
+      INTEGER L,LR,n1,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
@@ -169,7 +170,7 @@ C**** sync radiation parameters from input
       call sync_param( "ref_mult", ref_mult )
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
-      if (istart.le.0) return
+      if (postProc) return
 
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)

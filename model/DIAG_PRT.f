@@ -1494,7 +1494,7 @@ C****
 C**** PRELIMINARIES:  VERTICAL DERIVATIVES AND N**2
       GSQ=GRAV*GRAV
       GBYRSQ=GRAV*GRAV/(RGAS*RGAS)
-      IF (AGC(2,KM,JK_DPA).LT.teeny) GO TO 670  ! ISTART=4,...
+      IF (AGC(2,KM,JK_DPA).LT.teeny) GO TO 670  ! diagB not called yet
       DO 600 J=1,JM
       K1=1
   580 IF (AGC(J,K1,JK_DPA).GT.teeny) GO TO 590
