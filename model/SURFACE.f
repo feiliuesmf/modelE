@@ -21,17 +21,15 @@ C****
      *     ,nday,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMDIAG, only : EVPFLX,SHFLX
+      USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
-#ifdef SCM
-      USE SCMDIAG, only : EVPFLX,SHFLX
-      USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
-#endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,
      *     n_CO2n, n_CFCn, n_Be7, n_Be10, n_clay, trname

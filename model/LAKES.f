@@ -416,7 +416,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,jday,fearth0
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
@@ -432,9 +433,6 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GHY_COM, only : fearth
       USE LAKES
       USE LAKES_COM
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       !USE GHY_COM, only : fearth
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
@@ -1604,13 +1602,11 @@ C****
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
 #ifdef SCM
-     *                      ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -1996,14 +1992,12 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
 #ifdef SCM
-     *                     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : rsi
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -2250,7 +2244,8 @@ C****
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,dtsrc,itlake,itlkice,itearth
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
 
@@ -2272,9 +2267,6 @@ C****
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld,hlake_min
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE GHY_COM, only : fearth
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop

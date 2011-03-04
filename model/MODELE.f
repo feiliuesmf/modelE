@@ -1159,14 +1159,12 @@ C****
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
      *     ,USE_UNR_DRAG,init_topog_related
-
-#ifdef SCM
-     *     ,I_TARG,J_TARG
-#endif
 #ifdef BLK_2MOM
      * ,wmice
 #endif
+
 #ifdef SCM
+      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt
 #endif
       USE SOMTQ_COM, only : mz,tmom,qmom
