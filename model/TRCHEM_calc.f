@@ -628,6 +628,11 @@ c Calculate ozone change due to Cl2O2 cycling:
         if(yCl2O2(I,J,L) > 1d1)dest(n_Ox,L)=dest(n_Ox,L) - 0.75d0*
      &  rr(45,L)*y(nCl,L)*y(nO3,L)*dt2*yCl2O2(I,J,L)*1.5d9/y(nM,L)
       enddo
+
+c Include oxidation of CO by O(1D)
+      do L=1,LM
+        dest(n_CO,L)=dest(n_CO,L)-1.0d-9*y(n_CO,L)*y(nO1D,L)*dt2
+      end do
 #endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

@@ -57,15 +57,9 @@ c$$$#endif
 
 !**** Model control parameters:
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
-!@dbparam init_topog_related : set =1 if IC and topography are incompatible
 !@dbparam MFILTR: if 1 => SLP, if 2 => T, if 3 => SLP&T is filtered
-      integer :: KOCEAN = 1, MFILTR = 1, init_topog_related = 0
-!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
-      integer :: COUPLED_CHEM = 0
-!@var ij_debug: if i > 0, print out some extra info on bad ij box
-      integer, dimension(2) :: ij_debug = (/ 0 , 1 /)
-
-!**** Controls on FLTRUV (momentum/velocity filter)
+      integer :: KOCEAN = 1, MFILTR = 1
+!     Controls for FLTRUV (momentum/velocity filter)
 !@dbparam DT_XUfilter dU is multiplied by dt/DT_XUfilter in E-W
 !@dbparam DT_XVfilter dV is multiplied by dt/DT_XVfilter in E-W
 !@dbparam DT_YUfilter dU is multiplied by dt/DT_YUfilter in N-S
@@ -74,14 +68,20 @@ c$$$#endif
       REAL*8 :: DT_XVfilter=0. ! V-filter is NOT used in E-W direction
       REAL*8 :: DT_YUfilter=0. ! U-filter is NOT used in N-S direction
       REAL*8 :: DT_YVfilter=0. ! V-filter is NOT used in N-S direction
-!     Target Coordinates for SCM
-      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
-      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
 !@var QUVfilter: True if any of DT_[XY][UV]filter are not=0
       LOGICAL :: QUVfilter
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter
       INTEGER :: ang_uv = 1 ! UV-filter conserves ang mom
+!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+      integer :: COUPLED_CHEM = 0
+!@var ij_debug: if i > 0, print out some extra info on bad ij box
+      integer, dimension(2) :: ij_debug = (/ 0 , 1 /)
 
+!**** Target Coordinates for SCM
+      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
+      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
+
+!**** Stratospheric drag related parameters
 !@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
       REAL*8, DIMENSION(2) :: X_SDRAG = (/2.5D-4,2.5D-5/)
 !@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.) above PTOP
@@ -99,14 +99,14 @@ c$$$#endif
       REAL*8 :: Wc_JDRAG=30.d0  !  if 0.: no JDRAG-feature in Sdrag
 !@dbparam wmax imposed limit for stratospheric winds (m/s) in SDRAG
       real*8 :: wmax=200.d0
-!@dbparam do_polefix if =1 : u,v tendencies are corrected near the pole
-      INTEGER :: do_polefix=1     ! default is to enable corrections
 !@dbparam VSDRAGL layer dependent tuning factor for stratospheric drag
 !@+   (not =1 e.g. if used with explicit grav.wave drag scheme)
       real*8 :: VSDRAGL(LS1:LM) = 1d0
 !@dbparam  USE_UNR_DRAG   if 1 =>SDRAG is turned off and GWD is applied.
 !@+    if 0 => SDRAG is kept intact and alternative GWD is not employed.
       INTEGER :: USE_UNR_DRAG=0  ! default: SDRAG is kept intact.
+!@dbparam do_polefix if =1 : u,v tendencies are corrected near the pole
+      INTEGER :: do_polefix=1     ! default is to enable corrections
 
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved

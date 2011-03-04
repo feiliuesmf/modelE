@@ -2195,7 +2195,6 @@ c**** read rundeck parameters
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
 
-        !!!if (istart.le.0) return ! avoid reading unneeded files
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
         ALLOCATE(TEMP_LOCAL(I_0H:I_1H,J_0H:J_1H,11*NGM+1))
@@ -2224,7 +2223,6 @@ c**** read topmodel parameters
         else   ! do not reset ghy prognostic variables
           call reset_gh_to_defaults( .false. )
         endif
-        !!!if (istart.le.0) return
       endif
 
 c**** time step for ground hydrology
@@ -2353,7 +2351,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       real*8, parameter :: spgsn=.1d0 !@var spgsn specific gravity of snow
       real*8 :: ws_can, shc_can, ht_cap_can, fice_can, aa
       real*8 :: fb, fv
-      integer :: reset_canopy_ic=0, reset_snow_ic=0
+      integer :: reset_canopy_ic=0, reset_snow_ic=0, do_IC_fixups=0
   !!  integer init_flake
       logical present_land
 #ifdef TRACERS_WATER
@@ -2369,6 +2367,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       call sync_param( "reset_snow_ic", reset_snow_ic )
       call  get_param( "variable_lk", variable_lk )
   !!  call  get_param( "init_flake", init_flake )
+      if (istart < 9) do_IC_fixups = 1
 
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
@@ -2410,10 +2409,10 @@ c**** recompute ground hydrology data if necessary (new soils data)
         write (*,*) 'ground hydrology data was made from ground data'
       end if
 
-
+      if (do_IC_fixups == 1) then
 c**** set vegetation temperature to tearth(i,j) if requested
 c**** in this case also set canopy water and water tracers to 0
-      if ( reset_canopy_ic .ne. 0 .and. istart < 9 ) then
+      if ( reset_canopy_ic .ne. 0) then
         do j=J_0,J_1
           do i=I_0,I_1
             present_land = .false.
@@ -2493,7 +2492,6 @@ c**** (i.e. the files which contained snow as part of 1st soil layer)
       end if
 
 c**** fix initial conditions for soil water if necessry
-      if ( istart < 9 ) then
         do j=J_0,J_1
           do i=I_0,I_1
             if ( focean(i,j) >= 1.d0 ) cycle
@@ -2502,10 +2500,8 @@ c**** fix initial conditions for soil water if necessry
      &           q_ij(i,j,:,:), dz_ij(i,j,:), i, j )
           enddo
         enddo
-      endif
 
 c**** fix initial conditions for soil heat if necessry
-      if ( istart < 9 ) then
         do j=J_0,J_1
           do i=I_0,I_1
             if ( focean(i,j) >= 1.d0 ) cycle
@@ -2525,11 +2521,10 @@ c**** fix initial conditions for soil heat if necessry
      &           q_ij(i,j,:,:), dz_ij(i,j,:), i, j )
           enddo
         enddo
-      endif
 
 c**** remove all land snow from initial conditions
 c**** (useful when changing land/vegetation mask)
-      if ( reset_snow_ic .ne. 0 .and. istart < 9 ) then
+      if ( reset_snow_ic .ne. 0 ) then
         do j=J_0,J_1
           do i=I_0,I_1
             nsn_ij(:, i, j) = 1
@@ -2557,6 +2552,7 @@ c**** (useful when changing land/vegetation mask)
           endif
         enddo
       enddo
+      end if ! do_IC_fixups
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       fr_snow_rad_ij(:,:,:) = 0.d0
@@ -2574,8 +2570,6 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       enddo
 
       ! initialize underwater fraction for variable lakes
- !!   if ( inilake .or.
- !!  *    (init_flake > 0 .and. variable_lk > 0 .and. istart < 9))
       if ( inilake .and. variable_lk > 0 )
      &     call init_underwater_soil
 

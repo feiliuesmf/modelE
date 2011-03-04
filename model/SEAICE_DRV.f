@@ -1043,7 +1043,7 @@ C****
 C****
       END SUBROUTINE vflx_OCEAN
 
-      SUBROUTINE init_ice(iniOCEAN,istart)
+      SUBROUTINE init_ice(iniOCEAN,do_IC_fixups)
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
 !@ver  1.0
@@ -1073,7 +1073,7 @@ C****
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       CHARACTER CONPT(NPTS)*10
-      INTEGER I,J,istart
+      INTEGER I,J,do_IC_fixups
       REAL*8 MSI1,TFO
       integer :: I_0, I_1, J_0, J_1
 C****
@@ -1100,7 +1100,7 @@ C**** Define the ice thermodynamics (SI or BP)
       call sync_param("seaice_thermo",seaice_thermo)
 
 C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
-      if (istart.lt.9) then
+      if (do_IC_fixups == 1) then
       DO J=J_0, J_1
       DO I=I_0, I_1
         IF (FOCEAN(I,J)+FLAKE0(I,J).eq.0 .and. RSI(i,j).gt.0) RSI(I,J)=0
