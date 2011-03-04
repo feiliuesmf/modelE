@@ -2615,9 +2615,6 @@ C**** check tracers
 #ifdef EDGAR_HYDE_SOURCES
       write(6,*) '...and EDGAR HYDE sources instead of GISS'
 #endif
-#ifdef SHINDELL_STRAT_CHEM
-      write(6,*) '...and Drew Shindell stratospheric chemistry'
-#endif
 #ifdef SHINDELL_STRAT_EXTRA
       write(6,*) '...and Drew Shindell extra strat tracers'
 #endif

@@ -3,7 +3,7 @@
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on masterchem000_M23p)   
-!@calls photoj,checktracer,Crates,Oxinit,HOxfam,NOxfam,chemstep
+!@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C IF ALTERING THIS ROUTINE, PLEASE SEE THE WARNING ABOUT THE CHANGEL
 C VARIABLE IN THE STRATOSPHERIC OVERWRITE SECTION.
@@ -55,10 +55,8 @@ c
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
      *                        ,mass2vol,vol2mass
-#ifdef SHINDELL_STRAT_CHEM
      &                        ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                        n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
-#endif
 #ifdef TRACERS_HETCHEM
      &                        ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
@@ -72,9 +70,7 @@ c
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
      &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2
-#ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
-#endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_aerosolphase,voc2nox,soa_apart,
@@ -97,7 +93,6 @@ C**** Local parameters and variables and arguments:
 !@var thick thickness of each layer in various units
 !@var bythick recipricol thickness of each layer (1/m) saved on
 !@+ model layers. Should replace thick with 1/this too?
-!@var photO2_glob for O2->Ox diagnostic
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
 !@var colmO2, colmO3 are overhead oxygen and ozone columns
@@ -160,14 +155,12 @@ C**** Local parameters and variables and arguments:
 #ifdef INTERACTIVE_WETLANDS_CH4
       REAL*8 :: temp_SW
 #endif
-#ifdef SHINDELL_STRAT_CHEM
       REAL*8, DIMENSION(LM)     :: ClOx_old  
       REAL*8 :: CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
      & changeHOCl,changeHCl,changehetClONO2,chgHT3,
      & chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
      & countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp
       INTEGER, DIMENSION(LM)    :: aero
-#endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
      &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,ii,
      &        ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,index2
@@ -182,8 +175,7 @@ C**** Local parameters and variables and arguments:
       real*8 :: ss27x2(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(JM)         :: DU_O3_glob
-#ifdef SHINDELL_STRAT_CHEM
-c      real*8, dimension(JM,LM)      :: photO2_glob
+
 #ifdef TRACERS_TERP
       integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
      &                      iN2O5decomp=96,iClOplusNO2=107,
@@ -196,14 +188,7 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
      &                      iClONO2plusH2O=107,iClONO2plusHCl=108,
      &                      iHOClplusHCl=109,iN2O5plusHCl=110
 #endif  /* TRACERS_TERP */
-#else
-#ifdef TRACERS_TERP
-      integer, parameter :: iNO3plusNO2=56,iN2O5decomp=50,
-     &                      iTerpenesO3=47,iTerpenesNO3=48
-#else
-      integer, parameter :: iNO3plusNO2=53,iN2O5decomp=47
-#endif  /* TRACERS_TERP */
-#endif
+
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
@@ -301,10 +286,10 @@ C Some INITIALIZATIONS :
       bydtsrc = 1.d0/dtsrc
       BYFJM   = 1.d0/real(JM)
       PRES2(:)= SIG(:)*(PSF-PTOP)+PTOP
-#ifdef SHINDELL_STRAT_CHEM
+
       if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
-#endif
+
 #ifdef INTERACTIVE_WETLANDS_CH4
 C Not really related to chemistry, but convenient place to update
 C running-averages for interactive wetlands CH4:
@@ -323,10 +308,6 @@ c Calculation of removal rates on dust surfaces:
       CALL HETCDUST
 #endif
 
-#ifndef SHINDELL_STRAT_CHEM 
-      if(which_trop==0 .or. (JPNL<LS1-1.and.which_trop==1))
-     &call stop_model('Are you sure JPNL is right?',255)
-#else
       ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f
       if(Itime==ItimeI)then
         if(use_rad_n2o > 0)then
@@ -338,7 +319,6 @@ c Calculation of removal rates on dust surfaces:
           call write_parallel(trim(out_line))
         endif
       endif
-#endif
 
 c Set "chemical time step". Really this is a method of applying only
 c a fraction of the chemistry change to the tracer mass for the first
@@ -385,7 +365,6 @@ C (note this section is already done in DIAG.f)
         END DO
       END DO
 
-#ifdef SHINDELL_STRAT_CHEM
 C info to set strat H2O based on tropical tropopause H2O and CH4:
       if(Itime == ItimeI .and. allowSomeChemReinit == 1 )then
         avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
@@ -413,7 +392,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         CALL GLOBALSUM(grid, countTT_part,   countTT,   all=.true.)
         if(countTT <= 0.)call stop_model('countTT.le.0',255)
       end if
-#endif
 
 ! Define acetone in terms of Isoprene:
 !kt Terpenes should also be included here in the future
@@ -453,12 +431,10 @@ CCCC!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,changeOx,FACT_SO4,
 CCCC#ifdef TRACERS_HETCHEM
 CCCC!$OMP* changeN_d1,changeN_d2,changeN_d3,
 CCCC#endif
-CCCC#ifdef SHINDELL_STRAT_CHEM
 CCCC!$OMP* aero, CLTOT, ClOx_old, COLMO2, COLMO3, changeClONO2, changeClOx,
 CCCC!$OMP* changehetClONO2, changeHOCl, changeHCl,
 CCCC!$OMP* chgHT3, chgHT4, chgHT5, fraQ,
 CCCC!$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
-CCCC#endif
 CCCC!$OMP* igas, inss, J, jay, L, LL, Lqq, maxl, N, error )
 CCCC!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
 CCCC!$OMP* N_ALKYLNIT)
@@ -469,7 +445,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       i_loop: DO I=I_0,IMAXJ(J)     ! >>>> MAIN I LOOP BEGINS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      if(checktracer_on==1) call checktracer(I,J)
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
       case(1); maxl=ls1-1
@@ -488,7 +463,6 @@ c Save presure, temperature, thickness, rel. hum. in local arrays:
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*cboltz)
        y(nO2,L)=y(nM,L)*pfix_O2
-#ifdef SHINDELL_STRAT_CHEM
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
        else
@@ -497,9 +471,6 @@ c Calculate M and set fixed ratios for O2 & H2:
          y(nH2,L)=y(nM,L)*pfix_H2 + 2.5d-2*(pres2(L)-20.d0)
        endif
        CLTOT=0.d0
-#else
-       y(nH2,L)=y(nM,L)*pfix_H2
-#endif
 
 c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
@@ -543,28 +514,15 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          yso2(i,j,l)=so2_offline(i,j,l)*1.0D-12*y(nM,L)
        endif
 
-#ifndef SHINDELL_STRAT_CHEM
-c If desired, fix the methane concentration used in chemistry:
-C WHY IS THIS NECESSARY ANY MORE, NOW THAT GET_CH4_IC IS CALLED?
-       if(fix_CH4_chemistry == 1) THEN
-         if(LAT2D_DG(I,J) < 0.) THEN ! SH
-           y(n_CH4,L)=y(nM,L)*ch4_init_sh*1.d-6
-         else                        ! NH
-           y(n_CH4,L)=y(nM,L)*ch4_init_nh*1.d-6
-         endif
-       end if
-#endif
-#ifdef SHINDELL_STRAT_CHEM
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
      & BYAXYP(I,J)*BYAM(L,I,J)
-#endif
 
 c Limit N2O5 number density:
        if(y(n_N2O5,L) < 1.) y(n_N2O5,L)=1.d0
 c Set H2O, based on Q:
        y(nH2O,L)=Q(I,J,L)*MWabyMWw*y(nM,L)
-#ifdef SHINDELL_STRAT_CHEM
+                           
 c Initialize stratospheric y(H2O) & GCM Q variable (!),
 c based on tropical tropopause H2O and CH4:
        if(allowSomeChemReinit == 1) then
@@ -588,7 +546,6 @@ C**** Add water to relevant tracers as well
            end if
          end if
        end if
-#endif
 
 c Initialize various other species:
 c - set [NO]=0 (where?) for first HOx calc, NO2 = NOx:
@@ -608,7 +565,6 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nXO2N,L)    =yXO2N(I,J,L)
        y(nRXPAR,L)   =yRXPAR(I,J,L)
        y(nROR,L)     =yROR(I,J,L)
-#ifdef SHINDELL_STRAT_CHEM
        y(nCl2,L)     =yCl2(I,J,L)
        y(nCl2O2,L)   =yCl2O2(I,J,L)
        y(nOClO,L)    =y(n_ClOx,L)*pOClOx(I,J,L)
@@ -616,7 +572,6 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nCl,L)      =y(n_ClOx,L)*pClx(I,J,L)
        y(nBr,L)      =y(n_BrOx,L)*(1.d0-pBrOx(I,J,L))
        y(nBrO,L)     =y(n_BrOx,L)*pBrOx(I,J,L)
-#endif
       END DO ! L
 
 C For solar zenith angle, we use the arccosine of the COSZ1
@@ -643,7 +598,6 @@ c       define column temperatures to be sent to FASTJ:
         TFASTJ = ta
         RFASTJ = rh
 
-#ifdef SHINDELL_STRAT_CHEM
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
 c       in look-up table), taking humidity into account. The different 
@@ -723,86 +677,32 @@ c       define pressures to be sent to FASTJ (centers):
         PFASTJ2(LM+1)=PEDN(LM+1,I,J)  ! P at SIGE(LM+1)
         PFASTJ2(LM+2)=PFASTJ2(LM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
         PFASTJ2(LM+3)=PFASTJ2(LM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
-#else
-c       define pressures to be sent to FASTJ (centers):
-        DO LL=2,2*LM,2
-          PFASTJ(LL) = PMID(LL/2,I,J)
-        END DO
-c       define pressures to be sent to FASTJ (edges):
-        PFASTJ(1)=PEDN(1,I,J)
-        DO LL=3,(2*LM)+1,2
-          PFASTJ(LL) = PEDN((LL+1)/2,I,J)
-        END DO
-CC      PFASTJ((2*LM)+2) = 0.1d0*PFASTJ((2*LM)+1)
-C       This is a fudge, so that we don't have to get mesosphere data:
-        PFASTJ((2*LM)+2) = 0.00058d0 ! for 23 layer model...
-        PFASTJ((2*LM)+3) = 0.00028d0 ! for 23 layer model...
-#endif
-        
-#ifdef SHINDELL_STRAT_CHEM
+
 c Pass O3 array (in ppmv) to fastj. Above these levels fastj2 uses
 C Nagatani climatological O3, read in by chem_init: 
         DO LL=1,LM
           if(PFASTJ2(LL) <= 0.1d0) y(nO3,LL)=y(n_Ox,LL)
           O3_FASTJ(LL)=y(nO3,LL)/y(nM,LL)
         END DO
-#else
-c Interpolate O3 (in ppmv) from bottom maxl model sigma levels
-c (i.e. those levels normally in troposphere) onto bottom 2*maxl
-c FASTJ levels. Above these levels fastj uses Nagatani climatological
-c O3, read in by chem_init:
-c
-c       define O3 to be sent to FASTJ (centers):
-        DO LL=2,2*maxl,2
-          O3_FASTJ(LL)=y(nO3,LL/2)
-        ENDDO
-c       define O3 to be sent to FASTJ (edges):
-        O3_FASTJ(1)=y(nO3,1)*O3_1_fact ! see parameter declaration...
-        DO LL=3,2*maxl-1,2
-c         interpolation factor, based on pressure:
-          FASTJ_PFACT=(PFASTJ(LL)-PFASTJ(LL-1))/
-     &    (PFASTJ(LL+1)-PFASTJ(LL-1))
-          O3_FASTJ(LL)=y(nO3,(LL-1)/2)+
-     &    (y(nO3,((LL-1)/2)+1)-y(nO3,(LL-1)/2))*FASTJ_PFACT
-c         lower limit on O3:
-          IF(O3_FASTJ(LL) < 0.d0) O3_FASTJ(LL)=-O3_FASTJ(LL) ! weird
-        ENDDO
-c       Convert to ppm (units used in fastj)
-        DO LL=1,2*maxl
-          O3_FASTJ(LL)=O3_FASTJ(LL)/(PFASTJ(LL)*2.55d10)
-        ENDDO
-#endif
 
         call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
         call photo_acetone(I,J,sza*radian,Jacet) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
-#ifdef SHINDELL_STRAT_CHEM
         colmO2=5.6d20 
         colmO3=5.0d16 
-#endif
-
-  ! This call to reduce the significant digits on the photolysis rates
-  ! is because Apostolos and Greg noticed that the order of the aerosols
-  ! being passed to it, slightly changed the photolysis rates. 
-  ! We could provide much more detail on the investigation (week of
-  ! Feb 19th 2010):
-!! NO:  call reduce_precision(zj,1.d-6)
 
         DO L=min(JPNL,LM),1,-1
           do inss=1,JPPJ
             ss(inss,L,I,J)=zj(L,inss)
-#ifdef SHINDELL_STRAT_CHEM
 c           reduce rates for gases that photolyze in window region
 c           (~200nm):
             if(inss == 28)ss(inss,L,I,J)=ss(inss,L,I,J)*1.0d-1 !N2O
             if(inss == 26)ss(inss,L,I,J)=ss(inss,L,I,J)*1.0d-1 !CFC
-#endif
           enddo
           taijls(i,j,l,ijlt_JO1D)=taijls(i,j,l,ijlt_JO1D)+ss(2,l,i,j)
           taijls(i,j,l,ijlt_JNO2)=taijls(i,j,l,ijlt_JNO2)+ss(1,l,i,j)
           taijls(i,j,l,ijlt_JH2O2)=taijls(i,j,l,ijlt_JH2O2)+ss(4,l,i,j)
-#ifdef SHINDELL_STRAT_CHEM
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
@@ -834,7 +734,6 @@ c           (~200nm):
           endif
           SF2(I,J,L)=SF2(I,J,L)*SF2_fact*
      &    by35*SQRT(1.224d3*(cos(ABS(LAT2D_DG(I,J))*radian))**2.+1.d0)
-#endif
         END DO
 
        endif ! (sunlight)
@@ -846,8 +745,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN CHEMISTRY                                C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-
-#ifdef SHINDELL_STRAT_CHEM
       ! Check for PSC's existance. 
       pscX(:)=.false.
       do L=1,LM 
@@ -868,14 +765,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           endif   ! lat
         endif     ! pressure
       enddo       ! L
-#endif
      
 c Calculate the chemical reaction rates:
-      call Crates (I,J
-#ifdef SHINDELL_STRAT_CHEM
-     &                ,aero
-#endif
-     &                     )      
+      call Crates (I,J,aero)      
 
 #ifdef TRACERS_AEROSOLS_SOA
       voc2nox(:)=0.d0
@@ -886,16 +778,12 @@ CCCCCCCCCCCCCCCCCCCC   SUNLIGHT   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 CCCCCCCCCCCCCCCCC FAMILY PARTITIONING CCCCCCCCCCCCCCCCCCCCCCCCCC
 
-#ifdef SHINDELL_STRAT_CHEM
        call Oxinit(LM,I,J)
        call HOxfam(LM,I,J)
        call NOxfam(LM,I,J)
        call BrOxfam(LM,I,J)
-#else
-       call Oxinit(maxl,I,J)
-       call HOxfam(maxl,I,J)
-       call NOxfam(maxl,I,J)
-#endif
+       ! ClOxfam done a bit below here
+
 CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 #ifdef TRACERS_AEROSOLS_SOA
 ! calculate voc2nox for SOA precursor chemistry
@@ -923,9 +811,7 @@ C Save 3D radical arrays to pass to aerosol code:
         end do
       endif
 
-#ifdef SHINDELL_STRAT_CHEM
       call ClOxfam(LM,I,J,ClOx_old) ! needed something from chemstep.
-#endif
 
       call printDaytimeChemistryDiags()
       
@@ -956,17 +842,14 @@ C Mr[(NH4)HSO4] = 115.0gC
 C*****************************************************************
 
 CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
-#ifdef SHINDELL_STRAT_CHEM
       LL=LM
-#else
-      LL=maxl
-#endif
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_apart ! calculate current apartmolar factors
 #ifdef SOA_DIAGS
      &              (I,J)
 #endif  /* SOA_DIAGS */
 #endif  /* TRACERS_AEROSOLS_SOA */
+
       DO L=1,LL  
 
 ! ----------------- RGAMMASULF ---------------------------------------
@@ -1016,7 +899,6 @@ C       Calculate sulfate sink, and cap it at 20% of N2O5:
 c       in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
         wprod_sulf=
      &  dt2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
-#ifdef SHINDELL_STRAT_CHEM
         if(pres2(L)>5.d0)then
 c       if there is reaction on strat particulate (in Crates), use that
           if(rr(iN2O5plusH2O,L)>1.0d-25)wprod_sulf=
@@ -1024,7 +906,6 @@ c       if there is reaction on strat particulate (in Crates), use that
         else
           wprod_sulf=0.d0
         endif
-#endif
         if(wprod_sulf > 0.2d0*y(n_N2O5,L))wprod_sulf=0.2d0*y(n_N2O5,L)
         prod_sulf=wprod_sulf*pfactor
         CALL INC_TAJLS(I,J,L,jls_N2O5sulf,-prod_sulf*vol2mass(n_N2O5))
@@ -1091,12 +972,10 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         if(-gwprodN2O5 > 0.25d0*y(n_N2O5,L))
      &       gwprodN2O5=-0.25d0*y(n_N2O5,L)
 
-#ifdef SHINDELL_STRAT_CHEM
          changeClONO2=y(nClO,L)*rr(iClOplusNO2,L)*y(nNO2,L)*dt2
          if(changeClONO2 >= y(nClO,L))changeClONO2=0.8d0*y(nClO,L)
          if(changeClONO2 >= 0.1d0*y(nNO2,L))changeClONO2=0.1d0*y(nNO2,L)
          changeClOx=-changeClONO2
-#endif
 
         changeAldehyde=(rr(36,L)*y(n_Alkenes,L)
      &                 +rr(32,L)*y(n_Isoprene,L)*0.12d0
@@ -1244,7 +1123,6 @@ c Ensure nitrogen conservation (presumably dNOx<0, others >0):
           if(changeAlkylNit < 0.d0)changeAlkylNit=
      &                                           changeAlkylNit*ratioN
         endif
-#ifdef SHINDELL_STRAT_CHEM
          changeNOx=changeNOx-changeClONO2
          if(-changeNOx > y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)
 
@@ -1291,7 +1169,6 @@ c          Remove some of the HNO3 formed heterogeneously, as it
 c          doesn't come back to the gas phase:
            changeHNO3 = changeHNO3 - 3.0d-3*y(n_HNO3,L)
          endif
-#endif
 
 #ifdef TRACERS_HETCHEM
 C       Include reactions on dust for HNO3:
@@ -1469,7 +1346,6 @@ C Make sure we get the nightime values; Set OH to zero for now:
           no3_live(i,j,l)=yNO3(i,j,l)
         endif
 
-#ifdef SHINDELL_STRAT_CHEM
 c --  Ox --   ( Ox from gas phase rxns)
         if(pres2(l) > 1.0.and.pres2(l) < 100.0)then
           changeOx=-(rr(7,L)*y(nNO2,L) + y(n_H2O2,L)*0.7d0*1.4d-11*
@@ -1529,7 +1405,6 @@ c -- HCl --   (HCl from het phase rxns)
             changeHCl=changeL(L,n_HCl)*mass2vol(n_HCl)*bypfactor
           END IF
         endif  ! PSCs exist
-#endif
 
         call printNightChemistryDiags()
         call checkNighttimeTolerances()
@@ -1538,12 +1413,10 @@ C       ACCUMULATE 3D NO3 diagnostic:
         if (yNO3(I,J,L) > 0.d0 .and. yNO3(I,J,L) < 1.d20)
      &  taijls(i,j,l,ijlt_NO3)=taijls(i,j,l,ijlt_NO3)+yNO3(i,j,l)
 
-#ifdef SHINDELL_STRAT_CHEM
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
      &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
      &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
-#endif
      
        enddo  ! L loop
 
@@ -1554,18 +1427,13 @@ CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       save_NO2column(i,j)=0.d0 ! initialize sum outside L loop.
 
-#ifdef SHINDELL_STRAT_CHEM
       LL=LM
-#else
-      LL=maxl
-#endif
       DO L=1,LL  
 
 C Lower limit on HO2NO2 : 
         if(trm(i,j,l,n_HO2NO2)+changeL(l,n_HO2NO2) < 1.d0)
      &  changeL(l,n_HO2NO2) = 1.d0 - trm(i,j,l,n_HO2NO2)
 
-#ifdef SHINDELL_STRAT_CHEM
 c Tropospheric halogen sink Br & Cl :
         if(y(nH2O,L)/y(nM,L) > 10.d-6)then ! sink by wet removal in trop
           rmv=0.5d0
@@ -1665,7 +1533,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &      trm(I,J,L,n_BrONO2)*(CLTOT-1.D0)
           ENDIF
         endif ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
-#endif
+
 #ifdef TRACERS_AEROSOLS_SOA
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
@@ -1803,7 +1671,6 @@ CCCCC!$OMP END PARALLEL DO
         call stop_model('chemstep Oxcorr fault',255)
       endif
 
-#ifdef SHINDELL_STRAT_CHEM
 !p    if(prnchg)then
 !a      ss27_file='ss27x2_diag' ! note makes 2 O's
 !r      title='Map of O3 production from O2 (Herz & SRB)'
@@ -1820,7 +1687,6 @@ CCCCC!$OMP END PARALLEL DO
 !e        call write_parallel(trim(out_line))
 !m      endif
 !     endif
-#endif
 
 CCCCCCCCCCCCCCCCCC END CHEMISTRY SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -1838,7 +1704,6 @@ C to initial conditions and set the chemistry change to zero...
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Special cases of overwriting, when doing stratospheric chemistry C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
-#ifdef SHINDELL_STRAT_CHEM      
 C N2O, CFC, and optional CH4 L=1 overwriting: with all these "fact"s
 C this looks complicated, but basically, you are either converting
 C from mixing ratio to KG (normal case) or from cm*atm to KG  
@@ -1878,7 +1743,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
        end do
       end do
 
-! Ox, stratOx, NOx, BrOx and ClOx, have overwriting where P<0.1mb:
+! Ox, stratOx, NOx, BrOx and ClOx, have overwriting where P < PltOX mb:
       !(Interpolate BrOx & ClOx altitude-dependence to model resolution)
       CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES2,BrOxalt,.true.)
       CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES2,ClOxalt,.true.)
@@ -1916,156 +1781,6 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
        end if    ! pressure
       end do     ! L
 
-#else
-
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C No stratospheric chemistry; overwrite all tracers in stratosphere C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C
-C W A R N I N G : This section should never be used if there is
-C chemistry done in the stratosphere, because the stratospheric
-C changes below assume that the changeL variable is zero for L>maxl
-C at this point in the code. Not the case if chemistry was done.
-C To put it another way, the overwritings below are explicitly 
-C functions of tracer mass UNCHANGED by chemistry !
-#ifdef SHINDELL_STRAT_EXTRA
-      call stop_model("SHINDELL_STRAT_EXTRA w/o strat chem",255)
-#endif
-
-C determine scaling factors, if any:
-      PIfact(:)=1.d0
-      if(PI_run == 1) then
-        do N=1,NTM
-          select case(trname(n))
-          case('NOx','HNO3','N2O5','HO2NO2')
-            PIfact(n)=PIratio_N
-          case('CO')
-            PIfact(n)=PIratio_CO_S
-          case('PAN','Isoprene','AlkylNit','Alkenes','Paraffin'
-#ifdef TRACERS_TERP
-     &        ,'Terpenes'
-#endif  /* TRACERS_TERP */
-     &        )
-            PIfact(n)=PIratio_other
-          end select
-        end do
-      endif
-
-C Calculate an average tropical CH4 value near 569 hPa::
-      CH4_569_part(I_0:I_1,J_0:J_1)=0.d0   
-      count_569_part(I_0:I_1,J_0:J_1)=0.d0
-      DO J=J_0,J_1
-        do I=I_0,IMAXJ(J)
-        if(LAT2D_DG(I,J) >= -30. .and. LAT2D_DG(I,J) <= 30.)then
-            count_569_part(I,J)=1.d0
-            CH4_569_part(I,J)=1.d6*byaxyp(i,j)*
-     &      (F569M*trm(I,J,L569M,n_CH4)*byam(L569M,I,J)+
-     &      F569P*trm(I,J,L569P,n_CH4)*byam(L569P,I,J))
-        end if
-        end do
-      END DO
-      CALL GLOBALSUM(grid,  CH4_569_part,  CH4_569, all=.true.)
-      CALL GLOBALSUM(grid,count_569_part,count_569, all=.true.)
-      if(count_569 <= 0.)call stop_model('count_569.le.0',255)
-      CH4_569 = CH4_569 / count_569
-
-      r179=1.d0/1.79d0 ! 1.79 is observed trop. CH4
-
-      do j=J_0,J_1
-       do i=I_0,IMAXJ(J)
-         select case(which_trop)
-         case(0); maxl=ltropo(I,J)
-         case(1); maxl=ls1-1
-         case default; call stop_model('which_trop problem 5',255)
-         end select
-         changeL(:,:)=0.d0 ! initilize the change (LM,NTM)
-         
-         do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
-c         Update stratospheric ozone to amount set in radiation:
-          changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
-     &                                         - trm(I,J,L,n_Ox)
-          byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
-          FACT1=2.0d-9*AXYP(I,J)*am(L,I,J)*byam75
-C         We think we have too little stratospheric NOx, so, to
-C         increase the flux into the troposphere, increasing
-C         previous stratospheric value by 70% here: GSF/DTS 9.15.03: 
-          changeL(L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4*1.7d0*PIfact(n_NOx)
-     &                                         - trm(I,J,L,n_NOx)
-          changeL(L,n_N2O5)=  FACT1*PIfact(n_N2O5)- trm(I,J,L,n_N2O5)
-          changeL(L,n_HNO3)=trm(I,J,L,n_Ox)*1.d-3*PIfact(n_HNO3)
-     &                                         - trm(I,J,L,n_HNO3)
-          changeL(L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
-          changeL(L,n_CH3OOH)=FACT1            - trm(I,J,L,n_CH3OOH)
-          changeL(L,n_HCHO)=  FACT1            - trm(I,J,L,n_HCHO)
-          ! here 70. = 1.4E-7/2.0E-9
-          changeL(L,n_HO2NO2)=FACT1*70.d0*PIfact(n_HO2NO2)
-     &                                         - trm(I,J,L,n_HO2NO2)
-          ! Don't know if we still want this 40% hardcode in here:
-          changeL(L,n_CO)=COIC(I,J,L)*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)
-          changeL(L,n_PAN)= FACT1*1.d-4*PIfact(n_PAN)
-     &                           - trm(I,J,L,n_PAN)
-          changeL(L,n_Isoprene)= FACT1*1.d-4*PIfact(n_Isoprene)
-     &                           - trm(I,J,L,n_Isoprene)
-          changeL(L,n_AlkylNit)= FACT1*1.d-4*PIfact(n_AlkylNit)
-     &                           - trm(I,J,L,n_AlkylNit)
-          changeL(L,n_Alkenes) = FACT1*1.d-4*PIfact(n_Alkenes)
-     &                           - trm(I,J,L,n_Alkenes)
-          changeL(L,n_Paraffin)= FACT1*1.d-4*PIfact(n_Paraffin)
-     &                           - trm(I,J,L,n_Paraffin)
-#ifdef TRACERS_TERP
-!kt Terpenes start from zero. Some other tracers might need that too.
-          changeL(L,n_Terpenes)= 0.d0*FACT1*1.d-4*PIfact(n_Terpenes)
-     &                           - trm(I,J,L,n_Terpenes)
-#endif  /* TRACERS_TERP */
-
-c Overwrite stratospheric ch4 based on HALOE obs for tropics and
-C extratropics and scale by the ratio of near-569hPa mixing ratios
-C to 1.79:
-          if (fix_CH4_chemistry == 0) then ! -------------------------
-          CH4FACT=CH4_569*r179
-          IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
-            DO L2=L,maxl+1,-1
-              IF(CH4altX(L2) /= 0.d0) THEN
-                CH4FACT=CH4FACT*CH4altX(L2)
-                EXIT
-              END IF
-            END DO
-          ELSE                              ! tropics
-            DO L2=L,maxl+1,-1
-              IF(CH4altT(L2) /= 0.d0) THEN
-                CH4FACT=CH4FACT*CH4altT(L2)
-                EXIT
-              END IF
-            END DO
-          END IF
-          select case(PI_run)
-          case(1) ! yes, use scalings
-            if(lat2d(i,j).lt.0.)then; PIfact(n_CH4)=ch4_init_sh*1.d-6
-            else                    ; PIfact(n_CH4)=ch4_init_nh*1.d-6
-            end if
-            changeL(L,n_CH4)=am(l,i,j)*axyp(i,j)*vol2mass(n_CH4)
-     &      *PIfact(n_CH4)  - trm(I,J,L,n_CH4)
-          case default
-            ! also ensure that strat overwrite is only a sink:
-            changeL(L,n_CH4)=-MAX(0d0,trm(I,J,L,n_CH4)-
-     &      (AM(L,I,J)*AXYP(I,J)*CH4FACT*1.d-6))
-          end select
-          else   ! ------ fixed CH4 set in get_CH4_IC(1) -------------
-            changeL(L,n_CH4)=0.d0
-          end if ! ---------------------------------------------------
-
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C Save overwrite changes for applying in apply_tracer_3Dsource.  C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-          DO N=1,NTM_CHEM
-            tr3Dsource(i,j,l,nOverwrite,n) = changeL(l,n)*bydtsrc
-          END DO
-
-        end do ! >> END LOOP OVER STRATOSPHERE <<
-       end do  ! i
-      end do   ! j
-#endif
 
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
@@ -2074,15 +1789,7 @@ c (radiation code wants atm*cm units):
       do j=J_0,J_1
         if(prnchg)DU_O3(J)=0.d0 ! Drew's diagnostic...
         do i=I_0,imaxj(j) 
-#ifdef SHINDELL_STRAT_CHEM
          maxl = LM
-#else
-         select case(which_trop)
-         case(0); maxl=ltropo(I,J)
-         case(1); maxl=ls1-1
-         case default; call stop_model('maxl error',255)
-         end select
-#endif
          do l=1,maxl
            chem_tracer_save(1,l,i,j)=(trm(i,j,l,n_Ox) +
      &     (tr3Dsource(i,j,l,nChemistry,n_Ox) + 
@@ -2148,7 +1855,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
        call write_parallel(trim(out_line),crit=jay)
        write(out_line,*) 'conc OH = ',y(nOH,l)
        call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
        write(out_line,*) 'Cl,ClO,Cl2O2,OClO,Cl2 = ',y(nCl,l),
      &  y(nClO,l),y(nCl2O2,l),y(nOClO,l),y(nCl2,l)
        call write_parallel(trim(out_line),crit=jay)
@@ -2157,7 +1863,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
        write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,l),
      &  pClOx(I,J,l),pOClOx(I,J,l),pBrOx(I,J,l)
        call write_parallel(trim(out_line),crit=jay)
-#endif
        write(out_line,*)
      & 'sun, SALBFJ,sza,I,J,Itime= ',ALB(I,J,1),sza,I,J,Itime
        call write_parallel(trim(out_line),crit=jay)
@@ -2185,7 +1890,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
           write(out_line,*)
      &    'dark, SALBFJ,sza,I,J,L,Itime= ',ALB(I,J,1),sza,I,J,L,Itime
           call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
           if(pscX(L))then
             write(out_line,*) 'There are PSCs, T =',ta(L)
             call write_parallel(trim(out_line),crit=jay)
@@ -2193,7 +1897,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
             write(out_line,*) 'There are no PSCs, T =',ta(L)
             call write_parallel(trim(out_line),crit=jay)
           endif
-#endif
           write(out_line,198) ay(n_NOx),': ',
      &    changeNOx,' molecules produced; ',
      &    100.d0*(changeNOx)/y(n_NOx,L),' percent of'
@@ -2283,7 +1986,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
      &    ,y(n_AlkylNit,L),'(',1.d9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
           write(out_line,198) ay(n_ClONO2),': ',
      &    changeClONO2,' molecules produced; ',
      &    100.d0*(changeClONO2)/y(n_ClONO2,L),' percent of'
@@ -2311,7 +2013,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeOx)/y(n_Ox,L),' percent of'
      &    ,y(n_Ox,L),'(',1.d9*y(n_Ox,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-#endif
           call write_parallel(trim(out_line),crit=jay)
           write(out_line,199) 'NO2, NO3  = ',y(nNO2,L),yNO3(I,J,L)
           call write_parallel(trim(out_line),crit=jay)
@@ -2391,11 +2092,7 @@ C Make sure nighttime chemistry changes are not too big:
 
 
 
-      SUBROUTINE Crates(I,J
-#ifdef SHINDELL_STRAT_CHEM
-     &   ,aero
-#endif
-     & )
+      SUBROUTINE Crates(I,J,aero)
 !@sum Crates calculate chemical reaction rates for each altitude,
 !@+   using JPL 00.  Includes special calculations for pressure
 !@+   dependent reactions. Specifically:
@@ -2411,9 +2108,7 @@ C**** GLOBAL parameters and variables:
       USE DYNAMICS, only : LTROPO
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop
-#ifdef SHINDELL_STRAT_CHEM
      &        ,pscX
-#endif
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2439,7 +2134,6 @@ C**** Local parameters and variables and arguments:
       REAL*8:: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon,waterPPMV
       INTEGER             :: L,jj,nb,Ltop
       INTEGER, INTENT(IN) :: I,J
-#ifdef SHINDELL_STRAT_CHEM
 !@var PRES local nominal pressure
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
 !@+   RAD-code aerosol extinction 
@@ -2447,9 +2141,7 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PSCEX,PRES,rkext
       INTEGER               :: LAXt,LAXb
       INTEGER, INTENT(OUT), dimension(LM) :: aero
-#endif
 
-#ifdef SHINDELL_STRAT_CHEM
       aero(:)=0
       Ltop=LM
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
@@ -2461,13 +2153,7 @@ C**** Local parameters and variables and arguments:
         if(rad_to_chem(2,L,I,J) == 0..and.rad_to_chem(2,L-1,I,J) /= 0.)
      &  LAXt=L-1
       end do
-#else
-      select case(which_trop)
-      case(0); Ltop=ltropo(I,J)
-      case(1); Ltop=ls1-1
-      case default; call stop_model('which_trop problem 6',255)
-      end select
-#endif
+
       do L=1,Ltop            !  >>> BEGIN ALTITUDE LOOP <<<
         byta=1.d0/ta(L)
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
@@ -2501,18 +2187,13 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           else
             beta=0.d0
           endif
-#ifdef SHINDELL_STRAT_CHEM
           if(jj == 91)rr(jj,L)=rr(jj,L)*beta
           if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
-#else
-          if(jj == 45)rr(jj,L)=rr(jj,L)*beta
-          if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
-#endif
         end do                ! bimolecular rates end
 
-#ifdef SHINDELL_STRAT_CHEM
+                           
         rr(87,L)=rr(87,L)*2.50d0  ! N2O+O(1D)-->NO+NO 
-#endif
+         
         do jj=1,nr3           ! trimolecular rates start
           rr(nr2+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
           if(sb(jj) >= 0.01d0)then 
@@ -2531,7 +2212,6 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           end do              ! monomolecular rates end
         end if
 
-#ifdef SHINDELL_STRAT_CHEM
 c Calculate rates for heterogeneous reactions (Divided by solid
 C in Chem1). sticking coefficients from JPL '02:
 c       1=N2O5 + H2O --> 2HNO3          gamma=0.1, 0.0004 (PSC)
@@ -2627,8 +2307,8 @@ c         Reaction 2 on sulfate and PSCs:
             rr(nr2+nr3+5,L)=0.25d0*pscEx(l)*rr(nr2+nr3+5,L)*0.003d0
           endif
         endif  
-#endif
       end do                  !  >>> END ALTITUDE LOOP <<<
+
 #ifdef TRACERS_AEROSOLS_SOA
       do L=1,LM ! this should be up to LM, no matter if strat chem is on or off
         kpart(L,whichsoa(n_isopp1a))=
@@ -2651,130 +2331,3 @@ c         Reaction 2 on sulfate and PSCs:
       RETURN
       END SUBROUTINE Crates
 
-
-
-#ifdef TRACERS_SPECIAL_Shindell
-      SUBROUTINE checktracer(I,J)
-!@sum checktracer for various debugging of tracer chemistry
-!@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem000_M23p)
-
-C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only  : Itime, LM, LS1
-      USE DYNAMICS, only   : LTROPO
-      USE TRACER_COM, only : ntm, trname, n_Ox, ntm_chem
-      USE TRCHEM_Shindell_COM, only: y, nM, which_trop
-
-      IMPLICIT NONE
-
-C**** Local parameters and variables and arguments:
-!@var I,J passed horizontal position indicies
-!@var L,igas dummy loop variables
-!@var tlimit if tracer goes above this limit, model stops
-!@var checkOx logical: should I check for large tropospheric Ox?
-!@var checkmax logical: should I check for large tracers throughout?
-!@var checkNeg logical: should I check for negative tracers?
-!@var checkNaN logical: should I check for unreal tracers?
-!@var maxL LTROPO(I,J) or LS1-1, depending upon which_trop variable
-
-      INTEGER                  :: L, igas, maxL
-      INTEGER, INTENT(IN)      :: I,J
-      REAL*8, DIMENSION(ntm_chem) :: tlimit
-    
-      LOGICAL :: checkOx, checkmax, checkNeg, checkNan
-      DATA checkNeg /.true./
-      DATA checkNan /.true./
-      DATA checkOx  /.true./
-      DATA checkmax /.true./
-      integer,dimension(4) ::  error
-      integer :: is_error
-      character*80, dimension(4) :: message
-
-      tlimit(:)=1.d-5
-      message(1)='Ox too big.'
-      message(2)='A tracer is too big.'
-      message(3)='A tracer is negative.'
-      message(4)='A tracer is NaN.'
-      error(:)=0
-
-      IF(i == 1.and.j == 1)
-     & WRITE(6,*) 'WARNING: checktracer call is active.'
-      select case(which_trop)
-      case(0); maxl=ltropo(I,J)
-      case(1); maxl=ls1-1
-      case default; call stop_model('which_trop problem 7',255)
-      end select
-
-C check if ozone gets really big:
-       IF(checkOx) THEN
-       do L=1,maxL
-         if(y(n_Ox,L)/y(nM,L) > 1.d-5) then
-           write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
-           error(1)=1
-         end if
-       end do
-#ifdef SHINDELL_STRAT_CHEM
-       do L=maxL+1,LM
-         if(y(n_Ox,L)/y(nM,L) > 1.5d-5) then
-           write(6,*)'Ox @ I,J,L,Ox,Itime:',I,J,L,y(n_Ox,L),Itime
-           error(1)=1
-         end if
-       end do
-#endif
-       END IF
-       
-c general check on maximum of tracers:
-!!! note, this is only as useful as the limits you set are appropriate!
-      IF(checkmax) THEN
-      do L=1,LM
-       do igas=1,ntm_chem
-        if(y(igas,L)/y(nM,L) > tlimit(igas)) then
-          write(6,*) trname(igas),'@ I,J,L,Y :',
-     &    I,J,L,y(igas,L)/y(nM,L)
-          error(2)=1
-        end if
-       end do
-      end do
-      END IF
-
-c check for negative tracers:
-      IF(checkNeg) THEN
-      do L=1,LM
-       do igas=1,ntm_chem
-        if(y(igas,L) < 0.d0) THEN
-          write(6,*)trname(igas),
-     &    'negative @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
-          error(3)=1
-        end if
-       enddo
-      end do
-      END IF
-
-c check for unreal (not-a-number) tracers (maybe SGI only?):
-      IF(checkNaN) THEN
-      do L=1,LM
-       do igas=1,ntm_chem
-        if(.NOT.(y(igas,L) > 0.d0.OR.y(igas,L) <= 0.d0)) THEN
-         write(6,*)trname(igas),
-     &   'is not a number @ tau,I,J,L,y:',Itime,I,J,L,y(igas,L)
-         error(4)=1
-        end if
-       enddo
-      end do
-      END IF
-
-      is_error=0
-      do L=1,4
-        if (error(L)>0)then
-          is_error=1
-          write(6,*)trim(message(L))
-        endif
-      enddo
-      if(is_error==1)call stop_model('error in checktracer',255)
-   
-      RETURN
-
-      END SUBROUTINE checktracer
-#endif
-      
-      

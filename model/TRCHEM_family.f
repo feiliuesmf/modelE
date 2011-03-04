@@ -29,20 +29,12 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES
       real*8                :: az, bz, P1
 
-#ifdef SHINDELL_STRAT_CHEM
       PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
 #ifdef TRACERS_TERP
       iO3form=98
 #else
       iO3form=95
 #endif  /* TRACERS_TERP */
-#else
-#ifdef TRACERS_TERP
-      iO3form=51
-#else
-      iO3form=48
-#endif  /* TRACERS_TERP */
-#endif
 
       do L=1,lmax
 c       for concentration of O:
@@ -50,13 +42,11 @@ c       for concentration of O:
 c       for concentration of O(1D):
         bz=ss(2,L,I,J)/(rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
-#ifdef SHINDELL_STRAT_CHEM
         if(PRES(L) < 50.) then
           bz=bz*2.5d0
 !test   else if(PRES(L) > 100.) then
 !test     bz=bz*0.9d0
         endif
-#endif
         P1=1.d0/(1.d0+az+bz)
         y(nO,L)=P1*az*y(n_Ox,L)
         y(nO1D,L)=P1*bz*y(n_Ox,L)
@@ -87,9 +77,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only         : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                  ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop
-#ifdef SHINDELL_STRAT_CHEM     
-     &                   ,nClO,nOClO,nBrO
-#endif
+     &                  ,nClO,nOClO,nBrO
 
       IMPLICIT NONE
 
@@ -104,19 +92,12 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN) :: lmax,I,J
       real*8              :: b,c,p1,p2
       
-#ifdef SHINDELL_STRAT_CHEM
 #ifdef TRACERS_TERP
       iNO2form=99
 #else
       iNO2form=96
 #endif  /* TRACERS_TERP */
-#else
-#ifdef TRACERS_TERP
-      iNO2form=52
-#else
-      iNO2form=49
-#endif  /* TRACERS_TERP */
-#endif
+
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
       case(1); maxl=ls1-1
@@ -133,10 +114,8 @@ c       B is for NO->NO2 reactions :
           B=B+rr(20,L)*yCH3O2(I,J,L)
      &    +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else               ! Stratosphere:
-#ifdef SHINDELL_STRAT_CHEM
           B=B+rr(64,L)*y(nClO,L)+rr(67,L)*y(nOClO,L)
      &    +rr(71,L)*y(nBrO,L)
-#endif
         endif
 
 C       C is for NO2->NO reactions :
@@ -178,15 +157,11 @@ C**** GLOBAL parameters and variables:
      &                       n_Terpenes,
 #endif  /* TRACERS_TERP */
      &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS
-#ifdef SHINDELL_STRAT_CHEM
      &                       ,n_HBr,n_HOCl,n_HCl
-#endif
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop
-#ifdef SHINDELL_STRAT_CHEM
      &                        ,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
-#endif
 
       IMPLICIT NONE
 
@@ -201,30 +176,21 @@ C**** Local parameters and variables and arguments:
 !@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
 !@var maxl either LTROPO(I,J) or LS1-1 depending on which_trop dbparam
 !@var PRES local nominal pressure for regional Ox tracers
-#ifdef SHINDELL_STRAT_CHEM
+
 #ifdef TRACERS_TERP
       integer, parameter :: iH2O2form=100,iHNO3form=101,iHONOform=104
      &                     ,iTerpenesOH=92,iTerpenesO3=93
 #else
       integer, parameter :: iH2O2form=97,iHNO3form=98,iHONOform=101
 #endif  /* TRACERS_TERP */
-#else
-#ifdef TRACERS_TERP
-      integer, parameter :: iH2O2form=53,iHNO3form=54,iHONOform=57
-     &                     ,iTerpenesOH=46,iTerpenesO3=47
-#else
-      integer, parameter :: iH2O2form=50,iHNO3form=51,iHONOform=54
-#endif  /* TRACERS_TERP */
-#endif
       integer             :: L, maxl 
       integer, intent(IN) :: lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
      &   temp_yHOx,rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot
       REAL*8, DIMENSION(LM) :: PRES
 
-#ifdef SHINDELL_STRAT_CHEM
       PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
-#endif
+
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
       case(1); maxl=ls1-1
@@ -296,12 +262,7 @@ c Now partition HOx into OH and HO2:
        ! DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
      & +rr(41,L)*0.79d0*y(nC2O3,L)
-#ifndef SHINDELL_STRAT_CHEM
-       if((2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)) /= 0.)then
-         dz=dz+rr(15,L)*y(nHO2,L)*(2.d0*ss(4,L,I,J)
-     &   /(2.d0*ss(4,L,I,J)+y(nOH,L)*rr(14,L)))
-       end if
-#endif
+
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 
@@ -326,7 +287,6 @@ c---->   warning: OH caps follow   <----
 
       enddo  ! >> end of troposphere loop <<
 
-#ifdef SHINDELL_STRAT_CHEM
 C ------------ Stratosphere ------------
       do L=maxl+1,lmax
 c First calculate equilibrium amount of HOx:
@@ -412,7 +372,6 @@ c H + O2 + M -> HO2 + M :
        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
 
       enddo  ! end of stratossphere loop
-#endif
 
       return
       END SUBROUTINE HOxfam
@@ -420,8 +379,6 @@ c H + O2 + M -> HO2 + M :
 
 
       SUBROUTINE ClOxfam(lmax,I,J,ClOx_old)
-
-#ifdef SHINDELL_STRAT_CHEM
 !@sum ClOxfam Find ClOx family (Cl,ClO,OClO,Cl2,Cl2O2) partitioning 
 !@+   assuming equilibrium within ClOx.
 !@auth Drew Shindell
@@ -566,15 +523,13 @@ c Normalize so that amount of ClOx doesn't change:
 
       enddo  ! end of altitude loop
       yCl2O2(I,J,:)=y(nCl2O2,:)
-#endif
+        
       return
       END SUBROUTINE ClOxfam
 
 
 
       SUBROUTINE BrOxfam(lmax,I,J)
-
-#ifdef SHINDELL_STRAT_CHEM
 !@sum BrOxfam Find BrOx family (Br,BrO) partitioning 
 !@+   assuming equilibrium within BrOx.
 !@auth Drew Shindell
@@ -636,7 +591,7 @@ C**** Local parameters and variables and arguments:
         if(y(n_BrOx,L) < 1)y(n_BrOx,L)=1.d0
         pBrOx(I,J,L)=y(nBrO,L)/y(n_BrOx,L)
       enddo ! end of altitude loop
-#endif
+
       return
       END SUBROUTINE BrOxfam
 

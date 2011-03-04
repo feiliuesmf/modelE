@@ -17,9 +17,7 @@ C
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
      &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
      &     ,ijlt_OxpRO2
-#ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
-#endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_stratOx,
 #ifdef TRACERS_TERP
@@ -51,11 +49,9 @@ C
      &                   prnchg,y,kss,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
      &                   Jacet,acetone
-#ifdef SHINDELL_STRAT_CHEM
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
-#endif
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -95,7 +91,6 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(INOUT) :: ierr_loc
       INTEGER :: L,iter,maxl,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
-#ifdef SHINDELL_STRAT_CHEM
 #ifdef TRACERS_TERP
       INTEGER, PARAMETER :: iHO2NO2form=102,iN2O5form=103,
      &iPANform=105,iHO2NO2_OH=18,iHO2NO2decomp=95,iN2O5decomp=96
@@ -108,16 +103,6 @@ C**** Local parameters and variables and arguments:
      &,iPANdecomp=29,iClOplusNO2=104,iBrOplusNO2=105,iClOplusClO=103
      &,iOHplusNO2=98,iNOplusO=96
 #endif  /* TRACERS_TERP */
-#else
-      INTEGER, PARAMETER :: iHO2NO2_OH=18,iPANdecomp=29
-#ifdef TRACERS_TERP
-     & ,iHO2NO2form=55,iN2O5form=56,iPANform=58,iHO2NO2decomp=49
-     & ,iN2O5decomp=50,iTerpenesOH=46,iTerpenesO3=47
-#else
-     & ,iHO2NO2form=52,iN2O5form=53,iPANform=55,iHO2NO2decomp=46
-     & ,iN2O5decomp=47
-#endif  /* TRACERS_TERP */
-#endif
       character(len=300) :: out_line
       logical            :: jay
       REAL*8, DIMENSION(LM,ntm) :: changeL
@@ -137,17 +122,13 @@ C**** Local parameters and variables and arguments:
       
       jay = (J >= J_0 .and. J <= J_1) 
      
-C TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT?, pick top:
+C Pick top level for chemistry, and tropopause layer:  
       select case(which_trop)
       case(0); maxT=ltropo(I,J)
       case(1); maxT=ls1-1
       case default; call stop_model('which_trop problem 1',255)
       end select 
-#ifdef SHINDELL_STRAT_CHEM
       maxl=LM
-#else
-      maxl=maxT
-#endif
 
       PRES(1:maxL)=PMIDL00(1:maxL)   !SIG(1:maxL)*(PSF-PTOP)+PTOP
       
@@ -160,11 +141,9 @@ C TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT?, pick top:
         y(nAldehyde,L)= yAldehyde(I,J,L)
         y(nROR,L)     =      yROR(I,J,L)
       enddo
-#ifdef SHINDELL_STRAT_CHEM
       do L=maxT+1,LM
        y(nCH3O2,L)=yCH3O2(I,J,L)
       enddo
-#endif
 C
 C Calculate reaction rates with present concentrations:
       call rates(maxl,I,J)
@@ -276,7 +255,6 @@ c         increase non-acetone product gases:
         yCH3O2(I,J,L)=y(nCH3O2,L)
       enddo
       
-#ifdef SHINDELL_STRAT_CHEM
       do L=maxT+1,maxl
         iter=1
         qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
@@ -311,7 +289,6 @@ c         increase product gases:
         endif
         yCH3O2(I,J,L)=y(nCH3O2,L)
       enddo
-#endif
 
       do L=1,maxT ! ---------- troposphere loop ---------
 
@@ -476,7 +453,6 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
      &    photrate(15,L))
         endif
         
-#ifdef SHINDELL_STRAT_CHEM
 c If BrOx in equil with HOBr or BrONO2, remove from changes:
         if(-dest(n_HOBr,L) >= y(n_HOBr,L).or.
      &  chemrate(73,L) > 0.5d0*y(n_BrOx,L))then
@@ -504,10 +480,8 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           dest(n_NOx,L)=dest(n_NOx,L)+chemrate(iClOplusNO2,L)
           prod(n_NOx,L)=prod(n_NOx,L)-(photrate(22,L)+chemrate(65,L))
         endif
-#endif
       enddo
 
-#ifdef SHINDELL_STRAT_CHEM
 c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
       do L=1,maxl !! for a long time, this was: maxT+1,maxl
         changeH2O(L)=(2.d0*y(n_CH4,L)*
@@ -633,7 +607,6 @@ c Include oxidation of CO by O(1D)
       do L=1,LM
         dest(n_CO,L)=dest(n_CO,L)-1.0d-9*y(n_CO,L)*y(nO1D,L)*dt2
       end do
-#endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 c           Print chemistry diagnostics if desired :
@@ -708,13 +681,11 @@ c (chem1prn: argument before multip is index = number of call):
           call chem1prn
      &    (kps,2,kss,nps,photrate,4,1,igas,total,maxl,I,J,jay)
 
-#ifdef SHINDELL_STRAT_CHEM
           if(igas == n_Ox) then
             write(out_line,110)'Ox change due to within NOx rxns  ',
      &      -Oxcorr(lprn)
             call write_parallel(trim(out_line),crit=jay)
           endif
-#endif
           if(igas == n_NOx)then
             if(-dest(n_N2O5,lprn) >= y(n_N2O5,lprn) .or.
      &      chemrate(iN2O5form,lprn) > y(n_NOx,lprn)) then
@@ -760,7 +731,6 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == n_Ox .or. igas == n_NOx) total=
      &    100.d0*(dest(igas,lprn)+prod(igas,lprn))/y(igas,lprn)
      
-#ifdef SHINDELL_STRAT_CHEM
           if(igas == n_BrOx)then
             if(-dest(n_HOBr,lprn) >= y(n_HOBr,lprn).or.
      &      chemrate(73,lprn) > 0.5d0*y(n_BrOx,lprn))then
@@ -841,7 +811,6 @@ c (chem1prn: argument before multip is index = number of call):
               call write_parallel(trim(out_line),crit=jay)
             endif
           endif
-#endif
 
           if(igas == n_CH3OOH) then
             write(out_line,'(a48,a6,e10.3)')
@@ -879,7 +848,6 @@ c (chem1prn: argument before multip is index = number of call):
 
       if(prnchg .and. J == jprn .and. I == iprn) then
       
-#ifdef SHINDELL_STRAT_CHEM
         write(out_line,*)
      &  'Percentage ozone loss per cycle at I,J:',I,J
         call write_parallel(trim(out_line),crit=jay)
@@ -919,7 +887,6 @@ c (chem1prn: argument before multip is index = number of call):
         enddo
         write(out_line,*) ' '
         call write_parallel(trim(out_line),crit=jay)
-#endif
         write(out_line,'(a35,3(2x,i2))')
      &  ' Total change by species at I, J, L',i,j,lprn
         call write_parallel(trim(out_line),crit=jay)
@@ -1043,7 +1010,6 @@ c Conserve NOx with respect to PAN:
      &     conc2mass
          endif
 
-#ifdef SHINDELL_STRAT_CHEM
 c Cacluate Cl2 amount to P/L:
          if((ss(18,L,I,J)+rr(51,L)*y(nOH,L)) > 0.)then
            y(nCl2,L)=rr(57,L)*y(n_HOCl,L)*y(nCl,L) / 
@@ -1180,9 +1146,8 @@ c Conserve ClOx with respect to HOCl:
            changeL(L,igas)=changeL(L,igas)-changeX*
      &     conc2mass
          endif
-#endif
-
        end do ! L
+
        if(igas == n_CO)then
          call inc_tajls_column(i,j,1,maxl,maxl,jls_COp,
      &        prod(igas,1:maxl)*c2ml(1:maxl))
@@ -1201,11 +1166,9 @@ c Conserve ClOx with respect to HOCl:
        endif
       end do  ! igas ! end of TRACER LOOP -----------------
 
-#ifdef SHINDELL_STRAT_CHEM
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxl)=
      &-chemrate(87,1:maxl)*axyp(i,j)*rMAbyM(1:maxl)*vol2mass(n_N2O)
-#endif
 
 c Ensure nitrogen conservation,
 c (since equilibration of short lived gases may alter this):
@@ -1216,21 +1179,17 @@ c (since equilibration of short lived gases may alter this):
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,*) 'NOx, N2O5, HO2NO2, HNO3, PAN, AlkylNit, N2O'
         call write_parallel(trim(out_line),crit=jay)
-#ifdef SHINDELL_STRAT_CHEM
         write(out_line,*) 'ClONO2, BrONO2'
         call write_parallel(trim(out_line),crit=jay)
-#endif
         write(out_line,*) changeL(lprn,n_NOx),changeL(lprn,n_N2O5),
      &  changeL(lprn,n_HO2NO2),changeL(lprn,n_HNO3),
      &  changeL(lprn,n_PAN),changeL(lprn,n_AlkylNit)
-#ifdef SHINDELL_STRAT_CHEM
      &  ,changeL(lprn,n_N2O)
      &  ,changeL(lprn,n_ClONO2),changeL(lprn,n_BrONO2)
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,*)
      &  'N2O change w/o rxns forming N2',sv_changeN2O(lprn)
         call write_parallel(trim(out_line),crit=jay)
-#endif
 #ifdef TRACERS_HETCHEM
         write(out_line,*) 'HNO3 loss on dust replaced for cons ',
      &  (krate(i,j,lprn,1,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*axyp(I,J)
@@ -1253,12 +1212,10 @@ c First check for nitrogen loss > 100% :
      &  changeL(L,n_PAN)=1.d0-trm(I,J,L,n_PAN)
         if(-changeL(L,n_AlkylNit) > trm(I,J,L,n_AlkylNit))
      &  changeL(L,n_AlkylNit)=1.d0-trm(I,J,L,n_AlkylNit)
-#ifdef SHINDELL_STRAT_CHEM
         if(-changeL(L,n_ClONO2) > trm(I,J,L,n_ClONO2))
      &  changeL(L,n_ClONO2)=1.d0-trm(I,J,L,n_ClONO2)
         if(-changeL(L,n_BrONO2) > trm(I,J,L,n_BrONO2))
      &  changeL(L,n_BrONO2)=1.d0-trm(I,J,L,n_BrONO2)
-#endif
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
      &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
@@ -1281,15 +1238,11 @@ c Next insure balance between dNOx and sum of dOthers:
           call write_parallel(trim(out_line),crit=jay)
         endif
         
-#ifdef SHINDELL_STRAT_CHEM
         sumN=sumN+
      &  changeL(L,n_ClONO2)*mass2vol(n_ClONO2)+
      &  changeL(L,n_BrONO2)*mass2vol(n_BrONO2)
         dNOx=changeL(L,n_NOx)*mass2vol(n_NOx)+
      &  2.d0*sv_changeN2O(L)*mass2vol(n_N2O)
-#else
-        dNOx=changeL(L,n_NOx)*mass2vol(n_NOx)
-#endif
         if(prnchg.and.J==jprn.and.I==iprn.and.L==lprn) then
           write(out_line,*)
      &    'other N changes, dNOx (less prod fm N2O) = (molec) ',
@@ -1312,12 +1265,10 @@ c          reduce N destruction to match NOx prodcution:
      &     changeL(L,n_PAN)*mass2vol(n_PAN)
            if(changeL(L,n_AlkylNit) < 0.d0)sumD=sumD+
      &     changeL(L,n_AlkylNit)*mass2vol(n_AlkylNit)
-#ifdef SHINDELL_STRAT_CHEM
            if(changeL(L,n_ClONO2) < 0.d0)sumD=sumD+
      &     changeL(L,n_ClONO2)*mass2vol(n_ClONO2)
            if(changeL(L,n_BrONO2) < 0.d0)sumD=sumD+
      &     changeL(L,n_BrONO2)*mass2vol(n_BrONO2)
-#endif
            newD=(sumN/ratio)+sumD-sumN
            ratioD=newD/sumD
            if(changeL(L,n_N2O5) < 0.d0)    changeL(L,n_N2O5)=
@@ -1330,7 +1281,6 @@ c          reduce N destruction to match NOx prodcution:
      &     changeL(L,n_PAN)     *ratioD
            if(changeL(L,n_AlkylNit) < 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioD
-#ifdef SHINDELL_STRAT_CHEM
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioD)
            if(changeL(L,n_ClONO2) < 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioD
@@ -1341,16 +1291,13 @@ c          reduce N destruction to match NOx prodcution:
      &     changeL(L,n_BrONO2)*ratioD
            changeL(L,n_BrOx)=changeL(L,n_BrOx)+vBrONO2*
      &     (mass2vol(n_BrONO2)*vol2mass(n_BrOx)) !ensure Br cons
-#endif
           endif
 
           if (ratio <= 1.d0 .and. ratio > 0.d0)then
 c          reduce NOx production to match N loss:
            changeL(L,n_NOx)=changeL(L,n_NOx)*ratio
-#ifdef SHINDELL_STRAT_CHEM
            changeL(L,n_NOx)=changeL(L,n_NOx)-
      &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)*vol2mass(n_NOx)
-#endif
           endif
          else       ! NOx destroyed (net change is negative):
           if (ratio > 1.d0)then
@@ -1366,12 +1313,10 @@ c          reduce N production to match NOx loss:
      &     changeL(L,n_PAN)*mass2vol(n_PAN)
            if(changeL(L,n_AlkylNit) > 0.d0)sumP=sumP+
      &     changeL(L,n_AlkylNit)*mass2vol(n_AlkylNit)
-#ifdef SHINDELL_STRAT_CHEM
            if(changeL(L,n_ClONO2) > 0.d0)sumP=sumP+
      &      changeL(L,n_ClONO2)*mass2vol(n_ClONO2)
            if(changeL(L,n_BrONO2) > 0.d0)sumP=sumP+
      &      changeL(L,n_BrONO2)*mass2vol(n_BrONO2)
-#endif
            newP=(sumN/ratio)+sumP-sumN
            if (sumP == 0.) then
              write(out_line,*)'SUMP = 0***', sumP, L,i,j,
@@ -1389,7 +1334,6 @@ c          reduce N production to match NOx loss:
      &     changeL(L,n_PAN)*ratioP
            if(changeL(L,n_AlkylNit) > 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioP
-#ifdef SHINDELL_STRAT_CHEM
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioP)
            if(changeL(L,n_ClONO2) > 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioP
@@ -1400,15 +1344,12 @@ c          reduce N production to match NOx loss:
      &     changeL(L,n_BrONO2)*ratioP
            changeL(L,n_BrOx)=changeL(L,n_BrOx)+vBrONO2*
      &     (mass2vol(n_BrONO2)*vol2mass(n_BrOx)) !ensure Br cons
-#endif
           endif
           if (ratio <= 1.d0 .and. ratio > 0.d0)then
 c          reduce NOx destruction to match N production:
            changeL(L,n_NOx)=changeL(L,n_NOx)*ratio
-#ifdef SHINDELL_STRAT_CHEM
            changeL(L,n_NOx)=changeL(L,n_NOx)-
      &     2.d0*sv_changeN2O(L)*mass2vol(n_N2O)*vol2mass(n_NOx)
-#endif
           endif
          endif
 #ifdef TRACERS_HETCHEM
@@ -1429,7 +1370,6 @@ c          reduce NOx destruction to match N production:
           call write_parallel(trim(out_line),crit=jay)
         endif
 
-#ifdef SHINDELL_STRAT_CHEM
 c       Calculate NOx and Ox changes due to atomic nitrogen
 c       produced by SRB photlysis (SF2 is NO + hv rate) :
         byta=1.d0/ta(L)
@@ -1470,24 +1410,19 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      &    ,NlossNOx,NprodOx
           call write_parallel(trim(out_line),crit=jay)
         endif
-#endif
       end do ! end big L loop -----------------
 
-#ifdef SHINDELL_STRAT_CHEM
       call inc_tajls_column(i,j,1,maxl,lm,jls_Oxd ,NprodOx_neg)
       call inc_tajls_column(i,j,1,maxT,lm,jls_OxdT,NprodOx_neg)
       call inc_tajls_column(i,j,1,maxl,lm,jls_Oxp ,NprodOx_pos)
       call inc_tajls_column(i,j,1,maxT,lm,jls_OxpT,NprodOx_pos)
-#endif
 
-#ifdef SHINDELL_STRAT_CHEM
 ! Remove some of the HNO3 formed heterogeneously, as it doesn't come
 ! back to the gas phase:
       do L=1,maxL
         if(pscX(L)) changeL(L,n_HNO3)=changeL(L,n_HNO3)-
      &  2.0d-3*y(n_HNO3,L)*(axyp(i,j)*rMAbyM(L))*vol2mass(n_HNO3)
       enddo
-#endif
 
 c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
@@ -1506,7 +1441,6 @@ c Print chemical changes in a particular grid box if desired:
          endif
 
          if(igas == ntm_chem)then
-#ifdef SHINDELL_STRAT_CHEM
          if(LPRN >= maxT+1)then
             write(out_line,155) ay(nH2O),': ',
      &      changeH2O(lprn),' molecules produced; ',
@@ -1519,12 +1453,6 @@ c Print chemical changes in a particular grid box if desired:
      &    y(nM,LPRN))*1.d6,' ppmv'
           call write_parallel(trim(out_line),crit=jay)
          endif
-#else
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
-     &    y(nM,LPRN))*1.d6,' ppmv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
@@ -1594,20 +1522,16 @@ C**** special diags not associated with a particular tracer
         end if
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)
      &       TAIJLS(I,J,L,ijlt_HO2)=TAIJLS(I,J,L,ijlt_HO2)+y(nHO2,L)
-#ifdef SHINDELL_STRAT_CHEM
         conClO(l) = 0.
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
      &       conClO(l) = y(nClO,L)/y(nM,L)
         conH2O(l) = 0.
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
      &       conH2O(l) = y(nH2O,L)/y(nM,L)
-#endif
       END DO
       call inc_tajls2_column(i,j,1,maxl,lm,jls_OHcon,conOH)
-#ifdef SHINDELL_STRAT_CHEM
       call inc_tajls2_column(i,j,1,maxl,lm,jls_ClOcon,conClO)
       call inc_tajls2_column(i,j,1,maxl,lm,jls_H2Ocon,conH2O)
-#endif
       CALL INC_TAJLS2(I,J,1,jls_day,1.d0)
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)

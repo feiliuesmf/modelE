@@ -49,20 +49,18 @@
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
-     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
+     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
-#ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
      &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
@@ -160,10 +158,8 @@
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
-#ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(6) :: temp_ghg
       integer :: temp_year
-#endif /* SHINDELL_STRAT_CHEM */
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
@@ -248,13 +244,11 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PIratio_CO_S",PIratio_CO_S)
       call sync_param("PIratio_other",PIratio_other)
       call sync_param("rad_FL",rad_fl)
-      call sync_param("checktracer_on",checktracer_on)
       call sync_param("use_rad_ch4",use_rad_ch4)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
       call sync_param("aircraft_Tyr1",aircraft_Tyr1)
       call sync_param("aircraft_Tyr2",aircraft_Tyr2)
-#ifdef SHINDELL_STRAT_CHEM
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
       call sync_param("PIratio_N2O",PIratio_N2O)
@@ -262,7 +256,6 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PltOx",PltOx)
       call sync_param("Tpsc_offset_N",Tpsc_offset_N)
       call sync_param("Tpsc_offset_S",Tpsc_offset_S)
-#endif
 #ifdef BIOGENIC_EMISSIONS
       call sync_param("base_isopreneX",base_isopreneX)
 #endif
@@ -461,7 +454,7 @@ C**** Define individual tracer characteristics
           n_mptable(n) = 1
           tcscale(n_MPtable(n)) = 1.
 #endif
-#ifdef SHINDELL_STRAT_CHEM
+#ifdef TRACERS_SPECIAL_Shindell
           call openunit('N2O_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),N2OICIN,0)
           call closeunit(iu_data)
@@ -677,7 +670,6 @@ C**** Get solar variability coefficient from namelist if it exits
           call set_ntm_power(n, -12)
           call set_tr_mm(n, 108.02d0)
 
-#ifdef SHINDELL_STRAT_CHEM
       case ('ClOx')
       n_ClOx = n
           call set_ntm_power(n, -11)
@@ -706,7 +698,6 @@ C         Interpolate HCl altitude-dependence to model resolution:
 C         Interpolate ClONO2 altitude-dependence to model resolution:
           CALL
      &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PRES,ClONO2alt,.true.)
-#endif
 
       case ('HOCl')
       n_HOCl = n
@@ -732,7 +723,6 @@ C         Interpolate ClONO2 altitude-dependence to model resolution:
       n_CFC = n
           call set_ntm_power(n, -12)
           call set_tr_mm(n, 137.4d0) !CFC11
-#ifdef SHINDELL_STRAT_CHEM
           if(AM_I_ROOT( ))then
 C          check on GHG file's 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
@@ -764,7 +754,6 @@ C          read the CFC initial conditions:
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
            CFCIC(I,J,:)=CFCICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-#endif
 
       case ('HNO3')
       n_HNO3 = n
@@ -1263,11 +1252,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
 #endif
       case ('Be7')
       n_Be7 = n
-CCC#ifdef SHINDELL_STRAT_EXTRA
-CCC          call set_ntm_power(n, -21        ! power of ten for tracer)
-CCC#else
           call set_ntm_power(n, -23)       ! power of ten for tracer
-CCC#endif
           call set_tr_mm(n, 7.d0)
           call set_trdecay(n,  1.51d-7)
           call set_trpdens(n, 1.7d3)    !kg/m3 this is SO4 value
@@ -1277,11 +1262,7 @@ CCC#endif
 
       case ('Be10')
       n_Be10 = n
-CCC#ifdef SHINDELL_STRAT_EXTRA
-CCC          call set_ntm_power(n, -21)
-CCC#else
           call set_ntm_power(n, -23)
-CCC#endif
           call set_tr_mm(n, 10.d0)
           call set_trpdens(n, 1.7d3)   !kg/m3 this is SO4 value
           call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
@@ -4722,7 +4703,6 @@ C**** Checks
 C**** Additional Special JL diagnostics
 C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_SPECIAL_Shindell
-#ifdef SHINDELL_STRAT_CHEM
         k = k + 1
         jls_ClOcon=k
         sname_jls(k) = 'ClO_conc'
@@ -4747,7 +4727,6 @@ C**** (not necessary associated with a particular tracer)
         jls_power(k) = -4
         scale_jls(k) = 1./DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
         k = k + 1
         jls_Oxp=k
         sname_jls(k) = 'Ox_chem_prod'
@@ -4830,7 +4809,6 @@ c
         jls_ltop(k)  = LTOP
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-
 #endif  /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -8557,10 +8535,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
-#ifdef SHINDELL_STRAT_CHEM
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
      &  ,PIratio_N2O,PIratio_CFC
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:first_mod,first_ncep,avg_model,avg_ncep,
      & PRS_ch4,sum_ncep
@@ -8698,7 +8674,7 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-#ifdef SHINDELL_STRAT_CHEM
+#ifdef TRACERS_SPECIAL_Shindell
       PRES(1:LM)=PMIDL00(1:LM)
 #endif
       do n=1,ntm
@@ -8757,7 +8733,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
             trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*N2Oic(j,l)
           enddo; enddo
 #endif
-#ifdef SHINDELL_STRAT_CHEM
+#ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
            select case(PI_run)
            case(1)     ; ICfactor=PIratio_N2O
@@ -9081,23 +9057,17 @@ c**** earth
             stratO3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
 #endif
-#endif /* TRACERS_SPECIAL_Shindell */
 
         case ('NOx')
-#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-11*ICfactor
-#ifdef SHINDELL_STRAT_CHEM
             if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
-#endif
           end do; end do; end do
-#endif /* TRACERS_SPECIAL_Shindell */
 
-#if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
         case ('ClOx')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
@@ -9121,9 +9091,8 @@ c**** earth
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClONO2alt(l)
           end do; end do; end do
-#endif
+
         case ('N2O5')
-#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
@@ -9131,21 +9100,19 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-12*ICfactor
           end do; end do; end do
-#endif
+
         case ('HNO3')
-#ifdef TRACERS_SPECIAL_Shindell
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-10*ICfactor
-#ifdef SHINDELL_STRAT_CHEM
             if(PRES(L).lt.50.and.PRES(L).gt.10.)
      &      trm(i,j,l,n)=trm(i,j,l,n)*1.d2
-#endif
           end do; end do; end do
 #endif /* TRACERS_SPECIAL_Shindell */
+
         case ('H2O2')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*5.d-10
@@ -9299,8 +9266,8 @@ c**** earth
           end do; end do; end do
 #endif
 
+#ifdef TRACERS_SPECIAL_Shindell
         case ('CFC')
-#ifdef SHINDELL_STRAT_CHEM
          if(use_rad_cfc.le.0)then
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_CFC
@@ -9338,7 +9305,7 @@ c**** earth
            end if
          endif
        end if
-#endif /* SHINDELL_STRAT_CHEM */
+#endif /* TRACERS_SPECIAL_Shindell */
 
         case ('BrONO2','HBr','HOBr')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
