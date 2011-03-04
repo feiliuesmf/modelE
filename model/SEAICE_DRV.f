@@ -17,14 +17,12 @@
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
      *     ,p,ptop
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
      *     ,gtempr,erunpsi
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
@@ -323,16 +321,14 @@ C****
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
      *     ,itocean,itlake,dtsrc                               ! ,nday
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : axyp,imaxj
       USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,aij=>aij_loc,
      *     ij_fwio,ij_htio,ij_stio,ij_sigrlt
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
       USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
@@ -755,12 +751,10 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,fland
      *     ,itocean,itoice,itlake,itlkice,itime
 #ifdef SCM
-     *     ,I_TARG,J_TARG
-#endif
-      USE GEOM, only : imaxj,axyp
-#ifdef SCM
+      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
+      USE GEOM, only : imaxj,axyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx, tij_seaice
@@ -1050,14 +1044,12 @@ C****
       USE CONSTANT, only : rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
 #ifdef SCM
-     *                     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
      *     ,lmi,snow_ice,Ti,Ei,seaice_thermo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
@@ -1378,13 +1370,11 @@ C****
       USE CONSTANT, only : tf
       USE MODEL_COM, only : jm
 #ifdef SCM
-     *                     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt, SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : msi,hsi,ssi,rsi,snowi
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt, SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER
      *     ,trsi
 #endif

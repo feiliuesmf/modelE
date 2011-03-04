@@ -19,7 +19,7 @@
      *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
      *     ,pmtop
 #ifdef SCM
-     *     ,I_TARG,J_TARG,NSTEPSCM
+      USE MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
       USE SCMCOM, only : iu_scm_prt
 #endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms

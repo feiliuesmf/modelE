@@ -1241,13 +1241,11 @@ C****
      *     ,USE_UNR_DRAG
 
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt
 #endif
 #ifdef BLK_2MOM
      * ,wmice
-#endif
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt
 #endif
       USE SOMTQ_COM, only : mz,tmom,qmom
 #ifdef CUBED_SPHERE

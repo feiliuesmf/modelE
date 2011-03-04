@@ -969,7 +969,7 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
 #ifdef SCM
-     &           ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp
@@ -1068,7 +1068,7 @@ C****
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp
