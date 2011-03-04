@@ -88,6 +88,7 @@ C**** set GTEMP array for landice
                 endif
             endif
 #endif
+!???? this block should probably be moved to the (new_)io_landice (reto)
 #ifdef TRACERS_WATER
             if (istart.ge.9) then ! need this if-test since TR.. may 
                                   ! not be set yet at initial starts

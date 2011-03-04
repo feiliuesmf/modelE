@@ -1110,7 +1110,7 @@ C**** reset sub-daily diag files
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
-     &     ,do_polefix,pednl00,pmidl00,ij_debug,init_topog_related
+     &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : variable_orb_par,orb_par_year_bp,orb_par
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE Dictionary_mod
@@ -1158,7 +1158,6 @@ C**** Rundeck parameters:
       call sync_param( "variable_orb_par", variable_orb_par )
       call sync_param( "orb_par_year_bp", orb_par_year_bp )
       call sync_param( "orb_par", orb_par, 3 )
-      call sync_param( "init_topog_related", init_topog_related )
 
 C**** Parameters derived from Rundeck parameters:
 
@@ -1239,7 +1238,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
-     *     ,USE_UNR_DRAG,init_topog_related
+     *     ,USE_UNR_DRAG
 
 #ifdef SCM
      *     ,I_TARG,J_TARG
@@ -1308,6 +1307,11 @@ cddd#endif
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
+      logical :: postProc = .false.
+!@dbparam init_topog_related : set = 1 if IC and topography are incompatible
+      integer :: init_topog_related = 0
+!@dbparam do_IC_fixups : set = 1 if surface IC are to be checked/corrected
+      integer :: do_IC_fixups = 0
       character(*), intent(in) :: ifile
       type (ESMF_Clock), intent(inout) :: clock
 !@var iu_AIC,iu_TOPO unit numbers for input files
@@ -1343,7 +1347,7 @@ cddd#endif
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
-      integer ISTART_kradia
+      integer ISTART_kradia, istart_fixup
       character*132 :: bufs
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
@@ -1487,6 +1491,7 @@ C****        Post-process one or more ACC-files : ISTART < 1        ****
 C****                                                               ****
 C***********************************************************************
       if (istart.le.0) then
+        postProc = .true.
         call reset_diag(1)
         monacc = 0
         do
@@ -1774,11 +1779,13 @@ C**** Check consistency of starting time
       END IF
 
 C**** Set flags to initialise some variables related to topography
-      IF (ISTART < 9 .and. init_topog_related == 1) then
+      call sync_param( "init_topog_related", init_topog_related )
+      IF (init_topog_related == 1) then
         iniOcean=.true.
         iniLAKE=.TRUE.
         iniPBL=.TRUE.
         iniSNOW = .TRUE.        ! extract snow data from first soil layer
+        do_IC_fixups = 1        ! new default, not necessarily final
       endif
 
       CALL CALC_AMPK(LM)
@@ -1943,7 +1950,7 @@ C**** Check consistency of DTsrc (with NDAY) and dt (with NIdyn)
 #ifndef USE_FVCORE
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
 C****
-      if(istart>0) then
+      if(.not.postProc) then
         NIdyn = 2*nint(.5*dtsrc/dt)
         if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
           if (AM_I_ROOT())
@@ -2068,13 +2075,17 @@ C**** MUST be before other init routines
       endif
 #endif
 
+      call sync_param ("do_IC_fixups", do_IC_fixups)
 
+!!! hack: may be prevented if post-processing option is eliminated
+      istart_fixup = istart
+      if (istart==8 .and. do_IC_fixups==1) istart_fixup = 9
 C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
-      CALL init_ice(iniOCEAN,istart)
+      CALL init_ice(iniOCEAN,do_IC_fixups)
 
 C**** Initialize lake variables (including river directions)
-      CALL init_LAKES(inilake,istart)
+      CALL init_LAKES(inilake,istart_fixup)
 
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
@@ -2082,10 +2093,10 @@ C**** Initialize ice dynamics code (if required)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN,istart)
+      CALL init_OCEAN(iniOCEAN,istart_fixup)
 
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI(istart)
+      CALL init_LI(istart_fixup) ! sets GTRACER except for starts
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms.
       DO J=J_0,J_1
@@ -2126,15 +2137,15 @@ cddd#endif
       call init_irrigate()
 #endif
       if (Kradia.gt.0) then   !  radiative forcing run
-        CALL init_RAD(istart)
-        if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
+        CALL init_RAD(postProc)
+        if(postProc) CALL init_DIAG(postProc,num_acc_files)
         if (AM_I_ROOT()) Then
            WRITE (6,INPUTZ)
            call print_param( 6 )
            WRITE (6,'(A14,4I4)') "IM,JM,LM,LS1=",IM,JM,LM,LS1
            WRITE (6,*) "PLbot=",PLbot
         end if
-        if(istart.lt.0)
+        if(postProc) ! only does acc-summation (in init_diag) : we are done
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
@@ -2145,7 +2156,7 @@ C**** Initialize pbl (and read in file containing roughness length data)
 #ifndef CUBED_SPHERE /* until a better solution is found */
       if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
 #endif
-      if(istart.gt.0) CALL init_pbl(iniPBL)
+      if(.not.postProc) CALL init_pbl(iniPBL)
 C****
 C**** Initialize the use of gravity wave drag diagnostics
 C****
@@ -2156,7 +2167,7 @@ C
 #endif
 C**** Initialize nudging
 #ifdef NUDGE_ON
-      if (istart.gt.0) CALL NUDGE_INIT
+      if (.not.postProc) CALL NUDGE_INIT
 #endif
 #ifdef TRACERS_AMP
       CALL SETUP_CONFIG
@@ -2180,18 +2191,18 @@ C**** Initialize nudging
 #endif
 
 C****
-      if(istart.gt.0) CALL RINIT (IRAND)
+      if(.not.postProc) CALL RINIT (IRAND)
 c Note on FFT initialization: IMLON is defined by the diag_zonal module,
 c not by the resolution module.  IMLON==IM for a latlon grid.
       CALL FFT0 (IMLON)  ! CALL FFT0(IM)
       CALL init_CLD
-      CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
+      CALL init_DIAG(postProc,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
-      if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
+      if(.not.postProc) CALL init_QUS(grid,im,jm,lm)
 #ifndef CUBED_SPHERE
-      if(istart.gt.0) CALL init_ATMDYN
+      if(.not.postProc) CALL init_ATMDYN
 #endif
-      CALL init_RAD(istart)
+      CALL init_RAD(postProc)
       if (AM_I_ROOT()) then
          WRITE (6,INPUTZ)
          call print_param( 6 )

@@ -5168,7 +5168,7 @@ c**** find MSU channel 2,3,4 temperatures
       return
       end subroutine diag_msu
 
-      SUBROUTINE init_DIAG(istart,num_acc_files)
+      SUBROUTINE init_DIAG(postProc,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
@@ -5208,7 +5208,7 @@ c**** find MSU channel 2,3,4 temperatures
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
       IMPLICIT NONE
-      integer, intent(in) :: istart,num_acc_files
+      logical :: postProc ; integer :: num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
      *     ,jday0,jday,moff,kb,l850,l300,l50
       REAL*8 PLE_tmp
@@ -5370,7 +5370,7 @@ c if people still want to specify dd points as ij, let them
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)
 
-      IF(ISTART.LT.1) THEN  ! initialize for post-processing
+      IF(postProc) THEN  ! initialize for post-processing
         call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *       ,amon0)
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
@@ -5606,7 +5606,7 @@ c**** Initialize acc-array names, units, idacc-indices
       call def_acc
 
 C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (Itime.le.ItimeI .and. ISTART.gt.0) THEN
+      IF (Itime.le.ItimeI .and. .not.postProc) THEN
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
         CALL reset_DIAG(0)

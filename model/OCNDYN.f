@@ -342,7 +342,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER, INTENT(IN) :: istart
-      LOGICAL :: iniStraits
+      LOGICAL :: postProc
       logical :: qexist(im)
 #ifdef CUBED_SPHERE
       integer, allocatable :: ones(:)
@@ -354,6 +354,9 @@ c**** Extract domain decomposition info
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
      *      ,J_STRT_HALO  = J_0H, J_STOP_HALO  = J_1H
      *      ,HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+!     soon obsolete: postProcessing case
+      postProc = .false. ; if(istart < 1) postProc = .true.
 
 C****
 C**** Check that KOCEAN is set correctly
@@ -670,7 +673,7 @@ C**** Initiallise geopotential field (needed by KPP)
       END IF
 
 C**** Extend ocean data to added layers at bottom if necessary
-      if (istart.gt.0 .and. lmo_min .gt. 1) then
+      if (.not.postProc .and. lmo_min .gt. 1) then
         do j=j_0s,j_1s
         do i=1,im
           if (lmm(i,j) == lmo_min .and. MO(i,j,lmo_min) == 0.) then
@@ -695,7 +698,7 @@ C**** Extend ocean data to added layers at bottom if necessary
 
 C**** zero out unphysical values (that might have come from a
 C**** restart file with different topography)
-      if (istart.lt.9) then
+      if (iniOCEAN) then
         DO J=J_0S,J_1S
           DO I=1,IMAXJ(J)
             VO(I,J,LMV(I,J)+1:LMO)=0.
@@ -710,11 +713,10 @@ C**** restart file with different topography)
       end if
 
 C**** Initialize straits arrays
-      iniStraits=iniOCEAN.or.(istart.lt.9.and.istart.gt.0)
-      call init_STRAITS(iniStraits)
+      call init_STRAITS(iniOCEAN)
 
 C**** Adjust global mean salinity if required (only at first start up)
-      if (istart.gt.0 .and. istart.lt.9 .and. oc_salt_mean.ne.-999.)
+      if (iniOCEAN .and. oc_salt_mean.ne.-999.)
      *     call adjust_mean_salt
 
 C**** Initialize solar radiation penetration arrays
@@ -776,10 +778,10 @@ C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
 
 C**** Set atmospheric surface variables
-      IF (ISTART.gt.0) CALL TOC2SST
+      IF (.not.postProc) CALL TOC2SST
 
 C***  Interpolate ocean surface velocity to the DYNSI grid
-      IF (ISTART.gt.0) CALL OG2IG_uvsurf
+      IF (.not.postProc) CALL OG2IG_uvsurf
 
 
       RETURN
