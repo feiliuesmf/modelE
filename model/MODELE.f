@@ -1025,7 +1025,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
-     &     ,do_polefix,pednl00,pmidl00,ij_debug,init_topog_related
+     &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : variable_orb_par,orb_par_year_bp,orb_par
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE PARAM
@@ -1073,7 +1073,6 @@ C**** Rundeck parameters:
       call sync_param( "variable_orb_par", variable_orb_par )
       call sync_param( "orb_par_year_bp", orb_par_year_bp )
       call sync_param( "orb_par", orb_par, 3 )
-      call sync_param( "init_topog_related", init_topog_related )
 
 C**** Parameters derived from Rundeck parameters:
 
@@ -1158,7 +1157,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
-     *     ,USE_UNR_DRAG,init_topog_related
+     *     ,USE_UNR_DRAG
 #ifdef BLK_2MOM
      * ,wmice
 #endif
@@ -1228,6 +1227,10 @@ cddd#endif
       INTEGER iu_AIC,iu_TOPO,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
       INTEGER I,J,L,K,LID1,LID2,IM1,NOFF,ioerr,num_acc_files
+!@dbparam init_topog_related : set = 1 if IC and topography are incompatible
+      integer :: init_topog_related = 0
+!@dbparam do_IC_fixups : set = 1 if IC are to be checked/corrected
+      integer :: do_IC_fixups = 0
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam TIMEE,HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
@@ -1259,7 +1262,7 @@ cddd#endif
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
-      integer ISTART_kradia
+      integer ISTART_kradia, istart_fixup
       character*132 :: bufs
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
@@ -1690,11 +1693,13 @@ C**** Check consistency of starting time
       END IF
 
 C**** Set flags to initialise some variables related to topography
-      IF (ISTART < 9 .and. init_topog_related == 1) then
+      call sync_param( "init_topog_related", init_topog_related )
+      IF (init_topog_related == 1) then
         iniOcean=.true.
         iniLAKE=.TRUE.
         iniPBL=.TRUE.
         iniSNOW = .TRUE.        ! extract snow data from first soil layer
+        do_IC_fixups = 1        ! new default, not necessarily final
       endif
 
       CALL CALC_AMPK(LM)
@@ -1983,14 +1988,19 @@ C**** MUST be before other init routines
         daily_z = daily_z/grav
       endif
 #endif
+     
+      call sync_param ("do_IC_fixups", do_IC_fixups)
 
+!!! hack:
+      istart_fixup = istart
+      if(istart==8 .and. do_IC_fixups==1 ) istart_fixup = 9
 
 C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
-      CALL init_ice(iniOCEAN,istart)
+      CALL init_ice(iniOCEAN,istart_fixup)
 
 C**** Initialize lake variables (including river directions)
-      CALL init_LAKES(inilake,istart)
+      CALL init_LAKES(inilake,istart_fixup)
 
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
@@ -1998,10 +2008,10 @@ C**** Initialize ice dynamics code (if required)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN,istart)
+      CALL init_OCEAN(iniOCEAN,istart_fixup)
 
 C**** Initialize land ice (must come after oceans)
-      CALL init_LI(istart)
+      CALL init_LI(istart_fixup)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms.
       DO J=J_0,J_1
