@@ -86,10 +86,10 @@ C**** set GTEMP array for landice
                 endif
             endif
 #endif
-!???? this block should probably be moved to the (new_)io_landice (reto)
 #ifdef TRACERS_WATER
-            if (istart.ge.9) then ! need this if-test since TR.. may 
-                                  ! not be set yet at initial starts
+!TODO This should depend on whether itime>itime_tr0(n), not on istart
+!TODO and may be different for each individual tracer (reto) 
+            if (istart.ge.9) then ! ok if all tracers start at beg.of run
             IF (SNOWLI(I,J).gt.SNMIN) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
