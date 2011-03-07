@@ -1114,6 +1114,13 @@ c
          ir_ij(k) = ir_pct
          denom_ij(k) = 0
       enddo
+
+      do k=1,kaijmm
+         write(name_ijmm(k),'(a6,i3.3)') 'AIJmm',k
+         lname_ijmm(k) = 'unused'
+         units_ijmm(k) = 'unused'
+         scale_ijmm(k) = 1.
+      enddo
 c
       k=0
 C**** AIJ diagnostic names:
@@ -4774,6 +4781,37 @@ c      scale_ij(k) = 1.
          endif
       end if
 
+c
+c Define min/max diagnostics
+c
+
+c
+      k=0
+c
+      k=k+1
+      IJ_TSURFmin = k
+      lname_ijmm(k) = 'Minimum surface air temperature'
+      units_ijmm(k) = 'C'
+      name_ijmm(k) = 'tsurf_min'
+      scale_ijmm(k) = -1.  ! flip max -> min
+c
+      k=k+1
+      IJ_TSURFmax = k
+      lname_ijmm(k) = 'Maximum surface air temperature'
+      units_ijmm(k) = 'C'
+      name_ijmm(k) = 'tsurf_max'
+      scale_ijmm(k) = 1.
+
+
+      if (AM_I_ROOT()) then
+         if (k .gt. kaijmm) then
+            write (6,*) 'ij_defs: Increase kaijmm=',kaijmm,
+     &          ' to at least ',k
+            call stop_model( 'kaijmm too small', 255 )
+         end if
+      end if
+
+
 #ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AIJ output fields using
@@ -4827,6 +4865,7 @@ c
      &     units='m^2',long_name='gridcell area')
 
       cdl_ij = cdl_ij_template ! invoke a copy method later
+      cdl_ijmm = cdl_ij_template
 
       do k=1,kaij
         if(trim(units_ij(k)).eq.'unused') cycle
@@ -4844,6 +4883,14 @@ c
         call add_var(cdl_ij_latlon,
      &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
 #endif
+      enddo
+
+      do k=1,kaijmm
+        if(trim(units_ijmm(k)).eq.'unused') cycle
+        call add_var(cdl_ijmm,
+     &       'float '//trim(name_ijmm(k))//trim(ijstr),
+     &       units=trim(units_ijmm(k)),
+     &       long_name=trim(lname_ijmm(k)))
       enddo
 
 #endif

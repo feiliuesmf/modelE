@@ -58,7 +58,7 @@ C****
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
-      USE DIAG_COM, only : ia_srf,ia_src,oa,aij=>aij_loc
+      USE DIAG_COM, only : ia_srf,ia_src,oa,aij=>aij_loc,aijmm
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -73,6 +73,7 @@ C****
      *     ,ij_gusti,ij_mccon,ij_sss,ij_trsup,ij_trsdn,ij_fwoc,ij_ssh
      *     ,adiurn_dust, ij_kw, ij_alpha, ij_gasx, ij_silwu, ij_silwd
      *     ,ij_sish ,ij_popwat
+     *     ,ij_tsurfmin,ij_tsurfmax
 #if (defined mjo_subdd) || (defined etc_subdd)
      *     ,qsen_avg,qlat_avg,pblht_acc
 #endif
@@ -1555,6 +1556,11 @@ C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
+C*** min/max tsurf
+        aijmm(i,j,ij_tsurfmin) =
+     &       max( -(tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmin) )
+        aijmm(i,j,ij_tsurfmax) =
+     &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
       END DO 
 !$OMP  END PARALLEL DO 
