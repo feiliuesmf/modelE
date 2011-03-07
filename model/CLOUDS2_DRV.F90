@@ -1,30 +1,30 @@
 #include "rundeck_opts.h"
 
-SUBROUTINE CONDSE
+subroutine CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
-  USE CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx &
+  use CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx &
        ,teeny,sday,undef,bysha
-  USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR &
+  use MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR &
        ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate &
        ,ntype,itime,focean,fland,flice,jyear,jmon &
 #ifdef SCM
        ,I_TARG,J_TARG,NSTEPSCM
 #endif
   ;
-  USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
-  USE DOMAIN_DECOMP_ATM, only : GLOBALSUM
-  USE QUSDEF, only : nmom
-  USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-  USE GEOM, only : imaxj,axyp,byaxyp, kmaxj
+  use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
+  use DOMAIN_DECOMP_ATM, only : GLOBALSUM
+  use QUSDEF, only : nmom
+  use SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
+  use GEOM, only : imaxj,axyp,byaxyp, kmaxj
 #ifndef CUBED_SPHERE
-  USE GEOM, only : ravj
+  use GEOM, only : ravj
 #endif
-  USE RANDOM
-  USE RAD_COM, only : cosz1
-  USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav &
+  use RANDOM
+  use RAD_COM, only : cosz1
+  use CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav &
        ,isccp_reg2d,ukm,vkm,ncol &
 #ifdef CLD_AER_CDNC
        ,oldnl,oldni,clwp,cdn3d,cre3d  & ! for 3 hrly diag
@@ -51,7 +51,7 @@ SUBROUTINE CONDSE
        ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
   ;
-  USE DIAG_COM, only : aij=>aij_loc, &
+  use DIAG_COM, only : aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
        ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
        ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc, &
@@ -89,13 +89,13 @@ SUBROUTINE CONDSE
   ;
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
-  USE AERO_CONFIG, only: NMODES
-  USE AMP_AEROSOL, only: NACTV
+  use AERO_CONFIG, only: NMODES
+  use AMP_AEROSOL, only: NACTV
 #endif
 #endif
 #ifdef TRACERS_ON
-  USE TRACER_COM, only : remake_tracer_lists
-  USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1 &
+  use TRACER_COM, only : remake_tracer_lists
+  use TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1 &
 #ifdef TRACERS_COSMO
        ,n_Be10,n_Be7 &
 #endif
@@ -115,13 +115,13 @@ SUBROUTINE CONDSE
 #endif
   ;
 #ifdef TRACERS_COSMO
-  USE COSMO_SOURCES, only : BE7W_acc
+  use COSMO_SOURCES, only : BE7W_acc
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-  USE LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
+  use LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
 #ifndef SKIP_TRACER_DIAGS
-  USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc &
+  use TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc &
        ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc &
 #ifdef TRACERS_WATER
        ,jls_prec,tij_prec,trp_acc &
@@ -138,7 +138,7 @@ SUBROUTINE CONDSE
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
   ;
-  USE CLOUDS, only : tm,tmom,trdnl & ! local  (i,j)
+  use CLOUDS, only : tm,tmom,trdnl & ! local  (i,j)
        ,ntx,ntix             & ! global (same for all i,j)
 #ifdef TRACERS_WATER
        ,trwml,trsvwml,trprmc,trprss &
@@ -157,7 +157,7 @@ SUBROUTINE CONDSE
 #endif
 #endif
   ;
-  USE CLOUDS, only : BYDTsrc,mstcnv,lscond & ! glb var & subs
+  use CLOUDS, only : BYDTsrc,mstcnv,lscond & ! glb var & subs
        ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,lp50,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
        ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
@@ -182,24 +182,24 @@ SUBROUTINE CONDSE
 #endif
   ;
 #ifdef SCM
-  USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
+  use SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
        SCM_ATURB_FLAG,iu_scm_prt,NRINIT
-  USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
+  use SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP,ENTSCM,ENTALL,ENTDEEP, &
        DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,dTHss,dqss, &
        SCM_SVWMXL,isccp_sunlit,isccp_ctp,isccp_tauopt, &
        isccp_lowcld,isccp_midcld,isccp_highcld,isccp_fq, &
        isccp_totcldarea,isccp_boxtau,isccp_boxptop
 #endif
-  USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm &
+  use PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm &
        ,w2gcm
-  USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda &
+  use DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda &
        ,ltropo,wcpsig &
        ,ua=>ualij,va=>valij
-  USE SEAICE_COM, only : rsi
-  USE GHY_COM, only : snoage,fearth
-  USE LAKES_COM, only : flake
-  USE FLUXES, only : prec,eprec,precss,gtempr &
+  use SEAICE_COM, only : rsi
+  use GHY_COM, only : snoage,fearth
+  use LAKES_COM, only : flake
+  use FLUXES, only : prec,eprec,precss,gtempr &
 #ifdef TRACERS_WATER
        ,trprec &
 #else
@@ -209,7 +209,7 @@ SUBROUTINE CONDSE
 #endif
   ;
 #ifdef TRACERS_AMP
-  USE AMP_AEROSOL, only : AQsulfRATE &
+  use AMP_AEROSOL, only : AQsulfRATE &
 #ifndef NO_HDIURN
        ,DIURN_LWP, DIURN_LWC
 #endif
@@ -218,21 +218,21 @@ SUBROUTINE CONDSE
 #ifdef INTERACTIVE_WETLANDS_CH4
   use tracer_sources, only : n__prec
 #endif
-  USE FILEMANAGER, only: openunit,closeunit
+  use FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  USE tracers_dust,ONLY : prelay
+  use tracers_dust,only : prelay
 #endif
-  Use TimerPackage_mod, only: startTimer => start, stopTimer => stop
-  IMPLICIT NONE
+  use TimerPackage_mod, only: startTimer => start, stopTimer => stop
+  implicit none
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-  REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm),dtrm(lm)
-  INTEGER NX
+  real*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm),dtrm(lm)
+  integer NX
 #endif
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
-  INTEGER Lfreeze
+  integer Lfreeze
 #endif
 
 !@var TLS,QLS,TMC,QMC temperature and humidity work arrays
@@ -240,16 +240,16 @@ SUBROUTINE CONDSE
   !      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
   !     *           TLS,QLS,TMC,QMC
 
-  REAL*8, DIMENSION(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+  real*8, dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
        GRID%J_STRT_HALO:GRID%J_STOP_HALO) &
        :: UASV              ! for U tendency diagnostic
 
 !@param ENTCON fractional rate of entrainment (km**-1)
-  REAL*8,  PARAMETER :: ENTCON = .2d0
-  REAL*8, PARAMETER :: SLHE=LHE*BYSHA
+  real*8,  parameter :: ENTCON = .2d0
+  real*8, parameter :: SLHE=LHE*BYSHA
 
-  INTEGER I,J,K,L,N,LL  !@var I,J,K,L,N loop variables
-  INTEGER JR,KR,ITYPE,IT,IH,LP850,LP600,IHM,KMAX_NONPOLAR
+  integer I,J,K,L,N,LL  !@var I,J,K,L,N loop variables
+  integer JR,KR,ITYPE,IT,IH,LP850,LP600,IHM,KMAX_NONPOLAR
 !@var JR = JREG(I,J)
 !@var KR index for regional diagnostics
 !@var ITYPE index for snow age
@@ -257,11 +257,11 @@ SUBROUTINE CONDSE
 !@var LP850 layer near 850 mb
 !@var LP600 layer near 600 mb
 !@var LERR,IERR error reporting
-  INTEGER :: LERR, IERR
+  integer :: LERR, IERR
 
-  REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
-  REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
-  REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC &
+  real*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
+  real*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
+  real*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC &
        ,TSV,WM1,WMI,PWATER
   !ECON*     ,E,E1,W1,ep,ep1,TSV,q0,q1,q2,WM1,WMI
 !@var HCNDMC heating due to moist convection
@@ -304,30 +304,30 @@ SUBROUTINE CONDSE
   real*8, dimension(NMOM,LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) &
        :: TRMOM_LNI
 #endif
-  INTEGER ICKERR, JCKERR, JERR, seed, NR
-  REAL*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+  integer ICKERR, JCKERR, JERR, seed, NR
+  real*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
        GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
   integer :: nij_before_j0,nij_after_j1,nij_after_i1
-  REAL*8  UKMSP(IM,LM), VKMSP(IM,LM), UKMNP(IM,LM),VKMNP(IM,LM)
-  REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM), &
+  real*8  UKMSP(IM,LM), VKMSP(IM,LM), UKMNP(IM,LM),VKMNP(IM,LM)
+  real*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM), &
        SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
-  INTEGER :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
-  LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+  integer :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
+  logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-  INTEGER, PARAMETER :: n_idx1 = 5
-  INTEGER, PARAMETER :: n_idx2 = 3
-  INTEGER, PARAMETER :: n_idx3 = 6
+  integer, parameter :: n_idx1 = 5
+  integer, parameter :: n_idx2 = 3
+  integer, parameter :: n_idx3 = 6
 #ifdef TRACERS_DUST
-  INTEGER,PARAMETER :: n_idxd=1
+  integer,parameter :: n_idxd=1
 #endif
-  INTEGER :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
+  integer :: idx1(n_idx1), idx2(n_idx2), idx3(n_idx3)
 #ifdef TRACERS_DUST
-  INTEGER :: idxd(n_idxd)
+  integer :: idxd(n_idxd)
 #endif
-  REAL*8 :: tmp(NDIUVAR)
+  real*8 :: tmp(NDIUVAR)
 #ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  INTEGER :: n1,n_fidx
+  integer :: n1,n_fidx
 #endif
 #endif
 #ifdef CLD_AER_CDNC
@@ -348,12 +348,12 @@ SUBROUTINE CONDSE
   idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
   idx3 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC, IDD_SSP /)
 #ifdef TRACERS_DUST
-  IF (adiurn_dust == 1) idxd=(/idd_wet/)
+  if (adiurn_dust == 1) idxd=(/idd_wet/)
 #endif
 
 
   !**** define local grid
-  CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, &
+  call GET(grid, J_STRT=J_0,         J_STOP=J_1, &
        J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S, &
        J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H, &
        HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
@@ -366,25 +366,25 @@ SUBROUTINE CONDSE
   !
   !     Burn some random numbers corresponding to latitudes off
   !     processor
-  CALL BURN_RANDOM(nij_before_j0(J_0)*LP50*3)
+  call BURN_RANDOM(nij_before_j0(J_0)*LP50*3)
 
-  DO J=J_0,J_1
-    CALL BURN_RANDOM((I_0-1)*LP50*3)
-    DO I=I_0,IMAXJ(J)
-      DO L=LP50,1,-1
-        DO NR=1,3
+  do J=J_0,J_1
+    call BURN_RANDOM((I_0-1)*LP50*3)
+    do I=I_0,IMAXJ(J)
+      do L=LP50,1,-1
+        do NR=1,3
           RNDSS(NR,L,I,J) = RANDU(xx)
-        END DO
-      END DO
+        end do
+      end do
       !     Do not bother to save random numbers for isccp_clouds
-    END DO
-    CALL BURN_RANDOM(nij_after_i1(I_1)*LP50*3)
-  END DO
+    end do
+    call BURN_RANDOM(nij_after_i1(I_1)*LP50*3)
+  end do
 
-  CALL BURN_RANDOM(nij_after_j1(J_1)*LP50*3)
+  call BURN_RANDOM(nij_after_j1(J_1)*LP50*3)
 
   !     But save the current seed in case isccp_routine is activated
-  if (isccp_diags.eq.1) CALL RFINAL(seed)
+  if (isccp_diags.eq.1) call RFINAL(seed)
   WCU500=0.
   SAVWCU=0.
   SAVWC1=0.
@@ -442,15 +442,15 @@ SUBROUTINE CONDSE
   ! Burn random numbers for earlier latitudes here.
   ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
   if (isccp_diags.eq.1) then
-    CALL BURN_RANDOM(nij_before_j0(J_0)*NCOL*(LM+1))
+    call BURN_RANDOM(nij_before_j0(J_0)*NCOL*(LM+1))
   end if
 
-  DO J=J_0,J_1
+  do J=J_0,J_1
 
     ! Burn random numbers for earlier longitudes here.
     ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
     if (isccp_diags.eq.1) then
-      CALL BURN_RANDOM((I_0-1)*NCOL*(LM+1))
+      call BURN_RANDOM((I_0-1)*NCOL*(LM+1))
     end if
 
     !$omp  PARALLEL DO DEFAULT(NONE)
@@ -507,7 +507,7 @@ SUBROUTINE CONDSE
     !$omp*  )
     !$omp*    REDUCTION(+:ICKERR,JCKERR)
 
-    Do ithread = 0, numThreads - 1
+    do ithread = 0, numThreads - 1
       I_0thread = I_0 + (I_1-I_0+1) * iThread / numThreads
       I_1thread = I_0 + (I_1-I_0+1) * (iThread+1) / numThreads  - 1
       Imaxj_thread = min(IMAXJ(J), I_1thread)
@@ -515,8 +515,8 @@ SUBROUTINE CONDSE
       !
       !red* Reduced Arrays 2
       !
-      DO L=1,LM
-        DO I=I_0thread,I_1thread
+      do L=1,LM
+        do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
 #ifdef SCM
           SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
@@ -526,8 +526,8 @@ SUBROUTINE CONDSE
           WMIL(I,L) = WM(I,J,L)
           TMOMIL(:,I,L) = T3MOM(:,I,J,L)
           QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
-        END DO
-      END DO
+        end do
+      end do
 #ifdef CUBED_SPHERE
       ! note: clouds2 assumes w(l) is at the lower edge of layer l
       sd_cldil(I_0:I_1,2:lm) = wcpsig(I_0:I_1,j,1:lm-1)/DTsrc
@@ -550,13 +550,13 @@ SUBROUTINE CONDSE
       !****
       !**** MAIN I LOOP
       !****
-      DO I=I_0thread,IMAXJ_thread
+      do I=I_0thread,IMAXJ_thread
         DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
         !****
         !**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR MSTCNV
         !****
-        DEBUG = .FALSE.   ! use for individual box diags in clouds
+        DEBUG = .false.   ! use for individual box diags in clouds
         PEARTH=FEARTH(I,J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
@@ -569,7 +569,7 @@ SUBROUTINE CONDSE
         QG=QGAVG(I,J)
         TSV=TS*(1+QS*DELTX)
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
-        DCL=INT(DCLEV(I,J)+.5)
+        DCL=int(DCLEV(I,J)+.5)
 #ifdef SCM
         if (I.eq.I_TARG .and. J.eq.J_TARG) then
           do LL=1,LM
@@ -606,9 +606,9 @@ SUBROUTINE CONDSE
 #ifdef ALT_CLDMIX_UV
         ra(1:kmax) = 1d0
 #else
-        DO K=1,KMAX
+        do K=1,KMAX
           RA(K)=RAVJ(K,J)
-        END DO
+        end do
 #endif
 #endif
         !**** PRESSURES, AND PRESSURE TO THE KAPA
@@ -617,14 +617,14 @@ SUBROUTINE CONDSE
         PLK(:)=PK(:,I,J)
         AIRM(:)=PDSIG(:,I,J)
         BYAM(:)=1./AIRM(:)
-        WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+        WTURB(:)=sqrt(.6666667*EGCM(:,I,J))
 #ifdef SCM
         if (SCM_ATURB_FLAG.eq.0) then
           !****     for SCM run with DRY convection - zero out WTURB
           WTURB(:) = 0.d0
         else
           !****     for SCM run with ATURB
-          WTURB(:)=SQRT(.6666667*EGCM(:,I,J))
+          WTURB(:)=sqrt(.6666667*EGCM(:,I,J))
         endif
 #endif
 
@@ -660,7 +660,7 @@ SUBROUTINE CONDSE
         FSSL(:)=FSS(:,I,J)
         DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
         DPDT(LS1:LM)=0.
-        DO L=1,LM
+        do L=1,LM
           !**** TEMPERATURES
           SM(L)  =T(I,J,L)*AIRM(L)
           SMOM(:,L) =TMOMIL(:,I,L)*AIRM(L)
@@ -682,10 +682,10 @@ SUBROUTINE CONDSE
           SAVWL1(L)=0.
           SAVE1L(L)=0.
           SAVE2L(L)=0.
-          IF(L.LE.LM-2) &
+          if(L.le.LM-2) &
                ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
-          IF(L.LE.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
-        END DO
+          if(L.le.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
+        end do
 
 
         ETAL(LM)=ETAL(LM-1)
@@ -724,14 +724,14 @@ SUBROUTINE CONDSE
           U_0(1:KMAX,:) = UKM(1:KMAX,:,I,J)
           V_0(1:KMAX,:) = VKM(1:KMAX,:,I,J)
         endif
-        DO L=1,LM
-          DO K=1,KMAX
+        do L=1,LM
+          do K=1,KMAX
             UM(K,L) = U_0(K,L)*AIRM(L)
             VM(K,L) = V_0(K,L)*AIRM(L)
             UM1(K,L) = UM(K,L)
             VM1(K,L) = VM(K,L)
-          END DO
-        END DO
+          end do
+        end do
 
         !**** INITIALISE PRECIPITATION AND LATENT HEAT
         PRCP=0.
@@ -785,7 +785,7 @@ SUBROUTINE CONDSE
 #endif
 
         !**** MOIST CONVECTION
-        CALL MSTCNV(IERR,LERR,i,j)
+        call MSTCNV(IERR,LERR,i,j)
 
         !ECON E1 = ( sum( ((T(I,J,:)*PLK(:)-TL(:))*AIRM(:)*SHA + (Q(I,J,:)
         !ECON*     *AIRM(:)-QM(:))*LHE)*(1.-FSSL(:)))-sum(SVWMXL(:)*(LHE
@@ -817,11 +817,11 @@ SUBROUTINE CONDSE
 #endif
 
         !**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
-        IF (LMCMIN.GT.0) THEN
+        if (LMCMIN.gt.0) then
           AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
           AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
-          IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
-          IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
+          if(CLDSLWIJ.gt.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
+          if(CLDDEPIJ.gt.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
           AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
           AIJ(I,J,IJ_MCCLDTP)=AIJ(I,J,IJ_MCCLDTP)+   & ! MC cloud top pressure
                PLE(LMCMAX+1)*CLDMCL(LMCMAX)
@@ -839,7 +839,7 @@ SUBROUTINE CONDSE
           saveMCCLDTP(i,j)=PLE(LMCMAX+1)
 
           HCNDMC=0.
-          DO L=1,LMCMAX
+          do L=1,LMCMAX
             HCNDMC=HCNDMC+DGDSM(L)+DPHASE(L)
             call inc_ajl(i,j,l,jl_mchr,DGDSM(L)*BYDSIG(L))
             call inc_ajl(i,j,l,jl_mchphas,DPHASE(L)*BYDSIG(L))
@@ -885,13 +885,13 @@ SUBROUTINE CONDSE
             call inc_ajl(i,j,l,jl_mcdflx,DDMFLX(L))
             call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L)*AIRM(L))
             aijl(i,j,l,ijl_MCamFX) = aijl(i,j,l,ijl_MCamFX) + MCFLX(L)
-          END DO
-          DO IT=1,NTYPE
-            CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
-          END DO
-          CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC)
-          DO KR=1,NDIUPT
-            IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+          end do
+          do IT=1,NTYPE
+            call INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
+          end do
+          call INC_AREG(I,J,JR,J_PRCPMC,PRCPMC)
+          do KR=1,NDIUPT
+            if(I.eq.IJDD(1,KR).and.J.eq.IJDD(2,KR)) then
               tmp(IDD_PR)  =+PRCPMC
               tmp(IDD_ECND)=+HCNDMC
               tmp(IDD_MCP) =+PRCPMC
@@ -901,14 +901,14 @@ SUBROUTINE CONDSE
 #ifndef NO_HDIURN
               HDIURN(IDX1(:),KR,IHM)=HDIURN(IDX1(:),KR,IHM)+TMP(IDX1(:))
 #endif
-            END IF
-          END DO
+            end if
+          end do
 #ifdef CLD_AER_CDNC
-          DO L =1,LM
-            IF(SVWMXL(L).LE.0.) CYCLE
+          do L =1,LM
+            if(SVWMXL(L).le.0.) cycle
             CLDWT = CLDMCL(L)!+teeny
             CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))
-            IF(SVLATL(L).EQ.LHE) THEN
+            if(SVLATL(L).eq.LHE) then
               AIJL(I,J,L,IJL_CFWM)= AIJL(I,J,L,IJL_CFWM)+CLDWT
               AIJL(I,J,L,IJL_REWM)= AIJL(I,J,L,IJL_REWM)+AREWM(L)*CLDWT
               AIJL(I,J,L,IJL_CDWM)= AIJL(I,J,L,IJL_CDWM)+ACDNWM(L)*CLDWT
@@ -917,7 +917,7 @@ SUBROUTINE CONDSE
               AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)*CLDWTDZ
-            ELSEIF(SVLATL(L).EQ.LHS) THEN
+            elseif(SVLATL(L).eq.LHS) then
               AIJL(I,J,L,IJL_CFIM)= AIJL(I,J,L,IJL_CFIM)+CLDWT
               AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)*CLDWT
               AIJL(I,J,L,IJL_CDIM)= AIJL(I,J,L,IJL_CDIM)+ACDNIM(L)*CLDWT
@@ -926,19 +926,19 @@ SUBROUTINE CONDSE
               AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)*CLDWTDZ
-            ENDIF
-            IF (NMCW.ge.1) then
+            endif
+            if (NMCW.ge.1) then
               call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
               !         write(6,*)"IJL_REWM",AIJL(I,J,L,IJL_REWM),I,J,L,
               !     *   AIJL(I,J,L,IJL_CDWM),AIJL(I,J,L,IJL_CWWM),ALWWM(L)
-            ENDIF
-            IF (NMCI.ge.1) then
+            endif
+            if (NMCI.ge.1) then
               call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L)*AIRM(L))
               !         write(6,*)"IJL_REIM",AIJL(I,J,L,IJL_REIM),I,J,L,
               !     *   AIJL(I,J,L,IJL_CDIM),AIJL(I,J,L,IJL_CWIM),ALWIM(L)
-            ENDIF
+            endif
 
-          ENDDO
+          enddo
 #endif
           !**** ACCUMULATE PRECIP
           PRCP=PRCPMC*100.*BYGRAV
@@ -947,12 +947,12 @@ SUBROUTINE CONDSE
 #endif
           !**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
           !**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
-          IF (TPRCP.gt.0) THEN
+          if (TPRCP.gt.0) then
             !         EPRCP=PRCP*TPRCP*SHW
             EPRCP=0.
             ENRGP=ENRGP+EPRCP
             !ECON     ep=0.
-          ELSE
+          else
             !         EPRCP=PRCP*TPRCP*SHI
             EPRCP=0.
             ENRGP=ENRGP+EPRCP-PRCP*LHM
@@ -960,7 +960,7 @@ SUBROUTINE CONDSE
             AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
             AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) + &
                  PRCP*FOCEAN(I,J)*RSI(I,J)
-          END IF
+          end if
           AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
           !**** Uncomment next lines for check on conservation
@@ -969,39 +969,39 @@ SUBROUTINE CONDSE
           !QCON   if (abs(q1-prcp).gt.0.01) print*,"water err0",i,j,(q1-prcp)
           !QCON*       *GRAV/100.,q0,q1,prcp
 
-          DO L=1,LMCMAX
+          do L=1,LMCMAX
             T(I,J,L)=(1.-FSSL(L))*SM(L)*BYAM(L)+FSSL(L)*TLS(I,J,L)
             Q(I,J,L)=(1.-FSSL(L))*QM(L)*BYAM(L)+FSSL(L)*QLS(I,J,L)
             TMC(I,J,L)=SM(L)*BYAM(L)
             QMC(I,J,L)=QM(L)*BYAM(L)
             SMOMMC(:,L)=SMOM(:,L)
             QMOMMC(:,L)=QMOM(:,L)
-            DO K=1,KMAX
+            do K=1,KMAX
               UM1(K,L)=UM(K,L)
               VM1(K,L)=VM(K,L)
-            END DO
-          END DO
+            end do
+          end do
 
           CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
           FSS(:,I,J)=FSSL(:)
           AIRX(I,J) = AIRXL*AXYP(I,J)
-          DO L=1,DCL
+          do L=1,DCL
             DDML(I,J)=L                    ! the lowest downdraft layer
-            IF(DDMFLX(L).GT.0.d0) EXIT
-          END DO
-          IF (DDML(I,J).gt.0) THEN
+            if(DDMFLX(L).gt.0.d0) exit
+          end do
+          if (DDML(I,J).gt.0) then
             TDN1(I,J)=TDNL(DDML(I,J))     ! downdraft temperature
             QDN1(I,J)=QDNL(DDML(I,J))     ! downdraft humidity
             DDMS(I,J)=-100.*DDMFLX(DDML(I,J))/(GRAV*DTsrc) ! downdraft mass flux
 #ifdef TRACERS_ON
             TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
 #endif
-          END IF
+          end if
 
           !**** level 1 downfdraft mass flux/rho (m/s)
           DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J) &
                *DTSrc)
-        END IF
+        end if
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
           do L=1,LM
@@ -1052,13 +1052,13 @@ SUBROUTINE CONDSE
         !****
         !**** SET UP VERTICAL ARRAYS, OMITTING THE J AND I SUBSCRIPTS FOR LSCOND
         !****
-        DO L=1,LM
+        do L=1,LM
           TL(L)=TLS(I,J,L)*PLK(L)
           TH(L)=TLS(I,J,L)
           QL(L)=QLS(I,J,L)
           SMOM(:,L)=SMOMLS(:,L)
           QMOM(:,L)=QMOMLS(:,L)
-        END DO
+        end do
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
           SCM_SVWMXL(:) = SVWMXL(:)
@@ -1076,47 +1076,47 @@ SUBROUTINE CONDSE
 #endif
         RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
         FSSL(:)=FSS(:,I,J)
-        DO L=1,LM
-          DO K=1,KMAX
+        do L=1,LM
+          do K=1,KMAX
             UM(K,L) = U_0(K,L)*AIRM(L)
             VM(K,L) = V_0(K,L)*AIRM(L)
-          END DO
-        END DO
+          end do
+        end do
         !****
         !**** COMPUTE STRATOCUMULUS CLOUDS USING PHILANDER'S FORMULA
         !****
-        IF (ISC.EQ.1.AND.FOCEAN(I,J).GT..5) THEN
+        if (ISC.eq.1.and.FOCEAN(I,J).gt..5) then
           CSC=0.D0
           LP600=LM
           LP850=LM
-          DO L=2,LM
-            IF(L.GT.LP600) EXIT
-            IF(PL(L).LT.600.) THEN
+          do L=2,LM
+            if(L.gt.LP600) exit
+            if(PL(L).lt.600.) then
               LP600=L
-              IF(600.-PL(L).GT.PL(L-1)-600.) LP600=L-1
-            ENDIF
-          ENDDO
-          DO L=2,LM
-            IF(L.GT.LP850) EXIT
-            IF(PL(L).LT.850.) THEN
+              if(600.-PL(L).gt.PL(L-1)-600.) LP600=L-1
+            endif
+          enddo
+          do L=2,LM
+            if(L.gt.LP850) exit
+            if(PL(L).lt.850.) then
               LP850=L
-              IF(850.-PL(L).GT.PL(L-1)-850.) LP850=L-1
-            ENDIF
-          ENDDO
-          IF(SDL(LP600)+SDL(LP600+1).GT.0.) THEN
+              if(850.-PL(L).gt.PL(L-1)-850.) LP850=L-1
+            endif
+          enddo
+          if(SDL(LP600)+SDL(LP600+1).gt.0.) then
             DIFT=TL(LP850)-TGV/(1.+DELTX*QG)
             CSC=.031D0*DIFT+.623D0
-            IF(CSC.LT.0.) CSC=0.
-          ENDIF
+            if(CSC.lt.0.) CSC=0.
+          endif
           CLDMCL(1)=CLDMCL(1)+CSC
-          IF(CSC.GT.0.) TAUMCL(1)=AIRM(1)*.08D0
-          IF(CLDMCL(1).GT.1.) CLDMCL(1)=1.
+          if(CSC.gt.0.) TAUMCL(1)=AIRM(1)*.08D0
+          if(CLDMCL(1).gt.1.) CLDMCL(1)=1.
           !     IF(CSC.GT.0.) WRITE (6,*) I,J,DCL,TL(LP850),TGV/(1.+DELTX*QG),CSC
-        ENDIF
+        endif
 
         !**** COMPUTE RICHARDSON NUMBER FROM SURFACE CONDITIONS WHEN DEPTH OF
         !**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
-        IF(DCL.LE.1) THEN
+        if(DCL.le.1) then
           THSV=TS*(1.+DELTX*QS)/PEK(1,I,J)
           THV1=TH(1)*(1.+DELTX*QL(1))
           THV2=TH(2)*(1.+DELTX*QL(2))
@@ -1140,7 +1140,7 @@ SUBROUTINE CONDSE
           RI1=(GRAV*ALPHA1*DTDZS)/(DUDZS*DUDZS+DVDZS*DVDZS+teeny)
           RI2=(GRAV*ALPHA2*DTDZ)/(DUDZ*DUDZ+DVDZ*DVDZ+teeny)
           !       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
-        ENDIF
+        endif
 
         !**** Uncomment next few lines for check on conservation
         !ECON W1 = sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
@@ -1149,7 +1149,7 @@ SUBROUTINE CONDSE
         !ECON*     *AIRM(1:LP50))*LHE )*100.*BYGRAV
 
         !**** LARGE-SCALE CLOUDS AND PRECIPITATION
-        CALL LSCOND(IERR,WMERR,LERR,i,j)
+        call LSCOND(IERR,WMERR,LERR,i,j)
 
         !ECON E1 = ( sum( ((TLS(I,J,1:LP50)-TH(1:LP50))*PLK(1:LP50)*AIRM(1:LP50)
         !ECON*     *SHA +(QLS(I,J,1:LP50)-QL(1:LP50))*AIRM(1:LP50)*LHE)
@@ -1157,17 +1157,17 @@ SUBROUTINE CONDSE
         !ECON*     *AIRM(1:LP50)) )*100.*BYGRAV
 
         !**** Error reports
-        IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)') &
+        if (IERR.ne.0) write(99,'(I10,3I4,A,D14.5,A)') &
              Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
 
         !**** Accumulate diagnostics of LSCOND
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
-        END DO
-        CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS)
-        DO KR=1,NDIUPT
-          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+        do IT=1,NTYPE
+          call INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
+        end do
+        call INC_AREG(I,J,JR,J_PRCPSS,PRCPSS)
+        do KR=1,NDIUPT
+          if(I.eq.IJDD(1,KR).and.J.eq.IJDD(2,KR)) then
             tmp(IDD_PR)  =+PRCPSS
             tmp(IDD_ECND)=+HCNDSS
             tmp(IDD_SSP) =+PRCPSS
@@ -1175,27 +1175,27 @@ SUBROUTINE CONDSE
 #ifndef NO_HDIURN
             HDIURN(IDX2(:),KR,IHM)=HDIURN(IDX2(:),KR,IHM)+TMP(IDX2(:))
 #endif
-          END IF
-        END DO
+          end if
+        end do
 
         !**** TOTAL PRECIPITATION AND AGE OF SNOW
         PRCP=PRCP+PRCPSS*100.*BYGRAV
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-        DO l=1,lm
+        do l=1,lm
           prelay(i,j,l)=((prebar1(l)*DTsrc*100.+precnvl(l)*100.)+ &
                (prebar1(l+1)*DTsrc*100.+precnvl(l+1)*100.))/2.
-        END DO
+        end do
 #endif
 
         !**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
         !**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
-        IF (LHP(1).ne.LHS) THEN
+        if (LHP(1).ne.LHS) then
           !       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
           EPRCP=0.
           ENRGP=ENRGP+EPRCP
           !ECON   ep1=0.
-        ELSE
+        else
           !       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHI
           EPRCP=0.
           ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
@@ -1203,16 +1203,16 @@ SUBROUTINE CONDSE
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
           AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) + &
                PRCPSS*FOCEAN(I,J)*RSI(I,J)
-        END IF
+        end if
 
         !ECON if (abs(E1-ep1).gt.0.01) print*,"energy err1",i,j,(E1-ep1)
         !ECON*     *GRAV*1d-2,E1-ep1,E1,ep1,prcpss*100.*BYGRAV,lhp(1)
 
         !**** PRECIPITATION DIAGNOSTICS
-        DO IT=1,NTYPE
-          CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
-        END DO
-        CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP)
+        do IT=1,NTYPE
+          call INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
+        end do
+        call INC_AREG(I,J,JR,J_EPRCP,ENRGP)
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ &
@@ -1224,15 +1224,15 @@ SUBROUTINE CONDSE
         AIJ(I,J,IJ_PRECLI)=AIJ(I,J,IJ_PRECLI)+PRCP*FLICE(I,J)
         AIJ(I,J,IJ_PRECGR)=AIJ(I,J,IJ_PRECGR)+PRCP*FEARTH(I,J)
 
-        IF(ENRGP.LT.0.) THEN    ! MODIFY SNOW AGES AFTER SNOW FALL
-          DO ITYPE=1,3
-            SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
-          END DO
-        END IF
+        if(ENRGP.lt.0.) then    ! MODIFY SNOW AGES AFTER SNOW FALL
+          do ITYPE=1,3
+            SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*exp(-PRCP)
+          end do
+        end if
 
         !**** cloud water diagnostics
         WM1=0  ; WMI=0
-        DO L=1,LP50
+        do L=1,LP50
           if(SVLHXL(L).eq.LHE) then
             aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
 #ifdef mjo_subdd
@@ -1254,8 +1254,8 @@ SUBROUTINE CONDSE
 #endif
           endif
           WM1=WM1+WMX(L)*AIRM(L)
-          IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
-        END DO
+          if (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
+        end do
         AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
         AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 #ifdef TRACERS_AMP
@@ -1355,12 +1355,12 @@ SUBROUTINE CONDSE
 
         !**** Peak static stability diagnostic
         SSTAB=-1.d30
-        DO L=1,DCL
+        do L=1,DCL
           !red    IF(SSTAB.lt.(TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L)))
           !red *     SSTAB =  (TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L))
-          IF(SSTAB.lt.(TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))) &
+          if(SSTAB.lt.(TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))) &
                SSTAB =  (TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))
-        END DO
+        end do
         AIJ(I,J,ij_sstabx) = AIJ(I,J,ij_sstabx) + SSTAB
 
         !**** WRITE TO GLOBAL ARRAYS
@@ -1421,7 +1421,7 @@ SUBROUTINE CONDSE
         call running_average(prcp*sday*byDTsrc,I,J,1.d0,n__prec)
 #endif
 
-        DO L=1,LM
+        do L=1,LM
           call inc_ajl(i,j,l,JL_SSHR,SSHR(L))
           !*** Begin Accumulate 3D heating by large scale condensation --
           if(lh_diags.eq.1) then
@@ -1451,29 +1451,29 @@ SUBROUTINE CONDSE
           WMIL(I,L)=WMX(L)
 
           !**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
-          IF(J.EQ.1 .AND. HAVE_SOUTH_POLE)  THEN
-            DO K=1,IM ! KMAX
+          if(J.eq.1 .and. HAVE_SOUTH_POLE)  then
+            do K=1,IM ! KMAX
               UKMSP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -UKMSP(K,L)
               VKMSP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -VKMSP(K,L)
-            END DO
-          ELSE IF(J.EQ.JM .AND. HAVE_NORTH_POLE)  THEN
-            DO K=1,IM ! KMAX
+            end do
+          else if(J.eq.JM .and. HAVE_NORTH_POLE)  then
+            do K=1,IM ! KMAX
               UKMNP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -UKMNP(K,L)
               VKMNP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -VKMNP(K,L)
-            END DO
-          ELSE
-            DO K=1,KMAX
+            end do
+          else
+            do K=1,KMAX
               UKM(K,L,I,J)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -UKM(K,L,I,J)
               VKM(K,L,I,J)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L) &
                    -VKM(K,L,I,J)
-            END DO
-          END IF
-        ENDDO
+            end do
+          end if
+        enddo
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
           do L=1,LM
@@ -1489,10 +1489,10 @@ SUBROUTINE CONDSE
         !QCON*     ,prcp
 
 #ifdef CLD_AER_CDNC
-        DO L=1,LM
+        do L=1,LM
           CLDWT = CLDSSL(L)!+teeny
           CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))
-          IF(SVLHXL(L).EQ.LHE) THEN
+          if(SVLHXL(L).eq.LHE) then
             AIJL(I,J,L,IJL_CFWS)= AIJL(I,J,L,IJL_CFWS)+CLDWT
             AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)*CLDWT
             AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)*CLDWT
@@ -1501,7 +1501,7 @@ SUBROUTINE CONDSE
             AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)*CLDWTDZ
-          ELSEIF(SVLHXL(L).EQ.LHS) THEN
+          elseif(SVLHXL(L).eq.LHS) then
             AIJL(I,J,L,IJL_CFIS)= AIJL(I,J,L,IJL_CFIS)+CLDWT
             AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)*CLDWT
             AIJL(I,J,L,IJL_CDIS)= AIJL(I,J,L,IJL_CDIS)+ACDNIS(L)*CLDWT
@@ -1510,16 +1510,16 @@ SUBROUTINE CONDSE
             AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)*CLDWTDZ
-          ENDIF
-          IF (NLSW.ge.1) then
+          endif
+          if (NLSW.ge.1) then
             call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
             !     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
             !    * ,ACDNWS(L),NLSW,itime,l
-          ENDIF
-          IF(NLSI.ge.1) then
+          endif
+          if(NLSI.ge.1) then
             call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L)*AIRM(L))
-          ENDIF
-        ENDDO
+          endif
+        enddo
 
 #endif
         !QCON q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
@@ -1590,67 +1590,67 @@ SUBROUTINE CONDSE
             !     ..........
             !     accumulates special wet depo diagnostics
             !     ..........
-            IF (diag_wetdep == 1) THEN
+            if (diag_wetdep == 1) then
 
-              IF(jls_trdpmc(1,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(1,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(1,n),trcond_mc(:,nx))
-              IF(jls_trdpmc(2,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(2,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(2,n),trdvap_mc(:,nx))
-              IF(jls_trdpmc(3,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(3,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(3,n),trflcw_mc(:,nx))
-              IF(jls_trdpmc(4,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(4,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(4,n),trprcp_mc(:,nx))
-              IF(jls_trdpmc(5,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(5,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(5,n),trnvap_mc(:,nx))
-              IF(jls_trdpmc(6,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(6,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(6,n),trwash_mc(:,nx))
 
-              IF (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n)) &
-                   =taijs(i,j,ijts_trdpmc(1,n))+SUM(trcond_mc(1:lmcmax,nx))
-              IF (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n)) &
-                   =taijs(i,j,ijts_trdpmc(2,n))+SUM(trdvap_mc(1:lmcmax,nx))
-              IF (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n)) &
-                   =taijs(i,j,ijts_trdpmc(3,n))+SUM(trflcw_mc(1:lmcmax,nx))
-              IF (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n)) &
-                   =taijs(i,j,ijts_trdpmc(4,n))+SUM(trprcp_mc(1:lmcmax,nx))
-              IF (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n)) &
-                   =taijs(i,j,ijts_trdpmc(5,n))+SUM(trnvap_mc(1:lmcmax,nx))
-              IF (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n)) &
-                   =taijs(i,j,ijts_trdpmc(6,n))+SUM(trwash_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n)) &
+                   =taijs(i,j,ijts_trdpmc(1,n))+sum(trcond_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n)) &
+                   =taijs(i,j,ijts_trdpmc(2,n))+sum(trdvap_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n)) &
+                   =taijs(i,j,ijts_trdpmc(3,n))+sum(trflcw_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n)) &
+                   =taijs(i,j,ijts_trdpmc(4,n))+sum(trprcp_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n)) &
+                   =taijs(i,j,ijts_trdpmc(5,n))+sum(trnvap_mc(1:lmcmax,nx))
+              if (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n)) &
+                   =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))
 
-              IF(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(1,n),trwash_ls(:,nx))
-              IF(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(2,n),trprcp_ls(:,nx))
-              IF(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(3,n),trclwc_ls(:,nx))
-              IF(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(4,n),trevap_ls(:,nx))
-              IF(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(5,n),trclwe_ls(:,nx))
-              IF(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
                    jls_trdpls(6,n),trcond_ls(:,nx))
 
-              IF (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n)) &
-                   =taijs(i,j,ijts_trdpls(1,n))+SUM(trwash_ls(1:lp50,nx))
-              IF (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n)) &
-                   =taijs(i,j,ijts_trdpls(2,n))+SUM(trprcp_ls(1:lp50,nx))
-              IF (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n)) &
-                   =taijs(i,j,ijts_trdpls(3,n))+SUM(trclwc_ls(1:lp50,nx))
-              IF (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n)) &
-                   =taijs(i,j,ijts_trdpls(4,n))+SUM(trevap_ls(1:lp50,nx))
-              IF (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n)) &
-                   =taijs(i,j,ijts_trdpls(5,n))+SUM(trclwe_ls(1:lp50,nx))
-              IF (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n)) &
-                   =taijs(i,j,ijts_trdpls(6,n))+SUM(trcond_ls(1:lp50,nx))
-            END IF
+              if (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n)) &
+                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:lp50,nx))
+              if (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n)) &
+                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:lp50,nx))
+              if (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n)) &
+                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:lp50,nx))
+              if (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n)) &
+                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:lp50,nx))
+              if (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n)) &
+                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:lp50,nx))
+              if (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n)) &
+                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:lp50,nx))
+            end if
 #endif
 #ifdef TRACERS_DUST
-            IF (adiurn_dust == 1) THEN
-              DO kr=1,Ndiupt
-                IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
-                  SELECT CASE (trname(n))
-                  CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+            if (adiurn_dust == 1) then
+              do kr=1,Ndiupt
+                if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
+                  select case (trname(n))
+                  case ('Clay','Silt1','Silt2','Silt3','Silt4')
                     tmp(idd_wet)=+trprec(n,i,j)*byaxyp(i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
@@ -1658,10 +1658,10 @@ SUBROUTINE CONDSE
                     HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+ &
                          TMP(IDXD(:))
 #endif
-                  END SELECT
-                END IF
-              END DO
-            END IF
+                  end select
+                end if
+              end do
+            end if
 #endif
           end if
 #endif
@@ -1686,20 +1686,20 @@ SUBROUTINE CONDSE
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
 
-        DO n=1,Ntm_dust
+        do n=1,Ntm_dust
           n1=n_fidx+n-1
-          DO l=1,Lm
+          do l=1,Lm
             tm_dust(l,n)=trm_lni(l,n1,i)
             tmom_dust(:,l,n)=trmom_lni(:,l,n1,i)
-          END DO
-        END DO
+          end do
+        end do
 
-        CALL dust_wet(i,j)
+        call dust_wet(i,j)
 
-        DO n=1,Ntm_dust
+        do n=1,Ntm_dust
           n1=n_fidx+n-1
           trprec_dust(n,i,j)=0.D0
-          DO l=1,Lm
+          do l=1,Lm
             if (itcon_wt(n).gt.0) call inc_diagtcb(i,j, &
                  tm_dust(l,n)-trm_lni(l,n1,i),itcon_wt(n),n)
             trm_lni(l,n1,i)=tm_dust(l,n)
@@ -1708,18 +1708,18 @@ SUBROUTINE CONDSE
             call inc_tajls(i,j,l,jls_wet(n1),trprc_dust(l,n))
             taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1)) &
                  +trprc_dust(l,n)
-          END DO
-        END DO
+          end do
+        end do
 
 #endif
 
 #ifdef TRACERS_DUST
-        IF (adiurn_dust == 1) THEN
-          DO n=1,Ntm_dust
-            DO kr=1,Ndiupt
-              IF(i == ijdd(1,kr) .AND. j == ijdd(2,kr)) THEN
-                SELECT CASE (trname(n))
-                CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
+        if (adiurn_dust == 1) then
+          do n=1,Ntm_dust
+            do kr=1,Ndiupt
+              if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
+                select case (trname(n))
+                case ('Clay','Silt1','Silt2','Silt3','Silt4')
                   tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
                   ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                        TMP(IDXD(:))
@@ -1727,27 +1727,27 @@ SUBROUTINE CONDSE
                   HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+ &
                        TMP(IDXD(:))
 #endif
-                END SELECT
-              END IF
-            END DO
-          END DO
-        END IF
+                end select
+              end if
+            end do
+          end do
+        end if
 #endif
 #endif
 
-      END DO
+      end do
       !**** END OF MAIN LOOP FOR INDEX I
 
       !****
       !red*           Reduced Arrays 3
       !****
-      DO L=1,LM
-        DO I=I_0thread,I_1thread
+      do L=1,LM
+        do I=I_0thread,I_1thread
           WM(I,J,L) = WMIL(I,L)
           T3MOM(:,I,J,L) = TMOMIL(:,I,L)
           Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
-        END DO
-      END DO
+        end do
+      end do
 #ifdef TRACERS_ON
       do n=1,ntm
         do l=1,lm
@@ -1763,34 +1763,34 @@ SUBROUTINE CONDSE
 #endif
       !red*       end Reduced Arrays 3
 
-    END DO ! loop over threads
+    end do ! loop over threads
     !$omp  END PARALLEL DO
 
 
     ! Burn random numbers for later longitudes here.
     ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
     if (isccp_diags.eq.1) then
-      CALL BURN_RANDOM(nij_after_i1(I_1)*NCOL*(LM+1))
+      call BURN_RANDOM(nij_after_i1(I_1)*NCOL*(LM+1))
     end if
 
-  END DO
+  end do
   !**** END OF MAIN LOOP FOR INDEX J
 
   !****
   !
   !     WAS THERE AN ERROR IN SUBSID ??
   !
-  IF(ICKERR.NE.0)  THEN
-    WRITE(6,*)  'SUBSID ERROR: ABS(C) > 1'
+  if(ICKERR.ne.0)  then
+    write(6,*)  'SUBSID ERROR: ABS(C) > 1'
     call stop_model('SUBSID ERROR: ABS(C) > 1',255)
-  END IF
+  end if
   !
   !     WAS THERE AN ERROR IN ISCCP CLOUD TYPING ??
   !
-  IF(JCKERR.NE.0)  THEN
-    WRITE(6,*)  'ISCCP CLOUD TYPING ERROR'
+  if(JCKERR.ne.0)  then
+    write(6,*)  'ISCCP CLOUD TYPING ERROR'
     call stop_model('ISCCP CLOUD TYPING ERROR',255)
-  END IF
+  end if
 
 #ifdef SKIP_TRACER_DIAGS
 #ifdef TRACERS_WATER
@@ -1807,64 +1807,64 @@ SUBROUTINE CONDSE
 #else
   I=I_TARG
   J=J_TARG
-  DO L=1,LM
-    DO K=1,2 ! KMAXJ(J)
+  do L=1,LM
+    do K=1,2 ! KMAXJ(J)
       U(I,J,L)=U(I,J,L)+UKM(K,L,I,J)
       V(I,J,L)=V(I,J,L)+VKM(K,L,I,J)
-    END DO
-  END DO
+    end do
+  end do
 #endif
 
   !**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
   UASV(:,I_0:I_1,J_0S:J_1S) = UA(:,I_0:I_1,J_0S:J_1S)
   call recalc_agrid_uv ! add option for tendency computation?
-  DO J=J_0S,J_1S
-    DO I=I_0,I_1
-      DO L=1,LM
+  do J=J_0S,J_1S
+    do I=I_0,I_1
+      do L=1,LM
         call inc_ajl(i,j,l,JL_DAMMC, &
              (UA(L,I,J)-UASV(L,I,J))*PDSIG(L,I,J))
-      END DO
-    END DO
-  END DO
+      end do
+    end do
+  end do
 
-  if (isccp_diags.eq.1) CALL RINIT(seed) ! reset random number sequ.
+  if (isccp_diags.eq.1) call RINIT(seed) ! reset random number sequ.
 
-415 FORMAT(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
-420 FORMAT(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
+415 format(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
+420 format(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
 
   call stopTimer('CONDSE()')
-  RETURN
-END SUBROUTINE CONDSE
+  return
+end subroutine CONDSE
 
-SUBROUTINE init_CLD
+subroutine init_CLD
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
-  USE CONSTANT, only : grav,by3,radian
-  USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
-  USE DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
-  USE GEOM, only : lat2d, kmaxj
+  use CONSTANT, only : grav,by3,radian
+  use MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
+  use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
+  use GEOM, only : lat2d, kmaxj
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
-  USE LIGHTNING, only : tune_lt_land, tune_lt_sea
+  use LIGHTNING, only : tune_lt_land, tune_lt_sea
 #endif
-  USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice &
+  use CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice &
        ,U00a,U00b       & ! tuning knobs to replace U00ice and U00wtrX
        ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau &
        ,funio_denominator,autoconv_multiplier,radius_multiplier &
        ,entrainment_cont1,entrainment_cont2,wmui_multiplier &
        ,RA,UM,VM,UM1,VM1,U_0,V_0
-  USE CLOUDS_COM, only : llow,lmid,lhi &
+  use CLOUDS_COM, only : llow,lmid,lhi &
        ,isccp_reg2d,UKM,VKM
-  USE DIAG_COM, only : nisccp,isccp_late &
+  use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
-  USE Dictionary_Mod
-  USE FILEMANAGER, only : openunit, closeunit
+  use Dictionary_Mod
+  use FILEMANAGER, only : openunit, closeunit
 
-  IMPLICIT NONE
-  REAL*8 PLE
-  INTEGER L,I,J,n,iu_ISCCP
-  INTEGER :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
-  CHARACTER TITLE*80
+  implicit none
+  real*8 PLE
+  integer L,I,J,n,iu_ISCCP
+  integer :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
+  character TITLE*80
 
   I_0 =GRID%I_STRT
   I_1 =GRID%I_STOP
@@ -1911,7 +1911,7 @@ SUBROUTINE init_CLD
   call sync_param( "tune_lt_sea" , tune_lt_sea )
 #endif
 
-  IF(LMCM.LT.0) LMCM = LS1-1
+  if(LMCM.lt.0) LMCM = LS1-1
   call set_param( "LMCM", LMCM, 'o' )
 
   BYDTsrc=1./DTsrc
@@ -1921,26 +1921,26 @@ SUBROUTINE init_CLD
 
   !**** SEARCH FOR THE 50 MB LEVEL
   LP50=LM
-  DO L=LM-1,1,-1
+  do L=LM-1,1,-1
     PLE=.25*(PEDNL00(L)+2.*PEDNL00(L+1)+PEDNL00(L+2))
-    IF (PLE.LT.50.) LP50=L
-  END DO
+    if (PLE.lt.50.) LP50=L
+  end do
   if (AM_I_ROOT())  write(6,*) &
        "Maximum level for LSCOND calculations (50mb): ",LP50
 
   !**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS (MATCHES ISCCP DEFNs)
-  DO L=1,LM
+  do L=1,LM
     LLOW=L
-    IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.680.) EXIT
-  END DO
-  DO L=LLOW+1,LM
+    if (.5*(PLbot(L+1)+PLbot(L+2)).lt.680.) exit
+  end do
+  do L=LLOW+1,LM
     LMID=L
-    IF (.5*(PLbot(L+1)+PLbot(L+2)).LT.440.) EXIT
-  END DO
+    if (.5*(PLbot(L+1)+PLbot(L+2)).lt.440.) exit
+  end do
   LHI=LM
-  IF (LMID+1.GT.LHI) LHI=LMID+1
-  if (AM_I_ROOT()) WRITE (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
-47 FORMAT (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN', &
+  if (LMID+1.gt.LHI) LHI=LMID+1
+  if (AM_I_ROOT()) write (6,47) LLOW,LLOW+1,LMID,LMID+1,LHI
+47 format (' LOW CLOUDS IN LAYERS 1-',I2,'   MID LEVEL CLOUDS IN', &
        ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
   !**** Define regions for ISCCP diagnostics
@@ -1967,7 +1967,7 @@ SUBROUTINE init_CLD
   read(iu_ISCCP) title,tautab,invtau
   if (AM_I_ROOT())  write(6,*) "Read ISCCP:",trim(title)
   call closeunit(iu_ISCCP)
-END SUBROUTINE init_CLD
+end subroutine init_CLD
 
 subroutine qmom_topo_adjustments
   !
@@ -1998,11 +1998,11 @@ subroutine qmom_topo_adjustments
   integer :: n
   real*8 :: ratio
 #endif
-  INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
-  LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+  integer :: J_0,J_1,J_0S,J_1S,I_0,I_1
+  logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
   !**** define local grid
-  CALL GET(grid, J_STRT=J_0,         J_STOP=J_1, &
+  call GET(grid, J_STRT=J_0,         J_STOP=J_1, &
        J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S, &
        HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
        HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
