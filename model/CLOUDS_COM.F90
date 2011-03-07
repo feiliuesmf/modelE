@@ -14,7 +14,7 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SVLHX,SVLAT
 !@var RHSAV previous relative humidity
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: RHSAV
-C**** some arrays here for compatility with new clouds
+!**** some arrays here for compatility with new clouds
 !@var CLDSAV, CLDSAV1 previous cloud cover area (percent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CLDSAV,CLDSAV1
 !@var ULS,VLS,UMC,VMC velocity work arrays
@@ -26,8 +26,8 @@ C**** some arrays here for compatility with new clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSS
 #ifdef mjo_subdd
 !@var Source/sink from total, shallow,deep convection and large-scale condensation
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TMCDRY,SMCDRY,DMCDRY,
-     *                                         LSCDRY
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TMCDRY,SMCDRY,DMCDRY, &
+                                               LSCDRY
 #endif
 #ifdef etc_subdd
 !@var liquid water path
@@ -53,7 +53,7 @@ C**** some arrays here for compatility with new clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CL3D,CI3D,CD3D,CTEM
 #endif
 
-C**** variables saved for radiation calculations
+!**** variables saved for radiation calculations
 !@var TAUSS optical depth from super-saturated clouds
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAUSS
 !@var TAUMC optical depth from moist-convective clouds
@@ -65,7 +65,7 @@ C**** variables saved for radiation calculations
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: CSIZMC,CSIZSS
 
-C**** variables saved for surface wind spectrum calculations
+!**** variables saved for surface wind spectrum calculations
 !@var DDM1 downdraft mass flux / rho at lowest level (m/s)
 !@var DDML lowest level of downdraft 
 !@var DDMS downdraft mass flux at level 1 (kg/s/m**2)
@@ -74,7 +74,7 @@ C**** variables saved for surface wind spectrum calculations
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DDM1,DDMS,TDN1,QDN1
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: DDML
 
-C**** variables used (and saved) for gravity wave drag calculations
+!**** variables used (and saved) for gravity wave drag calculations
 !@var AIRX, AIRMX*AREA convective mass flux (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIRX
 !@var LMC max layer of mc convective mass flux.
@@ -95,7 +95,7 @@ C**** variables used (and saved) for gravity wave drag calculations
 #endif
 #endif
 
-C**** ISCCP diagnostics related parameter
+!**** ISCCP diagnostics related parameter
 #ifdef SCM
       INTEGER,PARAMETER :: ncol = 100    !@var ncol number of subcolumns
 #else
@@ -116,32 +116,33 @@ C**** ISCCP diagnostics related parameter
       USE AERO_CONFIG, ONLY: NMODES
 #endif
 #endif
-      USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
-     *                       CLDSAV1,FSS,
+      USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV, &
+                             CLDSAV1,FSS, &
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-     *                       CL3D,CI3D,CD3D,CTEM,
+                             CL3D,CI3D,CD3D,CTEM, &
 #endif
 #ifdef CLD_AER_CDNC
-     *                       OLDNL,OLDNI,
-     *                       CDN3D,CRE3D,CLWP,
+                             OLDNL,OLDNI, &
+                             CDN3D,CRE3D,CLWP, &
 #endif
-     *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
-     *                       ULS,VLS,UMC,VMC,TLS,QLS,
-     *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
+                             TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
+                             ULS,VLS,UMC,VMC,TLS,QLS, &
+                             TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML &
 #if (defined mjo_subdd) || (defined etc_subdd)
-     *                       ,CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D
+                             ,CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D &
 #endif
 #ifdef etc_subdd
-     *                       ,LWP2D,IWP2D
+                             ,LWP2D,IWP2D &
 #endif
 #ifdef mjo_subdd
-     *                       ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
+                             ,TMCDRY,SMCDRY,DMCDRY,LSCDRY &
 #endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
-     *                       ,NACTC,NAERC
+                             ,NACTC,NAERC
 #endif
 #endif
+;
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -153,62 +154,62 @@ C**** ISCCP diagnostics related parameter
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE(     TTOLD(LM,I_0H:I_1H,J_0H:J_1H),
-     *              QTOLD(LM,I_0H:I_1H,J_0H:J_1H),
-     *              SVLHX(LM,I_0H:I_1H,J_0H:J_1H),
-     *              SVLAT(LM,I_0H:I_1H,J_0H:J_1H),
-     *              RHSAV(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CLDSAV(LM,I_0H:I_1H,J_0H:J_1H),
-     *            CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H),
-     *                FSS(LM,I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE(     TTOLD(LM,I_0H:I_1H,J_0H:J_1H), &
+                    QTOLD(LM,I_0H:I_1H,J_0H:J_1H), &
+                    SVLHX(LM,I_0H:I_1H,J_0H:J_1H), &
+                    SVLAT(LM,I_0H:I_1H,J_0H:J_1H), &
+                    RHSAV(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CLDSAV(LM,I_0H:I_1H,J_0H:J_1H), &
+                  CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H), &
+                      FSS(LM,I_0H:I_1H,J_0H:J_1H), &
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-     *             CTEM(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CD3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CL3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CI3D(LM,I_0H:I_1H,J_0H:J_1H),
+                   CTEM(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CD3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CL3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CI3D(LM,I_0H:I_1H,J_0H:J_1H), &
 #endif
 #ifdef CLD_AER_CDNC
-     *             OLDNL(LM,I_0H:I_1H,J_0H:J_1H),
-     *             OLDNI(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CDN3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CRE3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CLWP(I_0H:I_1H,J_0H:J_1H),
+                   OLDNL(LM,I_0H:I_1H,J_0H:J_1H), &
+                   OLDNI(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CDN3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CRE3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CLWP(I_0H:I_1H,J_0H:J_1H), &
 #endif
-     *              TAUSS(LM,I_0H:I_1H,J_0H:J_1H),
-     *              TAUMC(LM,I_0H:I_1H,J_0H:J_1H),
-     *              CLDSS(LM,I_0H:I_1H,J_0H:J_1H),
-     *              CLDMC(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CSIZMC(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CSIZSS(LM,I_0H:I_1H,J_0H:J_1H),
+                    TAUSS(LM,I_0H:I_1H,J_0H:J_1H), &
+                    TAUMC(LM,I_0H:I_1H,J_0H:J_1H), &
+                    CLDSS(LM,I_0H:I_1H,J_0H:J_1H), &
+                    CLDMC(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CSIZMC(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CSIZSS(LM,I_0H:I_1H,J_0H:J_1H), &
 #ifdef mjo_subdd
-     *             TMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
-     *             SMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
-     *             DMCDRY(LM,I_0H:I_1H,J_0H:J_1H),
-     *             LSCDRY(LM,I_0H:I_1H,J_0H:J_1H),
+                   TMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
+                   SMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
+                   DMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
+                   LSCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
 #endif
 #ifdef etc_subdd
-     *             LWP2D(I_0H:I_1H,J_0H:J_1H),
-     *             IWP2D(I_0H:I_1H,J_0H:J_1H),
+                   LWP2D(I_0H:I_1H,J_0H:J_1H), &
+                   IWP2D(I_0H:I_1H,J_0H:J_1H), &
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
-     *             CLWC3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             CIWC3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             TLH3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             SLH3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             DLH3D(LM,I_0H:I_1H,J_0H:J_1H),
-     *             LLH3D(LM,I_0H:I_1H,J_0H:J_1H),
+                   CLWC3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   CIWC3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   TLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   SLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   DLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
+                   LLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
 #endif
-     *         STAT=IER)
+               STAT=IER)
 
-      ALLOCATE(     ULS(I_0H:I_1H,J_0H:J_1H,LM),
-     *              VLS(I_0H:I_1H,J_0H:J_1H,LM),
-     *              UMC(I_0H:I_1H,J_0H:J_1H,LM),
-     *              VMC(I_0H:I_1H,J_0H:J_1H,LM),
-     *              TLS(I_0H:I_1H,J_0H:J_1H,LM),
-     *              QLS(I_0H:I_1H,J_0H:J_1H,LM),
-     *              TMC(I_0H:I_1H,J_0H:J_1H,LM),
-     *              QMC(I_0H:I_1H,J_0H:J_1H,LM),
-     *         STAT=IER)
+      ALLOCATE(     ULS(I_0H:I_1H,J_0H:J_1H,LM), &
+                    VLS(I_0H:I_1H,J_0H:J_1H,LM), &
+                    UMC(I_0H:I_1H,J_0H:J_1H,LM), &
+                    VMC(I_0H:I_1H,J_0H:J_1H,LM), &
+                    TLS(I_0H:I_1H,J_0H:J_1H,LM), &
+                    QLS(I_0H:I_1H,J_0H:J_1H,LM), &
+                    TMC(I_0H:I_1H,J_0H:J_1H,LM), &
+                    QMC(I_0H:I_1H,J_0H:J_1H,LM), &
+               STAT=IER)
 
 !@var FSS initialized to 1.
       FSS = 1.
@@ -219,18 +220,18 @@ C**** ISCCP diagnostics related parameter
       OLDNI = 1.d-4
 #endif
 
-      ALLOCATE(     DDM1(I_0H:I_1H,J_0H:J_1H),
-     *              AIRX(I_0H:I_1H,J_0H:J_1H),
-     *              DDMS(I_0H:I_1H,J_0H:J_1H),
-     *              TDN1(I_0H:I_1H,J_0H:J_1H),
-     *              QDN1(I_0H:I_1H,J_0H:J_1H),
-     *              DDML(I_0H:I_1H,J_0H:J_1H),
-     *         STAT=IER)
+      ALLOCATE(     DDM1(I_0H:I_1H,J_0H:J_1H), &
+                    AIRX(I_0H:I_1H,J_0H:J_1H), &
+                    DDMS(I_0H:I_1H,J_0H:J_1H), &
+                    TDN1(I_0H:I_1H,J_0H:J_1H), &
+                    QDN1(I_0H:I_1H,J_0H:J_1H), &
+                    DDML(I_0H:I_1H,J_0H:J_1H), &
+               STAT=IER)
 
-      ALLOCATE(     LMC(2,I_0H:I_1H,J_0H:J_1H),
-     *         STAT=IER)
+      ALLOCATE(     LMC(2,I_0H:I_1H,J_0H:J_1H), &
+               STAT=IER)
 
-C**** Initialise some output used in dynamics
+!**** Initialise some output used in dynamics
       LMC(:,:,J_0H:J_1H)=0
       AIRX(:,J_0H:J_1H)=0.
 
@@ -260,16 +261,16 @@ C**** Initialise some output used in dynamics
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "CLD01"
-      REAL*8, ALLOCATABLE,  DIMENSION(:,:,:) :: TTOLD_glob,QTOLD_glob
-     &                              ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+      REAL*8, ALLOCATABLE,  DIMENSION(:,:,:) :: TTOLD_glob,QTOLD_glob &
+                                    ,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
 #ifdef CLD_AER_CDNC
-     &     ,OLDNL_glob,OLDNI_glob
+           ,OLDNL_glob,OLDNI_glob
 #endif
-
+;
       call allocate_me
 
-      write(MODULE_HEADER(lhead+1:80),'(a)')
-     &'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
+      write(MODULE_HEADER(lhead+1:80),'(a)') &
+      'R8 dim(im,jm,lm):potT,Hum,LatHeat,RHum,CldCv,NO,NL,SM (all old)'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)           ! output to standard restart file
@@ -283,26 +284,28 @@ C**** Initialise some output used in dynamics
         CALL PACK_COLUMN(grid, OLDNI, OLDNI_glob)
 #endif
         IF (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,
-     *       TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+          WRITE (kunit,err=10) MODULE_HEADER, &
+             TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
 #ifdef CLD_AER_CDNC
-     *       ,OLDNL_glob,OLDNI_glob
+             ,OLDNL_glob,OLDNI_glob
 #endif
+;
         END IF
 
       CASE (IOREAD:)            ! input from restart file
         if (AM_I_ROOT()) THEN
-           READ (kunit,err=10) HEADER,
-     *          TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+           READ (kunit,err=10) HEADER, &
+                TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
 #ifdef CLD_AER_CDNC
-     *          ,OLDNL_glob,OLDNI_glob
+                ,OLDNL_glob,OLDNI_glob
 #endif
+;
           IF (HEADER(1:15).NE.MODULE_HEADER(1:15)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
           END IF
        END IF
-C***ESMF: Unpack global arrays into distributed local arrays.
+!***ESMF: Unpack global arrays into distributed local arrays.
         CALL UNPACK_COLUMN(grid, TTOLD_glob , TTOLD)
         CALL UNPACK_COLUMN(grid, QTOLD_glob , QTOLD)
         CALL UNPACK_COLUMN(grid, SVLHX_glob , SVLHX)
@@ -332,28 +335,28 @@ C***ESMF: Unpack global arrays into distributed local arrays.
          jmg = 1
          lmg = 1
       end if         
-      ALLOCATE( TTOLD_glob(lmg,img,jmg),
-     &     QTOLD_glob(lmg,img,jmg),
-     &     SVLHX_glob(lmg,img,jmg),
-     &     RHSAV_glob(lmg,img,jmg),
-     &     CLDSAV_glob(lmg,img,jmg)  
+      ALLOCATE( TTOLD_glob(lmg,img,jmg), &
+           QTOLD_glob(lmg,img,jmg), &
+           SVLHX_glob(lmg,img,jmg), &
+           RHSAV_glob(lmg,img,jmg), &
+           CLDSAV_glob(lmg,img,jmg) &
 #ifdef CLD_AER_CDNC
-     &     ,OLDNL_glob(lmg,img,jmg)  
-     &     ,OLDNI_glob(lmg,img,jmg)  
+           ,OLDNL_glob(lmg,img,jmg) &
+           ,OLDNI_glob(lmg,img,jmg) &
 #endif
-     & )
+       )
       end subroutine allocate_me
       subroutine deallocate_me
-      DEALLOCATE( TTOLD_glob,
-     &     QTOLD_glob,
-     &     SVLHX_glob,
-     &     RHSAV_glob,
-     &     CLDSAV_glob 
+      DEALLOCATE( TTOLD_glob, &
+           QTOLD_glob, &
+           SVLHX_glob, &
+           RHSAV_glob, &
+           CLDSAV_glob &
 #ifdef CLD_AER_CDNC
-     &     ,OLDNL_glob 
-     &     ,OLDNI_glob 
+           ,OLDNL_glob &
+           ,OLDNI_glob &
 #endif
-     & )
+       )
       end subroutine deallocate_me
       END SUBROUTINE io_clouds
 
