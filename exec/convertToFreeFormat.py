@@ -74,12 +74,14 @@ inFileName = sys.argv[1]
 outFileName = inFileName.replace('.f','.F90')
 
 inFile = open(inFileName,"r")
-outFile = open(outFileName,"w")
+inLines = inFile.readlines()
+outLines = convertToFreeFormat(inLines)
+inFile.close()
 
-for line in convertToFreeFormat(inFile.readlines()):
+outFile = open(outFileName,"w")
+for line in outLines:
     outFile.write(line)
 
-inFile.close()
 outFile.close()
 
 
