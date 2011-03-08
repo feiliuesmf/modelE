@@ -162,7 +162,7 @@ module FV_CS_Mod
     logical :: z_tracer
 
     call ESMF_GridCompInitialize ( fv%gc, importState=fv%import, &
-         exportState=fv%export, clock=clock, &
+         & exportState=fv%export, clock=clock,                   &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
 
@@ -170,16 +170,18 @@ module FV_CS_Mod
 ! Eventually, fix the FV code that is used when z_tracer=.true. 
     z_tracer = .false.
 
-    call  FV_RESET_CONSTANTS( FV_PI=pi, &
-                            & FV_OMEGA=omega ,&
-                            & FV_CP=rgas/kapa ,&
-                            & FV_RADIUS=radius ,&
-                            & FV_RGAS=rgas ,&
-                            & FV_RVAP=rvap ,&
-                            & FV_KAPPA=kapa ,&
-                            & FV_GRAV=grav ,&
-                            & FV_HLV=lhe ,&
-                            & FV_ZVIR=rvap/rgas-1  )
+! The FV dycore default compilation if real(4) and is controlled by the
+! SINGLE_FV flag in FVdycoreCubed_GridComp/fvdycore/GNUmakefile.
+    call  FV_RESET_CONSTANTS( FV_PI=REAL(pi), &
+                            & FV_OMEGA=REAL(omega) ,&
+                            & FV_CP=REAL(rgas/kapa) ,&
+                            & FV_RADIUS=REAL(radius) ,&
+                            & FV_RGAS=REAL(rgas) ,&
+                            & FV_RVAP=REAL(rvap) ,&
+                            & FV_KAPPA=REAL(kapa) ,&
+                            & FV_GRAV=REAL(grav) ,&
+                            & FV_HLV=REAL(lhe) ,&
+                            & FV_ZVIR=REAL(rvap/rgas-1)  )
 
     call allocateFvExport3D ( fv%export,'U_DGRID' )
     call allocateFvExport3D ( fv%export,'V_DGRID' )
