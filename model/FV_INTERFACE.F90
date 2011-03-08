@@ -121,7 +121,7 @@ contains
     do istep = 1, NIdyn_fv
 
        call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
-            fv_wrapper%fv%export, clock, addIncsPhase, rc=rc )
+            fv_wrapper%fv%export, clock, phase=addIncsPhase, rc=rc )
 
        call clearTendencies(fv_wrapper%fv)
        call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
