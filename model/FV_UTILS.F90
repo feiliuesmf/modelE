@@ -32,6 +32,7 @@ module FV_UTILS
   public :: SaveTendencies
   public :: clear_accumulated_mass_fluxes
   public :: writeFVCSstate
+  public :: StateWriteToFile
 
   Interface ReverseLevels
      Module Procedure reverse_3d_r8
@@ -480,12 +481,11 @@ contains
     character(len=*),  intent(IN   ) :: name
 
     real, pointer :: ptr(:,:,:)
-    integer       :: status
     logical       :: alloc
 
     alloc = .true.
-    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc, rc=status )
-    VERIFY_(status)
+    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc, rc=rc )
+    VERIFY_(rc)
 
   end subroutine allocateFvExport3D
 
@@ -500,7 +500,6 @@ contains
     use MAPL_mod, only: MAPL_MetaComp
     use MAPL_mod, only: MAPL_GetObjectFromGC
     use MAPL_mod, only: MAPL_Get
-    use MAPL_mod, only: MAPL_ESMFStateWriteToFile
     use MAPL_mod, only: MAPL_GetResource
     use domain_decomp_atm, only: AM_I_ROOT
 
@@ -520,15 +519,20 @@ contains
        call ESMF_GridCompFinalize( fv%gc, importState=fv%import, exportState=fv%export, &
                                    clock=clock, rc=rc)
     else
-       ! workaround for RecordPhase since modelE is not using MAPL interface for alarms
+       ! workaround for RecordPhase since modelE is not using MAPL interface 
+       ! for alarms
        call MAPL_GetObjectFromGC( fv%gc, internalSTate)
        call MAPL_Get(internalState, internal_ESMF_state=ESMFInternalState, rc=rc)
+       VERIFY_(rc)
        call MAPL_GetResource( internalState   , hdr,         &
                                default=0, &
                                LABEL="INTERNAL_HEADER:", &
                                RC=rc)
-       call MAPL_ESMFStateWriteToFile(ESMFInternalState, clock, FVCORE_INTERNAL_RESTART // suffix, &
-            & 'binary',internalState,hdr==1, rc=rc)
+       VERIFY_(rc)
+       call StateWriteToFile(ESMFInternalState, clock, &
+            & FVCORE_INTERNAL_RESTART // suffix,       &
+            & 'binary',internalState, hdr==1, rc=rc)
+       VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -554,9 +558,11 @@ contains
 
     if(isFinalize) then
        call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, rc=rc)
+       VERIFY_(rc)
     else
        call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, &
             &  phase=RecordPhase, rc=rc)
+       VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -794,6 +800,104 @@ contains
     Call MAPL_VarWrite(unit, grid%ESMF_GRID, pt4)
     Call Free_File(unit)
 
-end subroutine writeFVCSstate
+  end subroutine writeFVCSstate
+
+!-------------------------------------------------------------------------------
+  subroutine StateWriteToFile(STATE,CLOCK,FILENAME,FILETYPE,MPL,HDR,RC)
+!-------------------------------------------------------------------------------
+    use MAPL_mod, only: MAPL_MetaComp
+    Use MAPL_IOMod, only: GETFILE, Free_file, MAPL_VarWrite, Write_parallel
+    USE RESOLUTION, only: IM, JM, LM
+    type(ESMF_State),                 intent(INOUT) :: STATE
+    type(ESMF_Clock),                 intent(IN   ) :: CLOCK
+    character(len=*),                 intent(IN   ) :: FILENAME
+    character(LEN=*),                 intent(IN   ) :: FILETYPE
+    type(MAPL_MetaComp),              intent(INOUT) :: MPL
+    logical,                          intent(IN   ) :: HDR
+    integer, optional,                intent(  OUT) :: RC
+
+    character(len=ESMF_MAXSTR), parameter :: IAm="StateWriteToFile"
+
+    type (ESMF_StateItemType), pointer    :: ITEMTYPES(:)
+    character(len=ESMF_MAXSTR ), pointer  :: ITEMNAMES(:)
+    integer                               :: ITEMCOUNT
+    integer                               :: UNIT
+    integer                               :: I, J, K, L, N
+    integer                               :: YYYY, MM, DD, H, M, S
+    type(ESMF_Time)                       :: currentTime
+    integer                               :: HEADER(6)
+
+! Get information from state
+!---------------------------
+
+    call ESMF_StateGet(STATE,ITEMCOUNT=ITEMCOUNT,RC=rc)
+    VERIFY_(rc)
+
+    allocate(ITEMNAMES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+    allocate(ITEMTYPES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+
+    call ESMF_StateGet(STATE,ITEMNAMELIST=ITEMNAMES, &
+         & STATEITEMTYPELIST=ITEMTYPES,RC=rc)
+    VERIFY_(rc)
+
+! Open file
+!----------
+
+    if (filetype == 'binary' .or. filetype == 'BINARY') then
+       UNIT = GETFILE(FILENAME, form="unformatted", rc=rc)
+       VERIFY_(rc)
+    elseif(filetype=="formatted".or.filetype=="FORMATTED") then
+       UNIT = GETFILE(FILENAME, form="formatted", rc=rc)
+       VERIFY_(rc)
+    else
+       UNIT=0
+    end if
+
+! Write data
+!-----------
+
+    call ESMF_ClockGet (clock, currTime=currentTime, rc=rc)
+    VERIFY_(rc)
+    call ESMF_TimeGet(CurrentTime, &
+      &   YY=YYYY, MM=MM, DD=DD,   &
+      &   H=H, M=M, S=S, rc=rc)
+    VERIFY_(rc)
+
+    HEADER(1) = YYYY
+    HEADER(2) = MM
+    HEADER(3) = DD
+    HEADER(4) = H
+    HEADER(5) = M
+    HEADER(6) = S
+    
+    call Write_Parallel(HEADER, UNIT, RC=rc)
+    VERIFY_(rc)
+    
+    HEADER(1) = IM
+    HEADER(2) = JM
+    HEADER(3) = LM
+    HEADER(4) = 0
+    HEADER(5) = 0
+    
+    call Write_Parallel(HEADER(1:5), UNIT, RC=rc)
+    VERIFY_(rc)
+    
+    if(UNIT/=0) then
+       do J = 1, ITEMCOUNT
+          call MAPL_VarWrite(UNIT=UNIT, STATE=STATE, NAME=ITEMNAMES(J), rc=rc)
+          VERIFY_(rc)
+       end do
+       call FREE_FILE(UNIT)
+    else
+       rc = -1  ! not yet
+       VERIFY_(rc)
+    endif
+    
+    deallocate(ITEMNAMES) 
+    deallocate(ITEMTYPES)
+
+  end subroutine StateWriteToFile
 
 end module FV_UTILS
