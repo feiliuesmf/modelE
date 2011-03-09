@@ -205,10 +205,15 @@ c
       status = nf_inq_varid(fid,'ia_'//trim(dcat),varid)
       if(status.eq.nf_noerr) then ! this acc array has idacc-info
         call get_var_int(fid,'ia_'//trim(dcat),ia_acc)
-      else ! this acc array has a custom counter.
-c Put the counter value into idacc(1)
-        call get_var_int(fid,'ntime_'//trim(dcat),idacc(1))
+      else
         ia_acc(:) = 1
+        status = nf_inq_varid(fid,'ntime_'//trim(dcat),varid)
+        if(status.eq.nf_noerr) then
+          ! this acc array has a custom counter, store in idacc(1)
+          call get_var_int(fid,'ntime_'//trim(dcat),idacc(1))
+        else
+          idacc(1) = 1 ! not a traditional accumulation (e.g. min, max)
+        endif
       endif
 
 c

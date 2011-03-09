@@ -19,13 +19,15 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=64,KOIJL=32,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=64,KOIJL=32,KOL=6,KOLNST=8,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
+!@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
 !@var OLNST strait diagnostics
 !ny?  logical :: allocated_odiag_glob = .false.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: OIJ_loc   !ny? ,OIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: OIJmm
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_loc !ny? ,OIJL
       REAL*8, DIMENSION(:,:,:), allocatable      :: OIJ
       REAL*8, DIMENSION(:,:,:,:), allocatable :: OIJL
@@ -70,6 +72,16 @@
      .           ,ij_fca
 #endif
 #endif
+
+!@var IJ_xxx Names for OIJmm diagnostics
+      INTEGER IJ_HBLmax
+
+!@var [lname,sname,units,scale]_oijmm Longnames/Shortnames/Units/Scales for
+!@+    min/max OIJ diagnostics
+      CHARACTER(len=lname_strlen), DIMENSION(KOIJmm) :: LNAME_OIJmm
+      CHARACTER(len=sname_strlen), DIMENSION(KOIJmm) :: SNAME_OIJmm
+      CHARACTER(len=units_strlen), DIMENSION(KOIJmm) :: UNITS_OIJmm
+      REAL*8, DIMENSION(KOIJmm) :: SCALE_OIJmm
 
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
@@ -230,7 +242,7 @@ C****
 !@var CDL_OJL consolidated metadata for OJL output fields in CDL notation
 !@var CDL_OTJ consolidated metadata for OTJ output fields in CDL notation
       type(cdl_type) :: cdl_oij,cdl_oijl,cdl_olnst,cdl_ojl,cdl_otj
-
+     &     ,cdl_oijmm
 c declarations that facilitate switching between restart and acc
 c instances of arrays
       target :: oijl_loc,oijl_out
@@ -432,7 +444,7 @@ C****
 !@sum  def_rsf_ocdiag defines ocean diag array structure in restart+acc files
 !@auth M. Kelley
 !@ver  beta
-      use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr
+      use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr,oijmm
 #ifdef TRACERS_OCEAN
       use odiag, only : tlnst,toijl=>toijl_loc,toijl_out
 #endif
@@ -442,6 +454,8 @@ C****
       integer fid            !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
       call defvar(grid,fid,oij,'oij(dist_imo,dist_jmo,koij)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,oijmm,'oijmm(dist_imo,dist_jmo,koijmm)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,oijl,
      &     'oijl(dist_imo,dist_jmo,lmo,koijl)',r4_on_disk=r4_on_disk)
@@ -476,7 +490,7 @@ c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
       use odiag, only : ol,olnst,
-     &     oij=>oij_loc,oijl=>oijl_ioptr
+     &     oij=>oij_loc,oijmm,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
       use odiag, only : tlnst,toijl=>toijl_loc,toijl_out
 #endif
@@ -488,6 +502,7 @@ c    extended/rescaled instances of arrays when writing acc files
       select case (iaction)
       case (iowrite,iowrite_single)            ! output to restart or acc file
         call write_dist_data(grid,fid,'oij',oij)
+        call write_dist_data(grid,fid,'oijmm',oijmm)
         call write_dist_data(grid,fid,'oijl',oijl)
         call write_data(grid,fid,'ol',ol)
 c straits arrays
@@ -502,6 +517,7 @@ c straits arrays
 #endif
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'oij',oij)
+        call read_dist_data(grid,fid,'oijmm',oijmm)
         call read_dist_data(grid,fid,'oijl',oijl)
         call read_data(grid,fid,'ol',ol,bcast_all=.true.)
 c straits arrays
@@ -541,6 +557,14 @@ c straits arrays
       call defvar(grid,fid,sname_oij,'sname_oij(sname_strlen,koij)')
       call defvar_cdl(grid,fid,cdl_oij,
      &     'cdl_oij(cdl_strlen,kcdl_oij)')
+
+      call write_attr(grid,fid,'oijmm','reduction','max')
+      call write_attr(grid,fid,'oijmm','split_dim',3)
+      call defvar(grid,fid,scale_oijmm,'scale_oijmm(koijmm)')
+      call defvar(grid,fid,sname_oijmm,
+     &     'sname_oijmm(sname_strlen,koijmm)')
+      call defvar_cdl(grid,fid,cdl_oijmm,
+     &     'cdl_oijmm(cdl_strlen,kcdl_oijmm)')
 
       call write_attr(grid,fid,'oijl','reduction','sum')
       call write_attr(grid,fid,'oijl','split_dim',4)
@@ -621,6 +645,10 @@ c straits arrays
       call write_data(grid,fid,'scale_oij',scale_oij)
       call write_data(grid,fid,'sname_oij',sname_oij)
       call write_cdl(grid,fid,'cdl_oij',cdl_oij)
+
+      call write_data(grid,fid,'scale_oijmm',scale_oijmm)
+      call write_data(grid,fid,'sname_oijmm',sname_oijmm)
+      call write_cdl(grid,fid,'cdl_oijmm',cdl_oijmm)
 
       call write_data(grid,fid,'ia_oijl',ia_oijl)
       call write_data(grid,fid,'denom_oijl',denom_oijl)
@@ -1521,6 +1549,30 @@ c
         call stop_model("OIJ diagnostic error",255)
       end if
 
+c
+C**** set properties for OIJ min/max diagnostics
+      do k=1,koijmm
+        sname_oijmm(k) = 'unused'
+        lname_oijmm(k) = 'no output'
+        units_oijmm(k) = 'no output'
+        scale_oijmm(k) = 1
+      enddo
+      k=0
+c
+      k=k+1
+      IJ_HBLmax=k
+      lname_oijmm(k) = "Maximum Ocean Boundary layer depth (KPP)"
+      sname_oijmm(k) = "oij_hblmax"
+      units_oijmm(k) = "m"
+      scale_oijmm(k) = 1
+
+      if (k.gt.KOIJmm) then
+        write(6,*)
+     &       "Too many OIJmm diagnostics: increase KOIJmm to at least"
+     &       ,k
+        call stop_model("OIJmm diagnostic error",255)
+      end if
+
 C**** Set up oceanic component conservation diagnostics
 C**** Oceanic mass
       CONPT=CONPT0
@@ -1677,6 +1729,7 @@ c
       call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
       call add_var(cdl_oij,'float oxyp(lato,lono) ;',
      &     long_name='gridbox area x focean', units='m2')
+      cdl_oijmm = cdl_oij
 
       call merge_cdl(cdl_oij,cdl_odepths,cdl_oijl)
 #ifdef TRACERS_OCEAN 
@@ -1693,6 +1746,16 @@ c
      &       'float '//trim(sname_oij(k))//trim(ystr)//trim(xstr),
      &       long_name=trim(lname_oij(k)),
      &       units=trim(units_oij(k)) )
+      enddo
+
+      do k=1,koijmm
+        if(trim(sname_oijmm(k)).eq.'unused') cycle
+        xstr='lono) ;'
+        ystr='(lato,'
+        call add_var(cdl_oijmm,
+     &       'float '//trim(sname_oijmm(k))//trim(ystr)//trim(xstr),
+     &       long_name=trim(lname_oijmm(k)),
+     &       units=trim(units_oijmm(k)) )
       enddo
 
       do k=1,koijl
@@ -1880,7 +1943,7 @@ c
 !@auth G. Schmidt
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: am_i_root
-      USE ODIAG, only : oij,oij_loc,oijl,oijl_loc,ol,olnst
+      USE ODIAG, only : oij,oij_loc,oijmm,oijl,oijl_loc,ol,olnst
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_loc,tlnst
 #endif
@@ -1891,7 +1954,7 @@ c
          OIJ=0. ; OIJL=0. 
       end if
       OIJ_loc=0. ; OIJL_loc=0. ; OL=0. ; OLNST=0.
-
+      OIJmm = -1d30
 #ifdef TRACERS_OCEAN
       if (am_i_root()) TOIJL=0. 
       TOIJL_loc=0. ; TLNST = 0.
@@ -1924,6 +1987,7 @@ c
      &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
 
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
+      ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
       ALLOCATE(       OIJL_out (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN

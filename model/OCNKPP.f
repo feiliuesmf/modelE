@@ -1122,8 +1122,8 @@ C****
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP
-      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
-     *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
+      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
+     *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
@@ -1751,6 +1751,8 @@ C**** Set diagnostics
        OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
        OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
        OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
+
+       OIJmm(I,J,IJ_HBLmax) = max(OIJmm(I,J,IJ_HBLmax), HBL)
 
        IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****

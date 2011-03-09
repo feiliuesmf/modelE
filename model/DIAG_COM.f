@@ -81,8 +81,12 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &                                   + 1
 #endif
 
+!@param KAIJmm maximum number of AIJ min/max diagnostics
+      INTEGER, PARAMETER, public :: KAIJmm=10
+
 !@var AIJ latitude/longitude diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc,
+     &     AIJmm
 
 !@param KAIJL number of AIJL accumulations
       INTEGER, PARAMETER, public :: KAIJL=20
@@ -622,6 +626,8 @@ c derived/composite diagnostics
      *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
 
 
+      integer, public :: ij_tsurfmin,ij_tsurfmax
+
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(25), PARAMETER, public :: LEGEND=(/ !
      1  '0=0,1=5...9=45,A=50...K=100             ', ! ir_pct    fac=.2
@@ -708,6 +714,17 @@ c derived/composite diagnostics
       integer, dimension(kaij), public :: igrid_ij,jgrid_ij
 !@var denom_ij index of AIJ element to use as time/area weight
       integer, dimension(kaij), public :: denom_ij
+
+!@var SCALE_IJmm scale factor for AIJ min/max diagnostics
+      REAL*8, DIMENSION(KAIJmm), public :: SCALE_IJmm
+!@var [NAME,UNITS,LNAME]_IJmm Names/Units/Longnames of
+!@+     min/max IJ diagnostics
+      character(len=sname_strlen), dimension(kaijmm), public ::
+     &     name_ijmm
+      character(len=units_strlen), dimension(kaijmm), public ::
+     &     units_ijmm
+      character(len=lname_strlen), dimension(kaijmm), public ::
+     &     lname_ijmm
 
 !@var JL_xxx, JK_xxx names for AJL indices
 !@+   JL/JK refer to model versus constant-pressure levels
@@ -938,7 +955,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@var CDL_IJ consolidated metadata for AIJ output fields in CDL notation
       type(cdl_type), public ::
      &     cdl_ij_template,cdl_ij_latlon_template,
-     &     cdl_ij,cdl_ij_latlon
+     &     cdl_ij,cdl_ij_latlon,cdl_ijmm
 !@var CDL_JL consolidated metadata for AJL output fields in CDL notation
       type(cdl_type), public :: cdl_jl,cdl_jl_template
 !@var CDL_GC consolidated metadata for AGC output fields in CDL notation
@@ -978,7 +995,7 @@ c instances of arrays
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
-      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,
+      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
      *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
@@ -1006,6 +1023,7 @@ c instances of arrays
      &     ,AGC_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
      &     ,hemis_gc,vmean_gc,hemis_ij
+      USE DIAG_COM, only : aijmm
 #ifdef TRACERS_SPECIAL_Shindell
       USE DIAG_COM, ONLY : o_inst,n_inst,m_inst,x_inst
 #endif
@@ -1047,6 +1065,7 @@ c instances of arrays
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
      &         AGC_loc(J_0JK:J_1JK,LM,KAGC),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
+     &         AIJmm(I_0H:I_1H,J_0H:J_1H,KAIJmm),
      &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         RH_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         T_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -1962,7 +1981,7 @@ c temporary variant of inc_ajl without any weighting
       use diag_com, only : monacc,
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
-     &     oa,tdiurn,                                  ! dist
+     &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
      &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
@@ -1983,6 +2002,8 @@ c temporary variant of inc_ajl without any weighting
       call defvar(grid,fid,oa,'oa(dist_im,dist_jm,koa)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aij,'aij(dist_im,dist_jm,kaij)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,aijmm,'aijmm(dist_im,dist_jm,kaijmm)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aijl,'aijl(dist_im,dist_jm,lm,kaijl)',
      &     r4_on_disk=r4_on_disk)
@@ -2060,7 +2081,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use diag_com, only : monacc,kaijl,
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
-     &     oa,tdiurn,                                  ! dist
+     &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
      &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
@@ -2105,6 +2126,7 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_dist_data(grid,fid,'tdiurn',tdiurn)
         call write_dist_data(grid,fid,'oa',oa)
         call write_dist_data(grid,fid,'aij',aij)
+        call write_dist_data(grid,fid,'aijmm',aijmm)
         call write_dist_data(grid,fid,'aijl',aijl)
 #ifndef CUBED_SPHERE
         call write_dist_data(grid,fid,'aijk',aijk)
@@ -2134,6 +2156,7 @@ c for which scalars is bcast_all=.true. necessary?
         call read_dist_data(grid,fid,'tdiurn',tdiurn)
         call read_dist_data(grid,fid,'oa',oa)
         call read_dist_data(grid,fid,'aij',aij)
+        call read_dist_data(grid,fid,'aijmm',aijmm)
         call read_dist_data(grid,fid,'aijl',aijl)
 #ifndef CUBED_SPHERE
         call read_dist_data(grid,fid,'aijk',aijk)
@@ -2263,7 +2286,8 @@ c new_io_subdd
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
      &     denom_gc,denom_ijk,
      &     lm,
-     &     isccp_press,isccp_tau,isccp_late,wisccp
+     &     isccp_press,isccp_tau,isccp_late,wisccp,
+     &     scale_ijmm,name_ijmm,cdl_ijmm
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2361,6 +2385,13 @@ c new_io_subdd
      &     'cdl_aij_latlon(cdl_strlen,kcdl_aij_latlon)')
 #endif
 
+      call write_attr(grid,fid,'aijmm','reduction','max')
+      call write_attr(grid,fid,'aijmm','split_dim',3)
+      call defvar(grid,fid,scale_ijmm,'scale_aijmm(kaijmm)')
+      call defvar(grid,fid,name_ijmm,'sname_aijmm(sname_strlen,kaijmm)')
+      call defvar_cdl(grid,fid,cdl_ijmm,
+     &     'cdl_aijmm(cdl_strlen,kcdl_aijmm)')
+
       call write_attr(grid,fid,'aijl','reduction','sum')
       call write_attr(grid,fid,'aijl','split_dim',4)
       call defvar(grid,fid,ia_ijl,'ia_aijl(kaijl)')
@@ -2432,7 +2463,8 @@ c new_io_subdd
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
      &     denom_gc,denom_ijk,
      &     lm,ia_12hr,
-     &     isccp_press,isccp_tau,isccp_late,wisccp
+     &     isccp_press,isccp_tau,isccp_late,wisccp,
+     &     scale_ijmm,name_ijmm,cdl_ijmm
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2497,6 +2529,10 @@ c new_io_subdd
 #ifdef CUBED_SPHERE
       call write_cdl(grid,fid,'cdl_aij_latlon',cdl_ij_latlon)
 #endif
+
+      call write_data(grid,fid,'scale_aijmm',scale_ijmm)
+      call write_data(grid,fid,'sname_aijmm',name_ijmm)
+      call write_cdl(grid,fid,'cdl_aijmm',cdl_ijmm)
 
       call write_data(grid,fid,'ia_aijl',ia_ijl)
       call write_data(grid,fid,'scale_aijl',scale_ijl)
