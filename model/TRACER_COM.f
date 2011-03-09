@@ -87,10 +87,13 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_water=0
 #endif  /* TRACERS_WATER */
 !@var ntm_shindell_trop: Number of TRACERS_SPECIAL_Shindell tracers.
+!@var ntm_shindell_strat: Number of Shindell strat chem tracers.
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: ntm_shindell_trop=15
+      integer, parameter :: ntm_shindell_strat=10
 #else
       integer, parameter :: ntm_shindell_trop=0
+      integer, parameter :: ntm_shindell_strat=0
 #endif  /* TRACERS_SPECIAL_Shindell */
 !@var ntm_terp: Number of TRACERS_TERP tracers.
 #ifdef TRACERS_TERP
@@ -98,12 +101,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_terp=0
 #endif  /* TRACERS_TERP */
-!@var ntm_shindell_strat: Number of SHINDELL_STRAT_CHEM tracers.
-#ifdef SHINDELL_STRAT_CHEM
-      integer, parameter :: ntm_shindell_strat=10
-#else
-      integer, parameter :: ntm_shindell_strat=0
-#endif  /* SHINDELL_STRAT_CHEM */
 !@var ntm_shindell_extra: Number of SHINDELL_STRAT_EXTRA tracers.
 #ifdef SHINDELL_STRAT_EXTRA
 #ifdef ACCMIP_LIKE_DIAGS
@@ -275,10 +272,7 @@ C**** do igas=1,ntm_chem instances get corrected.
 !@var trname: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
       character*8, parameter :: trname_p1(ntm+1)=(/
 #ifdef TRACERS_SPECIAL_Shindell
-     *    'Ox      ','NOx     ',
-#ifdef SHINDELL_STRAT_CHEM
-     *    'ClOx    ','BrOx    ',
-#endif  /* SHINDELL_STRAT_CHEM */
+     *    'Ox      ','NOx     ','ClOx    ','BrOx    ',
      *                          'N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
@@ -291,7 +285,6 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    'apinp1g ','apinp1a ','apinp2g ','apinp2a ',
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef SHINDELL_STRAT_CHEM
      *                          'HCl     ','HOCl    ','ClONO2  ',
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
 #ifdef SHINDELL_STRAT_EXTRA
@@ -303,7 +296,6 @@ C**** do igas=1,ntm_chem instances get corrected.
 #else
 !kt     *    'Water   ',
 #endif  /* SHINDELL_STRAT_EXTRA */
-#endif  /* SHINDELL_STRAT_CHEM */
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifndef TRACERS_AMP
 #ifdef TRACERS_WATER

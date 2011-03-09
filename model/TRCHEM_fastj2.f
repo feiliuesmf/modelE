@@ -39,11 +39,6 @@ C**** Local parameters and variables and arguments:
       
       jay = (NSLAT >= J_0 .and. NSLAT <= J_1) 
       
-#ifndef SHINDELL_STRAT_CHEM
-      call stop_model(
-     &'only use TRCHEM_fastj2 ifdef SHINDELL_STRAT_CHEM',255)
-#endif
-
       zj(:,:)    =0.d0
       JFASTJ(:,:)=0.d0
       U0 = DCOS(SZA*radian)

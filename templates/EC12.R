@@ -5,7 +5,7 @@ EC12:  This is a coarse resolution of E_AR5_M20.
 
 Preprocessor Options
 #define USE_ENT
-!#define NEW_IO
+#define NEW_IO
 End Preprocessor Options
 
 Object modules:
@@ -17,7 +17,7 @@ FFT36                         ! Fast Fourier Transform
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
-IORSF                              ! old i/o
+IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics

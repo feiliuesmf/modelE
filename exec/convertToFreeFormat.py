@@ -23,9 +23,10 @@ import re
 import tempfile
 
 emptyRegexp = re.compile('^(\s*)\n')
-commentRegexp= re.compile('^([!cC#]|\s+!)',re.IGNORECASE)
+commentRegexp= re.compile('^([!cC#*]|\s+!)',re.IGNORECASE)
 continueRegexp = re.compile('^     \S')
 trailingCommentRegExp = re.compile('!')
+trailingCPPcontinue = re.compile('\\\s*$')
 
 def markWillContinue(line):
     if trailingCommentRegExp.search(line):
@@ -37,6 +38,13 @@ def markWillContinue(line):
 def markContinuesPrevious(line):
     return '      ' + line[6:]
 
+def stripBackslash(line):
+    if trailingCPPcontinue.search(line):
+        newline = trailingCPPcontinue.sub(" ",line)
+        return newline.rstrip()
+    else:
+        return line
+
 def convertToFreeFormat(lines):
     newLines = []
     lastStatement = -1
@@ -44,10 +52,9 @@ def convertToFreeFormat(lines):
     j = 0;
     for line in lines:
         if (commentRegexp.match(line) or emptyRegexp.match(line)):
-            newline = line
-            if newline[0] == 'c' or newline[0]== 'C':
-                newline = '!' + newline[1:]
-            newLines.append(newline)
+            newLine = line
+            if newLine[0] == 'c' or newLine[0]== 'C' or newLine[0] == '*':
+                newLine = '!' + newLine[1:]
         else:
             if (continueRegexp.match(line)) :
                 previousStatement = newLines[lastStatement]
@@ -55,8 +62,10 @@ def convertToFreeFormat(lines):
                 newLine = markContinuesPrevious(line)
             else:
                 newLine = line
-            newLines.append(newLine)
             lastStatement = j
+
+        newLine = stripBackslash(newLine)
+        newLines.append(newLine)
         j = j + 1
     return newLines
 
@@ -65,12 +74,14 @@ inFileName = sys.argv[1]
 outFileName = inFileName.replace('.f','.F90')
 
 inFile = open(inFileName,"r")
-outFile = open(outFileName,"w")
+inLines = inFile.readlines()
+outLines = convertToFreeFormat(inLines)
+inFile.close()
 
-for line in convertToFreeFormat(inFile.readlines()):
+outFile = open(outFileName,"w")
+for line in outLines:
     outFile.write(line)
 
-inFile.close()
 outFile.close()
 
 

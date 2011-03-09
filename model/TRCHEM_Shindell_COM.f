@@ -6,7 +6,6 @@
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
-#ifdef TRACERS_ON
       USE MODEL_COM, only  : im,jm,lm,psf,ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
@@ -65,7 +64,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
-!@param checktracer_on integer to turn on the checktracer call
 !@param MWabyMWw ratio of molecular weights of air/water
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
@@ -100,7 +98,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & LCOalt =   23,
      & LCH4alt=    6,
      & p_1   =     2 
-#ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER ::
      & p_2   =   209,
      & p_3   =   500,
@@ -156,51 +153,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_fam =     5,      ! fastj2
      & NP       = 60       ! fastj2
        INTEGER, DIMENSION(LM+1,MXFASTJ) :: MIEDX2
-#else
-      INTEGER, PARAMETER ::
-     & p_2   =   111,
-     & p_3   =   200,
-     & p_4   =    70,
-#ifdef TRACERS_TERP
-     & n_rx  =    58,
-     & n_bi  =    50,
-#else
-     & n_rx  =    55,
-     & n_bi  =    47,
-#endif  /* TRACERS_TERP */
-     & n_tri =    14,
-     & n_nst =     5,
-     & nc     =   35+ntm_terp+ntm_soa,     !formerly in param sub
-     & ny     =   33+ntm_terp+ntm_soa,     !formerly in param sub  
-     & numfam =    2,     !formerly in param sub  
-     & nC2O3=     16+ntm_terp+ntm_soa,
-     & nXO2=      17+ntm_terp+ntm_soa,
-     & nXO2N=     18+ntm_terp+ntm_soa,
-     & nRXPAR=    19+ntm_terp+ntm_soa,
-     & nROR=      20+ntm_terp+ntm_soa,
-     & nAldehyde= 21+ntm_terp+ntm_soa,
-     & nH2O=      22+ntm_terp+ntm_soa,
-     & nCH3O2=    23+ntm_terp+ntm_soa,
-     & nH2=       24+ntm_terp+ntm_soa,
-     & nOH=       25+ntm_terp+ntm_soa,
-     & nHO2=      26+ntm_terp+ntm_soa,
-     & nO3=       27+ntm_terp+ntm_soa,
-     & nO=        28+ntm_terp+ntm_soa,
-     & nO1D=      29+ntm_terp+ntm_soa,
-     & nNO=       30+ntm_terp+ntm_soa,
-     & nNO2=      31+ntm_terp+ntm_soa,
-     & nNO3=      32+ntm_terp+ntm_soa,
-     & nHONO=     33+ntm_terp+ntm_soa,
-     & nO2=       34+ntm_terp+ntm_soa,
-     & nM=        35+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
-     & JPPJ   =   16,
-     & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  450,     !450 is arbitrary for now
-     & NWFASTJ=   15, 
-     & JPNL   =   12,     ! change to LS1???
-     & n_fam =     4,
-     & NP     =    9
-#endif
       INTEGER, PARAMETER ::
      & p_5   =    14,
      & n_bnd1=    31,
@@ -208,24 +160,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bnd3=   107,
      & n_oig =     3,
      & n_srb =    18,
-C ----------------------------------------------     
-c     & n_Ox=        1,    ! note, these
-c     & n_NOx=       2,    ! first 15 species are
-c     & n_N2O5=      3,    ! tracers, and therefore
-c     & n_HNO3=      4,    ! these parameters are
-c     & n_H2O2=      5,    ! to be defined in 
-c     & n_CH3OOH=    6,    ! TRACER_COM.f.
-c     & n_HCHO=      7,    ! Note the UNDERSCORE!
-c     & n_HO2NO2=    8,    !  T
-c     & n_CO=        9,    !  R
-c     & n_CH4=      10,    !  A
-c     & n_PAN=      11,    !  C
-c     & n_Isoprene= 12,    !  E
-c     & n_AlkylNit= 13,    !  R
-c     & n_Alkenes=  14,    !  S
-c     & n_Paraffin= 15,    !
-c     & n_Terpenes= 16,    ! ---------------
-C ----------------------------------------------   
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
      & NS     =   51,
@@ -255,7 +189,6 @@ C ----------------------------------------------
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian,
      &                      cpd          = 1.d6/avog
-#ifdef SHINDELL_STRAT_CHEM
      &                     ,cfc_pppv     = 1722.d-12
      &                     ,n2o_pppv     = 316.3d-9
      &                     ,cfc_rad95    = 794.d-12 
@@ -264,7 +197,6 @@ C ----------------------------------------------
      &                     ,dsubdiv      = 1.d1
      &                     ,dlogp2       = 8.65964323d-1 !=10^(-.0625)
      &                     ,masfac=100.d0*6.022d23/28.97d0/9.8d0/10.d0
-#endif
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
 C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
@@ -278,7 +210,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &        .33000947820757D0,.66999052179243D0,.93056815579703D0/), 
      &                                    WTFASTJ=(/.17392742256873D0,
      &         .32607257743127D0,.32607257743127D0,.17392742256873D0/)
-#ifdef SHINDELL_STRAT_CHEM
       REAL*8, PARAMETER, DIMENSION(LCOalt) ::  
      &     BrOxaltIN = (/1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,
      &     1.d-2,1.d-2,1.d-2,1.d-2,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,
@@ -292,7 +223,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &     ,HClaltIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
      &     1.d0,1.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
      &     2.5d2,2.5d2,2.5d2,2.5d2/)
-#endif    
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
      &                     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
       REAL*8, PARAMETER, DIMENSION(LCH4alt) ::   
@@ -344,7 +274,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,use_rad_cfc       = 0
      &                 ,Lmax_rad_O3       = LM
      &                 ,Lmax_rad_CH4      = LM
-     &                 ,checktracer_on    = 0
      &                 ,allowSomeChemReinit = 1
       REAL*8 ::             ch4_init_sh   = 1.750d0,
      &                      ch4_init_nh   = 1.855d0,
@@ -353,7 +282,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                      PIratio_CO_T  = 0.667d0,
      &                      PIratio_CO_S  = 0.500d0,
      &                      PIratio_other = 0.500d0
-#ifdef SHINDELL_STRAT_CHEM
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
      &                     ,PltOx         = 0.100d0
@@ -361,7 +289,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,Tpsc_offset_S = 0.d0
      &                     ,PSClatS       = -30.d0
      &                     ,PSClatN       =  30.d0
-#endif
 
       LOGICAL, PARAMETER :: luselb            = .false.
 
@@ -588,14 +515,9 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
-#ifdef SHINDELL_STRAT_CHEM
       INTEGER, DIMENSION(n_fam)        :: nfam = 
      &     (/37+ntm_terp+ntm_soa,40+ntm_terp+ntm_soa,
      &       44+ntm_terp+ntm_soa,50+ntm_terp+ntm_soa,0/)
-#else
-      INTEGER, DIMENSION(n_fam)        :: nfam = 
-     &     (/27+ntm_terp+ntm_soa,30+ntm_terp+ntm_soa,0,0/)
-#endif
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
@@ -605,12 +527,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(LM)           :: jndlv,jndlev
       INTEGER, DIMENSION(JPPJ)         :: jind
       INTEGER, DIMENSION(NLFASTJ)      :: jaddlv
-#ifdef SHINDELL_STRAT_CHEM
       INTEGER, DIMENSION(NLFASTJ)      :: jadsub
       INTEGER, DIMENSION(NLFASTJ+1)    :: jaddto
-#else 
-      INTEGER, DIMENSION(NLFASTJ)      :: jaddto
-#endif
       INTEGER, DIMENSION(NJVAL)        :: jpdep  
 
 C**************  Latitude-Dependant (allocatable) *******************
@@ -620,23 +538,17 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
      & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC
-#ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
-#endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: COICIN,OxICIN,CH4ICIN
-#ifdef SHINDELL_STRAT_CHEM
      &                                       ,N2OICIN,CFCICIN
-#endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: sOx_acc,sNOx_acc,sCO_acc,
      & l1Ox_acc,l1NO2_acc,save_NO2column
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,BYFJM,
      & FASTJLAT,FASTJLON,SZA,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
-#ifdef SHINDELL_STRAT_CHEM
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
      & ,bin4_1991,bin4_1988,bin5_1988
-#endif
       REAL*8, DIMENSION(nc,LM)         :: y
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(n_bi)          :: pe, ea
@@ -662,10 +574,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(NWFASTJ)       :: WL,FL,QRAYL,QBC,DUMMY,FLX
       REAL*8, DIMENSION(NWFASTJ,3)     :: QO3, QO2, Q1D, zpdep
       REAL*8, DIMENSION(3,NS)          :: TQQ
-      REAL*8, DIMENSION(4,NP)          :: QAAFASTJ, WAAFASTJ
-#ifdef SHINDELL_STRAT_CHEM
-     &                                    ,SSA,RAA
-#endif
+      REAL*8, DIMENSION(4,NP)          :: QAAFASTJ, WAAFASTJ,SSA,RAA
       REAL*8, DIMENSION(8,4,NP)        :: PAA
       REAL*8, DIMENSION(31,18,12)      :: OREF
       REAL*8, DIMENSION(41,18,12)      :: TREF
@@ -682,7 +591,6 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(2*LM)          :: O3_FASTJ    
       REAL*8, DIMENSION(ny,LM)         :: dest, prod
       REAL*8, DIMENSION(NLFASTJ,NLFASTJ):: WTAU
-#ifdef SHINDELL_STRAT_CHEM
       REAL*8                            :: SF3_fact,SF2_fact
       REAL*8, DIMENSION(MXFASTJ,NBFASTJ):: AER2
       REAL*8, DIMENSION(NBFASTJ,NBFASTJ):: AMF
@@ -691,23 +599,16 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(LM+3)           :: PFASTJ2
       REAL*8, DIMENSION(51,18,12)       :: OREF2,TREF2
       REAL*8, DIMENSION(51)             :: BREF2
-#endif
       REAL*8, DIMENSION(NLFASTJ)       :: aer,ZFASTJ,O3J,TJ,DBC,
      &  DMFASTJ,XQO3,XQO2,DTAUDZ,TTAU,FTAU,PIAER,RZ,RQ,DO3,PIRAY
       REAL*8, DIMENSION(LCOalt)        :: COICINL,OxICINL,CH4ICINL
-#ifdef SHINDELL_STRAT_CHEM
      &                                   ,N2OICINL,CFCICINL
-#endif
       REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL
-#ifdef SHINDELL_STRAT_CHEM
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt,odcol                    
      &                        ,N2OICL,CFCICL
-#endif
 
       LOGICAL                      :: fam,prnrts,prnchg,prnls      
-#ifdef SHINDELL_STRAT_CHEM
       LOGICAL, DIMENSION(LM)       :: pscX
-#endif
 
       CHARACTER*20, DIMENSION(NP)  :: title_aer_pf !formerly TITLEA( )
       CHARACTER*78                 :: TITLE0
@@ -727,15 +628,13 @@ C**************  Not Latitude-Dependant ****************************
      & fjfastj,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
 !$OMP THREADPRIVATE(/FJAST_LOC/)
 
-#ifdef SHINDELL_STRAT_CHEM
       COMMON/SCHEM_LOC/ratioNs,rNO2frac,rNOfrac,rNOdenom,ratioN2
 !$OMP THREADPRIVATE(/SCHEM_LOC/)
 
       COMMON/FJAST2_LOC/AER2,odcol,TJ2,DO32,DBC2,ZFASTJ2,
      &                  DMFASTJ2,PFASTJ2,AMF,jadsub
 !$OMP THREADPRIVATE(/FJAST2_LOC/)
-#endif
-#endif
+
       END MODULE TRCHEM_Shindell_COM
       
       
@@ -752,10 +651,8 @@ C**************  Not Latitude-Dependant ****************************
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
      & COICIN,OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2,l1NO2_acc,
      & sNOx_acc,sCO_acc,save_NO2column
-#ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
-#endif
 
       IMPLICIT NONE
 
@@ -806,7 +703,6 @@ C**************  Not Latitude-Dependant ****************************
       sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
 
       allocate(       DU_O3(J_0H:J_1H)                   )
-#ifdef SHINDELL_STRAT_CHEM
       allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        pClx(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,LM)      ) 
@@ -819,7 +715,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(         SF2(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     N2OICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(     CFCICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-#endif
       
       return
       end subroutine alloc_trchem_shindell_com

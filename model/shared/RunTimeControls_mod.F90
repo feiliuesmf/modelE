@@ -767,12 +767,6 @@ module RunTimeControls_mod
   logical, parameter :: shift_west = .false.
 #endif
 
-#if defined(SHINDELL_STRAT_CHEM)
-  logical, parameter :: shindell_strat_chem = .true.
-#else
-  logical, parameter :: shindell_strat_chem = .false.
-#endif
-
 #if defined(SHINDELL_STRAT_EXTRA)
   logical, parameter :: shindell_strat_extra = .true.
 #else

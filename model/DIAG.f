@@ -5679,6 +5679,7 @@ c
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIJL_loc=0   ; ENERGY=0 ; CONSRV = 0; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0   ; AIJK_loc=0
+      AIJmm = -1d30
 #ifndef NO_HDIURN
       HDIURN=0; HDIURN_loc=0
 #endif

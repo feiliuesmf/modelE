@@ -103,13 +103,8 @@
       integer, intent(in) :: lmax,lfrz,i,j
       integer:: lmax_temp
       real*8 :: htcon,htfrz,flash,th,th2,th3,th4,zlt,cg,area_ref
-#ifdef SHINDELL_STRAT_CHEM      
 !@param tune_NOx multiplier of NOx production rate from lightning
       real*8, parameter :: tune_NOx=1.000d0
-#else
-!@param tune_NOx multiplier of NOx production rate from lightning
-      real*8, parameter :: tune_NOx=0.670d0
-#endif
  
 ! The folowing simple algorithm calculates the lightning
 ! frequency in each gridbox using the moist convective cloud

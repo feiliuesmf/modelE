@@ -22,7 +22,6 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry

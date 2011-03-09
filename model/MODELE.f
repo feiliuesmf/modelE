@@ -1241,13 +1241,11 @@ C****
      *     ,USE_UNR_DRAG
 
 #ifdef SCM
-     *     ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt
 #endif
 #ifdef BLK_2MOM
      * ,wmice
-#endif
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt
 #endif
       USE SOMTQ_COM, only : mz,tmom,qmom
 #ifdef CUBED_SPHERE
@@ -2625,9 +2623,6 @@ C**** check tracers
 #endif
 #ifdef EDGAR_HYDE_SOURCES
       write(6,*) '...and EDGAR HYDE sources instead of GISS'
-#endif
-#ifdef SHINDELL_STRAT_CHEM
-      write(6,*) '...and Drew Shindell stratospheric chemistry'
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
       write(6,*) '...and Drew Shindell extra strat tracers'

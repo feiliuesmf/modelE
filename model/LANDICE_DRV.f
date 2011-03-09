@@ -16,15 +16,13 @@
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
 #ifdef SCM
-     *                      ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg,snmin,micbimp,eicbimp
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
@@ -88,10 +86,10 @@ C**** set GTEMP array for landice
                 endif
             endif
 #endif
-!???? this block should probably be moved to the (new_)io_landice (reto)
 #ifdef TRACERS_WATER
-            if (istart.ge.9) then ! need this if-test since TR.. may 
-                                  ! not be set yet at initial starts
+!TODO This should depend on whether itime>itime_tr0(n), not on istart
+!TODO and may be different for each individual tracer (reto) 
+            if (istart.ge.9) then ! ok if all tracers start at beg.of run
             IF (SNOWLI(I,J).gt.SNMIN) THEN
               GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
@@ -272,14 +270,12 @@ C****
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
 #ifdef SCM
-     *                      ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
@@ -402,16 +398,14 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       USE CONSTANT, only : tf,sday,edpery
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice,dtsrc
 #ifdef SCM
-     *                      ,I_TARG,J_TARG
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp
      *     ,eicbimp,accpda,accpdg,eaccpda,eaccpdg
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run,ij_imphli,ij_impmli
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc

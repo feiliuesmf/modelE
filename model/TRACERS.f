@@ -1164,9 +1164,7 @@ C**** check whether air mass is conserved
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
      &     ,acetone, sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-#ifdef SHINDELL_STRAT_CHEM
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
@@ -1411,32 +1409,30 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
           call pack_data(grid,no3_live,Aijl_glob)
           if(am_i_root())write(kunit,err=10)header,Aijl_glob
        endif
-#ifdef SHINDELL_STRAT_CHEM
-       header='SHINDELL_STRAT_CHEM: SF3(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: SF3(i,j,l)'
         call pack_data(grid,SF3,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: SF2(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: SF2(i,j,l)'
         call pack_data(grid,SF2,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: pClOx(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: pClOx(i,j,l)'
         call pack_data(grid,pClOx,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: pClx(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: pClx(i,j,l)'
         call pack_data(grid,pClx,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: pOClOx(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: pOClOx(i,j,l)'
         call pack_data(grid,pOClOx,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: pBrOx(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: pBrOx(i,j,l)'
         call pack_data(grid,pBrOx,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: yCl2(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: yCl2(i,j,l)'
         call pack_data(grid,yCl2,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='SHINDELL_STRAT_CHEM: yCl2O2(i,j,l)'
+       header='TRACERS_SPECIAL_Shindell: yCl2O2(i,j,l)'
         call pack_data(grid,yCl2O2,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
        header='INTERACTIVE_WETLANDS_CH4: day_ncep(i,j,days,#raN)'
         do itm=1,max_days
@@ -1604,7 +1600,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
             if(am_i_root())read(kunit,err=10)header,Aijl_glob
             call unpack_data(grid,Aijl_glob,no3_live)
           endif
-#ifdef SHINDELL_STRAT_CHEM
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,SF3)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
@@ -1621,7 +1616,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,Aijl_glob,yCl2)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,yCl2O2)
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
           if(am_i_root())read(kunit,err=10)header,day_ncep_glob
           do itm=1,max_days ;do itm2=1,nra_ncep
@@ -1758,9 +1752,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-#ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
@@ -1832,8 +1824,6 @@ c daily_z is currently only needed for CS
         call defvar(grid,fid,no3_live,'no3_live'//ijldims,
      &       defby=compstr)
       endif
-#ifdef SHINDELL_STRAT_CHEM
-      compstr='SHINDELL_STRAT_CHEM'
       call defvar(grid,fid,SF3,'SF3'//ijldims,defby=compstr)
       call defvar(grid,fid,SF2,'SF2'//ijldims,defby=compstr)
       call defvar(grid,fid,pClOx,'pClOx'//ijldims,defby=compstr)
@@ -1842,7 +1832,6 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,pBrOx,'pBrOx'//ijldims,defby=compstr)
       call defvar(grid,fid,yCl2,'yCl2'//ijldims,defby=compstr)
       call defvar(grid,fid,yCl2O2,'yCl2O2'//ijldims,defby=compstr)
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       compstr='INTERACTIVE_WETLANDS_CH4'
       call defvar(grid,fid,day_ncep,
@@ -1918,9 +1907,7 @@ c daily_z is currently only needed for CS
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-#ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
@@ -1987,7 +1974,6 @@ c daily_z is currently only needed for CS
           call write_dist_data(grid,fid,'oh_live',oh_live)
           call write_dist_data(grid,fid,'no3_live',no3_live)
         endif
-#ifdef SHINDELL_STRAT_CHEM
         call write_dist_data(grid,fid,'SF3',SF3)
         call write_dist_data(grid,fid,'SF2',SF2)
         call write_dist_data(grid,fid,'pClOx',pClOx)
@@ -1996,7 +1982,6 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'pBrOx',pBrOx)
         call write_dist_data(grid,fid,'yCl2',yCl2)
         call write_dist_data(grid,fid,'yCl2O2',yCl2O2)
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
         call write_dist_data(grid,fid,'day_ncep',day_ncep)
         call write_dist_data(grid,fid,'dra_ch4',dra_ch4)
@@ -2082,7 +2067,6 @@ c daily_z is currently only needed for CS
           call read_dist_data(grid,fid,'oh_live',oh_live)
           call read_dist_data(grid,fid,'no3_live',no3_live)
         endif
-#ifdef SHINDELL_STRAT_CHEM
         call read_dist_data(grid,fid,'SF3',SF3)
         call read_dist_data(grid,fid,'SF2',SF2)
         call read_dist_data(grid,fid,'pClOx',pClOx)
@@ -2091,7 +2075,6 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'pBrOx',pBrOx)
         call read_dist_data(grid,fid,'yCl2',yCl2)
         call read_dist_data(grid,fid,'yCl2O2',yCl2O2)
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
         call read_dist_data(grid,fid,'day_ncep',day_ncep)
         call read_dist_data(grid,fid,'dra_ch4',dra_ch4)
