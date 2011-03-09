@@ -9,11 +9,10 @@ subroutine CONDSE
        ,teeny,sday,undef,bysha
   use MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR &
        ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate &
-       ,ntype,itime,focean,fland,flice,jyear,jmon &
+       ,ntype,itime,focean,fland,flice,jyear,jmon
 #ifdef SCM
-       ,I_TARG,J_TARG,NSTEPSCM
+  use MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
 #endif
-  ;
   use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
   use QUSDEF, only : nmom
@@ -25,32 +24,31 @@ subroutine CONDSE
   use RANDOM
   use RAD_COM, only : cosz1
   use CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav &
-       ,isccp_reg2d,ukm,vkm,ncol &
+       ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
-       ,oldnl,oldni,clwp,cdn3d,cre3d  & ! for 3 hrly diag
+  use CLOUDS_COM, only : oldnl,oldni,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-       ,ctem,cd3d,cl3d,ci3d  & ! for 3 hrly diag
+  use CLOUDS_COM, only :  ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
 #endif
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
-       ,NACTC &
+  use CLOUDS_COM, only : NACTC
 #endif
 #endif
-       ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
+  use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
        ,tls,qls,tmc,qmc,ddm1,airx,lmc &
-       ,ddms,tdn1,qdn1,ddml &
+       ,ddms,tdn1,qdn1,ddml
 #if (defined mjo_subdd) || (defined etc_subdd)
-       ,CLWC3D,CIWC3D &
-       ,TLH3D,LLH3D,SLH3D,DLH3D &
+  use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D 
 #endif
 #ifdef etc_subdd
-       ,LWP2D,IWP2D &
+  use CLOUDS_COM, only : LWP2D,IWP2D 
 #endif
 #ifdef mjo_subdd
-       ,TMCDRY,SMCDRY,DMCDRY,LSCDRY
+  use CLOUDS_COM, only : TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
-  ;
+
   use DIAG_COM, only : aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
        ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
@@ -63,17 +61,17 @@ subroutine CONDSE
        jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,ij_sisnwf, &
        ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr, &
        saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI, &
-       saveTCLDI,saveMCCLDTP, &
+       saveTCLDI,saveMCCLDTP
 #ifndef NO_HDIURN
-       hdiurn=>hdiurn_loc, &
+  use DIAG_COM, only : hdiurn=>hdiurn_loc
 #endif
-       ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi, &
+  use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi, &
        ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx &
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
-       ,ijl_cldwtr,ijl_cldice,ijl_MCamFX & ! ipcc 3-D model layer diagnostics
+       ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
 #ifdef CLD_AER_CDNC
-       ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis &
+  use DIAG_COM, only : jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis &
        ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis &
        ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis &
        ,ij_3drwm,ij_3drws,ij_3drim,ij_3dris &
@@ -81,12 +79,11 @@ subroutine CONDSE
        ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws &
        ,ij_wmclwp,ij_wmctwp &
        ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis &
-       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis &
+       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis
 #endif
 #ifdef TRACERS_DUST
-       ,idd_wet
+  use DIAG_COM, only : idd_wet
 #endif
-  ;
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
   use AERO_CONFIG, only: NMODES
@@ -95,25 +92,24 @@ subroutine CONDSE
 #endif
 #ifdef TRACERS_ON
   use TRACER_COM, only : remake_tracer_lists
-  use TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1 &
+  use TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1
 #ifdef TRACERS_COSMO
-       ,n_Be10,n_Be7 &
+  use TRACER_COM, only: n_Be10,n_Be7
 #endif
 #ifdef TRACERS_DUST
-       ,n_clay,n_clayilli,n_sil1quhe &
+  use TRACER_COM, only: n_clay,n_clayilli,n_sil1quhe
 #endif
 #ifdef TRACERS_WATER
-       ,trwm,trw0,dowetdep &
+  use TRACER_COM, only: trwm,trw0,dowetdep
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-       ,Ntm_dust &
+  use TRACER_COM, only: Ntm_dust 
 #endif
 #ifdef TRACERS_DUST
-       ,imDust
-#else
+  use TRACER_COM, only: imDust
 #endif
 #endif
-  ;
+
 #ifdef TRACERS_COSMO
   use COSMO_SOURCES, only : BE7W_acc
 #endif
@@ -121,42 +117,42 @@ subroutine CONDSE
   use LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
 #ifndef SKIP_TRACER_DIAGS
-  use TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc &
-       ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc &
+  use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc &
+       ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
-       ,jls_prec,tij_prec,trp_acc &
+  use TRDIAG_COM, only: jls_prec,tij_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-       ,jls_incloud,ijts_aq &
+  use TRDIAG_COM, only: jls_incloud,ijts_aq
 #endif
 #ifdef TRDIAG_WETDEPO
-       ,jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls &
+  use TRDIAG_COM, only: jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-       ,jls_wet,ijts_wet,itcon_wt
+  use TRDIAG_COM, only: jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
-  ;
+
   use CLOUDS, only : tm,tmom,trdnl & ! local  (i,j)
-       ,ntx,ntix             & ! global (same for all i,j)
+       ,ntx,ntix                     ! global (same for all i,j)
 #ifdef TRACERS_WATER
-       ,trwml,trsvwml,trprmc,trprss &
+  use CLOUDS, only : trwml,trsvwml,trprmc,trprss
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-       ,dt_sulf_mc,dt_sulf_ss &
+  use CLOUDS, only : dt_sulf_mc,dt_sulf_ss
 #endif
 #ifdef TRDIAG_WETDEPO
-       ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
+  use CLOUDS, only : trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
        ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls &
-       ,diag_wetdep &
+       ,diag_wetdep
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-       ,tm_dust,tmom_dust,trprc_dust
+  use CLOUDS, only : tm_dust,tmom_dust,trprc_dust
 #endif
 #endif
 #endif
-  ;
+
   use CLOUDS, only : BYDTsrc,mstcnv,lscond & ! glb var & subs
        ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,lp50,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
@@ -169,18 +165,18 @@ subroutine CONDSE
        ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l &
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
        ,DQMTOTAL,DQLSC &
-       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP &
+       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
 #ifdef CLD_AER_CDNC
-       ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
+       use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
        ,oldcdl,oldcdi,sme &
        ,cdn3dl,cre3dl,smlwp &
-       ,wmclwp,wmctwp &
+       ,wmclwp,wmctwp
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-       ,cteml,cd3dl,cl3dl,ci3dl
+       use CLOUDS, only : cteml,cd3dl,cl3dl,ci3dl
 #endif
-  ;
+
 #ifdef SCM
   use SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
        SCM_ATURB_FLAG,iu_scm_prt,NRINIT
@@ -199,22 +195,22 @@ subroutine CONDSE
   use SEAICE_COM, only : rsi
   use GHY_COM, only : snoage,fearth
   use LAKES_COM, only : flake
-  use FLUXES, only : prec,eprec,precss,gtempr &
+  use FLUXES, only : prec,eprec,precss,gtempr
 #ifdef TRACERS_WATER
-       ,trprec &
+  use FLUXES, only : trprec 
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-       ,trprec_dust
+  use FLUXES, only : trprec_dust
 #endif
 #endif
-  ;
+
 #ifdef TRACERS_AMP
-  use AMP_AEROSOL, only : AQsulfRATE &
+  use AMP_AEROSOL, only : AQsulfRATE
 #ifndef NO_HDIURN
-       ,DIURN_LWP, DIURN_LWC
+       use AMP_AEROSOL, only : DIURN_LWP, DIURN_LWC
 #endif
-  ;
 #endif
+
 #ifdef INTERACTIVE_WETLANDS_CH4
   use tracer_sources, only : n__prec
 #endif
@@ -296,10 +292,9 @@ subroutine CONDSE
   real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) :: &
        TMOMIL,QMOMIL
 #ifdef TRACERS_ON
-  real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) &
-       :: TRM_LNI &
+  real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) :: TRM_LNI
 #ifdef TRACERS_WATER
-       ,TRWM_LNI
+  real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) :: TRWM_LNI
 #endif
   real*8, dimension(NMOM,LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) &
        :: TRMOM_LNI
@@ -1021,9 +1016,10 @@ subroutine CONDSE
 #ifndef SKIP_TRACER_DIAGS
           if(lmcmax > 0) then
             do l=1,lmcmax
-              dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l)) &
+              dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
 #ifdef TRACERS_WATER
-                   + trsvwml(nx,l)
+              dtrm(l) = dtrm(l) + trsvwml(nx,l)
+#else
 #endif
             enddo
             if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lmcmax)), &
@@ -1532,9 +1528,9 @@ subroutine CONDSE
 
 #ifndef SKIP_TRACER_DIAGS
           do l=1,lp50
-            dtrm(l) = tm(l,nx)-trm_lni(l,n,i)*fssl(l) &
+            dtrm(l) = tm(l,nx)-trm_lni(l,n,i)*fssl(l)
 #ifdef TRACERS_WATER
-                 + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
+                 dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
 #endif
           enddo
           if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lp50)), &
