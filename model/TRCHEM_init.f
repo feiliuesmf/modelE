@@ -15,7 +15,9 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,nss,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
      &    allowSomeChemReinit
+#ifdef SHINDELL_STRAT_CHEM
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
+#endif
 
       IMPLICIT NONE
 
@@ -69,15 +71,18 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
         acetone(I_0:I_1,J_0:J_1,:)  =0.d0
+#ifdef SHINDELL_STRAT_CHEM
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
         pClx(I_0:I_1,J_0:J_1,:)     =0.d0
         pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0
         pBrOx(I_0:I_1,J_0:J_1,:)    =1.d0
         yCl2(I_0:I_1,J_0:J_1,:)     =0.d0
         yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
+#endif
       END IF
 
  100  format(/3(50x,l1/),3(50x,i8/))
+#ifdef SHINDELL_STRAT_CHEM
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
  110  format(6(///10(a8)),(///2(a8)))
@@ -91,8 +96,22 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
  110  format(5(///10(a8)),(///3(a8)))
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
-
-
+#else
+#ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_TERP
+ 110  format(4(///10(a8)),(///4(a8)))
+#else
+ 110  format(4(///10(a8)),(///3(a8)))
+#endif
+#else
+#ifdef TRACERS_TERP
+ 110  format(3(///10(a8)),(///6(a8)))
+#else
+ 110  format(3(///10(a8)),(///5(a8)))
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
+#endif
+     
       return
       END SUBROUTINE cheminit
 
@@ -590,7 +609,9 @@ C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
+#ifdef SHINDELL_STRAT_CHEM
      &                  ,MXFASTJ,MIEDX2,title_aer_pf,NAA
+#endif
       use model_com, only: LM
 
       IMPLICIT NONE
@@ -673,7 +694,9 @@ C**** GLOBAL parameters and variables:
      &    Q1D,TQQ,QQQ,NAA,QAAFASTJ,NK,WAAFASTJ,PAA,zpdep,npdep,jpdep,
      &    lpdep,NS,TITLE0,NW1,NW2,TITLEJ,JPPJ,jind,jlabel,jfacta,
      &    title_aer_pf,QO2,QO3,DUMMY,rad_FL
+#ifdef SHINDELL_STRAT_CHEM
      &    ,SSA,RAA,NP,SF3_fact,SF2_fact,bin4_1991,bin4_1988,bin5_1988
+#endif
 
       IMPLICIT NONE
 
@@ -692,11 +715,13 @@ C     bin5_1988 fastj2 bin#5 photon flux for year 1988
 
       TQQ = 0.d0
 
+#ifdef SHINDELL_STRAT_CHEM
       if(rad_FL == 0)then
         bin4_1991 = 9.431d+11
         bin4_1988 = 9.115E+11
         bin5_1988 = 5.305E+12
       endif
+#endif
 
 C Read in spectral data:
       READ(NJ1,'(A)') TITLE0
@@ -745,8 +770,18 @@ C Read remaining species:  X-sections at 2 T's :
       ENDDO
       READ(NJ1,'(A)') TITLE0
 
-C (Don't) read pressure dependencies:
+C Read pressure dependencies:
+#ifdef SHINDELL_STRAT_CHEM
       npdep=0
+#else
+      read(NJ1,104) npdep
+      do k=1,npdep
+        read(NJ1,105) lpdep(k),(zpdep(iw,k),iw=1,nwww)
+        write(out_line,201)  lpdep(k),(zpdep(iw,k),iw=1,nwww)
+        call write_parallel(trim(out_line))
+      enddo
+      read(NJ1,'(A)') TITLE0
+#endif
 
 c Zero index arrays:
       jind=0
@@ -757,9 +792,11 @@ C Set mapping index:
         do k=1,jppj
           if(jlabel(k) == titlej(1,j)) jind(k)=j
         enddo
+#ifndef SHINDELL_STRAT_CHEM
         do k=1,npdep
           if(lpdep(k) == titlej(1,j)) jpdep(j)=k
         enddo
+#endif
       enddo
       do k=1,jppj
         if(jfacta(k) == 0.d0) then
@@ -779,6 +816,7 @@ C Set mapping index:
       enddo
 
 C Read aerosol phase functions:
+#ifdef SHINDELL_STRAT_CHEM
       read(NJ1,'(A10,I5,/)') TITLE0,NAA
       if(NAA > NP)then 
         write(out_line,350) NAA
@@ -793,7 +831,20 @@ C Read aerosol phase functions:
      &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
         enddo
       enddo
-
+#else
+      READ(NJ1,'(A10,I5)') TITLE0,NAA
+      write(out_line,*)'Title0 is',Title0
+      call write_parallel(trim(out_line))
+      write(out_line,*)'NAA is',NAA
+      call write_parallel(trim(out_line))
+      DO J=1,NAA
+        READ(NJ1,'(A5,I3,I2,14F5.0)') title_aer_pf(J),JJ,NK,
+     $  (WAAFASTJ(K,J),QAAFASTJ(K,J),K=1,NK)
+        DO K=1,NK
+          READ(NJ1,'(8X,8F9.5)') (PAA(I,K,J), I=1,8)
+        ENDDO
+      ENDDO
+#endif   
       write(out_line,*) 'Aerosol phase functions & wavelengths'
       call write_parallel(trim(out_line))
       DO J=1,NAA
@@ -805,14 +856,21 @@ C Read aerosol phase functions:
         call write_parallel(trim(out_line))
       ENDDO   
 
+#ifdef SHINDELL_STRAT_CHEM
       if(rad_FL == 0)then
         SF2_fact=FL(5)/bin5_1988
         SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
       endif
+#endif   
 
   101 FORMAT(8E10.3)
+#ifdef SHINDELL_STRAT_CHEM
   102 FORMAT((10X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
   103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
+#else
+  102 FORMAT(10X,7E10.3)
+  103 FORMAT(A7,F3.0,7E10.3)
+#endif
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
   110 format(3x,a5)
@@ -836,7 +894,9 @@ C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: NWWW,FL,FLX,DUMMY,rad_FL
+#ifdef SHINDELL_STRAT_CHEM
      & ,SF2_fact,SF3_fact,bin4_1991,bin4_1988,bin5_1988
+#endif
       USE MODEL_COM, only: JYEAR,JDAY,JMON
       USE RAD_COM, only: s0_yr
       USE RADPAR, only: icycs0,icycs0f
@@ -915,6 +975,7 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
           else
             DUMMY(1:NWWW)=FLX(1:NWWW)
           endif
+#ifdef SHINDELL_STRAT_CHEM
           if(yearx == 1988)then
             if(yearx == wantYear)then
               bin4_1988=FL(4); bin5_1988=FL(5)
@@ -929,6 +990,9 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
             endif
           endif
           if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
+#else
+          call stop_model('make sure rad_FL>0 works in trop-chem?',255)
+#endif
         end do readLoop
 
         write(out_line,*)'READ_FL Using year ',wantYear,
@@ -939,11 +1003,15 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
         call closeunit(iunit)
       endif
 
+#ifdef SHINDELL_STRAT_CHEM
       if(rad_FL > 0)then
         SF2_fact=FL(5)/bin5_1988
         SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
       endif
   102 FORMAT((I4,6X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
+#else
+  102 FORMAT(I4,6X,7E10.3)
+#endif
       RETURN 
 
  101  CONTINUE ! This should no longer be reached.        
@@ -960,7 +1028,11 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: TITLE0,
+#ifdef SHINDELL_STRAT_CHEM
      & TREF2, OREF2, BREF2, ZZHT
+#else 
+     & TREF, OREF, BREF
+#endif
 
       IMPLICIT NONE
 
@@ -970,7 +1042,9 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: nj2
       integer :: ia, i, m, l, lat, mon, ntlats, ntmons, n216
       character(len=300) :: out_line
+#ifdef SHINDELL_STRAT_CHEM
       REAL*8 :: ofac, ofak
+#endif
 
       READ(NJ2,'(A)') TITLE0
       WRITE(out_line,'(1X,A)') TITLE0
@@ -983,10 +1057,16 @@ C**** Local parameters and variables and arguments:
         READ(NJ2,'(1X,I3,3X,I2)') LAT, MON
         M = MIN(12, MAX(1, MON))
         L = MIN(18, MAX(1, (LAT+95)/10))
+#ifdef SHINDELL_STRAT_CHEM
         READ(NJ2,'(3X,11F7.1)') (TREF2(I,L,M), I=1,41)
         READ(NJ2,'(3X,11F7.4)') (OREF2(I,L,M), I=1,31)
+#else
+        READ(NJ2,'(3X,11F7.1)') (TREF(I,L,M), I=1,41)
+        READ(NJ2,'(3X,11F7.4)') (OREF(I,L,M), I=1,31)
+#endif
       ENDDO
   
+#ifdef SHINDELL_STRAT_CHEM      
 c Extend climatology to 100 km:
       ofac=exp(-2.d5/ZZHT)
       do i=32,51
@@ -1010,7 +1090,10 @@ c al) Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in
 c cm))
       do i=1,6;  BREF2(i) =10.d0*1.0d-11; end do
       do i=7,51; BREF2(i) =0.d0         ; end do
-
+#else
+      do i=1,11 ; BREF(i) =10.d0*1.0d-11; end do
+      do i=12,41; BREF(i) =0.d0         ; end do
+#endif
       return
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
 
