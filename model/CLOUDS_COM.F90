@@ -116,33 +116,31 @@ subroutine ALLOC_CLOUDS_COM(grid)
   use AERO_CONFIG, only: NMODES
 #endif
 #endif
-  use CLOUDS_COM, only : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV, &
-       CLDSAV1,FSS, &
+  use CLOUDS_COM, only : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,CLDSAV1,FSS
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-       CL3D,CI3D,CD3D,CTEM, &
+  use CLOUDS_COM, only : CL3D,CI3D,CD3D,CTEM
 #endif
 #ifdef CLD_AER_CDNC
-       OLDNL,OLDNI, &
-       CDN3D,CRE3D,CLWP, &
+  use CLOUDS_COM, only :  OLDNL,OLDNI, CDN3D,CRE3D,CLWP
 #endif
-       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
+  use CLOUDS_COM, only : TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
        ULS,VLS,UMC,VMC,TLS,QLS, &
-       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML &
+       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #if (defined mjo_subdd) || (defined etc_subdd)
-       ,CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D &
+  use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D 
 #endif
 #ifdef etc_subdd
-       ,LWP2D,IWP2D &
+  use CLOUDS_COM, only : LWP2D,IWP2D
 #endif
 #ifdef mjo_subdd
-       ,TMCDRY,SMCDRY,DMCDRY,LSCDRY &
+  use CLOUDS_COM, only : TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
-       ,NACTC,NAERC
+  use CLOUDS_COM, only : NACTC,NAERC
 #endif
 #endif
-  ;
+
   implicit none
   type (DIST_GRID), intent(IN) :: grid
 
@@ -154,7 +152,8 @@ subroutine ALLOC_CLOUDS_COM(grid)
   J_0H = grid%J_STRT_HALO
   J_1H = grid%J_STOP_HALO
 
-  allocate(     TTOLD(LM,I_0H:I_1H,J_0H:J_1H), &
+  allocate( &
+       TTOLD(LM,I_0H:I_1H,J_0H:J_1H), &
        QTOLD(LM,I_0H:I_1H,J_0H:J_1H), &
        SVLHX(LM,I_0H:I_1H,J_0H:J_1H), &
        SVLAT(LM,I_0H:I_1H,J_0H:J_1H), &
@@ -162,44 +161,56 @@ subroutine ALLOC_CLOUDS_COM(grid)
        CLDSAV(LM,I_0H:I_1H,J_0H:J_1H), &
        CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H), &
        FSS(LM,I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+  allocate( &
        CTEM(LM,I_0H:I_1H,J_0H:J_1H), &
        CD3D(LM,I_0H:I_1H,J_0H:J_1H), &
        CL3D(LM,I_0H:I_1H,J_0H:J_1H), &
        CI3D(LM,I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #endif
 #ifdef CLD_AER_CDNC
+  allocate( &
        OLDNL(LM,I_0H:I_1H,J_0H:J_1H), &
        OLDNI(LM,I_0H:I_1H,J_0H:J_1H), &
        CDN3D(LM,I_0H:I_1H,J_0H:J_1H), &
        CRE3D(LM,I_0H:I_1H,J_0H:J_1H), &
        CLWP(I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #endif
+  allocate( &
        TAUSS(LM,I_0H:I_1H,J_0H:J_1H), &
        TAUMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CLDSS(LM,I_0H:I_1H,J_0H:J_1H), &
        CLDMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZSS(LM,I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #ifdef mjo_subdd
+  allocate( &
        TMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
        SMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
        DMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
        LSCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #endif
 #ifdef etc_subdd
+  allocate( &
        LWP2D(I_0H:I_1H,J_0H:J_1H), &
        IWP2D(I_0H:I_1H,J_0H:J_1H), &
+       STAT=IER)
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
+  allocate( &
        CLWC3D(LM,I_0H:I_1H,J_0H:J_1H), &
        CIWC3D(LM,I_0H:I_1H,J_0H:J_1H), &
        TLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
        SLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
        DLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
        LLH3D(LM,I_0H:I_1H,J_0H:J_1H), &
-#endif
        STAT=IER)
+#endif
 
   allocate(     ULS(I_0H:I_1H,J_0H:J_1H,LM), &
        VLS(I_0H:I_1H,J_0H:J_1H,LM), &
@@ -210,6 +221,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
        TMC(I_0H:I_1H,J_0H:J_1H,LM), &
        QMC(I_0H:I_1H,J_0H:J_1H,LM), &
        STAT=IER)
+
 
 !@var FSS initialized to 1.
   FSS = 1.
@@ -262,11 +274,10 @@ subroutine io_clouds(kunit,iaction,ioerr)
 !@var HEADER Character string label for individual records
   character*80 :: HEADER, MODULE_HEADER = "CLD01"
   real*8, allocatable,  dimension(:,:,:) :: TTOLD_glob,QTOLD_glob &
-       ,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
+       ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
-       ,OLDNL_glob,OLDNI_glob
+  real*8, allocatable,  dimension(:,:,:) :: OLDNL_glob,OLDNI_glob
 #endif
-  ;
   call allocate_me
 
   write(MODULE_HEADER(lhead+1:80),'(a)') &
@@ -284,22 +295,26 @@ subroutine io_clouds(kunit,iaction,ioerr)
     call PACK_COLUMN(grid, OLDNI, OLDNI_glob)
 #endif
     if (AM_I_ROOT()) then
+#ifndef CLD_AER_CDNC
+      write (kunit,err=10) MODULE_HEADER, &
+           TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+#else
       write (kunit,err=10) MODULE_HEADER, &
            TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
-#ifdef CLD_AER_CDNC
            ,OLDNL_glob,OLDNI_glob
 #endif
-      ;
     end if
 
   case (IOREAD:)            ! input from restart file
     if (AM_I_ROOT()) then
+#ifndef CLD_AER_CDNC
       read (kunit,err=10) HEADER, &
-           TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob &
-#ifdef CLD_AER_CDNC
-           ,OLDNL_glob,OLDNI_glob
+           TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob
+#else
+      read (kunit,err=10) HEADER, &
+           TTOLD_glob,QTOLD_glob,SVLHX_glob,RHSAV_glob,CLDSAV_glob, &
+           OLDNL_glob,OLDNI_glob
 #endif
-      ;
       if (HEADER(1:15).ne.MODULE_HEADER(1:15)) then
         print*,"Discrepancy in module version ",HEADER,MODULE_HEADER
         GO TO 10
@@ -339,24 +354,22 @@ contains
          QTOLD_glob(lmg,img,jmg), &
          SVLHX_glob(lmg,img,jmg), &
          RHSAV_glob(lmg,img,jmg), &
-         CLDSAV_glob(lmg,img,jmg) &
+         CLDSAV_glob(lmg,img,jmg))
 #ifdef CLD_AER_CDNC
-         ,OLDNL_glob(lmg,img,jmg) &
-         ,OLDNI_glob(lmg,img,jmg) &
+    allocate( OLDNL_glob(lmg,img,jmg) &
+         ,OLDNI_glob(lmg,img,jmg))
 #endif
-         )
   end subroutine allocate_me
   subroutine deallocate_me
     deallocate( TTOLD_glob, &
          QTOLD_glob, &
          SVLHX_glob, &
          RHSAV_glob, &
-         CLDSAV_glob &
+         CLDSAV_glob)
 #ifdef CLD_AER_CDNC
-         ,OLDNL_glob &
-         ,OLDNI_glob &
+    deallocate( OLDNL_glob &
+         ,OLDNI_glob)
 #endif
-         )
   end subroutine deallocate_me
 end subroutine io_clouds
 
