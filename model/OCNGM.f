@@ -5,10 +5,10 @@
       USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
      *     ,mo,dypo,dyvo,dxpo,dzo
-      USE KPP_COM, only : kpl,kpl_glob   
-      USE OCEAN_DYN, only  : dh, vbar   
+      USE KPP_COM, only : kpl
+      USE OCEAN_DYN, only  : dh  ! ,vbar
+      USE ODIAG, only : oij=>oij_loc,ij_gmsc 
 
-!      USE DOMAIN_DECOMP_1D, ONLY : grid, GET, HALO_UPDATE, NORTH, SOUTH,
       USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,
      *                          ESMF_BCAST, UNPACK_DATA, GLOBALSUM
@@ -19,33 +19,27 @@
 
 !@var AI0,AI1,AI2,AI3 Cmponents of GM mixing coeff = F(isopycnal slopes)
 !@var SIX0-SIX3,SIY0-SIY3: Slopes calculated from 4 triads of density.
-!     REAL*8, DIMENSION(IM,JM,LMO) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     ASX0,ASX1,ASX2,ASX3,AIX0,AIX1,AIX2,AIX3,
      *     ASY0,ASY1,ASY2,ASY3,AIY0,AIY1,AIY2,AIY3,
      *     S2X0,S2X1,S2X2,S2X3,S2Y0,S2Y1,S2Y2,S2Y3
 
-!     REAL*8, DIMENSION(IM,JM,LMO) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     DXZ, BXZ, CXZ,CDXZ, EXZ, DYZ,BYZ,
      *     CYZ,CDYZ,EYZ,CEXZ,CEYZ
 
-!     REAL*8, DIMENSION(IM,JM,LMO) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     BXX, BYY, BZZ, AZX, BZX, CZX,AEZX,
      *     EZX,CEZX, AZY, BZY,  CZY,AEZY, EZY,CEZY
 
-!     REAL*8, DIMENSION(IM,JM,LMO) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     BYDZV,BYDH,DZV
 
-!     REAL*8, DIMENSION(IM,JM,LMO) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     RHOX,RHOY,RHOMZ,BYRHOZ
 
 !@var AINV Calculated Isopycnal thickness diffusion (m^2/s)
 !@var ARIV Calculated Redi diffusion (m^2/s)
-!     REAL*8, DIMENSION(IM,JM) ::
       REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
      *     AINV,ARIV
 
@@ -60,9 +54,17 @@
 
       REAL*8, PARAMETER :: eps=TINY(1.D0)
 
-!     REAL*8, DIMENSION(JM) ::
       REAL*8, ALLOCATABLE, DIMENSION(:) ::
      *     BYDYP,BYDXP,BYDYV
+
+!@var VBAR specific volume (ref to mid point pressure)
+!@var dVBARdZ specific volume vertical difference (ref to lower point pressure)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: VBAR, dVBARdZ
+!@var RHOZ1K density gradient over top 1km
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RHOZ1K
+
+!@var LUP level corresponding to 1km depth
+      INTEGER :: LUP
 
       contains
 
@@ -127,6 +129,10 @@ c**** allocate arrays
         allocate( BYDH (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( DZV  (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
+        allocate( VBAR   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( DVBARDZ(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( RHOZ1K (IM,grid%j_strt_halo:grid%j_stop_halo) )
+
         allocate( RHOX   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( RHOY   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( RHOMZ  (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
@@ -152,7 +158,6 @@ c**** allocate arrays
       INTEGER I,J,L,IM1
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      LOGICAL :: HAVE_NORTH_POLE
       INTEGER, SAVE :: IFIRST = 1
 
       if ( IFIRST.ne.0 ) then
@@ -164,8 +169,7 @@ c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
 
 C**** Initialize SLOPES common block of coefficients
 !$OMP PARALLEL DO  PRIVATE(L)
@@ -239,14 +243,13 @@ C**** from downgradients (-ve gradT)  !!!Sign!!!
      *                AIX3(I,J,L) + AIX1(IM1,J  ,L))
       BYY(I,J-1,L) = (AIY2(I,J,L) + AIY0(I  ,J-1,L) +
      *                AIY3(I,J,L) + AIY1(I  ,J-1,L))
-      IF(KPL(I,J).gt.L) GO TO 110
 C**** Z-direction fluxes
 C**** Diagonal (Includes AI and DYV/DYP)
+      IF (L.gt.KPL(I,J)) THEN
       IF (L.gt.1) BZZ(I,J,L-1) = (S2X1(I,J,L  ) + S2X3(I,J,L  ) +
      *                            S2X0(I,J,L-1) + S2X2(I,J,L-1) +
      *                            S2Y1(I,J,L  ) + S2Y3(I,J,L  ) +
      *                            S2Y0(I,J,L-1) + S2Y2(I,J,L-1))
-C****
 C**** Off-diagonal
 C**** FZXbot(I,J,L) = ASX0(I,J,L)*(TR(I  ,J,L) - TR(IP1,J,L))
 C****               + ASX2(I,J,L)*(TR(IM1,J,L) - TR(I  ,J,L))
@@ -266,6 +269,7 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
       AEZY(I,J,L)  =  ASY3(I,J,L)
       EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L)
       CEZY(I,J,L)  = -ASY1(I,J,L)
+      END IF
   110 IM1 = I
       END DO
       END DO
@@ -313,17 +317,13 @@ C****
 !@ver  1.0
       USE GM_COM
       IMPLICIT NONE
-!     REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: TRM,TXM,TYM,TZM
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
      *        INTENT(INOUT) :: TRM,TXM,TYM,TZM
       LOGICAL, INTENT(IN) :: QLIMIT
 !@var GIJL Tracer flux
-!     REAL*8, DIMENSION(IM,JM,LMO,3), INTENT(INOUT) :: GIJL
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
      *         INTENT(INOUT) :: GIJL
-!     REAL*8, DIMENSION(IM,JM,LMO) :: TR
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: TR
-!     REAL*8, DIMENSION(IM,JM,LMO) :: FXX,FXZ,FYY,FYZ,FZZ,FZX,FZY
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
      *         FXX,FXZ,FYY,FYZ,FZZ,FZX,FZY
       REAL*8 MOFX, MOFY, MOFZ, RFXT, RFYT, RFZT, DT4, DT4DY, DT4DX,
@@ -333,14 +333,12 @@ C****
       INTEGER I,J,L,IM1,IP1
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      LOGICAL :: HAVE_NORTH_POLE
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
 
       DT4 = 0.25*DTS
 C**** Explicit calculation of "fluxes" (R(T))
@@ -423,11 +421,11 @@ C**** Skip for L+1 greater than LMM(I,J+1)
   520 CONTINUE
 C**** END of FY
 C**** Loop for Fluxes in Z-direction
-      IF(KPL(I,J).gt.L) GO TO 530
       IF(LMM(I,J).le.L) GO TO 530
 C**** Calculate fluxes in Z-direction
 C**** Diagonal      :  Need BYDH for divF!
-      FZZ(I,J,L) = DT4*BZZ(I,J,L)*(TR(I,J,L+1)-TR(I,J,L))*BYDZV(I,J,L)
+      IF(KPL(I,J).le. L) 
+     * FZZ(I,J,L) = DT4*BZZ(I,J,L)*(TR(I,J,L+1)-TR(I,J,L))*BYDZV(I,J,L)
 C**** Off-diagonal X:  May need to use IM2,IM1,I and F(IM1)
       FZX(I,J,L) = DT4DX * (BZX(I,J,L) * TR(I,J,L) +
      *     AZX(I,J,L) * TR(IM1,J,L) + CZX(I,J,L) * TR(IP1,J,L) +
@@ -507,10 +505,11 @@ C****
       INTEGER I,J,L,IM1
 
       INTEGER :: J_0S, J_1S
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** Summation of explicit fluxes to TR, (R(T))
@@ -550,7 +549,6 @@ C**** Gradient fluxes in Y direction affected by diagonal terms
 
 C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
 C**** Loop for Fluxes in Z-direction
-      IF(KPL(I,J).gt.L) GO TO 610
       IF(LMM(I,J).lt.L) GO TO 610
       IF(LMM(I,J).gt.L) THEN
 C**** Calculate new tracer/salinity/enthalpy
@@ -589,8 +587,7 @@ C****   Fluxes in Y-direction
         END DO
 
 C****   Loop for Fluxes in Z-direction
-        IF(KPL(1,JM).gt.L) GO TO 620
-        IF(LMM(1,JM).lt.L) GO TO 620
+        IF(LMM(1,JM).ge.L) THEN 
         IF(LMM(1,JM).gt.L) THEN
 C****     Calculate new tracer/salinity/enthalpy
           MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
@@ -608,8 +605,43 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
      &      DXYPO(JM) *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*
      &      BYDH(1,JM,L)**2)
         END IF
-
+        END IF
       END IF   ! HAVE_NORTH_POLE
+
+ 615  IF(HAVE_SOUTH_POLE) THEN
+
+C****   South Polar box
+C****   Fluxes in Y-direction
+        DO I=1,IM
+          IF(LMV(I,2).ge.L) THEN
+            MOFY =((MO(I,2,L)*BYDYP(2)*DXYPO(2)) +
+     *             (MO(1,1,L)*BYDYP(1)*DXYPO(1)))*0.5
+            RFYT =(FYY(I,2,L) + FYZ(I,2,L))*MOFY
+            flux_y(I,1,L) = RFYT
+          END IF
+        END DO
+
+C****   Loop for Fluxes in Z-direction
+        IF(LMM(1,1).ge.L) THEN
+        IF(LMM(1,1).gt.L) THEN
+C****     Calculate new tracer/salinity/enthalpy
+          MOFZ =((MO(1,1,L+1)*BYDH(1,1,L+1)) +
+     *           (MO(1,1,L  )*BYDH(1,1,L  ))) * DXYPO(1) *0.5
+          RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+ARAI))*MOFZ
+          flux_z(1,1,L) = RFZT
+        END IF
+C****   Gradient fluxes in Z direction affected by diagonal terms
+        IF (L.gt.1) THEN
+          TZM(1,1,L) = (TZM(1,1,L) - 3.*(FZZ(1,1,L)+FZZ(1,1,L-1))*
+     *      MO(1,1,L)*DXYPO(1)*BYDH(1,1,L))/(1.+6.*DT4*(BZZ(1,1,L)
+     *      +BZZ(1,1,L-1))*BYDH(1,1,L)**2)
+        ELSE
+          TZM(1,1,L) = (TZM(1,1,L) - 3.*FZZ(1,1,L)*MO(1,1,L)*
+     &      DXYPO(1) *BYDH(1,1,L))/(1.+12.*DT4*BZZ(1,1,L)*
+     &      BYDH(1,1,L)**2)
+        END IF
+        END IF
+      END IF   ! HAVE_SOUTH_POLE
 
  620  END DO   ! L loop
 !$OMP END PARALLEL DO
@@ -636,12 +668,13 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
       integer :: i,j,l
 
       INTEGER :: J_0S, J_1S, J_0, J_1
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
       CALL GET(grid,
      &     J_STRT=J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       call halo_update(grid,flux_y,from=north)
@@ -685,6 +718,7 @@ c
      &                   +flux_y(i,j,l)-flux_y(i,j+1,l)
         enddo
         if(have_north_pole) conv(1,jm,l) = sum(flux_y(:,jm,l))/im
+        if(have_south_pole) conv(1,1,l) = sum(flux_y(:,1,l))/im
         if(l.lt.lmo) then
           do j=j_0s,j_1s
           do i=1,im
@@ -696,12 +730,22 @@ c
             conv(1,jm,l  ) = conv(1,jm,l  ) + flux_z(1,jm,l)
             conv(1,jm,l+1) = conv(1,jm,l+1) - flux_z(1,jm,l)
           endif
+          if(have_south_pole) then
+            conv(1,1,l  ) = conv(1,1,l  ) + flux_z(1,1,l)
+            conv(1,1,l+1) = conv(1,1,l+1) - flux_z(1,1,l)
+          endif
         endif
       enddo
       if(have_north_pole) then
         do l=1,lmo
           trm(2:im,jm,l) = trm(1,jm,l)
           conv(2:im,jm,l) = conv(1,jm,l)
+        enddo
+      endif
+      if(have_south_pole) then
+        do l=1,lmo
+          trm(2:im,1,l) = trm(1,1,l)
+          conv(2:im,1,l) = conv(1,1,l)
         enddo
       endif
 
@@ -739,8 +783,8 @@ c
         posadj = 1.
       endif
 
-c      if(am_i_root() .and. posadj.ne.1.)
-c     &     write(6,*) 'posadj ',posadj
+      if(am_i_root() .and. posadj.ne.1.)
+     &     write(6,*) 'posadj ',posadj
 
 c
 c Apply the corrected flux convergence
@@ -758,194 +802,11 @@ c
       RETURN
       END SUBROUTINE wrapAdjustFluxes
 
-cC****
-c      SUBROUTINE limitedValue(RFXT,TRM1,TRM)
-c      USE GM_COM, only : eps
-c      IMPLICIT NONE
-c
-c      REAL*8, INTENT(INOUT) :: RFXT
-c      REAL*8, INTENT( IN  ) :: TRM1, TRM
-c
-c      IF ( RFXT >  0.95d0*TRM1.and.ABS( RFXT ) >   eps ) THEN
-c        RFXT = 0.95d0*TRM1
-c      ELSEIF ( RFXT < -0.95d0*TRM.and.ABS( RFXT ) > eps) THEN
-c        RFXT = -0.95d0*TRM
-c      END IF
-c
-c      RETURN
-c      END SUBROUTINE limitedValue
-cC****
-c      SUBROUTINE wrapAdjustFluxes(TRM, flux_x, flux_y, flux_z, GIJL)
-c!@wrapper to set up local storage and call adjustAndAddFluxes
-c      USE GM_COM, only: grid, IM, JM, LMO, KPL, KPL_GLOB,
-c     &                  PACK_DATA, ESMF_BCAST, UNPACK_DATA 
-c      IMPLICIT NONE
-c      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
-c     &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
-c      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
-c     &        INTENT(INOUT) :: GIJL
-c!***  local storage for global variables
-c      REAL*8, DIMENSION(IM,JM,LMO) ::
-c     &            TRM_GLOB, flux_x_GLOB, flux_y_GLOB, flux_z_GLOB
-c      REAL*8, DIMENSION(IM,JM,LMO,3) :: GIJL_GLOB
-c
-c      CALL PACK_DATA(grid, TRM , TRM_GLOB)
-c      CALL PACK_DATA(grid, flux_x , flux_x_GLOB)
-c      CALL PACK_DATA(grid, flux_y , flux_y_GLOB)
-c      CALL PACK_DATA(grid, flux_z , flux_z_GLOB)
-c      CALL PACK_DATA(grid, GIJL , GIJL_GLOB)
-c      CALL PACK_DATA(grid, KPL , KPL_GLOB)
-c
-c      CALL ESMF_BCAST(grid, TRM_GLOB)
-c      CALL ESMF_BCAST(grid, flux_x_GLOB)
-c      CALL ESMF_BCAST(grid, flux_y_GLOB)
-c      CALL ESMF_BCAST(grid, flux_z_GLOB)
-c      CALL ESMF_BCAST(grid, GIJL_GLOB)
-c      CALL ESMF_BCAST(grid, KPL_GLOB)
-c
-c      call adjustAndAddFluxes (TRM_GLOB, flux_x_GLOB, flux_y_GLOB,
-c     &                         flux_z_GLOB, GIJL_GLOB)
-c      call UNPACK_DATA (grid, TRM_GLOB, TRM)
-c      call UNPACK_DATA (grid, GIJL_GLOB, GIJL)
-c
-c      RETURN
-c      END SUBROUTINE wrapAdjustFluxes
-cC****
-c      SUBROUTINE adjustAndAddFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
-c!@sum applies limiting process to  GM fluxes for tracer quantities
-c!@ver  1.0
-c! this routine is serialized to preserve original algorithm for
-c! TRM update
-c      USE GM_COM, only: IM, JM, LMO, LMM, LMU, LMV, KPL_GLOB
-c      IMPLICIT NONE
-c      REAL*8, DIMENSION(IM,JM,LMO),
-c     &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
-c      REAL*8, DIMENSION(IM,JM,LMO,3),
-c     &        INTENT(INOUT) :: GIJL
-c
-c      REAL*8  RFXT, RFYT, RFZT, STRNP
-c      INTEGER I,J,L,IM1
-c
-c!updates TRM and GIJL with limit adjusted flux values
-c
-c      DO L=1,LMO
-cC**** Non-Polar boxes
-c      DO J=2,JM-1
-c      IM1 = IM
-c      DO I=1,IM
-c      IF(LMM(I,J).le.0) GO TO 611
-c
-c!adjustments in x direction
-c      IF(LMU(IM1,J).ge.L) THEN
-cC**** If fluxes are more than 95% of tracer amount, limit fluxes
-c        RFXT = flux_x(I,J,L)
-c        call limitedValue(RFXT,TRM(IM1,J,L),TRM(I,J,L))
-cC**** Add and Subtract horizontal X flux
-c        TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
-c        TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
-cC**** Save Diagnostic, GIJL(1) = RFXT
-c        GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
-c        !update flux limited values
-c        flux_x(I,J,L) =  RFXT
-c      END IF
-c
-c!adjustments in y direction
-cC**** Loop for Fluxes in Y-direction
-c      IF(LMV(I,J-1).ge.L) THEN
-cC**** If fluxes are more than 95% of tracer amount, limit fluxes
-c        RFYT = flux_y(I,J,L)
-c        call limitedValue(RFYT,TRM(I,J-1,L),TRM(I,J,L))
-cC**** Add and Subtract horizontal Y fluxes
-c        TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
-c        TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
-cC**** Save Diagnostic, GIJL(2) = RFYT
-c        GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
-c        !update flux limited values
-c        flux_y(I, J, L) = RFYT
-c      END IF
-c
-cC**** END of I and J loops
-c  611 IM1 = I
-c      END DO
-c      END DO
-c
-cC**** North Polar box
-c      STRNP=0.
-cC**** Fluxes in Y-direction
-c      DO I=1,IM
-c      IF(LMV(I,JM-1).ge.L) THEN
-c        RFYT = flux_y(I,JM,L)
-cC**** If fluxes are more than 95% of tracer amount, limit fluxes
-c        call limitedValue(RFYT,TRM(I,JM-1,L),TRM(1,JM,L))
-cC**** Add and Subtract horizontal Y fluxes
-c        STRNP= STRNP + RFYT
-c        TRM(I,JM-1,L) = TRM(I,JM-1,L) - RFYT
-c        flux_y(I,JM,L) = RFYT
-c      END IF
-c      END DO
-cC**** adjust polar box
-c      TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
-cC**** Save Diagnostic, GIJL(2) = RFYT
-c      GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
-c
-c
-c 621  END DO    !L loop
-c
-cC**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
-cC**** Extracted from preceding L loop to allow parallelization of that
-cC**** loop; this loop can't be
-c      DO L=1,LMO
-cC**** Non-Polar boxes
-c      DO J=2,JM-1
-c      DO I=1,IM
-c      IF(LMM(I,J).le.0) GO TO 710
-cC**** Loop for Fluxes in Z-direction
-c      IF(KPL_GLOB(I,J).gt.L) GO TO 710
-c      IF(LMM(I,J).lt.L) GO TO 710
-c      IF(LMM(I,J).gt.L) THEN
-cC****   tracer/salinity/enthalpy
-c        RFZT = flux_z(I,J,L)
-cC**** If fluxes are more than 95% of tracer amount, limit fluxes
-c        call limitedValue(RFZT,TRM(I,J,L+1),TRM(I,J,L))
-cC**** Add and Subtract vertical flux. Note +ve upward flux
-c        TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
-c        TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
-cC**** Save Diagnostic, GIJL(3) = RFZT
-c        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
-c      END IF
-c
-cC**** END of I and J loops
-c 710  CONTINUE
-c      END DO
-c      END DO
-c
-c
-cC****   North Polar box
-cC****   Loop for Fluxes in Z-direction
-c        IF(KPL_GLOB(1,JM).gt.L) GO TO 720
-c        IF(LMM(1,JM).lt.L) GO TO 720
-c        IF(LMM(1,JM).gt.L) THEN
-cC****     Calculate new tracer/salinity/enthalpy
-c            RFZT = flux_z(1,JM,L)
-cC****     If fluxes are more than 95% of tracer amount, limit fluxes
-c          call limitedValue(RFZT,TRM(1,JM,L+1),TRM(1,JM,L))
-cC****     Add and Subtract vertical flux. Note +ve upward flux
-c          TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
-c          TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
-cC****     Save Diagnostic, GIJL(3) = RFZT
-c          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
-c        END IF
-c 720    CONTINUE
-c
-c      END DO
-c
-c      RETURN
-c      END SUBROUTINE adjustAndAddFluxes
-C****
+
       SUBROUTINE addFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
 !@sum applies GM fluxes to tracer quantities
 !@ver  1.0
-      USE GM_COM, only: grid, GET, IM, JM, LMO,
+      USE GM_COM, only: grid, GET, IM, JM, LMO,DXYPO,MO,
      &                        LMM, LMU, LMV, KPL
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -954,17 +815,18 @@ C****
      &          INTENT(IN) :: flux_x, flux_y, flux_z
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
      &          INTENT(INOUT) :: GIJL
-      REAL*8 STRNP, RFZT
+      REAL*8 STRNP, RFZT, STRSP
       INTEGER :: I, J, L, IM1
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 !updates TRM and GIJL using flux values
@@ -1011,6 +873,23 @@ C**** adjust polar box
 C**** Save Diagnostic, GIJL(2) = STRNP
         GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
       END IF
+
+      IF(HAVE_SOUTH_POLE) THEN
+C****   South Polar box
+        STRSP=0.
+C****   Fluxes in Y-direction
+        DO I=1,IM
+          IF(LMV(I,2).ge.L) THEN
+C****       Add and Subtract horizontal Y fluxes
+            STRSP= STRSP + flux_y(I,1,L)
+            TRM(I,2,L) = TRM(I,2,L) - flux_y(I,1,L)
+          END IF
+        END DO
+C**** adjust polar box
+        TRM(1,1,L)=TRM(1,1,L) + STRSP/IM
+C**** Save Diagnostic, GIJL(2) = STRSP
+        GIJL(1,1,L,2) = GIJL(1,1,L,2) + STRSP
+      END IF
  622  END DO    !L loop
 
 
@@ -1044,14 +923,15 @@ C**** Non-Polar boxes
       DO I=1,IM
       IF(LMM(I,J).le.0) GO TO 710
 C**** Loop for Fluxes in Z-direction
-      IF(KPL(I,J).gt.L) GO TO 710
       IF(LMM(I,J).lt.L) GO TO 710
       IF(LMM(I,J).gt.L) THEN
 C****   tracer/salinity/enthalpy
         RFZT = flux_z(I,J,L)
+
 C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
         TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
+
 C**** Save Diagnostic, GIJL(3) = RFZT
         GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
       END IF
@@ -1065,7 +945,6 @@ C**** END of I and J loops
       IF(HAVE_NORTH_POLE) THEN
 C**** North Polar box
 C**** Loop for Fluxes in Z-direction
-        IF(KPL(1,JM).gt.L) GO TO 720
         IF(LMM(1,JM).lt.L) GO TO 720
         IF(LMM(1,JM).gt.L) THEN
 C**** Calculate new tracer/salinity/enthalpy
@@ -1078,6 +957,23 @@ C**** Save Diagnostic, GIJL(3) = RFZT
         END IF
  720    CONTINUE
       END IF     ! HAVE_NORTH_POLE
+
+
+      IF(HAVE_SOUTH_POLE) THEN
+C**** South Polar box
+C**** Loop for Fluxes in Z-direction
+        IF(LMM(1,1).lt.L) GO TO 730
+        IF(LMM(1,1).gt.L) THEN
+C**** Calculate new tracer/salinity/enthalpy
+          RFZT = flux_z(1,1,L)
+C**** Add and Subtract vertical flux. Note +ve upward flux
+          TRM(1,1,L  ) = TRM(1,1,L  ) + RFZT
+          TRM(1,1,L+1) = TRM(1,1,L+1) - RFZT
+C**** Save Diagnostic, GIJL(3) = RFZT
+          GIJL(1,1,L,3) = GIJL(1,1,L,3) + RFZT
+        END IF
+ 730    CONTINUE
+      END IF     ! HAVE_SOUTH_POLE
       END DO
 
       RETURN
@@ -1095,15 +991,13 @@ C****
       Real*8 :: byAIDT, DSX0sq,DSX1sq,DSX2sq,DSX3sq,
      *                  DSY0sq,DSY1sq,DSY2sq,DSY3sq
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      LOGICAL :: HAVE_NORTH_POLE
       LOGICAL :: dothis
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
 
 C**** Calculate horizontal and vertical density gradients.
       CALL DENSGRAD
@@ -1118,8 +1012,7 @@ C**** Main Loop over I,J and L
 !$OMP&  SIX0  ,SIX1  ,SIX2  ,SIX3  , SIY0  ,SIY1  ,SIY2  ,SIY3  ,
 !$OMP&  DSX0sq,DSX1sq,DSX2sq,DSX3sq, DSY0sq,DSY1sq,DSY2sq,DSY3sq)
       DO L=1,LMO
-      !DO J=2,JM   !-1
-      DO J=J_0STG,J_1STG  !-1
+      DO J=J_0STG,J_1STG
       IM1=IM
       DO I=1,IM
       IF(LMM(I,J).lt.L) GO TO 800
@@ -1146,7 +1039,7 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (L.ge.KPL(I,J).and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (AINV(I,J).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
           DSX2sq = DZV(I,J,L)**2 * byAIDT
@@ -1183,7 +1076,7 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (L.ge.KPL(I,J)+1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (AINV(I,J).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
           DSX3sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1234,20 +1127,19 @@ C****
       USE FILEMANAGER
       IMPLICIT NONE
 
-      !REAL*8, DIMENSION(IM,JM,LMO) :: RHO
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DH0,DZSUMX,DZSUMY
       REAL*8, SAVE :: HUP
       INTEGER I,J,L,IM1,LAV,iu_ODIFF
-      INTEGER, SAVE :: IFIRST = 1, LUP
+      INTEGER, SAVE :: IFIRST = 1
       CHARACTER TITLE*80
 
       REAL*8, DIMENSION(IM,JM) ::  AINV_glob
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
       INTEGER :: J_1HR
-      LOGICAL :: HAVE_NORTH_POLE
+      LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE 
       logical :: dothis
 
 c**** Extract domain decomposition info
@@ -1255,11 +1147,11 @@ c**** Extract domain decomposition info
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C**** set up geometry needed
       IF (IFIRST.eq.1) THEN
-        !DO J=1,JM
         DO J=J_0,J_1
           BYDYP(J)=1d0/DYPO(J)
           BYDXP(J)=1d0/DXPO(J)
@@ -1273,7 +1165,7 @@ C**** Calculate level at 1km depth
    10   LUP=LUP + 1
         IF (ZE(LUP+1).lt.1d3) GOTO 10
         HUP = ZE(LUP)
-c        IFIRST = 0. ! extra IFIRST bit at bottom
+        IFIRST = 0. 
 
         CALL HALO_UPDATE(grid,BYDYP (grid%j_strt_halo:grid%j_stop_halo),
      *                 FROM=SOUTH+NORTH)
@@ -1284,29 +1176,25 @@ c        IFIRST = 0. ! extra IFIRST bit at bottom
 
       END IF
 C****
+      call vbar_gm0
+
       !initialize
       RHO = -0.0; BYDH = -0.0;
       DZV = -0.0; BYDZV = -0.0;
 
 !$OMP PARALLEL DO  PRIVATE(L,J,I,BYRHO,DH0,DZVLM1)
       DO L=1,LMO
-      !DO J=1,JM
       DO J=J_0,J_1
       DO I=1,IM
-C**** Bottom layer LMM(I,J)
-        RHOMZ(I,J,L) = 0d0
-C**** Initialize RHOX and RHOY as 0.
-        RHOX(I,J,L) = 0d0
-        RHOY(I,J,L) = 0d0
 C**** Skip non-ocean grid points
         IF (L.le.LMM(I,J)) THEN
 C**** RHO(I,J,L)  Density=1/specific volume
           BYRHO = VBAR(I,J,L)
             DH0 =   DH(I,J,L)
-c         IF (J.eq.1)  THEN         ! South pole
-c           BYRHO = VBAR(IM,1,L)
-c             DH0 =   DH(IM,1,L)
-c         END IF
+          IF (J.eq.1)  THEN         ! South pole
+            BYRHO = VBAR(1,1,L)
+              DH0 =   DH(1,1,L)
+          END IF
           IF (J.eq.JM) THEN         ! North pole
             BYRHO = VBAR(1,JM,L)
               DH0 =   DH(1,JM,L)
@@ -1336,7 +1224,6 @@ C**** Calculate density gradients
       J_1HR = min(J_1STG+1, JM)
 !$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO
-       !DO J=2,JM
         DO J=J_0STG,J_1HR
           IM1 = IM
           DO I=1,IM
@@ -1345,7 +1232,7 @@ C**** Skip non-ocean grid points
 C**** minus vertical gradient
             IF(L.gt.1) THEN
               RHOMZ(I,J,L-1)=MAX(0d0,
-     *           (RHO(I,J,L)-RHO(I,J,L-1))*BYDZV(I,J,L-1))
+     *           -dVBARdZ(I,J,L)*BYDZV(I,J,L-1)/VBAR(I,J,L-1)**2)
               IF(RHOMZ(I,J,L-1).ne.0.)
      *             BYRHOZ(I,J,L-1)=1./RHOMZ(I,J,L-1)
             END IF
@@ -1364,7 +1251,6 @@ C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       ARIV = 0.
 !$OMP PARALLEL DO  PRIVATE(J,CORI,BETA,IM1,I,ARHO,ARHOX,ARHOY,
 !$OMP&  DZSUMX,DZSUMY,LAV,L,ARHOZ,AN,RD,BYTEADY)
-      !DO J=2,JM-1
       DO J=J_0S,J_1S
         CORI = ABS(2d0*OMEGA*SINPO(J))
         BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
@@ -1401,8 +1287,7 @@ C**** Calculate average density + gradients over [1,LUP]
             IF (DZSUMX.gt.0.) ARHOX = ARHOX / DZSUMX
             IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
             IF (LAV.gt.1) THEN
-              ARHOZ = 2.*(RHO(I,J,LAV)-RHO(I,J,1))/
-     *             (ZE(LAV)+ZE(LAV-1)-ZE(1))
+              ARHOZ=2*RHOZ1K(I,J)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
             ELSE
               ARHOZ = 0.
             END IF
@@ -1419,6 +1304,8 @@ C**** so keep at zero, and let KPP do the work.
             ARIV(I,J) = ARAI * AINV(I,J) ! was = ARI
           END IF
           IM1=I
+C**** Set diagnostics
+          OIJ(I,J,IJ_GMSC) = OIJ(I,J,IJ_GMSC) + AINV(I,J) ! GM-scaling
         END DO
       END DO
 !$OMP  END PARALLEL DO
@@ -1441,8 +1328,7 @@ C**** Calculate average density + gradients over [1,LUP]
           ARHO  = ARHO / REAL(LAV,KIND=8)
           IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
           IF (LAV.gt.1) THEN
-            ARHOZ = 2.*(RHO(1,JM,LAV)-RHO(1,JM,1))/
-     *           (ZE(LAV)+ZE(LAV-1)-ZE(1))
+            ARHOZ=2*RHOZ1K(1,JM)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
           ELSE
             ARHOZ = 0.
           END IF
@@ -1459,20 +1345,154 @@ C**** so keep at zero, and let KPP do the work.
         END IF
         AINV(2:IM,JM)=AINV(1,JM)
         ARIV(2:IM,JM)=ARIV(1,JM)
+C**** Set diagnostics
+        OIJ(1,JM,IJ_GMSC) = OIJ(1,JM,IJ_GMSC) + AINV(1,JM) ! GM-scaling
+      endif
+C**** South pole
+      if ( HAVE_SOUTH_POLE ) then
+        IF (LMM(1,1).gt.0) THEN
+C**** Calculate average density + gradients over [1,LUP]
+          ARHO  = 0. ; ARHOY = 0. ;  DZSUMY = 0.
+          LAV = MIN(LUP,LMM(1,1))
+          DO L=1,LAV
+            ARHO  = ARHO  + RHO(1,1,L)
+            DO I=1,IM
+              IF(LMV(I,2).ge.L) THEN
+! take abs to get a non-directional scale
+                ARHOY = ARHOY + ABS(RHOY(I,2,L))*DZO(L)
+                DZSUMY = DZSUMY + DZO(L)
+              END IF
+            END DO
+          END DO
+          ARHO  = ARHO / REAL(LAV,KIND=8)
+          IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
+          IF (LAV.gt.1) THEN
+            ARHOZ=2*RHOZ1K(1,1)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
+          ELSE
+            ARHOZ = 0.
+          END IF
+C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
+C**** so keep at zero, and let KPP do the work.
+          IF (ARHOZ.gt.0) THEN
+            AN = SQRT(GRAV * ARHOZ / ARHO)
+            CORI = ABS(2d0*OMEGA*SINPO(JM))
+            RD = AN * HUP / CORI
+            BYTEADY = GRAV * ARHOY / (AN*ARHO)
+            AINV(1,1) = AMU * RD**2 * BYTEADY ! was = AIN
+          END IF
+          ARIV(1,1) = ARAI * AINV(1,1) ! was = ARI
+        END IF
+        AINV(2:IM,1)=AINV(1,1)
+        ARIV(2:IM,1)=ARIV(1,1)
+C**** Set diagnostics
+        OIJ(1,1,IJ_GMSC) = OIJ(1,1,IJ_GMSC) + AINV(1,1) ! GM-scaling
       endif
 C****
-      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
-        CALL PACK_DATA(grid,    AINV  ,    AINV_glob)
-        if( AM_I_ROOT() ) then
-          call openunit('ODIFF',iu_ODIFF,.true.,.false.)
-          TITLE = "Visbeck scaling for GM coefficient m^2/s"
-          WRITE(iu_ODIFF) TITLE,((REAL(AINV_glob(I,J),KIND=4),i=1,im),
-     *                            j=1,jm)
-          call closeunit(iu_ODIFF)
-        endif
-        IFIRST = 0
-      END IF
+c      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
+c        CALL PACK_DATA(grid,    AINV  ,    AINV_glob)
+c        if( AM_I_ROOT() ) then
+c          call openunit('ODIFF',iu_ODIFF,.true.,.false.)
+c          TITLE = "Visbeck scaling for GM coefficient m^2/s"
+c          WRITE(iu_ODIFF) TITLE,((REAL(AINV_glob(I,J),KIND=4),i=1,im),
+c     *                            j=1,jm)
+c          call closeunit(iu_ODIFF)
+c        endif
+c        IFIRST = 0
+c      END IF
 
       RETURN
 C****
       END SUBROUTINE DENSGRAD
+
+      Subroutine VBAR_GM0
+!@sum VBAR_GM0 calculates specific volume and vertical gradients for GM
+!@auth Gary Russell/Gavin Schmidt
+      Use CONSTANT, only: grav
+      Use GM_COM, only: vbar,dvbardz,rhoz1k,lup
+      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,DXYPO, MO, ZE,
+     *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO, OPRESS, FOCEAN
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
+      USE OCEANR_DIM, only : grid=>ogrid
+
+      Implicit None
+      Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
+      Integer*4 I,J,L,IMAX, J1,JN,JNH, LAV,LAVM
+      Real*8, dimension(lmo) :: gup,gdn,sup,sdn,pm,gmd,smd
+      Real*8 :: vup,vdn,vupu,vdnu,pe,bym
+      Logical*4 QSP,QNP
+      Real*8,External   :: VOLGSP,temgs
+
+C****
+C**** Extract domain decomposition band parameters
+C****                          Band1  Band2  BandM
+      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
+      JNH = Min(JN+1,JM)    !    5      9     JM     Halo maximum
+      QSP = J1==1           !    T      F      F
+      QNP = JN==JM          !    F      F      T
+C****
+      Call HALO_UPDATE (GRID,OPRESS,FROM=NORTH)
+      Call HALO_UPDATE (GRID,  MO, FROM=NORTH)
+      Call HALO_UPDATE (GRID, G0M, FROM=NORTH)
+      Call HALO_UPDATE (GRID, GZM, FROM=NORTH)
+      Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
+      Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
+
+C$OMP ParallelDo   Private (I,J,L,IMAX)
+      Do J=J1,JNH
+        IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
+        Do I=1,IMAX
+          If (FOCEAN(I,J) == 0)  CYCLE
+
+          Do L=1,LMOM(I,J)
+            BYM=1d0/(MO(I,J,L)*DXYPO(J))
+            GMD(L)= G0M(I,J,L)*BYM
+            GUP(L)=(G0M(I,J,L)-2*z12eH*GZM(I,J,L))*BYM
+            GDN(L)=(G0M(I,J,L)+2*z12eH*GZM(I,J,L))*BYM
+            SMD(L)= S0M(I,J,L)*BYM
+            SUP(L)=(S0M(I,J,L)-2*z12eH*SZM(I,J,L))*BYM
+            SDN(L)=(S0M(I,J,L)+2*z12eH*SZM(I,J,L))*BYM
+          EndDo
+          
+C**** Calculate pressure by integrating from the top down
+          PE = OPRESS(I,J)
+          Do L=1,LMOM(I,J)
+            PM(L) = PE + MO(I,J,L)*GRAV*.5
+            PE    = PE + MO(I,J,L)*GRAV
+          EndDo
+C**** Calculate potential specific volume (ref to mid-point pr)
+          Do L=LMOM(I,J),1,-1
+            VUP = VOLGSP (GUP(L),SUP(L),PM(L))
+            VDN = VOLGSP (GDN(L),SDN(L),PM(L))
+            VBAR(I,J,L) = (VUP + VDN)*.5
+C**** Vertical gradient calculated using lower box mid-point pr
+            IF (L.gt.1) then 
+              VUPU = VOLGSP (GUP(L-1),SUP(L-1),PM(L))
+              VDNU = VOLGSP (GDN(L-1),SDN(L-1),PM(L))
+              dVBARdZ(I,J,L) = .5* (VUP + VDN - VUPU - VDNU)
+            end if
+          EndDo
+C**** Vertical potential gradient in top 1km
+          LAV = MIN(LUP,LMOM(I,J))
+          LAVM = MAX(LAV/2,1)   ! mid depth
+          VUP = VOLGSP (GMD(1),SMD(1),PM(LAVM))
+          VDN = VOLGSP (GMD(LAV),SMD(LAV),PM(LAVM))
+          RHOZ1K(I,J) = (VUP - VDN)/VBAR(I,J,LAVM)**2
+        EndDo
+      EndDo
+C**** Copy VBAR to all longitudes at poles
+      If (QNP) Then
+        Do L=1,LMOM(1,JM)
+          VBAR(2:IM,JM,L) = VBAR(1,JM,L)
+          dVBARdZ(2:IM,JM,L) = dVBARdZ(1,JM,L)
+        EndDo
+      EndIf
+      If (QSP) Then
+        Do L=1,LMOM(1,1)
+          VBAR(2:IM,1,L) = VBAR(1,1,L)
+          dVBARdZ(2:IM,1,L) = dVBARdZ(1,1,L)
+        EndDo
+      EndIf
+
+      Return
+      End Subroutine VBAR_GM0
