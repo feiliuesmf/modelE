@@ -1545,8 +1545,8 @@ subroutine CONDSE
             trm_lni(l,n,i) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
             trmom_lni(:,l,n,i) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-            if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq." &
-                 H2O2_s") then
+            if (trname(n).eq."SO2".or.trname(n).eq."SO4".or. &
+                trname(n).eq."H2O2_s") then
               call inc_tajls(i,j,l,jls_incloud(1,n), &
                    dt_sulf_mc(n,l)*(1.-fssl(l)))
               call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
