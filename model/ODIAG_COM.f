@@ -1547,7 +1547,7 @@ c
       IJ_GMSC=k
       lname_oij(k)='Scaling for GM skew-flux'
       sname_oij(k)='gm_scale_ij'
-      units_oij(k)='m2/s2'
+      units_oij(k)='m2/s'
       ia_oij(k)=ia_src
       scale_oij(k)=1.
 
