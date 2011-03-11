@@ -3294,7 +3294,7 @@ c Switch the sign convention back to "positive downward".
       !...arguements
       integer, intent(in) :: nc, iz0
       real(r8), intent(in), dimension(nc) :: c, b                  !global variables
-      real(r8), intent(in), dimension(2:LM+1) :: hb, rho, u, bf    !global variables
+      real(r8), intent(in), dimension(2:LM) :: hb, rho, u, bf   !global variables
       real(r8), intent(out) :: gwfrc(LM)                        !global variables
       real(r8), intent(in) :: kh, dc                            !global variables
       real(r8), intent(in) :: eps                               !intermittency factor
