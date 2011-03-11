@@ -67,7 +67,7 @@ C**** ARRAYS CALCULATED HERE:
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UV,UW,FD
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *        STB,TI,AX
+     *        STB,TI
      *     ,VR,WR,RX,UI,VI,WI
       REAL*8  RXCL(LM),UCL(LM), WXXS(IM),WXXN(IM)
 
@@ -670,7 +670,7 @@ C**** ARRAYS CALCULATED HERE:
 
       REAL*8,DIMENSION(JM,LM,KEP) :: XEP
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
-      INTEGER I,J,L,N,JL
+      INTEGER J,L,N,JL
 
 C**** Initialize constants
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
@@ -890,18 +890,12 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
       INTEGER I,J,L,NI
       REAL*8 XXI
 
-      INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      INTEGER :: J_1,J_0
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       DO L=1,LM
         DO J=J_0,J_1
@@ -917,17 +911,39 @@ C****
           XI(J,L) = XXI/NI
         END DO
       END DO
+
       RETURN
-C****
-      ENTRY AVGVI (X,XI)
+      END SUBROUTINE AVGI
+
+      SUBROUTINE AVGVI (X,XI)
+!@sum  AVGVI average a 3-dimensional array in the x-direction (no pole)
+!@auth B. Suozzo
+!@ver  1.0
+      USE MODEL_COM, only : lm
+#ifdef CUBED_SPHERE
+      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM
+#else
+      USE MODEL_COM, only : im,jm,BYIM
+      USE DOMAIN_DECOMP_1D, only : GRID
+#endif
+      USE DOMAIN_DECOMP_1D, only : GET
+      IMPLICIT NONE
+
+!@var X input 3-D array
+      REAL*8, INTENT(IN), 
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: X
+!@var XI output zonally averaged 2-D array
+      REAL*8, INTENT(OUT), 
+     &        DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: XI
+      INTEGER I,J,L
+      REAL*8 XXI
+
+      INTEGER :: J_0STG, J_1STG
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
-!@sum  AVGVI average a 3-dimensional array in the x-direction (no pole)
-!@auth B. Suozzo
-!@ver  1.0
-C****
       DO L=1,LM
         DO J=J_0STG,J_1STG
           XXI=0.
@@ -939,4 +955,4 @@ C****
       END DO
 C****
       RETURN
-      END SUBROUTINE AVGI
+      END SUBROUTINE AVGVI
