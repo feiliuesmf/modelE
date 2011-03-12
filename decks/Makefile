@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests
+.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
 
 # modelE directory structure
 MODEL_E_ROOT = ..
@@ -95,7 +95,7 @@ depend: $(RUN).mk
 	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 
-gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend
+gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend check_vars
 	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
@@ -294,3 +294,15 @@ check_sanity:
 	  echo "Your rundeck contains no Components" ; \
 	  echo "Old style rundeck ?  ... aborting ..." ; \
 	  exit 1 ; fi
+
+check_vars:
+ifeq ($(ESMF),YES)
+ifeq ($(ESMF5_DIR),)
+ifeq ($(BASELIBDIR5),)
+	@echo
+	@echo "You have to set ESMF5_DIR or BASELIBDIR5 in your ~/.modelErc"
+	@echo
+	@exit 1
+endif
+endif
+endif
