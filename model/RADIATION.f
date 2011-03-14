@@ -8651,9 +8651,9 @@ C    +              ,FULGAS(11),FULGAS(12),   (FGOLDH(I+9),I=1,5)
      +             ,(FSTOPX(I),I=1,4),PPMV80(2),(PPMV80(I),I=6,9)
      +             ,(PPMV80(I),I=11,12),KTREND,JYEAR,JDAY,LASTVC
       WRITE(KW,6106) TAUWC0,FCLDTR,EOCTRA,ZOCSRA,KZSNOW,KCLDEM,NTRACE
-     +             ,FSAAER,FTTAER,MADO3M,KCLDEP,L1
+     +             ,FSAAER,FTTAER,KCLDEP,MADO3M,L1
       WRITE(KW,6107) TAUIC0,FCLDSR,ESNTRA,ZSNSRA,WETTRA,KSIALB,ITR(1)
-     +             ,ITR(5),FSBAER,FTBAER,MADO3M,KEEPAL,NL
+     +             ,ITR(5),FSBAER,FTBAER,KEEPAL,NL
       WRITE(KW,6108)       FRAYLE,EICTRA,ZICSRA,WETSRA,KCNORM,ITR(2)
      +             ,ITR(6),FSAAER,FTAAER,       KEEP10,MLAT46
       WRITE(KW,6109) TLGRAD,ECLTRA,EDSTRA,ZDSSRA,KANORM,KPGRAD,ITR(3)
@@ -8680,15 +8680,15 @@ C    +      ,' S','FGOLDH=',1P,1E7.1,1P,2E9.2,1P,2E8.1)
  6106 FORMAT(1X,'TAUWC0=',1P,E6.0,' FCLDTR=',0P,F4.2,' EOCTRA=',F3.1
      +      ,1X,'ZOCSRA=',   F3.1,' KZSNOW=',     I4,' KCLDEM=',  I3
      +      ,1X,'NTRACE=',    I3,2X,'FSTAER=',  F3.1,' FTTAER=',F3.1
-     +      ,1X,'MADO3M=',    I1,1X,'KCLDEP=',    I1,'    L1=',  I3)
+     +      ,1X,'KCLDEP=',    I1,1X,'MADO3M=',    I2, '   L1=',  I3)
  6107 FORMAT(1X,'TAUIC0=',1P,E6.0,' FCLDSR=',0P,F4.2,' ESNTRA=',F3.1
      +      ,1X,'ZSNSRA=',  F3.1,1X,'WETTRA=',  F4.2,' KSIALB=',  I3
      +      ,1X,'ITR(1)=',    2I2,1X,'FSBAER=', F3.1,' FTBAER=',F3.1
-     +      ,1X,'K03LON=',    I1,1X,'KEEPAL=',    I1,'    NL=',  I3)
+     +      ,1X,'KEEPAL=',    I1,1X,'       ',   ' ','    NL=',  I3)
  6108 FORMAT(1X,'       ',  6X ,  ' FRAYLE=',0P,F4.1,' EICTRA=',F3.1
      +      ,1X,'ZICSRA=',  F3.1,1X,'WETSRA=',  F4.2,' KCNORM=',  I3
      +      ,1X,'ITR(2)=',    2I2,1X,'FSAAER=', F3.1,' FTAAER=',F3.1
-     +      ,1X,'       ',   ' ',1X,'KEEP10=',    I1,' MLAT46=',  I2)
+     +      ,1X,'KEEP10=',    I1,1X,'       ',   ' ',' MLAT46=',  I2)
  6109 FORMAT(1X,'TLGRAD=',   F6.2,' ECLTRA=',0P,F4.2,' EDSTRA=',F3.1
      +      ,1X,'ZDSSRA=',  F3.1,1X,'KANORM=',  I4  ,' KPGRAD=',  I3
      +      ,1X,'ITR(3)=',    2I2,1X,'FSDAER=', F3.1,' FTDAER=',F3.1
