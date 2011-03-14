@@ -659,12 +659,6 @@ module RunTimeControls_mod
   logical, parameter :: old_rayf = .false.
 #endif
 
-#if defined(PBL_E1)
-  logical, parameter :: pbl_e1 = .true.
-#else
-  logical, parameter :: pbl_e1 = .false.
-#endif
-
 #if defined(PFT_MODEL_ENT)
   logical, parameter :: pft_model_ent = .true.
 #else
@@ -1235,22 +1229,10 @@ module RunTimeControls_mod
   logical, parameter :: use_norm_vect = .false.
 #endif
 
-#if defined(USE_PBL_E1)
-  logical, parameter :: use_pbl_e1 = .true.
-#else
-  logical, parameter :: use_pbl_e1 = .false.
-#endif
-
 #if defined(USE_PFUNIT)
   logical, parameter :: use_pfunit = .true.
 #else
   logical, parameter :: use_pfunit = .false.
-#endif
-
-#if defined(USE_RADIATION_E1)
-  logical, parameter :: use_radiation_e1 = .true.
-#else
-  logical, parameter :: use_radiation_e1 = .false.
 #endif
 
 #if defined(USE_SYSUSAGE)
