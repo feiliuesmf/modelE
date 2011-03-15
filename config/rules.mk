@@ -147,9 +147,10 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
-  LIBS += -lesmf
+  LIBS += $(ESMFLIBDIR)/libesmf.a
+
 endif
 
 ifeq ($(FVCORE),YES)
@@ -181,7 +182,7 @@ CPPFLAGS += -DUSE_MPP
 FFLAGS += -I$(MPPDIR)/include
 F90FLAGS += -I$(MPPDIR)/include
 LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
-LIBS += -lfmpi -lmpi
+#LIBS += -lfmpi -lmpi
 endif
 
 ifeq ($(USE_ENT),YES)

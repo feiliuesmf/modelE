@@ -8,8 +8,8 @@ module FV_LatLon_Mod
   implicit none
   private
 
-  public :: Create_Restart_File
-  public :: GridSpecificInit
+  public :: createInternalRestart
+  public :: gridCompInit
   public :: copy_fv_export_to_modele
   public :: ConvertUV_GISS2FV
   public :: accumulate_mass_fluxes
@@ -19,7 +19,7 @@ module FV_LatLon_Mod
 
   contains
 
-  Subroutine Create_Restart_File(fv, istart, cf, clock)
+  Subroutine createInternalRestart(fv, istart, cf, clock)
     USE DOMAIN_DECOMP_1D, ONLY: GRID, GET, AM_I_ROOT
     Use GEOS_IOMod, only: GETFILE, Free_file, GEOS_VarWrite, Write_parallel
     USE RESOLUTION, only: IM, JM, LM, LS1
@@ -232,13 +232,14 @@ module FV_LatLon_Mod
       Call WRITE_PARALLEL(INT_PACK(1:6), unit=UNIT)
     End Subroutine write_start_date
 
-  End Subroutine Create_Restart_File
+  End Subroutine createInternalRestart
 
-  subroutine GridSpecificInit(fv, clock)
+  subroutine gridCompInit(fv, clock)
     Type(FV_CORE), intent(inout) :: fv
     Type(esmf_clock), intent(in) :: clock
 
-    call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
+    call ESMF_GridCompInitialize ( fv%gc, importState=fv%import, &
+         exportState=fv%export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
 
@@ -252,7 +253,7 @@ module FV_LatLon_Mod
     call allocateFvExport3D ( fv % export,'MFX' )
     call allocateFvExport3D ( fv % export,'MFY' )
     call allocateFvExport3D ( fv % export,'MFZ' )
-  end subroutine GridSpecificInit
+  end subroutine gridCompInit
 
   Subroutine Copy_FV_export_to_modelE(fv)
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData

@@ -8,18 +8,221 @@ module FV_CS_Mod
   implicit none
   private
 
-  public :: Create_Restart_File
-  public :: GridSpecificInit
-  public :: copy_fv_export_to_modele
-  public :: ConvertUV_GISS2FV
+  public :: createInternalRestart
+  public :: gridCompInit
+  public :: setupForESMF
+  public :: addQfieldToFVImport
+  public :: hydrostatic
   public :: accumulate_mass_fluxes
+
+  logical, parameter :: hydrostatic = .true.
 
   ! private data of convenience
   Integer :: rc ! return code from ESMF
+  integer, parameter :: prec = kind(0.0D0) ! double precision
 
   contains
 
-  Subroutine Create_Restart_File(fv, istart, cf, clock)
+!-------------------------------------------------------------------------------
+  subroutine setupForESMF(fv, vm, grid, cf, config_file)
+!-------------------------------------------------------------------------------
+    use DOMAIN_DECOMP_ATM, only : AM_I_ROOT
+#ifdef CUBED_SPHERE
+    use fvdycorecubed_gridcomp, only: SetServices
+#else
+    use fvdycore_gridcompmod, only: SetServices
+#endif
+
+    Type(FV_CORE), intent(inout) :: fv
+    type (ESMF_vm),   intent(in) :: vm
+    type (ESMF_grid), intent(inout) :: grid      ! fv grid
+    type (ESMF_config), intent(inout) :: cf      ! config object
+    character(len=*),  intent(in) :: config_file ! filename for resource file
+
+! CC : Changing CUBED_SPHERE gridCompName causes the model to crash. Why?
+! e.g. character(len=*), parameter :: gridCompName = 'FVCS-DYCORE'
+#ifdef CUBED_SPHERE
+    character(len=*), parameter :: gridCompName = 'FVCORE'
+#else
+    character(len=*), parameter :: gridCompName = 'FV dynamics'
+#endif
+
+    fv%vm  = vm
+    fv%grid = grid
+
+    ! Load configuration information from resource file
+    !  ------------------------------------------------
+    cf = load_configuration(config_file)
+
+    !  Create the dynamics component, using same layout as application
+    !  ------------------------------------------------------------------
+    fv%gc = ESMF_GridCompCreate ( name=gridCompName, &
+         & grid=grid, gridcomptype=ESMF_ATM,         &
+         & config=cf, rc=rc)
+    VERIFY_(rc)
+
+    ! Create couplings
+    fv%import = ESMF_StateCreate('fv dycore imports', ESMF_STATE_IMPORT, rc=rc)
+    VERIFY_(rc)
+    fv%export = ESMF_StateCreate('fv dycore exports', ESMF_STATE_EXPORT, rc=rc)
+    VERIFY_(rc)
+
+    !  Register services for components
+    !  --------------------------------
+    call ESMF_GridCompSetServices ( fv%gc, SetServices, rc )
+    VERIFY_(rc)
+
+    ! Create layout resource file - independent of actual restart file.
+    If (AM_I_ROOT()) Then
+       Call Write_Layout(FVCORE_LAYOUT, fv, hydrostatic)
+    End If
+
+  contains
+      
+    !---------------------------------------------------------------------------
+    Subroutine write_layout(fname, fv, hydrostatic)
+    !---------------------------------------------------------------------------
+      use ESMF_CUSTOM_mod, only: ESMF_AxisIndex, ESMF_GridGetAxisIndex
+#ifdef CUBED_SPHERE
+      Use MAPL_IOMod, only: GETFILE, Free_file
+#else
+      Use GEOS_IOMod, only: GETFILE, Free_file
+#endif
+      USE RESOLUTION, only: IM, JM, LM, LS1
+      Use MODEL_COM,  only: DT
+      character(len=*), intent(in) :: fname
+      type (fv_core)  , intent(in) :: fv
+      logical         , intent(in) :: hydrostatic
+
+      Type (ESMF_axisindex), pointer :: AI(:,:)
+      Integer :: unit
+      Integer :: npes, my_pet
+      Integer :: mppnx, mppny
+
+      call ESMF_VMget(fv%vm, petcount=npes, rc=rc)
+      VERIFY_(rc)
+      Allocate(AI(npes,3))
+      call ESMF_GRIDGetaxisindex(fv%grid, ai, my_pet)
+      VERIFY_(rc)
+
+      unit = GetFile(fname, form="formatted", rc=rc)
+      VERIFY_(rc)
+    
+      mppnx = 0
+      mppny = 0
+      if(mod(NPES,6) == 0) then
+         mppnx = int(floor(sqrt(real(NPES/6))))
+         mppny = (NPES / mppnx) / 6
+      endif
+
+      ! Lat-Lon parameters
+      write(unit,*)' # empty line #'
+      Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
+      Write(unit,*)'    im: ',IM
+      Write(unit,*)'    jm: ',JM
+      Write(unit,*)'    km: ',LM
+      Write(unit,*)'    dt: ',DT
+      Write(unit,*)' ntotq: ',1
+      Write(unit,*)'  imxy: ',IM
+      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2)%MAX-AI(:,2)%MIN+1
+      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2)%MAX-AI(:,2)%MIN+1
+      Write(unit,*)'   kmyz: ',LM
+
+      ! Common parameters
+      Write(unit,*)'nsplit: ',0
+      Write(unit,*)'    nq: ',1
+
+      ! Cubed-Sphere parameters
+      Write(unit,*)'      npx: ',IM
+      Write(unit,*)'      npy: ',JM
+      Write(unit,*)'      npz: ',LM
+      Write(unit,*)'       dt: ',DT
+      Write(unit,*)'   npes_x: ',mppnx
+      Write(unit,*)'   npes_y: ',mppny
+      Write(unit,*)' fv_debug: ',.false.
+      Write(unit,*)' hydrostatic: ',.true.
+      Write(unit,*)' Make_NH: ',.false.
+
+      Call Free_File(unit)
+
+      Deallocate(AI)
+
+    End Subroutine write_layout
+
+  end subroutine setupForESMF
+
+!-------------------------------------------------------------------------------
+  subroutine gridCompInit(fv, clock)
+!-------------------------------------------------------------------------------
+    use FV_StateMod, only:FV_RESET_CONSTANTS
+    use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe, rgas, kapa
+
+    Type(FV_CORE), intent(inout) :: fv
+    type (ESMF_clock), intent(inout) :: clock
+    logical :: z_tracer
+
+    call ESMF_GridCompInitialize ( fv%gc, importState=fv%import, &
+         & exportState=fv%export, clock=clock,                   &
+         & phase=ESMF_SINGLEPHASE, rc=rc )
+    VERIFY_(rc)
+
+! z_tracer=.false. is necessary to get correct mass flux exports.
+! Eventually, fix the FV code that is used when z_tracer=.true. 
+    z_tracer = .false.
+
+! The FV dycore default compilation if real(4) and is controlled by the
+! SINGLE_FV flag in FVdycoreCubed_GridComp/fvdycore/GNUmakefile.
+    call  FV_RESET_CONSTANTS( FV_PI=REAL(pi), &
+                            & FV_OMEGA=REAL(omega) ,&
+                            & FV_CP=REAL(rgas/kapa) ,&
+                            & FV_RADIUS=REAL(radius) ,&
+                            & FV_RGAS=REAL(rgas) ,&
+                            & FV_RVAP=REAL(rvap) ,&
+                            & FV_KAPPA=REAL(kapa) ,&
+                            & FV_GRAV=REAL(grav) ,&
+                            & FV_HLV=REAL(lhe) ,&
+                            & FV_ZVIR=REAL(rvap/rgas-1)  )
+
+    call allocateFvExport3D ( fv%export,'U_DGRID' )
+    call allocateFvExport3D ( fv%export,'V_DGRID' )
+    call allocateFvExport3D ( fv%export,'TH' )
+    call allocateFvExport3D ( fv%export,'PLE' )
+    call allocateFvExport3D ( fv%export,'Q' )
+    call allocateFvExport3D ( fv%export,'MFX' )
+    call allocateFvExport3D ( fv%export,'MFY' )
+    call allocateFvExport3D ( fv%export,'MFZ' )
+
+  end subroutine gridCompInit
+
+!-------------------------------------------------------------------------------
+  subroutine addQfieldToFVImport(fv)
+!-------------------------------------------------------------------------------
+    use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
+    Type(FV_CORE), intent(inout) :: fv
+
+    type (ESMF_FieldBundle)        :: bundle
+    type (ESMF_Field)              :: Qfield
+
+    ! Specific Humidity - need to reserve space in FV import state
+    call ESMFL_StateGetPointerToData (fv%export, fv%q, 'Q', rc=rc)
+    VERIFY_(rc)
+    fv%q = 0.0
+
+    Qfield = ESMF_FieldCreate( fv%grid, fv%q, name='Q', rc=rc)
+    VERIFY_(rc)
+
+    ! First obtain a reference field from the state (avoids tedious details)
+    call ESMF_StateGet(fv%import, 'TRADV'  , bundle, rc=rc)
+    VERIFY_(rc)
+
+    Call ESMF_FieldBundleAdd(bundle, Qfield, rc=rc)
+    VERIFY_(rc)
+
+  end subroutine addQfieldToFVImport
+
+!-------------------------------------------------------------------------------
+  Subroutine createInternalRestart(fv, istart, cf, clock)
+!-------------------------------------------------------------------------------
     USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
     Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
     USE RESOLUTION, only: IM, JM, LM, LS1
@@ -39,13 +242,15 @@ module FV_CS_Mod
     Integer :: I_0, I_1, j_0, j_1, j_0h, j_1h, L
     Logical :: exist
 
-    Real*8 :: ak(size(sige)), bk(size(sige))
+    Real(kind=prec) :: ak(size(sige)), bk(size(sige))
+    real(kind=prec), allocatable, dimension(:,:,:) :: U_d
+    real(kind=prec), allocatable, dimension(:,:,:) :: V_d
+    real(kind=prec), allocatable, dimension(:,:,:) :: PE, PKZ, PT
+    real(kind=prec), allocatable, dimension(:,:,:) :: W
+    real(kind=prec), allocatable, dimension(:,:,:) :: DZ
 
-    real*8, allocatable, dimension(:,:,:) :: U_d
-    real*8, allocatable, dimension(:,:,:) :: V_d
-    real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
-
-    Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
+    Call ESMF_ConfigGetAttribute(cf, value=rst_file, &
+         & label='FVCORE_INTERNAL_RESTART_FILE:',    &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
 
     if(istart .ge. extend_run) then
@@ -77,42 +282,50 @@ module FV_CS_Mod
     ! Keep in mind that L is reversed between these two models
 
     Call Compute_ak_bk(ak, bk, sige, Ptop, PSFMPT, unit)
-    Call WRITE_PARALLEL( ak, unit)
-    Call WRITE_PARALLEL( bk, unit)
+    Call WRITE_PARALLEL(ak, unit)
+    Call WRITE_PARALLEL(bk, unit)
 
-    Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+    Call GET(grid, i_strt=I_0, i_stop=I_1, &
+                   j_strt=j_0, j_stop=j_1, &
+                   j_strt_halo=j_0h, j_stop_halo=j_1h)
 
     ! 4) 3D fields velocities
     Allocate(U_d(I_0:I_1, J_0:J_1, LM))
     Allocate(V_d(I_0:I_1, J_0:J_1, LM))
-
     U_d = 0.d0
     V_d = 0.d0
-
-!!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
-
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, U_d(I_0:I_1,J_0:J_1,:))
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, V_d(I_0:I_1,J_0:J_1,:))
-
+    Call GEOS_VarWrite(unit, grid%ESMF_GRID, U_d(I_0:I_1,J_0:J_1,:))
+    Call GEOS_VarWrite(unit, grid%ESMF_GRID, V_d(I_0:I_1,J_0:J_1,:))
     Deallocate(V_d)
     Deallocate(U_d)
 
     ! Compute potential temperature from modelE (1 mb -> 1 pa ref)
     Allocate(PT(I_0:I_1, J_0:J_1, LM))
-    Call ConvertPotTemp_GISS2FV(VirtualTemp(T(I_0:I_1,J_0:J_1,:), Q(I_0:I_1,J_0:J_1,:)), PT)
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PT)
+    Call ConvertPotTemp_GISS2FV(getVirtTemp(T(I_0:I_1,J_0:J_1,:), Q(I_0:I_1,J_0:J_1,:)), PT)
+    Call GEOS_VarWrite(unit, grid%ESMF_GRID, PT)
     Deallocate(PT)
 
     ! Compute PE, PKZ from modelE
     Allocate(PKZ(I_0:I_1, J_0:J_1, LM))
     Allocate(PE(I_0:I_1, J_0:J_1, LM+1))
-    Call ComputePressureLevels(unit, grid, VirtualTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
+    Call ComputePressureLevels(unit, grid, getvirtTemp(T, Q), P, SIG, SIGE, Ptop, KAPA, PE, PKZ )
 
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PE)
-    Call GEOS_VarWrite(unit, grid % ESMF_GRID, PKZ)
+    Call GEOS_VarWrite(unit, grid%ESMF_GRID, PE)
+    Call GEOS_VarWrite(unit, grid%ESMF_GRID, PKZ)
 
     Deallocate(PE)
     Deallocate(PKZ)
+
+!    if (.not. hydrostatic) then
+       Allocate(W(I_0:I_1, J_0:J_1, LM))
+       Allocate(DZ(I_0:I_1, J_0:J_1, LM))
+       W = 0.d0
+       DZ = 0.d0
+       Call GEOS_VarWrite(unit, grid%ESMF_GRID, DZ(I_0:I_1,J_0:J_1,:))
+       Call GEOS_VarWrite(unit, grid%ESMF_GRID, W(I_0:I_1,J_0:J_1,:))
+       Deallocate(W)
+       Deallocate(DZ)
+!    endif
 
     Call Free_File(unit)
 
@@ -120,31 +333,34 @@ module FV_CS_Mod
 
     ! Computes virtual pot. temp. from pot. temp. and specific humidity
     !------------------------------------------------------------------
-    Function VirtualTemp(T, Q) Result(T_virt)
+    Function getVirtTemp(T, Q) Result(T_virt)
+    !------------------------------------------------------------------
       Use Constant, only: DELTX
-      Real*8, Intent(In) :: T(:,:,:)
-      Real*8, Intent(In) :: Q(:,:,:)
-      Real*8             :: T_virt(size(T,1), size(T,2), size(T,3))
+      Real(kind=prec), Intent(In) :: T(:,:,:)
+      Real(kind=prec), Intent(In) :: Q(:,:,:)
+      Real(kind=prec)             :: T_virt(size(T,1), size(T,2), size(T,3))
 
       T_virt = T * (1 + deltx * Q)
 
-    End Function VirtualTemp
+    End Function getVirtTemp
 
-    Subroutine ComputePressureLevels(unit, grid, T_virt, P, sig, sige, ptop, kapa, PE, PKZ)
+    !------------------------------------------------------------------
+    Subroutine ComputePressureLevels(unit,grid,T_virt,P,sig,sige,ptop,kapa,PE,PKZ)
+    !------------------------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only: dist_grid, get
       USE RESOLUTION, only: IM, LM
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
-      real*8, dimension(grid % i_strt_halo:,grid % j_strt_halo:,:) :: T_virt
-      real*8, dimension(grid % i_strt_halo:,grid % j_strt_halo:) :: P
-      real*8, dimension(grid % i_strt:grid % i_stop,grid % j_strt:grid % j_stop,LM) :: PKZ
-      real*8, dimension(grid % i_strt:grid % i_stop,grid % j_strt:grid % j_stop,LM+1) :: PE
-      real*8 :: sig(:), sige(:)
-      real*8 :: ptop, kapa
+      real(kind=prec), dimension(grid%i_strt_halo:,grid%j_strt_halo:,:) :: T_virt
+      real(kind=prec), dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: P
+      real(kind=prec), dimension(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,LM) :: PKZ
+      real(kind=prec), dimension(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,LM+1) :: PE
+      real(kind=prec) :: sig(:), sige(:)
+      real(kind=prec) :: ptop, kapa
 
       Integer :: I_0, I_1, i_0h, i_1h, j_0, j_1, j_0h, j_1h
       Integer :: I,J,L,L_fv
-      Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
+      Real(kind=prec), Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
       Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
@@ -171,14 +387,16 @@ module FV_CS_Mod
 
     End Subroutine ComputePressureLevels
 
+    !------------------------------------------------------------------
     Subroutine Compute_ak_bk(ak, bk, sige, Ptop, PSFMPT, unit)
+    !------------------------------------------------------------------
       USE RESOLUTION, only: LM, LS1
-      Real*8 :: sige(:)
-      Real*8 :: Ptop, PSFMPT
+      Real(kind=prec) :: sige(:)
+      Real(kind=prec) :: Ptop, PSFMPT
       Integer :: unit
 
-      Real*8, intent(out) :: ak(size(sige)), bk(size(sige))
-      Integer :: L, L_fv
+      Real(kind=prec), intent(out) :: ak(size(sige)), bk(size(sige))
+      Integer :: L, L_fv,k
 
       Do L = 1, LM+1
          L_fv = LM+2-L
@@ -194,8 +412,9 @@ module FV_CS_Mod
 
     End Subroutine Compute_ak_bk
 
-
+    !------------------------------------------------------------------
     Subroutine write_start_date(clock, unit)
+    !------------------------------------------------------------------
       Type (ESMF_Clock), Intent(In) :: clock
       Integer          , Intent(In) :: unit
 
@@ -217,128 +436,11 @@ module FV_CS_Mod
       Call WRITE_PARALLEL(INT_PACK(1:6), unit=UNIT)
     End Subroutine write_start_date
 
-  End Subroutine Create_Restart_File
+  End Subroutine createInternalRestart
 
-  subroutine GridSpecificInit(fv, clock)
-    use FV_StateMod, only:FV_RESET_CONSTANTS
-    use FV_Control_Mod, only : z_tracer
-    use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe, rgas, kapa
-
-    Type(FV_CORE), intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
-
-    call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
-         & phase=ESMF_SINGLEPHASE, rc=rc )
-    VERIFY_(rc)
-
-! z_tracer=.false. is necessary to get correct mass flux exports.
-! Eventually, fix the FV code that is used when z_tracer=.true. 
-    z_tracer = .false.
-
-    call  FV_RESET_CONSTANTS( FV_PI=pi, &
-                            & FV_OMEGA=omega ,&
-                            & FV_CP=rgas/kapa ,&
-                            & FV_RADIUS=radius ,&
-                            & FV_RGAS=rgas ,&
-                            & FV_RVAP=rvap ,&
-                            & FV_KAPPA=kapa ,&
-                            & FV_GRAV=grav ,&
-                            & FV_HLV=lhe ,&
-                            & FV_ZVIR=rvap/rgas-1  )
-
-    ! Initialize component (and import/export states)
-    !  ----------------------------------------------
-    call allocateFvExport3D ( fv % export,'U_DGRID' )
-    call allocateFvExport3D ( fv % export,'V_DGRID' )
-    call allocateFvExport3D ( fv % export,'TH' )
-    call allocateFvExport3D ( fv % export,'PLE' )
-    call allocateFvExport3D ( fv % export,'Q' )
-    call allocateFvExport3D ( fv % export,'MFX' )
-    call allocateFvExport3D ( fv % export,'MFY' )
-    call allocateFvExport3D ( fv % export,'MFZ' )
-  end subroutine GridSpecificInit
-
-  Subroutine Copy_FV_export_to_modelE(fv)
-    use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    Use Resolution, only: IM,JM,LM,LS1
-    USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    Use MODEL_COM, only : Ptop, P
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
-    USE GEOM
-
-    Type (FV_CORE) :: fv
-    real*4, Dimension(:,:,:), Pointer :: T_fv, PLE, U_d, V_d
-
-    Integer :: unit
-
-    Integer :: i,j,k
-    Integer :: i_0, i_1, j_0, j_1
-
-    Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
-
-    ! First compute updated values for modelE.  Then capture the
-    ! new state in fv % *_old for computing tendencies.
-    ! ----------------------------------------------------------
-    call ESMFL_StateGetPointerToData ( fv % export,U_d,'U_DGRID',rc=rc)
-      VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,V_d,'V_DGRID',rc=rc)
-      VERIFY_(rc)
-    U(I_0:I_1,J_0:J_1,:) = ReverseLevels(U_d)
-    V(I_0:I_1,J_0:J_1,:) = ReverseLevels(V_d)
-    fv % U_old = U(I_0:I_1,J_0:J_1,:)
-    fv % V_old = V(I_0:I_1,J_0:J_1,:)
-
-    ! Potential temperature (save dry Temperature for computing tendencies)
-    !----------------------------------------------------------------------
-    call ESMFL_StateGetPointerToData ( fv % export,T_fv,'TH',rc=rc)
-    VERIFY_(rc)
-    call ConvertPotTemp_FV2GISS(T_fv, T)
-
-    ! Use edge pressure export to update surface pressure
-    !----------------------------------------------------------------------
-    call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
-    VERIFY_(rc)
-
-    call ConvertPressure_FV2GISS(PLE, fv % PE_old)
-    ! Just need surface pressure - Ptop
-    P(I_0:I_1,J_0:J_1) = fv % PE_old(:,:,1) - Ptop
-    CALL CALC_AMPK(LS1-1)
-
-    ! Preserve state information for later computation of tendencies.
-    fv % dT_old = DryTemp_GISS()
-    fv % dPT_old = DeltPressure_DryTemp_GISS()
-
-#if defined(USE_FV_Q)
-    Q(I_0:I_1,j_0:j_1,:) = ReverseLevels(fv % Q)
-#endif
-
-  End Subroutine Copy_FV_export_to_modelE
-
-
-  subroutine ConvertUV_GISS2FV(U_orig, V_orig, U_d, V_d)
-! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
-    Use Resolution, only : LM
-    Use Domain_decomp_atm, only : grid, get
-    Real*8, intent(in), Dimension(grid % I_STRT:,grid % J_STRT:,:) :: U_orig, V_orig
-    Real*4, intent(out), Dimension(grid % I_STRT:,grid % J_STRT:,:) :: U_d, V_d
-
-    Integer :: i,j,k
-    integer :: I_0, I_1, j_0, j_1
-
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
-
-    Do k = 1, LM
-       Do j = j_0,j_1
-          Do i = i_0,i_1
-             U_d(i,j,k) = U_orig(i,j,k)
-             V_d(i,j,k) = V_orig(i,j,k)
-          End do
-       end do
-    end do
-  end subroutine ConvertUV_GISS2FV
-
+!-------------------------------------------------------------------------------
   subroutine accumulate_mass_fluxes(fv)
+!-------------------------------------------------------------------------------
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: LM
     USE GEOM, ONLY: AXYP
@@ -353,7 +455,7 @@ module FV_CS_Mod
     integer :: I_0, I_1, J_0, J_1
     integer :: i,j,l,k
     integer :: rc
-    real*8 :: DTfac
+    real(kind=prec) :: DTfac
 
     DTfac = DT
 
@@ -365,11 +467,11 @@ module FV_CS_Mod
     !     \item {\tt MFY}:       Mass-Weighted V-wind on C-Grid (Pa m^2/s)
     !     \item {\tt MFZ}:       Vertical mass flux (kg/(m^2*s))
 
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_X,'MFX',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%export,mfx_X,'MFX',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_Y,'MFY',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%export,mfx_Y,'MFY',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,mfx_Z,'MFZ',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
 
 #ifdef NO_MASS_FLUX
@@ -383,12 +485,10 @@ module FV_CS_Mod
     mfx_Z = ReverseLevels(mfx_Z)
     SD(I_0:I_1,J_0:J_1,1:LM-1) = mfx_Z(:,:,1:LM-1)
 
-!
 ! Add missing factor of grav to FV exports, change units
-!
+
     pu = pu*grav/PRESSURE_UNIT_RATIO
     pv = pv*grav/PRESSURE_UNIT_RATIO
-
 
 ! Change Units of vertical mass fluxes to mb m^2/s
     do l=1,lm-1

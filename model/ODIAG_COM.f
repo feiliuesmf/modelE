@@ -40,7 +40,7 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
-     *     ,IJ_MRVR,IJ_EICB,IJ_MICB 
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC 
 #ifdef OCN_Mesoscales
      .     ,ij_eke,ij_rd
 #endif
@@ -1542,6 +1542,14 @@ c
       scale_oij(k)=1.
       igrid_oij(k) = 2
       jgrid_oij(k) = 2
+
+      k=k+1
+      IJ_GMSC=k
+      lname_oij(k)='Scaling for GM skew-flux'
+      sname_oij(k)='gm_scale_ij'
+      units_oij(k)='m2/s'
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
 
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"

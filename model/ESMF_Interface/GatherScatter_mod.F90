@@ -8,6 +8,7 @@ module GatherScatter_mod
   use dist_grid_mod
 #ifdef USE_ESMF
   use ESMF_Mod
+  use ESMF_CUSTOM_mod, only: ESMF_AxisIndex, ESMF_GridGetAxisIndex
 #endif
   implicit none
   private
@@ -260,6 +261,7 @@ contains
     npes = getNumAllProcesses(grid)
 
     allocate (rcounts(0:NPES-1), displs(0:NPES), stat=rc)
+    allocate(ai(getNumAllProcesses(grid),3))
     call getAxisIndex(grid, ai)
     call getCountsAndDisplacements(ai(:,2:2), rcounts, displs)
     deallocate(ai)
@@ -309,6 +311,7 @@ contains
     npes = getNumAllProcesses(grid)
 
     allocate (scounts(0:NPES-1), displs(0:NPES), stat=rc)
+    allocate(ai(getNumAllProcesses(grid),3))
     call getAxisIndex(grid, ai)
     call getCountsAndDisplacements(ai(:,2:2), scounts, displs)
     deallocate(ai)
@@ -422,10 +425,8 @@ contains
     type (ESMF_AxisIndex), pointer :: axisIndex(:,:)
     integer :: rc
     
-    allocate(axisIndex(getNumAllProcesses(grid),3))
-    call ESMF_GridGetAllAxisIndex(grid%esmf_grid, globalAI=axisIndex, &
-         &     horzRelLoc=ESMF_CELL_CENTER, &
-         &     vertRelLoc=ESMF_CELL_CELL, rc=rc)
+!    allocate(axisIndex(getNumAllProcesses(grid),3))
+    call ESMF_GridGetAxisIndex(grid%esmf_grid, axisIndex, my_pet)
     end subroutine getAxisIndex
 
   subroutine scatterReal8(grid, arr_glob, arr_loc, shp, dist_idx, local)

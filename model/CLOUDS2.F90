@@ -13,10 +13,10 @@ module CLOUDS
   use MODEL_COM, only : lm,dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use MODEL_COM, only : ptop,psf,ls1,sig,sige &
+  use MODEL_COM, only : ptop,psf,ls1,sig,sige
 #endif
 #ifdef SCM
-       ,I_TARG,J_TARG
+  use MODEL_COM, only: I_TARG,J_TARG
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
        SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
@@ -35,24 +35,23 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm,trname,t_qlimit,ntm_soa,ntm_ococean &
+  use TRACER_COM, only: ntm, trname,t_qlimit,ntm_soa,ntm_ococean
 #ifdef TRACERS_AEROSOLS_OCEAN
-       ,n_ococean,n_seasalt1,trm,trpdens &
+  use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
-       ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
-       tr_evap_fact &
-       ,gases_list,gases_count &
+  use TRACER_COM, only:        nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
+       tr_evap_fact, gases_list,gases_count
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-       ,aqchem_list,aqchem_count &
+  use TRACER_COM, only: aqchem_list,aqchem_count
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-       ,Ntm_dust
+  use TRACER_COM, only: Ntm_dust
 #endif
 #endif
 #endif
-  ;
+       
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifdef TRACERS_AMP
   use CLOUDS_COM, only: NACTC,NAERC
@@ -158,11 +157,11 @@ module CLOUDS
        ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1 &
        ,FSSL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL &
        ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP &
-       ,QDNL,TDNL,U00L &
+       ,QDNL,TDNL,U00L
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-       ,WMXICE &
+  real*8, dimension(LM) :: WMXICE
 #endif
-       ,DQMTOTAL,DQMSHLW,DQMDEEP &
+  real*8, dimension(LM) :: DQMTOTAL,DQMSHLW,DQMDEEP &
        ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
@@ -288,23 +287,19 @@ module CLOUDS
   real*8,dimension(Lm,Ntm_dust) :: trprc_dust
 #endif
 #endif
+
 #ifdef TRACERS_WATER
-  common/CLD_WTRTRCCOM/TRWML, TRSVWML,TRPRSS,TRPRMC &
+  common/CLD_WTRTRCCOM/TRWML,TRSVWML,TRPRSS,TRPRMC
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-       ,DT_SULF_MC,DT_SULF_SS &
+  common/CLD_WTRTRCCOM/DT_SULF_MC,DT_SULF_SS
 #endif
 #ifdef TRDIAG_WETDEPO
-       ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
-       ,trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
+  common/CLD_WTRTRCCOM/trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc, &
+       trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
   common/CLD_PRECDUST/ tm_dust,tmom_dust,trprc_dust
-#endif
-#endif
-#ifdef TRACERS_WATER
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
 #endif
 #endif
 #endif
@@ -350,25 +345,25 @@ module CLOUDS
        ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL &
        ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL &
        ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT,TDNL,QDNL,U00L &
-       ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT &
+       ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
 #ifdef CLD_AER_CDNC
-       ,ACDNWM,ACDNIM,ACDNWS,ACDNIS &
+  common/CLDPRV/ACDNWM,ACDNIM,ACDNWS,ACDNIS &
        ,AREWM,AREIM,AREWS,AREIS,ALWIM,ALWWM &
        ,OLDCDL,OLDCDI &
        ,SME &
        ,SMLWP,CDN3DL,CRE3DL &
-       ,WMCLWP,WMCTWP &
+       ,WMCLWP,WMCTWP
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-       ,CTEML,CD3DL,CL3DL,CI3DL &
+  common/CLDPRV/CTEML,CD3DL,CL3DL,CI3DL
 #endif
-       ,TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2 &
+  common/CLDPRV/TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2 &
        ,FSSL,WTURB,TVL,W2L,GZL &
-       ,SAVWL,SAVWL1,SAVE1L,SAVE2L &
+       ,SAVWL,SAVWL1,SAVE1L,SAVE2L
 #ifdef CLD_AER_CDNC
-       ,NLSW,NLSI,NMCW,NMCI &
+  common/CLDPRV/NLSW,NLSI,NMCW,NMCI
 #endif
-       ,prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
+  common/CLDPRV/prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 
 #ifdef TRACERS_ON
   ! The following tracer arrays are workspace for MSTCNV.  They are
@@ -2515,10 +2510,9 @@ contains
                 tm(l,n)=tm(l,n)*(1.-fwasht(n))-thwash(n)
                 tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht(n)-tmfac(n))
               end do
-            else if (below_cloud .and. prcp > teeny) then
-#else
-            if (below_cloud .and. prcp > teeny) then
+            end if
 #endif
+            if (below_cloud .and. prcp > teeny) then
               !**** WASHOUT of TRACERS BELOW CLOUD
               WMXTR = PRCP*BYAM(L)
               precip_mm = PRCP*100.*bygrav
@@ -5228,11 +5222,11 @@ contains
 
   !***************************************************************************************
 
-  subroutine CONVECTIVE_MICROPHYSICS(PL,WCU,DWCU,LFRZ,WCUFRZ,TP,      & ! input
-       TI,FITMAX,PLAND,CN0,CN0I,CN0G,FLAMW,FLAMG,FLAMI,RHOIP,            & ! input
-       RHOG,ITMAX,TLMIN,TLMIN1,WMAX,                                     & ! input
+  subroutine CONVECTIVE_MICROPHYSICS(PL,WCU,DWCU,LFRZ,WCUFRZ,TP,         & 
+       TI,FITMAX,PLAND,CN0,CN0I,CN0G,FLAMW,FLAMG,FLAMI,RHOIP,            & 
+       RHOG,ITMAX,TLMIN,TLMIN1,WMAX,                                     & 
 #ifdef CLD_AER_CDNC
-       TL,RCLD_C,MCDNCW,CONDMU,CONDPC,                                   & ! input
+       TL,RCLD_C,MCDNCW,CONDMU,CONDPC,                                   & 
 #endif
        CONDP,CONDP1,CONDIP,CONDGP)                                       ! output
 
@@ -6027,12 +6021,12 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       atmax(j) = 0.
     enddo
 
-    do 12 ilev=1,nlev
+    do ilev=1,nlev
       do j=1,npoints
         if (at(j,ilev) .gt. atmax(j)) atmax(j)=at(j,ilev)
         if (at(j,ilev) .lt. atmin(j)) atmin(j)=at(j,ilev)
       enddo
-12  continue
+    end do
 
   end if
 
@@ -6142,7 +6136,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
   !     convective cloud
 
   !loop over vertical levels
-  do 200 ilev = 1,nlev
+  ilev_loop: do ilev = 1,nlev
 
     !     Initialise threshold
 
@@ -6318,7 +6312,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
     !          enddo
     !          endif
 
-200 continue    !loop over nlev
+  end do ilev_loop
 
       !
       !     ---------------------------------------------------!
@@ -6330,7 +6324,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       !     put into vector tau
 
       !initialize tau and albedocld to zero
-  do 15 ibox=1,ncol
+  do ibox=1,ncol
     do j=1,npoints
       tau(j,ibox)=0.
       albedocld(j,ibox)=0.
@@ -6338,7 +6332,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       boxptop(j,ibox)=0.
       box_cloudy(j,ibox)=.false.
     enddo
-15 continue
+  end do
 
         !compute total cloud optical depth for each column
   do ilev=1,nlev
@@ -6404,7 +6398,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
     !        t0 = 296.
     !        if (ncolprint .ne. 0)
     !     &         write(6,*)  'ilev   pw (kg/m2)   tauwv(j)      dem_wv'
-    do 125 ilev=1,nlev
+    do ilev=1,nlev
       do j=1,npoints
         !press and dpress are dyne/cm2 = Pascals *10
         press(j) = pfull(j,ilev)*10.
@@ -6433,7 +6427,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       !     &           tauwv(j),dem_wv(j,ilev)
       !               enddo
       !             endif
-125 continue
+    end do
 
     !initialize variables
     do j=1,npoints
@@ -6769,7 +6763,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
   !
 
   !compute cloud top pressure
-  do 30 ibox=1,ncol
+  do ibox=1,ncol
     !segregate according to optical thickness
     if (top_height .eq. 1 .or. top_height .eq. 3) then
       !find level whose temperature
@@ -6777,7 +6771,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       do j=1,npoints
         nmatch(j)=0
       enddo
-      do 29 ilev=1,nlev-1
+      do ilev=1,nlev-1
         !cdir nodep
         do j=1,npoints
           if ((at(j,ilev)   .ge. tb(j,ibox) .and. &
@@ -6794,7 +6788,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
             end if
           end if
         enddo
-29    continue
+      end do
 
       do j=1,npoints
         if (nmatch(j) .ge. 1) then
@@ -6835,7 +6829,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       endif
     enddo
 
-30 continue
+  end do
 
   !
   !
@@ -6864,12 +6858,13 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
   !compute isccp frequencies
 
   !reset frequencies
-  do 38 ilev=1,7
-    do 38 ilev2=1,7
+  do ilev=1,7
+    do ilev2=1,7
       do j=1,npoints !
         fq_isccp(j,ilev,ilev2)=0.
       enddo
-38 continue
+    end do
+  end do
 
   !reset variables need for averaging cloud properties
   do j=1,npoints
@@ -6881,7 +6876,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
 
   !      boxarea = 1./real(ncol,kind=8)
 
-  do 39 ibox=1,ncol
+  do ibox=1,ncol
     do j=1,npoints
 
       !          if (tau(j,ibox) .gt. (tauchk            )
@@ -6985,7 +6980,7 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
       end if
 
     enddo ! j
-39 continue
+  end do ! ibox
 
   !compute mean cloud properties
   do j=1,npoints

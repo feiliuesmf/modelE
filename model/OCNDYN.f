@@ -239,7 +239,7 @@ C****
         END IF
       END IF
       call scatter_ocean_straits()
-      call BCAST_straits (0)
+      call BCAST_straits (.false.)
         CALL CHECKO ('STADV ')
 
   500 Continue  !  End of Do-loop NO=1,NOCEAN

@@ -148,9 +148,10 @@ c
       vm_ => modelE_vm
       If (Present(vm)) vm_ => vm
       print*, 'Started AppGridCreateF'
-      grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
+      grd_dum%ESMF_GRID = AppGridCreateF(IM, JM*6, LM, npesx, npesy, rc)
+
 c is this needed?
-      call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
+!     call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
       print*, 'Finished AppGridCreateF'
 
       return
