@@ -912,7 +912,7 @@ c if after Feb 28 skip the leapyear day
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
-       USE CONSTANT, only : mair
+       USE CONSTANT, only : mair, sday
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
@@ -1094,18 +1094,16 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*trm(i,j,l,n) !efold time of 1 day        
-c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
-c       bciage=1.0D-7*trm(i,j,l,n)
-        tr3Dsource(i,j,l,1,n)=-bciage        
-        tr3Dsource(i,j,l,1,n_BCIA)=bciage        
+        bciage=(1.d0-exp(-dtsrc/(2.7d0*sday)))/dtsrc
+     *        *trm(i,j,l,n) !efold time of 2.7 days
+        tr3Dsource(i,j,l,nChemistry,n)=-bciage        
+        tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=7.3D-6*trm(i,j,l,n)  !used this first 
-c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
-c       ociage=3.D-7*trm(i,j,l,n)
-        tr3Dsource(i,j,l,1,n)=-ociage        
-        tr3Dsource(i,j,l,1,n_OCIA)=ociage        
+        ociage=(1.d0-exp(-dtsrc/(1.6d0*sday)))/dtsrc
+     *        *trm(i,j,l,n) !efold time of 1.6 days
+        tr3Dsource(i,j,l,nChemistry,n)=-ociage        
+        tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage        
 
         case ('OCI1')
         ociage=4.3D-6*trm(i,j,l,n)
