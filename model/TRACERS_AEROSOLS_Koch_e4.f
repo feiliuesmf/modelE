@@ -1069,6 +1069,8 @@ c     endif
 #endif
 #endif
       dtt=dtsrc
+      bciage=(1.d0-exp(-dtsrc/(2.7d0*sday)))/dtsrc !efold time of 2.7 days
+      ociage=(1.d0-exp(-dtsrc/(1.6d0*sday)))/dtsrc !efold time of 1.6 days
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,lm
       do 21 j=j_0,j_1
@@ -1094,29 +1096,22 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=(1.d0-exp(-dtsrc/(2.7d0*sday)))/dtsrc
-     *        *trm(i,j,l,n) !efold time of 2.7 days
-        tr3Dsource(i,j,l,nChemistry,n)=-bciage        
-        tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage        
+          tr3Dsource(i,j,l,nChemistry,n)=-bciage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage*trm(i,j,l,n)
 
         case ('OCII')
-        ociage=(1.d0-exp(-dtsrc/(1.6d0*sday)))/dtsrc
-     *        *trm(i,j,l,n) !efold time of 1.6 days
-        tr3Dsource(i,j,l,nChemistry,n)=-ociage        
-        tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage        
+          tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
 
         case ('OCI1')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA1)=ociage
+          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,1,n_OCA1)=ociage*trm(i,j,l,n)
         case ('OCI2')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA2)=ociage
+          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,1,n_OCA2)=ociage*trm(i,j,l,n)
         case ('OCI3')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA3)=ociage
+          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,1,n_OCA3)=ociage*trm(i,j,l,n)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
