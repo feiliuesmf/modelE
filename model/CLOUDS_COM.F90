@@ -4,7 +4,6 @@ module CLOUDS_COM
 !@+    large-scale condensation
 !@+    cloud droplet number added to list of saves for rsf files
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
   use MODEL_COM, only : IM,JM,LM
   implicit none
   save
@@ -108,7 +107,6 @@ subroutine ALLOC_CLOUDS_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
   use DOMAIN_DECOMP_ATM, only : DIST_GRID
   use MODEL_COM, only : IM,LM
 #ifdef BLK_2MOM
@@ -260,7 +258,6 @@ end subroutine ALLOC_CLOUDS_COM
 subroutine io_clouds(kunit,iaction,ioerr)
 !@sum  io_clouds reads and writes cloud arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
   use MODEL_COM, only : ioread,iowrite,lhead
   use DOMAIN_DECOMP_1D, only : AM_I_ROOT, GRID
   use DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN

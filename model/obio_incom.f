@@ -19,7 +19,6 @@
       common /bphy/ rmumax(nchl),rik(3,nchl)
       real :: obio_wsd,obio_wsh     !phyto sinking rate m/d, m/h
       common /bphy2/ obio_wsd(nchl),obio_wsh(nchl)
-!$OMP THREADPRIVATE(/bphy2/)
 
       real :: rkn,rks     !half-saturation constants for nitrogen, silica (uM)
       real :: rkf         !half-saturation constant for iron (nM)

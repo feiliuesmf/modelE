@@ -6,7 +6,6 @@
       MODULE LAKES_COM
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : IM,JM,ioread,iowrite,lhead,irerun,irsfic
      *     ,irsficno
 #ifdef TRACERS_WATER
@@ -54,7 +53,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
@@ -93,7 +91,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       SUBROUTINE io_lakes(kunit,iaction,ioerr)
 !@sum  io_lakes reads and writes lake arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, grid
       USE DOMAIN_DECOMP_1D, only : PACK_DATA  , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_BLOCK,

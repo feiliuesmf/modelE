@@ -8,7 +8,6 @@
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
 !@auth Natassa Romanou/Watson Gregg
-!@ver  1.0
 
       USE Dictionary_mod
       USE obio_dim
@@ -290,7 +289,6 @@
 #endif
 
       call start('  obio main loop')
-c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
 #ifdef OBIO_ON_GARYocean
@@ -1144,7 +1142,6 @@ cdiag     endif
 #endif
 
  1000 continue
-c$OMP END PARALLEL DO
       call stop('  obio main loop')
 
       call start('  obio gather')

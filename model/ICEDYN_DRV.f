@@ -16,7 +16,6 @@ C****
       MODULE ICEDYN_COM
 !@sum  ICEDYN_COM holds global variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
@@ -191,7 +190,6 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 !@sum  collect the local acc-arrays into global arrays
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
        USE ICEDYN_COM
 
@@ -207,7 +205,6 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       SUBROUTINE io_icedyn(kunit,iaction,ioerr)
 !@sum  io_icedyn reads and writes dynamic ice arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
@@ -269,7 +266,6 @@ C****
       SUBROUTINE io_icdiag(kunit,it,iaction,ioerr)
 !@sum  io_icdiag reads and writes ice dynamic diagnostic arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
       USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
@@ -517,7 +513,6 @@ c temporarily empty.
 !@+    Note that the ice velocities are calculated on the ice grid
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang), D. Gueyffier (cubed sphere)
 !@auth M. Kelley (cubed sphere)
-!@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
       USE MODEL_COM, only : dts=>dtsrc,focean
       USE RESOLUTION, only : aIM=>IM, aJM=>JM

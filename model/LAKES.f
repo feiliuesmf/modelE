@@ -72,7 +72,6 @@ C**** 1-8 anti-clockwise from top RH corner
      *     EVAPO,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  LKSOURC applies fluxes to lake in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : qcheck
       USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
       IMPLICIT NONE
@@ -273,7 +272,6 @@ C**** distribute ice fluxes according to flux amounts
      *     HLAKE,TKE,ROICE,DTSRC)
 !@sum  LKMIX calculates mixing and entrainment in lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
@@ -380,7 +378,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
@@ -410,7 +407,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       SUBROUTINE init_LAKES(inilake,istart)
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
@@ -1339,7 +1335,6 @@ C****
 !@sum  diag_RIVER prints out the river outflow for various rivers
 !@sum  (now parallel)
 !@auth Gavin Schmidt
-!@ver  1.0
 
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon,im,jm
@@ -1456,7 +1451,6 @@ C****
       SUBROUTINE CHECKL (SUBR)
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,qcheck,focean
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
@@ -1987,7 +1981,6 @@ C****
       SUBROUTINE PRECIP_LK
 !@sum  PRECIP_LK driver for applying precipitation/melt to lake fraction
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
 #ifdef SCM
@@ -2237,7 +2230,6 @@ C****
       SUBROUTINE GROUND_LK
 !@sum  GROUND_LK driver for applying surface fluxes to lake fraction
 !@auth Gavin Schmidt
-!@ver  1.0
 !@calls
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
@@ -2472,7 +2464,6 @@ C****
       SUBROUTINE PRINTLK(STR)
 !@sum  PRINTLK print out selected diagnostics from specified lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : lhm,byshi,rhow,shw
       USE MODEL_COM, only : qcheck
       USE GEOM, only : axyp
@@ -2532,7 +2523,6 @@ C****
       SUBROUTINE conserv_LKM(LKM)
 !@sum  conserv_LKM calculates lake mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,fland,fim
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
@@ -2571,7 +2561,6 @@ C****
       SUBROUTINE conserv_LKE(LKE)
 !@sum  conserv_LKE calculates lake energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,zatmo,fim,fland
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp

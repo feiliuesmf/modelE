@@ -5,7 +5,6 @@
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
 !@sum  This version works for a nonorthogonal grid
 !@auth M. Kelley
-!@ver  1.0
 C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
@@ -64,7 +63,6 @@ c      CALL HALO_UPDATE(grid, ZATMO)
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
 !@auth Ye Cheng
-!@ver  1.0
 C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
@@ -179,7 +177,6 @@ C**** to be used in the PBL, at the primary grids
       SUBROUTINE CALC_PIJL(lmax,p,pijl)
 !@sum  CALC_PIJL Fills in P as 3-D
 !@auth Jean Lerner
-!@ver  1.0
       USE MODEL_COM, only : lm,ls1,psfmpt
 C****
       USE DOMAIN_DECOMP_ATM, Only : grid, GET
@@ -202,7 +199,6 @@ C****
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure arrays
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
@@ -235,7 +231,6 @@ C**** Fill in polar boxes
       IF (have_north_pole) P(2:IM,JM)= P(1,JM)
       Call HALO_UPDATE(grid, P)
 
-!$OMP  PARALLEL DO DEFAULT(NONE)
 !$OMP&    PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
 !$OMP&    SHARED (J_0H, J_1H, I_0H, I_1H, LMAX, PLIJ, 
 !$OMP&           PDSIG, PMID, PEDN, AM, PK, PEK, BYAM, SQRTP, P)
@@ -262,7 +257,6 @@ C**** Fill in polar boxes
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
       END DO
-!$OMP  END PARALLEL DO
 
       RETURN
       END SUBROUTINE CALC_AMPK
@@ -270,7 +264,6 @@ C**** Fill in polar boxes
       SUBROUTINE CALC_AMP(p,amp)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
 !@auth Jean Lerner/Max Kelley
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
       USE GEOM, only : axyp
 C****
@@ -287,7 +280,6 @@ c**** Extract domain decomposition info
      &               J_STOP = J_1)
 
 C
-!$OMP  PARALLEL DO PRIVATE(J,L)
       DO L=1,LM
         IF(L.LT.LS1) THEN
 ccc   do l=1,ls1-1
@@ -303,7 +295,6 @@ ccc   do l=ls1,lm
         END IF
 ccc   enddo
       enddo
-!$OMP  END PARALLEL DO
 C
       return
 C****
@@ -312,7 +303,6 @@ C****
       SUBROUTINE CALC_TROP
 !@sum  CALC_TROP (to calculate tropopause height and layer)
 !@auth J. Lerner
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,t
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
@@ -335,7 +325,6 @@ c**** Extract domain decomposition info
       I_1 = grid%I_STOP
 
 C**** Find WMO Definition of Tropopause to Nearest L
-!$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
       do j=J_0,J_1
       do i=I_0,imaxj(j)
         do l=1,lm
@@ -351,7 +340,6 @@ C**** Find WMO Definition of Tropopause to Nearest L
 #endif
       end do
       end do
-!$OMP  END PARALLEL DO
       IF (have_south_pole) THEN
 #ifdef etc_subdd
         TTROPO(2:IM,1) = TTROPO(1,1)  ! extra subdaily
@@ -374,7 +362,6 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@sum  tropwmo calculates tropopause height according to WMO formula
 !@auth D. Nodorp/T. Reichler/C. Land
 !@+    GISS Modifications by Jean Lerner/Gavin Schmidt
-!@ver  1.0
 !@alg  WMO Tropopause Definition
 !@+
 !@+ From A Temperature Lapse Rate Definition of the Tropopause Based on
@@ -552,7 +539,6 @@ c Lat-lon version.
       function getTotalEnergy() result(totalEnergy)
 !@sum  getTotalEnergy returns the sum of kinetic and potential energy.
 !@auth Tom Clune (SIVO)
-!@ver  1.0
       use GEOM, only: AXYP, AREAG
       use DOMAIN_DECOMP_ATM, only: grid, GLOBALSUM, get
       REAL*8 :: totalEnergy
@@ -581,7 +567,6 @@ c Lat-lon version.
       subroutine addEnergyAsDiffuseHeat(deltaEnergy)
 !@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
 !@auth Tom Clune (SIVO)
-!@ver  1.0
       use CONSTANT, only: sha, mb2kg
       use MODEL_COM, only: T, PSF, PMTOP, LM
       use DYNAMICS, only: PK
@@ -599,12 +584,10 @@ c Lat-lon version.
 
       ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
 
-!$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(I_0:I_1,J_0:J_1,L)=T(I_0:I_1,J_0:J_1,L)
      &       -ediff/PK(L,I_0:I_1,J_0:J_1)
       end do
-!$OMP  END PARALLEL DO
 
       end subroutine addEnergyAsDiffuseHeat
 
@@ -626,7 +609,6 @@ C***** Add in dissipiated KE as heat locally
 !@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
 !@sum  deltaKE is on the A grid (J/kg)
 !@auth Tom Clune (SIVO)
-!@ver  1.0
       use CONSTANT, only: SHA
       use GEOM, only: IMAXJ
       use MODEL_COM, only: LM
@@ -647,7 +629,6 @@ c      integer, optional, intent(in) :: diagIndex
       I_0 = grid%i_strt
       I_1 = grid%i_stop
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
@@ -659,7 +640,6 @@ c        end if
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
       end subroutine addEnergyAsLocalHeat
 
 C**** Calculate 3D vertical velocity (take SDA which has units
@@ -681,7 +661,6 @@ C**** and convert to WSAVE, units of m/s):
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-!$OMP PARALLEL DO PRIVATE (l,i)
       do l=1,lm-1
         do j=J_0,J_1
         do i=I_0,I_1
@@ -691,7 +670,6 @@ C**** and convert to WSAVE, units of m/s):
         end do
         end do
       end do
-!$OMP END PARALLEL DO
 
       end subroutine COMPUTE_WSAVE
 

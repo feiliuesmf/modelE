@@ -2,7 +2,6 @@
       SUBROUTINE chemstep(I,J,changeL,ierr_loc)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on chemcalc0C5.4_M23p.f from model II)
 !@calls rates,chem1,chem1prn
 c
 C**** GLOBAL parameters and variables:
@@ -1545,7 +1544,6 @@ C**** special diags not associated with a particular tracer
       SUBROUTINE rates(maxl,I,J)
 !@sum rates calculate reaction rates with present concentrations
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on chemcalc0C5.4_M23p)
 c
 C**** GLOBAL parameters and variables:
 
@@ -1589,7 +1587,6 @@ c Initialize change arrays:
       SUBROUTINE chem1(kdnr,maxl,numel,nn,ndnr,chemrate,dest,multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on chemcalc0C5.4_M23p)
 
 C**** GLOBAL parameters and variables:
 
@@ -1674,7 +1671,6 @@ c Individual Species:
      &                    index,multip,igas,total,maxl,I,J,jay)
 !@sum chem1prn for printing out the chemical reactions
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on chemcalc0C5.4_M23p)
 
 C**** GLOBAL parameters and variables:
 

@@ -152,7 +152,6 @@ c
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
       real*8, parameter :: hrday=24.
       integer, parameter :: jmpery=12,jdpery=365

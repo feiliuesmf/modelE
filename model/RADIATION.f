@@ -44,7 +44,6 @@ C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
       subroutine dCDNC_EST(i,j,pland, dCDNC, table)
 !@sum  finds change in cloud droplet number concentration since 1850
 !@auth R. Ruedy
-!@ver  1.0
       USE CONSTANT, only : pi
       implicit none
       integer, intent(in)  :: i,j ! grid coordinates w.r. 72x46 grid
@@ -1040,13 +1039,11 @@ C----------------
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON, L1,NL, LS1_loc, use_tracer_chem, flags
      Z             ,KDELIQ                ! is updated by rad. after use
-!$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
 !@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
       COMMON/RADPAR_hybrid/U0GAS
-!$OMP THREADPRIVATE(/RADPAR_hybrid/)
 C     end of section to be repeated in driver (needed for 'copyin')
 
 C--------------------------------------------------------
@@ -1108,7 +1105,6 @@ C--------------------------------------------------------
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
 c    M             ,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD
 cdmk last line saved for IE
-!$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
 
@@ -1152,7 +1148,6 @@ C**** local except for special radiative aerosol diagnostics aadiag
      X             ,QVH2S,SVH2S,GVH2S,AVH2S
      F             ,XTRU,XTRD,DXAERU,DXAERD
      I             ,IP24C9                     ! INTEGERs last
-!$OMP  THREADPRIVATE(/WORKDATA/)
 
       REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
                  !  Temp data used by WRITER, WRITET

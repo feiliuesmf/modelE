@@ -2,7 +2,6 @@
       MODULE SOMTQ_COM
 !@sum  SOMTQ_COM contains the arrays containing second order moments
 !@auth Gary Russell
-!@ver  1.0
       USE QUSDEF
       USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
@@ -17,7 +16,6 @@
 !@sum  init_smomtq allocates the arrays in this module which
 !@+    must now be dynamic for the distributed memory implementation.
 !@auth Rosalinda de Fainchtein
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE QUSDEF, ONLY : NMOM
       USE MODEL_COM, ONLY : LM
@@ -45,7 +43,6 @@
       SUBROUTINE io_somtq(kunit,iaction,ioerr)
 !@sum  io_somtq reads and writes second order moments to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN

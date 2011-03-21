@@ -13,7 +13,6 @@
 !@+    to deposition" component of the deposition velocity.
 !@auth D.J. Jacob and Y.H. Wang, modularized by G.M. Gardner, 
 !@+    adapted for GISS GCM by D. Koch, modelEified by G. Faluvegi
-!@ver  1.0 (based on DRYDEP subroutines in DB396Tds3M23.f, based on 
 !@+    Harvard version 3.1: 12/17/97)  
 C*********************************************************************
 C  Literature cited in drydep.f routines: 
@@ -113,7 +112,6 @@ C*********************************************************************
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &     IREG_loc,IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND,nvegtype
@@ -167,7 +165,6 @@ C*********************************************************************
 !@+    Bulk surface reistance...
 !@auth D.J. Jacob and Y.H. Wang, modularized by G.M. Gardner, 
 !@+    adapted for GISS GCM by D. Koch modelEified by G. Faluvegi
-!@ver  1.0 (based on DRYDEP subroutines in DB396Tds3M23.f, based on
 !@+    Harvard version 3.1: 12/17/97)  
 C      uses functions: BIOFIT,DIFFG
 c

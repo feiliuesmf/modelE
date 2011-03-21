@@ -2,7 +2,6 @@ C****
 !@sum  RES_5x4_L32 Resolution info for 4x5 horizontal
 !!       and 32 vertical ocean layer
 !@auth Gary Russel/Larissa Nazarenko
-!@ver  1.0
 C****   
 C**** RES_5x4_L32.f    2008/08/08
 C****

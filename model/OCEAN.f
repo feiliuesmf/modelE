@@ -7,7 +7,6 @@
 !@sum  STATIC_OCEAN contains the ocean subroutines common to all Q-flux
 !@+    and fixed SST runs
 !@auth Original Development Team
-!@ver  1.0 (Q-flux ocean)
 !@cont OSTRUC,OCLIM,init_OCEAN,daily_OCEAN,DIAGCO
 !@+    PRECIP_OC,OCEANS
       USE CONSTANT, only : rhows,rhoi,shw,by12,tf
@@ -80,7 +79,6 @@ C     *     ,CRSI,KRSI
 !@sum  OSTRUC restructures the ocean temperature profile as ML
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
-!@ver  1.0 (Q-flux ocean)
       USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
       INTEGER I,J
@@ -139,7 +137,6 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       SUBROUTINE OCLIM(end_of_day)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
-!@ver  1.0 (Q-flux ocean or fixed SST)
       USE DOMAIN_DECOMP_ATM, ONLY : GRID,GLOBALSUM,AM_I_ROOT
 #ifdef SCM
 c     for SCM cases using provided surface temps - do not overwrite 
@@ -598,7 +595,6 @@ C**** update heat and salt
 !@+    ACEFO/I are the freshwater ice amounts,
 !@+    ENRGFO/I is total energy (including a salt component)
 !@auth Gary Russell
-!@ver  1.0
       IMPLICIT NONE
 !@var TFW freezing temperature for water underlying ice (C)
       REAL*8, INTENT(IN) :: TFW
@@ -729,7 +725,6 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
-!@ver  1.0
       USE FILEMANAGER
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_I_root,
@@ -899,7 +894,6 @@ C**** surface tilt term.
       SUBROUTINE daily_OCEAN(end_of_day)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : twopi,edpery,shw,rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,jday
       USE GEOM, only : imaxj
@@ -965,7 +959,6 @@ C****
       SUBROUTINE PRECIP_OC
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
 #ifdef SCM
@@ -1062,7 +1055,6 @@ C****
       SUBROUTINE OCEANS
 !@sum  OCEANS driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
-!@ver  1.0
 !@calls OCEAN:OSOURC
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
@@ -1298,7 +1290,6 @@ C**** regional diagnostics
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : kocean
       USE DIAG_COM, only : icon_OCE
       IMPLICIT NONE
@@ -1319,7 +1310,6 @@ C****
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
       USE DIAG_COM, only : ij_tgo2,aij=>aij_loc
       USE SEAICE_COM, only : rsi,msi,hsi,ssi

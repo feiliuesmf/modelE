@@ -4,7 +4,6 @@
 !@sum  ATM_DIFFUS(DRYCNV) mixes air caused by dry convection.
 !@+    this version checks base layers lbase_min to lbase_max.
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : lhe,sha,deltx
       USE MODEL_COM, only : im,jm,lm,u,v,q,t
       USE DOMAIN_DECOMP_ATM, only : grid, get
@@ -86,7 +85,6 @@ C****   WHILE U,V WILL BE UPDATED.
 
       UT=U ; VT=V
 C**** OUTSIDE LOOPS OVER J AND I
-!$OMP  PARALLEL DO PRIVATE (I,IM1,IMAX,J,K,KMAX,L,LMIN,LMAX,IDI,IDJ,
 !$OMP*   DP,PKMS, QMS,QMOMS, RA,RDP,
 #ifdef TRACERS_ON
 !$OMP*   TRMS,TRMOMS,SDPL,BYSDPL,
@@ -238,7 +236,6 @@ C**** ACCUMULATE BOUNDARY LAYER DIAGNOSTICS
       IM1=I
       ENDDO ILOOP
       ENDDO JLOOP
-!$OMP  END PARALLEL DO
 C
 C     NOW REALLY UPDATE THE MODEL WINDS
 C
@@ -381,7 +378,6 @@ C***
       subroutine apply_fluxes_to_atm(dt)
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
 #ifdef SCM
      *                      ,I_TARG,J_TARG

@@ -4,7 +4,6 @@
 !@sum  TRCHEM_Shindell_COM declares variables for tracer chemistry
 !@+    and sources.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on various chemistry modules of B436Tds3YM23 model)
 c
       USE MODEL_COM, only  : im,jm,lm,psf,ptop,sig,sige,dsig,bydsig,
      &                       dtsrc,Itime,ItimeI,T
@@ -620,20 +619,16 @@ C**************  Not Latitude-Dependant ****************************
       COMMON/CHEM_LOC/chemrate,dest,FASTJLAT,FFF,O3_FASTJ,PFASTJ,
      & photrate,pres,prod,RFLECT,rr,SZA,ta,TANHT,TFASTJ,U0,VALJ,
      & WTAU,y,zj,jndlv,jndlev,jaddlv,jaddto,MIEDX,NCFASTJ!integers last
-!$OMP THREADPRIVATE(/CHEM_LOC/)
 
       COMMON/FJAST_LOC/aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,XQO3,XQO2,DTAUDZ,
      & TTAU,FTAU,rr2,dd,PIAER,RZ,RQ,DO3,PIRAY,JFASTJ,odtmp,odsum,
      & XLTAU,dpomega,pomega,pomegaj,ztau,fz,zrefl,zu0,zflux,pm0,pm,
      & fjfastj,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
-!$OMP THREADPRIVATE(/FJAST_LOC/)
 
       COMMON/SCHEM_LOC/ratioNs,rNO2frac,rNOfrac,rNOdenom,ratioN2
-!$OMP THREADPRIVATE(/SCHEM_LOC/)
 
       COMMON/FJAST2_LOC/AER2,odcol,TJ2,DO32,DBC2,ZFASTJ2,
      &                  DMFASTJ2,PFASTJ2,AMF,jadsub
-!$OMP THREADPRIVATE(/FJAST2_LOC/)
 
       END MODULE TRCHEM_Shindell_COM
       
@@ -643,7 +638,6 @@ C**************  Not Latitude-Dependant ****************************
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,

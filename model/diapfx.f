@@ -37,7 +37,6 @@ c --- if mixfrq > 1, apply mixing algorithm to both time levels
 c
 ccc   salt=0.
 c 
-c$OMP PARALLEL DO PRIVATE(kn,q,ennsq,alfa,beta,totem,tosal,totra,sold,
 c$OMP. told,trold,tflxl,tflxu,sflxl,sflxu,trflxl,trflxu,kmin,kmax,
 c$OMP. flngth,flxu,flxl,pdot,clipt,clips,cliptr,ka,kan,delp,amount,
 c$OMP. qmax,qmin,tndcyt,tndcys,tndtra,scale,clip,event,vrbos)
@@ -349,7 +348,6 @@ c
      .   dp(i,j,k+nn)/onem,tracer(i,j,k,1),k=1,kk)
 c
  31   continue
-c$OMP END PARALLEL DO
 c
 ccc   write (lp,'(i9,7x,1p,e9.2,a)') nstep,salt*1.e-6/g,
 ccc  .  ' kg salt added in diapfl'

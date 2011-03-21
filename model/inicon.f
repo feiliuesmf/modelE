@@ -80,7 +80,6 @@ c
         write (lp,100) 'pres field read, levels 2 -',kk+1
         call zebra(p(1,1,kk+1),idm,ii1,jj)
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 10 j=1,jj
         do 10 l=1,isp(j)
 c
@@ -98,7 +97,6 @@ c
  17     pbot(i,j)=p(i,j,kk+1)
 c
  10     continue
-c$OMP END PARALLEL DO
 c
       write (lp,'('' theta(k)     :'',9f7.2/(15x,9f7.2))')
      .   (theta(k),k=1,kk)
@@ -110,7 +108,6 @@ cdiag end do
 c
 c     call convec(1,1,0,0,1,1)
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 11 j=1,jj
 c
       do 12 k=1,kk-1
@@ -147,7 +144,6 @@ c
      .    totlj(j,k-1)=totlj(j,k-1)+1
       endif
  11   continue
-c$OMP END PARALLEL DO
 c
       write(*,'(a,20i12)') 'ijlist ',((ijlist(i,j),i=30,32),j=4,5)
 c
@@ -180,7 +176,6 @@ c
       write (lp,'(a/(10i7))') 'static instability count by layer:',
      .  totl
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 50 j=1,jj
       do 50 l=1,isp(j)
       do 50 i=ifp(j,l),ilp(j,l)
@@ -192,7 +187,6 @@ c
 c
       thkk(i,j)=thstar(i,j,kk)
  50   psikk(i,j)=montg(i,j,kk)
-c$OMP END PARALLEL DO
 c
 cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 21 j=1,jj
@@ -213,7 +207,6 @@ c
       delt1=baclin+baclin
 css   call newbot
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 21 j=1,jj
       do 21 k=1,kk
       do 21 l=1,isp(j)
@@ -222,7 +215,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       thstar(i,j,k)=th3d(i,j,k)
      . +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k),wgtkap(i,j))
  21   continue
-c$OMP END PARALLEL DO
 c
       end if                                !  nstep0 > 0  or  = 0
 c
@@ -231,13 +223,11 @@ c
       do 16 m=1,2
       mm=(m-1)*kk
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=1,jj
       do 19 k=1,kk
       do 19 l=1,isp(j)
       do 19 i=ifp(j,l),ilp(j,l)
  19   p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
-c$OMP END PARALLEL DO
 c
       call dpudpv(mm)
  16   continue

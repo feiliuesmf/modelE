@@ -6,7 +6,6 @@ c from reactions *within* family only:
       SUBROUTINE Oxinit(lmax,I,J)
 !@sum Oxinit Find O,O1D & Ox initial conc assuming equilibrium with O3
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
 
@@ -68,7 +67,6 @@ c
 !@+   equilibrium at a given concentration of NOx. Only called during
 !@+   daylight, then assume NO3=HONO=1.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
 
@@ -144,7 +142,6 @@ C       Set limits on NO, NO2, NOx:
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
 
@@ -382,7 +379,6 @@ c H + O2 + M -> HO2 + M :
 !@sum ClOxfam Find ClOx family (Cl,ClO,OClO,Cl2,Cl2O2) partitioning 
 !@+   assuming equilibrium within ClOx.
 !@auth Drew Shindell
-!@ver  1.0 (based on ds4p_famchem_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -533,7 +529,6 @@ c Normalize so that amount of ClOx doesn't change:
 !@sum BrOxfam Find BrOx family (Br,BrO) partitioning 
 !@+   assuming equilibrium within BrOx.
 !@auth Drew Shindell
-!@ver  1.0 (based on ds4p_famchem_M23)
 
 C**** GLOBAL parameters and variables:
 

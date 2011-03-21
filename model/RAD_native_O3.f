@@ -4,7 +4,6 @@
 !@sum  Declaring a few new variables necessary for reading ozone
 !@+ data for radition code at native GCM horizonal resolution.
 !@auth Greg Faluvegi
-!@ver  1.0
 
       implicit none
 
@@ -20,7 +19,6 @@
       subroutine alloc_RAD_native_O3(grid)
 !@SUM  alllocate RAD_native_O3 arrays for current grid
 !@auth Greg Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use RADPAR, only : NLO3
       use RAD_native_O3

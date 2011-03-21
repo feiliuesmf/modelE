@@ -2,7 +2,6 @@
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
-!@ver  1.0
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
 !      USE DOMAIN_DECOMP_ATM, only : grid
@@ -300,7 +299,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE
@@ -367,7 +365,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       MODULE TIMINGS
 !@sum  TIMINGS contains variables for keeping track of computing time
 !@auth Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@param NTIMEMAX maximum number of possible time accumulators
@@ -384,7 +381,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       SUBROUTINE SET_TIMER(STR,MINDEX)
 !@sum  SET_TIMER sets an index of TIMING for a particular description
 !@auth Gavin Schmidt
-!@ver  1.0
       USE TIMINGS
       IMPLICIT NONE
 !@var STR string that describes timing accumulator
@@ -413,7 +409,6 @@ C****
       SUBROUTINE TIMER (NOW,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
 !@auth Gary Russell
-!@ver  1.0
       USE TIMINGS
       USE GETTIME_MOD
       IMPLICIT NONE
@@ -434,7 +429,6 @@ C****
       SUBROUTINE TIMEOUT (BEGIN,MIN,MOUT)
 !@sum  TIMEOUT redistributes timing info between counters
 !@auth Gary Russell
-!@ver  1.0
       USE TIMINGS
       USE GETTIME_MOD
       IMPLICIT NONE
@@ -457,7 +451,6 @@ C****
       SUBROUTINE io_label(kunit,it,itm,iaction,ioerr)
 !@sum  io_label reads and writes label/parameters to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
@@ -551,7 +544,6 @@ C**** keep track of min/max time over the combined diagnostic period
       SUBROUTINE io_model(kunit,iaction,ioerr)
 !@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, only: grid,PACK_DATA,UNPACK_DATA,AM_I_ROOT
       IMPLICIT NONE
@@ -776,7 +768,6 @@ ccc was not sure where to dump these routines ... IA
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : hrday
       USE MODEL_COM, only : JDperY,JDendOfM,amonth
       IMPLICIT NONE
@@ -800,7 +791,6 @@ ccc was not sure where to dump these routines ... IA
       SUBROUTINE CALC_VERT_AMP(P0,LMAX,PL,AM,PDSIG,PEDN,PMID)
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : lm,ls1,dsig,sig,sige,ptop,psfmpt,lm_req
      *     ,req_fac,req_fac_m,req_fac_d,pmtop

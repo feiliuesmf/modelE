@@ -4,7 +4,6 @@ C****
       MODULE OCFUNC
 !@sum  OCFUNC contains the ocean function lookup tables
 !@auth Gary Russell/Gavin Schmidt      
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 C**** All look up tables take specific pot. enthalpy (J/kg), 

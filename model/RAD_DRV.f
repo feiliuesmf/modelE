@@ -30,7 +30,6 @@ C****
       SUBROUTINE init_RAD(postProc)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
-!@ver  1.0
 !@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE Dictionary_mod
@@ -809,7 +808,6 @@ C**** REPLICATE VALUES AT POLE
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
-!@ver  1.0
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
@@ -995,7 +993,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     sumda_psum,tauda_psum
       COMMON/RADPAR_hybrid/U0GAS(LX,13)
-!$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1349,7 +1346,6 @@ c     ICKERR=0
 c     JCKERR=0
 c     KCKERR=0
 
-!$OMP  PARALLEL DEFAULT(NONE)
 !$OMP*   PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   tmp,tmpS,tmpT,StauL,dALBsn1,
 !$OMP*   I,INCH,IH,IHM,IT,JR, K,KR, L,LR,LFRC, N, onoff_aer,
@@ -1401,7 +1397,6 @@ c     KCKERR=0
 !$OMP*   IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,IJ_CLR_TRUPTOA,
 !$OMP*   IJ_CLR_SRNTP,IJ_CLR_TRNTP,IJ_SRNTP,IJ_TRNTP,J_CLRTOA,J_CLRTRP,
 !$OMP*   IJ_CLDTPT,IJ_CLDCV1,IJ_CLDT1T,IJ_CLDT1P,IJ_CLDTPPR,J_TOTTRP)
-!$OMP    DO SCHEDULE(dynamic,8)
 !!OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
 
 C****
@@ -2470,8 +2465,6 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
-!$OMP  END DO
-!$OMP  END PARALLEL
 
       END DO
 C****
@@ -3002,7 +2995,6 @@ C**** Same for upward thermal
       SUBROUTINE GHGHST(iu)
 !@sum  reads history for nghg well-mixed greenhouse gases
 !@auth R. Ruedy
-!@ver  1.0
 
       use domain_decomp_atm, only : write_parallel
       USE RADPAR, only : nghg,ghgyr1,ghgyr2,ghgam
@@ -3053,7 +3045,6 @@ C**** Same for upward thermal
       subroutine read_qma (iu,plb)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
-!@ver  1.0
       use domain_decomp_atm, only : write_parallel
       use rad_com, only : dH2O,jma=>jm_dh2o,lat_dh2o
       use model_com, only : lm
@@ -3144,7 +3135,6 @@ C**** Interpolate (extrapolate) vertically
       subroutine lat_interp_qma (rlat,lev,mon,dh2o_interp)
 !@sum  interpolate CH4->H2O production rates in latitude
 !@auth R. Ruedy
-!@ver  1.0
       use rad_com, only : jma=>jm_dh2o,xlat=>lat_dh2o,dh2o
       implicit none
       real*8 :: rlat ! input latitude (radians)
@@ -3183,7 +3173,6 @@ C**** for extrapolations, only use half the slope
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
-!@ver  1.0
       use domain_decomp_atm, only : grid,get,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
@@ -3755,7 +3744,6 @@ C****
       subroutine updBCd (year)
 !@sum  reads appropriate Black Carbon deposition data if necessary
 !@auth R. Ruedy
-!@ver  1.0
       USE FILEMANAGER
       USE RAD_COM, only : depoBC
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT

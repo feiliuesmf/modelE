@@ -2,7 +2,6 @@
 !@+    diagnostics, provides gather/scatter procedures for
 !@+    accumulation arrays, and will soon include other code
 !@+    and better documentation.
-!@ver  1.0
       module diag_zonal
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,fim

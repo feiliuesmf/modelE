@@ -1842,7 +1842,6 @@ c
 !@sum OSTRES applies the atmospheric surface stress over open ocean
 !@sum and the sea ice stress to the layer 1 ocean velocities
 !@auth Gary Russell
-!@ver  1.0
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
      *     , IVNP, UO,VO, UOD,VOD, MO,DXYSO,DXYNO,DXYVO

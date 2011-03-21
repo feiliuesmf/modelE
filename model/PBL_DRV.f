@@ -16,7 +16,6 @@
 !@sum  PBL calculate pbl profiles for each surface type
 !@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
-!@ver  1.0
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
 !@var TDN1 downdraft temperature in K, (i,j)
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
@@ -787,7 +786,6 @@ C**** initialise some pbl common variables
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1

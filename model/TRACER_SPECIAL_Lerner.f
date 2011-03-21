@@ -1654,7 +1654,6 @@ c     call closeunit(iu)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE PRATHER_CHEM_COM
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
@@ -1692,7 +1691,6 @@ C**** ESMF: This array is read in only
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE LINOZ_CHEM_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

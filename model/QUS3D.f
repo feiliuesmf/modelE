@@ -817,7 +817,6 @@ c
 !@sum XSTEP determines the number of X timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-!@ver  1.0
       USE QUSCOM, ONLY : IM
       IMPLICIT NONE
       integer :: jprt,lprt,ierr
@@ -878,7 +877,6 @@ c      ierr=0
 !@sum ZSTEP determines the number of Z timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth M. Kelley
-!@ver  1.0
       IMPLICIT NONE
       integer :: nstep,nl
       REAL*8, dimension(nl) :: m0,ml,cm0,cm  ! ml,cm are temporary arrays
@@ -914,7 +912,6 @@ c      ierr=0
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_ADV
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE

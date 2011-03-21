@@ -2,7 +2,6 @@ C****
 !@sum  RES_2Hx2_L13 Resolution info for 2x2.5 horizontal
 !!       and 13 vertical ocean layer
 !@auth Gary Russel/Larissa Nazarenko
-!@ver  1.0
 C****   
 C**** RES_2Hx2_L13.f    2008/08/08
 C****

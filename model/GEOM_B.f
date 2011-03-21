@@ -2,7 +2,6 @@
       MODULE GEOM
 !@sum  GEOM contains spherical geometric variables and arrays
 !@auth Original development team
-!@ver  1.0 (B grid version)
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian,AREAG
       USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
@@ -108,7 +107,6 @@ C**** some B-grid conservation quantities
       SUBROUTINE GEOM_B
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
-!@ver  1.0 (B grid version)
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
@@ -557,7 +555,6 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       subroutine COSZT (ROT1,ROT2,COSZ,COSZA)
 !@sum  COSZ0 calculates Earth's zenith angle, weighted by time/sunlight
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : twopi
       USE MODEL_COM
       USE GEOM, only : lon,sinip,cosip

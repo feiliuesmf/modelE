@@ -92,7 +92,6 @@ c
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -261,7 +260,6 @@ c*   polar values are replaced by their longitudinal mean
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -351,7 +349,6 @@ c*   polar values are replaced by their longitudinal mean
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -742,7 +739,6 @@ c*    actual interpolation here
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1004,7 +1000,6 @@ C**** surface tracer concentration
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1787,7 +1782,6 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2144,7 +2138,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2328,7 +2321,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 

@@ -9,7 +9,6 @@
 
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
-!@ver  1.0
 C**** AJ(J,N)  (ZONAL SUM OVER LONGITUDE AND TIME)
 C****   See j_defs for contents
 C****                                                             IDACC
@@ -97,7 +96,6 @@ C**** Some local constants
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair   
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
@@ -872,7 +870,6 @@ c
 !@sum  DIAGCA Keeps track of the conservation properties of angular
 !@+    momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : mdiag,itime
 #ifdef TRACERS_ON
       USE TRACER_COM, only: itime_tr0,ntm  !xcon
@@ -972,7 +969,6 @@ C****
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b, imaxj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
@@ -1030,7 +1026,6 @@ C****
       SUBROUTINE conserv_MS(RMASS)
 !@sum  conserv_MA calculates total atmospheric mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,p,pstrat
       USE GEOM, only : imaxj
@@ -1066,7 +1061,6 @@ C****
       SUBROUTINE conserv_PE(TPE)
 !@sum  conserv_TPE calculates total atmospheric potential energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sha,mb2kg
       USE MODEL_COM, only : im,jm,lm,t,p,ptop,zatmo
       USE GEOM, only : imaxj
@@ -1106,7 +1100,6 @@ C****
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,lm,wm,q
       USE GEOM, only : imaxj
@@ -1148,7 +1141,6 @@ C****
       SUBROUTINE conserv_EWM(EWATER)
 !@sum  conserv_EWM calculates total atmospheric water energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg,shv,grav,lhe
       USE MODEL_COM, only : im,jm,lm,wm,t,q,p
       USE GEOM, only : imaxj
@@ -1598,7 +1590,6 @@ c accSubdd
       call get(grid,i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
 
 #ifdef TRACERS_ON
-!$OMP PARALLEL DO PRIVATE(i,j,n)
       do n=1,ntm
         do j=j_0,j_1
           do i=i_0,i_1
@@ -1608,7 +1599,6 @@ c accSubdd
           end do
         end do
       end do
-!$OMP END PARALLEL DO
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -3524,7 +3514,6 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
             kunit=kunit+1
             polefix=.true.
             do n=1,ntm
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)
@@ -3533,7 +3522,6 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
                   trcSurfMixR_acc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
               TRACER_array(:,:,n)=datar8
@@ -3552,7 +3540,6 @@ c**** Concentration for all tracers at surface [kg/m^3]
             kunit=kunit+1
             polefix=.true.
             do n=1,ntm
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfByVol_acc(i,j,n)=trcSurfByVol_acc(i,j,n)
@@ -3561,7 +3548,6 @@ c**** Concentration for all tracers at surface [kg/m^3]
                   trcSurfByVol_acc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
               TRACER_array(:,:,n)=datar8
@@ -3608,7 +3594,6 @@ C**** first set: no 'if' tests
             select case (namedd(k))
 
             CASE ('DuEMIS')     ! Dust emission flux [kg/m^2/s]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustEmission(i,j,n)
@@ -3616,12 +3601,10 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustEmission(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/(s*m^2)'
               long_name = 'Emission of'
 #ifdef TRACERS_DUST
             CASE ('DuEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustEmission2(i,j,n)
@@ -3629,13 +3612,11 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustEmission2(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/(s*m^2)'
               long_name =
      &             'Emission According to Cubic Formula (diag only) of'
 #endif
             CASE ('DuSMIXR')      ! Mixing ratio of dust tracers at surface [kg/kg]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustSurfMixR(i,j,n)
@@ -3643,11 +3624,9 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustSurfMixR(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
             CASE ('DuSCONC')  ! Concentration of dust tracers at surface [kg/m^3]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustSurfConc(i,j,n)
@@ -3655,11 +3634,9 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustSurfConc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
             CASE ('DuLOAD')     ! Dust load [kg/m^2]
-!$OMP PARALLEL DO PRIVATE(i,j,l)
               do l=1,lm
                 do j=j_0,j_1
                   do i=i_0,i_1
@@ -3669,9 +3646,7 @@ C**** first set: no 'if' tests
                   end do
                 end do
               end do
-!$OMP END PARALLEL DO
               datar8=0.D0
-!$OMP PARALLEL DO PRIVATE(i,j,l)
               do j=j_0,j_1
                 do i=i_0,i_1
                   do l=1,lm
@@ -3682,7 +3657,6 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustMass(i,j,:,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^2'
               long_name = 'Mass in Atmospheric Column of'
             end select
@@ -3703,7 +3677,6 @@ C**** first set: no 'if' tests
           polefix=.true.
           do n=1,Ntm_dust
             do l=1,LmaxSUBDD
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j) = dustDiagSubdd_acc%dustConc(i,j,l,n)
@@ -3711,7 +3684,6 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustConc(i,j,l,n)=0.d0
                 end do
               end do
-!$OMP END PARALLEL DO
               dust4d_array(:,:,l,n) = datar8
               data=datar8
               call write_data(data,kunit,polefix)
@@ -3764,7 +3736,6 @@ C**** other dust special cases
           do n=1,Ntm_dust
             n1=n_soilDust+n-1
             if (dodrydep(n1)) then
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustDepoTurb(i,j,n)
@@ -3772,7 +3743,6 @@ C**** other dust special cases
                   dustDiagSubdd_acc%dustDepoTurb(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               polefix=.true.
               dust3d_array(:,:,n)=datar8
               data=datar8
@@ -3793,7 +3763,6 @@ C**** other dust special cases
           do n=1,Ntm_dust
             n1=n_soilDust+n-1
             IF (dodrydep(n1)) THEN
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustDepoGrav(i,j,n)
@@ -3801,7 +3770,6 @@ C**** other dust special cases
                   dustDiagSubdd_acc%dustDepoGrav(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               polefix=.true.
               dust3d_array(:,:,n)=datar8
               data=datar8
@@ -3825,7 +3793,6 @@ C**** other dust special cases
 #ifdef TRACERS_WATER
             if (dowetdep(n1)) then
 #endif
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
@@ -3833,7 +3800,6 @@ C**** other dust special cases
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
 #ifdef TRACERS_WATER
             end if
 #endif
@@ -5057,7 +5023,6 @@ C****
 
       ih=jhour+1
       ihm=ih+(jdate-1)*24
-!$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1,tmp)
 !$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
       do i=I_0,imaxj(j)
@@ -5109,7 +5074,6 @@ C****
       enddo
       enddo
       enddo
-!$OMP END PARALLEL DO
 
       return
       end subroutine ahourly
@@ -5171,7 +5135,6 @@ c**** find MSU channel 2,3,4 temperatures
       SUBROUTINE init_DIAG(postProc,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sday,kapa,undef
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
@@ -5655,7 +5618,6 @@ c
       SUBROUTINE reset_DIAG(isum)
 !@sum  reset_DIAG resets/initializes diagnostics
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : Itime,iyear1,nday,kradia,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
@@ -5709,7 +5671,6 @@ c
       SUBROUTINE daily_DIAG
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : undef
       USE MODEL_COM, only : im,jm,jday,focean
       USE GEOM, only : imaxj,lat2d
@@ -5826,7 +5787,6 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
      *     ,CHNG_SC,ICON)
 !@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sday
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con

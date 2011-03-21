@@ -1,12 +1,10 @@
 #include "rundeck_opts.h"
 !@sum OCNML contains routines used for Qflux mixed layer,no deep diff.
 !@auth G. Schmidt
-!@ver  1.0
 
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE STATIC_OCEAN, only : tocean
       USE DOMAIN_DECOMP_1D, only : GRID
@@ -52,7 +50,6 @@ C**** Check for reasonable values for ocean variables
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE STATIC_OCEAN
       USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
@@ -172,7 +169,6 @@ c
       SUBROUTINE conserv_OCE(OCEANE)
 !@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : shw,rhows
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
@@ -214,7 +210,6 @@ C****
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
 !@auth Gavin Schmidt
-!@ver  1.0
       ENTRY ODIFS
       ENTRY io_ocdiag
       ENTRY reset_ODIAG

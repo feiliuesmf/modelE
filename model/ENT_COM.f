@@ -3,7 +3,6 @@
       module ent_com
 !@sum  ENT_COM contains the data needed for Dynamic Vegetation Model (ENT)
 !@auth I. Aleinov
-!@ver  1.0
       use model_com, only : im,jm
       use ghy_com, only : ngm,imt,nlsn
       use ent_mod
@@ -291,7 +290,6 @@
       subroutine io_vegetation(kunit,iaction,ioerr)
 !@sum  io_soils reads and writes soil arrays to file
 !@auth I. Aleinov
-!@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
       use domain_decomp_1d, only : grid, am_i_root
@@ -380,7 +378,6 @@
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE ENT_MOD
       USE ENT_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET

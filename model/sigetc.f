@@ -385,7 +385,6 @@ c
       character flnm*60
       data varian(0),varian(kdm)/0.,0./
 c
-c$OMP PARALLEL DO
       do 10 j=1,jj
       do 10 l=1,isp(j)
       do 11 i=ifp(j,l),ilp(j,l)
@@ -393,7 +392,6 @@ c$OMP PARALLEL DO
       do 10 k=1,kk
       do 10 i=ifp(j,l),ilp(j,l)
  10   praw(i,j,k+1)=praw(i,j,k)+delp(i,j,k)
-c$OMP END PARALLEL DO
 c
 c --- transform pressure to isopycnic interface pressure
 c
@@ -406,13 +404,11 @@ c
       do 1 k=1,kk
       weight(k)=0.
 c
-c$OMP PARALLEL DO
       do 2 j=1,jj
       weightj(j)=0.
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
  2    weightj(j)=weightj(j)+pbfore(i,j,k+1)*scp2(i,j)
-c$OMP END PARALLEL DO
 c
       do 1 j=1,jj
  1    weight(k)=weight(k)+weightj(j)
@@ -423,14 +419,12 @@ c
       slitop=float(n-1)*slithk*onem
       slibot=float(n  )*slithk*onem
       sliwgt(n)=0.
-c$OMP PARALLEL DO
       do 4 j=1,jj
       sliwgtj(j)=0.
       do 4 l=1,isp(j)
       do 4 i=ifp(j,l),ilp(j,l)
  4    sliwgtj(j)=sliwgtj(j)+scp2(i,j)*(min(pbfore(i,j,kk+1),slibot)-
      .                                 min(pbfore(i,j,kk+1),slitop))
-c$OMP END PARALLEL DO
       do 3 j=1,jj
  3    sliwgt(n)=sliwgt(n)+sliwgtj(j)
 c
@@ -472,14 +466,12 @@ c
       do 12 k=1,kk-1
       varian(k)=0.
 c
-c$OMP PARALLEL DO
       do 9 j=1,jj
       varianj(j)=0.
       do 9 l=1,isp(j)
       do 9 i=ifp(j,l),ilp(j,l)
  9    varianj(j)=varianj(j)+scp2(i,j)*
      .  (pbfore(i,j,k+1)-min(pbfore(i,j,kk+1),prefbe(k)))**2
-c$OMP END PARALLEL DO
 c
       do 12 j=1,jj
  12   varian(k)=varian(k)+varianj(j)
@@ -522,7 +514,6 @@ c
       data varian(0),varian(kdm)/0.,0./
       common /pechng/ pbfore,pafter,prefbe,prefaf
 c
-c$OMP PARALLEL DO
       do 10 j=1,jj
       do 10 l=1,isp(j)
       do 11 i=ifp(j,l),ilp(j,l)
@@ -530,7 +521,6 @@ c$OMP PARALLEL DO
       do 10 k=1,kk
       do 10 i=ifp(j,l),ilp(j,l)
  10   praw(i,j,k+1)=praw(i,j,k)+delp(i,j,k)
-c$OMP END PARALLEL DO
 c
 c --- transform pressure to isopycnic interface pressure
 c
@@ -543,13 +533,11 @@ c
       do 1 k=1,kk
       weight(k)=0.
 c
-c$OMP PARALLEL DO
       do 2 j=1,jj
       weightj(j)=0.
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
  2    weightj(j)=weightj(j)+pafter(i,j,k+1)*scp2(i,j)
-c$OMP END PARALLEL DO
 c
       do 1 j=1,jj
  1    weight(k)=weight(k)+weightj(j)
@@ -560,14 +548,12 @@ c
       slitop=float(n-1)*slithk*onem
       slibot=float(n  )*slithk*onem
       sliwgt(n)=0.
-c$OMP PARALLEL DO
       do 4 j=1,jj
       sliwgtj(j)=0.
       do 4 l=1,isp(j)
       do 4 i=ifp(j,l),ilp(j,l)
  4    sliwgtj(j)=sliwgtj(j)+scp2(i,j)*(min(pafter(i,j,kk+1),slibot)-
      .                                 min(pafter(i,j,kk+1),slitop))
-c$OMP END PARALLEL DO
       do 3 j=1,jj
  3    sliwgt(n)=sliwgt(n)+sliwgtj(j)
 c
@@ -614,7 +600,6 @@ c
       do 12 k=1,kk-1
       varian(k)=0.
 c
-c$OMP PARALLEL DO
       do 9 j=1,jj
       varianj(j)=0.
       do 9 l=1,isp(j)
@@ -622,7 +607,6 @@ c$OMP PARALLEL DO
  9    varianj(j)=varianj(j)+scp2(i,j)*
      . ((pafter(i,j,k+1)-min(pafter(i,j,kk+1),prefaf(k)))**2
      . -(pbfore(i,j,k+1)-min(pbfore(i,j,kk+1),prefbe(k)))**2)
-c$OMP END PARALLEL DO
 c
       do 12 j=1,jj
  12   varian(k)=varian(k)+varianj(j)
@@ -657,7 +641,6 @@ c
      .     field2(idm,jdm,kdm),sum1j(jdm),sum2j(jdm),sum1,sum2
       character text*(*)
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       sum1j(j)=0.
       sum2j(j)=0.
@@ -666,15 +649,12 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 i=ifp(j,l),ilp(j,l)
       sum1j(j)=sum1j(j)+dp1(i,j,k)*field1(i,j,k)*scp2(i,j)
  1    sum2j(j)=sum2j(j)+dp2(i,j,k)*field2(i,j,k)*scp2(i,j)
-c$OMP END PARALLEL DO
 c
       sum1=0.
       sum2=0.
-c$OMP PARALLEL DO REDUCTION(+:sum1,sum2) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       sum1=sum1+sum1j(j)
  2    sum2=sum2+sum2j(j)
-c$OMP END PARALLEL DO
 c
       write (lp,'(a,1p,2e19.9)') text,sum1,sum2
       return
@@ -771,7 +751,6 @@ c
         stop '(refinp)'
       end if
 c
-c$OMP PARALLEL DO PRIVATE(wgt,icrs,ifin,valu0,valu1,sumc,sumf)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
 c
@@ -822,7 +801,6 @@ c
  4    continue
 c
  1    continue
-c$OMP END PARALLEL DO
       return
 c
 c
@@ -845,7 +823,6 @@ c
         stop '(refnap)'
       end if
 c
-c$OMP PARALLEL DO PRIVATE(x)
       do 11 j=1,jj
 c
 c --- make room for 2*(numfin - numcrs) new grid rows
@@ -884,7 +861,6 @@ c --- north of equator:
  14   continue
 c
  11   continue
-c$OMP END PARALLEL DO
       return
 c
 c
@@ -906,7 +882,6 @@ c
         stop '(refinu)'
       end if
 c
-c$OMP PARALLEL DO PRIVATE(x,wgt,icrs,ifin)
       do 5 j=1,jj
 c
 c --- make room for 2*(numfin - numcrs) new grid rows
@@ -943,7 +918,6 @@ cdiag.  i,ifin,icrs,wgt,fieldc(icrs-1,j),fieldc(icrs,j)
  8    continue
 c
  5    continue
-c$OMP END PARALLEL DO
       return
 c
 c
@@ -965,7 +939,6 @@ c
         stop '(unrfin)'
       end if
 c
-c$OMP PARALLEL DO PRIVATE(wgt,icrs,ifin)
       do 21 j=1,jj
 c
 c --- copy extratropical rows into reduced-size array
@@ -1004,7 +977,6 @@ c --- north of equator:
       end if
 c
  21   continue
-c$OMP END PARALLEL DO
       return
 c
       entry unrefu(eqcrs,eqfin,ipcrs,fieldc,fieldf)
@@ -1025,7 +997,6 @@ c
         stop '(unrefu)'
       end if
 c
-c$OMP PARALLEL DO PRIVATE(x,wgt,icrs,ifin)
       do 25 j=1,jj
 c
 c --- copy extratropical rows into reduced-size array
@@ -1063,6 +1034,5 @@ c --- north of equator:
       end if
 c
  25   continue
-c$OMP END PARALLEL DO
       return
       end

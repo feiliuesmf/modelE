@@ -150,7 +150,6 @@ CONTAINS
            call pkez(km, is, ie, js, je, pe, pk, akap, peln, pkz)
            call cubed_to_latlon(u, v, ua, va, dx, dy, rdxa, rdya, km, 1)
 ! Compute cp*T + KE
-!$omp parallel do private(i, j, k)
            do k=1,km
               do j=js,je
                  do i=is,ie
@@ -171,7 +170,6 @@ CONTAINS
            enddo
      endif
 
-!$omp parallel do private(i, j, k, pe0, pe1, pe2, pk1, pk2, ......)
   do 1000 j=js,je+1
 
         do k=1,km+1
@@ -588,7 +586,6 @@ if ( hybrid_z ) then   !------- Hybrid_z section ---------------
    enddo
 endif         !------------- Hybrid_z section ----------------------
 
-!$omp parallel do private(i,j,k)
      do k=2,km
         do j=js,je
            do i=is,ie
@@ -602,7 +599,6 @@ endif         !------------- Hybrid_z section ----------------------
   if( consv > 0. ) then
 
     if ( te_map ) then
-!$omp parallel do private(i, j, k)
       do j=js,je
           do i=is,ie
              te_2d(i,j) = te(i,j,1)*delp(i,j,1)
@@ -614,7 +610,6 @@ endif         !------------- Hybrid_z section ----------------------
           enddo
       enddo
     else
-!$omp parallel do private(i,j,k,gz)
       do j=js,je
         if ( remap_t ) then
          do i=is,ie
@@ -676,7 +671,6 @@ endif         !------------- Hybrid_z section ----------------------
       enddo
     endif
 
-!$omp parallel do private(i, j, k)
       do j=js,je
          do i=is,ie
             zsum1(i,j) = pkz(i,j,1)*delp(i,j,1)
@@ -712,7 +706,6 @@ endif         !------------- Hybrid_z section ----------------------
   endif        ! end consv check
 
   if ( te_map ) then
-!$omp parallel do private(i, j, k, gz, tpe, tmp, dlnp)
       do j=js,je
          do i=is,ie
             gz(i) = hs(i,j)
@@ -788,7 +781,6 @@ endif         !------------- Hybrid_z section ----------------------
 !----------------------
   call cubed_to_latlon(u, v, ua, va, dx, dy, rdxa, rdya, km)
 
-!$omp parallel do private(i,j,k,gztop)
   do j=js,je
 
      if ( hydrostatic ) then
@@ -880,7 +872,6 @@ endif         !------------- Hybrid_z section ----------------------
 
    ak1 = (akap + 1.) / akap
 
-!$omp  parallel do default(shared) private(ixj, i1, i2, i, j, k, pek, lnp, pk2)
    do j=jfirst, jlast
         pek = pk(ifirst,j,1)
         do i=ifirst, ilast

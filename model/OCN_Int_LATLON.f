@@ -5,7 +5,6 @@
 !@sum INT_AG2OG_MOD contains subroutines for conversion 2D, 3D, etc. 
 !!    arrays from atm. to the ocean grid 
 !@auth Larissa Nazarenko
-!@ver  1.0
       use hntrp_mod
       IMPLICIT NONE
       SAVE
@@ -35,7 +34,6 @@ c _par are parallelized versions
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -107,7 +105,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -182,7 +179,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -258,7 +254,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -333,7 +328,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -409,7 +403,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -486,7 +479,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -561,7 +553,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_Vector1 is for conversion vector from atm. A grid to ocean A grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -690,7 +681,6 @@ C***  Scatter global array oA_glob to the ocean grid
 !@sum INT_AG2OG_Vector2 is for conversion vector from atm. (U,V) grid to ocean (U,V) grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -985,7 +975,6 @@ c      call INT_AG2OG(aVtmp,oV(:,:,oN),aWEIGHT,copypole=.false.)
 !@sum INT_OG2AG_MOD contains subroutines for conversion 2D, 3D, etc. 
 !!    arrays from ocean to the atm. grid 
 !@auth Larissa Nazarenko
-!@ver  1.0
       use hntrp_mod
       IMPLICIT NONE
       SAVE
@@ -1012,7 +1001,6 @@ c      Module Procedure INT_OG2AG_Vector1
 !@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -1100,7 +1088,6 @@ C***  Scatter global array aA_glob to the atmospheric grid
 !@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -1205,7 +1192,6 @@ C***  Scatter global array aA_glob to the atmospheric grid
 !@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -1287,7 +1273,6 @@ C***  Scatter global array aA_glob to the atmospheric grid
 !@sum INT_OG2AG_4D is for conversion 4D arrays from ocean to the atm. grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
@@ -1397,7 +1382,6 @@ C***  Scatter global array aA_glob to the atm. grid
 !@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
 
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm

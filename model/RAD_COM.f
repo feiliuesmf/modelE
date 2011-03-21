@@ -5,7 +5,6 @@
       MODULE RAD_COM
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,lm_req
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
@@ -267,7 +266,6 @@ C**** Local variables initialised in init_RAD
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
 
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_ATM, ONLY : GET
@@ -400,7 +398,6 @@ C**** Local variables initialised in init_RAD
       SUBROUTINE io_rad(kunit,iaction,ioerr)
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
      *         ,lhead,Kradia,irsficnt,irsficno
 #ifdef TRACERS_ON

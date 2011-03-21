@@ -37,7 +37,6 @@ c
       data uvscal/1.e5/                        !  velocity x mesh size  --  SI
 ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
 c
-c$OMP PARALLEL DO PRIVATE(ja,colinr,cloutr,pinteg,siga,sigb,phi,plo,
 c$OMP+ pa,pb,q,oldsig) SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -119,7 +118,6 @@ cdiag.    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
  100  format (2i5,a,1p,2e16.8,e9.1)
  6    continue
  1    continue
-c$OMP END PARALLEL DO
 c
 cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
 cdiag.   (sigold(itest,jtest,k),k=1,kold)
@@ -128,7 +126,6 @@ cdiag.   (signew(itest,jtest,k),k=1,knew)
        CALL HALO_UPDATE(ogrid,pold, FROM=SOUTH)
        CALL HALO_UPDATE(ogrid,pnew, FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,colinu,colinv,cloutu,cloutv,uinteg,vinteg,
 c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       do 21 j=J_0,J_1
@@ -252,7 +249,6 @@ cdiag.   k=1,knew)
 cdiag end if
 c
  21   continue
-c$OMP END PARALLEL DO
       if (abort) stop '(reflux)'
       return
       end

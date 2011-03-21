@@ -10,7 +10,6 @@
       SUBROUTINE TRACEA
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
-!@ver  1.0
       USE CONSTANT, only : rgas
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE MODEL_COM, only: im,jm,lm,itime,wm,t
@@ -50,7 +49,6 @@ C**** Accumulate concentration for all tracers
 C****
 
 C**** save some basic model diags for weighting
-!$OMP PARALLEL DO PRIVATE (I,J,L)
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
@@ -59,29 +57,23 @@ C**** save some basic model diags for weighting
           end do
         end do
       end do
-!$OMP END PARALLEL DO
 
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
       if (to_conc(n).eq.1) then ! kg/m3
-!$OMP PARALLEL DO PRIVATE (L)
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
      $          ,l,n)*byam(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
      $          ,J_0:J_1,L)*pk(L,:,J_0:J_1))
         end do
-!$OMP END PARALLEL DO
       else ! mixing ratio
-!$OMP PARALLEL DO PRIVATE (L)
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
      $          ,l,n)*byam(l,:,J_0:J_1)
         end do
-!$OMP END PARALLEL DO
       end if
 C**** Average concentration; surface concentration; total mass
-!$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=J_0,J_1
       do i=I_0,I_1
         tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
@@ -89,28 +81,23 @@ C**** Average concentration; surface concentration; total mass
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
       enddo; enddo
-!$OMP END PARALLEL DO
 C**** Zonal mean concentration and mass
-!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
         end do
       enddo; enddo
-!$OMP END PARALLEL DO
 
 #ifdef TRACERS_WATER
 C**** Zonal mean cloud water concentration
       if (dowetdep(n)) then
-!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
         end do
       enddo; enddo
-!$OMP END PARALLEL DO
       end if
 #endif
 
@@ -123,7 +110,6 @@ C**** Zonal mean cloud water concentration
       SUBROUTINE DIAGTCA (M,NT)
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
@@ -235,7 +221,6 @@ C****
 !@sum  INC_DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE MODEL_COM, only: fim,jm
@@ -287,7 +272,6 @@ C**** No need to save current value
 !@sum  DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -356,7 +340,6 @@ C**** No need to save current value
       SUBROUTINE DIAGTCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 !@ESMF This subroutine should only be called from a serial region.
 !      It is NOT parallelized.
 
@@ -518,7 +501,6 @@ C****
       SUBROUTINE JLt_TITLEX
 !@sum JLt_TITLEX sets up titles, etc. for composite JL output (tracers)
 !@auth J. Lerner
-!@ver  1.0
       USE TRACER_COM
       USE TRDIAG_COM
       USE BDjlt

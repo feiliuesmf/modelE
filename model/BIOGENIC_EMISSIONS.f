@@ -19,7 +19,6 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use biogenic_emis, only:  baseisop,nvegtype
       use model_com, only: im

@@ -3,7 +3,6 @@
       MODULE AFLUXES
 !@sum  AFLUXES contains some ocean arrays defined on the atmospheric grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, ONLY : IMA=>IM, JMA=>JM
 
@@ -33,7 +32,6 @@
       SUBROUTINE ALLOC_AFLUXES(grd_dum)
 !@sum   Initializes AFLUXES''s arrays
 !@auth  Larissa Nazarenko 
-!@ver  1.0
 
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE AFLUXES

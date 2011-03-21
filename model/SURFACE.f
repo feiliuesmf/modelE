@@ -375,7 +375,6 @@ C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
       DO J=J_0,J_1
 
-!$OMP   PARALLEL DO DEFAULT(NONE) 
 !$OMP*  PRIVATE (MSI2, CM,CH,CQ,lim_lake_evap,lim_dew,tmp,
 !$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
 !$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
@@ -1495,7 +1494,6 @@ C****
       END IF
       END DO   ! end of itype loop
       END DO   ! end of I loop
-!$OMP  END PARALLEL DO 
       END DO   ! end of J loop
 
 
@@ -1513,7 +1511,6 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J
 #ifdef TRACERS_ON
 !$OMP*    ,N
 #endif
@@ -1563,7 +1560,6 @@ C*** min/max tsurf
      &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
       END DO 
-!$OMP  END PARALLEL DO 
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks

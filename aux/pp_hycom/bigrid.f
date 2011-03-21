@@ -14,7 +14,6 @@ c
 c
       jchunk=23			! optimal for 8 threads
       nwet=0
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk) REDUCTION(+:nwet)
       do 17 j=1,jdm
       do 17 i=1,idm
       if (depth(i,j).gt.0.) nwet=nwet+1
@@ -22,45 +21,35 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk) REDUCTION(+:nwet)
       iq(i,j)=0
       iu(i,j)=0
  17   iv(i,j)=0
-c$OMP END PARALLEL DO
 c
 c --- mass points are defined where water depth is greater than zero
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 2 j=1,jdm
       do 2 i=1,idm
       if (depth(i,j).gt.0.) ip(i,j)=1
   2   continue
-c$OMP END PARALLEL DO
 c
 c --- u,v points are located halfway between any 2 adjoining mass points
-c$OMP PARALLEL DO PRIVATE(ia) SCHEDULE(STATIC,jchunk)
       do 3 j=1,jdm
       do 3 i=1,idm
       ia=mod(i-2+idm,idm)+1
       if (ip(ia,j).gt.0.and.ip(i,j).gt.0) iu(i,j)=1
   3   continue
-c$OMP END PARALLEL DO
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 4 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
       do 4 i=1,idm
       if (ip(i,ja).gt.0.and.ip(i,j).gt.0) iv(i,j)=1
   4   continue
-c$OMP END PARALLEL DO
 c
 c --- 'interior' q points require water on all 4 sides.
-c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
       do 5 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
       do 5 i=1,idm
       ia=mod(i-2+idm,idm)+1
       if (min(ip(i,j),ip(ia,j),ip(i,ja),ip(ia,ja)).gt.0) iq(i,j)=1
   5   continue
-c$OMP END PARALLEL DO
 c
 c --- 'promontory' q points require water on 3 (or at least 2 diametrically 
 c --- opposed) sides
-c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
       do 10 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
       do 10 i=1,idm
@@ -68,7 +57,6 @@ c$OMP PARALLEL DO PRIVATE(ja,ia) SCHEDULE(STATIC,jchunk)
       if ((ip(i ,j).gt.0.and.ip(ia,ja).gt.0).or.
      .    (ip(ia,j).gt.0.and.ip(i ,ja).gt.0)) iq(i,j)=1
  10   continue
-c$OMP END PARALLEL DO
 c
 c --- determine loop bounds for vorticity points, including interior and
 c --- promontory points
@@ -84,13 +72,11 @@ c --- determine loop indices for mass and velocity points
       call indxj(iv,jfv,jlv,jsv)
 c
       npts=0
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk) REDUCTION(+:npts)
       do j=1,jdm
        do i=1,idm
         if (ip(i,j).eq.1) npts=npts+1
        end do
       end do
-c$OMP END PARALLEL DO
 c     write (*,*) 'wet points in orig. depth array:',nwet
 c     write (*,*) 'final number of grid points:    ',npts
 c

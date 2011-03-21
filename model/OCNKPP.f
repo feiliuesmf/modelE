@@ -6,7 +6,6 @@ C****
       MODULE KPP_COM
 !@sum  KPP_COM holds variables related to the KPP mixing scheme
 !@auth Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -30,7 +29,6 @@ C****
       MODULE KPPE
 !@sum  KPPE contains variables and routines for KPP mixing scheme
 !@auth NCAR (modifications by Gavin Schmidt)
-!@ver  1.0
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
@@ -1195,7 +1193,6 @@ C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
       call halo_update (grid, UOD, from=south)
-!$OMP PARALLEL DO PRIVATE(L)
       ukm = 0
       ukmd = 0
       DO L=1,LMO
@@ -1204,14 +1201,12 @@ C**** will be fixed during convection.
         UTD(:,:,L) = UOD(:,:,L)
         VTD(:,:,L) = VOD(:,:,L)
       END DO
-!$OMP END PARALLEL DO
 C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
-!$OMP PARALLEL DO  PRIVATE(ANSTR,AKVM,AKVS,AKVG,ALPHADT, BYMML,BYMMLT,
 !$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
 !$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
 !$OMP&  FLG,FLS,G,G0ML0,G0ML,GHAT,GHATM,GHATG,GHATS,GZML, HBL,HBLP,
@@ -1884,7 +1879,6 @@ C****
       END DO
 C**** End of outside J loop
   790 CONTINUE
-!$OMP END PARALLEL DO
 
 C**** Update velocities outside parallel region
       call halo_update_block (grid, UKM, from=north)
@@ -1961,7 +1955,6 @@ C****
       SUBROUTINE STCONV
 !@sum  STCONV uses vertical diffusion coefficients from KPP schmeme
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit
@@ -2251,7 +2244,6 @@ C**** End of outside loop over straits
       SUBROUTINE OVDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
 !@sum  OVDIFF Implicit vertical diff + non local transport for velocity
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
@@ -2292,7 +2284,6 @@ C**** Calculate operators for tridiagonal solver
       SUBROUTINE OVDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
 !@sum  OVDIFFS Implicit vertical diff + non local transport for tracers
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
@@ -2354,7 +2345,6 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
       USE DOMAIN_DECOMP_1D, only : dist_grid,get
 !      USE OCEANR_DIM

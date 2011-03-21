@@ -63,7 +63,6 @@ c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
 !@var ua  x-component of wind, A grid, latlon orientation, l,i,j order
 !@var va  y-component of wind, A grid, latlon orientation, l,i,j order
 !@auth M. Kelley
-!@ver  1.0
       USE MODEL_COM, only : lm,u,v
       USE DYNAMICS, only : ua=>ualij,va=>valij
       USE DOMAIN_DECOMP_ATM, only : grid,get
@@ -329,7 +328,6 @@ c u is associated with odd n, v with even n
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of the atmosphere
 !@auth Coefficients from the Original Development Team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : lm,ls1,u,v,p,t,x_sdrag,csdragl,lsdrag
      &     ,ang_sdrag,Wc_Jdrag,wmax,vsdragl,psfmpt,dsig
@@ -684,7 +682,6 @@ c      CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 
       module zonalmean_mod
 !@auth M. Kelley
-!@ver  1.0
 !@sum  Mini-module for longitudinal averaging of a field on a
 !@+    domain-decomposed cubed-sphere grid.
       use model_com, only : im

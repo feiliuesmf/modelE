@@ -3,7 +3,6 @@
       MODULE PBLCOM
 !@sum  PBLCOM contains the arrays used by the Boundary Layer code
 !@auth Greg Hartke/Ye Cheng
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm
@@ -68,7 +67,6 @@
       SUBROUTINE io_pbl(kunit,iaction,ioerr)
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
       USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
@@ -232,7 +230,6 @@
       SUBROUTINE io_bldat(kunit,iaction,ioerr)
 !@sum  io_bldat reads and writes boundary layer data to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE DOMAIN_DECOMP_1D, only : GET, grid, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
@@ -467,7 +464,6 @@
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

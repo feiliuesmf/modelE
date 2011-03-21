@@ -1,6 +1,5 @@
 !@sum  POUT_netcdf default output routines for netcdf formats
 !@auth M. Kelley
-!@ver  1.0
 
 C****
 C**** If other formats are desired, please replace these routines
@@ -349,7 +348,6 @@ c like wrtdarrn but for character data
       subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GEOM, only : lon_dg,lat_dg,dxyp,dxv,dyp,dxyv
       USE NCOUT, only : iu_ij,im,jm,set_dim_out,def_dim_out,units
      *     ,outfile,out_fid,ndims_out,open_out,var_name,long_name
@@ -408,7 +406,6 @@ c secondary grid
       subroutine close_ij
 !@sum  CLOSE_IJ closes the lat-lon binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -422,7 +419,6 @@ c secondary grid
      &     IGRID,JGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -481,7 +477,6 @@ c secondary grid
       subroutine open_wp(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_WP opens the wave power binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -513,7 +508,6 @@ c secondary grid
       subroutine close_wp
 !@sum  CLOSE_WP closes the wave power binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -527,7 +521,6 @@ c secondary grid
      &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_WP output wave power in binary format
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -552,7 +545,6 @@ c secondary grid
       subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE DIAG_COM, only : plm,ple,ple_dn,pmb,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
@@ -637,7 +629,6 @@ C**** set dimensions
       subroutine close_jl
 !@sum  CLOSE_JL closes the lat-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -651,7 +642,6 @@ C**** set dimensions
      &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
 !@auth M. Kelley
-!@ver  1.0
       USE MODEL_COM, only : LS1
       USE DIAG_COM, only : plm,ple,ple_dn,kgz_max,zoc,zoc1
       USE NCOUT
@@ -750,7 +740,6 @@ C**** set dimensions
       subroutine open_il(filename,im_gcm,lm_gcm,lm_req_gcm)
 !@sum  OPEN_IL opens the lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GEOM, only : lon_dg
       USE DIAG_COM, only : plm,ple,ple_dn,zoc,zoc1
       USE NCOUT
@@ -824,7 +813,6 @@ C**** set dimensions
       subroutine close_il
 !@sum  CLOSE_IL closes the lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -838,7 +826,6 @@ C**** set dimensions
      *     ,PM,CX,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth M. Kelley
-!@ver  1.0
       USE GEOM, only : lon_dg
       USE DIAG_COM, only : plm,ple,ple_dn,zoc,zoc1
       USE NCOUT
@@ -930,7 +917,6 @@ C**** therefore shift array back to standard order.
       subroutine open_j(filename,ntypes,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_J opens the latitudinal binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -967,7 +953,6 @@ C**** set dimensions
       subroutine close_j
 !@sum  CLOSE_J closes the latitudinal binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -981,7 +966,6 @@ C**** set dimensions
      *     iotype)
 !@sum  POUT_J output zonal budget file
 !@auth M. Kelley
-!@ver  1.0
       USE DIAG_COM, only : KAJ
       USE NCOUT
       IMPLICIT NONE
@@ -1025,7 +1009,6 @@ c
       subroutine open_ijk(filename,im_gcm,jm_gcm,lm_gcm)
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GEOM, only : lon_dg,lat_dg
       USE DIAG_COM, only : plm,ple
       USE NCOUT, only : im,jm,lm,iu_ijk,set_dim_out,def_dim_out,out_fid
@@ -1081,7 +1064,6 @@ C**** set dimensions
       subroutine close_ijk
 !@sum  CLOSE_IJK closes the lat-lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -1095,7 +1077,6 @@ C**** set dimensions
      &     ,IJKGRID)
 !@sum  POUT_IJK output lat-lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       USE DIAG_COM, only : igride,jgride,kgride
       IMPLICIT NONE
@@ -1203,7 +1184,6 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
      &     )
 !@sum  OPEN_IJL opens the lat-lon-layer binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GEOM, only : lon_dg_gcm=>lon_dg,lat_dg_gcm=>lat_dg
       USE NCOUT
       USE DIAG_COM, only :
@@ -1302,7 +1282,6 @@ c restore some defaults
       subroutine close_ijl
 !@sum  CLOSE_IJL closes the lat-lon-layer binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -1315,7 +1294,6 @@ c restore some defaults
       subroutine POUT_IJL(TITLE,SNAME,LNAME,UNITS_IN,XIJL,XJL,XL,IJGRID)
 !@sum  POUT_IJL output lat-lon-layer binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -1351,7 +1329,6 @@ c restore some defaults
       subroutine open_isccp(filename,ntau,npres,nisccp)
 !@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE DIAG_COM, only : isccp_press,isccp_taum,isccp_lat
       USE NCOUT, only : im,jm,lm,iu_isccp,set_dim_out,def_dim_out,
      &     out_fid,outfile,units,long_name,ndims_out,open_out
@@ -1402,7 +1379,6 @@ C**** set dimensions
       subroutine close_isccp
 !@sum  CLOSE_ISCCP closes the binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -1415,7 +1391,6 @@ C**** set dimensions
       subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS_IN,XIJK,TAUM,PRES)
 !@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -1456,7 +1431,6 @@ C**** set dimensions
       subroutine open_diurn(filename,hr_in_period,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_DIURN opens the average diurnal cycle netcdf output file
 !@auth M. Kelley
-!@ver  1.0
       USE DIAG_COM, only : namdd,ijdd
       USE NCOUT, only : im,jm,lm,im_data,iu_diurn,set_dim_out
      &   ,def_dim_out,out_fid,outfile,units,long_name,ndims_out,open_out
@@ -1508,7 +1482,6 @@ c      var_name='hour';call wrtdarr(hours)
       subroutine close_diurn
 !@sum  CLOSE_DIURN closes the average diurnal cycle netcdf output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -1522,7 +1495,6 @@ c      var_name='hour';call wrtdarr(hours)
      &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD,kp)
 !@sum  POUT_diurn outputs the average diurnal_cycle netcdf output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var SNAME,NAME,UNITS short name, long name, and units strings
@@ -1555,7 +1527,6 @@ c      var_name='hour';call wrtdarr(hours)
       subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_HDIURN opens the hour-by-hour history netcdf output file
 !@auth M. Kelley
-!@ver  1.0
 ! note: hdiurn output routines simply call diurn output routines;
 ! to avoid file unit conflicts, open_hdiurn cannot be called if
 ! any files are currently open through open_diurn
@@ -1591,7 +1562,6 @@ c      var_name='hour';call wrtdarr(hours)
       subroutine close_hdiurn
 !@sum  CLOSE_HDIURN closes the hour-by-hour history netcdf output file
 !@auth M. Kelley
-!@ver  1.0
       IMPLICIT NONE
 
       call close_diurn
@@ -1602,7 +1572,6 @@ c      var_name='hour';call wrtdarr(hours)
      &     FHOUR,NAMDD,IJDD1,IJDD2,HR_IN_PERIOD,kp)
 !@sum  POUT_hdiurn output hour-by-hour history netcdf output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var SNAME,NAME,UNITS short name, long name, and units strings
@@ -1620,7 +1589,6 @@ c      var_name='hour';call wrtdarr(hours)
       subroutine open_jc(filename,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_jc opens the conservation quantity binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -1653,7 +1621,6 @@ C**** set dimensions
       subroutine close_jc
 !@sum  CLOSE_JC closes the conservation quantity binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
 
@@ -1666,7 +1633,6 @@ C**** set dimensions
       subroutine POUT_jc(TITLE,SNAME,LNAME,UNITS_IN,cnslat,KMAX)
 !@sum  POUT_JC output zonal conservation binary file
 !@auth M. Kelley
-!@ver  1.0
       USE NCOUT
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: KMAX

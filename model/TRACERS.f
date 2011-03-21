@@ -9,7 +9,6 @@
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       SUBROUTINE set_generic_tracer_diags
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
@@ -664,7 +663,6 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
-!$OMP PARALLEL DO DEFAULT(NONE) PRIVATE (L,I,J,fred)
 !$OMP&  SHARED(trm, dtrm, tr3Dsource, dtsrc, domom, naij, taijs, 
 !$OMP&         imaxj, eps, j_0, j_1, i_0, ns, n, trmom)
       do l=1,lm
@@ -690,7 +688,6 @@ C**** calculate fractional loss and update tracer mass
         end do
       end if
       end do ! l
-!$OMP END PARALLEL DO
 
       if(jls_3Dsource(ns,n) > 0) then
         do j=j_0,j_1
@@ -849,7 +846,6 @@ C**** air density + relative humidity (wrt water) + air viscosity
       end do
 
 C**** Gravitational settling
-!$OMP  PARALLEL DO DEFAULT (NONE)
 !$OMP&   SHARED(J_0,J_1,I_0,IMAXJ,trm,trpdens,trradius,dtsrc,
 !$OMP&          airden,rh,visc,gbygz,trmom,itime,itime_tr0,jls_grav )
 !$OMP&   PRIVATE (n,l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius,
@@ -918,7 +914,6 @@ C**** Calculate height differences using geopotential
           END IF
         end if
       end do
-!$OMP END PARALLEL DO
 
 C****
 
@@ -1035,7 +1030,6 @@ c**** Interpolate two months of data to current day
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
 !@auth Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
@@ -1152,7 +1146,6 @@ C**** check whether air mass is conserved
       SUBROUTINE io_tracer(kunit,iaction,ioerr)
 !@sum  io_tracer reads and writes tracer variables to file
 !@auth Jean Lerner
-!@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
      &     ,coupled_chem

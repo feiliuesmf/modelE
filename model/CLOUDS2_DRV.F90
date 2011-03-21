@@ -448,7 +448,6 @@ subroutine CONDSE
       call BURN_RANDOM((I_0-1)*NCOL*(LM+1))
     end if
 
-    !$omp  PARALLEL DO DEFAULT(NONE)
     !$omp* PRIVATE (iThread, I_0thread, I_1thread, imaxj_thread,
 #ifdef TRACERS_ON
     !$omp*  NX,tmsave,tmomsv,
@@ -1760,7 +1759,6 @@ subroutine CONDSE
       !red*       end Reduced Arrays 3
 
     end do ! loop over threads
-    !$omp  END PARALLEL DO
 
 
     ! Burn random numbers for later longitudes here.
@@ -1835,7 +1833,6 @@ end subroutine CONDSE
 subroutine init_CLD
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
   use CONSTANT, only : grav,by3,radian
   use MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
@@ -1876,11 +1873,9 @@ subroutine init_CLD
   ! wind data to be vertically mixed by clouds on the A grid
   !
   n = maxval(kmaxj(j_0:j_1))
-  !$OMP PARALLEL
   allocate(RA(n))
   allocate(UM(n,lm),VM(n,lm),UM1(n,lm),VM1(n,lm))
   allocate(U_0(n,lm),V_0(n,lm))
-  !$OMP END PARALLEL
   n = minval(kmaxj(j_0:j_1))
   allocate(UKM(n,lm,i_0h:i_1h,j_0h:j_1h), &
        VKM(n,lm,i_0h:i_1h,j_0h:j_1h))

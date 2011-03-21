@@ -3,7 +3,6 @@
       module lightning
 !@sum  lightning variables for lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
-!@ver  1.0 (taken from CB436Tds3M23)
       use model_com, only : LM
 
       implicit none
@@ -47,7 +46,6 @@
       subroutine alloc_lightning(grid)
 !@SUM  alllocate lightning arrays for current grid
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use LIGHTNING, only : saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
@@ -76,7 +74,6 @@
 !@+   to-ground amount, based on cloud top height. WARNING: this 
 !@+   routine is apparently resolution dependant.  See the comments.
 !@auth Colin Price (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436Tds3M23)
 
       use lightning, only : JNlight,JSlight,tune_lt_land,tune_lt_sea
      & ,saveC2gLightning,saveLightning
@@ -193,7 +190,6 @@
       subroutine get_lightning_NOx
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
-!@ver  1.0 (based on CB436Tds3M23 & DB396Tds3M23)
  
       use geom, only       : lat2d_dg,byaxyp
       use fluxes, only     : tr3Dsource

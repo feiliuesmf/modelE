@@ -1,12 +1,10 @@
 #include "rundeck_opts.h"
 !@sum  Model Independent Utilities
 !@auth Original Development Team
-!@ver  1.0
 
 function THBAR (X,Y)
 !@sum  THBAR calculates mean temperature used in vertical differencing
 !@auth Gary Russell, Jean Lerner, Arakawa
-!@ver  1.0
   !****
   !**** THBAR(T1,T2) = (ln(T1) - ln(T2))/(1/T2 - 1/T1)
   !****              = T1*g(x) with x=T1/T2 , g(x)=ln(x)/(x-1)
@@ -35,7 +33,6 @@ end function THBAR
 function QSAT (TM,LH,PR)
 !@sum  QSAT calculates saturation vapour mixing ratio
 !@auth Gary Russell
-!@ver  1.0
   use CONSTANT, only : mrat,rvap,tf
   implicit none
 !@var A,B,C   expansion coefficients for QSAT
@@ -56,7 +53,6 @@ end function QSAT
 function DQSATDT (TM,LH)
 !@sum  DQSATDT calculates change of sat. vapour mixing ratio with temp.
 !@auth Gary Russell
-!@ver  1.0
   !**** Note that d(qsat)/dt = qsat * lh * c / T*T
   !**** Only the factor of qsat is given here
   use CONSTANT, only : rvap
@@ -249,7 +245,6 @@ end subroutine io_POS
 subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
 !@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
-!@ver  1.0
   implicit none
 
 !@var IN,JN,LN size of 3-D array
@@ -263,7 +258,6 @@ subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
   logical :: QCHECK3 = .false.
   integer I,J,L !@var I,J,L loop variables
 
-  !$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
   do L=1,LN
     do J=1,JN
       do I=1,IN
@@ -275,7 +269,6 @@ subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
       end do
     end do
   end do
-  !$OMP END PARALLEL DO
   call SYS_FLUSH(6)
   if (QCHECK3) call stop_model('CHECK3',255)
   return
@@ -284,7 +277,6 @@ end subroutine CHECK3
 subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
-!@ver  1.0
   implicit none
 
 !@var IN,JN,LN size of 3-D array
@@ -298,7 +290,6 @@ subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
   logical :: QCHECK3 = .false.
   integer I,J,L !@var I,J,L loop variables
 
-  !$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
   do L=1,LN
     do J=J1+NJPOL,J2-NJPOL
       do I=I1,I2
@@ -310,7 +301,6 @@ subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
       end do
     end do
   end do
-  !$OMP END PARALLEL DO
   call SYS_FLUSH(6)
   if (QCHECK3) call stop_model('CHECK3',255)
   return
@@ -319,7 +309,6 @@ end subroutine CHECK3B
 subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
-!@ver  1.0
   implicit none
 
 !@var IN,JN,LN size of 3-D array
@@ -333,7 +322,6 @@ subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
   logical :: QCHECK3 = .false.
   integer I,J,L !@var I,J,L loop variables
 
-  !$OMP PARALLEL DO PRIVATE (L,J,I) SHARED (QCHECK3)
   do J=J1+NJPOL,J2-NJPOL
     do I=I1,I2
       do L=1,LN
@@ -345,7 +333,6 @@ subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
       end do
     end do
   end do
-  !$OMP END PARALLEL DO
   call SYS_FLUSH(6)
   if (QCHECK3) call stop_model('CHECK3',255)
   return
@@ -354,7 +341,6 @@ end subroutine CHECK3C
 subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
 !@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
 !@auth Original development team
-!@ver  1.0
   implicit none
 
 !@var IN,JN,KN,LN size of 4-D array
@@ -368,7 +354,6 @@ subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
   logical :: QCHECK4 = .false.
   integer I,J,K,L !@var I,J,K,L loop variables
 
-  !$OMP PARALLEL DO PRIVATE (L,K,J,I) SHARED (QCHECK4)
   do L=1,LN
     do K=1,KN
       do J=1,JN
@@ -382,7 +367,6 @@ subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
       end do
     end do
   end do
-  !$OMP END PARALLEL DO
   call SYS_FLUSH(6)
   if (QCHECK4) call stop_model('CHECK4',255)
   return
@@ -391,7 +375,6 @@ end subroutine CHECK4
 subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
 !@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
 !@auth Original development team
-!@ver  1.0
   implicit none
 
 !@var IN,JN,KN,LN size of 4-D array
@@ -405,7 +388,6 @@ subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
   logical :: QCHECK4 = .false.
   integer I,J,K,L !@var I,J,K,L loop variables
 
-  !$OMP PARALLEL DO PRIVATE (L,K,J,I) SHARED (QCHECK4)
   do L=1,LN
     do K=1,KN
       do J=J1+NJPOL,J2-NJPOL
@@ -419,7 +401,6 @@ subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
       end do
     end do
   end do
-  !$OMP END PARALLEL DO
   call SYS_FLUSH(6)
   if (QCHECK4) call stop_model('CHECK4',255)
   return

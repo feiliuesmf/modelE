@@ -1,7 +1,6 @@
 module constant
 !@sum  CONSTANT definitions for physical constants and useful numbers
 !@auth G. Schmidt
-!@ver  1.0
   implicit none
   save
   !**** Conventions: 'by' implies reciprocal, 'rt' implies square root

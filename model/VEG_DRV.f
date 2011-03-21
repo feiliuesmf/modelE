@@ -570,7 +570,6 @@ c shc(0,2) is the heat capacity of the canopy
       subroutine updveg (year,reset_veg)
 !@sum  reads appropriate crops data and updates the vegetation file
 !@auth R. Ruedy
-!@ver  1.0
       USE FILEMANAGER
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT

@@ -4,7 +4,6 @@
 !@sum  atm_diffus updates u,v,t,q due to turbulent transport throughout
 !@+    all GCM layers using a non-local turbulence model
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from diffB347D6M20)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
 !@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
 !@var lbase_min/max levels through which to apply turbulence (dummy)
@@ -117,7 +116,6 @@ C****
 
       !  convert input T to virtual T
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
@@ -129,7 +127,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
 #ifdef TRACERS_ON
       nx=0
@@ -161,7 +158,6 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,dz0,im,jm,lm)
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
@@ -496,7 +492,6 @@ c diffuse velocities on the primary grid in single-column model
 
         end do loop_i_tq
       end do loop_j_tq
-!$OMP  END PARALLEL DO
 
 
 #ifndef SCM
@@ -627,7 +622,6 @@ c
 !@+    as well as the 3-d density rho and rhoe
 !@+    called at the primary grid (A-grid)
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var  tv virtual potential temp. referenced at 1 mb
 !@var  dz0 z(1)-ze(1)
 !@var  dz main grid spacing
@@ -702,7 +696,6 @@ C****
       !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
       !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
       !@ temp1e average of temp0 and temp1
-!$OMP  PARALLEL DO PRIVATE (J,I,L,pl1,pl,pl1e,ple,temp0,temp1,temp1e,
 !$OMP*  plm1e)
 !$OMP*    SCHEDULE(DYNAMIC,2)
       do j=J_0, J_1
@@ -735,7 +728,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
       return
       end subroutine getdz
@@ -979,7 +971,6 @@ C****
       subroutine apply_fluxes_to_atm
 !@sum dummy subroutine - replaces the real one needed by DRYCNV
 !@auth I. Aleinov
-!@ver  1.0
       return
       end subroutine apply_fluxes_to_atm
 
@@ -1019,7 +1010,6 @@ C****
 !@Ref Nakanishi(2001)'s surface length scale
 !@Ref Holtslag and Boville 1993, J. Climate, 6, 1825-1842.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var ze height (meters) of layer edge
 !@var dbl pbl depth (meters)
 !@var lscale turbulent length scale

@@ -3,7 +3,6 @@
       MODULE FLUXES
 !@sum  FLUXES contains the fluxes between various atm-grid components
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
@@ -235,7 +234,6 @@ C**** fluxes associated with variable lake fractions
       SUBROUTINE ALLOC_FLUXES(grd_dum)
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
-!@ver  1.0
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE FLUXES

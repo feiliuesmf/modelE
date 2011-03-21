@@ -8,7 +8,6 @@
 !@+ Feautrier/Auer/Prather version.
 !@auth UCI (see note below), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23.S)
 !@calls SET_PROF,JVALUE,PRTATM,JRATET
 c  Fastj2 photolysis scheme obtained from H. Bian (UCI) 8/2002.
 c  An expanded version of fastJ that includes stratosphere
@@ -69,7 +68,6 @@ c
 !@+  tracers from the model into account.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
-!@ver  1.0 (based on ds4p_fastj2_M23)
 c
 C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: IM,JM,LM,Itime,month=>JMON
@@ -218,7 +216,6 @@ c  Calculate column quantities for Fast-J2:
 !@sum CLDSRF to set cloud and surface properties
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -289,7 +286,6 @@ c Set sub-division switch if appropriate
 !@+   the CTM.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -350,7 +346,6 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@sum PRTATM Print out the atmosphere and calculate appropriate columns
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
@@ -448,7 +443,6 @@ C---Print out climatology:
 !@+   SZA value. 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -494,7 +488,6 @@ C---Loop over all wavelength bins:
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -522,7 +515,6 @@ C**** Local parameters and variables and arguments:
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -550,7 +542,6 @@ C**** Local parameters and variables and arguments:
 !@+   S_R Bands yet!
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -577,7 +568,6 @@ C**** Local parameters and variables and arguments:
 !@sum FLINT Three-point linear interpolation function
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
       IMPLICIT NONE
 
@@ -613,7 +603,6 @@ C**** Local parameters and variables and arguments:
 !@+   beam (where tangent height is below altitude J-value desired at). 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -705,7 +694,6 @@ c Lowest level intersected by emergent beam;
 !@+   4-Gauss pts.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 c
 C Currently allow up to NP aerosol phase functions (at all altitudes)
 C to be associated with optical depth AER2(1:NC) = aerosol opt.depth
@@ -1121,7 +1109,6 @@ c Accumulate attenuation for selected levels:
 !@+  see comments. 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls BLKSLV, GAUSSP, LEGND0
 C
 C-------------------------------------------------------------------
@@ -1182,7 +1169,6 @@ C Solve eqn of R.T. only for first-order M=1
 !@+   A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -1277,7 +1263,6 @@ C----------MEAN J & H
 !@+    system:  A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -1445,7 +1430,6 @@ C------------intermediate points:  can be even or odd, A & C diagonal
 !@+   from P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls 
                            
       IMPLICIT NONE
@@ -1472,7 +1456,6 @@ C---Always does PL(2) = P[1]
 !@+   (mjp, old...)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
       IMPLICIT NONE
 

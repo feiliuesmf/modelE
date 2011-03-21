@@ -46,11 +46,9 @@ c --- read basin depth array
       rewind (iu1)
       read (iu1) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
       close (unit=iu1)
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       do 9 i=1,ii
  9    depths(i,j)=real4(i,j)
-c$OMP END PARALLEL DO
 c
 cccc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 7 j=1,jj
@@ -114,13 +112,11 @@ c
       read (iu2) iz,jz,lat4,lon4
       close(iu2)
 c
-c$OMP PARALLEL DO PRIVATE(n) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       do 8 n=1,4
       do 8 i=1,ii
       latij(i,j,n)=lat4(i,j,n)
  8    lonij(i,j,n)=lon4(i,j,n)
-c$OMP end PARALLEL DO
 c
 c     write (lp,*) 'shown below: latitude of vorticity points'
 c     call zebra(latij(1,1,4),idm,ii,jj)
@@ -128,7 +124,6 @@ c     write (lp,*) 'shown below: longitude of vorticity points'
 c     call zebra(lonij(1,1,4),idm,ii,jj)
 c
 c --- define coriolis parameter and grid size
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 56 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -197,7 +192,6 @@ c
       end if
 c
  56   continue
-c$OMP END PARALLEL DO
 c
       if (beropn .and. scu2(ipacs,jpac).ne.scu2(iatln,jatl))
      .  write(*,'(a,6f13.5)') ' chk WRONG scu2'
@@ -239,7 +233,6 @@ c
       !if (nstep0.eq.0) then
       if (iniOCEAN) then
       write (lp,*) 'laying out arrays in memory ...'
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,1)=huge
@@ -338,9 +331,7 @@ c
       vflxav(i,j,k)=zero
       diaflx(i,j,k)=zero
  209  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 210 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 210 l=1,isq(j)
@@ -362,14 +353,12 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       dp(i  ,ja ,k+kk)=0.
       dp(i-1,ja ,k   )=0.
  210  dp(i-1,ja ,k+kk)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  u,ubavg,utotm,uflx,uflux,uflux2/3,uja,ujb  at points
 c --- located upstream and downstream (in i direction) of p points.
 c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
 c --- as well as at lateral neighbors of interior u points.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 156 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -392,9 +381,7 @@ c
       dpu(i,jb,k   )=0.
       dpu(i,jb,k+kk)=0.
  156  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 158 j=1,jj
       do 158 l=1,isp(j)
       do 158 i=ifp(j,l),ilp(j,l)+1
@@ -418,7 +405,6 @@ c
       ufxcum(i,j,k)=0.
       u(i,j,k   )=0.
  158  u(i,j,k+kk)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  v,vbavg,vtotm,vflx,vflux,vflux2/3,via,vib  at points
 c --- located upstream and downstream (in j direction) of p points.
@@ -478,7 +464,6 @@ c
 c
 c --- set 'glue' to values > 1 in regions where extra viscosity is needed
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
       do 154 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -509,7 +494,6 @@ c --- add glue to mediterranean:
 #endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
-c$OMP END PARALLEL DO
 c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       call findunit(iu3)

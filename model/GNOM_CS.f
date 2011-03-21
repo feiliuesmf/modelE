@@ -27,7 +27,6 @@ c
       MODULE GEOM
 !@sum  GEOM contains geometric variables and arrays
 !@auth M. Kelley
-!@ver  1.0 (Gnomonic CS grid version)
 !@cont GEOM_CS
 
       USE MODEL_COM, only : IM,JM
@@ -103,7 +102,6 @@ c     shift grid 10 degrees West to avoid corner over Japan
       SUBROUTINE GEOM_CS
 !@sum  GEOM_CS Calculate geometry for CS grid
 !@auth M. Kelley
-!@ver  1.0 (Gnomonic CS grid version)
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
       implicit none

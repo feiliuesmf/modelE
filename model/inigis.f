@@ -32,7 +32,6 @@ c
 c
       call initurb
 c --- initialize viscosity and diffusivity arrays
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do j=1,jdm
         do k=1,kdm+1
           do i=1,ii
@@ -44,7 +43,6 @@ c --- no nonlocal forcing
           enddo
         enddo
       enddo
-c$OMP END PARALLEL DO
 c
 c --- dimensions for the tables in mxgiss routine
 c --- the file is needed in order to preserve in the

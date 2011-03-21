@@ -541,7 +541,6 @@ c*
 !@sum INT_OG2AG_MOD contains subroutines for conversion 2D, 3D, etc. 
 !!    arrays from ocean to the atm. grid 
 !@auth Larissa Nazarenko
-!@ver  1.0
       PRIVATE
       PUBLIC INT_OG2AG
 

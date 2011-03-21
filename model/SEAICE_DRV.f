@@ -5,13 +5,11 @@
 #endif
 !@sum  SEAICE_DRV contains drivers for SEAICE related routines
 !@auth Gavin Schmidt
-!@ver  1.0
 !@cont PRECIP_SI,GROUND_SI
 
       SUBROUTINE PRECIP_SI
 !@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
 !@auth Original Development team
-!@ver  1.0
 !@calls seaice:prec_si
       USE CONSTANT, only : teeny,grav,tf,bylhm
       USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
@@ -175,7 +173,6 @@ C****
 !@sum  underice calculates basal fluxes under sea and lake ice
 !@+    saves the resulting fluxes
 !@auth Gavin Schmidt
-!@ver  1.0
 !@calls iceocean,icelake
       USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
       USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
@@ -315,7 +312,6 @@ C****
       SUBROUTINE MELT_SI
 !@sum  MELT_SI driver for lateral melt of sea ice
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday,TF
       USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
@@ -745,7 +741,6 @@ C****
       SUBROUTINE FORM_SI
 !@sum  FORM_SI driver for adding new sea ice
 !@auth Original Development team
-!@ver  1.0
 !@calls seaice:addice
       USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,focean,kocean,fland
@@ -999,7 +994,6 @@ C****
       SUBROUTINE vflx_OCEAN
 !@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE DIAG_COM, only : oa
       USE SEAICE_COM, only : hsi,snowi
@@ -1040,7 +1034,6 @@ C****
       SUBROUTINE init_ice(iniOCEAN,do_IC_fixups)
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : rhows,tf
       USE MODEL_COM, only : im,jm,kocean,focean,flake0
 #ifdef SCM
@@ -1184,7 +1177,6 @@ C****
       SUBROUTINE conserv_OMSI(ICE)
 !@sum  conserv_MSI calculates total amount of snow and ice over ocean
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
@@ -1220,7 +1212,6 @@ C****
       SUBROUTINE conserv_OHSI(EICE)
 !@sum  conserv_HSI calculates total ice energy over ocean
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
@@ -1255,7 +1246,6 @@ C****
       SUBROUTINE conserv_OSSI(SALT)
 !@sum  conserv_SSI calculates total amount of salt in ocean ice
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,ssi,lmi
@@ -1294,7 +1284,6 @@ C****
       SUBROUTINE conserv_LMSI(ICE)
 !@sum  conserv_LMSI calculates total amount of snow and ice over lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
@@ -1331,7 +1320,6 @@ C****
       SUBROUTINE conserv_LHSI(EICE)
 !@sum  conserv_LHSI calculates total ice energy over lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi

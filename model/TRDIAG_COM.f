@@ -557,7 +557,6 @@ C**** include some extra troposphere only ones
      *     ,INST_SC,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc,nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
@@ -682,7 +681,6 @@ C****
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
-!@ver  1.0
       USE MODEL_COM, only: im,jm,lm
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead

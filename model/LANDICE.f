@@ -71,7 +71,6 @@ c      REAL*8, DIMENSION(NTM,2) :: TRICBIMP
      *     EDIFS,DIFS,ERUN2,RUN0)
 !@sum  PRECLI apply precipitation to land ice fraction
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2
       REAL*8, INTENT(IN) :: PRCP,ENRGP
@@ -162,7 +161,6 @@ C**** SNOW IS COMPACTED INTO ICE, ICE MOVES DOWN THROUGH THE LAYERS
      *     EDIFS,DIFS,RUN0)
 !@sum  LNDICE apply surface fluxes to land ice fraction
 !@auth Original Development team
-!@ver  1.0
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2
       REAL*8, INTENT(IN) :: F0DT,F1DT,EVAP
@@ -285,7 +283,6 @@ C**** CALCULATE TG2
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
       Use LANDICE_COM, Only: SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
@@ -325,7 +322,6 @@ C**** CALCULATE TG2
       SUBROUTINE io_landice(kunit,iaction,ioerr)
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN

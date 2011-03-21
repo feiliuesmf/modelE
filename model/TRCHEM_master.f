@@ -2,7 +2,6 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem000_M23p)   
 !@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C IF ALTERING THIS ROUTINE, PLEASE SEE THE WARNING ABOUT THE CHANGEL
@@ -2054,7 +2053,6 @@ C Make sure nighttime chemistry changes are not too big:
 !@sum calculate photolysis rate for acetone geometrically
 !@+ taken from the UK Harwell Model
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on dsf_master_chem_GCM.S)
 !
       use model_com, only: jday,jhour,LS1,LM
       use dynamics, only: pmid
@@ -2099,7 +2097,6 @@ C Make sure nighttime chemistry changes are not too big:
 !@+   #13 CO+OH->HO2+CO2, #15 HO2+HO2->H2O2+O2, #16 OH+HNO3->H2O+NO3,
 !@+   and reactions #29, and #42.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem000_M23p)
 
 C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: LM,JM,LS1,ptop,psf,sig,Itime,ItimeI

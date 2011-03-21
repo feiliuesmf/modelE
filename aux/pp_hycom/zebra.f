@@ -26,7 +26,6 @@ c
 c
       write (*,'(a,3i6)') 'ZEBRA call with arguments',idim,ii,jj
 c
-c$OMP PARALLEL DO
       do 1 j=1,jj
       amxj(j)=-1.e33
       amnj(j)= 1.e33
@@ -44,7 +43,6 @@ c$OMP PARALLEL DO
         jmnj(j)=j
       end if
  1    continue
-c$OMP END PARALLEL DO
 c
       amx=-1.e33
       amn= 1.e33

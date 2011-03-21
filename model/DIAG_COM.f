@@ -991,7 +991,6 @@ c instances of arrays
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
@@ -1186,7 +1185,6 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE ALLOC_ijdiag_glob
 !@sum  To allocate large global arrays only when needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
@@ -1217,7 +1215,6 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE DEALLOC_ijdiag_glob
 !@sum  To deallocate large global arrays not currently needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
@@ -1230,7 +1227,6 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
@@ -1670,7 +1666,6 @@ c more complicated logic
 !@+   if the earliest month is NOT the beginning of the 2-6 month period
 !@+   the name will reflect that fact ONLY for 2 or 3-month periods
 !@auth Reto A. Ruedy
-!@ver  1.0
       USE MODEL_COM, only : AMONTH
       implicit none
 !@var JMON1,JYR1 month,year of beginning of period 1

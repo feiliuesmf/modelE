@@ -1,6 +1,5 @@
 !@sum  STRAT_DIAG file for special E-P flux diagnostics from strat model
 !@auth B. Suozzo/J/ Lerner
-!@ver  1.0
 
       SUBROUTINE EPFLUX
 #ifndef CUBED_SPHERE
@@ -8,7 +7,6 @@
 #endif
 !@sum  EPFLUX calculates finite difference EP Flux on B-grid
 !@auth B. Suozzo/J. Lerner
-!@ver  1.0
 C**** B-grid
 C**** INPUT:
 C****     U - Zonal wind (corners) (m s-1)
@@ -602,7 +600,6 @@ C****
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
 !@auth B. Suozzo/J. Lerner
-!@ver  1.0
 C****
 C**** B-grid
 C**** INPUT:
@@ -869,7 +866,6 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
       SUBROUTINE AVGI (X,XI)
 !@sum  AVGI average a 3-dimensional array in the x-direction
 !@auth B. Suozzo
-!@ver  1.0
       USE MODEL_COM, only : lm
 #ifdef CUBED_SPHERE
       USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM
@@ -918,7 +914,6 @@ C****
       SUBROUTINE AVGVI (X,XI)
 !@sum  AVGVI average a 3-dimensional array in the x-direction (no pole)
 !@auth B. Suozzo
-!@ver  1.0
       USE MODEL_COM, only : lm
 #ifdef CUBED_SPHERE
       USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM

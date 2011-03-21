@@ -94,7 +94,6 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get, write_parallel
       USE Dictionary_mod, only : get_param, is_set_param
       use model_com, only : lm, DTsrc, NIsurf
@@ -353,7 +352,6 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
-!@ver  1.0
       use tracer_com, only: n_NOx,nAircraft,num_tr_sectors3D,
      & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
@@ -413,7 +411,6 @@ C we change that.)
 !@+    call read_aero(sulfate,'SULFATE_SA')
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
-!@ver  1.0 
 
       USE MODEL_COM, only: jyear,jday,im,jm,lm,ptop,psf,sig
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
@@ -664,7 +661,6 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       subroutine get_CH4_IC(icall)
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@auth Greg Faluvegi/Drew Shindell
-!@ver  1.0 (based on DB396Tds3M23)
 
       USE MODEL_COM, only  : im,jm,lm,ls1,DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root

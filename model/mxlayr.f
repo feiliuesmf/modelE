@@ -32,19 +32,16 @@ c
 c
 c --- advect mixed layer depth with vertically averaged velocity field
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=J_0,J_1
       do 9 k=1,kk
       do 9 l=1,isp(j)
       do 9 i=ifp(j,l),ilp(j,l)
  9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,p     ,FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,v     ,FROM=NORTH+SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(kn,ja,jb,pa,pb) SCHEDULE(STATIC,jchunk)
       do 2 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
@@ -75,11 +72,9 @@ c
  5    vflux(i,j)=vflux(i,j)*(dpmixl(i,j,m)-dpmixl(i,ja ,m))*scvx(i,j)/
      .  min(dpmixl(i,j,m)+dpmixl(i,ja ,m),pbot(i,j)+pbot(i,ja ))
  2    continue
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux,FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb,thkold) SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 13 l=1,isp(j)
@@ -89,9 +84,7 @@ c$OMP PARALLEL DO PRIVATE(jb,thkold) SCHEDULE(STATIC,jchunk)
      .   -.5*(uflux(i+1,j)+uflux(i,j)
      .       +vflux(i,jb )+vflux(i,j))*scp2i(i,j)*delt1)
  13   dpmixl(i,j,m)=.5*dpmixl(i,j,m)+.25*(thkold+dpmixl(i,j,n))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(kn,thkold,thknew,q,ttem,ssal,dens,delp,pres,
 c$OMP. totem,tosal,tndcyt,tndcys,temdp,saldp,tem,sal,rho,sup,slo,siglo,
 c$OMP. ustar3,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,turgen,cc4,
 c$OMP. spe,sum1,sum2,pnew,p1,p2,buoyfl,trac,trcdp,vrbos)
@@ -344,7 +337,6 @@ c --- put single column back into 3-d fields
  8    th3d(i,j,kn)=dens(k)
 
  1    dpmixl(i,j,n)=thknew
-c$OMP END PARALLEL DO
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: smooth mixed layer depth
@@ -352,7 +344,6 @@ c
       q=thkdff*baclin
       CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
       do 51 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -370,11 +361,9 @@ c
       flxlo=-.25*(pbot(i,ja )-dpmixl(i,ja ,n))*scp2(i,ja )
  51   vflux(i,j)=min(flxhi,max(flxlo,
      .   q*(dpmixl(i,ja ,n)-dpmixl(i,j,n))*scvx(i,j)))
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux,FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 38 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 38 l=1,isp(j)
@@ -382,7 +371,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       dpmixl(i,j,n)=dpmixl(i,j,n)-(uflux(i+1,j)-uflux(i,j)
      .                            +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
  38   dpmxav(i,j)=dpmxav(i,j)+dpmixl(i,j,n)
-c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- ---------------
@@ -394,7 +382,6 @@ c
       small=1.e-4
       CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,kn,zup,zlo,s1,s2,s3,smax,smin,sup,slo,q,
 c$OMP+ knp1) SCHEDULE(STATIC,jchunk)
       do 31 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -540,7 +527,6 @@ c
       end if
  52   continue
  31   continue
-c$OMP END PARALLEL DO
 c
       return
       end

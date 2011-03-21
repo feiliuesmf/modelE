@@ -90,7 +90,6 @@ ccc   rundeck parameters  5/1/03 nyk
      &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf,Ca
      &     ,betad,tcan,qv
      &     ,CNC
-!$OMP  THREADPRIVATE (/veg_private/)
 
 
       contains

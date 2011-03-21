@@ -2,7 +2,6 @@
 !!
 !@sum  OCEANR_DIM  for ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
       MODULE OCEANR_DIM
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE OCEANRES,  only : imo,jmo, lmo

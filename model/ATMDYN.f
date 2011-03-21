@@ -29,7 +29,6 @@ C**** Variables used in DIAG5 calculations
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
-!@ver  1.0
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,NIdyn,dt,MODD5K
      *     ,NSTEP,NDA5K,ndaa,mrch,ls1,byim,QUVfilter,DTsrc,USE_UNR_DRAG
@@ -74,13 +73,11 @@ c**** Extract domain decomposition info
       NS=0
       NSOLD=0                            ! strat
 
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          PUA(:,:,L) = 0.
          PVA(:,:,L) = 0.
          SDA(:,:,L) = 0.
       ENDDO
-!$OMP  END PARALLEL DO
 C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
 c     UX(:,:,:)  = U(:,:,:)
@@ -89,7 +86,6 @@ c     VX(:,:,:)  = V(:,:,:)
 c     VT(:,:,:)  = V(:,:,:)
 !     copy z-moment of temperature into contiguous memory
 c     tz(:,:,:) = tmom(mz,:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          UX(:,:,L)  = U(:,:,L)
          UT(:,:,L)  = U(:,:,L)
@@ -97,7 +93,6 @@ c     tz(:,:,:) = tmom(mz,:,:,:)
          VT(:,:,L)  = V(:,:,L)
          TZ(:,:,L)  = TMOM(MZ,:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 C
 #ifdef NUDGE_ON
       CALL NUDGE_PREP
@@ -170,41 +165,33 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
         PUA(:,:,L)=PUA(:,:,L)+PU(:,:,L)
         PVA(:,:,L)=PVA(:,:,L)+PV(:,:,L)
         IF (L.LE.LM-1) SDA(:,:,L)=SDA(:,:,L)+SD(:,:,L)
       END DO
-!$OMP  END PARALLEL DO
 C**** ADVECT Q AND T
 CCC   TT(:,:,:) = T(:,:,:)
 CCC   TZT(:,:,:)= TZ(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TT(:,:,L)  = T(:,:,L)
          TZT(:,:,L) = TZ(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
       call calc_amp(pc,ma)
       CALL AADVT (MA,T,TMOM, SD,PU,PV, DTLF,.FALSE.,FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
 CCC   tz(:,:,:) = tmom(mz,:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TZ(:,:,L) = TMOM(MZ,:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
       CALL VDIFF (P,U,V,UT,VT,T,DTLF)          ! strat
       PC(:,:)    = .5*(P(:,:)+PC(:,:))
 CCC   TT(:,:,:)  = .5*(T(:,:,:)+TT(:,:,:))
 CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-!$OMP PARALLEL DO PRIVATE (L)
       DO L=1,LM
          TT(:,:,L)  = .5*(T(:,:,L)+TT(:,:,L))
          TZT(:,:,L) = .5*(TZ(:,:,L)+TZT(:,:,L))
       ENDDO
-!$OMP END PARALLEL DO
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
@@ -271,7 +258,6 @@ c apply north-south filter to U and V once per physics timestep
      &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE (J,L,I,IP1)
       DO J=J_0S,J_1S ! eastward transports
       DO L=1,LM
          I=IM
@@ -282,8 +268,6 @@ c apply north-south filter to U and V once per physics timestep
          END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
-!$OMP  PARALLEL DO PRIVATE (J,L,I)
       DO J=J_0STG,J_1STG ! northward transports
       DO L=1,LM
          DO I=1,IM
@@ -292,7 +276,6 @@ c apply north-south filter to U and V once per physics timestep
          END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
       end subroutine compute_mass_flux_diags
 
@@ -321,21 +304,17 @@ c apply north-south filter to U and V once per physics timestep
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
-!$OMP  PARALLEL DO PRIVATE (J,L)
       do j=J_0STG,J_1STG
       do L=1,LM
          AIJ(:,J,IJ_FMV)  = AIJ(:,J,IJ_FMV )+PVA(:,J,L)*DTLF
       enddo
       enddo
-!$OMP  END PARALLEL DO
 
-!$OMP  PARALLEL DO PRIVATE (J,L)
       do j=J_0S,J_1S
       do l=1,lm
          AIJ(:,J,IJ_FMU) = AIJ(:,J,IJ_FMU)+PUA(:,J,L)*DTLF
       enddo
       enddo
-!$OMP  END PARALLEL DO
 
       if (haveLatitude(grid, J=1)) then
          do l=1,lm
@@ -358,7 +337,6 @@ c apply north-south filter to U and V once per physics timestep
 !@+            CONV  horizontal mass convergence (mb m^2/s)
 !@+            SPA
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,ls1,dsig,bydsig,byim
      &     ,zatmo,sige,do_polefix
       USE GEOM, only : dyp,dxv,polwt,imaxj
@@ -617,7 +595,6 @@ C     COMPUTE CONV, THE HORIZONTAL MASS CONVERGENCE
 C
       CALL HALO_UPDATE(GRID,PU ,FROM=SOUTH+NORTH) ! full halos needed later
       CALL HALO_UPDATE(GRID,PV ,FROM=SOUTH+NORTH)
-!$OMP  PARALLEL DO PRIVATE (I,J,L,IM1)
       DO 2400 L=1,LM
       DO 1510 J=J_0S,J_1S
       IM1=IM
@@ -627,29 +604,23 @@ C
       IF (haveLatitude(grid,J=1)) CONV(1,1,L)=-PVSA(L)
       If (haveLatitude(grid,J=JM)) CONV(1,JM,L)=PVNA(L)
  2400 CONTINUE
-!$OMP  END PARALLEL DO
 C
 C**** COMPUTE PIT, THE PRESSURE TENDENCY
       PIT(:,J_0:J_1) = CONV(:,J_0:J_1,1)
       SD(:,J_0:J_1,1:LM-1) = CONV(:,J_0:J_1,2:LM)
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2420 J=J_0,J_1
          DO 2410 I=1,IMAXJ(J)
          DO 2410 L=LM-1,1,-1
            PIT(I,J) = PIT(I,J) + SD(I,J,L)
  2410    CONTINUE
  2420 CONTINUE
-!$OMP  END PARALLEL DO
 C**** COMPUTE SD, SIGMA DOT                                             -------
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2435 J=J_0,J_1
          DO 2430 I=1,IMAXJ(J)
          DO 2430 L=LM-2,LS1-1,-1
             SD(I,J,L)=SD(I,J,L+1)+SD(I,J,L)
  2430    CONTINUE
  2435 CONTINUE
-!$OMP  END PARALLEL DO
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO 2440 J=J_0,J_1
          DO 2438 I=1,IMAXJ(J)
          DO 2438 L=LS1-2,1,-1
@@ -657,7 +628,6 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
      &           DSIG(L+1)*PIT(I,J)
  2438    CONTINUE
  2440 CONTINUE
-!$OMP  END PARALLEL DO
       DO 2450 L=1,LM-1
       DO 2450 I=2,IM
         IF (haveLatitude(grid,J=1))
@@ -676,7 +646,6 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
       SUBROUTINE ADVECM (P,PA,DT1)
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q,ptop
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit
@@ -754,7 +723,6 @@ C****
       SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
@@ -798,13 +766,10 @@ C****
 C****
 C**** VERTICAL DIFFERENCING
 C****
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=LS1,LM
       SPA(:,:,L)=0.
       END DO
-!$OMP  END PARALLEL DO
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
 !$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
@@ -853,7 +818,6 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
         END DO
       END DO
       END DO
-!$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
       IF (haveLatitude(grid, J=1)) THEN
         DO L=1,LM
@@ -868,11 +832,9 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
         END DO
       END IF
 
-!$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
         GZ(:,:,L)=PHI(:,:,L)
       END DO
-!$OMP END PARALLEL DO
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
@@ -881,7 +843,6 @@ C
       CALL HALO_UPDATE(grid, P,   FROM=SOUTH)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       CALL HALO_UPDATE(grid, SPA, FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FACTOR,FLUX)
       DO 3236 L=1,LM
       DO 3236 J=J_0STG,J_1STG
       FACTOR = DT4*DXV(J)*DSIG(L)
@@ -893,14 +854,12 @@ C
       DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3234 IM1=I
  3236 CONTINUE
-!$OMP  END PARALLEL DO
 C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C
 C Although PU appears to require a halo update, the halos
 C of PHI, SPA, and P enable implementation without the additional halo.
 C
-!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FACTOR)
       DO L=1,LM
         IF (haveLatitude(grid, J=1)) PU(:,1,L)=0.
         IF (haveLatitude(grid, J=JM)) PU(:,JM,L)=0.
@@ -923,7 +882,6 @@ C
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 
 c correct for erroneous dxyv at the poles
       if(do_polefix.eq.1) then
@@ -968,16 +926,13 @@ C****
       END IF
 C
       CALL HALO_UPDATE(grid, FD, FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE(I,IP1,J)
       DO 3530 J=J_0STG,J_1STG
       I=IM
       DO 3525 IP1=1,IM
       RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
  3525 I = IP1
  3530 CONTINUE
-!$OMP  END PARALLEL DO
 C
-!$OMP  PARALLEL DO PRIVATE(I,J,L,RFDU)
       DO 3550 L=1,LM
       DO 3550 J=J_0STG,J_1STG
       RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
@@ -987,7 +942,6 @@ C
       UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
  3540 CONTINUE
  3550 CONTINUE
-!$OMP  END PARALLEL DO
 C
       RETURN
       END SUBROUTINE PGF
@@ -995,7 +949,6 @@ C
       SUBROUTINE AVRX(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,imh
       USE GEOM, only : dlon,dxp,dyp,bydyp
       !USE DYNAMICS, only : xAVRX
@@ -1086,7 +1039,6 @@ C****
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
-!@ver  1.0
 !@calls SHAP1D
 C****
 C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
@@ -1126,7 +1078,6 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-!$OMP  PARALLEL DO DEFAULT(SHARED) PRIVATE(I,J,PS,ZS)
       DO J=J_0S,J_1S
         DO I=1,IM
           POLD(I,J)=P(I,J)      ! Save old pressure
@@ -1136,10 +1087,8 @@ C****
           Y(I,J)=X(I,J)/PS
         END DO
       END DO
-!$OMP  END PARALLEL DO
       CALL SHAP1D (8,X)
       call isotropslp(x,COS_LIMIT)
-!$OMP  PARALLEL DO PRIVATE(I,J,PSUMO,PSUMN,PDIF)
       DO J=J_0S,J_1S
         PSUMO=0.
         PSUMN=0.
@@ -1155,16 +1104,12 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
-!$OMP  PARALLEL DO PRIVATE(I,J)
       DO J=J_0S,J_1S
         DO I=1,IM
           PRAT(I,J)=POLD(I,J)/P(I,J)
         END DO
       END DO
-!$OMP  END PARALLEL DO
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
       DO J=J_0S,J_1S
       DO I=1,IM
@@ -1177,7 +1122,6 @@ c adjust pot. temp. to maintain unchanged absolute temp.
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 #ifdef TRACERS_ON
 C**** In general, only an air tracer is affected by the filter
 C**** This fix conserves tracer concentration, BUT NOT MASS!
@@ -1188,14 +1132,12 @@ C**** But if n_air=0 this will cause problems...
       do n=1,ntm
       if (trname(n).ne.'Air' .and. trname(n).ne.'CO2n') cycle
 !     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
         DO J=J_0S,J_1S
           DO I=1,IM
              trm(I,J,L,n)=  trm(I,J,L,n)/PRAT(I,J)
              trmom(:,I,J,L,n)=trmom(:,I,J,L,n)/PRAT(I,J)
       end do; end do; end do
-!$OMP  END PARALLEL DO
       end do
 #endif
       CALL CALC_AMPK(LS1-1)
@@ -1209,7 +1151,6 @@ C****
 C**** TEMPERATURE STRATIFICATION FILTER ON T
 C****
       AKAP=KAPA-.205d0    ! what is this number?
-!$OMP  PARALLEL DO PRIVATE (J,L,X,Y)
       DO L=1,LM
         IF(L.LT.LS1) THEN
           DO J=J_0S,J_1S
@@ -1230,7 +1171,6 @@ C****
           END DO
         END IF
       END DO
-!$OMP  END PARALLEL DO
 C
       RETURN
       END SUBROUTINE FILTER
@@ -1238,7 +1178,6 @@ C
       subroutine fltry2(q3d,strength)
 !@sum  fltry2 noise reduction filter for a velocity-type field
 !@sum  at secondary latitudes
-!@ver  1.0
       use resolution, only : im,jm,lm
       use domain_decomp_1d, only : get,grid,halo_update,north,south
       implicit none
@@ -1313,7 +1252,6 @@ c      by4ton=1./(4.**nshap)
       SUBROUTINE FLTRUV(U,V,UT,VT)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
-!@ver  1.0
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
      *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
@@ -1368,7 +1306,6 @@ C****
 C****
 C**** Filtering in east-west direction
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1)
       DO 350 L=1,LM
 C**** Filter U component of velocity
       DO 240 J=J_0STG,J_1STG
@@ -1399,7 +1336,6 @@ C**** Filter V component of velocity
       DO 340 I=1,IM
   340 V(I,J,L) = V(I,J,L) - X(I)*XVby4toN
   350 CONTINUE
-!$OMP  END PARALLEL DO
 
 c This routine is now called by subroutine DYNAM
 c      if(do_polefix.eq.1) then
@@ -1409,7 +1345,6 @@ c      endif
 C**** Conserve angular momentum along latitudes
 c***  The following halo is not needed because PDSIG halo is up to date
 c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=J_0STG,J_1STG
           ANGM=0.
@@ -1429,7 +1364,6 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 
 C**** Call diagnostics only for even time step
       IF (MRCH.eq.2) THEN
@@ -1464,7 +1398,6 @@ C**** Call diagnostics only for even time step
       subroutine isotropuv(u,v,coscut)
 !@sum  isotropuv isotropizes the velocity field in the near-polar row(s)
 !@auth M. Kelley
-!@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,dt
       USE DOMAIN_DECOMP_1D, Only : GET, grid
       USE GEOM, only : cosv,dxv,cosi=>cosiv,sini=>siniv
@@ -1580,7 +1513,6 @@ c convert xy velocities back to polar coordinates
       SUBROUTINE SHAP1D (NORDER,X)
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only :im,jm
       USE DOMAIN_DECOMP_1D, Only : grid, GET
       IMPLICIT NONE
@@ -1617,7 +1549,6 @@ c**** Extract domain decomposition info
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,sha
       USE MODEL_COM, only : im,jm,lm,ls1,u,v,t,q,x_sdrag,csdragl,lsdrag
      *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag,wmax,vsdragl
@@ -1839,7 +1770,6 @@ C****
 !@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
 !@sum  per unit area
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,u
       USE GEOM, only : byaxyp
       USE DOMAIN_DECOMP_1D, only : GET, GRID
@@ -1874,7 +1804,6 @@ C****
 !@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
 !@sum  (J/m2)
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
       USE GEOM, only : dxyn,dxys,dxyv,byaxyp
@@ -1932,7 +1861,6 @@ C****
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,byim,u,v
 c      USE GEOM, only : ravps,ravpn
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
@@ -1960,7 +1888,6 @@ c      USE GEOM, only : ravps,ravpn
 !@var u_a x-component at primary grids (A_grid)
 !@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,u,v
       USE DYNAMICS, only : ua=>ualij,va=>valij
       USE DOMAIN_DECOMP_1D, only : grid,get,NORTH, HALO_UPDATE_COLUMN
@@ -1989,7 +1916,6 @@ C**** Update halos of U and V
         J=1
         KMAX=KMAXJ(J)
         HEMI=-1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
@@ -2008,14 +1934,12 @@ C**** Update halos of U and V
             va(l,i,j)=v_t
           END DO
         END DO
-!$OMP  END PARALLEL DO
       end if              !south pole
 !
       if (HAVE_NORTH_POLE) then
         J=JM
         KMAX=KMAXJ(J)
         HEMI=1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
@@ -2034,7 +1958,6 @@ C**** Update halos of U and V
             va(l,i,j)=v_t
           END DO
         END DO
-!$OMP  END PARALLEL DO
       end if                !north pole
 
 !     non polar boxes
@@ -2043,7 +1966,6 @@ C     ---> done by calling routine...
 
 c      CALL HALO_UPDATE(grid, u, FROM=NORTH)
 c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
 !$OMP*    SCHEDULE(DYNAMIC,2)
       DO J=J_0S,J_1S
         KMAX=KMAXJ(J)
@@ -2066,7 +1988,6 @@ c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C****
       return
       end subroutine recalc_agrid_uv
@@ -2432,7 +2353,6 @@ c      contains
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
-!@ver  1.0
       USE CONSTANT, only : omega,mb2kg, radius
       USE MODEL_COM, only : im,jm,lm,fim,byim,mdiag,mdyn
       USE GEOM, only : cosv, ravpn,ravps,bydxyp
@@ -2509,7 +2429,6 @@ C****
 
       CALL HALO_UPDATE(grid, PI, FROM=SOUTH)
 
-!$OMP PARALLEL DO PRIVATE (J,L,I,DUTIL,RKEIL,DUTI,RKEI,N)
       DO J=J_0STG,J_1STG
         DUTIL=0.
         RKEIL=0.
@@ -2528,7 +2447,6 @@ C****
         DAMB(J)=DUTIL*COSV(J)*RADIUS*mb2kg
         DKEB(J)=RKEIL*mb2kg
       END DO
-!$OMP END PARALLEL DO
 C****
 
 c
@@ -2700,7 +2618,6 @@ c      contains
 !@+          of pre-computing Courant limits using mean fluxes
 !@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
 !@auth J. Lerner
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,q,dt,byim
       USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: agc=>agc_loc
@@ -2726,14 +2643,12 @@ c**** Extract domain decomposition info
 C****
 C**** convert from concentration to mass units
 C****
-!$OMP PARALLEL DO PRIVATE (L,J,I)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
         Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
       enddo; enddo; enddo
-!$OMP END PARALLEL DO
 C**** ADVECT
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
@@ -2748,7 +2663,6 @@ C**** ADVECT
 C****
 C**** convert from mass to concentration units (using updated MA)
 C****
-!$OMP PARALLEL DO PRIVATE (L,I,J,BYMA)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
@@ -2756,7 +2670,6 @@ C****
         Q(I,J,L)=Q(I,J,L)*BYMA
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*BYMA
       enddo; enddo; enddo
-!$OMP END PARALLEL DO
 
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
@@ -2774,7 +2687,6 @@ c      end module ATMDYN_QDYNAM
       SUBROUTINE TrDYNAM
 !@sum  TrDYNAM is the driver to integrate tracer dynamic terms
 !@auth J. Lerner
-!@ver  1.0
       USE MODEL_COM, only: im,jm,lm,itime,dt,byim
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE TRACER_ADV
@@ -2827,7 +2739,6 @@ c Switch the sign convention back to "positive downward".
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      !@ver  1.0
       USE MODEL_COM, only: JDPERY
       USE RESOLUTION, only: IM, JM
       implicit none
@@ -2889,7 +2800,6 @@ c Switch the sign convention back to "positive downward".
       subroutine UNRDRAG (PB,U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
       !@sum  UNRDRAG is the driver for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      !@ver  1.0
       USE UNRDRAG_COM
       USE CONSTANT, only : grav, bygrav, kapa, rgas
       USE GEOM, only: RAPVS, RAPVN
@@ -3118,7 +3028,6 @@ c Switch the sign convention back to "positive downward".
       subroutine init_UNRDRAG
       !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      !@ver  1.0
       USE RESOLUTION, only: JM, LM, PLbot
       USE CONSTANT, only : pi, twopi
       USE GEOM, only: LAT_DG
@@ -3191,7 +3100,6 @@ c Switch the sign convention back to "positive downward".
       subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
       !@sum   orographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      !@ver  1.0
       USE CONSTANT, only : grav
       USE MODEL_COM, only: LM, byDSIG
       USE UNRDRAG_COM, only : r8
@@ -3267,7 +3175,6 @@ c Switch the sign convention back to "positive downward".
      *                                ,u,bf,nc,iz0, gwfrc)
       !@sum   nonorographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      !@ver  1.0
       USE CONSTANT, only : grav, by3
       USE MODEL_COM, only: LM, byDSIG
       USE UNRDRAG_COM, only : r8

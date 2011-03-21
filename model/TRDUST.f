@@ -741,7 +741,6 @@ c****
       REAL*8,DIMENSION(Lm,Ntm_dust) :: tmold
 
       COMMON /dustprv/ l,layer,y,height,lwdep,h,tmold
-!$OMP  THREADPRIVATE (/dustprv/)
 
 #ifdef WET_DEPO_Ina
       SELECT CASE(j)

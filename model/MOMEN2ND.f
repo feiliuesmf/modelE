@@ -25,7 +25,6 @@
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
      &     ,do_polefix
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
@@ -115,7 +114,6 @@ C
      *                 +(PA(I,J)+PA(IP1,J))*DXYS(J))
          I=IP1
   110 CONTINUE
-!$OMP  PARALLEL DO PRIVATE(J,L,VMASS)
       DO L=1,LM
         IF(L.LT.LS1) THEN  !  DO L=1,LS1-1
           DO J=J_0S,J_1
@@ -134,7 +132,6 @@ C
           END DO
         END IF
       END DO
-!$OMP  END PARALLEL DO
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
@@ -143,7 +140,6 @@ C****
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
 
-!$OMP  PARALLEL DO PRIVATE(I,IP1,J,L,FLUX,FLUXU,FLUXV,
 !$OMP+   FLUXU_N_S,FLUXV_N_S,FLUXU_SW_NE, FLUXV_SW_NE,
 !$OMP+   FLUXU_SE_NW, FLUXV_SE_NW, IPOLE,JV,JVS,JVN,WTS,USV0,VSV0) 
       DO 300 L=1,LM
@@ -271,7 +267,6 @@ c restore uninterpolated values of u,v at the pole
       enddo
 
   300 CONTINUE
-!$OMP  END PARALLEL DO
 
       if(do_polefix.eq.1) then
 c Horizontal advection for the polar row is performed upon
@@ -395,7 +390,6 @@ C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
 !!! MUST USE CONV for HALO update not SD which is aliased to it.
       CALL HALO_UPDATE(GRID,SD,FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM-1
       DO J=J_0S,J_1
          DO I=1,IM-1
@@ -412,14 +406,12 @@ C 310 I=IP1
      *                  *RAVPS(J) )
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
       L=1
       DO J=J_0S,J_1
          DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
          DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
       END DO
-!$OMP  PARALLEL DO PRIVATE(J,L)
       DO L=2,LM-1
         DO J=J_0S,J_1
          DUT(:,J,L)  =DUT(:,J,L)  -ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
@@ -428,7 +420,6 @@ C 310 I=IP1
          DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
         END DO
       END DO
-!$OMP  END PARALLEL DO
       L=LM
       DO J=J_0S,J_1
          DUT(:,J,L)=DUT(:,J,L)-ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
@@ -437,7 +428,6 @@ C 310 I=IP1
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (grid,1,U,V,DUT,DVT,DT1)!,PIT)
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=J_0S,J_1
       DO I=1,IM
@@ -448,7 +438,6 @@ C**** CALL DIAGNOSTICS
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 C****
 C**** CORIOLIS FORCE
 C****
@@ -545,7 +534,6 @@ C****
           I=IP1
         END DO
       END DO
-!$OMP  PARALLEL DO PRIVATE(J,L,RVMASS)
       DO L=1,LM
         IF(L.LT.LS1) THEN  !  DO L=1,LS1-1
           DO J=J_0S,J_1
@@ -564,7 +552,6 @@ C****
           END DO
         END IF
       END DO
-!$OMP  END PARALLEL DO
 C
       RETURN
       END SUBROUTINE ADVECV

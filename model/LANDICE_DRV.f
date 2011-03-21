@@ -11,7 +11,6 @@
       SUBROUTINE init_LI(istart)
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,tf
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
@@ -266,7 +265,6 @@ C****
       SUBROUTINE PRECIP_LI
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
-!@ver  1.0
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
 #ifdef SCM
@@ -572,7 +570,6 @@ C****
       SUBROUTINE conserv_MLI(ICE)
 !@sum  conserv_MLI calculates total amount of snow and ice in land ice
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : im,jm,fim,flice
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli
@@ -607,7 +604,6 @@ C****
       SUBROUTINE conserv_HLI(EICE)
 !@sum  conserv_HLI calculates total land ice energy
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : shi,lhm
       USE MODEL_COM, only : im,jm,fim,flice
       USE GEOM, only : imaxj
@@ -978,7 +974,6 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       SUBROUTINE CHECKLI (SUBR)
 !@sum  CHECKLI checks whether the land ice variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,qcheck,flice
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID

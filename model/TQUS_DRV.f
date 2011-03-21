@@ -62,7 +62,6 @@ C****
 
 C**** Fill in values at the poles
       if (HAVE_SOUTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE (I,L,N)
       do l=1,lm
          do i=2,im
            rm(i,1 ,l) = rm(1,1 ,l)
@@ -71,10 +70,8 @@ C**** Fill in values at the poles
            enddo
          enddo
       enddo
-!$OMP  END PARALLEL DO
       endif
       if (HAVE_NORTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE (I,L,N)
         do l=1,lm
           do i=2,im
             rm(i,jm,l) = rm(1,jm,l)
@@ -83,58 +80,47 @@ C**** Fill in values at the poles
             enddo
           enddo
         enddo
-!$OMP  END PARALLEL DO
       endif
 C****
 C**** Load mass after advection from mass before advection
 C****
 ccc   ma(:,:,:) = mb(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MA(:,:,L) = MB(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
 C**** loop over cycles
       do n=1,ncyc
 ccc   mflx(:,:,:)=pu(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx1(J_0H,1,n),
      &    safv)
 
 ccc   mflx(:,:,:)=pv(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PV(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 
       call aadvqy (rm,rmom,ma,mflx,qlimit,tname,nstepy(1,n),
      &    sbf,sbm,sfbm,sbfv)
 
 ccc   mflx(:,:,:)=sd(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = SD(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 
       call aadvqz (rm,rmom,ma,mflx,qlimit,tname,nstepz(1,n),
      &    scf,scm,sfcm)
 
 ccc   mflx(:,:,:)=pu(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MFLX(:,:,L) = PU(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
 
       call aadvqx (rm,rmom,ma,mflx,qlimit,tname,nstepx2(J_0H,1,n),
      *     safv)
@@ -142,22 +128,18 @@ ccc   mflx(:,:,:)=pu(:,:,:)
 
 C**** deal with vertical polar box diagnostics outside ncyc loop
       if (HAVE_SOUTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE (L)
         do l=1,lm-1
           sfcm(1 ,l) = fim*sfcm(1 ,l)
           scm (1 ,l) = fim*scm (1 ,l)
           scf (1 ,l) = fim*scf (1 ,l)
         end do
-!$OMP  END PARALLEL DO
       endif
       if (HAVE_NORTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE (L)
         do l=1,lm-1
           sfcm(jm,l) = fim*sfcm(jm,l)
           scm (jm,l) = fim*scm (jm,l)
           scf (jm,l) = fim*scf (jm,l)
         end do
-!$OMP  END PARALLEL DO
       endif
 
       return
@@ -198,7 +180,6 @@ ccc   mv(:,J_0:J_1S,:) = mv(:,2:jm,:)*dt
 ccc   mv(:,jm,:) = 0.
 ccc   mw(:,:,1:lm-1) = mw(:,:,1:lm-1)*(-dt)
 C
-!$OMP  PARALLEL DO PRIVATE (J,L)
       DO L=1,LM
          IF (HAVE_SOUTH_POLE) MU(:,1,L) = 0.
          DO J=J_0S,J_1S
@@ -206,10 +187,8 @@ C
          ENDDO
          IF (HAVE_NORTH_POLE) MU(:,JM,L) = 0.
       ENDDO
-!$OMP  END PARALLEL DO
 C
       CALL HALO_UPDATE(grid, MV, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE (J,L,I)
         DO L=1,LM
           DO J=J_0H,J_1S
             DO I=1,IM
@@ -218,13 +197,10 @@ C
           END DO
           IF (HAVE_NORTH_POLE) MV(:,JM,L) = 0.
         END DO
-!$OMP  END PARALLEL DO
 C
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM-1
          MW(:,:,L) = MW(:,:,L)*(-DT)
       ENDDO
-!$OMP  END PARALLEL DO
 C
 c     for some reason mu is not zero at the poles...
 ccc   mu(:,1,:) = 0.
@@ -236,15 +212,12 @@ C**** Set things up
       ncyc = ncyc + 1
       byn = 1./ncyc
       nbad_loc = 0
-!$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
          ma(:,:,l) = mb(:,:,l)
       enddo
-!$OMP  END PARALLEL DO
       do nc=1,ncyc
 
 C****     1/2 x-direction
-!$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
 !$OMP* REDUCTION(+:NBAD_LOC)
         lloopx1: do l=1,lm
         do j=J_0,J_1
@@ -259,13 +232,11 @@ c               exit lloopx1 ! saves time in single-processor mode
           end do
         end do
         end do lloopx1
-!$OMP  END PARALLEL DO
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc = nbad
 
 C****         y-direction
-!$OMP  PARALLEL DO PRIVATE (I,J,L,SSP,SNP)
 !$OMP* REDUCTION(+:NBAD_LOC)
         lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
@@ -294,12 +265,10 @@ c              exit lloopy ! saves time in single-processor mode
            endif
         endif
         end do lloopy
-!$OMP  END PARALLEL DO
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc = nbad
 C****         z-direction
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
 !$OMP* REDUCTION(+:NBAD_LOC)
         lloopz: do l=1,lm
         if(l.eq.1) then ! lowest layer
@@ -334,12 +303,10 @@ c             exit lloopz ! saves time in single-processor mode
         end do
         endif
         end do lloopz
-!$OMP  END PARALLEL DO
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc=nbad
 C****     1/2 x-direction
-!$OMP  PARALLEL DO PRIVATE (I,IM1,J,L)
 !$OMP* REDUCTION(+:NBAD_LOC)
         lloopx2: do l=1,lm
         do j=J_0,J_1
@@ -354,7 +321,6 @@ c               exit lloopx2 ! saves time in single-processor mode
           end do
         end do
         end do lloopx2
-!$OMP  END PARALLEL DO
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc=nbad
@@ -376,30 +342,22 @@ C**** Divide the mass fluxes by the number of cycles
 ccc   mu(:,:,:)=mu(:,:,:)*byn
 ccc   mv(:,J_0:J_1S,:)=mv(:,J_0:J_1S,:)*byn
 ccc   mw(:,:,:)=mw(:,:,:)*byn
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mu(:,:,l)=mu(:,:,l)*byn
       ENDDO
-!$OMP  END PARALLEL DO
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mv(:,J_0:J_1S,l)=mv(:,J_0:J_1S,l)*byn
       ENDDO
-!$OMP  END PARALLEL DO
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          mw(:,:,l)=mw(:,:,l)*byn
       ENDDO
-!$OMP  END PARALLEL DO
 C****
 C**** Decide how many timesteps to take by computing Courant limits
 C****
 ccc   MA(:,:,:) = MB(:,:,:)
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LM
          MA(:,:,L) = MB(:,:,L)
       ENDDO
-!$OMP  END PARALLEL DO
       do n=1,ncyc
         call xstep (MA,nstepx1(J_0H,1,n))
         call ystep (MA,nstepy(1,n))
@@ -465,7 +423,6 @@ C****
 c**** loop over layers and latitudes
       ICKERR_LOC=0
       safvl = 0
-!$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
@@ -489,7 +446,6 @@ c****
       enddo ! ns
       enddo ! j
       enddo ! l
-!$OMP  END PARALLEL DO
       safv = safv + sum(safvl,3)
 
       If (HAVE_NORTH_POLE) safv(:,jm) = 0. ! no horizontal flux at poles
@@ -575,7 +531,6 @@ c**** loop over layers
 c**** loop over timesteps
         do ns=1,maxval(nstep)
 
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
@@ -617,7 +572,6 @@ c****
             rmom(ihmoms,:,jm,l) = 0.
           End IF
       enddo  ! end loop over levels
-!$OMP  END PARALLEL DO
 
 c****
 c**** call 1-d advection routine
@@ -634,7 +588,6 @@ c****
         if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
 
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
 !$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       do l = 1,LM
@@ -669,7 +622,6 @@ c**** average and unscale polar boxes
       end if  !NORTH POLE
 
       enddo  ! end loop over levels
-!$OMP  END PARALLEL DO
 
       end do ! time step
 
@@ -749,7 +701,6 @@ C****
 
 c**** loop over latitudes and longitudes
       ICKERR_LOC=0.
-!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,CM,F_L,FMOM_L,FQW,IERR,NERR)
 !$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       do j=J_0,J_1
@@ -786,7 +737,6 @@ c****
         end do
       end if
       enddo ! j
-!$OMP  END PARALLEL DO
 C
       IF(ICKERR_LOC.GT.0)  call stop_model('Stopped in aadvQz',11)
 C
@@ -800,7 +750,6 @@ c****
 !@sum XSTEP determines the number of X timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
@@ -826,7 +775,6 @@ C****
 C**** Decide how many timesteps to take by computing Courant limits
 C
       ICKERR_LOC = 0
-!$OMP  PARALLEL DO PRIVATE (I,IP1,IM1,J,L,NSTEP,NS,COURMAX,A,AM,MI)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       DO 420 L=1,LM
       DO 420 J=J_0S,J_1S
@@ -870,7 +818,6 @@ c     if(nstep.gt.2 .and. nx.eq.1)
 c    *  write(6,'(a,3i3,f7.4)')
 c    *  'aadvqx: j,l,nstep,courmax=',j,l,nstep,courmax
   420 CONTINUE
-!$OMP  END PARALLEL DO
 C
       ! Ensure all processes agree on stop criteria
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
@@ -884,7 +831,6 @@ C
 !@sum YSTEP determines the number of Y timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE, NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX
       USE QUSCOM, ONLY : IM,JM,LM,byim
@@ -992,7 +938,6 @@ C
 !@sum ZSTEP determines the number of Z timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
@@ -1020,7 +965,6 @@ C****
 
 C**** decide how many timesteps to take
       ICKERR_LOC=0
-!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,C,CM,ML)
 !$OMP* REDUCTION(+:ICKERR_LOC)
       DO J=J_0,J_1
       DO I=1,IM
@@ -1063,7 +1007,6 @@ c     if(nstep.gt.1 .and. nTRACER.eq.1) write(6,'(a,2i7,f7.4)')
 c    *   'aadvqz: i,j,nstep,courmax=',i,j,nstep,courmax
       END DO
       END DO
-!$OMP  END PARALLEL DO
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in ZSTEP',11)
@@ -1075,7 +1018,6 @@ C
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_ADV
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE

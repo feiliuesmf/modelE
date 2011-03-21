@@ -29,7 +29,6 @@ c --- ---------------------
 c
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
 
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 2 j=J_0,J_1
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
@@ -39,11 +38,9 @@ c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
  2    continue
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,th3d  ,FROM=SOUTH)
 
-c$OMP PARALLEL DO PRIVATE(ja,kn,uup,ulo,q1,q2,vup,vlo,vrbos)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -89,11 +86,9 @@ c
      .    '  upr,lwr,final v:',vup,vlo,v(i,j,kn),q2/(q1+q2)
       end if
  26   continue
-c$OMP END PARALLEL DO
 c
 c --- convection of thermodynamic variables and tracer
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c$OMP+ PRIVATE(kn,kmax,totem,tosal,homog,sigup,siglo,q1,q2,tem,sal,
 c$OMP+ trc,thet,kbase,tndcyt,tndcys,ttem,ssal,dens,star,delp,trac,
 c$OMP+ pres,vrbos)
@@ -198,9 +193,7 @@ c
  8    continue
 c
  1    continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 3 j=J_0,J_1
       do 3 l=1,isp(j)
       do 3 i=ifp(j,l),ilp(j,l)
@@ -210,7 +203,6 @@ c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
  3    continue
-c$OMP END PARALLEL DO
 c
       return
       end

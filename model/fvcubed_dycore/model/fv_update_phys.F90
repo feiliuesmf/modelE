@@ -130,7 +130,6 @@ module fv_update_phys_mod
     call get_eta_level(npz, 1.0E5, pfull, phalf, ak, bk)
 #endif
 
-!$omp parallel do private (i,j,k,m, qstar)
     do 1000 k=1, npz
 
 ! Do idealized Ch4 chemistry
@@ -301,7 +300,6 @@ module fv_update_phys_mod
        call prt_maxmin('delp_a_update', delp, is, ie, js,  je, ng, npz, 0.01, gid==0)
   endif
 
-!$omp parallel do private(i, j, k)
    do j=js,je
       do k=2,npz+1                                                                             
          do i=is,ie
@@ -392,7 +390,6 @@ module fv_update_phys_mod
     dt5 = 0.5 * dt
     im2 = (npx-1)/2
     jm2 = (npy-1)/2
-!$omp parallel do private (i,j,k)
 
     do k=1, npz
 

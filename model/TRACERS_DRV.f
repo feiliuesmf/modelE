@@ -7,7 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       SUBROUTINE init_tracer
 !@sum init_tracer initializes trace gas attributes and diagnostics
@@ -11161,7 +11160,6 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
@@ -11394,7 +11392,6 @@ c
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 ! NOTE: THLAW is only computed for the tracers in gases_list!
 c
 C**** GLOBAL parameters and variables:
@@ -11679,7 +11676,6 @@ c      enddo ! end loop over aerosols
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
@@ -11765,7 +11761,6 @@ c
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 ! NOTE: THLAW is only computed for the tracers in gases_list!
 ! NOTE: FQ is only computed for the tracers in aero_list!
 c
@@ -11874,7 +11869,6 @@ c         endif
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
@@ -11933,7 +11927,6 @@ C**** no fractionation for ice evap
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
@@ -12002,7 +11995,6 @@ C**** no fractionation for ice evap
 !@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
 !@+    gas phase sulfur oxidation chemistry
 !@auth Bell
-!@ver  1.0
       USE MODEL_COM, only: im,jm,lm,t,ls1
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
       USE DYNAMICS, only: pmid,am,pk,LTROPO

@@ -390,7 +390,6 @@ contains
 
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR, MASS_FLUX, CONVECTIVE_MICROPHYSICS, PRECIP_MP,
 !@+     MC_PRECIP_PHASE, MC_CLOUD_FRACTION, ANVIL_OPTICAL_THICKNESS
 
@@ -2826,7 +2825,6 @@ contains
   subroutine LSCOND(IERR,WMERR,LERR,i_debug,j_debug)
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
     implicit none
 

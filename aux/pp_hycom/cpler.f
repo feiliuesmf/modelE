@@ -33,7 +33,6 @@ c
       integer n,ia,ja,io,jo
       real flda(iia,jja),fldo(idm,jdm),dp(idm,jdm),wgt
 c
-c$OMP PARALLEL DO PRIVATE(io,jo,wgt)
       do 16 ja=1,jja
       do 16 ia=1,iia
       if (kij(ia,ja).eq.0) then  
@@ -63,7 +62,6 @@ c
      .  ' ia,ja2<= ',ia,ja,flda(ia,ja)
       endif
  16   continue
-c$OMP END PARALLEL DO             
 c
       return
       end subroutine o2a_2d
@@ -78,7 +76,6 @@ c
       integer n,ia,ja
       real flda(iia,jja),fldo(idm,jdm)
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -88,7 +85,6 @@ c
      .                                              *wlisto2a(ia,ja,n)
  17   continue
  16   continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine o2a_sfc
@@ -108,7 +104,6 @@ c
       nward=flag
       eward=flag
 c --- rotate taux/tauy to n/e orientation at local p point on panam grid
-c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jdm
       jb=mod(j,jdm)+1
       do 12 i=1,idm-1
@@ -121,11 +116,9 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
       endif
  12   continue
-c$OMP END PARALLEL DO           
 c
 c --- mapping nward/eward from ogcm grid to agcm grid
 c
-c$OMP PARALLEL DO PRIVATE(io,jo,wgt)
       do 16 ja=1,jja
       do 16 ia=1,iia
       if (kij(ia,ja).eq.0) then
@@ -155,7 +148,6 @@ c
         endif
       endif
  16   continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine o2a_2dvec
@@ -204,7 +196,6 @@ c
 c --- define pressure at mass points (2 per layer) for use in grdtrns
 c
       dpth=z33(2)
-c$OMP PARALLEL DO PRIVATE(pbot,ptop,pmid,pedg)
       do 26 j=1,jdm
       do 26 i=1,idm
       if(p(i,j,kdm+1).le.0.) goto 26
@@ -235,7 +226,6 @@ c --- put uppermost depth point at sea surface and lowest point at bottom
         enddo
       endif
  26    continue
-c$OMP END PARALLEL DO
 
       xrhoz=flag
       call grdtrns(0,puv,x2k,dum,idm,jdm,2*kdm,coord,lrfi,xrhoz,xrhoz,
@@ -253,7 +243,6 @@ c --- done with vertical interpolation; next: horizontal interpolation
 
       do 17 k=1,k33
 c
-c$OMP PARALLEL DO
       do j=1,jdm
       do i=1,idm
         if (k.ge.2) then
@@ -263,17 +252,14 @@ c$OMP PARALLEL DO
         endif
       enddo
       enddo
-c$OMP END PARALLEL DO
 
       call o2a_2d(dp,xrhoz(1,1,k),xijz(1,1,k))
 
-c$OMP PARALLEL DO
       do i=1,iia
       do j=1,jja
       if (z33(k).gt.pij(i,j)) xijz(i,j,k)=flag
       enddo
       enddo
-c$OMP END PARALLEL DO
 
  17   continue
 
@@ -320,7 +306,6 @@ c
 c --- define pressure at mass points (2 per layer) for use in grdtrns
 c
       dpth=z33(2)
-c$OMP PARALLEL DO PRIVATE(pbot,ptop,pmid,pedg)
       do 26 j=1,jdm
       do 26 i=1,idm
       if(p(i,j,kdm+1).le.0.) goto 26
@@ -354,7 +339,6 @@ c --- put uppermost depth point at sea surface and lowest point at bottom
         enddo
       endif
  26   continue
-c$OMP END PARALLEL DO
 
       urhoz=flag
       vrhoz=flag
@@ -367,7 +351,6 @@ c --- done with vertical interpolation; next: horizontal interpolation
 
       do 17 k=1,k33
 c
-c$OMP PARALLEL DO
       do i=1,idm
       do j=1,jdm
         if (k.ge.2) then
@@ -377,11 +360,9 @@ c$OMP PARALLEL DO
         endif
       enddo
       enddo
-c$OMP END PARALLEL DO
 
       call o2a_2dvec(dp,urhoz(1,1,k),vrhoz(1,1,k),uz(1,1,k),vz(1,1,k))
 
-c$OMP PARALLEL DO
       do i=1,iia
       do j=1,jja
       if (z33(k).gt.pij(i,j)) then
@@ -390,7 +371,6 @@ c$OMP PARALLEL DO
       endif
       enddo
       enddo
-c$OMP END PARALLEL DO
 
  17   continue
 

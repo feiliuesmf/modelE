@@ -19,7 +19,6 @@ C****
      *  C8QN(0:7,0:18),S8QN(0:7,18),
      *  C4QN(0:3,0:36),S4QN(0:3,36),
      *  C20N(0:72),C21N(0:71),S20N(71),S21N(72)
-!$OMP ThreadPrivate (/FFTCOM/)
       EndModule FFT288
 
       Subroutine FFT0 (IM)

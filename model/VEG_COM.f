@@ -3,7 +3,6 @@
       module veg_com
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth N. Kiang, I. Aleinov
-!@ver  1.0
       use ghy_com, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm
@@ -38,7 +37,6 @@
       subroutine io_vegetation(kunit,iaction,ioerr)
 !@sum  io_soils reads and writes soil arrays to file
 !@auth I. Aleinov
-!@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
       use domain_decomp_1d, only : grid, am_i_root
@@ -130,7 +128,6 @@
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE VEG_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

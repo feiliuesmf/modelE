@@ -564,7 +564,6 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Susanne Bauer
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
       use amp_aerosol

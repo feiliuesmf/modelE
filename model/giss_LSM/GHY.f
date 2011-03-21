@@ -327,7 +327,6 @@ C***
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
 c    &     ,debug_data           ! needs to go to compile on COMPAQ
-!$OMP  THREADPRIVATE (/GHYTPC/)
 C***
 
 ccc   external functions
@@ -1616,7 +1615,6 @@ ccc   real*8, save :: xsha(ng,2),xsh(ng,2)
       real*8  :: ba,hcwt(imt-1),hcwta,hcwtb,hcwti,hcwtw
       real*8  :: xsha(ng,2),xsh(ng,2)
       COMMON /XKLHSAV/ BA, HCWTW, HCWTI, HCWTB, XSHA, XSH
-!$OMP  THREADPRIVATE (/XKLHSAV/)
       integer i, j, ibv, k
 c the alam''s are the heat conductivities
       real*8, parameter :: alamw = .573345d0
@@ -3979,7 +3977,6 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
       real*8 total_water(2), error_water
       real*8 old_total_water(2), old_fr_snow(2) ! save
       COMMON /check_water_tp/ old_total_water, old_fr_snow
-!$OMP  THREADPRIVATE (/check_water_tp/)
       integer k, ibv
 
       total_water(1) = 0.
@@ -4036,7 +4033,6 @@ c    &       'GHY: water conservation problem in veg. soil',255)
       real*8 total_energy(2), error_energy
       real*8 old_total_energy(2), old_fr_snow(2) !save
       COMMON /check_energy_tp/ old_total_energy, old_fr_snow
-!$OMP  THREADPRIVATE (/check_energy_tp/)
       integer k, ibv
 
       total_energy(1) = 0.

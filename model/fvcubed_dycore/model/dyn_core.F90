@@ -193,7 +193,6 @@ contains
 !4TAF      if (test_case==9) call case9_forcing1(phis, time_total)
 !4TAF#else
       if ( it==n_split ) then
-!$omp parallel do private (i, j, k)
       do j=jsm1,jep1
          do i=ism1,iep1
             pem(i,1,j) = ptop
@@ -217,7 +216,6 @@ contains
       endif
 
                                                      call timing_on('c_sw')
-!$omp parallel do default(shared) private(i,j,k)
       do k=1,npz
          call c_sw(delpc(isd,jsd,k), delp(isd,jsd,k),  ptc(isd,jsd,k),  &
                       pt(isd,jsd,k),    u(isd,jsd,k),    v(isd,jsd,k),  &
@@ -256,7 +254,6 @@ contains
       ieb1 = ie+1;   jeb1 = je+1
 !4TAF#endif
 
-!$omp parallel do default(shared) private(i,j,k, wk)
       do k=1,npz
          if ( hydrostatic ) then
               do j=jsm1,jeb1
@@ -319,7 +316,6 @@ contains
     endif
 
                                                      call timing_on('d_sw')
-!$omp parallel do default(shared) private(i,j,k, d_divg, hord_m, hord_v, hord_t, wk)
     do k=1,npz
        hord_m = hord_mt
        hord_t = hord_tm
@@ -383,7 +379,6 @@ contains
                                                      call timing_off('d_sw')
 
     if ( d_ext > 0. ) then
-!$omp parallel do default(shared) private(i,j,k)
 ! Barotropic mode:
           d_divg = d_ext * da_min_c
           do j=js,jep1
@@ -466,7 +461,6 @@ contains
 !4TAF      if (test_case > 1) then
 !4TAF#else
       if ( last_step .and. hydrostatic ) then
-!$omp parallel do private(i, j, k)
            do k=1,npz+1
               do j=js,je
                  do i=is,ie
@@ -789,7 +783,6 @@ contains
           jfirst = js-2; jlast = je+2
      endif
 
-!$omp parallel do default(shared) private(i,j,k, p1d, dp)
      do 2000 j=jfirst,jlast
 
         do i=ifirst, ilast
@@ -886,7 +879,6 @@ contains
  real pdy(3,is:ie+1,js:je)
  integer :: i,j,k, n
 
-!$omp parallel do private (i, j, k, n, pdx, pdy, pin, pb, ut, vt, grad, v3)
  do k=1,npz
     if ( k==npz ) then
        do j=js,je

@@ -812,7 +812,6 @@ c accSubddDust
 
       integer :: l,n,n1
 
-!$OMP PARALLEL DO PRIVATE (l,n,n1)
       do n=1,Ntm_dust
         n1=n_soilDust+n-1
         dustDiagSubdd_acc%dustEmission(:,:,n)
@@ -854,7 +853,6 @@ c accSubddDust
      &         *byam(l,:,:)*1d2*pmid(l,:,:)/(rgas*t(:,:,l)*pk(l,:,:))
         end do
       end do
-!$OMP END PARALLEL DO
 
       return
       end subroutine accSubddDust

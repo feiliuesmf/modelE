@@ -413,7 +413,6 @@ C**** Currently energy is put in uniformly weighted by mass
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=I_0,I_1
@@ -421,7 +420,6 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
          CALL TIMER (NOW,MDYN)
 #ifdef TRACERS_ON
@@ -2234,7 +2232,6 @@ C****
       SUBROUTINE DAILY(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
-!@ver  1.0
 !@calls constant:orbit, calc_ampk, getdte
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
@@ -2400,7 +2397,6 @@ C**** Add water to relevant tracers as well
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team
-!@ver  1.0
 
 C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE

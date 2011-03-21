@@ -827,7 +827,6 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
 !     endif
 
       !--------------------------------------------------------
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -842,7 +841,6 @@ c
  91   continue
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 
 !     !this is needed for dic
 !     do k=1,kgrd

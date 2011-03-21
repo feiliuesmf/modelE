@@ -17,7 +17,6 @@ C****
      *  C8QN(0:7,0:4),S8QN(0:7,4),
      *  C4QN(0:3,0:9),S4QN(0:3,9),
      *  C20N(0:18),C21N(0:17),S20N(17),S21N(18)
-!$OMP ThreadPrivate (/OFFTCOM/)
       EndModule OFFT72
 
       Subroutine OFFT0 (IM)

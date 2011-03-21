@@ -7,7 +7,6 @@
       MODULE GHY_COM
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth Frank Abramopolus/Igor Aleinov
-!@ver  1.0
       USE MODEL_COM, only : im,jm
 !!!      USE SLE001, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
@@ -148,7 +147,6 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE GHY_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
@@ -269,7 +267,6 @@ C**** Initialize to zero
       SUBROUTINE io_earth(kunit,iaction,ioerr)
 !@sum  io_earth reads and writes ground data to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHY_COM
       USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
@@ -394,7 +391,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       SUBROUTINE io_soils(kunit,iaction,ioerr)
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP_1D, ONLY: GRID, GET
       USE DOMAIN_DECOMP_1D, ONLY:  PACK_COLUMN, AM_I_ROOT
@@ -554,7 +550,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       SUBROUTINE io_snow(kunit,iaction,ioerr)
 !@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT, get
       USE DOMAIN_DECOMP_1D, only : PACK_BLOCK  , PACK_COLUMN
@@ -887,7 +882,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       subroutine io_veg_related(kunit,iaction,ioerr)
 !@sum  reads and writes data needed to drive vegetation module
 !@auth I. Aleinov
-!@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
       use domain_decomp_1d, only : grid, am_i_root

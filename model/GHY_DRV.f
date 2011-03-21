@@ -113,7 +113,6 @@ ccc extra stuff which was present in "earth" by default
       integer, parameter :: itype=4
 
       common /ghy_tracers_tp/ totflux
-!$OMP  THREADPRIVATE (/ghy_tracers_tp/)
 
       contains
 
@@ -3454,7 +3453,6 @@ cddd      end subroutine retp2
       subroutine checke(subr)
 !@sum  checke checks whether arrays are reasonable over earth
 !@auth original development team
-!@ver  1.0
       use model_com, only : itime,wfcs
       use geom, only : imaxj
       use constant, only : rhow
@@ -3635,7 +3633,6 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       subroutine daily_earth(end_of_day)
 !@sum  daily_earth performs daily tasks for earth related functions
 !@auth original development team
-!@ver  1.0
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,jyear,wfcs,focean
@@ -3882,7 +3879,6 @@ c****
       subroutine ground_e
 !@sum  ground_e driver for applying surface fluxes to land fraction
 !@auth original development team
-!@ver  1.0
       use model_com, only : itearth
       use geom, only : imaxj,axyp
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
@@ -4096,7 +4092,6 @@ c**** hack to reset roughl for non-standard land ice fractions
       subroutine accumulate_excess_C(flag)
 !@sum accumulate the increment of total carbon stored by LSM
 !@auth I. ALeinov
-!@ver  1.0
 #ifdef USE_ENT
       use constant, only : rhow
       use model_com, only : im, focean, jm, flice
@@ -4158,7 +4153,6 @@ cddd      counter = counter + 1
       subroutine conserv_wtg(waterg)
 !@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
-!@ver  1.0
       use constant, only : rhow
       use model_com, only : im, focean, jm, flice
       use geom, only : imaxj,AXYP
@@ -4218,7 +4212,6 @@ c****
       subroutine conserv_wtg_1(waterg,fearth,flake)
 !@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
-!@ver  1.0
       use constant, only : rhow
       use model_com, only : focean, im, jm
       use geom, only : imaxj
@@ -4280,7 +4273,6 @@ c****
       subroutine conserv_htg(heatg)
 !@sum  conserv_htg calculates ground energy incl. snow energy
 !@auth Gavin Schmidt
-!@ver  1.0
       use model_com, only : im, focean, jm, flice
       use geom, only : imaxj, axyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij

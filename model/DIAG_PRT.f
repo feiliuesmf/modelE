@@ -69,7 +69,6 @@ C****
       function mark (val,ibar,undef)
 !@sum  mark selects a character (color) based on value and color bar
 !@auth R. Ruedy
-!@ver  1.0
       real*8 val,undef
       integer ibar,n
       character*1 mark
@@ -129,7 +128,6 @@ c          if (n .gt. 13) n = (n+123)/10
       function ib_of_legnd (leg)
 !@sum  ib_of_legnd finds the 'colorbar' for the given legend
 !@auth R. Ruedy
-!@ver  1.0
       integer ib_of_legnd, leg
 
       ib_of_legnd = ib_pos
@@ -897,7 +895,6 @@ C****
       SUBROUTINE JKJL_TITLEX
 !@sum  JKJL_TITLEX titles etc for composite jl, jk output
 !@auth G. Schmidt/J. Lerner
-!@ver  1.0
       use filemanager
       USE DIAG_COM
       IMPLICIT NONE
@@ -2548,7 +2545,6 @@ c      deallocate(anum,aden,xjl)
       SUBROUTINE DIAGIL
 !@sum  DIAGIL prints out longitude/height diagnostics
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid,dtsrc
       USE DIAG_COM, only : aijl,lm_req,acc_period, qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
@@ -3190,7 +3186,6 @@ c**** fill in some key numbers
      *                   smap,smapj,gm,nh,sh)
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GRID
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :  im,jm,fim,jeq
@@ -3544,7 +3539,6 @@ C****
       subroutine maptxt (smap,smapj,gm,irange,title,line,kcol,nlines)
 !@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
-!@ver  1.0
       use constant, only : undef
       use model_com, only : im,jm
       use diag_com, only : inci,incj
@@ -3712,7 +3706,6 @@ C****
       subroutine set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
 !@sum set_ijout either lists or sets the fields to be processed
 !@auth Reto A. Ruedy
-!@ver  1.0
       USE DIAG_COM
       USE BDIJ
       use filemanager
@@ -3785,7 +3778,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       SUBROUTINE DIAGCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
@@ -3910,7 +3902,6 @@ C****
       SUBROUTINE DIAG5P
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,teeny
       USE MODEL_COM, only :
      &     im,jm,lm,fim,
@@ -4077,7 +4068,6 @@ C****
       SUBROUTINE DIAGDD
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
-!@ver  1.0
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,ndiupt,
@@ -4181,7 +4171,6 @@ C****
 !@+       When radiation is not called every hour this will not average
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
-!@ver  1.0
 #ifndef NO_HDIURN
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
@@ -4280,7 +4269,6 @@ C****
       SUBROUTINE DIAG4
 !@sum  DIAG4 prints out a time history of the energy diagnostics
 !@auth G. Russell
-!@ver  1.0
       USE CONSTANT, only :
      &     grav,rgas,bygrav
       USE MODEL_COM, only :
@@ -4442,7 +4430,6 @@ C****
       SUBROUTINE IJKMAP (iu_Iij)
 !@sum  IJKMAP output 3-D constant pressure output fields
 !@auth G. Schmidt
-!@ver  1.0
 C**** Note that since many IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.

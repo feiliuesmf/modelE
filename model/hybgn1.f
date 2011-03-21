@@ -60,7 +60,6 @@ c --- linear taper functions (latitude and depth-dependent) for slak
       slakf(q)=min(0.7,max(    tapr(p_hat)*slak*delt1,	! q = latitude (deg)
      .             0.7*wgtf(q)+tapr(p_hat)*slak*delt1*(1.-wgtf(q))))
 c
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 32 j=J_0,J_1
       do 32 l=1,isp(j)
       do 32 i=ifp(j,l),ilp(j,l)
@@ -75,7 +74,6 @@ c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
      .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
      .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
  32   continue
-c$OMP END PARALLEL DO
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 !-------------------------------------------------------------------
@@ -90,17 +88,14 @@ c$OMP END PARALLEL DO
        uold=0;vold=0;pold=0;pnew=0;trac=0;
 !-------------------------------------------------------------------
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=J_0,J_1
       do 19 k=1,kk
       do 19 l=1,isp(j)
       do 19 i=ifp(j,l),ilp(j,l)
  19   p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
-c$OMP END PARALLEL DO
 c
       abort=.false.
 
-c$OMP PARALLEL DO PRIVATE(kn,torho,totem,tosal,kp,q,q1,q2,tem,sal,
 c$OMP+dsgdt,dsgds,tem_lo,sal_lo,rho_lo,tem_up,sal_up,rho_up,p_hat,
 c$OMP+tndrho,tndtem,tndsal,dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,
 c$OMP+k1,k2,tinteg,sinteg,phi,plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,
@@ -617,21 +612,17 @@ c
       nwrk2d(j)=nwrk2
       nwrk3d(j)=nwrk3
  12   continue
-c$OMP END PARALLEL DO
 
       if (abort) stop '(error in hybgen -- q out of bounds)'
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       do 1 k=1,kk
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
  1    p(i,j,k+1)=p(i,j,k)+dpold(i,j,k)
-c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,  p,  FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 88 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       do 88 k=2,kk+1
@@ -646,15 +637,12 @@ c
  882  pv(i,j,k)=min(depthv(i,j),.5*(p(i,j,k)+
      .                                      p(i,ja ,k)))
  88   continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=J_0,J_1
       do 9 k=1,kk
       do 9 l=1,isp(j)
       do 9 i=ifp(j,l),ilp(j,l)
  9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
-c$OMP END PARALLEL DO
 c
       call pardpudpv(nn)
 c
@@ -735,7 +723,6 @@ cc c
 cc  13   continue
 cc c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c$OMP PARALLEL DO PRIVATE(ja,pold,pnew,uold,vold,totuv,
 c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn) SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
 c
@@ -820,10 +807,8 @@ c
  24   continue
 c
  13   continue
-c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 33 j=J_0,J_1
       do 33 l=1,isp(j)
       do 33 i=ifp(j,l),ilp(j,l)

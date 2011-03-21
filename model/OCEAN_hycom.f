@@ -170,7 +170,6 @@ c
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
 !@auth Gavin Schmidt
-!@ver  1.0
 css   ENTRY ODYNAM
       !! fix later: implicit none
 
@@ -215,7 +214,6 @@ c
 c
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
-!@ver  1.0       
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
      &     ESMF_BCAST, pack_column, unpack_column
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
@@ -1122,7 +1120,6 @@ c
       SUBROUTINE CHECKO(SUBR)
 #ifdef USE_ATM_GLOBAL_ARRAYS
 !@sum  CHECKO Checks whether Ocean are reasonable
-!@ver  1.0
 !!      USE MODEL_COM, only : im,jm
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
@@ -1151,7 +1148,6 @@ c
       SUBROUTINE daily_OCEAN
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-!@ver  1.0
 C****
       implicit none
       RETURN
@@ -1258,7 +1254,6 @@ C     nothing to gather - ocean prescribed
       
 
       write (*,*) 'laying out arrays in memory ...'
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,:)=huge
@@ -1344,9 +1339,7 @@ c
       vflxav(i,j,:)=zero
       diaflx(i,j,:)=zero
  209  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 210 j=1,jj
       !!ja=mod(j-2+jj,jj)+1
       !!do 210 l=1,isq(j)
@@ -1370,14 +1363,12 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       !dp(i-1,ja ,k   )=0.
  !210  !dp(i-1,ja ,k+kk)=0.
  210  continue
-c$OMP END PARALLEL DO
 c
 c --- initialize  u,ubavg,utotm,uflx,uflux,uflux2/3,uja,ujb  at points
 c --- located upstream and downstream (in i direction) of p points.
 c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
 c --- as well as at lateral neighbors of interior u points.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 156 j=1,jj
       do 156 i=1,ii !ifu(j,l),ilu(j,l)
       pu(i,j,:)=0.
@@ -1388,9 +1379,7 @@ c
       dpu(i,j,:   )=0.
 c
  156  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 158 j=1,jj
       !do 158 l=1,isp(j)
       do 158 i=1,ii !ifp(j,l),ilp(j,l)+1
@@ -1411,7 +1400,6 @@ c
       uflx(:,:,:)=0.
       ufxcum(:,:,:)=0.
       u(:,:,:)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  v,vbavg,vtotm,vflx,vflux,vflux2/3,via,vib  at points
 c --- located upstream and downstream (in j direction) of p points.

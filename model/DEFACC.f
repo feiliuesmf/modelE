@@ -6287,7 +6287,6 @@ c
       subroutine diurn_defs
 !@sum  diurn_defs definitions for diurnal diagnostic accumulated arrays
 !@auth G. Schmidt
-!@ver  1.0
       use CONSTANT, only : sha,rgas,twopi,sday,grav
       use MODEL_COM, only : dtsrc,nisurf,qcheck,lm
       use DIAG_COM

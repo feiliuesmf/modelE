@@ -4,12 +4,10 @@
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
 !@+    This version for simple trace gases/chemistry/isotopes
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       MODULE TRACER_COM
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
-!@ver  1.0
 C
       USE QUSDEF, only: nmom
       USE MODEL_COM, only: im,jm,lm
@@ -1098,7 +1096,6 @@ c note: not applying CPP when declaring counts/lists.
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

@@ -2,7 +2,6 @@
 
 !@sum  STRATDYN stratospheric only routines
 !@auth Bob Suozzo/Jean Lerner/Gavin Schmidt/Jeff Jonas/Maxwell Kelley
-!@ver  1.0
 
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
@@ -11,7 +10,6 @@ C****  ii) PK type variables should be done in dynamics and used here
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : uv_derivs_type
@@ -460,7 +458,6 @@ C
       SUBROUTINE DFUSEQ(AIRM,DFLX,F,MU,AM,AL,AU,B,LM)
 !@sum  DFUSEQ calculate tridiagonal terms
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: LM
       REAL*8, INTENT(IN), DIMENSION(LM) :: AIRM
@@ -489,7 +486,6 @@ C****
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE STRAT
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
@@ -672,7 +668,6 @@ C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
       SUBROUTINE VDIFF (P,U,V,UT,VT,T,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
@@ -888,7 +883,6 @@ C****
       SUBROUTINE GETVK (U,V,VKEDDY,LDIFM)
 !@sum GETVK calculate vertical diff. coefficient (use high wind shear)
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
@@ -965,7 +959,6 @@ C****
       SUBROUTINE GWDRAG (P,U,V,UT,VT,T,SZ,DT1,CALC_DEFORM)
 !@sum  GWDRAG puts a momentum drag in the stratosphere
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** GWDRAG is called from DYNAM with arguments:
 C****      P = Pressure (mb) at end of timestep
@@ -1323,7 +1316,6 @@ C****
       SUBROUTINE DEFORM (PDSIG,U,V)
 !@sum  DEFORM calculate defomation terms
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
 C**** For spherical coordinates, we are treating DEFRM1 like DIV
@@ -1494,7 +1486,6 @@ C****
       SUBROUTINE io_strat(kunit,iaction,ioerr)
 !@sum  io_strat reads and writes strat. model variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM
       USE CLOUDS_COM, only : airx,lmc
       USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT

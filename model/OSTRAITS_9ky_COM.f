@@ -7,7 +7,6 @@
 !@+    RESOLUTION DEPENDENT: This version for 72x46 - M, 9ky topography
 !@+    Fury+Hecla blocked.
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm_atm=>ntm
 #endif

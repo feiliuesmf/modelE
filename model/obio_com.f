@@ -3,7 +3,6 @@
 !@sum  obio_com contains the parameters, arrays and definitions
 !@+    necessary for the OceanBiology routines
 !@auth NR
-!@ver  1.0e-11
 
       USE obio_dim
 
@@ -92,7 +91,6 @@ c
 ! reduced rank arrays for obio_model calculations
       integer ihra_ij
       common /reducarr2/ihra_ij
-!$OMP THREADPRIVATE(/reducarr2/)
 
       real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d
      .    ,saln1d,p1d,alk1d,cexp,caexp,flimit
@@ -100,11 +98,9 @@ c
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
      .                 ,alk1d(kdm),flimit(kdm,nchl,5)
-!$OMP THREADPRIVATE(/reducarr1/)
 
       real atmFe_ij,covice_ij
       common /reducarr3/atmFe_ij,covice_ij
-!$OMP THREADPRIVATE(/reducarr3/)
 
 
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
@@ -114,74 +110,58 @@ c
 
       real    acdom
       common /bcdom/ acdom(kdm,nlt)       !absorptio coefficient of CDOM
-!$OMP THREADPRIVATE(/bcdom/)
 
 
       real P_tend                             !bio tendency (dP/dt)
       common /bkpt/ P_tend(kdm,ntyp+n_inert)
-!$OMP THREADPRIVATE(/bkpt/)
 
 #ifdef TRACERS_Alkalinity
       real A_tend                             !alk tendency (dA/dt)
       common /akpt/ A_tend(kdm)
-!$OMP THREADPRIVATE(/akpt/)
 #endif
 
       real rmuplsr                            !growth+resp rate
       common /bgro/ rmuplsr(kdm,nchl)   
-!$OMP THREADPRIVATE(/bgro/)
 
       real D_tend                             !detrtial tendency
       common /bdtend/ D_tend(kdm,ndet)     
-!$OMP THREADPRIVATE(/bdtend/)
 
       real obio_ws                            !phyto sinking rate
       common /bkws/ obio_ws(kdm+1,nchl)   
-!$OMP THREADPRIVATE(/bkws/)
 
       real tfac                               !phyto T-dependence
       common /btfac/ tfac(kdm)          
-!$OMP THREADPRIVATE(/btfac/)
 
       real pnoice                    !pct ice-free
       common /bpnoice/ pnoice(kdm)  
-!$OMP THREADPRIVATE(/bpnoice/)
 
       real wsdet                              !detrital sinking rate
       common /bkwsdet2/ wsdet(kdm+1,ndet) 
-!$OMP THREADPRIVATE(/bkwsdet2/)
 
       real rikd                               !photoadaption state
       common /bikd/ rikd(kdm,nchl)      
-!$OMP THREADPRIVATE(/bikd/)
 
       real tzoo                               !herbivore T-dependence
       common /bzoo/ tzoo                
-!$OMP THREADPRIVATE(/bzoo/)
 
       real Fescav
       common /bscav/ Fescav(kdm)           !iron scavenging rate
-!$OMP THREADPRIVATE(/bscav/)
 
 
 C if NCHL_DEFINED > 3
       real wshc                            !cocco sinking rate
       common /bwshc/ wshc(kdm)             
-!$OMP THREADPRIVATE(/bwshc/)
 C endif
 
 
       real :: C_tend                        !carbon tendency
       common /bctend/ C_tend(kdm,ncar)      
-!$OMP THREADPRIVATE(/bctend/)
 
       real :: pCO2_ij                 !partial pressure of CO2
       common /bco2ij/ pCO2_ij               
-!$OMP THREADPRIVATE(/bco2ij/)
 
       real :: gro                           !realized growth rate
       common /bgro2D/ gro(kdm,nchl)         
-!$OMP THREADPRIVATE(/bgro2D/)
 
       integer :: day_of_month, hour_of_day
 
@@ -190,11 +170,9 @@ C endif
                                         !we are not using n_inert (always ntrac-1)
                                         !second argument refers to process that
                                         !contributes to tendency 
-!$OMP THREADPRIVATE(/brhs/)
 
       real :: pp2_1d          
       common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
-!$OMP THREADPRIVATE(/bpp2/)
 
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology

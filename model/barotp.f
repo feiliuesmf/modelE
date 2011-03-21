@@ -50,7 +50,6 @@ c --- continuity equation
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,vbavg,  FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 843 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 843 l=1,isp(j)
@@ -61,7 +60,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
      .                 +vbavg(i,jb ,ml)*depthv(i,jb )*scvx(i,jb )
      .                 -vbavg(i,j  ,ml)*depthv(i,j  )*scvx(i,j  ))
      .  *scp2i(i,j)
-c$OMP END PARALLEL DO
 c
       mn=ml
       if (vthenu) go to 901
@@ -77,7 +75,6 @@ c
       CALL HALO_UPDATE(ogrid,scuy,   FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,scq2,   FROM=SOUTH+NORTH)   !only NORTH
 
-c$OMP PARALLEL DO PRIVATE(ja,jb,u_ja,u_jb,dpu_ja,dpu_jb)
 c$OMP+ SCHEDULE(STATIC,jchunk)
       do 822 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -113,7 +110,6 @@ c --- lateral turb. momentum flux (at vorticity points)
       uflux3(i,j)=(ubavg(i,j,ml)-u_jb)*hfharm(depthu(i,j),dpu_jb)
      .            *scq2(i,jb)*2./(scuy(i,j)+scuy(i,jb))
  822  continue
-c$OMP END PARALLEL DO
 c
       call cpy_p_par(uflux1(I_0H,J_0H))
       end if				!  mxing = .true.
@@ -124,7 +120,6 @@ c
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,pvtrop, FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue) SCHEDULE(STATIC,jchunk)
       do 841 j=J_0,J_1
       jb= PERIODIC_INDEX(j+1, jj)
       do 841 l=1,isu(j)
@@ -140,7 +135,6 @@ c$OMP PARALLEL DO PRIVATE(jb,utndcy,uglue) SCHEDULE(STATIC,jchunk)
      .  (scu2(i,j)*depthu(i,j)) * (1.+10.*(glue(i,j)+glue(i-1,j)-2.0))
  841  ubavg(i,j,nl)=(1.-wbaro)*ubavg(i,j,ml)+wbaro*ubavg(i,j,nl)
      . +(1.+wbaro)*dlt*(utndcy+utotn(i,j)-util1(i,j))
-c$OMP END PARALLEL DO
 c
       doThis=.false.
       if(doThis) then
@@ -182,7 +176,6 @@ c
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,scvy,   FROM=NORTH)
 
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,v_ia,v_ib,dpv_ia,dpv_ib)
 c$OMP+ SCHEDULE(STATIC,jchunk) 
       do 823 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -220,7 +213,6 @@ c --- lateral turb. momentum flux (at vorticity points)
       vflux3(i,j)=(vbavg(i,j,ml)-v_ib)*hfharm(depthv(i,j),dpv_ib)
      .            *scq2(ib,j)*2./(scvx(i,j)+scvx(ib,j))
  823  continue
-c$OMP END PARALLEL DO
       end if				!  mxing = .true.
 
       CALL HALO_UPDATE(ogrid,pbavg,  FROM=SOUTH)
@@ -229,7 +221,6 @@ c$OMP END PARALLEL DO
       CALL HALO_UPDATE(ogrid,glue,   FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,vflux1, FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue) SCHEDULE(STATIC,jchunk)
       do 842 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       do 842 l=1,isv(j)
@@ -246,7 +237,6 @@ c$OMP PARALLEL DO PRIVATE(ja,vtndcy,vglue) SCHEDULE(STATIC,jchunk)
 c
  842   vbavg(i,j,nl)=(1.-wbaro)*vbavg(i,j,ml)+wbaro*vbavg(i,j,nl)
      . +(1.+wbaro)*dlt*(vtndcy+vtotn(i,j)-util2(i,j))
-c$OMP END PARALLEL DO
 c
 cdiag write (lp,101) nstep
 cdiag do jcyc=jtest,jtest+1
