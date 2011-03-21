@@ -16,18 +16,17 @@
 !@sum  PBL calculate pbl profiles for each surface type
 !@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
-!@ver  1.0
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
 !@var TDN1 downdraft temperature in K, (i,j)
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
-      USE MODEL_COM, only : t,q,u,v,ls1
+      USE ATM_COM, only : t,q,u,v
 #ifdef SCM
      &                      ,I_TARG,J_TARG
 #endif
       USE GEOM, only : sinlat2d
-      USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
       USE CLOUDS_COM, only : ddm1
@@ -379,8 +378,24 @@ ccc put drive output data to pbl_args structure
       END SUBROUTINE PBL
 
       end module PBL_DRV
+      
+      subroutine read_pbl_tsurf_from_nmcfile
+      USE FILEMANAGER
+      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
+      use resolution, only : lm
+      use pblcom, only : tsavg,tgvavg
+      implicit none
+      integer :: iu_NMC,tsurf_record
+      call openunit("AIC",iu_NMC,.true.,.true.)
+      tsurf_record = 1+4*lm +1  ! skip over psrf,u,v,t,q
+      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),TSAVG,
+     &     tsurf_record)
+      call closeunit(iu_NMC)
+      tgvavg(:,:) = tsavg(:,:) ! not used for init. set anyway.
+      return
+      end subroutine read_pbl_tsurf_from_nmcfile
 
-      subroutine init_pbl(inipbl)
+      subroutine init_pbl(inipbl,istart)
 c -------------------------------------------------------------
 c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
@@ -393,7 +408,7 @@ c -------------------------------------------------------------
       USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
-      USE MODEL_COM
+      USE ATM_COM, only : p,t,q
       USE GEOM, only : imaxj,sinlat2d
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
@@ -403,11 +418,11 @@ c -------------------------------------------------------------
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
-      USE DYNAMICS, only : pmid,pk,pedn,pek
+      USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi,snowi
-      USE FLUXES, only : gtemp
+      USE FLUXES, only : gtemp,flice,fland
 #ifdef USE_ENT
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
@@ -415,11 +430,13 @@ c -------------------------------------------------------------
 
 
       IMPLICIT NONE
-
 C**** ignore ocean currents for initialisation.
       real*8, parameter :: uocean=0.,vocean=0.
 !@var inipbl whether to init prog vars
       logical, intent(in) :: inipbl
+!@var istart what kind of (re)start is being done
+      integer, intent(in) :: istart
+
 !@var iu_CDN unit number for roughness length input file
       integer :: iu_CDN
       integer :: ilong  !@var ilong  longitude identifier
@@ -442,6 +459,8 @@ C**** ignore ocean currents for initialisation.
       real*8 :: canopy_height, fv
       integer, save :: roughl_from_file = 0
 
+      real*8 :: cdm
+
       integer :: I_1, I_0, J_1, J_0
       integer :: I_1H, I_0H, J_1H, J_0H
 
@@ -461,6 +480,29 @@ C****
       I_1 = grid%I_STOP
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
+
+      if(istart==2) then ! replace with cold vs warm start logic
+
+        call read_pbl_tsurf_from_nmcfile
+        CDM=.001d0
+
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+#ifndef SCM /* scm set these already */
+          usavg(i,j) = ua(1,i,j)
+          vsavg(i,j) = va(1,i,j)
+          wsavg(i,j) = sqrt(usavg(i,j)**2 + vsavg(i,j)**2)
+#endif
+C**** SET SURFACE MOMENTUM TRANSFER TAU0
+          TAUAVG(I,J)=CDM*WSAVG(I,J)**2
+C**** Initialize surface friction velocity
+          USTAR_pbl(:,I,J)=WSAVG(I,J)*SQRT(CDM)
+C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
+          QSAVG(I,J)=Q(I,J,1)
+          QGAVG(I,J)=Q(I,J,1)
+        ENDDO
+        ENDDO
+      endif
 
 C things to be done regardless of inipbl
 
@@ -772,7 +814,8 @@ C**** initialise some pbl common variables
 !@+   Corresponds to averaged height of the middle of first model layer.
 
       USE CONSTANT, only : rgas,grav
-      USE MODEL_COM, only : pednl00,psf
+      USE RESOLUTION, only : psf
+      use ATM_COM, only : pednl00 ! use plbot from res file instead
       IMPLICIT NONE
 
       REAL*8, INTENT(IN) :: ZGS
@@ -787,7 +830,6 @@ C**** initialise some pbl common variables
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1

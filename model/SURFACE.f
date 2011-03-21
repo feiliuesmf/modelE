@@ -19,10 +19,8 @@ C****
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,By3
 #endif
-      USE MODEL_COM, only : dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,ndasf,fland,flice,focean
-     *     ,nday,itime,jhour,itocean
-     *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+      USE ATM_COM, only : u,v,t,p,q
+      USE MODEL_COM, only : dtsrc,idacc,nday,itime,jhour,qcheck,jdate
 #ifdef mjo_subdd
      *     ,lm
 #endif
@@ -34,7 +32,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
 #ifdef mjo_subdd
      *    ,phi,sda
 #endif
@@ -58,7 +56,8 @@ C****
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
-      USE DIAG_COM, only : ia_srf,ia_src,oa,aij=>aij_loc,aijmm
+      USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
+     &     ,itocean,itoice,itlake,itlkice,itlandi
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -109,7 +108,8 @@ C****
 #endif
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
+     *     ,UOdrag,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
+     &     ,nisurf,fland,flice,focean
 #ifdef TRACERS_ON
      *     ,trsrfflx,gtracer
 #ifndef SKIP_TRACER_SRCS
@@ -165,7 +165,7 @@ C****
       USE HYCOM_SCALARS, only: nstep
 #endif
 #endif
-      USE SOIL_DRV, only: earth
+      USE SOIL_DRV, only: earth,ground_e
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
@@ -303,6 +303,17 @@ C****
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
+      CALL PRECIP_SI('LAKES')
+      CALL PRECIP_LI
+#ifdef IRRIGATION_ON
+C**** CHECK FOR IRRIGATION POSSIBILITY
+      CALL IRRIG_LK
+#endif
+      CALL PRECIP_LK
+         CALL CHECKT ('PRECIP')
+
+      call seaice_to_atmgrid
+
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
       SNOW = 0.
@@ -374,66 +385,6 @@ C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
       DO J=J_0,J_1
-
-!$OMP   PARALLEL DO DEFAULT(NONE) 
-!$OMP*  PRIVATE (MSI2, CM,CH,CQ,lim_lake_evap,lim_dew,tmp,
-!$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
-!$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
-!$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
-!$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,
-!$OMP*  HTLIM,I,ITYPE,IDTYPE, K,
-!$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
-!$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,
-!$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
-!$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,
-!$OMP*  THV1,TG,TG1,TG2,TR4,TRHDT,TRHEAT,Z1BY6L,dlwdt,
-!$OMP*  UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr
-#if defined(TRACERS_ON)
-!$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd,trgrnd2
-!$OMP*  ,trc_flux
-#if defined(TRACERS_WATER)
-!$OMP*  ,tevaplim,tevap,TEV,dTQS,TDP,TDT1,frac
-#endif
-#if defined(TRACERS_DRYDEP)
-!$OMP*  ,tdryd,tdd,td1,rtsdt,rts
-#endif
-#ifdef TRACERS_DUST
-!$OMP*  ,n1
-#endif
-#endif
-!$OMP*  ) 
-!$OMP&  SHARED(J_0, J_1, I_0, IMAXJ, FLAND, FLICE, RSI,P, PEDN,
-!$OMP&   PEK,PK,Q,T,JREG, AM, itime,
-!$OMP&   IJ_POPOCN,MODDSF,IJ_TGO,IJ_SSS,IJ_SSH,UOdrag,DTSURF,
-!$OMP&   SSS,GTEMP,OGEOZA,MSI,SNOWI,AXYP,GTRACER,GML,uosurf,vosurf,
-!$OMP&   COSZ1,SOLAR,OA,uisurf,visurf,TGRND,TGRN2,TGR4,SSI,
-!$OMP&   GTEMPR,FLAKE,MWL,FSF,FLAG_DSWS,TRLNDI,tr_wd_type,dodrydep,
-!$OMP&   ntsurfsrc, trsource, PMID, lat2d, TRHR, hbaij,ricntd,pprec,
-!$OMP&   pevap,evapor,QCHECK,DQ1,TREVAPOR,TRSRFFLX,taijs,taijn,trdrydep,
-!$OMP&   IJTS_ISRC,JLS_ISRC,TIJ_DRYDEP,TIJ_GSDEP,IJTS_SDRYDEP,itcon_dd,
-!$OMP&   J_EVAP,SNOWLI,E0,E1,TRSURF,DTH1,DMUA,DMVA,UFLUX1,VFLUX1,DDMS,
-!$OMP&   J_EVHDT,J_SHDT,J_TRHDT,J_LWCORR,J_TSRF,J_TYPE,J_TG1,J_TG2,
-!$OMP&   IJ_SHDT,IJ_TRSDN,IJ_TRSUP,IJ_SRTR,IJ_NETH,IJ_EVAP,IJ_WS,IJ_TS,
-!$OMP&   IJ_VS,IJ_TAUS,IJ_TAUUS,IJ_TAUVS,IJ_QS,IJ_RHs,IJ_TG1,IJ_PBLHT,
-!$OMP&   IJ_MCCON,IJ_GUSTI,IJ_DSKIN,IJ_WSGCM,IJ_WSPDF,IJ_WDRY,IJ_WTKE,
-!$OMP&   IJ_WMOIST,IDD_TG1,IDD_TS,IDD_QS,IDD_QG,IDD_SWG,IDD_LWG,IDD_SH,
-!$OMP&   IDD_LH,IDD_HZ0,IDD_UG,IJ_US,IDD_VG,IDD_WG,IDD_US,IDD_VS,
-!$OMP&   IDD_WS,IDD_CIA,IDD_CM,IDD_CH,IDD_CQ,IDD_EDS,IDD_DBL,IDD_EV,
-!$OMP&   idx2,adiurn_dust,idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,
-!$OMP&   idd_turb,idd_grav,n_clay,idd_ws2,idd_us3,idd_ustar,idd_stress,
-!$OMP&   idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1,idd_qabl1,
-!$OMP&   idd_lmon,idd_rifl,idd_zpbl1,idd_zhat1,idd_e1,idd_km1,
-!$OMP&   idd_ri1,idxd,tij_surf,tij_surfbv,byNIsurf,
-!$OMP&   depo_turb_glob,depo_grav_glob,uabl,vabl,tabl,qabl,eabl,
-!$OMP&   trcsurf,trmom,tij_evap,tij_grnd,ij_fwoc,tdiurn,ij_f0oi,
-!$OMP&   ij_evapi,ij_tsli,ij_shdtli,ij_evapo,ij_f0oc,ij_evhdt,ij_trhdt,
-!$OMP&   ij_f0li,ij_evapli,tgo,trcSurfByVol,
-#ifdef TRACERS_ON
-!$OMP&    ntx, ntix, trm, itime_tr0, needtrs,
-#endif
-!$OMP&   byam,byaxyp,ijdd,idd_pt5,idd_q5,adiurn,
-!$OMP&   idx1,MODDD,IDD_SPR,ih, aij,FOCEAN)
-!$OMP*  SCHEDULE(DYNAMIC,8)
       DO I=I_0,IMAXJ(J)
 
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
@@ -1495,7 +1446,6 @@ C****
       END IF
       END DO   ! end of itype loop
       END DO   ! end of I loop
-!$OMP  END PARALLEL DO 
       END DO   ! end of J loop
 
 
@@ -1513,12 +1463,6 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J
-#ifdef TRACERS_ON
-!$OMP*    ,N
-#endif
-!$OMP*    ,FTEVAP,FQEVAP,P1K)
-!$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         FTEVAP=0
@@ -1563,7 +1507,6 @@ C*** min/max tsurf
      &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
       END DO 
-!$OMP  END PARALLEL DO 
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
@@ -1642,6 +1585,23 @@ C**** Accumulate 3D subdaily quantities
       END DO
       END DO
 #endif
+
+#ifdef CALCULATE_FLAMMABILITY
+      call flammability_drv
+#endif
+C**** APPLY SURFACE FLUXES TO LAND ICE
+      CALL GROUND_LI
+
+      CALL UNDERICE('LAKES')
+      CALL GROUND_SI('LAKES')
+C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
+      CALL GROUND_LK
+         CALL CHECKT ('GRNDLK')
+C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
+      CALL RIVERF
+      CALL GROUND_E    ! diagnostic only - should be merged with EARTH
+      CALL FORM_SI('LAKES')
+      CALL SI_diags('LAKES')
 
       call stopTimer('SURFACE()')
 

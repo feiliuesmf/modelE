@@ -10,11 +10,12 @@
       SUBROUTINE TRACEA
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
-!@ver  1.0
       USE CONSTANT, only : rgas
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: im,jm,lm,itime,wm,t
-      USE DYNAMICS, only: pmid,pk
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: itime
+      USE ATM_COM, only: wm,t
+      USE ATM_COM, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,axyp,byaxyp
       USE SOMTQ_COM, only: mz
@@ -25,7 +26,7 @@
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
-      USE DYNAMICS, only: am,byam
+      USE ATM_COM, only: am,byam
       implicit none
 
       integer i,j,l,n
@@ -50,7 +51,6 @@ C**** Accumulate concentration for all tracers
 C****
 
 C**** save some basic model diags for weighting
-!$OMP PARALLEL DO PRIVATE (I,J,L)
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
@@ -59,29 +59,23 @@ C**** save some basic model diags for weighting
           end do
         end do
       end do
-!$OMP END PARALLEL DO
 
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
       if (to_conc(n).eq.1) then ! kg/m3
-!$OMP PARALLEL DO PRIVATE (L)
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
      $          ,l,n)*byam(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
      $          ,J_0:J_1,L)*pk(L,:,J_0:J_1))
         end do
-!$OMP END PARALLEL DO
       else ! mixing ratio
-!$OMP PARALLEL DO PRIVATE (L)
         do l=1,lm
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
      $          ,l,n)*byam(l,:,J_0:J_1)
         end do
-!$OMP END PARALLEL DO
       end if
 C**** Average concentration; surface concentration; total mass
-!$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=J_0,J_1
       do i=I_0,I_1
         tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
@@ -89,28 +83,23 @@ C**** Average concentration; surface concentration; total mass
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
       enddo; enddo
-!$OMP END PARALLEL DO
 C**** Zonal mean concentration and mass
-!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
         end do
       enddo; enddo
-!$OMP END PARALLEL DO
 
 #ifdef TRACERS_WATER
 C**** Zonal mean cloud water concentration
       if (dowetdep(n)) then
-!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
         end do
       enddo; enddo
-!$OMP END PARALLEL DO
       end if
 #endif
 
@@ -123,7 +112,6 @@ C**** Zonal mean cloud water concentration
       SUBROUTINE DIAGTCA (M,NT)
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
@@ -183,7 +171,8 @@ C**** Save current value in TCONSRV(NI)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      use model_com, only : lm,ls1,jm,fim,im
+      use resolution, only : ls1
+      use resolution, only : lm,jm,im
       use geom, only : imaxj
       use tracer_com, only : trm,trname
 #ifdef TRACERS_WATER
@@ -235,13 +224,12 @@ C****
 !@sum  INC_DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: fim,jm
+      USE RESOLUTION, only: im,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
       IMPLICIT NONE
-
+      real*8, parameter :: fim=im
 !@var I, J indices denoting gird box
       INTEGER, INTENT(IN) :: I,J
 !@var M index denoting which process changed the tracer
@@ -287,11 +275,10 @@ C**** No need to save current value
 !@sum  DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: jm,fim,im
+      USE RESOLUTION, only: jm,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
 
@@ -356,23 +343,23 @@ C**** No need to save current value
       SUBROUTINE DIAGTCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 !@ESMF This subroutine should only be called from a serial region.
 !      It is NOT parallelized.
 
       USE CONSTANT, only: teeny, twopi
       USE MODEL_COM, only:
-     &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
+     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only: areag 
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
      &     natmtrcons,nocntrcons 
-      USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only: jeq,inc=>incj,xwon,kdiag,qdiag
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -518,7 +505,6 @@ C****
       SUBROUTINE JLt_TITLEX
 !@sum JLt_TITLEX sets up titles, etc. for composite JL output (tracers)
 !@auth J. Lerner
-!@ver  1.0
       USE TRACER_COM
       USE TRDIAG_COM
       USE BDjlt
@@ -572,13 +558,17 @@ C****
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid
-     &   ,dsig,ls1,pednl00,pdsigl00
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: itime,idacc,xlabel,lrunid
+      USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
-      USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
-     *     ,jl_dpa,jl_dpasrc,jl_dwasrc
+      USE DIAG_COM, only: linect,plm,qdiag,lm_req,ia_dga,ajl
+     *     ,jl_dpa,jl_dpasrc,jl_dwasrc,fim
+      USE MDIAG_COM, only: acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
+      USE ATM_COM, only : pednl00,pdsigl00
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
      *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -697,15 +687,14 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end if
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#ifdef TRACERS_AEROSOLS_Koch
       jtpow = ntm_power(n)+jlq_power(k)+13
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
@@ -1057,10 +1046,12 @@ C**** NUMBERS ABOVE
 C****
       USE CONSTANT, only : undef
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
-      USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
-     *     ,xlabel,dsig,sige
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: jdate,jdate0,amon,amon0,jyear,jyear0,xlabel
+      USE DYNAMICS, only : dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
-      USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
+      USE DIAG_COM, only: qdiag,inc=>incj,linect,jmby2,lm_req
+      USE MDIAG_COM, only: acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       USE TRDIAG_COM, only : pdsigjl
       IMPLICIT NONE
@@ -1209,10 +1200,10 @@ C****
 !@sum  DIAGIJt produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
-!@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
@@ -1228,6 +1219,8 @@ C****
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       USE CONSTANT, only : teeny
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       integer, parameter :: ktmax = ktaij*ntm+ktaijs
@@ -1571,10 +1564,10 @@ C****
 !@sum  DIAGIJLt produces 3D lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
-!@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
 
@@ -1586,10 +1579,12 @@ C****
 #endif
       USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml,ir_m45_130,
+      USE DIAG_COM, only : ijkgridc,ctr_ml,ir_m45_130,
      *                     kdiag,ir_log2,ia_src,wt_ij,
-     *                     qdiag,lname_strlen,sname_strlen,units_strlen
+     *                     qdiag
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
+      USE ATM_COM, only : pmidl00
       use filemanager
       IMPLICIT NONE
 
@@ -1830,12 +1825,14 @@ C****
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
       USE CONSTANT, only: teeny
-      USE MODEL_COM, only:im,jm, idacc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only:idacc
       USE GEOM, only: dxyp
       USE TRACER_COM
       USE DIAG_COM
       USE DIAG_SERIAL, only : IJ_avg
-
+      USE MDIAG_COM, only:
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap,aij1,aij2

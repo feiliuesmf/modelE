@@ -16,7 +16,8 @@ c -----------------------------------------------------------------
      +                       MIX_OC, MIX_SU, MIX_AQ, AMP_RAD_KEY
       USE AERO_CONFIG, only: NMODES
 
-      USE MODEL_COM,   only: lm,itime,itimeI
+      USE RESOLUTION,  only: lm
+      USE MODEL_COM,   only: itime,itimeI
       USE TRACER_COM,  only: TRM
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
 
@@ -351,9 +352,13 @@ c Andies data incl Solar weighting - integral over 6 radiation band
 c     &        (1.80056,     0.605467)  ,(1.68622,     0.583112),    !Bc
 c     &        (1.63586,     0.551897)  ,(1.59646,     0.515333), 
 c     &        (1.57466,     0.484662)  ,(1.56485,     0.487992),
-
-     &        (1.85,     0.71)  ,(1.85,     0.71),    !Bc
-     &        (1.85,     0.71)  ,(1.85,     0.71), 
+c only 550nm values
+c     &        (1.85,     0.71)  ,(1.85,     0.71),    !Bc
+c     &        (1.85,     0.71)  ,(1.85,     0.71), 
+c     &        (1.85,     0.71)  ,(1.85,     0.71),
+cBond + Berstroem, all wavelength
+     &        (2.15,     1.05)  ,(1.98,     0.79),    !Bc
+     &        (1.92,     0.75)  ,(1.86,     0.73), 
      &        (1.85,     0.71)  ,(1.85,     0.71),
 
      &        (1.46099,    0.0761930)  ,(1.48313,   0.00470000),    !Oc

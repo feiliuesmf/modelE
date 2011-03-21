@@ -3,8 +3,7 @@
       module lightning
 !@sum  lightning variables for lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
-!@ver  1.0 (taken from CB436Tds3M23)
-      use model_com, only : LM
+      use resolution, only : LM
 
       implicit none
       save
@@ -47,7 +46,6 @@
       subroutine alloc_lightning(grid)
 !@SUM  alllocate lightning arrays for current grid
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use LIGHTNING, only : saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
@@ -76,19 +74,18 @@
 !@+   to-ground amount, based on cloud top height. WARNING: this 
 !@+   routine is apparently resolution dependant.  See the comments.
 !@auth Colin Price (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436Tds3M23)
 
       use lightning, only : JNlight,JSlight,tune_lt_land,tune_lt_sea
      & ,saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
      & ,RNOx_lgt
 #endif
-      use model_com, only : fland,DTsrc
+      use model_com, only : DTsrc
       use geom,      only : lat2d_dg,axyp,byaxyp
       use constant,  only : bygrav
-      use dynamics,  only : gz
+      use atm_com,   only : gz
       use diag_com,  only : ij_CtoG,ij_flash,aij=>aij_loc
- 
+      use fluxes, only : fland
       implicit none
 
 !@var lmax highest layer of current convective cloud event
@@ -193,15 +190,14 @@
       subroutine get_lightning_NOx
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
-!@ver  1.0 (based on CB436Tds3M23 & DB396Tds3M23)
  
       use geom, only       : lat2d_dg,byaxyp
-      use fluxes, only     : tr3Dsource
+      use fluxes, only     : tr3Dsource,fland
       use tracer_com, only : n_NOx,nOther
       use lightning, only  : HGT_lgt,JSlight,JNlight,srclight,RNOx_lgt
       use constant, only   : bygrav
-      use model_com, only  : fland,LM
-      use dynamics, only   : ltropo, phi
+      use resolution, only  : LM
+      use atm_com, only    : ltropo, phi
       use domain_decomp_atm, only : GRID, GET
 #ifdef ACCMIP_LIKE_DIAGS
       use trdiag_com, only : taijls=>taijls_loc,ijlt_NOxLgt

@@ -15,36 +15,22 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
+
+     ! resolution-specific source codes
 RES_F40                             ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
-MODELE                              ! Main and model overhead
-ALLOC_DRV                           ! domain decomposition, allocate global distributed arrays
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
+DIAG_RES_F                          ! diagnostics
+FFT144                              ! Fast Fourier Transform
+
+IORSF                               ! old i/o
+
+     ! GISS dynamics with alt gravity wave drag
+ATMDYN MOMEN2ND                     ! atmospheric dynamics
+QUS_DRV TQUS_DRV                    ! advection of Q/tracers
 ! UNRDRAG_COM UNRDRAG UNRDRAG_DRV     ! unresolved wave drag (alternative gravity wave drag)
-ATM_UTILS                           ! utilities for some atmospheric quantities
-QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV ! + component giss_LSM: land surface and soils
-VEG_DRV                             ! vegetation
-! VEG_COM VEGETATION                ! old vegetation
-ENT_DRV  ENT_COM   ! + component Ent: new vegetation
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB_E1                               ! turbulence in whole atmosphere
-LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-OCEAN OCNML                         ! ocean modules
-!SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_RES_F                          ! diagnostics (resolution dependent)
-FFT144                              ! utilities
-POUT                                ! post-processing output
+
+#include "latlon_source_files"
+#include "modelE4_source_files"
+#include "static_ocn_source_files"
 
 Components:
 Ent shared ESMF_Interface solvers giss_LSM

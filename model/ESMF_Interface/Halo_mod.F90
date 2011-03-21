@@ -3,20 +3,15 @@
 #include "mpi_defs.h"
 #endif
 
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 #define FILL(N) IAND(USABLE_FROM,N)==N
   
 module Halo_mod
   use dist_grid_mod
-#ifdef USE_ESMF
+#ifdef USE_MPI
   use MpiSupport_mod, only: getNeighbors
   use MpiSupport_mod, only: createDecompMpiType
   use MpiSupport_mod, only: freeMpiType
 #endif
-!!$  use ESMF_MOD_private, only: NORTH, SOUTH
   implicit none
   private
 
@@ -225,7 +220,7 @@ contains
 
   end subroutine halo_update_column_7d
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
   Subroutine sendrecv(grid, arr, shp, dist_idx, from, bc_periodic_)
     Type (Dist_Grid) :: grid
     Real(Kind=8) :: arr(*)
@@ -256,8 +251,8 @@ contains
 
     ! Determine neigboring processes
     !-------------------------------
-    call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
-    call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
+    call gridRootPELocation(grid,  px,  py)
+    call gridPELayout(grid, npx, npy)
     Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
 
     sz = Product(shp(1:dist_idx-1))
@@ -334,8 +329,8 @@ contains
 
     ! Determine neigboring processes
     !-------------------------------
-    call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
-    call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
+    call gridRootPELocation(grid,  px,  py)
+    call gridPELayout(grid, npx, npy)
     Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
 
     sz = Product(shp(1:dist_idx-1))

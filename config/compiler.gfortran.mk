@@ -6,6 +6,9 @@ FFLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check
 F90FLAGS = -cpp -fconvert=big-endian -O2 -fno-range-check -ffree-line-length-none
 LFLAGS =
 
+# option to treat default real as real*8
+R8 = -fdefault-real-8
+
 #
 # Set the following to ensure that the beginning/end of records
 # in sequential-access unformatted files have 4-byte markers

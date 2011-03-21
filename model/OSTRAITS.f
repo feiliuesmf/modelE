@@ -285,7 +285,6 @@ C****
 !@sum  STBDRA exerts a bottom drag on the lowest layer and a side drag
 !@+    on each layer of each strait. Also reduces along strait gradients
 !@auth Gary Russell
-!@ver  1.0
 C**** MUST = MUST*(1-x)  is approximated by  MUST = MUST/(1+x)
 C****
 C**** STRACB  MMST  Mass of sea water in strait (kg)
@@ -489,7 +488,6 @@ C****
 c      SUBROUTINE STADVI
 c!@sum  STADVI advects sea ice through the straits
 c!@auth Gary Russell/Gavin Schmidt
-c!@ver  1.0
 c      USE OCEAN, only : im,jm,dts,dxypo,bydxypo
 c      USE SEAICE, only : xsi,ace1i
 c      USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
@@ -769,7 +767,6 @@ c      END
       SUBROUTINE CHECKOST(SUBR)
 !@sum  CHECKOST Checks whether Straits are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : qcheck,dtsrc
       USE SEAICE, only : xsi,lmi
       USE STRAITS
@@ -867,7 +864,6 @@ C****
       SUBROUTINE io_straits(kunit,iaction,ioerr)
 !@sum  io_straits reads and writes ocean straits arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE STRAITS
@@ -976,32 +972,32 @@ C****
 
       SUBROUTINE BCAST_straits (skip_tracers)
       USE STRAITS
-      use domain_decomp_1d, only : ESMF_BCAST
+      use domain_decomp_1d, only : broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       logical, intent(in) :: skip_tracers
 
-      CALL ESMF_BCAST(grid, MUST )
-      CALL ESMF_BCAST(grid, G0MST)
-      CALL ESMF_BCAST(grid, GXMST)
-      CALL ESMF_BCAST(grid, GZMST)
-      CALL ESMF_BCAST(grid, S0MST)
-      CALL ESMF_BCAST(grid, SXMST)
-      CALL ESMF_BCAST(grid, SZMST)
-      CALL ESMF_BCAST(grid, RSIST)
-      CALL ESMF_BCAST(grid, RSIXST)
-      CALL ESMF_BCAST(grid, MSIST)
-      CALL ESMF_BCAST(grid, HSIST)
-      CALL ESMF_BCAST(grid, SSIST)
+      CALL broadcast(grid, MUST )
+      CALL broadcast(grid, G0MST)
+      CALL broadcast(grid, GXMST)
+      CALL broadcast(grid, GZMST)
+      CALL broadcast(grid, S0MST)
+      CALL broadcast(grid, SXMST)
+      CALL broadcast(grid, SZMST)
+      CALL broadcast(grid, RSIST)
+      CALL broadcast(grid, RSIXST)
+      CALL broadcast(grid, MSIST)
+      CALL broadcast(grid, HSIST)
+      CALL broadcast(grid, SSIST)
 
       if(skip_tracers) return
 #ifdef TRACERS_WATER
-      CALL ESMF_BCAST(grid, TRSIST)
+      CALL broadcast(grid, TRSIST)
 #endif
 #ifdef TRACERS_OCEAN
-      CALL ESMF_BCAST(grid, TRMST)
-      CALL ESMF_BCAST(grid, TXMST)
-      CALL ESMF_BCAST(grid, TZMST)
+      CALL broadcast(grid, TRMST)
+      CALL broadcast(grid, TXMST)
+      CALL broadcast(grid, TZMST)
 #endif /* def TRACERS_OCEAN */
       return
       end SUBROUTINE BCAST_straits

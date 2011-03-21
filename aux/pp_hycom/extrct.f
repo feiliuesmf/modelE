@@ -10,12 +10,10 @@ c
       integer,intent(IN)   :: iorign,jorign
       integer :: jp
 c
-c$OMP PARALLEL DO PRIVATE(jp)
       do 1 j=1,jdm
       jp=mod(jorign+j-2,jdm)+1
       do 1 i=1,min(idm,idm-iorign+1)
  1    array(i,j)=work(iorign+i-1,jp)
-c$OMP END PARALLEL DO
 c
       return
       end

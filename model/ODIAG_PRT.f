@@ -12,7 +12,6 @@
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
 C**** Note this is an incorporation and modification of the stand alone
 C**** ocean diagnostic programs from Gary. All diagnostics are on the
 C**** ocean grid.
@@ -20,12 +19,16 @@ C**** ocean grid.
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,ndyno,dts,dto,imaxj,lmm,ze
-      USE DIAG_COM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag,zoc_pout=>zoc,zoc1_pout=>zoc1
+      USE MDIAG_COM, only : acc_period
       USE ODIAG
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
       INTEGER I,J,L,N,NOL(LMO),JEQ,JDLAT,KXLB
       REAL*8 DLON
+
+      zoc_pout(1:lmo) = zoc(1:lmo)
+      zoc1_pout(1:lmo+1) = zoc1(1:lmo+1)
 
 C**** Calculate latitudes
       JEQ = JM/2
@@ -110,7 +113,6 @@ C****
       SUBROUTINE OIJOUT
 !@sum  OIJOUT prints out lat-lon diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef,teeny,rhows
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
@@ -119,8 +121,9 @@ C****
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DIAG_COM, only : qdiag,acc_period
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG
@@ -935,13 +938,13 @@ C****
       SUBROUTINE OSFOUT
 !@sum  OSFOUT prints out streamfunction diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,imaxj,ze
-      USE DIAG_COM, only : qdiag,acc_period,zoc1
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG
 
@@ -1044,13 +1047,11 @@ C****
       SUBROUTINE STROUT
 !@sum  STROUT prints out strait diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DIAG_COM, only : acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
       IMPLICIT NONE
@@ -1157,7 +1158,6 @@ C****
       SUBROUTINE STRMJL (OIJL,FAC,OLNST,FACST,SF)
 !@sum  STRMJL calculates the latitude by layer stream function
 !@auth G. Russell/G. Schmidt
-!@ver  1.0 (from OSFJL064)
 C****
 C**** Input:
 !@var OIJL  = west-east and south-north tracer fluxes (kg/s)
@@ -1252,7 +1252,6 @@ C****
       SUBROUTINE OBASIN
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
 !@auth G. Russell
-!@ver  1.0
       USE OCEAN, only : IM,JM,focean
       USE ODIAG, only : kbasin
       USE FILEMANAGER
@@ -1358,8 +1357,9 @@ C****
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo, oDLAT_DG, oDLON_DG
-      USE DIAG_COM, only : qdiag,zoc
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
       USE ODIAG
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : to_per_mil
@@ -1896,7 +1896,7 @@ C****
             toijl_out(:,j,l,kk) = toijl_out(:,j,l,kk)/dxypo(j)
           enddo; enddo
         endif
-        if(to_per_mil(n) .and. n.ne.n_Water) then
+        if(to_per_mil(n)>0 .and. n.ne.n_Water) then
           toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/trw0(n)
      &         -toijl_loc(:,:,:,TOIJL_conc,n_water))
         endif

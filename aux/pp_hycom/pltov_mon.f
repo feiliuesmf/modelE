@@ -59,13 +59,11 @@ c --- determine mesh size
       avgbot=0.
       area=0.
 c
-c$OMP PARALLEL DO REDUCTION(+:area,avgbot)
       do 10 j=1,jdm
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)
       avgbot=avgbot+depths(i,j)*scp2(i,j)
  10   area=area+scp2(i,j)
-c$OMP END PARALLEL DO
       avgbot=avgbot/area
       write (lp,104) avgbot,area
  104  format(' mean basin depth (m) and area (10^6 km^2):',f9.3,
@@ -121,14 +119,12 @@ c --- read archive data
       cnvert=.true.
       call getdat(flnm,day0,day1,succes)
 
-c$OMP PARALLEL DO
       do 13 i=1,idm
       ia=max(1,i-1)
       do 13 j=1,jdm
       ubavav(i,j)=ubavg(i,j,1)
       vbavav(i,j)=vbavg(i,j,1)
  13   continue
-c$OMP END PARALLEL DO
 c
       uflx=uflx/(mon1*86400.)  ! Sv
       vflx=vflx/(mon1*86400.)  ! Sv

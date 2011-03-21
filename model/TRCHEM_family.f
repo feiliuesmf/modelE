@@ -6,11 +6,11 @@ c from reactions *within* family only:
       SUBROUTINE Oxinit(lmax,I,J)
 !@sum Oxinit Find O,O1D & Ox initial conc assuming equilibrium with O3
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
-
-      USE MODEL_COM, only: LS1,LM,ptop,psf,sig
+      USE RESOLUTION, only : ls1,ptop,psf
+      USE RESOLUTION, only : LM
+      USE DYNAMICS, only : sig
       USE TRACER_COM, only : n_CH4, n_Ox
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
 
@@ -68,12 +68,11 @@ c
 !@+   equilibrium at a given concentration of NOx. Only called during
 !@+   daylight, then assume NO3=HONO=1.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only          : LS1
-      USE DYNAMICS, only           : LTROPO
+      USE RESOLUTION, only         : LS1
+      USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                  ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop
@@ -144,13 +143,13 @@ C       Set limits on NO, NO2, NOx:
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on famchem0C8_M23p)
 
 C**** GLOBAL parameters and variables:
-
-      USE MODEL_COM, only : LM,LS1,ptop,psf,sig
+      USE RESOLUTION, only : LS1,ptop,psf
+      USE RESOLUTION, only : LM
+      USE DYNAMICS, only : sig
       USE GEOM, only : LAT2D_DG
-      USE DYNAMICS, only: LTROPO
+      USE ATM_COM, only: LTROPO
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
 #ifdef TRACERS_TERP
@@ -382,12 +381,12 @@ c H + O2 + M -> HO2 + M :
 !@sum ClOxfam Find ClOx family (Cl,ClO,OClO,Cl2,Cl2O2) partitioning 
 !@+   assuming equilibrium within ClOx.
 !@auth Drew Shindell
-!@ver  1.0 (based on ds4p_famchem_M23)
 
 C**** GLOBAL parameters and variables:
 
-      USE DYNAMICS, only   : LTROPO
-      USE MODEL_COM, only  : LM,LS1
+      USE ATM_COM, only   : LTROPO
+      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
@@ -533,12 +532,10 @@ c Normalize so that amount of ClOx doesn't change:
 !@sum BrOxfam Find BrOx family (Br,BrO) partitioning 
 !@+   assuming equilibrium within BrOx.
 !@auth Drew Shindell
-!@ver  1.0 (based on ds4p_famchem_M23)
 
 C**** GLOBAL parameters and variables:
-
-      USE DYNAMICS, only   : LTROPO
-      USE MODEL_COM, only  : LS1
+      USE RESOLUTION, only : LS1
+      USE ATM_COM, only    : LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
      &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop

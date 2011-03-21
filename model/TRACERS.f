@@ -9,14 +9,14 @@
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       SUBROUTINE set_generic_tracer_diags
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param
       USE CONSTANT, only: mair,sday
-      USE MODEL_COM, only: dtsrc,nisurf
+      USE MODEL_COM, only: dtsrc
+      USE FLUXES, only : nisurf
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRDIAG_COM
@@ -77,8 +77,7 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -488,7 +487,7 @@ c
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only : jm
+      USE RESOLUTION, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc,trname
@@ -579,7 +578,8 @@ C****
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : jm,im,lm,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
@@ -664,9 +664,6 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
-!$OMP PARALLEL DO DEFAULT(NONE) PRIVATE (L,I,J,fred)
-!$OMP&  SHARED(trm, dtrm, tr3Dsource, dtsrc, domom, naij, taijs, 
-!$OMP&         imaxj, eps, j_0, j_1, i_0, ns, n, trmom)
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
@@ -690,7 +687,6 @@ C**** calculate fractional loss and update tracer mass
         end do
       end if
       end do ! l
-!$OMP END PARALLEL DO
 
       if(jls_3Dsource(ns,n) > 0) then
         do j=j_0,j_1
@@ -713,7 +709,8 @@ C****
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
-      USE MODEL_COM, only : im,jm,lm,itime,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : itime,dtsrc
       USE FLUXES, only : tr3Dsource
       USE GEOM, only : imaxj
       USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0,n_Pb210,
@@ -801,10 +798,12 @@ C****
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : grav,deltx,lhe,rgas,visc_air
-      USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : itime,dtsrc
+      USE ATM_COM, only : t,q
       USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
-      USE DYNAMICS, only : gz,pmid,pk
+      USE ATM_COM, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
      *     ,trname,trpdens
 #ifdef TRACERS_AMP
@@ -849,11 +848,6 @@ C**** air density + relative humidity (wrt water) + air viscosity
       end do
 
 C**** Gravitational settling
-!$OMP  PARALLEL DO DEFAULT (NONE)
-!$OMP&   SHARED(J_0,J_1,I_0,IMAXJ,trm,trpdens,trradius,dtsrc,
-!$OMP&          airden,rh,visc,gbygz,trmom,itime,itime_tr0,jls_grav )
-!$OMP&   PRIVATE (n,l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius,
-!$OMP&      hydrate, fluxd, fluxu, told, najl)
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling
@@ -918,7 +912,6 @@ C**** Calculate height differences using geopotential
           END IF
         end if
       end do
-!$OMP END PARALLEL DO
 
 C****
 
@@ -983,7 +976,8 @@ C****
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: jday,idofm=>JDmidOfM
       implicit none
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -1035,13 +1029,13 @@ c**** Interpolate two months of data to current day
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
 !@auth Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : ls1,im,jm,lm,q,wm
+      USE RESOLUTION, only: im,jm,lm
+      USE ATM_COM, only : q,wm
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
-      USE DYNAMICS, only : am
+      USE ATM_COM, only : am
       USE FLUXES, only : gtracer
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
@@ -1152,13 +1146,12 @@ C**** check whether air mass is conserved
       SUBROUTINE io_tracer(kunit,iaction,ioerr)
 !@sum  io_tracer reads and writes tracer variables to file
 !@auth Jean Lerner
-!@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
-     &     ,coupled_chem
-      USE DOMAIN_DECOMP_1D, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &     ,UNPACK_COLUMN, esmf_bcast, get
+     &     ,UNPACK_COLUMN, broadcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1656,9 +1649,9 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
-          call ESMF_BCAST( grid, iday_ncep )  
-          call ESMF_BCAST( grid, i0_ncep   )  
-          call ESMF_BCAST( grid, first_ncep)
+          call broadcast( grid, iday_ncep )  
+          call broadcast( grid, i0_ncep   )  
+          call broadcast( grid, first_ncep)
 #endif
 #endif
 
@@ -1744,7 +1737,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@sum  def_rsf_tracer defines tracer array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      use model_com, only : coupled_chem
       use tracer_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
@@ -1901,7 +1893,7 @@ c daily_z is currently only needed for CS
 !@sum  new_io_tracer read/write tracer arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite,coupled_chem
+      use model_com, only : ioread,iowrite
       use tracer_com
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1931,6 +1923,7 @@ c daily_z is currently only needed for CS
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,read_data,
      & write_data
+      USE Dictionary_mod
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -2063,6 +2056,8 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'ySO2',ySO2)
         call read_dist_data(grid,fid,'sulfate',sulfate)
         call read_dist_data(grid,fid,'acetone',acetone)
+        if(is_set_param("coupled_chem"))
+     &       call get_param( "coupled_chem", coupled_chem )
         if(coupled_chem == 1) then
           call read_dist_data(grid,fid,'oh_live',oh_live)
           call read_dist_data(grid,fid,'no3_live',no3_live)
@@ -2244,7 +2239,8 @@ c daily_z is currently only needed for CS
       subroutine read_sfc_sources(n,nsrc,xyear,xday,checkname)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
-      USE MODEL_COM, only: itime,im,jm
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: itime
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
@@ -2509,7 +2505,8 @@ c daily_z is currently only needed for CS
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
-      USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: idofm=>JDmidOfM
       USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
 
       implicit none

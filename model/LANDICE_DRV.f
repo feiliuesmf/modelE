@@ -11,10 +11,11 @@
       SUBROUTINE init_LI(istart)
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,tf
       USE FILEMANAGER
-      USE MODEL_COM, only : im,jm,flice,focean,dtsrc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
+      USE FLUXES, only : flice,focean
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -200,8 +201,8 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
         EACCPDA = -LHM*ACCPDA ; EACCPDG = -LHM*ACCPDG ! J/year
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-        TRACCPDA(:) = trglac(:)*ACCPDA ! kg/year
-        TRACCPDG(:) = trglac(:)*ACCPDG ! kg/year
+        TRACCPDA(:) = trglac()*ACCPDA ! kg/year
+        TRACCPDG(:) = trglac()*ACCPDG ! kg/year
 #endif
 #endif /* TNL: inserted */
 
@@ -266,16 +267,15 @@ C****
       SUBROUTINE PRECIP_LI
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
-!@ver  1.0
 !@calls LANDICE:PRECLI
-      USE MODEL_COM, only : im,jm,flice,itlandi
+      USE RESOLUTION, only : im,jm
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
+      USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr,flice
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
@@ -285,7 +285,7 @@ C****
      *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li
-     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli
+     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli,itlandi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 
@@ -330,7 +330,7 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)
+        TRPRCP(:)=TRPREC(:,I,J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
@@ -396,7 +396,8 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@ver  2010/10/06
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf,sday,edpery
-      USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice,dtsrc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -410,11 +411,13 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run,ij_imphli,ij_impmli
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
      *     ,j_rvrd,j_ervr,ij_micb,ij_eicb,ij_zsnow,ij_fwoc,ij_li
+     &     ,itlandi,itocean,itoice
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp  !,tricbimp,traccpda,traccpdg
 #endif
       USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
+     &     ,flice
 #ifdef TRACERS_WATER
      *     ,trunoli,trevapor,gtracer
 #ifdef TRACERS_DRYDEP
@@ -572,8 +575,8 @@ C****
       SUBROUTINE conserv_MLI(ICE)
 !@sum  conserv_MLI calculates total amount of snow and ice in land ice
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,flice
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : flice
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli
       USE LANDICE, only : lndice,ace1li,ace2li
@@ -607,9 +610,9 @@ C****
       SUBROUTINE conserv_HLI(EICE)
 !@sum  conserv_HLI calculates total land ice energy
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : shi,lhm
-      USE MODEL_COM, only : im,jm,fim,flice
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : flice
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : ace1li,ace2li
@@ -645,7 +648,7 @@ C****
 !@+      is distributed spatially into MICB (kg/m^2) according to FSHGLM
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
-      Use MODEL_COM,         Only: IM,JM
+      USE RESOLUTION, only : im,jm
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, MDWNIMP
       Use LANDICE,           Only: MICBIMP
@@ -692,7 +695,7 @@ C**** array MICB(I,J) acording to FSHGLM and FNHGLM
 !@+      is distributed spatially into HICB (J/m^2) according to FSHGLM
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
-      Use MODEL_COM,         Only: IM,JM
+      USE RESOLUTION, only : im,jm
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, EDWNIMP
       Use LANDICE,           Only: EICBIMP
@@ -739,7 +742,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@auth Gavin Schmidt
 !@ver  2010/10/13
       USE CONSTANT, only : edpery,sday,lhm,shi
-      USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -757,15 +761,14 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
-      USE FLUXES, only : gmelt,egmelt
+      USE FLUXES, only : gmelt,egmelt,flice,focean
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
 #endif    /* TNL: inserted */
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
-     *     ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation
@@ -978,9 +981,10 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       SUBROUTINE CHECKLI (SUBR)
 !@sum  CHECKLI checks whether the land ice variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : im,jm,qcheck,flice
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : qcheck
+      USE FLUXES, only : flice
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER

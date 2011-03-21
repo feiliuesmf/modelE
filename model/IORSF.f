@@ -3,13 +3,13 @@
       SUBROUTINE io_rsf(filenm,it,iaction,ioerr)
 !@sum   io_rsf controls the reading and writing of the restart files
 !@auth  Gavin Schmidt
-!@ver   1.0
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@+     io_ocdiag,io_icedyn,io_icdiag
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : am_i_root !REWIND_PARALLEL
-      USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
+      USE ATM_COM, only: Kradia
+      USE MODEL_COM, only : ioread_single,iowrite_single
      *                     ,ioread,ioread_nodiag,iowrite
 
       IMPLICIT NONE
@@ -116,7 +116,6 @@ C**** return maximum time
 !@sum   read_ground_ic read initial conditions file for
 !@+     sea ice, land surface, land ice.  Transplanted from INPUT.
 !@auth  M. Kelley
-!@ver   1.0
 !@calls io_seaice,io_earth,io_soils,io_landice
       use model_com, only : ioreadnt
       use filemanager, only : openunit,closeunit
@@ -166,3 +165,100 @@ C**** return maximum time
       IF (Itime2.GT.Itime1) KDISK=2
       return
       end subroutine find_later_rsf
+
+      SUBROUTINE io_label(kunit,it,itm,iaction,ioerr)
+!@sum  io_label reads and writes label/parameters to file
+!@auth Gavin Schmidt
+      USE ATM_COM, only: Kradia
+      USE MODEL_COM
+      USE RESOLUTION, only : IM,JM,LM
+      USE RESOLUTION, only : LS1
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
+      USE Dictionary_mod
+      IMPLICIT NONE
+
+      INTEGER kunit   !@var kunit unit number of read/write
+      INTEGER iaction !@var iaction flag for reading or writing to file
+!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+      INTEGER, INTENT(INOUT) :: IOERR
+!@var it input/ouput value of hour
+!@var itm maximum hour returned (different from it if post-processing)
+      INTEGER, INTENT(INOUT) :: it,itm
+!@var LABEL2 content of record 2
+      CHARACTER*80 :: LABEL2
+!@var NTIM1,TSTR1,TIM1 timing related dummy arrays
+      INTEGER NTIM1,ITIM1(NTIMEMAX)
+      REAL*8 ::      TIM1(NTIMEMAX)
+      CHARACTER*12  TSTR1(NTIMEMAX)
+!@var ITmin,ITmax minimal/maximal time in acc periods to be combined
+      INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
+      INTEGER nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
+
+      SELECT CASE (IACTION)
+      CASE (:IOWRITE)           ! output to end-of-month restart file
+        IF (AM_I_ROOT()) THEN
+          WRITE (kunit,err=10) it,XLABEL,nday,iyear1,itimei,itimee,
+     *         itime0,NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
+C**** doc line: basic model parameters
+          write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
+          label2(74:80) = 'LABEL01'
+          WRITE (kunit,err=10) LABEL2
+C**** write parameters database here
+          call write_param(kunit)
+        END IF
+      CASE (IOREAD:)          ! label always from input file
+!****   Determine whether timing numbers were saved as integers or reals
+        read(kunit) ; read(kunit) label2 ; rewind kunit
+        if (label2(80:80)==' ') then         ! integers, convert to seconds
+          READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
+     *        NTIM1,ITIM1(1:NTIM1),TSTR1(1:NTIM1)
+          tim1(1:NTIM1) = 1d-2*itim1(1:NTIM1)
+        else                                 ! real*8
+          READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
+     *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
+        end if
+C**** use doc-record to check the basic model parameters
+        READ (kunit,err=10) LABEL2
+        READ (label2,'(13x,4i4)',err=10) im0,jm0,lm0,ls10
+        if (im.ne.im0.or.jm.ne.jm0.or.lm.ne.lm0.or.ls10.ne.ls1) then
+          ioerr = 0   ! warning
+        end if
+        SELECT CASE (IACTION)   ! set model common according to iaction
+        CASE (ioread)           ! parameters from rundeck & restart file
+          call read_param(kunit,.false.)
+          nday=nd1 ; itimei=iti1      ! changeable only at new starts
+          itimee=ite1 ; itime0=it01   ! are changed later if appropriate
+          if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restarts
+          NTIMEACC=NTIM1
+          TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
+          TIMING(1:NTIM1)=TIM1(1:NTIM1)
+        CASE (IRSFIC,irsficnt,IRSFICNO) ! rundeck/defaults except label
+          read(kunit,err=10)          ! skip parameters, dates
+          it=it*24/nd1                ! switch itime to ihour
+        CASE (IRERUN)           ! parameters from rundeck & restart file
+          call read_param(kunit,.false.)
+          nday=nd1 ; itimei=iti1      ! changeable only at new starts
+          itimee=ite1 ; itime0=it01   ! is changed later if appropriate
+          if (iyear1.lt.0) iyear1=iy1 ! rarely changes on restart/reruns
+        CASE (IOREAD_SINGLE)    ! parameters/label from 1-many acc files
+          call read_param(kunit,.false.)  ! use rundeck
+          call sync_param( "kradia",kradia)
+          nday=nd1 ; iyear1=iy1 ; itime0=it01
+          NTIMEACC=NTIM1                 ! use timing from current file
+          TIMESTR(1:NTIM1)=TSTR1(1:NTIM1)
+          TIMING(1:NTIM1)=TIMING(1:NTIM1)+TIM1(1:NTIM1)
+
+C**** keep track of min/max time over the combined diagnostic period
+          if (it.gt.ITmax)                   ITmax = it
+          if (ITmin.lt.0 .or. it01.lt.ITmin) ITmin = it01
+          itime0 = ITmin
+
+        END SELECT
+      END SELECT
+      itm = max(it,ITmax)
+      RETURN
+ 10   IOERR=1
+      RETURN
+      END SUBROUTINE io_label
+

@@ -20,7 +20,6 @@
       SUBROUTINE TRIDIAG(A,B,C,R,U,N)
 !@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       IMPLICIT NONE
       INTEGER, PARAMETER :: NMAX = 8000  !@var NMAX workspace
       INTEGER, INTENT(IN):: N         !@var N    dimension of arrays
@@ -57,7 +56,6 @@
       SUBROUTINE TRIDIAG(A,B,C,R,U,N)
 !@sum  TRIDIAG  solves a tridiagonal matrix equation (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       IMPLICIT NONE
 c      INTEGER, PARAMETER :: NMAX = 8000  !@var NMAX workspace
       INTEGER, INTENT(IN):: N         !@var N    dimension of arrays
@@ -151,7 +149,6 @@ c        IF (BET.eq.0) stop 'BET==0'
       SUBROUTINE TRIDIAG_2D_GLOB(A, B, C, R, U)
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, INTENT(INOUT) :: A(:,:),B(:,:),C(:,:),R(:,:)
@@ -194,7 +191,6 @@ c        IF (BET.eq.0) stop 'BET==0'
      &                           U_dist,grid, j_lower, j_upper )
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP
       IMPLICIT NONE
@@ -274,7 +270,6 @@ c        IF (BET.eq.0) stop 'BET==0'
      &                           U_dist,grid, j_lower, j_upper )
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP
       IMPLICIT NONE
@@ -356,7 +351,6 @@ c        IF (BET.eq.0) stop 'BET==0'
      &                           U_dist,grid, j_lower, j_upper )
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP,TRANSPOSE_COLUMN
       IMPLICIT NONE
@@ -451,7 +445,6 @@ c        IF (BET.eq.0) stop 'BET==0'
      &                           U_dist,grid, j_lower, j_upper )
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP,TRANSPOSE_COLUMN
       IMPLICIT NONE

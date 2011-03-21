@@ -3,7 +3,6 @@
       MODULE AFLUXES
 !@sum  AFLUXES contains some ocean arrays defined on the atmospheric grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, ONLY : IMA=>IM, JMA=>JM
 
@@ -30,24 +29,22 @@
 
       END MODULE AFLUXES
 
-      SUBROUTINE ALLOC_AFLUXES(grd_dum)
+      SUBROUTINE ALLOC_AFLUXES
 !@sum   Initializes AFLUXES''s arrays
 !@auth  Larissa Nazarenko 
-!@ver  1.0
 
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
       USE AFLUXES
 
       IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
 
-      I_0H = grd_dum%I_STRT_HALO
-      I_1H = grd_dum%I_STOP_HALO
-      J_0H = grd_dum%J_STRT_HALO
-      J_1H = grd_dum%J_STOP_HALO
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
 
       ALLOCATE(  aMO (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)
       ALLOCATE( aG0  (I_0H:I_1H,J_0H:J_1H,2), STAT = IER)

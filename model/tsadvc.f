@@ -57,8 +57,6 @@ c
       CALL HALO_UPDATE(ogrid,vflx(:,:,k), FROM=NORTH)
 
 c
-c$OMP PARALLEL DO PRIVATE(jb,pold,pmid,flxdiv,offset)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 49 j=J_0,J_1
       jb= PERIODIC_INDEX(j+1, jj)
       do 49 l=1,isp(j)
@@ -88,7 +86,6 @@ c
       tmin=min(tmin,temp(i,j,kn))
       tmax=max(tmax,temp(i,j,kn))
  49   continue
-c$OMP END PARALLEL DO
 c
       call GLOBALMIN(ogrid,smin,val); smin=val;
       call GLOBALMAX(ogrid,smax,val); smax=val;
@@ -130,7 +127,6 @@ c
      .           scp2(1,J_0H),scp2i(1,J_0H),
      .           delt1,util1(1,J_0H),util2(1,J_0H))
 c
-c$OMP PARALLEL DO PRIVATE(pold,pmid,pnew) SCHEDULE(STATIC,jchunk)
       do 46 j=J_0,J_1
       do 46 l=1,isp(j)
       do 46 i=ifp(j,l),ilp(j,l)
@@ -160,7 +156,6 @@ c --- build up time integral of mass field variables
       salav(i,j,k)=salav(i,j,k)+saln(i,j,km)*pmid
       th3av(i,j,k)=th3av(i,j,k)+th3d(i,j,km)*pmid
  46   continue
-c$OMP END PARALLEL DO
 c
       call GLOBALMIN(ogrid,sminn,val); sminn=val;
       call GLOBALMAX(ogrid,smaxx,val); smaxx=val;
@@ -214,7 +209,6 @@ c
       CALL HALO_UPDATE(ogrid,  dp(:,:,kn), FROM=SOUTH+NORTH)
 
 c
-c$OMP PARALLEL DO PRIVATE(ja,factor) SCHEDULE(STATIC,jchunk)
       do 145 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -231,12 +225,10 @@ c
      .                          ,max(dp(i,j  ,kn),onemm))
       vflux (i,j)=factor*(temp(i,ja ,kn)-temp(i,j,kn))
  145  vflux2(i,j)=factor*(saln(i,ja ,kn)-saln(i,j,kn))
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,vflux2, FROM=NORTH)
 
-c$OMP PARALLEL DO PRIVATE(jb,factor) SCHEDULE(STATIC,jchunk)
       do 146 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 146 l=1,isp(j)
@@ -257,7 +249,6 @@ cdiag. dsigdt(temp(i,j,kn),saln(i,j,kn))*util1(i,j),
 cdiag. dsigds(temp(i,j,kn),saln(i,j,kn))*util2(i,j),cabbl(i,j,k)
 c
  146  continue
-c$OMP END PARALLEL DO
 c
 cdiag if (itest.gt.0.and.jtest.gt.0)
 cdiag.write (lp,'(i9,2i5,i3,'' t,s,dp after isopyc.mix.'',2f9.3,f8.2)')
@@ -294,7 +285,6 @@ ccc      end do
 ccc      end do
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 155 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       do 155 k=1,kk
@@ -310,7 +300,6 @@ c
       vflxav(i,j,k)=vflxav(i,j,k)+vflxn(i,j,k)		!  vflx time integral
      .   *.5*min(nstep,2)
  155  continue
-c$OMP END PARALLEL DO
 c
       return
       end

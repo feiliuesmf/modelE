@@ -7,7 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       SUBROUTINE init_tracer
 !@sum init_tracer initializes trace gas attributes and diagnostics
@@ -19,9 +18,11 @@
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: dtsrc,itime
+      USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
-      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -91,6 +92,10 @@
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
       USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
+      USE AERO_COAG, only : SETUP_KIJ
+      USE AERO_SETUP
+      USE AERO_NPF, only: SETUP_NPFMASS
+      USE AERO_DIAM, only: SETUP_DIAM
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
@@ -174,6 +179,15 @@
       integer :: val
 
       INTEGER J_0, J_1, I_0, I_1
+
+C****
+C**** Set some documentary parameters in the database
+C****
+      call set_param("NTM",NTM,'o')
+      call set_param("TRNAME",TRNAME,ntm,'o')
+
+      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -278,8 +292,7 @@ C**** set super saturation parameter for isotopes if needed
       PRES(1:LM)=PMIDL00(1:LM)
 #endif /* TRACERS_SPECIAL_Shindell */
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 C**** seasalt from offline fields
@@ -559,7 +572,7 @@ C**** Get solar variability coefficient from namelist if it exits
           call set_trglac(n, 1.d+0)
 #endif
 #ifdef TRACERS_SPECIAL_O18
-          call set_iso_index(n, 1  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 1 ! indexing for isotopic fractionation calcs
 #endif
 
 #ifdef TRACERS_ON
@@ -567,10 +580,10 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('H2O18')
       n_H2O18 = n
           call set_ntm_power(n, -7)
-          call set_tr_mm(n, 20.)
+          call set_tr_mm(n, 20d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 2  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 2 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
           call set_trsi0(n, fracls(n)*trw0(n))
@@ -583,10 +596,10 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('HDO')
       n_HDO = n
           call set_ntm_power(n, -8)
-          call set_tr_mm(n, 19.)
+          call set_tr_mm(n, 19d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 3  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 3 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
           call set_trsi0(n, fracls(n)*trw0(n))
@@ -599,27 +612,27 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('HTO')
       n_HTO = n
           call set_ntm_power(n, -18)
-          call set_tr_mm(n, 20.)
+          call set_tr_mm(n, 20d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 4  ) ! indexing for isotopic fractionation calcs
-          call set_trw0(n, 0. !2.22d-18   ) ! SMOW mass ratio of water molecules
-          call set_trli0(n, 0.)
-          call set_trsi0(n, 0.)
-          call set_tr_H2ObyCH4(n, 0.)
+          iso_index(n) = 4 ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 0d0) !2.22d-18   ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0d0)
+          call set_trsi0(n, 0d0)
+          call set_tr_H2ObyCH4(n, 0d0)
           call set_trdecay(n,  1.77d-9)      ! =5.59d-2 /yr
           call set_ntrocn(n, -18)
 #ifdef TRACERS_OCEAN
-          call set_trglac(n, 0.)
+          call set_trglac(n, 0d0)
 #endif
 
       case ('H2O17')
       n_H2O17 = n
           call set_ntm_power(n, -7)
-          call set_tr_mm(n, 19.)
+          call set_tr_mm(n, 19d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 5  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 5 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
           call set_trsi0(n, fracls(n)*trw0(n))
@@ -1157,73 +1170,6 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
           call set_tr_wd_type(n, npart)
       case ('OCIA') !Aged industrial organic mass
       n_OCIA = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCI1') !Insoluble organic mass, 1st type: WIOC-SA
-      n_OCI1 = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0) !3D emissions
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCA1') !Aged organic mass, 1st type
-      n_OCA1 = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCI2') !Insoluble organic mass, 2nd type: WIOC-NA
-      n_OCI2 = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0) !industrial emissions
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCA2') !Aged organic mass, 2nd type
-      n_OCA2 = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCI3') !Insoluble organic mass, 3rd type: WSOC-LS
-      n_OCI3 = n
-          call set_ntm_power(n, -11)
-#ifdef TRACERS_AEROSOLS_SOA
-          call set_ntsurfsrc(n,  0)
-#else
-          call set_ntsurfsrc(n,  1) ! terpene emissions
-#endif  /* TRACERS_AEROSOLS_SOA */
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 0.2d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCA3') !Aged organic mass, 3rd type
-      n_OCA3 = n
-          call set_ntm_power(n, -11)
-          call set_ntsurfsrc(n,  0)
-          call set_tr_mm(n, 15.6d0)
-          call set_trpdens(n, 1.5d3)   !kg/m3
-          call set_trradius(n, 3.d-7 ) !m
-          call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-          call set_tr_wd_type(n, npart)
-      case ('OCA4') !soluble organic mass, 4th type: WSOC-MS
-      n_OCA4 = n
           call set_ntm_power(n, -11)
           call set_ntsurfsrc(n,  0)
           call set_tr_mm(n, 15.6d0)
@@ -2362,6 +2308,21 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call sync_param("atmCO2",atmCO2)
 #endif
 
+#ifdef TRACERS_AMP
+      CALL SETUP_CONFIG
+      CALL SETUP_SPECIES_MAPS
+      CALL SETUP_DP0
+      CALL SETUP_AERO_MASS_MAP
+      CALL SETUP_COAG_TENSORS
+      CALL SETUP_DP0
+      CALL SETUP_KIJ
+      CALL SETUP_EMIS
+      CALL SETUP_KCI
+      CALL SETUP_NPFMASS
+      CALL SETUP_DIAM
+      CALL SETUP_RAD
+#endif
+
       return
       end subroutine init_tracer
 
@@ -2941,101 +2902,6 @@ C**** set some defaults
           end if
 #endif
 
-        case ('OCI3')
-          g=13; itcon_3Dsrc(1,N) = g
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Emission src'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          g=g+1; itcon_3Dsrc(2,N) = g
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12) = 'Aging loss'
-          qsum(itcon_3Dsrc(2,N)) = .true.
-#ifndef TRACERS_AEROSOLS_SOA
-          g=g+1; itcon_surf(1,N) = g
-          qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Terpene src'
-          qsum(itcon_surf(1,N)) = .false.
-#endif  /* TRACERS_AEROSOLS_SOA */
-          g=g+1; itcon_mc(n) = g
-          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
-          qsum(itcon_mc(n)) = .false.
-          g=g+1; itcon_ss(n) = g
-          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
-          qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            g=g+1; itcon_dd(n,1)= g
-            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            g=g+1; itcon_dd(n,2)= g
-            qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
-          end if
-#endif
-
-        case ('OCI1','OCI2')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_3Dsrc(2,N) = 14
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
-          qsum(itcon_3Dsrc(2,N)) = .true.
-          itcon_mc(n) = 15
-          qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-          qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) = 16
-          qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-          qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            itcon_dd(n,1)=17
-            qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=18
-            qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
-          end if
-#endif
-
-        case ('OCA4')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_mc(n) = 14
-          qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-          qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) = 15
-          qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-          qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            itcon_dd(n,1)=16
-            qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=17
-            qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
-          end if
-#endif
-
-        case ('OCA1','OCA2','OCA3')
-          itcon_3Dsrc(1,N) = 13
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Decay src'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_mc(n) = 14
-          qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-          qsum(itcon_mc(n)) = .false.
-          itcon_ss(n) = 15
-          qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-          qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            itcon_dd(n,1)=16
-            qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-            qsum(itcon_dd(n,1)) = .false.
-            itcon_dd(n,2)=17
-            qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-            qsum(itcon_dd(n,2)) = .false.
-          end if
-#endif
-
         case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
           itcon_3Dsrc(1,N) = 13
           qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
@@ -3382,7 +3248,7 @@ c     Processes AMP Budget
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,byim
+      USE MODEL_COM, only: dtsrc
       USE TRACER_COM
       USE DIAG_COM
 #ifdef TRACERS_ON
@@ -4423,75 +4289,7 @@ c gravitational settling of OCII
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif  /* TRACERS_AEROSOLS_SOA */
-      case ('OCI3')
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Grav Settling of '//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(1,n) = k   ! 3D source
-        sname_jls(k) = 'emission_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Emission of'//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(2,n) = k   ! defined but not output
-        sname_jls(k) = 'unused'    ! 'Aging_sink_'//trname(n)
-        lname_jls(k) = 'unused'    ! 'OCIA aging sink'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#ifndef TRACERS_AEROSOLS_SOA
-        k = k + 1
-        jls_source(1,n) = k ! Terpene source should always be last
-        sname_jls(k) = 'terpene_src_'//TRIM(trname(n))
-        lname_jls(k) = 'OCI3 Terpene source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif  /* TRACERS_AEROSOLS_SOA */
-      case ('OCI1','OCI2')
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Grav Settling of '//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(1,n) = k   ! 3D source
-        sname_jls(k) = 'emission_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Emission of'//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(2,n) = k   ! defined but not output
-        sname_jls(k) = 'unused'    ! 'Aging_sink_'//trname(n)
-        lname_jls(k) = 'unused'    ! 'OCIA aging sink'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-       case ('OCA4')
-        k = k + 1
-        jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Grav Settling of '//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(1,n) = k   ! 3D source
-        sname_jls(k) = 'emission_of_'//TRIM(trname(n))
-        lname_jls(k) = 'Emission of'//TRIM(trname(n))
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-      case ('OCIA','OCA1','OCA2','OCA3')
+      case ('OCIA')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_source_'//TRIM(trname(n))
@@ -5920,149 +5718,7 @@ c BCB clear sky longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-      case ('OCI3')
-#ifndef TRACERS_AEROSOLS_SOA
-        k = k + 1
-        ijts_source(1,n) = k ! Terpene source should always be last
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'OC Terpene source'
-        sname_ijts(k) = 'OC_Terpene_source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif  /* TRACERS_AEROSOLS_SOA */
-        k = k + 1
-        ijts_3Dsource(1,n) = k   ! Emissions
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =  TRIM(trname(n))//' Emissions'
-        sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_3Dsource(2,n) = k   ! defined but not output
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
-        sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      case ('OCI1','OCI2')
-        k = k + 1
-        ijts_3Dsource(1,n) = k   ! Emissions
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =  TRIM(trname(n))//' Emissions'
-        sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_3Dsource(2,n) = k   ! defined but not output
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'unused'       ! 'Aging sink'
-        sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      case ('OCA4')
-        k = k + 1
-        ijts_3Dsource(1,n) = k   ! Emissions
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =  TRIM(trname(n))//' Emissions'
-        sname_ijts(k) = TRIM(trname(n))//'_emissions'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef TRACERS_OM_SP
-
-        call set_diag_rad(n,k)
-
-c OC shortwave radiative forcing
-        k = k + 1
-        ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
-        sname_ijts(k) = 'swf_'//TRIM(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC longwave radiative forcing
-        k = k + 1
-        ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
-        sname_ijts(k) = 'lwf_'//TRIM(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC shortwave surface radiative forcing
-        k = k + 1
-        ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
-        sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC longwave surface radiative forcing
-        k = k + 1
-        ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
-        sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC clear sky shortwave radiative forcing
-        k = k + 1
-        ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
-        sname_ijts(k) = 'swf_CS_OC'
-        dname_ijts(k) = 'clrsky'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC clear sky longwave radiative forcing
-        k = k + 1
-        ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
-        sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
-        dname_ijts(k) = 'clrsky'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC clear sky shortwave surface radiative forcing
-        k = k + 1
-        ijts_fc(7,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' clr sky SW surf rad forcing'
-        sname_ijts(k) = 'swf_CS_surf_'//TRIM(trname(n))
-        dname_ijts(k) = 'clrsky'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c OC clear sky longwave surface radiative forcing
-        k = k + 1
-        ijts_fc(8,n) = k
-        ia_ijts(k) = ia_rad_frc
-        lname_ijts(k) = TRIM(trname(n))//' clr sky LW surf rad forcing'
-        sname_ijts(k) = 'lwf_CS_surf_'//TRIM(trname(n))
-        dname_ijts(k) = 'clrsky'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-#endif
-      case ('OCIA','OCA1','OCA2','OCA3')
+      case ('OCIA')
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
@@ -6072,7 +5728,7 @@ c OC clear sky longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#ifdef TRACERS_AEROSOLS_Koch
 
         call set_diag_rad(n,k)
 
@@ -7774,7 +7430,7 @@ c      enddo
       subroutine FindStrings(StringsToFind,ListOfStrings,Indices,n)
 !@sum FindStrings finds the positions of a list of strings in a 2nd list.
 !     Needs optimization.
-      use diag_com, only : sname_strlen
+      use mdiag_com, only : sname_strlen
       implicit none
       integer :: n
       character(len=sname_strlen), dimension(n) ::
@@ -8493,18 +8149,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
-      USE resolution,ONLY : Im,Jm,Lm,Ls1
-      USE MODEL_COM, only: itime,jday,dtsrc,ptop,q,wm,flice,jyear,
-     & PMIDL00, itimeI
-#ifdef TRACERS_WATER
-     &     ,focean
-#endif
+      USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
+      USE ATM_COM, only : q,wm
+      USE MODEL_COM, only: itime,jday,dtsrc,jyear,itimeI
+      USE ATM_COM, only: pmidl00
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *     tr_mm,rnsrc,vol2mass,trsi0
-#if (defined TRACERS_AEROSOLS_Koch)||(defined TRACERS_OM_SP)||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
 #endif
 #ifdef TRACERS_WATER
@@ -8516,10 +8169,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
-      USE FLUXES, only : gtracer
+      USE FLUXES, only : gtracer,flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
-      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -8545,9 +8198,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE TRACER_SOURCES, only:GLTic
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
-      USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      USE AEROSOL_SOURCES, only: DMSinput,BCI_src,
      * om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,n_OCII,
@@ -8632,19 +8284,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       include 'netcdf.inc'
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       integer start(3),count(3),status,ncidu,id1
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      * bci_src1,bci_src2,bci_src3,bci_src4
      * ,oci_src1,oci_src2,oci_src3,oci_src4
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) ::
-     *  OCI_src5
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll,iudms
       INTEGER iuc2,lmax
-      real*8 carbstuff,ccnv,carb(8)
+      real*8 carbstuff,ccnv
 #endif
 #if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP)
 #ifdef CUBED_SPHERE /* 1-deg volc. emiss */
@@ -9333,7 +8981,6 @@ c**** earth
         case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3',
      *         'N_d1','N_d2','N_d3','NH3','NH4','NO3p',
      *         'BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB', 'H2O2_s',
-     *         'OCI1', 'OCI2', 'OCI3', 'OCA1','OCA2', 'OCA3', 'OCA4',
      *         'seasalt1', 'seasalt2',
      *         'M_NO3   ','M_NH4   ','M_H2O   ','N_AKK_1 ',
      *         'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',
@@ -9510,8 +9157,7 @@ c      call closeunit(iuc)
 #endif
 ! ---------------------------------------------------
 #ifndef TRACERS_AEROSOLS_SOA
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c Terpenes
       OCT_src(:,:,:)=0.d0
       call openunit('Terpenes_01',iuc,.true.,.true.)
@@ -9533,20 +9179,6 @@ c units are mg Terpene/m2/month
       end do; end do; end do
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_OM_SP
-       OCI_src(:,:,1:8)= 0.d0
-       call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,(carb(ir),ir=1,8)
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       DO mm=1,8
-       OCI_src5(ii,jj,mm)=carb(mm)
-       END DO
-       call closeunit(iuc)
-       OCI_src(:,j_0:j_1,1:4)=OCI_src5(:,j_0:j_1,1:4)
-     * *1.3d0/(sday*365.d0)
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c **** reads in files for dust/mineral tracers
@@ -9562,15 +9194,17 @@ c **** reads in files for dust/mineral tracers
 !@+     tracers that 'turn on' on different dates.
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
-      USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
-     $     ,flake0,jyear,p,t,lm
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : p,t
+      USE MODEL_COM, only:jmon,jday,itime,jyear
+      USE FLUXES, only : fearth0,focean,flake0
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
-      USE TRACER_COM, only: daily_z
+      USE TRACER_COM, only: coupled_chem,daily_z
       USE CONSTANT, only: grav
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
@@ -9584,12 +9218,12 @@ C**** Note this routine must always exist (but can be a dummy routine)
      * ,n_M_BOC_OC
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE resolution,ONLY : lm
+      USE resolution,ONLY : lm,psf
       USE GEOM, only: axyp
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: trm,vol2mass,trmom,n_CO2n
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
-      USE MODEL_COM, only : nday,nstep=>itime,psf
+      USE MODEL_COM, only : nday,nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
@@ -9943,16 +9577,17 @@ C**** at the start of any day
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon,nday,flice,focean,im,jm
+      USE RESOLUTION, only : pmtop,psf
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,jmon,nday
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
      *   ,globalmax
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE FLUXES, only: trsource
+      USE FLUXES, only: trsource,fland,flice,focean
       USE SEAICE_COM, only: rsi
       USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
@@ -9964,8 +9599,7 @@ C**** at the start of any day
       USE CO2_SOURCES, only: co2_src
       USE CH4_SOURCES, only: ch4_src
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,BBinc
 #ifndef TRACERS_AEROSOLS_SOA
      * ,OCT_src
@@ -10490,15 +10124,6 @@ c! TRACERS_AMP
 #endif  /* TRACERS_AEROSOLS_SOA */
          end do
 #endif  /* TRACERS_AEROSOLS_Koch */
-
-#ifdef TRACERS_OM_SP
-      case ('OCI3')
-#ifndef TRACERS_AEROSOLS_SOA
-        do j=J_0,J_1
-          trsource(:,j,1,n) = OCT_src(:,j,jmon)
-        end do
-#endif  /* TRACERS_AEROSOLS_SOA */
-#endif
       end select
 
 ! please keep at end of tracer loop :
@@ -10612,8 +10237,8 @@ c latlon grid
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
-      USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
-      use dynamics, only: phi
+      USE ATM_COM, only: am,byam ! Air mass of each box (kg/m^2)
+      use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
@@ -10627,14 +10252,13 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: n_soa_i,n_soa_e
 #endif  /* TRACERS_AEROSOLS_SOA */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src_3d,
-     *     OCBt_src,BCBt_src,OCI_src
+     *     BCBt_src
      *     ,BBinc,om2oc
 
 c Laki emissions
-c     USE DYNAMICS, only: LTROPO
+c     USE ATM_COM, only: LTROPO
 c     USE CONSTANT, only: sday
 c     USE MODEL_COM, only: jday,jyear
 c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
@@ -10787,52 +10411,6 @@ C**** 3D biomass source
         call apply_tracer_3Dsource(nBiomass,n)
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell */
 
-#ifdef TRACERS_OM_SP
-      case ('OCI1')
-c**** biomass + industrial for OC species
-      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
-      do j=J_0,J_1; do i=I_0,I_1
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      tr3Dsource(i,j,l,1,n) = OCBt_src(i,j)/real(blay)*OCI_src(i,j,5)
-      end do
-      tr3Dsource(i,j,1,1,n) = tr3Dsource(i,j,1,1,n)+OCI_src(i,j,1)
-      end do; end do
-      call apply_tracer_3Dsource(1,n) ! biomass+industrial
-      case ('OCI2')
-c**** biomass + industrial for OC species
-      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
-      do j=J_0,J_1; do i=I_0,I_1
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      tr3Dsource(i,j,l,1,n) = OCBt_src(i,j)/real(blay)*OCI_src(i,j,6)
-      end do
-      tr3Dsource(i,j,1,1,n) = tr3Dsource(i,j,1,1,n)+OCI_src(i,j,2)
-      end do; end do
-      call apply_tracer_3Dsource(1,n) ! biomass+industrial
-      case ('OCI3')
-c**** biomass + industrial for OC species
-      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
-      do j=J_0,J_1; do i=I_0,I_1
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      tr3Dsource(i,j,l,1,n) = OCBt_src(i,j)/real(blay)*OCI_src(i,j,7)
-      end do
-      tr3Dsource(i,j,1,1,n) = tr3Dsource(i,j,1,1,n)+OCI_src(i,j,3)
-      end do; end do
-      call apply_tracer_3Dsource(1,n) ! biomass+industrial
-      case ('OCA4')
-c**** biomass + industrial for OC species
-      tr3Dsource(:,J_0:J_1,:,1,n) = 0.
-      do j=J_0,J_1; do i=I_0,I_1
-      blay=int(dclev(i,j)+0.5)
-      do l=1,blay
-      tr3Dsource(i,j,l,1,n) = OCBt_src(i,j)/real(blay)*OCI_src(i,j,8)
-      end do
-      tr3Dsource(i,j,1,1,n) = tr3Dsource(i,j,1,1,n)+OCI_src(i,j,4)
-      end do; end do
-      call apply_tracer_3Dsource(1,n) ! biomass+industrial
-#endif
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
 C****
@@ -10860,7 +10438,7 @@ C****
 
       end do
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+#if (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AMP)
 c Calculation of gas phase reaction rates for sulfur chemistry
       CALL GET_SULF_GAS_RATES
@@ -10891,15 +10469,6 @@ c Calculation of gas phase reaction rates for sulfur chemistry
        call apply_tracer_3Dsource(1,n_SO4_d2) ! SO4 chem prod on dust
        call apply_tracer_3Dsource(1,n_SO4_d3) ! SO4 chem prod on dust
 #endif
-#endif
-#ifdef TRACERS_OM_SP
-       call aerosol_gas_chem
-       call apply_tracer_3Dsource(2,n_OCI1) ! OCI1 aging sink
-       call apply_tracer_3Dsource(1,n_OCA1) ! OCA1 aging source
-       call apply_tracer_3Dsource(2,n_OCI2) ! OCI2 aging sink
-       call apply_tracer_3Dsource(1,n_OCA2) ! OCA2 aging source
-       call apply_tracer_3Dsource(2,n_OCI3) ! OCI3 aging sink
-       call apply_tracer_3Dsource(1,n_OCA3) ! OCA3 aging source
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -11161,7 +10730,6 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
@@ -11298,7 +10866,7 @@ C**** this is a parameterisation from Georg Hoffmann
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON)
 c only dissolve if the cloud has grown
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
@@ -11394,7 +10962,6 @@ c
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
 ! NOTE: THLAW is only computed for the tracers in gases_list!
 c
 C**** GLOBAL parameters and variables:
@@ -11548,7 +11115,7 @@ C**** this is a parameterisation from Georg Hoffmann
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON)
 c
 c aerosols
@@ -11679,7 +11246,6 @@ c      enddo ! end loop over aerosols
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
@@ -11737,7 +11303,7 @@ c            ssfac=RKD*WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_QUARZHEM) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON)
           fq = -b_beta_DT*(EXP(-PREC*rc_washt(ntix(n)))-1.D0)
@@ -11765,7 +11331,6 @@ c
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
 ! NOTE: THLAW is only computed for the tracers in gases_list!
 ! NOTE: FQ is only computed for the tracers in aero_list!
 c
@@ -11842,7 +11407,7 @@ c      fq(water_list) = 0d0
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_QUARZHEM) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON)
 c
@@ -11874,7 +11439,6 @@ c         endif
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
@@ -11933,7 +11497,6 @@ C**** no fractionation for ice evap
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
@@ -12002,10 +11565,11 @@ C**** no fractionation for ice evap
 !@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
 !@+    gas phase sulfur oxidation chemistry
 !@auth Bell
-!@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,t,ls1
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only: t
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
-      USE DYNAMICS, only: pmid,am,pk,LTROPO
+      USE ATM_COM, only: pmid,am,pk,LTROPO
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
 #ifdef TRACERS_SPECIAL_Shindell

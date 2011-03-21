@@ -92,7 +92,6 @@ c
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -101,7 +100,6 @@ c
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
-      Use GEOM,  only : AXYP
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : NTM
@@ -169,7 +167,7 @@ c
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
       do N=1,NTM
-        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)
         if (hasNorthPole(agrid)
      &       .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(atmp(N,:,aJM),aIM)
@@ -261,7 +259,6 @@ c*   polar values are replaced by their longitudinal mean
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -269,7 +266,6 @@ c*   polar values are replaced by their longitudinal mean
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
-      Use GEOM,  only : AXYP
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : NTM
@@ -323,7 +319,7 @@ c*   polar values are replaced by their longitudinal mean
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
       DO N=1,NTM
-        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)
       END DO
       CALL INT_AG2OG(atmp,oTRPREC, aWEIGHT, NTM)
       DO N=1,NTM
@@ -351,7 +347,6 @@ c*   polar values are replaced by their longitudinal mean
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -742,7 +737,6 @@ c*    actual interpolation here
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1004,7 +998,6 @@ C**** surface tracer concentration
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1089,7 +1082,7 @@ C**** surface tracer concentration
 #ifndef CUBED_SPHERE
        Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
       use ocean, only : remap_A2O
       USE ArrayBundle_mod
@@ -1205,12 +1198,13 @@ C**** surface tracer concentration
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-            atmp01(I,J) = aFLOWO(I,J)*aFact(I,J)
-            atmp02(I,J) = aEFLOWO(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
             atmp03(I,J) = aMELTI(I,J)*aFact(I,J)
             atmp04(I,J) = aEMELTI(I,J)*aFact(I,J)
             atmp05(I,J) = aSMELTI(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
+            atmp01(I,J) = aFLOWO(I,J)*aFact(I,J)
+            atmp02(I,J) = aEFLOWO(I,J)*aFact(I,J)
             atmp06(I,J) = aGMELT(I,J)*aFact(I,J)
           END IF
         END DO
@@ -1787,7 +1781,6 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1807,6 +1800,7 @@ c*
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
       USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
      *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
@@ -1868,8 +1862,6 @@ c*
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
-
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
@@ -1940,6 +1932,38 @@ c*
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            atmp(I,J) = aGMELT(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(atmp,oGMELT, aWEIGHT)
+      oGMELT(:,:) = oGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/AXYP(I,J) ! not used?
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(atmp,oEGMELT, aWEIGHT)
+      oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
             atmp(I,J) = aMELTI(I,J)*aFact(I,J)
           END IF
         END DO
@@ -1973,37 +1997,6 @@ c*
         END DO
       END DO
       CALL INT_AG2OG(atmp,oSMELTI, aWEIGHT)
-      deallocate(atmp)
-
-      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
-      atmp=0.
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            atmp(I,J) = aGMELT(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      CALL INT_AG2OG(atmp,oGMELT, aWEIGHT)
-      oGMELT(:,:) = oGMELT(:,:)*OXYP(:,:)
-      deallocate(atmp)
-
-      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
-      atmp=0.
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
-            aFact(I,J) = 1.d0/AXYP(I,J) ! not used?
-          END IF
-        END DO
-      END DO
-      CALL INT_AG2OG(atmp,oEGMELT, aWEIGHT)
-      oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
       deallocate(atmp)
 
       aWEIGHT(:,:) = aRSI(:,:)
@@ -2055,6 +2048,7 @@ c*
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
+              aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
               atmp2(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
             END IF
           END DO
@@ -2144,7 +2138,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2162,7 +2155,7 @@ c*
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON
@@ -2328,7 +2321,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2345,7 +2337,7 @@ c*
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON

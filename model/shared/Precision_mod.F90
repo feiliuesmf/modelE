@@ -6,7 +6,6 @@ module Precision_mod
 !@+    where fraction(x) = O(1).  The part of fraction(x) smaller than
 !@+    relacc is discarded.
 !@auth M. Kelley
-!@ver  1.0
   implicit none
   public :: reduce_precision
   interface reduce_precision

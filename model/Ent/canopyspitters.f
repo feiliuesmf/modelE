@@ -1136,7 +1136,6 @@ C#endif
       FUNCTION QSAT (TM,LH,PR)
 !@sum  QSAT calculates saturation vapour mixing ratio
 !@auth Gary Russell
-!@ver  1.0 (I think this is at least version 2.0)
 !      USE CONSTANT, only : mrat,rvap,tf
       IMPLICIT NONE
 !@var Physical constants from GISS GCM CONST.f
@@ -1163,7 +1162,6 @@ C**** LH = 0.5*(LH(0)+LH(t)), where LH(0)=
 !      implicit none
 !!@sum  QSAT calculates saturation vapour mixing ratio (kg/kg)
 !!@auth Gary Russell
-!!@ver  1.0
 !!      USE CONSTANT, only : mrat,rvap,tf
 !!      IMPLICIT NONE
 !!@var A,B,C   expansion coefficients for QSAT

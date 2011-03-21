@@ -3,7 +3,6 @@
 !@sum  These are constants that would be common to the GCM/EWB, so should
 !@sum  have the GCM/EWB constants substituted in for coupled runs.
 !@auth N.Kiang
-!@ver  1.0
 
       !* COUPLED RUNS - Replace with values from GCM constants*!
       !use Name_of_GCM_constants_module  

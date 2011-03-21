@@ -27,17 +27,19 @@ C****
 
       END SUBROUTINE CALC_ZENITH_ANGLE
 
-      SUBROUTINE init_RAD(postProc)
+      SUBROUTINE init_RAD(istart)
 !@sum  init_RAD initialises radiation code
 !@auth Original Development Team
-!@ver  1.0
 !@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : grav,bysha,twopi
-      USE MODEL_COM, only : jm,lm,dtsrc,nrad
-     *     ,kradia,lm_req,pednl00,jyear,iyear1
+      USE RESOLUTION, only : jm,lm
+      USE ATM_COM, only : t,pk,kradia,lm_req
+      USE MODEL_COM, only : dtsrc,jyear,iyear1
+      USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
+     &     ,readt_parallel
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
@@ -56,7 +58,7 @@ C****
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
-      USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
+      USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -65,7 +67,7 @@ C****
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
-     *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par
+     *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par,nrad
 #ifdef TRACERS_ON
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
@@ -93,7 +95,7 @@ C****
       use IndirectAerParam_mod, only: dCDNC_est, aermix
       IMPLICIT NONE
 
-      logical, intent(in) :: postProc
+      integer, intent(in) :: istart
       INTEGER L,LR,n1,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -110,7 +112,7 @@ C****
 #if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
       integer, parameter :: nlt=33
       real*8 :: aw(nlt), bw(nlt), saw, sbw
-      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
       integer :: nl,ic , iu_bio, lambda, lam(nlt)
       character title*50
       data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
@@ -120,7 +122,14 @@ C****
       character(len=300) :: out_line
       character*6 :: skip
 
+      INTEGER :: I,J
+      INTEGER :: I_0,I_1,J_0,J_1
+
 C**** sync radiation parameters from input
+      call sync_param( "NRAD", NRAD ) !!
+      call sync_param( "variable_orb_par", variable_orb_par )
+      call sync_param( "orb_par_year_bp", orb_par_year_bp )
+      call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "S0X", S0X )
       call sync_param( "CO2X", CO2X )
       call sync_param( "N2OX", N2OX )
@@ -170,7 +179,17 @@ C**** sync radiation parameters from input
       call sync_param( "ref_mult", ref_mult )
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
-      if (postProc) return
+
+      CALL GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+
+      if(istart==2) then ! replace with cold vs warm start logic
+C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+          RQT(:,I,J)=T(I,J,LM)*PK(LM,I,J)
+        ENDDO
+        ENDDO
+      endif
 
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
@@ -320,17 +339,6 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
      *        n_N_BC2_1 ,n_N_BC3_1,
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
-#endif
-#ifdef TRACERS_OM_SP
-      if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
-        FS8OPX = (/1d0, 1d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
-        FT8OPX = (/1d0, 1d0, 1d0, 0d0, 1d0, 1d0, 1.3d0, 1d0/)
-      end if
-      NTRACE=1
-      TRRDRY(1:NTRACE)=(/ .3d0/)
-      NTRIX(1:NTRACE)=
-     *     (/n_OCA4/)
-      WTTR(1:NTRACE) = 1d0
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
@@ -626,8 +634,8 @@ C**** Read in the factors used for alterations:
         aw(nl) = saw
         bw(nl) = sbw
         if (lam(nl) .lt. 900) then
-          t = exp(-(aw(nl)+0.5*bw(nl)))
-          tlog = dlog(1.0D-36+t)
+          expterm = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+expterm)
           fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
           wfac(nl) = max(0d0,min(fac,1d0))
         else
@@ -649,6 +657,16 @@ c**** set tracerRadiaActiveFlag for radiatively active tracer
       nTracerRadiaActive=count(tracerRadiaActiveFlag)
 #endif
 
+c transplanted from main().  needs reviving
+c      USE RAD_COM, only : dimrad_sv
+c      CHARACTER aDATE*14
+c      if (Kradia.ne.0 .and. Kradia<10) then
+c        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+c        if (Kradia.gt.0) aDATE(4:7)='    '
+c        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
+c      end if
+
       RETURN
       END SUBROUTINE init_RAD
 
@@ -667,7 +685,8 @@ c**** set tracerRadiaActiveFlag for radiatively active tracer
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,GET,REWIND_PARALLEL
      *     ,READT_PARALLEL
-      USE MODEL_COM, only : jday,jyear,im,jm,focean,jmon,JDendOfM
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : jday,jyear,jmon,JDendOfM
      *     ,JDmidOfM, jdate
       USE GEOM, only : imaxj
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
@@ -680,7 +699,7 @@ c**** set tracerRadiaActiveFlag for radiatively active tracer
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
-      USE FLUXES, only : chl
+      USE FLUXES, only : focean,chl
 #endif
       use DIAG_COM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
@@ -806,17 +825,154 @@ C**** REPLICATE VALUES AT POLE
       RETURN
       END SUBROUTINE daily_RAD
 
+      SUBROUTINE DAILY_orbit(end_of_day)
+!@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
+!@auth Original Development Team
+!@calls constant:orbit
+      USE MODEL_COM, only : jyear,jday
+      USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,SUNSET,
+     *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
+     *     variable_orb_par,orb_par_year_bp
+      USE DOMAIN_DECOMP_ATM, only : am_I_root
+      use RAD_COSZ0, only : daily_cosz
+      IMPLICIT NONE
+      REAL*8 :: SUNLON,SUNLAT,LAM,EDPY,VEDAY,PYEAR
+      LOGICAL, INTENT(IN) :: end_of_day
+
+C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
+C**** This is for noon (GMT) for new day.
+
+C**** The orbital calculation will need to vary depending on the kind
+C**** of calendar adopted (i.e. a generic 365 day year, or a transient
+C**** calendar including leap years etc.).  For transient calendars the
+C**** JDAY passed to orbit needs to be adjusted to represent the number
+C**** of days from Jan 1 2000AD.
+c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
+c      JDAY => JDAY + 365 * (JYEAR-2000) + appropriate number of leaps
+C**** Default calculation (no leap, VE=Mar 21 hr 0)
+c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
+C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
+      EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
+C**** Update orbital parameters at start of year
+      if (variable_orb_par == 1.and.JDAY == 1) then
+        pyear = JYEAR - orb_par_year_bp ! bp=before present model year
+        call orbpar(pyear, eccn, obliq, omegt)
+        if (am_I_root()) then
+          write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
+          if (orb_par_year_bp.ne.0) write(6,*) 'offset by',
+     *      orb_par_year_bp,' years from model year'
+          write(6,*) "   Eccentricity: ",eccn
+          write(6,*) "   Obliquity (degs): ",obliq
+          write(6,*) "   Precession (degs from ve): ",omegt
+        end if
+      end if
+
+      CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
+     *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
+      call daily_cosz(sind,cosd,cosz_day,sunset)
+
+      RETURN
+      END SUBROUTINE DAILY_orbit
+
+      SUBROUTINE DAILY_ch4ox(end_of_day)
+!@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
+!@auth Original Development Team
+!@calls constant:orbit
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : q
+      USE MODEL_COM, only : itime,jyear,jmon
+      USE GEOM, only : axyp,imaxj,lat2d
+      USE ATM_COM, only : byAM
+      USE RADPAR, only : ghgam,ghgyr2,ghgyr1
+      USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
+     *     ,ntm
+#endif
+      USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, am_I_root
+      IMPLICIT NONE
+      REAL*8 :: xCH4,xdH2O
+      INTEGER i,j,l,iy,it
+      LOGICAL, INTENT(IN) :: end_of_day
+#ifdef TRACERS_WATER
+      INTEGER n
+#endif
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, I_0,I_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      IF (.not.end_of_day) RETURN
+
+C**** Tasks to be done at end of day only
+      if (H2ObyCH4.gt.0) then
+C****   Add obs. H2O generated by CH4(*H2ObyCH4) using a 2 year lag
+        iy = jyear - 2 - ghgyr1 + 1
+        if (ghg_yr.gt.0) iy = ghg_yr - 2 - ghgyr1 + 1
+        if (iy.lt.1) iy=1
+        if (iy.gt.ghgyr2-ghgyr1+1) iy=ghgyr2-ghgyr1+1
+        xCH4=ghgam(3,iy)*H2ObyCH4
+c        If (AM_I_ROOT())
+c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
+
+        do l=1,lm
+        do j=J_0,J_1
+        do i=I_0,imaxj(j)
+#ifdef CUBED_SPHERE
+          call lat_interp_qma(lat2d(i,j),l,jmon,xdH2O)
+#else
+          xdH2O = dH2O(j,l,jmon)
+#endif
+          q(i,j,l)=q(i,j,l)+xCH4*xdH2O*byAM(l,i,j)
+#ifdef TRACERS_WATER
+C**** Add water to relevant tracers as well
+          do n=1,ntm
+            if (itime_tr0(n).le.itime) then
+              select case (tr_wd_type(n))
+              case (nWater)    ! water: add CH4-sourced water to tracers
+                trm(i,j,l,n) = trm(i,j,l,n) +
+     +                tr_H2ObyCH4(n)*xCH4*xdH2O*axyp(i,j)
+              end select
+            end if
+          end do
+#endif
+          do it=1,ntype
+            call inc_aj(i,j,it,j_h2och4,xCH4*xdH2O*ftype(it,i,j))
+          end do
+        end do
+        end do
+        If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
+        If (HAVE_SOUTH_POLE) q(2:im, 1,l)=q(1, 1,l)
+#ifdef TRACERS_WATER
+        do n=1,ntm
+          If (HAVE_SOUTH_POLE) trm(2:im, 1,l,n)=trm(1, 1,l,n)
+          If (HAVE_NORTH_POLE) trm(2:im,jm,l,n)=trm(1,jm,l,n)
+        end do
+#endif
+        end do
+      end if
+
+      RETURN
+      END SUBROUTINE DAILY_ch4ox
+
       SUBROUTINE RADIA
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
-!@ver  1.0
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
+      USE RESOLUTION, only : pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : kradia,lm_req,p,t,q,iu_rad,req_fac_d
       USE MODEL_COM
+      USE ATM_COM, only : byaml00
       USE GEOM, only : imaxj, axyp, areag, byaxyp
      &     ,lat2d,lon2d
-c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
@@ -850,6 +1006,7 @@ C     OUTPUT DATA
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
      &          ,SRXNIR,SRDNIR
+      USE RAD_COM, only : modrd,nrad
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
@@ -888,6 +1045,7 @@ C     OUTPUT DATA
      *                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
+     &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
      *     ,adiurn=>adiurn_loc,ndiuvar,ia_rad_frc,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
@@ -901,6 +1059,7 @@ C     OUTPUT DATA
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb, idd_aot
+     *     ,idd_aot2
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_wcldwt,jl_icldwt
@@ -921,7 +1080,7 @@ C     OUTPUT DATA
      *     ,j_vtau,j_ghg
 #endif
 
-      USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
+      USE ATM_COM, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -937,6 +1096,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr,bare_soil_wetness
+     &     ,flice,fland,focean
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      .                  ,chl
 #endif
@@ -947,7 +1107,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
-     *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
+     *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
      *     ,tr_mm,n_NH4,n_NO3p
 #endif
@@ -994,8 +1154,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     sumda_psum,tauda_psum
-      COMMON/RADPAR_hybrid/U0GAS(LX,13)
-!$OMP  THREADPRIVATE(/RADPAR_hybrid/)
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1086,8 +1244,11 @@ C
       REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
-
+#ifdef TRACERS_AMP
+      INTEGER, PARAMETER :: NLOC_DIU_VARb = 5
+#else
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
+#endif
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
@@ -1114,8 +1275,11 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
+#ifdef TRACERS_AMP
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot, idd_aot2 /)
+#else
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
-
+#endif
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -1243,8 +1407,8 @@ C****   Calculate mean strat water conc
             END DO
           END DO
           IF (J.eq.1 .or. J.eq.JM) THEN
-            STRJ=STRJ*FIM
-            MSTJ=MSTJ*FIM
+            STRJ=STRJ*IM
+            MSTJ=MSTJ*IM
           END IF
           STRATQ=STRATQ+STRJ
           MSTRAT=MSTRAT+MSTJ
@@ -1348,61 +1512,6 @@ C****
 c     ICKERR=0
 c     JCKERR=0
 c     KCKERR=0
-
-!$OMP  PARALLEL DEFAULT(NONE)
-!$OMP*   PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   tmp,tmpS,tmpT,StauL,dALBsn1,
-!$OMP*   I,INCH,IH,IHM,IT,JR, K,KR, L,LR,LFRC, N, onoff_aer,
-!$OMP*   onoff_chem, OPNSKY, CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,
-!$OMP*   taugcb,set_clayilli,set_claykaol,set_claysmec,set_claycalc,
-!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,pvt0,
-#ifdef ALTER_RADF_BY_LAT
-!$OMP*   fulgas,FS8OPX,FT8OPX,
-#endif
-!$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
-!$OMP*   COPYIN(/RADPAR_hybrid/)
-!$OMP*   SHARED(ITWRITE, J,I_0,IMAXJ,lon2d,lat2d,jreg,fland,rsi,
-!$OMP*    flake,flice,fearth,gtempr,itime,ltropo,t,pk,qr,cldx,cldinfo,
-!$OMP*    cc_cdncx,cdncl,od_cdncx,PLIJ,q,rhsav,fss,cldsav,cldss,rdss,
-!$OMP*    tauss,kradia,cldmc,rdmc,pdsig,taumc,pmid,
-!$OMP*   AIJL,CSIZMC,svlat,csizss,svlhx,cfrac,ftype,
-!$OMP*   AIJ,llow,lmid,lhi,
-!$OMP*   nrad,jtime,nday,
-!$OMP*   idx,pedn,rhfix,ntrace,ntrix,n_ocb, trm,n_ocii,n_ocia,
-!$OMP*   idd_cl7,idd_ccv,adiurn,byaxyp,n_oci1,n_oca1,n_oci2,
-!$OMP*   n_oca3,n_oca4,n_bcii,n_bcia,wttr,rqt,plb0,shl0,tchg,aflx_st,
-!$OMP*   cosza, tsavg, snowi, snowli_com,snowe_com,fr_snow_rad_ij,
-!$OMP*   snoage,xdalbs,depobc,msi,n_oca2,n_oci3,flag_dsws,
-!$OMP*   pond_melt,fmp_com,mwl,axyp,bare_soil_wetness,wsoil,
-!$OMP*   entcells,wsavg,rad_forc_lev,rad_interact_aer,
-!$OMP*   clim_interact_chem,chem_tracer_save,lmax_rad_o3,lmax_rad_ch4,
-!$OMP*   kliq,snfst,tnfst,snfst_ozone,tnfst_ozone,nfsnbc,albnbc,
-!$OMP*   cloud_rad_forc,snfscrf,tnfscrf,
-#ifdef ALTER_RADF_BY_LAT
-!$OMP*   fulgas_orig,FS8OPX_orig,FT8OPX_orig,
-#endif
-!$OMP*   cosz2,aer_rad_forc,
-!$OMP*   FS8OPX,FT8OPX,SNFSAERRF,TNFSAERRF,nrad_clay,diag_rad,
-!$OMP*   ttausv_cs_save, iwrite, jwrite, rad_to_chem, srhra,trhra,
-!$OMP*   DTsrc,byam,byaml00,fsf,srhr,trhr,trsurf,srhrs,trhrs,snfs,tnfs,
-!$OMP*   trincg,btmpw,alb,aj_alb_inds,srnflb_save,trnflb_save,srdn,
-!$OMP*   FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR,taijls,taijs,
-!$OMP*   ttausv_sum,ttausv_sum_cs,adiurn_dust,ttausv_save,
-#ifdef TRACERS_SPECIAL_Shindell
-!$OMP*   ttausv_ntrace,
-#endif
-!$OMP*   rcld,IJ_PMCCLD,ij_cldcv,ij_pcldl,ij_pcldh,jl_sscld,jl_mccld,
-!$OMP*   jl_totcld,IJL_CF,jl_wcld,jl_wcldwt,jl_icld,ij_swdcls,ij_frmp,
-!$OMP*   jl_icldwt,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz,ijdd,ij_pcldm,
-!$OMP*   j_pcldss,j_pcldmc,j_clddep,j_pcld,ij_swnclt,ij_lwnclt,
-!$OMP*   ijts_tausub,ijlt_3dtau,ijts_sqexsub,ij_swncls,ij_lwdcls,
-!$OMP*   ijts_sqscsub,ijts_sqcbsub,ijts_tau,ijts_sqex,ijts_sqsc,
-!$OMP*   IJ_CLR_SRINCG,ijts_sqcb,ij_optdw,ij_wtrcld,ij_optdi,ij_icecld,
-!$OMP*   IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,IJ_CLR_TRUPTOA,
-!$OMP*   IJ_CLR_SRNTP,IJ_CLR_TRNTP,IJ_SRNTP,IJ_TRNTP,J_CLRTOA,J_CLRTRP,
-!$OMP*   IJ_CLDTPT,IJ_CLDCV1,IJ_CLDT1T,IJ_CLDT1P,IJ_CLDTPPR,J_TOTTRP)
-!$OMP    DO SCHEDULE(dynamic,8)
-!!OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
 
 C****
 C**** MAIN I LOOP
@@ -1652,8 +1761,7 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1678,11 +1786,6 @@ C**** more than one tracer is lumped together for radiation purposes
 #endif /* TRACERS_TERP */
      &                 )*BYAXYP(I,J)
 #endif /* TRACERS_AEROSOLS_SOA */
-          case ("OCA4")
-           TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
-     *          trm(i,j,l,n_OCI2)+trm(i,j,l,n_OCA2)+
-     *          trm(i,j,l,n_OCI3)+trm(i,j,l,n_OCA3)+
-     *          trm(i,j,l,n_OCA4))*BYAXYP(I,J)
           case ("BCIA")
            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
@@ -1837,8 +1940,7 @@ C**** or not.
       O3natLref(:)=O3JREF_native(:,I,J)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
@@ -2105,7 +2207,7 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)    || (defined TRACERS_AMP)
+    (defined TRACERS_AMP)
 
 #ifdef TRACERS_AMP
       NTRACE = nmodes
@@ -2208,24 +2310,6 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
           END SELECT
         END IF
       end do
-
-      DO KR=1,NDIUPT
-        IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-          TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE)) !*OPNSKY
-          DO INCH=1,NRAD
-            IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-            IH=IHM
-            IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-            ADIURN(idd_aot,KR,IH)=ADIURN(idd_aot,KR,IH)+TMP(idd_aot)
-#ifndef NO_HDIURN
-            IHM = IHM+(JDATE-1)*HR_IN_DAY
-            IF(IHM.LE.HR_IN_MONTH) THEN
-              HDIURN(idd_aot,KR,IHM)=HDIURN(idd_aot,KR,IHM)+TMP(idd_aot)
-            ENDIF
-#endif
-          ENDDO
-        ENDIF
-      ENDDO
 
 #endif
 
@@ -2470,8 +2554,6 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
-!$OMP  END DO
-!$OMP  END PARALLEL
 
       END DO
 C****
@@ -2521,6 +2603,10 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+#ifdef TRACERS_AMP
+              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
+              TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:NTRACE))!*OPNSKY
+#endif
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
               TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
@@ -2646,8 +2732,7 @@ C**** AERRF diags if required
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes (for aerosols)
@@ -3002,7 +3087,6 @@ C**** Same for upward thermal
       SUBROUTINE GHGHST(iu)
 !@sum  reads history for nghg well-mixed greenhouse gases
 !@auth R. Ruedy
-!@ver  1.0
 
       use domain_decomp_atm, only : write_parallel
       USE RADPAR, only : nghg,ghgyr1,ghgyr2,ghgam
@@ -3053,10 +3137,9 @@ C**** Same for upward thermal
       subroutine read_qma (iu,plb)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
-!@ver  1.0
       use domain_decomp_atm, only : write_parallel
       use rad_com, only : dH2O,jma=>jm_dh2o,lat_dh2o
-      use model_com, only : lm
+      use resolution, only : lm
       use constant, only : radian
       implicit none
       integer, parameter:: lma=24
@@ -3144,7 +3227,6 @@ C**** Interpolate (extrapolate) vertically
       subroutine lat_interp_qma (rlat,lev,mon,dh2o_interp)
 !@sum  interpolate CH4->H2O production rates in latitude
 !@auth R. Ruedy
-!@ver  1.0
       use rad_com, only : jma=>jm_dh2o,xlat=>lat_dh2o,dh2o
       implicit none
       real*8 :: rlat ! input latitude (radians)
@@ -3183,7 +3265,6 @@ C**** for extrapolations, only use half the slope
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
-!@ver  1.0
       use domain_decomp_atm, only : grid,get,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
@@ -3755,7 +3836,6 @@ C****
       subroutine updBCd (year)
 !@sum  reads appropriate Black Carbon deposition data if necessary
 !@auth R. Ruedy
-!@ver  1.0
       USE FILEMANAGER
       USE RAD_COM, only : depoBC
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT

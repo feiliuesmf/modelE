@@ -1,9 +1,7 @@
 !@sum  RES_CS90L40 Resolution info for 40 layer, CS90 cubed sphere model
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM number of grid boxes on eahc cube face

@@ -11,8 +11,6 @@ c
       USE HYCOM_ARRAYS
 
       implicit none
-!!      include 'dimensions.h'
-!!      include 'common_blocks.h'
 c
       real,intent(IN) :: pres(kdm+1)	! pressure
      .                  ,dens(kdm)	! density

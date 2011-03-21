@@ -1,11 +1,9 @@
 !@sum  RES_F12 Resolution info for fine 12 layer, 2x2.5 non-strat model
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

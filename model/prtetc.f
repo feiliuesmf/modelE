@@ -53,7 +53,6 @@ c
       integer, parameter :: length=77
       character*1 char,line(length)
       integer l,n
-      common/lnout/line
 c
 c --- replace n-th element of array 'line' by character 'char', where
 c --- n = 'value' modulo 'length'
@@ -267,8 +266,6 @@ c
 
       if (jj.gt.jmax) stop '(error subr.findmx -- jmax < jj)'
 c
-c$OMP PARALLEL DO PRIVATE(difpos,difneg,ipos,jpos,ineg,jneg)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do j=1,jj
          difpos=-huge
          difneg= huge
@@ -294,7 +291,6 @@ c
          inej(j)=ineg
          jnej(j)=jneg
       end do
-c$OMP END PARALLEL DO
 c
       difpos=-huge
       difneg= huge
@@ -490,7 +486,6 @@ c
       real blist(idm,jdm),flxlo,flxhi
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ia,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 5 i=1,ii
 5     blist(i,j)=0.
@@ -500,17 +495,13 @@ c$OMP PARALLEL DO PRIVATE(ia,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
       flxhi= .25*(pbot(i ,j)-alist(i ,j))
       flxlo=-.25*(pbot(ia,j)-alist(ia,j))
  1    blist(i,j)=min(flxhi,max(flxlo,wgt*(alist(ia,j)-alist(i,j))))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
       ib=mod(i,ii)+1
  2    alist(i,j)=alist(i,j)-(blist(ib,j)-blist(i,j))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
       do 3 j=1,jj
       do 6 i=1,ii
  6    blist(i,j)=0.
@@ -520,15 +511,12 @@ c$OMP PARALLEL DO PRIVATE(ja,flxhi,flxlo) SCHEDULE(STATIC,jchunk)
       flxhi= .25*(pbot(i,j )-alist(i,j ))
       flxlo=-.25*(pbot(i,ja)-alist(i,ja))
  3    blist(i,j)=min(flxhi,max(flxlo,wgt*(alist(i,ja)-alist(i,j))))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
       do 4 j=1,jj
       jb=mod(j,jj)+1
       do 4 l=1,isp(j)
       do 4 i=ifp(j,l),ilp(j,l)
  4    alist(i,j)=alist(i,j)-(blist(i,jb)-blist(i,j))
-c$OMP END PARALLEL DO
 c
       return
       end
@@ -550,7 +538,6 @@ c
       real blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
@@ -559,9 +546,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (ip(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
@@ -570,7 +555,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -591,7 +575,6 @@ c
       real blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isu(j)
       do 1 i=ifu(j,l),ilu(j,l)
@@ -600,9 +583,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (iu(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isu(j)
       do 2 i=ifu(j,l),ilu(j,l)
@@ -611,7 +592,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (iu(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -632,7 +612,6 @@ c
       real blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isv(j)
       do 1 i=ifv(j,l),ilv(j,l)
@@ -641,9 +620,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (iv(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isv(j)
       do 2 i=ifv(j,l),ilv(j,l)
@@ -652,7 +629,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (iv(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -672,7 +648,6 @@ c
       real blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
@@ -682,9 +657,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       if (ip(i,jb).eq.0) jb=j
       blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
  1    continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
@@ -693,9 +666,7 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 3 j=1,jj
       do 3 l=1,isp(j)
       do 3 i=ifp(j,l),ilp(j,l)
@@ -705,9 +676,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       if (ip(i,jb).eq.0) jb=j
       blist(i,j)=2.*wgt*(alist(i,ja)+alist(i,jb))
  3    continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 4 j=1,jj
       do 4 l=1,isp(j)
       do 4 i=ifp(j,l),ilp(j,l)
@@ -717,7 +686,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       if (ip(ib,j).eq.0) ib=i
       alist(i,j)=2.*wgt*(blist(ia,j)+blist(ib,j))
  4    continue
-c$OMP END PARALLEL DO
 c
       return
       end
@@ -739,7 +707,6 @@ c
       real*4 blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
@@ -748,9 +715,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (ip(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
@@ -759,7 +724,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -780,7 +744,6 @@ c
       real*4 blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isu(j)
       do 1 i=ifu(j,l),ilu(j,l)
@@ -789,9 +752,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (iu(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isu(j)
       do 2 i=ifu(j,l),ilu(j,l)
@@ -800,7 +761,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (iu(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -821,7 +781,6 @@ c
       real*4 blist(idm,jdm)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
       do 1 l=1,isv(j)
       do 1 i=ifv(j,l),ilv(j,l)
@@ -830,9 +789,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb=mod(j     ,jj)+1
       if (iv(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=1,jj
       do 2 l=1,isv(j)
       do 2 i=ifv(j,l),ilv(j,l)
@@ -841,7 +798,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (iv(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -875,7 +831,6 @@ c
       write (lp,'(a,3i6)') 'ZEBRA call with arguments',idim,ii,jj
       if (jj.gt.lgth) stop '(insuff. workspace in zebra: increase lgth)'
 c
-c$OMP PARALLEL DO 
       do 1 j=1,jj
       amxj(j)=-1.e33
       amnj(j)= 1.e33
@@ -893,7 +848,6 @@ c$OMP PARALLEL DO
         jmnj(j)=j
       end if
  1    continue
-c$OMP END PARALLEL DO
 c
       amx=-1.e33
       amn= 1.e33
@@ -994,7 +948,6 @@ c
       real blist(idm,J_0H:J_1H)
       real,parameter :: wgt=.25
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
@@ -1003,9 +956,7 @@ c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       jb = PERIODIC_INDEX(j+1, jj)
       if (ip(i,jb).eq.0) jb=j
  1    blist(i,j)=(1.-wgt-wgt)*alist(i,j)+wgt*(alist(i,ja)+alist(i,jb))
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       do 2 j=J_0,J_1
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
@@ -1014,7 +965,6 @@ c$OMP PARALLEL DO PRIVATE(ia,ib) SCHEDULE(STATIC,jchunk)
       ib=min(ii,i+1)
       if (ip(ib,j).eq.0) ib=i
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
-c$OMP END PARALLEL DO
       return
       end
 c

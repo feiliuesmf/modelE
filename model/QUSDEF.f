@@ -233,8 +233,8 @@ c adv1d advects tracers in x-direction using the qus
 c the order of the moments in dir is: x,y,z,xx,yy,zz,xy,yz,zx
 c--------------------------------------------------------------
       use QUSDEF, only : nmom,prather_limits
-      USE DOMAIN_DECOMP_1D, only: grid, GET
-      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH, GET
       USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only: CHECKSUM
       implicit none
@@ -761,7 +761,6 @@ c**** upstream division is negative
       SUBROUTINE CTMIX (RM,RMOM,FMAIR,FMIX,FRAT)
 !@sum CTMIX  Cloud top mixing of tracer moments (incl. q,t) from CONDSE
 !@auth Gary Russell, Jean Lerner, Gavin Schmidt
-!@ver 1.0
 !@var RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX mean and moments of tracer
       USE QUSDEF
       IMPLICIT NONE

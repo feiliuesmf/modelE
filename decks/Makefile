@@ -23,7 +23,7 @@ HOMEDIR = $(wildcard ~)
 MODELERC ?= $(HOMEDIR)/.modelErc
 #default number of processors for setup
 NPROC = 1
-NPES = 1
+NPES = 0
 # getting options from configuration files
 # default modelE configuration file:
 include $(SCRIPTS_DIR)/modelErc
@@ -43,15 +43,6 @@ endif
 RUNSRC = E1M20
 
 ALIAS_LIST = CMPE001 qc
-
-ifeq ($(MPP),YES)
-  MPI=YES
-endif
-
-ifeq ($(ESMF),YES)
-  MPI=YES
-endif
-
 
 help:
 	$(MAKE) -C $(MODEL_DIR) help
@@ -141,7 +132,7 @@ setup_script:
 	fi
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
-ifeq ($(MPI),YES)
+ifneq ($(NPES),0)
 	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN)
 else
 	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)

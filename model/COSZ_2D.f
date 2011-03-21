@@ -1,10 +1,9 @@
 !@sum  Routines to calculates solar zenith angles, weighted by time/sunlight
 !@auth Original Development Team
 !@auth Rewritten for non-latlon grids by M. Kelley
-!@ver  1.0
       module RAD_COSZ0
       USE CONSTANT, only : twopi,pi,teeny
-      USE MODEL_COM, only : im
+      USE RESOLUTION, only : im
       USE GEOM, only : lon2d,sinlat2d,coslat2d
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       implicit none

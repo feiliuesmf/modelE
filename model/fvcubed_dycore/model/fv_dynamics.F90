@@ -182,7 +182,6 @@ contains
 
  
 ! Convert pt to virtual potential temperature * CP
-!$omp parallel do private (i, j, k)
       do k=1,npz
          do j=js,je
             do i=is,ie
@@ -192,7 +191,6 @@ contains
       enddo
 !4TAF#endif
 
-!$omp parallel do private (i, j, k)
       do k=1,npz
          do j=js,je
             do i=is,ie

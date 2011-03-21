@@ -4,7 +4,7 @@
 !@sum ent_drv contains variables and routines for vegetation driver
 !@auth I. Alienov, N. Kiang, Y. Kim
 
-      use model_com, only : im,jm
+      use resolution, only : im,jm
 #ifdef HEALY_LM_DIAGS
       use diag_com, only : CROPS_DIAG
 #endif
@@ -31,7 +31,7 @@
       use Dictionary_mod
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
-      use model_com, only : focean, FLICE
+      use fluxes, only : focean, FLICE
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in

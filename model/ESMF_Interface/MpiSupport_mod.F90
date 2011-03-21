@@ -1,15 +1,9 @@
 #include "rundeck_opts.h"
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
   
 module MpiSupport_mod
 !@sum Collection of low-level routines that support higher-level
 !@+   interfaces for domain decomposition.
 !@auth Tom Clune <thomas.l.clune@nasa.gov>
-#ifdef USE_ESMF
-  use ESMF_Mod
-#endif
   implicit none
   private
 

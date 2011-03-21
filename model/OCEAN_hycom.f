@@ -6,7 +6,7 @@
 #endif
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
       USE SEAICE, only : osurf_tilt
       USE HYCOM_ATM, only :
      &     focean_loc,gtemp_loc,gtempr_loc,
@@ -130,13 +130,13 @@ c
       call scatter_hycom_arrays
 
 !!! hack needed for serial inicon
-      CALL ESMF_BCAST(ogrid, delt1 )
+      CALL broadcast(ogrid, delt1 )
 
-      CALL ESMF_BCAST(ogrid, salmin )
-      CALL ESMF_BCAST(ogrid, nstep0 )
-      CALL ESMF_BCAST(ogrid, nstep )
-      CALL ESMF_BCAST(ogrid, time0 )
-      CALL ESMF_BCAST(ogrid, time )
+      CALL broadcast(ogrid, salmin )
+      CALL broadcast(ogrid, nstep0 )
+      CALL broadcast(ogrid, nstep )
+      CALL broadcast(ogrid, time0 )
+      CALL broadcast(ogrid, time )
 
 c moved here from inicon:
       if (nstep0.eq.0) then     ! starting from Levitus
@@ -170,7 +170,6 @@ c
       SUBROUTINE DUMMY_OCN
 !@sum  DUMMY necessary entry points for non-dynamic/non-deep oceans
 !@auth Gavin Schmidt
-!@ver  1.0
 css   ENTRY ODYNAM
       !! fix later: implicit none
 
@@ -215,9 +214,8 @@ c
 c
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
-!@ver  1.0       
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
-     &     ESMF_BCAST, pack_column, unpack_column
+     &     broadcast, pack_column, unpack_column
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
 !!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
@@ -700,8 +698,8 @@ c
       endif ! AM_I_ROOT
       call scatter_atm_after_checkpoint
       call dealloc_atm_globals
-      CALL ESMF_BCAST(ogrid, nstep0 )
-      CALL ESMF_BCAST(ogrid, time0 )
+      CALL broadcast(ogrid, nstep0 )
+      CALL broadcast(ogrid, time0 )
 
 #ifdef TRACERS_OceanBiology
       call unpack_data(ogrid, avgq_glob, avgq)
@@ -739,7 +737,7 @@ c
 C****
       contains
       subroutine alloc_atm_globals
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       use FLUXES, only: NSTYPE
       if(am_i_root()) then
         ALLOCATE( SSS( im, jm ) )
@@ -762,7 +760,7 @@ C****
       endif
       end subroutine dealloc_atm_globals
       subroutine gather_atm_before_checkpoint
-      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID
       use hycom_atm
       call pack_data( grid,  ASST_loc, ASST )
       call pack_data( grid,  ATEMPR_loc, ATEMPR )
@@ -776,7 +774,7 @@ C****
       end subroutine gather_atm_before_checkpoint
 
       subroutine scatter_atm_after_checkpoint
-      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID
       use hycom_atm
       call unpack_data( grid,  ASST, ASST_loc )
       call unpack_data( grid,  ATEMPR, ATEMPR_loc )
@@ -1122,11 +1120,11 @@ c
       SUBROUTINE CHECKO(SUBR)
 #ifdef USE_ATM_GLOBAL_ARRAYS
 !@sum  CHECKO Checks whether Ocean are reasonable
-!@ver  1.0
 !!      USE MODEL_COM, only : im,jm
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
-      USE DOMAIN_DECOMP_1D, only: grid,pack_block,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: pack_block,AM_I_ROOT
 c      USE HYCOM_ATM, only : gtemp,gtemp_loc
       IMPLICIT NONE
       integer i,j
@@ -1151,7 +1149,6 @@ c
       SUBROUTINE daily_OCEAN
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-!@ver  1.0
 C****
       implicit none
       RETURN
@@ -1258,7 +1255,6 @@ C     nothing to gather - ocean prescribed
       
 
       write (*,*) 'laying out arrays in memory ...'
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,:)=huge
@@ -1344,9 +1340,7 @@ c
       vflxav(i,j,:)=zero
       diaflx(i,j,:)=zero
  209  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 210 j=1,jj
       !!ja=mod(j-2+jj,jj)+1
       !!do 210 l=1,isq(j)
@@ -1370,14 +1364,12 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       !dp(i-1,ja ,k   )=0.
  !210  !dp(i-1,ja ,k+kk)=0.
  210  continue
-c$OMP END PARALLEL DO
 c
 c --- initialize  u,ubavg,utotm,uflx,uflux,uflux2/3,uja,ujb  at points
 c --- located upstream and downstream (in i direction) of p points.
 c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
 c --- as well as at lateral neighbors of interior u points.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 156 j=1,jj
       do 156 i=1,ii !ifu(j,l),ilu(j,l)
       pu(i,j,:)=0.
@@ -1388,9 +1380,7 @@ c
       dpu(i,j,:   )=0.
 c
  156  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 158 j=1,jj
       !do 158 l=1,isp(j)
       do 158 i=1,ii !ifp(j,l),ilp(j,l)+1
@@ -1411,7 +1401,6 @@ c
       uflx(:,:,:)=0.
       ufxcum(:,:,:)=0.
       u(:,:,:)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  v,vbavg,vtotm,vflx,vflux,vflux2/3,via,vib  at points
 c --- located upstream and downstream (in j direction) of p points.

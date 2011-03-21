@@ -3,7 +3,7 @@
 !@sum  NUDGE_COM contains all the nudging related variables
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 !@param nlevnc vertical levels of NCEP data
@@ -64,8 +64,9 @@ c******************************************************************
 !@sum  Initialization for Nudging - called once at beginning of run
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-      USE DOMAIN_DECOMP_1D, only: am_i_root, esmf_bcast, grid
-      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
+      USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast, grid
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       USE Dictionary_mod
       IMPLICIT NONE
@@ -90,7 +91,7 @@ C**** always need to open at least one file
 
       if(am_i_root()) call open_nudge_file(nstr1)
 C**** broadcast pressure levels just once (since they don't change)
-      call esmf_bcast(grid,pl8)
+      call broadcast(grid,pl8)
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
 
 C**** read first set of nudged winds
@@ -122,7 +123,8 @@ c******************************************************************
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
       USE DOMAIN_DECOMP_1D, only: am_i_root
-      USE MODEL_COM, only: im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -171,7 +173,7 @@ c******************************************************************
 !@sum  Nudging of the horizontal wind components to reanalysis data sets
 !@auth Susanne Bauer
 !@ver
-      USE MODEL_COM, only : im,jm,lm,plbot
+      USE RESOLUTION, only : im,jm,lm,plbot
       USE DOMAIN_DECOMP_1D, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
       IMPLICIT NONE
@@ -220,8 +222,8 @@ c******************************************************************
 !@sum  vertical interpolation to gcm grid
 !@auth Susanne Bauer
 !@ver
-      USE MODEL_COM, only : im,jm,lm
-      USE DYNAMICS, only : PMID ! Pressure at mid point of box (mb)
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : PMID ! Pressure at mid point of box (mb)
       USE DOMAIN_DECOMP_1D, only : grid, HALO_UPDATE, SOUTH
       IMPLICIT NONE
 
@@ -317,7 +319,7 @@ c**** get levels which don't change as a function of time
 
       subroutine read_nudge_file(un,vn,timestep)
 !@sum return velocities for specific time step
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_1D, only : grid, unpack_data, am_i_root
       USE NUDGE_COM
       implicit none

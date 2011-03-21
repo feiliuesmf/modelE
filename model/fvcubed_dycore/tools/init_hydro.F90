@@ -181,7 +181,6 @@ contains
       real  psmo, psdry
       integer i, j, k
 
-!$omp parallel do private(i, j)
       do j=jfirst,jlast
 
          do i=ifirst,ilast

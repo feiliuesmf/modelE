@@ -5,7 +5,7 @@
 module SparseCommunicator_mod
    
    implicit none
-#ifdef USE_ESMF
+#ifdef USE_MPI
    include 'mpif.h'
 #endif
    private
@@ -93,7 +93,7 @@ contains
       integer :: p, pl, pg, npes, ier, comm_
       logical, allocatable :: needsID(:)
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       numPointsLocal  = countInDomain(points, lBoundLocal, uBoundLocal, .true. )
       numPointsGlobal = countInDomain(points, lboundglobal, uboundglobal, .false. )
 
@@ -305,7 +305,7 @@ contains
          end do
       endif
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call mpi_GatherV(localBuffer, size(localBuffer), MPI_DOUBLE_PRECISION, &
            & globalBuffer, this % mpiCounts*numBlks, this % mpiDispls*numBlks, MPI_DOUBLE_PRECISION, &
            & ROOT, this % mpiCommmunicator, ier)
@@ -379,7 +379,7 @@ contains
          end do
       endif
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
       call mpi_ScatterV(globalBuffer, this % mpiCounts*numBlks, this % mpiDispls*numBlks,  &
            &  MPI_DOUBLE_PRECISION, localBuffer, size(localBuffer),  MPI_DOUBLE_PRECISION, &
            & ROOT, this % mpiCommmunicator, ier)

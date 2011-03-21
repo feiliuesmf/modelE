@@ -176,7 +176,6 @@ c     want to fill SD (IDUM,JDUM)  check out
 !                Remove other calculations.
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
      *     ,zatmo,sig,modd5k,bydsig
@@ -216,14 +215,10 @@ C****
 C****
 C**** VERTICAL DIFFERENCING
 C****
-!$OMP  PARALLEL DO PRIVATE (L)
       DO L=LS1,LM
       SPA(:,:,L)=0.
       END DO
-!$OMP  END PARALLEL DO
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
-!$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         PIJ=P(I,J,1)
@@ -271,7 +266,6 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
         END DO
       END DO
       END DO
-!$OMP END PARALLEL DO
 C**** SET POLAR VALUES FROM THOSE AT I=1
       IF (haveLatitude(grid, J=1)) THEN
         DO L=1,LM
@@ -286,14 +280,12 @@ C**** SET POLAR VALUES FROM THOSE AT I=1
         END DO
       END IF
 
-!$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
         GZ(:,:,L)=PHI(:,:,L)
       END DO
 c     do L=1,LM
 c        write(iu_scm_prt,*) 'PGF_SCM  L GZ ',L,GZ(I_TARG,J_TARG,L)
 c     enddo
-!$OMP END PARALLEL DO
 C****
 C
       RETURN
@@ -372,7 +364,6 @@ c     dummy of subroutine
 !@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
 !@sum  multiplied by cell area
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
       USE GEOM, only : dxyn,dxys,dxyv
@@ -423,7 +414,6 @@ C****
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,byim,u,v
 c      USE GEOM, only : ravps,ravpn
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
@@ -442,7 +432,6 @@ c      USE GEOM, only : ravps,ravpn
 !@var u_a x-component at primary grids (A_grid)
 !@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
-!@ver  1.0
 
       USE MODEL_COM, only : im,jm,lm,u,v
       USE DYNAMICS, only : ua=>ualij,va=>valij
@@ -471,7 +460,6 @@ C**** Update halos of U and V
         J=1
         KMAX=KMAXJ(J)
         HEMI=-1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
@@ -490,14 +478,12 @@ C**** Update halos of U and V
             va(l,i,j)=v_t
           END DO
         END DO
-!$OMP  END PARALLEL DO
       end if              !south pole
 !
       if (HAVE_NORTH_POLE) then
         J=JM
         KMAX=KMAXJ(J)
         HEMI=1.
-!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
         DO I=1,IMAXJ(J)
           DO L=1,LM
             u_t=0.d0; v_t=0.d0
@@ -516,7 +502,6 @@ C**** Update halos of U and V
             va(l,i,j)=v_t
           END DO
         END DO
-!$OMP  END PARALLEL DO
       end if                !north pole
 
 !     non polar boxes
@@ -525,8 +510,6 @@ C     ---> done by calling routine...
 
 c      CALL HALO_UPDATE(grid, u, FROM=NORTH)
 c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
-!$OMP*    SCHEDULE(DYNAMIC,2)
       DO J=J_0S,J_1S
         KMAX=KMAXJ(J)
         DO K=1,KMAX
@@ -548,7 +531,6 @@ c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C****
       return
       end subroutine recalc_agrid_uv

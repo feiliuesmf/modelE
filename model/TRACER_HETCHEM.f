@@ -9,16 +9,17 @@
 !   Computation of heterogeneous reaction rates on dust aerosol surfaces
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
-
-      USE MODEL_COM, only : im,lm     ! dimensions (72, 46, 12)
-     $                     ,jday         ! time in ITU
-     $                     ,t            ! potential temperature (C)
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only :
+     $                      jday         ! time in ITU
+      USE ATM_COM, only :
+     $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
       USE TRACER_COM                   !, only : rxts,trm
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
-      USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -261,16 +262,17 @@ c radii interpolation
 !   Computation of heterogeneous reaction rates on dust aerosol surfaces
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
-
-      USE MODEL_COM, only : im,lm     ! dimensions (72, 46, 12)
-     $                     ,jday         ! time in ITU
-     $                     ,t            ! potential temperature (C)
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only :
+     $                      jday         ! time in ITU
+      USE ATM_COM, only :
+     $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
       USE TRACER_COM                   !, only : rxts,trm
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
-      USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE

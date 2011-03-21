@@ -6,7 +6,6 @@
       function getTotalEnergy() result(totalEnergy)
 !@sum  getTotalEnergy Dummy
 !@auth Tom Clune (SIVO)
-!@ver  1.0
 !
       use GEOM, only: DXYP, AREAG
       use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get
@@ -22,7 +21,6 @@
       subroutine addEnergyAsDiffuseHeat(deltaEnergy)
 !@sum  addEnergyAsDiffuseHeat Dummy
 !@auth Tom Clune (SIVO)
-!@ver  1.0
       real*8, intent(in) :: deltaEnergy
 
       return
@@ -43,7 +41,6 @@ C***** Add in dissipiated KE as heat locally
       subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
 !@sum  addEnergyAsLocalHeat Dummy
 !@auth Tom Clune (SIVO)
-!@ver  1.0
       use DOMAIN_DECOMP_1D, only: grid, get
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)

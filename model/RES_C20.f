@@ -1,12 +1,10 @@
 !@sum  RES_C20 Resolution info for 20 layer, 8x10 non-strat model
 !@+    (Same as M20AT top at .1mb, NO GWdrag)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

@@ -2,7 +2,6 @@
 
 !@sum  STRATDYN stratospheric only routines
 !@auth Bob Suozzo/Jean Lerner/Gavin Schmidt/Jeff Jonas/Maxwell Kelley
-!@ver  1.0
 
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
@@ -11,8 +10,7 @@ C****  ii) PK type variables should be done in dynamics and used here
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : uv_derivs_type
 #endif
@@ -460,7 +458,6 @@ C
       SUBROUTINE DFUSEQ(AIRM,DFLX,F,MU,AM,AL,AU,B,LM)
 !@sum  DFUSEQ calculate tridiagonal terms
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: LM
       REAL*8, INTENT(IN), DIMENSION(LM) :: AIRM
@@ -489,7 +486,6 @@ C****
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE STRAT
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
@@ -524,7 +520,9 @@ C**** accumulated in the routines contained herein
       USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : twopi,kapa
-      USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : pednl00,pmidl00
+      USE DYNAMICS, only : do_gwdrag
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, READT_PARALLEL,
      &     AM_I_ROOT
       USE GEOM, only : areag
@@ -672,21 +670,23 @@ C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
       SUBROUTINE VDIFF (P,U,V,UT,VT,T,DT1)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
-      USE MODEL_COM, only : im,jm,lm,ptop,ls1,mrch,byim
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,
+      USE RESOLUTION, only : ptop,ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE DYNAMICS, only : mrch
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif
+      USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,byim
       USE STRAT, only : defrm,pk,pmid,ang_gwd,dfuseq
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -888,9 +888,9 @@ C****
       SUBROUTINE GETVK (U,V,VKEDDY,LDIFM)
 !@sum GETVK calculate vertical diff. coefficient (use high wind shear)
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
+      USE RESOLUTION, only : im,jm,lm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
@@ -965,7 +965,6 @@ C****
       SUBROUTINE GWDRAG (P,U,V,UT,VT,T,SZ,DT1,CALC_DEFORM)
 !@sum  GWDRAG puts a momentum drag in the stratosphere
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** GWDRAG is called from DYNAM with arguments:
 C****      P = Pressure (mb) at end of timestep
@@ -973,8 +972,12 @@ C****      U,V,T = wind and Potential Temp. at beginning of timestep
 C****      DT1 = timestep (s)
 C****
       USE CONSTANT, only : grav,sha,kapa,rgas
-      USE MODEL_COM, only : im,jm,lm,zatmo,nidyn,mrch,byim,dtsrc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : dtsrc
+      USE ATM_COM, only : zatmo
+      USE DYNAMICS, only : mrch
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE_COLUMN, am_i_root
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
@@ -988,7 +991,7 @@ C****
      &     RANMTN_CELL=>RANMTN,
      &     DEFRM_CELL,ZVARX_CELL,ZVARY_CELL,ZWT_CELL,ZATMO_CELL
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,rapvn,rapvs
-      USE DIAG_COM, only : aij=>aij_loc, ajl=>ajl_loc
+      USE DIAG_COM, only : byim, aij=>aij_loc, ajl=>ajl_loc
      *     ,jl_dudtsdif,jl_sdifcoef,jl_gwfirst
      *     ,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
@@ -1323,15 +1326,15 @@ C****
       SUBROUTINE DEFORM (PDSIG,U,V)
 !@sum  DEFORM calculate defomation terms
 !@auth Bob Suozzo/Jean Lerner
-!@ver  1.0
 C****
 C**** Deformation terms  DEFRM1=du/dx-dv/dy   DEFRM2=du/dy+dv/dx
 C**** For spherical coordinates, we are treating DEFRM1 like DIV
 C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
-      USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
+      USE RESOLUTION, only : im,jm,lm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE,
      *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
      *     haveLatitude
       USE DYNAMICS, only : pu,pv
@@ -1494,10 +1497,11 @@ C****
       SUBROUTINE io_strat(kunit,iaction,ioerr)
 !@sum  io_strat reads and writes strat. model variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
+      USE RESOLUTION, only : im,jm
       USE MODEL_COM
       USE CLOUDS_COM, only : airx,lmc
-      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
       IMPLICIT NONE

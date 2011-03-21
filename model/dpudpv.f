@@ -19,7 +19,6 @@ c
         call cpy_p(p(1,1,k+1))
       end do
 c
-c$OMP PARALLEL DO PRIVATE(ja,kmn) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
 c
@@ -39,7 +38,6 @@ c
      .           min(depthv(i,j),.5*(p(i,j,k  )+p(i,ja ,k  ))))
 c
       end do
-c$OMP END PARALLEL DO
       return
       end
 c
@@ -74,7 +72,6 @@ c
 
       CALL HALO_UPDATE(ogrid,p, FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,kmn) SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -94,7 +91,6 @@ c
      .           min(depthv(i,j),.5*(p(i,j,k  )+p(i,ja ,k  ))))
 c
       end do
-c$OMP END PARALLEL DO
       return
       end
 c

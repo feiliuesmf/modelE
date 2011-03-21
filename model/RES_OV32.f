@@ -1,7 +1,6 @@
 C****   
 !@sum  RES_OV32 Resolution info for 32 ocean layer
 !@auth Gary Russel/Larissa Nazarenko
-!@ver  1.0
 C****   
 C**** RES_OV32.f    2008/07/15
 C****

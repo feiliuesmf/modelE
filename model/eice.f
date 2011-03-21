@@ -52,9 +52,6 @@ c
       total=0.
       totalx=0.
       dosmoo=.false.
-c$OMP PARALLEL DO PRIVATE(kn,tmxl,tmelt,borrow,paybak,saldif,dpth,
-c$OMP+ top,bot,thkinv,vrbos,pump) SCHEDULE(STATIC,jchunk)
-c$OMP+ REDUCTION(+:total) SHARED(dosmoo,equatn)
       do 10 j=J_0,J_1
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)
@@ -137,7 +134,6 @@ c
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
 
  10   continue
-c$OMP END PARALLEL DO
 c
       return
       end

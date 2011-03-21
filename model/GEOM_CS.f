@@ -5,7 +5,6 @@
       MODULE GEOM
 !@sum  GEOM contains spherical geometric variables and arrays
 !@auth T. Clune
-!@ver  1.0 (CS grid version)
 !@cont GEOM_CS
 
       USE MODEL_COM, only : IM,JM
@@ -56,7 +55,6 @@
       SUBROUTINE GEOM_CS
 !@sum  GEOM_CS Calculate spherical geometry for CS grid
 !@auth T. Clune
-!@ver  1.0 (CS grid version)
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
       use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
@@ -163,7 +161,6 @@ c account for discontinuity of lon2d at the international date line
 
 !@sum  Extracts the lat/lon information (cell center and corners) from the
 !      ESMF grid subdomains.
-!@ver  1.0 (CS grid version)
 !@fun  getLatLon_from_ESMFgrid
 !
       use ESMF_Mod

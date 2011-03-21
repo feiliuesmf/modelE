@@ -3,13 +3,13 @@
 subroutine CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
   use CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx &
        ,teeny,sday,undef,bysha
-  use MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR &
-       ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate &
-       ,ntype,itime,focean,fland,flice,jyear,jmon
+  use RESOLUTION, only : ls1,psf,ptop
+  use RESOLUTION, only : im,jm,lm
+  use ATM_COM, only : p,u,v,t,q,wm
+  use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
 #ifdef SCM
   use MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
 #endif
@@ -49,7 +49,7 @@ subroutine CONDSE
   use CLOUDS_COM, only : TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
 
-  use DIAG_COM, only : aij=>aij_loc, &
+  use DIAG_COM, only : ftype,ntype,aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
        ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
        ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc, &
@@ -189,13 +189,13 @@ subroutine CONDSE
 #endif
   use PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm &
        ,w2gcm
-  use DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda &
-       ,ltropo,wcpsig &
-       ,ua=>ualij,va=>valij
+  use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda, &
+       ua=>ualij,va=>valij,ltropo
+  use DYNAMICS, only : wcpsig,dsig,sig,bydsig
   use SEAICE_COM, only : rsi
   use GHY_COM, only : snoage,fearth
   use LAKES_COM, only : flake
-  use FLUXES, only : prec,eprec,precss,gtempr
+  use FLUXES, only : prec,eprec,precss,gtempr,focean,fland,flice
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec 
 #else
@@ -331,8 +331,6 @@ subroutine CONDSE
   integer :: iThread
   integer :: numThreads
   integer :: I_0thread, I_1thread, imaxj_thread
-  !$    integer :: omp_get_max_threads
-  !$    external omp_get_max_threads
 
   call startTimer('CONDSE()')
   !**** Initialize
@@ -426,7 +424,6 @@ subroutine CONDSE
 
 
   numThreads = 1 ! no openmp
-  !$    numThreads = omp_get_max_threads()
 
   !****
   !**** MAIN J LOOP
@@ -447,60 +444,6 @@ subroutine CONDSE
     if (isccp_diags.eq.1) then
       call BURN_RANDOM((I_0-1)*NCOL*(LM+1))
     end if
-
-    !$omp  PARALLEL DO DEFAULT(NONE)
-    !$omp* PRIVATE (iThread, I_0thread, I_1thread, imaxj_thread,
-#ifdef TRACERS_ON
-    !$omp*  NX,tmsave,tmomsv,
-#endif
-    !$omp*  tmp,ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
-    !$omp*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
-    !$omp*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
-    !$omp*  HCNDMC, I,ITYPE,IT,ITAU, IPRES,
-#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
-    !$omp*  Lfreeze,
-#endif
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-    !$omp*  n1,n_fidx,
-#endif
-#endif
-    !$omp*  ITROP,IERR, JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
-    !$omp*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
-    !$omp*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-    !$omp*  LP600,LP850,CSC,DIFT, WM1,WMI,sunlit,
-    !ECON !$omp*  E,E1,W1,ep,ep1,q0,q1,q2,
-    !$omp*  roice,dtrm
-    !$omp*   )
-    !$omp*  shared(I_0,I_1,IMAXJ,GZ,SDA,DTsrc,WM,T3MOM,Q3MOM,trm_lni,
-    !$omp*  trm,trwm_lni,trwm,trmom_lni,trmom,kmaxj,axyp,jreg,fearth,
-    !$omp*  fland,rsi,tsavg,numThreads,QSAVG,USAVG,VSAVG,TGVAVG,QGAVG,
-    !$omp*  DCLEV,RAVJ,PMID,PEDN,PK,PDSIG,egcm,svlhx,ttold,
-    !$omp*  cldsav,cldsav1,rhsav,fss,p,ptold,bydtsrc,T,Q,
-    !$omp*  BYAXYP,w2gcm,sig,ntx,have_south_pole,ukmsp,vkmsp,
-    !$omp*  have_north_pole,ukmnp,vkmnp,vkm,trprec,airx,ddm1,ddms,
-    !$omp*  ntix,ukm,ddml,tdn1,qdn1,trdn1,aij,
-    !$omp*  ij_pscld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_mccldtp,
-    !$omp*  ij_mccvtp,ij_mccvbs,jl_mchr,bydsig,
-    !$omp*  jl_mchphas,jl_mcdtotw,ij_pdcld,ij_MCCLDBS,AIJL,
-    !$omp*  IJL_MC,jl_mcheat,jl_mcdry,jl_mcshlw,jl_mcdeep,
-    !$omp*  lh_diags,ijl_mctlh,ijl_mcdlh,ijl_mcslh,jl_mcmflx,jl_cldmc,idx1,
-    !$omp*  jl_mcdflx,jl_csizmc,ijl_MCamFX,J_PRCPMC,FTYPE,IJDD,IDD_PR,
-    !$omp*  IDD_ECND,IDD_MCP,IDD_DMC,IDD_SMC,ADIURN,IJ_PRECMC,
-    !$omp*  IH,IJ_SNWF,TLS,QLS,TMC,QMC,itcon_mc,jlnt_mc,LMC,QTOLD,
-    !$omp*  LP50,ISC,FOCEAN,PEK,UA,VA,Itime,J_PRCPSS,IDD_SSP,idx2,
-    !$omp*  prelay,ij_prec,ij_neth,ij_f0oc,snoage,
-    !$omp*  CSIZMC,RNDSS,IJ_FWOC,ijl_cldwtr,ijl_cldice,ij_cldw,
-    !$omp*  ij_cldi,isccp_diags,flake,gtempr,flice,ltropo,cosz1,ij_scldi,
-    !$omp*  ij_ctpi,ij_taui,ij_tcldi,ij_lcldi,ij_mcldi,ij_hcldi,
-    !$omp*  isccp_reg2d,aisccp,ij_sstabx,taumc,cldmc,svlat,tauss,cldss,
-    !$omp*  j_eprcp,csizss,prec,eprec,precss,p_acc,pm_acc,jl_sshr,
-    !$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,
-    !$omp*  jlnt_lscond,jls_incloud,ijts_aq,taijs,trp_acc,
-    !$omp*  jls_prec,taijn,tij_prec,diag_wetdep,jls_trdpmc,ijts_trdpmc,
-    !$omp*  jls_trdpls,ijts_trdpls,adiurn_dust,dowetdep,idd_wet,idxd
-    !$omp*  )
-    !$omp*    REDUCTION(+:ICKERR,JCKERR)
 
     do ithread = 0, numThreads - 1
       I_0thread = I_0 + (I_1-I_0+1) * iThread / numThreads
@@ -1563,7 +1506,7 @@ subroutine CONDSE
 #endif
           end do
 #ifdef TRACERS_WATER
-          trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
+          trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))*byaxyp(i,j)
           TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
           !        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)')
           !     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
@@ -1572,14 +1515,14 @@ subroutine CONDSE
           if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS
             if (jls_prec(1,n).gt.0) call inc_tajls2(i,j,1,jls_prec(1,n), &
-                 trprec(n,i,j)*byaxyp(i,j))
+                 trprec(n,i,j))
             if (jls_prec(2,n).gt.0) call inc_tajls2(i,j,1,jls_prec(2,n), &
-                 trprec(n,i,j)*focean(i,j)*byaxyp(i,j))
+                 trprec(n,i,j)*focean(i,j))
             taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
-                 trprec(n,i,j)*byaxyp(i,j)
+                 trprec(n,i,j)
 #ifdef TRACERS_COSMO
             if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+ &
-                 trprec(n,i,j)*byaxyp(i,j)
+                 trprec(n,i,j)
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRDIAG_WETDEPO
@@ -1647,7 +1590,7 @@ subroutine CONDSE
                 if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                   select case (trname(n))
                   case ('Clay','Silt1','Silt2','Silt3','Silt4')
-                    tmp(idd_wet)=+trprec(n,i,j)*byaxyp(i,j)/Dtsrc
+                    tmp(idd_wet)=+trprec(n,i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
 #ifndef NO_HDIURN
@@ -1760,7 +1703,6 @@ subroutine CONDSE
       !red*       end Reduced Arrays 3
 
     end do ! loop over threads
-    !$omp  END PARALLEL DO
 
 
     ! Burn random numbers for later longitudes here.
@@ -1832,12 +1774,14 @@ subroutine CONDSE
   return
 end subroutine CONDSE
 
-subroutine init_CLD
+subroutine init_CLD(istart)
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
   use CONSTANT, only : grav,by3,radian
-  use MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
+  use RESOLUTION, only : ls1,plbot
+  use RESOLUTION, only : jm,lm
+  use MODEL_COM, only : dtsrc
+  USE ATM_COM, only : t,q ! for coldstart istart=2 case
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
   use GEOM, only : lat2d, kmaxj
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
@@ -1850,17 +1794,31 @@ subroutine init_CLD
        ,entrainment_cont1,entrainment_cont2,wmui_multiplier &
        ,RA,UM,VM,UM1,VM1,U_0,V_0
   use CLOUDS_COM, only : llow,lmid,lhi &
-       ,isccp_reg2d,UKM,VKM
+       ,isccp_reg2d,UKM,VKM,ttold,qtold
   use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
+  use ATM_COM, only : pednl00 ! use plbot instead of pednl00
   use Dictionary_Mod
   use FILEMANAGER, only : openunit, closeunit
-
+#ifdef BLK_2MOM
+  use resolution, only : im
+  USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
+#ifdef TRACERS_AMP
+  USE AERO_CONFIG, ONLY: NMODES
+#endif
+#endif
   implicit none
+  integer, intent(in) :: istart
   real*8 PLE
   integer L,I,J,n,iu_ISCCP
   integer :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
   character TITLE*80
+#ifdef BLK_2MOM
+  LOGICAL      :: ldummy=.false.
+  INTEGER      :: il0,jl0,kl0,nm0
+  CHARACTER*20 :: bname='kuku.txt'
+  CHARACTER*15 :: sname='MODELE_mainV3: '
+#endif
 
   I_0 =GRID%I_STRT
   I_1 =GRID%I_STOP
@@ -1871,16 +1829,46 @@ subroutine init_CLD
   J_0H =GRID%J_STRT_HALO
   J_1H =GRID%J_STOP_HALO
 
+#ifdef BLK_2MOM
+! initialize microphysics
+!        print *,sname,'im        = ',im
+!        print *,sname,'jm        = ',jm
+!        print *,sname,'lm        = ',lm
+!        print *,sname,'dtsrc        = ',dtsrc
+  kl0=12;il0=im;jl0=jm ;il0=1;jl0=1;kl0=1
+  nm0 = 1 ! or whatever, put a correct value here
+#ifdef TRACERS_AMP
+  nm0=NMODES
+#endif
+!        print *,sname,'il0       = ',il0
+!        print *,sname,'jl0       = ',jl0
+!        print *,sname,'kl0       = ',kl0
+!        print *,sname,'nm0       = ',nm0
+  ldummy = init_bulk2m_driver(dtsrc,il0,jl0,kl0,nm0,bname)
+  if(ldummy) then
+    print *,sname,'BLK Initialization is completed...'
+  else
+    call stop_model("BLK Initialization is not completed: ",255)
+  endif
+!        print *,sname,'Before:istart,ifile = ',istart,ifile
+!        print *,sname,'Before:im,jm        = ',im,jm
+#endif
+
+  if(istart==2) then ! replace with cold vs warm start logic
+    do l=1,lm
+      ttold(l,:,:)=t(:,:,l)
+      qtold(l,:,:)=q(:,:,l)
+    end do
+  endif
+
   !
   ! allocate space for the varying number of staggered
   ! wind data to be vertically mixed by clouds on the A grid
   !
   n = maxval(kmaxj(j_0:j_1))
-  !$OMP PARALLEL
   allocate(RA(n))
   allocate(UM(n,lm),VM(n,lm),UM1(n,lm),VM1(n,lm))
   allocate(U_0(n,lm),V_0(n,lm))
-  !$OMP END PARALLEL
   n = minval(kmaxj(j_0:j_1))
   allocate(UKM(n,lm,i_0h:i_1h,j_0h:j_1h), &
        VKM(n,lm,i_0h:i_1h,j_0h:j_1h))
@@ -1971,8 +1959,10 @@ subroutine qmom_topo_adjustments
   ! topographic slopes to prevent large supersaturations in upslope flow.
   !
   use constant, only : tf,lhe,lhs,bysha
-  use model_com, only : im,jm,lm,ls1,zatmo,t,q
-  use dynamics, only : pua,pva,pk,pmid
+  use resolution, only : ls1
+  use resolution, only : im,jm,lm
+  use atm_com, only : zatmo,t,q
+  use atm_com, only : pua,pva,pk,pmid
   use qusdef, only : mx,mxx,my,myy
   use somtq_com, only : tmom,qmom
   use domain_decomp_atm, only : grid,get,halo_update

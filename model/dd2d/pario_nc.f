@@ -3,7 +3,7 @@
 #ifdef OFFLINE
 #else
 c see whether model E is running in serial mode
-#ifndef USE_ESMF
+#ifndef USE_MPI
 #define SERIAL_MODE
 #endif
 #endif

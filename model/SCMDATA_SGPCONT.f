@@ -22,9 +22,25 @@ C-------------------------------------------------------------------------------
       USE CONSTANT , only : KAPA,TF   
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
       USE FLUXES, only : GTEMP,GTEMPR 
+      USE FILEMANAGER
+      USE Dictionary_mod
       IMPLICIT NONE
 
       INTEGER L,I,J       
+
+      call openunit("scm.prt",iu_scm_prt,.false.,.false.)
+      call sync_param( "I_TARG",I_TARG)
+      call sync_param( "J_TARG",J_TARG)
+      write(0,*) 'I/J Targets set ',I_TARG,J_TARG
+      write(iu_scm_prt,*) 'I/J Targets set ',I_TARG,J_TARG
+
+      if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
+     &    (J_TARG.lt.2 .or. J_TARG.gt.89)) then
+        write(iu_scm_prt,*)
+     &             'Invalid grid coordinates for selected box ',
+     &       I_TARG,J_TARG
+        STOP 100
+      endif
 
       if (SCM_SURFACE_FLAG.eq.0) then
           write(0,*) 

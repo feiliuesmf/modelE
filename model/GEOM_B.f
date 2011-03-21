@@ -2,10 +2,9 @@
       MODULE GEOM
 !@sum  GEOM contains spherical geometric variables and arrays
 !@auth Original development team
-!@ver  1.0 (B grid version)
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian,AREAG
-      USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
+      USE RESOLUTION, only : IM,JM,LM
       IMPLICIT NONE
       PRIVATE
 
@@ -21,6 +20,12 @@ C**** vertices of the A grid (Note: first velocity point is J=2)
 C**** Polar boxes can have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
       SAVE
+
+!@param IMH half the number of longitudinal boxes
+      INTEGER, PARAMETER, public :: IMH=IM/2
+!@param FIM,BYIM real values related to number of long. grid boxes
+      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
+
 !@param  DLON grid spacing in longitude (deg)
       REAL*8, PUBLIC, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
@@ -108,7 +113,6 @@ C**** some B-grid conservation quantities
       SUBROUTINE GEOM_B
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
-!@ver  1.0 (B grid version)
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
@@ -451,6 +455,7 @@ c this version is for the latlon grid.
       END MODULE GEOM
 
       module RAD_COSZ0
+      use resolution, only : im,jm
       implicit none
       save
       private
@@ -500,7 +505,7 @@ c daily-average cosz and the hour of dusk
       subroutine cosz_init
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       use constant, only : twopi
-      use model_com, only : jm
+      use resolution, only : jm
       use geom, only : dlat
       real*8 :: phis,cphis,sphis,phin,cphin,sphin,phim
       integer :: j_0,j_1,j_0s,j_1s,j_0h,j_1h,j
@@ -557,7 +562,6 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       subroutine COSZT (ROT1,ROT2,COSZ,COSZA)
 !@sum  COSZ0 calculates Earth's zenith angle, weighted by time/sunlight
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : twopi
       USE MODEL_COM
       USE GEOM, only : lon,sinip,cosip

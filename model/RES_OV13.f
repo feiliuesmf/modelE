@@ -1,7 +1,6 @@
 C****   
 !@sum  RES_OV13 Resolution info for 13 ocean layer
 !@auth Gary Russel/Larissa Nazarenko
-!@ver  1.0
 C****   
 C**** RES_OV13.f    2008/07/03
 C****

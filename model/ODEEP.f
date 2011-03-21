@@ -1,10 +1,8 @@
 !@sum ODEEP contains routines used for Qflux mixed layer with deep diff.
 !@auth G. Schmidt/G. Russell
-!@ver  1.0
       MODULE ODEEP_COM
 !@sum  ODEEP_COM defines the variables for deep diffusing Qflux model
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE MODEL_COM, only : im,jm
       IMPLICIT NONE
       SAVE
@@ -33,7 +31,6 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
       SUBROUTINE init_ODEEP(iniOCEAN)
 !@sum  init_ODEEP initialise deep ocean arrays
 !@auth G. Schmidt
-!@ver  1.0
       USE FILEMANAGER, only : openunit,closeunit
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
@@ -91,7 +88,6 @@ C****
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean reads and writes ocean arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsficno,lhead
       USE STATIC_OCEAN
       USE ODEEP_COM
@@ -169,7 +165,6 @@ C****
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
 !@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,iowrite_single
      *     ,ioread_single,lhead,im,jm
       USE ODEEP_COM
@@ -234,7 +229,6 @@ C****
       SUBROUTINE reset_odiag(isum)
 !@sum reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
-!@ver  1.0
       USE ODEEP_COM, only : rtgo
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum
@@ -251,7 +245,6 @@ C**** Thus it is only initiallised here for case ii).
       SUBROUTINE conserv_OCE(OCEANE)
 !@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : shw,rhows
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
@@ -299,7 +292,6 @@ C****
 !@+    and reduces the upper ocean temperatures by the amount of heat
 !@+    that is diffused into the thermocline
 !@auth Gary Russell/G. Schmidt
-!@ver  1.0
 !@calls ODFFUS
       USE FILEMANAGER
       USE CONSTANT, only : sday,tf
@@ -383,7 +375,6 @@ C**** Set first layer thickness
       SUBROUTINE ODFFUS (DT,ALPHA,ED,DZ,BYDZO,R,LMIJ)
 !@sum  ODFFUS calculates the vertical mixing of a tracer
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
 !@calls TRIDIAG
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
@@ -429,7 +420,6 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether deep ocean values are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       USE STATIC_OCEAN, only : tocean
@@ -487,11 +477,11 @@ C**** Check for reasonable values for ocean variables
 !@$    ESMF: It should only be called from a serial region.
 !@$          It is NOT parallelized.
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc,focean
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo=>rtgo_diag,dz
-      USE DIAG_COM, only : acc_period,qdiag,zoc
+      USE DIAG_COM, only : qdiag,zoc
+      USE MDIAG_COM, only : acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
@@ -560,7 +550,6 @@ C****
 !@sum  collect the local acc-arrays into global arrays
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
       USE ODEEP_COM, only  : RTGO,RTGO_diag
       use domain_decomp_atm, only : grid, pack_column

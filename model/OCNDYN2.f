@@ -7,7 +7,8 @@ c Will add more documentation if this version becomes the modelE default.
       SUBROUTINE OCEANS
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : modd5s,msurf,itime
+      USE MODEL_COM, only : msurf,itime
+      USE DIAG_COM, only : modd5s
       USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -1842,7 +1843,6 @@ c
 !@sum OSTRES applies the atmospheric surface stress over open ocean
 !@sum and the sea ice stress to the layer 1 ocean velocities
 !@auth Gary Russell
-!@ver  1.0
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
      *     , IVNP, UO,VO, UOD,VOD, MO,DXYSO,DXYNO,DXYVO

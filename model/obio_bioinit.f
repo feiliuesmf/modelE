@@ -1,3 +1,4 @@
+
 #include "rundeck_opts.h"
 
 #ifndef OBIO_ON_GARYocean     !not on Gary's ocean
@@ -62,7 +63,7 @@ cddd     &     scatter_hycom_arrays
       integer i,j,k,l,nn
 
 
-      integer nir,nt
+      integer nir(nrg), nt
       integer iu_bioinit
 
       real rlon,rlat,dicmin,dicmax
@@ -70,8 +71,6 @@ cddd     &     scatter_hycom_arrays
 
       character*2 ntchar
       character*80 filename
-
-      common /bir/ nir(nrg)
 
       call alloc_obio_incom
 
@@ -433,8 +432,7 @@ c       13 -- Mediterranean/Black Seas
 
       real rlat,rlon
 
-      integer nir
-      common /bir/ nir(nrg)
+      integer nir(nrg)
 
       real antlat,rnpolat
       data antlat,rnpolat /-40.0, 40.0/
@@ -819,7 +817,6 @@ cdiag endif
       !--------------------------------------------------------
 
 ! inerpolate to the HYCOM ocean grid
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -833,7 +830,6 @@ c
      .                       *wlista2o(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 
 cdiag if (filename.eq.'dic_inicond') then
 cdiag do j=1,jjo; do i=1,iio; do k=1,kgrd
@@ -846,7 +842,6 @@ cdiag endif
       !use dpinit(i,j,k)/onem
 
        pinit(:,:,1)=0.d0
-c$OMP PARALLEL DO
        do 10 j=1,jj
        do 10 l=1,isp(j)
        do 10 i=ifp(j,l),ilp(j,l)
@@ -854,10 +849,8 @@ c$OMP PARALLEL DO
          pinit(i,j,k+1)=pinit(i,j,k)+dpinit(i,j,k)/onem
        enddo
  10    continue
-c$OMP END PARALLEL DO
 
        fldo2(:,:,:)=-9999.d0
-c$OMP PARALLEL DO PRIVATE(kmax,nodc_d,nodc_kmax,vrbos)
        do j=1,jj                       
        do l=1,isp(j)
        do i=ifp(j,l),ilp(j,l)
@@ -890,7 +883,6 @@ cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
        enddo
        enddo
        enddo
-c$OMP END PARALLEL DO
 
 cdiag if (filename.eq.'dic_inicond') then
 cdiag do j=1,jjo; do i=1,iio; 

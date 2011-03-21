@@ -2,12 +2,10 @@
 !@+    (Same as M20AT, top at .1mb, 2 extra layers 150-10mb, 4 more 
 !@+     layers above 10mb (compared to F12), no GWDRAG)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

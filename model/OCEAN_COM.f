@@ -6,7 +6,6 @@ C****
       Module OCEAN
 !@sum  OCEAN dynamic ocean related variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
@@ -349,7 +348,6 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       Module OCEAN_DYN
 !@sum  OCEAN_DYN contains variables used in ocean dynamics
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       Use OCEAN, Only : im,jm,lmo
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
@@ -375,7 +373,6 @@ C****
       Module SW2OCEAN
 !@sum  SW2OCEAN variables for putting solar radiation into ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       Use OCEAN, Only : ze,lsrpd
       Implicit None
       REAL*8, DIMENSION(LSRPD) :: FSR,FSRZ,dFSRdZ,dFSRdZB
@@ -386,7 +383,6 @@ C****
       SUBROUTINE init_solar
 !@sum  init_solar calculates penetration of solar radiation
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       REAL*8 EF,EFZ,Z
       INTEGER L
       EF(Z) = RFRAC*EXP(-Z/ZETA1) + (1d0-RFRAC)*EXP(-Z/ZETA2)
@@ -413,8 +409,6 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
-      USE DOMAIN_DECOMP_ATM, only : dist_grid,agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get, am_i_root
       USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
@@ -559,7 +553,7 @@ C**** Necessary initiallisation?
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
-      call alloc_afluxes(agrid)
+      call alloc_afluxes
       call ALLOC_OFLUXES(ogrid)
 
 #ifdef TRACERS_OceanBiology

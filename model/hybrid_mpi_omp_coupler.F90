@@ -17,8 +17,6 @@ module hybrid_mpi_omp_coupler
   public :: scatterDistributedQuantities
   public :: gatherDistributedQuantities_IO
   public :: scatterDistributedQuantities_IO
-  public :: startMultiThreaded
-  public :: startSingleThreaded
 
   ! Global (gathered) quantities related to modelE local (scattered quantities)
   
@@ -232,11 +230,7 @@ contains
     integer :: ier
     character(len=BUF_LEN) :: buf
 
-!$  call omp_set_dynamic(.true.)
-
     if (.not. AM_I_ROOT()) then
-!$     call omp_set_num_threads(SINGLE_THREADED)
-!$     call omp_set_dynamic(.false.)
        return
     end if
 
@@ -335,13 +329,5 @@ contains
     deallocate(focean)
 
   end subroutine finalize
-
-  subroutine startMultiThreaded()
-!!$!$      call omp_set_num_threads(NUM_THREADS_HYCOM)
-  end subroutine startMultiThreaded
-
-  subroutine startSingleThreaded()
-!!$!$      call omp_set_num_threads(SINGLE_THREADED)
-  end subroutine startSingleThreaded
 
 end module hybrid_mpi_omp_coupler

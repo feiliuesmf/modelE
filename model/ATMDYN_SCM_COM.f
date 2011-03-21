@@ -1,7 +1,6 @@
       MODULE DYNAMICS
 !@sum  DYNAMICS contains all the pressure and momentum related variables
 !@auth Original development team
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, ONLY : grid
       USE RESOLUTION , ONLY : LM
       IMPLICIT NONE

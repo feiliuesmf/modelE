@@ -14,6 +14,7 @@ FFLAGS += -openmp
 F90FLAGS += -openmp
 LFLAGS += -openmp
 endif
+R8 = -r8
 
 # flags needed for particular releases
 ifeq ($(IFORT_RELEASE),12.0)

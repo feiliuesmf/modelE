@@ -14,45 +14,35 @@
       real,    ALLOCATABLE, DIMENSION(:,:,:,:):: pco2tab
 #endif
 
-      real :: rmumax                !max phyto growth rate at 20oC, d/
-      real :: rik                   !light saturation parameter umol quanta/m2/s
-      common /bphy/ rmumax(nchl),rik(3,nchl)
-      real :: obio_wsd,obio_wsh     !phyto sinking rate m/d, m/h
-      common /bphy2/ obio_wsd(nchl),obio_wsh(nchl)
-!$OMP THREADPRIVATE(/bphy2/)
+      real :: rmumax(nchl)          !max phyto growth rate at 20oC, d/
+      real :: rik(3,nchl)           !light saturation parameter umol quanta/m2/s
+      real :: obio_wsd(nchl)        !phyto sinking rate m/d
+      real :: obio_wsh(nchl)        !phyto sinking rate m/h
 
-      real :: rkn,rks     !half-saturation constants for nitrogen, silica (uM)
-      real :: rkf         !half-saturation constant for iron (nM)
-      common /brk/ rkn(nchl),rks(nchl),rkf(nchl)
+      real :: rkn(nchl)   !half-saturation constants for nitrogen (uM)
+      real :: rks(nchl)   !half-saturation constants for silica (uM)
+      real :: rkf(nchl)   !half-saturation constant for iron (nM)
 
       real rad, pi2
-      common /bcnst/ rad,pi2
 
       real :: pHsfc,pHmin,pHmax   !pH at surface,minimun for iteration,
                                   !max for iteration
-      common /cpH/pHsfc,pHmin,pHmax
+      real Pdeep(ntyp)            !deep BC
+      real detdeep(ndet)          !detrital deep BC
+      real cardeep(ncar)          !carbon deep BC
+ 
+      real :: cchl(3)             !C:chl ratio g:g for 3 light states
 
-      real Pdeep,detdeep,cardeep
-      common /bpdp/ Pdeep(ntyp)            !deep BC
-      common /bddp/ detdeep(ndet)          !detrital deep BC
-      common /bcdp/ cardeep(ncar)          !carbon deep BC
-
-      real :: cchl        !C:chl ratio g:g for 3 light states
-      common /bcchl/ cchl(3)
-
-      real :: cnratio     !C:N ratio
-      real :: csratio     !C:Si ratio
-      real :: cfratio     !C:Fe ratio
-      common /beratio/ cnratio,csratio,cfratio
-
+      real :: cnratio             !C:N ratio
+      real :: csratio             !C:Si ratio
+      real :: cfratio             !C:Fe ratio
+      
       real :: mgchltouMC
 
-      real :: wsdeth      !sinking rate of detritus (m/d)
-      real :: remin       !detrital remineralization rate /d
-      common /bkwsdet/ wsdeth(ndet),remin(ndet)
-
-      real :: Fescavrate  !scavenging rate for dissolved iron
-      common /bfescav/ Fescavrate(2)
+      real :: wsdeth(ndet)        !sinking rate of detritus (m/d)
+      real :: remin(ndet)         !detrital remineralization rate /d
+      
+      real :: Fescavrate(2)       !scavenging rate for dissolved iron
 
 C if CARBON == 1
       real, parameter :: excp=0.05              !excretion of DOC by phyto %growth
@@ -86,17 +76,16 @@ C if CARBON == 1
 C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 
 
-      integer lam               !wavelength in nm
-      common /blam/ lam(nlt)  
+      integer lam(nlt)               !wavelength in nm
+      
+      !array of factors to compute mean irradiance w/in water column
+      real facirr(nh,nch,5,ncd)  
 
-      real facirr               !array of factors to compute mean irradiance w/in water column
-      common /bfac/ facirr(nh,nch,5,ncd)  
+      !absorption,scattering coefficients of water
+      real aw(nlt),bw(nlt)
 
-      real aw,bw                !absorption,scattering coefficients of water
-      common /bwat/ aw(nlt),bw(nlt)
-
-      real ac,bc                !absorption and scattering coefficients of chlorophyll
-      common /bopt/ ac(nchl,nlt),bc(nchl,nlt)
+      !absorption and scattering coefficients of chlorophyll
+      real ac(nchl,nlt),bc(nchl,nlt)
 
 !     real, parameter :: solFe=0.02    !solubility of iron: this is the default
 !     real, parameter :: solFe=0.05    !solubility of iron
@@ -118,17 +107,13 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
 #endif
 
       integer nl450
-      common/exifst1/nl450
 
-      real excdom,bbw,Dmax,rd,ru,rmus,rmuu,rn,roair
-      common/exifst2/excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
-     .             ,rn,roair
+      real excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu,rn,roair
 
 #ifndef OBIO_RAD_coupling
       !if obio-rad-coupling is defined then this part is done 
       !inside RAD_COM.f and RAD_DRV.f
       real wfac(nlt)
-      common/exifst3/wfac
 #endif
 
 !define compensation depth
