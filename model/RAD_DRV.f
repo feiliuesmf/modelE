@@ -565,9 +565,6 @@ C**** set up unit numbers for 14 more radiation input files
       DO IU=1,14
         IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
         IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-#ifdef USE_RADIATION_E1
-        IF (IU==4 .OR.IU==5 ) CYCLE
-#endif
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 
@@ -586,9 +583,6 @@ C***********************************************************************
       DO IU=1,14
         IF (IU==12.OR.IU==13) CYCLE                    ! not used in GCM
         IF (IU==10.OR.IU==11) CYCLE                   ! obsolete O3 data
-#ifdef USE_RADIATION_E1
-        IF (IU==4 .OR.IU==5 ) CYCLE
-#endif
         call closeunit(NRFUN(IU))
       END DO
 C**** Save initial (currently permanent and global) Q in rad.layers

@@ -454,7 +454,7 @@ contains
 !@param RHOG,RHOIP density of graupel and ice particles
     !
 #ifdef CLD_AER_CDNC
-    integer, parameter :: SNTM=29 !17+ntm_soa/2  !for tracers for CDNC
+    integer, parameter :: SNTM=29+ntm_ocean !17+ntm_soa/2  !for tracers for CDNC
 #endif
     !
     !              *******************************

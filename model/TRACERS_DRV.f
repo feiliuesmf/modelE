@@ -10417,7 +10417,8 @@ C****
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AEROSOLS_OCEAN
-      call read_seawifs_chla(jmon) ! CHECK this has to be called once per month, not every timestep
+      case ('OCocean')
+        call read_seawifs_chla(jmon) ! CHECK this has to be called once per month, not every timestep
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)

@@ -582,11 +582,6 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         cqsave=cq
 #endif
 
-#ifdef USE_PBL_E1
-        call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
-     2                 ustar,dtime,n)
-#endif
-
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
@@ -594,24 +589,18 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         if(tv(2).lt.tv(1)) then !convective
           wstar3=-dbl*grav*2.*(tv(2)-tv(1))*kh(1)/((tv(2)+tv(1))*dzh(1))
           wstar2h = wstar3**twoby3
-#ifdef USE_PBL_E1
-          gusti=0.
-#else
           ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
           gusti=pbl_args%gusti ! defined in PBL_DRV.f
-#endif
         else
           wstar3=0.
           wstar2h=0.
           gusti=0.
         endif
 
-#ifndef USE_PBL_E1
         call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
         call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
-#endif
 
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
@@ -1075,11 +1064,7 @@ C**** tracer code output
       qflx   = kq(1)*(q(2)-q(1))/dz
       tvflx = tflx*(1.+deltx*q(1)) + t(1)*deltx*qflx
       ustar  = sqrt(km(1)*dudz)
-#ifdef USE_PBL_E1
-      ustar  = max(ustar,teeny)
-#else
       ustar  = max(ustar,ustar_min)
-#endif
       tstar  = tflx/ustar
       if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
@@ -1095,13 +1080,9 @@ C**** tracer code output
 
       if (ustar.gt.smax*vel1) ustar=smax*vel1
       if (ustar.lt.smin*vel1) ustar=smin*vel1
-#ifdef USE_PBL_E1
-      ! do nothing
-#else
       if (tstar.eq.0.) tstar=teeny
       if (tstarv.eq.0.) tstarv=teeny
       ustar  = max(ustar,ustar_min)
-#endif
 
       lmonin_dry = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin_dry).lt.lmonin_min)
@@ -1182,11 +1163,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       integer :: i   !@var i  array dimension
       real*8 kz,l0,ls,lb,an2,an,qty,qturb,zeta
 
-#ifdef USE_PBL_E1
-      l0=.16d0*dbl ! Moeng and Sullivan 1994
-#else
       l0=.3d0*dbl ! Moeng and Sullivan 1994
-#endif
 
       if (l0.lt.zhat(1)) l0=zhat(1)
 
@@ -1270,11 +1247,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
 C**** Kinematic viscosity
-#ifdef PBL_E1
-      nu=1.5d-5                 ! temperature independent (original E1 value)
-#else
       nu=visc_air_kin(ts)       ! temperature dependent
-#endif
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
@@ -1284,18 +1257,8 @@ c Compute roughness lengths using smooth/rough surface formulation:
 c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
         z0m=0.135d0*nu/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
-#ifdef USE_PBL_E1
-        nuh=0.395d0*nu ;  nuq=0.624d0*nu
-c**** more accurate nuh, nuq assuming Sc and Pr so that this is
-c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
-c       nuh=0.39522377113362589d0*nu ;  nuq=0.63943320118296587d0*nu
-
-        z0h=nuh/ustar + 1.4d-5
-        z0q=nuq/ustar + 1.3d-4
-#else
         call getzhq(ustar,z0m,Pr,nu,1.4d-5,z0h)  ! heat
         call getzhq(ustar,z0m,Sc,nu,1.3d-4,z0q)  ! vapour
-#endif
 
 #ifdef TRACERS_SPECIAL_O18
 C**** calculate different z0q for different diffusivities
@@ -1678,11 +1641,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       implicit none
 
       ! temperary variable
-#ifdef USE_PBL_E1
-      real*8 :: del
-#else
       real*8 :: del,aa,bb,cc,tmp
-#endif
 
       prt=     0.82d0
       b1=     19.3d0
@@ -1726,9 +1685,6 @@ c     find rimax:
       rimax=(c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       rimax=int(rimax*1000.)/1000.
 
-#ifdef USE_PBL_E1
-      ! do nothing
-#else
 c     find gm_at_rimax
 
       aa=c1*rimax*rimax-c2*rimax+c3
@@ -1741,7 +1697,6 @@ c     find gm_at_rimax
          gm_at_rimax=(-bb-sqrt(tmp))/(2.*aa)
       endif
       ! rimax=.96,  gm_at_rimax=.1366285d6
-#endif
 
 c     find ghmin,ghmax,gmmax0:
 
