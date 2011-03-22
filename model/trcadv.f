@@ -118,7 +118,6 @@ c
 
       CALL HALO_UPDATE(ogrid, vfxcum_loc, FROM=NORTH)
 c
-c$OMP.            SCHEDULE(STATIC,jchunk)
       do 9 j=J_0, J_1
       jb = PERIODIC_INDEX(j+1, jj)
 ! jb=mod(j,jj)+1
@@ -325,13 +324,10 @@ cdiag end if
 cdiag end do
  103  format (i3,4f14.1)
 cc c
-cc c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 cc       do 6 j=1,jdm
 cc       do 6 i=1,idm
 cc  6    flxdiv(i,j)=0.
-cc c$OMP END PARALLEL DO
 cc       do 5 k=1,kk
-cc c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
 cc       do 9 j=1,jj
 cc       jb=mod(j,jj)+1
 cc       do 9 l=1,isp(j)
@@ -345,7 +341,6 @@ cc  12     flxdiv(i,j)=(u(i+1,j,k)-u(i,j,k)+v(i,jb,k)-v(i,j,k))*scali(i,j)
 cc      .    +w(i,j,k)-w(i,j,k-1)+fc(i,j,k)-fco(i,j,k)
 cc       end if
 cc  9    continue
-cc c$OMP END PARALLEL DO
 cc       call findmx(ip,flxdiv,idm,ii1,jj,'mass consv')
 cc       write (lp,*) 'shown below: mass consv. residual in layer',k
 cc       call zebra(flxdiv,idm,idm-1,jdm)
@@ -353,7 +348,6 @@ cc  5    continue
 c
 c --- get vertical flux by summing -fld- over upstream slab of thickness -w-
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=J_0, J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 26 l=1,isp(j)
@@ -504,7 +498,6 @@ c
       CALL HALO_UPDATE(ogrid,tfld, FROM=SOUTH)
        fld2(:,J_0H-1) = tfld(:,J_0H)
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 11 j=J_0, J_1
       ja  = PERIODIC_INDEX(j-1, jj)
       jb  = PERIODIC_INDEX(j+1, jj)
@@ -730,13 +723,11 @@ c
         end if
       end if
 c
-cc$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 15 j=J_0, J_1
       afterj(j)=0.
       do 15 l=1,isp(j)
       do 15 i=ifp(j,l),ilp(j,l)
  15   afterj(j)=afterj(j)+fld(i,j,k)*fc(i,j,k)*scal(i,j)
-cc$OMP END PARALLEL DO
 c
       call compBforeAfter(bfore,after,bforej,afterj)
 c

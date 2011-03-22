@@ -41,7 +41,6 @@ c
 c
       CALL HALO_UPDATE(ogrid,th3d  ,FROM=SOUTH)
 
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -89,9 +88,6 @@ c
 c
 c --- convection of thermodynamic variables and tracer
 c
-c$OMP+ PRIVATE(kn,kmax,totem,tosal,homog,sigup,siglo,q1,q2,tem,sal,
-c$OMP+ trc,thet,kbase,tndcyt,tndcys,ttem,ssal,dens,star,delp,trac,
-c$OMP+ pres,vrbos)
       do 1 j=J_0,J_1
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)

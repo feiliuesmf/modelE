@@ -31,14 +31,12 @@ c
 ccc      if (mod(time+.0001,30.).lt..0002) then            !  once a month
 ccc        totl=0.
 ccc        eptt=0.
-cccc$OMP PARALLEL DO REDUCTION(+:totl,eptt) SCHEDULE(STATIC,jchunk)
 ccc        do 8 j=1,jj
 ccc        do 8 k=1,kk
 ccc        do 8 l=1,isp(j)
 ccc        do 8 i=ifp(j,l),ilp(j,l)
 ccc        eptt=eptt+oemnp(i,j)*scp2(i,j)
 ccc 8      totl=totl+saln(i,j,k)*dp(i,j,k)*scp2(i,j)
-cccc$OMP END PARALLEL DO
 ccc        totl=totl/g                                     !  10^-3 kg
 cccc
 cccc --- initialize total salt content
@@ -70,7 +68,6 @@ c
       tmean=0.
       smean=0.
 c
-c$OMP. radfl,radflw,radfli,evap,evapw,evapi) SCHEDULE(STATIC,jchunk)
       do 85 j=J_0,J_1
 c
       watcol(j)=0.

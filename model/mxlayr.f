@@ -85,10 +85,6 @@ c
      .       +vflux(i,jb )+vflux(i,j))*scp2i(i,j)*delt1)
  13   dpmixl(i,j,m)=.5*dpmixl(i,j,m)+.25*(thkold+dpmixl(i,j,n))
 c
-c$OMP. totem,tosal,tndcyt,tndcys,temdp,saldp,tem,sal,rho,sup,slo,siglo,
-c$OMP. ustar3,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,turgen,cc4,
-c$OMP. spe,sum1,sum2,pnew,p1,p2,buoyfl,trac,trcdp,vrbos)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       vrbos=.false.
       do 1 l=1,isp(j)
@@ -382,7 +378,6 @@ c
       small=1.e-4
       CALL HALO_UPDATE(ogrid,dpmixl,FROM=SOUTH)
 c
-c$OMP+ knp1) SCHEDULE(STATIC,jchunk)
       do 31 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c

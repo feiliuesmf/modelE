@@ -54,8 +54,6 @@ c
         abort=.true.
       end if
 c
-c$OMP+ cloutr,pinteg,tinteg,sinteg,qinteg,siga,sigb,at_top,
-c$OMP+ phi,plo,pa,pb,q,oldsig)
       do 1 j=1,jdm
 c
       do 1 l=1,isp(j)
@@ -200,7 +198,6 @@ c     write (lp,103) itest,jtest,' new density profile:',
 c    .   (dnsnew(itest,jtest,k),k=1,knew)
  103  format (2i5,a/(8f9.3))
 c
-c$OMP+ siga,sigb,at_top,phi,plo,pa,pb,q) SHARED(abort)
       do 21 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
 c

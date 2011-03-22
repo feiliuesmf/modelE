@@ -218,7 +218,6 @@ C**** Set things up
       do nc=1,ncyc
 
 C****     1/2 x-direction
-!$OMP* REDUCTION(+:NBAD_LOC)
         lloopx1: do l=1,lm
         do j=J_0,J_1
           im1 = im
@@ -237,7 +236,6 @@ c               exit lloopx1 ! saves time in single-processor mode
         nbad_loc = nbad
 
 C****         y-direction
-!$OMP* REDUCTION(+:NBAD_LOC)
         lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
         do i=1,im
@@ -269,7 +267,6 @@ c              exit lloopy ! saves time in single-processor mode
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc = nbad
 C****         z-direction
-!$OMP* REDUCTION(+:NBAD_LOC)
         lloopz: do l=1,lm
         if(l.eq.1) then ! lowest layer
         do j=J_0,J_1
@@ -307,7 +304,6 @@ c             exit lloopz ! saves time in single-processor mode
         IF(NBAD.GT.0) exit ! nc loop
         nbad_loc=nbad
 C****     1/2 x-direction
-!$OMP* REDUCTION(+:NBAD_LOC)
         lloopx2: do l=1,lm
         do j=J_0,J_1
           im1 = im
@@ -423,8 +419,6 @@ C****
 c**** loop over layers and latitudes
       ICKERR_LOC=0
       safvl = 0
-!$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-!$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
       do j=J_0S,J_1S
       am(:) = mu(:,j,l)/nstep(j,l)
@@ -531,8 +525,6 @@ c**** loop over layers
 c**** loop over timesteps
         do ns=1,maxval(nstep)
 
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
-!$OMP* REDUCTION(+:ICKERR_LOC)
       do l=1,lm
         if (ns == 1)  fqv(:,:,l)=0
         if (ns > nstep(l)) cycle
@@ -588,8 +580,6 @@ c****
         if (ierr.eq.2) ICKERR_LOC=ICKERR_LOC+1
       end if
 
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE,ns)
-!$OMP* REDUCTION(+:ICKERR_LOC)
       do l = 1,LM
         if (ns > nstep(l)) cycle
 
@@ -701,8 +691,6 @@ C****
 
 c**** loop over latitudes and longitudes
       ICKERR_LOC=0.
-!$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-!$OMP* REDUCTION(+:ICKERR_LOC)
       do j=J_0,J_1
       do i=1,imaxj(j)
       fqw(:) = 0.
@@ -775,7 +763,6 @@ C****
 C**** Decide how many timesteps to take by computing Courant limits
 C
       ICKERR_LOC = 0
-!$OMP* REDUCTION(+:ICKERR_LOC)
       DO 420 L=1,LM
       DO 420 J=J_0S,J_1S
       nstep=0
@@ -859,9 +846,6 @@ C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR_LOC=0
       CALL HALO_UPDATE(grid, mv, FROM=SOUTH)
       CALL HALO_UPDATE(grid,  m, FROM=NORTH)
-c$$$!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
-c$$$!$OMP*          COURMAX_LOC,IPROB,JPROB,SBMS,SBMN)
-c$$$!$OMP* REDUCTION(+:ICKERR_LOC)
       DO 440 L=1,LM
 C**** Scale poles
       if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -925,7 +909,6 @@ C**** Unscale poles
       if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
       if (HAVE_NORTH_POLE) m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
   440 CONTINUE
-c$$$!$OMP  END PARALLEL DO
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)
@@ -965,7 +948,6 @@ C****
 
 C**** decide how many timesteps to take
       ICKERR_LOC=0
-!$OMP* REDUCTION(+:ICKERR_LOC)
       DO J=J_0,J_1
       DO I=1,IM
       nstep=0

@@ -95,7 +95,6 @@ c
       CALL HALO_UPDATE(ogrid,vbavg, FROM=NORTH)
 
       thkbop=thkbot*onem
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 804 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 804 l=1,isp(j)
@@ -406,7 +405,6 @@ ccc      CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH+NORTH)	! not used?
       CALL HALO_UPDATE(ogrid,scqx, FROM=      NORTH)
 
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 822 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
@@ -501,7 +499,6 @@ c
       CALL HALO_UPDATE(ogrid,vflux,  FROM=NORTH)
       CALL HALO_UPDATE(ogrid,potvor, FROM=NORTH)
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 6 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 6 l=1,isu(j)
@@ -601,7 +598,6 @@ ccc   CALL HALO_UPDATE(ogrid,glue, FROM=SOUTH)		! not used?
 c
 c --- longitudinal turb. momentum flux (at mass points)
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 823 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
@@ -702,7 +698,6 @@ c
       CALL HALO_UPDATE(ogrid,vflux1, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,vtotm,  FROM=SOUTH+NORTH)
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 7 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
@@ -785,7 +780,6 @@ c --- extract barotropic velocities generated during most recent baroclinic
 c --- time step and use them to force barotropic flow field.
 c
       slab=onem*vertmx*delt1
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
 c
       do 31 l=1,isu(j)

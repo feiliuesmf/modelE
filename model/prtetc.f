@@ -267,7 +267,6 @@ c
 
       if (jj.gt.jmax) stop '(error subr.findmx -- jmax < jj)'
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do j=1,jj
          difpos=-huge
          difneg= huge

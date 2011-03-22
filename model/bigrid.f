@@ -30,7 +30,6 @@ c
       go to 888    ! no change in topo after weights are done
 c --- fill single-width inlets
  16   nfill=0
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 15 j=J_0,J_1 !1,jj
       ! for now depth() is global array, so leave ja,jb as they are
       ja=mod(j-2+jj,jj)+1

@@ -96,13 +96,6 @@ c
 c
       abort=.false.
 
-c$OMP+dsgdt,dsgds,tem_lo,sal_lo,rho_lo,tem_up,sal_up,rho_up,p_hat,
-c$OMP+tndrho,tndtem,tndsal,dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,
-c$OMP+k1,k2,tinteg,sinteg,phi,plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,
-c$OMP+trac,pold,pnew,try,info,displ,totrc,tndtrc,scale,
-c$OMP+sumrho,sumtem,sumsal,vrbos,event)
-c$OMP+ SHARED(abort) SCHEDULE(STATIC,jchunk)
-
       do 12 j=J_0, J_1
       ntot2=0
       ntot3=0
@@ -646,84 +639,6 @@ c
 c
       call pardpudpv(nn)
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-cc c$OMP PARALLEL DO PRIVATE(kn,pold,pnew,displ,trac,uold,vold,vrbos)
-cc       do 13 j=1,jj
-cc c
-cc c --- evaluate effect of regridding on -u-
-cc c
-cc       do 14 l=1,isu(j)
-cc       do 14 i=ifu(j,l),ilu(j,l)
-cc c
-cc       vrbos=i.eq.itest .and. j.eq.jtest
-cc c
-cc       pold(1)=p(i,j,1)
-cc       pnew(1)=p(i,j,1)
-cc c
-cc       do 15 k=1,kk
-cc       kn=k+nn
-cc       uold(k)=u(i,j,kn)
-cc       pold(k+1)=pu(i,j,k+1)
-cc       pnew(k+1)=pnew(k)+dpu(i,j,kn)
-cc       pu(i,j,k+1)=pnew(k+1)
-cc  15   displ(k+1)=pnew(k+1)-pold(k+1)
-cc       displ(   1)=0.
-cc       displ(kk+1)=0.
-cc c
-cc       do k=1,kk-2
-cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
-cc ccc          write (lp,'(a,3i5)') '-u- monotonicity problems at',i,j,k
-cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
-cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
-cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
-cc           displ(k+1)=pnew(k+1)-pold(k+1)
-cc         end if
-cc       end do
-cc c
-cc       call ppmadv(kk,pold,displ,uold,uold,vrbos)
-cc c
-cc       do 14 k=1,kk
-cc  14   u(i,j,k+nn)=uold(k)
-cc c
-cc c --- evaluate effect of regridding on -v-
-cc c
-cc       do 24 l=1,isv(j)
-cc       do 24 i=ifv(j,l),ilv(j,l)
-cc c
-cc       vrbos=i.eq.itest .and. j.eq.jtest
-cc c
-cc       pold(1)=p(i,j,1)
-cc       pnew(1)=p(i,j,1)
-cc c
-cc       do 25 k=1,kk
-cc       kn=k+nn
-cc       vold(k)=v(i,j,kn)
-cc       pold(k+1)=pv(i,j,k+1)
-cc       pnew(k+1)=pnew(k)+dpv(i,j,kn)
-cc       pv(i,j,k+1)=pnew(k+1)
-cc  25   displ(k+1)=pnew(k+1)-pold(k+1)
-cc       displ(   1)=0.
-cc       displ(kk+1)=0.
-cc c
-cc       do k=1,kk-2
-cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
-cc ccc          write (lp,'(a,3i5)') '-v- monotonicity problems at',i,j,k
-cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
-cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
-cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
-cc           displ(k+1)=pnew(k+1)-pold(k+1)
-cc         end if
-cc       end do
-cc c
-cc       call ppmadv(kk,pold,displ,vold,vold,vrbos)
-cc c
-cc       do 24 k=1,kk
-cc  24   v(i,j,k+nn)=vold(k)
-cc c
-cc  13   continue
-cc c$OMP END PARALLEL DO
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn) SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
 c
 c --- integrate -u- over new depth intervals

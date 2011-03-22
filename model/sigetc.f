@@ -751,7 +751,6 @@ c
         stop '(refinp)'
       end if
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 1 j=1,jj
 c
 c --- make room for 2*(numfin - numcrs) new grid rows

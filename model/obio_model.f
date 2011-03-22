@@ -289,7 +289,6 @@
 #endif
 
       call start('  obio main loop')
-c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
 #ifdef OBIO_ON_GARYocean
        do 1000 j=j_0,j_1

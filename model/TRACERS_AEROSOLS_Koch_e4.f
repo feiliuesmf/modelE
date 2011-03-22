@@ -947,7 +947,6 @@ c Aerosol chemistry
       I_1 = grid%I_STOP
 
 C**** initialise source arrays
-ccOMP PARALLEL DO PRIVATE (L)
         tr3Dsource(:,j_0:j_1,:,1,n_DMS)=0. ! DMS chem sink
 #ifndef TRACERS_AMP
         tr3Dsource(:,j_0:j_1,:,1,n_MSA)=0. ! MSA chem sink
@@ -985,17 +984,14 @@ ccOMP PARALLEL DO PRIVATE (L)
           tr3Dsource(:,j_0:j_1,:,1,n_OCI3)=0. ! OCI3 sink
           tr3Dsource(:,j_0:j_1,:,1,n_OCA3)=0. ! OCA3 source
         end if
-ccOMP END PARALLEL DO
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
-ccOMP PARALLEL DO PRIVATE (L)
           oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
           tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
           if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
-ccOMP END PARALLEL DO
       endif
 
       if (coupled_chem.eq.0) then

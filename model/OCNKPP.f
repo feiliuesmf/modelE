@@ -1207,18 +1207,6 @@ C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
-!$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
-!$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
-!$OMP&  FLG,FLS,G,G0ML0,G0ML,GHAT,GHATM,GHATG,GHATS,GZML, HBL,HBLP,
-!$OMP&  GXML,GYML, SXML,SYML,
-!$OMP&  HWIDE,I,II,IM1,ITER,J,K,KBL,KMUV,L,LMIJ,LMUV,MML,MML0,
-!$OMP&  MMLT, NSIGG,NSIGS, PO, QPOLE, R,R2,RAVM,RAMV,RITOP,
-!$OMP&  RHO,RHO1,RHOM, S,S0ML0,S0ML,SBETA,SHSQ,SZML, TO,TALPHA,TXY,
-#ifdef TRACERS_OCEAN
-!$OMP&  N,TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT, TXML,TYML,
-#endif
-!$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
-!$OMP&  SHARED(DTS)
       DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)

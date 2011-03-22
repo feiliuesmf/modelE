@@ -37,7 +37,6 @@ c
       data uvscal/1.e5/                        !  velocity x mesh size  --  SI
 ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
 c
-c$OMP+ pa,pb,q,oldsig) SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -126,8 +125,6 @@ cdiag.   (signew(itest,jtest,k),k=1,knew)
        CALL HALO_UPDATE(ogrid,pold, FROM=SOUTH)
        CALL HALO_UPDATE(ogrid,pnew, FROM=SOUTH)
 c
-c$OMP+ siga,sigb,phi,plo,pa,pb,q,delp,uold,vold) SHARED(abort)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 21 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c

@@ -2551,7 +2551,6 @@ C****
 C**** Loop over J and L.  JX = eXclude unfiltered latitudes
 C****                     JA = Absolute latitude
 C****
-!$OMP*                      AN,BN, REDUC,Y)
       Do 410 J=Max(J1O,J1P),JNP
       JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
       JA=J  ;  If(J > JMPF) JA=JM+1-J
@@ -2717,7 +2716,6 @@ C****
 C****
 C**** Horizontal advection of momentum
 C****
-!$OMP*                             VMV, VMUc,VMUs,VMUn, UTANUJ)
       Do 480 L=1,LMO
 C**** Zero out momentum changes
       DUM(:,:,L) = 0
@@ -2858,7 +2856,6 @@ C****
 C**** Vertical advection of momentum
 C****
 C**** U component
-C$OMP ParallelDo   Private (I,J,L, FLUX)
       Do 560 J=J1,JN
       If (J==1)   GoTo 520
       If (J==JM)  GoTo 540
@@ -2884,7 +2881,6 @@ C$OMP ParallelDo   Private (I,J,L, FLUX)
   550 dUM(I,JM,L+1) = dUM(I,JM,L+1) + FLUX
   560 Continue
 C**** V component
-C$OMP ParallelDo   Private (I,J,L, FLUX)
       Do 660 J=J1,JNP
       If (J==1)  GoTo 620
       If (J==JM-1)  GoTo 640
@@ -2909,7 +2905,6 @@ C$OMP ParallelDo   Private (I,J,L, FLUX)
 C****
 C**** Add changes to momentum
 C****
-C$OMP ParallelDo   Private (I,J,L, dUMSP,dVMSP,dUMNP,dVMNP)
       Do 730 L=1,LMO
 C**** Calculate dUM and dVM at poles, then update UM and VM
 C     If (QSP)  Then
@@ -2986,7 +2981,6 @@ C****
 C**** Calculate the mass weighted pressure P (Pa),
 C**** geopotential ZG (m^2/s^2), and layer thickness dH (m)
 C****
-C$OMP ParallelDo   Private (I,J,L,IMAX, PUP,PDN,PE, ZGE,VUP,VDN,dZGdP)
       Do 130 J=J1,JNH
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 130 I=1,IMAX
@@ -3021,7 +3015,6 @@ C**** Copy VBAR and DH to all longitudes at north pole
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
-C$OMP ParallelDo   Private (I,J,L)
       Do 220 J=J1P,JNP
       Do 210 I=1,IM-1
       Do 210 L=1,LMOU(I,J)
@@ -3036,7 +3029,6 @@ C$OMP ParallelDo   Private (I,J,L)
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****
-C$OMP ParallelDo   Private (I,J,L)
       Do 340 J=J1,JNP
       If (J==JM-1)  GoTo 320
       Do 310 I=1,IM
@@ -3067,7 +3059,6 @@ C****
 C**** Add pressure gradient force to momentum
 C****
 C**** Update UM away from poles
-C$OMP ParallelDo   Private (I,J,L)
       Do 630 J=J1,JNP
       Do 620 I=1,IM
       Do 610 L=1,LMOU(I,J)
@@ -3111,7 +3102,6 @@ C****
       Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
       Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
 C****
-C$OMP ParallelDo   Private (I,J,L,IMAX)
       Do 10 J=J1,JNH
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 10 I=1,IMAX
@@ -3507,7 +3497,6 @@ c       end if
            rx(:,jm,:) = 0. ; ry(:,jm,:) = 0.
         end if
 
-!$OMP&             REDUCTION(+:ICKERR)
 !!! !$OMP* SHARED(JM,IM)
       do l=1,lmo
 
@@ -3890,7 +3879,6 @@ C****
 C****
 C**** Loop over latitudes and longitudes
       ICKERR=0
-!$OMP&             REDUCTION(+:ICKERR)
       DO J=J_0,J_1
         IMIN=1
         IMAX=IM
@@ -4748,14 +4736,6 @@ C**** Store North Pole velocity components, they will not be changed
      *                 FROM=SOUTH)
 
 C****
-!$OMP&  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU, DTV,
-!$OMP&          FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
-!$OMP&          UU,UV,UT,UY,UX, VT,VY,VX),
-!$OMP&  SHARED(have_north_pole, UO, VO, UONP, VONP, COSU,SINU,COSI,SINI,
-!$OMP&         J_0, J_0S, J_1S, LMU, MO, LMV, TANP, TANV,
-!$OMP&         BYDYP, BYDXV, BYDXP, BYDYV, KHV, KHP, grid, DT2, DH,
-!$OMP&         UXA, UXB, UXC, UYA, UYB, UYC, VXA, VXB, VXC,
-!$OMP&         VYA, VYB, VYC, DYVO, DXVO, DXPO, DYPO, BYDXYPO, BYDXYV)
 
       allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
       allocate( BU(IM,grid%j_strt_halo:grid%j_stop_halo) )

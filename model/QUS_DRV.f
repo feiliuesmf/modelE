@@ -240,9 +240,6 @@ c**** Get useful local parameters for domain decomposition
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 c**** loop over layers and latitudes
       ICKERR=0
-!$OMP*             I,IP1,NS,NSTEP,BYNSTEP,COURMAX,MASS_I)
-!$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=J_0S,J_1S
 c****
@@ -374,8 +371,6 @@ c****Get relevant local distributed parameters
 c**** loop over layers
       ICKERR=0
       fqv = 0
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 
 c**** scale polar boxes to their full extent
@@ -439,8 +434,6 @@ ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
         IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,:) = 0.
 
 
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 
 c**** average and unscale polar boxes
@@ -515,9 +508,6 @@ c**** Get useful local parameters for domain decomposition
       CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
 c**** loop over latitudes and longitudes
       ICKERR=0
-!$OMP* NSTEP,COURMAX,BYNSTEP,MASS_L,NS,L)
-!$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do j=J_0,J_1
       do i=1,im
 c****

@@ -52,8 +52,6 @@ c
       total=0.
       totalx=0.
       dosmoo=.false.
-c$OMP+ top,bot,thkinv,vrbos,pump) SCHEDULE(STATIC,jchunk)
-c$OMP+ REDUCTION(+:total) SHARED(dosmoo,equatn)
       do 10 j=J_0,J_1
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)

@@ -331,8 +331,6 @@ subroutine CONDSE
   integer :: iThread
   integer :: numThreads
   integer :: I_0thread, I_1thread, imaxj_thread
-  !$    integer :: omp_get_max_threads
-  !$    external omp_get_max_threads
 
   call startTimer('CONDSE()')
   !**** Initialize
@@ -426,7 +424,6 @@ subroutine CONDSE
 
 
   numThreads = 1 ! no openmp
-  !$    numThreads = omp_get_max_threads()
 
   !****
   !**** MAIN J LOOP
@@ -447,59 +444,6 @@ subroutine CONDSE
     if (isccp_diags.eq.1) then
       call BURN_RANDOM((I_0-1)*NCOL*(LM+1))
     end if
-
-    !$omp* PRIVATE (iThread, I_0thread, I_1thread, imaxj_thread,
-#ifdef TRACERS_ON
-    !$omp*  NX,tmsave,tmomsv,
-#endif
-    !$omp*  tmp,ALPHAS,ALPHA1,ALPHA2,AT,BYDH1S,BYDH12, CC,CONV,CTP,
-    !$omp*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
-    !$omp*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
-    !$omp*  HCNDMC, I,ITYPE,IT,ITAU, IPRES,
-#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
-    !$omp*  Lfreeze,
-#endif
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-    !$omp*  n1,n_fidx,
-#endif
-#endif
-    !$omp*  ITROP,IERR, JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
-    !$omp*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
-    !$omp*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-    !$omp*  LP600,LP850,CSC,DIFT, WM1,WMI,sunlit,
-    !ECON !$omp*  E,E1,W1,ep,ep1,q0,q1,q2,
-    !$omp*  roice,dtrm
-    !$omp*   )
-    !$omp*  shared(I_0,I_1,IMAXJ,GZ,SDA,DTsrc,WM,T3MOM,Q3MOM,trm_lni,
-    !$omp*  trm,trwm_lni,trwm,trmom_lni,trmom,kmaxj,axyp,jreg,fearth,
-    !$omp*  fland,rsi,tsavg,numThreads,QSAVG,USAVG,VSAVG,TGVAVG,QGAVG,
-    !$omp*  DCLEV,RAVJ,PMID,PEDN,PK,PDSIG,egcm,svlhx,ttold,
-    !$omp*  cldsav,cldsav1,rhsav,fss,p,ptold,bydtsrc,T,Q,
-    !$omp*  BYAXYP,w2gcm,sig,ntx,have_south_pole,ukmsp,vkmsp,
-    !$omp*  have_north_pole,ukmnp,vkmnp,vkm,trprec,airx,ddm1,ddms,
-    !$omp*  ntix,ukm,ddml,tdn1,qdn1,trdn1,aij,
-    !$omp*  ij_pscld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_mccldtp,
-    !$omp*  ij_mccvtp,ij_mccvbs,jl_mchr,bydsig,
-    !$omp*  jl_mchphas,jl_mcdtotw,ij_pdcld,ij_MCCLDBS,AIJL,
-    !$omp*  IJL_MC,jl_mcheat,jl_mcdry,jl_mcshlw,jl_mcdeep,
-    !$omp*  lh_diags,ijl_mctlh,ijl_mcdlh,ijl_mcslh,jl_mcmflx,jl_cldmc,idx1,
-    !$omp*  jl_mcdflx,jl_csizmc,ijl_MCamFX,J_PRCPMC,FTYPE,IJDD,IDD_PR,
-    !$omp*  IDD_ECND,IDD_MCP,IDD_DMC,IDD_SMC,ADIURN,IJ_PRECMC,
-    !$omp*  IH,IJ_SNWF,TLS,QLS,TMC,QMC,itcon_mc,jlnt_mc,LMC,QTOLD,
-    !$omp*  LP50,ISC,FOCEAN,PEK,UA,VA,Itime,J_PRCPSS,IDD_SSP,idx2,
-    !$omp*  prelay,ij_prec,ij_neth,ij_f0oc,snoage,
-    !$omp*  CSIZMC,RNDSS,IJ_FWOC,ijl_cldwtr,ijl_cldice,ij_cldw,
-    !$omp*  ij_cldi,isccp_diags,flake,gtempr,flice,ltropo,cosz1,ij_scldi,
-    !$omp*  ij_ctpi,ij_taui,ij_tcldi,ij_lcldi,ij_mcldi,ij_hcldi,
-    !$omp*  isccp_reg2d,aisccp,ij_sstabx,taumc,cldmc,svlat,tauss,cldss,
-    !$omp*  j_eprcp,csizss,prec,eprec,precss,p_acc,pm_acc,jl_sshr,
-    !$omp*  ijl_llh,jl_mcldht,jl_rhe,jl_cldss,jl_csizss,itcon_ss,
-    !$omp*  jlnt_lscond,jls_incloud,ijts_aq,taijs,trp_acc,
-    !$omp*  jls_prec,taijn,tij_prec,diag_wetdep,jls_trdpmc,ijts_trdpmc,
-    !$omp*  jls_trdpls,ijts_trdpls,adiurn_dust,dowetdep,idd_wet,idxd
-    !$omp*  )
-    !$omp*    REDUCTION(+:ICKERR,JCKERR)
 
     do ithread = 0, numThreads - 1
       I_0thread = I_0 + (I_1-I_0+1) * iThread / numThreads

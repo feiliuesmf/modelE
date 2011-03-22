@@ -993,9 +993,6 @@ C**** diffusion coefficient is calculated for each triad as well.
 C**** The diffusion coefficient is taken from Visbeck et al (1997)
 C****
 C**** Main Loop over I,J and L
-!$omp&  AIX0ST,AIX1ST,AIX2ST,AIX3ST, AIY0ST,AIY1ST,AIY2ST,AIY3ST,
-!$OMP&  SIX0  ,SIX1  ,SIX2  ,SIX3  , SIY0  ,SIY1  ,SIY2  ,SIY3  ,
-!$OMP&  DSX0sq,DSX1sq,DSX2sq,DSX3sq, DSY0sq,DSY1sq,DSY2sq,DSY3sq)
       DO L=1,LMO
       DO J=J_0STG,J_1STG
       IM1=IM
@@ -1228,7 +1225,6 @@ C**** Calculate horizontal gradients
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
       ARIV = 0.
-!$OMP&  DZSUMX,DZSUMY,LAV,L,ARHOZ,AN,RD,BYTEADY)
       DO J=J_0S,J_1S
         CORI = ABS(2d0*OMEGA*SINPO(J))
         BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
@@ -1415,7 +1411,6 @@ C****
       Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
       Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
 
-C$OMP ParallelDo   Private (I,J,L,IMAX)
       Do J=J1,JNH
         IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
         Do I=1,IMAX

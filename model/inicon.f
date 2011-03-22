@@ -188,13 +188,11 @@ c
       thkk(i,j)=thstar(i,j,kk)
  50   psikk(i,j)=montg(i,j,kk)
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 21 j=1,jj
 c     do 21 l=1,isp(j)
 c     do 21 i=ifp(j,l),ilp(j,l)
 css   omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/m*m C
 c21   continue
-cc$OMP END PARALLEL DO
 c
       else                                !  nstep0 > 0
 c
