@@ -50,11 +50,9 @@ c --- read basin depth array
       do 9 i=1,ii
  9    depths(i,j)=real4(i,j)
 c
-cccc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 7 j=1,jj
 c     do 7 i=1,ii
 c7    if (depths(i,j).gt.0.) depths(i,j)=max(botmin.,depths(i,j))
-cccc$OMP END PARALLEL DO
 c
 c --- reset the Denmark Strait - done in advance
 c

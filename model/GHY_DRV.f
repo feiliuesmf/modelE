@@ -1105,35 +1105,6 @@ c****
 !     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 #endif
 
-c$$$!$OMP  PARALLEL DO DEFAULT(NONE) PRIVATE
-c$$$!$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
-c$$$!$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
-c$$$!$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,dlwdt,
-c$$$!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp,
-c$$$!$OMP*   fb,fv,ts,qs, ghy_tr, irrig, htirrig
-c$$$#ifndef USE_ENT
-c$$$!$OMP*   ,vegcell
-c$$$#else
-c$$$!$OMP&   ,Ca, vis_rad, direct_vis_rad, cos_zen_angle
-c$$$#endif
-c$$$#ifdef TRACERS_DUST
-c$$$!$OMP*   ,n,n1
-c$$$#endif
-c$$$!$OMP*   )
-c$$$!$OMP*   SHARED(ns,moddsf,moddd,
-c$$$!$OMP&     J_0,J_1,I_0,imaxj, dtsrc,nisurf,lat2d,fearth,p,pedn,
-c$$$!$OMP&     pk, pek, t, q, am, tsns_ij, fsf, cosz1, pmid, qg_ij, TRHR,
-c$$$!$OMP&     gtempr,evap_max_ij, fr_sat_ij, CO2X,CO2ppm,vegCO2X_off,
-c$$$!$OMP&     SRVISSURF, entcells, Qf_ij, w_ij, ht_ij, nsn_ij,
-c$$$!$OMP&     fr_snow_ij, top_index_ij, top_dev_ij, dz_ij, q_ij, qk_ij,
-c$$$!$OMP&     sl_ij, prec, eprec, precss, end_of_day_flag,
-c$$$!$OMP&     snowbv, canopy_temp_ij, snow_cover_same_as_rad,e1,
-c$$$!$OMP&     FSRDIR, dzsn_ij, wsn_ij,hsn_ij, fr_snow_rad_ij, snowe,
-c$$$!$OMP&     tearth, wearth, aiearth, gtemp, soil_surf_moist,
-c$$$!$OMP&     bare_soil_wetness, uflux1, vflux1, evapor,dth1, dq1,
-c$$$!$OMP&     runoe, erunoe,e0, idx, idxd, TRSURF)
-c$$$!$OMP*   SCHEDULE(DYNAMIC,2)
-
       !call ent_cell_print(900+counter, entcells)
 
 !!      call update_vegetation_data( entcells,
@@ -1615,7 +1586,6 @@ c another surface type
 
       end do loop_i
       end do loop_j
-c$$$!$OMP  END PARALLEL DO
 
 
       ! land water deficit for changing lake fractions

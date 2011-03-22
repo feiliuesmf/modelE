@@ -770,7 +770,6 @@ C****
       SPA(:,:,L)=0.
       END DO
 
-!$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
         PIJ=P(I,J,1)
@@ -1966,7 +1965,6 @@ C     ---> done by calling routine...
 
 c      CALL HALO_UPDATE(grid, u, FROM=NORTH)
 c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
-!$OMP*    SCHEDULE(DYNAMIC,2)
       DO J=J_0S,J_1S
         KMAX=KMAXJ(J)
         DO K=1,KMAX

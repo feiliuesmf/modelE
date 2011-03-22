@@ -235,8 +235,6 @@ C****
 C**** BEGINNING OF LAYER LOOP : FIND HORIZONTAL FLUXES
 C****
 
-!$OMP*                     FLUX,FLUXU,FLUXV,J_START,J_STP,
-!$OMP*                     FLUX_U,FLUX_V)
       DO 300 L=1,LM
 !       write(iunit_hang,*)'L=',l
         I=IM

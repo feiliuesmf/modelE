@@ -398,7 +398,6 @@ contains
        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
     END DO
 
-!$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
     DO J=J_0,J_1
 
        DO I=I_0,I_1

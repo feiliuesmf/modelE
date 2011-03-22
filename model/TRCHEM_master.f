@@ -422,22 +422,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
 
       ierr_loc = 0
 
-CCCC!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
-CCCC!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
-CCCC!$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
-CCCC!$OMP* changeAldehyde,changeAlkenes,changeCO,changeIsoprene,changeHCHO,
-CCCC!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,changeOx,FACT_SO4,
-CCCC#ifdef TRACERS_HETCHEM
-CCCC!$OMP* changeN_d1,changeN_d2,changeN_d3,
-CCCC#endif
-CCCC!$OMP* aero, CLTOT, ClOx_old, COLMO2, COLMO3, changeClONO2, changeClOx,
-CCCC!$OMP* changehetClONO2, changeHOCl, changeHCl,
-CCCC!$OMP* chgHT3, chgHT4, chgHT5, fraQ,
-CCCC!$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
-CCCC!$OMP* igas, inss, J, jay, L, LL, Lqq, maxl, N, error )
-CCCC!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
-CCCC!$OMP* N_ALKYLNIT)
-
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       j_loop: DO J=J_0,J_1          ! >>>> MAIN J LOOP BEGINS <<<<
 
@@ -1660,8 +1644,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO j_loop ! >>>> MAIN J LOOP ENDS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-CCCCC!$OMP END PARALLEL DO  
-
       ! check if there was that error in certain section of chemstep
       ! anywhere in the world; if so, stop the model (all processors):
       call globalmax(grid,ierr_loc,ierr)

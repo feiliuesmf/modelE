@@ -75,7 +75,6 @@ c
       CALL HALO_UPDATE(ogrid,scuy,   FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(ogrid,scq2,   FROM=SOUTH+NORTH)   !only NORTH
 
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 822 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
@@ -176,7 +175,6 @@ c
       CALL HALO_UPDATE(ogrid,depthv, FROM=NORTH)
       CALL HALO_UPDATE(ogrid,scvy,   FROM=NORTH)
 
-c$OMP+ SCHEDULE(STATIC,jchunk) 
       do 823 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       jb= PERIODIC_INDEX(j+1, jj)

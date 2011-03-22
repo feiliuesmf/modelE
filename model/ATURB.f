@@ -158,20 +158,6 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,dz0,im,jm,lm)
 
-!$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
-!$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
-!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
-!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
-!$OMP*   tpe0,tpe1,ediff,p,ldbl_max,z,den
-#ifdef TRACERS_ON
-!$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
-#endif
-!$OMP*    ) SHARED(dtime
-#ifdef TRACERS_ON
-!$OMP*    ,nta
-#endif
-!$OMP*    ) SCHEDULE(DYNAMIC,2)
-
       loop_j_tq: do j=J_0, J_1
         loop_i_tq: do i=I_0,imaxj(j)
 
@@ -696,8 +682,6 @@ C****
       !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
       !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
       !@ temp1e average of temp0 and temp1
-!$OMP*  plm1e)
-!$OMP*    SCHEDULE(DYNAMIC,2)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           do l=1,lm-1

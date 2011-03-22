@@ -526,7 +526,6 @@ c
 c
       CALL HALO_UPDATE(ogrid,p(:,:,k))
       CALL HALO_UPDATE(ogrid,pbot)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       !!do 131 j=1,jj
       do 131 j=J_0,J_1
       !!ja=mod(j-2+jj,jj)+1

@@ -663,8 +663,6 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
-!$OMP&  SHARED(trm, dtrm, tr3Dsource, dtsrc, domom, naij, taijs, 
-!$OMP&         imaxj, eps, j_0, j_1, i_0, ns, n, trmom)
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
@@ -846,10 +844,6 @@ C**** air density + relative humidity (wrt water) + air viscosity
       end do
 
 C**** Gravitational settling
-!$OMP&   SHARED(J_0,J_1,I_0,IMAXJ,trm,trpdens,trradius,dtsrc,
-!$OMP&          airden,rh,visc,gbygz,trmom,itime,itime_tr0,jls_grav )
-!$OMP&   PRIVATE (n,l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius,
-!$OMP&      hydrate, fluxd, fluxu, told, najl)
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling

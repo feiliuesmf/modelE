@@ -54,7 +54,6 @@ c
  109  format (i9,2i5,a/(33x,i3,f8.3,f8.1,3x,f8.3,f8.1))
  110  format (i9,2i5,a/(33x,i3,f8.3,1es11.3))
 c
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
@@ -95,7 +94,6 @@ c
           call HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
         end do
 
-c$OMP+            SCHEDULE(STATIC,jchunk)
         do 2 j=J_0,J_1
         ja = PERIODIC_INDEX(j-1, jj)
         jb = PERIODIC_INDEX(j+1, jj)
@@ -131,7 +129,6 @@ c
 c
         call HALO_UPDATE(ogrid,vflux,FROM=NORTH)
 c
-c$OMP+      SCHEDULE(STATIC,jchunk)
         do 13 j=J_0,J_1
         jb = PERIODIC_INDEX(j+1, jj)
         do 13 l=1,isp(j)
@@ -167,7 +164,6 @@ c
 c --- except for KPP, surface boundary layer is the mixed layer
       if (mod(iocnmx,4).eq.3) then		! GISS scheme
         hblmax = bldmax*onem
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
@@ -182,7 +178,6 @@ c --- diffusivity/viscosity calculation
 c
       CALL HALO_UPDATE(ogrid,corio,FROM=NORTH)
 
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
         call mxkprfaj(n,nn,k1m,k1n, j)
       enddo
@@ -206,7 +201,6 @@ c
 c ---   final mixing of variables at p points
 c
       if (iocnmx.ne.0) then		! carry out mixing
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           call mxkprfbj(nn,k1n,j)
         enddo
@@ -217,7 +211,6 @@ c
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,1),FROM=SOUTH)
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,2),FROM=SOUTH)
 
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           call mxkprfcj(nn, j)
         enddo
@@ -230,9 +223,6 @@ c
       if (iocnmx.eq.0 .or. iocnmx.eq.3) then
 c
 c --- diagnose new mixed layer depth based on density jump criterion
-!$OMP&                      sigmlj,thsur,thtop,alfadt,betads,zintf,
-!$OMP&                      thjmp,thloc,vrbos)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
 c
@@ -403,7 +393,6 @@ c
 c
 c --- calculate bulk mixed layer t, s, theta
 c
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
@@ -442,7 +431,6 @@ c
         end do
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,n),FROM=SOUTH)
 
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
          ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -481,7 +469,6 @@ c
         enddo !j
       endif                                           ! diagno
 c
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)

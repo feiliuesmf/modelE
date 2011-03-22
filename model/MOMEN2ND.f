@@ -140,8 +140,6 @@ C****
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
 CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
 
-!$OMP+   FLUXU_N_S,FLUXV_N_S,FLUXU_SW_NE, FLUXV_SW_NE,
-!$OMP+   FLUXU_SE_NW, FLUXV_SE_NW, IPOLE,JV,JVS,JVN,WTS,USV0,VSV0) 
       DO 300 L=1,LM
 
 c
@@ -442,7 +440,6 @@ C****
 C**** CORIOLIS FORCE
 C****
         CALL HALO_UPDATE(GRID,P ,FROM=SOUTH+NORTH)
-c$$$!$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
       DO L=1,LM
         IM1=IM
         DO I=1,IM
@@ -483,7 +480,6 @@ C****     Set the Coriolis term to zero at the Poles:
           END DO
         END DO
       END DO
-c$$$!$OMP  END PARALLEL DO
 
       if(do_polefix.eq.1) then
 c apply the full coriolis force at the pole and ignore the metric term

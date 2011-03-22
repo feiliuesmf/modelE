@@ -231,9 +231,6 @@ C**** Fill in polar boxes
       IF (have_north_pole) P(2:IM,JM)= P(1,JM)
       Call HALO_UPDATE(grid, P)
 
-!$OMP&    PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
-!$OMP&    SHARED (J_0H, J_1H, I_0H, I_1H, LMAX, PLIJ, 
-!$OMP&           PDSIG, PMID, PEDN, AM, PK, PEK, BYAM, SQRTP, P)
       DO J=J_0H,J_1H ! filling halo for P is faster than PDSIG
         DO I=I_0H,I_1H
 

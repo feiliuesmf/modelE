@@ -37,10 +37,6 @@ c --- if mixfrq > 1, apply mixing algorithm to both time levels
 c
 ccc   salt=0.
 c 
-c$OMP. told,trold,tflxl,tflxu,sflxl,sflxu,trflxl,trflxu,kmin,kmax,
-c$OMP. flngth,flxu,flxl,pdot,clipt,clips,cliptr,ka,kan,delp,amount,
-c$OMP. qmax,qmin,tndcyt,tndcys,tndtra,scale,clip,event,vrbos)
-c$OMP. SCHEDULE(STATIC,jchunk)
       do 31 j=J_0, J_1
       do 31 l=1,isp(j)
       do 31 i=ifp(j,l),ilp(j,l)

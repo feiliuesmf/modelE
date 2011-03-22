@@ -5023,7 +5023,6 @@ C****
 
       ih=jhour+1
       ihm=ih+(jdate-1)*24
-!$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
       do i=I_0,imaxj(j)
       psk=pek(1,i,j)

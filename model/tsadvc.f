@@ -57,7 +57,6 @@ c
       CALL HALO_UPDATE(ogrid,vflx(:,:,k), FROM=NORTH)
 
 c
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 49 j=J_0,J_1
       jb= PERIODIC_INDEX(j+1, jj)
       do 49 l=1,isp(j)

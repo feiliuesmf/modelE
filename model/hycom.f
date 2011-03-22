@@ -428,22 +428,7 @@ c
 c
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
 c
-c$    mo0=OMP_GET_NUM_THREADS()
-c$    call OMP_SET_DYNAMIC(.false.)
-c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
-c
-ccc$  call OMP_SET_NUM_THREADS(max(mo0,16))
-ccc$  OMP PARALLEL SHARED(mo1)
-ccc$  mo1=OMP_GET_NUM_THREADS()
-ccc$  OMP END PARALLEL
-ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
-ccc$     . ,' =======  number of threads:',mo1,' ======='
-c$    if (AM_I_ROOT())
-c$   &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
       jchunk=50
-c     if (mo0.eq.4) jchunk=50           !  jdm=180
-c     if (mo0.eq.6) jchunk=32           !  jdm=180
-c     if (mo0.eq.8) jchunk=23           !  jdm=180
       if (jchunk.lt.0) then
         if (AM_I_ROOT()) write (lp,*) 'you forgot to define jchunk'
         stop   ! proper mpi_abort

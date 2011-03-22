@@ -227,7 +227,6 @@ c
       arean3 =0.
       vol=0.
       if (idm.ne.387.and.jdm.ne.360) stop 'reset nino3 domain'
-c$OMP.                       ,iceextn,iceexts)
       do 5 j=1,jdm
       do 5 k=1,kdm
       do 5 l=1,isp(j)

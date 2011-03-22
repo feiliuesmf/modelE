@@ -2710,7 +2710,6 @@ c****  passed for scm
 
 !!      common/pbluvtq/u,v,t,q,e
 
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
 C**** end special threadprivate common block
 
 
