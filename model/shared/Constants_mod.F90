@@ -88,7 +88,7 @@ module constant
 
   !**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol
   !**** For values of CO2 much larger than present day (> 4x conc)
-  !**** the molecular weight of dry air M_A could change.
+  !**** the molar mass of dry air M_A could change.
   !**** Assume that M_O2 = 31.9988 and M_CO2 = 44.00995
   !**** and current percentages 20.946% and 0.0350% (US Stand. Atm.)
   !**** Assuming CO2 displaces other gases equally M_A=28.9602 + n*0.00527
@@ -99,12 +99,12 @@ module constant
   real*8,parameter :: gasc = 8.314510d0
 !@param bygasc  1/gasc
   real*8,parameter :: bygasc = 1./gasc
-!@param mair molecular weight of dry air (28.9655 g/mol)
+!@param mair molar mass of dry air (28.9655 g/mol)
   real*8,parameter :: mair = 28.9655d0
 !@param rgas gas constant (287.05 J/K kg)
   real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
 
-!@param mwat molecular weight of water vapour
+!@param mwat molar mass of water vapour
   real*8,parameter :: mwat = 18.015d0
 !@param rvap  gas constant for water vapour (461.5 J/K kg)
   !**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol

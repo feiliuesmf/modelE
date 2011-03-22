@@ -243,7 +243,7 @@ end interface
     private
     character(len=MAX_LEN_NAME) :: name
 
-!@var tr_mm: !@var TR_MM: molecular mass of each tracer (g/mole)
+!@var tr_mm: !@var TR_MM: molar mass of each tracer (g/mol)
     real*8 :: tr_mm  
 !@var ntm_power: Power of 10 associated with each tracer (for printing)
     integer :: ntm_power  
