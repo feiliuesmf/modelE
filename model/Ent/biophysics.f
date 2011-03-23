@@ -180,19 +180,6 @@
 !OUTPUT (via var parameter):
 !      real*8 GPP 
 
-!Common block is needed in case of parallelization.--------------------------
-!      common /veg_private/
-!     &     vegpar
-!           ,pres,ch,vsm,parinc,fdir,sbeta
-!     &     ,Ci,Qf,Ca,betad,tcan,qv
-!     &     ,CNC
-!- - - - - - - - - - - - - - - - - - - - -
-!     &      alai,nm,nf,vh
-!     &     ,pres,ch,vsm
-!    &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf,Ca
-!     &     ,betad,tcan,qv
-!     &     ,CNC
-
       contains
       !************************************************************************
 

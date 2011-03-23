@@ -1737,11 +1737,11 @@ C**** JMAX(JB) = northern most cell of grid A that intersects cell JB
 C****
       Implicit Real*8 (A-H,O-Z)
       Parameter (TWOPI=6.283185307179586477d0)
-      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS,DATMCB
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMCB, INA,JNA, INB,JNB
+      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS
+      real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer INA,JNA, INB,JNB
 C****
       INA = IMA  ;  JNA = JMA
       INB = IMB  ;  JNB = JMB
@@ -1863,11 +1863,11 @@ C****          A = per unit area or per unit mass quantity
 C**** Output:  B = horizontally interpolated quantity on B grid
 C****
       Implicit Real*8 (A-H,O-Z)
-      Real*8 WTA(*), A(*), B(*), DATMIS
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMIS, IMA,JMA, IMB,JMB
+      Real*8 WTA(*), A(*), B(*)
+      real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer IMA,JMA, IMB,JMB
 C****
 C**** Interpolate the A grid onto the B grid
 C****
@@ -1905,11 +1905,11 @@ C**** their longitudinal mean.
 C**** The 3 Real input values are expected to be Real*8.
 C****
       Implicit Real*8 (A-H,O-Z)
-      Real*8 WTA(*), A(*), B(*), DATMIS
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMIS, IMA,JMA, IMB,JMB
+      Real*8 WTA(*), A(*), B(*)
+      real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer IMA,JMA, IMB,JMB
 C****
       Call HNTR8 (WTA,A,B)
 C****

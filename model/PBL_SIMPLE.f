@@ -58,11 +58,6 @@
 !output compat (not used)
       real*8 :: kms,kqs
 
-      common /socpbl_globals/ zs1,tgv,tkv,hemi,qg_sat,pole
-     &   ,us,vs,ws,wsm,wsh,tsv,qsrf,khs,w2_1
-     &   ,psi,dbl,ug,vg,wg,kms,kqs,wint
-
-
       end MODULE SOCPBL
 
 

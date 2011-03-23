@@ -740,8 +740,6 @@ c****
       REAL*8 :: height
       REAL*8,DIMENSION(Lm,Ntm_dust) :: tmold
 
-      COMMON /dustprv/ l,layer,y,height,lwdep,h,tmold
-
 #ifdef WET_DEPO_Ina
       SELECT CASE(j)
       CASE (1:6)

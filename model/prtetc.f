@@ -53,7 +53,6 @@ c
       integer, parameter :: length=77
       character*1 char,line(length)
       integer l,n
-      common/lnout/line
 c
 c --- replace n-th element of array 'line' by character 'char', where
 c --- n = 'value' modulo 'length'

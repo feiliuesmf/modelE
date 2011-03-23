@@ -2493,10 +2493,6 @@ c      end module DIAG
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
-
-c      REAL*8, DIMENSION(0:IMH,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,2) :: FCUVA,FCUVB
-c      COMMON/WORK7/FCUVA,FCUVB
-
       INTEGER :: M5,NDT
 
       REAL*8, DIMENSION(IMH+1) :: X
@@ -2585,8 +2581,6 @@ C****
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        UX,VX
-c      REAL*8, DIMENSION(0:IMH,JM,LM,2) :: FCUVA,FCUVB
-c      COMMON/WORK7/FCUVA,FCUVB
       INTEGER :: J,L
       INTEGER :: J_0STG, J_1STG
       REAL*8 BEGIN
@@ -2605,12 +2599,6 @@ c      COMMON/WORK7/FCUVA,FCUVB
       RETURN
       END SUBROUTINE DIAG5F
 
-c      module ATMDYN_QDYNAM
-c      USE ATMDYN
-c      implicit none
-c      private
-c      public QDYNAM
-c      contains
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes

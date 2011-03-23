@@ -10,8 +10,6 @@ c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
-      common/pbl_loc/evap_max,fr_sat,uocean,vocean
-
       real*8 :: cdnl(im,jm)
 
 ccc   some variables introduced in later code, first for tracers,

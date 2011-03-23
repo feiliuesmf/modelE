@@ -690,8 +690,8 @@ c
       real ri,rid,slq2,sm,sh,sc,c_y0,c_y00
       real eps,c_yst,c_yst0,rit,ric,c_y,val,c_n,c_c
       integer iri,irid,iend,ier
-      common /bb/rit,ric       !rit is the temperature's part of 
-     .                         !Ri and ric the concentration's.
+      !Note: rit is the temperature's part of Ri
+      !and ric the concentration's.
 c
       parameter(c_yst0 = 8.527882) !Need a guess for c_y for the solver 
      .                             !for the neutral case, c_yst. Take 
@@ -839,8 +839,6 @@ c
       real fct_sal,c_n,c_c,c_y,sm,sh,sc,bb,rit,ric
 c
       include 'kprf_scalars.h'
-c
-      common /bb/rit,ric
 c
 c --- Decide to use the parameter "tpvot" instead of its value 2/5 \tau .
       c_n = -((tcot*tctot)/(tpvot**2))*c_y*rit
@@ -1097,8 +1095,6 @@ c
       real fct_sal,xx,val,xst,eps,sm,sh,sc
       real tol,a,b,d,bb,rit,ric
       integer iend,ier
-c
-      common /bb/rit,ric
 c
 c --- to solve general nonlinear equations of the form x=fct_sal(x)       
 c --- by means of wegsteins iteration method                         
