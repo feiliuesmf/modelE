@@ -4980,6 +4980,7 @@ contains
       end if
       RCLDE1=5.*RCLDE          ! for precip optical thickness
       CSIZEL(L)=RCLDE
+      IF(FCLD.LE.teeny.AND.CSIZEL(L).GT.25.d0) CSIZEL(L)=25.d0
 #ifdef CLD_AER_CDNC  /* save for diag purposesi */
       if (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
         ACDNWS(L)= SCDNCW
