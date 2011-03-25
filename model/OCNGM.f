@@ -266,6 +266,20 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
       AEZY(I,J,L)  =  ASY3(I,J,L)
       EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L)
       CEZY(I,J,L)  = -ASY1(I,J,L)
+      ELSE
+      IF (L.gt.1) BZZ(I,J,L-1) = 0.
+      AZX(I,J,L)   = 0.
+      BZX(I,J,L)   = 0.
+      CZX(I,J,L)   = 0.
+      AEZX(I,J,L)  = 0.
+      EZX(I,J,L)   = 0.
+      CEZX(I,J,L)  = 0.
+      AZY(I,J,L)   = 0.
+      BZY(I,J,L)   = 0.
+      CZY(I,J,L)   = 0.
+      AEZY(I,J,L)  = 0.
+      EZY(I,J,L)   = 0.
+      CEZY(I,J,L)  = 0.
       END IF
   110 IM1 = I
       END DO
