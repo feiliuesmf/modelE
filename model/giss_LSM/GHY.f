@@ -292,43 +292,6 @@ ccc be computed (i.e. f[bv] is not zero)
 !!! the following variable is for debugging only (total carbon in entcell)
       real*8 :: C_entcell_start, C_entcell
 
-C***
-C***   Thread Private Common Block GHYTPC
-C***
-      COMMON /GHYTPC/
-     &     abeta,abetab,abetad,abetap,abetat,abetav,acna,acnc
-     &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
-     &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
-     &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-     &     ,aevapvg,aevapvs,aevapbs,alai,airrig,aeirrig
-     &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
-     &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
-     &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
-     &     ,evapbs,evapdl,evapvd,evapvs,evapvw,evapvg,f !evapor,
-     &     ,fb,fc,fch,fd,fd0,fh,fhsng,fhsng_scale,fice,flmlt,flmlt_scale
-     &     ,fm,fr,fr_sat,fr_snow,fv,fw,fw0,h,hsn,ht !hlm
-     &     ,htdrips,htdripw,htpr,htprs,pr,pres,prs,q,qk,qm1,qs
-     &     ,rho,rnf,rnff,shc,sl,snowd,snowm,snsh,snsh_tot !veg rs,
-     &     ,snshs,srht,tbcs,tsns,theta,thetm,thets,thrm_tot,thrmsn !thm
-     &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
-     &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
-     &     ,ijdebug,n,nsn !nth
-     &     ,flux_snow,wsn_for_tr,trans_sw,irrig,htirrig
-     &     ,vs,vs0,tprime,qprime
-     &     ,asrht,atrht,aalbedo
-     &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
-     &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
-     &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
-     &     ,aCdeadpool_soilmic,aCdeadpool_slow,aCdeadpool_passive
-!----------------------------------------------------------------------!
-     &     ,i_bare,i_vege,process_bare,process_vege
-     &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
-     &     ,tg_L,wtr_L,ace_L,dripw_scale
-c     not sure if it works with derived type. if not - comment the
-c     next line out (debug_data used only for debug output)
-c    &     ,debug_data           ! needs to go to compile on COMPAQ
-C***
-
 ccc   external functions
       real*8, external :: qsat,dqsatdt
 

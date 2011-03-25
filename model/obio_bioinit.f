@@ -1,3 +1,4 @@
+
 #include "rundeck_opts.h"
 
 #ifndef OBIO_ON_GARYocean     !not on Gary's ocean
@@ -62,7 +63,7 @@ cddd     &     scatter_hycom_arrays
       integer i,j,k,l,nn
 
 
-      integer nir,nt
+      integer nir(nrg), nt
       integer iu_bioinit
 
       real rlon,rlat,dicmin,dicmax
@@ -70,8 +71,6 @@ cddd     &     scatter_hycom_arrays
 
       character*2 ntchar
       character*80 filename
-
-      common /bir/ nir(nrg)
 
       call alloc_obio_incom
 
@@ -433,8 +432,7 @@ c       13 -- Mediterranean/Black Seas
 
       real rlat,rlon
 
-      integer nir
-      common /bir/ nir(nrg)
+      integer nir(nrg)
 
       real antlat,rnpolat
       data antlat,rnpolat /-40.0, 40.0/
@@ -1153,11 +1151,11 @@ C**** JMAX(JB) = northern most cell of grid A that intersects cell JB
 C****
       Implicit Real*8 (A-H,O-Z)
       Parameter (TWOPI=6.283185307179586477d0)
-      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS,DATMCB
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMCB, INA,JNA, INB,JNB
+      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS
+      Real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer DATMCB, INA,JNA, INB,JNB
 C****
       INA = IMA  ;  JNA = JMA
       INB = IMB  ;  JNB = JMB
@@ -1273,10 +1271,10 @@ C**** The 3 Real input values are expected to be Real*8.
 C****
       Implicit Real*8 (A-H,O-Z)
       Real*8 WTA(*), A(*), B(*), DATMIS
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMIS, IMA,JMA, IMB,JMB
+      real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer IMA,JMA, IMB,JMB
 C****
       Call HNTR8 (WTA,A,B)
 C****
@@ -1316,10 +1314,10 @@ C**** Output:  B = horizontally interpolated quantity on B grid
 C****
       Implicit Real*8 (A-H,O-Z)  
       Real*8 WTA(*), A(*), B(*), DATMIS
-      Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
-     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
-     *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
-     *       DATMIS, IMA,JMA, IMB,JMB
+      real*8 SINA(0:5401),SINB(0:5401),
+     *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401)
+      integer IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401)
+      integer IMA,JMA, IMB,JMB
 C****
 C**** Interpolate the A grid onto the B grid
 C****

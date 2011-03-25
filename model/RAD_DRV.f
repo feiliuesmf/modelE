@@ -814,7 +814,6 @@ C**** REPLICATE VALUES AT POLE
       USE MODEL_COM
       USE GEOM, only : imaxj, axyp, areag, byaxyp
      &     ,lat2d,lon2d
-c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
@@ -992,7 +991,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     sumda_psum,tauda_psum
-      COMMON/RADPAR_hybrid/U0GAS(LX,13)
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::

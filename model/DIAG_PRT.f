@@ -1,16 +1,11 @@
 #include "rundeck_opts.h"
       MODULE WORKJK
       USE MODEL_COM, ONLY : JM,LM
-!!!
-!Replaces:
-!!!      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
-
+      implicit none
       REAL*8, DIMENSION(JM,LM,2):: DPJK
       REAL*8, DIMENSION(2,LM,2) :: DPHEM
       REAL*8, DIMENSION(LM,2) :: DPGLOB
-
       END MODULE WORKJK
-
 
 !------------------------------------------------
 
@@ -2872,7 +2867,6 @@ C****
 
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
 
-      COMMON/D7COM/LNAME,SNAME,UNITS
       CHARACTER TITLE(12)*66
       CHARACTER(len=lname_strlen) :: LNAME(12)
       CHARACTER(len=sname_strlen) :: SNAME(12)

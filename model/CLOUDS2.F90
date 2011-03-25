@@ -245,7 +245,6 @@ module CLOUDS
   real*8, dimension(nmom,lm,ntm) :: TMOM
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
   real*8, dimension(NTM,LM) :: TRDNL
-  common/CLD_TRCCOM/TM,TMOM,TRDNL
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
@@ -287,21 +286,6 @@ module CLOUDS
   real*8,dimension(Lm,Ntm_dust) :: trprc_dust
 #endif
 #endif
-
-#ifdef TRACERS_WATER
-  common/CLD_WTRTRCCOM/TRWML,TRSVWML,TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-  common/CLD_WTRTRCCOM/DT_SULF_MC,DT_SULF_SS
-#endif
-#ifdef TRDIAG_WETDEPO
-  common/CLD_WTRTRCCOM/trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc, &
-       trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
-#endif
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  common/CLD_PRECDUST/ tm_dust,tmom_dust,trprc_dust
-#endif
-#endif
 #endif
 
 !@var KMAX index for surrounding velocity
@@ -336,34 +320,6 @@ module CLOUDS
   real*8  RNDSSL(3,LM)
 !@var prebar1 copy of variable prebar
   real*8 prebar1(Lm+1)
-
-  common/CLDPRV/PLE,PL,PLK,AIRM,BYAM,ETAL &
-       ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP &
-       ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP,SVLAT1 &
-       ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPIJ,DDMFLX,PLAND &
-       ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1 &
-       ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL &
-       ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL &
-       ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT,TDNL,QDNL,U00L &
-       ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
-#ifdef CLD_AER_CDNC
-  common/CLDPRV/ACDNWM,ACDNIM,ACDNWS,ACDNIS &
-       ,AREWM,AREIM,AREWS,AREIS,ALWIM,ALWWM &
-       ,OLDCDL,OLDCDI &
-       ,SME &
-       ,SMLWP,CDN3DL,CRE3DL &
-       ,WMCLWP,WMCTWP
-#endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-  common/CLDPRV/CTEML,CD3DL,CL3DL,CI3DL
-#endif
-  common/CLDPRV/TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2 &
-       ,FSSL,WTURB,TVL,W2L,GZL &
-       ,SAVWL,SAVWL1,SAVE1L,SAVE2L
-#ifdef CLD_AER_CDNC
-  common/CLDPRV/NLSW,NLSI,NMCW,NMCI
-#endif
-  common/CLDPRV/prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 
 #ifdef TRACERS_ON
   ! The following tracer arrays are workspace for MSTCNV.  They are

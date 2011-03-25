@@ -512,7 +512,6 @@ c
      .     weightj(jdm),sliwgtj(jdm),varianj(jdm)
       character flnm*60
       data varian(0),varian(kdm)/0.,0./
-      common /pechng/ pbfore,pafter,prefbe,prefaf
 c
       do 10 j=1,jj
       do 10 l=1,isp(j)

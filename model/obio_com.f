@@ -85,94 +85,53 @@ c
       integer npst,npnd   !starting and ending array index for PAR
       data npst,npnd /3,17/
 
-      real WtoQ           !Watts/m2 to quanta/m2/s conversion
-      common /bwq/ WtoQ(nlt)
+      real WtoQ(nlt)           !Watts/m2 to quanta/m2/s conversion
 
 ! reduced rank arrays for obio_model calculations
       integer ihra_ij
-      common /reducarr2/ihra_ij
 
-      real temp1d,dp1d,obio_P,det,car,avgq1d,gcmax1d
-     .    ,saln1d,p1d,alk1d,cexp,caexp,flimit
-      common /reducarr1/temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
+      real cexp, caexp
+      real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
      .                 ,alk1d(kdm),flimit(kdm,nchl,5)
 
       real atmFe_ij,covice_ij
-      common /reducarr3/atmFe_ij,covice_ij
-
-
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
                                           !in i and j directions
-      common /bnwi/  inwst,inwnd,jnwst,jnwnd
-
-      real    acdom
-      common /bcdom/ acdom(kdm,nlt)       !absorptio coefficient of CDOM
-
-
-      real P_tend                             !bio tendency (dP/dt)
-      common /bkpt/ P_tend(kdm,ntyp+n_inert)
+      real acdom(kdm,nlt)                 !absorption coefficient of CDOM
+      real P_tend(kdm,ntyp+n_inert)       !bio tendency (dP/dt)
 
 #ifdef TRACERS_Alkalinity
-      real A_tend                             !alk tendency (dA/dt)
-      common /akpt/ A_tend(kdm)
+      real A_tend(kdm)
 #endif
 
-      real rmuplsr                            !growth+resp rate
-      common /bgro/ rmuplsr(kdm,nchl)   
-
-      real D_tend                             !detrtial tendency
-      common /bdtend/ D_tend(kdm,ndet)     
-
-      real obio_ws                            !phyto sinking rate
-      common /bkws/ obio_ws(kdm+1,nchl)   
-
-      real tfac                               !phyto T-dependence
-      common /btfac/ tfac(kdm)          
-
-      real pnoice                    !pct ice-free
-      common /bpnoice/ pnoice(kdm)  
-
-      real wsdet                              !detrital sinking rate
-      common /bkwsdet2/ wsdet(kdm+1,ndet) 
-
-      real rikd                               !photoadaption state
-      common /bikd/ rikd(kdm,nchl)      
-
+      real rmuplsr(kdm,nchl)                  !growth+resp 
+      real D_tend(kdm,ndet)                   !detrtial tendency
+      real obio_ws(kdm+1,nchl)                !phyto sinking rate
+      real tfac(kdm)                          !phyto T-dependence
+      real pnoice(kdm)                        !pct ice-free
+      real wsdet(kdm+1,ndet)                  !detrital sinking rate
+      real rikd(kdm,nchl)                     !photoadaption state
       real tzoo                               !herbivore T-dependence
-      common /bzoo/ tzoo                
-
-      real Fescav
-      common /bscav/ Fescav(kdm)           !iron scavenging rate
-
+      real Fescav(kdm)                        !iron scavenging rate
 
 C if NCHL_DEFINED > 3
-      real wshc                            !cocco sinking rate
-      common /bwshc/ wshc(kdm)             
+      real wshc(kdm)                          !cocco sinking rate
 C endif
 
-
-      real :: C_tend                        !carbon tendency
-      common /bctend/ C_tend(kdm,ncar)      
-
-      real :: pCO2_ij                 !partial pressure of CO2
-      common /bco2ij/ pCO2_ij               
-
-      real :: gro                           !realized growth rate
-      common /bgro2D/ gro(kdm,nchl)         
-
+      real :: C_tend(kdm,ncar)                !carbon tendency
+      real :: pCO2_ij                         !partial pressure of CO2
+      real :: gro(kdm,nchl)                   !realized growth rate
       integer :: day_of_month, hour_of_day
 
-      real :: rhs
-      common /brhs/ rhs(kdm,ntrac,16)      !secord arg-refers to tracer definition 
+      real :: rhs(kdm,ntrac,16)         !secord arg-refers to tracer definition 
                                         !we are not using n_inert (always ntrac-1)
                                         !second argument refers to process that
                                         !contributes to tendency 
 
-      real :: pp2_1d          
-      common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
+      real :: pp2_1d(kdm,nchl)          !net primary production
 
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology

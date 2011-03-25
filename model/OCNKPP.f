@@ -126,7 +126,6 @@ c
       real*8, parameter :: Ricr= 0.3d0, cekman= 0.7d0, cmonob=1d0, concv
      *     =1.8d0,hbf=1d0
       real*8 Vtc
-      common /kmixcbd/ Vtc
 
 c     parameters and common arrays for subroutines "kmixinit" and
 c     "wscale" to compute turbulent velocity scales:
@@ -149,8 +148,7 @@ c               for scalars
 
       integer, parameter :: nni = 890, nnj = 480
 c
-      real*8 wmt,wst
-      common /kmixcws/ wmt(0:nni+1,0:nnj+1),wst(0:nni+1,0:nnj+1)
+      real*8 wmt(0:nni+1,0:nnj+1),wst(0:nni+1,0:nnj+1)
       real*8, parameter :: zmin=-4d-7,zmax=0.,umin=0.,umax=4d-2,
      *     deltaz = (zmax-zmin)/(nni+1), deltau = (umax-umin)/(nnj+1),
      *     rdeltaz = 1./deltaz, rdeltau = 1./deltau
@@ -197,14 +195,12 @@ c     to compute mixing within boundary layer:
 
       real*8, parameter :: cstar = 10d0
       real*8 cg
-      common /kmixcbm/ cg
 
 c add variables for depth dependent mixing due to rough topography
 !@var diftop diffusion scale for topographic mixing
 !@var fz500 diffusion scale as function of height above topography
       real*8, parameter :: diftop=0d0    ! 10d0 * r10000)
-      real*8 fz500
-      common /topomix/FZ500(km,km)
+      real*8 fz500(km,km)
 
       END MODULE KPPE
 

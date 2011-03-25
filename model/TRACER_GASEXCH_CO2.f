@@ -28,8 +28,6 @@
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
   
       real*8 tracflx1d(ntm)
-      common /gasexch3/tracflx1d
-
 
       contains
 

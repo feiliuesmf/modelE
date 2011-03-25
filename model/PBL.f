@@ -2702,16 +2702,10 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
 
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
 c****  passed for scm
       real*8  ug,vg
-
-!!      common/pbluvtq/u,v,t,q,e
-
-C**** end special threadprivate common block
-
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd

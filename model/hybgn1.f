@@ -39,7 +39,6 @@ c
      .        ,ntot2d(J_0H:J_1H),ntot3d(J_0H:J_1H)
      .        ,nwrk2d(J_0H:J_1H),nwrk3d(J_0H:J_1H)
       real :: anwrk, anwrkd(J_0H:J_1H)
-      common/nmpipe/iunit,lpunit
       character info*16
       data uvscl/0.02/			!  2 cm/s
       real,parameter :: tfreez=-1.8

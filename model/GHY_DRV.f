@@ -112,10 +112,7 @@ ccc extra stuff which was present in "earth" by default
       integer ntx,ntix(ntm)
       integer, parameter :: itype=4
 
-      common /ghy_tracers_tp/ totflux
-
       contains
-
 
       subroutine ghy_tracers_set_step(
 #ifdef TRACERS_WATER

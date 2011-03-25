@@ -616,23 +616,8 @@ C**************  Not Latitude-Dependant ****************************
       CHARACTER*7, DIMENSION(3)    :: lpdep
       CHARACTER*8, DIMENSION(nc)   :: ay
       
-      COMMON/CHEM_LOC/chemrate,dest,FASTJLAT,FFF,O3_FASTJ,PFASTJ,
-     & photrate,pres,prod,RFLECT,rr,SZA,ta,TANHT,TFASTJ,U0,VALJ,
-     & WTAU,y,zj,jndlv,jndlev,jaddlv,jaddto,MIEDX,NCFASTJ!integers last
-
-      COMMON/FJAST_LOC/aer,ZFASTJ,O3J,TJ,DBC,DMFASTJ,XQO3,XQO2,DTAUDZ,
-     & TTAU,FTAU,rr2,dd,PIAER,RZ,RQ,DO3,PIRAY,JFASTJ,odtmp,odsum,
-     & XLTAU,dpomega,pomega,pomegaj,ztau,fz,zrefl,zu0,zflux,pm0,pm,
-     & fjfastj,wfastj,BFASTJ,AFASTJ,AAFASTJ,CC,HFASTJ,C1,SFASTJ,U1,V1 
-
-      COMMON/SCHEM_LOC/ratioNs,rNO2frac,rNOfrac,rNOdenom,ratioN2
-
-      COMMON/FJAST2_LOC/AER2,odcol,TJ2,DO32,DBC2,ZFASTJ2,
-     &                  DMFASTJ2,PFASTJ2,AMF,jadsub
-
       END MODULE TRCHEM_Shindell_COM
-      
-      
+            
       
       subroutine alloc_trchem_shindell_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined

@@ -84,16 +84,7 @@ ccc   rundeck parameters  5/1/03 nyk
 !out:
 !      real*8 GPP 
 
-      common /veg_private/
-     &      alaie,rs,alai,nm,nf,vh
-     &     ,srht,pres,ch,vsm
-     &     ,parinc,fdir,vegalbedo,sbeta,Ci,Qf,Ca
-     &     ,betad,tcan,qv
-     &     ,CNC
-
-
       contains
-
 
       subroutine veg_conductance(
      &     vegcell
@@ -182,8 +173,6 @@ c**** tp - temperature of canopy, c
 c**** tfrz - freezing point of water, 0 c in k
 c**** output:
 c**** cnc - canopy conductance, m s-1
-ccc   include 'soils45.com'
-c**** soils28   common block     9/25/90
 c**** adjust canopy conductance for soil water potential
 !@var c1 canopy conductance related parameter
       real*8, parameter :: c1 = 90.d0

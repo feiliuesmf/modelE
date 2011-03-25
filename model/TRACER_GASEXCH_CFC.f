@@ -14,12 +14,8 @@
 
       SAVE
 
-
       real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
-      common /gasexch1/atracflx,atrac
-
       real   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
-      common /gasexch2/tracflx
 
       END MODULE TRACER_GASEXCH_COM
 
