@@ -1288,7 +1288,9 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 
 C***  alternate sources to get WSOLAR,FSOLAR:
       REAL*8, dimension(190) :: WSLEAN,DSLEAN,FRLEAN
-
+#ifdef USE_RAD_OFFLINE
+      common/lean1950/ WSLEAN,DSLEAN,FRLEAN ! for MADLUV=0 uses block data
+#endif
       REAL*8, PARAMETER :: WTHEK(190)=(/        ! if KSOLAR<0
      *           .115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
      1 .210,.220,.225,.230,.235,.240,.245,.250,.255,.260,.265,.270,.275,
