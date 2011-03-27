@@ -9,7 +9,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       USE MODEL_COM, only : ioread_single,iowrite_single,irerun,
      *                      ioread,iowrite,iowrite_mon
-     &     ,itimei,rsf_file_name
+     &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
       IMPLICIT NONE
 !@var fname name of file to be read or written
@@ -81,7 +81,7 @@ c
 c prognostic arrays
 c
       if(do_io_prog) then
-        call new_io_model  (fid,iorw)
+        call new_io_atm    (fid,iorw)
         call new_io_ocean  (fid,iorw)
         call new_io_lakes  (fid,iorw)
         call new_io_seaice (fid,iorw)
@@ -123,6 +123,10 @@ c
         call new_io_trdiag (fid,iaction)
 #endif
       endif
+C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
+      if(kcopy.gt.2 .and. iaction.eq.iowrite_mon) then
+        call new_io_acc(fid,iaction)
+      endif
 
 c
 c long-period acc arrays
@@ -141,30 +145,10 @@ c
       RETURN
       END SUBROUTINE io_rsf
 
-      subroutine read_ground_ic
-!@sum   read_ground_ic read initial conditions file for
-!@+     sea ice, land surface, land ice.  Transplanted from INPUT.
-!@auth  M. Kelley
-!@ver   1.0
-      use model_com, only : ioread
-      use domain_decomp_atm, only : grid
-      use pario, only : par_open,par_close
-      implicit none
-      integer :: fid
-      fid = par_open(grid,'GIC','read')
-      call new_io_seaice (fid,ioread)
-      call new_io_earth  (fid,ioread)
-      call new_io_soils  (fid,ioread)
-      call new_io_landice(fid,ioread)
-      call par_close(grid,fid)
-      return
-      end subroutine read_ground_ic
-
       subroutine find_later_rsf(kdisk)
 !@sum set kdisk such that Itime in rsf_file_name(kdisk) is
 !@+   the larger of the Itimes in rsf_file_name(1:2).
 !@auth  M. Kelley
-!@ver   1.0
       use model_com, only : rsf_file_name
       use domain_decomp_atm, only : grid
       use pario, only : read_data,par_open,par_close
@@ -190,7 +174,7 @@ c
 !@ver  beta
       implicit none
       integer :: fid
-      call def_rsf_model  (fid)
+      call def_rsf_atm    (fid)
       call def_rsf_ocean  (fid)
       call def_rsf_lakes  (fid)
       call def_rsf_seaice (fid)

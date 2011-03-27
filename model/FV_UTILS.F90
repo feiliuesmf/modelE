@@ -163,8 +163,9 @@ contains
   End Function reverse_3d_r4
 
   function EdgePressure_GISS() Result(PE)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    Use DYNAMICS, only : SIG, SIGE
+    use atm_com, only : P
     use domain_decomp_atm, only: grid, get
 
     REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
@@ -188,7 +189,7 @@ contains
   ! Compute Delta-pressure for GISS model
   function DeltPressure_GISS() Result(dP)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: dP(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
@@ -206,7 +207,7 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DeltPressure_DryTemp_GISS() Result(dPT)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: dPT(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
@@ -227,7 +228,7 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
@@ -242,8 +243,9 @@ contains
   end function DryTemp_GISS
 
   function PKZ_GISS() Result(PKZ)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    USE DYNAMICS, only : SIG
+    Use ATM_COM, only : P
     use domain_decomp_atm, only: grid, get
 
     REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
@@ -368,8 +370,8 @@ contains
   function compute_phi(P, T, SZ, zatmo) result(phi)
 !-------------------------------------------------------------------------------
     USE CONSTANT, only : rgas,bykapa,bykapap1,bykapap2
-    USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
-    USE MODEL_COM, only: IM, JM, LM
+    USE DYNAMICS, only: DSIG, SIG, SIGE
+    USE RESOLUTION, only: IM, JM, LM, LS1, PTOP, PSFMPT
     USE DOMAIN_DECOMP_ATM, Only: grid, Get
     implicit none
 
@@ -575,7 +577,7 @@ contains
 !-------------------------------------------------------------------------------
     use ESMF_mod
     use FILEMANAGER
-    Use MODEL_COM,  only: DT
+    Use MODEL_COM,  only: DT=>DTsrc
     character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     character(len=*), intent(in) :: config_file
     type (ESMF_config)           :: config
@@ -605,10 +607,10 @@ contains
   Subroutine Copy_FV_export_to_modelE(fv)
 !-------------------------------------------------------------------------------
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    Use Resolution, only: IM,JM,LM,LS1
-    USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    Use MODEL_COM, only : Ptop, P
+    Use Resolution, only: IM,JM,LM,LS1,Ptop
+    USE ATM_COM, ONLY: PUA,PVA,SDA
+    USE DYNAMICS, ONLY: PU, PV, SD
+    Use ATM_COM, only: U, V, T, P, Q
     USE DOMAIN_DECOMP_ATM, only: grid, GET
     USE GEOM
     
@@ -663,9 +665,9 @@ contains
 !-------------------------------------------------------------------------------
   Subroutine Copy_modelE_to_FV_import(fv)
 !-------------------------------------------------------------------------------
-    USE MODEL_COM, only:  Q     ! Secific Humidity
-    USE MODEL_COM, only:  ZATMO ! Geopotential Height?
-    USE MODEL_COM, Only : U, V, T
+    USE ATM_COM, only:  Q     ! Secific Humidity
+    USE ATM_COM, only:  ZATMO ! Geopotential Height?
+    USE ATM_COM, Only : U, V, T
     Use Domain_decomp_atm, Only: grid, Get
     Type (FV_CORE) :: fv
 
@@ -768,7 +770,7 @@ contains
 !-------------------------------------------------------------------------------
   subroutine clear_accumulated_mass_fluxes()
 !-------------------------------------------------------------------------------
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
+    USE ATM_COM, ONLY: PUA,PVA,SDA
     PUA(:,:,:) = 0.0
     PVA(:,:,:) = 0.0
     SDA(:,:,:) = 0.0
@@ -783,7 +785,8 @@ contains
 ! to lat-lon may be desirable.
     Use MAPL_IOMod, only: GETFILE, Free_file, MAPL_VarWrite
     USE DOMAIN_DECOMP_ATM, only: grid
-    USE MODEL_COM, Only : U, V, T, P, IM, JM, LM
+    USE RESOLUTION, Only : IM, JM, LM
+    USE ATM_COM, Only : U, V, T, P
     real*4 u4(im,jm,lm), v4(im,jm,lm)
     real*4 pt4(im,jm,lm), p4(im,jm)
     integer :: unit, rc

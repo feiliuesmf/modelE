@@ -1196,9 +1196,8 @@ c update rxm as if upwind box had zero moments and r = fm/am
       end subroutine init_qus
 
       subroutine qdynam
-      use model_com, only : q
+      use atm_com, only : q,ps,mb,ma
       use somtq_com, only : qmom
-      use dynamics, only: ps,mb,ma
       use tracer_adv
       use domain_decomp_atm, only : grid,halo_update
       implicit none
@@ -1249,7 +1248,7 @@ c
 
       subroutine aadvq0
       use tracer_adv
-      use dynamics, only : pua,pva,sda,mb,ma
+      use atm_com, only : pua,pva,sda,mb,ma
       use domain_decomp_atm, only : grid,halo_update,am_i_root
       use domain_decomp_1d, only : globalmax,globalsum
       implicit none
@@ -1703,7 +1702,7 @@ c      if(am_i_root().and. ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
       use tracer_adv
-      use dynamics, only : ma,mb
+      use atm_com, only : ma,mb
       use domain_decomp_atm, only : grid,halo_update
       IMPLICIT NONE
       REAL*8, dimension(isd:ied,jsd:jed,lm) :: rm

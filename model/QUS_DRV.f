@@ -83,8 +83,8 @@ c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
 c****     ma (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP_1D, only: grid, get
-      USE DOMAIN_DECOMP_1D, only: HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: get,HALO_UPDATE,NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM, MFLX
       IMPLICIT NONE
@@ -218,7 +218,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
@@ -336,7 +337,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, get, halo_update
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : get, halo_update
       use DOMAIN_DECOMP_1D, only : halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
@@ -490,7 +492,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride

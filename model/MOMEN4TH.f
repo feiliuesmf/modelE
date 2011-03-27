@@ -27,13 +27,14 @@ cddd      END subroutine init_MOM
 !@sum  ADVECV Advects momentum (incl. coriolis) using 4-th order scheme
 !@auth Original development team
       USE constant, only : by3,by6,by12
-      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+      USE RESOLUTION, only : im,jm,lm,ls1,psfmpt
+      USE DIAG_COM, only : modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
+      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,dsig,mrch
       !USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP_1D, only : grid, NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, CHECKSUM, GET
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : haveLatitude, NORTH, SOUTH
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
 

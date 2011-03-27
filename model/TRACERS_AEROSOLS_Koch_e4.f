@@ -126,7 +126,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ,rn_src
 #endif
 
-      use MODEL_COM, only: im,lm
+      use RESOLUTION, only: im,lm
       
       IMPLICIT NONE
       type (dist_grid), intent(in) :: grid
@@ -185,7 +185,8 @@ c off line
 c
 C**** GLOBAL parameters and variables:
 C
-      use model_com, only: jday,im,jm,lm
+      use resolution, only: im,jm,lm
+      use model_com, only: jday
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
       use domain_decomp_atm, only: grid, get, write_parallel
@@ -261,7 +262,8 @@ c
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      use resolution, only: im,jm
+      USE MODEL_COM, only: jday,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
      &     REWIND_PARALLEL,write_parallel
@@ -337,7 +339,8 @@ c**** Interpolate two months of data to current day
       end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
-      USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
+      use resolution, only: im,jm,lm
+      USE MODEL_COM, only : jdate,JDendOFM,jmon
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -418,7 +421,8 @@ c -----------------------------------------------------------------
 c -----------------------------------------------------------------
 
       SUBROUTINE READ_OFFSS(OUT)
-      USE MODEL_COM, only : im,jm,lm,jdate,jmon,JDendOFM
+      use resolution, only: im,jm,lm
+      USE MODEL_COM, only : jdate,jmon,JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -504,7 +508,8 @@ c -----------------------------------------------------------------
       SUBROUTINE get_BCOC(end_of_day,xday)
 c Carbonaceous aerosol emissions
       USE GEOM, only: AXYP
-      USE MODEL_COM, only: jyear,jmon,jday,im,jm
+      use resolution, only: im,jm
+      USE MODEL_COM, only: jyear,jmon,jday
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
@@ -753,7 +758,8 @@ c want kg DMS/m2/s
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
-      USE MODEL_COM, only: jmon,jday,lm,jyear
+      use resolution, only: lm
+      USE MODEL_COM, only: jmon,jday,jyear
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
@@ -902,9 +908,11 @@ c if after Feb 28 skip the leapyear day
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
-      USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,jmon,
-     * coupled_chem
-      USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
+      USE RESOLUTION, only : ls1
+      use resolution, only: im,jm,lm
+      use atm_com, only : t,q
+      USE MODEL_COM, only: jmon,dtsrc,jday,jmon
+      USE ATM_COM, only: pmid,am,pk,LTROPO,byam
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
@@ -1318,7 +1326,7 @@ c     endif
 
       SUBROUTINE SCALERAD
       use constant, only : pi
-      use MODEL_COM, only: im,jm,lm
+      use resolution, only: im,jm,lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID,GET
       use RAD_COM, only: cosz1,cosz_day,sunset
@@ -1382,9 +1390,9 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol
+     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
       USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
-      USE MODEL_COM, only: dtsrc,coupled_chem
+      USE MODEL_COM, only: dtsrc
 c
       IMPLICIT NONE
 c
@@ -1830,7 +1838,8 @@ c melting snow
 !@auth Jean Lerner and others / Greg Faluvegi
 ! taken from TRACERS_SPECIAL_Shindell, in case we
 !  we run aerosols independent of gases
-      USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
+      use resolution, only: im,jm
+      USE MODEL_COM, only: jday,jyear,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL,write_parallel,backspace_parallel

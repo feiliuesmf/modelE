@@ -14,8 +14,8 @@ c empty - not needed yet.
       SUBROUTINE conserv_KE(KE)
 c calculate column sum of kinetic energy on the A grid, using A-grid winds.
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : lm
-      USE DYNAMICS, only : ua=>ualij,va=>valij,pdsig
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : ua=>ualij,va=>valij,pdsig
       USE DOMAIN_DECOMP_ATM, only : GRID,get
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -37,9 +37,9 @@ c calculate column sum of kinetic energy on the A grid, using A-grid winds.
 
       SUBROUTINE calc_kea_3d(kea)
 c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
       USE DOMAIN_DECOMP_ATM, only :  GRID,get
-      USE DYNAMICS, only : ua=>ualij,va=>valij
+      USE ATM_COM, only : ua=>ualij,va=>valij
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
@@ -63,8 +63,8 @@ c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
 !@var ua  x-component of wind, A grid, latlon orientation, l,i,j order
 !@var va  y-component of wind, A grid, latlon orientation, l,i,j order
 !@auth M. Kelley
-      USE MODEL_COM, only : lm,u,v
-      USE DYNAMICS, only : ua=>ualij,va=>valij
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : u,v,ua=>ualij,va=>valij
       USE DOMAIN_DECOMP_ATM, only : grid,get
       use FV_StateMod, only : INTERP_DGRID_TO_AGRID
       implicit none
@@ -106,7 +106,8 @@ c          |    |    |          |         |
 c           ---U_d---            --------- 
 c
 c
-      USE MODEL_COM, only : im,jm,lm,u,v ! u,v are u_d and v_d
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : u,v ! u,v are u_d and v_d
       USE DOMAIN_DECOMP_ATM, only : get,grid,halo_update
       implicit none
       integer :: k
@@ -163,7 +164,8 @@ c    |  du(2)  |        |         |         |
 c    |         |         --------- --------- 
 c     ---------
 c
-      USE MODEL_COM, only : im,jm,lm,u,v  ! u,v are u_d,v_d
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : u,v ! u,v are u_d and v_d
       USE DOMAIN_DECOMP_ATM, only : get,grid,halo_update
       implicit none
       integer :: k
@@ -251,7 +253,8 @@ c reports the number of u's and v's in the domain
 
       subroutine get_uv_of_n(n,uv)
 c u is associated with odd n, v with even n
-      USE MODEL_COM, only : u,v,lm
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : u,v
       implicit none
       integer :: n
       real*8, dimension(lm) :: uv
@@ -267,7 +270,8 @@ c u is associated with odd n, v with even n
 
       subroutine store_uv_of_n(n,uv)
 c u is associated with odd n, v with even n
-      USE MODEL_COM, only : u,v,lm
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : u,v
       implicit none
       integer :: n
       real*8, dimension(lm) :: uv
@@ -311,7 +315,7 @@ c u is associated with odd n, v with even n
       end subroutine get_regrid_info_for_n
 
       subroutine get_ij_of_n(n,i,j)
-      use model_com, only : im
+      use resolution, only : im
       USE DOMAIN_DECOMP_ATM, only : GRID
       implicit none
       integer :: n
@@ -329,9 +333,11 @@ c u is associated with odd n, v with even n
 !@sum  SDRAG puts a drag on the winds in the top layers of the atmosphere
 !@auth Coefficients from the Original Development Team
       USE CONSTANT, only : grav,rgas,sha
-      USE MODEL_COM, only : lm,ls1,u,v,p,t,x_sdrag,csdragl,lsdrag
-     &     ,ang_sdrag,Wc_Jdrag,wmax,vsdragl,psfmpt,dsig
-      USE DYNAMICS, only : pk,pdsig,pedn,ualij,valij
+      USE RESOLUTION, only : lm
+      USE RESOLUTION, only : ls1,psfmpt
+      USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
+     &     ,ang_sdrag,Wc_Jdrag,wmax,vsdragl,dsig
+      USE ATM_COM, only : u,v,p,t,pk,pdsig,pedn,ualij,valij
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
 !@var DT1 time step (s)
@@ -427,8 +433,9 @@ c
       SUBROUTINE GWDRAG
       USE CONSTANT, only : omega,grav,sha,kapa,rgas,radius
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-      USE MODEL_COM, only : lm,zatmo,dtsrc,p,t,u,v
-      USE DYNAMICS, only : ualij,valij,pk
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only : dtsrc
+      USE ATM_COM, only : ualij,valij,pk,p,t,u,v,zatmo
       USE SOMTQ_COM, only : tmom,mz
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
       USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
@@ -684,7 +691,7 @@ c      CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 !@auth M. Kelley
 !@sum  Mini-module for longitudinal averaging of a field on a
 !@+    domain-decomposed cubed-sphere grid.
-      use model_com, only : im
+      use resolution, only : im
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : dist_grid,init_grid,sumxpe,esmf_bcast
       use cs2ll_utils, only : cs2llint_type,
@@ -863,9 +870,11 @@ c the global means of each layer, and interpolates them to
 c terrain-following coordinate surfaces.
 c Values for the model's constant-pressure layers are copied from sd.
 c Outputs are placed in arrays wcp,wcpsig in the DYNAMICS module.
-      use MODEL_COM, only: im,lm,ls1,ptop,pednl00,sige,dsig
+      use RESOLUTION, only: im,lm
+      use RESOLUTION, only: ls1,ptop
+      USE ATM_COM, only : pednl00
       use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
-      USE DYNAMICS, only : wcp,wcpsig
+      USE DYNAMICS, only : wcp,wcpsig,sige,dsig
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::

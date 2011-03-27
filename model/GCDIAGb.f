@@ -53,7 +53,8 @@
 
       subroutine gc_defs
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,sha
-      use MODEL_COM, only : fim,byim,dt,qcheck,dtsrc,do_gwdrag
+      use MODEL_COM, only : qcheck,dtsrc
+      use DYNAMICS, only : dt,do_gwdrag
       use GCDIAG
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -1016,7 +1017,8 @@ c
 
       subroutine ijk_defs
       use CONSTANT, only : bygrav,tf,sha,rgas
-      use MODEL_COM, only : im,jm,lm,qcheck,dtsrc
+      use RESOLUTION, only : im,jm,lm
+      use MODEL_COM, only : qcheck,dtsrc
       USE GCDIAG
       use DIAG_COM, only : ia_dga,kaijk,name_ijk,scale_ijk,
      &     lname_ijk,units_ijk,jgrid_ijk,off_ijk,denom_ijk,ia_ijk,
@@ -1236,23 +1238,24 @@ C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
 C****   See ijks_defs for contents
 C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny, radius
-      USE MODEL_COM, only :
-     &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,jdate,
-     &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
-     &     ,psfmpt
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : idacc,jdate,mdyn,mdiag, Jhour
+      USE ATM_COM, only : u,v,t,p,q,wm
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
-      USE DIAG_COM, only : ia_dga
+      USE DIAG_COM, only : imh,fim,byim,jeq,ia_dga,ndaa
      &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day
      *     ,klayer,idd_w,ijdd
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
       USE GCDIAG
-      USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
-     &     ,pit
+      USE ATM_COM, only : phi,plij,pmid,pedn
+      USE DYNAMICS, only : dut,dvt,SD,pit,sig,sige,dsig
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
      &     ,ldna,lupa
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST, AM_I_ROOT
@@ -2322,16 +2325,20 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       USE CONSTANT, only : sha
-      USE MODEL_COM, only : im,imh,jm,lm,fim,byim,
-     &     DSIG,IDACC,JEQ,LS1,MDIAG,
-     &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : IDACC,MDIAG
+      USE ATM_COM, only : P,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
       USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
       USE DIAG_COM, only : SQRTM,agc=>agc_loc
+      USE DIAG_COM, only : imh,fim,byim,jeq
       USE GCDIAG, only : jl_ape
       USE DIAG_LOC, only : lupa,ldna
-      USE DYNAMICS, only : sqrtp,pk
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,HALO_UPDATE, AM_I_ROOT
+      USE ATM_COM, only : sqrtp,pk
+      USE DYNAMICS, only : sig,dsig
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
       USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
       USE PRECISION_MOD
@@ -2670,13 +2677,14 @@ C**** THIS ROUTINE ACCUMULATES A TIME SEQUENCE FOR SELECTED
 C**** QUANTITIES AND FROM THAT PRINTS A TABLE OF WAVE FREQUENCIES.
 C****
       USE CONSTANT, only : grav,bygrav
-      USE MODEL_COM, only : im,imh,jm,lm,
-     &     IDACC,JEQ,LS1,MDIAG,P,U,V
-      USE DYNAMICS, only : PHI
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : IDACC,MDIAG
+      USE ATM_COM, only : P,U,V,PHI
       USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
-     &     ,ia_12hr
+     &     ,ia_12hr,imh,jeq
       USE DIAG_LOC, only : ldex
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,SUMXPE,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET,SUMXPE,AM_I_ROOT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -2773,12 +2781,14 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       subroutine diaggc_prep
 c Calculate derived GC outputs
       use constant, only : kapa,lhe,sha,radius,omega,rgas,tf,teeny
-      use model_com, only : im,jm,lm,ls1,byim,psfmpt,idacc,kep,
-     &     dtsrc,dt,ndaa,dsig
+      use resolution, only : ls1,psfmpt
+      use resolution, only : im,jm,lm
+      use model_com, only : idacc,dtsrc
+      use dynamics, only : dt,dsig
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kdiag,kagc,jgrid_gc,hemis_gc,vmean_gc,
-     &     agc_in=>agc, agc=>agc_out, ia_dga,
-     &     plm, pme=>ple_dn, ple
+     &     agc_in=>agc, agc=>agc_out, ia_dga,ndaa,
+     &     plm, pme=>ple_dn, ple, byim, kep
       use gcdiag
       use geom, only : dxyp,dxyv,dxv,bydxyp,cosv,cosp,imaxj,fcor
       implicit none
@@ -3104,10 +3114,10 @@ c
 !@sum Calculate derived AIJK diagnostics prior to printing
 !@auth Group
       use constant, only : sha
-      use model_com, only : im,lm
+      use resolution, only : im,lm
       use diag_com, only : aijk => aijk_loc
       use gcdiag, only : ijk_dse,ijk_tb,ijk_phi
-      use domain_decomp_1d, only : grid
+      use domain_decomp_atm, only : grid
       implicit none
       integer :: i,j,l,j_0stg,j_1stg
 

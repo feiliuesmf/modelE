@@ -19,10 +19,8 @@ C****
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,By3
 #endif
-      USE MODEL_COM, only : dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,ndasf,fland,flice,focean
-     *     ,nday,itime,jhour,itocean
-     *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
+      USE ATM_COM, only : u,v,t,p,q
+      USE MODEL_COM, only : dtsrc,idacc,nday,itime,jhour,qcheck,jdate
 #ifdef mjo_subdd
      *     ,lm
 #endif
@@ -34,7 +32,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
-      USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
+      USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
 #ifdef mjo_subdd
      *    ,phi,sda
 #endif
@@ -58,7 +56,8 @@ C****
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
-      USE DIAG_COM, only : ia_srf,ia_src,oa,aij=>aij_loc,aijmm
+      USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
+     &     ,itocean,itoice,itlake,itlkice,itlandi
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
@@ -109,7 +108,8 @@ C****
 #endif
       USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
      *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
+     *     ,UOdrag,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
+     &     ,nisurf,fland,flice,focean
 #ifdef TRACERS_ON
      *     ,trsrfflx,gtracer
 #ifndef SKIP_TRACER_SRCS
@@ -165,7 +165,7 @@ C****
       USE HYCOM_SCALARS, only: nstep
 #endif
 #endif
-      USE SOIL_DRV, only: earth
+      USE SOIL_DRV, only: earth,ground_e
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
@@ -302,6 +302,15 @@ C****
       byNIsurf=1.d0/real(NIsurf)
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
+
+      CALL PRECIP_SI('LAKES')
+      CALL PRECIP_LI
+#ifdef IRRIGATION_ON
+C**** CHECK FOR IRRIGATION POSSIBILITY
+      CALL IRRIG_LK
+#endif
+      CALL PRECIP_LK
+         CALL CHECKT ('PRECIP')
 
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
@@ -1574,6 +1583,22 @@ C**** Accumulate 3D subdaily quantities
       END DO
       END DO
 #endif
+
+#ifdef CALCULATE_FLAMMABILITY
+      call flammability_drv
+#endif
+C**** APPLY SURFACE FLUXES TO LAND ICE
+      CALL GROUND_LI
+
+      CALL UNDERICE('LAKES')
+      CALL GROUND_SI('LAKES')
+C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
+      CALL GROUND_LK
+         CALL CHECKT ('GRNDLK')
+C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
+      CALL RIVERF
+      CALL GROUND_E    ! diagnostic only - should be merged with EARTH
+      CALL FORM_SI('LAKES')
 
       call stopTimer('SURFACE()')
 

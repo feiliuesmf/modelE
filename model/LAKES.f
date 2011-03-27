@@ -8,7 +8,7 @@
 !@auth Gavin Schmidt/Gary Russell
 !@ver  2010/08/04 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
 #endif
@@ -379,7 +379,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@+    at run-time
 !@auth Raul Garza-Robles
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
-      USE MODEL_COM, only : IM, JM
+      USE RESOLUTION, only : IM, JM
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
      *     KD911,IFL911,JFL911
       IMPLICIT NONE
@@ -409,22 +409,22 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@auth Gary Russell/Gavin Schmidt
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
-      USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,jday,fearth0
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,jday
+      USE ATM_COM, only : zatmo
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
-c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
 #endif
       USE FLUXES, only : gtemp,mlhc,gtempr
-      USE SEAICE_COM, only : rsi
+     &     ,flice,focean,fearth0,flake0,fland
       USE PBLCOM, only : tsavg
       USE GHY_COM, only : fearth
       USE LAKES
@@ -437,13 +437,12 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       INTEGER :: JMIN_FILL,JMAX_FILL
       integer :: iu_warn
 
-c***      Type (ESMF_HaloDirection) :: direction
-      Integer :: direction ! ESMF_HaloDirection not yet implemented
       LOGICAL, INTENT(InOut) :: inilake
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
+      INTEGER iu_SILL  !@var iu_TOPO unit number for sill depth file
       CHARACTER TITLEI*80, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -489,6 +488,11 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
       call sync_param("lake_rise_max",lake_rise_max)
 
+C**** Read Lake Depths
+      call openunit("TOPO",iu_SILL,.true.,.true.)
+      CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
+      call closeunit(iu_SILL)
+
 C**** initialise FLAKE if requested (i.e. from older restart files)
       if (INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
@@ -512,6 +516,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
+        if(istart==2) then ! pbl has not been initialized yet
+          call read_pbl_tsurf_from_nmcfile
+        endif
         DO J=J_0, J_1
           DO I=I_0, I_1
             IF (FLAKE(I,J).gt.0) THEN
@@ -659,7 +666,7 @@ C**** Read in down stream lat/lon positions
       CALL HALO_UPDATE(GRID, down_lon_loc)
       CALL HALO_UPDATE(GRID, down_lat_911_loc)
       CALL HALO_UPDATE(GRID, down_lon_911_loc)
-      CALL HALO_UPDATE(GRID, FLICE)
+
 C****
 C**** From each box calculate the downstream river box
 C****
@@ -766,6 +773,27 @@ C****
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
 
+C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
+C**** as residual terms.
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+!!      FLAND(I,J)=1.-FOCEAN(I,J)  !! already set if FOCEAN>0
+        IF (FOCEAN(I,J).le.0) THEN
+          FLAND(I,J)=1
+          IF (FLAKE(I,J).gt.0) FLAND(I,J)=1.-FLAKE(I,J)
+        END IF
+        FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+      END DO
+      END DO
+      If (HAVE_SOUTH_POLE) Then
+         FLAND(2:IM,1)=FLAND(1,1)
+         FEARTH(2:IM,1)=FEARTH(1,1)
+      End If
+      If (HAVE_NORTH_POLE) Then
+         FLAND(2:IM,JM)=FLAND(1,JM)
+         FEARTH(2:IM,JM)=FEARTH(1,JM)
+      End If
+
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
       CONPT(4)="PREC+LAT M"
@@ -868,19 +896,21 @@ C****
 !@ver  2010/09/27 (based on LB265)
 
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
-      USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland,dtsrc,itime
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,itime
+      USE ATM_COM, only : zatmo
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       use domain_decomp_1d, only: hasSouthPole, hasNorthPole
 
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc,ij_ervro,ij_mrvro, ij_rvrflo
+     &     ,itlake,itlkice,itocean,itoice
       USE GHY_COM, only : fearth
-      USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
+      USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr,focean,fland
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
-      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
+      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake
       USE SEAICE_COM, only : rsi
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
@@ -1337,7 +1367,8 @@ C****
 !@auth Gavin Schmidt
 
       USE CONSTANT, only : rhow,sday,teeny,undef
-      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon,im,jm
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
      $     AM_I_ROOT, get, sumxpe
@@ -1452,7 +1483,9 @@ C****
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,hlake,qcheck,focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : qcheck
+      USE FLUXES, only : focean
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
@@ -1593,13 +1626,14 @@ C****
 !@auth G. Schmidt
 !@ver  2010/11/12
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
-      USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
+      USE RESOLUTION, only : im
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
-      USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
+      USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
+     &     ,svflake,hlake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -1611,6 +1645,7 @@ C****
       USE GEOM, only : axyp,imaxj,byaxyp
       USE GHY_COM, only : fearth
       USE FLUXES, only : dmwldf,dgml,gtemp,mlhc,gtempr
+     &     ,fland,flice,focean
 #ifdef TRACERS_WATER
      *     ,dtrl,gtracer
 #endif
@@ -1622,7 +1657,7 @@ C****
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *                    ,J_IMPLH, AIJ=>AIJ_LOC,
+     *                    ,J_IMPLH, AIJ=>AIJ_LOC,itlkice,itlake,
      *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use CubicEquation_mod, only : cubicroot
@@ -1982,7 +2017,7 @@ C****
 !@sum  PRECIP_LK driver for applying precipitation/melt to lake fraction
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhow,shw,teeny,tf
-      USE MODEL_COM, only : im,jm,flice,itlake,itlkice
+      USE RESOLUTION, only : im,jm
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -1995,11 +2030,12 @@ C****
      *     ,trlake,ntm
 #endif
       USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,melti,emelti,
-     *      gtempr
+     *      gtempr,flice
 #ifdef TRACERS_WATER
      *     ,trunpsi,trunoli,trprec,gtracer,trmelti
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_run,aij=>aij_loc,ij_lk
+     &     ,itlake,itlkice
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
@@ -2101,10 +2137,10 @@ C****
 !@sum  IRRIG_LK driver for calculating irrigation fluxes from lakes/rivers
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhow,shw,teeny
-      USE MODEL_COM, only : im,jm,fland,itearth
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : jreg,aij=>aij_loc,ij_mwlir
+      USE DIAG_COM, only : itearth,jreg,aij=>aij_loc,ij_mwlir
      *     ,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
@@ -2112,7 +2148,7 @@ C****
 #endif
       USE LAKES, only : minmld,hlake_min
       USE IRRIGATE_CROP, only : irrigate_extract
-      USE FLUXES,only : irrig_water_act, irrig_energy_act
+      USE FLUXES,only : fland,irrig_water_act, irrig_energy_act
 #ifdef TRACERS_WATER
      *     ,irrig_tracer_act,gtracer
 #endif
@@ -2232,8 +2268,8 @@ C****
 !@auth Gavin Schmidt
 !@calls
       USE CONSTANT, only : rhow,shw,teeny,tf
-      USE MODEL_COM, only : im,jm,flice,fland,hlake
-     *     ,dtsrc,itlake,itlkice,itearth
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -2243,6 +2279,7 @@ C****
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
      *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp, gtempr
+     &     ,flice,fland
 #ifdef TRACERS_WATER
      *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
@@ -2251,8 +2288,8 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
-     *     ,aij=>aij_loc,ij_mwl,ij_gml
-      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+     *     ,aij=>aij_loc,ij_mwl,ij_gml,itlake,itlkice,itearth
+      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake,hlake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
@@ -2523,7 +2560,8 @@ C****
       SUBROUTINE conserv_LKM(LKM)
 !@sum  conserv_LKM calculates lake mass
 !@auth Gary Russell/Gavin Schmidt
-      USE MODEL_COM, only : im,jm,fland,fim
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : fland
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : mwl,flake
@@ -2561,7 +2599,9 @@ C****
       SUBROUTINE conserv_LKE(LKE)
 !@sum  conserv_LKE calculates lake energy
 !@auth Gary Russell/Gavin Schmidt
-      USE MODEL_COM, only : im,jm,zatmo,fim,fland
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : zatmo
+      USE FLUXES, only : fland
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : gml,mwl,flake

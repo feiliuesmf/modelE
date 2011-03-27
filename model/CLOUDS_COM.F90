@@ -4,7 +4,6 @@ module CLOUDS_COM
 !@+    large-scale condensation
 !@+    cloud droplet number added to list of saves for rsf files
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
-  use MODEL_COM, only : IM,JM,LM
   implicit none
   save
 !@var TTOLD,QTOLD previous potential temperature, humidity
@@ -108,7 +107,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
 !@+    run time
 !@auth NCCS (Goddard) Development Team
   use DOMAIN_DECOMP_ATM, only : DIST_GRID
-  use MODEL_COM, only : IM,LM
+  use RESOLUTION, only : LM
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
   use AERO_CONFIG, only: NMODES
@@ -210,6 +209,11 @@ subroutine ALLOC_CLOUDS_COM(grid)
        STAT=IER)
 #endif
 
+!**** Default values for certain arrays
+  RHSAV (:,:,:)=.85d0
+  CLDSAV(:,:,:)=0.
+  SVLHX (:,:,:)=0.
+
   allocate(     ULS(I_0H:I_1H,J_0H:J_1H,LM), &
        VLS(I_0H:I_1H,J_0H:J_1H,LM), &
        UMC(I_0H:I_1H,J_0H:J_1H,LM), &
@@ -258,9 +262,10 @@ end subroutine ALLOC_CLOUDS_COM
 subroutine io_clouds(kunit,iaction,ioerr)
 !@sum  io_clouds reads and writes cloud arrays to file
 !@auth Gavin Schmidt
+  use RESOLUTION, only : IM,JM,LM
   use MODEL_COM, only : ioread,iowrite,lhead
-  use DOMAIN_DECOMP_1D, only : AM_I_ROOT, GRID
-  use DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
+  use DOMAIN_DECOMP_ATM, only : GRID
+  use DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_COLUMN, UNPACK_COLUMN
   use CLOUDS_COM
   implicit none
 

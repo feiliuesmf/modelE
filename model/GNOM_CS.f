@@ -29,7 +29,7 @@ c
 !@auth M. Kelley
 !@cont GEOM_CS
 
-      USE MODEL_COM, only : IM,JM
+      USE RESOLUTION, only : IM,JM
       USE CONSTANT, only : radius,twopi,areag
       IMPLICIT NONE
       SAVE
@@ -372,7 +372,7 @@ c This version is for the gnomonic grid.  ll are in degrees.
 c If lon,lat lie on an adjacent tile, i,j correspond to the
 c continuation of the local i,j index space to that tile.  If
 c lon,lat lie on the opposite side of the cube, ij is set to -99
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       use constant, only : radian,pi,twopi
       use domain_decomp_atm, only : grid
       implicit none
@@ -406,7 +406,7 @@ c lon,lat lie on the opposite side of the cube, ij is set to -99
 
       subroutine lonlat_to_tile(ll,tile)
 c returns id of cube face containing (lon,lat) point where (lon,lat)=(ll(1),ll(2)) 
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       use constant, only : radian,pi,twopi
       use domain_decomp_atm, only : grid
       implicit none

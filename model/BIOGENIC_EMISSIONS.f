@@ -21,7 +21,6 @@
 !@auth G.Faluvegi
       use domain_decomp_atm, only : dist_grid, get
       use biogenic_emis, only:  baseisop,nvegtype
-      use model_com, only: im
 
       IMPLICIT NONE
 
@@ -144,7 +143,6 @@
 !@+  Output is baseisop in kg C cm^-2 * surface area of cell (cm^2)
 !@+  emitted in 1 hour time step                                           
 
-      use model_com, only: im,jm
       use biogenic_emis
       use tracers_drydep, only : ijreg,ijland
       use constant, only   : avog

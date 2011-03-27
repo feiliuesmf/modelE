@@ -5,11 +5,17 @@
       MODULE RAD_COM
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
-      USE MODEL_COM, only : im,jm,lm,lm_req
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : lm_req
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
+
+!@dbparam NRad:   DT_Rad      =  NRad*DTsrc
+      INTEGER :: NRad = 5
+!@var MODRD: if MODRD=0 do radiation, else skip
+      INTEGER :: MODRD
 
 C**** DEFAULT ORBITAL PARAMETERS FOR EARTH
 C**** Note PMIP runs had specified values that do not necesarily
@@ -269,7 +275,8 @@ C**** Local variables initialised in init_RAD
 
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_ATM, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM, LM, LM_REQ
+      USE RESOLUTION, ONLY : IM, JM, LM
+      USE ATM_COM, ONLY : LM_REQ
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #endif
@@ -399,13 +406,15 @@ C**** Local variables initialised in init_RAD
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
-     *         ,lhead,Kradia,irsficnt,irsficno
+     *         ,lhead,irsficnt,irsficno
+      USE ATM_COM, only : kradia
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #endif
       USE RAD_COM
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_BLOCK , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA  , PACK_DATA

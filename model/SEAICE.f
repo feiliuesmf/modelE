@@ -2225,7 +2225,7 @@ c        Em= 0.
       MODULE SEAICE_COM
 !@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -2263,7 +2263,7 @@ C**** albedo calculations
 !@auth Rodger Abel
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_ATM, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM
+      USE RESOLUTION, ONLY : IM, JM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
 #endif
@@ -2320,7 +2320,8 @@ C**** albedo calculations
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only :  UNPACK_BLOCK
@@ -2415,6 +2416,19 @@ C**** albedo calculations
       END SUBROUTINE io_seaice
 
 #ifdef NEW_IO
+      subroutine read_seaice_ic
+!@sum   read_seaice_ic read sea ice initial conditions file.
+      use model_com, only : ioread
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_seaice (fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_seaice_ic
+
       subroutine def_rsf_seaice(fid)
 !@sum  def_rsf_seaice defines seaice array structure in restart files
 !@auth M. Kelley

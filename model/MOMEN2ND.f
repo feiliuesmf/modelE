@@ -25,14 +25,16 @@
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
-      USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
-     &     ,do_polefix
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
+      USE RESOLUTION, only : ls1,psfmpt
+      USE RESOLUTION, only : im,jm,lm
+      USE DIAG_COM, only : modd5k
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH,SOUTH,GET
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv
-      USE DYNAMICS, only : t_advecv
+      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv,dsig
+      USE DYNAMICS, only : do_polefix,mrch
 c      USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),

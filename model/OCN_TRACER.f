@@ -524,9 +524,10 @@ C****
 !@sum  SET_TCONO assigns ocean conservation diagnostic array indices
 !@auth Gavin Schmidt
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,nfiltr
+      USE MODEL_COM, only: dtsrc
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
      *     ,conpt0
+      USE DYNAMICS, only : nfiltr ! SLP filter
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons,npts,natmtrcons

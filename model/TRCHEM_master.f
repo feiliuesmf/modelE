@@ -17,11 +17,16 @@ c
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
-      USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
-     &                        COUPLED_CHEM,JHOUR, itime, itimeI, itime0
+      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : IM,JM
+      USE ATM_COM, only     : T,Q
+      USE MODEL_COM, only   : JDAY,JYEAR,
+     &                        JHOUR, itime, itimeI, itime0
+      USE TRACER_COM, only  : COUPLED_CHEM
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
      &                        bygrav,lhe,undef
-      USE DYNAMICS, only    : pedn,LTROPO
+      USE ATM_COM, only     : pedn,LTROPO
+      USE DYNAMICS, only    : sig
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
@@ -1644,6 +1649,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO j_loop ! >>>> MAIN J LOOP ENDS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
       ! check if there was that error in certain section of chemstep
       ! anywhere in the world; if so, stop the model (all processors):
       call globalmax(grid,ierr_loc,ierr)
@@ -2036,8 +2042,10 @@ C Make sure nighttime chemistry changes are not too big:
 !@+ taken from the UK Harwell Model
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !
-      use model_com, only: jday,jhour,LS1,LM
-      use dynamics, only: pmid
+      use resolution, only : ls1
+      use resolution, only : lm
+      use model_com, only: jday,jhour
+      use atm_com, only: pmid
       use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
 
@@ -2081,10 +2089,13 @@ C Make sure nighttime chemistry changes are not too big:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: LM,JM,LS1,ptop,psf,sig,Itime,ItimeI
+      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : LM
+      USE MODEL_COM, only: Itime,ItimeI
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI
-      USE DYNAMICS, only : LTROPO
+      USE ATM_COM, only : LTROPO
+      USE DYNAMICS, only : sig
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop
      &        ,pscX

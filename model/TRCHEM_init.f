@@ -6,7 +6,7 @@
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
-      USE MODEL_COM, only: Itime, ItimeI, IM
+      USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only : GET,grid
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
@@ -581,7 +581,6 @@ C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
      &                  ,MXFASTJ,MIEDX2,title_aer_pf,NAA
-      use model_com, only: LM
 
       IMPLICIT NONE
 

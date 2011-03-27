@@ -642,7 +642,7 @@ C**** set dimensions
      &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
 !@auth M. Kelley
-      USE MODEL_COM, only : LS1
+      USE RESOLUTION, only : LS1
       USE DIAG_COM, only : plm,ple,ple_dn,kgz_max,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE

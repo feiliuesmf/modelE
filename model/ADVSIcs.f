@@ -11,7 +11,10 @@
 c NOTE: CURRENTLY ASSUMING THAT THERE IS NO TRANSPORT OF ICE TO/FROM
 c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE CONSTANT, only : byshi,lhm,grav
-      USE MODEL_COM, only : im,focean,p,ptop,kocean,dts=>dtsrc
+      USE RESOLUTION, only : im
+      USE RESOLUTION, only : ptop
+      USE ATM_COM, only : p
+      USE MODEL_COM, only : kocean,dts=>dtsrc
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
@@ -21,7 +24,7 @@ c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim,uisurf,visurf
+      USE FLUXES, only : focean,gtemp,apress,msicnv,fwsim,uisurf,visurf
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif

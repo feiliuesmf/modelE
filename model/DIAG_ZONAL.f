@@ -4,7 +4,7 @@
 !@+    and better documentation.
       module diag_zonal
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : im,jm,fim
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : dlon
       use domain_decomp_1d, only :
      &     pack_lc=>pack_dataj,unpack_lc=>unpack_dataj
@@ -16,7 +16,7 @@
       INTEGER, PARAMETER, public :: JM_BUDG=JM,JMLAT=JM
       INTEGER, PARAMETER, public :: IMLON=IM,IMLONH=IM/2
 !@var XWON scale factor for diag. printout needed for Wonderland model
-      REAL*8, public :: XWON = TWOPI/(DLON*FIM)
+      REAL*8, public :: XWON = TWOPI/(DLON*REAL(IM,KIND=8))
 
       public :: pack_lc,unpack_lc,get_bounds,get_alloc_bounds
 

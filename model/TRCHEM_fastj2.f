@@ -17,7 +17,7 @@ c  D. Shindell, Aug. 2002
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM,only : GRID,GET
-      USE MODEL_COM, only    : LM
+      USE RESOLUTION, only   : LM
       USE CONSTANT, only     : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
      &                           szamax,U0,NCFASTJ2,iprn,jprn,prnrts
@@ -70,7 +70,11 @@ c
 !@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
 c
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: IM,JM,LM,Itime,month=>JMON
+      USE RESOLUTION, only  : JM,LM
+#ifdef CUBED_SPHERE
+      fix the ydgrd= line
+#endif
+      USE MODEL_COM, only: Itime,month=>JMON
       USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
      &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
      &     dmfastj2,NBFASTJ,AER2,MXFASTJ
@@ -219,7 +223,7 @@ c  Calculate column quantities for Fast-J2:
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only    : IM,LM
+      USE RESOLUTION, only   : LM
       USE RAD_COM, only      : ALB
       USE TRCHEM_Shindell_COM, only: RCLOUDFJ,odsum,odmax,
      &            nlbatm,RFLECT,NBFASTJ,AER2,jadsub,dtausub,odcol
@@ -289,7 +293,7 @@ c Set sub-division switch if appropriate
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only: IM,LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: jpnl,TFASTJ,VALJ,NW1,NW2,NJVAL,
      &                               QQQ,JPPJ,ZJ,jfacta,FFF,TQQ,JIND
 
@@ -349,7 +353,8 @@ C------ Calculate remaining J-values with T-dep X-sections
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE MODEL_COM, only: JM, month=>JMON 
+      USE RESOLUTION, only  : JM
+      USE MODEL_COM, only: month=>JMON 
       USE TRCHEM_Shindell_COM, only: SZA,NBFASTJ,MXFASTJ,DMFASTJ2,TJ2,
      &             masfac,dlogp2,oref2,tref2,DO32,AER2,PFASTJ2,ZFASTJ2
 
@@ -446,7 +451,7 @@ C---Print out climatology:
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only: LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: NW1,NW2,NBFASTJ,WL,FL,FFF,JPNL,TJ2
 
       IMPLICIT NONE
@@ -607,7 +612,7 @@ C**** Local parameters and variables and arguments:
 C**** GLOBAL parameters and variables:
 
       USE CONSTANT, only: radius
-      USE MODEL_COM, only: LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: U0,NBFASTJ,ZFASTJ2,ZZHT,TANHT,
      & nlbatm,AMF
 
@@ -772,7 +777,8 @@ C
 C**** GLOBAL parameters and variables:
 C
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE MODEL_COM, only: LM,itime
+      USE RESOLUTION, only : LM
+      USE MODEL_COM, only: itime
       USE TRCHEM_Shindell_COM, only: NBFASTJ,POMEGA,NCFASTJ2,
      & POMEGAJ,MIEDX2,QAAFASTJ,SSA,NLBATM,DO32,DMFASTJ2,QRAYL,
      & AMF,PAA,jaddlv,dtaumax,dtausub,dsubdiv,U0,RFLECT,MXFASTJ,

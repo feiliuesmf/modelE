@@ -3,7 +3,7 @@
       module lightning
 !@sum  lightning variables for lightning parameterization
 !@auth Colin Price (modelEification by Greg Faluvegi)
-      use model_com, only : LM
+      use resolution, only : LM
 
       implicit none
       save
@@ -80,12 +80,12 @@
 #ifdef TRACERS_SPECIAL_Shindell
      & ,RNOx_lgt
 #endif
-      use model_com, only : fland,DTsrc
+      use model_com, only : DTsrc
       use geom,      only : lat2d_dg,axyp,byaxyp
       use constant,  only : bygrav
-      use dynamics,  only : gz
+      use atm_com,   only : gz
       use diag_com,  only : ij_CtoG,ij_flash,aij=>aij_loc
- 
+      use fluxes, only : fland
       implicit none
 
 !@var lmax highest layer of current convective cloud event
@@ -192,12 +192,12 @@
 !@auth Colin Price / Greg Faluvegi
  
       use geom, only       : lat2d_dg,byaxyp
-      use fluxes, only     : tr3Dsource
+      use fluxes, only     : tr3Dsource,fland
       use tracer_com, only : n_NOx,nOther
       use lightning, only  : HGT_lgt,JSlight,JNlight,srclight,RNOx_lgt
       use constant, only   : bygrav
-      use model_com, only  : fland,LM
-      use dynamics, only   : ltropo, phi
+      use resolution, only  : LM
+      use atm_com, only    : ltropo, phi
       use domain_decomp_atm, only : GRID, GET
 #ifdef ACCMIP_LIKE_DIAGS
       use trdiag_com, only : taijls=>taijls_loc,ijlt_NOxLgt

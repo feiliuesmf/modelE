@@ -4,7 +4,7 @@
 !@auth Original development team
 !@cont GEOM_B
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian,AREAG
-      USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
+      USE RESOLUTION, only : IM,JM,LM
       IMPLICIT NONE
       PRIVATE
 
@@ -20,6 +20,12 @@ C**** vertices of the A grid (Note: first velocity point is J=2)
 C**** Polar boxes can have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
       SAVE
+
+!@param IMH half the number of longitudinal boxes
+      INTEGER, PARAMETER, public :: IMH=IM/2
+!@param FIM,BYIM real values related to number of long. grid boxes
+      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
+
 !@param  DLON grid spacing in longitude (deg)
       REAL*8, PUBLIC, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
@@ -449,6 +455,7 @@ c this version is for the latlon grid.
       END MODULE GEOM
 
       module RAD_COSZ0
+      use resolution, only : im,jm
       implicit none
       save
       private
@@ -498,7 +505,7 @@ c daily-average cosz and the hour of dusk
       subroutine cosz_init
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       use constant, only : twopi
-      use model_com, only : jm
+      use resolution, only : jm
       use geom, only : dlat
       real*8 :: phis,cphis,sphis,phin,cphin,sphin,phim
       integer :: j_0,j_1,j_0s,j_1s,j_0h,j_1h,j

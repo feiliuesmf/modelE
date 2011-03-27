@@ -14,13 +14,14 @@
 !@var call_diag logical variable whether dout is called
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
-      USE MODEL_COM, only :
-     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
-     *     ,pmtop
+      USE RESOLUTION, only : psf,pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
+      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
@@ -584,8 +585,7 @@ c
       !
       USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
-      USE MODEL_COM, only : im,jm
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE ATM_COM, only : pmid,pk,pedn
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
       implicit none
@@ -657,7 +657,6 @@ C****
      &      ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,n)
 !@sum dout writes out diagnostics at (i,j)
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var p  pressure at main grid z
 !@var pe  pressure at secondary grid ze
 !@var u  west-east   velocity component
@@ -683,7 +682,7 @@ C****
 !@var i/j horizontal location at which the output is written
 !@var n number of vertical main layers
 
-      USE DYNAMICS, only : pmid,pedn,pk,pek
+      USE ATM_COM, only : pmid,pedn,pk,pek
 
       implicit none
 
@@ -759,7 +758,6 @@ C****
 !@sum differential eqn solver for x using tridiagonal method
 !@+   d/dt x = d/dz (P1 d/dz x) + P4
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var x the unknown to be solved (at main drid)
 !@var x0 x at previous time step
 !@var p1,p4 coeff. of the d.e.
@@ -834,7 +832,6 @@ C****
 !@sum differential eqn solver for x using tridiagonal method
 !@+   d/dt x = d/dz (P1 d/dz x) - P3 x + P4
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var x the unknown to be solved (at edge drid)
 !@var x0 x at previous time step
 !@var p1,p3,p4 coeff. of the d.e.
@@ -956,7 +953,6 @@ C****
 !@sum k_gcm computes the turbulent stability functions Km, Kc
 !@+   and the non-local part of the fluxes
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var tvflx virtual potential temperature flux at surface
 !@var qflx moisture flux at surface
 !@var ustar friction velocity
@@ -1068,7 +1064,6 @@ C****
 !@+   (Moeng and Sullivan 1994) for ze<=dbl and using the giss
 !@+   soc model (level 2) for ze>dbl
 !@auth  Ye Cheng
-!@ver   1.0
 !@var (see subroutine k_gcm)
 !@var lmonin Monin-Obukov length
 !@var g_alpha grav*alpha
@@ -1134,7 +1129,6 @@ C****
       subroutine find_pbl_top(e,ze,dbl,ldbl,n)
 !@sum find_pbl_top finds the pbl top (at main level)
 !@auth  Ye Cheng
-!@ver   1.0
 !@var e turbulent kinetic energy
 !@var ze height at the edge level (meters)
 !@var ldbl the (main) layer corresponding to top of pbl

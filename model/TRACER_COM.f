@@ -10,7 +10,7 @@
 !@auth Jean Lerner
 C
       USE QUSDEF, only: nmom
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
@@ -55,6 +55,9 @@ C
 C
       IMPLICIT NONE
       SAVE
+
+!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+      integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
@@ -1014,7 +1017,7 @@ c note: not applying CPP when declaring counts/lists.
 
       subroutine remake_tracer_lists()
 !@sum regenerates the counts and lists of tracers in various categories
-      use model_com, only : itime,coupled_chem
+      use model_com, only : itime
       implicit none
       integer :: n,nactive
       integer, dimension(1000) ::

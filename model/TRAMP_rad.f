@@ -16,7 +16,8 @@ c -----------------------------------------------------------------
      +                       MIX_OC, MIX_SU, MIX_AQ, AMP_RAD_KEY
       USE AERO_CONFIG, only: NMODES
 
-      USE MODEL_COM,   only: lm,itime,itimeI
+      USE RESOLUTION,  only: lm
+      USE MODEL_COM,   only: itime,itimeI
       USE TRACER_COM,  only: TRM
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
 

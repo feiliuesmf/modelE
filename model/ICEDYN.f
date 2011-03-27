@@ -18,7 +18,7 @@ C*************************************************************
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius,TWOPI
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
 c#ifdef CUBED_SPHERE

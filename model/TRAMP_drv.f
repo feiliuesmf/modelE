@@ -5,7 +5,8 @@
       USE TRACER_COM
       USE AERO_CONFIG, ONLY: NMODES
       USE AERO_PARAM,  ONLY: NEMIS_SPCS
-      USE MODEL_COM,   ONLY: LM, jhour, jdate
+      USE RESOLUTION,   ONLY: LM
+      USE MODEL_COM,   ONLY: jhour, jdate
       IMPLICIT NONE
       SAVE
 
@@ -74,14 +75,15 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
 
-      USE MODEL_COM, only : im,jm,lm     ! dimensions
-     $                     ,t            ! potential temperature (C)
+      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE ATM_COM, only : 
+     $                      t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
-     $                     ,dtsrc
+      USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trsrfflx,trflux1
-      USE DYNAMICS,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
       USE AERO_CONFIG
@@ -565,7 +567,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 !@+    at run-time
 !@auth Susanne Bauer
       use domain_decomp_atm, only : dist_grid, get
-      use model_com, only     : im,lm
+      use resolution, only     : im,lm
       use amp_aerosol
       use aero_config, only   : nmodes
 

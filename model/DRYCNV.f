@@ -5,7 +5,8 @@
 !@+    this version checks base layers lbase_min to lbase_max.
 !@auth Original Development Team
       USE CONSTANT, only : lhe,sha,deltx
-      USE MODEL_COM, only : im,jm,lm,u,v,q,t
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : u,v,q,t,pk,pdsig,plij,pedn
       USE DOMAIN_DECOMP_ATM, only : grid, get
       USE DOMAIN_DECOMP_ATM, only : halo_update, checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column, checksum_column
@@ -18,7 +19,6 @@
       USE TRACER_COM, only: TRM,TRMOM,NTM
       USE TRDIAG_COM, only: JLNT_TURB
 #endif
-      USE DYNAMICS, only : pk,pdsig,plij,pedn
       USE PBLCOM, only : dclev,w2gcm,w2_l1
       IMPLICIT NONE
 
@@ -372,16 +372,17 @@ C***
       subroutine apply_fluxes_to_atm(dt)
 !@sum applies earth fluxes to the first layer of the atmosphere
 !@auth Original Development Team
-      USE MODEL_COM, only : im,jm,u,v,t,q,qcheck
+      USE MODEL_COM, only : qcheck
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : u,v,t,q,byam,am
       USE DOMAIN_DECOMP_ATM, only : grid, get
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
       USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,axyp
-      USE DYNAMICS, only : byam,am
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trm,trmom,trname,t_qlimit
 #ifdef TRACERS_WATER

@@ -5,7 +5,7 @@
 !@+    Mostly tracer independent, but this may depend on applications
 !@auth Jean Lerner
 !ver   1.0
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
      &     ,sname_strlen,units_strlen,lname_strlen,jm_budg
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -558,7 +558,8 @@ C**** include some extra troposphere only ones
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,nfiltr
+      USE MODEL_COM, only: dtsrc
+      USE DYNAMICS, only : nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
      *     ,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
@@ -681,11 +682,12 @@ C****
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, ESMF_BCAST, grid, GET
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, ESMF_BCAST, GET
       USE TRACER_COM, only: ntm
       USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
      *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
@@ -1289,7 +1291,8 @@ c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
       subroutine gather_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
      *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
@@ -1315,7 +1318,8 @@ c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
       subroutine scatter_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
      *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJLS, TAIJLS_loc)

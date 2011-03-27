@@ -7,7 +7,7 @@
       MODULE GHY_COM
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth Frank Abramopolus/Igor Aleinov
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 !!!      USE SLE001, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
@@ -37,6 +37,9 @@ ccc dimensions of the GHY arrays
 
 ccc variable earth fraction
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FEARTH
+
+!@var WFCS water field capacity of first ground layer (kg/m2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: WFCS
 
 ccc bare/veg not in merged array because WBARE does not contain
 ccc 0 index for legacy reasons
@@ -165,6 +168,8 @@ C****
       ALLOCATE(     FEARTH(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
+      ALLOCATE(WFCS(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+
 cddd      ALLOCATE(      WBARE(  NGM,I_0H:I_1H,J_0H:J_1H),
 cddd     *               WVEGE(0:NGM,I_0H:I_1H,J_0H:J_1H),
 cddd     *              HTBARE(0:NGM,I_0H:I_1H,J_0H:J_1H),
@@ -269,9 +274,9 @@ C**** Initialize to zero
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHY_COM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN, GET
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -392,8 +397,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_1D, ONLY: GRID, GET
-      USE DOMAIN_DECOMP_1D, ONLY:  PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, ONLY: GET, PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY: PACK_BLOCK, UNPACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_COLUMN
 #ifdef TRACERS_WATER
@@ -551,7 +556,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@sum  io_snow reads and writes snow model arrays to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT, get
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, get
       USE DOMAIN_DECOMP_1D, only : PACK_BLOCK  , PACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_BLOCK, UNPACK_COLUMN
       USE GHY_COM
@@ -688,6 +694,20 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       end subroutine deallocate_me
 
       END SUBROUTINE io_snow
+
+      subroutine read_landsurf_ic
+!@sum   read_landsurf_ic read land surface initial conditions file.
+      use model_com, only : ioread
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_earth  (fid,ioread)
+      call new_io_soils  (fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_landsurf_ic
 
 #ifdef NEW_IO
       subroutine def_rsf_earth(fid)
@@ -883,8 +903,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@sum  reads and writes data needed to drive vegetation module
 !@auth I. Aleinov
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      use model_com, only : im,jm
-      use domain_decomp_1d, only : grid, am_i_root
+      use resolution, only : im,jm
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root
       use domain_decomp_1d, only : pack_data, unpack_data
       use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
       use Dictionary_mod

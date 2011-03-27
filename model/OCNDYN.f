@@ -10,10 +10,11 @@ C****
 !@ver  2009/06/30
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : idacc,modd5s,msurf
+      USE MODEL_COM, only : idacc,msurf
 #ifdef TRACERS_OceanBiology
      * ,nstep=>itime
 #endif
+      USE DIAG_COM, only : modd5s
       USE OCEANRES, only : NOCEAN,dZO
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -3428,7 +3429,6 @@ c****Get relevant local distributed parameters
 
 c**** loop over layers
       ICKERR=0
-!!! !$OMP* SHARED(JM,im)
       do L=1,lmo
 
 c****   fill in and save polar values
@@ -3497,7 +3497,6 @@ c       end if
            rx(:,jm,:) = 0. ; ry(:,jm,:) = 0.
         end if
 
-!!! !$OMP* SHARED(JM,IM)
       do l=1,lmo
 
 c****   average and update polar boxes
@@ -5110,7 +5109,6 @@ C****
       USE CONSTANT, only : tf
       USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEANRES,   only : LMO_MIN
-      USE MODEL_COM, only : FOCEAN
       Use GEOM,      only : IMAXJ
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
@@ -5128,7 +5126,7 @@ C****
       Use AFLUXES, Only: aTRAC,atrac_glob
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
-     *      gtempr
+     *      gtempr,focean
 #ifdef TRACERS_ON
      *     ,gtracer
 #endif
@@ -5246,7 +5244,7 @@ C****
 !@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid
 !@auth Gavin Schmidt
 c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm,imaxj
 
 !      use domain_decomp_1d, only : grid,get
@@ -5287,7 +5285,7 @@ C****
 c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
 !@sum  OT2AT interpolates Ocean Tracer grid to Atm Tracer grid
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
       USE OCEAN, only : imo=>im,jmo=>jm
       IMPLICIT NONE
@@ -5324,7 +5322,7 @@ C****
 !@sum  AT2OV interpolates Atm Tracer grid to Ocean Velocity grid
 !@auth Gavin Schmidt
 c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
       USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs
       IMPLICIT NONE

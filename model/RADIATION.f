@@ -865,10 +865,11 @@ C                                        2000                     2050
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
 #ifndef USE_RAD_OFFLINE
-      use model_com, only : lm_gcm=>lm, lm_req
+      use atm_com, only : lm_req
+      use resolution, only : lm_gcm=>lm
 #endif
 #ifdef HEALY_LM_DIAGS
-      USE MODEL_COM, only : JM_DIAG=>jm
+      USE RESOLUTION, only : JM_DIAG=>jm
 #endif
       use IndirectAerParam_mod
       IMPLICIT NONE
@@ -3980,7 +3981,7 @@ C                                                                -------
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
 #ifdef TRACERS_AMP
-      USE MODEL_COM, only :LM
+      USE RESOLUTION, only :LM
 #endif
       IMPLICIT NONE
       INTEGER, optional :: GETAER_flag

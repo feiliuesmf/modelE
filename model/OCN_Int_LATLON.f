@@ -41,7 +41,8 @@ c _par are parallelized versions
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       Use OCEANR_DIM,       only : oGRID
 
@@ -112,7 +113,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       USE GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       USE OCEANR_DIM,       only : oGRID
 
@@ -186,7 +188,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA
      *                           , PACK_COLUMN, UNPACK_COLUMN
       Use OCEANR_DIM,       only : oGRID
 
@@ -261,7 +264,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       Use OCEANR_DIM,       only : oGRID
 
@@ -335,7 +339,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA
      *                           , PACK_COLUMN, UNPACK_COLUMN
       Use OCEANR_DIM,       only : oGRID
 
@@ -410,7 +415,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA
      *                           , PACK_BLOCK, UNPACK_BLOCK
       Use OCEANR_DIM,       only : oGRID
 
@@ -486,7 +492,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA
      *                           , PACK_BLOCK, UNPACK_BLOCK
       Use OCEANR_DIM,       only : oGRID
 
@@ -561,7 +568,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE GEOM,  only : aDLATM=>DLATM,aIMAXJ=>IMAXJ,aSINI=>SINIP,
      &                  aCOSI=>COSIP
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       USE OCEANR_DIM,       only : oGRID
 
@@ -688,7 +696,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       USE GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       USE OCEANR_DIM,       only : oGRID
 
@@ -791,8 +800,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN,      only : oIM=>im,oJM=>jm
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, 
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
       IMPLICIT NONE
 
@@ -847,7 +856,7 @@ C***  Interpolate aA from atmospheric grid to ocean grid
 !@auth M. Kelley
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
       Use OCEANR_DIM,       only : oGRID
       IMPLICIT NONE
       integer, intent(in) :: aN,oN
@@ -866,7 +875,7 @@ C***  Interpolate aA from atmospheric grid to ocean grid
 !@auth M. Kelley
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
       Use OCEANR_DIM,       only : oGRID
       IMPLICIT NONE
       integer, intent(in) :: aN,oN,oNin
@@ -901,9 +910,8 @@ C***  Interpolate aA from atmospheric grid to ocean grid
       USE OCEAN, only : oDLATM=>DLATM,oSINI=>SINIC,oCOSI=>COSIC
       USE GEOM,  only : aDLATM=>DLATM,aIMAXJ=>IMAXJ,aSINI=>SINIP,
      &                  aCOSI=>COSIP
-
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       USE OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1008,7 +1016,8 @@ c      Module Procedure INT_OG2AG_Vector1
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       Use OCEANR_DIM,       only : oGRID
 
@@ -1095,9 +1104,10 @@ C***  Scatter global array aA_glob to the atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
 
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_COLUMN, UNPACK_COLUMN
      *                           , PACK_DATA
       Use OCEANR_DIM,       only : oGRID
@@ -1199,7 +1209,8 @@ C***  Scatter global array aA_glob to the atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       Use OCEANR_DIM,       only : oGRID
 
@@ -1280,9 +1291,10 @@ C***  Scatter global array aA_glob to the atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
 
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_BLOCK, UNPACK_BLOCK
      *                           , PACK_DATA
       Use OCEANR_DIM,       only : oGRID
@@ -1390,7 +1402,8 @@ C***  Scatter global array aA_glob to the atm. grid
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
      *                , aCOSI=>COSIP,aSINI=>SINIP
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
       Use OCEANR_DIM,       only : oGRID
 
@@ -1493,8 +1506,8 @@ C***  Scatter global arrays to the atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1560,10 +1573,10 @@ C***  Interpolate oA_band from ocean grid to atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
 
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1643,8 +1656,8 @@ C***  Interpolate oA from ocean grid to atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE

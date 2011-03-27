@@ -12,8 +12,10 @@
 !@auth J.Lerner
       USE CONSTANT, only : rgas
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: im,jm,lm,itime,wm,t
-      USE DYNAMICS, only: pmid,pk
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: itime
+      USE ATM_COM, only: wm,t
+      USE ATM_COM, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,axyp,byaxyp
       USE SOMTQ_COM, only: mz
@@ -24,7 +26,7 @@
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
-      USE DYNAMICS, only: am,byam
+      USE ATM_COM, only: am,byam
       implicit none
 
       integer i,j,l,n
@@ -169,7 +171,8 @@ C**** Save current value in TCONSRV(NI)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      use model_com, only : lm,ls1,jm,fim,im
+      use resolution, only : ls1
+      use resolution, only : lm,jm,im
       use geom, only : imaxj
       use tracer_com, only : trm,trname
 #ifdef TRACERS_WATER
@@ -223,10 +226,10 @@ C****
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
       USE GEOM, only : j_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: fim,jm
+      USE RESOLUTION, only: im,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
       IMPLICIT NONE
-
+      real*8, parameter :: fim=im
 !@var I, J indices denoting gird box
       INTEGER, INTENT(IN) :: I,J
 !@var M index denoting which process changed the tracer
@@ -275,7 +278,7 @@ C**** No need to save current value
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: jm,fim,im
+      USE RESOLUTION, only: jm,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
 
@@ -345,15 +348,15 @@ C**** No need to save current value
 
       USE CONSTANT, only: teeny, twopi
       USE MODEL_COM, only:
-     &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
+     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only: areag 
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
      &     natmtrcons,nocntrcons 
-      USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
+      USE DIAG_COM, only: jeq,inc=>incj,xwon,kdiag,qdiag,acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
       IMPLICIT NONE
@@ -554,13 +557,16 @@ C****
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid
-     &   ,dsig,ls1,pednl00,pdsigl00
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: itime,idacc,xlabel,lrunid
+      USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
-     *     ,jl_dpa,jl_dpasrc,jl_dwasrc
+     *     ,jl_dpa,jl_dpasrc,jl_dwasrc,fim
      &     ,sname_strlen,units_strlen,lname_strlen
+      USE ATM_COM, only : pednl00,pdsigl00
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
      *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -1039,8 +1045,9 @@ C**** NUMBERS ABOVE
 C****
       USE CONSTANT, only : undef
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
-      USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
-     *     ,xlabel,dsig,sige
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: jdate,jdate0,amon,amon0,jyear,jyear0,xlabel
+      USE DYNAMICS, only : dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
      &     ,sname_strlen,units_strlen,lname_strlen
@@ -1191,10 +1198,10 @@ C****
 !@sum  DIAGIJt produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
-!@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
@@ -1553,10 +1560,10 @@ C****
 !@sum  DIAGIJLt produces 3D lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
-!@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
-      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
 
@@ -1568,10 +1575,10 @@ C****
 #endif
       USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml,ir_m45_130,
      *                     kdiag,ir_log2,ia_src,wt_ij,
      *                     qdiag,lname_strlen,sname_strlen,units_strlen
+      USE ATM_COM, only : pmidl00
       use filemanager
       IMPLICIT NONE
 
@@ -1812,7 +1819,8 @@ C****
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
       USE CONSTANT, only: teeny
-      USE MODEL_COM, only:im,jm, idacc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only:idacc
       USE GEOM, only: dxyp
       USE TRACER_COM
       USE DIAG_COM

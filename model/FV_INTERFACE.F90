@@ -19,6 +19,7 @@ module FV_INTERFACE_MOD
 #endif
 
   implicit none
+  save
   private
 
   ! except for
@@ -29,7 +30,7 @@ module FV_INTERFACE_MOD
   public :: Finalize               ! Uses modelE data to finalize the FV gridded component
 
   public :: FV_CORE_WRAPPER        ! Derived type to encapsulate FV + modelE data
-  public :: Init_app_clock         ! modelE does not use ESMF clocks, but ESMF requires one
+
   public :: Compute_Tendencies     ! Temporarily a separate method, but will move within Run() soon.
 
   Interface Initialize
@@ -53,20 +54,38 @@ module FV_INTERFACE_MOD
     type(FV_CORE) :: fv
   END Type FV_CORE_WRAPPER
 
+  Type (FV_CORE_WRAPPER), public :: fvstate
+
+  Character(Len=*), Parameter :: config_file = 'fv_config.rc'
+
 contains
 
 !-------------------------------------------------------------------------------
-  subroutine Initialize_fv(fv_wrapper, istart, vm, grid, clock, config_file)
+  subroutine Initialize_fv(fv_wrapper, istart, kdisk)
 !-------------------------------------------------------------------------------
+    use atm_com, only : clock=>atmclock
+    Use Domain_decomp_atm, only: grid,AM_I_ROOT
+    USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
     type (fv_core_wrapper),    intent(inout) :: fv_wrapper
-    integer,           intent(in) :: istart
-    type (ESMF_vm),    intent(in) :: vm
-    type (ESMF_grid),  intent(inout) :: grid
-    type (ESMF_clock), intent(inout) :: clock
-    character(len=*),  intent(in) :: config_file ! filename for resource file
+    integer,           intent(in) :: istart,kdisk
+!    type (ESMF_grid),  intent(inout) :: grid
+!    type (ESMF_clock), intent(inout) :: clock
     type (ESMF_config)            :: cf
+    character(len=1) :: suffix
 
-    call setupForESMF(fv_wrapper%fv, vm, grid, cf, config_file)
+! if warm start, copy FV restart files to expected names
+      if(AM_I_ROOT() .and. istart.ge.8) then
+        if(istart.lt.10) then
+          call system('cp AICfv  dyncore_internal_restart')
+          call system('cp AICdfv tendencies_checkpoint')
+        else
+          write(suffix,'(i1)') KDISK
+          call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+          call system('cp dfv.'// suffix // ' tendencies_checkpoint')
+        endif
+      endif
+
+    call setupForESMF(fv_wrapper%fv, vm, grid%esmf_grid, cf, config_file)
 
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
@@ -82,20 +101,21 @@ contains
   end subroutine Initialize_fv
 
 !-------------------------------------------------------------------------------
-  subroutine run_fv(fv_wrapper, clock)
+  subroutine run_fv(fv_wrapper)
 !-------------------------------------------------------------------------------
-    USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
-    USE MODEL_COM, only : NIdyn, DT, DTSRC
+    use atm_com, only : clock=>atmclock
+    USE RESOLUTION, Only : IM, JM, LM
+    USE ATM_COM, Only : U, V, T, P, ZATMO
+    USE MODEL_COM, only : DT => DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
 #ifdef FVCUBED_SKIPPED_THIS
     USE ATMDYN, only:  COMPUTE_MASS_FLUX_DIAGS
 #endif
-    USE DYNAMICS, only: MA, PHI, GZ
-    USE DYNAMICS, ONLY: PU, PV, CONV
-    USE DYNAMICS, ONLY: SD, PUA, PVA, SDA
+    USE DYNAMICS, ONLY: PU, PV, SD, CONV
+    USE ATM_COM, ONLY: MA, PHI, GZ, PUA, PVA, SDA
 
     Type (FV_CORE_WRAPPER)    :: fv_wrapper
-    Type (ESMF_Clock) :: clock
+!    Type (ESMF_Clock) :: clock
     type (ESMF_TimeInterval) :: timeInterval
 
     integer :: L,istep, NS, NIdyn_fv
@@ -117,7 +137,7 @@ contains
     call clear_accumulated_mass_fluxes()
 
     ! Run dycore
-    NIdyn_fv = DTsrc / (DT)
+    NIdyn_fv = 1 !DTsrc / (DT)
     do istep = 1, NIdyn_fv
 
        call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
@@ -155,10 +175,10 @@ contains
     subroutine reset_tmom
     !---------------------------------------------------------------------------
 
-      USE MODEL_COM, only : im,jm,lm,t
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t,pmid,pedn
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
-      USE DYNAMICS, only : pmid,pedn
       implicit none
 
       integer :: i,j,l
@@ -194,10 +214,10 @@ contains
     subroutine reset_qmom
     !---------------------------------------------------------------------------
 
-      USE MODEL_COM, only : im,jm,lm,q
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : q,pmid,pedn
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
-      USE DYNAMICS, only : pmid,pedn
       implicit none
 
       integer :: i,j,l
@@ -235,17 +255,39 @@ contains
   end subroutine run_fv
 
 !-------------------------------------------------------------------------------
-  subroutine Checkpoint(fv_wrapper, clock, fv_fname, fv_dfname)
+  subroutine Checkpoint(fv_wrapper, modelEfilename)
 !-------------------------------------------------------------------------------
+    use model_com, only : rsf_file_name,xlabel,lrunid
+    use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (ESMF_clock), intent(inout) :: clock
-    character(len=*), intent(in) :: fv_fname, fv_dfname
+!    type (ESMF_clock), intent(inout) :: clock
+    character(len=*), intent(in) :: modelEfilename
 
     character(len=*), parameter :: SUFFIX_TEMPLATE = '.YYYYMMDD_HHMMz.bin'
     character(len=len(SUFFIX_TEMPLATE)) :: suffix
     Type (ESMF_Time)  :: currentTime
     integer :: year, month, day, hour, minute, second
     logical :: isFinalize
+
+    character(len=28) :: fv_fname, fv_dfname
+    character(len=1)  :: c1
+    integer :: m
+
+    if( any(rsf_file_name(:)==trim(modelEfilename)) ) then
+      ! standard checkpoint file
+      do m=1,size(rsf_file_name)
+        if(rsf_file_name(m) == trim(modelEfilename)) exit
+      enddo
+      write(c1,'(i1)') m
+      fv_fname='fv.'//c1
+      fv_dfname='dfv.'//c1
+    elseif( index(modelEfilename,'.rsf')==9 ) then
+      ! end-of-month file of the form 1MONYEAR.rsfRUNNAME
+      fv_fname  = modelEfilename(1:8)//'.fv'//XLABEL(1:LRUNID)
+      fv_dfname = modelEfilename(1:8)//'.dfv'//XLABEL(1:LRUNID)
+    else
+      call stop_model('checkpoint_fv: unrecognized modelEfilename',255)
+    endif
 
     ! dyncore_internal_restart.YYYYMMDD_HHMMz.bin
     call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
@@ -261,14 +303,21 @@ contains
   end subroutine Checkpoint
 
 !-------------------------------------------------------------------------------
-  subroutine Finalize(fv_wrapper, clock, fv_fname, fv_dfname)
+  subroutine Finalize(fv_wrapper, kdisk)
 !-------------------------------------------------------------------------------
+    use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (ESMF_clock), intent(inout) :: clock
-    character(len=*), intent(in) :: fv_fname, fv_dfname
+!    type (ESMF_clock), intent(inout) :: clock
+    integer, intent(in) :: kdisk
 
     character(len=0) :: suffix = ''
     logical :: isFinalize
+    character(len=28) :: fv_fname, fv_dfname
+    character(len=1)  :: c1
+
+    write(c1,'(i1)') kdisk
+    fv_fname='fv.'//c1
+    fv_dfname='dfv.'//c1
 
     isFinalize = .true.
     call DumpState(fv_wrapper%fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
@@ -280,55 +329,12 @@ contains
   end subroutine Finalize
 
 !-------------------------------------------------------------------------------
-  function init_app_clock(start_time, end_time, interval) Result(clock)
-!-------------------------------------------------------------------------------
-    integer :: start_time(6)
-    integer :: end_time(6)
-    integer :: interval
-    type (ESMF_clock)              :: clock
-
-    type (ESMF_time) :: startTime
-    type (ESMF_time) :: stopTime
-    type (ESMF_timeinterval) :: timeStep
-    type (ESMF_calendar) :: gregorianCalendar
-
-    ! initialize calendar to be Gregorian type
-    gregorianCalendar = ESMF_calendarcreate("GregorianCalendar", ESMF_CAL_GREGORIAN, rc)
-    VERIFY_(rc)
-
-    ! initialize start time
-    write(*,*)'Time Set Start: ',START_TIME
-    call ESMF_timeset(startTime, YY=START_TIME(1), MM= START_TIME(2), &
-         & DD=START_TIME(3), H=START_TIME(4),                         &
-         & M=START_TIME(5),  S=START_TIME(6),                         &
-         & calendar=gregorianCalendar, rc=rc)
-    VERIFY_(rc)
-
-    ! initialize stop time
-    write(*,*)'Time Set End: ',END_TIME
-    call ESMF_timeset(stopTime, YY=END_TIME(1), MM= END_TIME(2), &
-         & DD=END_TIME(3), H=END_TIME(4),                        &
-         & M=END_TIME(5),  S=END_TIME(6),                        &
-         & calendar=gregorianCalendar, rc=rc)
-    VERIFY_(rc)
-
-    ! initialize time interval
-    call ESMF_timeintervalset(timeStep, &
-         & S=INT(interval), rc=rc)
-    VERIFY_(rc)
-
-    ! initialize the clock with the above values
-    clock = ESMF_clockcreate("ApplClock", timeStep, startTime, stopTime, rc=rc)
-    VERIFY_(rc)
-
-  end function init_app_clock
-
-!-------------------------------------------------------------------------------
   Subroutine allocateTendencyStorage(fv, istart)
 !-------------------------------------------------------------------------------
     Use Domain_decomp_atm, only: GRID, GET, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
-    USE MODEL_COM, only: U, V, T, DTsrc
+    USE MODEL_COM, only: DTsrc
+    USE ATM_COM, only: U, V, T
     use FILEMANAGER
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
 #ifdef CUBED_SPHERE
@@ -452,7 +458,7 @@ contains
   subroutine compute_tendencies_internal(fv)
 !-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM
-    USE MODEL_COM, Only: U, V, T
+    USE ATM_COM, Only: U, V, T
     USE DOMAIN_DECOMP_ATM, only: grid, get
     USE DYNAMICS, only: DUT, DVT
 

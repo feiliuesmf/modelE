@@ -43,7 +43,8 @@
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
-      use model_com, only : jyear,focean
+      use fluxes, only : focean
+      use model_com, only : jyear
       use ghy_com, only : fearth
 
       implicit none
@@ -129,7 +130,7 @@ c**** check whether ground hydrology data exist at this point.
       use constant, only : twopi,one
       use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
-      use model_com, only : focean
+      use fluxes, only : focean
       use geom, only : lat2d
       use veg_com !, only : vdata,Cint,Qfol
       use ghy_com, only : ngm,fearth

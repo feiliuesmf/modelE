@@ -8,9 +8,11 @@ C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
       USE RAD_COM, only         : clim_interact_chem
-      USE MODEL_COM, only       : im,jm,lm,ls1,Q,ftype,ntype,pmidl00
+      USE RESOLUTION, only      : ls1
+      USE RESOLUTION, only      : im,jm,lm
+      USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
-      USE DYNAMICS, only        : am, byam,ltropo
+      USE ATM_COM, only         : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
@@ -54,7 +56,8 @@ C
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE DIAG_COM, only : aj,j_h2och4
+      USE DIAG_COM, only : aj,j_h2och4,ftype,ntype
+      USE ATM_COM, only : pmidl00
 c
       IMPLICIT NONE
 c

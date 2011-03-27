@@ -9,9 +9,10 @@ C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
-      USE MODEL_COM, only : t,p,zatmo,sig
+      USE ATM_COM, only : t,p,zatmo
+      USE DYNAMICS, only : sig
       USE GEOM, only : ddx_ci,ddx_cj,ddy_ci,ddy_cj
-      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+      USE ATM_COM, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
@@ -67,20 +68,22 @@ C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
-      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : t,p,zatmo
 #ifdef CUBED_SPHERE
       USE GEOM, only : cosip,sinip
 #else
       USE GEOM, only : bydyp,bydxp,cosip,sinip
 #endif
-      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
+      USE ATM_COM, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP_1D, only : grid, GET
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DYNAMICS, only : sig
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
-      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
+      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi,byim
       INTEGER I,J,K,IP1,IM1,J1
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
@@ -90,6 +93,8 @@ c**** Extract domain decomposition info
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
+
+      byim = 1d0/real(im,kind=8)
 
 C**** (Pressure gradient)/density at first layer and surface
 C**** to be used in the PBL, at the primary grids
@@ -177,7 +182,8 @@ C**** to be used in the PBL, at the primary grids
       SUBROUTINE CALC_PIJL(lmax,p,pijl)
 !@sum  CALC_PIJL Fills in P as 3-D
 !@auth Jean Lerner
-      USE MODEL_COM, only : lm,ls1,psfmpt
+      USE RESOLUTION, only : ls1,psfmpt
+      USE RESOLUTION, only : lm
 C****
       USE DOMAIN_DECOMP_ATM, Only : grid, GET
       implicit none
@@ -200,8 +206,10 @@ C****
 !@sum  CALC_AMPK calculate air mass and pressure arrays
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
-      USE MODEL_COM, only : im,jm,lm,ls1,p
-      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : p
+      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
 
@@ -261,7 +269,9 @@ C**** Fill in polar boxes
       SUBROUTINE CALC_AMP(p,amp)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
 !@auth Jean Lerner/Max Kelley
-      USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
+      USE RESOLUTION, only : ls1,psf,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE DYNAMICS, only : dsig
       USE GEOM, only : axyp
 C****
       USE DOMAIN_DECOMP_ATM, Only : grid, GET
@@ -300,10 +310,11 @@ C****
       SUBROUTINE CALC_TROP
 !@sum  CALC_TROP (to calculate tropopause height and layer)
 !@auth J. Lerner
-      USE MODEL_COM, only : im,jm,lm,t
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
-      USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
+      USE ATM_COM, only : pk, pmid, PTROPO, LTROPO
 #ifdef etc_subdd
      &   ,TTROPO  
 #endif
@@ -386,7 +397,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@+   lapse rate first falls below 3 K/km. If this still doesn't work
 !@+   (ever?), the level is set to the pressure level below 30mb.
 !@+
-      USE MODEL_COM, only : klev=>lm
+      USE RESOLUTION, only : klev=>lm
       USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
       implicit none
 
@@ -513,7 +524,7 @@ c****
       subroutine zonalmean_ij2ij(arr,arr_zonal)
 c Computes zonal means of arr and stores the result in arr_zonal.
 c Lat-lon version.
-      use model_com, only : im
+      use resolution, only : im
       use domain_decomp_atm, only : grid
       use geom, only : imaxj
       implicit none
@@ -565,8 +576,9 @@ c Lat-lon version.
 !@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
 !@auth Tom Clune (SIVO)
       use CONSTANT, only: sha, mb2kg
-      use MODEL_COM, only: T, PSF, PMTOP, LM
-      use DYNAMICS, only: PK
+      USE RESOLUTION, only : psf, pmtop
+      USE RESOLUTION, only : lm
+      use ATM_COM, only: T,PK
       use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
       real*8, intent(in) :: deltaEnergy
@@ -591,8 +603,7 @@ c Lat-lon version.
       SUBROUTINE DISSIP
 !@sum DISSIP adds in dissipated KE (m^2/s^2) as heat locally
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : t
-      USE DYNAMICS, only : dke,kea,pk
+      USE ATM_COM, only : t,dke,kea,pk
       IMPLICIT NONE
 C**** temporarily store latest KE in DKE array
       call calc_kea_3d(dke)
@@ -608,7 +619,7 @@ C***** Add in dissipiated KE as heat locally
 !@auth Tom Clune (SIVO)
       use CONSTANT, only: SHA
       use GEOM, only: IMAXJ
-      use MODEL_COM, only: LM
+      use RESOLUTION, only: LM
       use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -647,8 +658,10 @@ C**** and convert to WSAVE, units of m/s):
       use CONSTANT, only: rgas, bygrav
       use DOMAIN_DECOMP_ATM, only: grid, GET
       use GEOM, only: byaxyp
-      use MODEL_COM, only: IM,JM,LM,DTsrc,T
-      use DYNAMICS, only: wsave, sda,pk,pedn
+      USE RESOLUTION, only : im,jm,lm
+      use MODEL_COM, only: DTsrc
+      use ATM_COM, only: T
+      use ATM_COM, only: wsave, sda,pk,pedn
       implicit none
 
       integer :: i, j, l
@@ -673,8 +686,10 @@ C**** and convert to WSAVE, units of m/s):
       SUBROUTINE COMPUTE_GZ(p,t,tz,gz)
 !@sum  COMPUTE_GZ calculates geopotential on model levels.
 !@auth Original development team
-      USE model_com, only : im,jm,lm,ls1,ptop,psfmpt,dsig,sige,sig,
-     &     zatmo
+      USE RESOLUTION, only : ls1, ptop, psfmpt
+      USE RESOLUTION, only : im,jm,lm
+      USE atm_com, only : zatmo
+      USE DYNAMICS, only : dsig,sige,sig
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE GEOM, only : imaxj

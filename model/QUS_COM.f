@@ -3,7 +3,7 @@
 !@sum  SOMTQ_COM contains the arrays containing second order moments
 !@auth Gary Russell
       USE QUSDEF
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 !     REAL*8, DIMENSION(NMOM,IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO ,LM)  
@@ -18,7 +18,7 @@
 !@auth Rosalinda de Fainchtein
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE QUSDEF, ONLY : NMOM
-      USE MODEL_COM, ONLY : LM
+      USE RESOLUTION, ONLY : LM
       USE SOMTQ_COM, ONLY : TMOM,QMOM
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -44,8 +44,8 @@
 !@sum  io_somtq reads and writes second order moments to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN, AM_I_ROOT
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -141,7 +141,6 @@
 #endif /* NEW_IO */
 
       subroutine tq_zmom_init(t,q,pmid,pedn)
-      USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM
       implicit none

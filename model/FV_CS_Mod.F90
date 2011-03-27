@@ -89,7 +89,7 @@ module FV_CS_Mod
       Use GEOS_IOMod, only: GETFILE, Free_file
 #endif
       USE RESOLUTION, only: IM, JM, LM, LS1
-      Use MODEL_COM,  only: DT
+      Use MODEL_COM,  only: DT=>DTsrc
       character(len=*), intent(in) :: fname
       type (fv_core)  , intent(in) :: fv
       logical         , intent(in) :: hydrostatic
@@ -225,9 +225,10 @@ module FV_CS_Mod
 !-------------------------------------------------------------------------------
     USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
     Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
-    USE RESOLUTION, only: IM, JM, LM, LS1
-    Use MODEL_COM, only: sige, sig, Ptop, DT, PMTOP
-    Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
+    USE RESOLUTION, only: IM, JM, LM, LS1, PMTOP, Ptop, PSFMPT
+    Use DYNAMICS, only: sige, sig
+    Use MODEL_COM, only: DT=>DTsrc
+    Use ATM_COM, only: U, V, T, P, Q
     Use Constant, only: omega, radius, grav, rgas, kapa, deltx
 
     Type (FV_Core), Intent(InOut) :: fv
@@ -444,9 +445,9 @@ module FV_CS_Mod
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: LM
     USE GEOM, ONLY: AXYP
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
+    USE ATM_COM, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
-    USE MODEL_COM, only: DT
+    Use MODEL_COM, only: DT=>DTsrc
     USE DOMAIN_DECOMP_ATM, only: get, grid
     Use Constant, only: grav
     implicit none

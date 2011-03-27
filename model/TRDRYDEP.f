@@ -49,7 +49,6 @@ C       Research Triangle Park (NC), 1988.
 C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C*********************************************************************
       USE TRACER_COM, only   : ntm
-      USE MODEL_COM, only    : im
 
       IMPLICIT NONE
       SAVE
@@ -119,7 +118,6 @@ C*********************************************************************
      &     ,FUSE_loc,XOLAI_loc,XOLAI2_loc
 #endif
       use tracer_com, only    : ntm
-      use model_com, only     : im
 
       IMPLICIT NONE
 
@@ -170,7 +168,6 @@ C      uses functions: BIOFIT,DIFFG
 c
 C**** GLOBAL parameters and variables:  
 C
-      USE MODEL_COM,  only : im
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf     
       USE RAD_COM,     only: COSZ1,cfrac,srdn
@@ -675,7 +672,6 @@ C ---------------------------------------------
       REAL*8 FUNCTION DIFFG(TK,XM)
 !@sum DIFFG to calculate tracer molecular diffusivity.
 !@auth ? HARVARD CTM
-!@ver 1.0 (based on CB436Tds3M23)
       USE CONSTANT, only : bygasc, gasc, pi, mair, avog
       IMPLICIT NONE
 C=====================================================================
@@ -773,7 +769,7 @@ C
      &     ,UNPACK_DATA
 #endif
       USE FILEMANAGER, only   : openunit,closeunit,nameunit
-      USE MODEL_COM, only     : im,jm 
+      USE RESOLUTION, only    : im,jm
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
      & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
      & ILAND,IUSE,IREG_loc
@@ -928,7 +924,8 @@ C******************** END MODIN SECTION **************************
 C**** GLOBAL parameters and variables:  
       use domain_decomp_atm, only : grid, get, am_i_root
       use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
-      use model_com, only: im,jm,JDmidOfM,JMperY,jday,jmon
+      use resolution, only : im,jm
+      use model_com, only: JDmidOfM,JMperY,jday,jmon
       implicit none
 
 C**** Local parameters and variables and arguments
@@ -1003,7 +1000,8 @@ C**** GLOBAL parameters and variables:
 #ifdef BIN_OLSON
      &                         ,xolai_loc,xolai2_loc,iland
 #endif
-      use model_com, only: im,jm,jmon,JMperY
+      use resolution, only : im,jm
+      use model_com, only: jmon,JMperY
       use filemanager, only: openunit,closeunit
 
       implicit none

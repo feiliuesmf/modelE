@@ -16,7 +16,7 @@ C****
       MODULE ICEDYN_COM
 !@sum  ICEDYN_COM holds global variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBED_SPHERE
@@ -108,7 +108,7 @@ C**** Ice dynamics diagnostics
 !@auth Rosalinda de Fainchtein
 
       USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID,am_I_root
-      USE MODEL_COM, only : im
+      USE RESOLUTION, only : im
       USE ICEDYN_COM, only : grid_MIC,imic,jmic
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ,ICIJg
@@ -514,7 +514,7 @@ c temporarily empty.
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang), D. Gueyffier (cubed sphere)
 !@auth M. Kelley (cubed sphere)
       USE CONSTANT, only : rhoi,grav,omega,rhows
-      USE MODEL_COM, only : dts=>dtsrc,focean
+      USE MODEL_COM, only : dts=>dtsrc
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
@@ -532,7 +532,7 @@ c temporarily empty.
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
      &     ,ausi,avsi
       USE FLUXES, only : dmua,dmva,UI2rho,ogeoza
-     *     ,apress,uisurf,visurf
+     *     ,apress,uisurf,visurf,focean
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE DOMAIN_DECOMP_1D, only : hasSouthPole, hasNorthPole
@@ -1035,8 +1035,12 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
-      USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean,dts=>dtsrc
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : p
+      USE MODEL_COM, only :  kocean,dts=>dtsrc
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN, 
@@ -1053,7 +1057,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim,gtempr
+      USE FLUXES, only : gtemp,apress,msicnv,fwsim,gtempr,focean
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -1774,7 +1778,8 @@ c      end subroutine INT_IceB2AtmA
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,dtsrc,afocean=>focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
       USE DIAG_COM, only : ia_src
       USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_HALO=>HALO_UPDATE
@@ -1804,7 +1809,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
       use domain_decomp_1d, only : init_band_pack_type,band_pack
       use icedyn_com, only : pack_a2i,pack_i2a,ausi,avsi
 #endif
-      USE FLUXES, only : uisurf,visurf
+      USE FLUXES, only : uisurf,visurf,afocean=>focean
       use Dictionary_mod
 #ifdef NEW_IO
       use cdl_mod
@@ -2140,7 +2145,7 @@ C****
 !@sum calculate atmos. A grid winds from B grid
 !@auth Gavin Schmidt, Denis Gueyffier
 !@auth M. Kelley
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_1D, only : get
       ! xlf bug: please leave lines in this order, i.e. grid=>grid_icdyn first
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN

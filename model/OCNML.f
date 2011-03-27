@@ -5,9 +5,9 @@
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@auth Original Development Team
-      USE MODEL_COM, only : im,jm,focean
-      USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE RESOLUTION, only : im,jm
+      USE STATIC_OCEAN, only : tocean,focean
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
 
@@ -52,7 +52,8 @@ C**** Check for reasonable values for ocean variables
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE STATIC_OCEAN
-      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
       IMPLICIT NONE
@@ -170,10 +171,10 @@ c
 !@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt
       USE CONSTANT, only : shw,rhows
-      USE MODEL_COM, only : im,jm,fim,focean
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : imaxj
-      USE STATIC_OCEAN, only : tocean,z1o,z12o
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE STATIC_OCEAN, only : tocean,z1o,z12o,focean
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
 !@var OCEANE ocean energy (J/M^2)

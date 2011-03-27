@@ -1,7 +1,7 @@
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
-
-      USE MODEL_COM, ONLY : IM,JM,LM,byim
+      USE GEOM, only : byim
+      USE RESOLUTION, ONLY : IM,JM,LM
       SAVE
       INTEGER, PARAMETER :: ncmax=10
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: NSTEPX1, NSTEPX2
@@ -32,11 +32,11 @@ c****     rm = tracer mass
 c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
-      USE MODEL_COM, only : fim
-      USE DOMAIN_DECOMP_1D, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
 
       USE QUSCOM, ONLY : MFLX,nmom
-      USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
+      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
       IMPLICIT NONE
 
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: rm
@@ -45,12 +45,13 @@ c****
       logical, intent(in) :: qlimit
       character*8 tname          !tracer name
       integer :: I,J,L,n,nx
-
+      real*8 :: fim
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0H, J_1H
       INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+      fim = im
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -152,10 +153,11 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 !@auth Maxwell Kelley
 c****
 C**** The MA array space is temporarily put to use in this section
-      USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
+      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
+      USE DOMAIN_DECOMP_ATM, only: grid 
+      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
-      USE QUSCOM, ONLY : IM,JM,LM
+      USE QUSCOM, ONLY : IM,JM,LM,BYIM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
       INTEGER :: i,j,l,n,nc,im1,nbad,nbad_loc
@@ -387,7 +389,8 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use QUSDEF
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, GLOBALSUM
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
@@ -471,7 +474,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, GLOBALSUM
       use DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP, TRANSPOSE_COLUMN
       use CONSTANT, only : teeny
@@ -658,7 +662,8 @@ c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
       use GEOM, only : imaxj
-      USE DOMAIN_DECOMP_1D, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -738,9 +743,10 @@ c****
 !@sum XSTEP determines the number of X timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE DYNAMICS, ONLY: mu=>pua
+      USE ATM_COM, ONLY: mu=>pua
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im) :: a,am,mi
@@ -818,10 +824,11 @@ C
 !@sum YSTEP determines the number of Y timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE, NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE DYNAMICS, ONLY: mv=>pva
+      USE ATM_COM, ONLY: mv=>pva
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: mij
@@ -921,9 +928,10 @@ C
 !@sum ZSTEP determines the number of Z timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
-      USE DYNAMICS, ONLY: mw=>sda
+      USE ATM_COM, ONLY: mw=>sda
       IMPLICIT NONE
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: m
       REAL*8, dimension(lm) :: ml

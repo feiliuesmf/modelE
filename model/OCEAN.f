@@ -16,9 +16,10 @@
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE MODEL_COM, only : im,jm,lm,focean,fland,flice
-     *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
-     *     ,ItimeI,kocean,itocean,itoice
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only :
+     *      Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
+     *     ,ItimeI,kocean
       USE GEOM, only : axyp, imaxj
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
      *     ,lmi, Ei
@@ -29,9 +30,9 @@
       USE TRACER_COM, only: trsi0
 #endif
       USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr
+      USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr,focean,fland,flice
       USE DIAG_COM, only : aij=>aij_loc, jreg,ij_smfx,j_implh, j_implm,
-     *     j_imelt, j_hmelt, j_smelt, NREG, KAJ, ij_fwio
+     *     j_imelt, j_hmelt, j_smelt, NREG, KAJ, ij_fwio, itocean,itoice
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -677,7 +678,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       END MODULE STATIC_OCEAN
 
       SUBROUTINE ALLOC_OCEAN(grid)
-      USE MODEL_COM, only : im
+      USE RESOLUTION, only : im
       USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
      &                          DM,AOST,EOST1,EOST0,BOST,
      &                          COST,ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
@@ -731,7 +732,8 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean
      *     ,iyear1,ioreadnt,ioread,jmpery
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
@@ -741,7 +743,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FLUXES, only : gtracer
 #endif
       USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf,ogeoza
-     *     ,gtempr
+     *     ,gtempr,fland,flice,focean
       USE SEAICE, only : qsfix, osurf_tilt
       USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
@@ -895,10 +897,11 @@ C**** surface tilt term.
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
       USE CONSTANT, only : twopi,edpery,shw,rhows,tf
-      USE MODEL_COM, only : im,jm,kocean,focean,jday
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean,jday
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
-      USE FLUXES, only : gtemp,mlhc,fwsim,gtempr
+      USE FLUXES, only : gtemp,mlhc,fwsim,gtempr,focean
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -960,15 +963,16 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
       USE CONSTANT, only : rhows,shw,tf
-      USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : j_implm,j_implh,oa,jreg
+      USE DIAG_COM, only : j_implm,j_implh,oa,jreg,itocean,itoice
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
-     *     ,emelti,smelti,fwsim,gtempr,erunpsi
+     *     ,emelti,smelti,fwsim,gtempr,erunpsi,focean
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
@@ -1057,16 +1061,17 @@ C****
 !@auth Original Development Team
 !@calls OCEAN:OSOURC
       USE CONSTANT, only : rhows,shw,tf
-      USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
-     *     ,itoice
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean,jday,dtsrc
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa
+      USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa,itocean,itoice
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
      *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt,gtempr
+     &     ,focean
 #ifdef TRACERS_WATER
      *     ,dtrsi
       USE TRACER_COM, only: trsi0
@@ -1186,8 +1191,8 @@ C****
 !@sum  ADVSI_DIAG adjust diagnostics + mlhc for qflux
 !@auth Gavin Schmidt
       USE CONSTANT, only : shw,rhows
-      USE MODEL_COM, only : focean,im,jm,itocean,itoice,kocean,itime
-     *     ,jmon
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean,itime,jmon
       USE GEOM, only : axyp,imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE SEAICE, only : ace1i,lmi
@@ -1196,9 +1201,9 @@ C****
       USE SEAICE_COM, only : trsi, ntm
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx
 #endif
-      USE FLUXES, only : fwsim,msicnv,mlhc
+      USE FLUXES, only : fwsim,msicnv,mlhc,focean
       USE DIAG_COM, only : J_IMPLM,J_IMPLH,jreg,aij=>aij_loc,j_imelt
-     *     ,j_hmelt,j_smelt, ij_fwio, NREG,KAJ
+     *     ,j_hmelt,j_smelt, ij_fwio, NREG,KAJ,itocean,itoice
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
@@ -1310,11 +1315,13 @@ C****
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,iowrite,Itime,im,jm
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : ioread,iowrite,Itime
       USE DIAG_COM, only : ij_tgo2,aij=>aij_loc
       USE SEAICE_COM, only : rsi,msi,hsi,ssi
       USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, ONLY : AM_I_ROOT
       IMPLICIT NONE
 
@@ -1347,10 +1354,11 @@ C****
 !@sum tracer_ic_ocean initialise ocean tracer concentration
 !@+   called only when tracers turn on
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,focean,itime
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : itime
       USE GEOM, only : imaxj
       USE TRACER_COM, only : trw0,ntm,itime_tr0
-      USE FLUXES, only : gtracer
+      USE FLUXES, only : gtracer,focean
       USE DOMAIN_DECOMP_ATM, only : grid,get
       IMPLICIT NONE
       INTEGER i,j,n

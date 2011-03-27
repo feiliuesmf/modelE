@@ -5,10 +5,10 @@
 !@+    and sources.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 c
-      USE MODEL_COM, only  : im,jm,lm,psf,ptop,sig,sige,dsig,bydsig,
-     &                       dtsrc,Itime,ItimeI,T
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
-      USE DYNAMICS, only   : am, byam, PMID, PK
+      USE ATM_COM, only    : am, byam, PMID, PK
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
       USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa, ntm_terp
 
@@ -617,14 +617,13 @@ C**************  Not Latitude-Dependant ****************************
       CHARACTER*8, DIMENSION(nc)   :: ay
       
       END MODULE TRCHEM_Shindell_COM
-            
-      
+
       subroutine alloc_trchem_shindell_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
       use domain_decomp_atm, only : dist_grid, get
-      use model_com, only     : im,lm
+      use resolution, only     : im,lm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,

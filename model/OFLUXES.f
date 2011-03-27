@@ -4,7 +4,7 @@
 !@sum  OFLUXES contains the fluxes between various components
 !       that are going to be used on ocean grid
 !@auth Larissa Nazarenko
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       USE OCEANRES,  only : imo,jmo
 !      USE DOMAIN_DECOMP_1D, ONLY : grid
       USE OCEANR_DIM, only : grid=>ogrid

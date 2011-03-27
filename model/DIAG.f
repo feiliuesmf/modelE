@@ -43,7 +43,7 @@ C****
       MODULE DIAG_LOC
 !@sum DIAG_LOC is a local module for some saved diagnostic calculations
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 C**** Variables passed from DIAGA to DIAGB
@@ -66,7 +66,7 @@ C**** Some local constants
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP_ATM, only : GET
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
       USE DIAG_LOC, only  : W,TX
       IMPLICIT NONE
       LOGICAL, SAVE :: init=.false.
@@ -98,13 +98,16 @@ C**** Some local constants
 !@auth Original Development Team
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair   
-      USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
-     *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
-     *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
+      USE RESOLUTION, only : ls1,ptop,pmtop,psfmpt
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : idacc
+     *     ,mdyn,mdiag
+      USE ATM_COM, only : zatmo,WM,u,v,t,p,q,lm_req,req_fac_m
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj,
      &     lon2d_dg,byaxyp
       USE RAD_COM, only : rqt
-      USE DIAG_COM, only : ia_dga,jreg,
+      USE ATM_COM, only : pmidl00
+      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
      *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_t100,ij_q850,ij_q500
@@ -134,8 +137,9 @@ C**** Some local constants
       USE TRACER_COM, only: trm,mass2vol,n_CO,n_Ox,n_NOx
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
-      USE DYNAMICS, only : pk,pek,phi,pmid,pdsig,plij, SD,pedn,am
-     &     ,ua=>ualij,va=>valij,wcp
+      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,am
+     &     ,ua=>ualij,va=>valij
+      USE DYNAMICS, only : SD,wcp,sig,sige,dsig
       USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
@@ -796,8 +800,9 @@ c ajl(jl_dtdyn) will be incremented by +t after the dynamics, giving
 c the tendency.
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only: imaxj
-      USE DYNAMICS, only: pk, pdsig
-      use MODEL_COM, only: LM, t
+      USE ATM_COM, only: pk, pdsig
+      USE RESOLUTION, only : LM
+      use ATM_COM, only: t
       use DIAG_COM, only: jl_dtdyn
       implicit none
 
@@ -1027,7 +1032,9 @@ C****
 !@sum  conserv_MA calculates total atmospheric mass
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,p,pstrat
+      USE RESOLUTION, only : pstrat
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : p
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -1062,9 +1069,11 @@ C****
 !@sum  conserv_TPE calculates total atmospheric potential energy
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : sha,mb2kg
-      USE MODEL_COM, only : im,jm,lm,t,p,ptop,zatmo
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t,p,zatmo
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pk,pdsig
+      USE ATM_COM, only : pk,pdsig
       USE DOMAIN_DECOMP_ATM, only : GET,GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1101,9 +1110,10 @@ C****
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,wm,q
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : wm,q
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pdsig
+      USE ATM_COM, only : pdsig
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
 
@@ -1142,9 +1152,10 @@ C****
 !@sum  conserv_EWM calculates total atmospheric water energy
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg,shv,grav,lhe
-      USE MODEL_COM, only : im,jm,lm,wm,t,q,p
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : wm,t,q,p
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pdsig, pmid, pk
+      USE ATM_COM, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -1188,8 +1199,9 @@ C****
 C****
 C**** THIS ROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
-      USE MODEL_COM, only : im,istrat,IDACC
-      USE DIAG_COM, only : energy,speca,ned
+      USE RESOLUTION, only : im
+      USE MODEL_COM, only : IDACC
+      USE DIAG_COM, only : energy,speca,ned,istrat
       IMPLICIT NONE
 
       INTEGER :: I,IDACC5,N,NM
@@ -1228,7 +1240,8 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: get,grid,am_i_root
-      USE MODEL_COM, only : im,jm,lm,itime,itime0,nday,iyear1,jyear
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime,itime0,nday,iyear1,jyear
      &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM,lrunid
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
@@ -1673,7 +1686,9 @@ c get_subdd
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
      *     ,lhe,rhow,undef,stbo,bysha
-      USE MODEL_COM, only : lm,p,ptop,zatmo,u,v,focean,flice,t,q
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : p,zatmo,u,v,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
 #ifdef ttc_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -1696,7 +1711,7 @@ c get_subdd
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
-      USE DYNAMICS, only : ptropo,am,byam,wsave,pk,phi,pmid
+      USE ATM_COM, only : ptropo,am,byam,wsave,pk,phi,pmid
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,pedn
 #endif
@@ -1704,7 +1719,7 @@ c get_subdd
      *     ,TTROPO
 #endif
       USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
-     *     ,gtemp,gtempr
+     *     ,gtemp,gtempr,focean,flice
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
      *     ,l1Ox_acc,l1NO2_acc,save_NO2column
@@ -3843,7 +3858,8 @@ c****
 #ifdef etc_subdd
       USE RESOLUTION, only : PLbot
 #endif
-      USE MODEL_COM, only : jm,lm,p,ptop,u,v
+      USE RESOLUTION, only : jm,lm,ptop
+      USE ATM_COM, only : p,u,v
       USE GEOM, only : imaxj
 #if (defined etc_subdd) || (defined ttc_subdd)
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -3853,7 +3869,7 @@ c****
       USE CLOUDS_COM, only : cldss,cldmc,CLWC3D,CIWC3D
      *              ,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
-      USE DYNAMICS, only : pedn,pmid
+      USE ATM_COM, only : pedn,pmid
 #ifdef etc_subdd
      *     ,TTROPO,wsave
 #endif
@@ -4126,7 +4142,8 @@ C**** large-scale conden(L),deep conv(E),shallow conv(S) at fixed pressure level
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp_1d, only : grid,get,writei_parallel,
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : get,writei_parallel,
      &     hasSouthPole, hasNorthPole
 
       implicit none
@@ -4963,12 +4980,14 @@ c write physical variable
 !@sum ahourly saves instantaneous variables at sub-daily frequency
 !@+   for diurnal cycle diagnostics
 !@auth Reha Cakmur/Jan Perlwitz
-
-      USE MODEL_COM, only : u,v,t,p,q,jdate,jhour,ptop,sig
+      USE RESOLUTION, only : ptop
+      USE MODEL_COM, only : jdate,jhour
+      USE ATM_COM, only : u,v,t,p,q
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,get,globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE DYNAMICS, only : phi,wsave,pek,byam
+      USE ATM_COM, only : phi,wsave,pek,byam
+      USE DYNAMICS, only : sig
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
@@ -5101,7 +5120,7 @@ c**** read in the MSU weights file
       subroutine diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
 !@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
 !@auth Reto A Ruedy (input file created by Makiko Sato)
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
@@ -5131,18 +5150,25 @@ c**** find MSU channel 2,3,4 temperatures
       return
       end subroutine diag_msu
 
-      SUBROUTINE init_DIAG(postProc,num_acc_files)
+      SUBROUTINE init_DIAG
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
       USE CONSTANT, only : sday,kapa,undef
-      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
+      USE RESOLUTION, only : pmtop
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only : Itime,ItimeI,Itime0,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
-     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
-     *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
+     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
+     *     ,nmonav,ItimeE,lrunid
+      USE ATM_COM, only : lm_req
+      USE DYNAMICS, only : nfiltr
+      USE FLUXES, only : focean
       USE GEOM, only : axyp,imaxj,lon2d_dg,lat2d_dg
       USE GEOM, only : lonlat_to_ij
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
+      USE ATM_COM, only : pednl00,pmidl00
+      USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
       USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
       USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
@@ -5154,6 +5180,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
+      USE DIAG_COM, only : ndasf,nda4,nda5s,nda5k,nda5d,ndaa,modd5k
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
      &     ,consrv_loc
 #ifndef NO_HDIURN
@@ -5163,14 +5190,15 @@ c**** find MSU channel 2,3,4 temperatures
 #ifdef TES_LIKE_DIAGS
       USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
 #endif
+      USE DIAG_COM, only : iu_vflxo,koa
       USE DIAG_LOC
       USE Dictionary_mod
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
+      USE SUBDAILY, only : init_subdd
       IMPLICIT NONE
-      logical :: postProc ; integer :: num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
      *     ,jday0,jday,moff,kb,l850,l300,l50
       REAL*8 PLE_tmp
@@ -5200,11 +5228,21 @@ c a parallelized i/o routine that understands it
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     area_part
+      CHARACTER aDATE*14
+
+      MODD5K=1000
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+      call sync_param( "Kvflxo", Kvflxo ) !!
+      call sync_param( "NDASF", NDASF )
+      call sync_param( "NDA4", NDA4 ) !!
+      call sync_param( "NDA5S", NDA5S ) !!
+      call sync_param( "NDA5K", NDA5K ) !!
+      call sync_param( "NDA5D", NDA5D ) !!
+      call sync_param( "NDAA", NDAA ) !!
 
 C****   READ SPECIAL REGIONS
 #ifndef ASCII_REGIONS
@@ -5331,51 +5369,6 @@ c if people still want to specify dd points as ij, let them
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)
-
-      IF(postProc) THEN  ! initialize for post-processing
-        call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
-     *       ,amon0)
-        call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
-     *       ,amon)
-        months=1 ; years=monacc(jmon0) ; mswitch=0 ; moff=0 ; kb=jmon0
-        do kl=jmon0+1,jmon0+11
-          k = kl
-          if (k.gt.12) k=k-12
-          if (monacc(k).eq.years) then
-            months=months+1
-          else if (monacc(k).ne.0) then
-C****            write(6,*) 'uneven period:',monacc
-            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
-     &                          "('uneven period:',12I5)")
-            call stop_model( 'uneven period', 255 )
-          end if
-          if(monacc(k).ne.monacc(kb)) mswitch = mswitch+1
-          if(mswitch.eq.2) moff = moff+1
-          kb = k
-        end do
-        if (mswitch.gt.2) then
-C****          write(6,*) 'non-consecutive period:',monacc
-            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
-     &                          "('non-consecutive period:',12I5)")
-          call stop_model( 'non-consecutive period', 255 )
-        end if
-        call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
-        if (num_acc_files.gt.1) then  ! save the summed acc-file
-          write(out_line,*) num_acc_files,' files are summed up'
-          CALL WRITE_PARALLEL(TRIM(out_line), UNIT=6)
-          keyct=1 ; KEYNR=0
-          XLABEL(128:132)='     '
-          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-C****          write(6,*) XLABEL
-          CALL WRITE_PARALLEL(XLABEL, UNIT=6)
-          filenm=acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
-          call io_rsf (filenm,Itime,iowrite_single,ioerr)
-        end if
-        ItimeE = -1
-        close (6)
-        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LRUNID)//'.PRT',
-     *       FORM='FORMATTED')
-      END IF
 
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
@@ -5568,7 +5561,7 @@ c**** Initialize acc-array names, units, idacc-indices
       call def_acc
 
 C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (Itime.le.ItimeI .and. .not.postProc) THEN
+      IF (Itime.le.ItimeI) THEN
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
         CALL reset_DIAG(0)
@@ -5610,6 +5603,21 @@ c read MSU weighting functions for diagnostics
 c
       call read_msu_wts
 
+C**** NEED TO GET aDATE IN A SAFER WAY
+      write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+
+C****
+C**** Open and position output history files if needed
+C****
+      if (Kvflxo.ne.0) then
+        call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+        call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
+      end if
+
+C**** Initiallise file for sub-daily diagnostics, controlled by space-
+C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
+      call init_subdd(aDATE)
+
       RETURN
       END SUBROUTINE init_DIAG
 
@@ -5617,8 +5625,9 @@ c
       SUBROUTINE reset_DIAG(isum)
 !@sum  reset_DIAG resets/initializes diagnostics
 !@auth Original Development Team
-      USE MODEL_COM, only : Itime,iyear1,nday,kradia,
-     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
+      USE MODEL_COM, only : Itime,iyear1,nday,
+     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
+      USE ATM_COM, only : kradia,u
       USE DIAG_COM
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
@@ -5670,8 +5679,13 @@ c
       SUBROUTINE daily_DIAG
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
+      USE FILEMANAGER
       USE CONSTANT, only : undef
-      USE MODEL_COM, only : im,jm,jday,focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : jday,JDendOfM,aMON
+     &     ,JMperY,Jmon,Jmon0,Jyear,Jyear0,NMONAV
+      USE ATM_COM, only : kradia,iu_rad
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
@@ -5679,11 +5693,15 @@ c
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
+      USE DIAG_COM, only : kvflxo,iu_VFLXO
+      USE SUBDAILY, only : reset_subdd
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       IMPLICIT NONE
+      character(len=16) :: aDate
+      integer :: months
       INTEGER I,J
       INTEGER :: J_0, J_1, I_0,I_1
 
@@ -5779,6 +5797,29 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 #ifdef TRACERS_ON
       ttausv_count=0.d0
 #endif
+
+
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
+      if ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
+        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+        if (Kradia.ne.0 .and. Kradia<10) then
+          if (Kradia.gt.0) aDATE(4:7)='    '
+          call closeunit( iu_RAD )
+          call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+        end if
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
+        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+        if ( months.ge.NMONAV ) then
+          call reset_DIAG(0)
+          if (Kvflxo.ne.0) then
+            call closeunit( iu_VFLXO )
+            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+          end if
+C**** reset sub-daily diag files
+          call reset_subdd(aDATE)
+        end if                  !  beginning of acc.period
+      end if                    !  beginning of month
+
       END SUBROUTINE daily_DIAG
 
 
@@ -5787,7 +5828,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 !@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
       USE CONSTANT, only : sday
-      USE MODEL_COM, only : dtsrc,nfiltr
+      USE DYNAMICS, only : nfiltr
+      USE MODEL_COM, only : dtsrc
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_inst
      *     ,name_consrv,lname_consrv,units_consrv
@@ -5896,13 +5938,15 @@ C****
       SUBROUTINE UPDTYPE
 !@sum UPDTYPE updates FTYPE array to ensure correct budget diagnostics
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,focean,flice,itocean
-     *     ,itoice,itlandi,itearth,itlake,itlkice,ftype
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean,flice
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DIAG_COM, only :
+     &     ftype,itocean,itoice,itlandi,itearth,itlake,itlkice
       IMPLICIT NONE
       INTEGER I,J
       INTEGER :: J_0,J_1,I_0,I_1
@@ -5933,8 +5977,11 @@ C****
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID,SUMXPE,AM_I_ROOT
       USE Domain_decomp_1d, only: hasSouthPole, hasNorthPole
-      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop,
-     &     im,jm
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : idacc
+      USE ATM_COM, only : zatmo
+      USE RESOLUTION, only : pmtop
+      USE FLUXES, only : fearth0,flice,focean
       USE GEOM, only : imaxj,axyp,lat2d,areag
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
      &     kaij,hemis_ij,jgrid_ij,
@@ -6117,9 +6164,9 @@ c
       SUBROUTINE DIAGJ_PREP
       USE DOMAIN_DECOMP_ATM, ONLY : AM_I_ROOT
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : dtsrc,idacc,ntype
+      USE MODEL_COM, only : dtsrc,idacc
       USE DIAG_COM, only : jm_budg,
-     &     aj,ntype_out,wt=>wtj_comp,aj_out,areg,areg_out,
+     &     aj,ntype_out,ntype,wt=>wtj_comp,aj_out,areg,areg_out,
      &     nreg,kaj,j_albp0,j_srincp0,j_albg,j_srincg,
      &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
@@ -6223,7 +6270,9 @@ c
       END SUBROUTINE DIAGJ_PREP
 
       subroutine diagjl_prep
-      use model_com, only : lm,lm_req,do_gwdrag
+      use resolution, only : lm
+      use atm_com, only : lm_req
+      use dynamics, only : do_gwdrag
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
      &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool,

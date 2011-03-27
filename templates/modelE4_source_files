@@ -1,6 +1,7 @@
-MODEL_COM                           ! model variables 
+MODEL_COM                           ! calendar, timing variables
 MODELE                              ! ModelE cap - initialization and main loop
-ALLOC_DRV                           ! domain decomposition, allocate global distributed arrays
+ATM_COM                             ! main atmospheric variables
+ATM_DRV                             ! driver for atmosphere-grid components
 ATMDYN_COM                          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF                      ! T/Q moments, 1D QUS
@@ -19,3 +20,4 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC                ! diagnostics
+OCN_DRV                             ! driver for ocean-grid components

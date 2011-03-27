@@ -14,9 +14,10 @@
 !@var call_diag logical variable whether dout is called
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
-      USE MODEL_COM, only :
-     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
-     *     ,pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : psf,pmtop
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
       USE SCMCOM, only : iu_scm_prt
@@ -24,7 +25,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,pmid
+      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am,pmid
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
@@ -644,7 +645,7 @@ c
       !
       USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE ATM_COM, only : pmid,pk,pedn
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
       implicit none
@@ -747,7 +748,7 @@ C****
 !@var i/j horizontal location at which the output is written
 !@var n number of vertical main layers
 
-      USE DYNAMICS, only : pmid,pedn,pk,pek
+      USE ATM_COM, only : pmid,pedn,pk,pek
       USE SOCPBL, only : rimax
 
       implicit none

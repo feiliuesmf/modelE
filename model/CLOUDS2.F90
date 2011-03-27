@@ -10,10 +10,12 @@ module CLOUDS
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
   use CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6 &
        ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
-  use MODEL_COM, only : lm,dtsrc,itime
+  use RESOLUTION, only : lm
+  use MODEL_COM, only : dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use MODEL_COM, only : ptop,psf,ls1,sig,sige
+  use RESOLUTION, only : ptop,psf,ls1
+  use DYNAMICS, only : sig,sige
 #endif
 #ifdef SCM
   use MODEL_COM, only: I_TARG,J_TARG
@@ -5634,7 +5636,8 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
   ! *****************************COPYRIGHT*******************************
   use CONSTANT, only : wtmair=>mair,Navo=>avog,bygrav,bymrat
   use RANDOM, only : randu
-  use MODEL_COM, only : nlev=>lm,qcheck
+  use RESOLUTION, only : nlev=>lm
+  use MODEL_COM, only : qcheck
   use CLOUDS, only : tautab,invtau
   use CLOUDS_COM, only : ncol
   implicit none

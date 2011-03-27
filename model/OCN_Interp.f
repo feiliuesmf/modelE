@@ -1084,7 +1084,7 @@ C**** surface tracer concentration
 #ifndef CUBED_SPHERE
        Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
       use ocean, only : remap_A2O
       USE ArrayBundle_mod
@@ -1801,6 +1801,7 @@ c*
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
       USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
      *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
@@ -1862,8 +1863,6 @@ c*
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
-
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
@@ -2155,7 +2154,7 @@ c*
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON
@@ -2337,7 +2336,7 @@ c*
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON

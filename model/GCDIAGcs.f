@@ -582,11 +582,14 @@ c empty for now
 !@+   This version is for a cubed sphere grid.
 !@auth M. Kelley
       use constant, only : sha,tf,teeny,rgas
-      use model_com, only : dtsrc,mdiag,ls1,lm,sige,ptop,t,p,q
+      use resolution, only : lm
+      use resolution, only : ls1,ptop
+      use model_com, only : dtsrc,mdiag
       use geom, only : byaxyp
       use gcdiag
       use diag_com, only : agc=>agc_loc,speca,nspher,klayer,ple
-      use dynamics, only : phi,sda,pit,ualij,valij
+      use atm_com, only : t,p,q,phi,sda,ualij,valij
+      use dynamics, only : pit,sige
       use diag_loc, only : tx
       use domain_decomp_atm, only : get, grid_cs=>grid, am_i_root,
      &     sumxpe, halo_update
@@ -1089,13 +1092,15 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       use constant, only : sha
-      use model_com, only : lm,dsig,idacc,mdiag,
-     &     p,ptop,sig,t,zatmo
+      use resolution, only : lm
+      use resolution, only : ptop
+      use model_com, only : idacc,mdiag
       use geom, only : areag,axyp,lat2d
       use diag_com, only : speca,atpe,nspher,kspeca,klayer
 c      use diag_com, only : ajl=>ajl_loc,jl_ape
       use diag_loc, only : lupa,ldna
-      use dynamics, only : ualij,valij,pk,pdsig,sqrtp
+      use atm_com, only : p,t,zatmo,ualij,valij,pk,pdsig,sqrtp
+      use dynamics, only : dsig,sig
       use domain_decomp_atm, only : grid_cs=>grid,am_i_root,sumxpe,
      &     esmf_bcast,halo_update
       use gcdiag
@@ -1373,8 +1378,9 @@ c**** this routine accumulates a time sequence for selected
 c**** quantities and from that prints a table of wave frequencies.
 c****
       use constant, only : bygrav
-      use model_com, only : lm,idacc,mdiag,p
-      use dynamics, only : ualij,valij,phi
+      use resolution, only : lm
+      use model_com, only : idacc,mdiag
+      use atm_com, only : p,ualij,valij,phi
       use diag_com, only : nwav_dag,wave,max12hr_sequ
      &     ,kwp,re_and_im,ia_12hr
       use diag_loc, only : ldex
@@ -1496,9 +1502,10 @@ c
       end subroutine diag7a
 
       subroutine diaggc_prep
-      use model_com, only : lm,idacc,kep
+      use resolution, only : lm
+      use model_com, only : idacc
       use domain_decomp_atm, only : am_i_root
-      use diag_com, only : kagc,hemis_gc,vmean_gc,ia_dga,
+      use diag_com, only : kep,kagc,hemis_gc,vmean_gc,ia_dga,
      &     agc_in=>agc, agc=>agc_out
       use gcdiag
       implicit none

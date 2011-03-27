@@ -65,8 +65,6 @@ MODULE dist_grid_mod
 !@+   routine components
    PUBLIC :: DIST_GRID
    public :: setMpiCommunicator
-!@var  grid Default decomposition; globally accessible for convenience.
-   PUBLIC :: grid
 !@var INIT_APP set some parameters and initialize ESMF
    PUBLIC :: INIT_APP
    PUBLIC :: INIT_GRID
@@ -141,6 +139,7 @@ MODULE dist_grid_mod
       MODULE PROCEDURE ESMF_BCAST_3D
       MODULE PROCEDURE ESMF_BCAST_4D
       MODULE PROCEDURE ESMF_IBCAST_0D
+      MODULE PROCEDURE ESMF_IBCAST_0D_WORLD
       MODULE PROCEDURE ESMF_IBCAST_1D
       MODULE PROCEDURE ESMF_IBCAST_2D
       MODULE PROCEDURE ESMF_IBCAST_3D
@@ -224,8 +223,6 @@ MODULE dist_grid_mod
       
    END TYPE DIST_GRID
 #endif
-   type (DIST_GRID) :: GRID
-!not used      TYPE (DIST_GRID) :: GRID_TRANS
 
    public :: haveLatitude
 
@@ -1595,6 +1592,18 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_0D
+
+! ----------------------------------------------------------------------
+      SUBROUTINE ESMF_IBCAST_0D_WORLD(arr)
+! ----------------------------------------------------------------------
+      IMPLICIT NONE
+      Integer, Intent(InOut) :: arr
+      INTEGER :: ierr
+#ifdef USE_MPI
+      Call MPI_BCAST(arr,1,MPI_INTEGER,root, &
+    &     MPI_COMM_WORLD, ierr)
+#endif
+      END SUBROUTINE ESMF_IBCAST_0D_WORLD
 
 ! ----------------------------------------------------------------------
       SUBROUTINE ESMF_IBCAST_1D(distGrid, arr)

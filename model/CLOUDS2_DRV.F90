@@ -3,13 +3,13 @@
 subroutine CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver   1.0 (taken from CB265)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
   use CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx &
        ,teeny,sday,undef,bysha
-  use MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR &
-       ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate &
-       ,ntype,itime,focean,fland,flice,jyear,jmon
+  use RESOLUTION, only : ls1,psf,ptop
+  use RESOLUTION, only : im,jm,lm
+  use ATM_COM, only : p,u,v,t,q,wm
+  use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
 #ifdef SCM
   use MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
 #endif
@@ -49,7 +49,7 @@ subroutine CONDSE
   use CLOUDS_COM, only : TMCDRY,SMCDRY,DMCDRY,LSCDRY
 #endif
 
-  use DIAG_COM, only : aij=>aij_loc, &
+  use DIAG_COM, only : ftype,ntype,aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
        ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
        ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc, &
@@ -189,13 +189,13 @@ subroutine CONDSE
 #endif
   use PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm &
        ,w2gcm
-  use DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda &
-       ,ltropo,wcpsig &
-       ,ua=>ualij,va=>valij
+  use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda, &
+       ua=>ualij,va=>valij,ltropo
+  use DYNAMICS, only : wcpsig,dsig,sig,bydsig
   use SEAICE_COM, only : rsi
   use GHY_COM, only : snoage,fearth
   use LAKES_COM, only : flake
-  use FLUXES, only : prec,eprec,precss,gtempr
+  use FLUXES, only : prec,eprec,precss,gtempr,focean,fland,flice
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec 
 #else
@@ -1774,11 +1774,14 @@ subroutine CONDSE
   return
 end subroutine CONDSE
 
-subroutine init_CLD
+subroutine init_CLD(istart)
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
   use CONSTANT, only : grav,by3,radian
-  use MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
+  use RESOLUTION, only : ls1,plbot
+  use RESOLUTION, only : jm,lm
+  use MODEL_COM, only : dtsrc
+  USE ATM_COM, only : t,q ! for coldstart istart=2 case
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
   use GEOM, only : lat2d, kmaxj
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
@@ -1791,17 +1794,31 @@ subroutine init_CLD
        ,entrainment_cont1,entrainment_cont2,wmui_multiplier &
        ,RA,UM,VM,UM1,VM1,U_0,V_0
   use CLOUDS_COM, only : llow,lmid,lhi &
-       ,isccp_reg2d,UKM,VKM
+       ,isccp_reg2d,UKM,VKM,ttold,qtold
   use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
+  use ATM_COM, only : pednl00 ! use plbot instead of pednl00
   use Dictionary_Mod
   use FILEMANAGER, only : openunit, closeunit
-
+#ifdef BLK_2MOM
+  use resolution, only : im
+  USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
+#ifdef TRACERS_AMP
+  USE AERO_CONFIG, ONLY: NMODES
+#endif
+#endif
   implicit none
+  integer, intent(in) :: istart
   real*8 PLE
   integer L,I,J,n,iu_ISCCP
   integer :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
   character TITLE*80
+#ifdef BLK_2MOM
+  LOGICAL      :: ldummy=.false.
+  INTEGER      :: il0,jl0,kl0,nm0
+  CHARACTER*20 :: bname='kuku.txt'
+  CHARACTER*15 :: sname='MODELE_mainV3: '
+#endif
 
   I_0 =GRID%I_STRT
   I_1 =GRID%I_STOP
@@ -1811,6 +1828,38 @@ subroutine init_CLD
   I_1H =GRID%I_STOP_HALO
   J_0H =GRID%J_STRT_HALO
   J_1H =GRID%J_STOP_HALO
+
+#ifdef BLK_2MOM
+! initialize microphysics
+!        print *,sname,'im        = ',im
+!        print *,sname,'jm        = ',jm
+!        print *,sname,'lm        = ',lm
+!        print *,sname,'dtsrc        = ',dtsrc
+  kl0=12;il0=im;jl0=jm ;il0=1;jl0=1;kl0=1
+  nm0 = 1 ! or whatever, put a correct value here
+#ifdef TRACERS_AMP
+  nm0=NMODES
+#endif
+!        print *,sname,'il0       = ',il0
+!        print *,sname,'jl0       = ',jl0
+!        print *,sname,'kl0       = ',kl0
+!        print *,sname,'nm0       = ',nm0
+  ldummy = init_bulk2m_driver(dtsrc,il0,jl0,kl0,nm0,bname)
+  if(ldummy) then
+    print *,sname,'BLK Initialization is completed...'
+  else
+    call stop_model("BLK Initialization is not completed: ",255)
+  endif
+!        print *,sname,'Before:istart,ifile = ',istart,ifile
+!        print *,sname,'Before:im,jm        = ',im,jm
+#endif
+
+  if(istart==2) then ! replace with cold vs warm start logic
+    do l=1,lm
+      ttold(l,:,:)=t(:,:,l)
+      qtold(l,:,:)=q(:,:,l)
+    end do
+  endif
 
   !
   ! allocate space for the varying number of staggered
@@ -1910,8 +1959,10 @@ subroutine qmom_topo_adjustments
   ! topographic slopes to prevent large supersaturations in upslope flow.
   !
   use constant, only : tf,lhe,lhs,bysha
-  use model_com, only : im,jm,lm,ls1,zatmo,t,q
-  use dynamics, only : pua,pva,pk,pmid
+  use resolution, only : ls1
+  use resolution, only : im,jm,lm
+  use atm_com, only : zatmo,t,q
+  use atm_com, only : pua,pva,pk,pmid
   use qusdef, only : mx,mxx,my,myy
   use somtq_com, only : tmom,qmom
   use domain_decomp_atm, only : grid,get,halo_update

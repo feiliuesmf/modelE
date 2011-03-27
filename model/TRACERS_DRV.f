@@ -18,9 +18,11 @@
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
+      USE RESOLUTION, only : jm,lm
+      USE MODEL_COM, only: dtsrc,itime
+      USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
-      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -90,6 +92,10 @@
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
       USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
+      USE AERO_COAG, only : SETUP_KIJ
+      USE AERO_SETUP
+      USE AERO_NPF, only: SETUP_NPFMASS
+      USE AERO_DIAM, only: SETUP_DIAM
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
@@ -173,6 +179,15 @@
       integer :: val
 
       INTEGER J_0, J_1, I_0, I_1
+
+C****
+C**** Set some documentary parameters in the database
+C****
+      call set_param("NTM",NTM,'o')
+      call set_param("TRNAME",TRNAME,ntm,'o')
+
+      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -2361,6 +2376,21 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call sync_param("atmCO2",atmCO2)
 #endif
 
+#ifdef TRACERS_AMP
+      CALL SETUP_CONFIG
+      CALL SETUP_SPECIES_MAPS
+      CALL SETUP_DP0
+      CALL SETUP_AERO_MASS_MAP
+      CALL SETUP_COAG_TENSORS
+      CALL SETUP_DP0
+      CALL SETUP_KIJ
+      CALL SETUP_EMIS
+      CALL SETUP_KCI
+      CALL SETUP_NPFMASS
+      CALL SETUP_DIAM
+      CALL SETUP_RAD
+#endif
+
       return
       end subroutine init_tracer
 
@@ -3381,7 +3411,7 @@ c     Processes AMP Budget
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,byim
+      USE MODEL_COM, only: dtsrc
       USE TRACER_COM
       USE DIAG_COM
 #ifdef TRACERS_ON
@@ -8492,12 +8522,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
-      USE resolution,ONLY : Im,Jm,Lm,Ls1
-      USE MODEL_COM, only: itime,jday,dtsrc,ptop,q,wm,flice,jyear,
-     & PMIDL00, itimeI
-#ifdef TRACERS_WATER
-     &     ,focean
-#endif
+      USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
+      USE ATM_COM, only : q,wm
+      USE MODEL_COM, only: itime,jday,dtsrc,jyear,itimeI
+      USE ATM_COM, only: pmidl00
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
@@ -8515,10 +8543,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
-      USE FLUXES, only : gtracer
+      USE FLUXES, only : gtracer,flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
-      USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -9561,15 +9589,17 @@ c **** reads in files for dust/mineral tracers
 !@+     tracers that 'turn on' on different dates.
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
-      USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
-     $     ,flake0,jyear,p,t,lm
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : p,t
+      USE MODEL_COM, only:jmon,jday,itime,jyear
+      USE FLUXES, only : fearth0,focean,flake0
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
-      USE TRACER_COM, only: daily_z
+      USE TRACER_COM, only: coupled_chem,daily_z
       USE CONSTANT, only: grav
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
@@ -9583,12 +9613,12 @@ C**** Note this routine must always exist (but can be a dummy routine)
      * ,n_M_BOC_OC
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE resolution,ONLY : lm
+      USE resolution,ONLY : lm,psf
       USE GEOM, only: axyp
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: trm,vol2mass,trmom,n_CO2n
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
-      USE MODEL_COM, only : nday,nstep=>itime,psf
+      USE MODEL_COM, only : nday,nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
@@ -9942,16 +9972,17 @@ C**** at the start of any day
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon,nday,flice,focean,im,jm
+      USE RESOLUTION, only : pmtop,psf
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,jmon,nday
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
      *   ,globalmax
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE FLUXES, only: trsource
+      USE FLUXES, only: trsource,fland,flice,focean
       USE SEAICE_COM, only: rsi
       USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
@@ -10611,8 +10642,8 @@ c latlon grid
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
-      USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
-      use dynamics, only: phi
+      USE ATM_COM, only: am,byam ! Air mass of each box (kg/m^2)
+      use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
@@ -10633,7 +10664,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      *     ,BBinc,om2oc
 
 c Laki emissions
-c     USE DYNAMICS, only: LTROPO
+c     USE ATM_COM, only: LTROPO
 c     USE CONSTANT, only: sday
 c     USE MODEL_COM, only: jday,jyear
 c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
@@ -11995,9 +12026,11 @@ C**** no fractionation for ice evap
 !@sum  GET_SULF_GAS_RATES calculation of rate coefficients for
 !@+    gas phase sulfur oxidation chemistry
 !@auth Bell
-      USE MODEL_COM, only: im,jm,lm,t,ls1
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only: t
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
-      USE DYNAMICS, only: pmid,am,pk,LTROPO
+      USE ATM_COM, only: pmid,am,pk,LTROPO
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
 #ifdef TRACERS_SPECIAL_Shindell

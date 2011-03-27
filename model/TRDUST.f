@@ -5,7 +5,8 @@
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE model_com,ONLY : dtsrc,nisurf
+      USE model_com,ONLY : dtsrc
+      use fluxes, only : nisurf
       USE socpbl,ONLY : t_pbl_args
       USE tracers_dust,ONLY : imDust,lim,ljm,lkm,table,x1,x2,x3
 
@@ -720,12 +721,11 @@ c****
     (defined TRACERS_QUARZHEM)
       USE constant,ONLY : Grav
       USE resolution,ONLY : Jm,Lm
-      USE model_com,ONLY : zatmo
+      USE atm_com,ONLY : zatmo,gz
       USE fluxes,ONLY : prec
       USE clouds,ONLY : tm_dust,tmom_dust,trprc_dust
       USE tracer_com,ONLY : Ntm_dust,trname
       USE tracers_dust,ONLY : prelay
-      USE dynamics,ONLY : gz
 
       IMPLICIT NONE
 

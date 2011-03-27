@@ -251,7 +251,7 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  2010/10/13
 !@cont io_landice
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -323,7 +323,8 @@ C**** CALCULATE TG2
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, ESMF_BCAST,
      *     BACKSPACE_PARALLEL
@@ -460,6 +461,19 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 
 
 #ifdef NEW_IO
+      subroutine read_landice_ic
+!@sum   read_landice_ic read land ice initial conditions file.
+      use model_com, only : ioread
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_landice(fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_landice_ic
+
       subroutine def_rsf_landice(fid)
 !@sum  def_rsf_landice defines landice array structure in restart files
 !@auth M. Kelley

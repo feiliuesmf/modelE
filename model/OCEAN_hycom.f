@@ -737,7 +737,7 @@ c
 C****
       contains
       subroutine alloc_atm_globals
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       use FLUXES, only: NSTYPE
       if(am_i_root()) then
         ALLOCATE( SSS( im, jm ) )
@@ -760,7 +760,7 @@ C****
       endif
       end subroutine dealloc_atm_globals
       subroutine gather_atm_before_checkpoint
-      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID
       use hycom_atm
       call pack_data( grid,  ASST_loc, ASST )
       call pack_data( grid,  ATEMPR_loc, ATEMPR )
@@ -774,7 +774,7 @@ C****
       end subroutine gather_atm_before_checkpoint
 
       subroutine scatter_atm_after_checkpoint
-      USE DOMAIN_DECOMP_1D, ONLY: GRID
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID
       use hycom_atm
       call unpack_data( grid,  ASST, ASST_loc )
       call unpack_data( grid,  ATEMPR, ATEMPR_loc )
@@ -1123,7 +1123,8 @@ c
 !!      USE MODEL_COM, only : im,jm
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
-      USE DOMAIN_DECOMP_1D, only: grid,pack_block,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: pack_block,AM_I_ROOT
 c      USE HYCOM_ATM, only : gtemp,gtemp_loc
       IMPLICIT NONE
       integer i,j

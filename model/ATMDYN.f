@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
 
       module ATMDYN
+      use geom, only : imh,fim,byim
       implicit none
       private
 
@@ -18,8 +19,60 @@ C**** Variables used in DIAG5 calculations
       contains
 
       SUBROUTINE init_ATMDYN
-      use domain_decomp_1d, only : grid
-      use model_com, only : imh,lm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use domain_decomp_1d, only : am_i_root
+      use resolution, only : lm
+      use model_com, only : dtsrc
+      use dynamics
+      use Dictionary_mod
+
+      call get_param( "DT", DT )
+C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
+      NIdyn = 2*nint(.5*dtsrc/dt)
+      if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
+        if (AM_I_ROOT())
+     *       write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
+        call stop_model('INPUT: DT inappropriately set',255)
+      end if
+      DT = DTsrc/NIdyn
+      call set_param( "DT", DT, 'o' )         ! copy DT into DB
+
+      call sync_param( "NFILTR", NFILTR ) !!
+      call sync_param( "DT_XVfilter", DT_XVfilter )
+      call sync_param( "DT_XUfilter", DT_XUfilter )
+      call sync_param( "DT_YVfilter", DT_YVfilter )
+      call sync_param( "DT_YUfilter", DT_YUfilter )
+      call sync_param( "MFILTR", MFILTR )
+      call sync_param( "do_polefix", do_polefix )
+C**** Determine if FLTRUV is called.
+      QUVfilter = .false.
+      if (DT_XUfilter>0. .or. DT_XVfilter>0. .or.
+     *    DT_YUfilter>0. .or. DT_YVfilter>0.)  QUVfilter = .true.
+      if (QUVfilter) then
+         if (DT_XUfilter > 0. .and. DT_XUfilter < DT) then
+             DT_XUfilter = DT
+             WRITE(6,*) "DT_XUfilter too small; reset to :",DT_XUfilter
+         end if
+         if (DT_XVfilter > 0. .and. DT_XVfilter < DT) then
+             DT_XVfilter = DT
+             WRITE(6,*) "DT_XVfilter too small; reset to :",DT_XVfilter
+         end if
+         if (DT_YUfilter > 0. .and. DT_YUfilter < DT) then
+             DT_YUfilter = DT
+             WRITE(6,*) "DT_YUfilter too small; reset to :",DT_YUfilter
+         end if
+         if (DT_YVfilter > 0. .and. DT_YVfilter < DT) then
+             DT_YVfilter = DT
+             WRITE(6,*) "DT_YVfilter too small; reset to :",DT_YVfilter
+         end if
+      end if
+c Warn if polar fixes requested for a model not having a half polar box
+c     if(do_polefix.eq.1 .and. jm.ne.46) then
+c        do_polefix = 0
+c        write(6,*) 'Polar fixes are currently applicable only to'//
+c    &           'models having a half polar box; no fixes applied'
+c     endif
+
       CALL AVRX
       ALLOCATE( FCUVA(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2),
      &          FCUVB(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2))
@@ -30,15 +83,20 @@ C**** Variables used in DIAG5 calculations
 !@sum  DYNAM Integrate dynamic terms
 !@auth Original development team
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
-      USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,ls1,byim,QUVfilter,DTsrc,USE_UNR_DRAG
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : DTsrc
+      USE ATM_COM, only : u,v,t,p,q,wm
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
-      USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
+      USE ATM_COM, only : ptold,phi
      &    ,pua,pva,sda,ps,mb,pk,pmid,pedn
-     &    ,cos_limit
+      USE DYNAMICS, only : pu,pv,sd,dut,dvt
+     &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+     &     ,MODD5K,NDA5K,NDAA
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -240,8 +298,9 @@ c apply north-south filter to U and V once per physics timestep
       END SUBROUTINE DYNAM
 
       Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
-      use MODEL_COM, only: IM, LM
-      use DOMAIN_DECOMP_1D, only: grid, halo_update, SOUTH, get
+      use RESOLUTION, only: IM, LM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only: halo_update, SOUTH, get
       use DIAG_COM, only: AIJ => AIJ_loc, IJ_FGZU, IJ_FGZV
 
       real*8, intent(inout) :: PHI(:,grid%J_STRT_HALO:,:)
@@ -282,11 +341,12 @@ c apply north-south filter to U and V once per physics timestep
       subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
      &    PUA, PVA, dt)
       use CONSTANT,      only: BY3
-      use DOMAIN_DECOMP_1D, only: grid, get, halo_update, SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only: get, halo_update, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       use DIAG_COM, only: AIJ => AIJ_loc,
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
-      use MODEL_COM, only: IM,JM,LM
+      use RESOLUTION, only: IM,JM,LM
 
       real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
@@ -337,11 +397,14 @@ c apply north-south filter to U and V once per physics timestep
 !@+            CONV  horizontal mass convergence (mb m^2/s)
 !@+            SPA
 !@auth Original development team
-      USE MODEL_COM, only : im,imh,jm,lm,ls1,dsig,bydsig,byim
-     &     ,zatmo,sige,do_polefix
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : zatmo
       USE GEOM, only : dyp,dxv,polwt,imaxj
-      USE DYNAMICS, only : pit,sd,conv,pu,pv,spa
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DYNAMICS, only : pit,sd,conv,pu,pv,spa,do_polefix
+     &     ,dsig,bydsig,sige
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -646,10 +709,13 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
       SUBROUTINE ADVECM (P,PA,DT1)
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
-      USE MODEL_COM, only : im,jm,lm,mrch,zatmo,u,v,t,q,ptop
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : zatmo,u,v,t,q
       USE GEOM, only : bydxyp,imaxj
-      USE DYNAMICS, only : pit
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DYNAMICS, only : pit,mrch
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -724,13 +790,17 @@ C****
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
       USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
-     *     ,zatmo,sig,modd5k,bydsig
-     &     ,do_polefix
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : zatmo
+      USE DIAG_COM, only : modd5k
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
-      USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
+      USE ATM_COM, only : gz,phi
+      USE DYNAMICS, only : pu,pit,spa,dut,dvt,do_polefix,mrch
+     &     ,dsig,sige,sig,bydsig
 c      USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -948,11 +1018,12 @@ C
       SUBROUTINE AVRX(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
-      USE MODEL_COM, only : im,jm,imh
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : dlon,dxp,dyp,bydyp
       !USE DYNAMICS, only : xAVRX
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       USE MOMENTS, only : moment_enq_order
       USE constant, only : byrt2
       IMPLICIT NONE
@@ -1045,16 +1116,20 @@ C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
       USE CONSTANT, only : bygrav,kapa,sha,mb2kg
-      USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,mfiltr,zatmo,ptop
-     *     ,byim,sig,itime,psf,pmtop
+      USE RESOLUTION, only : ls1,ptop,psf,pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : t,p,q,wm,zatmo
       USE GEOM, only : areag,dxyp
       USE SOMTQ_COM, only : tmom,qmom
-      USE DYNAMICS, only : pk, COS_LIMIT
+      USE ATM_COM, only : pk
+      USE DYNAMICS, only : COS_LIMIT,mfiltr,sig
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm,trname,ITIME_TR0,trm,trmom
 #endif
       USE PBLCOM, only : tsavg
-      USE DOMAIN_DECOMP_1D, Only : grid, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1178,7 +1253,8 @@ C
 !@sum  fltry2 noise reduction filter for a velocity-type field
 !@sum  at secondary latitudes
       use resolution, only : im,jm,lm
-      use domain_decomp_1d, only : get,grid,halo_update,north,south
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use domain_decomp_1d, only : get,halo_update,north,south
       implicit none
       integer, parameter :: nshap=8
       real*8, parameter :: by4ton=1./(4.**nshap)
@@ -1252,18 +1328,19 @@ c      by4ton=1./(4.**nshap)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
       USE CONSTANT, only : sha
-      USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
-     *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
-     &  ,do_polefix
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t,pdsig,pk
       USE GEOM, only : dxyn,dxys
-      USE DYNAMICS, only : pdsig,pk, COS_LIMIT
+      USE DYNAMICS, only : dt,mrch,ang_uv, COS_LIMIT,do_polefix
+     &  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
 c      USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
 C**** THE SMALLEST SCALES.
 C**********************************************************************
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
@@ -1373,9 +1450,11 @@ C**** Call diagnostics only for even time step
       END SUBROUTINE FLTRUV
 
       subroutine isotropslp(slp,coscut)
-      use MODEL_COM, only : im,jm,dt
-      USE DOMAIN_DECOMP_1D, Only : GET,grid
+      use RESOLUTION, only : im,jm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       use GEOM, only : cosp,dxp
+      use DYNAMICS, only : dt
       implicit none
       real*8, parameter :: k=1d3
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: slp
@@ -1397,8 +1476,10 @@ C**** Call diagnostics only for even time step
       subroutine isotropuv(u,v,coscut)
 !@sum  isotropuv isotropizes the velocity field in the near-polar row(s)
 !@auth M. Kelley
-      USE MODEL_COM, only : im,imh,jm,lm,dt
-      USE DOMAIN_DECOMP_1D, Only : GET, grid
+      USE RESOLUTION, only : im,jm,lm
+      use DYNAMICS, only : dt
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       USE GEOM, only : cosv,dxv,cosi=>cosiv,sini=>siniv
       implicit none
       real*8, parameter :: klo=1d3,khi=1d7
@@ -1469,7 +1550,7 @@ c convert xy velocities back to polar coordinates
 
       ! Detect whether at the pole on staggered grid
       Logical Function at_pole(j)
-      Use model_com, only : jm
+      Use resolution, only : jm
       Integer :: j
       If (j == jm .or. j == 2) Then
         at_pole = .true.
@@ -1479,7 +1560,7 @@ c convert xy velocities back to polar coordinates
       End Function at_pole
 
       Logical Function far_from_pole(j, cosj, coscut)
-      Use MODEL_COM, only: JM
+      Use resolution, only: JM
         Integer :: j
         Real*8 :: cosj(JM), coscut
 
@@ -1512,8 +1593,9 @@ c convert xy velocities back to polar coordinates
       SUBROUTINE SHAP1D (NORDER,X)
 !@sum  SHAP1D Smoothes in zonal direction use n-th order shapiro filter
 !@auth Original development team
-      USE MODEL_COM, only :im,jm
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
+      USE RESOLUTION, only :im,jm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       IMPLICIT NONE
 !@var NORDER order of shapiro filter (must be even)
       INTEGER, INTENT(IN) :: NORDER
@@ -1549,14 +1631,19 @@ c**** Extract domain decomposition info
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
       USE CONSTANT, only : grav,rgas,sha
-      USE MODEL_COM, only : im,jm,lm,ls1,u,v,t,q,x_sdrag,csdragl,lsdrag
-     *     ,lpsdrag,ang_sdrag,itime,Wc_Jdrag,wmax,vsdragl
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : u,v,t
       USE GEOM, only : cosv,imaxj,kmaxj,idij,idjj,rapj,dxyv,dxyn,dxys
      *     ,rapvs,rapvn
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtsdrg
-      USE DYNAMICS, only : pk,pdsig,pedn
+      USE ATM_COM, only : pk,pdsig,pedn
+      USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
+     *     ,lpsdrag,ang_sdrag,Wc_Jdrag,wmax,vsdragl
 c      USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
@@ -1674,9 +1761,12 @@ C**** (technically we should use U,V from before but this is ok)
 
       subroutine add_am_as_solidbody_rotation(u,dam)
       use constant, only : radius,mb2kg
-      use model_com, only : im,jm,lm,fim,p,pstrat
-      use geom, only : cosv,dxyn,dxys
-      use domain_decomp_1d, only : get, south, halo_update, grid
+      use resolution, only : pstrat
+      use resolution, only : im,jm,lm
+      use atm_com, only : p
+      use geom, only : cosv,dxyn,dxys,fim
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use domain_decomp_1d, only : get, south, halo_update
       use domain_decomp_1d, only : globalsum
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
@@ -1714,9 +1804,13 @@ c      call halo_update(grid, p, from=south) ! already done
 
       SUBROUTINE conserv_AMB_ext(U,AM)
       USE CONSTANT, only : omega,radius,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,psfmpt,pstrat
+      USE RESOLUTION, only : ls1,psfmpt,pstrat
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : p
+      USE DYNAMICS, only : dsig
       USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : CHECKSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U
@@ -1769,9 +1863,11 @@ C****
 !@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
 !@sum  per unit area
 !@auth Gary Russell/Gavin Schmidt
-      USE MODEL_COM, only : im,u
+      USE RESOLUTION, only : im
+      USE ATM_COM, only : u
       USE GEOM, only : byaxyp
-      USE DOMAIN_DECOMP_1D, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
       INTEGER :: I,J
@@ -1804,9 +1900,13 @@ C****
 !@sum  (J/m2)
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
+      USE RESOLUTION, only : ls1,psfmpt
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : p,u,v
+      USE DYNAMICS, only : dsig
       USE GEOM, only : dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH
       IMPLICIT NONE
 
@@ -1860,9 +1960,11 @@ C****
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
-      USE MODEL_COM, only : im,jm,lm,byim,u,v
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : u,v
 c      USE GEOM, only : ravps,ravpn
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH
       IMPLICIT NONE
 
@@ -1887,9 +1989,10 @@ c      USE GEOM, only : ravps,ravpn
 !@var u_a x-component at primary grids (A_grid)
 !@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DYNAMICS, only : ua=>ualij,va=>valij
-      USE DOMAIN_DECOMP_1D, only : grid,get,NORTH, HALO_UPDATE_COLUMN
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : u,v,ua=>ualij,va=>valij
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : get,NORTH, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : halo_update
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       implicit none
@@ -1991,8 +2094,9 @@ C****
       end subroutine recalc_agrid_uv
 
       subroutine regrid_atov_1d(u_a,v_a,uv1d)
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : grid,halo_update,SOUTH
+      USE RESOLUTION, only : im,jm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : halo_update,SOUTH
       USE GEOM, only : rapvs,rapvn,cosiv,siniv
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo)  ::
@@ -2047,8 +2151,8 @@ C****
       end subroutine regrid_atov_1d
 
       subroutine get_nuv(nuv)
-      use model_com, only : im
-      USE DOMAIN_DECOMP_1D, only : GRID
+      use resolution, only : im
+      USE DOMAIN_DECOMP_ATM, only : GRID
       implicit none
       integer :: nuv
       nuv = 2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)
@@ -2063,7 +2167,7 @@ C****
       end subroutine get_vpkey_of_n
 
       subroutine get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
-      use model_com, only : im
+      use resolution, only : im
       use geom, only : rapvn,rapvs
       implicit none
       integer :: n
@@ -2081,7 +2185,8 @@ C****
       end subroutine get_regrid_info_for_n
 
       subroutine get_uv_of_n(n,uv)
-      use model_com, only : im,lm,u,v
+      use resolution, only : im,lm
+      use atm_com, only : u,v
       use domain_decomp_1d, only : am_i_root
       implicit none
       integer :: n
@@ -2097,7 +2202,8 @@ C****
       end subroutine get_uv_of_n
 
       subroutine store_uv_of_n(n,uv)
-      use model_com, only : im,lm,u,v
+      use resolution, only : im,lm
+      use atm_com, only : u,v
       implicit none
       integer :: n
       real*8, dimension(lm) :: uv
@@ -2112,8 +2218,8 @@ C****
       end subroutine store_uv_of_n
 
       subroutine get_ivjv_of_n(n,iv,jv)
-      use model_com, only : im
-      USE DOMAIN_DECOMP_1D, only : GRID
+      use resolution, only : im
+      USE DOMAIN_DECOMP_ATM, only : GRID
       implicit none
       integer :: n
       integer :: iv,jv
@@ -2126,9 +2232,10 @@ C****
       end subroutine get_ivjv_of_n
 
       subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID,
-     &     hasSouthPole, hasNorthPole
+      use resolution, only : im,jm,lm
+      USE ATM_COM, only : u,v
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : hasSouthPole, hasNorthPole
       implicit none
       integer :: k
       REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -2178,8 +2285,10 @@ C****
 
       subroutine avg_replicated_duv_to_vgrid(du,dv,k,
      &     dusp,dvsp,dunp,dvnp)
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID, HALO_UPDATE_BLOCK,SOUTH,
+      use resolution, only : im,jm,lm
+      USE ATM_COM, only : u,v
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_BLOCK,SOUTH,
      &     hasSouthPole, hasNorthPole
       implicit none
       integer :: k
@@ -2279,10 +2388,12 @@ c
       end subroutine avg_replicated_duv_to_vgrid
 
       SUBROUTINE regrid_btoa_3d(x)
-      USE MODEL_COM, only : im,jm,lm,byim
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
+      USE RESOLUTION, only : im,jm,lm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH,
      &     hasSouthPole, hasNorthPole
+      USE GEOM, only : byim
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: X
       INTEGER :: I,IM1,J,L
@@ -2312,10 +2423,12 @@ c
 
       subroutine regrid_btoa_ext(x)
 c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
-      USE MODEL_COM, only : im,jm,byim
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : rapvs,rapvn,dxyp,dxyv
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, GRID, NORTH,
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, NORTH,
      &     hasSouthPole, hasNorthPole
+      USE GEOM, only : byim
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X
       INTEGER :: I,IM1,J
@@ -2352,8 +2465,9 @@ c      contains
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
       USE CONSTANT, only : omega,mb2kg, radius
-      USE MODEL_COM, only : im,jm,lm,fim,byim,mdiag,mdyn
-      USE GEOM, only : cosv, ravpn,ravps,bydxyp
+      use resolution, only : im,jm,lm
+      USE MODEL_COM, only : mdiag,mdyn
+      USE GEOM, only : cosv, ravpn,ravps,bydxyp,fim,byim
       USE DIAG_COM, only : consrv=>consrv_loc
       USE DYNAMICS, only : PIT
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
@@ -2466,8 +2580,9 @@ c
 c      end module DIAG
 
       subroutine regrid_to_primary_1d(x)
-      USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID, NORTH,
+      USE RESOLUTION, only : jm
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH,
      &     hasSouthPole, hasNorthPole
 
       implicit none
@@ -2483,16 +2598,19 @@ c      end module DIAG
       end subroutine regrid_to_primary_1d
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
-      USE MODEL_COM, only : im,imh,jm,lm,fim,
-     &     DSIG,JEQ,LS1,MDIAG,MDYN
-      USE DIAG_COM, only : speca,nspher,klayer
+      use resolution, only : im,jm,lm
+      USE MODEL_COM, only : MDIAG,MDYN
+      USE DYNAMICS, only : dsig
+      USE DIAG_COM, only : speca,nspher,klayer,imh,fim,jeq
       USE ATMDYN, only : FCUVA,FCUVB
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,GLOBALSUM, WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET,GLOBALSUM, WRITE_PARALLEL
       USE GETTIME_MOD
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
+
       INTEGER :: M5,NDT
 
       REAL*8, DIMENSION(IMH+1) :: X
@@ -2571,11 +2689,12 @@ C****
       SUBROUTINE DIAG5F(UX,VX)
 C**** FOURIER COEFFICIENTS FOR CURRENT WIND FIELD
 C****
-      USE MODEL_COM, only : im,imh,jm,lm,
-     &     IDACC,MDIAG,MDYN
-      USE DIAG_COM, only : ia_d5f
+      use resolution, only : im,jm,lm
+      USE MODEL_COM, only : IDACC,MDIAG,MDYN
+      USE DIAG_COM, only : ia_d5f,imh
       USE ATMDYN, only : FCUVA,FCUVB
-      USE DOMAIN_DECOMP_1D, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET
       USE GETTIME_MOD
       IMPLICIT NONE
 
@@ -2604,16 +2723,18 @@ C****
 !@+          of pre-computing Courant limits using mean fluxes
 !@+    It replaces CALL AADVT (MA,Q,QMOM, SD,PU,PV, DTLF,.TRUE.,
 !@auth J. Lerner
-      USE MODEL_COM, only : im,jm,lm,q,dt,byim
+      use resolution, only : im,jm,lm
+      USE ATM_COM, only : q
       USE SOMTQ_COM, only : qmom
-      USE DIAG_COM, only: agc=>agc_loc
+      USE DIAG_COM, only: agc=>agc_loc,byim
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      USE DYNAMICS, only: ps,mb,ma,sda
+      USE ATM_COM, only: ps,mb,ma,sda
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP_1D, only : grid, GET, halo_update, south, north
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : GET, halo_update, south, north
       IMPLICIT NONE
-      REAL*8 DTLF,byncyc,byma
+      REAL*8 byncyc,byma
       INTEGER I,J,L   !@var I,J,L loop variables
 
 c**** Extract domain decomposition info
@@ -2622,7 +2743,6 @@ c**** Extract domain decomposition info
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
 
-      DTLF=2.*DT
       CALL CALC_AMP(PS,MB)
       CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
       CALL AADVQ0 (1._8)  ! uses the fluxes pua,pva,sda from DYNAM
@@ -2673,7 +2793,8 @@ c      end module ATMDYN_QDYNAM
       SUBROUTINE TrDYNAM
 !@sum  TrDYNAM is the driver to integrate tracer dynamic terms
 !@auth J. Lerner
-      USE MODEL_COM, only: im,jm,lm,itime,dt,byim
+      use resolution, only : im,jm,lm
+      USE MODEL_COM, only: itime
       USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
       USE TRACER_ADV
 #ifndef SKIP_TRACER_DIAGS
@@ -2681,9 +2802,9 @@ c      end module ATMDYN_QDYNAM
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
 #endif
-      USE DYNAMICS, only : sda
+      USE ATM_COM, only : sda
       IMPLICIT NONE
-      REAL*8 DTLF,byncyc
+      REAL*8 byncyc
       INTEGER N
 
 C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
@@ -2789,9 +2910,12 @@ c Switch the sign convention back to "positive downward".
       USE UNRDRAG_COM
       USE CONSTANT, only : grav, bygrav, kapa, rgas
       USE GEOM, only: RAPVS, RAPVN
-      USE MODEL_COM, only: IM, JM, LM, LS1
-     *         , SIG, DSIG, SIGE, PSFMPT, PTOP, JDAY
-      USE DOMAIN_DECOMP_1D, Only : GRID, GET
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: JDAY
+      USE DYNAMICS, only : sig,dsig,sige
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -3087,7 +3211,8 @@ c Switch the sign convention back to "positive downward".
       !@sum   orographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
       USE CONSTANT, only : grav
-      USE MODEL_COM, only: LM, byDSIG
+      USE RESOLUTION, only: LM
+      USE DYNAMICS, only : bydsig
       USE UNRDRAG_COM, only : r8
       implicit none
       real(r8), intent(in) :: coef
@@ -3162,7 +3287,8 @@ c Switch the sign convention back to "positive downward".
       !@sum   nonorographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
       USE CONSTANT, only : grav, by3
-      USE MODEL_COM, only: LM, byDSIG
+      USE RESOLUTION, only: LM
+      USE DYNAMICS, only : bydsig
       USE UNRDRAG_COM, only : r8
       !===============================================
       !...AD parameterizaion with arbitrary tabulated
@@ -3406,3 +3532,4 @@ c Switch the sign convention back to "positive downward".
 
       end subroutine unsaturated
       end subroutine nonorographic_drag
+
