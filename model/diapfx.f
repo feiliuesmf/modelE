@@ -7,10 +7,11 @@ c --- hycom version 0.9.2
       USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr
      &     ,onemm,g,baclin,onem, onecm 
      &     ,epsil,mixfrq,sigjmp,thref,lp,acurcy,diapyn
+     &     ,itest,jtest
       USE HYCOM_ARRAYS
       implicit none
 c
-      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,itest,jtest
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
       real flxu(kdm),flxl(kdm),pdot(kdm),flngth(kdm),clip(kdm),
      .     ennsq,alfa,beta,q,qmin,qmax,amount,salt,froglp,small,delp,
      .     trflxu(0:kdm+1,ntrcr),trflxl(0:kdm+1,ntrcr),cliptr(ntrcr),
