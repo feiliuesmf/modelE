@@ -14,7 +14,8 @@
       SUBROUTINE DIAGJLT_prep
 ! comments to be added
       use constant, only : teeny,grav
-      USE MODEL_COM, only: lm,idacc,fim
+      use resolution, only : lm
+      USE MODEL_COM, only: idacc
       USE TRACER_COM, only : ntm,ntm_power,trname
      &     ,n_Water,n_CH4,n_O3
 #ifdef TRACERS_WATER
@@ -27,6 +28,9 @@
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
      &     ia_dga,ia_src,ajl,cdl_jl_template
      &     ,jl_dpa,jl_dpasrc,jl_dwasrc
+#ifndef CUBED_SPHERE
+     &     ,fim
+#endif
       USE TRDIAG_COM, only : tajln, tajls, lname_jln, sname_jln,
      *     units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -611,7 +615,8 @@ c
 
       subroutine diagijt_prep
 ! comments to be added
-      use model_com, only: im,jm,lm,idacc,focean
+      use resolution, only : im,jm
+      use model_com, only: idacc
       use tracer_com
       use diag_com
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
@@ -1005,7 +1010,8 @@ c
 
       SUBROUTINE DIAGIJLt_prep
 ! comments to be added
-      use model_com, only: im,jm,lm,idacc
+      use resolution, only : im,jm,lm
+      use model_com, only: idacc
       use tracer_com
       use diag_com
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,

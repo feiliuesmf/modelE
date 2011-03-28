@@ -7,7 +7,6 @@
       MODULE SOCPBL
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from PBLB336E)
 !@cont pbl,advanc,stars,getl,dflux,simil,griddr,tfix
 !@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
@@ -1029,7 +1028,6 @@ C**** tracer code output
 !@+   Heat flux     = USTAR*TSTAR
 !@+   MOISTURE flux = USTAR*QSTAR
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from PBLB336E)
 !@var USTAR the friction speed
 !@var TSTAR the virtual potential temperature scale
 !@var QSTAR the moisture scale
@@ -1551,7 +1549,6 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
      &  ,byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
-!$OMP  THREADPRIVATE(/GRIDS_99/)
       external fgrid2
       real*8 rtsafe
       integer i,iter  !@var i,iter loop variable
@@ -1833,7 +1830,6 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@+   e(1)=(1/2)*B1**(2/3)*ustar**2
 !@+   at the top, dedz is continuous
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -1991,7 +1987,6 @@ c     rhs(n-1)=0.
 !@+   where tprime=tdns-t1/(1+xdelt*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature ref. to the surface
@@ -2098,7 +2093,6 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 !@+   where qprime=qdns-q1, q1 is q at surf
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var q z-profle of specific humidity
 !@var q0 z-profle of q at previous time step
 !@var kq z-profile of moisture diffusivity
@@ -2204,7 +2198,6 @@ c****             - ( 1 - fr_sat ) * flux_max
 !@+   This should be flexible enough to deal with most situations.
 !@+   at the top, the tracer conc. is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var tr z-profle of tracer concentration
 !@var tr0 z-profle of tr at previous time step
 !@var kq z-profile of moisture diffusivity
@@ -2307,7 +2300,6 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
 !@+   km * dv/dz = cm * usurf * v
 !@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var u0 z-profle of u at previous time step
@@ -2411,7 +2403,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    kh * dt/dz = ch * usurf * (t - tg)
 !@+    at the top, virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -2472,7 +2463,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    kq * dq/dz = cq * usurf * (q - qg)
 !@+    at the top, moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -2534,7 +2524,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    km * dv/dz = cm * usurf * v
 !@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var z vertical height at the main grids (meter)
@@ -2713,17 +2702,10 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
 
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
 c****  passed for scm
       real*8  ug,vg
-
-!!      common/pbluvtq/u,v,t,q,e
-
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
-
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
@@ -3178,13 +3160,11 @@ c ----------------------------------------------------------------------
 !@sum  fgrid2 computes functional relationship of z and xi + derivative
 !@+    fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
       implicit none
       real*8, intent(in) :: z
       real*8, intent(out) :: f,df
       real*8 z1,zn,bgrid,xi,lznbyz1
       common /grids_99/z1,zn,bgrid,xi,lznbyz1
-!$OMP  THREADPRIVATE(/GRIDS_99/)
 
       f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       df=1.+bgrid*((zn-z1)/z-lznbyz1)

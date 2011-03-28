@@ -44,7 +44,6 @@ c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
 
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 41 j=J_0,J_1
 c
       !write(0,*) my_pet, j, isp(j)
@@ -59,7 +58,6 @@ c
       do 41 l=1,isv(j)
       do 41 i=ifv(j,l),ilv(j,l)
  41   vtotn(i,j)=0.
-c$OMP END PARALLEL DO
 
 
 c
@@ -82,7 +80,6 @@ c
       CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
       CALL HALO_UPDATE(ogrid,pold,SOUTH)
 
-c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
 !!      do 12 j=1,jj
       do 12 j=J_0,J_1
 !!      ja=mod(j-2+jj,jj)+1
@@ -112,7 +109,6 @@ c
       vflux(i,j)=vtotm(i,j)*q
       vflux2(i,j)=vtotm(i,j)*dpv(i,j,km)-vflux(i,j)
  12   vflx(i,j,k)=vflux(i,j)
-c$OMP END PARALLEL DO
 c
 cddd      if (beropn .and.
 cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
@@ -125,7 +121,6 @@ c
 c --- advance -dp- field using low-order (diffusive) flux values
 c
       CALL HALO_UPDATE(ogrid,vflux,NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 19 j=1,jj
       do 19 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -139,7 +134,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
      .                      +vflux(i,jb )-vflux(i,j))*delt1*scp2i(i,j)
  19   dpmn(j)=min(dpmn(j),dp(i,j,kn))
-c$OMP END PARALLEL DO
 c
 ccc      do j=1,jdm
 ccc      do i=1,idm
@@ -161,10 +155,8 @@ ccc      write (text,'(a9,i3,i8)') 'vflux  k=',k,nstep
 ccc      call compare(vflux,mask,text)
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 191 j=J_0,J_1
  191  dpmin=min(dpmin,dpmn(j))
-c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
       do 190 j=J_0,J_1
@@ -210,7 +202,6 @@ c
 
       !write(922,*) "bounds=",isp,ifp,ilp,ip,j_0,j_1
       !write(910+my_pet,*) "bounds=",j_0,j_1,kn,delt1
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
       !!do 26 j=1,jj
       do 26 j=J_0,J_1
       do 26 l=1,isp(j)
@@ -246,7 +237,6 @@ c
      ./((min(0.,uflux2(i,j))-max(0.,uflux2(i+1,j))
      .  +min(0.,vflux2(i,j))-max(0.,vflux2(i,jb ))-epsil)*delt1)
  26    continue
-c$OMP END PARALLEL DO
 c
 c --- limit antidiffusive fluxes
 c --- (keep track in -utotn,vtotn- of discrepancy between high-order
@@ -259,7 +249,6 @@ c
       CALL HALO_UPDATE(ogrid,util1,SOUTH)
       CALL HALO_UPDATE(ogrid,util2,SOUTH)
 
-c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 29 j=J_0,j_1
       !!do 29 j=1,jj
       !!ja=mod(j-2+jj,jj)+1
@@ -287,7 +276,6 @@ c
       vtotn(i,j)=vtotn(i,j)+vflux2(i,j)*(1.-clip)
       vflux(i,j)=vflux2(i,j)*clip
  29   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
-c$OMP END PARALLEL DO
 c
 cddd      if (beropn .and.
 cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
@@ -298,7 +286,6 @@ c
 c --- evaluate effect of antidiffusive fluxes on -dp- field
 c
       CALL HALO_UPDATE(ogrid,vflux,NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 15 j=1,jj
       do 15 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -311,13 +298,10 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
      .                      +vflux(i,jb )-vflux(i,j))*delt1*scp2i(i,j)
       p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
  15   dpmn(j)=min(dpmn(j),dp(i,j,kn))
-c$OMP END PARALLEL DO
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 149 j=J_0,J_1
  149  dpmin=min(dpmin,dpmn(j))
-c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
       do 150 j=J_0,J_1
@@ -347,7 +331,6 @@ c
       call cpy_p_par(dp(:,:,kn))
 c
       CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
-c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 45 j=J_0,J_1
       !!do 45 j=1,jj
       !!ja=mod(j-2+jj,jj)+1
@@ -373,10 +356,8 @@ c
       end if
       vflux(i,j)=vtotn(i,j)*q
  45   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux,NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 14 j=1,jj
       do 14 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -389,13 +370,10 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
      .                      +vflux(i,jb )-vflux(i,j))*delt1*scp2i(i,j)
       p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
  14   dpmn(j)=min(dpmn(j),dp(i,j,kn))
-c$OMP END PARALLEL DO
 c
       dpmin=999.
-c$OMP PARALLEL DO REDUCTION(min:dpmin) SCHEDULE(STATIC,jchunk)
       do 139 j=J_0,J_1
  139  dpmin=min(dpmin,dpmn(j))
-c$OMP END PARALLEL DO
 c
       if (dpmin.lt.-onem) then
       do 140 j=J_0,J_1
@@ -421,7 +399,6 @@ c
       dtinv=1./delt1
       do 18 iter=1,itmax
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 36 j=J_0,J_1
       dpmn(j)=0.
       do 36 l=1,isp(j)
@@ -429,14 +406,11 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       util3(i,j)=(pbot(i,j)-p(i,j,kk+1))*scp2(i,j)
       util1(i,j)=1./p(i,j,kk+1)
  36   dpmn(j)=max(dpmn(j),abs(util3(i,j)))
-c$OMP END PARALLEL DO
 c
       if (iter.eq.itmax) then
         dpmin=0.
-c$OMP PARALLEL DO REDUCTION(max:dpmin) SCHEDULE(STATIC,jchunk)
       do 37 j=J_0,J_1
  37     dpmin=max(dpmin,dpmn(j))
-c$OMP END PARALLEL DO
 c
       dpmin_loc = dpmin
       call globalmax(ogrid,dpmin_loc,dpmin)
@@ -461,7 +435,6 @@ c
       CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
       CALL HALO_UPDATE(ogrid,util1,SOUTH)
       CALL HALO_UPDATE(ogrid,util3,SOUTH)
-c$OMP PARALLEL DO PRIVATE(ja,q) SCHEDULE(STATIC,jchunk)
       !!do 21 j=1,jj
       do 21 j=J_0,J_1
       !!ja=mod(j-2+jj,jj)+1
@@ -489,10 +462,8 @@ c
       end if
       vflux(i,j)=vflux(i,j)*q
  21   vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux,NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 23 j=1,jj
       do 23 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -503,7 +474,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
      .                      +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
  23   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
-c$OMP END PARALLEL DO
 c
 cddd      if (beropn .and.
 cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.
@@ -516,7 +486,6 @@ c
 c
 c --- now stretch the grid to take care of the residual pbot discrepancy
 c
-c$OMP PARALLEL DO PRIVATE(kn,old) SCHEDULE(STATIC,jchunk)
       do 39 j=J_0,J_1
       do 39 l=1,isp(j)
       do 39 k=1,kk
@@ -526,7 +495,6 @@ c$OMP PARALLEL DO PRIVATE(kn,old) SCHEDULE(STATIC,jchunk)
       dp(i,j,kn)=dp(i,j,kn)*pbot(i,j)/p(i,j,kk+1)
       diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-old)		! diapyc.flux
  39   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
-c$OMP END PARALLEL DO
 c
 c --- -----------------------------------
 c --- interface smoothing (=> bolus flux)
@@ -541,7 +509,6 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       hymar=1./(10.*sigjmp)
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 8 j=J_0,J_1
       do 9 l=1,isu(j)
       do 9 i=ifu(j,l),ilu(j,l)
@@ -551,7 +518,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 8 i=ifv(j,l),ilv(j,l)
       vtotn (i,j  )=0.
  8    bolusv(i,j,1)=0.
-c$OMP END PARALLEL DO
 c
       do 13 k=2,kk
       km=k+mm
@@ -560,8 +526,6 @@ c
 c
       CALL HALO_UPDATE(ogrid,p(:,:,k))
       CALL HALO_UPDATE(ogrid,pbot)
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb,pa,pb) SHARED(k)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       !!do 131 j=1,jj
       do 131 j=J_0,J_1
       !!ja=mod(j-2+jj,jj)+1
@@ -609,7 +573,6 @@ c --- disable next 22 lines to switch from biharm. to laplacian smoothing
       util2(i,j)=util2(i,j)-.5*(pa+pb)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  131  continue
-c$OMP END PARALLEL DO
 c
       call cpy_p_par(util1)
       call cpy_p_par(util2)
@@ -618,7 +581,6 @@ c
       CALL HALO_UPDATE(ogrid,pbot,SOUTH)
       CALL HALO_UPDATE(ogrid,p(:,:,k),SOUTH)
       CALL HALO_UPDATE(ogrid,scp2,SOUTH)
-c$OMP PARALLEL DO PRIVATE(flxhi,flxlo,ja,jb) SCHEDULE(STATIC,jchunk)
 !!! this omp instruction was removed is it correct ? c$OMP. SHARED(k)
       !!do 16 j=1,jj
       do 16 j=J_0,J_1
@@ -672,7 +634,6 @@ c
 c --- difference of 2 interface 'pressure fluxes' becomes thickness flux
  141  bolusv(i,j,k-1)=bolusv(i,j,k-1)-bolusv(i,j,k)
  16   continue
-c$OMP END PARALLEL DO
 c
  13   continue
 c
@@ -683,7 +644,6 @@ c --- at each grid point, determine the ratio of the largest permissible
 c --- mass loss to the sum of all outgoing bolus fluxes
 c
       CALL HALO_UPDATE(ogrid,bolusv(:,:,k),NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 261 j=1,jj
       do 261 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -695,14 +655,12 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
      ./(min(0.,bolusu(i,j,k))-max(0.,bolusu(i+1,j,k))
      . +min(0.,bolusv(i,j,k))-max(0.,bolusv(i,jb ,k))-epsil)
  261  continue
-c$OMP END PARALLEL DO
 c
 c --- limit bolus fluxes (fct-style)
 c
       call cpy_p_par(util2)
 c
       CALL HALO_UPDATE(ogrid,util2,SOUTH)
-c$OMP PARALLEL DO PRIVATE(ja,clip) SHARED(k) SCHEDULE(STATIC,jchunk)
       !!do 291 j=1,jj
       do 291 j=J_0,J_1
       !!ja=mod(j-2+jj,jj)+1
@@ -734,10 +692,8 @@ c --- clipped part of bolus flux is kept to restore zero column integral later
       bolusv(i,j,k)=bolusv(i,j,k)*clip
 c --- add bolus component to total mass flux
  291  vflx(i,j,k)=vflx(i,j,k)+bolusv(i,j,k)*dtinv
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,bolusv(:,:,k),NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 181 j=1,jj
       do 181 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -748,7 +704,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       dp(i,j,kn)=dp(i,j,kn)-(bolusu(i+1,j,k)-bolusu(i,j,k)
      .                      +bolusv(i,jb ,k)-bolusv(i,j,k))*scp2i(i,j)
  181  p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
-c$OMP END PARALLEL DO
 c
  10   continue
 c
@@ -765,7 +720,6 @@ c --- lost in the flux limiting process. treat these as an 'upstream'
 c --- barotropic correction to the bolus fluxes.
 c
       CALL HALO_UPDATE(ogrid,dp(:,:,kn),SOUTH)
-c$OMP PARALLEL DO PRIVATE(ja,q) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 145 j=1,jj
       do 145 j=J_0,J_1
       !!ja=mod(j-2+jj,jj)+1
@@ -793,10 +747,8 @@ c
       vflux(i,j)=vtotn(i,j)*q
 c --- add correction to total mass flux
  145  vflx(i,j,k)=vflx(i,j,k)+vflux(i,j)*dtinv
-c$OMP END PARALLEL DO
 c
       CALL HALO_UPDATE(ogrid,vflux,NORTH)
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       !!do 182 j=1,jj
       do 182 j=J_0,J_1
       !!jb=mod(j     ,jj)+1
@@ -806,7 +758,6 @@ c$OMP PARALLEL DO PRIVATE(jb) SHARED(k,kn) SCHEDULE(STATIC,jchunk)
       do 182 i=ifp(j,l),ilp(j,l)
  182  dp(i,j,kn)=dp(i,j,kn)-(uflux(i+1,j)-uflux(i,j)
      .                      +vflux(i,jb )-vflux(i,j))*scp2i(i,j)
-c$OMP END PARALLEL DO
 c
 cddd      if (beropn .and.
 cddd     .    abs(uflx(ipacs,jpac,k)+uflx(iatln,jatl,k)).gt.

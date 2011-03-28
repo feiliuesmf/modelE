@@ -56,6 +56,7 @@ ORES_1Qx1_L32 OFFT288E              ! ocean horiz res 1x1.25deg, 32 layers
 OSTRAITS_1QX1_COM                   ! ocean straits settings for this res.
 
     ! lat-lon grid specific source codes
+DOMAIN_DECOMPll                     ! domain decomp
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT_netcdf                ! diagn/post-processing output

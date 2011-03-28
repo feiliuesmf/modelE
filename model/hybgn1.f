@@ -39,7 +39,6 @@ c
      .        ,ntot2d(J_0H:J_1H),ntot3d(J_0H:J_1H)
      .        ,nwrk2d(J_0H:J_1H),nwrk3d(J_0H:J_1H)
       real :: anwrk, anwrkd(J_0H:J_1H)
-      common/nmpipe/iunit,lpunit
       character info*16
       data uvscl/0.02/			!  2 cm/s
       real,parameter :: tfreez=-1.8
@@ -60,7 +59,6 @@ c --- linear taper functions (latitude and depth-dependent) for slak
       slakf(q)=min(0.7,max(    tapr(p_hat)*slak*delt1,	! q = latitude (deg)
      .             0.7*wgtf(q)+tapr(p_hat)*slak*delt1*(1.-wgtf(q))))
 c
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 32 j=J_0,J_1
       do 32 l=1,isp(j)
       do 32 i=ifp(j,l),ilp(j,l)
@@ -75,7 +73,6 @@ c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
      .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
      .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
  32   continue
-c$OMP END PARALLEL DO
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  106  format (i9,2i5,a/(33x,i3,2(f8.1,f8.3)))
 !-------------------------------------------------------------------
@@ -90,23 +87,13 @@ c$OMP END PARALLEL DO
        uold=0;vold=0;pold=0;pnew=0;trac=0;
 !-------------------------------------------------------------------
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 19 j=J_0,J_1
       do 19 k=1,kk
       do 19 l=1,isp(j)
       do 19 i=ifp(j,l),ilp(j,l)
  19   p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
-c$OMP END PARALLEL DO
 c
       abort=.false.
-
-c$OMP PARALLEL DO PRIVATE(kn,torho,totem,tosal,kp,q,q1,q2,tem,sal,
-c$OMP+dsgdt,dsgds,tem_lo,sal_lo,rho_lo,tem_up,sal_up,rho_up,p_hat,
-c$OMP+tndrho,tndtem,tndsal,dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,
-c$OMP+k1,k2,tinteg,sinteg,phi,plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,
-c$OMP+trac,pold,pnew,try,info,displ,totrc,tndtrc,scale,
-c$OMP+sumrho,sumtem,sumsal,vrbos,event)
-c$OMP+ SHARED(abort) SCHEDULE(STATIC,jchunk)
 
       do 12 j=J_0, J_1
       ntot2=0
@@ -617,21 +604,17 @@ c
       nwrk2d(j)=nwrk2
       nwrk3d(j)=nwrk3
  12   continue
-c$OMP END PARALLEL DO
 
       if (abort) stop '(error in hybgen -- q out of bounds)'
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=J_0,J_1
       do 1 k=1,kk
       do 1 l=1,isp(j)
       do 1 i=ifp(j,l),ilp(j,l)
  1    p(i,j,k+1)=p(i,j,k)+dpold(i,j,k)
-c$OMP END PARALLEL DO
 
       CALL HALO_UPDATE(ogrid,  p,  FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 88 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
       do 88 k=2,kk+1
@@ -646,97 +629,15 @@ c
  882  pv(i,j,k)=min(depthv(i,j),.5*(p(i,j,k)+
      .                                      p(i,ja ,k)))
  88   continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=J_0,J_1
       do 9 k=1,kk
       do 9 l=1,isp(j)
       do 9 i=ifp(j,l),ilp(j,l)
  9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
-c$OMP END PARALLEL DO
 c
       call pardpudpv(nn)
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-cc c$OMP PARALLEL DO PRIVATE(kn,pold,pnew,displ,trac,uold,vold,vrbos)
-cc       do 13 j=1,jj
-cc c
-cc c --- evaluate effect of regridding on -u-
-cc c
-cc       do 14 l=1,isu(j)
-cc       do 14 i=ifu(j,l),ilu(j,l)
-cc c
-cc       vrbos=i.eq.itest .and. j.eq.jtest
-cc c
-cc       pold(1)=p(i,j,1)
-cc       pnew(1)=p(i,j,1)
-cc c
-cc       do 15 k=1,kk
-cc       kn=k+nn
-cc       uold(k)=u(i,j,kn)
-cc       pold(k+1)=pu(i,j,k+1)
-cc       pnew(k+1)=pnew(k)+dpu(i,j,kn)
-cc       pu(i,j,k+1)=pnew(k+1)
-cc  15   displ(k+1)=pnew(k+1)-pold(k+1)
-cc       displ(   1)=0.
-cc       displ(kk+1)=0.
-cc c
-cc       do k=1,kk-2
-cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
-cc ccc          write (lp,'(a,3i5)') '-u- monotonicity problems at',i,j,k
-cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
-cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
-cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
-cc           displ(k+1)=pnew(k+1)-pold(k+1)
-cc         end if
-cc       end do
-cc c
-cc       call ppmadv(kk,pold,displ,uold,uold,vrbos)
-cc c
-cc       do 14 k=1,kk
-cc  14   u(i,j,k+nn)=uold(k)
-cc c
-cc c --- evaluate effect of regridding on -v-
-cc c
-cc       do 24 l=1,isv(j)
-cc       do 24 i=ifv(j,l),ilv(j,l)
-cc c
-cc       vrbos=i.eq.itest .and. j.eq.jtest
-cc c
-cc       pold(1)=p(i,j,1)
-cc       pnew(1)=p(i,j,1)
-cc c
-cc       do 25 k=1,kk
-cc       kn=k+nn
-cc       vold(k)=v(i,j,kn)
-cc       pold(k+1)=pv(i,j,k+1)
-cc       pnew(k+1)=pnew(k)+dpv(i,j,kn)
-cc       pv(i,j,k+1)=pnew(k+1)
-cc  25   displ(k+1)=pnew(k+1)-pold(k+1)
-cc       displ(   1)=0.
-cc       displ(kk+1)=0.
-cc c
-cc       do k=1,kk-2
-cc         if (pnew(k+1).lt.pnew(k  ) .or. pnew(k+1).gt.pold(k+2)) then
-cc ccc          write (lp,'(a,3i5)') '-v- monotonicity problems at',i,j,k
-cc ccc          write (lp,'(a/(8f9.0))') 'pold:',pold
-cc ccc          write (lp,'(a/(8f9.0))') 'pnew:',pnew
-cc           pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
-cc           displ(k+1)=pnew(k+1)-pold(k+1)
-cc         end if
-cc       end do
-cc c
-cc       call ppmadv(kk,pold,displ,vold,vold,vrbos)
-cc c
-cc       do 24 k=1,kk
-cc  24   v(i,j,k+nn)=vold(k)
-cc c
-cc  13   continue
-cc c$OMP END PARALLEL DO
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c$OMP PARALLEL DO PRIVATE(ja,pold,pnew,uold,vold,totuv,
-c$OMP+ tdcyuv,phi,plo,pa,pb,uvintg,kn) SCHEDULE(STATIC,jchunk)
       do 13 j=J_0,J_1
 c
 c --- integrate -u- over new depth intervals
@@ -820,10 +721,8 @@ c
  24   continue
 c
  13   continue
-c$OMP END PARALLEL DO
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 33 j=J_0,J_1
       do 33 l=1,isp(j)
       do 33 i=ifp(j,l),ilp(j,l)

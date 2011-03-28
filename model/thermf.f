@@ -31,14 +31,12 @@ c
 ccc      if (mod(time+.0001,30.).lt..0002) then            !  once a month
 ccc        totl=0.
 ccc        eptt=0.
-cccc$OMP PARALLEL DO REDUCTION(+:totl,eptt) SCHEDULE(STATIC,jchunk)
 ccc        do 8 j=1,jj
 ccc        do 8 k=1,kk
 ccc        do 8 l=1,isp(j)
 ccc        do 8 i=ifp(j,l),ilp(j,l)
 ccc        eptt=eptt+oemnp(i,j)*scp2(i,j)
 ccc 8      totl=totl+saln(i,j,k)*dp(i,j,k)*scp2(i,j)
-cccc$OMP END PARALLEL DO
 ccc        totl=totl/g                                     !  10^-3 kg
 cccc
 cccc --- initialize total salt content
@@ -53,7 +51,6 @@ ccc     .  '  => precip bias(%):',100.*pcpcor
 ccc      end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       do 66 j=J_0,J_1
       do 66 k=1,kk
       kn=k+nn
@@ -62,7 +59,6 @@ c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       if (glue(i,j).gt.1. .and. saln(i,j,kn).gt.40.)                !  Med fudge
      .  saln(i,j,kn)=saln(i,j,kn)+(40.-saln(i,j,kn))*baclin*3.e-8
  66   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
-c$OMP END PARALLEL DO
 c
 c --- --------------------------------
 c --- thermal forcing of ocean surface
@@ -72,8 +68,6 @@ c
       tmean=0.
       smean=0.
 c
-c$OMP PARALLEL DO PRIVATE(thknss,vpmx,prcp,exchng,
-c$OMP. radfl,radflw,radfli,evap,evapw,evapi) SCHEDULE(STATIC,jchunk)
       do 85 j=J_0,J_1
 c
       watcol(j)=0.
@@ -113,7 +107,6 @@ c
       temcol(j)=temcol(j)+temp(i,j,k1n)*scp2(i,j)
       salcol(j)=salcol(j)+saln(i,j,k1n)*scp2(i,j)
  85   continue
-c$OMP END PARALLEL DO
 c
       call GLOBALSUM(ogrid,watcol,watcum, all=.true.)
       call GLOBALSUM(ogrid,empcol,empcum, all=.true.)
@@ -150,7 +143,6 @@ c
       vmean=0.
       ! reusing these arrays for next sums 
       rhocol=0.; temcol=0.; salcol=0.; watcol=0.;
-c$OMP PARALLEL DO PRIVATE(kn,boxvol) SCHEDULE(STATIC,jchunk)
       do 84 j=J_0,J_1
       do 84 k=kk,1,-1
       kn=k+nn
@@ -169,7 +161,6 @@ c$OMP PARALLEL DO PRIVATE(kn,boxvol) SCHEDULE(STATIC,jchunk)
       temcol(j)=temcol(j)+temp(i,j,kn)*boxvol
       watcol(j)=watcol(j)+boxvol
  84   continue
-c$OMP END PARALLEL DO
       call GLOBALSUM(ogrid,rhocol,rmean, all=.true.) 
       call GLOBALSUM(ogrid,salcol,smean, all=.true.) 
       call GLOBALSUM(ogrid,temcol,tmean, all=.true.) 

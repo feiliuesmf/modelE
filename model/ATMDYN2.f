@@ -176,7 +176,6 @@ c adjust T/Q moments
 !@+            CONV  horizontal mass convergence (mb m^2/s)
 !@+            SPA
 !@auth Original development team
-!@ver  1.0
       USE model_com, only : im,jm,lm,ls1,psfmpt,byim,dsig
       USE GEOM,  only : dxv=>dxlatv,dyp
       USE DYNAMICS, only : pit,sd,conv,pu,pv,spa
@@ -338,7 +337,6 @@ c      CALL HALO_UPDATE(grid,PU, FROM=NORTH)
       SUBROUTINE UPDATE_P (P,PA,DT1)
 !@sum  ADVECM Calculates updated column pressures using mass fluxes
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ptop,mrch,zatmo,u,v,t,q
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit
@@ -405,7 +403,6 @@ C****
 !@sum  UPDATE_UV Advects momentum (incl. coriolis) using mass fluxes
 !@+    and applies the pressure gradient force.
 !@auth Original development team
-!@ver  1.0
       use constant, only : radius,pi,twopi,omega2
       USE model_com, only : im,jm,lm,ls1,psfmpt,byim,dsig
       USE DOMAIN_DECOMP_1D, only : GRID,GET
@@ -872,7 +869,6 @@ c Fill halos of updated u,v
       SUBROUTINE AVRX2(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
 !@auth Original development team
-!@ver  1.0
       USE MODEL_COM, only : im,jm,imh
       USE GEOM, only : dlon,dxp,dyp,bydyp
       !USE DYNAMICS, only : xAVRX
@@ -951,7 +947,6 @@ c      End If
       SUBROUTINE FILTER2
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
-!@ver  1.0
 !@calls SHAP1D
       USE CONSTANT, only : kapa,rgas
       USE MODEL_COM, only : im,jm,lm,ls1,t,p,q,wm,zatmo,ptop,byim,sig
@@ -1035,7 +1030,6 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       subroutine fltry3(q3d,strength)
 !@sum  fltry3 noise reduction filter for a velocity-type field
 !@sum  at secondary latitudes
-!@ver  1.0
       use model_com, only : im,jm,lm
       use domain_decomp_1d, only : get,grid,halo_update,north,south
       implicit none
@@ -1111,7 +1105,6 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       SUBROUTINE FLTRUV2(U,V,strength)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
-!@ver  1.0
       USE CONSTANT, only : sha
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
      *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
@@ -1161,7 +1154,6 @@ C****
 C****
 C**** Filtering in east-west direction
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,X,X1,XI,XIM1)
       DO 350 L=1,LM
 C**** Filter U component of velocity
       DO 240 J=J_0STG,J_1STG
@@ -1192,12 +1184,10 @@ C**** Filter V component of velocity
       DO 340 I=1,IM
   340 V(I,J,L) = V(I,J,L) - X(I)*XVby4toN
   350 CONTINUE
-!$OMP  END PARALLEL DO
 
 C**** Conserve angular momentum along latitudes
 c***  The following halo is not needed because PDSIG halo is up to date
 c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
-!$OMP  PARALLEL DO PRIVATE (I,IP1,J,L,DP,ANGM,DPT)
       DO L=1,LM
         DO J=J_0STG,J_1STG
           ANGM=0.
@@ -1217,7 +1207,6 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 
 C**** Call diagnostics only for even time step
 c      IF (MRCH.eq.2) THEN
@@ -1261,7 +1250,6 @@ c      USE DYNAMICS, only : COS_LIMIT
       subroutine isotropuv2(u,v)
 !@sum  isotropuv isotropizes the velocity field in the near-polar row(s)
 !@auth M. Kelley
-!@ver  1.0
       USE MODEL_COM, only : im,imh,jm,dt
       USE DOMAIN_DECOMP_1D, Only : GET, grid
       USE GEOM, only : sinlatv,coslatv,dxv=>dxlatv,cosi=>cosu,sini=>sinu

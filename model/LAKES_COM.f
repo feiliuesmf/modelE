@@ -6,9 +6,8 @@
       MODULE LAKES_COM
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : IM,JM,ioread,iowrite,lhead,irerun,irsfic
-     *     ,irsficno
+      USE RESOLUTION, only : IM,JM
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -28,6 +27,9 @@
       REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: TANLK
 !@var SVFLAKE previous lake fraction (1)
       REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: SVFLAKE
+
+!@var HLAKE lake sill depth (m)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: HLAKE
 
 #ifdef TRACERS_WATER
 !@var TRLAKE tracer amount in each lake level (kg)      
@@ -54,10 +56,10 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
-      USE MODEL_COM, only : IM, JM
+      USE RESOLUTION, only : IM, JM
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
+     &     ,HLAKE
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
       USE LAKES_COM, ONLY:  TRLAKE
@@ -79,8 +81,10 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *           FLAKE(I_0H:I_1H,J_0H:J_1H),
      *           TANLK(I_0H:I_1H,J_0H:J_1H),
      *           SVFLAKE(I_0H:I_1H,J_0H:J_1H),
+     &           HLAKE(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER
      *            )
+
 
 #ifdef TRACERS_WATER
 !@var TRLAKE tracer amount in each lake level (kg)
@@ -93,9 +97,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       SUBROUTINE io_lakes(kunit,iaction,ioerr)
 !@sum  io_lakes reads and writes lake arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, grid
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA  , PACK_BLOCK
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA  , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_BLOCK,
      *     BACKSPACE_PARALLEL
       USE LAKES_COM

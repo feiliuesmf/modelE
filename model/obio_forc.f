@@ -37,46 +37,21 @@
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa       !direct,diffuse downwelling irradiance
 #endif
 
-
       real solz               !mean cosine solar zenith angle
       real sunz               !solar zenith angle
-      common /brod1/ solz,sunz
-!$OMP THREADPRIVATE(/brod1/)
-
 #ifdef OBIO_RAD_coupling 
-      real eda_frac,esa_frac
-      common /frac_oasim/eda_frac(nlt),esa_frac(nlt)
-
+      real eda_frac(nlt),esa_frac(nlt)
       real ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-      common /rada2o_ij/ ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-!$OMP THREADPRIVATE(/rada2o_ij/)
 #else
-      real Eda2,Esa2
-      common /beda2/ Eda2(nlt,nhn),Esa2(nlt,nhn)
-!$OMP THREADPRIVATE(/beda2/)
+      real Eda2(nlt,nhn),Esa2(nlt,nhn)
 #endif
-
-      real Ed,Es 
-      common /beds/  Ed(nlt),Es(nlt)
-!$OMP THREADPRIVATE(/beds/)
-
+      real Ed(nlt),Es(nlt)
       real wind               !surface wind from atmos
-      common /bwind/ wind
-!$OMP THREADPRIVATE(/bwind/)
-
-      real tirrq                   !total mean irradiance in quanta
-      common /blte/ tirrq(kdm)
-!$OMP THREADPRIVATE(/blte/)
-
-      real, parameter ::  tirrq_critical=10.      !in quanta threshold at compensation depth
-
-      real rmud                    !downwelling irradiance average cosine
-      common /bmud /rmud 
-!$OMP THREADPRIVATE(/bmud/)
-
+      real tirrq(kdm)         !total mean irradiance in quanta
+      real, parameter ::  tirrq_critical=10. !in quanta threshold at compensation depth
+      real rmud               !downwelling irradiance average cosine
       real atmCO2
-
-      real rhosrf       !surface air density which comes from PBL.f
+      real rhosrf             !surface air density which comes from PBL.f
 
       contains
 

@@ -10,9 +10,6 @@ c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
-      common/pbl_loc/evap_max,fr_sat,uocean,vocean
-!$OMP  THREADPRIVATE (/pbl_loc/)
-
       real*8 :: cdnl(im,jm)
 
 ccc   some variables introduced in later code, first for tracers,
@@ -25,7 +22,6 @@ ccc   then globally. hope they are not used ...
       subroutine pbl(i,j,itype,ptype)
 !@sum  simple replacement for PBL
 !@auth I. Aleinov/G. Russell
-!@ver  1.0
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
@@ -285,7 +281,6 @@ C**** initialise some pbl common variables
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1

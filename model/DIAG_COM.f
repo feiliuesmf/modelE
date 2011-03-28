@@ -3,18 +3,33 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  2010/11/12
-      use resolution, only : ls1
-      USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
+      use resolution, only : ls1,kep,istrat
+      use resolution, only : im,jm,lm
+      USE ATM_COM, only : lm_req
       use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
       use socpbl, only : npbl=>n
 #ifdef NEW_IO
       use cdl_mod
 #endif
+#ifndef CUBED_SPHERE
+      use geom, only : imh,fim,byim
+#endif
       IMPLICIT NONE
       SAVE
       private
 
-      public LM_REQ,im,jm,lm,imlonh,ntype,istrat,kep,jm_budg,jmlat,xwon
+      public LM_REQ,im,jm,lm,imlonh,istrat,kep,jm_budg,jmlat,xwon
+
+#ifndef CUBED_SPHERE
+      public :: imh,fim,byim
+#endif
+
+c!@param IMH half the number of latitudinal boxes
+c      INTEGER, PARAMETER, public :: IMH=IM/2
+c!@param FIM,BYIM real values related to number of long. grid boxes
+c      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
+!@param JEQ grid box zone around or immediately north of the equator
+      INTEGER, PARAMETER, public :: JEQ=1+JM/2
 
 C**** Accumulating_period information
       INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
@@ -43,6 +58,16 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
      &     ,AJ_out
+
+C**** Define surface types (mostly used for weighting AJ diagnostics)
+!@param NTYPE number of different surface types
+      INTEGER, PARAMETER, public :: NTYPE=6   ! orig = 3
+!@var FTYPE fractions of each surface type
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public   :: FTYPE
+
+!@param ITxx indices of various types (used only when it matters)
+      INTEGER, PARAMETER, public :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
+     *                              ITLANDI=4, ITLAKE=5, ITLKICE=6
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
@@ -472,10 +497,15 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
+      INTEGER, public :: iu_VFLXO
       INTEGER, PARAMETER, public :: KOA = 13
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
       ! REAL*8 :: OA_glob    (IM, JM, KOA)
       REAL*8,allocatable, public :: OA_glob(:,:,:)
+
+!**** Diagnostic control parameters
+!@dbparam Kvflxo if 1 => vert.fluxes into ocean are saved daily
+      integer, public :: Kvflxo=0
 
 C****
 C**** Information about acc-arrays:
@@ -945,6 +975,16 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@param L_ROSSBY_NUMBER length scale for budget-page Rossby number
       real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
+!@dbparam NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)
+!@dbparam NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE
+!@dbparam NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn
+!@dbparam NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src
+!@dbparam NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf
+!@dbparam NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history
+      INTEGER, public ::
+     &     NDAa=7, NDA5d=1, NDA5k=7, NDA5s=1, NDASf=1, NDA4=24
+!@var MODD5K,MODD5S: if MODxxx=0 do xxx, else skip xxx
+      INTEGER, public :: MODD5K, MODD5S
 
 #ifdef NEW_IO
       type(cdl_type), public :: cdl_latbudg,cdl_heights
@@ -991,14 +1031,13 @@ c instances of arrays
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
-      USE MODEL_COM, ONLY : NTYPE,lm_req
+      USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
-     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
+     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST,ftype,ntype
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,u_inst,v_inst
@@ -1138,6 +1177,7 @@ c instances of arrays
      &         STAT = IER)
 
       P_acc=0.d0; PM_acc=0.d0
+      OA = 0d0
 
       ALLOCATE( AIJK_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJK),
      &         AFLX_ST(LM+LM_REQ+1,I_0H:I_1H,J_0H:J_1H,5),
@@ -1180,13 +1220,15 @@ c allocate master copies of budget- and JK-arrays on root
 
       endif
 
+      ALLOCATE(FTYPE(NTYPE,I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      FTYPE(:,:,:) = 0.d0
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
 
       SUBROUTINE ALLOC_ijdiag_glob
 !@sum  To allocate large global arrays only when needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
@@ -1217,7 +1259,6 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE DEALLOC_ijdiag_glob
 !@sum  To deallocate large global arrays not currently needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
@@ -1230,12 +1271,12 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
-     *    ,Kradia
+      USE ATM_COM, only : Kradia
       USE DIAG_COM
-      USE DOMAIN_DECOMP_1D, Only : grid, GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, Only : grid
+      USE DOMAIN_DECOMP_1D, Only : GET, PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, Only : ESMF_BCAST
@@ -1580,7 +1621,8 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
-      use domain_decomp_1d, only : grid,pack_data
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : pack_data
       use diag_com
       implicit none
       call gather_zonal_diags
@@ -1670,7 +1712,6 @@ c more complicated logic
 !@+   if the earliest month is NOT the beginning of the 2-6 month period
 !@+   the name will reflect that fact ONLY for 2 or 3-month periods
 !@auth Reto A. Ruedy
-!@ver  1.0
       USE MODEL_COM, only : AMONTH
       implicit none
 !@var JMON1,JYR1 month,year of beginning of period 1
@@ -1799,7 +1840,9 @@ C**** define limits on budget indices for each processor
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
       USE GEOM, only : j_budg, axyp, imaxj
-      USE MODEL_COM, only : fim
+#ifndef CUBED_SPHERE
+      USE DIAG_COM, only : im,fim
+#endif
       USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,lat_budg,dxyp_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
@@ -2073,8 +2116,9 @@ c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
 !@sum  new_io_acc read/write accumulation arrays from/to restart/acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : im,jm,lm,ioread,iowrite,iowrite_single,
-     &     idacc
+      use resolution, only : im,jm,lm
+      use model_com, only : ioread,iowrite,iowrite_single,iowrite_mon
+     &     ,idacc
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
@@ -2171,6 +2215,13 @@ c for which scalars is bcast_all=.true. necessary?
 
         call read_data(grid,fid,'areg',areg)
 
+      case (iowrite_mon)            ! specials
+        call stop_model('new_io_acc: fix io_oda call',255)
+c            If (AM_I_ROOT())
+c     *           call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
+c     *           ,iu_ODA,.true.,.false.)
+c            call io_oda(iu_ODA,Itime,iowrite,ioerr)
+c            IF (AM_I_ROOT()) call closeunit(iu_ODA)
       end select
       return
       end subroutine new_io_acc
@@ -2271,7 +2322,6 @@ c new_io_subdd
 !@sum  def_meta_atmacc defines metadata in atm acc files
 !@auth M. Kelley
 !@ver  beta
-      use model_com, only : im
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -2448,7 +2498,7 @@ c new_io_subdd
       subroutine write_meta_atmacc(fid)
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
-      use model_com, only : im,nday,idacc
+      use model_com, only : nday,idacc
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,

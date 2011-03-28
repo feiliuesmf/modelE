@@ -54,8 +54,6 @@ c
  109  format (i9,2i5,a/(33x,i3,f8.3,f8.1,3x,f8.3,f8.1))
  110  format (i9,2i5,a/(33x,i3,f8.3,1es11.3))
 c
-!$OMP   PARALLEL DO PRIVATE(vrbos)
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
@@ -74,7 +72,6 @@ c
         end do
        end do
       end do
-!$OMP END PARALLEL DO
 c
       do k=1,kk
         CALL HALO_UPDATE(ogrid,v(:,:,k+nn),FROM=NORTH)
@@ -84,13 +81,11 @@ c
 c
 c --- advect mixed layer depth with vertically averaged velocity field
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 9 j=J_0,J_1
         do 9 k=1,kk
         do 9 l=1,isp(j)
         do 9 i=ifp(j,l),ilp(j,l)
  9      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
-c$OMP END PARALLEL DO
 c
         call HALO_UPDATE(ogrid,dpmixl(:,:,m),FROM=SOUTH)
         call HALO_UPDATE(ogrid,pbot,FROM=SOUTH)
@@ -99,8 +94,6 @@ c
           call HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
         end do
 
-c$OMP PARALLEL DO PRIVATE(kn,ja,jb,pa,pb)
-c$OMP+            SCHEDULE(STATIC,jchunk)
         do 2 j=J_0,J_1
         ja = PERIODIC_INDEX(j-1, jj)
         jb = PERIODIC_INDEX(j+1, jj)
@@ -133,12 +126,9 @@ c
      .    min(dpmixl(i,j,m)+dpmixl(i,ja ,m),pbot(i,j)+pbot(i,ja ))
  5      continue
  2      continue
-c$OMP END PARALLEL DO
 c
         call HALO_UPDATE(ogrid,vflux,FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb,thkold,pres,dens,tem,sal,buoyfl,vrbos)
-c$OMP+      SCHEDULE(STATIC,jchunk)
         do 13 j=J_0,J_1
         jb = PERIODIC_INDEX(j+1, jj)
         do 13 l=1,isp(j)
@@ -168,15 +158,12 @@ c
         if (vrbos) write (lp,'(i7,2i4,a,2es11.2,f8.1)') nstep,i,j,
      .   '   buoyfl,ustar,mldpth:',buoyfl,ustar(i,j),dpmixl(i,j,n)/onem
  13   continue
-c$OMP END PARALLEL DO
 c
       end if		! if (iocnmx.gt.4) use KT depth
 c
 c --- except for KPP, surface boundary layer is the mixed layer
       if (mod(iocnmx,4).eq.3) then		! GISS scheme
         hblmax = bldmax*onem
-!$OMP   PARALLEL DO PRIVATE(j,l,i)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
@@ -191,12 +178,9 @@ c --- diffusivity/viscosity calculation
 c
       CALL HALO_UPDATE(ogrid,corio,FROM=NORTH)
 
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
         call mxkprfaj(n,nn,k1m,k1n, j)
       enddo
-!$OMP END PARALLEL DO
 c
 c --- optional spatial smoothing of viscosity and diffusivities on interior
 c --- interfaces.
@@ -217,12 +201,9 @@ c
 c ---   final mixing of variables at p points
 c
       if (iocnmx.ne.0) then		! carry out mixing
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           call mxkprfbj(nn,k1n,j)
         enddo
-!$OMP END PARALLEL DO
 c
 c --- final velocity mixing at u,v points
 c
@@ -230,12 +211,9 @@ c
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,1),FROM=SOUTH)
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,2),FROM=SOUTH)
 
-!$OMP PARALLEL DO PRIVATE(j)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           call mxkprfcj(nn, j)
         enddo
-!$OMP END PARALLEL DO
       end if				! carry out mixing
 
       if (dotrcr) write (lp,'(a)') 'tracer kpp mixing done'
@@ -245,10 +223,6 @@ c
       if (iocnmx.eq.0 .or. iocnmx.eq.3) then
 c
 c --- diagnose new mixed layer depth based on density jump criterion
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,
-!$OMP&                      sigmlj,thsur,thtop,alfadt,betads,zintf,
-!$OMP&                      thjmp,thloc,vrbos)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
 c
@@ -409,7 +383,6 @@ c
           enddo !l
         enddo !j
 c
-!$OMP   END PARALLEL DO
 c
 c ---   smooth the mixed layer (might end up below the bottom).
 CTNLt   call psmoo(dpmixl(:,:,n), 0)   ! TEST TEST TEST
@@ -420,8 +393,6 @@ c
 c
 c --- calculate bulk mixed layer t, s, theta
 c
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,delp,vrbos)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
@@ -454,15 +425,12 @@ c
            enddo !i
           enddo !l
         enddo !j
-!$OMP   END PARALLEL DO
 c
         do k=1,kk
           CALL HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
         end do
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,n),FROM=SOUTH)
 
-!$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,delp,dpmx)
-!$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
          ja = PERIODIC_INDEX(j-1, jj)
 c
@@ -499,11 +467,8 @@ c
             enddo !i
           enddo !l
         enddo !j
-!$OMP   END PARALLEL DO
       endif                                           ! diagno
 c
-!$OMP   PARALLEL DO PRIVATE(vrbos)
-!$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
@@ -524,7 +489,6 @@ c
         end do
        end do
       end do
-!$OMP   END PARALLEL DO
 c
 c
       return

@@ -137,7 +137,6 @@ contains
   subroutine openunit_1d( filename, iunit, qbin, qold )
 !@sum  openunit_1d sets unit number for requested files and opens them
 !@auth Gavin Schmidt, simplified by I. Aleinov
-!@ver  1.0
 !@var unit - unit of opened file
     integer, intent(out), dimension(:) :: iunit
 !@var filename - name of the file to open
@@ -156,7 +155,6 @@ contains
   subroutine closeunit_1d( iunit )
 !@sum  closeunit_1d closes files corresponding to units iunit
 !@auth Gavin Schmidt, I. Aleinov
-!@ver  1.0
     implicit none
 !@var iunit unit numbers for files in current request
     integer, intent(in), dimension(:) :: iunit

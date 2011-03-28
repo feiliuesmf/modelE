@@ -6,7 +6,6 @@
 !@+ and an index of vegetation density read from an input file.
 !
 !@auth Greg Faluvegi based on information from Olga Pechony
-!@ver  1.0 (based on Olga's Word document Flammability.doc)
 !
 !@var T the surface air temperature passed in Kelvin for current I,J
 !@var P the precipitation rate passed in mm/day for current I,J

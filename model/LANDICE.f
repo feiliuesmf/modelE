@@ -71,7 +71,6 @@ c      REAL*8, DIMENSION(NTM,2) :: TRICBIMP
      *     EDIFS,DIFS,ERUN2,RUN0)
 !@sum  PRECLI apply precipitation to land ice fraction
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2
       REAL*8, INTENT(IN) :: PRCP,ENRGP
@@ -162,7 +161,6 @@ C**** SNOW IS COMPACTED INTO ICE, ICE MOVES DOWN THROUGH THE LAYERS
      *     EDIFS,DIFS,RUN0)
 !@sum  LNDICE apply surface fluxes to land ice fraction
 !@auth Original Development team
-!@ver  1.0
       IMPLICIT NONE
       REAL*8, INTENT(INOUT) :: SNOW,TG1,TG2
       REAL*8, INTENT(IN) :: F0DT,F1DT,EVAP
@@ -253,7 +251,7 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  2010/10/13
 !@cont io_landice
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -285,7 +283,6 @@ C**** CALCULATE TG2
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
       Use LANDICE_COM, Only: SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
@@ -325,9 +322,9 @@ C**** CALCULATE TG2
       SUBROUTINE io_landice(kunit,iaction,ioerr)
 !@sum  io_landice reads and writes landice variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, ESMF_BCAST,
      *     BACKSPACE_PARALLEL
@@ -464,6 +461,19 @@ c          call ESMF_BCAST(grid, TRICBIMP)
 
 
 #ifdef NEW_IO
+      subroutine read_landice_ic
+!@sum   read_landice_ic read land ice initial conditions file.
+      use model_com, only : ioread
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_landice(fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_landice_ic
+
       subroutine def_rsf_landice(fid)
 !@sum  def_rsf_landice defines landice array structure in restart files
 !@auth M. Kelley

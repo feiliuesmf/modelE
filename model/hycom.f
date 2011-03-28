@@ -237,7 +237,6 @@ cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
 c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 28 ja=aJ_0,aJ_1
         do 28 ia=aI_0,aI_1
           ataux_loc(ia,ja)=0.
@@ -267,10 +266,8 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 #ifdef CUBED_SPHERE
         call reset_dynsi_accum
 #endif
-c$OMP END PARALLEL DO
       endif
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
 
 #ifdef CUBED_SPHERE
@@ -368,7 +365,6 @@ c --- dmua on A-grid, admui on C-grid
 #endif
 
  29   continue
-c$OMP END PARALLEL DO
 
 c
       nsavea=nsavea+1
@@ -432,24 +428,7 @@ c
 c
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
 c
-c$OMP PARALLEL SHARED(mo0)
-c$    mo0=OMP_GET_NUM_THREADS()
-c$OMP END PARALLEL
-c$    call OMP_SET_DYNAMIC(.false.)
-c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
-c
-ccc$  call OMP_SET_NUM_THREADS(max(mo0,16))
-ccc$  OMP PARALLEL SHARED(mo1)
-ccc$  mo1=OMP_GET_NUM_THREADS()
-ccc$  OMP END PARALLEL
-ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
-ccc$     . ,' =======  number of threads:',mo1,' ======='
-c$    if (AM_I_ROOT())
-c$   &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
       jchunk=50
-c     if (mo0.eq.4) jchunk=50           !  jdm=180
-c     if (mo0.eq.6) jchunk=32           !  jdm=180
-c     if (mo0.eq.8) jchunk=23           !  jdm=180
       if (jchunk.lt.0) then
         if (AM_I_ROOT()) write (lp,*) 'you forgot to define jchunk'
         stop   ! proper mpi_abort
@@ -600,7 +579,6 @@ c
       CALL HALO_UPDATE(ogrid,corio_loc,     FROM=NORTH)
       hekman_loc=0.;
 c
-c$OMP PARALLEL DO PRIVATE(jb)
       do 202 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 202 l=1,isp_loc(j)
@@ -610,7 +588,6 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
  202  continue
-c$OMP END PARALLEL DO
 #ifdef TRACERS_GASEXCH_ocean
       otrac_loc(:,:,:) = 0.d0
 #endif
@@ -670,7 +647,6 @@ c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
     || defined(TRACERS_OCEAN_WATER_MASSES) || defined(TRACERS_ZEBRA)
-c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
@@ -716,7 +692,6 @@ c$OMP PARALLEL DO
         tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
 #endif
  12     continue
-c$OMP END PARALLEL DO
 #endif
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
@@ -1170,13 +1145,11 @@ c
         call archiv(n,nn)
 
 c --- diagnose meridional overturning and heat flux
-c$OMP PARALLEL DO
         do 3 j=1,jj
         do 3 k=1,kk
         do 3 l=1,isp(j)
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
-c$OMP END PARALLEL DO
 c     call overtn(mm)
 c
       write (lp,105) nstep
@@ -1252,7 +1225,6 @@ ccc     .     'barotrop. v vel. (mm/s)')
  23   continue
 
 c --- accumulate fields for agcm
-c$OMP PARALLEL DO
 
       do 201 j=J_0,J_1
       do 201 l=1,isp_loc(j)
@@ -1295,7 +1267,6 @@ c$OMP PARALLEL DO
       enddo
 #endif
 
-c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
 
@@ -1313,12 +1284,10 @@ c
      &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
 
 c
-c$OMP PARALLEL DO
       do 88 j=J_0,J_1
       do 88 i=1,ii
       usf_loc(i,j)=u_loc(i,j,k1n)+ubavg_loc(i,j,n)
  88   vsf_loc(i,j)=v_loc(i,j,k1n)+vbavg_loc(i,j,n)
-c$OMP END PARALLEL DO
 
       call gather7hycom(usf_loc,vsf_loc,usf,vsf)
 
@@ -1378,7 +1347,6 @@ cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c
-c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=aJ_0,aJ_1
       do 204 ia=aI_0,aI_1
       if (focean_loc(ia,ja).gt.0.) then
@@ -1400,7 +1368,6 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 
-c$OMP END PARALLEL DO
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then

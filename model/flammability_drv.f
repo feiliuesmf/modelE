@@ -3,7 +3,6 @@
 !@sum for routines to calculate flammability potential of surface 
 !@+   vegetation. Optionally also altering tracer biomass sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony
-!@ver  1.0 (based on Olga's Word document Flammability.doc)
 
       implicit none
       save
@@ -51,7 +50,6 @@
 !@SUM  alllocates arrays whose sizes need to be determined
 !@+    at run-time
 !@auth Greg Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only: dist_grid, get
       use param, only : get_param, is_set_param
       use model_com, only: im, dtsrc
@@ -99,7 +97,6 @@
       subroutine init_flammability
 !@sum initialize flamability, veg density, etc. for fire model
 !@auth Greg Faluvegi based on direction from Olga Pechony
-!@ver  1.0 
       use model_com, only: im,jm,Itime,ItimeI
       use param, only: sync_param
       use flammability_com, only: flammability, veg_density, first_prec
@@ -134,7 +131,6 @@
       subroutine io_flammability(kunit,iaction,ioerr)
 !@sum  io_flammabilty reads and writes flammability variables to file
 !@auth Greg Faluvegi (based on Jean Lerner io_tracer)
-!@ver  1.0 
       use model_com, only: im,jm,ioread,iowrite,irsfic,irsficno,irerun
       use domain_decomp_1d, only: get,grid,am_i_root,
      &     pack_data,unpack_data
@@ -320,7 +316,6 @@
 !@sum driver routine for flammability potential of surface
 !@+   vegetation calculation.
 !@auth Greg Faluvegi based on direction from Olga Pechony
-!@ver  1.0 
       use model_com, only: im, jm, dtsrc, ptop, p
       use domain_decomp_atm,only: grid, get
       use flammability_com, only: flammability,veg_density,ravg_prec,

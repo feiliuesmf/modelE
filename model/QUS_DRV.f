@@ -83,8 +83,8 @@ c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
 c****     ma (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP_1D, only: grid, get
-      USE DOMAIN_DECOMP_1D, only: HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: get,HALO_UPDATE,NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM, MFLX
       IMPLICIT NONE
@@ -120,7 +120,6 @@ C**** Initialise diagnostics
 C**** Fill in values at the poles
 C**** SOUTH POLE:
       if (HAVE_SOUTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE(I,L,N)
         DO L=1,LM
           DO I=2,IM
             RM(I,1 ,L) =   RM(1,1 ,L)
@@ -129,12 +128,10 @@ C**** SOUTH POLE:
             enddo
           enddo
         enddo
-!$OMP  END PARALLEL DO
       end if       !SOUTH POLE
 
 c**** NORTH POLE:
       if (HAVE_NORTH_POLE) then
-!$OMP  PARALLEL DO PRIVATE(I,L,N)
         DO L=1,LM
           DO I=2,IM
             RM(I,JM,L) =   RM(1,JM,L)
@@ -143,12 +140,10 @@ c**** NORTH POLE:
             enddo
           enddo
         enddo
-!$OMP  END PARALLEL DO
       end if    ! NORTH POLE
 C****
 C**** convert from concentration to mass units
 C****
-!$OMP  PARALLEL DO PRIVATE(I,J,L)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
@@ -157,33 +152,27 @@ C****
       enddo
       enddo
       enddo
-!$OMP  END PARALLEL DO
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
 CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
-!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,:,l)=pu(:,:,l)*(.5*dt)
        ENDDO
-!$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
 
 CC    mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
 CC    mflx(:,jm,:)=0.
 C**** Halo boxes for pv updated before call to AADVT.
 !      call HALO_UPDATE(grid, pv, from=NORTH)
-!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,J_0:J_1S,l)=pv(:,J_0+1:J_1S+1,l)*dt
        ENDDO
-!$OMP  END PARALLEL DO
        if (HAVE_NORTH_POLE) mflx(:,jm,:)=0.
 
       CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
 CC    mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
 CC    mflx(:,:,lm)=0.
-!$OMP  PARALLEL DO PRIVATE(L)
       DO L=1,LM
          IF(L.NE.LM)  THEN
             MFLX(:,:,L)=SD(:,:,L)*(-DT)
@@ -191,19 +180,15 @@ CC    mflx(:,:,lm)=0.
             MFLX(:,:,L)=0.
          END IF
       ENDDO
-!$OMP  END PARALLEL DO
       CALL AADVTZ (RM,RMOM,MA,MFLX,QLIMIT)
 CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
-!$OMP  PARALLEL DO PRIVATE(L)
        DO L=1,LM
           mflx(:,:,l)=pu(:,:,l)*(.5*dt)
        ENDDO
-!$OMP  END PARALLEL DO
       CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
 C****
 C**** convert from mass to concentration units
 C****
-!$OMP  PARALLEL DO PRIVATE(I,J,L,BYMA)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
@@ -213,7 +198,6 @@ C****
       enddo
       enddo
       enddo
-!$OMP  END PARALLEL DO
       RETURN
       END
 
@@ -234,7 +218,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
@@ -256,10 +241,6 @@ c**** Get useful local parameters for domain decomposition
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 c**** loop over layers and latitudes
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(J,L,AM,F_I,FMOM_I,IERR,NERR,
-!$OMP*             I,IP1,NS,NSTEP,BYNSTEP,COURMAX,MASS_I)
-!$OMP* SHARED(IM,QLIMIT,XSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
       do j=J_0S,J_1S
 c****
@@ -324,17 +305,14 @@ CCC   fqu(:,j)  = fqu(:,j) + f_i(:)
       enddo ! ns
       enddo ! j
       enddo ! l
-!$OMP  END PARALLEL DO
 c
 c     now sum into fqu
 c
-!$OMP  PARALLEL DO PRIVATE(J,L)
       do j=J_0S,J_1S
       do l=1,lm
          fqu(:,j)  = fqu(:,j) + hfqu(:,j,l)
       enddo ! j
       enddo ! l
-!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvtx',11)
 C
@@ -359,7 +337,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, get, halo_update
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : get, halo_update
       use DOMAIN_DECOMP_1D, only : halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
@@ -394,9 +373,6 @@ c****Get relevant local distributed parameters
 c**** loop over layers
       ICKERR=0
       fqv = 0
-!$OMP  PARALLEL DO PRIVATE(I,L)
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 
 c**** scale polar boxes to their full extent
@@ -438,7 +414,6 @@ c**** POLES
         rmom(ihmoms,:,jm,l) = 0.
       END IF
       end do
-!$OMP END PARALLEL DO
 
 c****
 c**** call 1-d advection routine
@@ -461,9 +436,6 @@ ccc         call stop_model('Error in qlimit: abs(b) > 1',11)
         IF (HAVE_NORTH_POLE) rmom(ihmoms,:,jm,:) = 0.
 
 
-!$OMP  PARALLEL DO PRIVATE(I,L)
-!$OMP* SHARED(JM,QLIMIT,YSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do l=1,lm
 
 c**** average and unscale polar boxes
@@ -486,17 +458,14 @@ c**** average and unscale polar boxes
       end if  !NORTH POLE
 
       enddo ! end loop over levels
-!$OMP  END PARALLEL DO
 c
 c     sum into fqv
 c
-!$OMP  PARALLEL DO PRIVATE(J,L)
       do j=J_0,J_1
         do l=1,lm
           fqv(:,j)  = fqv(:,j) + f_j(:,j,l)
         enddo                   ! l
       enddo                     ! j
-!$OMP  END PARALLEL DO
       if (HAVE_NORTH_POLE) fqv(:,jm) = 0. ! not really needed
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in aadvty',11)
@@ -523,7 +492,8 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -541,10 +511,6 @@ c**** Get useful local parameters for domain decomposition
       CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
 c**** loop over latitudes and longitudes
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(I,J,CM,F_L,FMOM_L,IERR,NERR,
-!$OMP* NSTEP,COURMAX,BYNSTEP,MASS_L,NS,L)
-!$OMP* SHARED(LM,QLIMIT,ZSTRIDE)
-!$OMP* REDUCTION(+:ICKERR)
       do j=J_0,J_1
       do i=1,im
 c****
@@ -603,7 +569,6 @@ ccc       call stop_model('Error in qlimit: abs(c) > 1',11)
       enddo ! ns
       enddo ! i
       enddo ! j
-!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0) call stop_model('Stopped in aadvtz',11)
       return

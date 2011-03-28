@@ -3,8 +3,7 @@
       MODULE FLUXES
 !@sum  FLUXES contains the fluxes between various atm-grid components
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
 #ifdef TRACERS_ON
@@ -14,6 +13,16 @@
 #endif
 #endif
       IMPLICIT NONE
+
+!@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
+      INTEGER :: NIsurf = 2
+
+!@var Fxx fraction of gridbox of type xx (land,ocean,...)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAND
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FOCEAN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
 !@var RUNOSI run off from sea/lake ice after surface (kg/m^2)
 !@var ERUNOSI energy of run off from sea/lake ice after surface (J/m^2)
@@ -49,6 +58,10 @@ C**** surface energy fluxes defined over type
 !@+   SOLAR(2)  absorbed by ice
 !@+   SOLAR(3)  absorbed by water under the ice
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SOLAR
+
+!@dbparam UOdrag parameter that decides whether ocean.ice velocities
+!@+   feed into drag calculation in surface (default = 0)
+      INTEGER :: UOdrag = 0
 
 C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere for each type (kg/m s) 
@@ -235,9 +248,10 @@ C**** fluxes associated with variable lake fractions
       SUBROUTINE ALLOC_FLUXES(grd_dum)
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
-!@ver  1.0
+      USE FILEMANAGER
       USE CONSTANT, only : tf
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,READT_PARALLEL,HALO_UPDATE
+     &     ,HASSOUTHPOLE,HASNORTHPOLE
       USE FLUXES
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
@@ -248,14 +262,74 @@ C**** fluxes associated with variable lake fractions
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
-
+      INTEGER :: iu_TOPO
       INTEGER :: I_0H, I_1H, J_1H, J_0H
+      INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
 
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
+
+      I_0 = grd_dum%I_STRT
+      I_1 = grd_dum%I_STOP
+      J_0 = grd_dum%J_STRT
+      J_1 = grd_dum%J_STOP
+
+      ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      ALLOCATE(FEARTH0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      ALLOCATE(FLAKE0(I_0H:I_1H,J_0H:J_1H), STAT = IER)
+
+C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
+C**** Note that FLAKE0 is read in only to provide initial values
+C**** Actual array is set from restart file.
+      call openunit("TOPO",iu_TOPO,.true.,.true.)
+
+      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
+      CALL HALO_UPDATE(GRD_DUM, FOCEAN)
+
+      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
+      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
+      CALL HALO_UPDATE(GRD_DUM, FEARTH0)
+
+      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
+
+C**** Deal with single -> double precision problems and potential
+C**** ocean/lake inconsistency. Adjust FLAKE0 and FLICE if necessary.
+      DO J=J_0,J_1
+      DO I=I_0,I_1 !IMAXJ(J)
+        IF (FOCEAN(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction if focean>0
+          IF (FLAKE0(I,J).gt.0) THEN
+            WRITE(6,*) "Ocean and lake cannot co-exist in same grid box"
+     *       ,i,j,FOCEAN(I,J),FLAKE0(I,J)
+            FLAKE0(I,J)=0
+          END IF
+        ELSEIF (FLAKE0(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FLAKE0(I,J)  ! for initialization only
+        ELSE
+          FLAND(I,J)=1.              ! for initialization only
+        END IF
+C**** Ensure that no round off error effects land with ice and earth
+        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
+          FLICE(I,J)=FLAND(I,J)
+        END IF
+      END DO
+      END DO
+      CALL HALO_UPDATE(GRD_DUM, FLAKE0)
+      CALL HALO_UPDATE(GRD_DUM, FLICE)
+      call closeunit(iu_TOPO)
+      If (HASSOUTHPOLE(GRD_DUM)) Then
+         FLAND(2:IM,1)=FLAND(1,1)
+         FLICE(2:IM,1)=FLICE(1,1)
+      End If
+      If (HASNORTHPOLE(GRD_DUM)) Then
+         FLAND(2:IM,JM)=FLAND(1,JM)
+         FLICE(2:IM,JM)=FLICE(1,JM)
+      End If
 
       !I-J arrays
       ALLOCATE( RUNOSI  ( I_0H:I_1H , J_0H:J_1H ), 

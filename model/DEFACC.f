@@ -52,7 +52,9 @@ c#endif
 !@auth G. Schmidt/M. Kelley
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
      &     ,radian,radius
-      use MODEL_COM, only : jm,lm,ls1,dtsrc,sige,kocean,qcheck
+      USE RESOLUTION, only : ls1
+      use MODEL_COM, only : dtsrc,kocean,qcheck
+      use DYNAMICS, only : sige
       use DIAG_COM
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
@@ -1094,10 +1096,12 @@ c
       use MODEL_COM
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use fluxes, only : nisurf
 #ifdef NEW_IO
       use cdl_mod
 #endif
       use geom
+      use dynamics, only : do_gwdrag,ido_gwdrag
       implicit none
       integer :: i,k,kk,k1,l,n
       character(len=16) :: ijstr
@@ -4901,8 +4905,12 @@ c
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
      &     ,bymrat
-      use MODEL_COM, only : fim,dtsrc,nidyn,qcheck,psfmpt,do_gwdrag
+      use MODEL_COM, only : dtsrc,qcheck
+      use DYNAMICS, only : nidyn,do_gwdrag
       use DIAG_COM
+#ifdef CUBED_SPHERE
+      use GCDIAG, only : fim
+#endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
@@ -6287,9 +6295,9 @@ c
       subroutine diurn_defs
 !@sum  diurn_defs definitions for diurnal diagnostic accumulated arrays
 !@auth G. Schmidt
-!@ver  1.0
       use CONSTANT, only : sha,rgas,twopi,sday,grav
-      use MODEL_COM, only : dtsrc,nisurf,qcheck,lm
+      use MODEL_COM, only : dtsrc,qcheck
+      use FLUXES, only : nisurf
       use DIAG_COM
       use SOCPBL, only : npbl=>n
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT

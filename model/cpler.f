@@ -70,7 +70,6 @@ c
       real*8, intent(in)  :: flda(iia,jja)
       real*8, intent(out) :: fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -81,7 +80,6 @@ c
      .                        *wlista2o_s(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine ssta2o
@@ -98,7 +96,6 @@ c
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -107,7 +104,6 @@ c
  17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
      .                                              *wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO             
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
@@ -123,7 +119,6 @@ c
       integer n,ia,ja
       real*8 flda(iia,jja),fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -132,7 +127,6 @@ c
  17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
      .                                              *wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO             
 c
       return
       end subroutine ssto2a_global
@@ -161,7 +155,6 @@ c
       if(am_i_root()) then
 c
 c --- mapping tauxa/tauya to ogcm grid
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -174,17 +167,14 @@ c
  7    sward(i,j)=sward(i,j)-tauya(itaua2o(i,j,n),jtaua2o(i,j,n))
      .                                          *wtaua2o(i,j,n)
  6    continue
-c$OMP END PARALLEL DO
 c
 c --- rotate sward/eward to fit onto Panam grid
-c$OMP PARALLEL DO
       do 9 j=1,jj
       do 9 l=1,isp(j)           
       do 9 i=ifp(j,l),ilp(j,l)
       tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
       tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
  9    continue
-c$OMP END PARALLEL DO           
       endif ! am_i_root
       call unpack_data(ogrid,tauxo,tauxo_loc)
       call unpack_data(ogrid,tauyo,tauyo_loc)
@@ -206,7 +196,6 @@ c
       call pack_data(agrid,flda_loc,flda)
 c
       if(am_i_root()) then
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -217,7 +206,6 @@ c
      .                        *wlista2o(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
       endif ! am_i_root
 c
       call unpack_data(ogrid,fldo,fldo_loc)
@@ -234,7 +222,6 @@ c
       real*8, intent(in)  :: flda(iia,jja)
       real*8, intent(out) :: fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -245,7 +232,6 @@ c
      .                        *wlista2o(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine flxa2o_global
@@ -259,7 +245,6 @@ c
       real*8, intent(out) :: flda(iia,jja)
       integer n,ia,ja
 c
-c$OMP PARALLEL DO
       do 8 ja=1,jja
       do 8 ia=1,iia
       flda(ia,ja)=0.
@@ -269,7 +254,6 @@ c
      . fldo(ilisto2a_f(ia,ja,n),jlisto2a_f(ia,ja,n))*wlisto2a_f(ia,ja,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine flxo2a
@@ -297,16 +281,13 @@ c
       call pack_data(ogrid,tauyo_loc,tauyo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 10 j=1,jj
       do 10 i=1,ii
       nward(i,j)=0.
  10   eward(i,j)=0.
-c$OMP END PARALLEL DO
 c
 c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
 c --- check velocity bounds
-c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
@@ -319,11 +300,9 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
       endif
  12   continue
-c$OMP END PARALLEL DO           
 c
 c --- weights are for mapping nward/eward from ogcm to agcm, both on A grid
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       tauxa(ia,ja)=0.
@@ -335,7 +314,6 @@ c
  17   tauya(ia,ja)=tauya(ia,ja)+nward(ilisto2a(ia,ja,n)
      .            ,jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO
 c
       endif ! am_i_root
       call unpack_data(agrid,tauxa,tauxa_loc)
@@ -358,7 +336,6 @@ c
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -368,7 +345,6 @@ c
      .    +273.16d0)**4*wlisto2a(ia,ja,n)
       flda(ia,ja)=sqrt(sqrt(flda(ia,ja)))       ! Kelvin for radiation
  16   continue
-c$OMP END PARALLEL DO             
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
@@ -595,7 +571,6 @@ c
       if(am_i_root()) then
 c
 c --- mapping B-grid tauxi/tauyi to A-grid ogcm
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -608,17 +583,14 @@ c
  7    sward(i,j)=sward(i,j)-tauyi(ilisti2o(i,j,n),jlisti2o(i,j,n))
      .                                           *wlisti2o(i,j,n)
  6    continue
-c$OMP END PARALLEL DO
 c
 c --- rotate sward/eward to fit onto Panam grid
-c$OMP PARALLEL DO
       do 9 j=1,jj
       do 9 l=1,isp(j)           
       do 9 i=ifp(j,l),ilp(j,l)
       tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
       tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
  9    continue
-c$OMP END PARALLEL DO           
       endif ! am_i_root
       call unpack_data(ogrid,tauxo,tauxo_loc)
       call unpack_data(ogrid,tauyo,tauyo_loc)
@@ -656,7 +628,6 @@ c
       eward(:,:)=0.
 c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
 c --- check velocity bounds
-c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
@@ -669,11 +640,9 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
       endif
  12   continue
-c$OMP END PARALLEL DO           
 c
 c --- mapping nward/eward from A-grid ogcm to B-grid ice model
 c
-c$OMP PARALLEL DO
       do 16 j=1,jji
       do 16 i=1,iii
       tauxi(i,j)=0.
@@ -685,7 +654,6 @@ c
  17   tauyi(i,j)=tauyi(i,j)+nward(ilisto2i(i,j,n)
      .          ,jlisto2i(i,j,n))*wlisto2i(i,j,n)
  16   continue
-c$OMP END PARALLEL DO
 c
       endif ! am_i_root
       if(igrid%have_domain) then
@@ -721,7 +689,6 @@ c
       if(am_i_root()) then
 c
 c --- mapping B-grid fldi to A-grid ogcm
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -731,7 +698,6 @@ c$OMP PARALLEL DO
      .                                          *wlisti2o(i,j,n)
       enddo
  6    continue
-c$OMP END PARALLEL DO
       endif ! am_i_root
       call unpack_data(ogrid,fldo,fldo_loc)
       if(am_i_root()) then

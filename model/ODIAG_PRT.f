@@ -12,7 +12,6 @@
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
 C**** Note this is an incorporation and modification of the stand alone
 C**** ocean diagnostic programs from Gary. All diagnostics are on the
 C**** ocean grid.
@@ -110,7 +109,6 @@ C****
       SUBROUTINE OIJOUT
 !@sum  OIJOUT prints out lat-lon diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef,teeny,rhows
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
@@ -935,7 +933,6 @@ C****
       SUBROUTINE OSFOUT
 !@sum  OSFOUT prints out streamfunction diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
@@ -1044,7 +1041,6 @@ C****
       SUBROUTINE STROUT
 !@sum  STROUT prints out strait diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
@@ -1157,7 +1153,6 @@ C****
       SUBROUTINE STRMJL (OIJL,FAC,OLNST,FACST,SF)
 !@sum  STRMJL calculates the latitude by layer stream function
 !@auth G. Russell/G. Schmidt
-!@ver  1.0 (from OSFJL064)
 C****
 C**** Input:
 !@var OIJL  = west-east and south-north tracer fluxes (kg/s)
@@ -1252,7 +1247,6 @@ C****
       SUBROUTINE OBASIN
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
 !@auth G. Russell
-!@ver  1.0
       USE OCEAN, only : IM,JM,focean
       USE ODIAG, only : kbasin
       USE FILEMANAGER

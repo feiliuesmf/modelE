@@ -6,7 +6,6 @@
       MODULE SEAICE
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
-!@ver  1.0
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
      *     ,rhows
@@ -84,7 +83,6 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
      &     WETSNOW)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
-!@ver  1.0
       IMPLICIT NONE
 !@param SNOMAX maximum allowed snowdepth (1m equivalent) (kg/m^2)
 !@param dSNdRN rate of conversion of snow to ice as a function of rain
@@ -328,7 +326,6 @@ C**** Diagnostics for output
      *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
-!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: dSNdML =0.
@@ -631,7 +628,6 @@ C****
      *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, PARAMETER, DIMENSION(LMI) :: YSI =
@@ -1021,7 +1017,6 @@ C****
      &     MFLUX,HFLUX,SFLUX)
 !@sum  SSIDEC decays salinity in sea ice
 !@auth Jiping Liu
-!@ver  1.0
       IMPLICIT NONE
 
 !@var HSIL enthalpy of ice layers (J/m^2)
@@ -1214,7 +1209,6 @@ C****
      &     mflux,sflux,hflux)
 !@sum  iceocean calculates fluxes at base of sea ice
 !@auth Gavin Schmidt
-!@ver  1.0
 !@usage At the ice-ocean interface the following equations hold:
 !@+                                              Tb = -mu Sb         (1)
 !@+ -lam_i(Ti,Si)(Ti-Tb)/dh + rho_m shw g_T (Tb-Tm) = -m Lh(Tib,Sib)
@@ -1414,7 +1408,6 @@ C****
      &     mflux,hflux)
 !@sum  icelake calculates fluxes at base of lake ice (no salinity)
 !@auth Gavin Schmidt
-!@ver  1.0
 !@usage At the ice-lake interface the following equations hold:
 !@+   interface is at freezing point (Tb=0.)   (1)
 !@+   -lam_i Ti/dh - rho_m shw g_T Tm = -m Lh(Tib) + m shw Tib   (2)
@@ -2232,8 +2225,7 @@ c        Em= 0.
       MODULE SEAICE_COM
 !@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -2269,10 +2261,9 @@ C**** albedo calculations
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_ATM, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM
+      USE RESOLUTION, ONLY : IM, JM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
 #endif
@@ -2327,10 +2318,10 @@ C**** albedo calculations
       SUBROUTINE io_seaice(kunit,iaction,ioerr)
 !@sum  io_seaice reads and writes seaice variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only :  UNPACK_BLOCK
@@ -2425,6 +2416,19 @@ C**** albedo calculations
       END SUBROUTINE io_seaice
 
 #ifdef NEW_IO
+      subroutine read_seaice_ic
+!@sum   read_seaice_ic read sea ice initial conditions file.
+      use model_com, only : ioread
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_seaice (fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_seaice_ic
+
       subroutine def_rsf_seaice(fid)
 !@sum  def_rsf_seaice defines seaice array structure in restart files
 !@auth M. Kelley
@@ -2503,7 +2507,6 @@ C**** albedo calculations
       SUBROUTINE CHECKI(SUBR)
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER

@@ -11,7 +11,6 @@ c --- hycom version 0.9.2
       implicit none
 c
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,itest,jtest
-      common/testpt/itest,jtest
       real flxu(kdm),flxl(kdm),pdot(kdm),flngth(kdm),clip(kdm),
      .     ennsq,alfa,beta,q,qmin,qmax,amount,salt,froglp,small,delp,
      .     trflxu(0:kdm+1,ntrcr),trflxl(0:kdm+1,ntrcr),cliptr(ntrcr),
@@ -37,11 +36,6 @@ c --- if mixfrq > 1, apply mixing algorithm to both time levels
 c
 ccc   salt=0.
 c 
-c$OMP PARALLEL DO PRIVATE(kn,q,ennsq,alfa,beta,totem,tosal,totra,sold,
-c$OMP. told,trold,tflxl,tflxu,sflxl,sflxu,trflxl,trflxu,kmin,kmax,
-c$OMP. flngth,flxu,flxl,pdot,clipt,clips,cliptr,ka,kan,delp,amount,
-c$OMP. qmax,qmin,tndcyt,tndcys,tndtra,scale,clip,event,vrbos)
-c$OMP. SCHEDULE(STATIC,jchunk)
       do 31 j=J_0, J_1
       do 31 l=1,isp(j)
       do 31 i=ifp(j,l),ilp(j,l)
@@ -349,7 +343,6 @@ c
      .   dp(i,j,k+nn)/onem,tracer(i,j,k,1),k=1,kk)
 c
  31   continue
-c$OMP END PARALLEL DO
 c
 ccc   write (lp,'(i9,7x,1p,e9.2,a)') nstep,salt*1.e-6/g,
 ccc  .  ' kg salt added in diapfl'

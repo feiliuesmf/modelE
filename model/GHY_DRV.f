@@ -97,7 +97,7 @@ ccc extra stuff which was present in "earth" by default
       use ghy_com, only : ngm,nlsn
       use constant, only : rhow
 #endif
-      use dynamics, only : byam
+      use atm_com, only : byam
       use geom, only : byaxyp
 
       implicit none
@@ -111,9 +111,6 @@ ccc extra stuff which was present in "earth" by default
       real*8 totflux(ntm)
       integer ntx,ntix(ntm)
       integer, parameter :: itype=4
-
-      common /ghy_tracers_tp/ totflux
-!$OMP  THREADPRIVATE (/ghy_tracers_tp/)
 
       contains
 
@@ -204,10 +201,10 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : By3,sday
-      USE model_com,ONLY : jday,jmon,wfcs
+      USE model_com,ONLY : jday,jmon
       USE clouds_com,ONLY : ddml,fss
       USE geom,ONLY : axyp
-      USE ghy_com,ONLY : snowe,wearth,aiearth
+      USE ghy_com,ONLY : snowe,wearth,aiearth,wfcs
       use tracers_dust,only : nAerocomDust,d_dust,ers_data,hbaij,ricntd
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -370,7 +367,8 @@ c**** prescribed dust emission
 #endif
      &     )
 !@sum tracers code to be called after the i,j cell is processed
-      use model_com, only : itime,qcheck,nisurf
+      use model_com, only : itime,qcheck
+      use fluxes, only : nisurf
       use pbl_drv, only : t_pbl_args
       use ghy_com, only : tearth
       use somtq_com, only : mz
@@ -787,7 +785,7 @@ c***********************************************************************
 !@sum soil_drv contains variables and routines for the ground
 !@+   hydrology driver
 !@auth I. Alienov/F. Abramopolous
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       use socpbl, only : npbl=>n
 #ifndef USE_ENT
       use veg_drv, only : cosday,sinday
@@ -865,9 +863,10 @@ c***********************************************************************
 c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx,gasc,stbo
-      use model_com, only : t,p,q,dtsrc,nisurf,dsig,jdate
-     *     ,jday,jhour,nday,itime,u,v
-     *     ,im,jm
+      use resolution, only : im,jm
+      use atm_com, only : t,p,q,u,v
+      use model_com, only : dtsrc,jdate
+     *     ,jday,jhour,nday,itime
      &     ,Jyear,Jmon,Jday,Jdate,Jhour
 #ifdef SCM
       use model_com, only : I_TARG,J_TARG,NSTEPSCM
@@ -877,7 +876,7 @@ c****
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       use geom, only : imaxj,lat2d
-      use dynamics, only : pmid,pk,pek,pedn,am
+      use atm_com, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1,trsurf
 #ifdef USE_ENT
      &     ,FSRDIR, SRVISSURF,CO2X, CO2ppm
@@ -899,7 +898,7 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp,precss,gtempr,bare_soil_wetness
+     *     ,runoe,erunoe,gtemp,precss,gtempr,bare_soil_wetness,nisurf
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     snowe,tearth,tsns_ij,wearth,aiearth,
@@ -925,7 +924,7 @@ c****
       use tracer_com, only : ntm,trm
       use fluxes, only : gtracer,trevapor,trsrfflx
       use geom, only : axyp
-      use dynamics, only : am
+      use atm_com, only : am
       use pblcom, only : qabl,trabl
 #endif
 #ifdef USE_ENT
@@ -1105,35 +1104,6 @@ c****
 !      call update_vegetation_data( entcells,
 !     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 #endif
-
-c$$$!$OMP  PARALLEL DO DEFAULT(NONE) PRIVATE
-c$$$!$OMP*  (ELHX,EVHDT, CDM,CDH,CDQ,
-c$$$!$OMP*   I,ITYPE,ibv, J, MA1,PIJ,PSK,PS,P1K,PTYPE, QG,
-c$$$!$OMP*   QG_NSAT, RHOSRF,RHOSRF0,RCDMWS,RCDHWS,SRHEAT,SHDT,dlwdt,
-c$$$!$OMP*   TRHEAT, TH1,TFS,THV1,TG1,TG,q1,pbl_args,qg_sat,jr,kr,tmp,
-c$$$!$OMP*   fb,fv,ts,qs, ghy_tr, irrig, htirrig
-c$$$#ifndef USE_ENT
-c$$$!$OMP*   ,vegcell
-c$$$#else
-c$$$!$OMP&   ,Ca, vis_rad, direct_vis_rad, cos_zen_angle
-c$$$#endif
-c$$$#ifdef TRACERS_DUST
-c$$$!$OMP*   ,n,n1
-c$$$#endif
-c$$$!$OMP*   )
-c$$$!$OMP*   SHARED(ns,moddsf,moddd,
-c$$$!$OMP&     J_0,J_1,I_0,imaxj, dtsrc,nisurf,lat2d,fearth,p,pedn,
-c$$$!$OMP&     pk, pek, t, q, am, tsns_ij, fsf, cosz1, pmid, qg_ij, TRHR,
-c$$$!$OMP&     gtempr,evap_max_ij, fr_sat_ij, CO2X,CO2ppm,vegCO2X_off,
-c$$$!$OMP&     SRVISSURF, entcells, Qf_ij, w_ij, ht_ij, nsn_ij,
-c$$$!$OMP&     fr_snow_ij, top_index_ij, top_dev_ij, dz_ij, q_ij, qk_ij,
-c$$$!$OMP&     sl_ij, prec, eprec, precss, end_of_day_flag,
-c$$$!$OMP&     snowbv, canopy_temp_ij, snow_cover_same_as_rad,e1,
-c$$$!$OMP&     FSRDIR, dzsn_ij, wsn_ij,hsn_ij, fr_snow_rad_ij, snowe,
-c$$$!$OMP&     tearth, wearth, aiearth, gtemp, soil_surf_moist,
-c$$$!$OMP&     bare_soil_wetness, uflux1, vflux1, evapor,dth1, dq1,
-c$$$!$OMP&     runoe, erunoe,e0, idx, idxd, TRSURF)
-c$$$!$OMP*   SCHEDULE(DYNAMIC,2)
 
       !call ent_cell_print(900+counter, entcells)
 
@@ -1616,7 +1586,6 @@ c another surface type
 
       end do loop_i
       end do loop_j
-c$$$!$OMP  END PARALLEL DO
 
 
       ! land water deficit for changing lake fractions
@@ -1655,7 +1624,7 @@ c***********************************************************************
 #endif
      &     )
 
-      use diag_com , only : aij=>aij_loc,adiurn=>adiurn_loc
+      use diag_com , only : itearth,aij=>aij_loc,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
      &     ,hdiurn=>hdiurn_loc
 #endif
@@ -1690,8 +1659,8 @@ c***********************************************************************
 #ifdef TRACERS_DUST
      &     ,grav
 #endif
-      use model_com, only : dtsrc,nisurf,jdate
-     *     ,jday,jhour,nday,itime,itearth
+      use fluxes, only : nisurf
+      use model_com, only : dtsrc,jdate,jday,jhour,nday,itime
 #ifdef SCM
       use model_com, only : I_TARG,J_TARG
       use SCMDIAG, only : EVPFLX,SHFLX
@@ -2110,7 +2079,7 @@ c**** modifications needed for split of bare soils into 2 types
       use Dictionary_mod, only : sync_param, get_param
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
-      use model_com, only : focean
+      use fluxes, only : focean
 #ifdef SCM
       use model_com, only : I_TARG,J_TARG
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -2271,7 +2240,8 @@ c**** check whether ground hydrology data exist at this point.
 
       subroutine init_veg( istart, redogh )
       use constant, only : twopi,edpery
-      use model_com, only : itime,nday,jyear,focean
+      use model_com, only : itime,nday,jyear
+      use fluxes, only : focean
 #ifdef USE_ENT
       use ent_drv, only : init_module_ent
 #else
@@ -2307,13 +2277,13 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use Dictionary_mod, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
-      use model_com, only : focean, flice, itime
+      use model_com, only : itime
 #ifdef SCM
       use model_com, only : I_TARG,J_TARG
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
-      use dynamics, only : pedn
-      use fluxes, only : gtemp,gtempr
+      use atm_com, only : pedn
+      use fluxes, only : gtemp,gtempr,focean, flice
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod
@@ -3454,13 +3424,12 @@ cddd      end subroutine retp2
       subroutine checke(subr)
 !@sum  checke checks whether arrays are reasonable over earth
 !@auth original development team
-!@ver  1.0
-      use model_com, only : itime,wfcs
+      use model_com, only : itime
       use geom, only : imaxj
       use constant, only : rhow
       !use veg_com, only : afb
       use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
-     *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC
+     *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC,wfcs
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -3635,11 +3604,10 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       subroutine daily_earth(end_of_day)
 !@sum  daily_earth performs daily tasks for earth related functions
 !@auth original development team
-!@ver  1.0
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
-      use model_com, only : nday,nisurf,jday,jyear,wfcs,focean
-      use fluxes, only : bare_soil_wetness
+      use model_com, only : nday,jday,jyear
+      use fluxes, only : nisurf,bare_soil_wetness,focean
 #ifndef USE_ENT
       use veg_com, only : vdata                 !nyk
 #endif
@@ -3648,7 +3616,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe,ij_tmaxc
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : snoage, snoage_def,fearth, wsn_max,
-     &     q_ij,dz_ij,ngm,w_ij
+     &     q_ij,dz_ij,ngm,w_ij,wfcs
 #ifdef USE_ENT
      &     ,aalbveg
 #else
@@ -3882,15 +3850,13 @@ c****
       subroutine ground_e
 !@sum  ground_e driver for applying surface fluxes to land fraction
 !@auth original development team
-!@ver  1.0
-      use model_com, only : itearth
       use geom, only : imaxj,axyp
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
      *     fearth
       !use veg_com, only : afb
-      use diag_com, only : aij=>aij_loc
+      use diag_com, only : itearth,aij=>aij_loc
      *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_evap,j_type
      *     ,j_rsnow,ij_evap,ij_f0e,ij_evape,ij_gwtr,ij_tg1,ij_rsnw
      *     ,ij_rsit,ij_snow,ij_gice, ij_gwtr1,ij_zsnow
@@ -3995,7 +3961,7 @@ c****
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use Dictionary_mod, only : sync_param, get_param
       use PBLCOM, only : roughl
-      use model_com, only : focean, flice
+      use fluxes, only : focean, flice
       use ghy_com, only : top_dev_ij
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -4096,10 +4062,10 @@ c**** hack to reset roughl for non-standard land ice fractions
       subroutine accumulate_excess_C(flag)
 !@sum accumulate the increment of total carbon stored by LSM
 !@auth I. ALeinov
-!@ver  1.0
 #ifdef USE_ENT
       use constant, only : rhow
-      use model_com, only : im, focean, jm, flice
+      use fluxes, only : focean
+      use resolution, only : im,jm
       use geom, only : imaxj,AXYP
       use ghy_com, only : ngm
       use ent_com, only : entcells, excess_C
@@ -4158,9 +4124,9 @@ cddd      counter = counter + 1
       subroutine conserv_wtg(waterg)
 !@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
-!@ver  1.0
       use constant, only : rhow
-      use model_com, only : im, focean, jm, flice
+      use fluxes, only : focean, flice
+      use resolution, only : im,jm
       use geom, only : imaxj,AXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
@@ -4218,9 +4184,9 @@ c****
       subroutine conserv_wtg_1(waterg,fearth,flake)
 !@sum  conserv_wtg calculates ground water incl snow
 !@auth Gavin Schmidt
-!@ver  1.0
       use constant, only : rhow
-      use model_com, only : focean, im, jm
+      use resolution, only : im,jm
+      use fluxes, only : focean
       use geom, only : imaxj
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
@@ -4280,8 +4246,8 @@ c****
       subroutine conserv_htg(heatg)
 !@sum  conserv_htg calculates ground energy incl. snow energy
 !@auth Gavin Schmidt
-!@ver  1.0
-      use model_com, only : im, focean, jm, flice
+      use fluxes, only : focean, flice
+      use resolution, only : im,jm
       use geom, only : imaxj, axyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
@@ -4337,7 +4303,7 @@ ccc debugging program: cam be put at the beginning and at the end
 ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
@@ -4418,7 +4384,7 @@ ccc just checking ...
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
      &     ,w_ij,fearth
       !use veg_com, only : ala !,afb
-      use model_com, only : focean
+      use fluxes, only : focean
       use sle001, only : thm
       use fluxes, only : DMWLDF
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
@@ -4506,9 +4472,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
 #else
       use veg_com, only : ala !,afb
 #endif
-      use model_com, only : focean
       use sle001, only : thm
-      use fluxes, only : DMWLDF
+      use fluxes, only : focean,DMWLDF
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
@@ -4711,10 +4676,9 @@ cddd      sinday=sin(twopi/edpery*jday)
       use TRACER_COM, only : ntm
 #endif
       !use veg_com, only : ala !,afb
-      use model_com, only : focean,im
       use LAKES_COM, only : flake, svflake
       use sle001, only : thm
-      use fluxes, only : DMWLDF, DGML
+      use fluxes, only : focean,DMWLDF, DGML
 #ifdef TRACERS_WATER
      &     ,DTRL
 #endif
@@ -5002,7 +4966,7 @@ c**** Also reset snow fraction for albedo computation
       !use veg_com, only : afb
       use sle001, only : thm
       use LAKES_COM, only : flake, svflake
-      use dynamics, only : pedn
+      use atm_com, only : pedn
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
@@ -5121,8 +5085,7 @@ c**** wearth+aiearth are used in radiation only
      &     ,TRDWNIMP
 #endif
       use GEOM, only : AXYP
-      use MODEL_COM, only : ITEARTH
-      Use DIAG_COM, Only: AIJ=>AIJ_LOC, J_IMPLM,J_IMPLH,
+      Use DIAG_COM, Only: ITEARTH,AIJ=>AIJ_LOC, J_IMPLM,J_IMPLH,
      *                    IJ_IMPMGR,IJ_IMPHGR, JREG
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 

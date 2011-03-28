@@ -5,28 +5,27 @@
 #endif
 !@sum  SEAICE_DRV contains drivers for SEAICE related routines
 !@auth Gavin Schmidt
-!@ver  1.0
 !@cont PRECIP_SI,GROUND_SI
 
-      SUBROUTINE PRECIP_SI
+      SUBROUTINE PRECIP_SI(DOMAIN)
 !@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
 !@auth Original Development team
-!@ver  1.0
 !@calls seaice:prec_si
       USE CONSTANT, only : teeny,grav,tf,bylhm
-      USE MODEL_COM, only : im,jm,fland,itoice,itlkice,focean
-     *     ,p,ptop
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : p
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
-     *     ,gtempr,erunpsi
-
+     *     ,gtempr,erunpsi,fland,focean
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
 #endif
+      USE LAKES_COM, only : flake
       USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
 #ifdef TRACERS_WATER
@@ -35,10 +34,11 @@
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
      *     ,j_hmelt,ij_fwio,ij_htio,ij_stio,ij_sisnwf,ij_sitopmlt
+     &     ,itoice,itlkice
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
-
+      CHARACTER(LEN=5) :: DOMAIN
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0,ERUN0
 #ifdef TRACERS_WATER
@@ -46,40 +46,45 @@
       REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
 #endif
       INTEGER I,J,JR,ITYPE
-      LOGICAL WETSNOW
+      LOGICAL WETSNOW,DOPOINT
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
+      integer :: J_0, J_1, I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      IF(DOMAIN.EQ.'OCEAN') THEN
+        ITYPE=ITOICE
+      ELSEIF(DOMAIN.EQ.'LAKES') THEN
+        ITYPE=ITLKICE
+      ENDIF
+
 C**** Initialize work array
       DO J=J_0, J_1
       DO I=I_0,IMAXJ(J)
-        JR=JREG(I,J)
       POICE=    RSI(I,J) *(1.-FLAND(I,J))
-      RUNPSI(I,J)=0
-      SRUNPSI(I,J)=0
-      ERUNPSI(I,J)=0
+      IF(POICE.EQ.0.) THEN
+        RUNPSI(I,J)=0
+        SRUNPSI(I,J)=0
+        ERUNPSI(I,J)=0
 #ifdef TRACERS_WATER
-      TRUNPSI(:,I,J)=0
+        TRUNPSI(:,I,J)=0
 #endif
-      IF (POICE.gt.0) THEN
-
-        IF (FOCEAN(I,J).gt.0) THEN
-          ITYPE=ITOICE
-        ELSE
-          ITYPE=ITLKICE
-        END IF
+      ENDIF
+      DOPOINT =
+     &     (DOMAIN.EQ.'OCEAN' .AND. RSI(I,J)*FOCEAN(I,J).GT.0.)
+     &     .or.
+     &     (DOMAIN.EQ.'LAKES' .AND. RSI(I,J)*FLAKE(I,J) .GT.0.)
+      IF (DOPOINT) THEN
+        JR=JREG(I,J)
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
@@ -171,14 +176,14 @@ C**** Calculate pressure anomaly at surface
 C****
       END SUBROUTINE PRECIP_SI
 
-      SUBROUTINE UNDERICE
+      SUBROUTINE UNDERICE(DOMAIN)
 !@sum  underice calculates basal fluxes under sea and lake ice
 !@+    saves the resulting fluxes
 !@auth Gavin Schmidt
-!@ver  1.0
 !@calls iceocean,icelake
       USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
-      USE MODEL_COM, only : im,jm,focean,dtsrc,qcheck,kocean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,qcheck,kocean
       USE GEOM, only : sinlat2d,imaxj,axyp
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
@@ -190,6 +195,7 @@ C****
      *     ,trsi
 #endif
       USE FLUXES, only : fmsi_io,fhsi_io,fssi_io,ui2rho,gtemp,sss,mlhc
+     &     ,focean
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,gtracer
 #endif
@@ -202,9 +208,11 @@ C****
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
+      CHARACTER(LEN=5) :: DOMAIN
       INTEGER I,J
+      LOGICAL :: DOPOINT
       REAL*8 coriol,ustar,Tm,Sm,Si,Tic,dh,mflux,hflux,sflux,fluxlim
-     *     ,mlsh   !,mfluxmax
+     *     ,mlsh,icefrac   !,mfluxmax
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: Trm,Tri,trflux,tralpha
 #ifdef TRACERS_SPECIAL_O18
@@ -226,7 +234,20 @@ C****
 C**** Coriolis parameter (on tracer grid)
         DO I=I_0,IMAXJ(J)
           coriol = ABS(2.*OMEGA*SINLAT2D(I,J))
-          IF ((FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
+          icefrac = (FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J)
+          if(icefrac.eq.0.) then
+            FMSI_IO(I,J) = 0.
+            FHSI_IO(I,J) = 0.
+            FSSI_IO(I,J) = 0.
+#ifdef TRACERS_WATER
+            FTRSI_IO(:,I,J)=0.
+#endif
+          endif
+          DOPOINT =
+     &         (DOMAIN.EQ.'OCEAN' .AND. RSI(I,J)*FOCEAN(I,J).GT.0.)
+     &         .or.
+     &         (DOMAIN.EQ.'LAKES' .AND. RSI(I,J)*FLAKE(I,J) .GT.0.)
+          IF (DOPOINT) THEN
 C**** Set mixed layer conditions
             Tm = GTEMP(1,1,I,J)
 #ifdef TRACERS_WATER
@@ -296,13 +317,6 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
 #ifdef TRACERS_WATER
             FTRSI_IO(:,I,J)=trflux(:)*dtsrc
 #endif
-          ELSE
-            FMSI_IO(I,J) = 0.
-            FHSI_IO(I,J) = 0.
-            FSSI_IO(I,J) = 0.
-#ifdef TRACERS_WATER
-            FTRSI_IO(:,I,J)=0.
-#endif
           END IF
         END DO
       END DO
@@ -312,14 +326,13 @@ C****
       RETURN
       END SUBROUTINE UNDERICE
 
-      SUBROUTINE MELT_SI
+      SUBROUTINE MELT_SI(DOMAIN)
 !@sum  MELT_SI driver for lateral melt of sea ice
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday,TF
-      USE MODEL_COM, only : im,jm,kocean,focean,itoice,itlkice ! ,itime
-     *     ,itocean,itlake,dtsrc                               ! ,nday
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean,dtsrc
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -327,6 +340,7 @@ C****
       USE GEOM, only : axyp,imaxj
       USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,aij=>aij_loc,
      *     ij_fwio,ij_htio,ij_stio,ij_sigrlt
+     &     ,itoice,itlkice,itocean,itlake
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
 #ifdef TRACERS_WATER
@@ -335,6 +349,7 @@ C****
 #endif
       USE LAKES_COM, only : flake
       USE FLUXES, only : sss,melti,emelti,smelti,gtemp,gtempr,mlhc,fwsim
+     &     ,focean
 #ifdef TRACERS_WATER
      *     ,trmelti,gtracer
 #endif
@@ -343,6 +358,7 @@ C****
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
+      CHARACTER(LEN=5) :: DOMAIN
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
      *     ,PWATER,Tm,DT,ENRGMAX
@@ -350,6 +366,7 @@ C****
       REAL*8, DIMENSION(NTM,LMI) :: TRSIL
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
+      LOGICAL :: DOPOINT
       INTEGER I,J,ITYPE,JR,ITYPEO
       integer :: J_0, J_1 ,I_0,I_1
 
@@ -361,6 +378,35 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      IF(DOMAIN.EQ.'OCEAN') THEN
+        DO J=J_0, J_1
+        DO I=I_0,IMAXJ(J)
+          IF(FOCEAN(I,J).GT.0.) THEN
+            MELTI(I,J) = 0.
+            EMELTI(I,J)= 0.
+            SMELTI(I,J)= 0.
+#ifdef TRACERS_WATER
+            TRMELTI(:,I,J)=0.
+#endif
+          ENDIF
+        END DO
+        END DO
+      ELSEIF(DOMAIN.EQ.'LAKES') THEN
+        DO J=J_0, J_1
+        DO I=I_0,IMAXJ(J)
+c          IF(FLAKE(I,J).GT.0.) THEN
+          IF(FOCEAN(I,J).EQ.0.) THEN ! temporary
+            MELTI(I,J) = 0.
+            EMELTI(I,J)= 0.
+            SMELTI(I,J)= 0.
+#ifdef TRACERS_WATER
+            TRMELTI(:,I,J)=0.
+#endif
+          ENDIF
+        END DO
+        END DO
+      ENDIF
+
 C**** CALCULATE LATERAL MELT (ALSO ELIMINATE SMALL AMOUNTS)
 C**** EVERY PHYSICS TIME STEP
       DT=DTsrc
@@ -368,14 +414,15 @@ C**** EVERY PHYSICS TIME STEP
         DO I=I_0,IMAXJ(J)
           PWATER=FOCEAN(I,J)+FLAKE(I,J)
           POCEAN=FOCEAN(I,J)
-          RUN0=0. ; ENRGUSED=0. ; SALT=0.
-#ifdef TRACERS_WATER
-          TRUN0(:) = 0.
-#endif
+          ROICE=RSI(I,J)
 C**** Call simelt if (lake and v. small ice) or (q-flux ocean, some ice)
 C**** now include lat melt for lakes and any RSI < 1
-          IF ( (RSI(I,J).lt.1. .and. (FLAKE(I,J).gt.0 .and. RSI(I,J).gt
-     *         .0)) .or. (KOCEAN.ge.1.and.POCEAN*RSI(I,J).gt.0) ) THEN
+          DOPOINT = ROICE.GT.0. .AND. (
+     &     (DOMAIN.EQ.'OCEAN' .AND. KOCEAN.GE.1 .AND. FOCEAN(I,J).GT.0.)
+     &     .or.
+     &     (DOMAIN.EQ.'LAKES' .AND. ROICE.LT.1. .AND. FLAKE(I,J).GT.0.)
+     &         )
+          IF(DOPOINT) THEN
             JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
               ITYPE =ITOICE
@@ -387,7 +434,6 @@ C**** now include lat melt for lakes and any RSI < 1
               TFO = 0.
             END IF
             Tm=GTEMP(1,1,I,J)
-            ROICE=RSI(I,J)
             MSI2=MSI(I,J)
             SNOW=SNOWI(I,J)     ! snow mass
             HSIL(:)= HSI(:,I,J) ! sea ice enthalpy
@@ -437,7 +483,6 @@ C****
 #ifdef TRACERS_WATER
             TRSI(:,:,I,J)=TRSIL(:,:)
 #endif
-          END IF
 C**** Save fluxes (in kg, J etc.), positive into ocean
           MELTI(I,J) = RUN0*PWATER*AXYP(I,J)
           EMELTI(I,J)=-ENRGUSED*PWATER*AXYP(I,J)
@@ -445,6 +490,7 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #ifdef TRACERS_WATER
           TRMELTI(:,I,J)=TRUN0(:)*PWATER*AXYP(I,J)
 #endif
+          END IF
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
             GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
@@ -473,17 +519,19 @@ C****
       RETURN
       END SUBROUTINE MELT_SI
 
-      SUBROUTINE GROUND_SI
+      SUBROUTINE GROUND_SI(DOMAIN)
 !@sum  GROUND_SI driver for applying surface + base fluxes to sea ice
 !@auth Gary Russell/Gavin Schmidt
 !@ver  2010/11/12
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow,sday
-      USE MODEL_COM, only : im,jm,dtsrc,fland,focean
-     *     ,itoice,itlkice,p,ptop,jhour,jday
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : p
+      USE MODEL_COM, only : dtsrc,jhour,jday
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
-     *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss
+     *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss,focean
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
@@ -503,19 +551,20 @@ C****
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio,ij_sntosi,ij_tsice
      *     ,ij_sihc,ij_sigrcg,ij_sitopmlt,ij_sibotmlt
      *     ,IJ_MSNFLOOD,IJ_HSNFLOOD
+     &     ,itoice,itlkice
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
-
+      CHARACTER(LEN=5) :: DOMAIN
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,F0DT,F1DT,EVAP,SROX(2)
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
       REAL*8 MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
       REAL*8 MSNWIC,HSNWIC,SSNWIC,SM,TM,Ti1,DSNOW
       INTEGER I,J,JR,ITYPE
-      LOGICAL WETSNOW
+      LOGICAL WETSNOW,DOPOINT
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
@@ -546,16 +595,22 @@ c      debug=i.eq.40.and.j.eq.41
       PWATER=FOCEAN(I,J)+FLAKE(I,J)   ! 1.-FLAND(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
-      JR=JREG(I,J)
-      SOLAR(3,I,J)=0
-      RUNOSI(I,J)=0
-      ERUNOSI(I,J)=0
-      SRUNOSI(I,J)=0
+      IF (POICE.eq.0) THEN
+        SOLAR(3,I,J)=0
+        RUNOSI(I,J)=0
+        ERUNOSI(I,J)=0
+        SRUNOSI(I,J)=0
 #ifdef TRACERS_WATER
-      TRUNOSI(:,I,J) = 0.
+        TRUNOSI(:,I,J) = 0.
 #endif
-      IF (POICE.gt.0) THEN
-
+      ENDIF
+      DOPOINT =
+     &     (DOMAIN.EQ.'OCEAN' .AND. RSI(I,J)*FOCEAN(I,J).GT.0.)
+     &     .or.
+     &     (DOMAIN.EQ.'LAKES' .AND. RSI(I,J)*FLAKE(I,J) .GT.0.)
+      IF(DOPOINT) THEN
+c      IF (POICE.gt.0) THEN
+        JR=JREG(I,J)
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layer (J/m^2)
         EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
@@ -742,14 +797,13 @@ C****
       call stopTimer('GROUND_SI()')
       END SUBROUTINE GROUND_SI
 
-      SUBROUTINE FORM_SI
+      SUBROUTINE FORM_SI(DOMAIN)
 !@sum  FORM_SI driver for adding new sea ice
 !@auth Original Development team
-!@ver  1.0
 !@calls seaice:addice
       USE CONSTANT, only : tf
-      USE MODEL_COM, only : im,jm,focean,kocean,fland
-     *     ,itocean,itoice,itlake,itlkice,itime
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean,itime
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -762,12 +816,13 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,jreg,j_rsi,j_ace1,j_ace2,j_snow
      *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
      *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio,ij_sigrfr,ij_sigrcg
+     &     ,itoice,itlkice,itocean,itlake
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim,gtempr
+      USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim,gtempr,focean
 #ifdef TRACERS_WATER
      *     ,dtrsi,gtracer
 #endif
@@ -775,7 +830,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
-
+      CHARACTER(LEN=5) :: DOMAIN
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 SNOW,ROICE,MSI2,ENRGFO,ACEFO,ACEFI,ENRGFI,SALTO,SALTI
      *     ,POICE,PWATER,FLEAD,POCEAN,DMIMP,DHIMP,DSIMP
@@ -783,7 +838,7 @@ C****
       REAL*8, DIMENSION(NTM,LMI) :: trsil
       REAL*8, DIMENSION(NTM) :: tro,tri,dtrimp
 #endif
-      LOGICAL QFIXR
+      LOGICAL QFIXR,DOPOINT
       INTEGER I,J,JR,ITYPE,ITYPEO,N
 
 C****
@@ -811,9 +866,13 @@ c         debug=i.eq.40.and.j.eq.41
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
       POCEAN=(1.-ROICE)*PWATER
-      JR=JREG(I,J)
-      IF (PWATER.gt.0) THEN
-
+      DOPOINT =
+     &     (DOMAIN.EQ.'OCEAN' .AND. FOCEAN(I,J).GT.0.)
+     &     .or.
+     &     (DOMAIN.EQ.'LAKES' .AND. FLAKE(I,J) .GT.0.)
+      IF(DOPOINT) THEN
+c      IF (PWATER.gt.0) THEN
+        JR=JREG(I,J)
         SNOW= SNOWI(I,J)      ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice enthalpy
@@ -961,6 +1020,7 @@ C**** Save sea ice tracer amount
       END DO
 
 C**** replicate ice values at the poles
+      IF(DOMAIN.EQ.'OCEAN') THEN
       IF (HAVE_NORTH_POLE) THEN
         DO I=2,IM
           RSI(I,JM)=RSI(1,JM)
@@ -993,17 +1053,17 @@ C**** replicate ice values at the poles
           FWSIM(I,1) = FWSIM(1,1)
         END DO
       END IF
+      END IF
 C****
       END SUBROUTINE FORM_SI
 
       SUBROUTINE vflx_OCEAN
 !@sum  vflx_OCEAN saves quantities for OHT calculations
 !@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,focean
+      USE RESOLUTION, only : im,jm
       USE DIAG_COM, only : oa
       USE SEAICE_COM, only : hsi,snowi
-      USE FLUXES, only : fwsim
+      USE FLUXES, only : fwsim,focean
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
@@ -1040,9 +1100,9 @@ C****
       SUBROUTINE init_ice(iniOCEAN,do_IC_fixups)
 !@sum  init_ice initialises ice arrays
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : rhows,tf
-      USE MODEL_COM, only : im,jm,kocean,focean,flake0
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : kocean
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -1053,7 +1113,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,ui2rho,fwsim,msicnv,gtempr
+      USE FLUXES, only : gtemp,ui2rho,fwsim,msicnv,gtempr,focean,flake0
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -1184,8 +1244,8 @@ C****
       SUBROUTINE conserv_OMSI(ICE)
 !@sum  conserv_MSI calculates total amount of snow and ice over ocean
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,focean
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -1220,8 +1280,8 @@ C****
       SUBROUTINE conserv_OHSI(EICE)
 !@sum  conserv_HSI calculates total ice energy over ocean
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,focean
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -1255,8 +1315,8 @@ C****
       SUBROUTINE conserv_OSSI(SALT)
 !@sum  conserv_SSI calculates total amount of salt in ocean ice
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,focean
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,ssi,lmi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -1294,8 +1354,7 @@ C****
       SUBROUTINE conserv_LMSI(ICE)
 !@sum  conserv_LMSI calculates total amount of snow and ice over lakes
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -1331,8 +1390,7 @@ C****
       SUBROUTINE conserv_LHSI(EICE)
 !@sum  conserv_LHSI calculates total ice energy over lakes
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE LAKES_COM, only : flake
@@ -1368,7 +1426,6 @@ C****
 !@sum daily_ice performs ice processes that are needed everyday
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
-      USE MODEL_COM, only : jm
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt, SCM_SURFACE_FLAG,ATSKIN

@@ -354,7 +354,6 @@
       REAL(8) :: A,GAMMCF,GLN,X
       INTEGER :: I
       REAL(8) :: AN,B,C,D,DEL,H
-      REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
       GLN=GAMMLN(A)
       B=X+1.0D+00-A
       C=1.0D+00/FPMIN
@@ -389,7 +388,6 @@
       REAL(8) :: A,GAMSER,GLN,X
       INTEGER :: N
       REAL(8) :: AP,DEL,SUM
-      REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
       GLN=GAMMLN(A)
       IF(X.LE.0.D+00)THEN
         IF(X.LT.0.)STOP 'AERO_ACTV: SUBROUTINE GSER: X < 0 IN GSER'
@@ -445,7 +443,6 @@
 !-----------------------------------------------------------------------------------------------------------------------
       REAL(8) :: X
 !U    USES GAMMP
-      REAL(8) :: GAMMP   ! function names not declared in an f90 module 
       ERF = 0.d0
       IF(X.LT.0.0D+00)THEN
         ERF=-GAMMP(0.5D0,X**2)

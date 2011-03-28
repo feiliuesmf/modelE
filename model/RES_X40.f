@@ -1,12 +1,10 @@
 !@sum  RES_X40 Resolution info for 40 layer, 1x1 model
 !@+    (top at .1 mb, no GWDRAG)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

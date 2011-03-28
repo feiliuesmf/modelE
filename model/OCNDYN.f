@@ -10,10 +10,11 @@ C****
 !@ver  2009/06/30
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : idacc,modd5s,msurf
+      USE MODEL_COM, only : idacc,msurf
 #ifdef TRACERS_OceanBiology
      * ,nstep=>itime
 #endif
+      USE DIAG_COM, only : modd5s
       USE OCEANRES, only : NOCEAN,dZO
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -100,12 +101,10 @@ C****
       Do 500 NO=1,NOCEAN
 
 C**** initialize summed mass fluxes
-!$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         SMU(:,J_0:J_1,L) = 0
         SMV(:,J_0:J_1,L) = 0
         SMW(:,J_0:J_1,L) = 0  ;  EndDo
-!$OMP END PARALLEL DO
 
       CALL OVtoM (MMI,UM0,VM0)
       CALL OPGF0
@@ -169,14 +168,12 @@ C**** Check for end of leap frog time scheme
       IF(NS.GT.1)  GO TO 420
 C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
       if(j_1 == JM) UO(IVNP,JM,:) = VONP(:) ! not needed if Mod(IM,4)=0
-!$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
         OIJL(:,:,L,IJL_MFV) = OIJL(:,:,L,IJL_MFV) + SMV(:,:,L)
         OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
         OIJL(:,:,L,IJL_MFW2)= OIJL(:,:,L,IJL_MFW2)+SMW(:,:,L)*SMW(:,:,L)
       END DO
-!$OMP END PARALLEL DO
 C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
@@ -192,13 +189,11 @@ C**** Advection of Potential Enthalpy and Salt
 #endif
 
         CALL CHECKO ('OADVT ')
-!$OMP PARALLEL DO PRIVATE(L)
         DO L=1,LMO
           OIJL(:,:,L,IJL_MO)  = OIJL(:,:,L,IJL_MO) +  MO(:,:,L)
           OIJL(:,:,L,IJL_G0M) = OIJL(:,:,L,IJL_G0M) + G0M(:,:,L)
           OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
         END DO
-!$OMP END PARALLEL DO
         DO J=J_0,J_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
@@ -215,12 +210,10 @@ c     enddo
 
 #ifdef TRACERS_OCEAN
         DO N=1,NTM
-!$OMP PARALLEL DO PRIVATE(L)
           DO L=1,LMO
             TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
      *           +TRMO(:,:,L,N)
           END DO
-!$OMP END PARALLEL DO
         END DO
 #endif
 
@@ -295,7 +288,6 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initializes ocean variables
 !@auth Original Development Team
-!@ver  1.0
       USE FILEMANAGER, only : openunit,closeunit
       USE Dictionary_mod
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
@@ -1025,7 +1017,6 @@ c find the start/end of each interval
       SUBROUTINE daily_OCEAN(end_of_day)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : sday
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1046,7 +1037,6 @@ C****
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean is a driver to ocean related io routines
 !@auth Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1064,7 +1054,6 @@ C****
       SUBROUTINE io_ocdyn(kunit,iaction,ioerr)
 !@sum  io_ocdyn reads and writes ocean arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only: scatter_ocean,
      *      LMO, MO_glob, UO_glob, VO_glob, UOD_glob, VOD_glob,
      *      G0M_glob, GXMO_glob, GYMO_glob, GZMO_glob,
@@ -1619,7 +1608,6 @@ c tracer arrays in straits
       SUBROUTINE CHECKO_serial(SUBR)
 !@sum  CHECKO Checks whether Ocean variables are reasonable (serial vers
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
@@ -1771,7 +1759,6 @@ C****
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean variables are reasonable (parallel ve
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
@@ -2222,7 +2209,6 @@ C     QSP = J1==1           !    T      F      F
 C****
       Call HALO_UPDATE (GRID, MO, FROM=NORTH)
 C****
-!$OMP ParallelDo   Private (I,J,L)
       DO 50 L=1,LMO
 C**** Define VOSP and VONP
 C     If (QSP)  VOSP(L) = UO(IVSP,1 ,L)
@@ -2296,7 +2282,6 @@ C     QSP = J1==1           !    T      F      F
 C****
       Call HALO_UPDATE (GRID, MM, FROM=NORTH)
 C**** Convert mass to density
-!$OMP ParallelDo   Private (I,J,L)
       Do 10 J=J1P,JNP
       Do 10 I=1,IM
       Do 10 L=1,LMOM(I,J)
@@ -2308,7 +2293,6 @@ C  11   MO(:,1,L) = MM(1,1,L)*zDXYP(1)  ;  EndIf
         Do 12 L=1,LMOM(1,JM)
    12   MO(:,JM,L) = MM(1,JM,L)*zDXYP(JM)  ;  EndIf
 C**** Convert U momentum to U velocity
-!$OMP ParallelDo   Private (I,J,L)
       Do 30 J=J1P,JNP
       Do 20 I=1,IM-1
       Do 20 L=1,LMOU(I,J)
@@ -2316,7 +2300,6 @@ C**** Convert U momentum to U velocity
       Do 30 L=1,LMOU(IM,J)
    30 UO(IM,J,L) = UM(IM,J,L)*2/(MM(IM,J,L)+MM(1,J,L))
 C**** Convert V momentum to V velocity
-!$OMP ParallelDo   Private (I,J,L)
       Do 40 J=J1P,JNQ
       Do 40 I=1,IM
       Do 40 L=1,LMOV(I,J)
@@ -2395,13 +2378,11 @@ C****
 C**** Compute fluid fluxes for the C grid
 C****
 C**** Smooth the West-East velocity near the poles
-!$OMP ParallelDo   Private (J,L)
       Do 110 L=1,LMO
       Do 110 J=J1P,JNP
   110 MU(:,J,L) = UO(:,J,L)
       Call OPFIL (MU)
 C**** Compute MU, the West-East mass flux, at non-polar points
-!$OMP ParallelDo   Private (I,J,L, MVS,dMVS,dMVSm, MVN,dMVN,dMVNm)
       DO 430 L=1,LMO
       DO 130 J=J1P,JNP
       DO 120 I=1,IM-1
@@ -2440,7 +2421,6 @@ C     If (QSP)  CONV(1,1 ,L) = - MVS
 C****
 C**** Compute vertically integrated column convergence and mass
 C****
-!$OMP ParallelDo   Private (I,J,L, IMAX,LM, CONVs,MMs)
       Do 630 J=J1,JN
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 630 I=1,IMAX
@@ -2463,7 +2443,6 @@ C****
 C**** Sum mass fluxes to be used for advection of tracers
 C****
       If (.not.QEVEN)  Return
-!$OMP ParallelDo   Private (L)
       Do 710 L=1,LMO
       SMU(:,J1 :JN ,L) = SMU(:,J1 :JN ,L) + MU(:,J1 :JN ,L)
       SMV(:,J1H:JNP,L) = SMV(:,J1H:JNP,L) + MV(:,J1H:JNP,L)
@@ -2573,8 +2552,6 @@ C****
 C**** Loop over J and L.  JX = eXclude unfiltered latitudes
 C****                     JA = Absolute latitude
 C****
-!$OMP ParallelDo   Private (I,I1,INDX,IWm2, J,JA,JX, K,L, N,NB,
-!$OMP*                      AN,BN, REDUC,Y)
       Do 410 J=Max(J1O,J1P),JNP
       JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
       JA=J  ;  If(J > JMPF) JA=JM+1-J
@@ -2662,7 +2639,6 @@ C****                          Band1  Band2  BandM
 C****
 C**** Compute the new mass MM2
 C****
-!$OMP ParallelDo   Private (I,J, IMAX,LM)
       Do 20 J=J1,JN
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 20 I=1,IMAX
@@ -2741,8 +2717,6 @@ C****
 C****
 C**** Horizontal advection of momentum
 C****
-!$OMP ParallelDo   Private (I,J,L, UMU, UMVc,UMVw,UMVe, USINYJ,
-!$OMP*                             VMV, VMUc,VMUs,VMUn, UTANUJ)
       Do 480 L=1,LMO
 C**** Zero out momentum changes
       DUM(:,:,L) = 0
@@ -2883,7 +2857,6 @@ C****
 C**** Vertical advection of momentum
 C****
 C**** U component
-C$OMP ParallelDo   Private (I,J,L, FLUX)
       Do 560 J=J1,JN
       If (J==1)   GoTo 520
       If (J==JM)  GoTo 540
@@ -2909,7 +2882,6 @@ C$OMP ParallelDo   Private (I,J,L, FLUX)
   550 dUM(I,JM,L+1) = dUM(I,JM,L+1) + FLUX
   560 Continue
 C**** V component
-C$OMP ParallelDo   Private (I,J,L, FLUX)
       Do 660 J=J1,JNP
       If (J==1)  GoTo 620
       If (J==JM-1)  GoTo 640
@@ -2934,7 +2906,6 @@ C$OMP ParallelDo   Private (I,J,L, FLUX)
 C****
 C**** Add changes to momentum
 C****
-C$OMP ParallelDo   Private (I,J,L, dUMSP,dVMSP,dUMNP,dVMNP)
       Do 730 L=1,LMO
 C**** Calculate dUM and dVM at poles, then update UM and VM
 C     If (QSP)  Then
@@ -3011,7 +2982,6 @@ C****
 C**** Calculate the mass weighted pressure P (Pa),
 C**** geopotential ZG (m^2/s^2), and layer thickness dH (m)
 C****
-C$OMP ParallelDo   Private (I,J,L,IMAX, PUP,PDN,PE, ZGE,VUP,VDN,dZGdP)
       Do 130 J=J1,JNH
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 130 I=1,IMAX
@@ -3046,7 +3016,6 @@ C**** Copy VBAR and DH to all longitudes at north pole
 C****
 C**** Calculate smoothed East-West Pressure Gradient Force
 C****
-C$OMP ParallelDo   Private (I,J,L)
       Do 220 J=J1P,JNP
       Do 210 I=1,IM-1
       Do 210 L=1,LMOU(I,J)
@@ -3061,7 +3030,6 @@ C$OMP ParallelDo   Private (I,J,L)
 C****
 C**** Calculate North-South Pressure Gradient Force
 C****
-C$OMP ParallelDo   Private (I,J,L)
       Do 340 J=J1,JNP
       If (J==JM-1)  GoTo 320
       Do 310 I=1,IM
@@ -3092,7 +3060,6 @@ C****
 C**** Add pressure gradient force to momentum
 C****
 C**** Update UM away from poles
-C$OMP ParallelDo   Private (I,J,L)
       Do 630 J=J1,JNP
       Do 620 I=1,IM
       Do 610 L=1,LMOU(I,J)
@@ -3136,7 +3103,6 @@ C****
       Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
       Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
 C****
-C$OMP ParallelDo   Private (I,J,L,IMAX)
       Do 10 J=J1,JNH
       IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
       Do 10 I=1,IMAX
@@ -3151,7 +3117,6 @@ C$OMP ParallelDo   Private (I,J,L,IMAX)
       SUBROUTINE OADVT (RM,RX,RY,RZ,DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the linear upstream scheme.
 !@auth Gary Russell
-!@ver  1.0
 C****
 C**** Input:  MB (kg) = mass before advection
 C****          DT (s) = time step
@@ -3249,7 +3214,6 @@ C**** Extract domain decomposition band parameters
 C****
 C**** Loop over layers and latitudes
 C****
-!$OMP ParallelDo   Private (I,J,L,Ip1,Im1, A,AM,FM,FX,FY,FZ,RXY)
       Do 320 L=1,LMO
       Do 320 J=J1P,JNP
 C****
@@ -3465,8 +3429,6 @@ c****Get relevant local distributed parameters
 
 c**** loop over layers
       ICKERR=0
-!$OMP  PARALLEL DO PRIVATE(I,J,L) DEFAULT(SHARED)
-!!! !$OMP* SHARED(JM,im)
       do L=1,lmo
 
 c****   fill in and save polar values
@@ -3509,7 +3471,6 @@ c****   POLES: set horiz. moments to zero
           rx(:,jm,L) = 0. ; ry(:,jm,L) = 0.
         END IF
       end do   ! loop over layers
-!$OMP END PARALLEL DO
 
 c****
 c**** call 1-d advection routine
@@ -3536,9 +3497,6 @@ c       end if
            rx(:,jm,:) = 0. ; ry(:,jm,:) = 0.
         end if
 
-!$OMP  PARALLEL DO PRIVATE(I,L) DEFAULT(SHARED)
-!$OMP&             REDUCTION(+:ICKERR)
-!!! !$OMP* SHARED(JM,IM)
       do l=1,lmo
 
 c****   average and update polar boxes
@@ -3563,15 +3521,12 @@ c       end if   !SOUTH POLE
         end if  !NORTH POLE
 
       enddo ! end loop over levels
-!$OMP  END PARALLEL DO
 c
 c**** sum into oijl
 c
-!$OMP  PARALLEL DO PRIVATE(J,L)
       do l=1,lmo ; do j=J_0,J_1S
           oijl(:,j,l)  = oijl(:,j,l) + fm(:,j,l)
       enddo ; enddo
-!$OMP  END PARALLEL DO
 C
       IF(ICKERR.GT.0)  CALL stop_model('Stopped in oadvty',11)
 C
@@ -3923,8 +3878,6 @@ C****
 C****
 C**** Loop over latitudes and longitudes
       ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,IMIN,IMAX,J,L,LMIJ, C,CM, FM,FX,FY,FZ,RXY)
-!$OMP&             REDUCTION(+:ICKERR)
       DO J=J_0,J_1
         IMIN=1
         IMAX=IM
@@ -4050,7 +4003,6 @@ C****
   330 CONTINUE
       END DO
       END DO
-!$OMP END PARALLEL DO
 
 C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
       IF(ICKERR == 0)  RETURN
@@ -4079,7 +4031,6 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       Subroutine OBDRAG
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
 !@auth Gary Russell
-!@ver  1.0
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
       use domain_decomp_1d, only : get, halo_update, north, south
@@ -4102,16 +4053,13 @@ C****
       call halo_update (grid, uo, FROM=NORTH)
       call halo_update (grid, vo, FROM=SOUTH)
 C**** Save UO,VO into UT,VT which will be unchanged
-!$OMP ParallelDo   Private (L)
       DO 10 L=1,LMO
         UT(:,:,L) = UO(:,:,L)
  10     VT(:,:,L) = VO(:,:,L)
-!$OMP EndParallelDo
 C****
 C**** Reduce West-East ocean current
 C****
 C**** Bottom drag in the interior
-!$OMP ParallelDo   Private (I,J,L,Ip1, WSQ)
       DO 120 J=max(J1O,J_0),J_1S
       I=IM
       DO 110 IP1=1,IM
@@ -4137,7 +4085,6 @@ C     IF(LMU(1,1 or JM) <= 0)  GO TO
 C****
 C**** Reduce South-North ocean current
 C****
-!$OMP ParallelDo   Private (I,J,L,Im1, WSQ)
       Do 240 J=max(J1O,J_0),J_1S
       If (J==JM-1)  GoTo 220
 C**** Bottom drag away from north pole
@@ -4172,7 +4119,6 @@ C****
 !@sum OCOAST reduces the horizontal perpendicular gradients of tracers
 !@sum in coastline ocean grid boxes
 !@auth Gary Russell
-!@ver  1.0
       USE CONSTANT, only : sday
       USE OCEAN, only : im,jm,dts,lmm,gxmo,gymo,sxmo,symo
 #ifdef TRACERS_OCEAN
@@ -4230,7 +4176,6 @@ C**** Reduce South-North gradient of tracers
 !@sum OSTRES applies the atmospheric surface stress over open ocean
 !@sum and the sea ice stress to the layer 1 ocean velocities
 !@auth Gary Russell
-!@ver  1.0
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
      *     , IVNP, UO,VO, MO,DXYSO,DXYNO,DXYVO
@@ -4305,7 +4250,6 @@ C**** Surface stress is applied to V component at the North Pole
       SUBROUTINE GROUND_OC
 !@sum  GROUND_OC adds vertical fluxes into the ocean
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : grav
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
      *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
@@ -4532,7 +4476,6 @@ C**** This includes atm/oc + si/oc, rivers + icebergs are separate
      *     DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 
       USE SW2OCEAN, only : lsrpd,fsr,fsrz
       USE SEAICE, only : fsss, Ei
@@ -4649,7 +4592,6 @@ C****
       SUBROUTINE PRECIP_OC
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm
      *     , mo,g0m,s0m,focean,imaxj,dxypo
@@ -4712,7 +4654,6 @@ C**** Convert ocean surface temp to atmospheric SST array
 C???? ESMF-exception - ODIFF currently works with global arrays
 !@sum  ODIFF applies Wasjowicz horizontal viscosity to velocities
 !@auth Gavin Schmidt
-!@ver  1.0
 C****
 C**** ODIFF calculates horizontal Wasjowicz viscosity terms in momentum
 C**** equations implicitly using ADI method and assumes no slip/free
@@ -4794,15 +4735,6 @@ C**** Store North Pole velocity components, they will not be changed
      *                 FROM=SOUTH)
 
 C****
-!$OMP PARALLEL DEFAULT(NONE),
-!$OMP&  PRIVATE(AU,AV, BYMU,BYMV,BU,BV, CU,CV, DTU, DTV,
-!$OMP&          FUX,FUY,FVX,FVY, I,IP1,IM1, J, L, RU,RV,
-!$OMP&          UU,UV,UT,UY,UX, VT,VY,VX),
-!$OMP&  SHARED(have_north_pole, UO, VO, UONP, VONP, COSU,SINU,COSI,SINI,
-!$OMP&         J_0, J_0S, J_1S, LMU, MO, LMV, TANP, TANV,
-!$OMP&         BYDYP, BYDXV, BYDXP, BYDYV, KHV, KHP, grid, DT2, DH,
-!$OMP&         UXA, UXB, UXC, UYA, UYB, UYC, VXA, VXB, VXC,
-!$OMP&         VYA, VYB, VYC, DYVO, DXVO, DXPO, DYPO, BYDXYPO, BYDXYV)
 
       allocate( AU(IM,grid%j_strt_halo:grid%j_stop_halo) )
       allocate( BU(IM,grid%j_strt_halo:grid%j_stop_halo) )
@@ -4828,7 +4760,6 @@ C****
       allocate( RV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
       allocate( UV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
 
-!$OMP DO
       DO L=1,LMO
 C**** Calculate rotating polar velocities from UONP and VONP
       if(have_north_pole) then
@@ -5158,12 +5089,10 @@ C**** Call tridiagonal solver
       UO(:,J_0S:J_1S,:)=UU3D(:,J_0S:J_1S,:)
       VO(:,J_0S:J_1S,:)=UV3D(:,J_0S:J_1S,:)
 
-!$OMP END DO
       deallocate(AU, BU, CU, RU, UU)
       deallocate(AV, BV, CV, RV, UV)
       deallocate(AU3D, BU3D, CU3D, RU3D, UU3D)
       deallocate(AV3D, BV3D, CV3D, RV3D, UV3D)
-!$OMP END PARALLEL
 
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
       if(have_north_pole) then
@@ -5177,11 +5106,9 @@ C****
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : tf
       USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEANRES,   only : LMO_MIN
-      USE MODEL_COM, only : FOCEAN
       Use GEOM,      only : IMAXJ
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
@@ -5199,7 +5126,7 @@ C****
       Use AFLUXES, Only: aTRAC,atrac_glob
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
-     *      gtempr
+     *      gtempr,focean
 #ifdef TRACERS_ON
      *     ,gtracer
 #endif
@@ -5305,7 +5232,6 @@ C****
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda dummy routine for consistency with uncoupled model
 !@auth Gavin Schmidt
-!@ver  1.0
       RETURN
       END SUBROUTINE io_oda
 
@@ -5317,9 +5243,8 @@ C****
       SUBROUTINE AT2OT(FIELDA,FIELDO,NF,QCONSERV)
 !@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid
 !@auth Gavin Schmidt
-!@ver  1.0
 c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm,imaxj
 
 !      use domain_decomp_1d, only : grid,get
@@ -5360,8 +5285,7 @@ C****
 c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
 !@sum  OT2AT interpolates Ocean Tracer grid to Atm Tracer grid
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
       USE OCEAN, only : imo=>im,jmo=>jm
       IMPLICIT NONE
@@ -5397,9 +5321,8 @@ C****
       SUBROUTINE AT2OV(FIELDA,FIELDO,NF,QCONSERV,QU)
 !@sum  AT2OV interpolates Atm Tracer grid to Ocean Velocity grid
 !@auth Gavin Schmidt
-!@ver  1.0
 c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
-      USE MODEL_COM, only : ima=>im,jma=>jm
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
       USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs
       IMPLICIT NONE
@@ -5523,7 +5446,6 @@ C****
       SUBROUTINE ADJUST_MEAN_SALT
 !@sum  ADJUST_MEAN_SALT sets the global mean salinity in the ocean
 !@auth Gavin Schmidt
-!@ver  1.0
 
       USE CONSTANT, only : grav
       USE OCEAN, only : oxyp,im,jm,lmo,focean,lmm,mo,s0m,sxmo

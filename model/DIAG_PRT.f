@@ -1,10 +1,7 @@
 #include "rundeck_opts.h"
       MODULE WORKJK
-      USE MODEL_COM, ONLY : JM,LM
-!!!
-!Replaces:
-!!!      COMMON/WORKJK/DPJK,DPHEM,DPGLOB
-
+      USE DIAG_COM, ONLY : JM,LM
+      implicit none
       REAL*8, DIMENSION(JM,LM,2):: DPJK
       REAL*8, DIMENSION(2,LM,2) :: DPHEM
       REAL*8, DIMENSION(LM,2) :: DPGLOB
@@ -55,7 +52,6 @@ C****
 
       MODULE BDIJ
 !@sum  stores information for outputting lon-lat diagnostics
-      use MODEL_COM, only : IM,JM
       use DIAG_COM
       IMPLICIT NONE
       SAVE
@@ -69,7 +65,6 @@ C****
       function mark (val,ibar,undef)
 !@sum  mark selects a character (color) based on value and color bar
 !@auth R. Ruedy
-!@ver  1.0
       real*8 val,undef
       integer ibar,n
       character*1 mark
@@ -129,7 +124,6 @@ c          if (n .gt. 13) n = (n+123)/10
       function ib_of_legnd (leg)
 !@sum  ib_of_legnd finds the 'colorbar' for the given legend
 !@auth R. Ruedy
-!@ver  1.0
       integer ib_of_legnd, leg
 
       ib_of_legnd = ib_pos
@@ -205,11 +199,12 @@ C**** 41 MAX. TOTAL NORTH. TRANS. OF ANGULAR MOMENTUM
 C**** 42 LATITUDE CORRESPONDING TO 41
 C****
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : jm,lm,jeq, JHOUR,JHOUR0,
+      USE MODEL_COM, only : JHOUR,JHOUR0,
      &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
-     &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday,pmidl00
+     &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday
       USE GEOM, only : DLAT,DXYP,LAT_DG
-      USE DIAG_COM, only : keyct,keynr,ned,nkeynr
+      USE ATM_COM, only : pmidl00
+      USE DIAG_COM, only : jm,lm,keyct,keynr,ned,nkeynr,jeq
       USE Dictionary_mod
       IMPLICIT NONE
       PRIVATE
@@ -509,8 +504,9 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 
 
       MODULE DIAG_SERIAL
-      USE MODEL_COM, ONLY : IM, JM
-      USE DOMAIN_DECOMP_1D, only : grid, DIST_GRID, AM_I_ROOT
+      USE DIAG_COM, ONLY : IM, JM
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID, AM_I_ROOT
       USE DIAGKS
 
       PRIVATE
@@ -707,12 +703,12 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !@auth G. Schmidt/R. Ruedy/G. Russell
       use filemanager
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only : 
      &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid,ntype
+     &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid
       USE DIAG_COM, only : aj=>aj_out,areg=>areg_out,
-     &     ntype_out,nreg,kaj,terrain,
+     &     ntype_out,ntype,nreg,kaj,terrain,
      &     QDIAG,acc_period,kdiag,namreg,ia_j,iden_j,iden_reg,
      *     scale_j,stitle_j,lname_j,name_j,units_j,
      *     fmt_j,fmt_reg,sname_strlen,units_strlen,lname_strlen
@@ -897,7 +893,6 @@ C****
       SUBROUTINE JKJL_TITLEX
 !@sum  JKJL_TITLEX titles etc for composite jl, jk output
 !@auth G. Schmidt/J. Lerner
-!@ver  1.0
       use filemanager
       USE DIAG_COM
       IMPLICIT NONE
@@ -955,14 +950,14 @@ C****
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
      &     grav,rgas,kapa,twopi,bygrav,tf,teeny,radius
-      USE DOMAIN_DECOMP_1D, only : GRID
-      USE MODEL_COM, only :
-     &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,lm_req,
-     &     BYIM,DT,DTsrc,IDACC,IMH,LS1,
-     &     PMTOP,kep,req_fac_d,req_fac_m
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE RESOLUTION, only : ls1,pmtop
+      USE MODEL_COM, only : xlabel,lrunid,DTsrc,IDACC
+      USE ATM_COM, only : lm_req,req_fac_d,req_fac_m
+      USE DYNAMICS, only : do_gwdrag
       USE GEOM, only :
      &     AREAG,BYDXYP,COSV,DXV,DXYP,DXYV,DYP,FCOR,WTJ,lat_dg
-      USE DIAG_COM, only :
+      USE DIAG_COM, only : im,jm,lm,kep,fim,byim,imh,
      &     kdiag,qdiag,linect,acc_period,ia_dga,p1000k,
      &     plm,ple_dn,ple,pmb,kgz,kgz_max,
      &     aij,ij_phi1k,aijl,aijk,ijk_q,
@@ -1896,13 +1891,14 @@ C****
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only :
-     &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
+     &     JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ
-      USE DIAG_COM, only : QDIAG,acc_period,lm_req,inc=>incj,linect,
+      USE DIAG_COM, only : jm,lm,
+     &     QDIAG,acc_period,lm_req,inc=>incj,linect,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
@@ -2136,13 +2132,14 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only :
-     &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
+     &     JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
+      USE DYNAMICS, only : DSIG,SIGE
       USE GEOM, only :
      &     LAT_DG,WTJ
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
-     *     ,jmby2,sname_strlen,units_strlen,lname_strlen
+     *     ,jm,lm,jmby2,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2338,10 +2335,12 @@ c              FLAT(J)=FLAT(J)*PRTFAC
 
       subroutine print_generic_jl(jl_index,sjl_index,vsumfac)
       use constant, only : teeny
-      use model_com, only : jm,lm,lm_req,idacc,dsig,
+      use atm_com, only : lm_req
+      use model_com, only : idacc,
      &     jdate,jdate0,amon0,amon,jyear,jyear0,xlabel
+      use dynamics, only : dsig
       use geom, only : lat_dg,dxyp
-      use diag_com, only : qdiag,acc_period,inc=>incj,linect,
+      use diag_com, only : jm,lm,qdiag,acc_period,inc=>incj,linect,
      &     ajl,denom_jl,ia_jl,scale_jl,sname_jl,lname_jl,units_jl,
      &     pow_jl,lgrid_jl,ctr_ml,edg_ml,ctr_cp,edg_cp,plm,ple,
      &     asjl,scale_sjl,ia_sjl,sname_strlen,units_strlen,lname_strlen
@@ -2548,9 +2547,9 @@ c      deallocate(anum,aden,xjl)
       SUBROUTINE DIAGIL
 !@sum  DIAGIL prints out longitude/height diagnostics
 !@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid,dtsrc
-      USE DIAG_COM, only : aijl,lm_req,acc_period, qdiag
+      USE MODEL_COM, only : idacc,xlabel,lrunid,dtsrc
+      use dynamics, only : bydsig
+      USE DIAG_COM, only : im,lm,aijl,lm_req,acc_period, qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
      &     ,sname_strlen,units_strlen,lname_strlen
      &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
@@ -2772,10 +2771,11 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
-     *     ,jyear0,sige,xlabel
+      USE MODEL_COM, only : jdate,jdate0,amon,amon0,jyear
+     *     ,jyear0,xlabel
+      use dynamics, only : dsig,sige
       USE GEOM, only : dlon,lon_dg
-      USE DIAG_COM, only : qdiag,acc_period,inc=>inci,linect,
+      USE DIAG_COM, only : im,jm,lm,qdiag,acc_period,inc=>inci,linect,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       CHARACTER XLB*80,CWORD*8
@@ -2855,8 +2855,8 @@ C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
       USE MODEL_COM, only :
-     &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
-      USE DIAG_COM, only : qdiag,ia_12hr,ia_inst,
+     &     IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
+      USE DIAG_COM, only : im,qdiag,ia_12hr,ia_inst,
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -3114,7 +3114,7 @@ C**FREQUENCY BAND AVERAGE
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
       USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
      *     ,teeny
-      USE MODEL_COM, only : im,jm,fim,jeq,byim,DTsrc,ptop,IDACC,
+      USE MODEL_COM, only : DTsrc,IDACC,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
@@ -3190,12 +3190,10 @@ c**** fill in some key numbers
      *                   smap,smapj,gm,nh,sh)
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
-!@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE CONSTANT, only :  undef
-      USE MODEL_COM, only :  im,jm,fim,jeq
       USE GEOM, only : wtj
-
+      USE DIAG_COM, only : im,jm,fim,jeq
       IMPLICIT NONE
 
       real*8, dimension(im,jm) :: anum,aden,wtij,smap
@@ -3266,13 +3264,12 @@ c**** find hemispheric and global means
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
 !@auth Gary Russell,Reto Ruedy
-!@ver   1.0
       USE CONSTANT, only : sha,teeny
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only :
-     &     im,jm,lm,byim,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
-     &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG,idacc
+     &     NDAY,Itime,Itime0,XLABEL,LRUNID,idacc
+      USE DYNAMICS, only : ido_gwdrag
       USE RAD_COM, only : cloud_rad_forc, aer_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
@@ -3544,10 +3541,8 @@ C****
       subroutine maptxt (smap,smapj,gm,irange,title,line,kcol,nlines)
 !@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
-!@ver  1.0
       use constant, only : undef
-      use model_com, only : im,jm
-      use diag_com, only : inci,incj
+      use diag_com, only : im,jm,inci,incj
       use bdij
 
       IMPLICIT NONE
@@ -3640,11 +3635,11 @@ c**** last line: legend (there is a little more space in col 1 and 2)
 C**** Print out full-page digital maps
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :
-     &     im,jm,NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
+     &     NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
      &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
-      use diag_com, only : inc=>inci,wt_ij,iw_land
+      use diag_com, only : im,jm,inc=>inci,wt_ij,iw_land
       IMPLICIT NONE
 
       CHARACTER*48 TITLE
@@ -3712,7 +3707,6 @@ C****
       subroutine set_ijout (nmaplets,nmaps,Iord,Qk,iu_Iij)
 !@sum set_ijout either lists or sets the fields to be processed
 !@auth Reto A. Ruedy
-!@ver  1.0
       USE DIAG_COM
       USE BDIJ
       use filemanager
@@ -3785,14 +3779,13 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       SUBROUTINE DIAGCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only :
-     &     fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,jeq,itime,itime0,xlabel,lrunid
+     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only :
      &     areag,WTJ
-      USE DIAG_COM, only :  qdiag,acc_period,
+      USE DIAG_COM, only :  fim,jeq,qdiag,acc_period,
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
      *     inc=>incj,xwon,ia_inst,name_consrv,lname_consrv,
      *     units_consrv,sname_strlen,units_strlen,lname_strlen
@@ -3910,18 +3903,17 @@ C****
       SUBROUTINE DIAG5P
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,teeny
       USE MODEL_COM, only :
-     &     im,jm,lm,fim,
-     &     DT,IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
-     &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
+     &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
+     &     AMON,AMON0,JYEAR,JYEAR0,XLABEL
       USE GEOM, only : DXYV
-      USE DIAG_COM, only :
+      USE DIAG_COM, only : im,jm,lm,istrat,fim,jeq,
      &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,klayer
      &     ,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
       USE GCDIAG
+      USE DYNAMICS, only : DT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM) :: X
@@ -4077,7 +4069,6 @@ C****
       SUBROUTINE DIAGDD
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
-!@ver  1.0
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,ndiupt,
@@ -4181,7 +4172,6 @@ C****
 !@+       When radiation is not called every hour this will not average
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
-!@ver  1.0
 #ifndef NO_HDIURN
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
@@ -4280,15 +4270,13 @@ C****
       SUBROUTINE DIAG4
 !@sum  DIAG4 prints out a time history of the energy diagnostics
 !@auth G. Russell
-!@ver  1.0
       USE CONSTANT, only :
      &     grav,rgas,bygrav
       USE MODEL_COM, only :
-     &     im,jm,lm,fim,
      &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,NDA4,NDAY,Itime0,XLABEL,istrat
-      USE DIAG_COM, only :
-     &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a
+     &     JYEAR,JYEAR0,NDAY,Itime0,XLABEL
+      USE DIAG_COM, only : im,jm,lm,fim,istrat,
+     &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a,nda4
       IMPLICIT NONE
 
       REAL*8, DIMENSION(2) :: FAC
@@ -4400,8 +4388,7 @@ C****
 
 
       subroutine KEYVSUMS (QUANT,GSUM,HSUM,ASUM,SUMFAC)
-      USE MODEL_COM, only : jm
-      use diag_com, only : sname_strlen
+      use diag_com, only : jm,sname_strlen
       implicit none
 !@var quant string designating the quantity for which to save keynrs
       CHARACTER(LEN=sname_strlen) :: QUANT
@@ -4427,8 +4414,7 @@ C****
 
 
       subroutine keynrl(quant,l,flat)
-      USE MODEL_COM, only : jm
-      use diag_com, only : sname_strlen
+      use diag_com, only : jm,sname_strlen
       implicit none
       integer :: l
       REAL*8, DIMENSION(JM) :: FLAT
@@ -4442,13 +4428,14 @@ C****
       SUBROUTINE IJKMAP (iu_Iij)
 !@sum  IJKMAP output 3-D constant pressure output fields
 !@auth G. Schmidt
-!@ver  1.0
 C**** Note that since many IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
       USE CONSTANT, only : grav,sha,undef
-      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : kdiag,jgrid_ijk,aijk,acc_period,denom_ijk
+      USE MODEL_COM, only : XLABEL,LRUNID,idacc
+      USE ATM_COM, only : pmidl00
+      USE DIAG_COM, only : im,jm,lm
+     &     ,kdiag,jgrid_ijk,aijk,acc_period,denom_ijk
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
      *     ,ia_dga
       use gcdiag, only : ijk_dpb
@@ -4560,11 +4547,13 @@ C****
 C**** ijl output
 C****
       USE CONSTANT, only : undef
-      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : aijl,kaijl,acc_period,ijkgridc
+      USE MODEL_COM, only : XLABEL,LRUNID,idacc
+      USE DIAG_COM, only : im,jm,lm
+     &     ,aijl,kaijl,acc_period,ijkgridc
      &     ,ia_ijl,denom_ijl,name_ijl,lname_ijl,units_ijl,scale_ijl,
      &     lgrid_ijl,jgrid_ijl,
      &     ctr_ml,edg_ml,ctr_cp
+      USE ATM_COM, only : pmidl00
       use filemanager
       IMPLICIT NONE
       INTEGER iu_Iij
@@ -4640,7 +4629,7 @@ c write field
      *     smapjl)
 !@sum scale and calculate zonal means for 3D diag
       use constant, only : undef
-      use model_com, only : im,jm,lm
+      use diag_com, only : im,jm,lm
       use geom, only : dxyp
       implicit none
       integer, intent(in) :: nmap  ! type of diag
@@ -4698,9 +4687,9 @@ c write field
       subroutine diag_isccp
 !@sum diag_isccp prints out binary and prt output for isccp histograms
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc,im
+      USE MODEL_COM, only : xlabel,lrunid,idacc
       USE GEOM, only : dxyp,lat_dg
-      USE DIAG_COM, only : aisccp,ntau,npres,nisccp,acc_period
+      USE DIAG_COM, only : im,jm,fim,aisccp,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
      &     ,isccp_late,wisccp,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -4775,7 +4764,8 @@ C**** write the binary file
       end subroutine keyij2
 
       SUBROUTINE DIAG_GATHER
-      USE MODEL_COM, only : IM, FOCEAN, FLICE, ZATMO
+      USE ATM_COM, only : ZATMO
+      USE FLUXES, only : FOCEAN, FLICE
 cddd      USE LAKES_COM, only : FLAKE
 cddd      USE GHY_COM, only : FEARTH
 cddd#ifdef USE_ENT
@@ -4784,12 +4774,12 @@ cddd      use ent_mod, only : ent_get_exports
 cddd#else
 cddd      USE VEG_COM,   only : vdata
 cddd#endif
-      USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc,
+      USE DIAG_COM, only : IM, AIJ,  AIJ_loc, AJ,   AJ_loc,
      *     AGC,  AGC_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
-      USE DOMAIN_DECOMP_1D, ONLY : am_i_root
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DOMAIN_DECOMP_1D, ONLY : am_i_root,pack_data
       USE CONSTANT, only : NaN
       IMPLICIT NONE
 cddd      INTEGER :: J_0, J_1, J_0H, J_1H
@@ -4852,7 +4842,8 @@ cddd      DEALLOCATE(tmp)
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc,
      *     AGC, AGC_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, TSFREZ, TSFREZ_loc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP_1D, ONLY : am_i_root
       IMPLICIT NONE
 

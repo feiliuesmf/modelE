@@ -1,7 +1,6 @@
       program qc
 !@sum  qc query c-array and other parameters
 !@auth G. Schmidt/R. Ruedy
-!@ver  1.0
       USE CONSTANT
       USE MODEL_COM
       USE TIMINGS

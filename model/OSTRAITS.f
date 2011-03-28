@@ -285,7 +285,6 @@ C****
 !@sum  STBDRA exerts a bottom drag on the lowest layer and a side drag
 !@+    on each layer of each strait. Also reduces along strait gradients
 !@auth Gary Russell
-!@ver  1.0
 C**** MUST = MUST*(1-x)  is approximated by  MUST = MUST/(1+x)
 C****
 C**** STRACB  MMST  Mass of sea water in strait (kg)
@@ -489,7 +488,6 @@ C****
 c      SUBROUTINE STADVI
 c!@sum  STADVI advects sea ice through the straits
 c!@auth Gary Russell/Gavin Schmidt
-c!@ver  1.0
 c      USE OCEAN, only : im,jm,dts,dxypo,bydxypo
 c      USE SEAICE, only : xsi,ace1i
 c      USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
@@ -769,7 +767,6 @@ c      END
       SUBROUTINE CHECKOST(SUBR)
 !@sum  CHECKOST Checks whether Straits are reasonable
 !@auth Original Development Team
-!@ver  1.0
       USE MODEL_COM, only : qcheck,dtsrc
       USE SEAICE, only : xsi,lmi
       USE STRAITS
@@ -867,7 +864,6 @@ C****
       SUBROUTINE io_straits(kunit,iaction,ioerr)
 !@sum  io_straits reads and writes ocean straits arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE STRAITS

@@ -2,7 +2,6 @@
 !@sum  TRACERS_GASEXCH_COM: module for ocean-atmosphere gas exchange
 !@+    special case for CO2
 !@auth Natassa Romanou
-!@ver  1.0
 
       MODULE TRACER_GASEXCH_COM
 
@@ -29,9 +28,6 @@
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
   
       real*8 tracflx1d(ntm)
-      common /gasexch3/tracflx1d
-!$OMP THREADPRIVATE(/gasexch3/)
-
 
       contains
 

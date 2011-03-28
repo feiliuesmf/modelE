@@ -19,7 +19,6 @@ c
 c
 c --- initialize arrays
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=J_0, J_1
       do 1 k=1,kk
 c
@@ -35,7 +34,6 @@ c
       do 4 i=ifp(j,l),ilp(j,l)
  4    dpinit(i,j,k)=dp(i,j,k+nn)
  1    continue
-c$OMP END PARALLEL DO
       oddev=n
       if(AM_I_ROOT() )
      &  write (lp,'(a)') 'tracer transport arrays initialized'
@@ -62,7 +60,6 @@ c
         stop '(n=oddev required in tradv1)'
       end if
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 5 j=J_0, J_1
       do 5 k=1,kk
 c
@@ -74,7 +71,6 @@ c
       do 7 i=ifv(j,l),ilv(j,l)
  7    vfxcum(i,j,k)=vfxcum(i,j,k)+vflx(i,j,k)*delt1
  5    continue
-c$OMP END PARALLEL DO
       if(AM_I_ROOT() )
      &  write (lp,'(a)') 'mass fluxes saved for tracer transport'
       return
@@ -122,8 +118,6 @@ c
 
       CALL HALO_UPDATE(ogrid, vfxcum_loc, FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(ib,jb,q,coldiv,ka,verdiv) 
-c$OMP.            SCHEDULE(STATIC,jchunk)
       do 9 j=J_0, J_1
       jb = PERIODIC_INDEX(j+1, jj)
 ! jb=mod(j,jj)+1
@@ -171,7 +165,6 @@ c
       verdiv=(dpinit_loc(i,j,k)-dp_loc(i,j,k+nn))-hordiv(i,j,k)
  16   vertfx(i,j,k)=vertfx(i,j,ka)+verdiv	!  flx thru botm of lyr k
  9    continue
-c$OMP END PARALLEL DO
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: check balance of terms in continuity eqn.
@@ -300,7 +293,6 @@ c --- if iord=1, scheme reduces to simple donor cell scheme.
 
 !========================================================
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 21 j=J_0, J_1
       do 21 k=1,kk
       do 21 l=1,isp(j)
@@ -310,7 +302,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       if (fco(i,j,k).lt.1.e-30) fco(i,j,k)=0.
       if (fc (i,j,k).lt.1.e-30) fc (i,j,k)=0.
  21   continue
-c$OMP END PARALLEL DO
 c
 c --- optional: check mass conservation
 cdiag i=itest
@@ -333,13 +324,10 @@ cdiag end if
 cdiag end do
  103  format (i3,4f14.1)
 cc c
-cc c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 cc       do 6 j=1,jdm
 cc       do 6 i=1,idm
 cc  6    flxdiv(i,j)=0.
-cc c$OMP END PARALLEL DO
 cc       do 5 k=1,kk
-cc c$OMP PARALLEL DO PRIVATE(jb) SCHEDULE(STATIC,jchunk)
 cc       do 9 j=1,jj
 cc       jb=mod(j,jj)+1
 cc       do 9 l=1,isp(j)
@@ -353,7 +341,6 @@ cc  12     flxdiv(i,j)=(u(i+1,j,k)-u(i,j,k)+v(i,jb,k)-v(i,j,k))*scali(i,j)
 cc      .    +w(i,j,k)-w(i,j,k-1)+fc(i,j,k)-fco(i,j,k)
 cc       end if
 cc  9    continue
-cc c$OMP END PARALLEL DO
 cc       call findmx(ip,flxdiv,idm,ii1,jj,'mass consv')
 cc       write (lp,*) 'shown below: mass consv. residual in layer',k
 cc       call zebra(flxdiv,idm,idm-1,jdm)
@@ -361,8 +348,6 @@ cc  5    continue
 c
 c --- get vertical flux by summing -fld- over upstream slab of thickness -w-
 c
-c$OMP PARALLEL DO PRIVATE(jb,amount,slab,dslab,kp,a,b,c,dx,fcdx,yl,yr)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 26 j=J_0, J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 26 l=1,isp(j)
@@ -487,7 +472,6 @@ c
       vertdv(i,j,k)=vertfx(i,j,k)-vertfx(i,j,k-1)
 c
  26   continue
-c$OMP END PARALLEL DO
 c
       bfore=0.
       after=0.
@@ -497,13 +481,11 @@ c
 c
       do 4 k=1,kk
 c
-c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 14 j=J_0, J_1
       bforej(j)=0.
       do 14 l=1,isp(j)
       do 14 i=ifp(j,l),ilp(j,l)
  14   bforej(j)=bforej(j)+fld(i,j,k)*fco(i,j,k)*scal(i,j)
-c$OMP END PARALLEL DO
 c
 c --- compute antidiffusive (high- minus low-order) fluxes
 c
@@ -516,8 +498,6 @@ c
       CALL HALO_UPDATE(ogrid,tfld, FROM=SOUTH)
        fld2(:,J_0H-1) = tfld(:,J_0H)
 c
-c$OMP PARALLEL DO PRIVATE(ja,jaa,jb,q,ia,ib) SHARED(k)
-c$OMP+ SCHEDULE(STATIC,jchunk)
       do 11 j=J_0, J_1
       ja  = PERIODIC_INDEX(j-1, jj)
       jb  = PERIODIC_INDEX(j+1, jj)
@@ -581,14 +561,12 @@ c
         end if
       end if
  11   continue
-c$OMP END PARALLEL DO
 c
 cdiag write (string,'(a6,i2)') 'fmx k=',k
 cdiag call findmx(ip,fmx,idm,ii1,jj,string(1:8))
 cdiag write (string,'(a6,i2)') 'fmn k=',k
 cdiag call findmx(ip,fmx,idm,ii1,jj,string(1:8))
 
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 22 j=J_0, J_1
       do 22 l=1,isp(j)
       flx(ifp(j,l)  ,j)=0.
@@ -596,9 +574,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       uan(ifp(j,l)  ,j)=0.
       uan(ilp(j,l)+1,j)=0.
   22  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
       do 33 i=1,ii1
       wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
       do 33 l=1,jsp(i)
@@ -617,7 +593,6 @@ c$OMP PARALLEL DO PRIVATE(j,wrap) SCHEDULE(STATIC,jchunk)
         end if
       end if
    33 continue
-c$OMP END PARALLEL DO
 c
 cdiag i=itest
 cdiag j=jtest
@@ -629,7 +604,6 @@ cdiag.  u(i+1,j,k),fld(i+1,j,k)
 
       CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb,q,amount) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 61 j=J_0, J_1
       jb = PERIODIC_INDEX(j+1, jj)
       if (recovr) vlumj(j)=0.
@@ -652,7 +626,6 @@ c
       fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
       fld(i,j,k)=max(fmn(i,j),min(fld(i,j,k),fmx(i,j)))	!  just to be sure...
  61   continue
-c$OMP END PARALLEL DO
 c
 cdiag call findmx(ip,fld(1,1,k),idm,ii1,jj,'fld after 61')
 c
@@ -663,7 +636,6 @@ c --- pos. (neg.) change in -fld- to the sum of all incoming (outgoing) fluxes
 
       CALL HALO_UPDATE(ogrid,van, FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 12 j=J_0, J_1
       jb  = PERIODIC_INDEX(j+1, jj)
       do 12 l=1,isp(j)
@@ -675,7 +647,6 @@ c
  12   fln(i,j)=(fmn(i,j)-fld(i,j,k))*fc(i,j,k)
      ./((min(0.,uan(i,j))-max(0.,uan(i+1,j))
      .  +min(0.,van(i,j))-max(0.,van(i,jb ))-epsil)*scali(i,j))
-c$OMP END PARALLEL DO
 c
 c---- limit antidiffusive fluxes
 c
@@ -685,7 +656,6 @@ c
       CALL HALO_UPDATE(ogrid,flp, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,fln, FROM=SOUTH)
 c
-c$OMP PARALLEL DO PRIVATE(ja,clip) SCHEDULE(STATIC,jchunk)
       do 8 j=J_0, J_1
       ja  = PERIODIC_INDEX(j-1, jj)
 c
@@ -706,7 +676,6 @@ c
         clip=min(1.,fln(i,j),flp(i,ja ))
       end if
  8    fly(i,j)=van(i,j)*clip
-c$OMP END PARALLEL DO
 c
 cdiag i=itest
 cdiag j=jtest
@@ -716,7 +685,6 @@ cdiag.  u(i+1,j,k),fld(i+1,j,k)
 
       CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
-c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       do 62 j=J_0, J_1
       jb  = PERIODIC_INDEX(j+1, jj)
       do 62 l=1,isp(j)
@@ -728,7 +696,6 @@ c$OMP PARALLEL DO PRIVATE(jb,amount,q) SHARED(k) SCHEDULE(STATIC,jchunk)
       fld(i,j,k)=(fld(i,j,k)*onemu+amount)/(onemu+fc(i,j,k))
       fld(i,j,k)=max(fmn(i,j),min(fld(i,j,k),fmx(i,j)))	! just to be sure...
  62   continue
-c$OMP END PARALLEL DO
 c
 cdiag call findmx(ip,fld(1,1,k),idm,ii1,jj,'fld after 62')
 c
@@ -749,22 +716,18 @@ c
         if (vlume.ne.0.) then
           clip=clip/vlume
           write (lp,'(i2,a,1pe11.3)') k,'  tracer drift in fct3d',-clip
-c$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
           do 13 j=J_0, J_1
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
  13       fld(i,j,k)=fld(i,j,k)+clip
-c$OMP END PARALLEL DO
         end if
       end if
 c
-cc$OMP PARALLEL DO SHARED(k) SCHEDULE(STATIC,jchunk)
       do 15 j=J_0, J_1
       afterj(j)=0.
       do 15 l=1,isp(j)
       do 15 i=ifp(j,l),ilp(j,l)
  15   afterj(j)=afterj(j)+fld(i,j,k)*fc(i,j,k)*scal(i,j)
-cc$OMP END PARALLEL DO
 c
       call compBforeAfter(bfore,after,bforej,afterj)
 c
@@ -782,13 +745,11 @@ c
 ccc   if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
       if (q.gt.2.0 .or. q.lt..5) stop '(excessive nonconservation)'
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 20 j=J_0, J_1
       do 20 k=1,kk
       do 20 l=1,isp(j)
       do 20 i=ifp(j,l),ilp(j,l)
  20   fld(i,j,k)=fld(i,j,k)*q
-c$OMP END PARALLEL DO
 c
       return
       end

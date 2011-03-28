@@ -4,15 +4,13 @@
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
 !@+    This version for simple trace gases/chemistry/isotopes
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       MODULE TRACER_COM
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
-!@ver  1.0
 C
       USE QUSDEF, only: nmom
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
@@ -57,6 +55,9 @@ C
 C
       IMPLICIT NONE
       SAVE
+
+!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+      integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
@@ -1016,7 +1017,7 @@ c note: not applying CPP when declaring counts/lists.
 
       subroutine remake_tracer_lists()
 !@sum regenerates the counts and lists of tracers in various categories
-      use model_com, only : itime,coupled_chem
+      use model_com, only : itime
       implicit none
       integer :: n,nactive
       integer, dimension(1000) ::
@@ -1098,7 +1099,6 @@ c note: not applying CPP when declaring counts/lists.
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

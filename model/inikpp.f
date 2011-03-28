@@ -101,7 +101,6 @@ c
       integer i,j,l
       include 'kprf_scalars.h'
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 199 j=J_0,J_1
       do 199 l=1,isp(j)
       do 199 i=ifp(j,l),ilp(j,l)
@@ -111,7 +110,6 @@ c --- map shallow depths ('brown' water) to high jerlov numbers
 c --- reduce turbidity of subtropical oceans
       if (abs(abs(latij(i,j,3))-25.).lt.20.) jerlov_loc(i,j)=1
  199  continue
-c$OMP END PARALLEL DO
 c
 c --- red and blue light extinction coefficients (1/pressure units)
 c --- for jerlov water types 1 to 5 - fraction of penetrating red light

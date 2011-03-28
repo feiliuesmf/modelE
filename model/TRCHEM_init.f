@@ -2,12 +2,11 @@
       SUBROUTINE cheminit
 !@sum cheminit initialize model chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23.f)
 !@calls jplrts,phtlst,inphot,wave,reactn
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
-      USE MODEL_COM, only: Itime, ItimeI, IM
+      USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only : GET,grid
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
@@ -101,7 +100,6 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
       SUBROUTINE jplrts
 !@sum jplrts read/set up chemical reaction rates from JPL
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls lstnumc
 
 C**** GLOBAL parameters and variables:
@@ -183,7 +181,6 @@ c
       SUBROUTINE lstnum(at,ks)
 !@sum lstnum find molecule number in param list of molecules
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: nc,ay
@@ -221,7 +218,6 @@ C**** Local parameters and variables and arguments:
       SUBROUTINE phtlst
 !@sum phtlst read Photolysis Reactions and parameters
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls lstnum
 
 C**** GLOBAL parameters and variables:
@@ -275,7 +271,6 @@ c Assign ks and kss gas numbers of photolysis reactants from list:
       SUBROUTINE reactn
 !@sum reactn read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls guide,printls
 
 C**** GLOBAL parameters and variables:
@@ -299,7 +294,6 @@ C Print out some diagnostics:
       SUBROUTINE guide(npr,ndr,kpr,kdr,xx,nnn,ns,nre)
 !@sum guide read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls calcls
 
 C**** GLOBAL parameters and variables:
@@ -334,7 +328,6 @@ c Chemical and photolytic production:
       SUBROUTINE calcls(nn,ns,nnn,nns,ndr,kdr,nre)
 !@sum calcls Set up reaction lists for calculated gases (1 to ny)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
@@ -434,7 +427,6 @@ c           check that reaction is intrafamily
       SUBROUTINE printls
 !@sum printls print out some chemistry diagnostics (reaction lists)
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
@@ -554,7 +546,6 @@ c Print reaction lists:
       SUBROUTINE wave
 !@sum wave Set up Wavelengths 200-730 nm, and O2 & O3 Cross Sections
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: n_bnd3, wlt, sech, sO3, sO2
@@ -583,7 +574,6 @@ C**** Local parameters and variables and arguments:
 !@+   and standard O3 and T profiles and to set the appropriate reaction
 !@+   index.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 !@calls RD_TJPL,RD_PROF
 
 C**** GLOBAL parameters and variables:
@@ -591,7 +581,6 @@ C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
      &                  ,MXFASTJ,MIEDX2,title_aer_pf,NAA
-      use model_com, only: LM
 
       IMPLICIT NONE
 
@@ -665,7 +654,6 @@ c Read in T & O3 climatology:
 !@+   functions with temperature dependences. Current data originates
 !@+   from JPL'97.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
@@ -830,7 +818,6 @@ C Read aerosol phase functions:
 !@+   Format is like the SPECFJ file, data should be consistent with the   
 !@+   RADN9 file.
 !@auth Greg Faluvegi (based on RD_TJPL above)
-!@ver  1.0 
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
@@ -955,7 +942,6 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
       SUBROUTINE rd_prof(nj2)
 !@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel

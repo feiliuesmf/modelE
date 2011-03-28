@@ -18,7 +18,7 @@ C*************************************************************
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius,TWOPI
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
 c#ifdef CUBED_SPHERE
@@ -143,7 +143,6 @@ C**** some B-grid conservation quantities
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
@@ -285,7 +284,6 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
       SUBROUTINE PLAST
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
@@ -381,7 +379,6 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       SUBROUTINE RELAX
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT,

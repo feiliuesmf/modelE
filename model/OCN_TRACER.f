@@ -7,7 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic_ocean
 !@+
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       subroutine tracer_ic_ocean
 !@sum tracer_ic_ocean initialise ocean tracers
@@ -424,7 +423,6 @@ C****
       SUBROUTINE DIAGTCO (M,NT0)
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE OCEAN, only : IMO=>IM, oJ_BUDG, oJ_0B, oJ_1B
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon,
@@ -486,7 +484,6 @@ C**** Save current value in TCONSRV(NI)
       SUBROUTINE conserv_OTR(OTR,ITR)
 !@sum  conserv_OTR calculates zonal ocean tracer (kg) on ocean grid
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, imaxj,trmo
       USE STRAITS, only : nmst,jst,ist,lmst,trmst
       USE DOMAIN_DECOMP_1D, only : GET
@@ -526,11 +523,11 @@ C****
      *     ,INST_SC,CHNG_SC, itr0)
 !@sum  SET_TCONO assigns ocean conservation diagnostic array indices
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,nfiltr
+      USE MODEL_COM, only: dtsrc
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
      *     ,conpt0
+      USE DYNAMICS, only : nfiltr ! SLP filter
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons,npts,natmtrcons

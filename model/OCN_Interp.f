@@ -92,7 +92,6 @@ c
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -261,7 +260,6 @@ c*   polar values are replaced by their longitudinal mean
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
@@ -351,7 +349,6 @@ c*   polar values are replaced by their longitudinal mean
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -742,7 +739,6 @@ c*    actual interpolation here
 !       on the ocean grid, interpolated to the atm. grid, and scattered
 !!      on the atm. grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1004,7 +1000,6 @@ C**** surface tracer concentration
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1089,7 +1084,7 @@ C**** surface tracer concentration
 #ifndef CUBED_SPHERE
        Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
 
       use ocean, only : remap_A2O
       USE ArrayBundle_mod
@@ -1787,7 +1782,6 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -1807,6 +1801,7 @@ c*
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aFOCEAN_loc=>FOCEAN
       USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
      *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
@@ -1868,8 +1863,6 @@ c*
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
-
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
@@ -2144,7 +2137,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko, Denis Gueyffier
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2162,7 +2154,7 @@ c*
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON
@@ -2328,7 +2320,6 @@ c*
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko
-!@ver  1.0
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
@@ -2345,7 +2336,7 @@ c*
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE OCEANR_DIM, only : ogrid
 
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
+      USE FLUXES, ONLY : aFOCEAN_loc=>FOCEAN
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON

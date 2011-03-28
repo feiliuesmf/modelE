@@ -28,6 +28,7 @@ DIAG_RES_F                          ! diagnostics
 FFT144 OFFT144E                     ! Fast Fourier Transform
 
     ! lat-lon grid specific source codes
+DOMAIN_DECOMPll                     ! domain decomp
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output

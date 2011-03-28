@@ -2,7 +2,6 @@ C****
 !@sum  ORES_1Qx1_L32 Resolution info for 1x1.25 horizontal
 !!       and 32 vertical ocean layer
 !@auth Gary Russel/Larissa Nazarenko
-!@ver  1.0
 C****   
 C**** ORES_1Qx1_L32.f    2008/12/17
 C****

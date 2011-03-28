@@ -47,7 +47,7 @@
       USE FLUXES, only : DSSI_loc => DSSI
 
       USE SEAICE_COM, only : RSI_loc => RSI ! seems to be used for diags only?
-      USE MODEL_COM, only : FOCEAN_loc => FOCEAN
+      USE FLUXES, only : FOCEAN_loc => FOCEAN
 
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_COM, only : ntm

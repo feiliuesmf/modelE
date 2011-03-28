@@ -3,7 +3,6 @@
       MODULE ODIAG
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -267,7 +266,6 @@ c instances of arrays
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
 !@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irerun,irsficno,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
@@ -711,7 +709,6 @@ c instances of the arrays containing derived quantities
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
       USE OCEANR_DIM, only : oGRID
 #ifdef TRACERS_OCEAN
@@ -760,7 +757,6 @@ C**** Tracer calls are dealt with separately
 !@sum  conserv_ODIAG generic routine keeps track of conserved properties
 !@+    uses OJ_BUDG mapping from ocean sub-domain to budget grid
 !@auth Gary Russell/Gavin Schmidt/Denis Gueyffier
-!@ver  1.0
       USE OCEAN, only : oJ_BUDG, oWTBUDG, oJ_0B, oJ_1B,imaxj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm,jm_budg
       USE DOMAIN_DECOMP_1D, only : GET
@@ -817,7 +813,6 @@ C****
       SUBROUTINE init_ODIAG
 !@sum  init_ODIAG initialises ocean diagnostics
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : rhows
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
@@ -1949,7 +1944,6 @@ c
       SUBROUTINE reset_odiag(isum)
 !@sum  reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: am_i_root
       USE ODIAG, only : oij,oij_loc,oijmm,oijl,oijl_loc,ol,olnst
 #ifdef TRACERS_OCEAN
@@ -1977,7 +1971,6 @@ c
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_1D, only : dist_grid,get,am_i_root
       USE DOMAIN_DECOMP_ATM, only : aGRID=>grid
@@ -2025,7 +2018,6 @@ c
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
 !ny?  USE ODIAG
 
@@ -2044,7 +2036,6 @@ c
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
 !ny?  USE ODIAG
 
@@ -2060,7 +2051,6 @@ c
       SUBROUTINE gather_odiags ()
 !@sum  collect the local acc-arrays into global arrays run-time
 !@auth Reto Ruedy
-!@ver  1.0
       USE ODIAG
       use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : grid=>ogrid
@@ -2080,7 +2070,6 @@ c
       SUBROUTINE scatter_odiags ()
 !@sum  To distribute the global acc-arrays to the local pieces
 !@auth Reto Ruedy
-!@ver  1.0
       USE ODIAG
       use domain_decomp_1d, only : unpack_data, ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid

@@ -1,12 +1,10 @@
 !@sum  RES_M53 Resolution info for 53 layer, 4x5 strat model
 !@+    (top at .002 mb, GWDRAG)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes
