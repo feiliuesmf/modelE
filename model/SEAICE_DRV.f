@@ -755,7 +755,7 @@ C**** snow cover diagnostic now matches that seen by the radiation
           AIJ(I,J,IJ_SIHC)=AIJ(I,J,IJ_SIHC)+SUM(HSIL(:))*POICE
           AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+POICE*(RUN+MFLUX)
           AIJ(I,J,IJ_MSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*MSNWIC
-          AIJ(I,J,IJ_HSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*HSNWIC
+          AIJ(I,J,IJ_HSNFLOOD) = AIJ(I,J,IJ_HSNFLOOD) - POICE*HSNWIC
           IF (FMOC.lt.0) THEN   ! define as congelation growth
             AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)-POICE*FMOC
           ELSE                  ! basal melt
