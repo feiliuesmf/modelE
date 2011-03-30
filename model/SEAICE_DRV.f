@@ -7,6 +7,43 @@
 !@auth Gavin Schmidt
 !@cont PRECIP_SI,GROUND_SI
 
+      SUBROUTINE CALC_APRESS
+C**** Calculate pressure anomaly at ocean surface
+      USE CONSTANT, only : grav
+      USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : ptop
+      USE ATM_COM, only : p
+      USE GEOM, only : imaxj
+      USE FLUXES, only : apress
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      IMPLICIT NONE
+      INTEGER I,J
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      integer :: J_0, J_1, I_0,I_1
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      DO J=J_0, J_1
+      DO I=I_0,IMAXJ(J)
+        APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
+     *       RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+      END DO
+      END DO
+      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
+      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
+      RETURN
+      END SUBROUTINE CALC_APRESS
+
       SUBROUTINE PRECIP_SI(DOMAIN)
 !@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
 !@auth Original Development team
@@ -20,7 +57,7 @@
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,fwsim
      *     ,gtempr,erunpsi,fland,focean
 #ifdef TRACERS_WATER
      *     ,trprec,trunpsi,gtracer
@@ -164,15 +201,9 @@ C**** Accumulate regional diagnostics
 
       END IF
 
-C**** Calculate pressure anomaly at surface
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
-     *     RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-
       END DO
       END DO
 
-      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
-      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE PRECIP_SI
 
@@ -531,7 +562,7 @@ C****
       USE MODEL_COM, only : dtsrc,jhour,jday
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
-     *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss,focean
+     *     ,fmsi_io,fhsi_io,fssi_io,gtemp,sss,focean
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
@@ -784,15 +815,10 @@ C**** snow cover diagnostic now matches that seen by the radiation
           CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
       END IF
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *     *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
 
       END DO
       END DO
 
-      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
-      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       call stopTimer('GROUND_SI()')
       END SUBROUTINE GROUND_SI
