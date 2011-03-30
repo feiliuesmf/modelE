@@ -671,7 +671,7 @@ ccc was not sure where to dump these routines ... IA
       call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
      &     i_strt_halo=i_0h, i_stop_halo=i_1h )
       allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
-      call conserv(buf)
+      if(grid%have_domain) call conserv(buf)
       call write_dist_data(grid,fid,trim(name),buf)
       deallocate( buf )
       end subroutine dump_conserv_diags
