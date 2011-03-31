@@ -209,8 +209,10 @@ c
       end subroutine obio_archyb
 
       module write2giss_mod
-      use model_com, only : im,jm,focean
-      use domain_decomp_1d, only : grid,pack_data
+      use resolution, only : im,jm
+      use fluxes, only : focean
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : pack_data
       implicit none
       real*8, dimension(im,jm) :: focean_glob
       contains
