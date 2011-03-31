@@ -2255,6 +2255,11 @@ C**** albedo calculations
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSI
 #endif
 
+! some arrays for diagnostic purposes
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
+     &     RSIstart,MSIsave,SNOWsave,TICEsave,TI1save,SIHC
+     &     ,SNTOSI,SITOPMLT,MSNFLOOD,HSNFLOOD
+
       END MODULE SEAICE_COM
 
       SUBROUTINE ALLOC_SEAICE_COM(grid)
@@ -2271,6 +2276,8 @@ C**** albedo calculations
 
       USE SEAICE_COM, ONLY : RSI, SNOWI, MSI, HSI, SSI, pond_melt,
      *     flag_dsws
+     &     ,RSIstart,MSIsave,SNOWsave,TICEsave,TI1save,SIHC
+     &     ,SNTOSI,SITOPMLT,MSNFLOOD,HSNFLOOD
 #ifdef TRACERS_WATER
       USE SEAICE_COM, ONLY : TRSI
 #endif
@@ -2311,6 +2318,28 @@ C**** albedo calculations
      *     STAT=IER)
       TRSI(:, :, :, J_0H:J_1H) = 0.  ! default to prevent unecessary crash
 #endif
+
+      ALLOCATE( MSIsave(I_0H:I_1H, J_0H:J_1H),
+     &          SNOWsave(I_0H:I_1H, J_0H:J_1H),
+     &          TICEsave(I_0H:I_1H, J_0H:J_1H),
+     &          TI1save(I_0H:I_1H, J_0H:J_1H),
+     &          SIHC(I_0H:I_1H, J_0H:J_1H),
+     &          RSIstart(I_0H:I_1H, J_0H:J_1H),
+     &          SNTOSI(I_0H:I_1H, J_0H:J_1H),
+     &          SITOPMLT(I_0H:I_1H, J_0H:J_1H),
+     &          MSNFLOOD(I_0H:I_1H, J_0H:J_1H),
+     &          HSNFLOOD(I_0H:I_1H, J_0H:J_1H) )
+
+      MSIsave = 0.
+      SNOWsave = 0.
+      TICEsave = 0.
+      TI1save = 0.
+      SIHC = 0.
+      RSIstart = 0.
+      SNTOSI = 0.
+      SITOPMLT = 0.
+      MSNFLOOD = 0.
+      HSNFLOOD = 0.
 
       RETURN
       END SUBROUTINE ALLOC_SEAICE_COM
