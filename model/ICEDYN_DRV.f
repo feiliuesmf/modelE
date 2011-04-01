@@ -1057,7 +1057,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim,gtempr,focean
+      USE FLUXES, only : gtemp,msicnv,fwsim,gtempr,focean
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -1633,9 +1633,6 @@ C**** Set atmospheric arrays
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-              APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
               GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
      *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
               GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
@@ -1657,7 +1654,6 @@ C****
         IF (HAVE_NORTH_POLE) THEN
           IF (FOCEAN(1,JM).gt.0) THEN
             DO I=2,IM           ! North pole
-              APRESS(I,JM)=APRESS(1,JM)
               GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
               GTEMPR(2,I,JM)   = GTEMPR(2,1,JM)
 #ifdef TRACERS_WATER
@@ -1669,7 +1665,6 @@ C****
         IF (HAVE_SOUTH_POLE) THEN
           IF (FOCEAN(1,1).gt.0) THEN
             DO I=2,IM           ! North pole
-              APRESS(I,1)=APRESS(1,1)
               GTEMP(1:2,2,I,1)= GTEMP(1:2,2,1,1)
               GTEMPR(2,I,1)   = GTEMPR(2,1,1)
 #ifdef TRACERS_WATER

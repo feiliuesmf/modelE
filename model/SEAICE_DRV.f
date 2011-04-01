@@ -7,47 +7,19 @@
 !@auth Gavin Schmidt
 !@cont PRECIP_SI,GROUND_SI
 
-      SUBROUTINE PRECIP_SI(DOMAIN)
-!@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
-!@auth Original Development team
-!@calls seaice:prec_si
-      USE CONSTANT, only : teeny,grav,tf,bylhm
-      USE RESOLUTION, only : ptop
+      SUBROUTINE CALC_APRESS
+C**** Calculate pressure anomaly at ocean surface
+      USE CONSTANT, only : grav
       USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : ptop
       USE ATM_COM, only : p
-#ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
-      USE GEOM, only : imaxj,axyp,byaxyp
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,apress,fwsim
-     *     ,gtempr,erunpsi,fland,focean
-#ifdef TRACERS_WATER
-     *     ,trprec,trunpsi,gtracer
-#endif
-      USE LAKES_COM, only : flake
-      USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
-#ifdef TRACERS_WATER
-     *     ,ntm,trsi
-      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
-#endif
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
-     *     ,j_hmelt,ij_fwio,ij_htio,ij_stio,ij_sisnwf,ij_sitopmlt
-     &     ,itoice,itlkice
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE GEOM, only : imaxj
+      USE FLUXES, only : apress
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
-      CHARACTER(LEN=5) :: DOMAIN
-      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
-      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0,ERUN0
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
-      REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
-#endif
-      INTEGER I,J,JR,ITYPE
-      LOGICAL WETSNOW,DOPOINT
-
+      INTEGER I,J
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -61,11 +33,61 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      IF(DOMAIN.EQ.'OCEAN') THEN
-        ITYPE=ITOICE
-      ELSEIF(DOMAIN.EQ.'LAKES') THEN
-        ITYPE=ITLKICE
-      ENDIF
+      DO J=J_0, J_1
+      DO I=I_0,IMAXJ(J)
+        APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
+     *       RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
+      END DO
+      END DO
+      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
+      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
+      RETURN
+      END SUBROUTINE CALC_APRESS
+
+      SUBROUTINE PRECIP_SI(DOMAIN)
+!@sum  PRECIP_SI driver for applying precipitation to sea ice fraction
+!@auth Original Development team
+!@calls seaice:prec_si
+      USE CONSTANT, only : teeny,grav,tf,bylhm
+#ifdef SCM
+      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
+      USE GEOM, only : imaxj
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,fwsim
+     *     ,gtempr,erunpsi,fland,focean
+#ifdef TRACERS_WATER
+      USE GEOM, only : byaxyp  ! atm tracers have extensive units
+      USE FLUXES, only : trprec,trunpsi,gtracer
+#endif
+      USE LAKES_COM, only : flake
+      USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,flag_dsws,pond_melt
+#ifdef TRACERS_WATER
+     *     ,ntm,trsi
+#endif
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      IMPLICIT NONE
+      CHARACTER(LEN=5) :: DOMAIN
+      REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
+      REAL*8 SNOW,MSI2,PRCP,ENRGP,RUN0,POICE,SRUN0,ERUN0
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(NTM,LMI) :: TRSIL
+      REAL*8, DIMENSION(NTM) :: TRUN0,TRPRCP
+#endif
+      INTEGER I,J
+      LOGICAL WETSNOW,DOPOINT
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      integer :: J_0, J_1, I_0,I_1
+
+
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Initialize work array
       DO J=J_0, J_1
@@ -84,7 +106,6 @@ C**** Initialize work array
      &     .or.
      &     (DOMAIN.EQ.'LAKES' .AND. RSI(I,J)*FLAKE(I,J) .GT.0.)
       IF (DOPOINT) THEN
-        JR=JREG(I,J)
         PRCP=PREC(I,J)
         ENRGP=EPREC(I,J)      ! energy of precip
         SNOW=SNOWI(I,J)
@@ -95,9 +116,6 @@ C**** Initialize work array
         TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
         TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)   ! tracer in precip
 #endif
-
-        AIJ(I,J,IJ_F0OI)=AIJ(I,J,IJ_F0OI)+ENRGP*POICE
-        AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF)-MIN(ENRGP*BYLHM,0d0)*POICE
 
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
 
@@ -142,37 +160,11 @@ C**** set gtemp array
 #endif
         FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
-C**** Accumulate diagnostics for ice fraction
-       CALL INC_AJ(I,J,ITYPE,J_IMELT,RUN0 *POICE)
-       CALL INC_AJ(I,J,ITYPE,J_SMELT,SRUN0*POICE)
-       CALL INC_AJ(I,J,ITYPE,J_HMELT,ERUN0*POICE)
-       AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+RUN0*POICE
-       IF (FOCEAN(I,J).gt.0) THEN
-          AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SRUN0)*POICE
-          AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUN0*POICE
-          AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUN0*POICE
-#ifdef TRACERS_WATER
-          TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                    +TRUN0(:)*POICE
-#endif
-       END IF
-
-C**** Accumulate regional diagnostics
-        CALL INC_AREG(I,J,JR,J_IMELT,RUN0 *POICE)
-        CALL INC_AREG(I,J,JR,J_SMELT,SRUN0*POICE)
-        CALL INC_AREG(I,J,JR,J_HMELT,ERUN0*POICE)
-
       END IF
 
-C**** Calculate pressure anomaly at surface
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+
-     *     RSI(I,J)*(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-
       END DO
       END DO
 
-      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
-      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       END SUBROUTINE PRECIP_SI
 
@@ -182,9 +174,8 @@ C****
 !@auth Gavin Schmidt
 !@calls iceocean,icelake
       USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc,qcheck,kocean
-      USE GEOM, only : sinlat2d,imaxj,axyp
+      USE GEOM, only : sinlat2d,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
 #endif
@@ -199,7 +190,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,gtracer
 #endif
-      USE LAKES_COM, only : tlake,mwl,flake,gml,mldlk
+      USE GEOM, only : axyp ! lake MWL has extensive units
+      USE LAKES_COM, only : mwl,flake,gml,mldlk
 #ifdef TRACERS_WATER
      *     ,trlake
 #endif
@@ -331,21 +323,17 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday,TF
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean,dtsrc
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
-      USE GEOM, only : axyp,imaxj
-      USE DIAG_COM, only : j_imelt,j_hmelt,j_smelt,jreg,aij=>aij_loc,
-     *     ij_fwio,ij_htio,ij_stio,ij_sigrlt
-     &     ,itoice,itlkice,itocean,itlake
+      USE GEOM, only : imaxj
+      USE GEOM, only : axyp  ! melt amounts declared with extensive units
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
-      USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi
+      USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi,rsistart
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
-      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
 #endif
       USE LAKES_COM, only : flake
       USE FLUXES, only : sss,melti,emelti,smelti,gtemp,gtempr,mlhc,fwsim
@@ -354,7 +342,7 @@ C****
      *     ,trmelti,gtracer
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GET
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
@@ -367,7 +355,7 @@ C****
       REAL*8, DIMENSION(NTM) :: TRUN0
 #endif
       LOGICAL :: DOPOINT
-      INTEGER I,J,ITYPE,JR,ITYPEO
+      INTEGER I,J
       integer :: J_0, J_1 ,I_0,I_1
 
 C****
@@ -382,6 +370,7 @@ C****
         DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF(FOCEAN(I,J).GT.0.) THEN
+            RSIstart(I,J)=RSI(I,J)
             MELTI(I,J) = 0.
             EMELTI(I,J)= 0.
             SMELTI(I,J)= 0.
@@ -396,6 +385,7 @@ C****
         DO I=I_0,IMAXJ(J)
 c          IF(FLAKE(I,J).GT.0.) THEN
           IF(FOCEAN(I,J).EQ.0.) THEN ! temporary
+            RSIstart(I,J)=RSI(I,J)
             MELTI(I,J) = 0.
             EMELTI(I,J)= 0.
             SMELTI(I,J)= 0.
@@ -423,14 +413,9 @@ C**** now include lat melt for lakes and any RSI < 1
      &     (DOMAIN.EQ.'LAKES' .AND. ROICE.LT.1. .AND. FLAKE(I,J).GT.0.)
      &         )
           IF(DOPOINT) THEN
-            JR=JREG(I,J)
             IF (POCEAN.gt.0) THEN
-              ITYPE =ITOICE
-              ITYPEO=ITOCEAN
               TFO = tfrez(sss(i,j))
             ELSE
-              ITYPE =ITLKICE
-              ITYPEO=ITLAKE
               TFO = 0.
             END IF
             Tm=GTEMP(1,1,I,J)
@@ -448,27 +433,6 @@ C**** now include lat melt for lakes and any RSI < 1
 #endif
      *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
-C**** accumulate diagnostics
-            AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)-RUN0*PWATER
-            IF (FOCEAN(I,J).gt.0) THEN
-              AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUN0-SALT)*PWATER
-              AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)-ENRGUSED*PWATER
-              AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SALT*PWATER
-#ifdef TRACERS_WATER
-              TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                                        +TRUN0(:)*PWATER
-#endif
-            END IF
-
-           CALL INC_AJ(I,J,ITYPE,J_HMELT,-ENRGUSED*ROICE*PWATER)
-           CALL INC_AJ(I,J,ITYPE,J_SMELT,     SALT*ROICE*PWATER)
-           CALL INC_AJ(I,J,ITYPE,J_IMELT,     RUN0*ROICE*PWATER)
-           CALL INC_AJ(I,J,ITYPEO,J_HMELT,-ENRGUSED*(1.-ROICE)*PWATER)
-           CALL INC_AJ(I,J,ITYPEO,J_SMELT,     SALT*(1.-ROICE)*PWATER)
-           CALL INC_AJ(I,J,ITYPEO,J_IMELT,     RUN0*(1.-ROICE)*PWATER)
-           CALL INC_AREG(I,J,JR,J_HMELT,-ENRGUSED*PWATER)
-           CALL INC_AREG(I,J,JR,J_SMELT,     SALT*PWATER)
-           CALL INC_AREG(I,J,JR,J_IMELT,     RUN0*PWATER)
 C**** Update prognostic sea ice variables + correction for rad. fluxes
             if (roice.gt.rsi(i,j)) ! ice from ocean
      *          call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
@@ -476,6 +440,7 @@ C**** Update prognostic sea ice variables + correction for rad. fluxes
      *          call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-ROICE)
 C****
             RSI(I,J)=ROICE
+            RSIstart(I,J)=ROICE
             MSI(I,J)=MSI2
             SNOWI(I,J)=SNOW
             HSI(:,I,J)=HSIL(:)
@@ -525,13 +490,10 @@ C****
 !@ver  2010/11/12
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow,sday
-      USE RESOLUTION, only : ptop
-      USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : p
       USE MODEL_COM, only : dtsrc,jhour,jday
-      USE GEOM, only : imaxj,axyp
+      USE GEOM, only : imaxj
       USE FLUXES, only : e0,e1,evapor,runosi,erunosi,srunosi,solar
-     *     ,fmsi_io,fhsi_io,fssi_io,apress,gtemp,sss,focean
+     *     ,fmsi_io,fhsi_io,fssi_io,gtemp,sss,focean
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,trevapor,trunosi,gtracer
 #ifdef TRACERS_DRYDEP
@@ -541,19 +503,14 @@ C****
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
      *     ,snowice, snow_ice, rhos, Ti
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,pond_melt,flag_dsws
+     &     ,MSIsave,SNTOSI,SITOPMLT,MSNFLOOD,HSNFLOOD,TI1save,SIHC
+     &     ,SNOWsave
 #ifdef TRACERS_WATER
-     *     ,trsi,ntm
-      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
+      USE SEAICE_COM, only: trsi,ntm
 #endif
-      USE LAKES_COM, only : mwl,gml,flake
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_rsoi,ij_msi
-     *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
-     *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio,ij_sntosi,ij_tsice
-     *     ,ij_sihc,ij_sigrcg,ij_sitopmlt,ij_sibotmlt
-     *     ,IJ_MSNFLOOD,IJ_HSNFLOOD
-     &     ,itoice,itlkice
+      USE LAKES_COM, only : flake
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GET
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
@@ -563,24 +520,20 @@ C****
      *     ,FMOC,FHOC,FSOC,POICE,PWATER,SCOVI
       REAL*8 MFLUX,HFLUX,SFLUX,RUN,ERUN,SRUN,MELT12
       REAL*8 MSNWIC,HSNWIC,SSNWIC,SM,TM,Ti1,DSNOW
-      INTEGER I,J,JR,ITYPE
+      INTEGER I,J
       LOGICAL WETSNOW,DOPOINT
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM,LMI) :: trsil
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
      *     ,tralpha
 #endif
-      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
-      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      integer :: J_0, J_1, I_0,I_1
 
       call startTimer('GROUND_SI()')
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0,     J_STOP = J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
+      CALL GET(grid, J_STRT = J_0,     J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -610,7 +563,6 @@ c      debug=i.eq.40.and.j.eq.41
      &     (DOMAIN.EQ.'LAKES' .AND. RSI(I,J)*FLAKE(I,J) .GT.0.)
       IF(DOPOINT) THEN
 c      IF (POICE.gt.0) THEN
-        JR=JREG(I,J)
         F0DT=E0(I,J,2) ! heat flux to the top ice surface (J/m^2)
         F1DT=E1(I,J,2) ! heat flux between 1st and 2nd ice layer (J/m^2)
         EVAP=EVAPOR(I,J,2) ! evaporation/dew at the ice surface (kg/m^2)
@@ -635,15 +587,12 @@ c      IF (POICE.gt.0) THEN
         Tralpha(:)=1d0  ! no fractionation for snow ice formation
 #endif
         IF (FOCEAN(I,J).gt.0) THEN
-          ITYPE=ITOICE
           Sm=SSS(I,J)           ! ocean mixed layer salinity (psu)
         ELSE
-          ITYPE=ITLKICE
           Sm=0.                 ! lakes always fresh
         END IF
 
-        AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
-        AIJ(I,J,IJ_MSI) =AIJ(I,J,IJ_MSI) + (ACE1I+MSI2)*POICE
+        MSIsave(I,J) = (ACE1I+MSI2)*POICE
 
 c        if (debug) write(6,'(A,2I4,4F11.6)') "si0",i,j,SNOW,1d3*SSIL(1)
 c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
@@ -711,6 +660,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         FLAG_DSWS(I,J)=WETSNOW
         Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),1d3*SSIL(1)/(XSI(1)*(SNOW
      *       +ACE1I)))
+        TI1save(I,J) = Ti1
+
+        SIHC(I,J) = SUM(HSIL(:))
+        SNOWsave(I,J) = SNOW
 
 C**** pond_melt accumulation
         pond_melt(i,j)=pond_melt(i,j)+0.3d0*MELT12
@@ -740,59 +693,16 @@ C**** Net fluxes to ocean
         TRUNOSI(:,I,J) = FTROC(:) + TRRUN(:) + TRFLUX(:) + TRSNWIC(:)
 #endif
 
-C**** ACCUMULATE DIAGNOSTICS
-          SCOVI=0.
-C**** snow cover diagnostic now matches that seen by the radiation
-          IF (SNOW.GT.0) SCOVI=MIN(1d0,SNOW/(RHOS*0.1d0))*POICE
-
-          AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
-          AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*POICE
-          AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
-          AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
-          AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+POICE*SNOW/RHOS
-          AIJ(I,J,IJ_SNTOSI)=AIJ(I,J,IJ_SNTOSI)+POICE*(DSNOW-MSNWIC)
-          AIJ(I,J,IJ_TSICE)=AIJ(I,J,IJ_TSICE)+Ti1*POICE
-          AIJ(I,J,IJ_SIHC)=AIJ(I,J,IJ_SIHC)+SUM(HSIL(:))*POICE
-          AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+POICE*(RUN+MFLUX)
-          AIJ(I,J,IJ_MSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*MSNWIC
-          AIJ(I,J,IJ_HSNFLOOD) = AIJ(I,J,IJ_MSNFLOOD) - POICE*HSNWIC
-          IF (FMOC.lt.0) THEN   ! define as congelation growth
-            AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)-POICE*FMOC
-          ELSE                  ! basal melt
-            AIJ(I,J,IJ_SIBOTMLT)=AIJ(I,J,IJ_SIBOTMLT)+POICE*FMOC
-          END IF
-
-          IF (FOCEAN(I,J).gt.0) THEN
-            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(RUNOSI(I,J)-SRUNOSI(I,J))
-     *           *POICE
-            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+ERUNOSI(I,J)*POICE
-            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SRUNOSI(I,J)*POICE
-#ifdef TRACERS_WATER
-            TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                                       +TRUNOSI(:,I,J)*POICE
-#endif
-          END IF
-
-          CALL INC_AJ(I,J,ITYPE,J_RSNOW,SCOVI)
-          CALL INC_AJ(I,J,ITYPE,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE)
-          CALL INC_AJ(I,J,ITYPE,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
-          CALL INC_AJ(I,J,ITYPE,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
-
-          CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI)
-          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE)
-          CALL INC_AREG(I,J,JR,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
-          CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
+        SNTOSI(I,J) = POICE*(DSNOW-MSNWIC)
+        SITOPMLT(I,J) = POICE*(RUN+MFLUX)
+        MSNFLOOD(I,J) = -POICE*MSNWIC
+        HSNFLOOD(I,J) = -POICE*HSNWIC
 
       END IF
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-      APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *     *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
 
       END DO
       END DO
 
-      IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
-      IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
       call stopTimer('GROUND_SI()')
       END SUBROUTINE GROUND_SI
@@ -802,33 +712,25 @@ C****
 !@auth Original Development team
 !@calls seaice:addice
       USE CONSTANT, only : tf
-      USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : im,jm ! for pole fill. use i_1,j_1 instead
       USE MODEL_COM, only : kocean,itime
 #ifdef SCM
       USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
-      USE GEOM, only : imaxj,axyp
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
-      USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx, tij_seaice
-#endif
-      USE DIAG_COM, only : aij=>aij_loc,jreg,j_rsi,j_ace1,j_ace2,j_snow
-     *     ,j_smelt,j_imelt,j_hmelt,ij_tsi,ij_ssi1,ij_ssi2,j_implh
-     *     ,j_implm,ij_smfx,ij_fwio,ij_htio,ij_stio,ij_sigrfr,ij_sigrcg
-     &     ,itoice,itlkice,itocean,itlake
+      USE GEOM, only : imaxj
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi,ntm
-#endif
+      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,ticesave
       USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim,gtempr,focean
 #ifdef TRACERS_WATER
-     *     ,dtrsi,gtracer
+      USE SEAICE_COM, only : trsi,ntm
+      USE FLUXES, only : dtrsi,gtracer
 #endif
       USE LAKES_COM, only : flake
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DIAG_COM, only : ! for prescribed-ice case
+     &     aij=>aij_loc,ij_smfx,itoice,j_implm,j_implh
       IMPLICIT NONE
       CHARACTER(LEN=5) :: DOMAIN
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -839,16 +741,15 @@ C****
       REAL*8, DIMENSION(NTM) :: tro,tri,dtrimp
 #endif
       LOGICAL QFIXR,DOPOINT
-      INTEGER I,J,JR,ITYPE,ITYPEO,N
+      INTEGER I,J,N
 
 C****
 C**** Extract useful local domain parmeters from "grid"
 C****
-      integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
+      integer :: J_0, J_1, I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE   ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE   )
       I_0 = grid%I_STRT
@@ -872,7 +773,6 @@ c         debug=i.eq.40.and.j.eq.41
      &     (DOMAIN.EQ.'LAKES' .AND. FLAKE(I,J) .GT.0.)
       IF(DOPOINT) THEN
 c      IF (PWATER.gt.0) THEN
-        JR=JREG(I,J)
         SNOW= SNOWI(I,J)      ! snow mass (kg/m^2)
         MSI2= MSI(I,J)
         HSIL(:) = HSI(:,I,J)      ! sea ice enthalpy
@@ -883,8 +783,6 @@ c      IF (PWATER.gt.0) THEN
 
         IF (FOCEAN(I,J).gt.0) THEN
           FLEAD=FLEADOC
-          ITYPE=ITOICE
-          ITYPEO=ITOCEAN
           IF (KOCEAN.ge.1) THEN
             QFIXR=.FALSE.
           ELSE
@@ -892,8 +790,6 @@ c      IF (PWATER.gt.0) THEN
           END IF
         ELSE
           FLEAD=FLEADLK
-          ITYPE=ITLKICE
-          ITYPEO=ITLAKE
           QFIXR=.FALSE.
         END IF
 
@@ -907,36 +803,6 @@ c      IF (PWATER.gt.0) THEN
         TRO(:) = DTRSI(:,1,I,J)
         TRI(:) = DTRSI(:,2,I,J)
 #endif
-C**** ice formation diagnostics on the atmospheric grid
-! define open ocean ice formation as frazil ice growth
-        AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POCEAN*ACEFO
-! define under ice formation as congelation ice growth
-        AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)+POICE*ACEFI
-
-        IF (FOCEAN(I,J).gt.0) THEN
-          AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO) - POCEAN*(ACEFO-SALTO)
-     *         - POICE*(ACEFI-SALTI)
-          AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO) - POCEAN* ENRGFO
-     *         - POICE* ENRGFI
-          AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO) - POCEAN* SALTO
-     *         - POICE* SALTI
-#ifdef TRACERS_WATER
-          TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     *                    - POCEAN*TRO(:) - POICE*TRI(:)
-#endif
-        END IF
-C**** open ocean diagnostics
-        CALL INC_AJ(I,J,ITYPEO,J_SMELT,-SALTO *POCEAN)
-        CALL INC_AJ(I,J,ITYPEO,J_HMELT,-ENRGFO*POCEAN)
-        CALL INC_AJ(I,J,ITYPEO,J_IMELT,-ACEFO *POCEAN)
-C**** Ice-covered ocean diagnostics
-        CALL INC_AJ(I,J,ITYPE,J_SMELT,-SALTI *POICE)
-        CALL INC_AJ(I,J,ITYPE,J_HMELT,-ENRGFI*POICE)
-        CALL INC_AJ(I,J,ITYPE,J_IMELT,-ACEFI *POICE)
-C**** regional diagnostics
-        CALL INC_AREG(I,J,JR,J_IMELT,-(ACEFO *POCEAN+ACEFI *POICE))
-        CALL INC_AREG(I,J,JR,J_HMELT,-(ENRGFO*POCEAN+ENRGFI*POICE))
-        CALL INC_AREG(I,J,JR,J_SMELT,-(SALTO *POCEAN+SALTI *POICE))
 
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
@@ -982,33 +848,8 @@ C**** set gtemp array
 #endif
         FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
-C**** ACCUMULATE DIAGNOSTICS
-        CALL INC_AJ(I,J,ITYPE,J_RSI ,      POICE)
-        CALL INC_AJ(I,J,ITYPE,J_ACE1,ACE1I*POICE)
-        CALL INC_AJ(I,J,ITYPE,J_ACE2, MSI2*POICE)
-        CALL INC_AJ(I,J,ITYPE,J_SNOW, SNOW*POICE)
-        IF (JR.ne.24) THEN
-          CALL INC_AREG(I,J,JR,J_RSI ,      POICE)
-          CALL INC_AREG(I,J,JR,J_SNOW, SNOW*POICE)
-          CALL INC_AREG(I,J,JR,J_ACE1,ACE1I*POICE)
-          CALL INC_AREG(I,J,JR,J_ACE2, MSI2*POICE)
-        END IF
-        AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
-     *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
-        AIJ(I,J,IJ_SSI1)=AIJ(I,J,IJ_SSI1)+POICE*(SSIL(1)+SSIL(2))/ACE1I
-        AIJ(I,J,IJ_SSI2)=AIJ(I,J,IJ_SSI2)+POICE*(SSIL(3)+SSIL(4))
-     *       /MSI(I,J)
+        TICEsave(I,J)=(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
 
-#ifdef TRACERS_WATER
-C**** Save sea ice tracer amount
-      do n=1,ntm
-        if (itime_tr0(n).le.itime .and. (tr_wd_TYPE(n).eq.nWater .or.
-     *      tr_wd_TYPE(n).eq.nPART)) then
-          taijn(i,j,tij_seaice,n)=taijn(i,j,tij_seaice,n)+
-     *         POICE*sum(trsil(n,:))
-        end if
-      end do
-#endif
       if (TSIL(1).lt.-100.) then
          write(6,*) "Seaice: T < -100. i,j,TSI = ",i,j,TSIL(1:LMI)
          call stop_model("Seaice too cold after ADDICE",255)
@@ -1056,6 +897,254 @@ C**** replicate ice values at the poles
       END IF
 C****
       END SUBROUTINE FORM_SI
+
+      SUBROUTINE SI_diags(DOMAIN)
+      USE MODEL_COM, only : kocean,itime
+      USE CONSTANT, only : rhows,rhow,bylhm
+      USE GEOM, only : imaxj
+      USE GEOM, only : byaxyp  ! melt amounts still include area units
+      USE FLUXES, only : focean
+      USE LAKES_COM, only : flake
+      USE FLUXES, only : melti,emelti,smelti
+      USE FLUXES, only : prec,eprec,runpsi,srunpsi,erunpsi
+      USE FLUXES, only : runosi,erunosi,srunosi,fmsi_io,fhsi_io,fssi_io
+      USE FLUXES, only : dmsi,dhsi,dssi
+#ifdef TRACERS_WATER
+      USE FLUXES, only : trunpsi,ftrsi_io,trunosi
+      USE FLUXES, only : trmelti
+      USE FLUXES, only : dtrsi
+#endif
+      USE SEAICE, only : rhos,ace1i
+      USE SEAICE_COM, only : rsi,msi,snowi,ssi,pond_melt
+      USE SEAICE_COM, only : 
+     &      RSIstart,MSIsave,SNTOSI,SITOPMLT,MSNFLOOD,HSNFLOOD
+     &     ,ticesave,Ti1save,SNOWsave,SIHC
+#ifdef TRACERS_WATER
+      USE SEAICE_COM, only : trsi,ntm
+      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
+      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx, tij_seaice
+#endif
+      USE DIAG_COM, only : aij=>aij_loc,jreg
+     &     ,j_imelt,j_hmelt,j_smelt,j_rsnow,j_rsi,j_ace1,j_ace2,j_snow
+     &     ,itoice,itlkice,itocean,itlake
+     &     ,ij_rsoi,ij_msi,ij_rsit,ij_rsnw,ij_snow
+     &     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio,ij_sntosi,ij_tsice
+     &     ,ij_sihc,ij_sigrcg,ij_sitopmlt,ij_sibotmlt,ij_f0oi,ij_sisnwf
+     &     ,IJ_MSNFLOOD,IJ_HSNFLOOD,ij_sigrlt,ij_sigrfr
+     &     ,ij_tsi,ij_ssi1,ij_ssi2
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
+      IMPLICIT NONE
+      CHARACTER(LEN=5) :: DOMAIN
+      REAL*8 POCEAN,ROICE,POICE,PWATER,SCOVI
+      REAL*8 :: IMLT,HMLT,SMLT
+      INTEGER I,J,JR,ITYPE,ITYPEO,N
+      LOGICAL DOPOINT,DOMELT
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: FWATER
+      integer :: J_0, J_1, I_0,I_1
+
+      call startTimer('Diagnostics')
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0,     J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      IF(DOMAIN.EQ.'OCEAN') THEN
+        ITYPE=ITOICE
+        ITYPEO=ITOCEAN
+        FWATER(I_0:I_1,J_0:J_1) = FOCEAN(I_0:I_1,J_0:J_1)
+        DOMELT=KOCEAN.GE.1
+      ELSEIF(DOMAIN.EQ.'LAKES') THEN
+        ITYPE=ITLKICE
+        ITYPEO=ITLAKE
+        FWATER(I_0:I_1,J_0:J_1) = FLAKE(I_0:I_1,J_0:J_1)
+        DOMELT=.TRUE.
+      ENDIF
+
+      DO J=J_0, J_1
+      DO I=I_0,IMAXJ(J)
+        PWATER=FWATER(I,J)
+        IF(PWATER.LE.0.) CYCLE
+        ROICE=RSIstart(I,J)
+        POCEAN=(1.-ROICE)*PWATER
+        POICE=ROICE*PWATER
+        JR=JREG(I,J)
+
+C**** MELT_SI diags
+        IF(DOMELT .and. MELTI(I,J).NE.0.) THEN
+          AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)
+     &         -MELTI(I,J)*BYAXYP(I,J)
+          IF (DOMAIN.EQ.'OCEAN') THEN
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)
+     &           +(MELTI(I,J)-SMELTI(I,J))*BYAXYP(I,J)
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)
+     &           +EMELTI(I,J)*BYAXYP(I,J)
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)
+     &           +SMELTI(I,J)*BYAXYP(I,J)
+#ifdef TRACERS_WATER
+            TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     &           +TRMELTI(:,I,J)*BYAXYP(I,J)
+#endif
+          END IF
+
+          CALL INC_AJ(I,J,ITYPE,J_HMELT,EMELTI(I,J)*BYAXYP(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_SMELT,SMELTI(I,J)*BYAXYP(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_IMELT, MELTI(I,J)*BYAXYP(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPEO,J_HMELT,
+     &         EMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_SMELT,
+     &         SMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_IMELT,
+     &         MELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
+
+          CALL INC_AREG(I,J,JR,J_HMELT,EMELTI(I,J)*BYAXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_SMELT,SMELTI(I,J)*BYAXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_IMELT, MELTI(I,J)*BYAXYP(I,J))
+
+        END IF ! DOMELT .and. MELTI(I,J).NE.0.
+
+C****
+C**** Open water ice formation diagnostics
+C****
+        IF(POCEAN*DMSI(1,I,J).NE.0.) THEN
+
+C**** ice formation diagnostics on the atmospheric grid
+! define open ocean ice formation as frazil ice growth
+          AIJ(I,J,IJ_SIGRFR)=AIJ(I,J,IJ_SIGRFR)+POCEAN*DMSI(1,I,J)
+
+          IF (DOMAIN.EQ.'OCEAN') THEN
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)
+     &           -POCEAN*(DMSI(1,I,J)-DSSI(1,I,J))
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)
+     &           -POCEAN* DHSI(1,I,J)
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)
+     &           -POCEAN* DSSI(1,I,J)
+#ifdef TRACERS_WATER
+            TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     &           -POCEAN*DTRSI(:,1,I,J)
+#endif
+          END IF
+
+          CALL INC_AJ(I,J,ITYPEO,J_IMELT,-DMSI(1,I,J)*POCEAN)
+          CALL INC_AJ(I,J,ITYPEO,J_HMELT,-DHSI(1,I,J)*POCEAN)
+          CALL INC_AJ(I,J,ITYPEO,J_SMELT,-DSSI(1,I,J)*POCEAN)
+
+C**** regional diagnostics
+          CALL INC_AREG(I,J,JR,J_IMELT,-DMSI(1,I,J)*POCEAN)
+          CALL INC_AREG(I,J,JR,J_HMELT,-DHSI(1,I,J)*POCEAN)
+          CALL INC_AREG(I,J,JR,J_SMELT,-DSSI(1,I,J)*POCEAN)
+
+        ENDIF ! POCEAN*DMSI(1,I,J).NE.0.
+
+C**** Ice-covered ocean diagnostics
+
+        IF(POICE.GT.0.) THEN
+
+! define under ice formation as congelation ice growth
+          AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)+POICE*DMSI(2,I,J)
+
+          AIJ(I,J,IJ_SSI1)=AIJ(I,J,IJ_SSI1)
+     &         +POICE*(SSI(1,I,J)+SSI(2,I,J))/ACE1I
+          AIJ(I,J,IJ_SSI2)=AIJ(I,J,IJ_SSI2)
+     &         +POICE*(SSI(3,I,J)+SSI(4,I,J))/MSI(I,J)
+          AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+POICE*TICEsave(I,J)
+
+#ifdef TRACERS_WATER
+C**** Save sea ice tracer amount
+          do n=1,ntm
+            if (itime_tr0(n).le.itime .and.
+     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)) then
+              taijn(i,j,tij_seaice,n)=taijn(i,j,tij_seaice,n)+
+     *             POICE*sum(TRSI(n,:,I,J))
+            end if
+          end do
+#endif
+
+          AIJ(I,J,IJ_F0OI) = AIJ(I,J,IJ_F0OI) +EPREC(I,J)*POICE
+          AIJ(I,J,IJ_SISNWF) = AIJ(I,J,IJ_SISNWF)
+     &         -MIN(EPREC(I,J)*BYLHM,0d0)*POICE
+          AIJ(I,J,IJ_RSOI) =AIJ(I,J,IJ_RSOI) +POICE
+          AIJ(I,J,IJ_MSI) =AIJ(I,J,IJ_MSI) + MSIsave(I,J)
+
+          AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+RUNPSI(I,J)*POICE
+
+          IMLT =  RUNPSI(I,J)+ RUNOSI(I,J)-DMSI(2,I,J)
+          HMLT = ERUNPSI(I,J)+ERUNOSI(I,J)-DHSI(2,I,J)
+          SMLT = SRUNPSI(I,J)+SRUNOSI(I,J)-DSSI(2,I,J)
+
+          IF (DOMAIN.EQ.'OCEAN') THEN
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO) +(IMLT-SMLT)*POICE
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO) +HMLT*POICE
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO) +SMLT*POICE
+#ifdef TRACERS_WATER
+            TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
+     &           +(TRUNPSI(:,I,J)+TRUNOSI(:,I,J)-DTRSI(:,2,I,J))*POICE
+#endif
+          END IF
+
+C**** snow cover diagnostic now matches that seen by the radiation
+          IF (SNOWsave(I,J).GT.0) THEN
+            SCOVI=MIN(1d0,SNOWsave(I,J)/(RHOS*0.1d0))*POICE
+          ELSE
+            SCOVI=0.
+          ENDIF
+
+          AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVI
+          AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOWsave(I,J)*POICE
+          AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+POICE
+          AIJ(I,J,IJ_MLTP)=AIJ(I,J,IJ_MLTP)+pond_melt(i,j)*POICE
+          AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+POICE*SNOWsave(I,J)/RHOS
+          AIJ(I,J,IJ_TSICE)=AIJ(I,J,IJ_TSICE)+Ti1save(I,J)*POICE
+          AIJ(I,J,IJ_SIHC)=AIJ(I,J,IJ_SIHC)+SIHC(I,J)*POICE
+          AIJ(I,J,IJ_SNTOSI)=AIJ(I,J,IJ_SNTOSI)+SNTOSI(I,J)
+          AIJ(I,J,IJ_SITOPMLT)=AIJ(I,J,IJ_SITOPMLT)+SITOPMLT(I,J)
+          AIJ(I,J,IJ_MSNFLOOD)=AIJ(I,J,IJ_MSNFLOOD)+MSNFLOOD(I,J)
+          AIJ(I,J,IJ_HSNFLOOD)=AIJ(I,J,IJ_HSNFLOOD)+HSNFLOOD(I,J)
+
+          IF (fmsi_io(i,j).lt.0) THEN   ! define as congelation growth
+            AIJ(I,J,IJ_SIGRCG)=AIJ(I,J,IJ_SIGRCG)-POICE*fmsi_io(i,j)
+          ELSE                  ! basal melt
+            AIJ(I,J,IJ_SIBOTMLT)=AIJ(I,J,IJ_SIBOTMLT)+POICE*fmsi_io(i,j)
+          END IF
+
+          CALL INC_AJ(I,J,ITYPE,J_RSNOW,SCOVI)
+          CALL INC_AJ(I,J,ITYPE,J_RSI ,      POICE)
+          CALL INC_AJ(I,J,ITYPE,J_ACE1, ACE1I*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_ACE2, MSI(I,J)*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_SNOW, SNOWI(I,J)*POICE)
+
+          CALL INC_AJ(I,J,ITYPE,J_IMELT, IMLT*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_HMELT, HMLT*POICE)
+          CALL INC_AJ(I,J,ITYPE,J_SMELT, SMLT*POICE)
+
+C**** Accumulate regional diagnostics
+          IF (JR.ne.24) THEN
+            CALL INC_AREG(I,J,JR,J_RSI ,      POICE)
+            CALL INC_AREG(I,J,JR,J_SNOW, SNOWI(I,J)*POICE)
+            CALL INC_AREG(I,J,JR,J_ACE1, ACE1I*POICE)
+            CALL INC_AREG(I,J,JR,J_ACE2, MSI(I,J)*POICE)
+          END IF
+          CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI)
+
+          CALL INC_AREG(I,J,JR,J_IMELT, IMLT*POICE)
+          CALL INC_AREG(I,J,JR,J_HMELT, HMLT*POICE)
+          CALL INC_AREG(I,J,JR,J_SMELT, SMLT*POICE)
+
+        END IF ! POICE.GT.0.
+
+      END DO
+      END DO
+
+      call stopTimer('Diagnostics')
+
+      RETURN
+      END SUBROUTINE SI_diags
 
       SUBROUTINE vflx_OCEAN
 !@sum  vflx_OCEAN saves quantities for OHT calculations
@@ -1257,10 +1346,9 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
+      INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -1292,10 +1380,9 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
+      INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -1327,10 +1414,9 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
+      INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -1367,10 +1453,9 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
+      INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -1402,10 +1487,9 @@ C****
       INTEGER I,J
 
 c**** Extract useful domain information from grid
-      INTEGER J_0, J_1, J_0H, J_1H ,I_0,I_1
+      INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT

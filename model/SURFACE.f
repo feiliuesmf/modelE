@@ -1599,6 +1599,7 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
       CALL FORM_SI('LAKES')
+      CALL SI_diags('LAKES')
 
       call stopTimer('SURFACE()')
 
