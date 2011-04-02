@@ -2072,7 +2072,7 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_WATER
         case ("TRP1")
-          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2082,7 +2082,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
-          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2092,7 +2092,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
-          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
