@@ -35,7 +35,7 @@ C****
       USE Dictionary_mod
       USE CONSTANT, only : grav,bysha,twopi
       USE RESOLUTION, only : jm,lm
-      USE ATM_COM, only : kradia,lm_req
+      USE ATM_COM, only : t,pk,kradia,lm_req
       USE MODEL_COM, only : dtsrc,jyear,iyear1
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
@@ -112,7 +112,7 @@ C****
 #if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
       integer, parameter :: nlt=33
       real*8 :: aw(nlt), bw(nlt), saw, sbw
-      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
       integer :: nl,ic , iu_bio, lambda, lam(nlt)
       character title*50
       data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
@@ -124,11 +124,6 @@ C****
 
       INTEGER :: I,J
       INTEGER :: I_0,I_1,J_0,J_1
-      integer :: iu_NMC,tlm_record
-!@var t_for_rqtinit cold-start value of RQT
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     t_for_rqtinit
 
 C**** sync radiation parameters from input
       call sync_param( "NRAD", NRAD ) !!
@@ -189,15 +184,9 @@ C**** sync radiation parameters from input
 
       if(istart==2) then ! replace with cold vs warm start logic
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
-C**** TODO: just set rqt as potential_temp(lm)*pk(lm)
-        call openunit("AIC",iu_NMC,.true.,.true.)
-        tlm_record = 1+2*lm +(lm-1) +1  ! skip over psrf,u,v
-        CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),
-     &       t_for_rqtinit,tlm_record)
-        call closeunit(iu_NMC)
         DO J=J_0,J_1
         DO I=I_0,I_1
-          RQT(:,I,J)=t_for_rqtinit(I,J)
+          RQT(:,I,J)=T(I,J,LM)*PK(LM,I,J)
         ENDDO
         ENDDO
       endif
@@ -656,8 +645,8 @@ C**** Read in the factors used for alterations:
         aw(nl) = saw
         bw(nl) = sbw
         if (lam(nl) .lt. 900) then
-          t = exp(-(aw(nl)+0.5*bw(nl)))
-          tlog = dlog(1.0D-36+t)
+          expterm = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+expterm)
           fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
           wfac(nl) = max(0d0,min(fac,1d0))
         else
