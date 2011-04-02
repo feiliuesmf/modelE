@@ -3811,7 +3811,7 @@ C**** other dust special cases
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
-     &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
+     &                 /Dtsrc/real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
               end do

@@ -330,7 +330,7 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)
+        TRPRCP(:)=TRPREC(:,I,J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
