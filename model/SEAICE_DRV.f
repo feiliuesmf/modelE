@@ -57,7 +57,6 @@ C****
       USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,fwsim
      *     ,gtempr,erunpsi,fland,focean
 #ifdef TRACERS_WATER
-      USE GEOM, only : byaxyp  ! atm tracers have extensive units
       USE FLUXES, only : trprec,trunpsi,gtracer
 #endif
       USE LAKES_COM, only : flake
@@ -114,7 +113,7 @@ C**** Initialize work array
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
 #ifdef TRACERS_WATER
         TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)   ! tracer in precip
+        TRPRCP(:)=TRPREC(:,I,J)   ! tracer in precip
 #endif
 
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
@@ -190,8 +189,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,gtracer
 #endif
-      USE GEOM, only : axyp ! lake MWL has extensive units
-      USE LAKES_COM, only : mwl,flake,gml,mldlk
+      USE LAKES_COM, only : flake,mldlk,dlake,glake
 #ifdef TRACERS_WATER
      *     ,trlake
 #endif
@@ -290,8 +288,8 @@ C**** should we calculate ocean rho(Tm,Sm) here?
      *             mflux,hflux)
 
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
-              IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*AXYP(I,J)) THEN
-                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*AXYP(I,J))
+              IF (DLAKE(I,J).lt.0.4d0) THEN
+                FLUXLIM=-GLAKE(I,J)/DTSRC
                 IF (hflux.lt.FLUXLIM) hflux = FLUXLIM
                 if (mflux.lt.0) then
                   mflux = 0.
@@ -299,8 +297,8 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
                   trflux= 0.
 #endif
                 end if
-                if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
-     *               (RHOW*FLAKE(I,J)*AXYP(I,J)),FLUXLIM*DTSRC
+                if (qcheck) print*,"Flux limiting",I,J,DLAKE(I,J),
+     *               FLUXLIM*DTSRC
               END IF
             END IF
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down
@@ -329,7 +327,6 @@ C****
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj
-      USE GEOM, only : axyp  ! melt amounts declared with extensive units
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi,rsistart
 #ifdef TRACERS_WATER
@@ -449,11 +446,11 @@ C****
             TRSI(:,:,I,J)=TRSIL(:,:)
 #endif
 C**** Save fluxes (in kg, J etc.), positive into ocean
-          MELTI(I,J) = RUN0*PWATER*AXYP(I,J)
-          EMELTI(I,J)=-ENRGUSED*PWATER*AXYP(I,J)
-          SMELTI(I,J)= SALT*PWATER*AXYP(I,J)
+          MELTI(I,J) = RUN0*PWATER
+          EMELTI(I,J)=-ENRGUSED*PWATER
+          SMELTI(I,J)= SALT*PWATER
 #ifdef TRACERS_WATER
-          TRMELTI(:,I,J)=TRUN0(:)*PWATER*AXYP(I,J)
+          TRMELTI(:,I,J)=TRUN0(:)*PWATER
 #endif
           END IF
 C**** Reset some defaults if all ice is gone
@@ -902,7 +899,6 @@ C****
       USE MODEL_COM, only : kocean,itime
       USE CONSTANT, only : rhows,rhow,bylhm
       USE GEOM, only : imaxj
-      USE GEOM, only : byaxyp  ! melt amounts still include area units
       USE FLUXES, only : focean
       USE LAKES_COM, only : flake
       USE FLUXES, only : melti,emelti,smelti
@@ -978,34 +974,27 @@ C****
 
 C**** MELT_SI diags
         IF(DOMELT .and. MELTI(I,J).NE.0.) THEN
-          AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)
-     &         -MELTI(I,J)*BYAXYP(I,J)
+          AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)-MELTI(I,J)
           IF (DOMAIN.EQ.'OCEAN') THEN
-            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)
-     &           +(MELTI(I,J)-SMELTI(I,J))*BYAXYP(I,J)
-            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)
-     &           +EMELTI(I,J)*BYAXYP(I,J)
-            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)
-     &           +SMELTI(I,J)*BYAXYP(I,J)
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(MELTI(I,J)-SMELTI(I,J))
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+EMELTI(I,J)
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SMELTI(I,J)
 #ifdef TRACERS_WATER
             TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     &           +TRMELTI(:,I,J)*BYAXYP(I,J)
+     &           +TRMELTI(:,I,J)
 #endif
           END IF
 
-          CALL INC_AJ(I,J,ITYPE,J_HMELT,EMELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPE,J_SMELT,SMELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPE,J_IMELT, MELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPEO,J_HMELT,
-     &         EMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
-          CALL INC_AJ(I,J,ITYPEO,J_SMELT,
-     &         SMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
-          CALL INC_AJ(I,J,ITYPEO,J_IMELT,
-     &         MELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPE,J_HMELT,EMELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_SMELT,SMELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_IMELT, MELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPEO,J_HMELT,EMELTI(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_SMELT,SMELTI(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_IMELT,MELTI(I,J)*(1.-ROICE))
 
-          CALL INC_AREG(I,J,JR,J_HMELT,EMELTI(I,J)*BYAXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_SMELT,SMELTI(I,J)*BYAXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_IMELT, MELTI(I,J)*BYAXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_HMELT,EMELTI(I,J))
+          CALL INC_AREG(I,J,JR,J_SMELT,SMELTI(I,J))
+          CALL INC_AREG(I,J,JR,J_IMELT, MELTI(I,J))
 
         END IF ! DOMELT .and. MELTI(I,J).NE.0.
 

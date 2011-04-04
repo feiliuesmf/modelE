@@ -100,7 +100,6 @@ c
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
-      Use GEOM,  only : AXYP
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : NTM
@@ -168,7 +167,7 @@ c
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
       do N=1,NTM
-        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)
         if (hasNorthPole(agrid)
      &       .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(atmp(N,:,aJM),aIM)
@@ -267,7 +266,6 @@ c*   polar values are replaced by their longitudinal mean
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
-      Use GEOM,  only : AXYP
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : NTM
@@ -321,7 +319,7 @@ c*   polar values are replaced by their longitudinal mean
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
       DO N=1,NTM
-        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)
       END DO
       CALL INT_AG2OG(atmp,oTRPREC, aWEIGHT, NTM)
       DO N=1,NTM
@@ -1200,12 +1198,13 @@ C**** surface tracer concentration
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-            atmp01(I,J) = aFLOWO(I,J)*aFact(I,J)
-            atmp02(I,J) = aEFLOWO(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
             atmp03(I,J) = aMELTI(I,J)*aFact(I,J)
             atmp04(I,J) = aEMELTI(I,J)*aFact(I,J)
             atmp05(I,J) = aSMELTI(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
+            atmp01(I,J) = aFLOWO(I,J)*aFact(I,J)
+            atmp02(I,J) = aEFLOWO(I,J)*aFact(I,J)
             atmp06(I,J) = aGMELT(I,J)*aFact(I,J)
           END IF
         END DO
@@ -1933,6 +1932,38 @@ c*
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            atmp(I,J) = aGMELT(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(atmp,oGMELT, aWEIGHT)
+      oGMELT(:,:) = oGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/AXYP(I,J) ! not used?
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(atmp,oEGMELT, aWEIGHT)
+      oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
             atmp(I,J) = aMELTI(I,J)*aFact(I,J)
           END IF
         END DO
@@ -1966,37 +1997,6 @@ c*
         END DO
       END DO
       CALL INT_AG2OG(atmp,oSMELTI, aWEIGHT)
-      deallocate(atmp)
-
-      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
-      atmp=0.
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            atmp(I,J) = aGMELT(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      CALL INT_AG2OG(atmp,oGMELT, aWEIGHT)
-      oGMELT(:,:) = oGMELT(:,:)*OXYP(:,:)
-      deallocate(atmp)
-
-      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
-      atmp=0.
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
-            aFact(I,J) = 1.d0/AXYP(I,J) ! not used?
-          END IF
-        END DO
-      END DO
-      CALL INT_AG2OG(atmp,oEGMELT, aWEIGHT)
-      oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
       deallocate(atmp)
 
       aWEIGHT(:,:) = aRSI(:,:)
@@ -2048,6 +2048,7 @@ c*
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
+              aFact(I,J) = 1.d0/(aFOCEAN_loc(I,J))
               atmp2(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
             END IF
           END DO

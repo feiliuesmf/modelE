@@ -2072,7 +2072,7 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_WATER
         case ("TRP1")
-          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2082,7 +2082,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
-          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2092,7 +2092,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
-          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -3811,7 +3811,7 @@ C**** other dust special cases
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
-     &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
+     &                 /Dtsrc/real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
               end do

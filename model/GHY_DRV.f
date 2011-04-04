@@ -246,7 +246,7 @@ ccc tracers variables
         ghy_tr%tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
         ghy_tr%tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
-        ghy_tr%trpr(nx) = (trprec(n,i,j)*byaxyp(i,j))/dtsrc ! kg/m^2 s (in precip)
+        ghy_tr%trpr(nx) = trprec(n,i,j)/dtsrc ! kg/m^2 s (in precip)
 #ifdef TRACERS_DRYDEP
         ghy_tr%trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
 #else
