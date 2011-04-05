@@ -10,7 +10,7 @@ c --- input  variables: uflxo,vflxo,sigold,pold,kold,thetn
 c --- output variables: uflxn,vflxn,signew,pnew,knew
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : acurcy
+      USE HYCOM_SCALARS, only : acurcy,onem,itest,jtest
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       implicit none
@@ -32,10 +32,11 @@ c
      .     pinteg,uinteg,vinteg,phi,plo,pa,pb,siga,sigb,q,
      .     plft,prgt,pblft,pbrgt,delp,uvscal
 
-      logical abort
+      logical abort,vrbos
       data abort/.false./
       data uvscal/1.e5/                        !  velocity x mesh size  --  SI
 ccc   data uvscal/1.e9/                        !  velocity x mesh size  --  cgs
+      vrbos(i,j)=i.eq.itest .and. j.eq.jtest
 c
       do 1 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -55,14 +56,12 @@ c --- remove density inversions from input profile
 c
       do 3 i=ifp(j,l),ilp(j,l)
  101  format (2i5,a/(30x,i3,f9.3,f10.2,2f9.3))
- 102  format (2i5,a/(30x,i3,2(0p,f10.2,1p,e10.2)))
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write (*,102) itest,jtest,
-cdiag.  '  reflux -- old profile:    dpthu     u         dpthv     v',
-cdiag.  (k,.5*(pold(i,j,k+1)+pold(i-1,j,k+1))/onem,uflxo(i,j,k),
-cdiag.     .5*(pold(i,j,k+1)+pold(i,ja ,k+1))/onem,vflxo(i,j,k),
-cdiag.   k=1,kold)
-cdiag end if
+ 102  format (2i5,a/(30x,i3,2(f10.2,es10.2)))
+      if (vrbos(i,j)) write (*,102) itest,jtest,
+     .  '  reflux -- old profile:    dpthu     u         dpthv     v',
+     .  (k,.5*(pold(i,j,k+1)+pold(i-1,j,k+1))/onem,uflxo(i,j,k),
+     .     .5*(pold(i,j,k+1)+pold(i,ja ,k+1))/onem,vflxo(i,j,k),
+     .   k=1,kold)
       signew(i,j,   1)=min(oldsig(i,1),oldsig(i,kold),thetn(   1))
       signew(i,j,knew)=max(oldsig(i,1),oldsig(i,kold),thetn(knew))
       pnew(i,j,     1)=pold(i,j,     1)
@@ -70,15 +69,15 @@ cdiag end if
 c
 c --- column integrals (colin/clout) are computed for diagnostic purposes only
       cloutr(i)=0.
- 104  format (2i4,i3,a,1p,2e15.7)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,kold,'  colin:',
-cdiag.   oldsig(i,kold),(pold(i,j,kold+1)-pold(i,j,kold))
+ 104  format (2i4,i3,a,2es15.7)
+      if (vrbos(i,j)) write (*,104) i,j,kold,'  (reflux) colin:',
+     .   oldsig(i,kold),(pold(i,j,kold+1)-pold(i,j,kold))
  3    colinr(i)=oldsig(i,kold)*(pold(i,j,kold+1)-pold(i,j,kold))
 c
       do 9 k=1,kold-1
       do 9 i=ifp(j,l),ilp(j,l)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,k,'  colin:',
-cdiag.  oldsig(i,k),(pold(i,j,k+1)-pold(i,j,k))
+      if (vrbos(i,j)) write (*,104) i,j,k,'  (reflux) colin:',
+     .  oldsig(i,k),(pold(i,j,k+1)-pold(i,j,k))
  9    colinr(i)=colinr(i)+oldsig(i,k)*(pold(i,j,k+1)-pold(i,j,k))
 c
 c --- find interface depth pnew(k+1) separating layers k and k+1 by requiring 
@@ -99,29 +98,31 @@ c
       pinteg=pinteg+pold(i,j,kold+1)*(sigb-siga)
 c
  25   pnew(i,j,k+1)=pinteg/(signew(i,j,k+1)-signew(i,j,k))
-cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,k,'  clout:',
-cdiag.    signew(i,j,k),(pnew(i,j,k+1)-pnew(i,j,k))
+      if (vrbos(i,j)) write (*,104) i,j,k,'  (reflux) clout:',
+     .    signew(i,j,k),(pnew(i,j,k+1)-pnew(i,j,k))
       cloutr(i)=cloutr(i)+signew(i,j,k)*(pnew(i,j,k+1)-pnew(i,j,k))
 c --- remove effect of roundoff errors on monotonicity
       pnew(i,j,k+1)=max(pnew(i,j,k),min(pnew(i,j,k+1),pnew(i,j,knew+1)))
  4    continue
 c
       do 6 i=ifp(j,l),ilp(j,l)
-cdiag if (i.eq.itest.and.j.eq.jtest) write (*,104) i,j,knew,'  clout:',
-cdiag.    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
+      if (vrbos(i,j)) write (*,104) i,j,knew,'  (reflux) clout:',
+     .    signew(i,j,knew),(pnew(i,j,knew+1)-pnew(i,j,knew))
       cloutr(i)=cloutr(i)+signew(i,j,knew)
      .   *(pnew(i,j,knew+1)-pnew(i,j,knew))
       if (abs(cloutr(i)-colinr(i)).gt.acurcy*35.*pold(i,j,kold+1))
      .  write (*,100) i,j,'  reflux - bad dens.intgl.',colinr(i),
      .    cloutr(i),(cloutr(i)-colinr(i))/colinr(i)
- 100  format (2i5,a,1p,2e16.8,e9.1)
+ 100  format (2i5,a,2es16.8,es9.1)
+      if (vrbos(i,j)) then
+       write (*,'(2i5,a/(8f9.3))') i,j,' (reflux) old density profile:',
+     .   (sigold(itest,jtest,k),k=1,kold)
+       write (*,'(2i5,a/(8f9.3))') i,j,' (reflux) new density profile:',
+     .   (signew(itest,jtest,k),k=1,knew)
+      end if
  6    continue
  1    continue
 c
-cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' old density profile:',
-cdiag.   (sigold(itest,jtest,k),k=1,kold)
-cdiag write (*,'(2i5,a/(8f9.3))') itest,jtest,' new density profile:',
-cdiag.   (signew(itest,jtest,k),k=1,knew)
        CALL HALO_UPDATE(ogrid,pold, FROM=SOUTH)
        CALL HALO_UPDATE(ogrid,pnew, FROM=SOUTH)
 c
@@ -235,15 +236,15 @@ c
      .      cloutv(i),(cloutv(i)-colinv(i))/colinv(i)
  23   continue
 c
-cdiag do 21 l=1,isp(j)
-cdiag do 21 i=ifp(j,l),ilp(j,l)
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write (*,102) itest,jtest,
-cdiag.  '  reflux -- new profile:    dpthu     u         dpthv     v',
-cdiag.  (k,.5*(pnew(i,j,k+1)+pnew(i-1,j,k+1))/onem,uflxn(i,j,k),
-cdiag.     .5*(pnew(i,j,k+1)+pnew(i,ja ,k+1))/onem,vflxn(i,j,k),
-cdiag.   k=1,knew)
-cdiag end if
+      do 21 l=1,isp(j)
+      do 21 i=ifp(j,l),ilp(j,l)
+      if (i.eq.itest .and. j.eq.jtest) then
+        write (*,102) itest,jtest,
+     .  '  reflux -- new profile:    dpthu     u         dpthv     v',
+     .  (k,.5*(pnew(i,j,k+1)+pnew(i-1,j,k+1))/onem,uflxn(i,j,k),
+     .     .5*(pnew(i,j,k+1)+pnew(i,ja ,k+1))/onem,vflxn(i,j,k),
+     .   k=1,knew)
+      end if
 c
  21   continue
       if (abort) stop '(reflux)'
