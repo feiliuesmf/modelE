@@ -164,7 +164,8 @@ ccc      data wuv1,wuv2/.5,.25/
       data wuv1,wuv2/.75,.125/
 ccc      data wts1,wts2/.875,.0625/
 ccc      data wts1,wts2/.9375,.03125/
-      data wts1,wts2/.96875,.015625/
+CCC   data wts1,wts2/.96875,.015625/
+      data wts1,wts2/.984375,.0078125/
       data wbaro/.125/
 c
 c --- layer thicknesses in units of pressure (kg/m/sec^2):
