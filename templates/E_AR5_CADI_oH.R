@@ -177,8 +177,8 @@ jtest=-1         ! default is -1
 iocnmx=2         ! default is 2
 brntop=50.       ! default is 50.
 brnbot=200.      ! default is 200.
-diapyn=2.e-7     ! default is 2.e-7
-diapyc=.2e-4     ! default is .2e-4
+diapyn=1.e-7     ! default is 1.e-7
+diapyc=.1e-4     ! default is .1e-4
 jerlv0=1         ! default is 1
 &&END_PARAMETERS
 
