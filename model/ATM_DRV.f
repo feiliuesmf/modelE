@@ -185,6 +185,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 ! possibly unite melt_si(lakes) with the rest of the lakes calls
       CALL MELT_SI('OCEAN')
       CALL MELT_SI('LAKES')
+      call seaice_to_atmgrid
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
 

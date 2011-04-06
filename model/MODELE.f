@@ -515,7 +515,6 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       
       call daily_CAL(.true.)    ! end_of_day
       call daily_OCEAN(.true.)  ! end_of_day
-      call daily_ICE
       call daily_ATM(.true.)
 
       return
