@@ -57,7 +57,7 @@ C**** Command line options
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
-      USE FILEMANAGER, only : openunit,closeunit,nameunit
+      USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
@@ -506,46 +506,12 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
-! todo: split into atm vs ocean calls
-      use filemanager
-      use MODEL_COM, only: nday,itime
-      use DYNAMICS, only : nidyn
-      USE SOIL_DRV, only: daily_earth
-      use diag_com, only : kvflxo,iu_vflxo,oa,koa
-      use domain_decomp_atm, only: grid,writei8_parallel
       implicit none
       
-      call DIAG5A (1,0)
-      call DIAGCA (1)
-      CALL DAILY_cal(.true.)     ! end_of_day
-      CALL daily_atmdyn(.true.)  ! end_of_day
-      CALL daily_orbit(.true.)   ! end_of_day
-      CALL daily_ch4ox(.true.)   ! end_of_day
-      call daily_RAD(.true.)
-        
-      call daily_LAKE
-      call daily_EARTH(.true.)  ! end_of_day
-        
+      call daily_CAL(.true.)    ! end_of_day
       call daily_OCEAN(.true.)  ! end_of_day
       call daily_ICE
-      call daily_LI
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call daily_tracer(.true.)
-#endif
-      call CHECKT ('DAILY ')
-      call DIAG5A (16,NDAY*NIdyn)
-      call DIAGCA (10)
-      call sys_flush(6)
-      call UPDTYPE
-
-C****
-C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
-C****
-      IF (Kvflxo.NE.0.) THEN
-        call writei8_parallel(grid,iu_vflxo,nameunit(iu_vflxo),oa,Itime)
-C**** ZERO OUT INTEGRATED QUANTITIES
-        OA(:,:,4:KOA)=0.
-      END IF
+      call daily_ATM(.true.)
 
       return
       end subroutine dailyUpdates

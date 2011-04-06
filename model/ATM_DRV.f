@@ -19,7 +19,7 @@
 #endif
 #endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
-     &     ,oa,monacc,koa,acc_period
+     &     ,oa,koa,acc_period
      &     ,MODD5S,NDAa, NDA5d,NDA5s
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Run,fvstate
@@ -694,6 +694,48 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_subdd  (fid,iorw)
       return
       end subroutine new_io_atmvars
+
+      subroutine daily_atm(end_of_day)
+      use filemanager
+      use MODEL_COM, only: nday,itime
+      use DYNAMICS, only : nidyn
+      USE SOIL_DRV, only: daily_earth
+      use diag_com, only : kvflxo,iu_vflxo,oa,koa
+      use domain_decomp_atm, only: grid,writei8_parallel
+      implicit none
+      logical, intent(in) :: end_of_day ! not used yet
+
+      call DIAG5A (1,0)
+      call DIAGCA (1)
+      CALL daily_atmdyn(.true.)  ! end_of_day
+      CALL daily_orbit(.true.)   ! end_of_day
+      CALL daily_ch4ox(.true.)   ! end_of_day
+      call daily_RAD(.true.)
+        
+      call daily_LAKE
+      call daily_EARTH(.true.)  ! end_of_day
+        
+      call daily_LI
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call daily_tracer(.true.)
+#endif
+      call CHECKT ('DAILY ')
+      call DIAG5A (16,NDAY*NIdyn)
+      call DIAGCA (10)
+      call sys_flush(6)
+      call UPDTYPE
+
+C****
+C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
+C****
+      IF (Kvflxo.NE.0.) THEN
+        call writei8_parallel(grid,iu_vflxo,nameunit(iu_vflxo),oa,Itime)
+C**** ZERO OUT INTEGRATED QUANTITIES
+        OA(:,:,4:KOA)=0.
+      END IF
+
+      return
+      end subroutine daily_atm
 
       subroutine finalize_atm
       USE SUBDAILY, only : close_subdd
