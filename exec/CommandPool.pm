@@ -10,6 +10,7 @@ sub new {
   $self -> {TABLE} = [];
   $self -> {SEMAPHORE_PREFIX} = ".command";
   $self -> {FINAL_COMMAND} = 0;
+  $self -> {notCompleted} = true;
   
   bless ($self, $class);
   makePristine($self -> {SEMAPHORE_PREFIX});
@@ -41,6 +42,8 @@ sub get {
 sub add {
   my $self = shift;
   my $newCommand = shift;
+
+  print "New command: ".$newCommand->{COMMAND}. "\n";
 
   my $n = ($self -> numCommands());
   $self -> {TABLE} -> [$n] = $newCommand;
@@ -85,7 +88,7 @@ sub resetAll {
   return 1;
 }
 
-my $MAX_CYCLES=1000;
+my $MAX_CYCLES=5000;
 my $SLEEP=10;
 
 sub run {
@@ -96,13 +99,24 @@ sub run {
   my $counter = 0;
   my $somethingChanged = 0;
 
+  print "LOG is $LOG\n";
+  print "DEBUG is $DEBUG\n";
+
   for (;;) {
     ++$counter;
     
     print $LOG "new cycle ... $counter\n" if $DEBUG;
-    if ($counter > $MAX_CYCLES) {print $LOG "MAX_CYCLES exceeded - something is very wrong.\n"; return 0};
+    if ($counter > $MAX_CYCLES) {
+	print $LOG "MAX_CYCLES exceeded - something is very wrong.\n"; 
+	$self->{notCompleted} = true;
+	return 0;
+    };
 
-    if ($self -> allComplete()) {last;};
+    if ($self -> allComplete()) {
+	print $LOG "All tasks completed.  Shutting down.\n";
+	$self->{notCompleted} = 0;
+	last;
+    };
   
     for (my $id = 0; $id < ($self -> numCommands()); $id ++) {
       my $cmd = $self -> get($id);
