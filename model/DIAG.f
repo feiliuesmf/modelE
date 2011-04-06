@@ -5592,7 +5592,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
             END IF
           END DO
         END DO
-        CALL daily_DIAG
+        CALL daily_DIAG(.false.)
       END IF
 
 c
