@@ -5160,6 +5160,7 @@ c**** find MSU channel 2,3,4 temperatures
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
      *     ,nmonav,ItimeE,lrunid
+     &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
       USE DYNAMICS, only : nfiltr
       USE FLUXES, only : focean
@@ -5191,6 +5192,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
 #endif
       USE DIAG_COM, only : iu_vflxo,koa
+      USE DIAG_COM, only : iwrite,jwrite,itwrite,kdiag
       USE DIAG_LOC
       USE Dictionary_mod
       USE FILEMANAGER
@@ -5229,6 +5231,12 @@ c a parallelized i/o routine that understands it
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     area_part
       CHARACTER aDATE*14
+
+
+      IWRITE = IWRITE_sv
+      JWRITE = JWRITE_sv
+      ITWRITE = ITWRITE_sv
+      KDIAG = KDIAG_sv
 
       MODD5K=1000
 

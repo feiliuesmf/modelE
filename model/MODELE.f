@@ -623,10 +623,9 @@ C****
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
      *     ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE
-
+     &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE RANDOM
-      USE DIAG_COM, only :
-     &     hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios
+      USE DIAG_COM, only : hr_in_day
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
@@ -650,8 +649,12 @@ C****
       INTEGER IhrX, KDISK_restart
       LOGICAL :: is_coldstart
       CHARACTER NLREC*80,RLABEL*132
+
+      INTEGER :: IWRITE=0,JWRITE=0,ITWRITE=23
+      INTEGER, DIMENSION(13) :: KDIAG
+
       NAMELIST/INPUTZ/ ISTART,IRANDI
-     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
@@ -701,6 +704,11 @@ C****
 
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
       call closeunit(iu_IFILE)
+
+      IWRITE_sv = IWRITE
+      JWRITE_sv = JWRITE
+      ITWRITE_sv = ITWRITE
+      KDIAG_sv = KDIAG
 
       if (istart.le.0) then
         call stop_model('pdE not supported',255)

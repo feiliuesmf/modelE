@@ -97,6 +97,11 @@ C**** (Simplified) Calendar Related Terms
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
 
+! these do not belong here but are needed until IWRITE/KDIAG etc.
+! are removed from the INPUTZ namelist (harder than it sounds)
+      INTEGER :: IWRITE_sv,JWRITE_sv,ITWRITE_sv
+      INTEGER, DIMENSION(13) :: KDIAG_sv
+
       type ModelE_Clock_type
         integer :: iTime
       end type ModelE_Clock_type
