@@ -5,7 +5,7 @@ c
 c --- hycom version 0.9
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : baclin,thref,watcum,empcum,nstep,nstep0
-     &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum
+     &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum,delt1
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, GLOBALSUM
       implicit none
@@ -16,9 +16,11 @@ c
      .     evap,evapw,evapi,exchng,target,old,
      .     rmean,tmean,smean,vmean,boxvol,emnp(idm,J_0H:J_1H),
      &     slfcol(J_0H:J_1H),watcol(J_0H:J_1H),empcol(J_0H:J_1H),
-     &     rhocol(J_0H:J_1H),temcol(J_0H:J_1H),salcol(J_0H:J_1H)
+     &     rhocol(J_0H:J_1H),temcol(J_0H:J_1H),salcol(J_0H:J_1H),
+     &     sf1col(J_0H:J_1H),sf2col(J_0H:J_1H),clpcol(J_0H:J_1H),
+     &     numcol(J_0H:J_1H)
       integer iprime,ktop
-      real qsatur,totl,eptt,salrlx
+      real qsatur,totl,eptt,salrlx,sf1cum,sf2cum,bias,clpcum,numcum
       external qsatur
       data ktop/3/
 ccc      data ktop/2/                        !  normally set to 3
@@ -67,15 +69,19 @@ c
       rmean=0.
       tmean=0.
       smean=0.
+      sf1cum=0.
 c
       do 85 j=J_0,J_1
 c
       watcol(j)=0.
       empcol(j)=0.
       slfcol(j)=0.
+      sf1col(j)=0.
       rhocol(j)=0.
       temcol(j)=0.
       salcol(j)=0.
+      clpcol(j)=0.
+      numcol(j)=0.
 c
       do 85 l=1,isp(j)
 c
@@ -92,7 +98,20 @@ css   emnp(i,j)=oemnp(i,j)*(1.+pcpcor)
 c --- salflx = salt flux (10^-3 kg/m^2/sec) in +p direction, salt from SI added
 c     salflx(i,j)=saln(i,j,k1n)*(osalt(i,j)*fsss-emnp(i,j)/thref)
 css   salflx(i,j)=-35.0*emnp(i,j)/thref+osalt(i,j)*1.e3
-      salflx(i,j)=-saln(i,j,k1n)*emnp(i,j)/thref+osalt(i,j)*1.e3
+crb   salflx(i,j)=-saln(i,j,k1n)*emnp(i,j)/thref+osalt(i,j)*1.e3
+      salflx(i,j)=-34.7*emnp(i,j)/thref+osalt(i,j)*1.e3
+      sf1col(j)=sf1col(j)+salflx(i,j)*scp2(i,j)
+c
+c --- clip neg.(outgoing) salt flux to prevent S < 0 in top layer
+      old=salflx(i,j)
+      salflx(i,j)=max(salflx(i,j),-saln(i,j,k1n)*dp(i,j,k1n)/(g*delt1)
+cc   .   * .9)
+     .   * .6)
+cc   .   * .3)
+      if (old.lt.salflx(i,j)) then			! diagnostic use
+       clpcol(j)=clpcol(j)+(salflx(i,j)-old)*scp2(i,j)
+       numcol(j)=numcol(j)+1.
+      end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,100) nstep,i,j,
@@ -111,7 +130,33 @@ c
       call GLOBALSUM(ogrid,watcol,watcum, all=.true.)
       call GLOBALSUM(ogrid,empcol,empcum, all=.true.)
       call GLOBALSUM(ogrid,slfcol,slfcum, all=.true.)
+      call GLOBALSUM(ogrid,sf1col,sf1cum, all=.true.)
+      call GLOBALSUM(ogrid,clpcol,clpcum, all=.true.)
+      call GLOBALSUM(ogrid,numcol,numcum, all=.true.)
 c
+c --- correct salt flux globally for local clipping done to prevent S < 0
+      bias=(slfcum-sf1cum)/area
+      if (numcum.gt.0.) then
+
+        do 83 j=J_0,J_1
+        sf2col(j)=0.
+        do 83 l=1,isp(j)
+        do 83 i=ifp(j,l),ilp(j,l)
+        salflx(i,j)=salflx(i,j)-bias
+        sf2col(j)=sf2col(j)+salflx(i,j)*scp2(i,j)
+ 83     continue
+ 
+c --- optional, diagnostic use only:
+        sf2cum=0.
+        call GLOBALSUM(ogrid,sf2col,sf2cum, all=.true.)
+        if( AM_I_ROOT() ) then
+         print '(a,3es14.6)','orig/clipped/restored salt flux:',
+     .    sf1cum,slfcum,sf2cum
+         print '(a,i4,a,es11.3)','salt flux clipped at',nint(numcum),
+     .    ' points. resulting global flux corr:',bias
+        end if
+      end if
+
       if (nstep.eq.nstep0+1 .or. diagno) then
 
       call GLOBALSUM(ogrid,rhocol,rmean, all=.true.)
