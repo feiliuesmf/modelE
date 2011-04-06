@@ -612,7 +612,7 @@ C****
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE Dictionary_mod
-      USE CONSTANT, only : sday
+      USE CONSTANT, only : sday,hrday
       USE MODEL_COM, only :
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
@@ -625,7 +625,6 @@ C****
      *     ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE RANDOM
-      USE DIAG_COM, only : hr_in_day
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
@@ -641,7 +640,8 @@ C****
 !@var iu_AIC,iu_IFILE unit numbers for input files
       INTEGER iu_AIC,iu_IFILE
       INTEGER I,J,L,K,LID1,LID2,NOFF,ioerr
-
+!@param INTHRDAY number of hours in a day in integer form
+      INTEGER, PARAMETER :: INTHRDAY=INT(HRDAY)
 !@nlparam IHRI,TIMEE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
@@ -741,8 +741,8 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
       IhrI = HourI +
-     +  HR_IN_DAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
-      ITimeI = IhrI*NDAY/HR_IN_DAY ! internal clock counts DTsrc-steps
+     +  INTHRDAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
+      ITimeI = IhrI*NDAY/INTHRDAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
         IF (AM_I_ROOT())
@@ -858,11 +858,11 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      if(timee.lt.0) timee=houre*nday/HR_IN_DAY
+      if(timee.lt.0) timee=houre*nday/INTHRDAY
       IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
-     *  JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY )*NDAY/HR_IN_DAY + TIMEE
+     *  JDendofM(monthE-1)+dateE-1 )*INTHRDAY )*NDAY/INTHRDAY + TIMEE
 C**** Alternate (old) way of specifying end time
-      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/HR_IN_DAY
+      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INTHRDAY
 
 C**** Check consistency of DTsrc with NDAY
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
