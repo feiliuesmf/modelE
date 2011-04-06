@@ -631,6 +631,30 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #endif
       end subroutine alloc_drv_atm
 
+      subroutine finalize_atm
+      USE SUBDAILY, only : close_subdd
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: fvstate
+      USE FV_INTERFACE_MOD, only: Finalize
+#endif
+#ifdef SCM
+      USE SCMCOM , only : iu_scm_prt,iu_scm_diag
+#endif
+      implicit none
+#ifdef USE_FVCORE
+         call Finalize(fvstate, kdisk)
+#endif
+
+C**** CLOSE SUBDAILY OUTPUT FILES
+      CALL CLOSE_SUBDD
+
+#ifdef SCM
+      call closeunit(iu_scm_prt)
+      call closeunit(iu_scm_diag)
+#endif
+      return
+      end subroutine finalize_atm
+
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team

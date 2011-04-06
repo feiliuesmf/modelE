@@ -68,17 +68,13 @@ C**** Command line options
       USE DIAG_COM, only :
      &      monacc,acc_period
      &     ,MODD5S
-      USE SUBDAILY, only : close_subdd
       USE DIAG_SERIAL, only : print_diags
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end
 #endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate
-      USE FV_INTERFACE_MOD, only: Checkpoint,Finalize,Compute_Tendencies
-#endif
-#ifdef SCM
-      USE SCMCOM , only : iu_scm_prt,iu_scm_diag
+      USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -328,22 +324,12 @@ C****
      *     write(*,*) "Time spent in the main loop in seconds:",
      *     tloopend-tloopbegin
 
-C**** CLOSE SUBDAILY OUTPUT FILES
-      CALL CLOSE_SUBDD
-
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
-! note: we probably do not need to call fv Finalize, as checkpoint will do
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-#ifdef USE_FVCORE
-         call Finalize(fvstate, kdisk)
-#endif
 
-#ifdef SCM
-      call closeunit(iu_scm_prt)
-      call closeunit(iu_scm_diag)
-#endif
+      call finalize_atm
 
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
