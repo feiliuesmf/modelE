@@ -5172,7 +5172,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
       USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
-      USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
+      USE DIAG_COM, only : keyct, KEYNR, PLE
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
       USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
@@ -5572,7 +5572,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
-        CALL reset_DIAG(0)
+        CALL reset_ADIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=J_0,J_1
           DO I=I_0,IMAXJ(J)
@@ -5630,8 +5630,8 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       END SUBROUTINE init_DIAG
 
 
-      SUBROUTINE reset_DIAG(isum)
-!@sum  reset_DIAG resets/initializes diagnostics
+      SUBROUTINE reset_ADIAG(isum)
+!@sum  reset_ADIAG resets/initializes atm diagnostics
 !@auth Original Development Team
       USE MODEL_COM, only : Itime,iyear1,nday,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
@@ -5665,7 +5665,6 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
-      call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return ! just adding up acc-files
@@ -5681,10 +5680,10 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
      *     Jdate0,Jhour0,amon0)
 
       RETURN
-      END SUBROUTINE reset_DIAG
+      END SUBROUTINE reset_ADIAG
 
 
-      SUBROUTINE daily_DIAG
+      SUBROUTINE daily_DIAG(newmonth)
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
       USE FILEMANAGER
@@ -5708,6 +5707,7 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       IMPLICIT NONE
+      logical, intent(in) :: newmonth
       character(len=16) :: aDate
       integer :: months
       INTEGER I,J
@@ -5808,7 +5808,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
-      if ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
+      if ( newmonth ) then
         write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
         if (Kradia.ne.0 .and. Kradia<10) then
           if (Kradia.gt.0) aDATE(4:7)='    '
@@ -5818,7 +5818,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         if ( months.ge.NMONAV ) then
-          call reset_DIAG(0)
+          call reset_ADIAG(0)
           if (Kvflxo.ne.0) then
             call closeunit( iu_VFLXO )
             call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)

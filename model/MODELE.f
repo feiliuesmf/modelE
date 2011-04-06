@@ -378,7 +378,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine startNewDay()
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-      call daily_DIAG
+      logical :: newmonth
+      newmonth = (JDAY == 1+JDendOfM(Jmon-1))
+      call daily_DIAG(newmonth) ! atmosphere
+      if(newmonth) then         ! ocean
+        call reset_ODIAG(0)
+      endif
       end subroutine startNewDay
 
 !TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
@@ -870,7 +875,10 @@ C**** component-specific ops, folding the latter into component inits
       call INPUT_atm(istart,istart_fixup,is_coldstart,
      &     KDISK_restart,IRANDI)
 
-      if (istart.le.9) call reset_diag(0)  ! all components.
+      if (istart.le.9) then
+        call reset_adiag(0)
+        call reset_odiag(0)
+      endif
 
       CALL SET_TIMER("       OTHER",MELSE)
 
