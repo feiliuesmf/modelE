@@ -32,11 +32,6 @@ OSTRAITS_1QX1_COM                   ! dynamic ocean modules
 DIAG_RES_F                          ! diagnostics
 FFT144 OFFT288E                     ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-DOMAIN_DECOMPll                     ! domain decomp
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT                       ! diagn/post-processing output
 IO_DRV                              ! new i/o 
 
      ! GISS dynamics with gravity wave drag
@@ -45,6 +40,7 @@ QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 irrigation                          ! irrigation module
+#include "latlon_source_files"
 #include "modelE4_source_files"
 #include "dynamic_ocn_source_files"
 OCN_Int_LATLON                      ! atm-ocn regrid routines

@@ -22,17 +22,13 @@ Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 RES_M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 
-    ! lat-lon grid specific source codes
-DOMAIN_DECOMPll                     ! domain decomp
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT                       ! diagn/post-processing output
 IO_DRV                              ! new i/o
 
     ! GISS dynamics
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV TQUS_DRV                    ! advection of Q/tracers
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
 
