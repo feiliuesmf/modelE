@@ -37,6 +37,7 @@ DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
     ! lat-lon grid specific source codes
+DOMAIN_DECOMPll                     ! domain decomp
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
@@ -47,7 +48,8 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
-#include "modelE4ir_source_files"
+irrigation                          ! irrigation module
+#include "modelE4_source_files"
 #include "hycom_source_files"
 
 Components:
@@ -65,7 +67,9 @@ Data input files:
 
 RVR=RD_modelE_Fa.RVR_1deghycom_may10.bin ! river direction file
 
-#include "land144x90ir_input_files"
+IRRIG=IRRIG_1850_V144X90.bi
+
+#include "land144x90_input_files"
 #include "rad_input_files"
 #include "TAero2008_input_files"
 #include "O3_2005_input_files"
