@@ -1057,10 +1057,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,msicnv,fwsim,gtempr,focean
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
+      USE FLUXES, only : fwsim,focean,msicnv
       USE DIAG_COM, only : oa,aij=>aij_loc,
      &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
       IMPLICIT NONE
@@ -1633,15 +1630,6 @@ C**** Set atmospheric arrays
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
-              GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I)))
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
-     *             -SSI(1,I,J))
-#endif
 C**** adjust rad fluxes for change in ice fraction
               if (rsi(i,j).gt.rsisave(i,j)) ! ice from ocean
      *       call RESET_SURF_FLUXES(I,J,1,2,RSISAVE(I,J),RSI(I,J))
@@ -1651,28 +1639,6 @@ C****
             END IF
           END DO
         END DO
-        IF (HAVE_NORTH_POLE) THEN
-          IF (FOCEAN(1,JM).gt.0) THEN
-            DO I=2,IM           ! North pole
-              GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
-              GTEMPR(2,I,JM)   = GTEMPR(2,1,JM)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
-#endif
-            END DO
-          END IF
-        END IF
-        IF (HAVE_SOUTH_POLE) THEN
-          IF (FOCEAN(1,1).gt.0) THEN
-            DO I=2,IM           ! North pole
-              GTEMP(1:2,2,I,1)= GTEMP(1:2,2,1,1)
-              GTEMPR(2,I,1)   = GTEMPR(2,1,1)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,1)=GTRACER(:,2,1,1)
-#endif
-            END DO
-          END IF
-        END IF
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)

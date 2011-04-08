@@ -19,7 +19,7 @@
 #endif
 #endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
-     &     ,oa,monacc,koa,acc_period
+     &     ,oa,koa,acc_period
      &     ,MODD5S,NDAa, NDA5d,NDA5s
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Run,fvstate
@@ -185,6 +185,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 ! possibly unite melt_si(lakes) with the rest of the lakes calls
       CALL MELT_SI('OCEAN')
       CALL MELT_SI('LAKES')
+      call seaice_to_atmgrid
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
 
@@ -630,6 +631,136 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_scm_com()
 #endif
       end subroutine alloc_drv_atm
+
+      subroutine def_rsf_atmvars(fid)
+!@sum  def_rsf_atmvars defines atm prognostic array structure in rsf
+!@auth M. Kelley
+!@ver  beta
+      implicit none
+      integer :: fid
+      call def_rsf_atm    (fid)
+      call def_rsf_lakes  (fid)
+      call def_rsf_icedyn (fid)
+      call def_rsf_earth  (fid)
+      call def_rsf_soils  (fid)
+      call def_rsf_vegetation(fid)
+#ifdef USE_ENT
+      call def_rsf_veg_related(fid)
+#endif
+      call def_rsf_snow   (fid)
+      call def_rsf_landice(fid)
+      call def_rsf_bldat  (fid)
+      call def_rsf_pbl    (fid)
+      call def_rsf_clouds (fid)
+      call def_rsf_somtq  (fid)
+      call def_rsf_rad    (fid)
+#ifdef CALCULATE_FLAMMABILITY
+      call def_rsf_flammability(fid)
+#endif
+#ifdef TRACERS_ON
+      call def_rsf_tracer (fid)
+#endif
+      call def_rsf_subdd  (fid)
+      return
+      end subroutine def_rsf_atmvars
+
+      subroutine new_io_atmvars(fid,iorw)
+      implicit none
+      integer, intent(in) :: fid,iorw
+      call new_io_atm    (fid,iorw)
+      call new_io_lakes  (fid,iorw)
+      call new_io_earth  (fid,iorw)
+      call new_io_soils  (fid,iorw)
+      call new_io_vegetation  (fid,iorw)
+#ifdef USE_ENT
+        !!! actually not sure if this call is needed
+        !!! (seems like it is duplicated in io_vegetation...)
+      call new_io_veg_related(fid,iorw)
+        !call io_ent    (kunit,iaction,ioerr) ! io_vegetation handles ent
+#endif
+      call new_io_snow   (fid,iorw)
+      call new_io_landice(fid,iorw)
+      call new_io_bldat  (fid,iorw)
+      call new_io_pbl    (fid,iorw)
+      call new_io_clouds (fid,iorw)
+      call new_io_somtq  (fid,iorw)
+      call new_io_rad    (fid,iorw)
+      call new_io_icedyn (fid,iorw)
+#ifdef CALCULATE_FLAMMABILITY
+      call new_io_flammability(fid,iorw)
+#endif
+#ifdef TRACERS_ON
+      call new_io_tracer (fid,iorw)
+#endif
+      call new_io_subdd  (fid,iorw)
+      return
+      end subroutine new_io_atmvars
+
+      subroutine daily_atm(end_of_day)
+      use filemanager
+      use MODEL_COM, only: nday,itime
+      use DYNAMICS, only : nidyn
+      USE SOIL_DRV, only: daily_earth
+      use diag_com, only : kvflxo,iu_vflxo,oa,koa
+      use domain_decomp_atm, only: grid,writei8_parallel
+      implicit none
+      logical, intent(in) :: end_of_day ! not used yet
+
+      call DIAG5A (1,0)
+      call DIAGCA (1)
+      CALL daily_atmdyn(.true.)  ! end_of_day
+      CALL daily_orbit(.true.)   ! end_of_day
+      CALL daily_ch4ox(.true.)   ! end_of_day
+      call daily_RAD(.true.)
+        
+      call daily_LAKE
+      call daily_EARTH(.true.)  ! end_of_day
+        
+      call daily_LI
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call daily_tracer(.true.)
+#endif
+      call CHECKT ('DAILY ')
+      call DIAG5A (16,NDAY*NIdyn)
+      call DIAGCA (10)
+      call sys_flush(6)
+      call UPDTYPE
+
+C****
+C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
+C****
+      IF (Kvflxo.NE.0.) THEN
+        call writei8_parallel(grid,iu_vflxo,nameunit(iu_vflxo),oa,Itime)
+C**** ZERO OUT INTEGRATED QUANTITIES
+        OA(:,:,4:KOA)=0.
+      END IF
+
+      return
+      end subroutine daily_atm
+
+      subroutine finalize_atm
+      USE SUBDAILY, only : close_subdd
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: fvstate
+      USE FV_INTERFACE_MOD, only: Finalize
+#endif
+#ifdef SCM
+      USE SCMCOM , only : iu_scm_prt,iu_scm_diag
+#endif
+      implicit none
+#ifdef USE_FVCORE
+         call Finalize(fvstate, kdisk)
+#endif
+
+C**** CLOSE SUBDAILY OUTPUT FILES
+      CALL CLOSE_SUBDD
+
+#ifdef SCM
+      call closeunit(iu_scm_prt)
+      call closeunit(iu_scm_diag)
+#endif
+      return
+      end subroutine finalize_atm
 
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness

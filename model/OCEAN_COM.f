@@ -409,7 +409,6 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-      USE DOMAIN_DECOMP_ATM, only : dist_grid,agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get, am_i_root
       USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
@@ -554,7 +553,7 @@ C**** Necessary initiallisation?
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
-      call alloc_afluxes(agrid)
+      call alloc_afluxes
       call ALLOC_OFLUXES(ogrid)
 
 #ifdef TRACERS_OceanBiology

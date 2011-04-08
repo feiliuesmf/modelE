@@ -525,9 +525,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc
-      USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
-     *     ,conpt0
-      USE DYNAMICS, only : nfiltr ! SLP filter
+      USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons,npts,natmtrcons
@@ -598,15 +596,11 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
           lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
           units_tconsrv(NM,itr) = SUM_UNIT
           SELECT CASE (N)
-          CASE (2)
-            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM,itr) = ia_d5d
+          CASE (2,8) ! ocean not affected by certain atm processes
+            call stop_model('nonsensical choice in set_tcono',255)
           CASE (3,4,5,6,7,9,11,12)
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
             IA_TCON(NM,itr) = ia_d5s
-          CASE (8)
-            SCALE_TCON(NM,itr) = CHNG_SC/(NFILTR*DTSRC)
-            IA_TCON(NM,itr) = ia_filt
           CASE (10)
             SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
             IA_TCON(NM,itr) = ia_12hr
