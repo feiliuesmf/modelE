@@ -61,9 +61,9 @@ $env->{"gfortran"}->{ESMF_BOPT}="O";
 $env->{"gfortran"}->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
 $env->{"gfortran"}->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
 
-#my $rundecks = ["EM20"];
-my $rundecks = ["EM20", "E4F40", "E4TcadF40",
-		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
+my $rundecks = ["EM20"];
+#my $rundecks = ["EM20", "E4F40", "E4TcadF40",
+#		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
 my $compilers = ["intel", "gfortran"];
 #my $compilers = ["intel"];
 

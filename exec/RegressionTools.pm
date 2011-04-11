@@ -25,7 +25,7 @@ sub createTemporaryCopy {
   my $tempDir = shift;
 
   my $referenceDir = $env->{REFERENCE_DIRECTORY};
-  my $commandString = "mkdir -p $tempDir;  cp -r -u $referenceDir/* $tempDir;";
+  my $commandString = "/usr/local/other/git/1.7.3.4_GNU/bin/git clone $referenceDir $tempDir;";
   return (CommandEntry -> new({COMMAND => $commandString}));
 
   }
