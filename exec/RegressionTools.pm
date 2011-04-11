@@ -182,4 +182,73 @@ EOF
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
+sub getEnvironment {
+    my $compiler = shift;
+    my $scratchDir = shift;
+
+    if ($compiler eq "intel") {
+	return getIntelEnvironment($scratchDir);
+    }
+    else {
+	return getGfortranEnvironment($scratchDir);
+    }
+}
+
+sub getIntelEnvironment{
+    my $scratchDir = shift;
+
+    my $env = {};
+
+    $env->{SCRATCH_DIRECTORY}=$scratchDir;
+    $env->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
+    $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
+    $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
+    $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
+    $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
+    $env->{CMRUNDIR}="$scratchDir/cmrun";
+    $env->{EXECDIR}="$scratchDir/exec";
+    $env->{SAVEDISK}="$scratchDir/savedisk";
+    $env->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
+    $env->{MP}="no";
+    $env->{OVERWRITE}="YES";
+    $env->{OUTPUT_TO_FILES}="YES";
+    $env->{VERBOSE_OUTPUT}="YES";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf510/Linux";
+    $env->{MPIDISTR}="intel";
+    $env->{COMPILER}="intel";
+    $env->{ESMF_BOPT}="O";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
+    $env->{MODELERC}="$scratchDir/intel/modelErc.intel";
+    return $env;
+}
+
+sub getGfortranEnvironment {
+    my $scratchDir = shift;
+
+    my $env = {};
+    
+    $env->{SCRATCH_DIRECTORY}=$scratchDir;
+    $env->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
+    $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
+    $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
+    $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
+    $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
+    $env->{CMRUNDIR}="$scratchDir/cmrun";
+    $env->{EXECDIR}="$scratchDir/exec";
+    $env->{SAVEDISK}="$scratchDir/savedisk";
+    $env->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
+    $env->{MP}="no";
+    $env->{OVERWRITE}="YES";
+    $env->{OUTPUT_TO_FILES}="YES";
+    $env->{VERBOSE_OUTPUT}="YES";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
+    $env->{MPIDIR}="/usr/local/other/openMpi/gcc-4.5";
+    $env->{MPIDISTR}="openmpi";
+    $env->{COMPILER}="gfortran";
+    $env->{ESMF_BOPT}="O";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
+    $env->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
+    return $env;
+}
+
 1;

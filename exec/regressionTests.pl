@@ -13,58 +13,15 @@ open(LOG,">nightlyTests.log");
 
 my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
 
-@modelErcVariables = (DECKS_REPOSITORY, MP, CMRUNDIR, EXECDIR, OVERWRITE, 
-		      OUTPUT_TO_FILES, VERBOSE_OUTPUT, SAVEDISK, GCMSEARCHPATH,
-		      COMPILER, COMPILER_VERSION, BASELIBDIR5, ESMF_BOPT, MPIDISTR, NETCDFHOME);
+my $env = {};
+$env->{"intel"} = getEnvironment("intel",$scratchDir);
+$env->{"gfortran"} = getEnvironment("gfortran",$scratchDir);
 
-my $env;
-$env->{"intel"}->{SCRATCH_DIRECTORY}=$scratchDir;
-$env->{"intel"}->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
-$env->{"intel"}->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
-$env->{"intel"}->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
-$env->{"intel"}->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
-$env->{"intel"}->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
-$env->{"intel"}->{CMRUNDIR}="$scratchDir/cmrun";
-$env->{"intel"}->{EXECDIR}="$scratchDir/exec";
-$env->{"intel"}->{SAVEDISK}="$scratchDir/savedisk";
-$env->{"intel"}->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
-$env->{"intel"}->{MP}="no";
-$env->{"intel"}->{OVERWRITE}="YES";
-$env->{"intel"}->{OUTPUT_TO_FILES}="YES";
-$env->{"intel"}->{VERBOSE_OUTPUT}="YES";
-$env->{"intel"}->{BASELIBDIR5}="/usr/local/other/esmf510/Linux";
-$env->{"intel"}->{MPIDISTR}="intel";
-$env->{"intel"}->{COMPILER}="intel";
-$env->{"intel"}->{ESMF_BOPT}="O";
-$env->{"intel"}->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
-$env->{"intel"}->{MODELERC}="$scratchDir/intel/modelErc.intel";
-
-$env->{"gfortran"}->{SCRATCH_DIRECTORY}=$scratchDir;
-$env->{"gfortran"}->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
-$env->{"gfortran"}->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
-$env->{"gfortran"}->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
-$env->{"gfortran"}->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
-$env->{"gfortran"}->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
-$env->{"gfortran"}->{CMRUNDIR}="$scratchDir/cmrun";
-$env->{"gfortran"}->{EXECDIR}="$scratchDir/exec";
-$env->{"gfortran"}->{SAVEDISK}="$scratchDir/savedisk";
-$env->{"gfortran"}->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
-$env->{"gfortran"}->{MP}="no";
-$env->{"gfortran"}->{OVERWRITE}="YES";
-$env->{"gfortran"}->{OUTPUT_TO_FILES}="YES";
-$env->{"gfortran"}->{VERBOSE_OUTPUT}="YES";
-$env->{"gfortran"}->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
-$env->{"gfortran"}->{MPIDIR}="/usr/local/other/openMpi/gcc-4.5";
-$env->{"gfortran"}->{MPIDISTR}="openmpi";
-$env->{"gfortran"}->{COMPILER}="gfortran";
-$env->{"gfortran"}->{ESMF_BOPT}="O";
-$env->{"gfortran"}->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
-$env->{"gfortran"}->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
-
-my $rundecks = ["EM20"];
 #my $rundecks = ["EM20", "E4F40", "E4TcadF40",
 #		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
 my $compilers = ["intel", "gfortran"];
+
+my $rundecks = ["EM20"];
 #my $compilers = ["intel"];
 
 my $configurations;
