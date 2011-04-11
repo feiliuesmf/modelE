@@ -209,6 +209,9 @@ C****
 !@var SFM meridional overturning stream function for each basin
       REAL*8, DIMENSION(JM,0:LMO,4) :: SFM!,SFS SFS is for salt
 
+!@var ZOC, ZOC1 ocean depths for diagnostics (m)
+      REAL*8 :: ZOC(LMO) = 0. , ZOC1(LMO+1) = 0.
+
 C****
 #ifdef TRACERS_OCEAN
 !@var KTOIJL number of 3-dimensional ocean tracer diagnostics
@@ -817,7 +820,7 @@ C****
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : ze,dts,ndyno,olat_dg,olon_dg
-      USE DIAG_COM, only : ia_src,conpt0,zoc,zoc1
+      USE DIAG_COM, only : ia_src,conpt0
       USE ODIAG
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
