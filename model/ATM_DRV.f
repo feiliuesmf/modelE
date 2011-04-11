@@ -331,6 +331,7 @@ C****
       USE DIAG_ZONAL, only : imlon
       USE RANDOM
       USE DYNAMICS, only : USE_UNR_DRAG
+      USE ATM_COM, only : ij_debug
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE SOMTQ_COM, only : mz,tmom
       USE ATM_COM, only : p,t
@@ -394,6 +395,8 @@ c     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       CALL SET_TIMER("   CHEMISTRY",MCHEM)
 #endif
 
+
+      call sync_param( "ij_debug",ij_debug , 2)
 
 C****
 C**** Set some documentary parameters in the database

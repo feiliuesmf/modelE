@@ -534,7 +534,6 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE ATM_COM, only : ij_debug
       USE MODEL_COM, only : NIPRNT
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
@@ -552,7 +551,6 @@ C**** Rundeck parameters:
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
-      call sync_param( "ij_debug",ij_debug , 2)
 
       RETURN
 C****
