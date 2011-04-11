@@ -12,10 +12,22 @@ open(LOG,">nightlyTests.log");
 }
 
 my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
+my $reference = "$scratchDir/modelE";
 
 my $env = {};
 $env->{"intel"} = getEnvironment("intel",$scratchDir);
 $env->{"gfortran"} = getEnvironment("gfortran",$scratchDir);
+
+
+my $resolutions = {};
+$resolutions->{EC12} = "8x10";
+$resolutions->{EM20} = "4x5";
+$resolutions->{EF40} = "2x2.5";
+$resolutions->{E4TcadF40} = "2x2.5";
+$resolutions->{E4arobio_h4c} = "2x2.5";
+$resolutions->{E4arobio_g6c} = "2x2.5";
+$resolutions->{SCMSGPCONT} = "0"; #hack - serial only
+
 
 #my $rundecks = ["EM20", "E4F40", "E4TcadF40",
 #		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
@@ -24,56 +36,43 @@ my $compilers = ["intel", "gfortran"];
 my $rundecks = ["EM20"];
 #my $compilers = ["intel"];
 
-my $configurations;
-$configurations->{"intel"}->{"EM20"}  = ["SERIAL", "MPI"];
-$configurations->{"intel"}->{"E4F40"}  = ["SERIAL", "MPI"];
-$configurations->{"intel"}->{"E4TcadF40"} = ["SERIAL", "MPI"];
-$configurations->{"intel"}->{"E4arobio_h4c"} = ["SERIAL", "MPI"];
-$configurations->{"intel"}->{"E4arobio_g6c"} = ["SERIAL", "MPI"];
-$configurations->{"intel"}->{"SCMSGPCONT"} = ["SERIAL"];
+#set defaults
 
-$configurations->{"gfortran"}->{"EM20"}  = ["SERIAL", "MPI"];
-$configurations->{"gfortran"}->{"E4F40"}  = ["SERIAL", "MPI"];
-$configurations->{"gfortran"}->{"E4TcadF40"} = ["SERIAL", "MPI"];
-$configurations->{"gfortran"}->{"E4arobio_h4c"} = ["SERIAL", "MPI"];
-$configurations->{"gfortran"}->{"E4arobio_g6c"} = ["SERIAL", "MPI"];
-$configurations->{"gfortran"}->{"SCMSGPCONT"}  = ["SERIAL"];
+my $level = "AGGRESSIVE";
+my $numProcesses = {};
 
-my $numProcessors;
-    $numProcessors->{EM20} ->{OPENMP} = [1,4];
-    $numProcessors->{E4F40} ->{OPENMP} = [1,4];
-    $numProcessors->{SCMSGPCONT} ->{OPENMP} = [1,4];
+$numProcesses->{"0"}->{GENTLE}     = [];
+$numProcesses->{"0"}->{AGGRESSIVE} = [];
+$numProcesses->{"0"}->{INSANE}     = [];
 
-$numProcessors->{SCMSGPCONT} ->{MPI}    = [1]; # no effective MPI for SCM case
+$numProcesses->{"8x10"}->{GENTLE}     = [1,4];
+$numProcesses->{"8x10"}->{AGGRESSIVE} = [1,4,12];
+$numProcesses->{"8x10"}->{INSANE}     = [1,4,22];
 
-my $level = "aggressive";
+$numProcesses->{"4x5"}->{GENTLE}     = [1,4];
+$numProcesses->{"4x5"}->{AGGRESSIVE} = [1,4,23];
+$numProcesses->{"4x5"}->{INSANE}     = [1,4,23,44];
 
-if ($level eq "gentle") { # 3 lats per proc
-    $numProcessors->{EM20} ->{MPI}    = [1,4,15];
-    $numProcessors->{E4F40} ->{MPI}    = [1,4,30];
-    $numProcessors->{E4TcadF40} ->{MPI}    = [1,4,30];
-    $numProcessors->{E4arobio_H4c} ->{MPI}    = [1,4,30];
-    $numProcessors->{E4arobio_g6c} ->{MPI}    = [1,4,30];
+$numProcesses->{"2x2.5"}->{GENTLE}     = [1,8];
+$numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,8,45];
+$numProcesses->{"2x2.5"}->{INSANE}     = [1,8,45,88];
+
+my $useCases = {};
+foreach my $rundeck (@$rundecks) {
+    $useCases->{$rundeck}->{COMPILERS} = $compilers;
+    $useCases->{$rundeck}->{CONFIGURATIONS} = ["SERIAL","MPI"];
+    $useCases->{$rundeck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$rundeck}}->{$level};
+    $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy"];
 }
-elsif ($level eq "aggressive") { # aggressive - 2 lats
-    $numProcessors->{EM20} ->{MPI}    = [1,4,23];
-    $numProcessors->{E4F40} ->{MPI}    = [1,4,45];
-    $numProcessors->{E4TcadF40} ->{MPI}    = [1,4,30];
-    $numProcessors->{E4arobio_H4c} ->{MPI}    = [1,4,30];
-    $numProcessors->{E4arobio_g6c} ->{MPI}    = [1,4,30];
-}
-else { # insane - 1 lat per proc
-    $numProcessors->{EM20} ->{MPI}    = [1,44];
-    $numProcessors->{E4F40} ->{MPI}    = [1,88];
-    $numProcessors->{E4TcadF40} ->{MPI}    = [1,88];
-    $numProcessors->{E4arobio_H4c} ->{MPI}    = [1,44];
-    $numProcessors->{E4arobio_g6c} ->{MPI}    = [1,88];
-}
+
+# Override anything else here
+$useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
+
 
 my $pool = CommandPool->new();
 
-my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* regression.o*;"});
+my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
 $pool->add($clean);
 $pool->add($git);
@@ -82,37 +81,40 @@ $pool->add($git);
 $ENV{PATH}="/usr/local/other/gcc/4.5/bin:/usr/local/other/openMpi/gcc-4.5/bin:".$ENV{PATH};
 $ENV{LD_LIBRARY_PATH}="/usr/local/other/gcc/4.5/lib64:/usr/local/other/openMpi/gcc-4.5/lib:".$ENV{LD_LIBRARY_PATH};
 
-foreach my $compiler (@$compilers) {
-    print LOG "Using compiler $compiler\n";
-
+foreach $compiler (@$compilers) {
     $pool->add(writeModelErcFile($env->{$compiler}, $clean));
-
     unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") {
 	mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!;
     }
+}
 
-    foreach my $rundeck (@$rundecks) {
-	print LOG " ... processing rundeck: $rundeck \n";
-	$env->{$compiler}->{RUNDECK}=$rundeck;
-	foreach my $configuration (@{$configurations->{$compiler}->{$rundeck}}) {
-	    $env->{$compiler}->{CONFIGURATION}=$configuration;
-	    print LOG "       ... processing configuration $configuration\n";
+foreach my $rundeck (@$rundecks) { 
+    print LOG "Using rundeck $rundeck $env->{$compiler}->{RUNDECK} \n";
+
+    foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
+	print LOG "   ... using compiler $compiler \n";
+	$env->{$compiler}->{RUNDECK} = $rundeck;
+
+	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
+	    print LOG "       ... using configuration $configuration \n";
+	    $env->{$compiler}->{CONFIGURATION} = $configuration;
+
 	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
-
-	    my $copy  = createTemporaryCopy($env->{$compiler}, $tempDir);
+	    my $copy  = createTemporaryCopy($reference, $tempDir);
 	    $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
 	    $pool->add($copy, $git);
-	    my $build = compileRundeck($env->{$compiler}, $tempDir, $compiler);
+
+	    my $build = compileRundeck($env->{$compiler}, $tempDir);
 	    $pool->add($build, $copy);
 	    
 	    my $previous = $build;
 	    
 	    my @peList = (1);
 	    if ($configuration eq "MPI" or $configuration eq "OPENMP") {
-		@peList = @{$numProcessors->{$rundeck}->{$configuration}};
+		@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
 	    }
 	    foreach my $npes (@peList) {
-		my $run = runConfiguration($env->{$compiler}, $tempDir, $npes, $compiler);
+		my $run = runConfiguration($env->{$compiler}, $tempDir, $npes);
 		$pool->add($run, $previous, $compiler);
 		$previous = $run;
 	    }
@@ -134,80 +136,73 @@ if ($pool->{notCompleted}) {
     print REPORT "***************************************\n";
 }
 
+my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
 
-foreach my $compiler (@$compilers) {
-    print LOG "Checking results for compiler $compiler: \n";
-    my $resultsDir = $env->{$compiler}->{RESULTS_DIRECTORY};
-    $resultsDir .= "/$compiler";
-    foreach my $rundeck (@$rundecks) {
-	next if $rundeck eq "SERIAL" or $rundeck eq "SERIALMP";
-	
-	my $cmp = "/discover/nobackup/projects/giss/exec/diffreport";
-	print LOG "    ... rundeck $rundeck: \n";
+foreach my $rundeck (@$rundecks) { 
+    foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
+	my $resultsDir = $env->{$compiler}->{RESULTS_DIRECTORY} . "/$compiler";
+
 	my $consistent = 1; # unless proved otherwise
 	my $newSerial  = 0; 
-	foreach my $configuration (@{$configurations->{$compiler}->{$rundeck}}) {
+
+	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
+	    print LOG "         ... configuration: $rundeck.$compiler.$configuration \n";
+
 	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
 	    my $reference;
 	    if    ($configuration eq "MPI")    {$reference = "$rundeck.SERIAL";}
-	    elsif ($configuration eq "OPENMP") {$reference = "$rundeck.SERIALMP";}
 	    elsif ($configuration eq "SERIAL") {$reference = "$env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
 	    else {next;}
 	    
 	    my $suffix;
 	    
-	    print LOG "         ... configuration: $configuration \n";
-	    
 	    @peList = (1);
 	    if ($configuration eq "MPI" or $configuration eq "OPENMP") {
-		@peList = @{$numProcessors->{$rundeck}->{$configuration}};
+		@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
 	    }
 	    
-	    foreach my $npes (@peList){
-		if    ($configuration eq "MPI" or $configuration eq "OPENMP")    {$suffix = ".np=$npes";}
+	    foreach my $npes (@peList) {
+		if    ($configuration eq "MPI")    {$suffix = ".np=$npes";}
 		else {$suffix = "";}
 		
 		print LOG "     ... NPES=$npes ";
 		
-		foreach my $duration ("1hr", "1dy") {
-		    
-		    print LOG "$duration: ";
-		    
-		    $numLinesFound = `cd $resultsDir; $cmp $reference.$compiler.$duration $rundeck.$configuration.$compiler.$duration$suffix is_npes_reproducible | wc -l`;
-		    chomp($numLinesFound);
-		    
-		    if ($numLinesFound > 0){
-			print REPORT "Rundeck $rundeck ($configuration, $duration, $compiler) differs on $npes processors.\n";
-			print REPORT "   diffreport shows $numLinesFound lines of output.\n";
-			print REPORT `cd $resultsDir; $cmp $reference.$compiler.$duration $rundeck.$configuration.$compiler.$duration$suffix is_npes_reproducible`;
-			print REPORT "\n";
-			if ($configuration eq "SERIAL") {$newSerial = 1;}
-			else {$consistent = 0;}
+		foreach my $duration (@{$useCases->{$rundeck}->{DURATIONS}}) {
+
+		    my $outfile = "$resultsDir/$rundeck.$configuration.$compiler.$duration$suffix";
+		    print LOG "Looking for $outfile \n";
+		    if (-e $outfile) {
+			print LOG "  found it\n";
+			my $numLinesFound = `cd $resultsDir; $compare $reference.$compiler.$duration $rundeck.$configuration.$compiler.$duration$suffix is_npes_reproducible | wc -l`;
+			chomp($numLinesFound);
+			if ($numLinesFound > 0) {
+			    if ($configuration eq "MPI") {
+				print REPORT "Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
+				$consistent = 0; #failure
+			    }
+			    else {
+				print REPORT "Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
+				$newSerial = 1;
+			    }
+			}
 		    }
 		    else {
-			$checklist->{$rundeck}->{"$configuration.$compiler.$duration$suffix"} = "succeeded";
-			print LOG "succeeded ";
+			print LOG " but it was not found \n";
+			print REPORT "$rundeck.$configuration.$compiler.$duration$suffix does not exist.\n";
+			$consistent = 0;
+			last;
 		    }
 		}
-		print LOG "\n";
-	    }
-	    print LOG "\n";
-	}
-	if ($consistent) {
-	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
-	    if ($newSerial) {
-		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
-		`cd $resultsDir; cp $rundeck.SERIAL.$compiler.1* $env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/.; `;
+
+		if ($consistent) {
+		    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
+		    if ($newSerial) {
+			print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
+		    }
+		}
 	    }
 	}
-	else {
-	    foreach my $configuration (@{$configurations->{$compiler}->{$rundeck}}) {
-		#my $buildLogTail = `tail -20 $resultsDir/$rundeck.$configuration.$compiler.buildlog`;
-		#print REPORT "\nTail of Build Log for $rundeck.$configuration:\n";
-		#print REPORT "$buildLogTail\n";
-	    }
-	}
-	
+	print LOG "\n";
     }
 }
 

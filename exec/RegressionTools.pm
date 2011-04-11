@@ -21,10 +21,9 @@ $extraFlags{intel} = "";
 $extraFlags{gfortran} ="";
 
 sub createTemporaryCopy {
-  my $env = shift;
+  my $referenceDir = shift;
   my $tempDir = shift;
 
-  my $referenceDir = $env->{REFERENCE_DIRECTORY};
   my $commandString = "/usr/local/other/git/1.7.3.4_GNU/bin/git clone $referenceDir $tempDir;";
   return (CommandEntry -> new({COMMAND => $commandString}));
 
@@ -36,9 +35,9 @@ sub createTemporaryCopy {
 sub compileRundeck {
   my $env = shift;
   my $installDir = shift;
-  my $compiler = shift;
 
-  my $rundeck    = $env -> {RUNDECK};
+  my $compiler = $env->{COMPILER};
+  my $rundeck  = $env->{RUNDECK};
   my $configuration = $env -> {CONFIGURATION};
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
@@ -54,6 +53,7 @@ sub compileRundeck {
 
   my $logFile = "$resultsDir/$expName.buildlog";
   unlink($logFile); # delete it
+
   my $commandString = <<EOF;
   export MODELERC=$MODELERC;
   echo "MODELERC is $MODELERC";
@@ -74,8 +74,8 @@ sub runConfiguration {
     my $env = shift;
     my $installDir = shift;
     my $npes = shift;
-    my $compiler = shift;
 
+    my $compiler = $env->{COMPILER};
     my $rundeck    = $env->{RUNDECK};
     my $configuration = $env->{CONFIGURATION};
     my $resultsDir = $env->{RESULTS_DIRECTORY};
@@ -200,7 +200,6 @@ sub getIntelEnvironment{
     my $env = {};
 
     $env->{SCRATCH_DIRECTORY}=$scratchDir;
-    $env->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
     $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
     $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
     $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
@@ -228,7 +227,6 @@ sub getGfortranEnvironment {
     my $env = {};
     
     $env->{SCRATCH_DIRECTORY}=$scratchDir;
-    $env->{REFERENCE_DIRECTORY}="$scratchDir/modelE";
     $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
     $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
     $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
