@@ -65,9 +65,8 @@ C**** Command line options
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST,sumxpe
       USE RANDOM
       USE GETTIME_MOD
-      USE DIAG_COM, only :
-     &      monacc,acc_period
-     &     ,MODD5S
+      USE DIAG_COM, only : MODD5S
+      USE MDIAG_COM, only : monacc,acc_period
       USE DIAG_SERIAL, only : print_diags
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end

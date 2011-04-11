@@ -19,7 +19,7 @@
 #endif
 #endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
-     &     ,oa,koa,acc_period
+     &     ,oa,koa
      &     ,MODD5S,NDAa, NDA5d,NDA5s
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Run,fvstate

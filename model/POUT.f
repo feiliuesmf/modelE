@@ -15,7 +15,7 @@ C**** have to wait.
       module gissout
 !@sum gissout contains variables for outputting GISS format binaries
 !@auth G. Schmidt
-      use diag_com, only : sname_strlen,units_strlen,lname_strlen
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn,iu_jc !units for selected 
 !@+   diag. output

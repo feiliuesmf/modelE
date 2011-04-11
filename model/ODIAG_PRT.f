@@ -19,7 +19,8 @@ C**** ocean grid.
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,ndyno,dts,dto,imaxj,lmm,ze
-      USE DIAG_COM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only : acc_period
       USE ODIAG
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
@@ -117,8 +118,9 @@ C****
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DIAG_COM, only : qdiag,acc_period
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG
@@ -937,8 +939,9 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,imaxj,ze
-      USE DIAG_COM, only : qdiag,acc_period,zoc1
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : qdiag,zoc1
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG
 
@@ -1046,7 +1049,6 @@ C****
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
-      USE DIAG_COM, only : acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
       IMPLICIT NONE
@@ -1353,7 +1355,8 @@ C****
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo, oDLAT_DG, oDLON_DG
       USE DIAG_COM, only : qdiag,zoc
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE MDIAG_COM, only :
+     &     sname_strlen,units_strlen,lname_strlen
       USE ODIAG
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : to_per_mil

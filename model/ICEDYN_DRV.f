@@ -18,7 +18,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-      USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
+      USE MDIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBED_SPHERE
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
 #else
@@ -2020,7 +2020,8 @@ c
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE DIAG_COM, only : qdiag,acc_period,
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only : acc_period,
      &     lname_strlen,sname_strlen,units_strlen
       USE ICEDYN_COM
       USE DIAG_SERIAL, only : focean=>FOCEAN_glob

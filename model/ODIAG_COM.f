@@ -9,7 +9,7 @@
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE DIAG_COM, only : npts  ! needed for conservation diags
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
 #ifdef TRACERS_OCEAN
       USE TRDIAG_COM, only : tconsrv,tconsrv_loc,ntmxcon,ktcon
 #endif
