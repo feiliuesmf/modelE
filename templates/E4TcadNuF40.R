@@ -52,11 +52,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-DOMAIN_DECOMPll                     ! domain decomp
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT_netcdf                ! diagn/post-processing output
 IORSF                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
@@ -70,6 +65,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model

@@ -628,7 +628,6 @@ C****
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dudtsdif,jl_dudtvdif
      &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
-     &     ,sname_strlen,units_strlen,lname_strlen
      &     ,lname=>lname_gc,sname=>sname_gc,units=>units_gc,pow=>pow_gc
       USE ATM_COM, only : pmidl00,pdsigl00
 #ifdef CUBED_SPHERE

@@ -97,6 +97,11 @@ C**** (Simplified) Calendar Related Terms
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
 
+! these do not belong here but are needed until IWRITE/KDIAG etc.
+! are removed from the INPUTZ namelist (harder than it sounds)
+      INTEGER :: IWRITE_sv,JWRITE_sv,ITWRITE_sv
+      INTEGER, DIMENSION(13) :: KDIAG_sv
+
       type ModelE_Clock_type
         integer :: iTime
       end type ModelE_Clock_type
@@ -123,6 +128,20 @@ C**** (Simplified) Calendar Related Terms
       end function isBeginningAccumPeriod
 
       END MODULE MODEL_COM
+
+      MODULE MDIAG_COM
+!@sum  MDIAG_COM information common to all diagnostics
+!@auth Original Development Team
+      implicit none
+
+      integer, parameter ::
+     &     sname_strlen=30,units_strlen=30,lname_strlen=80
+
+C**** Accumulating_period information
+      INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
+      CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
+
+      END MODULE MDIAG_COM
 
       MODULE TIMINGS
 !@sum  TIMINGS contains variables for keeping track of computing time

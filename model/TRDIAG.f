@@ -619,6 +619,7 @@ c
       use model_com, only: idacc
       use tracer_com
       use diag_com
+      use mdiag_com, only : sname_strlen
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
      &     ktaij_,ktaij_out,taij=>taij_out,
      &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,

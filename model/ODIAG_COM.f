@@ -9,7 +9,7 @@
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE DIAG_COM, only : npts  ! needed for conservation diags
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
 #ifdef TRACERS_OCEAN
       USE TRDIAG_COM, only : tconsrv,tconsrv_loc,ntmxcon,ktcon
 #endif
@@ -208,6 +208,9 @@ C****
 
 !@var SFM meridional overturning stream function for each basin
       REAL*8, DIMENSION(JM,0:LMO,4) :: SFM!,SFS SFS is for salt
+
+!@var ZOC, ZOC1 ocean depths for diagnostics (m)
+      REAL*8 :: ZOC(LMO) = 0. , ZOC1(LMO+1) = 0.
 
 C****
 #ifdef TRACERS_OCEAN
@@ -817,7 +820,7 @@ C****
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : ze,dts,ndyno,olat_dg,olon_dg
-      USE DIAG_COM, only : ia_src,conpt0,zoc,zoc1
+      USE DIAG_COM, only : ia_src,conpt0
       USE ODIAG
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
@@ -1944,7 +1947,7 @@ c
       SUBROUTINE reset_odiag(isum)
 !@sum  reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
-      USE DOMAIN_DECOMP_ATM, only: am_i_root
+      USE DOMAIN_DECOMP_1D, only: am_i_root
       USE ODIAG, only : oij,oij_loc,oijmm,oijl,oijl_loc,ol,olnst
 #ifdef TRACERS_OCEAN
      *     ,toijl,toijl_loc,tlnst
@@ -1971,21 +1974,15 @@ c
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-      USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_1D, only : dist_grid,get,am_i_root
-      USE DOMAIN_DECOMP_ATM, only : aGRID=>grid
       USE ODIAG
-      use diag_zonal, only : get_alloc_bounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
-      integer :: j_0budg,j_1budg
       INTEGER :: IER
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      call get_alloc_bounds(agrid,
-     &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
 
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
@@ -2093,7 +2090,7 @@ c
       subroutine set_owtbudg()
 !@sum Precomputes area weights for zonal means on budget grid
 !auth M. Kelley
-      USE DIAG_COM, only : jm_budg, area_of_zone=>dxyp_budg
+      USE DIAG_COM, only : area_of_zone=>dxyp_budg
       USE OCEAN, only : im,jm, owtbudg, imaxj, dxypo, oJ_BUDG
       USE DOMAIN_DECOMP_1D, only :GET, hasSouthpole, hasNorthPole
       USE OCEANR_DIM, only : oGRID

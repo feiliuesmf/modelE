@@ -312,6 +312,8 @@ C**** CHECK FOR IRRIGATION POSSIBILITY
       CALL PRECIP_LK
          CALL CHECKT ('PRECIP')
 
+      call seaice_to_atmgrid
+
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
       SNOW = 0.

@@ -7803,7 +7803,7 @@ c      enddo
       subroutine FindStrings(StringsToFind,ListOfStrings,Indices,n)
 !@sum FindStrings finds the positions of a list of strings in a 2nd list.
 !     Needs optimization.
-      use diag_com, only : sname_strlen
+      use mdiag_com, only : sname_strlen
       implicit none
       integer :: n
       character(len=sname_strlen), dimension(n) ::

@@ -57,7 +57,7 @@ C**** Command line options
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
-      USE FILEMANAGER, only : openunit,closeunit,nameunit
+      USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
@@ -65,20 +65,15 @@ C**** Command line options
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST,sumxpe
       USE RANDOM
       USE GETTIME_MOD
-      USE DIAG_COM, only :
-     &      monacc,acc_period
-     &     ,MODD5S
-      USE SUBDAILY, only : close_subdd
+      USE DIAG_COM, only : MODD5S
+      USE MDIAG_COM, only : monacc,acc_period
       USE DIAG_SERIAL, only : print_diags
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end
 #endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate
-      USE FV_INTERFACE_MOD, only: Checkpoint,Finalize,Compute_Tendencies
-#endif
-#ifdef SCM
-      USE SCMCOM , only : iu_scm_prt,iu_scm_diag
+      USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -328,22 +323,12 @@ C****
      *     write(*,*) "Time spent in the main loop in seconds:",
      *     tloopend-tloopbegin
 
-C**** CLOSE SUBDAILY OUTPUT FILES
-      CALL CLOSE_SUBDD
-
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
-! note: we probably do not need to call fv Finalize, as checkpoint will do
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-#ifdef USE_FVCORE
-         call Finalize(fvstate, kdisk)
-#endif
 
-#ifdef SCM
-      call closeunit(iu_scm_prt)
-      call closeunit(iu_scm_diag)
-#endif
+      call finalize_atm
 
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
@@ -392,7 +377,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine startNewDay()
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-      call daily_DIAG
+      logical :: newmonth
+      newmonth = (JDAY == 1+JDendOfM(Jmon-1))
+      call daily_DIAG(newmonth) ! atmosphere
+      if(newmonth) then         ! ocean
+        call reset_ODIAG(0)
+      endif
       end subroutine startNewDay
 
 !TODO fv, fv_fname, and fv_dfname are  not yet passed as arguments
@@ -520,46 +510,11 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
-! todo: split into atm vs ocean calls
-      use filemanager
-      use MODEL_COM, only: nday,itime
-      use DYNAMICS, only : nidyn
-      USE SOIL_DRV, only: daily_earth
-      use diag_com, only : kvflxo,iu_vflxo,oa,koa
-      use domain_decomp_atm, only: grid,writei8_parallel
       implicit none
       
-      call DIAG5A (1,0)
-      call DIAGCA (1)
-      CALL DAILY_cal(.true.)     ! end_of_day
-      CALL daily_atmdyn(.true.)  ! end_of_day
-      CALL daily_orbit(.true.)   ! end_of_day
-      CALL daily_ch4ox(.true.)   ! end_of_day
-      call daily_RAD(.true.)
-        
-      call daily_LAKE
-      call daily_EARTH(.true.)  ! end_of_day
-        
+      call daily_CAL(.true.)    ! end_of_day
       call daily_OCEAN(.true.)  ! end_of_day
-      call daily_ICE
-      call daily_LI
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call daily_tracer(.true.)
-#endif
-      call CHECKT ('DAILY ')
-      call DIAG5A (16,NDAY*NIdyn)
-      call DIAGCA (10)
-      call sys_flush(6)
-      call UPDTYPE
-
-C****
-C**** WRITE INFORMATION FOR OHT CALCULATION EVERY 24 HOURS
-C****
-      IF (Kvflxo.NE.0.) THEN
-        call writei8_parallel(grid,iu_vflxo,nameunit(iu_vflxo),oa,Itime)
-C**** ZERO OUT INTEGRATED QUANTITIES
-        OA(:,:,4:KOA)=0.
-      END IF
+      call daily_ATM(.true.)
 
       return
       end subroutine dailyUpdates
@@ -579,7 +534,6 @@ C**** ZERO OUT INTEGRATED QUANTITIES
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE ATM_COM, only : ij_debug
       USE MODEL_COM, only : NIPRNT
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
@@ -597,7 +551,6 @@ C**** Rundeck parameters:
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
-      call sync_param( "ij_debug",ij_debug , 2)
 
       RETURN
 C****
@@ -612,7 +565,7 @@ C****
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE Dictionary_mod
-      USE CONSTANT, only : sday
+      USE CONSTANT, only : sday,hrday
       USE MODEL_COM, only :
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
@@ -623,10 +576,8 @@ C****
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
      *     ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE
-
+     &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE RANDOM
-      USE DIAG_COM, only :
-     &     hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
@@ -642,7 +593,8 @@ C****
 !@var iu_AIC,iu_IFILE unit numbers for input files
       INTEGER iu_AIC,iu_IFILE
       INTEGER I,J,L,K,LID1,LID2,NOFF,ioerr
-
+!@param INTHRDAY number of hours in a day in integer form
+      INTEGER, PARAMETER :: INTHRDAY=INT(HRDAY)
 !@nlparam IHRI,TIMEE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
@@ -650,8 +602,12 @@ C****
       INTEGER IhrX, KDISK_restart
       LOGICAL :: is_coldstart
       CHARACTER NLREC*80,RLABEL*132
+
+      INTEGER :: IWRITE=0,JWRITE=0,ITWRITE=23
+      INTEGER, DIMENSION(13) :: KDIAG
+
       NAMELIST/INPUTZ/ ISTART,IRANDI
-     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
@@ -702,6 +658,11 @@ C****
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
       call closeunit(iu_IFILE)
 
+      IWRITE_sv = IWRITE
+      JWRITE_sv = JWRITE
+      ITWRITE_sv = ITWRITE
+      KDIAG_sv = KDIAG
+
       if (istart.le.0) then
         call stop_model('pdE not supported',255)
       end if
@@ -733,8 +694,8 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
       IhrI = HourI +
-     +  HR_IN_DAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
-      ITimeI = IhrI*NDAY/HR_IN_DAY ! internal clock counts DTsrc-steps
+     +  INTHRDAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
+      ITimeI = IhrI*NDAY/INTHRDAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
         IF (AM_I_ROOT())
@@ -850,11 +811,11 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      if(timee.lt.0) timee=houre*nday/HR_IN_DAY
+      if(timee.lt.0) timee=houre*nday/INTHRDAY
       IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
-     *  JDendofM(monthE-1)+dateE-1 )*HR_IN_DAY )*NDAY/HR_IN_DAY + TIMEE
+     *  JDendofM(monthE-1)+dateE-1 )*INTHRDAY )*NDAY/INTHRDAY + TIMEE
 C**** Alternate (old) way of specifying end time
-      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/HR_IN_DAY
+      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INTHRDAY
 
 C**** Check consistency of DTsrc with NDAY
       if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
@@ -910,7 +871,10 @@ C**** component-specific ops, folding the latter into component inits
       call INPUT_atm(istart,istart_fixup,is_coldstart,
      &     KDISK_restart,IRANDI)
 
-      if (istart.le.9) call reset_diag(0)  ! all components.
+      if (istart.le.9) then
+        call reset_adiag(0)
+        call reset_odiag(0)
+      endif
 
       CALL SET_TIMER("       OTHER",MELSE)
 
