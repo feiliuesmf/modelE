@@ -43,27 +43,27 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! ESMF
       FFT72                         ! utilities
 POUT                                ! post-processing output
-hycom |-r8 -O2 -openmp| OCEAN_hycom|-r8 -O2 -openmp| ! ocean driver
-advfct|-r8 -O2 -openmp|                         ! advection
-archyb|-r8 -O2 -openmp|                         ! continuity eqn. 
-barotp|-r8 -O2 -openmp|                         ! barotropic eqn. 
-bigrid|-r8 -O2 -openmp|                         ! basin grid
-blkd10|-r8 -O2 -openmp| blkpp2|-r8 -O2 -openmp| ! block data
-cnuitb|-r8 -O2 -openmp|                         ! continuity eqn.
-cpler |-r8 -O2 -openmp|                         ! coupler
-dpthuv|-r8 -O2 -openmp| dpudpv|-r8 -O2 -openmp| ! off-center depth  
-eic8  |-r8 -O2 -openmp|                         ! ice forming
-geopar|-r8 -O2 -openmp|                         ! geography related parameters
-hybg05|-r8 -O2 -openmp|                         ! grid generator 
-inirfn|-r8 -O2 -openmp| inigis|-r8 -O2 -openmp| inikpp|-r8 -O2 -openmp| ! initial conditions
-matinv|-r8 -O2 -openmp| mxkprf|-r8 -O2 -openmp| ! KPP mixing scheme
-momtum|-r8 -O2 -openmp|                         ! momemtum Eqn.
-prtetc|-r8 -O2 -openmp|                         ! print routines, etc.
-reflux|-r8 -O1 -openmp|                         ! flux conversion
-sigetc|-r8 -O2 -openmp|                         ! eqn.of state, etc.
-thermf|-r8 -O2 -openmp|                         ! thermal forcing
-trcadv|-r8 -O2 -openmp|                         ! tracer advection 
-tsadvc|-r8 -O2 -openmp|                         ! T/S advection 
+hycom |$(R8) -O2 -openmp| OCEAN_hycom|$(R8) -O2 -openmp| ! ocean driver
+advfct|$(R8) -O2 -openmp|                         ! advection
+archyb|$(R8) -O2 -openmp|                         ! continuity eqn. 
+barotp|$(R8) -O2 -openmp|                         ! barotropic eqn. 
+bigrid|$(R8) -O2 -openmp|                         ! basin grid
+blkd10|$(R8) -O2 -openmp| blkpp2|$(R8) -O2 -openmp| ! block data
+cnuitb|$(R8) -O2 -openmp|                         ! continuity eqn.
+cpler |$(R8) -O2 -openmp|                         ! coupler
+dpthuv|$(R8) -O2 -openmp| dpudpv|$(R8) -O2 -openmp| ! off-center depth  
+eic8  |$(R8) -O2 -openmp|                         ! ice forming
+geopar|$(R8) -O2 -openmp|                         ! geography related parameters
+hybg05|$(R8) -O2 -openmp|                         ! grid generator 
+inirfn|$(R8) -O2 -openmp| inigis|$(R8) -O2 -openmp| inikpp|$(R8) -O2 -openmp| ! initial conditions
+matinv|$(R8) -O2 -openmp| mxkprf|$(R8) -O2 -openmp| ! KPP mixing scheme
+momtum|$(R8) -O2 -openmp|                         ! momemtum Eqn.
+prtetc|$(R8) -O2 -openmp|                         ! print routines, etc.
+reflux|$(R8) -O1 -openmp|                         ! flux conversion
+sigetc|$(R8) -O2 -openmp|                         ! eqn.of state, etc.
+thermf|$(R8) -O2 -openmp|                         ! thermal forcing
+trcadv|$(R8) -O2 -openmp|                         ! tracer advection 
+tsadvc|$(R8) -O2 -openmp|                         ! T/S advection 
 hybrid_mpi_omp_renamer|-O2 -openmp|            ! ESMF
 hybrid_mpi_omp_coupler|-O2 -openmp|            ! ESMF
 

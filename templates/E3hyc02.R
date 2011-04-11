@@ -49,28 +49,28 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! diagnostics (resolution dependent)
       FFT72                         ! utilities
 POUT                                ! post-processing output
-hycom2|-r8| OCEAN_hycom|-r8|        ! ocean model - driver
-advfct|-r8|                         ! advection
-archyb|-r8|                         ! continuity eqn. 
-barotp|-r8|                         ! barotropic eqn. 
-bigrid|-r8|                         ! basin grid
-blkdat|-r8| blkpp2|-r8|             ! block data
-cnuitb|-r8|                         ! continuity eqn.
-cpler |-r8|                         ! coupler
-diapfl|-r8|                         ! diapycnal diffusion
-dpthuv|-r8| dpudpv|-r8|             ! off-center depth  
-eic8  |-r8|                         ! ice forming
-geopar|-r8|                         ! geography related parameters
-hybgn1|-r8|                         ! grid generator 
-inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
-matinv|-r8| mxkpp2|-r8|             ! partial KPP mixing scheme
-momtum|-r8|                         ! momemtum Eqn.
-prtetc|-r8|                         ! print routines, etc.
-reflux|-r8|                         ! flux conversion
-sigetc|-r8|                         ! eqn.of state, etc.
-thermf|-r8|                         ! thermal forcing
-trcadv|-r8|                         ! tracer advection 
-tsadts|-r8| advem|-r8|              ! T/S advection advecting t/s
+hycom2|$(R8)| OCEAN_hycom|$(R8)|        ! ocean model - driver
+advfct|$(R8)|                         ! advection
+archyb|$(R8)|                         ! continuity eqn. 
+barotp|$(R8)|                         ! barotropic eqn. 
+bigrid|$(R8)|                         ! basin grid
+blkdat|$(R8)| blkpp2|$(R8)|             ! block data
+cnuitb|$(R8)|                         ! continuity eqn.
+cpler |$(R8)|                         ! coupler
+diapfl|$(R8)|                         ! diapycnal diffusion
+dpthuv|$(R8)| dpudpv|$(R8)|             ! off-center depth  
+eic8  |$(R8)|                         ! ice forming
+geopar|$(R8)|                         ! geography related parameters
+hybgn1|$(R8)|                         ! grid generator 
+inicon|$(R8)| inigis|$(R8)| inikpp|$(R8)| ! initial conditions
+matinv|$(R8)| mxkpp2|$(R8)|             ! partial KPP mixing scheme
+momtum|$(R8)|                         ! momemtum Eqn.
+prtetc|$(R8)|                         ! print routines, etc.
+reflux|$(R8)|                         ! flux conversion
+sigetc|$(R8)|                         ! eqn.of state, etc.
+thermf|$(R8)|                         ! thermal forcing
+trcadv|$(R8)|                         ! tracer advection 
+tsadts|$(R8)| advem|$(R8)|              ! T/S advection advecting t/s
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! TRACER_COM TRACERS_DRV              ! configurable tracer code
