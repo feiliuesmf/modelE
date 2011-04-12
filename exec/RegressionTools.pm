@@ -222,8 +222,8 @@ sub checkConsistency {
     my $useCases = shift;
 
     my $results = {};
-    $results->{CONSISTENT} = 1; # True unless proved otherwise
-    $results->{COMPLETED} = 1; # True unless proved otherwise
+    $results->{ARE_CONSISTENT} = 1; # True unless proved otherwise
+    $results->{ALL_COMPLETED} = 1; # True unless proved otherwise
     $results->{NEW_SERIAL} = 0; 
     $results->{MESSAGES} = "";
 
@@ -242,6 +242,8 @@ sub checkConsistency {
 	if ($configuration eq "MPI" or $configuration eq "OPENMP") {
 	    @peList = @{$useCases->{NUM_MPI_PROCESSES}};
 	}
+
+	my $resultsDir = $env->{RESULTS_DIRECTORY} . "/$compiler";
 	    
 	foreach my $npes (@peList) {
 	    my $suffix;
@@ -261,7 +263,7 @@ sub checkConsistency {
 		    if ($numLinesFound > 0) {
 			if ($configuration eq "MPI") {
 			    $results->{MESSAGES} .= "Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
-			    $results{CONSISTENT} = 0; #failure
+			    $results{ARE_CONSISTENT} = 0; #failure
 			}
 			else {
 			    $results->{MESSAGES} .= "Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
@@ -272,8 +274,8 @@ sub checkConsistency {
 		else {
 		    print LOG " but it was not found \n";
 		    $results->{MESSAGES} .= "$rundeck.$configuration.$compiler.$duration$suffix FAILED (output does not exist).\n";
-		    $results{COMPLETED} = 0; # failure
-		    $results{CONSISTENT} = 0; # failure
+		    $results{ALL_COMPLETED} = 0; # failure
+		    $results{ARE_CONSISTENT} = 0; # failure
 		    last;
 		}
 	    }

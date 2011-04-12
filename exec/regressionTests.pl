@@ -12,6 +12,7 @@ open(LOG,">nightlyTests.log");
 }
 
 my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
+my $resultsDir = $ENV{NOBACKUP}."/regression_results";
 my $reference = "$scratchDir/modelE";
 
 my $env = {};
@@ -71,7 +72,7 @@ $useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
 
 my $pool = CommandPool->new();
 
-my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* regression.o*;"});
+my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* regression.o* $resultsDir/*/*;"});
 my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
 $pool->add($clean);
@@ -137,13 +138,14 @@ my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
 foreach my $rundeck (@$rundecks) { 
     foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
 
-	my $consistency = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
-	print REPORT $consistency->{MESSAGES};
+	my $results = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
+	print REPORT $results->{MESSAGES};
 
-	if ($results{COMPLETED} && $results{CONSISTENT}) {
+	if ($results{ALL_COMPLETED} && $results{ARE_CONSISTENT}) {
 	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
 	    if ($results{NEW_SERIAL}) {
 		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
+                `cd $resultsDir/$compiler; cp $rundeck.SERIAL.$compiler.1* $env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/.; `;
 	    }
 	}
 
