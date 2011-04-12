@@ -43,27 +43,27 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! ESMF
       FFT72                         ! utilities
 POUT                                ! post-processing output
-hycom |-r8 -O2 | OCEAN_hycom|-r8 -O2 | ! ocean driver
-advfct|-r8 -O2 |                         ! advection
-archyb|-r8 -O2 |                         ! continuity eqn. 
-barotp|-r8 -O2 |                         ! barotropic eqn. 
-bigrid|-r8 -O2 |                         ! basin grid
-blkd10|-r8 -O2 | blkpp2|-r8 -O2 |       ! block data
-cnuitb|-r8 -O2 |                         ! continuity eqn.
-cpler |-r8 -O2 |                         ! coupler
-dpthuv|-r8 -O2 | dpudpv|-r8 -O2 | ! off-center depth  
-eic8  |-r8 -O2 |                         ! ice forming
-geopar|-r8 -O2 |                         ! geography related parameters
-hybg05|-r8 -O2 |                         ! grid generator 
-inirfn|-r8 -O2 | inigis|-r8 -O2 | inikpp|-r8 -O2 | ! initial conditions
-matinv|-r8 -O2 | mxkprf|-r8 -O2 | ! KPP mixing scheme
-momtum|-r8 -O2 |                         ! momemtum Eqn.
-prtetc|-r8 -O2 |                         ! print routines, etc.
-reflux|-r8 -O1 |                         ! flux conversion
-sigetc|-r8 -O2 |                         ! eqn.of state, etc.
-thermf|-r8 -O2 |                         ! thermal forcing
-trcadv|-r8 -O2 |                         ! tracer advection 
-tsadvc|-r8 -O2 |                         ! T/S advection 
+hycom |$(R8) -O2 | OCEAN_hycom|$(R8) -O2 | ! ocean driver
+advfct|$(R8) -O2 |                         ! advection
+archyb|$(R8) -O2 |                         ! continuity eqn. 
+barotp|$(R8) -O2 |                         ! barotropic eqn. 
+bigrid|$(R8) -O2 |                         ! basin grid
+blkd10|$(R8) -O2 | blkpp2|$(R8) -O2 |       ! block data
+cnuitb|$(R8) -O2 |                         ! continuity eqn.
+cpler |$(R8) -O2 |                         ! coupler
+dpthuv|$(R8) -O2 | dpudpv|$(R8) -O2 | ! off-center depth  
+eic8  |$(R8) -O2 |                         ! ice forming
+geopar|$(R8) -O2 |                         ! geography related parameters
+hybg05|$(R8) -O2 |                         ! grid generator 
+inirfn|$(R8) -O2 | inigis|$(R8) -O2 | inikpp|$(R8) -O2 | ! initial conditions
+matinv|$(R8) -O2 | mxkprf|$(R8) -O2 | ! KPP mixing scheme
+momtum|$(R8) -O2 |                         ! momemtum Eqn.
+prtetc|$(R8) -O2 |                         ! print routines, etc.
+reflux|$(R8) -O1 |                         ! flux conversion
+sigetc|$(R8) -O2 |                         ! eqn.of state, etc.
+thermf|$(R8) -O2 |                         ! thermal forcing
+trcadv|$(R8) -O2 |                         ! tracer advection 
+tsadvc|$(R8) -O2 |                         ! T/S advection 
 hybrid_mpi_omp_renamer|-O2 |            ! ESMF
 hybrid_mpi_omp_coupler|-O2 |            ! ESMF
 
