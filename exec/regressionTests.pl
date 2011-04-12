@@ -63,7 +63,7 @@ foreach my $rundeck (@$rundecks) {
     $useCases->{$rundeck}->{COMPILERS} = $compilers;
     $useCases->{$rundeck}->{CONFIGURATIONS} = ["SERIAL","MPI"];
     $useCases->{$rundeck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$rundeck}}->{$level};
-    $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy"];
+    $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy","restart"];
 }
 
 # Override anything else here
@@ -141,7 +141,7 @@ foreach my $rundeck (@$rundecks) {
 	my $results = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
 	print REPORT $results->{MESSAGES};
 
-	if ($results{ALL_COMPLETED} && $results{ARE_CONSISTENT}) {
+	if ($results{ALL_COMPLETED} && $results{ARE_CONSISTENT} && $results{RESTART_CHECK}) {
 	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
 	    if ($results{NEW_SERIAL}) {
 		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";

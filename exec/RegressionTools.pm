@@ -99,24 +99,37 @@ sub runConfiguration {
     
     my $MODELERC = $env->{MODELERC};
 
-    my $continue1Day = "./$expName -r ";
+    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make setup_nocomp RUN=$expName $flags;";
+    my $run1dy = "../editRundeck $rundeck 46 2 0; make setup_nocomp RUN=$expName $flags;";
+    my $restart = "mv $rundeck/fort.2.nc $rundeck/fort.1.nc ; cd $expName; ./$expName -r ";
+
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes -r ";}
 
     my $commandString = <<EOF;
-    echo "Using flags: $flags "
     export MODELERC=$MODELERC;
-    echo "MODELERC is $MODELERC";
     cd $installDir/decks;
-    rm -f $expName/fort.2.nc
-    make setup_nocomp RUN=$expName $flags COMPILER=$compiler;
-    cd $expName;
-    # Remove old result so that we notice if things fail really badly
-    rm -f $resultsDir/$expName.1hr$suffix;
-    cp fort.2.nc $resultsDir/$expName.1hr$suffix;
-    $continue1Day;
-    # Remove old result so that we notice if things fail really badly
-    rm -f $resultsDir/$expName.1dy$suffix;
-    cp fort.2.nc $resultsDir/$expName.1dy$suffix;
+    rm -f $expName/fort.2.nc;
+
+    $run1hr;
+    if [ -e $expName/fort.2.nc ]; then
+	cp $expName/fort.2.nc $resultsDir/$expName.1hr$suffix;
+    else
+	exit 1;
+    fi
+
+    $run1dy;
+    if [ -e $expName/fort.2.nc ]; then
+	cp $expName/fort.2.nc $resultsDir/$expName.1dy$suffix;
+    else
+	exit 1;
+    fi
+
+    $restart;
+    if [ -e $expName/fort.2.nc ]; then
+	cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+    else
+	exit 1;
+    fi
 EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler} ));
 }
@@ -226,17 +239,13 @@ sub checkConsistency {
     $results->{ALL_COMPLETED} = 1; # True unless proved otherwise
     $results->{NEW_SERIAL} = 0; 
     $results->{MESSAGES} = "";
+    $results->{RESTART_CHECK} = 1; # True unless proved otherwise
 
     $compiler = $env->{COMPILER};
 
     foreach my $configuration (@{$useCases->{CONFIGURATIONS}}) {
 
 	my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
-	my $reference;
-	if    ($configuration eq "MPI")    {$reference = "$rundeck.SERIAL";}
-	elsif ($configuration eq "SERIAL") {$reference = "$env->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
-	else {next;}
-	    
 	    
 	@peList = (1);
 	if ($configuration eq "MPI" or $configuration eq "OPENMP") {
@@ -252,30 +261,46 @@ sub checkConsistency {
 	    
 	    foreach my $duration (@{$useCases->{DURATIONS}}) {
 		
+		my $reference;
+		if    ($configuration eq "MPI" or $duration eq "restart")    {$reference = "$rundeck.SERIAL";}
+		else {$reference = "$env->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
+	    
 		my $outfile = "$resultsDir/$rundeck.$configuration.$compiler.$duration$suffix";
 		print LOG "Looking for $outfile \n";
 		if (-e $outfile) {
-		    my $referenceOutput = "$reference.$compiler.$duration";
+		    if ($duration == "restart") {
+			my $referenceOutput = "$reference.$compiler.$1dy";
+		    }
+		    else {
+			my $referenceOutput = "$reference.$compiler.$duration";
+		    }
 		    my $testOutput = "$rundeck.$configuration.$compiler.$duration$suffix";
 		    my $numLinesFound = `cd $resultsDir; $compare $referenceOutput $testOutput is_npes_reproducible | wc -l`;
 		    chomp($numLinesFound);
 
 		    if ($numLinesFound > 0) {
 			if ($configuration eq "MPI") {
-			    $results->{MESSAGES} .= "Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
+			    $results->{MESSAGES} .= "   FAILURE - Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
 			    $results{ARE_CONSISTENT} = 0; #failure
 			}
 			else {
-			    $results->{MESSAGES} .= "Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
-			    $results{NEW_SERIAL} = 1; # change
+			    if ($(duration eq "restart") {
+				$results->{MESSAGES} .= "   FAILURE - Serial restart is not consistent.\n";
+				$results->{RESTART_CHECK} = 0;
+			    }
+			    else {
+				$results->{MESSAGES} .= "   WARNING - Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
+				$results{NEW_SERIAL} = 1; # change detected
+			    }
 			}
 		    }
 		}
 		else {
 		    print LOG " but it was not found \n";
-		    $results->{MESSAGES} .= "$rundeck.$configuration.$compiler.$duration$suffix FAILED (output does not exist).\n";
+		    $results->{MESSAGES} .= "   FAILURE - expected output file does not exist: $rundeck.$configuration.$compiler.$duration$suffix\n";
 		    $results{ALL_COMPLETED} = 0; # failure
 		    $results{ARE_CONSISTENT} = 0; # failure
+		    $results{RESTART_CHECK} = 0; # failure
 		    last;
 		}
 	    }
