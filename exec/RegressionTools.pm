@@ -101,7 +101,7 @@ sub runConfiguration {
 
     my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make setup_nocomp RUN=$expName $flags";
     my $run1dy = "../editRundeck $rundeck 46 2 0; make setup_nocomp RUN=$expName $flags";
-    my $restart = "cd $expName; mv fort.2.nc fort.1.nc ; cd $expName; ./$expName -r ";
+    my $restart = "cd $expName; cp fort.2.nc fort.1.nc ; ./$expName -r ";
 
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes -r ";}
 
@@ -118,8 +118,8 @@ sub runConfiguration {
     fi
 
     $run1dy;
-    if [ -e $expName/fort.2.nc ]; then
-	cp $expName/fort.2.nc $resultsDir/$expName.1dy$suffix;
+    if [ -e $expName/fort.1.nc ]; then
+	cp $expName/fort.1.nc $resultsDir/$expName.1dy$suffix;
     else
 	exit 1;
     fi
@@ -243,6 +243,9 @@ sub checkConsistency {
 
     $compiler = $env->{COMPILER};
 
+    my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
+
+
     foreach my $configuration (@{$useCases->{CONFIGURATIONS}}) {
 
 	my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
@@ -277,7 +280,9 @@ sub checkConsistency {
 		    my $testOutput = "$rundeck.$configuration.$compiler.$duration$suffix";
 		    my $numLinesFound = `cd $resultsDir; $compare $referenceOutput $testOutput is_npes_reproducible | wc -l`;
 		    chomp($numLinesFound);
-
+		    print LOG "CHOMP:: $referencOutput \n";
+		    print LOG "CHOMP:: $testOutput \n";
+		    print LOG "CHOMP:: $numLinesFound \n";
 		    if ($numLinesFound > 0) {
 			if ($configuration eq "MPI") {
 			    $results->{MESSAGES} .= "   FAILURE - Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
@@ -306,6 +311,7 @@ sub checkConsistency {
 	    }
 	}
     }
+    return $results;
 }
 
 1;

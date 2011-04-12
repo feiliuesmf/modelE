@@ -34,12 +34,13 @@ $resolutions->{SCMSGPCONT} = "0"; #hack - serial only
 #		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
 my $compilers = ["intel", "gfortran"];
 
-my $rundecks = ["EM20","E4arobio_g6c"];
+my $rundecks = ["EM20"];
 #my $compilers = ["intel"];
 
 #set defaults
 
-my $level = "AGGRESSIVE";
+#my $level = "AGGRESSIVE";
+my $level = "GENTLE";
 my $numProcesses = {};
 
 $numProcesses->{"0"}->{GENTLE}     = [];
@@ -132,8 +133,6 @@ if ($pool->{notCompleted}) {
     print REPORT "Warning: time expired on driver script.\n";
     print REPORT "***************************************\n";
 }
-
-my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
 
 foreach my $rundeck (@$rundecks) { 
     foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
