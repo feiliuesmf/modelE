@@ -82,21 +82,17 @@ $ENV{PATH}="/usr/local/other/gcc/4.5/bin:/usr/local/other/openMpi/gcc-4.5/bin:".
 $ENV{LD_LIBRARY_PATH}="/usr/local/other/gcc/4.5/lib64:/usr/local/other/openMpi/gcc-4.5/lib:".$ENV{LD_LIBRARY_PATH};
 
 foreach $compiler (@$compilers) {
-    $pool->add(writeModelErcFile($env->{$compiler}, $clean));
+    $pool->add(writeModelErcFile($env->{$compiler}, $git));
     unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") {
 	mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!;
     }
 }
 
 foreach my $rundeck (@$rundecks) { 
-    print LOG "Using rundeck $rundeck $env->{$compiler}->{RUNDECK} \n";
-
     foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
-	print LOG "   ... using compiler $compiler \n";
 	$env->{$compiler}->{RUNDECK} = $rundeck;
-
 	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
-	    print LOG "       ... using configuration $configuration \n";
+
 	    $env->{$compiler}->{CONFIGURATION} = $configuration;
 
 	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
@@ -107,10 +103,10 @@ foreach my $rundeck (@$rundecks) {
 	    my $build = compileRundeck($env->{$compiler}, $tempDir);
 	    $pool->add($build, $copy);
 	    
-	    my $previous = $build;
+	    my $previous = $build; # for dependencies
 	    
 	    my @peList = (1);
-	    if ($configuration eq "MPI" or $configuration eq "OPENMP") {
+	    if ($configuration eq "MPI") {
 		@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
 	    }
 	    foreach my $npes (@peList) {
@@ -140,69 +136,17 @@ my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
 
 foreach my $rundeck (@$rundecks) { 
     foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
-	my $resultsDir = $env->{$compiler}->{RESULTS_DIRECTORY} . "/$compiler";
 
-	my $consistent = 1; # unless proved otherwise
-	my $newSerial  = 0; 
+	my $consistency = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
+	print REPORT $consistency->{MESSAGES};
 
-	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
-	    print LOG "         ... configuration: $rundeck.$compiler.$configuration \n";
-
-	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
-	    my $reference;
-	    if    ($configuration eq "MPI")    {$reference = "$rundeck.SERIAL";}
-	    elsif ($configuration eq "SERIAL") {$reference = "$env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
-	    else {next;}
-	    
-	    my $suffix;
-	    
-	    @peList = (1);
-	    if ($configuration eq "MPI" or $configuration eq "OPENMP") {
-		@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
-	    }
-	    
-	    foreach my $npes (@peList) {
-		if    ($configuration eq "MPI")    {$suffix = ".np=$npes";}
-		else {$suffix = "";}
-		
-		print LOG "     ... NPES=$npes ";
-		
-		foreach my $duration (@{$useCases->{$rundeck}->{DURATIONS}}) {
-
-		    my $outfile = "$resultsDir/$rundeck.$configuration.$compiler.$duration$suffix";
-		    print LOG "Looking for $outfile \n";
-		    if (-e $outfile) {
-			print LOG "  found it\n";
-			my $numLinesFound = `cd $resultsDir; $compare $reference.$compiler.$duration $rundeck.$configuration.$compiler.$duration$suffix is_npes_reproducible | wc -l`;
-			chomp($numLinesFound);
-			if ($numLinesFound > 0) {
-			    if ($configuration eq "MPI") {
-				print REPORT "Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
-				$consistent = 0; #failure
-			    }
-			    else {
-				print REPORT "Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
-				$newSerial = 1;
-			    }
-			}
-		    }
-		    else {
-			print LOG " but it was not found \n";
-			print REPORT "$rundeck.$configuration.$compiler.$duration$suffix does not exist.\n";
-			$consistent = 0;
-			last;
-		    }
-		}
-
-		if ($consistent) {
-		    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
-		    if ($newSerial) {
-			print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
-		    }
-		}
+	if ($results{COMPLETED} && $results{CONSISTENT}) {
+	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
+	    if ($results{NEW_SERIAL}) {
+		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
 	    }
 	}
-	print LOG "\n";
+
     }
 }
 

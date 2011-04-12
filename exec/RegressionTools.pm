@@ -121,39 +121,6 @@ EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler} ));
 }
 
-sub checkResults {
-  my $env = shift;
-  my $tempDir = shift;
-  my $npes = shift;
-  my $compiler = shift;
-
-  my $installDir    = $env->{INSTALL_DIR};
-  my $rundeck       = $env->{RUNDECK};
-  my $configuration = $env->{CONFIGURATION};
-  my $resultsDir    = $env->{RESULTS_DIR};
-  $resultsDir .="/$compiler";
-  my $cmp           = "$resultsDir/CMPE002P";
-  my $expName;
-
-  if (@_) {$expName = shift}
-  else {$expName = "$rundeck.$configuration.$compiler"};
-
-  my $suffix;
-  if ($configuration eq "SERIAL" or $configuration eq "SERIALMP") {
-      $suffix = "";
-  }
-  else {
-      $suffix = ".np=$npes";
-  }
-
-  my $commandString = <<EOF;
-cd $resultsDir;
-$cmp $rundeck.SERIAL.1hr $expName.1hr$suffix;
-$cmp $rundeck.SERIAL.1dy $expName.1dy$suffix;
-EOF
-
-  return (CommandEntry -> new({COMMAND => $commandString, STDOUT_LOG_FILE => "$expName.log"}))
-}
 
 sub writeModelErcFile {
     my $env = shift;
@@ -247,6 +214,71 @@ sub getGfortranEnvironment {
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
     return $env;
+}
+
+sub checkConsistency {
+    my $env = shift;
+    my $rundeck = shift;
+    my $useCases = shift;
+
+    my $results = {};
+    $results->{CONSISTENT} = 1; # True unless proved otherwise
+    $results->{COMPLETED} = 1; # True unless proved otherwise
+    $results->{NEW_SERIAL} = 0; 
+    $results->{MESSAGES} = "";
+
+    $compiler = $env->{COMPILER};
+
+    foreach my $configuration (@{$useCases->{CONFIGURATIONS}}) {
+
+	my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
+	my $reference;
+	if    ($configuration eq "MPI")    {$reference = "$rundeck.SERIAL";}
+	elsif ($configuration eq "SERIAL") {$reference = "$env->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
+	else {next;}
+	    
+	    
+	@peList = (1);
+	if ($configuration eq "MPI" or $configuration eq "OPENMP") {
+	    @peList = @{$useCases->{NUM_MPI_PROCESSES}};
+	}
+	    
+	foreach my $npes (@peList) {
+	    my $suffix;
+	    if    ($configuration eq "MPI")    {$suffix = ".np=$npes";}
+	    else {$suffix = "";}
+	    
+	    foreach my $duration (@{$useCases->{DURATIONS}}) {
+		
+		my $outfile = "$resultsDir/$rundeck.$configuration.$compiler.$duration$suffix";
+		print LOG "Looking for $outfile \n";
+		if (-e $outfile) {
+		    my $referenceOutput = "$reference.$compiler.$duration";
+		    my $testOutput = "$rundeck.$configuration.$compiler.$duration$suffix";
+		    my $numLinesFound = `cd $resultsDir; $compare $referenceOutput $testOutput is_npes_reproducible | wc -l`;
+		    chomp($numLinesFound);
+
+		    if ($numLinesFound > 0) {
+			if ($configuration eq "MPI") {
+			    $results->{MESSAGES} .= "Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
+			    $results{CONSISTENT} = 0; #failure
+			}
+			else {
+			    $results->{MESSAGES} .= "Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
+			    $results{NEW_SERIAL} = 1; # change
+			}
+		    }
+		}
+		else {
+		    print LOG " but it was not found \n";
+		    $results->{MESSAGES} .= "$rundeck.$configuration.$compiler.$duration$suffix FAILED (output does not exist).\n";
+		    $results{COMPLETED} = 0; # failure
+		    $results{CONSISTENT} = 0; # failure
+		    last;
+		}
+	    }
+	}
+    }
 }
 
 1;
