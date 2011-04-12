@@ -29,11 +29,11 @@ $resolutions->{E4arobio_g6c} = "2x2.5";
 $resolutions->{SCMSGPCONT} = "0"; #hack - serial only
 
 
-#my $rundecks = ["EM20", "E4F40", "E4TcadF40",
-#		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
+my $rundecks = ["EM20", "E4F40", "E4TcadF40",
+		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
 my $compilers = ["intel", "gfortran"];
 
-my $rundecks = ["EM20"];
+#my $rundecks = ["EM20"];
 #my $compilers = ["intel"];
 
 #set defaults
@@ -194,12 +194,14 @@ foreach my $rundeck (@$rundecks) {
 		    }
 		}
 
-		if ($consistent) {
-		    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
-		    if ($newSerial) {
-			print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
-		    }
-		}
+	    }
+
+	}
+
+	if ($consistent) {
+	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
+	    if ($newSerial) {
+		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
 	    }
 	}
 	print LOG "\n";
