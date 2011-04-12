@@ -2008,7 +2008,8 @@ c
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
-      USE KPRF_ARRAYS
+      USE KPRF_ARRAYS, only : b1,dri,theta_rcrn,theta_rcrp
+     &     ,back_ra_r,sm_r1,sh_r1,ss_r1,slq2_r1
       USE KPRF_ARRAYS_LOC_RENAMER, only:
      +    akpar, betabl, betard, redfac, sswflx,
      +    zgrid, vcty, dift, difs, mixflx, dpbl,

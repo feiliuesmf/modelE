@@ -1741,7 +1741,8 @@ c get_subdd
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
+      USE MDIAG_COM, only : lname_strlen
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
      * ,saveSCLDI,saveTCLDI,saveMCCLDTP
 #if (defined ttc_subdd) || (defined etc_subdd)

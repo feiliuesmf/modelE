@@ -13,7 +13,7 @@ C**** have to wait.
 !@sum  ncout handles the writing of output fields in netcdf-format
 !@auth M. Kelley
       use MODEL_COM, only : xlabel,lrunid
-      use DIAG_COM, only : acc_period,
+      use MDIAG_COM, only : acc_period,
      &     sname_strlen,units_strlen,lname_strlen
       implicit none
 
@@ -1187,7 +1187,8 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       USE GEOM, only : lon_dg_gcm=>lon_dg,lat_dg_gcm=>lat_dg
       USE NCOUT
       USE DIAG_COM, only :
-     &     plm,ple,ctr_ml,edg_ml,ctr_cp,edg_cp,
+     &     plm,ple,ctr_ml,edg_ml,ctr_cp,edg_cp
+      USE MDIAG_COM, only :
      &     sname_strlen,lname_strlen,units_strlen
       IMPLICIT NONE
 !@var FILENAME output file name

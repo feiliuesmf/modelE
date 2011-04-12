@@ -2008,8 +2008,10 @@ C**** ACCUMULATE HERE
       AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
      &     (WPA2I-W2I*PAI/(FIMI+teeny))
       DO I=1,IMAXJ(J)
-        AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
-     &       (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
+        IF (PM(K+1).LT.P(I,J)+PTOP) THEN
+          AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
+     &         (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
+        ENDIF
       ENDDO
       ENDDO ! K
       ENDDO ! J

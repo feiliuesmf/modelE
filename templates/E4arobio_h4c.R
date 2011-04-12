@@ -55,56 +55,56 @@ DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144
 POUT                                ! post-processing output
 SparseCommunicator_mod              ! sparse gather/scatter module
-hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8|
-kprf_arrays_loc_renamer|-r8| hycom_atm|-r8|
-hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
-hycom_scalars|-r8| hycom_dim_glob|-r8|
-hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
-advfct|-r8|                         ! advection
-archyb|-r8|                         ! continuity eqn.
-barotp|-r8|                         ! barotropic eqn.
-bigrid|-r8|                         ! basin grid
-blkprf|-r8|                         ! block data
-cnuity|-r8|                         ! continuity eqn.
-convec|-r8|                         ! convection
-cpler |-r8|                         ! coupler
-diapfx|-r8|                         ! diapycnal diffusion
-dpthuv|-r8| dpudpv|-r8|             ! off-center depth
-eice  |-r8|                         ! ice forming
-geopar|-r8|                         ! geography related parameters
-hybgn1|-r8|                         ! grid generator
-inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
-matinv|-r8| mxkprf|-r8| mxlayr|-r8| ! mixing scheme
-momtum|-r8|                         ! momemtum Eqn.
-prtetc|-r8|                         ! print routines, etc.
-reflux|-r8|                         ! flux conversion
-sigetc|-r8|                         ! eqn.of state, etc.
-thermf|-r8|                         ! thermal forcing
-trcadv|-r8|                         ! tracer advection
-tsadvc|-r8| advem|-r8|              ! advecting t/s
+hycom_arrays|$(R8)| hycom_dim|$(R8)| kprf_arrays|$(R8)|
+kprf_arrays_loc_renamer|$(R8)| hycom_atm|$(R8)|
+hycom_arrays_glob|$(R8)| hycom_arrays_glob_renamer|$(R8)|
+hycom_scalars|$(R8)| hycom_dim_glob|$(R8)|
+hycom |$(R8)| OCEAN_hycom|$(R8)|        ! ocean model - driver
+advfct|$(R8)|                         ! advection
+archyb|$(R8)|                         ! continuity eqn.
+barotp|$(R8)|                         ! barotropic eqn.
+bigrid|$(R8)|                         ! basin grid
+blkprf|$(R8)|                         ! block data
+cnuity|$(R8)|                         ! continuity eqn.
+convec|$(R8)|                         ! convection
+cpler |$(R8)|                         ! coupler
+diapfx|$(R8)|                         ! diapycnal diffusion
+dpthuv|$(R8)| dpudpv|$(R8)|             ! off-center depth
+eice  |$(R8)|                         ! ice forming
+geopar|$(R8)|                         ! geography related parameters
+hybgn1|$(R8)|                         ! grid generator
+inicon|$(R8)| inigis|$(R8)| inikpp|$(R8)| ! initial conditions
+matinv|$(R8)| mxkprf|$(R8)| mxlayr|$(R8)| ! mixing scheme
+momtum|$(R8)|                         ! momemtum Eqn.
+prtetc|$(R8)|                         ! print routines, etc.
+reflux|$(R8)|                         ! flux conversion
+sigetc|$(R8)|                         ! eqn.of state, etc.
+thermf|$(R8)|                         ! thermal forcing
+trcadv|$(R8)|                         ! tracer advection
+tsadvc|$(R8)| advem|$(R8)|              ! advecting t/s
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-advc1d|-r8|                         ! tracer transport (for HYCOM only)
-obio_dim|-r8|                       !
-obio_forc|-r8|                      !
-obio_incom|-r8|                     !
-obio_com|-r8|                       !
-obio_model|-r8|                     !
-obio_init|-r8|                      !
-obio_bioinit|-r8|                   !
-obio_daysetrad|-r8|                 !
-obio_daysetbio|-r8|                 !
-obio_ocalbedo|-r8|                  !
-obio_sfcirr|-r8|                    !
-obio_limits|-r8|                    !
-obio_edeu|-r8|                      !
-obio_ptend|-r8|                     !
-obio_update|-r8|                    !
-obio_carbon|-r8|                    !
-obio_trint|-r8|                     !
-obio_reflectance|-r8|
-obio_sinksettl|-r8|
+advc1d|$(R8)|                         ! tracer transport (for HYCOM only)
+obio_dim|$(R8)|                       !
+obio_forc|$(R8)|                      !
+obio_incom|$(R8)|                     !
+obio_com|$(R8)|                       !
+obio_model|$(R8)|                     !
+obio_init|$(R8)|                      !
+obio_bioinit|$(R8)|                   !
+obio_daysetrad|$(R8)|                 !
+obio_daysetbio|$(R8)|                 !
+obio_ocalbedo|$(R8)|                  !
+obio_sfcirr|$(R8)|                    !
+obio_limits|$(R8)|                    !
+obio_edeu|$(R8)|                      !
+obio_ptend|$(R8)|                     !
+obio_update|$(R8)|                    !
+obio_carbon|$(R8)|                    !
+obio_trint|$(R8)|                     !
+obio_reflectance|$(R8)|
+obio_sinksettl|$(R8)|
 obio_archyb
-obio_diffmod|-r8|
+obio_diffmod|$(R8)|
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TRACER_COM  TRACERS_DRV              ! configurable tracer code
@@ -321,7 +321,4 @@ to_volume_MixRat=1    ! for tracer printout
    YEARE=1800,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=01,HOURE=01,IWRITE=1,JWRITE=1,
  &END
-### Information below describes your run. Do not delete! ###
-Mon Nov  9 22:42:34 EST 2009
-Version 10.1
-CVS Repository: MAIN Branch
+

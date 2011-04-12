@@ -14,6 +14,7 @@
 #ifndef CUBED_SPHERE
       use geom, only : imh,fim,byim
 #endif
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
       private
@@ -31,10 +32,6 @@ c      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
 !@param JEQ grid box zone around or immediately north of the equator
       INTEGER, PARAMETER, public :: JEQ=1+JM/2
 
-C**** Accumulating_period information
-      INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
-      CHARACTER*12, public :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
-!@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
@@ -520,9 +517,6 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(ndparm_max), public :: dparm_name
       REAL*8, dimension(ndparm_max), public :: dparm
       integer, public :: ndparm=0
-
-      integer, parameter, public ::
-     &     sname_strlen=30,units_strlen=30,lname_strlen=80
 
 !@var J_xxx zonal J diagnostic names
       INTEGER, public ::
@@ -1274,6 +1268,7 @@ c allocate master copies of budget- and JK-arrays on root
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
       USE ATM_COM, only : Kradia
+      USE MDIAG_COM, only : monacc
       USE DIAG_COM
       USE DOMAIN_DECOMP_ATM, Only : grid
       USE DOMAIN_DECOMP_1D, Only : GET, PACK_DATA, UNPACK_DATA
@@ -2021,7 +2016,8 @@ c temporary variant of inc_ajl without any weighting
 !@auth M. Kelley
 !@ver  beta
       use model_com, only : idacc
-      use diag_com, only : monacc,
+      use mdiag_com, only : monacc
+      use diag_com, only :
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
@@ -2122,7 +2118,8 @@ c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
-      use diag_com, only : monacc,kaijl,
+      use mdiag_com, only : monacc
+      use diag_com, only : kaijl,
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist

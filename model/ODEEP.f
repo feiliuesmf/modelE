@@ -480,7 +480,8 @@ C**** Check for reasonable values for ocean variables
       USE MODEL_COM, only : jm,lrunid,xlabel,idacc,focean
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo=>rtgo_diag,dz
-      USE DIAG_COM, only : acc_period,qdiag,zoc
+      USE DIAG_COM, only : qdiag,zoc
+      USE MDIAG_COM, only : acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE

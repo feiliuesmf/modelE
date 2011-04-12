@@ -7,7 +7,8 @@
 !ver   1.0
       USE RESOLUTION, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
-     &     ,sname_strlen,units_strlen,lname_strlen,jm_budg
+     &     ,jm_budg
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_AEROSOLS_SOA

@@ -1,5 +1,6 @@
 #package RegressionTools;
 use CommandEntry;
+use Env;
 
 my $standardFlags = "SETUP_FLAGS=-wait";
 my $HYCOM = "E1fzhyc";
@@ -16,25 +17,14 @@ $extraFlags{E1oM20} ="";
 $extraFlags{E001tr} ="";
 $extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
 
-my $numLinesCMP;
-$numLinesCMP{E1M20}  = 120;
-$numLinesCMP{E1F20}  = 120;
-$numLinesCMP{E1oM20} = 110;
-$numLinesCMP{E001tr} = 123;
-$numLinesCMP{$HYCOM} = 138;
-
-sub setModuleEnvironment {
-#    require perlModule;
-    require "$ENV{MODULESHOME}/init/perl";
-    module (purge);
-    module (load, "comp/intel-10.1.023", "lib/mkl-10.1.2.024", "mpi/impi-3.2.1.009");
-}
+$extraFlags{intel} = "";
+$extraFlags{gfortran} ="";
 
 sub createTemporaryCopy {
   my $env = shift;
   my $tempDir = shift;
 
-  my $referenceDir = $env -> {REFERENCE_DIRECTORY};
+  my $referenceDir = $env->{REFERENCE_DIRECTORY};
   my $commandString = "mkdir -p $tempDir;  cp -r -u $referenceDir/* $tempDir;";
   return (CommandEntry -> new({COMMAND => $commandString}));
 
@@ -53,8 +43,10 @@ sub compileRundeck {
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
   
-  my $flags = "$standardFlags $extraFlags{$configuration} $extraFlags{$rundeck}";
+  my $flags = "$standardFlags $extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
   $flags =~ s/(\$npes)/1/eeg;
+
+  my $MODELERC = $env->{MODELERC};
 
   my $expName;
   if (@_) {$expName = shift}
@@ -62,9 +54,8 @@ sub compileRundeck {
 
   my $logFile = "$resultsDir/$expName.buildlog";
   unlink($logFile); # delete it
-
   my $commandString = <<EOF;
-  export MODELERC;
+  export MODELERC=$MODELERC;
   echo "MODELERC is $MODELERC";
   echo "CONTENTS: ";
   cat $MODELERC;
@@ -75,13 +66,8 @@ sub compileRundeck {
 EOF
 
   my $binDir = $expName . "_bin";
-  if ($configuration eq SERIAL) {
-    $commandString .= "make aux RUN=$expName $flags COMPILER=$compiler;\n";
-    $commandString .= "cp $binDir/CMPE002P $resultsDir/CMPE002P.$rundeck;\n";
-    $commandString .= "cp $binDir/CMPE002 $resultsDir/CMPE002.$rundeck;\n";
-  }
-
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile"}));
+  print "Compile? $commandString \n";
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC }));
 }
 
 sub runConfiguration {
@@ -90,10 +76,12 @@ sub runConfiguration {
     my $npes = shift;
     my $compiler = shift;
 
-    my $rundeck    = $env -> {RUNDECK};
-    my $configuration = $env -> {CONFIGURATION};
-    my $resultsDir = $env -> {RESULTS_DIRECTORY};
+    my $rundeck    = $env->{RUNDECK};
+    my $configuration = $env->{CONFIGURATION};
+    my $resultsDir = $env->{RESULTS_DIRECTORY};
     $resultsDir .="/$compiler";
+
+    print "results dir $resultsDir \n";
 
     my $flags = "$standardFlags $extraFlags{$configuration}";
     $flags =~ s/(\$npes)/$npes/eeg;
@@ -109,51 +97,28 @@ sub runConfiguration {
 	$suffix = ".np=$npes";
     }
     
+    my $MODELERC = $env->{MODELERC};
+
     my $continue1Day = "./$expName -r ";
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes -r ";}
 
     my $commandString = <<EOF;
     echo "Using flags: $flags "
-    export MODELERC;
+    export MODELERC=$MODELERC;
+    echo "MODELERC is $MODELERC";
     cd $installDir/decks;
-    rm -f $expName/fort.2
+    rm -f $expName/fort.2.nc
     make setup_nocomp RUN=$expName $flags COMPILER=$compiler;
     cd $expName;
     # Remove old result so that we notice if things fail really badly
     rm -f $resultsDir/$expName.1hr$suffix;
-    cp fort.2 $resultsDir/$expName.1hr$suffix;
+    cp fort.2.nc $resultsDir/$expName.1hr$suffix;
     $continue1Day;
     # Remove old result so that we notice if things fail really badly
     rm -f $resultsDir/$expName.1dy$suffix;
-    cp fort.2 $resultsDir/$expName.1dy$suffix;
+    cp fort.2.nc $resultsDir/$expName.1dy$suffix;
 EOF
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes}));
-}
-
-sub runSetup {
-  my $env = shift;
-
-  my $installDir    = $env -> {INSTALL_DIR};
-  my $rundeck       = $env -> {RUNDECK};
-  my $configuration = $env -> {CONFIGURATION};
-  my $npes          = $env -> {NUM_PROCS};
-  my $resultsDir    = $env -> {RESULTS_DIR};
-  $resultsDir .="/$compiler";
-
-  my $expName;
-  if (@_) {$expName = shift}
-  else {$expName = "$rundeck.$configuration.$compiler"};
-
-  my $commandString = <<EOF;
-cd $dir/decks;
-make setup_nocompile RUN=$expName $standardFlags;
-cp $expName/fort.2 $resultsDir/$expName.1hr;
-pushd $expName;
-./$expName -r;
-cp $expName/fort.2 $resultsDir/$expName.1dy;
-EOF
-
-  return (CommandEntry -> new({COMMAND => $commandString}))
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler} ));
 }
 
 sub checkResults {
@@ -162,10 +127,10 @@ sub checkResults {
   my $npes = shift;
   my $compiler = shift;
 
-  my $installDir    = $env -> {INSTALL_DIR};
-  my $rundeck       = $env -> {RUNDECK};
-  my $configuration = $env -> {CONFIGURATION};
-  my $resultsDir    = $env -> {RESULTS_DIR};
+  my $installDir    = $env->{INSTALL_DIR};
+  my $rundeck       = $env->{RUNDECK};
+  my $configuration = $env->{CONFIGURATION};
+  my $resultsDir    = $env->{RESULTS_DIR};
   $resultsDir .="/$compiler";
   my $cmp           = "$resultsDir/CMPE002P";
   my $expName;
@@ -192,29 +157,28 @@ EOF
 
 sub writeModelErcFile {
     my $env = shift;
-    my $modelerc = $ENV{MODELERC};
-    my $commandString = "rm $modelerc\n";
-
+    my $modelerc = $env->{MODELERC};
+    my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
+    $commandString .= "rm $modelerc\n";
+    
     while (my ($var, $value) = each(%$env) ) {
-	$commandString .= "echo $var=$value >> $modelerc\n";
+        $commandString .= "echo $var=$value >> $modelerc\n";
     }
-    $commandString .= "mkdir -p $env{DECKS_REPOSITORY} $env{CMRUNDIR} $env{SAVEDISK} $env{EXECDIR} \n";
+    $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
     return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
-sub cvsCheckout {
-#    my $what = shift;
+sub gitCheckout {
   my $env = shift;
 
   my $scratchDirectory = $env -> {SCRATCH_DIRECTORY};
-  my $cvsroot          = $env -> {CVSROOT};
+  my $gitroot          = $env -> {GITROOT};
 
   my $commandString = <<EOF;
 (pushd $scratchDirectory
-cvs -d $cvsroot co modelE
+/usr/local/other/git/1.7.3.4_GNU/bin/git clone $gitroot
 popd)
 EOF
-
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
