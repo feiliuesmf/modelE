@@ -99,9 +99,9 @@ sub runConfiguration {
     
     my $MODELERC = $env->{MODELERC};
 
-    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make setup_nocomp RUN=$expName $flags;";
-    my $run1dy = "../editRundeck $rundeck 46 2 0; make setup_nocomp RUN=$expName $flags;";
-    my $restart = "mv $rundeck/fort.2.nc $rundeck/fort.1.nc ; cd $expName; ./$expName -r ";
+    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make setup_nocomp RUN=$expName $flags";
+    my $run1dy = "../editRundeck $rundeck 46 2 0; make setup_nocomp RUN=$expName $flags";
+    my $restart = "cd $expName; mv fort.2.nc fort.1.nc ; cd $expName; ./$expName -r ";
 
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes -r ";}
 
@@ -284,7 +284,7 @@ sub checkConsistency {
 			    $results{ARE_CONSISTENT} = 0; #failure
 			}
 			else {
-			    if ($(duration eq "restart") {
+			    if ($duration eq "restart") {
 				$results->{MESSAGES} .= "   FAILURE - Serial restart is not consistent.\n";
 				$results->{RESTART_CHECK} = 0;
 			    }
