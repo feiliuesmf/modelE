@@ -1740,6 +1740,7 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
+      use TRDIAG_COM, only: MMR_to_VMR
 #endif
       USE MDIAG_COM, only : lname_strlen
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
@@ -3217,6 +3218,42 @@ C**** get model level
             end if
           end do
         end select
+
+!=========== any tracer 3d output at the model levels ==========
+! tracer name should have the prefix "t", to avoid confusion with
+! pre-existing diagnostics which are in many cases in different
+! units. 
+#ifdef TRACERS_ON
+        polefix=.true.
+        do n=1,ntm
+          if ('t'//trim(trname(n)) == namedd(k)) then
+            do l=1,LmaxSUBDD
+              kunit=kunit+1
+              do j=J_0,J_1
+                do i=I_0,imaxj(j)
+                  datar8(i,j)=trm(i,j,l,n)*MMR_to_VMR(n)/
+     *                 (am(l,i,j)*axyp(i,j))
+                end do
+              end do
+              LmaxSUBDD_array(:,:,l)=datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+            if (MMR_to_VMR(n) == 1.d0) then
+              units_of_data = 'mass mixing ratio'
+            else
+              units_of_data = 'volume mixing ratio'
+            endif
+            long_name = trim(trname(n))//' tracer'
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix
+     &           ,units_of_data,long_name=long_name,positive='up')
+#endif
+            exit
+          end if
+        end do
+#endif
+!===========
 
 C**** Additional diags - multiple records per file
         select case (namedd(k))
