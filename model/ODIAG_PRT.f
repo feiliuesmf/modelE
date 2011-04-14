@@ -1896,7 +1896,7 @@ C****
             toijl_out(:,j,l,kk) = toijl_out(:,j,l,kk)/dxypo(j)
           enddo; enddo
         endif
-        if(to_per_mil(n) .and. n.ne.n_Water) then
+        if(to_per_mil(n)>0 .and. n.ne.n_Water) then
           toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/trw0(n)
      &         -toijl_loc(:,:,:,TOIJL_conc,n_water))
         endif
