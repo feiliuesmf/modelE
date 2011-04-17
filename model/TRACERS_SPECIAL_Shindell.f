@@ -85,8 +85,7 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_model,PRS_ch4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_ncep,sum_ncep
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: HRA_ch4
-      integer, dimension(nra_ncep)           :: iday_ncep, i0_ncep,
-     &                                          first_ncep
+      integer, dimension(nra_ncep) :: iday_ncep=0,i0_ncep=0,first_ncep=1
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: iHch4,iDch4,i0ch4,
      &                                          first_mod
       real*8, allocatable, dimension(:,:,:) ::  PTBA,PTBA1,PTBA2
@@ -158,6 +157,22 @@
       allocate( PTBA1(I_0H:I_1H,J_0H:J_1H,nncep) )
       allocate( PTBA2(I_0H:I_1H,J_0H:J_1H,nncep) )
       allocate( add_wet_src(I_0H:I_1H,J_0H:J_1H) )
+
+      first_mod(:,:,:) = 1  
+      iHch4(:,:,:) = 0
+      iDch4(:,:,:) = 0
+      i0ch4(:,:,:) = 0   
+      day_ncep(:,:,:,:) =  0.d0
+      DRA_ch4(:,:,:,:) =  0.d0 
+      avg_model(:,:,:) = 0.d0 
+      PRS_ch4(:,:,:) = 0.d0
+      avg_ncep(:,:,:) = 0.d0
+      sum_ncep(:,:,:) = 0.d0
+      HRA_ch4(:,:,:,:) = 0.d0
+      PTBA(:,:,:) = 0.d0
+      PTBA1(:,:,:) = 0.d0
+      PTBA2(:,:,:) = 0.d0
+      add_wet_src(:,:) = 0.d0
 #endif      
       
       return
@@ -1299,17 +1314,17 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 ! Otherwise calculate the magnitude adjustments (not at poles or
 ! over water (/ice?) though. And not until the first averaging
 ! period is through (first_mod criterion):
-      do m=1,nra_ncep
-        loop_j: do j=J_0S,J_1S ! skipping poles
-          loop_i: do i=I_0,imaxj(j)
-            add_wet_src(i,j)=0.d0
-            if(fearth(i,j) <= 0.) cycle loop_i
-            if(first_mod(i,j,m)/=1.and.sfc_src(i,j,n,ns_wet)/=0.)
+      loop_j: do j=J_0S,J_1S ! skipping poles
+        loop_i: do i=I_0,imaxj(j)
+          add_wet_src(i,j)=0.d0
+          if(fearth(i,j)<= 0. .or.sfc_src(i,j,n,ns_wet)==0.)cycle loop_i
+          do m=1,nra_ncep
+            if(first_mod(i,j,m)/=1)
      &      add_wet_src(i,j) = add_wet_src(i,j) + PTBA(i,j,m+nra_ncep)*
      &      (avg_model(i,j,m) - avg_ncep(i,j,m))
-          end do loop_i
-        end do loop_j
-      end do
+          end do
+        end do loop_i
+      end do loop_j
 
 ! Now, determine the distribution (spatial) adjustments:
       if(int_wet_dist > 0)then ! if option is on
