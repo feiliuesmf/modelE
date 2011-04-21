@@ -39,11 +39,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var BCBt_src    BC Biomass source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:) :: BCBt_src !(im,jm)
 !@var OCI_src    OC Industrial source (kg/s/box)
-#ifdef TRACERS_OM_SP
-      INTEGER, PARAMETER :: nomsrc  = 8
-#else
       INTEGER, PARAMETER :: nomsrc = 1
-#endif
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCI_src !(im,jm,nomsrc)
 #ifndef TRACERS_AEROSOLS_SOA
 !@var OCT_src    OC Terpene source (kg/s/box)
@@ -980,18 +976,6 @@ C**** initialise source arrays
           tr3Dsource(:,j_0:j_1,:,1,n_OCII)=0. ! OCII sink
           tr3Dsource(:,j_0:j_1,:,1,n_OCIA)=0. ! OCIA source
         end if
-        if (n_OCI1.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,2,n_OCI1)=0. ! OCI1 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA1)=0. ! OCA1 source
-        end if
-        if (n_OCI2.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,2,n_OCI2)=0. ! OCI2 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA2)=0. ! OCA2 source
-        end if
-        if (n_OCI3.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_OCI3)=0. ! OCI3 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA3)=0. ! OCA3 source
-        end if
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C Coupled mode: use on-line radical concentrations
@@ -1107,15 +1091,6 @@ c    Aging of industrial carbonaceous aerosols
           tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
           tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
 
-        case ('OCI1')
-          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
-          tr3Dsource(i,j,l,1,n_OCA1)=ociage*trm(i,j,l,n)
-        case ('OCI2')
-          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
-          tr3Dsource(i,j,l,1,n_OCA2)=ociage*trm(i,j,l,n)
-        case ('OCI3')
-          tr3Dsource(i,j,l,2,n)=-ociage*trm(i,j,l,n)
-          tr3Dsource(i,j,l,1,n_OCA3)=ociage*trm(i,j,l,n)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA

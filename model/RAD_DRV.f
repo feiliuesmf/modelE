@@ -340,17 +340,6 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_BC2_1 ,n_N_BC3_1,
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
 #endif
-#ifdef TRACERS_OM_SP
-      if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
-        FS8OPX = (/1d0, 1d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
-        FT8OPX = (/1d0, 1d0, 1d0, 0d0, 1d0, 1d0, 1.3d0, 1d0/)
-      end if
-      NTRACE=1
-      TRRDRY(1:NTRACE)=(/ .3d0/)
-      NTRIX(1:NTRACE)=
-     *     (/n_OCA4/)
-      WTTR(1:NTRACE) = 1d0
-#endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
 #ifdef SULF_ONLY_AEROSOLS
@@ -1117,7 +1106,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
-     *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
+     *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
      *     ,tr_mm,n_NH4,n_NO3p
 #endif
@@ -1765,8 +1754,7 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1791,11 +1779,6 @@ C**** more than one tracer is lumped together for radiation purposes
 #endif /* TRACERS_TERP */
      &                 )*BYAXYP(I,J)
 #endif /* TRACERS_AEROSOLS_SOA */
-          case ("OCA4")
-           TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
-     *          trm(i,j,l,n_OCI2)+trm(i,j,l,n_OCA2)+
-     *          trm(i,j,l,n_OCI3)+trm(i,j,l,n_OCA3)+
-     *          trm(i,j,l,n_OCA4))*BYAXYP(I,J)
           case ("BCIA")
            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
@@ -1950,8 +1933,7 @@ C**** or not.
       O3natLref(:)=O3JREF_native(:,I,J)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
@@ -2218,7 +2200,7 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)    || (defined TRACERS_AMP)
+    (defined TRACERS_AMP)
 
 #ifdef TRACERS_AMP
       NTRACE = nmodes
@@ -2757,8 +2739,7 @@ C**** AERRF diags if required
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes (for aerosols)

@@ -162,8 +162,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       if(n.eq.n_Pb210) k_Pb210 = k
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
@@ -178,7 +177,7 @@ C****
       ia_tajl(k) = ia_jlq(kk)
       jtpow = ntm_power(n)+jlq_power(kk)
       tajl(:,:,k) = tajln(:,:,kk,n)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch)
       jtpow = jtpow+13
 #else
       denom_tajl(k) = k_dpa

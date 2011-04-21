@@ -77,8 +77,7 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
