@@ -597,6 +597,7 @@ C**** Replicate polar boxes
       if (hasNorthPole(agrid)) then
         RSI(2:aIM,aJM)=RSI(1,aJM)
         MSI(2:aIM,aJM)=MSI(1,aJM)
+        SNOWI(2:aIM,aJM)=SNOWI(1,aJM)
         DMUA(2:aIM,aJM,2) = DMUA(1,aJM,2)
         DMVA(2:aIM,aJM,2) = DMVA(1,aJM,2)
       end if
