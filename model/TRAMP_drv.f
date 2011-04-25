@@ -99,7 +99,7 @@ c for the hourly diagnostic
 #endif
       USE DIAG_COM, only: adiurn=>adiurn_loc,ndiuvar,iwrite,jwrite,itwrite,ndiupt,idd_diam
      *                    ,ijdd, idd_ccn, idd_cdnc, idd_lwp, idd_numb, idd_mass, idd_so2,
-     *                     idd_lwc, idd_ncL
+     *                     idd_lwc, idd_ncL, idd_pres
      *     ,hdiurn=>hdiurn_loc
 #endif
       IMPLICIT NONE
@@ -121,7 +121,7 @@ C**** functions
 c for the hourly diagnostic
       REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR  = nmodes + nmodes + 38 +  2
-      INTEGER, PARAMETER :: NLOC_DIU_VARL = 4 * LM
+      INTEGER, PARAMETER :: NLOC_DIU_VARL = 5
       INTEGER :: idxd(NLOC_DIU_VAR),idxl(NLOC_DIU_VARL) 
       INTEGER :: ih, ihm, kr,ii
       REAL*8 :: HD_NUMB(nmodes) 
@@ -171,7 +171,7 @@ c conversion trm [kg/kg] -> [ug /m^3]
 #ifdef  TRACERS_SPECIAL_Shindell
       GAS(2) = trm(i,j,l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
 #else
-      GAS(2) = off_HNO3(i,j,l)*1.d9 * 1.292 !   [ug HNO3/m^3]
+      GAS(2) = off_HNO3(i,j,l)*1.d9 /AVOL !   [ug HNO3/m^3]
 #endif
 c conversion trm [kg/gb] -> [ug /m^3]
       GAS(3) = trm(i,j,l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
@@ -309,11 +309,9 @@ c - N_SSA, N_SSC, M_SSA_SU
 
 #ifndef NO_HDIURN
 c     Hourly Station Diagnostic -------------------------------------------------------------------------------
-
-      idxd=(/(idd_diam+i-1,i=1,nmodes), (idd_numb+i-1,i=1,nmodes), (idd_mass+i-1, i=1,38),
+      idxd=(/(idd_diam+ii-1,ii=1,nmodes),(idd_numb+ii-1,ii=1,nmodes),(idd_mass+ii-1,ii=1,38),
      *        idd_so2, idd_lwp /)
-      idxl=(/ (idd_ncL+i-1,i=1,LM),  (idd_ccn+i-1,i=1,LM), (idd_cdnc+i-1,i=1,LM),
-     *        (idd_lwc+i-1,i=1,LM) /)
+      idxl=(/ (idd_ncL+l-1),  (idd_ccn+l-1), (idd_cdnc+l-1),(idd_lwc+l-1),(idd_pres+l-1)/)
       ih=jhour+1
       ihm=ih+(jdate-1)*24
 
@@ -379,6 +377,8 @@ c profile
             tmp(idd_cdnc+L-1)  =  0.d0
 #endif    
             tmp(idd_lwc+L-1)   =  DIURN_LWC(i,j,l)         ! kg/kg(air)
+            tmp(idd_pres+L-1)  =  pres         ! hPa
+
          
             ADIURN(idxl(:),kr,ih) =ADIURN(idxl(:),kr,ih)+tmp(idxl(:))
             HDIURN(idxl(:),kr,ihm)=HDIURN(idxl(:),kr,ihm)+tmp(idxl(:))
