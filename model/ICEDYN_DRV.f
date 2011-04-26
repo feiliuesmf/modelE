@@ -36,7 +36,10 @@ C**** atmospheric grid
 
 C**** Ice advection grid, same as atmospheric grid (CS or latlon)
 C**** dimensions IMIC = IM, JMIC = JM
-      TYPE(DIST_GRID) :: grid_MIC
+! hack ! Made grid_MIC a pointer as a work-around for gfortran 4.6 bug.
+! Make sure that you don''t modify it inside ICEDYN* or you will break
+! the atmospheric grid.
+      TYPE(DIST_GRID), pointer :: grid_MIC
 
 C**** variables used in advection (on ICE grid)
 !@var RSIX,RSIY first order moments for seaice concentration
@@ -127,7 +130,7 @@ C**** Ice dynamics diagnostics
       INTEGER :: I_1H_MIC, I_0H_MIC
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
-      TYPE(DIST_GRID) :: grid_atm
+      TYPE(DIST_GRID), target :: grid_atm
 
       If (init) Then
          Return ! Only invoke once
@@ -158,7 +161,7 @@ C**** Allocate arrays defined on the ice rheology grid
 
 
 C**** Allocate ice advection arrays defined on the atmospheric grid
-      grid_MIC=grid_atm
+      grid_MIC=>grid_atm
 
       CALL GET(grid_MIC, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
      &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
