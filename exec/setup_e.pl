@@ -366,7 +366,7 @@ print <<`EOC`;
     echo "INPUT not yet completed" >> run_status
     ./"$runID"ln
 EOC
-exec "$debugger ./$runID.exe; rm -f AIC GIC OIC; ./${runID}uln; rm -f lock";
+exec "export NP=$nproc; $run_command $debugger ./$runID.exe; rm -f AIC GIC OIC; ./${runID}uln; rm -f lock";
 }
 
 ## If on some machines MPI can't be used interactively, a hack
