@@ -572,7 +572,7 @@ C**** Get solar variability coefficient from namelist if it exits
           call set_trglac(n, 1.d+0)
 #endif
 #ifdef TRACERS_SPECIAL_O18
-          call set_iso_index(n, 1  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 1 ! indexing for isotopic fractionation calcs
 #endif
 
 #ifdef TRACERS_ON
@@ -580,10 +580,10 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('H2O18')
       n_H2O18 = n
           call set_ntm_power(n, -7)
-          call set_tr_mm(n, 20.)
+          call set_tr_mm(n, 20d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 2  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 2 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
           call set_trsi0(n, fracls(n)*trw0(n))
@@ -596,10 +596,10 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('HDO')
       n_HDO = n
           call set_ntm_power(n, -8)
-          call set_tr_mm(n, 19.)
+          call set_tr_mm(n, 19d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 3  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 3 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
           call set_trsi0(n, fracls(n)*trw0(n))
@@ -612,27 +612,27 @@ C**** Get solar variability coefficient from namelist if it exits
       case ('HTO')
       n_HTO = n
           call set_ntm_power(n, -18)
-          call set_tr_mm(n, 20.)
+          call set_tr_mm(n, 20d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 4  ) ! indexing for isotopic fractionation calcs
-          call set_trw0(n, 0. !2.22d-18   ) ! SMOW mass ratio of water molecules
-          call set_trli0(n, 0.)
-          call set_trsi0(n, 0.)
-          call set_tr_H2ObyCH4(n, 0.)
+          iso_index(n) = 4 ! indexing for isotopic fractionation calcs
+          call set_trw0(n, 0d0) !2.22d-18   ) ! SMOW mass ratio of water molecules
+          call set_trli0(n, 0d0)
+          call set_trsi0(n, 0d0)
+          call set_tr_H2ObyCH4(n, 0d0)
           call set_trdecay(n,  1.77d-9)      ! =5.59d-2 /yr
           call set_ntrocn(n, -18)
 #ifdef TRACERS_OCEAN
-          call set_trglac(n, 0.)
+          call set_trglac(n, 0d0)
 #endif
 
       case ('H2O17')
       n_H2O17 = n
           call set_ntm_power(n, -7)
-          call set_tr_mm(n, 19.)
+          call set_tr_mm(n, 19d0)
           call set_needtrs(n,  .true.)
           call set_tr_wd_type(n, nwater)
-          call set_iso_index(n, 5  ) ! indexing for isotopic fractionation calcs
+          iso_index(n) = 5 ! indexing for isotopic fractionation calcs
           call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
           call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
           call set_trsi0(n, fracls(n)*trw0(n))

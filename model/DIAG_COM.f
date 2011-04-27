@@ -214,7 +214,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER, PARAMETER, public :: NDIUVAR=62
 #else
-      INTEGER, PARAMETER, public :: NDIUVAR=56
+      INTEGER, PARAMETER, public :: NDIUVAR=60
 #endif
 #endif
 #endif
@@ -912,8 +912,8 @@ c     names for npbl layers dust diagnostics
 c     names for npbl-1 layers dust diagnostics
      &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
-     *     ,idd_diam, idd_aot, idd_lwp, idd_ccn, idd_cdnc
-     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL
+     *     ,idd_diam, idd_aot, idd_aot2, idd_lwp, idd_ccn, idd_cdnc
+     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL, idd_pres
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff

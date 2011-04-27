@@ -201,8 +201,8 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
         EACCPDA = -LHM*ACCPDA ; EACCPDG = -LHM*ACCPDG ! J/year
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-        TRACCPDA(:) = trglac(:)*ACCPDA ! kg/year
-        TRACCPDG(:) = trglac(:)*ACCPDG ! kg/year
+        TRACCPDA(:) = trglac()*ACCPDA ! kg/year
+        TRACCPDG(:) = trglac()*ACCPDG ! kg/year
 #endif
 #endif /* TNL: inserted */
 

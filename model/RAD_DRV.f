@@ -1059,6 +1059,7 @@ C     OUTPUT DATA
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb, idd_aot
+     *     ,idd_aot2
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_wcldwt,jl_icldwt
@@ -1243,8 +1244,11 @@ C
       REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
-
+#ifdef TRACERS_AMP
+      INTEGER, PARAMETER :: NLOC_DIU_VARb = 5
+#else
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
+#endif
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
@@ -1271,8 +1275,11 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
+#ifdef TRACERS_AMP
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot, idd_aot2 /)
+#else
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
-
+#endif
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -2304,24 +2311,6 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
         END IF
       end do
 
-      DO KR=1,NDIUPT
-        IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-          TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE)) !*OPNSKY
-          DO INCH=1,NRAD
-            IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-            IH=IHM
-            IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-            ADIURN(idd_aot,KR,IH)=ADIURN(idd_aot,KR,IH)+TMP(idd_aot)
-#ifndef NO_HDIURN
-            IHM = IHM+(JDATE-1)*HR_IN_DAY
-            IF(IHM.LE.HR_IN_MONTH) THEN
-              HDIURN(idd_aot,KR,IHM)=HDIURN(idd_aot,KR,IHM)+TMP(idd_aot)
-            ENDIF
-#endif
-          ENDDO
-        ENDIF
-      ENDDO
-
 #endif
 
 #ifdef TRACERS_ON
@@ -2614,6 +2603,10 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+#ifdef TRACERS_AMP
+              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
+              TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:NTRACE))!*OPNSKY
+#endif
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
               TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
