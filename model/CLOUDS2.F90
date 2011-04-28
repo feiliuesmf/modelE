@@ -1330,7 +1330,7 @@ contains
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_OCEAN
               case('OCocean')
-                DSGL(L,22)=tm_cdnc(l,n)
+                DSGL(L,22)=tm_cdnc(n)
                 DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
               end select
