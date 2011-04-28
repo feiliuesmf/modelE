@@ -64,11 +64,8 @@ c******************************************************************
 !@sum  Initialization for Nudging - called once at beginning of run
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-<<<<<<< HEAD
-      USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast, grid
-=======
-      USE DOMAIN_DECOMP_1D, only: am_i_root, esmf_bcast, grid
->>>>>>> 8976a659d3728b779e2d445c612b89e31795667f
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
