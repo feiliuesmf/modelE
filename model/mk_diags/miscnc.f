@@ -6,7 +6,7 @@
       include 'netcdf.inc'
       integer :: status,ivarid,ovarid,nvars,vtype,v4size,
      &     vsize_input
-      character(len=30) :: vname
+      character(len=80) :: vname
       real*4, dimension(:), allocatable :: v4
       status = nf_inq_nvars(ofid,nvars)
       do ovarid=1,nvars

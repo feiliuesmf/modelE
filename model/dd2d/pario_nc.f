@@ -1081,12 +1081,16 @@ c
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
       integer :: rc
-      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      if(grid%am_i_globalroot) then
+        allocate(arrgij(grid%npx,grid%npy))
+      else
+        allocate(arrgij(1,1))
+      endif
       call pack_data(grid,arr,arrgij)
       if(grid%am_i_globalroot) then
         rc = nf_put_var_double(fid,vid,arrgij)
-        deallocate(arrgij)
       endif
+      deallocate(arrgij)
       return
       end subroutine par_write_ij
       subroutine par_write_ijx(grid,fid,vid,arr,jdim)
@@ -1095,7 +1099,11 @@ c
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
       integer :: rc,k,srt(3),cnt(3)
-      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      if(grid%am_i_globalroot) then
+        allocate(arrgij(grid%npx,grid%npy))
+      else
+        allocate(arrgij(1,1))
+      endif
       srt(1:2) = 1; cnt(1:3) = (/ grid%npx, grid%npy, 1 /)
       do k=1,size(arr,3)
         call pack_data(grid,arr(:,:,k),arrgij)
@@ -1103,7 +1111,7 @@ c
         if(grid%am_i_globalroot)
      &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgij)
       enddo
-      if(grid%am_i_globalroot) deallocate(arrgij)
+      deallocate(arrgij)
       return
       end subroutine par_write_ijx
       subroutine par_write_ijxx(grid,fid,vid,arr,jdim)
@@ -1116,7 +1124,11 @@ c
         call par_write_xijx(grid,fid,vid,arr,jdim)
         return
       endif
-      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      if(grid%am_i_globalroot) then
+        allocate(arrgij(grid%npx,grid%npy))
+      else
+        allocate(arrgij(1,1))
+      endif
       srt(1:2) = 1; cnt(1:4) = (/ grid%npx, grid%npy, 1, 1 /)
       do l=1,size(arr,4)
       srt(4) = l
@@ -1127,7 +1139,7 @@ c
      &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgij)
       enddo
       enddo
-      if(grid%am_i_globalroot) deallocate(arrgij)
+      deallocate(arrgij)
       return
       end subroutine par_write_ijxx
       subroutine par_write_ijxxx(grid,fid,vid,arr,jdim)
@@ -1136,7 +1148,11 @@ c
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
       integer :: rc,k,l,m,srt(5),cnt(5)
-      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      if(grid%am_i_globalroot) then
+        allocate(arrgij(grid%npx,grid%npy))
+      else
+        allocate(arrgij(1,1))
+      endif
       srt(1:2) = 1; cnt(1:5) = (/ grid%npx, grid%npy, 1, 1, 1 /)
       do m=1,size(arr,5)
       srt(5) = m
@@ -1150,7 +1166,7 @@ c
       enddo
       enddo
       enddo
-      if(grid%am_i_globalroot) deallocate(arrgij)
+      deallocate(arrgij)
       return
       end subroutine par_write_ijxxx
       subroutine par_write_xijx(grid,fid,vid,arr,jdim)
@@ -1159,8 +1175,11 @@ c
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgxij(:,:,:)
       integer :: rc,k,srt(4),cnt(4)
-      if(grid%am_i_globalroot)
-     &     allocate(arrgxij(size(arr,1),grid%npx,grid%npy))
+      if(grid%am_i_globalroot) then
+        allocate(arrgxij(size(arr,1),grid%npx,grid%npy))
+      else
+        allocate(arrgxij(1,1,1))
+      endif
       srt(1:3) = 1; cnt(1:4) = (/ size(arr,1), grid%npx, grid%npy, 1 /)
       do k=1,size(arr,4)
         call pack_data(grid,arr(:,:,:,k),arrgxij,jdim=3)
@@ -1168,7 +1187,7 @@ c
         if(grid%am_i_globalroot)
      &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgxij)
       enddo
-      if(grid%am_i_globalroot) deallocate(arrgxij)
+      deallocate(arrgxij)
       return
       end subroutine par_write_xijx
 #endif /* not SERIAL_MODE */
