@@ -8957,7 +8957,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) */
 
             nread=ntsurfsrc(n) ! default
-            print*,'KOSTAS ',trname(n),ntsurfsrc(n)
             select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
             case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
      &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
