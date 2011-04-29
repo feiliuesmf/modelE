@@ -5,7 +5,7 @@
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1
       USE MODEL_COM
-      USE ATM_COM, only : p,wm
+      USE ATM_COM, only : p,wm,nstepscm
       USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -29,6 +29,8 @@
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
+      USE ATM_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : t,p,q
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
@@ -550,6 +552,10 @@ C****
       end subroutine INPUT_atm
 
       subroutine alloc_drv_atm()
+#ifdef SCM
+      USE ATM_COM, only : I_TARG,J_TARG
+      use Dictionary_mod, only : sync_param
+#endif
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
@@ -748,6 +754,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       USE FV_INTERFACE_MOD, only: Finalize
 #endif
 #ifdef SCM
+      USE FILEMANAGER, only : closeunit
       USE SCMCOM , only : iu_scm_prt,iu_scm_diag
 #endif
       implicit none

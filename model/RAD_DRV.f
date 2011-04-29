@@ -964,6 +964,9 @@ C**** Add water to relevant tracers as well
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
+#ifdef SCM
+      USE ATM_COM, only : I_TARG,J_TARG
+#endif
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE RESOLUTION, only : pmtop

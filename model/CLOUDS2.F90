@@ -18,7 +18,7 @@ module CLOUDS
   use DYNAMICS, only : sig,sige
 #endif
 #ifdef SCM
-  use MODEL_COM, only: I_TARG,J_TARG
+  use ATM_COM, only: I_TARG,J_TARG
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
        SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &

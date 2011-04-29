@@ -11,7 +11,7 @@ subroutine CONDSE
   use ATM_COM, only : p,u,v,t,q,wm
   use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
 #ifdef SCM
-  use MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
+  use ATM_COM, only : NSTEPSCM, I_TARG,J_TARG
 #endif
   use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM

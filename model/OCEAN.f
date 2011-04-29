@@ -140,9 +140,9 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@auth Original Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : GRID,GLOBALSUM,AM_I_ROOT
 #ifdef SCM
+      USE ATM_COM, only : I_TARG,J_TARG
 c     for SCM cases using provided surface temps - do not overwrite 
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-      USE MODEL_COM, only : I_TARG,J_TARG
 #endif 
       USE GEOM, ONLY : lat2d
       IMPLICIT NONE
@@ -966,7 +966,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp
@@ -1064,7 +1064,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean,jday,dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp

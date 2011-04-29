@@ -8,7 +8,8 @@
 !@auth Tom Clune (SIVO)
 !
       use GEOM, only: DXYP, AREAG
-      use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get
+      use DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only: GLOBALSUM, get
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       REAL*8 :: totalEnergy
 
@@ -29,8 +30,7 @@
       SUBROUTINE DISSIP
 !@sum DISSIP adds in dissipated KE (m^2/s^2) as heat locally
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : t
-      USE DYNAMICS, only : dke,kea,pk
+      USE ATM_COM, only : dke,kea,t,pk
       IMPLICIT NONE
 
       return
@@ -41,7 +41,8 @@ C***** Add in dissipiated KE as heat locally
       subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
 !@sum  addEnergyAsLocalHeat Dummy
 !@auth Tom Clune (SIVO)
-      use DOMAIN_DECOMP_1D, only: grid, get
+      use DOMAIN_DECOMP_ATM, only: grid
+      use DOMAIN_DECOMP_1D, only: get
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)
       real*8 :: T(:,grid%j_strt_halo:,:)

@@ -23,7 +23,7 @@
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE ATM_COM, only : t,q,u,v
 #ifdef SCM
-     &                      ,I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
 #endif
       USE GEOM, only : sinlat2d
       USE ATM_COM, only : pmid,pk,pedn,pek
@@ -408,7 +408,7 @@ c -------------------------------------------------------------
       USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
-      USE ATM_COM, only : p,t,q
+      USE ATM_COM, only : u,v,p,t,q
       USE GEOM, only : imaxj,sinlat2d
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
