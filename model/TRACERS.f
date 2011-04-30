@@ -2143,7 +2143,8 @@ c daily_z is currently only needed for CS
       use TRACER_COM, only : ntsurfsrcmax,trname,
      & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
      & tr_sect_name, sect_name
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel,
+     &                             am_i_root
       USE FILEMANAGER, only: openunit,closeunit
       use Dictionary_mod, only : sync_param
       Use OldTracer_mod, only: set_ntsurfsrc
@@ -2167,14 +2168,15 @@ c daily_z is currently only needed for CS
 ! been reached.
 
       nsrc=0
-      print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
+      if (am_i_root()) 
+     &  print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
       loop_n: do n=1,ntsurfsrcmax
         if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
         else ; write(fnum,'(I2)')n ; endif
         fname=trim(trname(nt))//'_'//fnum
-        print*,'name: ', trim(fname)
+        if (am_i_root()) print*,'name: ', trim(fname)
         inquire(file=trim(fname),exist=qexist)
-        print*,'name: ', trim(fname), qexist
+        if (am_i_root()) print*,'name: ', trim(fname), qexist
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
@@ -2230,7 +2232,7 @@ c daily_z is currently only needed for CS
         call stop_model(trim(out_line),255)
       endif
 
-      print*,__LINE__,__FILE__,' nt = ', nt, nsrc
+      if (am_i_root()) print*,__LINE__,__FILE__,' nt = ', nt, nsrc
       call set_ntsurfsrc(nt, nsrc)
 
       end subroutine num_srf_sources
