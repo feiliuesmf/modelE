@@ -758,8 +758,9 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       USE SCMCOM , only : iu_scm_prt,iu_scm_diag
 #endif
       implicit none
+      integer :: kdisk_restart
 #ifdef USE_FVCORE
-         call Finalize(fvstate, kdisk)
+         call Finalize(fvstate, kdisk_restart)
 #endif
 
 C**** CLOSE SUBDAILY OUTPUT FILES
