@@ -18,13 +18,16 @@ c
       character(len=30), dimension(:), allocatable :: sname_acc
       character(len=30) :: vname
       real*4, dimension(:), allocatable :: xout,xden
+      real*4, dimension(:), allocatable ::
+     &     accarr,accarr_hemis,accarr_vmean
       real*4, dimension(:,:,:,:,:), allocatable :: xcs
       real*4, dimension(:,:,:,:), allocatable :: xll
       real*4, dimension(:), allocatable :: xout_hemis,xden_hemis
       real*4, dimension(:), allocatable :: xout_vmean,xden_vmean
       integer :: idacc(12)
       integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim
-      integer, dimension(7) :: srt,cnt,accsizes,dimids,hemi_sizes
+      integer, dimension(7) :: srt,cnt,dimids,
+     &     accsizes,hemi_sizes,vmean_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
       integer :: fid,status,ofid,accid,varid,accid_hemis,
      &     jdimid,accid_vmean,nvars
@@ -109,7 +112,10 @@ c Calculate the size of one input array
 c
       arrsize = product(cnt(1:ndims))
       arrsize_out = arrsize
-
+#ifdef HIMEM
+      allocate(accarr(arrsize*kacc))
+      status = nf_get_var_real(fid,accid,accarr)
+#endif
 c
 c Setup some regridding info
 c
@@ -165,6 +171,10 @@ c
         cnt_hemis(sdim) = 1
         arrsize = product(cnt_hemis(1:ndimsh))
         allocate(xout_hemis(arrsize),xden_hemis(arrsize))
+#ifdef HIMEM
+        allocate(accarr_hemis(arrsize*kacc))
+        status = nf_get_var_real(fid,accid_hemis,accarr_hemis)
+#endif
       endif
 
 c
@@ -172,11 +182,16 @@ c Setup for vertical means (currently only for jl-type arrays).
 c
       do_vmean = do_vmean .and. jdim.eq.1
       if(do_vmean) then
+        vmean_sizes(1:3) = (/ accsizes(1)+3, 1, kacc /)
         allocate(xout_vmean(accsizes(1)+3),
      &           xden_vmean(accsizes(1)+3))
         cnt_vmean(:) = cnt(:)
         cnt_vmean(1) = accsizes(1)+3
         cnt_vmean(2) = 1
+#ifdef HIMEM
+        allocate(accarr_vmean(cnt_vmean(1)*kacc))
+        status = nf_get_var_real(fid,accid_vmean,accarr_vmean)
+#endif
       endif
 
 c
@@ -239,24 +254,40 @@ c scale this field
 c
         srt(sdim) = k
         if(remap_output) then ! accumulation needs regridding first
+#ifdef HIMEM
+          call get_slice_real(accarr,ndims,accsizes,sdim,k,xcs)
+#else
           status = nf_get_vara_real(fid,accid,srt,cnt,xcs)
+#endif
           order = 1
           status = nf_get_att_int(ofid,varid,'regrid_order',order)
           call regrid_4d(xcs,xll,nl,nk,order)
           xout = reshape(xll,shape(xout))
         else
+#ifdef HIMEM
+          call get_slice_real(accarr,ndims,accsizes,sdim,k,xout)
+#else
           status = nf_get_vara_real(fid,accid,srt,cnt,xout)
+#endif
         endif
         xout = xout*scale_acc(k)/idacc(ia_acc(k))
         kd = denom_acc(k)
         if(kd.gt.0) then
           srt(sdim) = kd
           if(remap_output) then
+#ifdef HIMEM
+            call get_slice_real(accarr,ndims,accsizes,sdim,kd,xcs)
+#else
             status = nf_get_vara_real(fid,accid,srt,cnt,xcs)
+#endif
             call regrid_4d(xcs,xll,nl,nk,order)
             xden = reshape(xll,shape(xden))
           else
+#ifdef HIMEM
+            call get_slice_real(accarr,ndims,accsizes,sdim,kd,xden)
+#else
             status = nf_get_vara_real(fid,accid,srt,cnt,xden)
+#endif
           endif
           where(xden.ne.0.)
             xout = xout*idacc(ia_acc(kd))/xden
@@ -276,13 +307,23 @@ c scale/write the hemispheric/global means of this field if present
 c
         if(do_hemis) then
           srt(sdim) = k
+#ifdef HIMEM
+          call get_slice_real(accarr_hemis,ndimsh,
+     &         hemi_sizes,sdim,k,xout_hemis)
+#else
           status = nf_get_vara_real(fid,accid_hemis,srt,cnt_hemis,
      &         xout_hemis)
+#endif
           xout_hemis = xout_hemis*scale_acc(k)/idacc(ia_acc(k))
           if(kd.gt.0) then
             srt(sdim) = kd
+#ifdef HIMEM
+            call get_slice_real(accarr_hemis,ndimsh,
+     &           hemi_sizes,sdim,kd,xden_hemis)
+#else
             status = nf_get_vara_real(fid,accid_hemis,srt,cnt_hemis,
      &           xden_hemis)
+#endif
             where(xden_hemis.ne.0.)
               xout_hemis = xout_hemis*idacc(ia_acc(kd))/xden_hemis
             elsewhere
@@ -298,13 +339,23 @@ c scale/write the vertical means of this field if present
 c
         if(do_vmean) then
           srt(sdim) = k
+#ifdef HIMEM
+          call get_slice_real(accarr_vmean,3,
+     &         vmean_sizes,sdim,k,xout_vmean)
+#else
           status = nf_get_vara_real(fid,accid_vmean,srt,cnt_vmean,
      &         xout_vmean)
+#endif
           xout_vmean = xout_vmean*scale_acc(k)/idacc(ia_acc(k))
           if(kd.gt.0) then
             srt(sdim) = kd
+#ifdef HIMEM
+            call get_slice_real(accarr_vmean,3,
+     &           vmean_sizes,sdim,kd,xden_vmean)
+#else
             status = nf_get_vara_real(fid,accid_vmean,srt,cnt_vmean,
      &           xden_vmean)
+#endif
             where(xden_vmean.ne.0.)
               xout_vmean = xout_vmean*idacc(ia_acc(kd))/xden_vmean
             elsewhere
@@ -325,6 +376,11 @@ c
       deallocate(ia_acc,denom_acc,scale_acc)
       deallocate(sname_acc)
       deallocate(xout,xden)
+#ifdef HIMEM
+      deallocate(accarr)
+      if(allocated(accarr_hemis)) deallocate(accarr_hemis)
+      if(allocated(accarr_vmean)) deallocate(accarr_vmean)
+#endif
 
       if(allocated(xout_hemis)) deallocate(xout_hemis)
       if(allocated(xden_hemis)) deallocate(xden_hemis)
@@ -398,7 +454,29 @@ c Fow now, using the ncgen utility to parse the metadata
       enddo
       close(10)
       deallocate(cdl)
-      call system('ncgen -b '//trim(cdlfile))
+      call system('ncgen -b -x '//trim(cdlfile))
       call system('rm -f '//trim(cdlfile))
       return
       end subroutine parse_cdl
+
+#ifdef HIMEM
+      subroutine get_slice_real(arr,nd,dsizes,sd,s,arrout)
+      implicit none
+      real :: arr,arrout
+      integer :: nd,dsizes(7),sd,s
+      integer :: nl,nk
+      nl = 1; nk = 1
+      if(sd.gt.1) nl = product(dsizes(1:min(nd,sd-1)))
+      if(sd.lt.nd) nk = product(dsizes(sd+1:nd))
+      call copy_slice_real(arr,nl,dsizes(sd),nk,s,arrout)
+      return
+      end subroutine get_slice_real
+
+      subroutine copy_slice_real(arr,nl,ns,nk,s,arrout)
+      implicit none
+      integer :: nl,ns,nk,s
+      real :: arr(nl,ns,nk),arrout(nl,nk)
+      arrout(1:nl,1:nk) = arr(1:nl,s,1:nk)
+      return
+      end subroutine copy_slice_real
+#endif /* HIMEM */
