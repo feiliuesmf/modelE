@@ -59,7 +59,7 @@ ESMF_Interface shared dd2d
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS2007_144X90N_nocasp
@@ -78,8 +78,8 @@ GHG=GHG.Mar2004.txt
 TOP_INDEX=top_index_144x90_a.ij.ext
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
-SCMSRF=scm_sgpcont_0001_surface.dat
-SCMLAY=scm_sgpcont_0001_layer.dat
+SCMSRF=SCM.TWPUPD.surface.dat   
+SCMLAY=SCM.TWPUPD.layer.dat
 
 Label and Namelist:
 SCMSGPCONT (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn;
