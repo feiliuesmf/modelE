@@ -3,6 +3,7 @@ ifneq (${MPIDIR},)
 FFLAGS += -I${MPIDIR}/include
 F90FLAGS += -I${MPIDIR}/include
 LIBS += -L${MPIDIR}/lib
+CPPFLAGS += -I${MPIDIR}/include
 endif
 
 # try to work around memory leak
