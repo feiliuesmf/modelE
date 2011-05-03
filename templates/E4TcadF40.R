@@ -82,7 +82,6 @@ dd2d
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
-OPTS_dd2d = NC_IO=PNETCDF             /* Parallel NETCDF */
 
 Data input files:
 #include "IC_144x90_input_files_nc"

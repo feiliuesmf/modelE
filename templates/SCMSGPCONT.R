@@ -78,8 +78,8 @@ GHG=GHG.Mar2004.txt
 TOP_INDEX=top_index_144x90_a.ij.ext
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
-SCMSRF=SCM.TWPUPD.surface.dat   
-SCMLAY=SCM.TWPUPD.layer.dat
+SCMSRF=scm_sgpcont_0001_surface.dat
+SCMLAY=scm_sgpcont_0001_layer.dat
 
 Label and Namelist:
 SCMSGPCONT (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn;

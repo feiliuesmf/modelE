@@ -52,7 +52,6 @@ tracers Ent
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
-OPTS_dd2d = NC_IO=PNETCDF             /* Parallel NETCDF */
 
 Data input files:
 AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
