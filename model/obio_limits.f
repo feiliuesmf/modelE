@@ -19,6 +19,8 @@
 
       implicit none
  
+      real trminima(11)
+      real trmaxima(11)
       data trminima/0.,0.,0.,0.,0.,0.,0.,0.,0.,0.2,1913./
       data trmaxima/40.,0.6,108.,3.5,3.,0.6,0.4,0.3,0.8,16.3,2400./
 
@@ -27,8 +29,6 @@
       integer nt,ineg1,jneg1,ipos1,jpos1
       integer kneg1,kpos1
       real tracer_min,tracer_max
-      real trminima(11)
-      real trmaxima(11)
       character name*(*)
 
       do nt=1,ntrcr
