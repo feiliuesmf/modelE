@@ -102,6 +102,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
       END MODULE DYNAMICS
 
 
+#ifndef SCM
       SUBROUTINE ALLOC_DYNAMICS(grid)
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,AM_I_ROOT
       USE RESOLUTION , ONLY : LM
@@ -178,6 +179,7 @@ C**** Calculate default vertical arrays (including rad. eq. layers)
       PIT(:,:) = 0.d0
 
       END SUBROUTINE ALLOC_DYNAMICS
+#endif
 
       SUBROUTINE CALC_VERT_AMP(P0,LMAX,PL,AM,PDSIG,PEDN,PMID)
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays

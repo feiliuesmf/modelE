@@ -13,12 +13,12 @@ C-------------------------------------------------------------------------------
      &                  AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
      &                  iu_scm_prt    
-      USE RESOLUTION , only : LM
-      USE MODEL_COM , only : P,T,Q,U,V,LS1,SIG,PTOP,PSF,
-     &                I_TARG,J_TARG,NSTEPSCM        
-     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+      USE RESOLUTION , only : LM, ls1, ptop,psf
+      USE DYNAMICS , only : SIG
+      USE ATM_COM , only : P,T,Q,U,V,I_TARG,J_TARG,NSTEPSCM        
+      use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
-      USE LAKES_COM, only : FLAKE
+      USE LAKES_COM, only : FLAKE 
       USE CONSTANT , only : KAPA,TF   
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
       USE FLUXES, only : GTEMP,GTEMPR 
@@ -441,7 +441,7 @@ c     enddo
 
       SUBROUTINE pass_scm_surface
         
-      USE MODEL_COM, only : NSTEPSCM    
+      USE ATM_COM, only : NSTEPSCM    
       USE SCMCOM
       IMPLICIT NONE
 
@@ -691,8 +691,9 @@ C     to SCM sigma levels
 
       SUBROUTINE pass_scm_layers 
 c         
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only  : NSTEPSCM, LS1,SIG,PTOP,PSF 
+      USE RESOLUTION, only: LM, ls1, ptop, psf
+      USE DYNAMICS,   only: SIG
+      USE ATM_COM,    only: NSTEPSCM
       USE SCMCOM
 
 
@@ -759,16 +760,16 @@ c     enddo
  
       subroutine pass_SCMDATA
 
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only  : NSTEPSCM,LS1,SIG,P,T,Q,U,V,I_TARG,J_TARG,
-     &                        PTOP,PSF 
-     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+      USE RESOLUTION , only : LM, ls1, ptop, psf
+      USE DYNAMICS , only : SIG
+      USE ATM_COM , only : P,T,Q,U,V,PK,
+     &                I_TARG,J_TARG,NSTEPSCM        
+      use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
       USE FLUXES, only : GTEMP,GTEMPR
       USE CONSTANT, only : tf,KAPA 
-      USE DYNAMICS, only : PK
       USE SCMCOM
 C     
 C
@@ -877,8 +878,8 @@ C     pressure
 C
       SUBROUTINE arm_to_sig(parm)
 
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only : LS1,PTOP,PSF,SIG,SIGE
+      USE RESOLUTION , only : LM,LS1,PTOP,PSF
+      USE DYNAMICS, only : SIG,SIGE
       USE SCMCOM  
       USE CONSTANT , only : grav
 C

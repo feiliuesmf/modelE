@@ -5,7 +5,6 @@
 !@auth Original Development Team
       IMPLICIT NONE
       SAVE
-
       CHARACTER*132 XLABEL !@var XLABEL=runID+brief description of run
       INTEGER :: LRUNID    !@var Run name stored in XLABEL(1:LRUNID)
       INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers

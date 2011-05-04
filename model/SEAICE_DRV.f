@@ -1400,7 +1400,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt, SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj

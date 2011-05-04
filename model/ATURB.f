@@ -19,7 +19,7 @@
       USE MODEL_COM, only : itime
       USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
+      use atm_com, only : NSTEPSCM, I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt
 #endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms

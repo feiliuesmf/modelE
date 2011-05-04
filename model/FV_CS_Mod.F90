@@ -24,9 +24,10 @@ module FV_CS_Mod
   contains
 
 !-----------------------------------------------------------------------------
-  subroutine setupForESMF(fv, vm, grid, cf, config_file)
+  subroutine setupForESMF(fv, grid, cf, config_file)
 !-------------------------------------------------------------------------------
-    use DOMAIN_DECOMP_ATM, only : AM_I_ROOT
+    use dist_grid_mod,     only: vm=>modelE_vm 
+    use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef CUBED_SPHERE
     use fvdycorecubed_gridcomp, only: SetServices
 #else
@@ -34,7 +35,6 @@ module FV_CS_Mod
 #endif
 
     Type(FV_CORE), intent(inout) :: fv
-    type (ESMF_vm),   intent(in) :: vm
     type (ESMF_grid), intent(inout) :: grid      ! fv grid
     type (ESMF_config), intent(inout) :: cf      ! config object
     character(len=*),  intent(in) :: config_file ! filename for resource file
@@ -82,12 +82,9 @@ module FV_CS_Mod
     !---------------------------------------------------------------------------
     Subroutine write_layout(fname, fv, hydrostatic)
     !---------------------------------------------------------------------------
-      use dist_grid_mod, only: grid, axisIndex, getAxisIndex
-#ifdef CUBED_SPHERE
+      use domain_decomp_atm, only: grid
+      use dist_grid_mod,     only: axisIndex, getAxisIndex
       Use MAPL_IOMod, only: GETFILE, Free_file
-#else
-      Use GEOS_IOMod, only: GETFILE, Free_file
-#endif
       USE RESOLUTION, only: IM, JM, LM, LS1
       Use MODEL_COM,  only: DT=>DTsrc
       character(len=*), intent(in) :: fname

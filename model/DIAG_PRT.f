@@ -1889,7 +1889,6 @@ C****
      *  ' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY')
       END SUBROUTINE DIAGJK
 
-
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
@@ -3270,7 +3269,6 @@ c**** find hemispheric and global means
       return
       end subroutine ij_avg
 
-
       SUBROUTINE DIAGIJ
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
@@ -3549,7 +3547,6 @@ C****
      *  'Dif:',F7.2,' Days')
       END SUBROUTINE DIAGIJ
 
-
       subroutine maptxt (smap,smapj,gm,irange,title,line,kcol,nlines)
 !@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
@@ -3787,7 +3784,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       return
       end subroutine set_ijout
 
-
       SUBROUTINE DIAGCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
@@ -3911,7 +3907,6 @@ C****
   906 FORMAT ('0AREA (10**10 m^2)',14X,2F9.1,1X,13I6)
   907 FORMAT ('0')
       END SUBROUTINE DIAGCP
-
 
       SUBROUTINE DIAG5P
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
@@ -4077,7 +4072,6 @@ C****
   907 FORMAT ('0TOTL',I6,I5,I6,I8,4I6,I8,I6,I7,2I6,I7,I6,I7,2I6,I8,I6)
   909 FORMAT (/'0TPE',I18,I32,I14,I7,I12,2I13,I20)
       END SUBROUTINE DIAG5P
-
 
       SUBROUTINE DIAGDD
 !@sum  DIAGDD prints out diurnal cycle diagnostics

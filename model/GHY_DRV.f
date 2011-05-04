@@ -1,3 +1,4 @@
+
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_ON
@@ -869,7 +870,7 @@ c****
      *     ,jday,jhour,nday,itime
      &     ,Jyear,Jmon,Jday,Jdate,Jhour
 #ifdef SCM
-      use model_com, only : I_TARG,J_TARG,NSTEPSCM
+      use atm_com, only : NSTEPSCM, I_TARG,J_TARG
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt,
      &                    ATSKIN
       use SCMDIAG, only : EVPFLX,SHFLX
@@ -1662,7 +1663,7 @@ c***********************************************************************
       use fluxes, only : nisurf
       use model_com, only : dtsrc,jdate,jday,jhour,nday,itime
 #ifdef SCM
-      use model_com, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       use SCMDIAG, only : EVPFLX,SHFLX
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
 #endif
@@ -2081,7 +2082,7 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
       use fluxes, only : focean
 #ifdef SCM
-      use model_com, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
@@ -2278,8 +2279,8 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
       use model_com, only : itime
+      use atm_com, only : I_TARG,J_TARG
 #ifdef SCM
-      use model_com, only : I_TARG,J_TARG
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       use atm_com, only : pedn
@@ -4956,7 +4957,7 @@ c**** Also reset snow fraction for albedo computation
       use model_com, only : itime
 #endif
 #ifdef SCM
-      use MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       use FLUXES, only : gtemp,gtempr

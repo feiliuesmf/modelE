@@ -63,7 +63,9 @@
 !@sum DYNSI simple coding to estimate ice-ocean friction velocity
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
-      USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
+      USE MODEL_COM, only : kocean,dtsrc
       USE DOMAIN_DECOMP_ATM, only : grid, get
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0

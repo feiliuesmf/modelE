@@ -413,7 +413,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE MODEL_COM, only : dtsrc,jday
       USE ATM_COM, only : zatmo
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
@@ -915,7 +915,7 @@ C****
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
 #ifdef SCM
-      Use MODEL_COM, Only: I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
 #ifdef TRACERS_WATER
@@ -1628,7 +1628,7 @@ C****
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE RESOLUTION, only : im
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
@@ -2019,7 +2019,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -2275,7 +2275,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
