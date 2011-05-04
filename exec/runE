@@ -5,9 +5,10 @@ OPTS=
 if [ -f $HOME/.modelErc ] ; then . $HOME/.modelErc; fi
 
 if [ $# -le 0 ] ; then
-    echo "Usage: runE [-q] RUNID [max_#_of_processors_to_be_used (default:1)]"
+    echo "Usage: runE RUNID [-np number_of_cpus] [-cold-restart]"
     echo "Restart the run RUNID"
-    echo "Use '-q' if you don't want to save the printout (.PRT file)."
+    echo "-cold-restart will re-initialize the model as specified"
+    echo "by ISTART= line in the rundeck"
     exit 1; fi
 
 ## The first argument is RunID
@@ -24,6 +25,7 @@ if [ ! -d $CMRUNDIR/$RUNID ] ; then
 if [ -f $CMRUNDIR/$RUNID/lock ] ; then
     echo "            **********************                "
     echo "$RUNID seems to be already running in $CMRUNDIR/$RUNID"
+    echo
     echo "If you think it is an error, then most probably this"
     echo "task was interrupted in an unusual way. Please check."
     echo "Then remove the lock file:"

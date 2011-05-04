@@ -226,7 +226,7 @@ exe: $(RUN)/$(RUN) gcm
 	@echo done
 
 setup-run: setup
-	$(RUN_COMMAND) $(RUN) -cold-restart -np $(NPES)
+	$(RUN_COMMAND) $(RUN) -cold-restart -np $(NPES) &
 
 newstart:
 	@if [ "$(RUN)" = "" ]; then \
