@@ -2,7 +2,14 @@
 ## simple script to run the model
 
 OPTS=
-if [ -f $HOME/.modelErc ] ; then . $HOME/.modelErc; fi
+
+if [ "$MODELERC"x = x ] ; then MODELERC=$HOME/.modelErc ; fi
+if [ -f $MODELERC ] ; then
+    . $MODELERC
+else
+    echo config file not found : $MODELERC
+    exit 1
+fi
 
 if [ $# -le 0 ] ; then
     echo "Usage: runE RUNID [-np number_of_cpus] [-cold-restart]"
