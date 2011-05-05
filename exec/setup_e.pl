@@ -387,7 +387,7 @@ print RUNID <<EOF;
     ./${runID}ln
     $mpi_start
     if [ \$debug -eq 1 ] ; then
-      $run_command \$DEDUG_COMMAND ./${runID}.exe
+      $run_command \$DEBUG_COMMAND ./${runID}.exe
     else
       $run_command ./${runID}.exe -i ./\$IFILE \$opts > \$PRTFILE
     fi
