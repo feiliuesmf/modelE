@@ -71,9 +71,7 @@ c
 c
 C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
-#ifdef CUBED_SPHERE
-      fix the ydgrd= line
-#endif
+      USE GEOM, only: lat2d_dg
       USE MODEL_COM, only: Itime,month=>JMON
       USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
      &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
@@ -111,7 +109,7 @@ c  1000 mb are assumed to extend down to the actual P(nslon,nslat).
       pstd(52) = 0.d0
 
 c  Select appropriate monthly and latitudinal profiles:
-      ydgrd=-(90.d0-(real(nslat)*90.d0/(real(JM)/2.d0)))!lat in degrees
+      ydgrd=lat2d_dg(nslon,nslat)
       m = max(1,min(12,month))
       l = max(1,min(18,(int(ydgrd)+99)/10))
 
@@ -354,6 +352,7 @@ C------ Calculate remaining J-values with T-dep X-sections
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE RESOLUTION, only  : JM
+      USE GEOM, only: lat2d_dg
       USE MODEL_COM, only: month=>JMON 
       USE TRCHEM_Shindell_COM, only: SZA,NBFASTJ,MXFASTJ,DMFASTJ2,TJ2,
      &             masfac,dlogp2,oref2,tref2,DO32,AER2,PFASTJ2,ZFASTJ2
@@ -408,7 +407,7 @@ C---Print out atmosphere:
 C---Print out climatology:
       if(NFASTJq > 2) then
         climat(:)=0.d0
-        ydgrd=-(90.d0-(real(nslat)*90.d0/(real(JM)/2.d0)))!lat degrees
+        ydgrd=lat2d_dg(nslon,nslat)
         m = max(1,min(12,month))
         l = max(1,min(18,(int(ydgrd)+99)/10))
         write(out_line,*) 'Specified Climatology'
