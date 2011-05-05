@@ -83,6 +83,7 @@ c$$$      USE MODEL_COM, only: clock
 
 C**** Command line options
       CHARACTER*32 :: ifile
+      logical :: coldRestart=.false.
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
       real*8 :: tloopbegin, tloopend
@@ -115,7 +116,7 @@ C**** Command line options
 C****
 C**** Processing command line options
 C****
-      call read_options( ifile )
+      call read_options( coldRestart, ifile )
 C****
 C**** Reading rundeck (I-file) options
 C****
@@ -192,9 +193,9 @@ c        print *,sname,'Before:im,jm        = ',im,jm
 
 C**** Read input/ic files
 #ifdef USE_FVCORE
-      CALL INPUT (istart,ifile,clock)
+      CALL INPUT (istart,ifile,coldRestart,clock)
 #else
-      CALL INPUT (istart,ifile)
+      CALL INPUT (istart,ifile,coldRestart)
 #endif
 
 #if !defined(ADIABATIC) || defined( CUBED_SPHERE)
@@ -1133,9 +1134,9 @@ C****
       end subroutine init_Model
 
 #ifdef USE_FVCORE
-      SUBROUTINE INPUT (istart,ifile,clock)
+      SUBROUTINE INPUT (istart,ifile,coldRestart,clock)
 #else
-      SUBROUTINE INPUT (istart,ifile)
+      SUBROUTINE INPUT (istart,ifile,coldRestart)
 #endif
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
@@ -1223,6 +1224,7 @@ cddd      USE ENT_DRV, only : init_module_ent
 cddd#endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
+      logical, intent(in) :: coldRestart
 !@var iu_AIC,iu_TOPO unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
@@ -1258,6 +1260,11 @@ cddd#endif
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
+     *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
+C****    List of parameters that are disregarded at restarts
+     *     ,        HOURI,DATEI,MONTHI,YEARI
+      NAMELIST/INPUTZ_cold/ ISTART,IRANDI
      *     ,IWRITE,JWRITE,ITWRITE,QCHECK,QDIAG,KDIAG,QDIAG_RATIOS
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
@@ -1388,6 +1395,7 @@ C****
       enddo
 
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
+      if (coldRestart) READ (iu_IFILE,NML=INPUTZ_cold,ERR=900)
       call closeunit(iu_IFILE)
 
 C**** Get those parameters which are needed in this subroutine
@@ -2414,12 +2422,13 @@ C**** check tracers
       END SUBROUTINE CHECKT
 
 
-      subroutine read_options( ifile )
+      subroutine read_options( coldRestart, ifile )
 !@sum reads options from the command line (for now only one option)
 !@auth I. Aleinov
 !@ver 1.0
       implicit none
       character(*),intent(inout)  :: ifile
+      logical, intent(inout) :: coldRestart
       character*80 arg,arg1
 
       do
@@ -2429,6 +2438,8 @@ C**** check tracers
         case ("-i")
           call nextarg( arg1, 0 )
           ifile=arg1
+        case ("-cold-restart")
+          coldRestart = .true.
         ! new options can be included here
         case default
           print *,'Unknown option specified: ', arg
