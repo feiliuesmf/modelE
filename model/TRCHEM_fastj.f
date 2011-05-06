@@ -181,6 +181,7 @@
  
 !**** GLOBAL parameters and variables:
       use model_com, only: jm, month=>jmon
+      USE GEOM, only: lat2d_dg
       use trchem_sHINDELL_com, only: o3_fastj,cboltz,dlogp,o3j,tj,dbc,
      &                   oref,tref,bref,do3,dmfastj,ncfastj,pfastj
  
@@ -198,7 +199,7 @@
       real*8              :: tmp1,tmp2,ydgrd,tmpfra
  
       pstd(1) = 1000.d0
-      ydgrd = -(90.-(float(nslat)*90./(float(JM)/2.))) !lat in degrees
+      ydgrd=lat2d_dg(nslon,nslat)
       do i=2,51
         pstd(i) = pstd(i-1)*dlogp
       enddo
