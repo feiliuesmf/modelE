@@ -373,10 +373,13 @@ print RUNID <<EOF;
       esac
     done
     umask $umask_str
-    if [ `head -1 run_status` -eq 13 ] ; then
+    rc=99
+    if [ -s run_status ] ; then rc=`head -1 run_status` ; fi
+    if [ \$rc -eq 13 ] ; then
       if [ `find run_status -newer I` ] ; then
         echo 'run seems to have finished'
-      exit 1; fi; fi
+        exit 1; fi
+    fi
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
