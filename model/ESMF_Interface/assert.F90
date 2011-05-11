@@ -1,5 +1,7 @@
 Subroutine assert_(line, fname, msg)
+#ifdef USE_ESMF
   Use ESMF_MOD, only: ESMF_Finalize
+#endif
   Implicit None
   Integer,          Intent(In) :: line
   Character(Len=*), Intent(In) :: fname
@@ -10,6 +12,10 @@ Subroutine assert_(line, fname, msg)
   Write(*,*) msg
 #ifdef USE_ESMF
   Call ESMF_Finalize(rc=status)
+#else
+#ifdef USE_MPI
+  call MPI_Finalize(status)
+#endif
 #endif
   Stop
 

@@ -356,9 +356,10 @@ C**** No need to save current value
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
      &     natmtrcons,nocntrcons 
-      USE DIAG_COM, only: jeq,inc=>incj,xwon,kdiag,qdiag,acc_period
-     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only: jeq,inc=>incj,xwon,kdiag,qdiag
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -563,8 +564,9 @@ C****
       USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
-      USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
+      USE DIAG_COM, only: linect,plm,qdiag,lm_req,ia_dga,ajl
      *     ,jl_dpa,jl_dpasrc,jl_dwasrc,fim
+      USE MDIAG_COM, only: acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       USE ATM_COM, only : pednl00,pdsigl00
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
@@ -685,15 +687,14 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end if
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#ifdef TRACERS_AEROSOLS_Koch
       jtpow = ntm_power(n)+jlq_power(k)+13
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
@@ -1049,7 +1050,8 @@ C****
       USE MODEL_COM, only: jdate,jdate0,amon,amon0,jyear,jyear0,xlabel
       USE DYNAMICS, only : dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
-      USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
+      USE DIAG_COM, only: qdiag,inc=>incj,linect,jmby2,lm_req
+      USE MDIAG_COM, only: acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       USE TRDIAG_COM, only : pdsigjl
       IMPLICIT NONE
@@ -1217,6 +1219,8 @@ C****
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       USE CONSTANT, only : teeny
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       integer, parameter :: ktmax = ktaij*ntm+ktaijs
@@ -1575,9 +1579,11 @@ C****
 #endif
       USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
       USE CONSTANT, only : teeny
-      USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml,ir_m45_130,
+      USE DIAG_COM, only : ijkgridc,ctr_ml,ir_m45_130,
      *                     kdiag,ir_log2,ia_src,wt_ij,
-     *                     qdiag,lname_strlen,sname_strlen,units_strlen
+     *                     qdiag
+      USE MDIAG_COM, only: acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE ATM_COM, only : pmidl00
       use filemanager
       IMPLICIT NONE
@@ -1825,7 +1831,8 @@ C****
       USE TRACER_COM
       USE DIAG_COM
       USE DIAG_SERIAL, only : IJ_avg
-
+      USE MDIAG_COM, only:
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap,aij1,aij2

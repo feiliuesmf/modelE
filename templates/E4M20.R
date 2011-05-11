@@ -15,39 +15,25 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
+     ! resolution-specific source codes
 RES_M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
-MODELE                              ! Main and model overhead
-ALLOC_DRV                           ! allocate global distributed arrays
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
-ATM_UTILS                           ! utilities for some atmospheric quantities
-QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV ! + component giss_LSM: land surface and soils
-VEG_DRV                             ! vegetation
-! VEG_COM VEGETATION                ! old vegetation
-ENT_DRV  ENT_COM   ! + component Ent: new vegetation
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB_E1                            ! turbulence in whole atmosphere
-LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-OCEAN OCNML                         ! ocean modules
-! SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-POUT                                ! post-processing output
+
+IO_DRV                              ! new i/o
+
+    ! GISS dynamics
+ATMDYN MOMEN2ND                     ! atmospheric dynamics
+QUS_DRV TQUS_DRV                    ! advection of Q/tracers
+
+#include "latlon_source_files"
+#include "modelE4_source_files"
+#include "static_ocn_source_files"
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM
+Ent shared ESMF_Interface solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
@@ -59,7 +45,7 @@ Data input files:
 ! AIC=1DECxxxx.rsfEyyyy           ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
+GIC=GIC.E046D3M20A.1DEC1955.ext.nc ! initial conditions (ground)
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 ! For q-flux ocean, replace lines above by the next 2 lines & set KOCEAN=1, ISTART=8

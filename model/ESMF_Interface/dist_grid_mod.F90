@@ -1,3 +1,4 @@
+
 #include "rundeck_opts.h"
 #ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
@@ -11,32 +12,26 @@
 #define USE_DD2D_UTILS
 #endif
 
+#ifdef CUBED_SPHERE
+#define USE_DD2D_UTILS
+#undef CUBED_SPHERE
+#endif
+
 MODULE dist_grid_mod
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
 !@auth NCCS ASTG
 
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
+! NOTE: USE_ESMF and USE_MPI are #defined from the "make" command line
+! using options ESMF=YES and MPI=YES respectively. When ESMF=YES, MPI=YES
+! is also implied. However MPI=YES excludes ESMF.
 
 #ifdef USE_ESMF
    use ESMF_Mod
-   use MpiSupport_mod, only: createDecompMpiType
-   use ESMF_CUSTOM_mod, only: ESMF_AxisIndex, ESMF_GridGetAxisIndex
 #endif
    use MpiSupport_mod, only: am_i_root
    use Domain_mod
    use Hidden_mod
-
-
-! retaining for now, but disabling, the MPP+FVCUBED coding in this file
-#undef USE_MPP
-
-#ifdef CUBED_SPHERE
-#define USE_DD2D_UTILS
-#undef CUBED_SPHERE
-#endif
 
 #ifdef USE_DD2D_UTILS
    use dd2d_utils, only : dist_grid,init_dist_grid
@@ -49,16 +44,6 @@ MODULE dist_grid_mod
 #endif
    SAVE
    PRIVATE ! Except for
-
-!aoo since DIST_GRID is public ESMF_GRID has to be public
-!aoo (SGI compiler complains)
-   PUBLIC :: ESMF_GRID
-
-#ifdef USE_ESMF
-   public :: load_cap_config
-   TYPE(ESMF_GridComp)  :: compmodelE
-#endif
-
 
 !@var DIST_GRID derived type to provide ESMF decomposition info
 !@+   public components are used to minimize overhead for accessing
@@ -110,40 +95,20 @@ MODULE dist_grid_mod
 !        MODULE PROCEDURE SUMXPE_5D
    END INTERFACE
 
-#ifndef USE_ESMF
-      ! Place holders for the real things
-   TYPE ESMF_DELayout
-      Integer :: i
-   END TYPE ESMF_DELayout
-   TYPE ESMF_GridComp
-      Integer :: i
-   END TYPE ESMF_GridComp
-   TYPE ESMF_GRID
-      Integer :: i
-   END TYPE ESMF_GRID
-   INTEGER, PARAMETER :: ESMF_MAXSTR = 40
-   INTEGER, PARAMETER :: ESMF_KIND_R8 = Selected_Real_Kind(15)
-#endif
-
-   type (ESMF_DELayout) :: ESMF_LAYOUT
-   public :: ESMF_LAYOUT
-   public :: amRootESMF
-
-
-!@var ESMF_BCAST Generic routine to broadcast data to all PEs.
-   PUBLIC :: ESMF_BCAST
-   INTERFACE ESMF_BCAST
-      MODULE PROCEDURE ESMF_BCAST_0D
-      MODULE PROCEDURE ESMF_BCAST_1D
-      MODULE PROCEDURE ESMF_BCAST_2D
-      MODULE PROCEDURE ESMF_BCAST_3D
-      MODULE PROCEDURE ESMF_BCAST_4D
-      MODULE PROCEDURE ESMF_IBCAST_0D
-      MODULE PROCEDURE ESMF_IBCAST_0D_WORLD
-      MODULE PROCEDURE ESMF_IBCAST_1D
-      MODULE PROCEDURE ESMF_IBCAST_2D
-      MODULE PROCEDURE ESMF_IBCAST_3D
-      MODULE PROCEDURE ESMF_IBCAST_4D
+!@var broadcast Generic routine to broadcast data to all PEs.
+   PUBLIC :: broadcast
+   INTERFACE broadcast
+      MODULE PROCEDURE broadcast_0D
+      MODULE PROCEDURE broadcast_1D
+      MODULE PROCEDURE broadcast_2D
+      MODULE PROCEDURE broadcast_3D
+      MODULE PROCEDURE broadcast_4D
+      MODULE PROCEDURE ibroadcast_0D
+      MODULE PROCEDURE ibroadcast_0D_world
+      MODULE PROCEDURE ibroadcast_1D
+      MODULE PROCEDURE ibroadcast_2D
+      MODULE PROCEDURE ibroadcast_3D
+      MODULE PROCEDURE ibroadcast_4D
    END INTERFACE
 
 !@var BAND_PACK Procedure in which each PE receives data from other PEs
@@ -156,7 +121,6 @@ MODULE dist_grid_mod
 !@var BAND_PACK_TYPE a data structure needed by BAND_PACK, initialized
 !@var via INIT_BAND_PACK_TYPE
    type band_pack_type
-!        integer :: im_world
       integer :: j_strt,j_stop
       integer :: j_strt_halo,j_stop_halo
       integer :: jband_strt,jband_stop
@@ -187,15 +151,15 @@ MODULE dist_grid_mod
    INTEGER, PARAMETER :: HALO_WIDTH = 1
    integer ::  root
 
-
 #ifndef USE_DD2D_UTILS
       ! Local grid information
    TYPE DIST_GRID
 
       type (Hidden_type) :: private
-!!$$        type (Domain_type) :: localSubdomain
-
+#ifdef USE_ESMF
       TYPE (ESMF_Grid) :: ESMF_GRID
+#endif
+      INTEGER :: NPES_USED
       ! Parameters for Global domain
       INTEGER :: IM_WORLD        ! Number of Longitudes
       INTEGER :: JM_WORLD        ! Number of latitudes
@@ -246,17 +210,11 @@ MODULE dist_grid_mod
    ! temporary public during refactoring
    public :: isPeriodic
    public :: my_pet, npes_world
-#ifdef USE_ESMF
-   public :: esmf_grid_my_pe_loc
-   public :: esmf_grid_pe_layout
-#endif
    public :: am_i_root
-
    ! Direction bits
    public :: NORTH, SOUTH
    Integer, Parameter :: NORTH = 2**0
    Integer, Parameter :: SOUTH = 2**1
-
    public :: getMpiCommunicator
    public :: getNumProcesses
    public :: getNumAllProcesses
@@ -264,12 +222,40 @@ MODULE dist_grid_mod
    public :: incrementMpiTag
    public :: hasSouthPole
    public :: hasNorthPole
-   public :: hasPeriodicBC
-   
-   public :: ESMF_DELayout
-   public :: ESMF_MAXSTR
-
+   public :: hasPeriodicBC  
    public :: getLogUnit
+
+#ifdef USE_ESMF
+   public :: load_cap_config
+   Public :: modelE_vm
+   Type (ESMF_VM), Target :: modelE_vm
+#endif
+
+#ifdef USE_MPI
+   type axisIndex
+      sequence  ! sequence forces the data elements 
+                ! to be next to each other in memory 
+      integer :: min
+      integer :: max
+   end type axisIndex
+   Public :: axisIndex 
+   Public :: getAxisIndex
+   interface getAxisIndex
+#ifdef USE_ESMF
+      module procedure getESMFAxisIndex
+#endif
+#ifndef USE_ESMF
+      module procedure getMPIAxisIndex
+#endif
+   end interface
+   public :: gridRootPELocation
+   public :: gridPELayout
+#endif
+
+   integer, parameter :: maxStrLen = 40
+   integer, parameter :: kindR8 = Selected_Real_Kind(15)
+   public :: maxStrLen
+   public :: kindR8
 
  CONTAINS
 
@@ -278,57 +264,38 @@ MODULE dist_grid_mod
    ! The initialization should proceed prior to any grid computations.
    subroutine init_app
 ! ----------------------------------------------------------------------
-#ifdef USE_ESMF
-     USE ESMF_CUSTOM_MOD, Only: modelE_vm
-#endif
-     use FILEMANAGER, only: openunit
+     USE FILEMANAGER, ONLY : openunit
      integer :: rc
-     character(len=10) :: fileName
-     character(len=10) :: hostName
-     character(len=80) :: command
-!$    integer :: omp_get_max_threads, omp_get_thread_num
-!$    external omp_get_max_threads
-!$    external omp_get_thread_num
-!$    integer :: numThreads
-     integer :: myUnit
-     NPES_WORLD = 1                  ! default NPES = 1 for serial run
 
+     my_pet = 0        ! default my_pet = root PE for serial run
+     NPES_WORLD = 1    ! default NPES = 1 for serial run
 #ifdef USE_ESMF
      Call ESMF_Initialize(vm=modelE_vm, rc=rc)
      Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES_WORLD, &
     &     rc=rc)
-!$    call omp_set_dynamic(.false.)
-!$    numThreads = omp_get_max_threads()
-!$    call mpi_bcast(numThreads, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
-!$    call omp_set_num_threads(numThreads)
-     if(my_pet == 0) then
-        write(*,*)'Num MPI Processes: ', NPES_WORLD
-!$       write(*,*)'   with ',numThreads, 'threads per process'
-     end if
-!CC why create gridded component if not used?
-     compmodelE  = ESMF_GridCompCreate(name="ModelE ESMF", rc=rc)
-!CC ditto
-     ESMF_Layout = ESMF_DELayoutCreate(modelE_vm, &
-    &     petList = (/ 1, NPES_WORLD /))
+#else
+#ifdef USE_MPI
+   call MPI_INIT(rc)
+   call MPI_COMM_SIZE(MPI_COMM_WORLD, NPES_WORLD, rc)
+   call MPI_COMM_RANK(MPI_COMM_WORLD, my_pet, rc)
 #endif
-
+#endif
+     if (my_pet == 0) write(*,*)'Num MPI Processes: ', NPES_WORLD
      NP_LON   = 1
      RANK_LON = 0
      NP_LAT   = NPES_WORLD
      RANK_LAT = my_pet
- 
+#ifdef DEBUG_DECOMP
+     CHECKSUM_UNIT = my_pet
+     CALL openunit('debug_decomp',CHECKSUM_UNIT)
+#endif
      return
    end subroutine init_app
 
+
 ! ----------------------------------------------------------------------
-#ifdef USE_ESMF
-   subroutine INIT_GRID(distGrid,IM,JM, LM,width,vm,J_SCM,bc_periodic, &
-  &                     CREATE_CAP,npes_max,excess_on_pe0)
-     USE ESMF_CUSTOM_MOD, Only : modelE_vm
-#else
-   SUBROUTINE INIT_GRID(distGrid,IM,JM,LM,width,J_SCM,bc_periodic, &
-  &                     CREATE_CAP,npes_max,excess_on_pe0)
-#endif
+   subroutine INIT_GRID(distGrid, IM, JM, LM, &
+        width, J_SCM, bc_periodic, CREATE_CAP, npes_max, excess_on_pe0)
 ! ----------------------------------------------------------------------
      USE FILEMANAGER, Only : openunit
      IMPLICIT NONE
@@ -341,46 +308,26 @@ MODULE dist_grid_mod
      INTEGER, OPTIONAL, INTENT(IN) :: npes_max
      LOGICAL, OPTIONAL, INTENT(IN) :: excess_on_pe0
      integer, parameter :: numDims=2
-#ifdef USE_ESMF
-     TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm
-#endif
      integer, dimension(numDims) :: grid_size
      integer             :: rc
-     real(ESMF_KIND_R8), dimension(numDims) :: range_min,range_max
-
-     INTEGER :: RANK_LON, RANK_LAT
+     real(kindR8), dimension(numDims) :: range_min,range_max
      INTEGER :: J_EQUATOR
-     INTEGER :: I0_DUM, I1_DUM
-     INTEGER :: J0_DUM, J1_DUM
      INTEGER :: width_
-     INTEGER :: pet
      INTEGER :: NTILES
+     INTEGER :: AIbounds(4)
 #ifdef USE_ESMF
-     TYPE(ESMF_Grid), external :: AppGridCreateF
-     TYPE(ESMF_Config) :: cf
      TYPE(ESMF_VM), Pointer :: vm_
-     Type (ESMF_DELayout)::layout
-     REAL*8 :: deltaZ
-     INTEGER :: L
-     integer, allocatable            :: IMS(:), JMS(:)
 #endif
 #ifdef USE_MPI
-     Type (ESMF_Axisindex), Pointer :: AI(:,:)
+     Type (AxisIndex), Pointer :: AI(:,:)
+     integer, allocatable   :: IMS(:), JMS(:)
 #endif
      INTEGER :: p, pindex
      integer :: npes_used
      integer, dimension(:), allocatable :: pelist
-     integer :: group_world,group_used,ierr
-     integer :: newCommunicator
-     
+     integer :: group_world, group_used, ierr
+     integer :: newCommunicator     
      logical :: useCubedSphere
-     integer :: minIndex(3), maxIndex(3), indexArray(2,3)
-     integer :: lbnd(3) 
-     integer :: ubnd(3) 
-     real(ESMF_KIND_R8), pointer :: xcoord(:)
-     real(ESMF_KIND_R8), pointer :: zcoord(:)
-     real(ESMF_KIND_R8),  pointer :: ycoord(:)
-
 
 #ifdef CUBED_SPHERE
      useCubedSphere = .true.
@@ -390,48 +337,44 @@ MODULE dist_grid_mod
 
      if (useCubedSphere) then
         grid_size = (/IM, JM*6/)
-!!$$        distGrid%localSubdomain = newDomain(IM, 6*JM)
      else
         grid_size = (/IM, JM/)
-!!$$        distGrid%localSubdomain = newDomain(IM, JM)
      end if
 
      range_min(1)=0.;   range_min(2)=-90.
      range_max(1)=360.; range_max(2)=90.
 
-     npes_used = 1
+     distGrid%npes_used = 1
 
-#ifdef USE_ESMF
+     distGrid%IM_WORLD      = IM
+     distGrid%JM_WORLD      = JM
 
+#ifdef USE_MPI
      Allocate(distGrid%dj_map(0:npes_world-1))
-
-     vm_ => modelE_vm
-     If (Present(vm)) vm_ => vm
-
-!CC In the old code but still here: A new layout is created - why?
-
-     layout = ESMF_DELayoutCreate(vm=vm, &
-    &     petList = (/ 1, NPES_WORLD /), rc=rc)
-
-!     call ESMF_DELayoutPrint(layout)
-
     ! Distribute the horizontal dimensions
     !-------------------------------------
-
      allocate(ims(0:0), jms(0:npes_world-1))
-     npes_used = min(npes_world, jm-2) ! jm-2 is latlon-specific
-     if (present(npes_max)) npes_used = min(npes_max, npes_used)
-     jms(0:npes_used-1) = getLatitudeDistribution(jm, npes_used)
-     if(npes_used<npes_world) jms(npes_used:npes_world-1) = 0
+     distGrid%npes_used = min(npes_world, jm-2) ! jm-2 is latlon-specific
+     if (present(npes_max))distGrid% npes_used = min(npes_max, distGrid%npes_used)
+     jms(0:distGrid%npes_used-1) = getLatitudeDistribution(jm, distGrid%npes_used)
+     if(distGrid%npes_used<npes_world) jms(distGrid%npes_used:npes_world-1) = 0
      ims(0) = im
+#ifndef USE_ESMF
+     AIbounds = MPIgridBounds(distGrid)
+#endif
+#else
+     AIbounds(1) = 1
+     AIbounds(2) = IM
+     AIbounds(3) = 1
+     AIbounds(4) = JM
+     if (present(J_SCM)) then
+        AIbounds(3) = J_SCM
+        AIbounds(4) = J_SCM
+     end if
+#endif
 
-!     print *,'ims: ',ims
-!     print *,'jms: ',jms
-!     print *,' npes_world = ',npes_world,' --- npes_used = ',npes_used
-
-     minIndex = (/1,1,1/)
-     maxIndex = (/IM,JM,LM/)
-
+#ifdef USE_ESMF
+     vm_ => modelE_vm
      distGrid%ESMF_GRID = ESMF_GridCreateShapeTile(    &
             name="modelE grid",            &
             countsPerDEDim1=ims,           &
@@ -443,64 +386,33 @@ MODULE dist_grid_mod
             coordDep1 = (/1,2/),           &
             coordDep2 = (/1,2/),           &
             rc=rc)
-
-! Allocate coords at default stagger location
-!    call ESMF_GridAddCoord(distGrid%ESMF_GRID, rc=rc)
-
-!    call ESMF_AttributeSet(distGrid%ESMF_GRID, name='GRID_LM', &
-!         value=LM, rc=rc)
-
-     RANK_LON=0
-     RANK_LAT=my_pet
-     Call ESMF_GRID_BOUNDS(distGrid, RANK_LON, RANK_LAT, &
-    &        I0_DUM, I1_DUM, J0_DUM, J1_DUM)
-     write(*,*)'esmf-bounds',my_pet,I0_DUM, I1_DUM, J0_DUM, J1_DUM
-
-#else
-     RANK_LON = 0
-     RANK_LAT = 0
-     I0_DUM = 1
-     I1_DUM = IM
-     J0_DUM = 1
-     J1_DUM = JM
-
-     if (present(J_SCM)) then
-        J0_DUM = J_SCM
-        J1_DUM = J_SCM
-     end if
+    AIbounds =  ESMFgridBounds(distGrid)
 #endif
 
      width_ = HALO_WIDTH
      If (Present(width)) width_=width
 
-     distGrid%IM_WORLD      = IM
-     distGrid%JM_WORLD      = JM
-
      ! Wrapped ESMF grid
-     distGrid%I_STRT        = I0_DUM
-     distGrid%I_STOP        = I1_DUM
-     distGrid%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
-     distGrid%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
-     distGrid%ni_loc = (RANK_LAT+1)*IM/NPES_used - RANK_LAT*IM/NPES_used
+     distGrid%I_STRT        = AIbounds(1)
+     distGrid%I_STOP        = AIbounds(2)
+     distGrid%I_STRT_HALO   = MAX( 1, AIbounds(1)-width_)
+     distGrid%I_STOP_HALO   = MIN(IM, AIbounds(2)+width_)
+     distGrid%ni_loc = (RANK_LAT+1)*IM/distGrid%NPES_used - RANK_LAT*IM/distGrid%NPES_used
      
-     distGrid%j_strt        = J0_DUM
-     distGrid%J_STOP        = J1_DUM
-#ifdef USE_ESMF
-!CC original code call routine but does not use layout - 
-!it simply call MPI_Barrier
-!     call ESMF_DELayoutBarrier(layout, rc)
-!CC We can replace by the following:
-     call ESMF_VMBarrier(modelE_vm, rc=rc)
+     distGrid%j_strt        = AIbounds(3)
+     distGrid%J_STOP        = AIbounds(4)
+#ifdef USE_MPI
+     call MPI_Barrier(MPI_COMM_WORLD, ierr)
 #endif
-     distGrid%HAVE_DOMAIN   = J0_DUM <= JM
+     distGrid%HAVE_DOMAIN   = AIbounds(3) <= JM
 
-     distGrid%J_STRT_SKP = max (   2, J0_DUM)
-     distGrid%J_STOP_SKP = min (JM-1, J1_DUM)
+     distGrid%J_STRT_SKP = max (   2, AIbounds(3))
+     distGrid%J_STOP_SKP = min (JM-1, AIbounds(4))
 
 #ifdef USE_MPI
-     distGrid%J_STRT_HALO   = J0_DUM - width_
-     distGrid%J_STOP_HALO   = J1_DUM + width_
-     distGrid%private%numProcesses = npes_used
+     distGrid%J_STRT_HALO   = AIbounds(3) - width_
+     distGrid%J_STOP_HALO   = AIbounds(4) + width_
+     distGrid%private%numProcesses = distGrid%npes_used
      distGrid%private%numAllProcesses = npes_world
      distGrid%private%mpi_tag = 10  ! initial value
 
@@ -509,31 +421,29 @@ MODULE dist_grid_mod
 ! avoiding collisions of MPI tag sequences.
 
      call mpi_comm_group(MPI_COMM_WORLD,group_world,ierr)
-     allocate(pelist(0:npes_used-1))
-     do p=0,npes_used-1
+     allocate(pelist(0:distGrid%npes_used-1))
+     do p=0,distGrid%npes_used-1
         pelist(p) = p
      enddo
-     call mpi_group_incl(group_world,npes_used,pelist,group_used,ierr)
+     call mpi_group_incl(group_world,distGrid%npes_used,pelist,group_used,ierr)
      deallocate(pelist)
      call mpi_comm_create(MPI_COMM_WORLD,group_used, newCommunicator, ierr)
      if(.not. distGrid%HAVE_DOMAIN) newCommunicator = MPI_COMM_NULL
      call setMpiCommunicator(distGrid, newCommunicator)
 #else
-     ! I guess we don't need HALO in SCM mode...
-     !distGrid%J_STRT_HALO = MAX(1,  distGrid % J_STRT - 1)
-     !distGrid%J_STOP_HALO = MIN(JM, distGrid % J_STOP + 1)
      distGrid%J_STRT_HALO = MAX(1,  distGrid % J_STRT)
      distGrid%J_STOP_HALO = MIN(JM, distGrid % J_STOP)
 #endif
      
-     distGrid%J_STRT_STGR   = max(2,J0_DUM)
-     distGrid%J_STOP_STGR   = J1_DUM
-     
-     distGrid%private%hasSouthPole = J0_DUM == 1  !(RANK_LAT == 0)
-     distGrid%private%hasNorthPole = J1_DUM == JM .and. J0_DUM <= JM !(RANK_LAT == NP_LAT - 1) &
+     distGrid%J_STRT_STGR   = max(2,AIbounds(3))
+     distGrid%J_STOP_STGR   = AIbounds(4)
+
+     distGrid%private%hasSouthPole = AIbounds(3) == 1 
+     distGrid%private%hasNorthPole = AIbounds(4) == JM .and. AIbounds(3) <= JM
 
      J_EQUATOR = JM/2
-     distGrid%private%hasEquator =  (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
+     distGrid%private%hasEquator =  &
+          ( (AIbounds(3) <= J_EQUATOR) .AND. (AIbounds(4) >= J_EQUATOR))
 
 #ifdef USE_DD2D_UTILS
 ! need to initialize the dd2d version of dist_grid for I/O
@@ -559,22 +469,18 @@ MODULE dist_grid_mod
      distGrid%private%lookup_pet(:) = 0
 
 #ifdef USE_MPI
+     ALLOCATE(AI(0:npes_world-1,3))
+     call getAxisIndex(distGrid, AI)
 
-     Allocate(AI(NPES_WORLD,3))
-     call ESMF_GridGetAxisIndex(distGrid%ESMF_GRID, AI, my_pet)
-
-! original:
      Do p = 1, npes_world
-       distGrid%private%lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
+       distGrid%private%lookup_pet( AI(p-1,2)%min : AI(p-1,2)%max ) = p-1
      end do
-
      Do p = 0, npes_world-1
-       distGrid%dj_map(p) = AI(p+1,2)%max - AI(p+1,2)%min + 1
+       distGrid%dj_map(p) = AI(p,2)%max - AI(p,2)%min + 1
      end do
      distGrid%dj=distGrid%dj_map(my_pet)
-
-     Deallocate(AI)
-
+     
+     deallocate(AI)
 #endif
 
    contains
@@ -699,6 +605,10 @@ MODULE dist_grid_mod
 
 #ifdef USE_ESMF
      CALL ESMF_FINALIZE(rc=rc)
+#else
+#ifdef USE_MPI
+   call MPI_Finalize(rc)
+#endif
 #endif
 
    END SUBROUTINE FINISH_APP
@@ -706,32 +616,74 @@ MODULE dist_grid_mod
 #ifdef USE_ESMF
 
 ! ----------------------------------------------------------------------
-   subroutine ESMF_GRID_BOUNDS(GRID, X_LOC, Y_LOC, I1, IN, J1, JN)
+   function ESMFgridBounds(grid) result(AIbounds)
 ! ----------------------------------------------------------------------
-     type (DIST_Grid), intent(INOUT) :: grid
-     integer, intent(IN)          :: X_LOC, Y_LOC
-     integer, intent(OUT)         :: I1, IN, J1, JN
-     integer :: i
-     integer :: rc
+     type (DIST_Grid), intent(in) :: grid
+     integer :: AIbounds(4)
+     type(AxisIndex), dimension(:,:), pointer :: AI
 
-     type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
+     allocate(AI(0:NPES_WORLD-1,3))
+     call getESMFAxisIndex(grid, AI)
 
-     Allocate(AI(0:NPES_WORLD-1,3))
-     call ESMF_GridGetAxisIndex(grid%ESMF_GRID, AI, my_pet)
+     AIbounds(1) = AI(my_pet,1)%min
+     AIbounds(2) = AI(my_pet,1)%max
+     AIbounds(3) = AI(my_pet,2)%min
+     AIbounds(4) = AI(my_pet,2)%max
 
-     I1 = AI(my_pet,1)%min
-     IN = AI(my_pet,1)%max
-     J1 = AI(my_pet,2)%min
-     JN = AI(my_pet,2)%max
+     deallocate(AI)
 
-     do i=0, npes_world-1
-        grid%dj_map(i)=AI(i,2)%max - AI(i,2)%min + 1
+   end function ESMFgridBounds
+
+! ----------------------------------------------------------------------
+  subroutine getESMFAxisIndex(grid, AI)
+! ----------------------------------------------------------------------
+     type (DIST_Grid), intent(in) :: grid
+     type (AxisIndex) :: AI(0:,:)
+     ! local vars
+     integer                               :: status
+     character(len=maxStrLen)              :: IAm='getAxisIndex'     
+     type (ESMF_DistGrid)                  :: distGrid
+     type(ESMF_DELayout)                   :: LAYOUT
+     integer,               allocatable    :: AL(:,:)
+     integer,               allocatable    :: AU(:,:)
+     integer                               :: nDEs
+     integer                               :: gridRank
+     integer :: p, npes_end, deId, I1,IN,J1,JN
+     integer                               :: deList(1)
+     
+     call ESMF_GridGet(GRID%ESMF_Grid, dimCount=gridRank, distGrid=distGrid, &
+          rc=STATUS)
+     call ESMF_DistGridGet(distGRID, delayout=layout, &
+          rc=STATUS)
+     call ESMF_DELayoutGet(layout, deCount =nDEs, localDeList=deList, &
+          rc=status)
+     deId = deList(1)
+     
+     allocate (AL(gridRank,0:nDEs-1),  stat=status)
+     allocate (AU(gridRank,0:nDEs-1),  stat=status)
+     
+     call ESMF_DistGridGet(distgrid, minIndexPDimPDe=AL, maxIndexPDimPDe=AU, &
+          rc=status)
+     
+     I1 = AL(1, deId)
+     IN = AU(1, deId)
+     J1 = AL(2, deId)
+     JN = AU(2, deId)
+     
+     do p = 0, nDEs - 1
+        AI(p,1)%min = AL(1, p) ! I1
+        AI(p,1)%max = AU(1, p) ! IN
+        AI(p,2)%min = AL(2, p) ! J1
+        AI(p,2)%max = AU(2, p) ! JN
      end do
-     grid%dj=grid%dj_map(my_pet)
-
-     Deallocate(AI)
-
-   end subroutine ESMF_GRID_BOUNDS
+     
+     npes_end = size(AI,1)
+     AI(nDEs:npes_end-1,2)%min = AI(nDEs-1,2)%max + 1
+     AI(nDEs:npes_end-1,2)%max = AI(nDEs-1,2)%max
+     
+     deallocate(AU, AL)
+     
+   end subroutine getESMFAxisIndex
 
 ! ----------------------------------------------------------------------
    function load_cap_config(config_file,IM,JM,LM,NP_X,NP_Y)  &
@@ -746,12 +698,8 @@ MODULE dist_grid_mod
      type (esmf_config)           :: config
     
      integer :: rc, iunit
-     type (ESMF_VM) :: vm
     
-     config = esmf_configcreate(rc=rc)
-   
-   !     print*, 'load_cap_config: ', IM, JM, LM, NP_X, NP_Y
- 
+     config = ESMF_ConfigCreate(rc=rc)
      call openunit(config_file, iunit, qbin=.false., qold=.false.)
      if(am_i_root()) then
         write(iunit,*)'IM:  ', IM
@@ -762,29 +710,130 @@ MODULE dist_grid_mod
      endif
      call closeUnit(iunit)
      
-     Call ESMF_VMGetGlobal(vm, rc)
-     call esmF_VMbarrier(vm, rc)
-     call esmf_configloadfile(config, config_file, rc=rc)
+     call MPI_Barrier(mpi_comm_world, rc)
+     call ESMF_ConfigLoadFile(config, config_file, rc=rc)
      
    end function load_cap_config
 
+#else
+
+#ifdef USE_MPI
+
+! ----------------------------------------------------------------------
+   function MPIgridBounds(grid) result(AIbounds)
+! ----------------------------------------------------------------------
+     type (DIST_Grid), intent(in) :: grid
+     integer :: AIbounds(4)
+     type(AxisIndex), dimension(:,:), pointer :: AI
+
+     allocate(AI(0:npes_world-1,3))
+     call getMPIAxisIndex(grid, AI)
+
+     AIbounds(1) = AI(my_pet,1)%min
+     AIbounds(2) = AI(my_pet,1)%max
+     AIbounds(3) = AI(my_pet,2)%min
+     AIbounds(4) = AI(my_pet,2)%max
+
+     deallocate(AI)
+
+   end function MPIgridBounds
+
+! ----------------------------------------------------------------------
+   subroutine getMPIAxisIndex(grid, AI)
+! ----------------------------------------------------------------------
+     type (DIST_Grid), intent(in) :: grid
+     type (axisIndex) :: AI(0:,:)
+
+     character(len=maxStrLen) :: IAm='getAxisIndex'     
+     integer :: p, npes_end
+     integer, allocatable   :: jms(:)
+
+     allocate(jms(0:npes_world-1))
+
+     jms(0:grid%npes_used-1) = getLatDist(grid%jm_world, grid%npes_used)
+     if(grid%npes_used<npes_world) jms(grid%npes_used:npes_world-1) = 0
+
+     AI = computeAxisIndex(grid%im_world, jms)
+
+     npes_end = size(AI,1)
+     AI(npes_world:npes_end-1,2)%min = AI(npes_world-1,2)%max + 1
+     AI(npes_world:npes_end-1,2)%max = AI(npes_world-1,2)%max
+
+     deallocate(jms)
+
+   end subroutine getMPIAxisIndex
+
+! ----------------------------------------------------------------------
+   function computeAxisIndex(imGlob, jmsGlob) result(thisAI)
+! ----------------------------------------------------------------------
+     integer, intent(in) :: imGlob, jmsGlob(0:)
+     type (axisIndex) :: thisAI(0:npes_world-1,3)
+     integer :: p 
+     
+     do p = 0, npes_world - 1
+        thisAI(p,1)%min = 1
+        thisAI(p,1)%max = imGlob
+        if (p==0) then
+           thisAI(p,2)%min = 1
+           thisAI(p,2)%max = jmsGlob(p)
+        else
+           thisAI(p,2)%min = thisAI(p-1,2)%max + 1
+           thisAI(p,2)%max = thisAI(p-1,2)%max + jmsGlob(p)
+        end if
+     end do
+     
+   end function computeAxisIndex
+
+! ----------------------------------------------------------------------
+   function getLatDist(jm, numProcesses) result(latsPerProcess)
+! ----------------------------------------------------------------------
+     ! Contstraint: assumes jm >=4.
+     integer, intent(in) :: jm
+     integer, intent(in) :: numProcesses
+     integer :: latsPerProcess(0:numProcesses-1)
+     
+     integer :: excess, npes_used, p
+     integer :: localAdjustment
+     
+     latsPerProcess = 0
+     
+     ! Set minimum requirements per processor
+     ! Currently this is 1 lat/proc away from poles
+     ! and 2 lat/proc at poles
+     select case (npes_world)
+     case (1)
+        latsPerProcess = jm
+        return
+     case (2)
+        latsPerProcess(0) = jm/2
+        latsPerProcess(1) = jm - (jm/2)
+        return
+     case (3:)
+        npes_used = min(numProcesses, jm-2)
+        
+        ! 1st cut - round down
+        latsPerProcess(0:numProcesses-1) = JM/npes_used  ! round down
+        
+        ! Fix at poles
+        latsPerProcess(0) = max(2, latsPerProcess(0))
+        latsPerProcess(numProcesses-1) = max(2, latsPerProcess(numProcesses-1))
+        
+        ! redistribute excess
+        excess = JM - sum(latsPerProcess(0:numProcesses-1))
+        ! redistribute any remaining excess among interior processors
+        do p = 1, numProcesses - 2
+           localAdjustment = (p+1)*excess/(numProcesses-2) - (p*excess)/(numProcesses-2)
+           latsPerProcess(p) = latsPerProcess(p) + localAdjustment
+        end do
+     end select
+     
+   end function getLatDist
+
+#endif
+
+
 #endif
       
-! ----------------------------------------------------------------------
-   function amRootESMF(layout) result(R)
-! ----------------------------------------------------------------------
-     type (ESMF_DELayout) :: layout
-     logical              :: R
-     
-#ifdef USE_MPI
-     R = .false.
-     if (my_pet == root) R = .true.
-#else
-     R = .true.
-#endif
-     
-   end function amRootESMF
-
 ! ----------------------------------------------------------------------
       SUBROUTINE SUMXPE_1D(arr, arr_master, increment)
 ! ----------------------------------------------------------------------
@@ -808,7 +857,7 @@ MODULE dist_grid_mod
          increment_ = .false.
       endif
       if (loc_) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
         if(am_i_root()) then
@@ -816,14 +865,14 @@ MODULE dist_grid_mod
         else
            allocate(arr_tmp(1))
         end if
-        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + arr_tmp
         endif
         deallocate(arr_tmp)
       else
-        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
@@ -836,10 +885,10 @@ MODULE dist_grid_mod
       else  
 !**** arr plays both roles of local and global array
 !**** arr is overwritten by itself after reduction
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          allocate(arr_tmp(arr_size))
-         call mpi_reduce(arr,arr_tmp,arr_size, &
+         call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
@@ -871,18 +920,18 @@ MODULE dist_grid_mod
          increment_ = .false.
       endif
       if (loc_) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
         if(am_i_root()) allocate(arr_tmp(arr_size))
-        call mpi_reduce(arr,arr_tmp,arr_size,MPI_INTEGER, &
+        call MPI_Reduce(arr,arr_tmp,arr_size,MPI_INTEGER, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + arr_tmp
           deallocate(arr_tmp)
         endif
       else
-        call mpi_reduce(arr,arr_master,arr_size,MPI_INTEGER, &
+        call MPI_Reduce(arr,arr_master,arr_size,MPI_INTEGER, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
@@ -895,10 +944,10 @@ MODULE dist_grid_mod
       else  
 !**** arr plays both roles of local and global array
 !**** arr is overwritten by itself after reduction
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          allocate(arr_tmp(arr_size))
-         call mpi_reduce(arr,arr_tmp,arr_size, &
+         call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_INTEGER,MPI_SUM,root, &
     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
@@ -930,7 +979,7 @@ MODULE dist_grid_mod
          increment_ = .false.
       endif
       if (loc_) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          if(increment_) then
             if(am_i_root()) then
@@ -938,7 +987,7 @@ MODULE dist_grid_mod
             else
                allocate(arr_tmp(1))
             end if
-            call mpi_reduce(arr,arr_tmp,arr_size, &
+            call MPI_Reduce(arr,arr_tmp,arr_size, &
     &           MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &           MPI_COMM_WORLD, ierr)
             if(am_i_root()) then
@@ -946,7 +995,7 @@ MODULE dist_grid_mod
             endif
             deallocate(arr_tmp)
          else
-            call mpi_reduce(arr,arr_master,arr_size, &
+            call MPI_Reduce(arr,arr_master,arr_size, &
     &           MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &           MPI_COMM_WORLD, ierr)
          endif
@@ -960,10 +1009,10 @@ MODULE dist_grid_mod
       else  
 !**** arr plays both roles of local and global array
 !**** arr is overwritten by itself after reduction
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          allocate(arr_tmp(arr_size))
-         call mpi_reduce(arr,arr_tmp,arr_size, &
+         call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
@@ -995,7 +1044,7 @@ MODULE dist_grid_mod
          increment_ = .false.
       endif
       if (loc_) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
         if(am_i_root()) then
@@ -1003,14 +1052,14 @@ MODULE dist_grid_mod
         else
            allocate(arr_tmp(1))
         end if
-        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
       else
-        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
@@ -1023,10 +1072,10 @@ MODULE dist_grid_mod
       else  
 !**** arr plays both roles of local and global array
 !**** arr  is overwritten by itself after reduction
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          allocate(arr_tmp(arr_size))
-         call mpi_reduce(arr,arr_tmp,arr_size, &
+         call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
@@ -1058,7 +1107,7 @@ MODULE dist_grid_mod
          increment_ = .false.
       endif
       if (loc_) then
-#ifdef USE_ESMF
+#ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
         if(am_i_root()) then
@@ -1066,14 +1115,14 @@ MODULE dist_grid_mod
         else
            allocate(arr_tmp(1))
         end if
-        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
       else
-        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
+        call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
@@ -1086,10 +1135,10 @@ MODULE dist_grid_mod
       else  
 !**** arr plays both roles of local and global array
 !**** arr  is overwritten by itself after reduction
-#ifdef USE_ESMF
+#ifdef USE_MPI
          arr_size = size(arr)
          allocate(arr_tmp(arr_size))
-         call mpi_reduce(arr,arr_tmp,arr_size, &
+         call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
@@ -1100,42 +1149,25 @@ MODULE dist_grid_mod
 
 #ifdef USE_MPI
 
-      subroutine ESMF_GRID_PE_LAYOUT  (GRID, NX, NY)
+      subroutine gridPELayout  (GRID, NX, NY)
         type (Dist_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: NX, NY
 
         NX = 1
         NY = getNumProcesses(grid)
 
-      end subroutine ESMF_GRID_PE_LAYOUT
+      end subroutine gridPELayout
 
-      subroutine ESMF_GRID_MY_PE_LOC  (GRID,NX0,NY0)
+      subroutine gridRootPELocation  (GRID,NX0,NY0)
         type (Dist_Grid), intent(IN) :: grid
         integer, intent(OUT)          :: NX0, NY0
 
         NX0 = 0
         NY0 = my_pet
 
-      end subroutine ESMF_GRID_MY_PE_LOC
+      end subroutine gridRootPELocation
 
 #endif
-
-! ----------------------------------------------------------------------
-      subroutine ESMF_DELayoutBarrier(layout, rc)
-! ----------------------------------------------------------------------
-      type (ESMF_DELayout) :: layout
-      integer, optional  :: rc
-
-      integer :: ierr
-
-#ifdef USE_MPI
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      if (present(rc)) then
-         rc = ESMF_SUCCESS
-      endif
-#endif
-
-      end subroutine ESMF_DELayoutBarrier
 
 ! ----------------------------------------------------------------------
       SUBROUTINE HERE(file, line)
@@ -1322,7 +1354,6 @@ MODULE dist_grid_mod
     &         bandpack%rdspl_inplace(0:npes-1) &
     &     )
 #endif
-!      bandpack%im_world = grd_src%im_world
       bandpack%j_strt = grd_src%j_strt
       bandpack%j_stop = grd_src%j_stop
       bandpack%j_strt_halo = grd_src%j_strt_halo
@@ -1330,7 +1361,7 @@ MODULE dist_grid_mod
       bandpack%jband_strt = band_j0
       bandpack%jband_stop = band_j1
 #ifdef USE_MPI
-      im = 1!grd_src%im_world
+      im = 1
       jm = grd_src%jm_world
 !
 ! Set up the MPI send/receive information
@@ -1501,7 +1532,7 @@ MODULE dist_grid_mod
       END SUBROUTINE BAND_PACK_COLUMN
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_BCAST_0D(distGrid, arr)
+      SUBROUTINE broadcast_0D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1514,10 +1545,10 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
 
-      END SUBROUTINE ESMF_BCAST_0D
+      END SUBROUTINE broadcast_0D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_BCAST_1D(distGrid, arr)
+      SUBROUTINE broadcast_1D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1530,10 +1561,10 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
 
-      END SUBROUTINE ESMF_BCAST_1D
+      END SUBROUTINE broadcast_1D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_BCAST_2D(distGrid, arr)
+      SUBROUTINE broadcast_2D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1546,10 +1577,10 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
 
-      END SUBROUTINE ESMF_BCAST_2D
+      END SUBROUTINE broadcast_2D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_BCAST_3D(distGrid, arr)
+      SUBROUTINE broadcast_3D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1562,10 +1593,10 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
 
-      END SUBROUTINE ESMF_BCAST_3D
+      END SUBROUTINE broadcast_3D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_BCAST_4D(distGrid, arr)
+      SUBROUTINE broadcast_4D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1578,10 +1609,10 @@ MODULE dist_grid_mod
     &     getMpiCommunicator(distGrid), ierr)
 #endif
 
-      END SUBROUTINE ESMF_BCAST_4D
+      END SUBROUTINE broadcast_4D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_0D(distGrid, arr)
+      SUBROUTINE ibroadcast_0D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1591,10 +1622,10 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,1,MPI_INTEGER,root, &
     &     getMpiCommunicator(distGrid), ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_0D
+      END SUBROUTINE ibroadcast_0D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_0D_WORLD(arr)
+      SUBROUTINE ibroadcast_0D_world(arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       Integer, Intent(InOut) :: arr
@@ -1603,10 +1634,10 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,1,MPI_INTEGER,root, &
     &     MPI_COMM_WORLD, ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_0D_WORLD
+      END SUBROUTINE ibroadcast_0D_world
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_1D(distGrid, arr)
+      SUBROUTINE ibroadcast_1D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1616,10 +1647,10 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root, &
     &     getMpiCommunicator(distGrid), ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_1D
+      END SUBROUTINE ibroadcast_1D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_2D(distGrid, arr)
+      SUBROUTINE ibroadcast_2D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1629,10 +1660,10 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root, &
     &     getMpiCommunicator(distGrid), ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_2D
+      END SUBROUTINE ibroadcast_2D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_3D(distGrid, arr)
+      SUBROUTINE ibroadcast_3D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1642,10 +1673,10 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root, &
     &     getMpiCommunicator(distGrid), ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_3D
+      END SUBROUTINE ibroadcast_3D
 
 ! ----------------------------------------------------------------------
-      SUBROUTINE ESMF_IBCAST_4D(distGrid, arr)
+      SUBROUTINE ibroadcast_4D(distGrid, arr)
 ! ----------------------------------------------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: distGrid
@@ -1655,7 +1686,7 @@ MODULE dist_grid_mod
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root, &
     &     getMpiCommunicator(distGrid), ierr)
 #endif
-      END SUBROUTINE ESMF_IBCAST_4D
+      END SUBROUTINE ibroadcast_4D
 
 
 ! ----------------------------------------------------------------------
@@ -1670,7 +1701,7 @@ MODULE dist_grid_mod
       INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
-      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+      TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,nk,k
       INTEGER :: ierr, p, rc
@@ -1696,7 +1727,8 @@ MODULE dist_grid_mod
       END DO
 
       ALLOCATE(AI(0:npes_world-1,3))
-      call ESMF_GridGetAxisIndex(grid%ESMF_GRID, AI, my_pet)
+      call getAxisIndex(grid, AI)
+
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
          J1(p) = AI(p,2)%max
@@ -1789,7 +1821,7 @@ MODULE dist_grid_mod
       INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
-      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+      TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ
       INTEGER :: ierr, p, rc
@@ -1815,7 +1847,8 @@ MODULE dist_grid_mod
       END DO
 
       ALLOCATE(AI(0:npes_world-1,3))
-      call ESMF_GridGetAxisIndex(grid%ESMF_GRID, AI, my_pet)
+      call getAxisIndex(grid, AI)
+
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
          J1(p) = AI(p,2)%max
@@ -1903,7 +1936,7 @@ MODULE dist_grid_mod
       INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:,:), rbuf(:,:)
 #ifdef USE_MPI
-      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+      TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,k
       INTEGER :: ierr, p, rc
@@ -1930,8 +1963,8 @@ MODULE dist_grid_mod
       END DO
 
       ALLOCATE(AI(0:npes_world-1,3))
+      call getAxisIndex(grid, AI)
 
-      call ESMF_GridGetAxisIndex(grid%ESMF_GRID, AI, my_pet)
       DO p = 0, npes - 1
          J0(p) = AI(p,2)%min
          J1(p) = AI(p,2)%max

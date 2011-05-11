@@ -18,7 +18,7 @@ module CLOUDS
   use DYNAMICS, only : sig,sige
 #endif
 #ifdef SCM
-  use MODEL_COM, only: I_TARG,J_TARG
+  use ATM_COM, only: I_TARG,J_TARG
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
        SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
@@ -1330,7 +1330,7 @@ contains
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_OCEAN
               case('OCocean')
-                DSGL(L,22)=tm(l,n)
+                DSGL(L,22)=tm_cdnc(n)
                 DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
               end select

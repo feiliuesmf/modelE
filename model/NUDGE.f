@@ -64,7 +64,8 @@ c******************************************************************
 !@sum  Initialization for Nudging - called once at beginning of run
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-      USE DOMAIN_DECOMP_1D, only: am_i_root, esmf_bcast, grid
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
@@ -91,7 +92,7 @@ C**** always need to open at least one file
 
       if(am_i_root()) call open_nudge_file(nstr1)
 C**** broadcast pressure levels just once (since they don't change)
-      call esmf_bcast(grid,pl8)
+      call broadcast(grid,pl8)
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
 
 C**** read first set of nudged winds

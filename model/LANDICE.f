@@ -326,7 +326,7 @@ C**** CALCULATE TG2
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, ESMF_BCAST,
+      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, broadcast,
      *     BACKSPACE_PARALLEL
       USE LANDICE_COM
       USE LANDICE
@@ -413,12 +413,12 @@ C****** Load data into distributed arrays
         CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI)
         CALL UNPACK_COLUMN( GRID, MDWNIMP_GLOB, MDWNIMP)
         CALL UNPACK_COLUMN( GRID, EDWNIMP_GLOB, EDWNIMP)
-        call ESMF_BCAST(grid,  ACCPDA)
-        call ESMF_BCAST(grid,  ACCPDG)
-        call ESMF_BCAST(grid, EACCPDA)
-        call ESMF_BCAST(grid, EACCPDG)
-        call ESMF_BCAST(grid, MICBIMP)
-        call ESMF_BCAST(grid, EICBIMP)
+        call broadcast(grid,  ACCPDA)
+        call broadcast(grid,  ACCPDG)
+        call broadcast(grid, EACCPDA)
+        call broadcast(grid, EACCPDG)
+        call broadcast(grid, MICBIMP)
+        call broadcast(grid, EICBIMP)
 
 #ifdef TRACERS_WATER
         SELECT CASE (IACTION)
@@ -445,9 +445,9 @@ C********* Load data into distributed arrays
           CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI)
           CALL UNPACK_COLUMN(GRID, TRDWNIMP_GLOB, TRDWNIMP)
 #ifdef TRACERS_OCEAN
-          call ESMF_BCAST(grid, TRACCPDA)
-          call ESMF_BCAST(grid, TRACCPDG)
-c          call ESMF_BCAST(grid, TRICBIMP)
+          call broadcast(grid, TRACCPDA)
+          call broadcast(grid, TRACCPDG)
+c          call broadcast(grid, TRICBIMP)
 #endif
         END SELECT
 #endif

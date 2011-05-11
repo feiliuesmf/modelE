@@ -18,7 +18,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-      USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
+      USE MDIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBED_SPHERE
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
 #else
@@ -36,7 +36,10 @@ C**** atmospheric grid
 
 C**** Ice advection grid, same as atmospheric grid (CS or latlon)
 C**** dimensions IMIC = IM, JMIC = JM
-      TYPE(DIST_GRID) :: grid_MIC
+! hack ! Made grid_MIC a pointer as a work-around for gfortran 4.6 bug.
+! Make sure that you don''t modify it inside ICEDYN* or you will break
+! the atmospheric grid.
+      TYPE(DIST_GRID), pointer :: grid_MIC
 
 C**** variables used in advection (on ICE grid)
 !@var RSIX,RSIY first order moments for seaice concentration
@@ -127,7 +130,7 @@ C**** Ice dynamics diagnostics
       INTEGER :: I_1H_MIC, I_0H_MIC
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
-      TYPE(DIST_GRID) :: grid_atm
+      TYPE(DIST_GRID), target :: grid_atm
 
       If (init) Then
          Return ! Only invoke once
@@ -158,7 +161,7 @@ C**** Allocate arrays defined on the ice rheology grid
 
 
 C**** Allocate ice advection arrays defined on the atmospheric grid
-      grid_MIC=grid_atm
+      grid_MIC=>grid_atm
 
       CALL GET(grid_MIC, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
      &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
@@ -270,7 +273,7 @@ C****
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
       USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only : broadcast
       use icedyn, only : grid=>grid_icdyn
       USE ICEDYN_COM
       IMPLICIT NONE
@@ -331,7 +334,7 @@ C**** accumulate diagnostics
           ICIJ4 = 0.d0 ! should do "halo_update" instead?
           ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
           CALL UNPACK_DATA(grid, ICIJ4_GLOB8, ICIJ4)
-          call ESMF_BCAST(grid, it)   !MPI_BCAST instead
+          call broadcast(grid, it)   !MPI_BCAST instead
           ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
      &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
           deallocate( ICIJ4 )
@@ -345,7 +348,7 @@ C**** accumulate diagnostics
             END IF
           end if
           CALL UNPACK_DATA(grid, ICIJ_GLOB, ICIJ)
-          call ESMF_BCAST(grid, it)
+          call broadcast(grid, it)
         END SELECT
       END SELECT
 
@@ -597,6 +600,7 @@ C**** Replicate polar boxes
       if (hasNorthPole(agrid)) then
         RSI(2:aIM,aJM)=RSI(1,aJM)
         MSI(2:aIM,aJM)=MSI(1,aJM)
+        SNOWI(2:aIM,aJM)=SNOWI(1,aJM)
         DMUA(2:aIM,aJM,2) = DMUA(1,aJM,2)
         DMVA(2:aIM,aJM,2) = DMVA(1,aJM,2)
       end if
@@ -1057,10 +1061,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,msicnv,fwsim,gtempr,focean
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
+      USE FLUXES, only : fwsim,focean,msicnv
       USE DIAG_COM, only : oa,aij=>aij_loc,
      &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
       IMPLICIT NONE
@@ -1633,15 +1634,6 @@ C**** Set atmospheric arrays
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
-              GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I)))
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
-     *             -SSI(1,I,J))
-#endif
 C**** adjust rad fluxes for change in ice fraction
               if (rsi(i,j).gt.rsisave(i,j)) ! ice from ocean
      *       call RESET_SURF_FLUXES(I,J,1,2,RSISAVE(I,J),RSI(I,J))
@@ -1651,28 +1643,6 @@ C****
             END IF
           END DO
         END DO
-        IF (HAVE_NORTH_POLE) THEN
-          IF (FOCEAN(1,JM).gt.0) THEN
-            DO I=2,IM           ! North pole
-              GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
-              GTEMPR(2,I,JM)   = GTEMPR(2,1,JM)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
-#endif
-            END DO
-          END IF
-        END IF
-        IF (HAVE_SOUTH_POLE) THEN
-          IF (FOCEAN(1,1).gt.0) THEN
-            DO I=2,IM           ! North pole
-              GTEMP(1:2,2,I,1)= GTEMP(1:2,2,1,1)
-              GTEMPR(2,I,1)   = GTEMPR(2,1,1)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,1)=GTRACER(:,2,1,1)
-#endif
-            END DO
-          END IF
-        END IF
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
           DO I=1,IMAXJ(J)
@@ -2054,7 +2024,8 @@ c
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE DIAG_COM, only : qdiag,acc_period,
+      USE DIAG_COM, only : qdiag
+      USE MDIAG_COM, only : acc_period,
      &     lname_strlen,sname_strlen,units_strlen
       USE ICEDYN_COM
       USE DIAG_SERIAL, only : focean=>FOCEAN_glob

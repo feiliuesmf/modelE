@@ -75,7 +75,7 @@ c: r2<0 are missing values
 	 
       ! Varying backscattering exponent
       if(chl_in < 2.0 .AND. chl_in > 0 ) then
-         var_exp = 0.5 * (dlog10(chl_in) - 0.3)
+         var_exp = 0.5 * (log10(chl_in) - 0.3)
       else 
          var_exp = 0.0
       endif
@@ -88,7 +88,7 @@ c: r2<0 are missing values
 !    .                        550.0)**var_exp
 ! correction related to the Huot et al2008 paper (eqn 5)
         if (chl_in.gt.0.d0) then
-             bbt(j) = (0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in)))
+             bbt(j) = (0.002 + 0.01 * (0.5 - 0.25 * log10(chl_in)))
      .              * (lam(j)/550.0d0)**var_exp
         else
              bbt(j) = 0.d0

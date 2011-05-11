@@ -11,7 +11,7 @@
 
       USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,
-     *                          ESMF_BCAST, UNPACK_DATA, GLOBALSUM
+     *                          UNPACK_DATA, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 

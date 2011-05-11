@@ -49,16 +49,10 @@ C****
 !@auth Original Development team
 !@calls seaice:prec_si
       USE CONSTANT, only : teeny,grav,tf,bylhm
-#ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE GEOM, only : imaxj
-      USE FLUXES, only : runpsi,prec,eprec,srunpsi,gtemp,fwsim
-     *     ,gtempr,erunpsi,fland,focean
+      USE FLUXES, only : runpsi,prec,eprec,srunpsi,erunpsi,fland,focean
 #ifdef TRACERS_WATER
-      USE GEOM, only : byaxyp  ! atm tracers have extensive units
-      USE FLUXES, only : trprec,trunpsi,gtracer
+      USE FLUXES, only : trprec,trunpsi
 #endif
       USE LAKES_COM, only : flake
       USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
@@ -114,7 +108,7 @@ C**** Initialize work array
         SSIL(:) = SSI(:,I,J)      ! sea ice salt
 #ifdef TRACERS_WATER
         TRSIL(:,:)=TRSI(:,:,I,J)  ! sea ice tracers
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)   ! tracer in precip
+        TRPRCP(:)=TRPREC(:,I,J)   ! tracer in precip
 #endif
 
 C**** CALL SUBROUTINE FOR CALCULATION OF PRECIPITATION OVER SEA ICE
@@ -142,23 +136,7 @@ C**** reset flag if there was fresh snow (i.e. prcp but no rain!)
 C**** pond_melt accumulation
         pond_melt(i,j)=pond_melt(i,j)+0.3d0*RUN0
 
-C**** set gtemp array
         MSI(I,J)=MSI2
-        GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J)   =TSIL(1)+TF
-#ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-           if (SCM_SURFACE_FLAG.ge.1) then
-               GTEMP(1,2,I,J) = ATSKIN
-               GTEMP(2,2,I,J) = ATSKIN
-               GTEMPR(2,I,J) = ATSKIN + TF
-           endif
-        endif
-#endif
-#ifdef TRACERS_WATER
-        GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
-#endif
-        FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
       END IF
 
@@ -190,8 +168,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,ftrsi_io,gtracer
 #endif
-      USE GEOM, only : axyp ! lake MWL has extensive units
-      USE LAKES_COM, only : mwl,flake,gml,mldlk
+      USE LAKES_COM, only : flake,mldlk,dlake,glake
 #ifdef TRACERS_WATER
      *     ,trlake
 #endif
@@ -290,8 +267,8 @@ C**** should we calculate ocean rho(Tm,Sm) here?
      *             mflux,hflux)
 
 C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
-              IF (MWL(I,J).lt.0.4d0*RHOW*FLAKE(I,J)*AXYP(I,J)) THEN
-                FLUXLIM=-GML(I,J)/(DTSRC*FLAKE(I,J)*AXYP(I,J))
+              IF (DLAKE(I,J).lt.0.4d0) THEN
+                FLUXLIM=-GLAKE(I,J)/DTSRC
                 IF (hflux.lt.FLUXLIM) hflux = FLUXLIM
                 if (mflux.lt.0) then
                   mflux = 0.
@@ -299,8 +276,8 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
                   trflux= 0.
 #endif
                 end if
-                if (qcheck) print*,"Flux limiting",I,J,MWL(I,J)/
-     *               (RHOW*FLAKE(I,J)*AXYP(I,J)),FLUXLIM*DTSRC
+                if (qcheck) print*,"Flux limiting",I,J,DLAKE(I,J),
+     *               FLUXLIM*DTSRC
               END IF
             END IF
             FMSI_IO(I,J) = mflux*dtsrc   ! positive down
@@ -324,22 +301,16 @@ C****
 !@calls SEAICE:SIMELT
       USE CONSTANT, only : sday,TF
       USE MODEL_COM, only : kocean,dtsrc
-#ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE GEOM, only : imaxj
-      USE GEOM, only : axyp  ! melt amounts declared with extensive units
       USE SEAICE, only : simelt,tfrez,xsi,Ti,ace1i,debug
       USE SEAICE_COM, only : rsi,hsi,msi,lmi,snowi,ssi,rsistart
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
       USE LAKES_COM, only : flake
-      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,gtempr,mlhc,fwsim
-     &     ,focean
+      USE FLUXES, only : sss,melti,emelti,smelti,gtemp,mlhc,focean
 #ifdef TRACERS_WATER
-     *     ,trmelti,gtracer
+     *     ,trmelti
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET
@@ -449,33 +420,14 @@ C****
             TRSI(:,:,I,J)=TRSIL(:,:)
 #endif
 C**** Save fluxes (in kg, J etc.), positive into ocean
-          MELTI(I,J) = RUN0*PWATER*AXYP(I,J)
-          EMELTI(I,J)=-ENRGUSED*PWATER*AXYP(I,J)
-          SMELTI(I,J)= SALT*PWATER*AXYP(I,J)
+          MELTI(I,J) = RUN0*PWATER
+          EMELTI(I,J)=-ENRGUSED*PWATER
+          SMELTI(I,J)= SALT*PWATER
 #ifdef TRACERS_WATER
-          TRMELTI(:,I,J)=TRUN0(:)*PWATER*AXYP(I,J)
+          TRMELTI(:,I,J)=TRUN0(:)*PWATER
 #endif
           END IF
-C**** Reset some defaults if all ice is gone
-          IF (RSI(I,J).eq.0) THEN
-            GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
-     *           )/(XSI(1)*ACE1I))
-            GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*ACE1I),1d3*SSI(2,I,J
-     *           )/(XSI(2)*ACE1I))
-            GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
-#ifdef SCM
-            if (I.eq.I_TARG.and.J.eq.J_TARG) then
-              if (SCM_SURFACE_FLAG.ge.1) then
-                  GTEMP(1,2,I,J) = ATSKIN
-                  GTEMP(2,2,I,J) = ATSKIN
-                  GTEMPR(2,I,J) = ATSKIN + TF
-              endif
-            endif
-#endif
-#ifdef TRACERS_WATER
-            GTRACER(:,2,I,J) = 0.
-#endif
-          END IF
+
 C****
         END DO
       END DO
@@ -714,17 +666,13 @@ C****
       USE CONSTANT, only : tf
       USE RESOLUTION, only : im,jm ! for pole fill. use i_1,j_1 instead
       USE MODEL_COM, only : kocean,itime
-#ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i,addice,lmi,fleadoc,fleadlk,xsi,debug
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,ticesave
-      USE FLUXES, only : dmsi,dhsi,dssi,gtemp,fwsim,gtempr,focean
+      USE FLUXES, only : dmsi,dhsi,dssi,focean
 #ifdef TRACERS_WATER
       USE SEAICE_COM, only : trsi,ntm
-      USE FLUXES, only : dtrsi,gtracer
+      USE FLUXES, only : dtrsi
 #endif
       USE LAKES_COM, only : flake
       USE DOMAIN_DECOMP_ATM, only : GRID
@@ -831,22 +779,6 @@ C**** save implicit mass-flux diagnostics
           CALL INC_AJ(I,J,ITOICE,J_IMPLM,-(DMIMP-DSIMP)*POICE)
           CALL INC_AJ(I,J,ITOICE,J_IMPLH,       -DHIMP *POICE)
         END IF
-C**** set gtemp array
-        GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J)   =TSIL(1)+TF
-#ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1,2,I,J) = ATSKIN
-                GTEMP(2,2,I,J) = ATSKIN
-                GTEMPR(2,I,J) = ATSKIN + TF
-            endif
-        endif
-#endif
-#ifdef TRACERS_WATER
-        GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
-#endif
-        FWSIM(I,J) = RSI(I,J)*(ACE1I+SNOW+MSI2-SUM(SSIL(1:LMI)))
 
         TICEsave(I,J)=(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
 
@@ -869,13 +801,9 @@ C**** replicate ice values at the poles
           HSI(:,I,JM)=HSI(:,1,JM)
           SSI(:,I,JM)=SSI(:,1,JM)
           SNOWI(I,JM)=SNOWI(1,JM)
-          GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-          GTEMPR(2,I,JM)=GTEMPR(2,1,JM)
 #ifdef TRACERS_WATER
           TRSI(:,:,I,JM) = TRSI(:,:,1,JM)
-          GTRACER(:,2,I,JM) = GTRACER(:,2,1,JM)
 #endif
-          FWSIM(I,JM) = FWSIM(1,JM)
         END DO
       END IF
       IF (HAVE_SOUTH_POLE) THEN
@@ -885,13 +813,9 @@ C**** replicate ice values at the poles
           HSI(:,I,1)=HSI(:,1,1)
           SSI(:,I,1)=SSI(:,1,1)
           SNOWI(I,1)=SNOWI(1,1)
-          GTEMP(1:2,2,I,1)=GTEMP(1:2,2,1,1)
-          GTEMPR(2,I,1)=GTEMPR(2,1,1)
 #ifdef TRACERS_WATER
           TRSI(:,:,I,1) = TRSI(:,:,1,1)
-          GTRACER(:,2,I,1) = GTRACER(:,2,1,1)
 #endif
-          FWSIM(I,1) = FWSIM(1,1)
         END DO
       END IF
       END IF
@@ -902,7 +826,6 @@ C****
       USE MODEL_COM, only : kocean,itime
       USE CONSTANT, only : rhows,rhow,bylhm
       USE GEOM, only : imaxj
-      USE GEOM, only : byaxyp  ! melt amounts still include area units
       USE FLUXES, only : focean
       USE LAKES_COM, only : flake
       USE FLUXES, only : melti,emelti,smelti
@@ -978,34 +901,27 @@ C****
 
 C**** MELT_SI diags
         IF(DOMELT .and. MELTI(I,J).NE.0.) THEN
-          AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)
-     &         -MELTI(I,J)*BYAXYP(I,J)
+          AIJ(I,J,IJ_SIGRLT)=AIJ(I,J,IJ_SIGRLT)-MELTI(I,J)
           IF (DOMAIN.EQ.'OCEAN') THEN
-            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)
-     &           +(MELTI(I,J)-SMELTI(I,J))*BYAXYP(I,J)
-            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)
-     &           +EMELTI(I,J)*BYAXYP(I,J)
-            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)
-     &           +SMELTI(I,J)*BYAXYP(I,J)
+            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+(MELTI(I,J)-SMELTI(I,J))
+            AIJ(I,J,IJ_HTIO)=AIJ(I,J,IJ_HTIO)+EMELTI(I,J)
+            AIJ(I,J,IJ_STIO)=AIJ(I,J,IJ_STIO)+SMELTI(I,J)
 #ifdef TRACERS_WATER
             TAIJN(I,J,TIJ_ICOCFLX,:)=TAIJN(I,J,TIJ_ICOCFLX,:)
-     &           +TRMELTI(:,I,J)*BYAXYP(I,J)
+     &           +TRMELTI(:,I,J)
 #endif
           END IF
 
-          CALL INC_AJ(I,J,ITYPE,J_HMELT,EMELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPE,J_SMELT,SMELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPE,J_IMELT, MELTI(I,J)*BYAXYP(I,J)*ROICE)
-          CALL INC_AJ(I,J,ITYPEO,J_HMELT,
-     &         EMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
-          CALL INC_AJ(I,J,ITYPEO,J_SMELT,
-     &         SMELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
-          CALL INC_AJ(I,J,ITYPEO,J_IMELT,
-     &         MELTI(I,J)*BYAXYP(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPE,J_HMELT,EMELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_SMELT,SMELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPE,J_IMELT, MELTI(I,J)*ROICE)
+          CALL INC_AJ(I,J,ITYPEO,J_HMELT,EMELTI(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_SMELT,SMELTI(I,J)*(1.-ROICE))
+          CALL INC_AJ(I,J,ITYPEO,J_IMELT,MELTI(I,J)*(1.-ROICE))
 
-          CALL INC_AREG(I,J,JR,J_HMELT,EMELTI(I,J)*BYAXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_SMELT,SMELTI(I,J)*BYAXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_IMELT, MELTI(I,J)*BYAXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_HMELT,EMELTI(I,J))
+          CALL INC_AREG(I,J,JR,J_SMELT,SMELTI(I,J))
+          CALL INC_AREG(I,J,JR,J_IMELT, MELTI(I,J))
 
         END IF ! DOMELT .and. MELTI(I,J).NE.0.
 
@@ -1172,6 +1088,7 @@ C****       1  SNOWOI (INSTANTANEOUS AT NOON GMT)
 C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
 C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
 C****
+      call seaice_to_atmgrid
       DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FOCEAN(I,J).gt.0) THEN
@@ -1192,20 +1109,13 @@ C****
       USE CONSTANT, only : rhows,tf
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean
-#ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       USE SEAICE, only : xsi,ace1i,ac2oim,ssi0,tfrez,oi_ustar0,silmfac
      *     ,lmi,snow_ice,Ti,Ei,seaice_thermo
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,ui2rho,fwsim,msicnv,gtempr,focean,flake0
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
+      USE FLUXES, only : ui2rho,msicnv,focean,flake0
       USE DIAG_COM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
      *     ,icon_LHSI,conpt0
       USE Dictionary_mod
@@ -1280,31 +1190,10 @@ C****   set defaults for no ice case
         END DO
         END DO
       END IF
-C**** set GTEMP etc. array for ice
-      DO J=J_0, J_1
-      DO I=I_0, I_1
-        MSI1=SNOWI(I,J)+ACE1I
-        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1))
-        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1))
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
-#ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1,2,I,J) = ATSKIN
-                GTEMP(2,2,I,J) = ATSKIN
-                GTEMPR(2,I,J) = ATSKIN + TF
-            endif
-        endif
-#endif
-#ifdef TRACERS_WATER
-        GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
-#endif
-        FWSIM(I,J) = RSI(I,J)*(MSI1+MSI(I,J)-SUM(SSI(1:LMI,I,J)))
-        MSICNV(I,J)=0.   ! always initialise to zero
-      END DO
-      END DO
+
+      call seaice_to_atmgrid ! set gtemp etc.
+
+      MSICNV(:,:)=0. ! always initialise to zero
 
 C**** Set conservation diagnostics for ice mass, energy, salt
       CONPT=CONPT0
@@ -1506,12 +1395,12 @@ c**** Extract useful domain information from grid
 C****
       END SUBROUTINE conserv_LHSI
 
-      SUBROUTINE daily_ice
-!@sum daily_ice performs ice processes that are needed everyday
+      SUBROUTINE seaice_to_atmgrid
+!@sum seaice_to_atmgrid set sea ice properties on the atm grid
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt, SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj
@@ -1540,10 +1429,10 @@ C****
       DO I=I_0,IMAXJ(J)
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
-        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1))
-        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1))
+        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),
+     &                1d3*SSI(1,I,J)/(XSI(1)*MSI1))
+        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),
+     &                1d3*SSI(2,I,J)/(XSI(2)*MSI1))
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
@@ -1562,5 +1451,4 @@ C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
       END DO
 
       RETURN
-      END SUBROUTINE daily_ice
-
+      END SUBROUTINE seaice_to_atmgrid

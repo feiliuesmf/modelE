@@ -17,7 +17,7 @@
       USE MODEL_COM, only : dtsrc
       USE FLUXES, only : flice,focean
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : axyp,imaxj,lat2d
@@ -201,8 +201,8 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
         EACCPDA = -LHM*ACCPDA ; EACCPDG = -LHM*ACCPDG ! J/year
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-        TRACCPDA(:) = trglac(:)*ACCPDA ! kg/year
-        TRACCPDG(:) = trglac(:)*ACCPDG ! kg/year
+        TRACCPDA(:) = trglac()*ACCPDA ! kg/year
+        TRACCPDG(:) = trglac()*ACCPDG ! kg/year
 #endif
 #endif /* TNL: inserted */
 
@@ -270,7 +270,7 @@ C****
 !@calls LANDICE:PRECLI
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE CONSTANT, only : tf
@@ -330,7 +330,7 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)
+        TRPRCP(:)=TRPREC(:,I,J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
@@ -399,7 +399,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
@@ -768,8 +768,7 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 #endif
 #endif    /* TNL: inserted */
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
-     *     ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation

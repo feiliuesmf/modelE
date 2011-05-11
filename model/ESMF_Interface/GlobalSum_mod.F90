@@ -1,7 +1,3 @@
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 module GlobalSum_mod
   use MpiSupport_mod, only: ROOT_PROCESS
   use dist_grid_mod

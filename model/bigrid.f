@@ -194,7 +194,7 @@ c --- jf(i,k) gives column index of first point in row i for k-th section
 c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
-      USE DOMAIN_DECOMP_1D, only : pack_data, esmf_bcast
+      USE DOMAIN_DECOMP_1D, only : pack_data, broadcast
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
@@ -204,7 +204,7 @@ c
       integer jpt(idm,JDM)
 
       call pack_data(ogrid, jpt_loc, jpt)
-      call esmf_bcast(ogrid, jpt)
+      call broadcast(ogrid, jpt)
       do 1 i=1,ii
       js(i)=0
       do 4 k=1,ms

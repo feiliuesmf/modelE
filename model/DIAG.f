@@ -1740,8 +1740,10 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
+      use TRDIAG_COM, only: MMR_to_VMR
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
+      USE MDIAG_COM, only : lname_strlen
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
      * ,saveSCLDI,saveTCLDI,saveMCCLDTP
 #if (defined ttc_subdd) || (defined etc_subdd)
@@ -2075,7 +2077,7 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_WATER
         case ("TRP1")
-          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2085,7 +2087,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
-          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2095,7 +2097,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
-          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -3220,6 +3222,42 @@ C**** get model level
           end do
         end select
 
+!=========== any tracer 3d output at the model levels ==========
+! tracer name should have the prefix "t", to avoid confusion with
+! pre-existing diagnostics which are in many cases in different
+! units. 
+#ifdef TRACERS_ON
+        polefix=.true.
+        do n=1,ntm
+          if ('t'//trim(trname(n)) == namedd(k)) then
+            do l=1,LmaxSUBDD
+              kunit=kunit+1
+              do j=J_0,J_1
+                do i=I_0,imaxj(j)
+                  datar8(i,j)=trm(i,j,l,n)*MMR_to_VMR(n)/
+     *                 (am(l,i,j)*axyp(i,j))
+                end do
+              end do
+              LmaxSUBDD_array(:,:,l)=datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+            if (MMR_to_VMR(n) == 1.d0) then
+              units_of_data = 'mass mixing ratio'
+            else
+              units_of_data = 'volume mixing ratio'
+            endif
+            long_name = trim(trname(n))//' tracer'
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix
+     &           ,units_of_data,long_name=long_name,positive='up')
+#endif
+            exit
+          end if
+        end do
+#endif
+!===========
+
 C**** Additional diags - multiple records per file
         select case (namedd(k))
 C**** cases using all levels up to LmaxSUBDD
@@ -3814,7 +3852,7 @@ C**** other dust special cases
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
-     &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
+     &                 /Dtsrc/real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
               end do
@@ -5163,6 +5201,7 @@ c**** find MSU channel 2,3,4 temperatures
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
      *     ,nmonav,ItimeE,lrunid
+     &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
       USE DYNAMICS, only : nfiltr
       USE FLUXES, only : focean
@@ -5174,7 +5213,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
       USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
-      USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
+      USE DIAG_COM, only : keyct, KEYNR, PLE
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
       USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
@@ -5194,6 +5233,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
 #endif
       USE DIAG_COM, only : iu_vflxo,koa
+      USE DIAG_COM, only : iwrite,jwrite,itwrite,kdiag
       USE DIAG_LOC
       USE Dictionary_mod
       USE FILEMANAGER
@@ -5232,6 +5272,12 @@ c a parallelized i/o routine that understands it
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     area_part
       CHARACTER aDATE*14
+
+
+      IWRITE = IWRITE_sv
+      JWRITE = JWRITE_sv
+      ITWRITE = ITWRITE_sv
+      KDIAG = KDIAG_sv
 
       MODD5K=1000
 
@@ -5567,7 +5613,7 @@ C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
-        CALL reset_DIAG(0)
+        CALL reset_ADIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=J_0,J_1
           DO I=I_0,IMAXJ(J)
@@ -5587,7 +5633,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
             END IF
           END DO
         END DO
-        CALL daily_DIAG
+        CALL daily_DIAG(.false.)
       END IF
 
 c
@@ -5625,8 +5671,8 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       END SUBROUTINE init_DIAG
 
 
-      SUBROUTINE reset_DIAG(isum)
-!@sum  reset_DIAG resets/initializes diagnostics
+      SUBROUTINE reset_ADIAG(isum)
+!@sum  reset_ADIAG resets/initializes atm diagnostics
 !@auth Original Development Team
       USE MODEL_COM, only : Itime,iyear1,nday,
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
@@ -5660,7 +5706,6 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
-      call reset_ODIAG(isum)  ! ocean diags if required
       call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return ! just adding up acc-files
@@ -5676,10 +5721,10 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
      *     Jdate0,Jhour0,amon0)
 
       RETURN
-      END SUBROUTINE reset_DIAG
+      END SUBROUTINE reset_ADIAG
 
 
-      SUBROUTINE daily_DIAG
+      SUBROUTINE daily_DIAG(newmonth)
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
       USE FILEMANAGER
@@ -5703,6 +5748,7 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       IMPLICIT NONE
+      logical, intent(in) :: newmonth
       character(len=16) :: aDate
       integer :: months
       INTEGER I,J
@@ -5803,7 +5849,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
-      if ( JDAY.eq.1+JDendOfM(Jmon-1) ) then
+      if ( newmonth ) then
         write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
         if (Kradia.ne.0 .and. Kradia<10) then
           if (Kradia.gt.0) aDATE(4:7)='    '
@@ -5813,7 +5859,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         if ( months.ge.NMONAV ) then
-          call reset_DIAG(0)
+          call reset_ADIAG(0)
           if (Kvflxo.ne.0) then
             call closeunit( iu_VFLXO )
             call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)

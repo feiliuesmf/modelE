@@ -1077,12 +1077,10 @@ C****
 #endif
 #ifdef TRACERS_GASEXCH_ocean
      *                    ,pCO2, pCO2_glob,pp2tot_day,pp2tot_day_glob
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE FLUXES, only: gtracer
 #endif
 
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
-     .                         ,ESMF_BCAST
+     .                         ,broadcast
 
       IMPLICIT NONE
 
@@ -1339,7 +1337,7 @@ c     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
       call unpack_data(ogrid, pp2tot_day_glob,pp2tot_day)
 #endif
 
-      call ESMF_BCAST(ogrid,nstep0)
+      call broadcast(ogrid,nstep0)
 
       if (AM_I_ROOT()) then
         deallocate( avgq_glob,tirrq3d_glob,
@@ -4253,7 +4251,6 @@ C**** Surface stress is applied to V component at the North Pole
       USE CONSTANT, only : grav
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
      *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : ogrid
       USE SEAICE, only : Ei,FSSS
@@ -4390,9 +4387,7 @@ C**** Add evenly over open ocean and ice covered areas
           G0L=G0M(I,J,L)/(MO(I,J,L)*DXYPJ)
           S0L=S0M(I,J,L)/(MO(I,J,L)*DXYPJ)
           P0L=P0L + MO(I,J,L)*GRAV*.5
-c          write(*,*) "before GFREZS",i,j,l,agrid%gid
           GF00=GFREZS(S0L)
-c          write(*,*) "after GFREZS",i,j,l,agrid%gid
           GF0=GF00-SHCGS(GF00,S0L)*8.19d-8*P0L  ! ~GFREZSP(S0L,P0L)
           IF(G0L.lt.GF0) THEN
             TF0=TFREZS(S0L)-7.53d-8*P0L
@@ -4592,7 +4587,6 @@ C****
       SUBROUTINE PRECIP_OC
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
-      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm
      *     , mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
@@ -4671,7 +4665,7 @@ C****
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
       USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
-      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, broadcast
       USE MODEL_COM, only: nstep=>itime
       USE OCEAN, only: BYDXYV, KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,
      *     BYDYP,UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
@@ -5240,154 +5234,6 @@ C****
       RETURN
       END SUBROUTINE ADVSI_DIAG
 
-      SUBROUTINE AT2OT(FIELDA,FIELDO,NF,QCONSERV)
-!@sum  AT2OT interpolates Atm Tracer grid to Ocean Tracer grid
-!@auth Gavin Schmidt
-c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
-      USE RESOLUTION, only : ima=>im,jma=>jm
-      USE OCEAN, only : imo=>im,jmo=>jm,imaxj
-
-!      use domain_decomp_1d, only : grid,get
-      use domain_decomp_1d, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-!@var QCONSERV true if integrated field must be conserved
-      LOGICAL, INTENT(IN) :: QCONSERV
-!@var N number of fields
-      INTEGER, INTENT(IN) :: NF
-!@var FIELDA array on atmospheric tracer grid
-      REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
-!@var FIELDO array on oceanic tracer grid
-      REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
-      INTEGER I,J
-
-C**** currently no need for interpolation,
-C**** just scaling due to area differences for fluxes
-      IF (QCONSERV) THEN
-        DO J=1,JMO
-          DO I=1,IMAXJ(J)
-            FIELDO(:,I,J) = FIELDA(:,I,J)
-          END DO
-        END DO
-        DO I=2,IMO
-          FIELDO(:,I,JMO)=FIELDO(:,1,JMO)
-          FIELDO(:,I,1  )=FIELDO(:,1,  1)
-        END DO
-      ELSE
-        FIELDO(:,:IMA,:JMA) = FIELDA
-      END IF
-C****
-      RETURN
-      END SUBROUTINE AT2OT
-
-      SUBROUTINE OT2AT(FIELDO,FIELDA,NF,QCONSERV)
-c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
-!@sum  OT2AT interpolates Ocean Tracer grid to Atm Tracer grid
-!@auth Gavin Schmidt
-      USE RESOLUTION, only : ima=>im,jma=>jm
-      USE GEOM, only : imaxj
-      USE OCEAN, only : imo=>im,jmo=>jm
-      IMPLICIT NONE
-!@var QCONSERV true if integrated field must be conserved
-      LOGICAL, INTENT(IN) :: QCONSERV
-!@var N number of fields
-      INTEGER, INTENT(IN) :: NF
-!@var FIELDA array on atmospheric tracer grid
-      REAL*8, INTENT(OUT), DIMENSION(NF,IMA,JMA) :: FIELDA
-!@var FIELDO array on oceanic tracer grid
-      REAL*8, INTENT(IN), DIMENSION(NF,IMO,JMO) :: FIELDO
-      INTEGER I,J
-
-C**** currently no need for interpolation,
-C**** just scaling due to area differences for fluxes
-      IF (QCONSERV) THEN
-        DO J=1,JMA
-          DO I=1,IMAXJ(J)
-            FIELDA(:,I,J) = FIELDO(:,I,J)
-          END DO
-        END DO
-        DO I=2,IMA
-          FIELDA(:,I,JMA)=FIELDA(:,1,JMA)
-          FIELDA(:,I,1  )=FIELDA(:,1,  1)
-        END DO
-      ELSE
-        FIELDA = FIELDO(:,:IMA,:JMA)
-      END IF
-C****
-      RETURN
-      END SUBROUTINE OT2AT
-
-      SUBROUTINE AT2OV(FIELDA,FIELDO,NF,QCONSERV,QU)
-!@sum  AT2OV interpolates Atm Tracer grid to Ocean Velocity grid
-!@auth Gavin Schmidt
-c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
-      USE RESOLUTION, only : ima=>im,jma=>jm
-      USE GEOM, only : imaxj
-      USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs
-      IMPLICIT NONE
-!@var QCONSERV true if integrated field must be conserved
-!@var QU true if u-velocity pts. are wanted (false for v velocity pts.)
-      LOGICAL, INTENT(IN) :: QCONSERV, QU
-!@var N number of fields
-      INTEGER, INTENT(IN) :: NF
-!@var FIELDA array on atmospheric tracer grid
-c      REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
-      REAL*8, INTENT(IN), DIMENSION(NF,IMO,JMO) :: FIELDA
-!@var FIELDO array on oceanic tracer grid
-      REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
-      INTEGER I,J,IP1
-
-C**** Ocean velocities are on C grid
-      IF (QU) THEN  ! interpolate onto U points
-        IF (QCONSERV) THEN
-          DO J=1,JMO-1
-            I=IMO
-            DO IP1=1,IMO
-              FIELDO(:,I,J)=0.5*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
-              I=IP1
-            END DO
-          END DO
-C**** do poles
-          DO I=1,IMO
-            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)
-            FIELDO(:,I,  1) = FIELDA(:,1,  1)
-          END DO
-        ELSE   ! no area weighting
-          DO J=1,JMO-1
-            I=IMO
-            DO IP1=1,IMO
-              FIELDO(:,I,J) = 0.5*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
-              I=IP1
-            END DO
-          END DO
-C**** do poles
-          DO I=1,IMO
-            FIELDO(:,I,JMO) = FIELDO(:,1,JMO)
-            FIELDO(:,I,  1) = FIELDO(:,1,  1)
-          END DO
-        END IF
-      ELSE                      ! interpolate onto V points
-        IF (QCONSERV) THEN
-          DO J=1,JMO-1
-            DO I=1,IMO
-              FIELDO(:,I,J) = RAMVN(J)*FIELDA(:,I,J)+
-     *             RAMVS(J+1)*FIELDA(:,I,J+1)
-            END DO
-          END DO
-        ELSE
-          DO J=1,JMO-1
-            DO I=1,IMO
-              FIELDO(:,I,J) = 0.5*(FIELDA(:,I,J)+FIELDA(:,I,J+1))
-            END DO
-          END DO
-        END IF
-        FIELDO(:,:,JMO) = 0.
-      END IF
-C****
-      RETURN
-      END SUBROUTINE AT2OV
-
       SUBROUTINE GLMELT(DT)
 !@sum  GLMELT adds glacial melt around Greenland and Antarctica to ocean
 !@auth Sukeshi Sheth/Gavin Schmidt
@@ -5454,7 +5300,7 @@ C****
      *     ,wist
 
       use DOMAIN_DECOMP_1D, only: GLOBALSUM, get, AM_I_ROOT,
-     *     ESMF_BCAST
+     *     broadcast
       USE OCEANR_DIM, only : ogrid
 
       IMPLICIT NONE
@@ -5480,7 +5326,7 @@ C****
         frac_inc=oc_salt_mean/mean_S
         write(6,*) "Changing ocean salinity: ",mean_S,frac_inc
       end if
-      call ESMF_BCAST(ogrid, frac_inc)
+      call broadcast(ogrid, frac_inc)
 
 C**** adjust open ocean salinity
       DO J=J_0,J_1
@@ -5532,9 +5378,9 @@ C**** approximately adjust enthalpy to restore temperature
           END DO
         END DO
       end if
-      CALL ESMF_BCAST(ogrid, S0MST)
-      CALL ESMF_BCAST(ogrid, SXMST)
-      CALL ESMF_BCAST(ogrid, SZMST)
+      CALL broadcast(ogrid, S0MST)
+      CALL broadcast(ogrid, SXMST)
+      CALL broadcast(ogrid, SZMST)
 
 C**** Check
       call conserv_OSL(OSALT)

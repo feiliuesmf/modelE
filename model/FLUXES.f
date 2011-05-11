@@ -89,7 +89,7 @@ C**** fractions. This is done separately for river flow, complete
 C**** sea ice melt and iceberg/glacial melt.
 !@var FLOWO,EFLOWO mass, energy from rivers into ocean (kg, J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FLOWO,EFLOWO
-!@var MELTI,EMELTI,SMELTI mass,energy,salt from simelt into ocean (kg,J)
+!@var MELTI,EMELTI,SMELTI mass,energy,salt from simelt into ocean (kg/m^2,J/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MELTI,EMELTI,SMELTI
 !@var GMELT,EGMELT mass,energy from glacial melt into ocean (kg,J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: GMELT,EGMELT
@@ -172,7 +172,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 #endif
 
 #ifdef TRACERS_WATER
-!@var TRPREC tracers in precip (kg)
+!@var TRPREC tracers in precip (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: TRPREC
 !@var TREVAPOR tracer evaporation over each type (kg/m^2) 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TREVAPOR
@@ -185,7 +185,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 
 !@var TRFLOWO tracer in river runoff into ocean (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRFLOWO
-!@var TRMELTI tracer from simelt into ocean (kg)
+!@var TRMELTI tracer from simelt into ocean (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMELTI
 
 C**** fluxes associated with variable lake fractions

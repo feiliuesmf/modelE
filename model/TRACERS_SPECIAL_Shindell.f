@@ -1099,7 +1099,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE FLUXES, only : fland
       USE MODEL_COM, only: itime,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
-     &   esmf_bcast, write_parallel
+     &   broadcast, write_parallel
 #ifdef CUBED_SPHERE
       USE DD2D_UTILS, only : 
 #else
@@ -1169,7 +1169,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
        ! for nearest-neighbor all processors must know global source:
        if(nn_or_zon==0)then 
          call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob)
-         call esmf_bcast(grid,src_glob)
+         call broadcast(grid,src_glob)
 #ifdef CUBED_SPHERE
          ! Reorient the global array to the i-j index space of this
          ! processor. Implicit assumption (for now): wetlands exist on

@@ -7,7 +7,8 @@
 !ver   1.0
       USE RESOLUTION, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
-     &     ,sname_strlen,units_strlen,lname_strlen,jm_budg
+     &     ,jm_budg
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_AEROSOLS_SOA
@@ -687,7 +688,7 @@ C****
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, ESMF_BCAST, GET
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, broadcast, GET
       USE TRACER_COM, only: ntm
       USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
      *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
@@ -816,7 +817,7 @@ C*** Unpack read global data into local distributed arrays
 
           call scatter_trdiag
 
-          CALL ESMF_BCAST( grid, it )
+          CALL broadcast( grid, it )
         END SELECT
       END SELECT
 

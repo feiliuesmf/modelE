@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+
 !global ?
       subroutine geopar(iniOCEAN)
 c
@@ -7,7 +8,7 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
 cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
@@ -20,6 +21,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DYNSI_CPLER
       use filemanager, only : findunit
       use hycom_dim, only : ogrid
+
       implicit none
       integer i,j,k,l,n,nn,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
@@ -30,6 +32,11 @@ c
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
       real, parameter :: glufac=3., zero=0.
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
+    
       !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
@@ -548,7 +555,7 @@ c
       call init_hycom_dynsi_cpler
 c
 
-      call esmf_bcast(ogrid,area)
+      call broadcast(ogrid,area)
 
       return
       end
@@ -558,6 +565,10 @@ c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
       USE CONSTANT, only: radius
       implicit none
       real x1,y1,x2,y2,sphdis,ang,radian
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
       data radian/57.2957795/
 c
       ang=mod(y2-y1+540.,360.)-180.
@@ -583,6 +594,10 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       real*8, dimension(3) :: vi,vip1,vn,cri,crip1,crn
       integer :: i
       real*8 :: twopibyn,cc
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
       twopibyn = twopi/n
       vn = v3d(lon(n),lat(n))
       vi = v3d(lon(1),lat(1))
@@ -611,6 +626,26 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       cross3d = cshift(v1,1)*cshift(v2,-1)-cshift(v1,-1)*cshift(v2,1)
       end function cross3d
       end subroutine gc_polyarea
+
+#ifdef COMPILER_G95
+
+      function sind(x) result (ds)
+        implicit none
+        real(kind(1.d0)), intent(in) :: x
+        real(kind(1.d0)) ds
+        real(kind(1.d0)), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        ds = sin(pi_dp * x)
+      end function sind
+
+      function cosd(x) result(dc)
+        implicit none
+        real(kind(1.d0)), intent(in) :: x
+        real(kind(1.d0)) dc
+        real(kind(1.d0)), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        dc = cos(pi_dp * x)
+      end function cosd
+
+#endif
 
 c
 c> Revision history

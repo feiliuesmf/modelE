@@ -3,16 +3,9 @@
 #include "mpi_defs.h"
 #endif
 
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 module SpecialIO_mod
   use dist_grid_mod
   use GatherScatter_mod
-#ifdef USE_ESMF
-  use ESMF_Mod
-#endif
   use MpiSupport_mod
 
   implicit none
@@ -35,7 +28,6 @@ module SpecialIO_mod
   end interface
   
   interface DREAD8_PARALLEL
-    !        MODULE PROCEDURE DREAD_PARALLEL_2D
     module procedure DREAD8_PARALLEL_3D
   end interface
   
@@ -55,7 +47,6 @@ module SpecialIO_mod
   
   interface WRITET_PARALLEL
     module procedure WRITET_PARALLEL_2D
-    !        MODULE PROCEDURE READT_PARALLEL_3D
   end interface
   
   interface READT_PARALLEL_COLUMN
@@ -63,7 +54,6 @@ module SpecialIO_mod
   end interface
   
   interface READT8_PARALLEL
-    !        MODULE PROCEDURE READT8_PARALLEL_2D
     module procedure READT8_PARALLEL_3D
   end interface
   
@@ -248,9 +238,7 @@ contains
     EndIf
 
     Call scatterReal8(grd_dum, AOUT, AVAR, shape(AVAR), 2)
-#ifdef USE_MPI
-    CALL ESMF_BCAST(grd_dum, M   )
-#endif
+    CALL broadcast(grd_dum, M   )
     AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)= AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 
     call checkReadStatus(rc, name, 'MREAD_PARALLEL_2D')
@@ -283,9 +271,7 @@ contains
     EndIf
 
     Call scatterReal8(grd_dum, AOUT, AVAR, shape(AVAR), 2)
-#ifdef USE_MPI
-    CALL ESMF_BCAST(grd_dum, M   )
-#endif
+    CALL broadcast(grd_dum, M   )
     call checkReadStatus(rc, name, 'MREAD_PARALLEL_3D')
 
   END SUBROUTINE MREAD_PARALLEL_3D
@@ -535,35 +521,18 @@ contains
   END SUBROUTINE DWRITE8_PARALLEL_3D
   
   subroutine READ_PARALLEL_INTEGER_0 ( DATA, UNIT, FORMAT)
-    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_0
 
     integer, intent(out  )                       :: DATA
     integer,            intent(in   ),  optional :: UNIT
     character(len=*),   intent(in   ),  optional :: FORMAT
 
-    ! now local
-    type (ESMF_DELayout)                         :: layout
-
-    layout=ESMF_LAYOUT
-    call ESMF_READ_PARALLEL_INTEGER_0( layout, DATA, UNIT, FORMAT)
-
-  END SUBROUTINE READ_PARALLEL_INTEGER_0
-
-  !---------------------------
-  subroutine ESMF_READ_PARALLEL_INTEGER_0(layout,DATA,UNIT,FORMAT)
-
-    type (ESMF_DELayout)                         :: layout
-    integer, intent(out  )                       :: DATA
-    integer,            intent(in   ),  optional :: UNIT
-    character(len=*),   intent(in   ),  optional :: FORMAT
-
-    character(len=ESMF_MAXSTR) :: FORMATTED
-    character(LEN=ESMF_MAXSTR) :: FILENAME
+    character(len=maxStrLen) :: FORMATTED
+    character(LEN=maxStrLen) :: FILENAME
     logical                :: IS_NAMED
     integer                :: IOSTAT
     integer                :: ierr
 
-    if (amRootESMF(layout)) then
+    if (am_i_root()) then
       if (present(UNIT)) then
         inquire(unit=UNIT, formatted=FORMATTED)
         if   (FORMATTED == "YES") then
@@ -601,40 +570,22 @@ contains
     return
 9999 continue
     call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
-  END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_0
+  END SUBROUTINE READ_PARALLEL_INTEGER_0
 
   !---------------------------
 
   subroutine READ_PARALLEL_INTEGER_1 ( DATA, UNIT, FORMAT)
-    ! Wrapper for ESMF_READ_PARALLEL_INTEGER_1
-
     integer, intent(out  )                       :: DATA(:)
     integer,            intent(in   ),  optional :: UNIT
     character(len=*),   intent(in   ),  optional :: FORMAT
 
-    ! now local
-    type (ESMF_DELayout)                         :: layout
-
-    layout = ESMF_LAYOUT
-    call ESMF_READ_PARALLEL_INTEGER_1 ( layout, DATA, UNIT, FORMAT)
-
-  END SUBROUTINE READ_PARALLEL_INTEGER_1
-
-  !---------------------------
-  subroutine ESMF_READ_PARALLEL_INTEGER_1(layout,DATA,UNIT,FORMAT)
-
-    type (ESMF_DELayout)                         :: layout
-    integer, intent(out  )                       :: DATA(:)
-    integer,            intent(in   ),  optional :: UNIT
-    character(len=*),   intent(in   ),  optional :: FORMAT
-
-    character(len=ESMF_MAXSTR) :: FORMATTED
-    character(LEN=ESMF_MAXSTR) :: FILENAME
+    character(len=maxStrLen) :: FORMATTED
+    character(LEN=maxStrLen) :: FILENAME
     logical                :: IS_NAMED
     integer                :: IOSTAT
     integer                :: ierr
 
-    if (amRootESMF(layout)) then
+    if (am_i_root()) then
       if (present(UNIT)) then
         inquire(unit=UNIT, formatted=FORMATTED)
         if   (FORMATTED == "YES") then
@@ -672,41 +623,22 @@ contains
     return
 9999 continue
     call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
-  END SUBROUTINE ESMF_READ_PARALLEL_INTEGER_1
+  END SUBROUTINE READ_PARALLEL_INTEGER_1
 
   !---------------------------
 
   subroutine READ_PARALLEL_REAL8_1 ( DATA, UNIT, FORMAT)
-    ! Wrapper for READ_PARALLEL_REAL8_1
-
     real(kind=8),       intent(out  )            :: DATA(:)
     integer,            intent(in   ),  optional :: UNIT
     character(len=*),   intent(in   ),  optional :: FORMAT
 
-    ! now local
-    type (ESMF_DELayout)                         :: layout
-
-    layout = ESMF_LAYOUT
-    call ESMF_READ_PARALLEL_REAL8_1 ( layout, DATA, UNIT, FORMAT)
-
-  END SUBROUTINE READ_PARALLEL_REAL8_1
-
-  !---------------------------
-
-  subroutine ESMF_READ_PARALLEL_REAL8_1 (layout,DATA,UNIT,FORMAT)
-
-    type (ESMF_DELayout)                         :: layout
-    real(kind=8),       intent(out  )            :: DATA(:)
-    integer,            intent(in   ),  optional :: UNIT
-    character(len=*),   intent(in   ),  optional :: FORMAT
-
-    character(len=ESMF_MAXSTR) :: FORMATTED
-    character(LEN=ESMF_MAXSTR) :: FILENAME
+    character(len=maxStrLen) :: FORMATTED
+    character(LEN=maxStrLen) :: FILENAME
     logical                :: IS_NAMED
     integer                :: IOSTAT
     integer                :: ierr
 
-    if (amRootESMF(layout)) then
+    if (am_i_root()) then
       if (present(UNIT)) then
         inquire(unit=UNIT, formatted=FORMATTED)
         if   (FORMATTED == "YES") then
@@ -744,7 +676,7 @@ contains
     return
 9999 continue
     call stop_model('ESMF_READ_PARALLEL: READ ERROR',255)
-  END SUBROUTINE ESMF_READ_PARALLEL_REAL8_1
+  END SUBROUTINE READ_PARALLEL_REAL8_1
 
   subroutine WRITE_PARALLEL_INTEGER_0 ( data, UNIT, format, CRIT)
 
@@ -753,7 +685,7 @@ contains
     character(len=*),   intent(in   ),  optional :: format
     logical,            intent(in   ), optional  :: CRIT
 
-    character(len=ESMF_MAXSTR) :: FORMATTED
+    character(len=maxStrLen) :: FORMATTED
 
     logical :: crit_,crit2_ ! local
 
@@ -793,7 +725,7 @@ contains
     character(len=*),   intent(in   ),  optional :: format
     logical,            intent(in   ),  optional :: CRIT
 
-    character(len=ESMF_MAXSTR) :: FORMATTED
+    character(len=maxStrLen) :: FORMATTED
     logical :: crit_,crit2_ ! local
 
     crit_ = .false.
@@ -833,7 +765,7 @@ contains
     character(len=*),   intent(in   ),  optional :: format
     logical,            intent(in   ),  optional :: CRIT
 
-    character(len=ESMF_MAXSTR) :: FORMATTED
+    character(len=maxStrLen) :: FORMATTED
 
     logical :: crit_,crit2_ ! local
 
@@ -873,7 +805,7 @@ contains
     character(len=*),   intent(in   ),  optional :: format
     logical,            intent(in   ), optional  :: CRIT
 
-    character(len=ESMF_MAXSTR) :: FORMATTED
+    character(len=maxStrLen) :: FORMATTED
 
     logical :: crit_,crit2_ ! local
 

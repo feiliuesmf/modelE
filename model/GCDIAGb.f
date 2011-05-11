@@ -1258,7 +1258,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, GLOBALSUM
-      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : SUMXPE, broadcast, AM_I_ROOT
       USE PRECISION_MOD
       USE GETTIME_MOD
       IMPLICIT NONE
@@ -2008,8 +2008,10 @@ C**** ACCUMULATE HERE
       AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
      &     (WPA2I-W2I*PAI/(FIMI+teeny))
       DO I=1,IMAXJ(J)
-        AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
-     &       (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
+        IF (PM(K+1).LT.P(I,J)+PTOP) THEN
+          AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
+     &         (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
+        ENDIF
       ENDDO
       ENDDO ! K
       ENDDO ! J
@@ -2285,7 +2287,7 @@ c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
 ! changing the PE count causes roundoff diffs when using sumxpe, so
       if(am_i_root()) call reduce_precision(ke,1d-9) ! remove trailing bits
 
-      call ESMF_BCAST(grid, KE)
+      call broadcast(grid, KE)
 
       DO 2150 KS=1,NSPHER
       DO 2150 N=1,NM
@@ -2340,7 +2342,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : GET,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
-      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only : SUMXPE, broadcast
       USE PRECISION_MOD
       IMPLICIT NONE
       INTEGER :: M5,NDT
@@ -2479,7 +2481,7 @@ c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
       CALL SUMXPE(KE_jsum, KE)
 ! changing the PE count causes roundoff diffs when using sumxpe, so
       if(am_i_root()) call reduce_precision(ke,1d-9) ! remove trailing bits
-      call ESMF_BCAST(grid, KE)
+      call broadcast(grid, KE)
 
       IF (NDT /= 0) THEN
 C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY

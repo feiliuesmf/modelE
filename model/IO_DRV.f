@@ -81,34 +81,9 @@ c
 c prognostic arrays
 c
       if(do_io_prog) then
-        call new_io_atm    (fid,iorw)
+        call new_io_atmvars(fid,iorw)
         call new_io_ocean  (fid,iorw)
-        call new_io_lakes  (fid,iorw)
         call new_io_seaice (fid,iorw)
-        call new_io_earth  (fid,iorw)
-        call new_io_soils  (fid,iorw)
-        call new_io_vegetation  (fid,iorw)
-#ifdef USE_ENT
-        !!! actually not sure if this call is needed
-        !!! (seems like it is duplicated in io_vegetation...)
-        call new_io_veg_related(fid,iorw)
-        !call io_ent    (kunit,iaction,ioerr) ! io_vegetation handles ent
-#endif
-        call new_io_snow   (fid,iorw)
-        call new_io_landice(fid,iorw)
-        call new_io_bldat  (fid,iorw)
-        call new_io_pbl    (fid,iorw)
-        call new_io_clouds (fid,iorw)
-        call new_io_somtq  (fid,iorw)
-        call new_io_rad    (fid,iorw)
-        call new_io_icedyn (fid,iorw)
-#ifdef CALCULATE_FLAMMABILITY
-        call new_io_flammability(fid,iorw)
-#endif
-#ifdef TRACERS_ON
-        call new_io_tracer (fid,iorw)
-#endif
-        call new_io_subdd  (fid,iorw)
       end if
 
 c
@@ -174,31 +149,9 @@ c
 !@ver  beta
       implicit none
       integer :: fid
-      call def_rsf_atm    (fid)
+      call def_rsf_atmvars(fid)
       call def_rsf_ocean  (fid)
-      call def_rsf_lakes  (fid)
       call def_rsf_seaice (fid)
-      call def_rsf_icedyn (fid)
-      call def_rsf_earth  (fid)
-      call def_rsf_soils  (fid)
-      call def_rsf_vegetation(fid)
-#ifdef USE_ENT
-      call def_rsf_veg_related(fid)
-#endif
-      call def_rsf_snow   (fid)
-      call def_rsf_landice(fid)
-      call def_rsf_bldat  (fid)
-      call def_rsf_pbl    (fid)
-      call def_rsf_clouds (fid)
-      call def_rsf_somtq  (fid)
-      call def_rsf_rad    (fid)
-#ifdef CALCULATE_FLAMMABILITY
-      call def_rsf_flammability(fid)
-#endif
-#ifdef TRACERS_ON
-      call def_rsf_tracer (fid)
-#endif
-      call def_rsf_subdd  (fid)
       return
       end subroutine def_rsf_prog
 
@@ -381,7 +334,7 @@ c write a text version of the date to a restart/acc file
 c manage the reading/writing of timing information. could be done better
       use model_com, only : iowrite,ioread,nday,itime,itime0
       use timings, only : ntimemax,ntimeacc,timestr,timing
-      use domain_decomp_atm, only: grid,esmf_bcast
+      use domain_decomp_atm, only: grid,broadcast
       use pario, only : write_attr,read_attr
       implicit none
       integer :: fid,iaction
@@ -397,7 +350,7 @@ c manage the reading/writing of timing information. could be done better
       enddo
       select case (iaction)
       case (:iowrite)
-        call esmf_bcast(grid,timing)
+        call broadcast(grid,timing)
         tsum = sum(timing(1:ntimeacc))+1d-20
         if(itime.gt.itime0) then
           min_per_day = (tsum/60.)*nday/dble(itime-itime0)

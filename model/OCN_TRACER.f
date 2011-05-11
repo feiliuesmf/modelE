@@ -34,7 +34,7 @@
 #endif
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : get, haveLatitude, GLOBALSUM,
-     *     ESMF_BCAST
+     *     broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
@@ -76,15 +76,15 @@ C**** straits
             txmst(:,:,n)=0.
             tzmst(:,:,n)=0.
           end if
-          CALL ESMF_BCAST(grid, trmst)
-          CALL ESMF_BCAST(grid, txmst)
-          CALL ESMF_BCAST(grid, tzmst)
+          CALL broadcast(grid, trmst)
+          CALL broadcast(grid, txmst)
+          CALL broadcast(grid, tzmst)
 
 #endif
 
 #ifdef TRACERS_WATER
           if (am_i_root()) trsist(:,:,n)=0.
-          CALL ESMF_BCAST(grid, trsist)
+          CALL broadcast(grid, trsist)
 #endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
@@ -120,9 +120,9 @@ C**** straits
            if (am_i_root()) then
              txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
           endif
-          CALL ESMF_BCAST(grid, trmst)
-          CALL ESMF_BCAST(grid, txmst)
-          CALL ESMF_BCAST(grid, tzmst)
+          CALL broadcast(grid, trmst)
+          CALL broadcast(grid, txmst)
+          CALL broadcast(grid, tzmst)
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
@@ -283,7 +283,7 @@ C**** or oc_tracer_mean
      *             trname(n),(trsum/(wsum*trw0(n))-1d0)*1d3,frac_tr
             end if
           end if
-          call ESMF_BCAST(grid,  frac_tr)
+          call broadcast(grid,  frac_tr)
          
           if (frac_tr.ne.-999.) then    
             do l=1,lmo
@@ -310,9 +310,9 @@ C**** straits
                 END DO
               END DO
             end if
-            CALL ESMF_BCAST(grid, TRMST)
-            CALL ESMF_BCAST(grid, TXMST)
-            CALL ESMF_BCAST(grid, TZMST)
+            CALL broadcast(grid, TRMST)
+            CALL broadcast(grid, TXMST)
+            CALL broadcast(grid, TZMST)
 
 C**** Check
             CALL CONSERV_OTR(OTRACJ,N)
@@ -525,9 +525,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only: sday
       USE MODEL_COM, only: dtsrc
-      USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
-     *     ,conpt0
-      USE DYNAMICS, only : nfiltr ! SLP filter
+      USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons,npts,natmtrcons
@@ -598,15 +596,11 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
           lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
           units_tconsrv(NM,itr) = SUM_UNIT
           SELECT CASE (N)
-          CASE (2)
-            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM,itr) = ia_d5d
+          CASE (2,8) ! ocean not affected by certain atm processes
+            call stop_model('nonsensical choice in set_tcono',255)
           CASE (3,4,5,6,7,9,11,12)
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
             IA_TCON(NM,itr) = ia_d5s
-          CASE (8)
-            SCALE_TCON(NM,itr) = CHNG_SC/(NFILTR*DTSRC)
-            IA_TCON(NM,itr) = ia_filt
           CASE (10)
             SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
             IA_TCON(NM,itr) = ia_12hr

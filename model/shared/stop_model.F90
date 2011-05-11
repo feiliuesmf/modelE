@@ -1,8 +1,4 @@
 #include "rundeck_opts.h"
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 subroutine stop_model( message, retcode )
 !@sum Aborts the execution of the program. Passes an error message and
 !@+ a return code to the calling script. Should be used instead of STOP

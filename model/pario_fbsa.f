@@ -31,7 +31,7 @@
 !@+
       module pario_fbsa
       use filemanager, only : openunit,closeunit
-      use domain_decomp_1d, only : dist_grid,am_i_root,esmf_bcast
+      use domain_decomp_1d, only : dist_grid,am_i_root,broadcast
       use dd2d_utils, only : unpack_data, pack_data
       private
 
@@ -279,7 +279,7 @@ C****  convert from real*4 to real*8
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
-      CALL ESMF_BCAST(grd_dum, M   )
+      CALL broadcast(grd_dum, M   )
 
       if (AM_I_ROOT()) then
          deallocate (ain,aout)
@@ -320,7 +320,7 @@ C****  convert from real*4 to real*8
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
-      CALL ESMF_BCAST(grd_dum, M   )
+      CALL broadcast(grd_dum, M   )
 
       if (AM_I_ROOT()) then
          deallocate(ain,aout)

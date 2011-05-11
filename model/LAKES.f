@@ -413,7 +413,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE MODEL_COM, only : dtsrc,jday
       USE ATM_COM, only : zatmo
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
@@ -915,7 +915,7 @@ C****
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
 #ifdef SCM
-      Use MODEL_COM, Only: I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
 #ifdef TRACERS_WATER
@@ -1628,7 +1628,7 @@ C****
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE RESOLUTION, only : im
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
@@ -2019,13 +2019,13 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : rsi
-      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake,dlake,glake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -2065,18 +2065,18 @@ C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
-C**** simelt is given as kg, so divide by area
+C**** simelt is given as kg/area
         IF (FLAKE(I,J).gt.0) THEN
-          RUN0  =RUN0+ MELTI(I,J)*BYAXYP(I,J)
-          ERUN0=ERUN0+EMELTI(I,J)*BYAXYP(I,J)
+          RUN0  =RUN0+ MELTI(I,J)
+          ERUN0=ERUN0+EMELTI(I,J)
         END IF
 
         MWL(I,J) = MWL(I,J) +  RUN0*AXYP(I,J)
         GML(I,J) = GML(I,J) + ERUN0*AXYP(I,J)
 #ifdef TRACERS_WATER
-        TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYAXYP(I,J)
+        TRUN0(:) = POLAKE*TRPREC(:,I,J)
      *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
-        IF(FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)*BYAXYP(I,J)
+        IF(FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*AXYP(I,J)
 #endif
 
@@ -2085,6 +2085,8 @@ C**** simelt is given as kg, so divide by area
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
           GTEMP(1,1,I,J)=TLAKE(I,J)
           GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
@@ -2118,6 +2120,8 @@ C**** simelt is given as kg, so divide by area
           CALL INC_AJ(I,J,ITLKICE,J_RUN,-PLICE*RUNOLI(I,J)   *RSI(I,J))
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
           CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J))
@@ -2271,7 +2275,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET

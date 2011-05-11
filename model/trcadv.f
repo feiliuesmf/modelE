@@ -248,7 +248,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp, itest, jtest
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
-     &                         haveLatitude, GLOBALSUM, esmf_bcast
+     &                         haveLatitude, GLOBALSUM, broadcast
       implicit none
       integer i,j,k,l,ia,ib,ja,jb
 c
@@ -733,8 +733,8 @@ c
 c
  4    continue
 
-      call esmf_bcast(ogrid, bfore)
-      call esmf_bcast(ogrid, after)
+      call broadcast(ogrid, bfore)
+      call broadcast(ogrid, after)
 c
       if (bfore.ne.0.)
      . write (lp,'(a,1p,3e14.6,e11.1)') 'fct3d conservation:',

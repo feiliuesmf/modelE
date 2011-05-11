@@ -1,11 +1,12 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
-!---------------------------------------------------------------------------------------------
-! The following module provides an interface for modelE to use the ESMF-wrapped version of
-! the FV dynamical core from GEOS-5.  Many elements closely resemble an ESMF coupler component,
-! which is to be expected given the intended role for this layer.
-!---------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------
+! The following module provides an interface for modelE to use the ESMF-wrapped 
+! version of the FV dynamical core from GEOS-5.  Many elements closely resemble
+! an ESMF coupler component, which is to be expected given the intended role for
+! this layer.
+!--------------------------------------------------------------------------------
 
 module FV_INTERFACE_MOD
 
@@ -64,12 +65,9 @@ contains
   subroutine Initialize_fv(fv_wrapper, istart, kdisk)
 !-------------------------------------------------------------------------------
     use atm_com, only : clock=>atmclock
-    Use Domain_decomp_atm, only: grid,AM_I_ROOT
-    USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+    Use Domain_decomp_atm, only: grid, AM_I_ROOT
     type (fv_core_wrapper),    intent(inout) :: fv_wrapper
     integer,           intent(in) :: istart,kdisk
-!    type (ESMF_grid),  intent(inout) :: grid
-!    type (ESMF_clock), intent(inout) :: clock
     type (ESMF_config)            :: cf
     character(len=1) :: suffix
 
@@ -85,7 +83,7 @@ contains
         endif
       endif
 
-    call setupForESMF(fv_wrapper%fv, vm, grid%esmf_grid, cf, config_file)
+    call setupForESMF(fv_wrapper%fv, grid%esmf_grid, cf, config_file)
 
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
@@ -260,7 +258,6 @@ contains
     use model_com, only : rsf_file_name,xlabel,lrunid
     use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-!    type (ESMF_clock), intent(inout) :: clock
     character(len=*), intent(in) :: modelEfilename
 
     character(len=*), parameter :: SUFFIX_TEMPLATE = '.YYYYMMDD_HHMMz.bin'
@@ -307,7 +304,6 @@ contains
 !-------------------------------------------------------------------------------
     use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-!    type (ESMF_clock), intent(inout) :: clock
     integer, intent(in) :: kdisk
 
     character(len=0) :: suffix = ''
@@ -470,16 +466,22 @@ contains
     Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! U, V
-    DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), fv%U_old(I_0:I_1,J_0:J_1,:))
-    DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), fv%V_old(I_0:I_1,J_0:J_1,:))
-    call ConvertUV_GISS2FV(ReverseLevels(DUT(I_0:I_1,J_0:J_1,:)), ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), fv%dudt, fv%dvdt)
+    DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), &
+                                      fv%U_old(I_0:I_1,J_0:J_1,:))
+    DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), &
+                                      fv%V_old(I_0:I_1,J_0:J_1,:))
+    call ConvertUV_GISS2FV(ReverseLevels(DUT(I_0:I_1,J_0:J_1,:)), &
+                           ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), &
+                           fv%dudt, fv%dvdt)
 
     ! delta pressure weighted Temperature
-    fv % dtdt = ReverseLevels(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv%dT_old)) * &
-         & (PRESSURE_UNIT_RATIO)
+    fv % dtdt = ReverseLevels(DeltPressure_GISS() * &
+                              Tendency(DryTemp_GISS(), fv%dT_old)) * &
+                              (PRESSURE_UNIT_RATIO)
 
     ! Edge Pressure
-       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), fv%dpedt)
+       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), &
+                                              fv%dpedt)
 
 #ifdef NO_FORCING
        call clearTendencies(fv)

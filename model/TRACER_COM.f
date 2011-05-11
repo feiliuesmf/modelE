@@ -201,12 +201,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_cosmo=0
 #endif  /* TRACERS_COSMO */
-!@var ntm_om_sp: Number of TRACERS_OM_SP tracers.
-#ifdef TRACERS_OM_SP
-      integer, parameter :: ntm_om_sp=7
-#else
-      integer, parameter :: ntm_om_sp=0
-#endif  /* TRACERS_OM_SP */
 !@var ntm_ocean: Number of TRACERS_OCEAN tracers.
 #ifdef TRACERS_OCEAN
       integer, parameter :: ntm_ocean=0
@@ -262,7 +256,7 @@ c          (in order to calculate dust emissions), but not added to ntm.
 !@param ntm number of tracers
       integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
      *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
-     *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
+     *                          ntm_nitrate+ntm_cosmo+
      *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra+ntm_ococean
 #endif
@@ -350,10 +344,6 @@ C**** do igas=1,ntm_chem instances get corrected.
      *               'Rn222   ',
 #endif  /* TRACERS_RADON */
 #endif  /* TRACERS_COSMO */
-#ifdef TRACERS_OM_SP
-     *    'OCI1    ','OCI2    ','OCI3    ','OCA1    ','OCA2    ',
-     *    'OCA3    ','OCA4    ',
-#endif  /* TRACERS_OM_SP */
 #ifdef TRACERS_MINERALS
      *     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      *     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
@@ -780,8 +770,6 @@ C**** do igas=1,ntm_chem instances get corrected.
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
-     *     n_OCI1=0,  n_OCI2=0,  n_OCI3=0,
-     *     n_OCA1=0,  n_OCA2=0,  n_OCA3=0, n_OCA4,
      *     n_OCocean=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
      &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,
@@ -893,8 +881,7 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 C**** Aerosol specific switches and arrays
 
 !!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission

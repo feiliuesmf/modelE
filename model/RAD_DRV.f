@@ -35,7 +35,7 @@ C****
       USE Dictionary_mod
       USE CONSTANT, only : grav,bysha,twopi
       USE RESOLUTION, only : jm,lm
-      USE ATM_COM, only : kradia,lm_req
+      USE ATM_COM, only : t,pk,kradia,lm_req
       USE MODEL_COM, only : dtsrc,jyear,iyear1
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
@@ -112,7 +112,7 @@ C****
 #if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
       integer, parameter :: nlt=33
       real*8 :: aw(nlt), bw(nlt), saw, sbw
-      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
       integer :: nl,ic , iu_bio, lambda, lam(nlt)
       character title*50
       data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
@@ -124,11 +124,6 @@ C****
 
       INTEGER :: I,J
       INTEGER :: I_0,I_1,J_0,J_1
-      integer :: iu_NMC,tlm_record
-!@var t_for_rqtinit cold-start value of RQT
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     t_for_rqtinit
 
 C**** sync radiation parameters from input
       call sync_param( "NRAD", NRAD ) !!
@@ -189,15 +184,9 @@ C**** sync radiation parameters from input
 
       if(istart==2) then ! replace with cold vs warm start logic
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
-C**** TODO: just set rqt as potential_temp(lm)*pk(lm)
-        call openunit("AIC",iu_NMC,.true.,.true.)
-        tlm_record = 1+2*lm +(lm-1) +1  ! skip over psrf,u,v
-        CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),
-     &       t_for_rqtinit,tlm_record)
-        call closeunit(iu_NMC)
         DO J=J_0,J_1
         DO I=I_0,I_1
-          RQT(:,I,J)=t_for_rqtinit(I,J)
+          RQT(:,I,J)=T(I,J,LM)*PK(LM,I,J)
         ENDDO
         ENDDO
       endif
@@ -350,17 +339,6 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
      *        n_N_BC2_1 ,n_N_BC3_1,
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
-#endif
-#ifdef TRACERS_OM_SP
-      if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
-        FS8OPX = (/1d0, 1d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
-        FT8OPX = (/1d0, 1d0, 1d0, 0d0, 1d0, 1d0, 1.3d0, 1d0/)
-      end if
-      NTRACE=1
-      TRRDRY(1:NTRACE)=(/ .3d0/)
-      NTRIX(1:NTRACE)=
-     *     (/n_OCA4/)
-      WTTR(1:NTRACE) = 1d0
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
@@ -656,8 +634,8 @@ C**** Read in the factors used for alterations:
         aw(nl) = saw
         bw(nl) = sbw
         if (lam(nl) .lt. 900) then
-          t = exp(-(aw(nl)+0.5*bw(nl)))
-          tlog = dlog(1.0D-36+t)
+          expterm = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+expterm)
           fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
           wfac(nl) = max(0d0,min(fac,1d0))
         else
@@ -986,6 +964,9 @@ C**** Add water to relevant tracers as well
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
+#ifdef SCM
+      USE ATM_COM, only : I_TARG,J_TARG
+#endif
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE RESOLUTION, only : pmtop
@@ -1081,6 +1062,7 @@ C     OUTPUT DATA
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb, idd_aot
+     *     ,idd_aot2
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_wcldwt,jl_icldwt
@@ -1128,7 +1110,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
-     *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
+     *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
      *     ,tr_mm,n_NH4,n_NO3p
 #endif
@@ -1265,8 +1247,11 @@ C
       REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
-
+#ifdef TRACERS_AMP
+      INTEGER, PARAMETER :: NLOC_DIU_VARb = 5
+#else
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
+#endif
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
@@ -1293,8 +1278,11 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
+#ifdef TRACERS_AMP
+      idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot, idd_aot2 /)
+#else
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
-
+#endif
       Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -1776,8 +1764,7 @@ C**** For up to NTRACE aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
@@ -1802,11 +1789,6 @@ C**** more than one tracer is lumped together for radiation purposes
 #endif /* TRACERS_TERP */
      &                 )*BYAXYP(I,J)
 #endif /* TRACERS_AEROSOLS_SOA */
-          case ("OCA4")
-           TRACER(L,n)=(trm(i,j,l,n_OCI1)+trm(i,j,l,n_OCA1)+
-     *          trm(i,j,l,n_OCI2)+trm(i,j,l,n_OCA2)+
-     *          trm(i,j,l,n_OCI3)+trm(i,j,l,n_OCA3)+
-     *          trm(i,j,l,n_OCA4))*BYAXYP(I,J)
           case ("BCIA")
            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
           case default
@@ -1961,8 +1943,7 @@ C**** or not.
       O3natLref(:)=O3JREF_native(:,I,J)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
@@ -2229,7 +2210,7 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_OM_SP)    || (defined TRACERS_AMP)
+    (defined TRACERS_AMP)
 
 #ifdef TRACERS_AMP
       NTRACE = nmodes
@@ -2332,24 +2313,6 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
           END SELECT
         END IF
       end do
-
-      DO KR=1,NDIUPT
-        IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-          TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE)) !*OPNSKY
-          DO INCH=1,NRAD
-            IHM=1+(JTIME+INCH-1)*HR_IN_DAY/NDAY
-            IH=IHM
-            IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
-            ADIURN(idd_aot,KR,IH)=ADIURN(idd_aot,KR,IH)+TMP(idd_aot)
-#ifndef NO_HDIURN
-            IHM = IHM+(JDATE-1)*HR_IN_DAY
-            IF(IHM.LE.HR_IN_MONTH) THEN
-              HDIURN(idd_aot,KR,IHM)=HDIURN(idd_aot,KR,IHM)+TMP(idd_aot)
-            ENDIF
-#endif
-          ENDDO
-        ENDIF
-      ENDDO
 
 #endif
 
@@ -2643,6 +2606,10 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+#ifdef TRACERS_AMP
+              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
+              TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:NTRACE))!*OPNSKY
+#endif
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
               TMP(IDD_ABSA)=(SNFS(3,I,J)-SRHR(0,I,J))*CSZ2
@@ -2768,8 +2735,7 @@ C**** AERRF diags if required
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes (for aerosols)

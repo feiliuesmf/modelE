@@ -709,7 +709,7 @@ c**** zero-out vdata(11) until it is properly read in
       !* This version reads in crop distribution from prescr data set.
       !* And calculates crop fraction for given year.
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, ESMF_BCAST
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, broadcast
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: year
       real*8, intent(out) :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -747,7 +747,7 @@ c**** zero-out vdata(11) until it is properly read in
  10       continue
           backspace iu_CROPS
         endif
-        call ESMF_BCAST(grid, year2)
+        call broadcast(grid, year2)
         if ( year2 == 32768 ) exit  ! end of record
         CALL READT_PARALLEL
      *    (grid,iu_CROPS,NAMEUNIT(iu_CROPS),crop2(:,:),1)
@@ -764,7 +764,7 @@ c**** zero-out vdata(11) until it is properly read in
       subroutine get_soil_C_total(ncasa, soil_C_total)
       use FILEMANAGER, only : openunit,closeunit,nameunit
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
-      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, ESMF_BCAST
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       integer, intent(in) :: ncasa
       real*8,intent(out) ::
      &     soil_C_total(ncasa,grid%I_STRT_HALO:grid%I_STOP_HALO,

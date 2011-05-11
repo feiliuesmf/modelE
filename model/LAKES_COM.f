@@ -28,6 +28,10 @@
 !@var SVFLAKE previous lake fraction (1)
       REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: SVFLAKE
 
+!@var DLAKE depth of lake (m)
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: DLAKE
+!@var GLAKE like GML but per unit area of lake (J/m2)
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:) :: GLAKE
 !@var HLAKE lake sill depth (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: HLAKE
 
@@ -59,7 +63,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
       USE RESOLUTION, only : IM, JM
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
-     &     ,HLAKE
+     &     ,HLAKE,DLAKE,GLAKE
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
       USE LAKES_COM, ONLY:  TRLAKE
@@ -82,6 +86,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
      *           TANLK(I_0H:I_1H,J_0H:J_1H),
      *           SVFLAKE(I_0H:I_1H,J_0H:J_1H),
      &           HLAKE(I_0H:I_1H,J_0H:J_1H),
+     &           DLAKE(I_0H:I_1H,J_0H:J_1H),
+     &           GLAKE(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER
      *            )
 

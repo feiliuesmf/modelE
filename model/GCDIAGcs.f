@@ -1102,7 +1102,7 @@ c      use diag_com, only : ajl=>ajl_loc,jl_ape
       use atm_com, only : p,t,zatmo,ualij,valij,pk,pdsig,sqrtp
       use dynamics, only : dsig,sig
       use domain_decomp_atm, only : grid_cs=>grid,am_i_root,sumxpe,
-     &     esmf_bcast,halo_update
+     &     broadcast,halo_update
       use gcdiag
       implicit none
       integer :: m5,ndt
@@ -1206,8 +1206,8 @@ c
       enddo
       call sumxpe(thgm_part,thgm)
       call sumxpe(gmean_part,gmean)
-      call esmf_bcast(grid_cs,thgm)
-      call esmf_bcast(grid_cs,gmean)
+      call broadcast(grid_cs,thgm)
+      call broadcast(grid_cs,gmean)
       do l=1,lm
         thgm(l)=thgm(l)/areag
         ldn=ldna(l)

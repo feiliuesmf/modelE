@@ -8,7 +8,8 @@
 !@+     io_ocdiag,io_icedyn,io_icdiag
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : am_i_root !REWIND_PARALLEL
-      USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
+      USE ATM_COM, only: Kradia
+      USE MODEL_COM, only : ioread_single,iowrite_single
      *                     ,ioread,ioread_nodiag,iowrite
 
       IMPLICIT NONE
@@ -168,6 +169,7 @@ C**** return maximum time
       SUBROUTINE io_label(kunit,it,itm,iaction,ioerr)
 !@sum  io_label reads and writes label/parameters to file
 !@auth Gavin Schmidt
+      USE ATM_COM, only: Kradia
       USE MODEL_COM
       USE RESOLUTION, only : IM,JM,LM
       USE RESOLUTION, only : LS1

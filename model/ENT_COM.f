@@ -100,7 +100,7 @@
 !@sum read ent state from the file
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : am_i_root, get
-      use domain_decomp_1d, only : UNPACK_COLUMN, ESMF_BCAST
+      use domain_decomp_1d, only : UNPACK_COLUMN, broadcast
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
       integer, intent(out) :: retcode
@@ -125,7 +125,7 @@
         BACKSPACE kunit
         if ( retcode == 0 ) READ (kunit,err=10) HEADER, buf_glob
       endif
-      call ESMF_BCAST(grid, retcode)
+      call broadcast(grid, retcode)
       if ( retcode == 0 ) then
         CALL UNPACK_COLUMN(grid, buf_glob, buf)
         call copy_array_to_ent_state( buf )

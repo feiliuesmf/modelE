@@ -11,7 +11,7 @@ subroutine CONDSE
   use ATM_COM, only : p,u,v,t,q,wm
   use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
 #ifdef SCM
-  use MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
+  use ATM_COM, only : NSTEPSCM, I_TARG,J_TARG
 #endif
   use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
@@ -1506,7 +1506,7 @@ subroutine CONDSE
 #endif
           end do
 #ifdef TRACERS_WATER
-          trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
+          trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))*byaxyp(i,j)
           TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
           !        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)')
           !     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
@@ -1515,14 +1515,14 @@ subroutine CONDSE
           if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS
             if (jls_prec(1,n).gt.0) call inc_tajls2(i,j,1,jls_prec(1,n), &
-                 trprec(n,i,j)*byaxyp(i,j))
+                 trprec(n,i,j))
             if (jls_prec(2,n).gt.0) call inc_tajls2(i,j,1,jls_prec(2,n), &
-                 trprec(n,i,j)*focean(i,j)*byaxyp(i,j))
+                 trprec(n,i,j)*focean(i,j))
             taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
-                 trprec(n,i,j)*byaxyp(i,j)
+                 trprec(n,i,j)
 #ifdef TRACERS_COSMO
             if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+ &
-                 trprec(n,i,j)*byaxyp(i,j)
+                 trprec(n,i,j)
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRDIAG_WETDEPO
@@ -1590,7 +1590,7 @@ subroutine CONDSE
                 if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                   select case (trname(n))
                   case ('Clay','Silt1','Silt2','Silt3','Silt4')
-                    tmp(idd_wet)=+trprec(n,i,j)*byaxyp(i,j)/Dtsrc
+                    tmp(idd_wet)=+trprec(n,i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
 #ifndef NO_HDIURN

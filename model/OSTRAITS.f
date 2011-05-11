@@ -972,32 +972,32 @@ C****
 
       SUBROUTINE BCAST_straits (skip_tracers)
       USE STRAITS
-      use domain_decomp_1d, only : ESMF_BCAST
+      use domain_decomp_1d, only : broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       logical, intent(in) :: skip_tracers
 
-      CALL ESMF_BCAST(grid, MUST )
-      CALL ESMF_BCAST(grid, G0MST)
-      CALL ESMF_BCAST(grid, GXMST)
-      CALL ESMF_BCAST(grid, GZMST)
-      CALL ESMF_BCAST(grid, S0MST)
-      CALL ESMF_BCAST(grid, SXMST)
-      CALL ESMF_BCAST(grid, SZMST)
-      CALL ESMF_BCAST(grid, RSIST)
-      CALL ESMF_BCAST(grid, RSIXST)
-      CALL ESMF_BCAST(grid, MSIST)
-      CALL ESMF_BCAST(grid, HSIST)
-      CALL ESMF_BCAST(grid, SSIST)
+      CALL broadcast(grid, MUST )
+      CALL broadcast(grid, G0MST)
+      CALL broadcast(grid, GXMST)
+      CALL broadcast(grid, GZMST)
+      CALL broadcast(grid, S0MST)
+      CALL broadcast(grid, SXMST)
+      CALL broadcast(grid, SZMST)
+      CALL broadcast(grid, RSIST)
+      CALL broadcast(grid, RSIXST)
+      CALL broadcast(grid, MSIST)
+      CALL broadcast(grid, HSIST)
+      CALL broadcast(grid, SSIST)
 
       if(skip_tracers) return
 #ifdef TRACERS_WATER
-      CALL ESMF_BCAST(grid, TRSIST)
+      CALL broadcast(grid, TRSIST)
 #endif
 #ifdef TRACERS_OCEAN
-      CALL ESMF_BCAST(grid, TRMST)
-      CALL ESMF_BCAST(grid, TXMST)
-      CALL ESMF_BCAST(grid, TZMST)
+      CALL broadcast(grid, TRMST)
+      CALL broadcast(grid, TXMST)
+      CALL broadcast(grid, TZMST)
 #endif /* def TRACERS_OCEAN */
       return
       end SUBROUTINE BCAST_straits

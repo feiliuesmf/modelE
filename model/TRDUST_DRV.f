@@ -10,7 +10,7 @@
       use constant, only: rgas
       use resolution, only: im,jm,lm
       use domain_decomp_atm, only: am_i_root,grid,dread_parallel
-     &     ,esmf_bcast,write_parallel,get
+     &     ,broadcast,write_parallel,get
       use model_com, only: ioread,iowrite,irsfic,irsficno
      &     ,irerun,JDperY,JMperY,itime
       use fluxes, only: dust_flux_glob
@@ -108,9 +108,9 @@ c**** read in lookup table for calculation of mean surface wind speed from PDF
           write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
         END IF
       END IF
-      CALL esmf_bcast(grid,ierr)
+      CALL broadcast(grid,ierr)
       IF (ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
-      CALL esmf_bcast(grid,table1)
+      CALL broadcast(grid,table1)
 
 c**** index of table for sub grid scale velocity (sigma) from 0.0001 to 50 m/s
       zsum=0.D0
@@ -542,9 +542,9 @@ c**** Read input: EMISSION LOOKUP TABLE data
             write(6,*) ' READ ERROR ON FILE '//TRIM(name)//' rc='//cierr
           END IF
         END IF
-        CALL esmf_bcast(grid,ierr)
+        CALL broadcast(grid,ierr)
         if(ierr.ne.0) CALL stop_model('init_dust: READ ERROR',255)
-        CALL esmf_bcast(grid,table)
+        CALL broadcast(grid,table)
 
 c**** index of table for threshold velocity from 6.5 to 17 m/s
         DO k=1,Lkm

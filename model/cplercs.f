@@ -33,7 +33,7 @@
 
       subroutine cpl_wgt
       USE CONSTANT, ONLY : RADIAN
-      USE DOMAIN_DECOMP_1D, only : am_i_root,unpack_data,esmf_bcast
+      USE DOMAIN_DECOMP_1D, only : am_i_root,unpack_data,broadcast
       USE HYCOM_SCALARS, only : flnmcoso
       USE HYCOM_DIM_GLOB, only :
      &     isp_glob=>isp,ifp_glob=>ifp,ilp_glob=>ilp
@@ -142,8 +142,8 @@ c and set lat at land gridpoints to a missing value
           enddo
         enddo
       endif
-      call esmf_bcast(ogrid,lon_hycom)
-      call esmf_bcast(ogrid,lat_hycom)
+      call broadcast(ogrid,lon_hycom)
+      call broadcast(ogrid,lat_hycom)
       call init_cs2llint_type2(agrid,ogrid,lon_hycom,lat_hycom,
      &     remap_veca2o,setup_rot_pol=.true.) ! setup_rot_pol for vectors
       deallocate(lon_hycom,lat_hycom)

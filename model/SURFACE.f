@@ -25,7 +25,7 @@ C****
      *     ,lm
 #endif
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
+      use atm_com, only : I_TARG,J_TARG
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
 #endif
@@ -311,6 +311,8 @@ C**** CHECK FOR IRRIGATION POSSIBILITY
 #endif
       CALL PRECIP_LK
          CALL CHECKT ('PRECIP')
+
+      call seaice_to_atmgrid
 
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean

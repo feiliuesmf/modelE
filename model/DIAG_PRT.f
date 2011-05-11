@@ -15,7 +15,7 @@
 C****
 C**** TITLES FOR SUBROUTINE DIAG7
 C****
-      use diag_com, only : lname_strlen,sname_strlen,units_strlen
+      use mdiag_com, only : lname_strlen,sname_strlen,units_strlen
       COMMON/D7COM/LNAME,SNAME,UNITS
       CHARACTER(len=lname_strlen) :: LNAME(12)
       CHARACTER(len=sname_strlen) :: SNAME(12)
@@ -237,7 +237,7 @@ C**** ENTRIES CALLED FROM DIAGJ
 C****
 !      ENTRY KEYDJ (N,FGLOB,FNH)
       subroutine KEYDJ(name,FGLOB,FNH)
-      use diag_com, only : sname_strlen
+      use mdiag_com, only : sname_strlen
       character(len=sname_strlen) :: name
       real*8 FGLOB,FNH
 
@@ -709,10 +709,12 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
      &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid
       USE DIAG_COM, only : aj=>aj_out,areg=>areg_out,
      &     ntype_out,ntype,nreg,kaj,terrain,
-     &     QDIAG,acc_period,kdiag,namreg,ia_j,iden_j,iden_reg,
+     &     QDIAG,kdiag,namreg,ia_j,iden_j,iden_reg,
      *     scale_j,stitle_j,lname_j,name_j,units_j,
-     *     fmt_j,fmt_reg,sname_strlen,units_strlen,lname_strlen
+     *     fmt_j,fmt_reg
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
+      USE MDIAG_COM, only : acc_period
       IMPLICIT NONE
       LOGICAL qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24
@@ -957,8 +959,9 @@ C****
       USE DYNAMICS, only : do_gwdrag
       USE GEOM, only :
      &     AREAG,BYDXYP,COSV,DXV,DXYP,DXYV,DYP,FCOR,WTJ,lat_dg
+      USE MDIAG_COM, only : acc_period
       USE DIAG_COM, only : im,jm,lm,kep,fim,byim,imh,
-     &     kdiag,qdiag,linect,acc_period,ia_dga,p1000k,
+     &     kdiag,qdiag,linect,ia_dga,p1000k,
      &     plm,ple_dn,ple,pmb,kgz,kgz_max,
      &     aij,ij_phi1k,aijl,aijk,ijk_q,
      &     ajl,scale_jl,ia_jl,units_jl,sname_jl,lname_jl,
@@ -1886,7 +1889,6 @@ C****
      *  ' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY')
       END SUBROUTINE DIAGJK
 
-
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
@@ -1897,9 +1899,10 @@ C****
       USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ
+      USE MDIAG_COM, only : acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_COM, only : jm,lm,
-     &     QDIAG,acc_period,lm_req,inc=>incj,linect,
-     &     sname_strlen,units_strlen,lname_strlen
+     &     QDIAG,lm_req,inc=>incj,linect
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2138,8 +2141,9 @@ C****
       USE DYNAMICS, only : DSIG,SIGE
       USE GEOM, only :
      &     LAT_DG,WTJ
-      USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
-     *     ,jm,lm,jmby2,sname_strlen,units_strlen,lname_strlen
+      USE MDIAG_COM, only : acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : QDIAG,LM_REQ,inc=>incj,linect,jm,lm,jmby2
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2340,10 +2344,12 @@ c              FLAT(J)=FLAT(J)*PRTFAC
      &     jdate,jdate0,amon0,amon,jyear,jyear0,xlabel
       use dynamics, only : dsig
       use geom, only : lat_dg,dxyp
-      use diag_com, only : jm,lm,qdiag,acc_period,inc=>incj,linect,
+      use mdiag_com, only : acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
+      use diag_com, only : jm,lm,qdiag,inc=>incj,linect,
      &     ajl,denom_jl,ia_jl,scale_jl,sname_jl,lname_jl,units_jl,
      &     pow_jl,lgrid_jl,ctr_ml,edg_ml,ctr_cp,edg_cp,plm,ple,
-     &     asjl,scale_sjl,ia_sjl,sname_strlen,units_strlen,lname_strlen
+     &     asjl,scale_sjl,ia_sjl
       implicit none
       integer, intent(in) :: jl_index
       integer, intent(in), optional :: sjl_index
@@ -2549,9 +2555,10 @@ c      deallocate(anum,aden,xjl)
 !@auth Original Development Team
       USE MODEL_COM, only : idacc,xlabel,lrunid,dtsrc
       use dynamics, only : bydsig
-      USE DIAG_COM, only : im,lm,aijl,lm_req,acc_period, qdiag
-     &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
+      use mdiag_com, only : acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : im,lm,aijl,lm_req,qdiag
+     &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
      &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
      &     ,IJL_U,IJL_V,IJK_TX,IJL_W,IJK_RH,IJL_RC,IJL_MC
      &     ,ia_ijl,denom_ijl
@@ -2775,8 +2782,9 @@ C**** INITIALIZE CERTAIN QUANTITIES
      *     ,jyear0,xlabel
       use dynamics, only : dsig,sige
       USE GEOM, only : dlon,lon_dg
-      USE DIAG_COM, only : im,jm,lm,qdiag,acc_period,inc=>inci,linect,
-     &     sname_strlen,units_strlen,lname_strlen
+      use mdiag_com, only : acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
+      USE DIAG_COM, only : im,jm,lm,qdiag,inc=>inci,linect
       IMPLICIT NONE
       CHARACTER XLB*80,CWORD*8
       character(len=sname_strlen), intent(in) :: sname
@@ -2857,7 +2865,8 @@ C****
       USE MODEL_COM, only :
      &     IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
       USE DIAG_COM, only : im,qdiag,ia_12hr,ia_inst,
-     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period,
+     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
+      USE MDIAG_COM, only : acc_period,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
@@ -3119,7 +3128,8 @@ C**FREQUENCY BAND AVERAGE
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
       USE BDIJ
-
+      USE MDIAG_COM, only : acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap
@@ -3259,7 +3269,6 @@ c**** find hemispheric and global means
       return
       end subroutine ij_avg
 
-
       SUBROUTINE DIAGIJ
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
@@ -3277,7 +3286,8 @@ c**** find hemispheric and global means
       USE DIAG_COM
       USE GCDIAG
       USE BDIJ
-
+      USE MDIAG_COM, only : acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
 !@var Qk: if Qk(k)=.true. field k still has to be processed
@@ -3537,7 +3547,6 @@ C****
      *  'Dif:',F7.2,' Days')
       END SUBROUTINE DIAGIJ
 
-
       subroutine maptxt (smap,smapj,gm,irange,title,line,kcol,nlines)
 !@sum  maptxt prints a maplet onto 1/3 of a virtual half-page line(1-51)
 !@auth R.Ruedy
@@ -3775,7 +3784,6 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       return
       end subroutine set_ijout
 
-
       SUBROUTINE DIAGCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
@@ -3785,11 +3793,12 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
      &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only :
      &     areag,WTJ
-      USE DIAG_COM, only :  fim,jeq,qdiag,acc_period,
+      USE DIAG_COM, only :  fim,jeq,qdiag,
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
      *     inc=>incj,xwon,ia_inst,name_consrv,lname_consrv,
-     *     units_consrv,sname_strlen,units_strlen,lname_strlen
-     &     ,jm=>jm_budg,dxyp_budg,lat_budg
+     *     units_consrv,jm=>jm_budg,dxyp_budg,lat_budg
+      USE MDIAG_COM, only : acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM,KCMX) :: CSJ
@@ -3898,7 +3907,6 @@ C****
   906 FORMAT ('0AREA (10**10 m^2)',14X,2F9.1,1X,13I6)
   907 FORMAT ('0')
       END SUBROUTINE DIAGCP
-
 
       SUBROUTINE DIAG5P
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
@@ -4065,15 +4073,15 @@ C****
   909 FORMAT (/'0TPE',I18,I32,I14,I7,I12,2I13,I20)
       END SUBROUTINE DIAG5P
 
-
       SUBROUTINE DIAGDD
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
       USE MODEL_COM, only :
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
-      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,ndiupt,
+      USE DIAG_COM, only :   kdiag,qdiag,units_dd,ndiupt,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,denom_dd,ia_12hr
+      USE MDIAG_COM, only : acc_period
       IMPLICIT NONE
 
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
@@ -4175,9 +4183,10 @@ C****
 #ifndef NO_HDIURN
       USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
-      USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
+      USE DIAG_COM, only :   kdiag,qdiag,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
      *     ,name_dd,denom_dd,ia_12hr,NDIUPT
+      USE MDIAG_COM, only : acc_period
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
@@ -4388,7 +4397,8 @@ C****
 
 
       subroutine KEYVSUMS (QUANT,GSUM,HSUM,ASUM,SUMFAC)
-      use diag_com, only : jm,sname_strlen
+      use diag_com, only : jm
+      use mdiag_com, only : sname_strlen
       implicit none
 !@var quant string designating the quantity for which to save keynrs
       CHARACTER(LEN=sname_strlen) :: QUANT
@@ -4414,7 +4424,8 @@ C****
 
 
       subroutine keynrl(quant,l,flat)
-      use diag_com, only : jm,sname_strlen
+      use diag_com, only : jm
+      use mdiag_com, only : sname_strlen
       implicit none
       integer :: l
       REAL*8, DIMENSION(JM) :: FLAT
@@ -4435,9 +4446,10 @@ C**** All titles/names etc. implicitly assume that this will be done.
       USE MODEL_COM, only : XLABEL,LRUNID,idacc
       USE ATM_COM, only : pmidl00
       USE DIAG_COM, only : im,jm,lm
-     &     ,kdiag,jgrid_ijk,aijk,acc_period,denom_ijk
+     &     ,kdiag,jgrid_ijk,aijk,denom_ijk
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
      *     ,ia_dga
+      use mdiag_com, only : acc_period
       use gcdiag, only : ijk_dpb
       use filemanager
       IMPLICIT NONE
@@ -4549,10 +4561,11 @@ C****
       USE CONSTANT, only : undef
       USE MODEL_COM, only : XLABEL,LRUNID,idacc
       USE DIAG_COM, only : im,jm,lm
-     &     ,aijl,kaijl,acc_period,ijkgridc
+     &     ,aijl,kaijl,ijkgridc
      &     ,ia_ijl,denom_ijl,name_ijl,lname_ijl,units_ijl,scale_ijl,
      &     lgrid_ijl,jgrid_ijl,
      &     ctr_ml,edg_ml,ctr_cp
+      USE MDIAG_COM, only : acc_period
       USE ATM_COM, only : pmidl00
       use filemanager
       IMPLICIT NONE
@@ -4689,9 +4702,11 @@ c write field
 !@auth Gavin Schmidt
       USE MODEL_COM, only : xlabel,lrunid,idacc
       USE GEOM, only : dxyp,lat_dg
-      USE DIAG_COM, only : im,jm,fim,aisccp,ntau,npres,nisccp,acc_period
+      USE DIAG_COM, only : im,jm,fim,aisccp,ntau,npres,nisccp
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
-     &     ,isccp_late,wisccp,sname_strlen,units_strlen,lname_strlen
+     &     ,isccp_late,wisccp
+      USE MDIAG_COM, only : acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/

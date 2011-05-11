@@ -6636,6 +6636,13 @@ c
       units_dd(k)=' '
       scale_dd(k)= 1.
       lname_dd(k)=' AOT'
+c
+      k=k+1
+      IDD_aot2=k
+      name_dd(k)='QSCAT'
+      units_dd(k)=' '
+      scale_dd(k)= 1.
+      lname_dd(k)='qscat'
 
 #ifdef TRACERS_AMP
 c
@@ -6716,6 +6723,15 @@ c Column Diagnostics
           scale_dd(k)=1.
           lname_dd(k)=' LWC_L'//lst(l)
         end do
+
+       idd_pres=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='Pres_L'//lst(l)
+          units_dd(k)='hPa'
+          scale_dd(k)=1.
+          lname_dd(k)=' PRES_L'//lst(l)
+        end do     
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

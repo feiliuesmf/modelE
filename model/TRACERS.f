@@ -77,8 +77,7 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -1152,7 +1151,7 @@ C**** check whether air mass is conserved
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &     ,UNPACK_COLUMN, esmf_bcast, get
+     &     ,UNPACK_COLUMN, broadcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1650,9 +1649,9 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
-          call ESMF_BCAST( grid, iday_ncep )  
-          call ESMF_BCAST( grid, i0_ncep   )  
-          call ESMF_BCAST( grid, first_ncep)
+          call broadcast( grid, iday_ncep )  
+          call broadcast( grid, i0_ncep   )  
+          call broadcast( grid, first_ncep)
 #endif
 #endif
 

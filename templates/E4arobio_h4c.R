@@ -27,95 +27,27 @@ Preprocessor Options
 ! #define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
 
-Object modules: (in order of decreasing priority)
+
+Object modules:
+     ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
-MODELE                              ! Main and model overhead
-ALLOC_DRV                           ! allocate global distributed arrays
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
-STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
-ATM_UTILS                           ! utilities for some atmospheric quantities
-QUS_COM QUSDEF QUS_DRV              ! advection of tracers
+DIAG_RES_F                          ! diagnostics
+FFT144                              ! Fast Fourier Transform
+IO_DRV                              ! new i/o
+ATMDYN MOMEN2ND                     ! atmospheric dynamics
+QUS_DRV                             ! advection of Q/tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV                     ! land surface and soils
-ENT_DRV ENT_COM VEG_DRV
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB_E1                            ! turbulence in whole atmosphere
-LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
-DIAG_RES_F                          ! diagnostics (resolution dependent)
-FFT144
-POUT                                ! post-processing output
-SparseCommunicator_mod              ! sparse gather/scatter module
-hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8|
-kprf_arrays_loc_renamer|-r8| hycom_atm|-r8|
-hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
-hycom_scalars|-r8| hycom_dim_glob|-r8|
-hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
-advfct|-r8|                         ! advection
-archyb|-r8|                         ! continuity eqn.
-barotp|-r8|                         ! barotropic eqn.
-bigrid|-r8|                         ! basin grid
-blkprf|-r8|                         ! block data
-cnuity|-r8|                         ! continuity eqn.
-convec|-r8|                         ! convection
-cpler |-r8|                         ! coupler
-diapfx|-r8|                         ! diapycnal diffusion
-dpthuv|-r8| dpudpv|-r8|             ! off-center depth
-eice  |-r8|                         ! ice forming
-geopar|-r8|                         ! geography related parameters
-hybgn1|-r8|                         ! grid generator
-inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
-matinv|-r8| mxkprf|-r8| mxlayr|-r8| ! mixing scheme
-momtum|-r8|                         ! momemtum Eqn.
-prtetc|-r8|                         ! print routines, etc.
-reflux|-r8|                         ! flux conversion
-sigetc|-r8|                         ! eqn.of state, etc.
-thermf|-r8|                         ! thermal forcing
-trcadv|-r8|                         ! tracer advection
-tsadvc|-r8| advem|-r8|              ! advecting t/s
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-advc1d|-r8|                         ! tracer transport (for HYCOM only)
-obio_dim|-r8|                       !
-obio_forc|-r8|                      !
-obio_incom|-r8|                     !
-obio_com|-r8|                       !
-obio_model|-r8|                     !
-obio_init|-r8|                      !
-obio_bioinit|-r8|                   !
-obio_daysetrad|-r8|                 !
-obio_daysetbio|-r8|                 !
-obio_ocalbedo|-r8|                  !
-obio_sfcirr|-r8|                    !
-obio_limits|-r8|                    !
-obio_edeu|-r8|                      !
-obio_ptend|-r8|                     !
-obio_update|-r8|                    !
-obio_carbon|-r8|                    !
-obio_trint|-r8|                     !
-obio_reflectance|-r8|
-obio_sinksettl|-r8|
-obio_archyb
-obio_diffmod|-r8|
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TRACER_COM  TRACERS_DRV              ! configurable tracer code
-TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-TRDIAG
-TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
-!!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
+ALLOC_DRV                           ! allocate global distributed arrays
+
+#include "latlon_source_files"
+#include "modelE4_source_files"
+#include "hycom_source_files"
+#include "ocarbon_cycle_oH_files"   
 
 Components:
-tracers Ent shared ESMF_Interface solvers giss_LSM dd2d
+#include "E4_components_nc"    /* without "Ent" */
+tracers Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
@@ -131,25 +63,13 @@ CROPS=CROPS_144X90N_nocasp.ext   ! crops
 SOIL=S144X900098M.ext            ! soil properties
 REG=REG2X2.5                     ! special regions-diag
 RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
+
 #include "rad_input_files"
-! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+
+#include "TAero2008_input_files"
+
+#include "O3_2005_input_files"
+
 TOP_INDEX=top_index_144x90_a.ij.ext
 ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
@@ -203,41 +123,9 @@ E4arobio_h4c (2x2.5x40, 1850 atm.;  1x1x26 HYCOM ocean)
 
 DTFIX=180.
 &&PARAMETERS
-! parameters set for coupled ocean runs:
-KOCEAN=1        ! ocn is prognostic
-variable_lk=1
-init_flake=1
-
-! parameters usually not changed when switching to coupled ocean:
-
-! drag params if grav.wave drag is not used and top is at .01mb
-X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
-P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
-PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
-P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
-Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
-ANG_SDRAG=1         ! conserve ang. mom.
-! vsdragl is a tuning coefficient for SDRAG starting at LS1
-! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
-
-! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.95      ! deformation drag coefficient                                   
-XCDNST=400.,10000.   ! strat. gw drag parameters
-QGWMTN=1 ! mountain waves ON
-QGWDEF=1 ! deformation waves ON
-QGWSHR=0 ! shear drag OFF
-QGWCNV=0 ! convective drag OFF
-
-OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
-OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
+#include "dynamic_ocn_params"
+#include "sdragF40_params"
+#include "gwdragF40_params"
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
@@ -256,24 +144,8 @@ H2ObyCH4=1.     ! activates strat.H2O generated by CH4
 KSIALB=0        ! 6-band albedo (Hansen) (=1 A.Lacis orig. 6-band alb)
 KSOLAR=2
 madaer=3    ! updated aerosols
-aer_rad_forc=0
-cloud_rad_forc=1
 
-! parameters that control the atmospheric/boundary conditions
-! if set to 0, the current (day/) year is used: transient run
-crops_yr=1850  ! if -1, crops in VEG-file is used
-s0_yr=1850
-s0_day=182
-ghg_yr=1850
-ghg_day=182
-volc_yr=-1
-volc_day=182
-aero_yr=1850
-od_cdncx=0.        ! don't include 1st indirect effect
-cc_cdncx=0.        ! include 2nd indirect effect
-albsn_yr=1850
-dalbsnX=.024
-o3_yr=-1850
+#include "atmCompos_1850_params"
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)
@@ -286,17 +158,9 @@ DTsrc=1800.
 DT=225.
 NIsurf=1        ! increase as layer 1 gets thinner
 
-! parameters that affect at most diagn. output:
-Ndisk=480       ! use =48 except on halem
-SUBDD=' '       ! no sub-daily frequency diags
-NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
-KCOPY=2         ! saving acc + rsf
-isccp_diags=0   ! use =0 to save cpu time if isccp-diags are not essential
-nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
-nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
-ndaa=13
-nda5k=13
-nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
+#include "diag_params"
+
+isccp_diags=1   ! use =0 to save cpu time if isccp-diags are not essential
 nssw=2         ! until diurnal diags are fixed, Nssw has to be even
 nssw=48         ! until diurnal diags are fixed, Nssw has to be even
 itest=-1        
@@ -321,7 +185,4 @@ to_volume_MixRat=1    ! for tracer printout
    YEARE=1800,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=01,HOURE=01,IWRITE=1,JWRITE=1,
  &END
-### Information below describes your run. Do not delete! ###
-Mon Nov  9 22:42:34 EST 2009
-Version 10.1
-CVS Repository: MAIN Branch
+

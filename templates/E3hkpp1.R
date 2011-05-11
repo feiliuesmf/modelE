@@ -34,14 +34,14 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-OCEAN_hycom|-r8|                                                 !ocean model
-hyckpp|-r8| advfct|-r8|    ape|-r8| archyb|-r8| barotp|-r8|      !ocean model
-bigrid|-r8| blkdt5|-r8| blkpp3|-r8| cnuity|-r8|  cpler|-r8|      !ocean model
-dpthuv|-r8| dpudpv|-r8|   eice|-r8| findmx|-r8| geopar|-r8|      !ocean model
-hybgn5|-r8| inicn2|-r8| inikpp|-r8| linout|-r8| matinv|-r8|      !ocean model
-momtum|-r8|  mxkpp|-r8| newbot|-r8| overtn|-r8|   pipe|-r8|      !ocean model
-prtmsk|-r8| reflux|-r8| sigetc|-r8| sphdis|-r8| sstbud|-r8|      !ocean model
-stencl|-r8| thermf|-r8| tsadvf|-r8|  zebra|-r8|                  !ocean model
+OCEAN_hycom|$(R8)|                                                 !ocean model
+hyckpp|$(R8)| advfct|$(R8)|    ape|$(R8)| archyb|$(R8)| barotp|$(R8)|      !ocean model
+bigrid|$(R8)| blkdt5|$(R8)| blkpp3|$(R8)| cnuity|$(R8)|  cpler|$(R8)|      !ocean model
+dpthuv|$(R8)| dpudpv|$(R8)|   eice|$(R8)| findmx|$(R8)| geopar|$(R8)|      !ocean model
+hybgn5|$(R8)| inicn2|$(R8)| inikpp|$(R8)| linout|$(R8)| matinv|$(R8)|      !ocean model
+momtum|$(R8)|  mxkpp|$(R8)| newbot|$(R8)| overtn|$(R8)|   pipe|$(R8)|      !ocean model
+prtmsk|$(R8)| reflux|$(R8)| sigetc|$(R8)| sphdis|$(R8)| sstbud|$(R8)|      !ocean model
+stencl|$(R8)| thermf|$(R8)| tsadvf|$(R8)|  zebra|$(R8)|                  !ocean model
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics

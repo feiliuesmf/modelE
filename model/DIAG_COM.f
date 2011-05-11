@@ -14,6 +14,7 @@
 #ifndef CUBED_SPHERE
       use geom, only : imh,fim,byim
 #endif
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
       private
@@ -31,10 +32,6 @@ c      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
 !@param JEQ grid box zone around or immediately north of the equator
       INTEGER, PARAMETER, public :: JEQ=1+JM/2
 
-C**** Accumulating_period information
-      INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
-      CHARACTER*12, public :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
-!@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
@@ -217,7 +214,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER, PARAMETER, public :: NDIUVAR=62
 #else
-      INTEGER, PARAMETER, public :: NDIUVAR=56
+      INTEGER, PARAMETER, public :: NDIUVAR=60
 #endif
 #endif
 #endif
@@ -520,9 +517,6 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=20), dimension(ndparm_max), public :: dparm_name
       REAL*8, dimension(ndparm_max), public :: dparm
       integer, public :: ndparm=0
-
-      integer, parameter, public ::
-     &     sname_strlen=30,units_strlen=30,lname_strlen=80
 
 !@var J_xxx zonal J diagnostic names
       INTEGER, public ::
@@ -918,8 +912,8 @@ c     names for npbl layers dust diagnostics
 c     names for npbl-1 layers dust diagnostics
      &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
-     *     ,idd_diam, idd_aot, idd_lwp, idd_ccn, idd_cdnc
-     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL
+     *     ,idd_diam, idd_aot, idd_aot2, idd_lwp, idd_ccn, idd_cdnc
+     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL, idd_pres
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
@@ -1274,12 +1268,13 @@ c allocate master copies of budget- and JK-arrays on root
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
       USE ATM_COM, only : Kradia
+      USE MDIAG_COM, only : monacc
       USE DIAG_COM
       USE DOMAIN_DECOMP_ATM, Only : grid
       USE DOMAIN_DECOMP_1D, Only : GET, PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, Only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, Only : broadcast
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -1372,8 +1367,8 @@ c allocate master copies of budget- and JK-arrays on root
            END IF
           endif
           CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL ESMF_BCAST(grid, idacc)
-          CALL ESMF_BCAST(grid, it   )
+          CALL broadcast(grid, idacc)
+          CALL broadcast(grid, it   )
 
         CASE (IOREAD_SINGLE)      !
 !ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
@@ -1385,8 +1380,8 @@ c allocate master copies of budget- and JK-arrays on root
              deallocate (AFLX4)
           end if
           CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL ESMF_BCAST(grid,idac1)
-          CALL ESMF_BCAST(grid,monac1)
+          CALL broadcast(grid,idac1)
+          CALL broadcast(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
         END SELECT
@@ -1549,8 +1544,8 @@ c**** read accumulation arrays for subdaily diagnostics
             GO TO 10
           END IF
         End If
-        CALL ESMF_BCAST(grid, keyct )
-        CALL ESMF_BCAST(grid, KEYNR )
+        CALL broadcast(grid, keyct )
+        CALL broadcast(grid, KEYNR )
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
       END SELECT
 
@@ -1567,19 +1562,19 @@ c**** read accumulation arrays for subdaily diagnostics
       Contains
 
       Subroutine BCAST_Scalars()
-        CALL ESMF_BCAST(grid, keyct )
-        CALL ESMF_BCAST(grid, KEYNR )
-        CALL ESMF_BCAST(grid, idacc )
-        CALL ESMF_BCAST(grid, ENERGY)
-        CALL ESMF_BCAST(grid, SPECA )
-        CALL ESMF_BCAST(grid, ATPE  )
-c        CALL ESMF_BCAST(grid, ADIURN)
-        CALL ESMF_BCAST(grid, WAVE  )
-        CALL ESMF_BCAST(grid, AISCCP)
+        CALL broadcast(grid, keyct )
+        CALL broadcast(grid, KEYNR )
+        CALL broadcast(grid, idacc )
+        CALL broadcast(grid, ENERGY)
+        CALL broadcast(grid, SPECA )
+        CALL broadcast(grid, ATPE  )
+c        CALL broadcast(grid, ADIURN)
+        CALL broadcast(grid, WAVE  )
+        CALL broadcast(grid, AISCCP)
 #ifndef NO_HDIURN
-c        CALL ESMF_BCAST(grid, HDIURN)
+c        CALL broadcast(grid, HDIURN)
 #endif
-        CALL ESMF_BCAST(grid, it    )
+        CALL broadcast(grid, it    )
       End Subroutine BCAST_Scalars
 
       Subroutine Scatter_Diagnostics()
@@ -1890,7 +1885,7 @@ C**** box in lat/lon case.
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
-      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
+      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,broadcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment
@@ -1909,7 +1904,7 @@ C**** box in lat/lon case.
 
       increment = .false.
       call SUMXPE(dxyp_budg_loc,dxyp_budg,increment)   !summing global area
-      call esmf_bcast(grid,dxyp_budg)
+      call broadcast(grid,dxyp_budg)
 
       return
       end subroutine set_budg_area
@@ -2021,7 +2016,8 @@ c temporary variant of inc_ajl without any weighting
 !@auth M. Kelley
 !@ver  beta
       use model_com, only : idacc
-      use diag_com, only : monacc,
+      use mdiag_com, only : monacc
+      use diag_com, only :
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
@@ -2122,7 +2118,8 @@ c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
-      use diag_com, only : monacc,kaijl,
+      use mdiag_com, only : monacc
+      use diag_com, only : kaijl,
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist

@@ -618,7 +618,7 @@ c------------------------------------------------------------------------------
       USE OCEANRES, only : idm=>imo,jdm=>jmo
       USE OCEAN, only : oDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
 
       implicit none
 
@@ -733,7 +733,7 @@ c
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
       implicit none
 
       integer i,j,k,l,n
@@ -855,7 +855,6 @@ c
       !--------------------------------------------------------
       endif   !if am-i-root
 
-      !call ESMF_BCAST(ogrid, fldo)
       call unpack_data(ogrid, fldo_glob, fldo)
       return
   

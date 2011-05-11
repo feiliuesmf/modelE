@@ -297,7 +297,7 @@ C---- CTM layers LM down
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
-     *  readt8_parallel,haveLatitude,esmf_bcast,
+     *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
       USE GEOM, only: imaxj,byim
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -342,7 +342,7 @@ C**** Create interpolated table for this resolution
         END IF
         ! the following call is actually serving as MPI_Barrier
         ! do not remove it unless you know what you are doing
-        call esmf_bcast(grid, ifirst)
+        call broadcast(grid, ifirst)
         IF (AM_I_ROOT()) 
      *  call openunit(FRQname,FRQfile,.true.,.true.)
       end if

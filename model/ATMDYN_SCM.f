@@ -11,10 +11,10 @@
       end SUBROUTINE init_ATMDYN
 
       SUBROUTINE DYNAM
-      USE MODEL_COM, only : im,lm,t,p,q,ls1,NSTEPSCM     
-      USE SOMTQ_COM, only : tmom,mz
-      USE DOMAIN_DECOMP_1D, only : grid
-      USE DYNAMICS, only : PMID,PEDN,PUA,PVA,SDA     
+      USE RESOLUTION, only: im,lm,ls1
+      USE SOMTQ_COM,  only: tmom,mz
+      USE ATM_COM,    only: t,p,q,PMID,PEDN,PUA,PVA,SDA,NSTEPSCM     
+      USE DOMAIN_DECOMP_ATM, only : grid
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     TZ,PIJL
@@ -50,15 +50,14 @@
       SUBROUTINE SCM_FORCN
 c     apply advective forcings from ARM Variational analysis to T and Q
 
-      USE RESOLUTION , only : LM
-      USE MODEL_COM , only : P,T,Q,PTOP,SIG,NSTEPSCM,DTSRC        
-     &                ,I_TARG,J_TARG
-      USE DYNAMICS, only : PK
-      USE CONSTANT , only : KAPA 
-
-      USE SCMCOM , only : SG_HOR_TMP_ADV, SG_VER_S_ADV, SG_HOR_Q_ADV,
+      USE MODEL_COM,  only: DTSRC     
+      USE ATM_COM,    only: P,T,Q,PK,I_TARG,J_TARG,NSTEPSCM
+      USE RESOLUTION, only: LM
+      USE DYNAMICS,   only: SIG
+      USE CONSTANT,   only: KAPA 
+      USE CLOUDS,     only: SCM_DEL_T, SCM_DEL_Q
+      USE SCMCOM,     only: SG_HOR_TMP_ADV, SG_VER_S_ADV, SG_HOR_Q_ADV,
      &              SG_VER_Q_ADV,iu_scm_prt      
-      USE CLOUDS , only : SCM_DEL_T, SCM_DEL_Q
 
       IMPLICIT NONE
 
@@ -136,12 +135,11 @@ c
 c
 c
   
-      USE RESOLUTION , only : LM
-
-      USE MODEL_COM , only : P,DSIG, I_TARG, J_TARG   
-      USe GEOM , only : AXYP
-   
-      USE SCMCOM , only : SG_WINDIV, SG_CONV    
+      USE RESOLUTION, only: LM
+      USE DYNAMICS,   only: DSIG
+      USE ATM_COM,    only: P, I_TARG, J_TARG   
+      USe GEOM,       only: AXYP   
+      USE SCMCOM,     only: SG_WINDIV, SG_CONV    
    
       IMPLICIT NONE
 
@@ -176,17 +174,18 @@ c     want to fill SD (IDUM,JDUM)  check out
 !                Remove other calculations.
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
-      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,sige,ptop
-     *     ,zatmo,sig,modd5k,bydsig
-     &     ,do_polefix,I_TARG,J_TARG   
-      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
-      USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      USE SCMCOM, only : iu_scm_prt
+      USE CONSTANT,   only: grav,rgas,kapa,bykapa,bykapap1,bykapap2
+      USE RESOLUTION, only: im,jm,lm,ls1,psfmpt,ptop
+      USE ATM_COM,    only: zatmo, gz, phi,I_TARG,J_TARG 
+      USE DIAG_COM,   only: modd5k
+      USE SCMCOM,     only: iu_scm_prt
+      USE GEOM,       only: imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
+      USE DYNAMICS,   only: sig,bydsig,do_polefix,
+     *     dsig,sige,pu,pit,spa,dut,dvt,mrch
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D,  only: haveLatitude
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: T
@@ -304,7 +303,7 @@ C**** Dummy routines
 
       SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( PUA,PVA,dt)
 !@sum COMPUTE_DYNAM_AIJ_DIAGNOSTICS Dummy
-      use DOMAIN_DECOMP_1D, only: grid
+      use DOMAIN_DECOMP_ATM, only: grid
 
       real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
@@ -317,8 +316,9 @@ C**** Dummy routines
 
       subroutine DIAG5D(M5,NDT,DUT,DVT)
 c     dummy of subroutine
-      USE MODEL_COM, only : im,imh,jm,lm
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE GEOM, only : imh
+      USE RESOLUTION, only : im,jm,lm
+      USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -328,8 +328,9 @@ c     dummy of subroutine
 
       SUBROUTINE DIAG5F(UX,VX)
 c     dummy of subroutine
-      USE MODEL_COM, only : im,imh,jm,lm
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE GEOM, only : imh
+      USE RESOLUTION, only : im,jm,lm
+      USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -340,7 +341,9 @@ c     dummy of subroutine
       subroutine DIAGCD(grid,M,UX,VX,DUT,DVT,DT1)
 c     dummy of subroutine
 
-      USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
+      USE GEOM, only : fim
+      USE MODEL_COM, only : mdiag,mdyn
+      USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -364,11 +367,14 @@ c     dummy of subroutine
 !@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
 !@sum  multiplied by cell area
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
-      USE GEOM, only : dxyn,dxys,dxyv
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP_1D, only : SOUTH
+      USE RESOLUTION, only: im,jm,lm, ls1,psfmpt
+      USE CONSTANT,   only: mb2kg
+      USE GEOM,       only: fim,dxyn,dxys,dxyv
+      USE DYNAMICS,   only: dsig
+      USE ATM_COM,    only: p,u,v
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_1D,  only: GET, CHECKSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: SOUTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
@@ -414,10 +420,12 @@ C****
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
-      USE MODEL_COM, only : im,jm,lm,byim,u,v
-c      USE GEOM, only : ravps,ravpn
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP_1D, only : NORTH
+      USE RESOLUTION, only: im,jm,lm
+      USE GEOM,       only: byim
+      USE ATM_COM,    only: u,v
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: NORTH
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
 
@@ -433,11 +441,15 @@ c      USE GEOM, only : ravps,ravpn
 !@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
 
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DYNAMICS, only : ua=>ualij,va=>valij
-      USE DOMAIN_DECOMP_1D, only : grid,get,NORTH, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP_1D, only : halo_update
-      USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
+      USE RESOLUTION, only: im,jm,lm
+      USE GEOM,       only: byim
+      USE ATM_COM,    only: u,v
+      USE ATM_COM,    only: ua=>ualij,va=>valij
+      USE GEOM,       only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_1D,  only: GET, NORTH, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: NORTH
       implicit none
       real*8, dimension(im) :: ra
       integer, dimension(im) :: idj
@@ -536,9 +548,10 @@ C****
       end subroutine recalc_agrid_uv
 
       subroutine regrid_atov_1d(u_a,v_a,uv1d)
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : grid,halo_update,SOUTH
-      USE GEOM, only : rapvs,rapvn,cosiv,siniv
+      USE RESOLUTION, only: im,jm
+      USE GEOM,       only: rapvs,rapvn,cosiv,siniv
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D,  only: halo_update,SOUTH
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo)  ::
      &          u_a,v_a
@@ -590,9 +603,10 @@ C****
       enddo
       return
       end subroutine regrid_atov_1d
+
       subroutine get_nuv(nuv)
-      use model_com, only : im
-      USE DOMAIN_DECOMP_1D, only : GRID
+      use resolution, only : im
+      USE DOMAIN_DECOMP_ATM, only : grid
       implicit none
       integer :: nuv
       nuv = 2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)
@@ -604,8 +618,10 @@ C****
       vpkey = 1+(n-1)/2
       return
       end subroutine get_vpkey_of_n
+
       subroutine get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
-      use model_com, only : im
+      use resolution, only : im
+      USE DOMAIN_DECOMP_ATM, only : grid
       use geom, only : rapvn,rapvs
       implicit none
       integer :: n
@@ -621,8 +637,10 @@ C****
       wts(1:4) = (/ rapvn(jv-1), rapvn(jv-1), rapvs(jv), rapvs(jv) /)
       return
       end subroutine get_regrid_info_for_n
+
       subroutine get_uv_of_n(n,uv)
-      use model_com, only : im,lm,u,v
+      use resolution, only : im,lm
+      use atm_com, only : u,v
       use domain_decomp_1d, only : am_i_root
       implicit none
       integer :: n
@@ -637,7 +655,8 @@ C****
       return
       end subroutine get_uv_of_n
       subroutine store_uv_of_n(n,uv)
-      use model_com, only : im,lm,u,v
+      use resolution, only : im,lm
+      use atm_com, only : u,v
       implicit none
       integer :: n
       real*8, dimension(lm) :: uv
@@ -650,9 +669,10 @@ C****
       endif
       return
       end subroutine store_uv_of_n
+
       subroutine get_ivjv_of_n(n,iv,jv)
-      use model_com, only : im
-      USE DOMAIN_DECOMP_1D, only : GRID
+      use resolution, only : im
+      USE DOMAIN_DECOMP_ATM, only : GRID
       implicit none
       integer :: n
       integer :: iv,jv
@@ -665,8 +685,10 @@ C****
       end subroutine get_ivjv_of_n
 
       subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID, hasNorthPole, hasSouthPole
+      USE RESOLUTION, only: im,jm,lm
+      USE ATM_COM,    only: u,v
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_1D,  only: hasNorthPole, hasSouthPole
       implicit none
       integer :: k
       REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -733,9 +755,11 @@ C****
 
       subroutine avg_replicated_duv_to_vgrid(du,dv,k,
      &     dusp,dvsp,dunp,dvnp)
-      USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID, HALO_UPDATE_BLOCK,SOUTH
-      use Domain_Decomp_1d, only: hasNorthPole, hasSouthPole
+      USE RESOLUTION, only: im,jm,lm
+      USE ATM_COM,    only: u,v
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE_BLOCK,SOUTH
+      use Domain_Decomp_1d,  only: hasNorthPole, hasSouthPole
       implicit none
       integer :: k
       REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -818,10 +842,11 @@ c
       end subroutine avg_replicated_duv_to_vgrid
 
       SUBROUTINE regrid_btoa_3d(x)
-      USE MODEL_COM, only : im,jm,lm,byim
-c      USE GEOM, only : ravps,ravpn
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP_1D, only : NORTH, hasNorthPole, hasSouthPole
+      USE RESOLUTION, only: im,jm,lm
+      USE GEOM,       only: byim
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_1D,  only: HALO_UPDATE
+      USE DOMAIN_DECOMP_1D,  only: NORTH, hasNorthPole, hasSouthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: X
       INTEGER :: I,IM1,J,L
@@ -854,10 +879,11 @@ c     &      +ravpn(j)*(x(im1,j+1,l)+x(i,j+1,l))
 
       subroutine regrid_btoa_ext(x)
 c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
-      USE MODEL_COM, only : im,jm,byim
-      USE GEOM, only : rapvs,rapvn,dxyp,dxyv
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, GRID, NORTH
-      use Domain_Decomp_1d, only: hasNorthPole, hasSouthPole
+      USE RESOLUTION, only: im,jm
+      USE GEOM,       only: byim,rapvs,rapvn,dxyp,dxyv
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D,  only: GET, HALO_UPDATE, NORTH
+      use Domain_Decomp_1d,  only: hasNorthPole, hasSouthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X
       INTEGER :: I,IM1,J

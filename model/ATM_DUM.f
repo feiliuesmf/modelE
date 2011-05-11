@@ -693,7 +693,7 @@ c      CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 !@+    domain-decomposed cubed-sphere grid.
       use resolution, only : im
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : dist_grid,init_grid,sumxpe,esmf_bcast
+      use domain_decomp_1d, only : dist_grid,init_grid,sumxpe,broadcast
       use cs2ll_utils, only : cs2llint_type,
      &     init_cs2llint_type,cs2llint_ij
       implicit none
@@ -770,7 +770,7 @@ c
       endif
 c pack_dataj unavailable since domain_decomp_1d refuses NPES > jmlat,
       call sumxpe(arr_loc,arr_jlat) ! so using sumxpe for now
-      call esmf_bcast(grid, arr_jlat)
+      call broadcast(grid, arr_jlat)
 
 c
 c interpolate to the latitudes of CS gridcells

@@ -47,7 +47,7 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
                                     ! utilities
 POUT                                ! post-processing output
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-obio_ocalbedo|-r8|                  ! changes to ocean albedo due to chlorophyl
+obio_ocalbedo|$(R8)|                  ! changes to ocean albedo due to chlorophyl
 
 Components:
 ESMF_Interface shared

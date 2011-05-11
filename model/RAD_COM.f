@@ -418,7 +418,7 @@ C**** Local variables initialised in init_RAD
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_BLOCK , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA  , PACK_DATA
-      USE DOMAIN_DECOMP_1D, ONLY : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, ONLY : broadcast
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -648,9 +648,9 @@ C**** Local variables initialised in init_RAD
           end if
 
 #ifdef TRACERS_ON
-          CALL ESMF_BCAST(grid, ttausv_count)
+          CALL broadcast(grid, ttausv_count)
 #endif
-          CALL ESMF_BCAST(grid, S0)
+          CALL broadcast(grid, S0)
           CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           CALL UNPACK_COLUMN(grid, SRHR_glob, SRHR)

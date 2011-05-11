@@ -6,7 +6,7 @@
 #endif
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
       USE SEAICE, only : osurf_tilt
       USE HYCOM_ATM, only :
      &     focean_loc,gtemp_loc,gtempr_loc,
@@ -130,13 +130,13 @@ c
       call scatter_hycom_arrays
 
 !!! hack needed for serial inicon
-      CALL ESMF_BCAST(ogrid, delt1 )
+      CALL broadcast(ogrid, delt1 )
 
-      CALL ESMF_BCAST(ogrid, salmin )
-      CALL ESMF_BCAST(ogrid, nstep0 )
-      CALL ESMF_BCAST(ogrid, nstep )
-      CALL ESMF_BCAST(ogrid, time0 )
-      CALL ESMF_BCAST(ogrid, time )
+      CALL broadcast(ogrid, salmin )
+      CALL broadcast(ogrid, nstep0 )
+      CALL broadcast(ogrid, nstep )
+      CALL broadcast(ogrid, time0 )
+      CALL broadcast(ogrid, time )
 
 c moved here from inicon:
       if (nstep0.eq.0) then     ! starting from Levitus
@@ -215,7 +215,7 @@ c
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
-     &     ESMF_BCAST, pack_column, unpack_column
+     &     broadcast, pack_column, unpack_column
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
 !!      USE FLUXES, only : sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi
@@ -698,8 +698,8 @@ c
       endif ! AM_I_ROOT
       call scatter_atm_after_checkpoint
       call dealloc_atm_globals
-      CALL ESMF_BCAST(ogrid, nstep0 )
-      CALL ESMF_BCAST(ogrid, time0 )
+      CALL broadcast(ogrid, nstep0 )
+      CALL broadcast(ogrid, time0 )
 
 #ifdef TRACERS_OceanBiology
       call unpack_data(ogrid, avgq_glob, avgq)

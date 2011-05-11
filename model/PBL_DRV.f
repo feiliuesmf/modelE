@@ -23,7 +23,7 @@
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE ATM_COM, only : t,q,u,v
 #ifdef SCM
-     &                      ,I_TARG,J_TARG
+      USE ATM_COM, only : I_TARG,J_TARG
 #endif
       USE GEOM, only : sinlat2d
       USE ATM_COM, only : pmid,pk,pedn,pek
@@ -385,15 +385,13 @@ ccc put drive output data to pbl_args structure
       use resolution, only : lm
       use pblcom, only : tsavg,tgvavg
       implicit none
-      integer :: iu_NMC,t1_record,tsurf_record
+      integer :: iu_NMC,tsurf_record
       call openunit("AIC",iu_NMC,.true.,.true.)
-      t1_record = 1+2*lm +1  ! skip over psrf,u,v
-      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),TGVAVG,
-     &     t1_record)
-      tsurf_record = (lm-1) +lm +1  ! now skip over remainder of t and q
+      tsurf_record = 1+4*lm +1  ! skip over psrf,u,v,t,q
       CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),TSAVG,
      &     tsurf_record)
       call closeunit(iu_NMC)
+      tgvavg(:,:) = tsavg(:,:) ! not used for init. set anyway.
       return
       end subroutine read_pbl_tsurf_from_nmcfile
 
@@ -410,7 +408,7 @@ c -------------------------------------------------------------
       USE FILEMANAGER
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
-      USE ATM_COM, only : p,t,q
+      USE ATM_COM, only : u,v,p,t,q
       USE GEOM, only : imaxj,sinlat2d
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
