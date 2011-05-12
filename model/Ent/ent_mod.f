@@ -49,13 +49,14 @@
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
-      public ent_cell_set !, ent_cell_update
+      public ent_cell_set, ent_cell_set_soilcarbon !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_prescribe_vegupdateB
       public ent_prescribe_vegupdateC
       public ent_prescribe_vegupdateD
       public ent_cell_print
-      public ent_initialize
+!      public ent_initialize !##Renamed as ent_init_config.
+      public ent_init_config
 
       public ent_set_forcings_r8_0
 
@@ -113,6 +114,41 @@
       
       end interface
 
+      interface ent_cell_set_soilcarbon
+      
+        module procedure ent_cell_set_soilcarbon_r8_0
+      
+        module procedure ent_cell_set_soilcarbon_r8_1
+      
+        module procedure ent_cell_set_soilcarbon_r8_2
+      
+      end interface
+
+#ifdef MIXED_CANOPY
+      public ent_struct_setup
+      !--- passing initial data to ent cells - mixed veg ---
+      interface ent_struct_setup
+      
+        module procedure ent_struct_setup_r8_0
+      
+        module procedure ent_struct_setup_r8_1
+      
+        module procedure ent_struct_setup_r8_2
+      
+      end interface
+
+      public ent_struct_initphys_cells
+      !--- passing initial data to ent cells - mixed veg ---
+      interface ent_struct_initphys_cells
+      
+        module procedure ent_struct_initphys_cells_r8_0
+      
+        module procedure ent_struct_initphys_cells_r8_1
+      
+        module procedure ent_struct_initphys_cells_r8_2
+      
+      end interface
+#endif
 
       !--- passing updated prescribed data to ent cells ---
 cddd      interface ent_cell_update
@@ -239,16 +275,25 @@ cddd      end interface ent_cell_update
       contains
 
 !*************************************************************************
-      subroutine ent_initialize(
+      subroutine ent_init_config(
      &     do_soilresp, do_phenology_activegrowth, do_structuralgrowth, 
-     &     do_frost_hardiness, do_patchdynamics)
+     &     do_frost_hardiness, do_patchdynamics)!, mixed_veg)
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
+      use ent_const
       logical, optional :: do_soilresp
       logical, optional :: do_phenology_activegrowth
       logical, optional :: do_structuralgrowth
       logical, optional :: do_frost_hardiness
       logical, optional :: do_patchdynamics
+!      logical, optional :: mixed_veg
+
+      print *, "initializing Ent"
+     &     , " N_DEPTH ", N_DEPTH 
+     &     , " N_PFT ",  N_PFT
+     &     , " N_SOILCOV ",  N_SOILCOV
+     &     , " N_OTHER ",  N_OTHER
+     &     , " N_COVERTYPES ",  N_COVERTYPES
 
       ! first set some defaults:
       config%do_soilresp = .false.
@@ -256,6 +301,7 @@ cddd      end interface ent_cell_update
       config%do_structuralgrowth = .false.
       config%do_frost_hardiness = .true.
       config%do_patchdynamics = .false.
+!      config%mixed_veg = .false.
 
       ! now overwrite defaults with explicitly passed values
       if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
@@ -267,8 +313,9 @@ cddd      end interface ent_cell_update
      &     do_frost_hardiness
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
      &     do_patchdynamics
+!      if ( present(mixed_veg) ) config%mixed_veg = mixed_veg
 
-      end subroutine ent_initialize
+      end subroutine ent_init_config
 
 !*************************************************************************
 !---- interfaces to run the model one time step --------------------------
@@ -277,6 +324,7 @@ cddd      end interface ent_cell_update
       subroutine ent_prescribe_vegupdate_r8_0(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
+!     &     mixed_veg,
      &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
@@ -290,6 +338,7 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
       logical, intent(in), optional :: do_giss_albedo
+!      logical, intent(in), optional :: mixed_veg
       real*8, intent(in), optional, target ::
      &     laidata(:)
       real*8, intent(in), optional, target :: hdata(:)
@@ -303,6 +352,7 @@ cddd      end interface ent_cell_update
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+!      logical :: mixed_veg_1
       logical :: init_1
       
       
@@ -326,6 +376,7 @@ cddd      end interface ent_cell_update
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
       do_giss_albedo_1 = .false.
+!      mixed_veg_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
       init_1 = .false.
@@ -337,6 +388,8 @@ cddd      end interface ent_cell_update
      &     do_giss_lai_1 = do_giss_lai
       if ( present(do_giss_albedo) )
      &     do_giss_albedo_1 = do_giss_albedo
+!      if ( present(mixed_veg) )
+!     &	   mixed_veg_1 = mixed_veg     	   		    
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -358,17 +411,18 @@ cddd      end interface ent_cell_update
           call entcell_vegupdate(entcell%entcell,
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
+     &         do_giss_albedo_1, !mixed_veg_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
-      
 
+      
       end subroutine ent_prescribe_vegupdate_r8_0
 
       subroutine ent_prescribe_vegupdate_r8_1(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
+!     &     mixed_veg,
      &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
@@ -382,6 +436,7 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
       logical, intent(in), optional :: do_giss_albedo
+!      logical, intent(in), optional :: mixed_veg
       real*8, intent(in), optional, target ::
      &     laidata(:,:)
       real*8, intent(in), optional, target :: hdata(:,:)
@@ -395,6 +450,7 @@ cddd      end interface ent_cell_update
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+!      logical :: mixed_veg_1
       logical :: init_1
       integer i1
       integer dims(2,1)
@@ -418,6 +474,7 @@ cddd      end interface ent_cell_update
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
       do_giss_albedo_1 = .false.
+!      mixed_veg_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
       init_1 = .false.
@@ -429,6 +486,8 @@ cddd      end interface ent_cell_update
      &     do_giss_lai_1 = do_giss_lai
       if ( present(do_giss_albedo) )
      &     do_giss_albedo_1 = do_giss_albedo
+!      if ( present(mixed_veg) )
+!     &	   mixed_veg_1 = mixed_veg     	   		    
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -451,18 +510,19 @@ cddd      end interface ent_cell_update
           call entcell_vegupdate(entcell(i1)%entcell,
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
+     &         do_giss_albedo_1, !mixed_veg_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
+
       
       enddo
-
       end subroutine ent_prescribe_vegupdate_r8_1
 
       subroutine ent_prescribe_vegupdate_r8_2(entcell
      &     ,hemi,jday,year,
      &     update_crops, do_giss_phenology, do_giss_lai, do_giss_albedo,
+!     &     mixed_veg,
      &     laidata, hdata, albedodata, cropsdata, init)
 !@sum updates prescribed vegatation parameters. This parameters can
 !@+   be passed directly in form of arrays like laidata or one can
@@ -476,6 +536,7 @@ cddd      end interface ent_cell_update
       logical, intent(in), optional :: do_giss_phenology
       logical, intent(in), optional :: do_giss_lai
       logical, intent(in), optional :: do_giss_albedo
+!      logical, intent(in), optional :: mixed_veg
       real*8, intent(in), optional, target ::
      &     laidata(:,:,:)
       real*8, intent(in), optional, target :: hdata(:,:,:)
@@ -489,6 +550,7 @@ cddd      end interface ent_cell_update
      &     albedodata_1(:,:), cropsdata_1
       integer :: hemi_1, jday_1
       logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+!      logical :: mixed_veg_1
       logical :: init_1
       integer i1,i2
       integer dims(2,2)
@@ -512,6 +574,7 @@ cddd      end interface ent_cell_update
       do_giss_phenology_1 = .false.
       do_giss_lai_1 = .true.
       do_giss_albedo_1 = .false.
+!      mixed_veg_1 = .false.
       hemi_1 = -32768
       jday_1 = -32768
       init_1 = .false.
@@ -523,6 +586,8 @@ cddd      end interface ent_cell_update
      &     do_giss_lai_1 = do_giss_lai
       if ( present(do_giss_albedo) )
      &     do_giss_albedo_1 = do_giss_albedo
+!      if ( present(mixed_veg) )
+!     &	   mixed_veg_1 = mixed_veg     	   		    
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -546,14 +611,14 @@ cddd      end interface ent_cell_update
           call entcell_vegupdate(entcell(i1,i2)%entcell,
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
+     &         do_giss_albedo_1, !mixed_veg_1,
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
+
       
       enddo
       enddo
-
       end subroutine ent_prescribe_vegupdate_r8_2
 
      
@@ -1167,8 +1232,7 @@ cddd      end interface ent_cell_update
       
 
       
-        call ent_integrate(dt, entcell%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell%entcell,update_day,config)
       
 
       end subroutine ent_run_r8_0
@@ -1199,8 +1263,7 @@ cddd      end interface ent_cell_update
 
       
       do i1=dims(1,1),dims(2,1)
-        call ent_integrate(dt, entcell(i1)%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell(i1)%entcell,update_day,config)
       
       enddo
 
@@ -1233,8 +1296,7 @@ cddd      end interface ent_cell_update
       
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
-        call ent_integrate(dt, entcell(i1,i2)%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell(i1,i2)%entcell,update_day,config)
       
       enddo
       enddo
@@ -1471,7 +1533,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell
@@ -1541,7 +1603,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:)
@@ -1613,7 +1675,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:,:)
@@ -1673,6 +1735,98 @@ cddd      end interface ent_cell_update
       enddo
 
       end subroutine ent_cell_set_r8_2
+
+
+!*************************************************************************
+
+
+      subroutine ent_cell_set_soilcarbon_r8_0(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell
+      real*8,dimension(:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      
+      
+
+      
+      
+
+      
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell%entcell)
+          call assign_entcell_soilcarbon( 
+     &	  entcell%entcell,
+     &         Tpool_ini(:,:,:,:) )
+
+        endif
+      
+
+      end subroutine ent_cell_set_soilcarbon_r8_0
+
+      subroutine ent_cell_set_soilcarbon_r8_1(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:)
+      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell(i1)%entcell)
+          call assign_entcell_soilcarbon( 
+     &	  entcell(i1)%entcell,
+     &         Tpool_ini(:,:,:,:,i1) )
+
+        endif
+      
+      enddo
+
+      end subroutine ent_cell_set_soilcarbon_r8_1
+
+      subroutine ent_cell_set_soilcarbon_r8_2(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:,:)
+      real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1,i2)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell(i1,i2)%entcell)
+          call assign_entcell_soilcarbon( 
+     &	  entcell(i1,i2)%entcell,
+     &         Tpool_ini(:,:,:,:,i1,i2) )
+
+        endif
+      
+      enddo
+      enddo
+
+      end subroutine ent_cell_set_soilcarbon_r8_2
+
 
 
 !*************************************************************************
@@ -2052,7 +2206,7 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc, nn, i
+      integer dc, i
 
       dc = 0
 
@@ -2068,7 +2222,21 @@ cddd      end interface ent_cell_update
       call copy_vars( buf, dc, entcell%par_10d, flag)
       call copy_vars( buf, dc, entcell%gdd, flag)
       call copy_vars( buf, dc, entcell%ncd, flag)
-      call copy_vars( buf, dc, entcell%ld, flag)
+      !call copy_vars( buf, dc, entcell%ld, flag)
+
+      call copy_vars( buf, dc, entcell%daylength(1), flag)
+      call copy_vars( buf, dc, entcell%daylength(2), flag)
+      call copy_vars( buf, dc, entcell%fall, flag)
+
+!hacks
+      call copy_vars( buf, dc, entcell%lai, flag)
+      call copy_vars( buf, dc, entcell%soil_Phi, flag)
+      call copy_vars( buf, dc, entcell%soil_dry, flag)
+      call copy_vars( buf, dc, entcell%Qf, flag)
+      call copy_vars( buf, dc, entcell%Soilmp, flag)
+      !if ( flag <= 0 ) then
+       call copy_vars( buf, dc, entcell%sgdd, flag)
+      !endif
 
       n = dc
 
@@ -2085,7 +2253,7 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc, nn, i
+      integer dc, i
 
       dc = 0
 
@@ -2103,6 +2271,10 @@ cddd      end interface ent_cell_update
       call copy_vars( buf, dc,  p%GCANOPY, flag )
       call copy_vars( buf, dc,  p%albedo, flag )
 
+      ! just guessing, trying to fix restart
+      call copy_vars( buf, dc,  p%Reproduction, flag )
+      call copy_vars( buf, dc,  p%lai, flag )
+
       n = dc
 
       end subroutine copy_patch_vars
@@ -2118,7 +2290,7 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer dc, nn
+      integer dc
 
       dc = 0
 
@@ -2163,6 +2335,21 @@ cddd      end interface ent_cell_update
       call copy_vars( buf, dc,  c%turnover_amp,  flag )
       ! needed for frost hardiness ?
       call copy_vars( buf, dc,  c%Sacclim ,  flag )
+
+      ! added Oct 30 2009 (while debugging dynamic phenology)
+      call copy_vars( buf, dc,  c%Ntot    ,  flag )
+      call copy_vars( buf, dc,  c%crown_dx,  flag )
+
+      call copy_vars( buf, dc,  c%phenofactor,  flag )
+      call copy_vars( buf, dc,  c%phenofactor_c, flag )
+      call copy_vars( buf, dc,  c%phenofactor_d, flag )
+      call copy_vars( buf, dc,  c%phenostatus, flag )
+      call copy_vars( buf, dc,  c%betad_10d,  flag )
+      call copy_vars( buf, dc,  c%CB_d,  flag )
+      call copy_vars( buf, dc,  c%senescefrac,  flag )
+      call copy_vars( buf, dc,  c%stressH2O,  flag )
+      call copy_vars( buf, dc,  c%NPP,  flag )
+
 
       n = dc
 
@@ -2253,7 +2440,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm
 !          entcell%entcell%Soilmoist =
 !    &         soil_moist30cm
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell%entcell%Soiltemp(n) =
      &           soil_temp(n)
             entcell%entcell%Soilmoist(n) =
@@ -2352,7 +2540,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm(i1)
 !          entcell(i1)%entcell%Soilmoist =
 !    &         soil_moist30cm(i1)
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell(i1)%entcell%Soiltemp(n) =
      &           soil_temp(n,i1)
             entcell(i1)%entcell%Soilmoist(n) =
@@ -2453,7 +2642,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm(i1,i2)
 !          entcell(i1,i2)%entcell%Soilmoist =
 !    &         soil_moist30cm(i1,i2)
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell(i1,i2)%entcell%Soiltemp(n) =
      &           soil_temp(n,i1,i2)
             entcell(i1,i2)%entcell%Soilmoist(n) =
@@ -3121,6 +3311,206 @@ C NADINE
 
       end subroutine ent_cell_print_r8_2
 
+
+#ifdef MIXED_CANOPY
+
+      subroutine ent_struct_setup_r8_0(entcell,iu)
+      use ent_make_struct, only : ent_struct_readcsv
+      type(entcelltype_public),intent(inout) :: entcell 
+      integer, intent(in) :: iu
+      !---
+      
+      
+
+      
+      
+
+      
+        call ent_struct_readcsv(entcell%entcell,iu)
+      
+
+      end subroutine ent_struct_setup_r8_0
+
+      subroutine ent_struct_setup_r8_1(entcell,iu)
+      use ent_make_struct, only : ent_struct_readcsv
+      type(entcelltype_public),intent(inout) :: entcell (:)
+      integer, intent(in) :: iu
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+        call ent_struct_readcsv(entcell(i1)%entcell,iu)
+      
+      enddo
+
+      end subroutine ent_struct_setup_r8_1
+
+      subroutine ent_struct_setup_r8_2(entcell,iu)
+      use ent_make_struct, only : ent_struct_readcsv
+      type(entcelltype_public),intent(inout) :: entcell (:,:)
+      integer, intent(in) :: iu
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+        call ent_struct_readcsv(entcell(i1,i2)%entcell,iu)
+      
+      enddo
+      enddo
+
+      end subroutine ent_struct_setup_r8_2
+
+
+
+
+      subroutine ent_struct_initphys_cells_r8_0(entcell,
+     &     soil_texture,
+!     &     pft_soil_type,
+!     &     vegalbedo,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, 
+     &	   Tpool_ini, 
+     &     reinitialize)
+      type(entcelltype_public),intent(inout)::
+     &                            entcell
+!      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+!      real*8, dimension(:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8  ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:) :: Tpool_ini  !soil pools,g/m2
+      logical :: reinitialize
+      !---
+      
+      
+
+      
+      
+
+      
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("ent_struct_initphys_cells 1",255)
+          !call entcell_print(6,entcell%entcell)
+
+	  call assign_entcell( entcell%entcell,
+!     &	       vegalbedo(:,:),
+     &         soil_texture(:),
+!     &         pft_soil_type(:),
+     &         Ci_ini, CNC_ini,
+     &         Tcan_ini, Qf_ini,
+     &         Tpool_ini(:,:,:,:),
+     &         reinitialize)
+        endif
+      
+
+      end subroutine ent_struct_initphys_cells_r8_0
+
+      subroutine ent_struct_initphys_cells_r8_1(entcell,
+     &     soil_texture,
+!     &     pft_soil_type,
+!     &     vegalbedo,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, 
+     &	   Tpool_ini, 
+     &     reinitialize)
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:)
+!      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+!      real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8 ,dimension(:) ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !soil pools,g/m2
+      logical :: reinitialize
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("ent_struct_initphys_cells 1",255)
+          !call entcell_print(6,entcell(i1)%entcell)
+
+	  call assign_entcell( entcell(i1)%entcell,
+!     &	       vegalbedo(:,:,i1),
+     &         soil_texture(:,i1),
+!     &         pft_soil_type(:,i1),
+     &         Ci_ini(i1), CNC_ini(i1),
+     &         Tcan_ini(i1), Qf_ini(i1),
+     &         Tpool_ini(:,:,:,:,i1),
+     &         reinitialize)
+        endif
+      
+      enddo
+
+      end subroutine ent_struct_initphys_cells_r8_1
+
+      subroutine ent_struct_initphys_cells_r8_2(entcell,
+     &     soil_texture,
+!     &     pft_soil_type,
+!     &     vegalbedo,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, 
+     &	   Tpool_ini, 
+     &     reinitialize)
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:,:)
+!      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+!      real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8 ,dimension(:,:) ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !soil pools,g/m2
+      logical :: reinitialize
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1,i2)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("ent_struct_initphys_cells 1",255)
+          !call entcell_print(6,entcell(i1,i2)%entcell)
+
+	  call assign_entcell( entcell(i1,i2)%entcell,
+!     &	       vegalbedo(:,:,i1,i2),
+     &         soil_texture(:,i1,i2),
+!     &         pft_soil_type(:,i1,i2),
+     &         Ci_ini(i1,i2), CNC_ini(i1,i2),
+     &         Tcan_ini(i1,i2), Qf_ini(i1,i2),
+     &         Tpool_ini(:,:,:,:,i1,i2),
+     &         reinitialize)
+        endif
+      
+      enddo
+      enddo
+
+      end subroutine ent_struct_initphys_cells_r8_2
+
+
+#endif
 
       end module ent_mod
 

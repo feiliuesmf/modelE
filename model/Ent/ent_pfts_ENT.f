@@ -26,6 +26,8 @@
       !* 14- arctic C3 grass
       !* 15- C4 crops
       !* 16 - crops broadleaf woody
+      !SAND = 17
+      !BDIRT = 18
 
       integer, parameter :: EVGRBROADEARLY = 1
       integer, parameter :: EVGRBROADLATE = 2
@@ -36,6 +38,7 @@
       integer, parameter :: DROUGHTDECIDBROAD =7
       integer, parameter :: DECIDNEEDLE = 8
       integer, parameter :: COLDSHRUB = 9
+      integer, parameter :: TUNDRA = 9  !NYK hack for same name as Matthews
       integer, parameter :: ARIDSHRUB = 10
       integer, parameter :: GRASSC3PER = 11
       integer, parameter :: GRASSC4 = 12
@@ -43,6 +46,9 @@
       integer, parameter :: GRASSC3ARCTIC = 14
       integer, parameter :: CROPSC4 = 15
       integer, parameter :: CROPSWOODY = 16
+      integer, parameter :: SAND = 17
+      integer, parameter :: BDIRT = 18
+
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15
@@ -161,5 +167,276 @@
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 4,
      &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0)
      &     /)
+
+
+      !*********************************************************
+      !* Prescribed albedoes for Matthews prescribed seasonality
+      !*********************************************************
+      real*8, parameter :: ALBVND(N_COVERTYPES,4,6) = RESHAPE( (/
+C
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-updated: 
+! decid_needle=decid fall-winter & needle spring-summer, 
+! c3grass_ann =c3grass opposite seasons
+!, cropstree = cold_broad
+C
+      !@var SEASON julian day for start of season (used for veg albedo calc)
+C                      1       2       3       4
+C                    WINTER  SPRING  SUMMER  AUTUMN
+C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
+     1 .061,.061,.067,.067,.100,.100,.078, .100,.067,.089,.089,.089,
+     &     .091, .089, .089, .100, .500,.000,
+     2 .061,.061,.067,.067,.055,.055,.073, .067,.100,.100,.100,.100,
+     &     .089, .100, .100, .055, .500,.000,
+     3 .061,.061,.083,.083,.058,.058,.085, .083,.139,.139,.091,.091,
+     &     .100, .091, .091, .058, .500,.000,
+     4 .061,.061,.061,.061,.055,.055,.064, .061, .111,.111,.090,.090,
+     &     .100,.090, .090, .055, .500,.000,
+C
+C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
+     1 .183,.183,.200,.200,.300,.300,.233,.300,.200,.267,.267,.267,
+     &     .350,.267,.267,.300,.500,.000,
+     2 .183,.183,.200,.200,.218,.218,.241,.200,.300,.300,.350,.350,
+     &     .364,.350,.350,.218,.500,.000,
+     3 .183,.183,.250,.250,.288,.288,.297,.250,.417,.417,.364,.364,
+     &     .267,.364,.364,.288,.500,.000,
+     4 .183,.183,.183,.183,.218,.218,.204,.183,.333,.333,.315,.315,
+     &     .315,.315,.315,.218,.500,.000,
+C
+C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
+     1 .183,.183,.200,.200,.300,.300,.233,.300,.200,.267,.267,.267,
+     &     .350,.267,.267,.300,.500,.000,
+     2 .183,.183,.200,.200,.218,.218,.241,.200,.300,.300,.350,.350,
+     &     .364,.350,.350,.218,.500,.000,
+     3 .183,.183,.250,.250,.288,.288,.297,.250,.417,.417,.364,.364,
+     &     .267,.364,.364,.288,.500,.000,
+     4 .183,.183,.183,.183,.218,.218,.204,.218,.333,.333,.315,.315,
+     &     .315,.315,.315,.218,.500,.000,
+C
+C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
+     1 .073,.073,.080,.080,.120,.120,.093,.120,.080,.107,.107,.107,
+     &     .140,.107,.107,.120,.500,.000,
+     2 .073,.073,.080,.080,.083,.083,.096,.080,.120,.120,.140,.140,
+     &     .145,.140,.140,.083,.500,.000,
+     3 .073,.073,.100,.100,.115,.115,.119,.100,.167,.167,.145,.145,
+     &     .107,.145,.145,.115,.500,.000,
+     4 .073,.073,.073,.073,.087,.087,.081,.087,.132,.132,.126,.126,
+     &     .126,.126,.126,.087,.500,.000,
+C
+C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
+     1 .091,.091,.100,.100,.150,.150,.116,.150,.100,.133,.133,.133,
+     &     .175,.133,.133,.150,.500,.000,
+     2 .091,.091,.100,.100,.109,.109,.120,.100,.150,.150,.175,.175,
+     &     .182,.175,.175,.109,.500,.000,
+     3 .091,.091,.125,.125,.144,.144,.148,.125,.208,.208,.182,.182,
+     &     .133,.182,.182,.144,.500,.000,
+     4 .091,.091,.091,.091,.109,.109,.102,.109,.166,.166,.157,.157,
+     &     .157,.157,.157,.109,.500,.000,
+C
+C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
+
+     1 .018,.018,.020,.020,.030,.030,.023,.030,.020,.027,.027,.027,
+     &     .035,.027,.027,.030,.500,.000,
+     2 .018,.018,.020,.020,.022,.022,.024,.020,.030,.030,.035,.035,
+     &     .036,.035,.035,.022,.500,.000,
+     3 .018,.018,.025,.025,.029,.029,.030,.025,.042,.042,.036,.036,
+     &     .027,.036,.036,.029,.500,.000,
+     4 .018,.018,.018,.018,.022,.022,.020,.022,.033,.033,.032,.032,
+     &     .032,.032,.032,.022,.500,.000
+     *     /),(/N_COVERTYPES,4,6/) )
+
+
+      !***************************************************
+      !* PFT categories
+      !***************************************************
+
+      logical, parameter :: is_crop(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true. /)
+
+      logical, parameter :: is_hw(N_PFT) = 
+     &     (/ .true., .true., .false., .false.,
+     &     .true., .true., .true., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .true. /)
+
+      logical, parameter :: is_conifer(N_PFT) =
+     &     (/ .false., .false., .true., .true.,
+     &     .false., .false., .false., .true.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false. /)
+
+      logical, parameter :: is_grass(N_PFT) =
+     &     (/ .false., .false., .false., .false., 
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true.,
+     &     .true., .true., .false., .false. /)
+
+      !***************************************************
+      !* Prescribed max and min LAI
+      !***************************************************
+!KIM - temp. values, NK-updated
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-update, KIM - modified to have a realistic numbers
+c$$$      real*8, parameter :: alamax(N_COVERTYPES) =
+c$$$     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+c$$$     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+c$$$     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+
+      real*8, parameter :: alamax(N_COVERTYPES) =
+      !* Matthews LAI *!
+!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+!     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+!     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+!      !* Revised Matthews LAI *!
+     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
+     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+
+      real*8, parameter :: alamin(N_COVERTYPES) =
+      !* Matthews LAI *!
+c$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
+c$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+      !* Revised Matthews LAI *!
+     $     (/ 5.0d0, 5.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
+     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+
+      integer, parameter :: laday(N_COVERTYPES) =
+     $     (/ 196, 196, 196, 196, 196, 196, 196
+     &     ,196, 196, 196, 196, 196, 196, 196
+     &     , 196, 196, 0, 0 /)
+
+
+      !***************************************************
+      !* Rosenzweig & Abramopoulos root profile parameters
+      !***************************************************
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-updated
+      real*8, parameter :: aroot(N_COVERTYPES) = 
+     $     (/ 1.1d0, 1.1d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0
+     &     ,0.25d0, 0.8d0, 0.8d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0
+     &     ,0.9d0, 0.25d0, 0.d0, 0.d0 /)
+      real*8, parameter :: broot(N_COVERTYPES) = 
+     $     (/ 0.4d0, 0.4d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+     &     ,2.0d0, 0.4d0, 0.4d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0
+     &     , 0.9d0, 2.0d0, 0.0d0, 0.0d0 /)
+
+      !***************************************************
+      !* Prescribed vegetation height
+      !***************************************************
+      real*8, parameter :: vhght(N_COVERTYPES) =
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-updated
+     $     (/25d0, 25d0, 30d0, 30d0, 7.1d0, 7.1d0, 5d0
+     &     , 30d0, 0.1d0, 5d0, 1.5d0, 1.5d0, 1.5d0, 1.5d0
+     &     ,1.75d0, 7.1d0, 0.d0, 0.d0 /)
+
+      !***************************************************
+      !*  Mean canopy nitrogen (nmv; g/m2[leaf])
+      !***************************************************
+      real*8, parameter :: nmv(N_COVERTYPES) =
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-updated
+     $     (/2.7d0, 2.7d0, 2.9d0, 2.9d0, 1.25d0, 1.25d0, 1.03d0
+     &     , 2.9d0, 1.6d0, 2.38d0, 3.27d0, 0.82d0, 3.27d0
+     &     , 3.27d0, 2.50d0, 1.25d0, 0.d0, 0.d0 /)
+
+      !***************************************************
+      !* Soil color by cover type (GISS GCM)
+      !***************************************************
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+!KIM - temp. values, NK-updated
+      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
+     $     (/ 2, 2,  2, 2, 2, 2, 2
+     &     , 2, 2, 2, 2, 2 ,2, 2, 2, 2, 1, 2 /)
+
+      !***************************************************
+      !* Soil carbon by cover type (GISS GCM) 
+      !* (fractions of total soil carbon in layer) - 1 layer only, modeled
+      !***************************************************
+!YK - temp. values, modified from 8 GISS pfts below
+!      real*8,parameter :: Cpool_fracs(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS)=
+      real*8,parameter :: Cpool_fracs1(N_PFT,NPOOLS-NLIVE,1)=
+     &     RESHAPE( (/
+        !1. ever_ES_broad
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !2. ever_LS_broad
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !3. ever_ES_needle
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !4. ever_LS_needle
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !5.  cold_ES_broad
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !6.  cold_LS_broad
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !7.  drought_broad
+     &       0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     &       0.007522776,0.022795146,0.57388576,0.190450989,
+        !8.  decid_needle
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349,
+        !9.  shrub_cold
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !10.  shrub_arid
+     &       0.0026084,0.077080104,0.001512116,0.059312743,0.064831966,
+     &       0.007522776,0.022795146,0.57388576,0.190450989,
+        !11.  c3grass
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !12.  c4grass
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !13.  c3grass_ann
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !14.  c3grass_arctic
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !15.  cropsc4
+     &       0.001891469,0.078919906,0.000456561,0.016762327,0.,
+     &       0.009848682,0.014675189,0.692995043,0.184450822,
+        !16.  cropstree
+     &       0.005387981,0.062119495,0.004371574,0.050484497,0.280263607
+     &       ,0.007488613,0.032152921,0.406417963,0.151313349 /),
+     &     ( /N_PFT,NPOOLS-NLIVE,1/ ))
+!     &     ( /N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS/ )
+
+      !***************************************************
 
       end module ent_pfts

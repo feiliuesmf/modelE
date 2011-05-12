@@ -14,7 +14,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &     ,frost_hardiness, fbb_night
+     &     ,frost_hardiness, fbb_night, Rdark
 
       public photosynthpar, pspar
 
@@ -151,7 +151,7 @@ cddd      endif
 !      type(photosynthpar) :: pspar !Moved to global to module.
       real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
       real*8 :: cie, cic, cis   !Leaf internal CO2 (umol mol-1)
-      real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
+!      real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
@@ -169,7 +169,7 @@ cddd      endif
 
       !write(888,*) "counter=", counter
 
-!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
+!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respir.
       Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
 
 
@@ -184,8 +184,9 @@ cddd      endif
       endif
 
 
+      !* Photosynthetic rate limited by RuBP saturation
+      !* Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
 !      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
-      ! Photosynthetic rate limited by RuBP saturation
       ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
       !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
 
@@ -234,9 +235,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 
 
 
+      !* Photosynthetic rate limited by "utilization of photosynthetic products"
+      !* (umol m-2 s-1)
 !      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
-      !Photosynthetic rate limited by "utilization of photosynthetic products"
-      ! (umol m-2 s-1)
       !Js_sucrose = pspar%Vcmax/2.d0
       As = pspar%Vcmax/2.d0 - Rd
       !write(888,*) "As", As
@@ -315,7 +316,9 @@ C Y_alpha, Y_eps unitless
 
 c      isp = Y_eps(pft)*Aiso*Y_alpha
 
-      isp = pfpar(pft)%Y_eps*Aiso*Y_alpha
+!!!      isp = pfpar(pft)%Y_eps*Aiso*Y_alpha
+!!hack
+      isp = 0
 
 C Include CO2 effects
 
@@ -446,6 +449,14 @@ cddd      end subroutine Photosynth_analyticsoln1
 !      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
       end function Respveg
 !-----------------------------------------------------------------------------
+      real*8 function Rdark()
+      !Leaf dark respiration
+
+      Rdark = 0.015d0 * pspar%Vcmax !von Caemmerer book.
+      
+      end function Rdark
+!-----------------------------------------------------------------------------
+
       function calc_CO2compp(O2,Kc,Ko,Tl) Result(Gammastar)
 !@sum CO2 compensation point in absence of dark respiration (Pa)
 
@@ -1164,24 +1175,26 @@ cddd      end function calc_ci
       real*8 function frost_hardiness(Sacclim) Result(facclim)
 !@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
 !@sum  due to frost hardiness phenology.
+!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
       real*8,intent(in) :: Sacclim 
       !----Local-----
       real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
+      !real*8,parameter :: Tacclim=-3.d0 ! Best tune for Hyytiala
                         ! Site specific thres. temp.: state of photosyn.acclim
                         ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
+      !real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
                         ! Site specific; conversion (1/Sacclim_max)=1/16.8115
                         ! estimated by using the max S from Hyytiala 1998
-!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
+      real*8, parameter :: a_const = 0.1d0 !Closer tune for Hyytiala
 
       if (Sacclim > Tacclim) then ! photosynthesis occurs 
          facclim = a_const * (Sacclim-Tacclim) 
          if (facclim > 1.d0) facclim = 1.d0
 !      elseif (Sacclim < -1E10)then !UNDEFINED
       elseif (Sacclim.eq.UNDEF)then !UNDEFINED
-         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
+         facclim = 1.d0         ! no acclimation for this pft and/or simualtion
       else
-         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
+         facclim = 0.01d0       ! arbitrary min value so that photosyn /= zero
       endif
 
       end function frost_hardiness

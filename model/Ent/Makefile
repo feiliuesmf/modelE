@@ -1,7 +1,7 @@
 #makefile for the component Ent
 .SUFFIXES:
 
-SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL
+SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL MIXED_CANOPY_OPT
 
 FSRCS = 
 F90SRCS = 
@@ -13,18 +13,16 @@ cohorts.f patches.f entcells.f \
 canopyradiation.f \
 growthallometry.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
-ent_types.f  ent_prescribed_updates.f
+ent_types.f ent_prescr_veg.f ent_prescribed_updates.f
 
 # different versions of the code
 ifeq ($(PFT_MODEL),ENT)
-  FSRCS += ent_ENTveg.f
   ifeq ($(FLUXNET),YES)
     FSRCS += ent_pfts_ENT_FLUXNET.f
   else
     FSRCS += ent_pfts_ENT.f
   endif
 else
-    FSRCS += ent_GISSveg.f
   ifeq ($(FLUXNET),YES)
     FSRCS += ent_pfts_FLUXNET.f
   else
@@ -56,6 +54,10 @@ else
   FSRCS += biophysics.f
 endif
 
+ifeq ($(MIXED_CANOPY_OPT),YES)
+  FSRCS += ent_make_struct.f
+endif
+
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
@@ -79,5 +81,9 @@ endif
 
 ifeq ($(ENT_STANDALONE_DIAG),YES)
 CPPFLAGS += -DENT_STANDALONE_DIAG
+endif
+
+ifeq ($(MIXED_CANOPY_OPT),YES)
+  CPPFLAGS += -DMIXED_CANOPY
 endif
 

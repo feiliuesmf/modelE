@@ -230,7 +230,7 @@ contains
   end function equals
 
   subroutine cleanKeyValuePair(this)
-    type (KeyValuePair_type), intent(in) :: this
+    type (KeyValuePair_type), intent(inout) :: this
     deallocate(this%values)
   end subroutine cleanKeyValuePair
 

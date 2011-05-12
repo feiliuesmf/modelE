@@ -16,45 +16,54 @@
       contains
 
       subroutine entcell_update_lai_poolslitter( ecp,
-     i    laidata,init)
+     i    laidata,init)!,mixed_VEG)
 !@sum sets prescribed LAI over the cell and update  C_fol, C_froot, senescefrac
       !use ent_prescrveg, only : prescr_plant_cpools
       use phenology, only : litter_patch
-      type(entcelltype) :: ecp
+      implicit none
+      type(entcelltype) :: ecp  !?pointer? ##
       real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
-      logical,intent(in) :: init
+      logical,intent(in) :: init!,mixed_VEG
       !-----Local---------
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
-      real*8 laipatch, lai_old,lai_new
+      real*8 :: laipatch, lai_old,lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       integer :: i
 
       laipatch = 0.d0
+      lai_new = 0.d0
+      lai_old = 0.d0
       Clossacc(:,:,:) = 0.d0
       pp => ecp%oldest      
       do while ( associated(pp) )
         laipatch = 0.d0
         cop => pp%tallest
         do while ( associated(cop) )
+          i = i + 1
           lai_old = cop%LAI
-          lai_new = laidata(cop%pft)
+!          if (.not.mixed_VEG) then !* LAI array is by PFT.
+             lai_new = laidata(cop%pft)
+!          else !* mixed_VEG, LAI array is in cohort order.
+#ifdef MIXED_CANOPY
+             lai_new = laidata(i)
+             print *,i,'lai_new',lai_new
+             print *,'Bug? Need above print stmt to update laipatch(??)'
+             !### For some reason laipatch is zero if this print statement
+             !### is not done.  Print statement can even go after 
+             !### laipatch is assigned.?? -NK
+!          endif
+#endif
+!MIXED_CANOPY
           !* Update biomass pools, senescefrac, accumulate litter
           call prescr_veglitterupdate_cohort(cop,lai_new,Clossacc,init)
-
-          !* Calculate senescence factor for next time step litterfall routine.
-          !* OLD SCHEME - replaced by presc_veglitterupdate_cohort - NYK
-!          if (cop%LAI.gt.0d0) then !Prescribed senescence fraction.
-!            cop%senescefrac = max(0.d0,(lai_old-cop%LAI)/lai_old)
-!          else
-!            cop%senescefrac = 0.d0
-!          endif
 
           laipatch = laipatch + cop%lai
           cop => cop%shorter
         enddo
         call litter_patch(pp,Clossacc) 
         pp%LAI = laipatch
+        print *, 'laipatch',laipatch,pp%LAI
         pp => pp%younger
       enddo
 
@@ -62,38 +71,54 @@
 
 
       subroutine entcell_update_height( ecp,
-     i    hdata,init)
+     i    hdata,init)!,mixed_VEG)
 !@sum sets prescribed LAI over the cell
       use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
-     &     ED_woodydiameter
+     &     ED_woodydiameter, crown_radius_horiz, crown_radius_vert
       use ent_pfts
       type(entcelltype) :: ecp
       real*8,intent(in) :: hdata(N_PFT) !@var LAI for all PFT's 
-      logical,intent(in) :: init
+      logical,intent(in) :: init!, mixed_VEG
       !-----Local---------
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 :: cpool(N_BPOOLS)
       real*8 :: C_sw_old, C_hw_old,C_croot_old,C_fol_old,C_froot_old
+      integer :: i
 
       cpool(:) = 0.d0
       pp => ecp%oldest      
+      i = 0
 
       do while ( associated(pp) )
         cop => pp%tallest
         do while ( associated(cop) )
+          i = i + 1
           C_fol_old = cop%C_fol
           C_sw_old = cop%C_sw
           C_hw_old = cop%C_hw
           C_froot_old = cop%C_froot
           C_croot_old = cop%C_croot
-          cop%h = hdata(cop%pft)
-
+!          if (.not.mixed_VEG) then !hdata array is by PFT
+#ifndef MIXED_CANOPY
+             cop%h = hdata(cop%pft)
+!          else !mixed_VEG, hdata array is by cohort order
+#else  !MIXED_CANOPY
+             cop%h = hdata(i)
+!          endif
+#endif !MIXED_CANOPY
           if (pfpar(cop%pft)%woody) then !update dbhuse
             cop%dbh = ED_woodydiameter(cop%pft,cop%h)
-            if (init) then !Set population density
-              cop%n = popdensity(cop%pft,cop%dbh) 
+            if (init) then !Set population density and crown geometry
+              cop%n = popdensity(cop%pft,cop%dbh,
+     &              alamax(cop%PFT+COVEROFFSET))
+              cop%crown_dx = crown_radius_horiz(cop%pft,cop%dbh,cop%n)
+              cop%crown_dy = crown_radius_vert(cop%h,cop%crown_dx)
             endif
+#ifdef ENT_STANDALONE_DIAG
+            print *,'pft,n,h,dbh,crown_dx,crown_dy',
+     &           cop%pft,cop%n,cop%h,cop%dbh,cop%crown_dx,cop%crown_dy
+#endif            
           endif
 
           !* Update biomass pools except for C_lab.
@@ -206,7 +231,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       integer, parameter :: PFT_CROPS = 8
       type(patch), pointer :: pp, pp_crops, pp_tmp, pp_end
       real*8 :: crops_old, dcrops, dfr
-      real*8 :: vdata(12)
+      real*8 :: vfraction(12)
 
 !#define UNFINISHED_CROPS_CODE
 #ifdef UNFINISHED_CROPS_CODE
@@ -214,8 +239,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 
       ! for debug 
 
-      call entcell_extract_pfts(ecp, vdata)
-      print *,"updating crops, old vdata:", vdata
+      call entcell_extract_pfts(ecp, vfraction)
+      print *,"updating crops, old vfraction:", vfraction
 
       ! find fraction of old crops
       crops_old = 0.d0
@@ -251,8 +276,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
 
 
       if ( crops_old > 1.d0 - 1.d-6 .or.
@@ -270,8 +295,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       !debug...........
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
       !............
             call patch_set_pft(pp_tmp, PFT_CROPS)
           endif
@@ -281,8 +306,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       !debug...........
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
       !............
         ! find first crops patch
         print *,"here ",__FILE__,__LINE__
@@ -305,8 +330,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       !debug...........
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
       !............
         print *,"here" ,__FILE__,__LINE__
       else
@@ -326,8 +351,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       !debug...........
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
       !............
         pp => ecp%oldest      
         do while ( associated(pp) )
@@ -346,16 +371,16 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       !debug...........
       call summarize_entcell(ecp )
       write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
-      call entcell_extract_pfts(ecp, vdata)
-      write(6,*) "sum= ", sum(vdata(:))
+      call entcell_extract_pfts(ecp, vfraction)
+      write(6,*) "sum= ", sum(vfraction(:))
       !............
         print *,"here ",__FILE__,__LINE__
         if ( pp_crops%area < 1.d-6 ) call delete_patch(ecp, pp_crops)
       endif
 
         print *,"here ",__FILE__,__LINE__
-      call entcell_extract_pfts(ecp, vdata)
-      print *,"updating crops, new vdata:", vdata
+      call entcell_extract_pfts(ecp, vfraction)
+      print *,"updating crops, new vfraction:", vfraction
 
       call summarize_entcell(ecp )
       write(997,*) "after"
@@ -384,22 +409,10 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       end subroutine entcell_update_crops
 
 
-      subroutine entcell_update_shc( ecp )
-      use ent_prescr_veg, only : prescr_calc_shc
-      use entcells, only : entcell_extract_pfts
-      type(entcelltype) :: ecp
-      !-----Local---------
-      real*8 vdata(N_COVERTYPES) ! needed for a hack to compute canopy
+!******************************************************************
 
-      vdata(:) = 0.d0
-      call entcell_extract_pfts( ecp, vdata )
-      ecp%heat_capacity=prescr_calc_shc(vdata)
-
-      end subroutine entcell_update_shc
-     
-
-      subroutine entcell_vegupdate(entcell, hemi, jday
-     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo
+      subroutine entcell_vegupdate(ecp, hemi, jday
+     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo!,mixed_veg
      &     ,laidata, hdata, albedodata, cropsdata, init )
 !@sum updates corresponding data on entcell level (and down). 
 !@+   DAILY TIME STEP ASSUMED.
@@ -407,16 +420,19 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !@+   is given pointer attribute to provide a way to tell the 
 !@+   program that an argument is actually optional and missing
 !@+   (see how it is used in ent_prescribe_vegupdate)
+      use ent_pfts, only: COVEROFFSET
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
-      use ent_prescr_veg, only : prescr_calc_shc, prescr_veg_albedo
+      !use ent_prescr_veg, only : prescr_calc_shc
+      use ent_prescr_veg, only : prescr_veg_albedo
       implicit none
-      type(entcelltype) :: entcell
+      type(entcelltype),pointer :: ecp
       integer,intent(in) :: jday
       integer,intent(in) :: hemi
       logical, intent(in) :: do_giss_phenology
       logical, intent(in) :: do_giss_lai
       logical, intent(in) :: do_giss_albedo
+!      logical, intent(in) :: mixed_veg
       real*8,  pointer :: laidata(:)  !Array of length N_PFT
       real*8,  pointer :: hdata(:)  !Array of length N_PFT
       real*8,  pointer :: albedodata(:,:)
@@ -424,9 +440,9 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       logical, intent(in) :: init
       !----Local------
       type(patch),pointer :: pp
-
+      
       !* 1. Update crops to get right patch/cover distribution.
-      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER!!!
+      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER ##
       !* 2. Update height to get any height growth (with GISS veg, height is static)
       !* 3. Update LAI, and accumulate litter from new LAI and growth/senescence.
       !*       Cohort litter is accumulated to the patch level.
@@ -439,20 +455,21 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       if (.not.do_giss_lai) then
 
         if ( associated(cropsdata) )
-     &       call entcell_update_crops(entcell, cropsdata)
+     &       call entcell_update_crops(ecp, cropsdata)
 
         if ( associated(hdata) )
-     &       call entcell_update_height(entcell, hdata, init)
+     &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
 
         if ( associated(laidata) )
-     &       call entcell_update_lai_poolslitter(entcell,laidata,init)
-
+     &       call entcell_update_lai_poolslitter(ecp,laidata,
+     &       init)!,mixed_veg)
+        
       endif
       ! or veg structure from prescribed GISS LAI phenology 
       if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
         if ( hemi<-2 .or. jday <-2 )
      &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
-        pp => entcell%oldest
+        pp => ecp%oldest
         do while (ASSOCIATED(pp))
         !* LAI, SENESCEFRAC *!
           if (do_giss_lai) 
@@ -462,30 +479,35 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
         end do
       endif
 
+
       !* ALBEDO *!
       if ( associated(albedodata) ) then
-        call entcell_update_albedo(entcell, albedodata)
+        call entcell_update_albedo(ecp, albedodata)
       else
-        pp => entcell%oldest
+        pp => ecp%oldest
         do while (ASSOCIATED(pp))
           ! update if have vegetation or not prognostic albedo
           if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
-     &         call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
      &         jday, pp%albedo)
           pp => pp%younger
         end do
       endif
 
-      call summarize_entcell(entcell)
+      call summarize_entcell(ecp)
+!      print *,'ecp%LAI', ecp%LAI
+!      print *,'ecp%oldest%LAI', ecp%oldest%LAI
 
-      call entcell_update_shc(entcell)
-cddd      vdata(:) = 0.d0
-cddd      call entcell_extract_pfts(entcell, vdata(2:) )
-cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
+!Moved this into summarize_entcell
+!#ifndef MIXED_CANOPY
+!      call entcell_update_shc_mosaicveg(ecp)
+!#else
+!      call entcell_update_shc(ecp)
+!#endif
 
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
-      
+
       end subroutine entcell_vegupdate
 
 
@@ -530,7 +552,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
         !* ALBEDO *! - Moved these lines to entcell_vegupdate.
 !        if ( ASSOCIATED(pp%tallest) ) then ! update if have vegetation
-!          call prescr_veg_albedo(hemi, pp%tallest%pft, 
+!          call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
 !     &         jday, pp%albedo)
 !        endif
       endif

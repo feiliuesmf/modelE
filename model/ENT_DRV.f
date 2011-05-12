@@ -30,7 +30,7 @@
 !@sum initializes vegetation
       use param
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
-      use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
+      use ent_prescr_veg, only : prescr_calcconst
       use model_com, only : focean, FLICE
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
@@ -86,7 +86,7 @@
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
 
-      call ent_initialize(
+      call ent_init_config(
      &     do_soilresp=(do_soilresp==1) !.true.
      &     ,do_phenology_activegrowth=(do_phenology_activegrowth==1) !.true.
      &     ,do_structuralgrowth=(do_structuralgrowth==1) 
@@ -154,7 +154,7 @@
      &     init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
 
 
-      use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
+      use ent_prescr_veg, only : prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
       use ghy_com, only : fearth
       type(entcelltype_public), intent(inout) :: entcells(I0:I1,J0:J1)

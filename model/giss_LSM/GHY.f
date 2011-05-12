@@ -69,6 +69,7 @@ ccc   data needed for debugging
 
       type ( ghy_debug_str ), public :: ghy_debug
       integer, public :: ijdebug
+      integer, public :: counter = 0
 
 ccc   public data
 ccc   main accumulators
@@ -723,6 +724,8 @@ ccc   local variables
       real*8 :: r_litter
 !     Effective leaf litter area index
       real*8 :: llai_eff
+!     Parameter for pore size distribution (b parameter)
+      real*8 :: b_param
 #endif
 
 #endif
@@ -934,9 +937,10 @@ c     epvs = rho3*cna*(qvs-qs)
 
 #ifdef EVAP_VEG_GROUND_NEW
 !     1) Soil resistance computed according to the formulation of
-!        Sakaguchi and Zeng (2009)
+!        Sakaguchi and Zeng (2009) 
+      b_param= b_poresize_param( q(3,1),q(1,1), thets(1,2)  )
       D_vapor = D0*(thets(1,2)**2.d0)*
-     &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*5.d0)
+     &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*b_param)
       L_dry = dz(1)*(exp((1.d0-theta(1,2)/thets(1,2))**5.d0)-1.d0)
      &             /(exp(1.d0)                              -1.d0)
       r_soil = L_dry / D_vapor
@@ -2019,6 +2023,43 @@ c****
       alb = fr_sn*alb_sn + (1.d0-fr_sn)*(albedo_6b(1)+albedo_6b(2))*.5d0
       end function ghy_albedo
 
+
+!-----------------------------------------------------------------------
+
+      function b_poresize_param( clay,sand,poros ) result(b_param)
+!@var Percent of clay and sand in the soil 
+      real*8 :: clay, sand
+!@var Porosity of the soil
+      real*8 :: poros
+      real*8 :: b_param, lambda, temp
+
+      temp = - 0.7842831d0 
+     &       + 0.0177544d0 *(sand)
+     &       - 1.062498d0  *(poros)
+     &       - 0.00005304d0*(sand*sand)
+     &       - 0.00273493d0*(clay*clay)
+     &       + 1.11134946d0*(poros*poros)
+     &       - 0.03088295d0*(sand*poros)
+     &       + 0.00026587d0*(sand*sand*poros*poros)
+     &       - 0.00610522d0*(clay*clay*poros*poros)
+     &       - 0.00000235d0*(sand*sand*clay)
+     &       + 0.00798746d0*(clay*clay*poros)
+     &       - 0.00674491d0*(poros*poros*clay)
+      lambda = exp(temp)
+
+      if (lambda<0.01d0)then
+         lambda = 0.01d0
+         write(6,*) "Warning in soil evap, lambda <0.01"
+      elseif (lambda > 3.d0) then
+         lambda = 3.d0
+         write(6,*) "Warning in soil evap, lambda > 3"
+      endif
+
+      b_param = 1.d0 / lambda
+
+
+      end function b_poresize_param
+
 !-----------------------------------------------------------------------
 
       subroutine advnc(
@@ -2103,7 +2144,7 @@ c**** soils28   common block     9/25/90
       integer limit,nit
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
-      real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: sbgc_temp(ngm), sbgc_moist(ngm)
       real*8 :: height_can
       real*8 :: albedo_6b(6)
 #ifdef TRACERS_WATER
@@ -2231,6 +2272,7 @@ ccc get necessary data from ent
      &     ,C_entcell=C_entcell_start
 #endif
      &     )
+
 ccc make sure there are no round-off errors in fractions
       if ( fv < 1.d-6 ) fv = 0.d0
       if ( fv > 1.d0 - 1.d-6 ) fv = 1.d0
@@ -2309,14 +2351,18 @@ ccc accm0 was not called here in older version - check
 
         if ( process_vege ) then
 
-          sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
-          sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
-
+          !sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
+          !sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
+          sbgc_temp(1:ngm)  = tp(1:ngm,2)
+          sbgc_moist(1:ngm) = 0.d0
+          where( ws(1:ngm,2) > 0.d0 )
+     &         sbgc_moist(1:ngm) =  w(1:ngm,2)/ws(1:ngm,2)
 
           !Qf = 0.d0
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
 cddd     &         vis_rad,direct_vis_rad,cosz1,sbgc_temp,sbgc_moist,
 cddd     &         h(1:ngm,2),fice(1:ngm,2) 
+
           call ent_set_forcings( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
@@ -2335,7 +2381,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         soil_temp=sbgc_temp,
      &         soil_moist=sbgc_moist,
      &         soil_matric_pot=h(1:ngm,2),
-     &         soil_ice_fraction=fice(1:ngm,2) 
+     &         soil_ice_fraction=fice(1:ngm,2)
      &         )
 
 !!!! dt is not correct at the moment !!

@@ -15,8 +15,8 @@
       type(entcelltype) :: gp
       real*8, intent(in) :: area
       integer, intent(in) :: soil_type
-      !---
-      type(patch), pointer :: pp
+      !----
+      type(patch),  pointer :: pp !Would be good to return pointer to patch.
 
       !* If !ASSOCIATED(gp) ERROR *!
 
@@ -40,7 +40,7 @@
       subroutine assign_patch(pp,
      &     Ci_ini, CNC_ini, pft, Tpool_ini)
      
-      use ent_const  !for assigning Tpool -PK 12/07
+      use ent_const  
       
       !Eventually may want to include all patch variables as optional vars.
       type(patch),pointer :: pp
@@ -55,7 +55,7 @@
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
 
-!#ifdef PRESCR_SOILCARB  !PK  - Condition should be unnecessary, since Tpool should at least be initialized to zero.
+      !Assign soil (dead) pools.
       do n=1,N_CASA_LAYERS 
        do i=NLIVE+1,NPOOLS
         pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
@@ -69,6 +69,31 @@
 !      print*, 'soil C pools: ', pp%Tpool(:,CARBON,:,:)  !optional test -PK
 #endif
       end subroutine assign_patch
+
+      !*********************************************************************
+      subroutine assign_patch_soilcarbon(pp, pft, Tpool_ini)
+      !Eventually may want to include all patch variables as optional vars.
+      !in assign_patch and get rid of this subroutine
+     
+      use ent_const  
+      
+      type(patch),pointer :: pp
+      integer, intent(in) :: pft
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) ::
+     &         Tpool_ini  !gC/m2, soil pools only
+      !----Local-------
+      integer :: i, n
+
+      !Assign soil (dead) pools.
+      do n=1,N_CASA_LAYERS 
+       do i=NLIVE+1,NPOOLS
+        pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
+       end do
+      end do
+!      pp%Tpool(CARBON,(NLIVE+1):NPOOLS,1:N_CASA_LAYERS) =
+!     &     Tpool_init(pft,CARBON,1:(NPOOLS-NLIVE),1:N_CASA_LAYERS)
+
+      end subroutine assign_patch_soilcarbon
       !*********************************************************************
       subroutine delete_patch(gp, pp)
       !* Delete patch pointed to by pp
@@ -91,7 +116,35 @@
 
       end subroutine delete_patch
 
-      !*********************************************************************
+ !**************************************************************************
+      real*8 function shc_patch(pp) Result(shc)
+!@sum Returns GISS GCM specific heat capacity for patch, but with subgrid
+!     calculation of shc.  See comments in entcell_update_shc_mosaicveg.
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      use ent_prescr_veg, only : GISS_shc
+      implicit none
+      type(patch),pointer :: pp
+      !-----
+      type(cohort),pointer :: cop
+      real*8 :: lai
+      integer :: anum
+
+      shc = 0.d0
+      lai = 0.d0
+      cop => pp%shortest
+      do while (associated(cop))
+         anum = cop%pft + COVEROFFSET
+         lai = lai + .5d0*(alamax(anum) + alamin(anum)) 
+         !shc = shc + GISS_shc(cop%pft) !Alternative way.
+         cop => cop%shorter
+      enddo
+
+      !shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      shc = GISS_shc(lai)  !Note: original GISS shc is at cell level, not patch.
+
+      end function shc_patch
+!**************************************************************************
 
       subroutine summarize_patch(pp)
       !* Calculates patch-level summary values of cohort pools.
@@ -221,11 +274,13 @@
       endif
 
       !* GEOMETRY - WEIGHTED AVERAGES
-      pp%h = pp%h / nsum        !wtd avg
-      pp%crown_dx = pp%crown_dx / nsum !wtd avg
-      pp%crown_dy = pp%crown_dy / nsum !wtd avg
-      pp%clump = pp%clump / nsum !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
-      CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
+      if ( nsum > 0.d0 ) then
+        pp%h = pp%h / nsum      !wtd avg
+        pp%crown_dx = pp%crown_dx / nsum !wtd avg
+        pp%crown_dy = pp%crown_dy / nsum !wtd avg
+        pp%clump = pp%clump / nsum !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
+        CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
+      endif
 
       !* FLUXES 
       if (pp%LAI.gt.0.d0) then
@@ -503,6 +558,28 @@
 
 
       !*********************************************************************
+      subroutine patch_copy(ppin,ppout)
+      ! Copy values in ppin into ppout, only patch-level variables.
+      ! Does not copy cohorts or entcell pointer.
+      ! Patch ppout should already be allocated.
+      type(patch),intent(in) :: ppin
+      type(patch),intent(out) :: ppout
+
+!      if (associated(ppin)) then
+!         if (associated(ppout)) then
+         ppout%age = ppin %age
+         ppout%area = ppin%area
+         ppout%soil_type = ppin%soil_type
+            ppout%Tpool(:,:,:) = ppin%Tpool(:,:,:)
+         !* Other: nm, albedo, fluxes if desired.
+!         else
+!            call stop_model("patch_copy: ppout not allocated",255)
+!         endif
+         !If blank ppin, then do nothing.  May want to stop_model.
+ !     endif
+      end subroutine patch_copy
+
+      !*********************************************************************
       subroutine patch_print(iu,pp,prefix)
       use cohorts, only : cohort_print
       integer, intent(in) :: iu
@@ -515,29 +592,78 @@
 
       prefix_c = "        "
 
-      write(iu,'(a,a," = ",f10.7)') prefix,"area",pp%area
-      write(iu,'(a,a," = ",f10.2)') prefix,"age ",pp%age
-      write(iu,'(a,a," = ",f10.7)') prefix,"GCANOPY ",
+      write(iu,1) prefix,"area",pp%area
+      write(iu,1) prefix,"age ",pp%age
+      write(iu,1) prefix,"GCANOPY ",
      &     pp%GCANOPY
-      write(iu,'(a,a," = ",f10.7)') prefix,"Ci ",pp%Ci
-      write(iu,'(a,a," = ",f10.7)') prefix,"nm ",pp%nm
-      write(iu,'(a,a," = ",f10.7)') prefix,"soil H2O ",pp%Soilmoist
+      write(iu,1) prefix,"Ci ",pp%Ci
+      write(iu,1) prefix,"nm ",pp%nm
+      write(iu,1) prefix,"soil H2O ",pp%Soilmoist
       write(iu,'(a,"albedo:")') prefix
       do n=1,N_BANDS
-        write(iu,'(a,"      ",f10.7)') prefix,pp%albedo(n)
+        write(iu,'(a,"      ",99e23.16)') prefix,pp%albedo(n)
       enddo
       write(iu,'(a,"Tpool:")') prefix
       do m=1,PTRACE
         do n=1,NPOOLS,3
          do i=1,N_CASA_LAYERS
-          write(iu,'(a,"      ",i1,"  ",e12.4,e12.4,e12.4)') prefix,m
+          write(iu,'(a,"      ",i1,"  ",e23.16,e23.16,e23.16)') prefix,m
      &         ,pp%Tpool(m,n,i),pp%Tpool(m,n+1,i),pp%Tpool(m,n+2,i)
          end do
         enddo
       enddo
       write(iu,'(a,a," = ",i7)') prefix,"soil type",pp%soil_type
-      write(iu,'(a,"cohorts:")') prefix
 
+
+      write(iu,1) prefix,"nm	 ",pp%nm		   
+      write(iu,1) prefix,"Ntot	",pp%Ntot		   
+      write(iu,1) prefix,"LMA   ",pp%LMA		   
+      write(iu,1) prefix,"LAI   ",pp%  LAI             
+      write(iu,1) prefix,"h       ",pp%  h              !
+      write(iu,1) prefix,"crown_dx  ",pp%  crown_dx       !
+      write(iu,1) prefix,"crown_dy  ",pp%  crown_dy       !
+      write(iu,1) prefix,"clump      ",pp%  clump          !
+      write(iu,1) prefix,"C_fol       ",pp%  C_fol          !
+      write(iu,1) prefix,"N_fol        ",pp%  N_fol          !
+      write(iu,1) prefix,"C_w         ",pp%  C_w           ! 
+      write(iu,1) prefix,"N_w       ",pp%  N_w           ! 
+      write(iu,1) prefix,"C_lab      ",pp%  C_lab          !
+      write(iu,1) prefix,"N_lab       ",pp%  N_lab          !
+      write(iu,1) prefix,"C_froot      ",pp% C_froot        !
+      write(iu,1) prefix,"N_froot   ",pp%  N_froot        !
+      write(iu,1) prefix,"C_root    ",pp%  C_root        ! 
+      write(iu,1) prefix,"N_root    ",pp%  N_root        ! 
+      write(iu,1) prefix,"Ci        ",pp%  Ci             !
+      write(iu,1) prefix,"GCANOPY   ",pp%  GCANOPY        !
+      write(iu,1) prefix,"GPP        ",pp%  GPP            !
+      write(iu,1) prefix,"IPP        ",pp%  IPP            !
+      write(iu,1) prefix,"NPP        ",pp%  NPP            !
+      write(iu,1) prefix,"R_auto     ",pp%  R_auto         !
+      write(iu,1) prefix,"R_root     ",pp%  R_root         !
+      write(iu,1) prefix,"N_up        ",pp%  N_up           !
+      write(iu,1) prefix,"z0          ",pp%  z0              
+      write(iu,1) prefix,"albedo(N" ,pp%  albedo(:) 
+      write(iu,1) prefix,"betad     ",pp%  betad           
+      write(iu,1) prefix,"TRANS_SW  ",pp%  TRANS_SW        
+      write(iu,1) prefix,"CO2flux    ",pp%  CO2flux         
+      write(iu,1) prefix,"Soil_resp",pp%Soil_resp       
+      write(iu,1) prefix,"Soilmoist",pp%Soilmoist(:)
+      write(iu,1) prefix,"fuel ",pp%fuel		   
+      write(iu,1) prefix,"ign_rate",pp%ignition_rate   
+      write(iu,1) prefix,"lambda1(",pp%  lambda1(:) !
+      write(iu,1) prefix,"d_r",pp%  disturbance_rate
+      write(iu,1) prefix,"C_total	",pp%C_total	   
+      write(iu,1) prefix,"C_growth  ",pp%  C_growth        
+
+      if ( associated(pp%LAIpft) )
+     & write(iu,1) prefix,"LAIpft",pp%LAIpft
+      if ( associated(pp%betadl) )
+     & write(iu,1) prefix,"betadl",pp%betadl
+      if ( associated(pp%Reproduction) )
+     & write(iu,1) prefix,"Reproduction",
+     &     pp%Reproduction
+
+      write(iu,'(a,"cohorts:")') prefix
       cop => pp%tallest
       nc = 0
       do while( associated(cop) )
@@ -547,36 +673,37 @@
         cop => cop%shorter
       enddo
 
+ 1    format(a,a," = ",99e23.16)  ! e12.5
       end subroutine patch_print
 
 
-      subroutine patch_extract_pfts(pp, vdata)
+      subroutine patch_extract_pfts(pp, vfraction)
       use ent_pfts
       use ent_const
       use cohorts, only : cohort_print
       type(patch) :: pp
-      real*8 :: vdata(:)
+      real*8 :: vfraction(:)
       !---
       type(cohort),pointer :: cop
       real*8 :: density
 
-      vdata(:) = 0.d0
+      vfraction(:) = 0.d0
       density = 0.d0
       cop => pp%tallest
       do while( associated(cop) )
-        vdata( cop%pft + COVEROFFSET ) = 
-     &       vdata( cop%pft + COVEROFFSET ) + cop%n
+        vfraction( cop%pft + COVEROFFSET ) = 
+     &       vfraction( cop%pft + COVEROFFSET ) + cop%n
         density = density + cop%n
         cop => cop%shorter
       enddo
 
       if ( density>0.d0 ) then
-        vdata(:) = vdata(:)/density
+        vfraction(:) = vfraction(:)/density
       else
         if ( pp%soil_type == 1 ) then
-          vdata(COVER_SAND) = 1.d0
+          vfraction(COVER_SAND) = 1.d0
         else
-          vdata(COVER_DIRT) = 1.d0
+          vfraction(COVER_DIRT) = 1.d0
         endif
       endif
 
@@ -615,6 +742,7 @@
       gp => pp%cellptr
       call insert_patch(gp, area, pp%soil_type)
       pp_new => gp%youngest
+
       if ( associated(pp%tallest) ) then ! have cohort: will insert similar
         call insert_cohort(pp_new, pp%tallest%pft, pp%tallest%n)
       endif

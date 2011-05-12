@@ -84,8 +84,9 @@
       !* SOIL / HYDROLOGY *
       !********************
 !      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
-      !!! setting it to constant for the time being to simplify the compilation
-      integer, parameter :: N_DEPTH = 6
+      integer, parameter :: N_DEPTH = 6 !Number of soil layers. SET AS PAR BUT LATER CAN BE VARIABLE.
+      real*8, parameter :: SOILDEPTH_m(N_DEPTH) = !Bottom depths of soil layers (m)
+     &     (/ 0.1,0.27,0.57,1.08,1.97,3.5 /) !GISS GCM
 
       !**********************
       !* RADIATIVE TRANSFER *
@@ -97,7 +98,9 @@
       !* ECOLOGICAL DYNAMICS *
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
+      real*8,parameter :: LOW_PAR_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
 
+!#define PFT_MODEL_ENT
 #ifdef PFT_MODEL_ENT
       !************************************************
       !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *
@@ -131,7 +134,7 @@
       integer,parameter :: ANNUAL = 5 
     
       !************************************************
-      !*  GISS SOIL CONSTANTS                         *
+      !*  COVER SUMMARY CONSTANTS                     *
       !************************************************
 
       integer,parameter :: N_SOILCOV = 2 !2-light sand, dark dirt (GISS) 
@@ -169,7 +172,7 @@
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
 !      integer,parameter :: ptrace = 2  !num. nutrient pools used in CASA resp. routine -PK
-      integer,parameter :: nresp_pools = 14  !num. pools used in CASA resp. routine -PK
+      integer,parameter :: NRESP_PATHS = 14  !num. pathways between pools in CASA soil respiration.
       real*8,parameter :: Q10 = 2.d0        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
 
       !* Live pool array indices

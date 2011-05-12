@@ -1252,7 +1252,7 @@ contains
 
   subroutine cleanDictionary(this)
 !@sum Restore data structure to pristine state
-    type (Dictionary_type), intent(in) :: this
+    type (Dictionary_type), intent(inout) :: this
     integer :: i
     do i = 1, size(this%pairs)
       call clean(this%pairs(i))

@@ -151,17 +151,21 @@
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
+        !call patch_print(771,pp," ff ")
         call photosynth_cond(dtsec, pp)
 
         if (config%do_phenology_activegrowth) then
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
+          !call patch_print(771,pp," bb ")
           if (update_day) then
             call pheno_update(dtsec,pp)
+            !call patch_print(771,pp," bb ")
             call veg_update(dtsec,pp,config)
             !call litter(pp) !Litter is now called within veg_update
 
           end if
+          !call patch_print(771,pp," aa ")
         endif
 
         if (config%do_soilresp) then
@@ -178,7 +182,7 @@
 #endif
           !*********************************************************!
         pp => pp%younger 
-      end do 
+      end do
 
       call summarize_entcell(ecp)
 
@@ -186,7 +190,11 @@
       !  call patch_dynamics(pp,monthlyupdate)
       ! call summarize_entcell(ecp)
       endif !do_patchdynamics
-
+      
+      if (update_day) then
+        ecp%daylength(1) = ecp%daylength(2)
+        ecp%daylength(2) = 0.d0
+      end if
 
 #ifdef DEBUG
       print *,"End of ent_biophysics"
@@ -195,6 +203,7 @@
 
 #ifdef ENT_STANDALONE_DIAG
       call ent_diagnostics_entcell(ecp)
+!      call entcell_print(6, ecp)
 #endif
 
       end subroutine ent_integrate
@@ -349,7 +358,7 @@
      &     pp%Reproduction(tmp_pft),
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
-     &     pp%NPP,pp%CO2flux,pp%GCANOPY,
+     &     pp%NPP,pp%CO2flux,pp%GCANOPY,pp%IPP,
      &     tmp_senescefrac,tmp_Sacclim,pp%c_total,
 !### HACK: c_growth is Igor's hack to store daily growth respiration somewhere
 !### HACK: N_up is temporarily litterfall, using unused variable -NK
