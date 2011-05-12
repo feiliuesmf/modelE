@@ -308,7 +308,7 @@ while (<RFILE>) {
     s/\s*$//;
     next if ( ! $_ ); 
     #print I "$_\n";
-    if ( /^\s*ISTART/ ) {
+    if ( /ISTART/ ) {
 	$str_cold .= "$_\n";
     } else {
 	$istr .= "$_\n";
