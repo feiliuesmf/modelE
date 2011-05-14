@@ -208,7 +208,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
 #else
 #ifdef TRACERS_DUST
-      INTEGER, PARAMETER, public :: NDIUVAR=73+14*lmax_dd2+6*npbl
+      INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl
      &     +4*(npbl-1)
 #else
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
