@@ -3,9 +3,9 @@
       subroutine atm_phase1
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
-      use resolution, only : im,jm,lm,ls1
+      use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
-      USE ATM_COM, only : p,wm,nstepscm
+      USE ATM_COM, only : p,srfp,wm,nstepscm
       USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -38,6 +38,9 @@
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
       use RAD_COM, only : nrad,modrd
+      use seaice_com, only : si_atm,si_ocn,iceocn ! temporary until
+      use lakes_com, only : icelak                ! melt_si calls
+      use fluxes, only : atmocn,atmice            ! are moved
       implicit none
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
@@ -143,6 +146,9 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (NOW,MTRACE)
 #endif
 #endif
+
+      SRFP = P+PTOP
+
       call stopTimer('Atm. Dynamics')
 
 C****
@@ -177,6 +183,7 @@ c dissipation gets included in the KE->PE adjustment
 
          IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
+         atmocn%MODD5S = MODD5S
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
@@ -185,9 +192,9 @@ C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
 C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 ! todo: move melt_si(ocean) to the end of the ocean driver, and
 ! possibly unite melt_si(lakes) with the rest of the lakes calls
-      CALL MELT_SI('OCEAN')
-      CALL MELT_SI('LAKES')
-      call seaice_to_atmgrid
+      CALL MELT_SI(si_ocn,iceocn,atmocn,atmice)
+      CALL MELT_SI(si_atm,icelak,atmocn,atmice)
+      call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
 
@@ -230,17 +237,26 @@ C**** Calculate non-interactive tracer surface sources and sinks
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : FILTER
+      USE ATM_COM, only : SRFP,P
+      USE RESOLUTION, only : PTOP
 #endif
 #ifdef SCM
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
+      USE FLUXES, only : atmice
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
       implicit none
 
       REAL*8 start,now
+
+      call seaice_to_atmgrid(atmice)
+      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise
+C**** SAVE some noon GMT ice quantities
+      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
+     &        call vflx_OCEAN
 
 C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
@@ -267,6 +283,7 @@ C**** SEA LEVEL PRESSURE FILTER
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER
+           SRFP = P+PTOP
            CALL CHECKT ('FILTER')
            CALL TIMER (NOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
@@ -315,8 +332,8 @@ c*****call scm diagnostics every time step
       return
       end subroutine atm_phase2
 
-      SUBROUTINE INPUT_atm (istart,istart_fixup,is_coldstart,
-     &     KDISK_restart,IRANDI)
+      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups,
+     &     is_coldstart,KDISK_restart,IRANDI)
 
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
@@ -324,7 +341,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE Dictionary_mod
       USE CONSTANT, only : grav
-      USE FLUXES, only : nisurf
+      USE FLUXES, only : nisurf,atmocn,atmice
       USE RESOLUTION, only : ls1,plbot
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
@@ -361,7 +378,7 @@ C****
 #endif
       IMPLICIT NONE
 !@var istart start(1-8)/restart(>8)  option
-      integer :: istart,istart_fixup
+      integer :: istart,istart_fixup,do_IC_fixups
       LOGICAL :: is_coldstart
       INTEGER :: KDISK_restart
       INTEGER :: IRANDI
@@ -466,7 +483,12 @@ C****
       CALL daily_RAD(.false.)
 
 C**** Initialize lake variables (including river directions)
+      if(istart.eq.2) call read_agrice_ic
       iniLAKE = is_coldstart
+      CALL init_lakeice(inilake,do_IC_fixups)
+c      call stop_model('set_noice_defaults prob that fwater==flake'//
+c     &     ' not initialized yet?',255)
+      call seaice_to_atmgrid(atmice) ! set gtemp etc.
       CALL init_LAKES(inilake,istart_fixup)
 
 C****
@@ -532,9 +554,10 @@ C****
 ! ISTART=2 result differs if daily_OCEAN comes before init_pbl,
 ! since daily_OCEAN replaces the GIC values of gtemp
 ! with the values from the prescribed SST file
-      CALL daily_OCEAN(.false.)            ! not end_of_day
+      CALL daily_OCEAN(.false.,atmocn)            ! not end_of_day
 ! need to do this after prescribed-ice daily_OCEAN changes si frac.
 ! not needed once daily_OCEAN is moved before atm init.
+      call seaice_to_atmgrid(atmice) ! debug
       CALL UPDTYPE
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -576,7 +599,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_atm_com(grid)
       call alloc_smomtq(grid)
 
-      call alloc_fluxes(grid)
+      call alloc_fluxes !(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
@@ -649,6 +672,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       integer :: fid
       call def_rsf_atm    (fid)
       call def_rsf_lakes  (fid)
+      call def_rsf_agrice (fid)
       call def_rsf_icedyn (fid)
       call def_rsf_earth  (fid)
       call def_rsf_soils  (fid)
@@ -670,6 +694,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_tracer (fid)
 #endif
       call def_rsf_subdd  (fid)
+      call def_rsf_fluxes (fid)
       return
       end subroutine def_rsf_atmvars
 
@@ -678,6 +703,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       integer, intent(in) :: fid,iorw
       call new_io_atm    (fid,iorw)
       call new_io_lakes  (fid,iorw)
+      call new_io_agrice (fid,iorw)
       call new_io_earth  (fid,iorw)
       call new_io_soils  (fid,iorw)
       call new_io_vegetation  (fid,iorw)
@@ -702,6 +728,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_tracer (fid,iorw)
 #endif
       call new_io_subdd  (fid,iorw)
+      call new_io_fluxes (fid,iorw)
       return
       end subroutine new_io_atmvars
 
@@ -750,6 +777,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       subroutine finalize_atm
       USE SUBDAILY, only : close_subdd
 #ifdef USE_FVCORE
+      USE MODEL_COM, only : kdisk
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Finalize
 #endif
@@ -758,9 +786,8 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       USE SCMCOM , only : iu_scm_prt,iu_scm_diag
 #endif
       implicit none
-      integer :: kdisk_restart
 #ifdef USE_FVCORE
-         call Finalize(fvstate, kdisk_restart)
+         call Finalize(fvstate, kdisk)
 #endif
 
 C**** CLOSE SUBDAILY OUTPUT FILES

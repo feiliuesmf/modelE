@@ -5,6 +5,7 @@
 !@auth Original Development Team
       IMPLICIT NONE
       SAVE
+
       CHARACTER*132 XLABEL !@var XLABEL=runID+brief description of run
       INTEGER :: LRUNID    !@var Run name stored in XLABEL(1:LRUNID)
       INTEGER :: LHEAD=15  !@var length of crucial beg of module_headers
@@ -139,6 +140,10 @@ C**** (Simplified) Calendar Related Terms
 C**** Accumulating_period information
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
       CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
+
+!@param ia_cpl idacc-index currently associated with DTsrc, placed
+!@+            here for visibility to non-atmospheric components
+      integer, parameter :: ia_cpl=1 ! currently has to be == 1
 
       END MODULE MDIAG_COM
 

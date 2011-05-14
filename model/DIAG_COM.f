@@ -15,6 +15,7 @@
       use geom, only : imh,fim,byim
 #endif
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
+      use mdiag_com, only : ia_cpl
       IMPLICIT NONE
       SAVE
       private
@@ -527,7 +528,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
      *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4, J_LWCORR,
-     *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
+     *     J_RVRD,J_ERVR,J_IMPLM, J_IMPLH,
      *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
      *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
      *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
@@ -575,16 +576,16 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SLP, IJ_UJET, IJ_VJET, IJ_PCLDL, IJ_PCLDM, IJ_PCLDH,
      *     IJ_BTMPW, IJ_SRREF, IJ_SRVIS, IJ_TOC2, IJ_TAUS, IJ_TAUUS,
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
-     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI, IJ_TGO2, IJ_EVAPO, ij_RHs,
-     *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
+     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_TGO2, IJ_EVAPO, ij_RHs,
+     *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0LI,IJ_F0E,
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAXE, IJ_TMAXC, IJ_TMINC, IJ_TMNMX, IJ_PEVAP,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
-     *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
-     *     IJ_SSI1,IJ_SSI2,IJ_SMFX,     ! IJ_MSU2,IJ_MSU2R,
-     *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
+     *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,
+     *     ! IJ_MSU2,IJ_MSU2R,
+     *     IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
      *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, IJ_LAI, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
@@ -592,7 +593,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
      *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
-     *     IJ_FWIO, IJ_HTIO, IJ_STIO, IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
+     *     IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
@@ -609,12 +610,11 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
      *     ,ij_kw, ij_alpha, ij_gasx, ij_rvrflo
-     *     ,ij_sisnd,ij_tsice,ij_sisnwf,ij_sigrfr
-     *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
-     *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
+     *     ,ij_sisnd
+     *     ,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
-     *     ,IJ_MLKtoGR,IJ_HLKtoGR, IJ_MSNFLOOD,IJ_HSNFLOOD
+     *     ,IJ_MLKtoGR,IJ_HLKtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
@@ -629,9 +629,6 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
      *     ,IJ_GW9
-!@var IJ_[MHS][UV]SI indices for sea ice mass/heat/salt transport diags
-      INTEGER, public ::
-     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
@@ -944,7 +941,8 @@ C**** weighting functions for surface types
 
 c idacc-indices of various processes
       integer, parameter, public ::
-     &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
+     &     ia_src=ia_cpl, !=1
+     &               ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
      *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_rad_frc=11,
      *     ia_inst=12
 
@@ -979,6 +977,8 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &     NDAa=7, NDA5d=1, NDA5k=7, NDA5s=1, NDASf=1, NDA4=24
 !@var MODD5K,MODD5S: if MODxxx=0 do xxx, else skip xxx
       INTEGER, public :: MODD5K, MODD5S
+
+      target :: AIJ_loc,JREG,DXYP_BUDG,CONSRV_loc,NOFM
 
 #ifdef NEW_IO
       type(cdl_type), public :: cdl_latbudg,cdl_heights
@@ -1067,7 +1067,8 @@ c instances of arrays
 #endif
 #endif
       use diag_zonal, only : get_alloc_bounds
-
+      use fluxes, only : atmocn
+      USE DIAG_COM, only : dxyp_budg,nofm,consrv_loc
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: I_1H, I_0H, J_1H, J_0H
@@ -1216,6 +1217,11 @@ c allocate master copies of budget- and JK-arrays on root
 
       ALLOCATE(FTYPE(NTYPE,I_0H:I_1H,J_0H:J_1H), STAT = IER)
       FTYPE(:,:,:) = 0.d0
+
+      atmocn%jm_budg = jm_budg
+      atmocn%area_of_zone => dxyp_budg
+      atmocn%consrv => consrv_loc
+      atmocn%nofm => nofm
 
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM

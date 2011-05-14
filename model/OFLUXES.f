@@ -3,99 +3,44 @@
       MODULE OFLUXES
 !@sum  OFLUXES contains the fluxes between various components
 !       that are going to be used on ocean grid
-!@auth Larissa Nazarenko
-      USE RESOLUTION, only : im,jm,lm
-      USE OCEANRES,  only : imo,jmo
-!      USE DOMAIN_DECOMP_1D, ONLY : grid
-      USE OCEANR_DIM, only : grid=>ogrid
 
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only: ntm
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_COM, only: ntm_gasexch
-#endif
-#endif
-
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
 
-!@var SOLAR absorbed solar radiation (J/m^2)
-!@+   SOLAR(1)  absorbed by open water
-!@+   SOLAR(2)  absorbed by ice
-!@+   SOLAR(3)  absorbed by water under the ice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oSOLAR
-!@param NSTYPE number of surface types for radiation purposes
-      INTEGER, PARAMETER :: NSTYPE=4
-!@var E0 net energy flux at surface for each type (J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oE0
-!@var EVAPOR evaporation over each type (kg/m^2) 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oEVAPOR
-C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
-!@var DMSI mass flux of sea ice 1) open water and 2) under ice (kg/m^2)
-!@var DHSI energy flux of sea ice 1) open water and 2) under ice (J/m^2)
-!@var DSSI salt flux in sea ice 1) open water and 2) under ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oDMSI, oDHSI, oDSSI
-!@var RUNOSI run off from sea/lake ice after surface (kg/m^2)
-!@var ERUNOSI energy of run off from sea/lake ice after surface (J/m^2)
-!@var SRUNOSI salt in run off from sea/lake ice after surface (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oRUNOSI, oERUNOSI, oSRUNOSI
-!@var FLOWO,EFLOWO mass, energy from rivers into ocean (kg, J)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oFLOWO, oEFLOWO
-!@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oAPRESS
-!@var MELTI,EMELTI,SMELTI mass,energy,salt from simelt into ocean (kg,J)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oMELTI, oEMELTI, oSMELTI
+      type(atmocn_xchng_vars) :: ocnatm
+      type(iceocn_xchng_vars) :: ocnice
 
-!@var DMUA,DMVA momentum flux from atmosphere for each type (kg/m s) 
-!@+   On OCN A grid (tracer point)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oDMUA, oDMVA
-!@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
-!@+   On OCN C grid 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oDMUI, oDMVI
+      REAL*8, DIMENSION(:,:), POINTER ::
+     &      oSOLARw
+     &     ,oE0
+     &     ,oEVAPOR
+     &     ,oDMUA, oDMVA
+     &     ,oPREC
+     &     ,oEPREC
+     &     ,oFLOWO, oEFLOWO
+     &     ,oGMELT, oEGMELT
 
-!@var GMELT,EGMELT mass,energy from glacial melt into ocean (kg,J)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oGMELT, oEGMELT
-
-!@var RUNPSI run off from sea/lake ice after precip (kg/m^2)
-!@var ERUNPSI energy of run off from sea/lake ice after precip (J/m^2)
-!@var SRUNPSI salt in run off from sea/lake ice after precip (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oRUNPSI, oERUNPSI, oSRUNPSI   
-!@var PREC precipitation (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oPREC
-!@var EPREC energy of preciptiation (J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oEPREC
-
-!@var RSI fraction of open water area covered in ice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oRSI
+      REAL*8, DIMENSION(:,:), POINTER ::
+     &      oSOLARi
+     &     ,oRUNOSI, oERUNOSI, oSRUNOSI
+     &     ,oAPRESS
+     &     ,oMELTI, oEMELTI, oSMELTI
+     &     ,oDMUI, oDMVI
+     &     ,oRSI
+     &     ,oRUNPSI, oERUNPSI, oSRUNPSI
+      REAL*8, DIMENSION(:,:,:), POINTER ::
+     &      oDMSI, oDHSI, oDSSI
 
 #ifdef TRACERS_OCEAN
 
-#ifdef TRACERS_GASEXCH_ocean
-!@var TRGASEX  tracer gas exchange over each type (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTRGASEX
-#endif
-
 #ifdef TRACERS_WATER
-!@var TRFLOWO tracer in river runoff into ocean (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oTRFLOWO
-!@var TREVAPOR tracer evaporation over each type (kg/m^2) 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTREVAPOR
-!@var TRUNPSI tracer in run off from sea/lake ice after precip (kg/m^2)
-!@var TRUNOSI tracer in run off from sea/lake ice after surface (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: oTRUNOSI, oTRUNPSI
-!@var TRMELTI tracer from simelt into ocean (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oTRMELTI
-!@var TRPREC tracers in precip (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: oTRPREC
-
-!@var TRGMELT tracer from glacial melt into ocean (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oTRGMELT
+      REAL*8, DIMENSION(:,:,:), POINTER ::
+     &     oTRFLOWO, oTREVAPOR, oTRPREC, oTRGMELT
+     &    ,oTRUNOSI, oTRUNPSI, oTRMELTI
 #endif
-!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oDTRSI
-
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: oDTRSI
 #ifdef TRACERS_DRYDEP
-!@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTRDRYDEP 
+      REAL*8, DIMENSION(:,:,:), POINTER :: oTRDRYDEP 
 #endif
 #endif
 
@@ -107,6 +52,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE OFLUXES
+      USE EXCHANGE_TYPES, only : alloc_xchng_vars
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
 
@@ -118,84 +64,62 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
 
-      !I-J arrays
-      ALLOCATE( oRUNOSI  ( I_0H:I_1H , J_0H:J_1H ), 
-     &          oERUNOSI ( I_0H:I_1H , J_0H:J_1H ), 
-     &          oSRUNOSI ( I_0H:I_1H , J_0H:J_1H ),
-     &          oRUNPSI  ( I_0H:I_1H , J_0H:J_1H ), 
-     &          oSRUNPSI ( I_0H:I_1H , J_0H:J_1H ),
-     &          oERUNPSI ( I_0H:I_1H , J_0H:J_1H ),
-     &          oDMUI    ( I_0H:I_1H , J_0H:J_1H ),
-     &          oDMVI    ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT=IER )
-      ALLOCATE( oFLOWO   ( I_0H:I_1H , J_0H:J_1H ),
-     &          oEFLOWO  ( I_0H:I_1H , J_0H:J_1H ),
-     &          oMELTI   ( I_0H:I_1H , J_0H:J_1H ),
-     &          oEMELTI  ( I_0H:I_1H , J_0H:J_1H ),
-     &          oSMELTI  ( I_0H:I_1H , J_0H:J_1H ),
-     &          oGMELT   ( I_0H:I_1H , J_0H:J_1H ),
-     &          oEGMELT  ( I_0H:I_1H , J_0H:J_1H ),
-     &          oPREC    ( I_0H:I_1H , J_0H:J_1H ),
-     &          oEPREC   ( I_0H:I_1H , J_0H:J_1H ),
-     &          oAPRESS  ( I_0H:I_1H , J_0H:J_1H ),
-     &          oRSI     ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT=IER)
+      call alloc_xchng_vars(grd_dum,ocnatm)
 
+      oSOLARw => ocnatm%SOLAR
+      oE0     => ocnatm%E0
+      oEVAPOR => ocnatm%EVAPOR
+      oDMUA   => ocnatm%DMUA
+      oDMVA   => ocnatm%DMVA
+      oPREC   => ocnatm%PREC
+      oEPREC  => ocnatm%EPREC
+      oFLOWO  => ocnatm%FLOWO
+      oEFLOWO => ocnatm%EFLOWO
+      oGMELT  => ocnatm%GMELT
+      oEGMELT => ocnatm%EGMELT
 
-       !n-I-J arrays
-       ALLOCATE( oDMSI    (  2  , I_0H:I_1H , J_0H:J_1H ), 
-     &           oDHSI    (  2  , I_0H:I_1H , J_0H:J_1H ), 
-     &           oDSSI    (  2  , I_0H:I_1H , J_0H:J_1H ),
-     &           oSOLAR   (  3  , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
+      call alloc_xchng_vars(grd_dum,ocnice)
 
-
-      !I-J-: arrays
-      ALLOCATE( oE0      ( I_0H:I_1H , J_0H:J_1H , 1 ),
-     &          oEVAPOR  ( I_0H:I_1H , J_0H:J_1H , 1 ),
-     &          oDMUA    ( I_0H:I_1H , J_0H:J_1H , 1 ),
-     &          oDMVA    ( I_0H:I_1H , J_0H:J_1H , 1 ),
-     &   STAT = IER)
-
+      oSOLARi  => ocnice%SOLAR
+      oRUNOSI  => ocnice%RUNOSI
+      oERUNOSI => ocnice%ERUNOSI
+      oSRUNOSI => ocnice%SRUNOSI
+      oAPRESS  => ocnice%APRESS
+      oMELTI   => ocnice%MELTI
+      oEMELTI  => ocnice%EMELTI
+      oSMELTI  => ocnice%SMELTI
+      oDMUI    => ocnice%DMUI
+      oDMVI    => ocnice%DMVI
+      oRSI     => ocnice%RSI
+      oRUNPSI  => ocnice%RUNPSI
+      oERUNPSI => ocnice%ERUNPSI
+      oSRUNPSI => ocnice%SRUNPSI
+      oDMSI    => ocnice%DMSI
+      oDHSI    => ocnice%DHSI
+      oDSSI    => ocnice%DSSI
 
 !TRACERS **********************
 #ifdef TRACERS_OCEAN
 
-      !:-:-I-J arrays
-#ifdef TRACERS_GASEXCH_ocean
-
-      ALLOCATE( oTRGASEX(ntm_gasexch, 1 , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
-      oTRGASEX=0.     !initialize to zero
-
-#endif
-
 #ifdef TRACERS_WATER
-      !(:)-(:)-I-J arrays
-      ALLOCATE( oTREVAPOR( NTM , 1, I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
 
+       oTRPREC   => ocnatm%TRPREC
+       oTREVAPOR => ocnatm%TREVAPOR
+       oTRFLOWO  => ocnatm%TRFLOWO
+       oTRGMELT  => ocnatm%TRGMELT
 
-       !:-I-J arrays
-       ALLOCATE( oTRPREC  ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           oTRUNPSI ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           oTRUNOSI ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           oTRFLOWO ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           oTRMELTI ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
+       oTRUNPSI => ocnice%TRUNPSI
+       oTRUNOSI => ocnice%TRUNOSI
+       oTRMELTI => ocnice%TRMELTI
+       oDTRSI   => ocnice%DTRSI
 
-       ALLOCATE( oTRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
 #endif
 
 #ifdef TRACERS_DRYDEP
-       ALLOCATE(oTRDRYDEP( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
-         oTRDRYDEP = 0.   !Initialize to 0.
+       oTRDRYDEP => ocnatm%TRDRYDEP
+       oTRDRYDEP = 0.           !Initialize to 0.
 #endif
 
-      ALLOCATE( oDTRSI( NTM ,    2   , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
 #endif
 
 
@@ -223,7 +147,7 @@ c and communication info.
         Real*8 :: SINA(0:361),SINB(0:361),
      *     FMIN(720),FMAX(720),GMIN(361),GMAX(361), DATMIS
         Integer :: IMIN(720),IMAX(720),JMIN(361),JMAX(361),
-     *       IMA,JMA, IMB,JMB,J1B,JNB
+     *       IMA,JMA, IMB,JMB,J1B,JNB, JMA_full,JMB_full
         Integer :: J1B_halo,JNB_halo
         type(band_pack_type) :: bpack ! communication info
       end type hntrp_type
@@ -284,11 +208,13 @@ C**** Local vars
 C****
       IMA = grid_A%IM_WORLD
       JMA = grid_A%JM_WORLD
+      htype%JMA_full = JMA
       if(present(JMA_4interp)) JMA=JMA_4interp
       J1A = 1
       JNA = JMA
       IMB = grid_B%IM_WORLD
       JMB = grid_B%JM_WORLD
+      htype%JMB_full = JMB
       if(present(JMB_4interp)) JMB=JMB_4interp
       J1B = grid_B%J_STRT
       JNB = grid_B%J_STOP

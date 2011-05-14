@@ -3,289 +3,289 @@
 #undef TRACERS_WATER
 #endif
 
-      SUBROUTINE OCEANS_old
-C****
-!@sum  OCEANS integrates ocean source terms and dynamics
-!@auth Gary Russell / Gavin Schmidt
-!@ver  2009/06/30
-C****
-      USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : idacc,msurf
-#ifdef TRACERS_OceanBiology
-     * ,nstep=>itime
-#endif
-      USE DIAG_COM, only : modd5s
-      USE OCEANRES, only : NOCEAN,dZO
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
-     *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
-     *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP, ! VOSP,IVSP,
-     *    OBottom_drag,OCoastal_drag,focean,
-     *    G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
-     *    S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
-     *    scatter_ocean, gather_ocean
-#ifdef TRACERS_OCEAN
-     *    ,trmo,txmo,tymo,tzmo
-     *    ,trmo_glob,txmo_glob,tymo_glob,tzmo_glob
-#endif
-      USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT
-      USE OCEANR_DIM, only : grid=>ogrid
-      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
-     *    ijl_mo,ijl_g0m,ijl_s0m, ijl_gflx, ijl_sflx, ijl_mfw2,
-     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
-#ifdef TRACERS_OCEAN
-     *    ,toijl=>toijl_loc,
-     *     toijl_conc,toijl_tflx,toijl_gmfl
-#endif
+!      SUBROUTINE OCEANS_old
+!C****
+!!@sum  OCEANS integrates ocean source terms and dynamics
+!!@auth Gary Russell / Gavin Schmidt
+!!@ver  2009/06/30
+!C****
+!      USE CONSTANT, only : rhows,grav
+!      USE MODEL_COM, only : idacc,msurf
+!#ifdef TRACERS_OceanBiology
+!     * ,nstep=>itime
+!#endif
+!      USE DIAG_COM, only : modd5s
+!      USE OCEANRES, only : NOCEAN,dZO
+!      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
+!     *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
+!     *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP, ! VOSP,IVSP,
+!     *    OBottom_drag,OCoastal_drag,focean,
+!     *    G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
+!     *    S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
+!     *    scatter_ocean, gather_ocean
+!#ifdef TRACERS_OCEAN
+!     *    ,trmo,txmo,tymo,tzmo
+!     *    ,trmo_glob,txmo_glob,tymo_glob,tzmo_glob
+!#endif
+!      USE OCEAN_DYN, only : mmi,smu,smv,smw
+!      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT
+!      USE OCEANR_DIM, only : grid=>ogrid
+!      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
+!     *    ijl_mo,ijl_g0m,ijl_s0m, ijl_gflx, ijl_sflx, ijl_mfw2,
+!     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
+!#ifdef TRACERS_OCEAN
+!     *    ,toijl=>toijl_loc,
+!     *     toijl_conc,toijl_tflx,toijl_gmfl
+!#endif
+!
+!#ifdef TRACERS_OCEAN
+!      USE OCN_TRACER_COM, only : t_qlimit,ntm
+!#endif
+!#ifdef TRACERS_OceanBiology
+!      USE obio_com, only: gather_chl
+!#endif
+!#ifdef TRACERS_GASEXCH_ocean_CO2
+!     *,  gather_pCO2
+!#endif
+!
+!      IMPLICIT NONE
+!      Integer*4 I,J,L,N,NS,NO  ; real*8 now
+!      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
+!     *       MM0,MM1, UM0,UM1, VM0,VM1
+!
+!c**** Extract domain decomposition info
+!      INTEGER :: J_0, J_1, J_0H
+!      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
+!
+!C***  Get the data from the atmospheric grid to the ocean grid
+!      call AG2OG_oceans
+!      OGEOZ_SV(:,:)=OGEOZ(:,:)
+!
+!C***  Interpolate DYNSI outputs to the ocean grid
+!C***  (at present, only the ice-ocean stress is used)
+!      call IG2OG_oceans
+!
+!C**** Apply surface fluxes to ocean
+!      CALL GROUND_OC
+!         CALL CHECKO('GRNDOC')
+!
+!C**** Apply ice/ocean and air/ocean stress to ocean
+!      CALL OSTRES
+!         CALL CHECKO('OSTRES')
+!         CALL TIMER (NOW,MSURF)
+!         IF (MODD5S == 0) CALL DIAGCO (11)
+!
+!C**** Apply ocean vertical mixing
+!      CALL OCONV
+!         CALL CHECKO('OCONV ')
+!
+!C**** Apply bottom and coastal drags
+!      if (OBottom_drag  == 1) CALL OBDRAG
+!      if (OCoastal_drag == 1) CALL OCOAST
+!
+!C**** Add ocean biology
+!#ifdef TRACERS_OceanBiology
+!      call obio_model
+!      call gather_chl
+!#ifdef TRACERS_GASEXCH_ocean
+!      call gather_pco2
+!#endif
+!      IF (MODD5S.EQ.0) CALL DIAGCO (5)
+!#endif
+!
+!         CALL TIMER (NOW,MSGSO)
+!
+!C****
+!C**** Integrate Ocean Dynamics
+!C****
+!      Do 500 NO=1,NOCEAN
+!
+!C**** initialize summed mass fluxes
+!      DO L=1,LMO
+!        SMU(:,J_0:J_1,L) = 0
+!        SMV(:,J_0:J_1,L) = 0
+!        SMW(:,J_0:J_1,L) = 0  ;  EndDo
+!
+!      CALL OVtoM (MMI,UM0,VM0)
+!      CALL OPGF0
+!
+!      NS = NDYNO / NOCEAN
+!C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
+!      Call OFLUX  (NS,MMI,.FALSE.)
+!      Call OADVM  (MM1,MMI,DTOFS)
+!C     Call STADVM (MM1,MUST,DTOFS,.False.)
+!      Call OADVV  (UM1,VM1,UM0,VM0,DTOFS)
+!C     Call OTIDEW (NS,DTOFS)
+!      Call OPGF   (UM1,VM1,DTOFS)
+!C     Call STPGF  (MUST1,MUST,DTOFS)
+!C     Call OTIDEV (MM1,UM1,VM1,DTOFS)
+!      Call OMtoV  (MM1,UM1,VM1)
+!C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
+!      Call OFLUX  (NS,MMI,.FALSE.)
+!      Call OADVM  (MM1,MMI,DTO)
+!C     Call STADVM (MM1,MUST,DTO,.False.)
+!      Call OADVV  (UM1,VM1,UM0,VM0,DTO)
+!C     Call OTIDEW (NS,DTO)
+!      Call OPGF   (UM1,VM1,DTO)
+!C     Call STPGF  (MUST1,MUST,DTO)
+!C     Call OTIDEV (MM1,UM1,VM1,DTO)
+!      Call OMtoV  (MM1,UM1,VM1)
+!C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
+!      Call OFLUX  (NS,MMI,.TRUE.)
+!      Call OADVM  (MM0,MMI,DTOLF)
+!C     Call STADVM (MM0,MUST1,DTOLF,.True.)
+!      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
+!C     Call OTIDEW (NS,DTOLF)
+!      Call OPGF   (UM0,VM0,DTOLF)
+!C     Call STPGF  (MUST,MUST,DTOLF)
+!C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
+!      Call OMtoV  (MM0,UM0,VM0)
+!      NS=NS-1
+!C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
+!  420 Continue
+!      Call OFLUX  (NS,MM1,.FALSE.)
+!      Call OADVM  (MM1,MM1,DTOLF)
+!C     Call STADVM (MM1,MUST,DTOLF,.False.)
+!      Call OADVV  (UM1,VM1,UM1,VM1,DTOLF)
+!C     Call OTIDEW (NS,DTOLF)
+!      Call OPGF   (UM1,VM1,DTOLF)
+!C     Call STPGF  (MUST1,MUST1,DTOLF)
+!C     Call OTIDEV (MM1,UM1,VM1,DTOLF)
+!      Call OMtoV  (MM1,UM1,VM1)
+!      NS=NS-1
+!C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
+!      Call OFLUX  (NS,MM0,.TRUE.)
+!      Call OADVM  (MM0,MM0,DTOLF)
+!C     Call STADVM (MM0,MUST1,DTOLF,.True.)
+!      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
+!C     Call OTIDEW (NS,DTOLF)
+!      Call OPGF   (UM0,VM0,DTOLF)
+!C     Call STPGF  (MUST,MUST,DTOLF)
+!C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
+!      Call OMtoV  (MM0,UM0,VM0)
+!C**** Check for end of leap frog time scheme
+!      NS=NS-1
+!      IF(NS.GT.1)  GO TO 420
+!C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
+!      if(j_1 == JM) UO(IVNP,JM,:) = VONP(:) ! not needed if Mod(IM,4)=0
+!      DO L=1,LMO
+!        OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
+!        OIJL(:,:,L,IJL_MFV) = OIJL(:,:,L,IJL_MFV) + SMV(:,:,L)
+!        OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
+!        OIJL(:,:,L,IJL_MFW2)= OIJL(:,:,L,IJL_MFW2)+SMW(:,:,L)*SMW(:,:,L)
+!      END DO
+!C**** Advection of Potential Enthalpy and Salt
+!      CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
+!     *        ,OIJL(1,J_0H,1,IJL_GFLX))
+!      CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
+!     *        ,OIJL(1,J_0H,1,IJL_SFLX))
+!
+!#ifdef TRACERS_OCEAN
+!      DO N=1,NTM
+!        CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
+!     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
+!     *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
+!      END DO
+!#endif
+!
+!        CALL CHECKO ('OADVT ')
+!        DO L=1,LMO
+!          OIJL(:,:,L,IJL_MO)  = OIJL(:,:,L,IJL_MO) +  MO(:,:,L)
+!          OIJL(:,:,L,IJL_G0M) = OIJL(:,:,L,IJL_G0M) + G0M(:,:,L)
+!          OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
+!        END DO
+!        DO J=J_0,J_1
+!          DO I=1,IMAXJ(J)
+!            IF (FOCEAN(I,J).gt.0) THEN
+!              OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
+!              OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
+!     +             (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)
+!            END IF
+!c     do L=1,LMO
+!c     write(*,'(a,5i5,3e12.4)')'for samar, ocndyn, ze',
+!c    .  nstep,i,j,l,lmm(i,j),ze(l),dzo(l),ZE(LMM(I,J))
+!c     enddo
+!          END DO
+!        END DO
+!
+!#ifdef TRACERS_OCEAN
+!        DO N=1,NTM
+!          DO L=1,LMO
+!            TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
+!     *           +TRMO(:,:,L,N)
+!          END DO
+!        END DO
+!#endif
+!
+!      call gather_ocean_straits()
+!
+!      IF(AM_I_ROOT()) THEN
+!C****
+!C**** Acceleration and advection of tracers through ocean straits
+!C****
+!        CALL STPGF(DTS/NOCEAN)
+!        CALL STADV(DTS/NOCEAN)
+!          CALL CHECKO_serial ('STADV0')
+!        IF (NO .EQ. NOCEAN) THEN
+!          CALL STCONV
+!          CALL STBDRA
+!        END IF
+!      END IF
+!      call scatter_ocean_straits()
+!      call BCAST_straits (.false.)
+!        CALL CHECKO ('STADV ')
+!
+!  500 Continue  !  End of Do-loop NO=1,NOCEAN
+!
+!        CALL TIMER (NOW,MDYNO)
+!        IF (MODD5S == 0) CALL DIAGCO (12)
+!
+!C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
+!      CALL ODIFF(DTS)
+!      CALL OABFILx ! binary filter
+!      CALL OABFILy ! binary filter
+!      CALL CHECKO ('ODIFF0')
+!
+!C**** Apply GM + Redi tracer fluxes
+!      CALL GMKDIF
+!      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
+!      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
+!#ifdef TRACERS_OCEAN
+!      DO N = 1,NTM
+!        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
+!     *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
+!      END DO
+!#endif
+!      CALL CHECKO ('GMDIFF')
+!      CALL TIMER (NOW,MSGSO)
+!
+!C**** remove STADVI since it is not really consistent with ICEDYN
+!c      CALL STADVI
+!c        CALL CHECKO ('STADVI')
+!
+!#ifdef TRACERS_OCEAN
+!      CALL OC_TDECAY(DTS)
+!#ifdef TRACERS_AGE_OCEAN
+!      CALL OCN_TR_AGE(DTS)
+!#endif
+!#endif
+!
+!#ifdef OCN_Mesoscales
+!      CALL OCN_mesosc
+!#endif
+!
+!        CALL TIMER (NOW,MSGSO)
+!C***  Get the data from the ocean grid to the atmospheric grid
+!      CALL TOC2SST
+!      call OG2AG_oceans
+!
+!C***  Interpolate ocean surface velocity to the DYNSI grid
+!      call OG2IG_uvsurf
+!
+!      RETURN
+!      END SUBROUTINE OCEANS_old
 
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit,ntm
-#endif
-#ifdef TRACERS_OceanBiology
-      USE obio_com, only: gather_chl
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-     *,  gather_pCO2
-#endif
-
-      IMPLICIT NONE
-      Integer*4 I,J,L,N,NS,NO  ; real*8 now
-      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
-     *       MM0,MM1, UM0,UM1, VM0,VM1
-
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0H
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
-
-C***  Get the data from the atmospheric grid to the ocean grid
-      call AG2OG_oceans
-      OGEOZ_SV(:,:)=OGEOZ(:,:)
-
-C***  Interpolate DYNSI outputs to the ocean grid
-C***  (at present, only the ice-ocean stress is used)
-      call IG2OG_oceans
-
-C**** Apply surface fluxes to ocean
-      CALL GROUND_OC
-         CALL CHECKO('GRNDOC')
-
-C**** Apply ice/ocean and air/ocean stress to ocean
-      CALL OSTRES
-         CALL CHECKO('OSTRES')
-         CALL TIMER (NOW,MSURF)
-         IF (MODD5S == 0) CALL DIAGCO (11)
-
-C**** Apply ocean vertical mixing
-      CALL OCONV
-         CALL CHECKO('OCONV ')
-
-C**** Apply bottom and coastal drags
-      if (OBottom_drag  == 1) CALL OBDRAG
-      if (OCoastal_drag == 1) CALL OCOAST
-
-C**** Add ocean biology
-#ifdef TRACERS_OceanBiology
-      call obio_model
-      call gather_chl
-#ifdef TRACERS_GASEXCH_ocean
-      call gather_pco2
-#endif
-      IF (MODD5S.EQ.0) CALL DIAGCO (5)
-#endif
-
-         CALL TIMER (NOW,MSGSO)
-
-C****
-C**** Integrate Ocean Dynamics
-C****
-      Do 500 NO=1,NOCEAN
-
-C**** initialize summed mass fluxes
-      DO L=1,LMO
-        SMU(:,J_0:J_1,L) = 0
-        SMV(:,J_0:J_1,L) = 0
-        SMW(:,J_0:J_1,L) = 0  ;  EndDo
-
-      CALL OVtoM (MMI,UM0,VM0)
-      CALL OPGF0
-
-      NS = NDYNO / NOCEAN
-C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
-      Call OFLUX  (NS,MMI,.FALSE.)
-      Call OADVM  (MM1,MMI,DTOFS)
-C     Call STADVM (MM1,MUST,DTOFS,.False.)
-      Call OADVV  (UM1,VM1,UM0,VM0,DTOFS)
-C     Call OTIDEW (NS,DTOFS)
-      Call OPGF   (UM1,VM1,DTOFS)
-C     Call STPGF  (MUST1,MUST,DTOFS)
-C     Call OTIDEV (MM1,UM1,VM1,DTOFS)
-      Call OMtoV  (MM1,UM1,VM1)
-C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
-      Call OFLUX  (NS,MMI,.FALSE.)
-      Call OADVM  (MM1,MMI,DTO)
-C     Call STADVM (MM1,MUST,DTO,.False.)
-      Call OADVV  (UM1,VM1,UM0,VM0,DTO)
-C     Call OTIDEW (NS,DTO)
-      Call OPGF   (UM1,VM1,DTO)
-C     Call STPGF  (MUST1,MUST,DTO)
-C     Call OTIDEV (MM1,UM1,VM1,DTO)
-      Call OMtoV  (MM1,UM1,VM1)
-C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
-      Call OFLUX  (NS,MMI,.TRUE.)
-      Call OADVM  (MM0,MMI,DTOLF)
-C     Call STADVM (MM0,MUST1,DTOLF,.True.)
-      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
-C     Call OTIDEW (NS,DTOLF)
-      Call OPGF   (UM0,VM0,DTOLF)
-C     Call STPGF  (MUST,MUST,DTOLF)
-C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
-      Call OMtoV  (MM0,UM0,VM0)
-      NS=NS-1
-C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
-  420 Continue
-      Call OFLUX  (NS,MM1,.FALSE.)
-      Call OADVM  (MM1,MM1,DTOLF)
-C     Call STADVM (MM1,MUST,DTOLF,.False.)
-      Call OADVV  (UM1,VM1,UM1,VM1,DTOLF)
-C     Call OTIDEW (NS,DTOLF)
-      Call OPGF   (UM1,VM1,DTOLF)
-C     Call STPGF  (MUST1,MUST1,DTOLF)
-C     Call OTIDEV (MM1,UM1,VM1,DTOLF)
-      Call OMtoV  (MM1,UM1,VM1)
-      NS=NS-1
-C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
-      Call OFLUX  (NS,MM0,.TRUE.)
-      Call OADVM  (MM0,MM0,DTOLF)
-C     Call STADVM (MM0,MUST1,DTOLF,.True.)
-      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
-C     Call OTIDEW (NS,DTOLF)
-      Call OPGF   (UM0,VM0,DTOLF)
-C     Call STPGF  (MUST,MUST,DTOLF)
-C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
-      Call OMtoV  (MM0,UM0,VM0)
-C**** Check for end of leap frog time scheme
-      NS=NS-1
-      IF(NS.GT.1)  GO TO 420
-C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
-      if(j_1 == JM) UO(IVNP,JM,:) = VONP(:) ! not needed if Mod(IM,4)=0
-      DO L=1,LMO
-        OIJL(:,:,L,IJL_MFU) = OIJL(:,:,L,IJL_MFU) + SMU(:,:,L)
-        OIJL(:,:,L,IJL_MFV) = OIJL(:,:,L,IJL_MFV) + SMV(:,:,L)
-        OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
-        OIJL(:,:,L,IJL_MFW2)= OIJL(:,:,L,IJL_MFW2)+SMW(:,:,L)*SMW(:,:,L)
-      END DO
-C**** Advection of Potential Enthalpy and Salt
-      CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
-     *        ,OIJL(1,J_0H,1,IJL_GFLX))
-      CALL OADVT (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
-     *        ,OIJL(1,J_0H,1,IJL_SFLX))
-
-#ifdef TRACERS_OCEAN
-      DO N=1,NTM
-        CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
-     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
-     *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
-      END DO
-#endif
-
-        CALL CHECKO ('OADVT ')
-        DO L=1,LMO
-          OIJL(:,:,L,IJL_MO)  = OIJL(:,:,L,IJL_MO) +  MO(:,:,L)
-          OIJL(:,:,L,IJL_G0M) = OIJL(:,:,L,IJL_G0M) + G0M(:,:,L)
-          OIJL(:,:,L,IJL_S0M) = OIJL(:,:,L,IJL_S0M) + S0M(:,:,L)
-        END DO
-        DO J=J_0,J_1
-          DO I=1,IMAXJ(J)
-            IF (FOCEAN(I,J).gt.0) THEN
-              OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)
-              OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
-     +             (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)
-            END IF
-c     do L=1,LMO
-c     write(*,'(a,5i5,3e12.4)')'for samar, ocndyn, ze',
-c    .  nstep,i,j,l,lmm(i,j),ze(l),dzo(l),ZE(LMM(I,J))
-c     enddo
-          END DO
-        END DO
-
-#ifdef TRACERS_OCEAN
-        DO N=1,NTM
-          DO L=1,LMO
-            TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
-     *           +TRMO(:,:,L,N)
-          END DO
-        END DO
-#endif
-
-      call gather_ocean_straits()
-
-      IF(AM_I_ROOT()) THEN
-C****
-C**** Acceleration and advection of tracers through ocean straits
-C****
-        CALL STPGF(DTS/NOCEAN)
-        CALL STADV(DTS/NOCEAN)
-          CALL CHECKO_serial ('STADV0')
-        IF (NO .EQ. NOCEAN) THEN
-          CALL STCONV
-          CALL STBDRA
-        END IF
-      END IF
-      call scatter_ocean_straits()
-      call BCAST_straits (.false.)
-        CALL CHECKO ('STADV ')
-
-  500 Continue  !  End of Do-loop NO=1,NOCEAN
-
-        CALL TIMER (NOW,MDYNO)
-        IF (MODD5S == 0) CALL DIAGCO (12)
-
-C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
-      CALL ODIFF(DTS)
-      CALL OABFILx ! binary filter
-      CALL OABFILy ! binary filter
-      CALL CHECKO ('ODIFF0')
-
-C**** Apply GM + Redi tracer fluxes
-      CALL GMKDIF
-      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
-#ifdef TRACERS_OCEAN
-      DO N = 1,NTM
-        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-     *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
-      END DO
-#endif
-      CALL CHECKO ('GMDIFF')
-      CALL TIMER (NOW,MSGSO)
-
-C**** remove STADVI since it is not really consistent with ICEDYN
-c      CALL STADVI
-c        CALL CHECKO ('STADVI')
-
-#ifdef TRACERS_OCEAN
-      CALL OC_TDECAY(DTS)
-#ifdef TRACERS_AGE_OCEAN
-      CALL OCN_TR_AGE(DTS)
-#endif
-#endif
-
-#ifdef OCN_Mesoscales
-      CALL OCN_mesosc
-#endif
-
-        CALL TIMER (NOW,MSGSO)
-C***  Get the data from the ocean grid to the atmospheric grid
-      CALL TOC2SST
-      call OG2AG_oceans
-
-C***  Interpolate ocean surface velocity to the DYNSI grid
-      call OG2IG_uvsurf
-
-      RETURN
-      END SUBROUTINE OCEANS_old
-
-      SUBROUTINE init_OCEAN(iniOCEAN,istart)
+      SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
 !@sum init_OCEAN initializes ocean variables
 !@auth Original Development Team
       USE FILEMANAGER, only : openunit,closeunit
@@ -301,12 +301,9 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
-      USE RESOLUTION, only : aim=>im,ajm=>jm
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
-      USE FLUXES, only : ogeoza, uosurf, vosurf
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get,halo_update
       use DOMAIN_DECOMP_1D, only: hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
@@ -318,7 +315,6 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 #else
       use hntrp_mod, only : init_hntrp_type
       USE OCEAN, only : oDLATM=>DLATM
-      Use GEOM,  only : aDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
@@ -326,14 +322,19 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : atmCO2
 #endif
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
+c
+      LOGICAL, INTENT(IN) :: iniOCEAN
+      INTEGER, INTENT(IN) :: istart
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: dynsice
+c
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO,II,JJ,flagij
       REAL*4, DIMENSION(:,:,:), ALLOCATABLE:: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
-      LOGICAL, INTENT(IN) :: iniOCEAN
-      INTEGER, INTENT(IN) :: istart
       LOGICAL :: postProc
       logical :: qexist(im)
 #ifdef CUBED_SPHERE
@@ -726,12 +727,14 @@ c End ocean-processors-only code region
 c-------------------------------------------------------------------
 
 #ifdef CUBED_SPHERE
-      call read_xgrid_file(xA2O_root,aim,ajm,6,im,jm,1)
+      call read_xgrid_file(xA2O_root,
+     &     atmocn%grid%im_world,atmocn%grid%jm_world,6,
+     &     im,                 jm,                 1)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))
       ones=1
 c*** initialize remapping derived types
-      call init_xgridremap_type(agrid,grid,
+      call init_xgridremap_type(atmocn%grid,grid,
      &     xA2O_root%xgridroot%ncells,
      &     xA2O_root%xgridroot%ijcub(1,:),
      &     xA2O_root%xgridroot%ijcub(2,:),
@@ -741,7 +744,7 @@ c*** initialize remapping derived types
      &     ones,
      &     xA2O_root%xgridroot%xgrid_area,remap_a2o)
 
-      call init_xgridremap_type(grid,agrid,
+      call init_xgridremap_type(grid,atmocn%grid,
      &     xA2O_root%xgridroot%ncells,
      &     xA2O_root%xgridroot%ijlatlon(1,:),
      &     xA2O_root%xgridroot%ijlatlon(2,:),
@@ -754,26 +757,24 @@ c*** initialize remapping derived types
       deallocate(ones)
 #else
       call Init_Hntrp_Type(remap_a2o,
-     &     aGRID, 0.d0,aDLATM,
+     &     atmocn%GRID, 0.d0,atmocn%DLATM,
      &      GRID, 0.d0,oDLATM,
      &     0.d0)
       call Init_Hntrp_Type(remap_o2a,
      &      GRID, 0.d0,oDLATM,
-     &     aGRID, 0.d0,aDLATM,
+     &     atmocn%GRID, 0.d0,atmocn%DLATM,
      &     0.d0)
 #endif
 
 C**** Initialize ocean diagnostics metadata
-      call init_ODIAG
-
-C**** Initialize some info passed to atmsophere
-      uosurf=0 ; vosurf=0. ; ogeoza=0.
+      call init_ODIAG(atmocn)
 
 C**** Set atmospheric surface variables
-      IF (.not.postProc) CALL TOC2SST
+      IF (.not.postProc) CALL TOC2SST(atmocn)
 
 C***  Interpolate ocean surface velocity to the DYNSI grid
-      IF (.not.postProc) CALL OG2IG_uvsurf
+! is this still necessary?
+      IF (.not.postProc) CALL OG2IG_uvsurf(dynsice,atmocn)
 
 
       RETURN
@@ -1014,12 +1015,14 @@ c find the start/end of each interval
       return
       end subroutine get_i1i2
 
-      SUBROUTINE daily_OCEAN(end_of_day)
+      SUBROUTINE daily_OCEAN(end_of_day,atmocn)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
       USE CONSTANT, only : sday
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
+      type(atmocn_xchng_vars) :: atmocn
 
 C**** Only do this at end of the day
       IF (end_of_day) THEN
@@ -1028,331 +1031,331 @@ C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SDAY)
 
 C**** set gtemp arrays for ocean
-        CALL TOC2SST
+        CALL TOC2SST(atmocn)
       END IF
 C****
       RETURN
       END SUBROUTINE daily_OCEAN
 
-      SUBROUTINE io_ocean(kunit,iaction,ioerr)
-!@sum  io_ocean is a driver to ocean related io routines
-!@auth Gavin Schmidt
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-
-      call io_ocdyn  (kunit,iaction,ioerr)
-      call io_straits(kunit,iaction,ioerr)
-
-      RETURN
-C****
-      END SUBROUTINE io_ocean
-
-      SUBROUTINE io_ocdyn(kunit,iaction,ioerr)
-!@sum  io_ocdyn reads and writes ocean arrays to file
-!@auth Gavin Schmidt
-      USE OCEAN, only: scatter_ocean,
-     *      LMO, MO_glob, UO_glob, VO_glob, UOD_glob, VOD_glob,
-     *      G0M_glob, GXMO_glob, GYMO_glob, GZMO_glob,
-     *      SXMO_glob, SYMO_glob, SZMO_glob,
-     *      OGEOZ_glob, OGEOZ_SV_glob,
-     *      S0M_glob, gather_ocean
-#ifdef TRACERS_OCEAN
-     *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, ntm
-#endif
-      USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
-     *     ,irsficnt,irerun,lhead
-#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
-     *     ,nstep=>itime
-      USE Dictionary_mod, only: get_param
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      USE OCEANR_DIM, only : ogrid
-      USE obio_dim, only: ntrac
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : itest,jtest,gcmax,nstep0
-     *                    ,tracer=>tracer_loc,tracer_glob=>tracer
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-     *                    ,pCO2, pCO2_glob,pp2tot_day,pp2tot_day_glob
-#endif
-
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
-     .                         ,broadcast
-
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      integer i,j,k,nt
-!@var TRNHEADER Character string label for individual records
-      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
-!@var TRN2HEADER Character string label for individual records
-      CHARACTER*80 :: TRN2HEADER,
-     .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
-#else
-#ifdef TRACERS_OceanBiology
-      integer i,j,k
-      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
-      CHARACTER*80 :: TRN2HEADER,
-     .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
-#endif
-#endif
-#ifdef TRACERS_OceanBiology
-      real*8, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
-     &     gcmax_glob(:,:,:)
-      integer, allocatable :: ihra_glob(:,:)
-#endif
-#ifdef TRACERS_OCEAN
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
-
-      write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-     *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
-#endif
-#ifdef TRACERS_OceanBiology
-      if (AM_I_ROOT()) then
-        allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
-     &       ihra_glob(idm,jdm),gcmax_glob(idm,jdm,kdm))
-      endif
-      call pack_data(ogrid, avgq,       avgq_glob)
-      call pack_data(ogrid, tirrq3d, tirrq3d_glob)
-      call pack_data(ogrid, ihra,       ihra_glob)
-      call pack_data(ogrid, gcmax,     gcmax_glob)
-      call pack_data(ogrid, tracer,   tracer_glob)
-#ifdef TRACERS_GASEXCH_ocean
-      call pack_data(ogrid, pp2tot_day,pp2tot_day_glob)
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      call pack_data(ogrid, pCO2,      pCO2_glob)
-#endif
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-     * 'R8 dim(im,jm,',LMO,',',NTM,'):
-     * nstep0,avgq,gcmax,tirrq,ihra,tracer,gasx'
-      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
-     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
-#else
-#ifdef TRACERS_OceanBiology
-      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-     * 'R8 dim(im,jm,',LMO,',',NTM,'):
-     * nstep0,avgq,gcmax,tirrq,ihra,tracer'
-c      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
-c     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
-#endif
-#endif
-
-
-      write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
-     *   LMO,'):M,U,V,UD,VD,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        call gather_ocean(0) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's,tr
-        if(AM_I_ROOT()) then
-          WRITE (kunit,err=10) MODULE_HEADER,MO_glob
-     *     ,UO_glob,VO_glob,UOD_glob,VOD_glob
-     *     ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
-     *     ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-     *     ,OGEOZ_glob,OGEOZ_SV_glob
-#ifdef TRACERS_OCEAN
-          WRITE (kunit,err=10) TRMODULE_HEADER
-     *     ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
-#endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pCO2_glob
-      WRITE (kunit,err=10) TRN2MODULE_HEADER
-     . ,nstep,pp2tot_day_glob
-      print*,'nstep0= ',nstep
-      i=itest
-      j=jtest
-      do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1a k=',i,j,k,
-     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .      ,pCO2_glob(i,j),pp2tot_day_glob(i,j)
-      enddo
-#else
-#ifdef TRACERS_GASEXCH_ocean
-      WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,atrac_glob
-      i=itest
-      j=jtest
-      do k=1,kdm
-      write(*,'(a,i2,e12.4)') ' tst1a k=',k,
-     &      atrac_glob(62,8,1)
-      enddo
-#endif
-#ifdef TRACERS_OceanBiology
-      !note: we need to writing out nstep here which is last timestep
-      !that the model did
-      WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-#ifdef TRACERS_GASEXCH_ocean
-      WRITE (kunit,err=10) TRN2MODULE_HEADER
-     . ,nstep,pp2tot_day_glob
-#endif
-      print*,'nstep0= ',nstep
-      i=itest
-      j=jtest
-      do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1a k=',i,j,k,
-     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-      enddo
-#endif
-#endif
-        end if
-      CASE (IOREAD:)            ! input from restart file
-        SELECT CASE (IACTION)
-          CASE (IRSFICNO)   ! initial conditions (no ocean data)
-            if(AM_I_ROOT()) READ (kunit)
-          CASE (ioread,irerun,irsfic) ! restarts
-           if(AM_I_ROOT()) then
-            READ (kunit,err=10) HEADER,MO_glob
-     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
-     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
-     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-     *        ,OGEOZ_glob,OGEOZ_SV_glob
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *             ,MODULE_HEADER
-              GO TO 10
-            END IF
-
-#ifdef TRACERS_OCEAN
-            READ (kunit,err=10) TRHEADER
-     *        ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
-            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRHEADER
-     *             ,TRMODULE_HEADER
-              GO TO 10
-            END IF
-#endif
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      READ (kunit,err=10) TRNHEADER
-     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pco2_glob
-      READ (kunit,err=10) TRN2HEADER
-     . ,nstep0,pp2tot_day_glob
-
-      print*,'nstep0= ',nstep0
-      i=itest
-      j=jtest
-      do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1b k=',i,j,k,
-     .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
-     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
-     .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .   ,pco2_glob(i,j),pp2tot_day_glob(i,j)
-      enddo
-            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRNHEADER
-     .             ,TRNMODULE_HEADER
-              GO TO 10
-            END IF
-            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRN2HEADER
-     .             ,TRN2MODULE_HEADER
-              GO TO 10
-            END IF
-#else
-#ifdef TRACERS_GASEXCH_ocean
-      READ (kunit,err=10) TRNHEADER
-     . ,atrac_glob
-            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRNHEADER
-     .             ,TRNMODULE_HEADER
-              GO TO 10
-            END IF
-#endif
-#ifdef TRACERS_OceanBiology
-      READ (kunit,err=10) TRNHEADER
-     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-#ifdef TRACERS_GASEXCH_ocean
-      READ (kunit,err=10) TRN2HEADER
-     . ,nstep0,pp2tot_day_glob
-#endif
-      print*,'nstep0= ',nstep0
-      i=itest
-      j=jtest
-      do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1b k=',i,j,k,
-     .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
-     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
-     .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-      enddo
-            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRNHEADER
-     .             ,TRNMODULE_HEADER
-              GO TO 10
-            END IF
-            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRN2HEADER
-     .             ,TRN2MODULE_HEADER
-              GO TO 10
-            END IF
-#endif
-#endif
-
-           end if
-           call scatter_ocean (0)  ! mo,uo,vo,g0m,x-z,s0m,x-z,ogz's,tr
-          CASE (irsficnt) ! restarts (never any tracer data)
-           if(AM_I_ROOT()) then
-            READ (kunit,err=10) HEADER,MO_glob
-     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
-     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
-     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-     *        ,OGEOZ_glob,OGEOZ_SV_glob
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *             ,MODULE_HEADER
-              GO TO 10
-            END IF
-           end if
-           call scatter_ocean (-1) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's
-           return
-        END SELECT
-      END SELECT
-
-#ifdef TRACERS_OceanBiology
-      call unpack_data(ogrid, avgq_glob,       avgq)
-      call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
-      call unpack_data(ogrid, ihra_glob,       ihra)
-      call unpack_data(ogrid, gcmax_glob,     gcmax)
-      call unpack_data(ogrid, tracer_glob,   tracer)
-#ifdef TRACERS_GASEXCH_ocean
-      call unpack_data(ogrid, pp2tot_day_glob,pp2tot_day)
-#endif
-
-      call broadcast(ogrid,nstep0)
-
-      if (AM_I_ROOT()) then
-        deallocate( avgq_glob,tirrq3d_glob,
-     &       ihra_glob, gcmax_glob )
-      endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      call unpack_data(ogrid, pCO2_glob,      pCO2)
-#endif
-
-      RETURN
- 10   IOERR=1
-      RETURN
-C****
-      END SUBROUTINE io_ocdyn
+!      SUBROUTINE io_ocean(kunit,iaction,ioerr)
+!!@sum  io_ocean is a driver to ocean related io routines
+!!@auth Gavin Schmidt
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!
+!      call io_ocdyn  (kunit,iaction,ioerr)
+!      call io_straits(kunit,iaction,ioerr)
+!
+!      RETURN
+!C****
+!      END SUBROUTINE io_ocean
+!
+!      SUBROUTINE io_ocdyn(kunit,iaction,ioerr)
+!!@sum  io_ocdyn reads and writes ocean arrays to file
+!!@auth Gavin Schmidt
+!      USE OCEAN, only: scatter_ocean,
+!     *      LMO, MO_glob, UO_glob, VO_glob, UOD_glob, VOD_glob,
+!     *      G0M_glob, GXMO_glob, GYMO_glob, GZMO_glob,
+!     *      SXMO_glob, SYMO_glob, SZMO_glob,
+!     *      OGEOZ_glob, OGEOZ_SV_glob,
+!     *      S0M_glob, gather_ocean
+!#ifdef TRACERS_OCEAN
+!     *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, ntm
+!#endif
+!      USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
+!     *     ,irsficnt,irerun,lhead
+!#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+!     *     ,nstep=>itime
+!      USE Dictionary_mod, only: get_param
+!      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+!      USE OCEANR_DIM, only : ogrid
+!      USE obio_dim, only: ntrac
+!      USE obio_forc, only : avgq,tirrq3d,ihra
+!      USE obio_com, only : itest,jtest,gcmax,nstep0
+!     *                    ,tracer=>tracer_loc,tracer_glob=>tracer
+!#endif
+!#ifdef TRACERS_GASEXCH_ocean
+!     *                    ,pCO2, pCO2_glob,pp2tot_day,pp2tot_day_glob
+!#endif
+!
+!      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
+!     .                         ,broadcast
+!
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!!@var HEADER Character string label for individual records
+!      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+!#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+!      integer i,j,k,nt
+!!@var TRNHEADER Character string label for individual records
+!      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
+!!@var TRN2HEADER Character string label for individual records
+!      CHARACTER*80 :: TRN2HEADER,
+!     .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
+!#else
+!#ifdef TRACERS_OceanBiology
+!      integer i,j,k
+!      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
+!      CHARACTER*80 :: TRN2HEADER,
+!     .                TRN2MODULE_HEADER = "TRGASEX-OBIOgdiags"
+!#endif
+!#endif
+!#ifdef TRACERS_OceanBiology
+!      real*8, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
+!     &     gcmax_glob(:,:,:)
+!      integer, allocatable :: ihra_glob(:,:)
+!#endif
+!#ifdef TRACERS_OCEAN
+!!@var TRHEADER Character string label for individual records
+!      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
+!
+!      write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
+!     *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
+!#endif
+!#ifdef TRACERS_OceanBiology
+!      if (AM_I_ROOT()) then
+!        allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
+!     &       ihra_glob(idm,jdm),gcmax_glob(idm,jdm,kdm))
+!      endif
+!      call pack_data(ogrid, avgq,       avgq_glob)
+!      call pack_data(ogrid, tirrq3d, tirrq3d_glob)
+!      call pack_data(ogrid, ihra,       ihra_glob)
+!      call pack_data(ogrid, gcmax,     gcmax_glob)
+!      call pack_data(ogrid, tracer,   tracer_glob)
+!#ifdef TRACERS_GASEXCH_ocean
+!      call pack_data(ogrid, pp2tot_day,pp2tot_day_glob)
+!#endif
+!#endif
+!#ifdef TRACERS_GASEXCH_ocean_CO2
+!      call pack_data(ogrid, pCO2,      pCO2_glob)
+!#endif
+!
+!#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+!      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
+!     * 'R8 dim(im,jm,',LMO,',',NTM,'):
+!     * nstep0,avgq,gcmax,tirrq,ihra,tracer,gasx'
+!      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
+!     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
+!#else
+!#ifdef TRACERS_OceanBiology
+!      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
+!     * 'R8 dim(im,jm,',LMO,',',NTM,'):
+!     * nstep0,avgq,gcmax,tirrq,ihra,tracer'
+!c      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
+!c     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
+!#endif
+!#endif
+!
+!
+!      write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
+!     *   LMO,'):M,U,V,UD,VD,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
+!
+!      SELECT CASE (IACTION)
+!      CASE (:IOWRITE)            ! output to standard restart file
+!        call gather_ocean(0) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's,tr
+!        if(AM_I_ROOT()) then
+!          WRITE (kunit,err=10) MODULE_HEADER,MO_glob
+!     *     ,UO_glob,VO_glob,UOD_glob,VOD_glob
+!     *     ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+!     *     ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+!     *     ,OGEOZ_glob,OGEOZ_SV_glob
+!#ifdef TRACERS_OCEAN
+!          WRITE (kunit,err=10) TRMODULE_HEADER
+!     *     ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+!#endif
+!#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+!      WRITE (kunit,err=10) TRNMODULE_HEADER
+!     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+!     . ,pCO2_glob
+!      WRITE (kunit,err=10) TRN2MODULE_HEADER
+!     . ,nstep,pp2tot_day_glob
+!      print*,'nstep0= ',nstep
+!      i=itest
+!      j=jtest
+!      do k=1,kdm
+!      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1a k=',i,j,k,
+!     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
+!     .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
+!     .      ,pCO2_glob(i,j),pp2tot_day_glob(i,j)
+!      enddo
+!#else
+!#ifdef TRACERS_GASEXCH_ocean
+!      WRITE (kunit,err=10) TRNMODULE_HEADER
+!     . ,nstep,atrac_glob
+!      i=itest
+!      j=jtest
+!      do k=1,kdm
+!      write(*,'(a,i2,e12.4)') ' tst1a k=',k,
+!     &      atrac_glob(62,8,1)
+!      enddo
+!#endif
+!#ifdef TRACERS_OceanBiology
+!      !note: we need to writing out nstep here which is last timestep
+!      !that the model did
+!      WRITE (kunit,err=10) TRNMODULE_HEADER
+!     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+!#ifdef TRACERS_GASEXCH_ocean
+!      WRITE (kunit,err=10) TRN2MODULE_HEADER
+!     . ,nstep,pp2tot_day_glob
+!#endif
+!      print*,'nstep0= ',nstep
+!      i=itest
+!      j=jtest
+!      do k=1,kdm
+!      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1a k=',i,j,k,
+!     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
+!     &       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
+!      enddo
+!#endif
+!#endif
+!        end if
+!      CASE (IOREAD:)            ! input from restart file
+!        SELECT CASE (IACTION)
+!          CASE (IRSFICNO)   ! initial conditions (no ocean data)
+!            if(AM_I_ROOT()) READ (kunit)
+!          CASE (ioread,irerun,irsfic) ! restarts
+!           if(AM_I_ROOT()) then
+!            READ (kunit,err=10) HEADER,MO_glob
+!     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
+!     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+!     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+!     *        ,OGEOZ_glob,OGEOZ_SV_glob
+!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",HEADER
+!     *             ,MODULE_HEADER
+!              GO TO 10
+!            END IF
+!
+!#ifdef TRACERS_OCEAN
+!            READ (kunit,err=10) TRHEADER
+!     *        ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+!            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRHEADER
+!     *             ,TRMODULE_HEADER
+!              GO TO 10
+!            END IF
+!#endif
+!
+!#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+!      READ (kunit,err=10) TRNHEADER
+!     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+!     . ,pco2_glob
+!      READ (kunit,err=10) TRN2HEADER
+!     . ,nstep0,pp2tot_day_glob
+!
+!      print*,'nstep0= ',nstep0
+!      i=itest
+!      j=jtest
+!      do k=1,kdm
+!      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1b k=',i,j,k,
+!     .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
+!     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
+!     .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
+!     .   ,pco2_glob(i,j),pp2tot_day_glob(i,j)
+!      enddo
+!            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRNHEADER
+!     .             ,TRNMODULE_HEADER
+!              GO TO 10
+!            END IF
+!            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRN2HEADER
+!     .             ,TRN2MODULE_HEADER
+!              GO TO 10
+!            END IF
+!#else
+!#ifdef TRACERS_GASEXCH_ocean
+!      READ (kunit,err=10) TRNHEADER
+!     . ,atrac_glob
+!            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRNHEADER
+!     .             ,TRNMODULE_HEADER
+!              GO TO 10
+!            END IF
+!#endif
+!#ifdef TRACERS_OceanBiology
+!      READ (kunit,err=10) TRNHEADER
+!     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
+!#ifdef TRACERS_GASEXCH_ocean
+!      READ (kunit,err=10) TRN2HEADER
+!     . ,nstep0,pp2tot_day_glob
+!#endif
+!      print*,'nstep0= ',nstep0
+!      i=itest
+!      j=jtest
+!      do k=1,kdm
+!      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1b k=',i,j,k,
+!     .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
+!     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
+!     .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
+!      enddo
+!            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRNHEADER
+!     .             ,TRNMODULE_HEADER
+!              GO TO 10
+!            END IF
+!            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRN2HEADER
+!     .             ,TRN2MODULE_HEADER
+!              GO TO 10
+!            END IF
+!#endif
+!#endif
+!
+!           end if
+!           call scatter_ocean (0)  ! mo,uo,vo,g0m,x-z,s0m,x-z,ogz's,tr
+!          CASE (irsficnt) ! restarts (never any tracer data)
+!           if(AM_I_ROOT()) then
+!            READ (kunit,err=10) HEADER,MO_glob
+!     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
+!     *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
+!     *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+!     *        ,OGEOZ_glob,OGEOZ_SV_glob
+!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",HEADER
+!     *             ,MODULE_HEADER
+!              GO TO 10
+!            END IF
+!           end if
+!           call scatter_ocean (-1) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's
+!           return
+!        END SELECT
+!      END SELECT
+!
+!#ifdef TRACERS_OceanBiology
+!      call unpack_data(ogrid, avgq_glob,       avgq)
+!      call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
+!      call unpack_data(ogrid, ihra_glob,       ihra)
+!      call unpack_data(ogrid, gcmax_glob,     gcmax)
+!      call unpack_data(ogrid, tracer_glob,   tracer)
+!#ifdef TRACERS_GASEXCH_ocean
+!      call unpack_data(ogrid, pp2tot_day_glob,pp2tot_day)
+!#endif
+!
+!      call broadcast(ogrid,nstep0)
+!
+!      if (AM_I_ROOT()) then
+!        deallocate( avgq_glob,tirrq3d_glob,
+!     &       ihra_glob, gcmax_glob )
+!      endif
+!#endif
+!#ifdef TRACERS_GASEXCH_ocean
+!      call unpack_data(ogrid, pCO2_glob,      pCO2)
+!#endif
+!
+!      RETURN
+! 10   IOERR=1
+!      RETURN
+!C****
+!      END SUBROUTINE io_ocdyn
 
 #ifdef NEW_IO
       subroutine def_rsf_ocean(fid)
@@ -1371,10 +1374,12 @@ C****
 #endif
 #endif
       use pario, only : defvar
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid   !@var fid file id
       integer :: n
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
       call defvar(grid,fid,mo,'mo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,uo,'uo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,vo,'vo(dist_imo,dist_jmo,lmo)')
@@ -1436,10 +1441,16 @@ c tracer arrays in straits
       call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
 #endif
 #endif
-      call declare_conserv_diags(grid, fid, 'wliqo(dist_imo,dist_jmo)')
-      call declare_conserv_diags(grid, fid, 'ekliqo(dist_imo,dist_jmo)')
-      call declare_conserv_diags(grid, fid, 'epliqo(dist_imo,dist_jmo)')
-      call declare_conserv_diags(grid, fid, 'sliqo(dist_imo,dist_jmo)')
+
+      call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &               j_strt_halo=j_0h,j_stop_halo=j_1h)
+      allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+      call defvar(grid, fid, arrdum, 'wliqo(dist_imo,dist_jmo)')
+      call defvar(grid, fid, arrdum, 'ekliqo(dist_imo,dist_jmo)')
+      call defvar(grid, fid, arrdum, 'epliqo(dist_imo,dist_jmo)')
+      call defvar(grid, fid, arrdum, 'sliqo(dist_imo,dist_jmo)')
+      deallocate(arrdum)
+
       return
       end subroutine def_rsf_ocean
 
@@ -1462,12 +1473,13 @@ c tracer arrays in straits
      &     ,tracer=>tracer_loc,pCO2,pp2tot_day
 #endif
 #endif
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
-      external conserv_OMS, conserv_OKE, conserv_OCE, conserv_OSL
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'mo',mo)
@@ -1531,10 +1543,18 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
 #endif
 #endif
-        call dump_conserv_diags( grid, fid, 'wliqo', conserv_OMS )
-        call dump_conserv_diags( grid, fid, 'ekliqo', conserv_OKE )
-        call dump_conserv_diags( grid, fid, 'epliqo', conserv_OCE )
-        call dump_conserv_diags( grid, fid, 'sliqo', conserv_OSL )
+        call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
+        allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+        if(grid%have_domain) call conserv_OMS(arrdum)
+        call write_dist_data(grid,fid,'wliqo',arrdum)
+        if(grid%have_domain) call conserv_OKE(arrdum)
+        call write_dist_data(grid,fid,'ekliqo',arrdum)
+        if(grid%have_domain) call conserv_OCE(arrdum)
+        call write_dist_data(grid,fid,'epliqo',arrdum)
+        if(grid%have_domain) call conserv_OSL(arrdum)
+        call write_dist_data(grid,fid,'sliqo',arrdum)
+        deallocate(arrdum)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'mo',mo)
         call read_dist_data(grid,fid,'uo',uo)
@@ -4209,14 +4229,14 @@ C****
       DO J=J_0S,J_1S
       DO IP1=1,IMO
         IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
-     *       (oDMUA(I,J,1) + oDMUA(IP1,J,1) + 2d0*oDMUI(I,J)) /
+     *       (oDMUA(I,J) + oDMUA(IP1,J) + 2d0*oDMUI(I,J)) /
      *       (  MO(I,J,1) +   MO(IP1,J,1))
         I=IP1
       END DO
       END DO
       if (have_north_pole) then
-        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO,1)/MO(1,JMO,1)
-        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO,1)/MO(1,JMO,1)
+        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO)/MO(1,JMO,1)
+        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO)/MO(1,JMO,1)
       end if
 C****
 C**** Surface stress is applied to V component
@@ -4226,7 +4246,7 @@ C****
       DO J=J_0S,min(J_1S,JMO-2)
       DO I=1,IMO
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
-     *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
+     *       (oDMVA(I,J  )*DXYNO(J) + oDMVA(I,J+1)*DXYSO(J+1)
      *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
       END DO
@@ -4235,8 +4255,8 @@ C**** Surface stress is applied to V component at the North Pole
       if (have_north_pole) then
       DO I=1,IMO
         VO(I,JMO-1,1) = VO(I,JMO-1,1) +
-     *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
-     *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
+     *    (oDMVA(I,JMO-1)*DXYNO(JMO-1)+
+     *    (oDMVA(1,JMO)*COSIC(I) - oDMUA(1,JMO)*SINIC(I))*DXYSO(JMO)
      *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
      *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
       END DO
@@ -4254,7 +4274,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : ogrid
       USE SEAICE, only : Ei,FSSS
-      USE OFLUXES, only : oRSI, oSOLAR, oE0, oEVAPOR
+      USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oE0, oEVAPOR
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
@@ -4327,22 +4347,22 @@ C****
         DXYPJ=DXYPJ*FOCEAN(I,J)     ! adjust areas for completeness
         BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-        RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)  !  kg/m^2
+        RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J)    !  kg/m^2
         RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)    !  kg/m^2
-        ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)     !  J/m^2
+        ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J)       !  J/m^2
         ERUNI=oEFLOWO(I,J) + oEMELTI(I,J) + oERUNOSI(I,J)  !  J/m^2
         SRUNO=oSMELTI(I,J)                                 !  kg/m^2
         SRUNI=oSMELTI(I,J) + oSRUNOSI(I,J)                 !  kg/m^2
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
-        SROX(1)=oSOLAR(1,I,J) ! open water    J/m^2
-        SROX(2)=oSOLAR(3,I,J) ! through ice   J/m^2
+        SROX(1)=oSOLARw(I,J) ! open water    J/m^2
+        SROX(2)=oSOLARi(I,J) ! through ice   J/m^2
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
-        TRUNO(:)=oTRFLOWO(:,I,J)+oTRMELTI(:,I,J)-oTREVAPOR(:,1,I,J)
+        TRUNO(:)=oTRFLOWO(:,I,J)+oTRMELTI(:,I,J)-oTREVAPOR(:,I,J)
 #ifdef TRACERS_DRYDEP
      *       + otrdrydep(:,1,i,j)  !  kg/m^2
 #endif
@@ -4584,7 +4604,7 @@ C****
       RETURN
       END SUBROUTINE OSOURC
 
-      SUBROUTINE PRECIP_OC
+      SUBROUTINE PRECIP_OC(atmocn,iceocn)
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
       USE OCEAN, only : imo=>im,jmo=>jm
@@ -4595,13 +4615,16 @@ C****
 #endif
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : oGRID
-      USE SEAICE_COM, only : aRSI=>RSI
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
      *     , oTRPREC, oTRUNPSI
 #endif
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: iceocn
+c
       INTEGER I,J
       integer :: J_0, J_1
 
@@ -4611,7 +4634,7 @@ C**** save surface variables before any fluxes are added
       if(ogrid%have_domain) CALL KVINIT
 
 C**** Convert fluxes on atmospheric grid to oceanic grid
-      CALL AG2OG_precip
+      CALL AG2OG_precip(atmocn,iceocn)
 C****
       ocean_processors_only: if(ogrid%have_domain) then
       DO J=J_0,J_1
@@ -4619,13 +4642,16 @@ C****
           IF(FOCEAN(I,J).gt.0. .and. oPREC(I,J).gt.0.)  THEN
             MO (I,J,1)= MO(I,J,1) + ((1d0-oRSI(I,J))*oPREC(I,J) +
      *           oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)
-            G0M(I,J,1)=G0M(I,J,1)+ ((1d0-oRSI(I,J))*oEPREC(I,J) +
-     *           oRSI(I,J)*oERUNPSI(I,J))*FOCEAN(I,J)
-            S0M(I,J,1)=S0M(I,J,1) + oRSI(I,J)*oSRUNPSI(I,J)*FOCEAN(I,J)
+            G0M(I,J,1)=G0M(I,J,1)
+     &           +((1d0-oRSI(I,J))*(oEPREC(I,J)*dxypo(j))
+     &           +oRSI(I,J)*(oERUNPSI(I,J)*dxypo(j)))*FOCEAN(I,J)
+            S0M(I,J,1)=S0M(I,J,1)
+     &           +oRSI(I,J)*(oSRUNPSI(I,J)*dxypo(j))*FOCEAN(I,J)
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-            TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-oRSI(I,J))*oTRPREC(:,I,J)
-     *             +oRSI(I,J)*oTRUNPSI(:,I,J))*FOCEAN(I,J)
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)
+     &           +((1d0-oRSI(I,J))*(oTRPREC(:,I,J)*dxypo(j))
+     &           +oRSI(I,J)*(oTRUNPSI(:,I,J)*dxypo(j)))*FOCEAN(I,J)
 #else
 #ifndef TRACERS_OceanBiology
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+trw0(:)*((1d0-oRSI(I,J))*oPREC(I
@@ -4639,7 +4665,7 @@ C****
       endif ocean_processors_only
 
 C**** Convert ocean surface temp to atmospheric SST array
-      CALL TOC2SST
+      CALL TOC2SST(atmocn)
 
       RETURN
       END SUBROUTINE PRECIP_OC
@@ -5097,16 +5123,12 @@ C****
       RETURN
       END SUBROUTINE ODIFF
 
-      SUBROUTINE TOC2SST
+      SUBROUTINE TOC2SST(atmocn)
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
-      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEANRES,   only : LMO_MIN
-      Use GEOM,      only : IMAXJ
-      USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
-     *     , aOGEOZ, aOGEOZ_SV
-      Use DOMAIN_DECOMP_ATM, Only: agrid=>grid, get
+      USE AFLUXES, only : aMO, aG0,aS0
       USE MODEL_COM, only: nstep=>itime
 
 #ifdef TRACERS_OCEAN
@@ -5117,19 +5139,15 @@ C****
 #endif
 #endif
 #ifdef TRACERS_OCEAN
-      Use AFLUXES, Only: aTRAC,atrac_glob
+      Use AFLUXES, Only: aTRAC
 #endif
-      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
-     *      gtempr,focean
-#ifdef TRACERS_ON
-     *     ,gtracer
-#endif
-
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+c
       INTEGER I,J
       REAL*8 TEMGS,shcgs,TO
       integer :: j_0,j_1,n,i_0,i_1
-      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       if (LMO_MIN .lt. 2) then
         write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
@@ -5137,83 +5155,85 @@ C****
         stop
       end if
 
-      call get (agrid, j_strt=j_0, j_stop=j_1,
-     * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      I_0 = agrid%I_STRT
-      I_1 = agrid%I_STOP
+      I_0 = atmocn%I_0
+      I_1 = atmocn%I_1
+      J_0 = atmocn%J_0
+      J_1 = atmocn%J_1
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 !
-      call OG2AG_TOC2SST
+      call OG2AG_TOC2SST(atmocn)
 
 C****
 C**** Note that currently everything is on same grid
 C****
       DO J=J_0,J_1
-        DO I=I_0,IMAXJ(J)
-          IF (FOCEAN(I,J).gt.0.) THEN
+        DO I=I_0,atmocn%IMAXJ(J)
+          IF (atmocn%FOCEAN(I,J).gt.0.) THEN
             TO = TEMGS(aG0(I,J,1),aS0(I,J,1))
-            GTEMP(1,1,I,J) = TO
-            GTEMPR(1,I,J)  = TO+TF
-            SSS(I,J) = 1d3*aS0(I,J,1)
-            MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
+            atmocn%GTEMP(I,J) = TO
+            atmocn%GTEMPR(I,J)  = TO+TF
+            atmocn%SSS(I,J) = 1d3*aS0(I,J,1)
+            atmocn%MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
 !            IF (LMM(I,J).gt.1) THEN
               TO = TEMGS(aG0(I,J,2),aS0(I,J,2))
 !            END IF
-            GTEMP(2,1,I,J)= TO
+            atmocn%GTEMP2(I,J)= TO
    ! atmospheric grid Ocean height
-            OGEOZA(I,J) = 0.5*(aOGEOZ(I,J)+aOGEOZ_SV(I,J))
-            UOSURF(I,J) = aUO1(I,J)
-            VOSURF(I,J) = aVO1(I,J)
+!            atmocn%OGEOZA(I,J) = 0.5*(aOGEOZ(I,J)+aOGEOZ_SV(I,J))
+!            atmocn%UOSURF(I,J) = aUO1(I,J)
+!            atmocn%VOSURF(I,J) = aVO1(I,J)
 
 #ifdef TRACERS_GASEXCH_ocean
-            GTRACER(:,1,I,J)=aTRAC(I,J,:)
+            atmocn%GTRACER(:,I,J)=aTRAC(I,J,:)
 #endif
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-            GTRACER(:,1,I,J)=aTRAC(I,J,:)
+            atmocn%GTRACER(:,I,J)=aTRAC(I,J,:)
 #else
-            GTRACER(:,1,I,J)=trw0()
+            atmocn%GTRACER(:,I,J)=trw0()
 #endif
 #endif
           ELSE
-             SSS(I,J)=0.
+             atmocn%SSS(I,J)=0.
           END IF
 
         END DO
       END DO
 
 C**** do poles
-      if (HAVE_NORTH_POLE) then
-      IF (FOCEAN(1,JMA).gt.0) THEN
-        DO I=2,IMA
-          GTEMP(:,1,I,JMA)=GTEMP(:,1,1,JMA)
-          GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA)
-          SSS(I,JMA)=SSS(1,JMA)
-          MLHC(I,JMA)=MLHC(1,JMA)
-          UOSURF(I,JMA) = UOSURF(1,JMA)
-          VOSURF(I,JMA) = VOSURF(1,JMA)
-          OGEOZA(I,JMA)=OGEOZA(1,JMA)
+      if (atmocn%HAVE_NORTH_POLE) then
+      IF (atmocn%FOCEAN(1,J_1).gt.0) THEN
+        DO I=2,I_1
+          atmocn%GTEMP(I,J_1)=atmocn%GTEMP(1,J_1)
+          atmocn%GTEMP2(I,J_1)=atmocn%GTEMP2(1,J_1)
+          atmocn%GTEMPR(I,J_1) =atmocn%GTEMPR(1,J_1)
+          atmocn%SSS(I,J_1)=atmocn%SSS(1,J_1)
+          atmocn%MLHC(I,J_1)=atmocn%MLHC(1,J_1)
+          atmocn%UOSURF(I,J_1) = atmocn%UOSURF(1,J_1)
+          atmocn%VOSURF(I,J_1) = atmocn%VOSURF(1,J_1)
+          atmocn%OGEOZA(I,J_1) = atmocn%OGEOZA(1,J_1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
+          atmocn%GTRACER(:,I,J_1)=atmocn%GTRACER(:,1,J_1)
 #endif
         END DO
       END IF
       end if
 
-      if (HAVE_SOUTH_POLE) then
-      IF (FOCEAN(1,1).gt.0) THEN
-        DO I=2,IMA
-          GTEMP(:,1,I,1)=GTEMP(:,1,1,1)
-          GTEMPR(1,I,1) =GTEMPR(1,1,1)
-          SSS(I,1)=SSS(1,1)
-          MLHC(I,1)=MLHC(1,1)
-          UOSURF(I,1) = UOSURF(1,1)
-          VOSURF(I,1) = VOSURF(1,1)
-          OGEOZA(I,1)=OGEOZA(1,1)
+      if (atmocn%HAVE_SOUTH_POLE) then
+      IF (atmocn%FOCEAN(1,1).gt.0) THEN
+        DO I=2,I_1
+          atmocn%GTEMP(I,1)=atmocn%GTEMP(1,1)
+          atmocn%GTEMP2(I,1)=atmocn%GTEMP2(1,1)
+          atmocn%GTEMPR(I,1) =atmocn%GTEMPR(1,1)
+          atmocn%SSS(I,1)=atmocn%SSS(1,1)
+          atmocn%MLHC(I,1)=atmocn%MLHC(1,1)
+          atmocn%UOSURF(I,1) = atmocn%UOSURF(1,1)
+          atmocn%VOSURF(I,1) = atmocn%VOSURF(1,1)
+          atmocn%OGEOZA(I,1) = atmocn%OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+          atmocn%GTRACER(:,I,1)=atmocn%GTRACER(:,1,1)
 #endif
         END DO
       END IF
@@ -5269,17 +5289,17 @@ C**** divide over depth and scale for time step
           DO I=1,IMAXJ(J)
             If (L <= LMM(I,J) .and. oGMELT(I,J) > 0)  Then
               DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MIN(MAXGL,LMM(I,J))))
-              MO(I,J,L) =MO(I,J,L)+oGMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
-              G0M(I,J,L)=G0M(I,J,L)+oEGMELT(I,J)*DZ
+              ! todo: remove dxypo from numerator and denominator
+              MO(I,J,L) =MO(I,J,L)+(oGMELT(I,J)*dxypo(j))*DZ/
+     &             (DXYPO(J)*FOCEAN(I,J))
+              G0M(I,J,L)=G0M(I,J,L)+(oEGMELT(I,J)*dxypo(j))*DZ
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-              TRMO(I,J,L,:)=TRMO(I,J,L,:)+oTRGMELT(:,I,J)*DZ
+              TRMO(I,J,L,:)=TRMO(I,J,L,:)+(oTRGMELT(:,I,J)*dxypo(j))*DZ
 #endif
 #endif
-              OIJ(I,J,IJ_EICB)=OIJ(I,J,IJ_EICB)+oEGMELT(I,J)/(DXYPO(J)
-     *             *FOCEAN(I,J)) 
-              OIJ(I,J,IJ_MICB)=OIJ(I,J,IJ_MICB)+ oGMELT(I,J)/(DXYPO(J)
-     *             *FOCEAN(I,J)) 
+              OIJ(I,J,IJ_EICB)=OIJ(I,J,IJ_EICB)+oEGMELT(I,J)/FOCEAN(I,J)
+              OIJ(I,J,IJ_MICB)=OIJ(I,J,IJ_MICB)+ oGMELT(I,J)/FOCEAN(I,J)
             END IF
           END DO
         END DO

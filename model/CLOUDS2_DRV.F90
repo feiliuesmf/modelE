@@ -58,7 +58,7 @@ subroutine CONDSE
        jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui, &
        ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags, &
        ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi, &
-       jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,ij_sisnwf, &
+       jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs, &
        ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr, &
        saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI, &
        saveTCLDI,saveMCCLDTP
@@ -192,10 +192,11 @@ subroutine CONDSE
   use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda, &
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
-  use SEAICE_COM, only : rsi
+  use SEAICE_COM, only : si_atm
   use GHY_COM, only : snoage,fearth
   use LAKES_COM, only : flake
-  use FLUXES, only : prec,eprec,precss,gtempr,focean,fland,flice
+  use FLUXES, only : prec,eprec,precss,focean,fland,flice, &
+       atmocn,atmice,atmgla,atmlnd
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec 
 #else
@@ -498,7 +499,7 @@ subroutine CONDSE
         PEARTH=FEARTH(I,J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
-        ROICE=RSI(I,J)
+        ROICE=si_atm%RSI(I,J)
         TS=TSAVG(I,J)
         QS=QSAVG(I,J)
         US=USAVG(I,J)
@@ -896,8 +897,8 @@ subroutine CONDSE
             ENRGP=ENRGP+EPRCP-PRCP*LHM
             !ECON     ep=-PRCP*LHM
             AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
-            AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) + &
-                 PRCP*FOCEAN(I,J)*RSI(I,J)
+            AIJ(I,J,atmice%IJ_SISNWF)=AIJ(I,J,atmice%IJ_SISNWF) + &
+                 PRCP*FOCEAN(I,J)*si_atm%RSI(I,J)
           end if
           AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
 
@@ -1140,8 +1141,8 @@ subroutine CONDSE
           ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
           !ECON   ep1=-PRCPSS*100.*BYGRAV*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
-          AIJ(I,J,IJ_SISNWF)=AIJ(I,J,IJ_SISNWF) + &
-               PRCPSS*FOCEAN(I,J)*RSI(I,J)
+          AIJ(I,J,atmice%IJ_SISNWF)=AIJ(I,J,atmice%IJ_SISNWF) + &
+               PRCPSS*FOCEAN(I,J)*si_atm%RSI(I,J)
         end if
 
         !ECON if (abs(E1-ep1).gt.0.01) print*,"energy err1",i,j,(E1-ep1)
@@ -1155,11 +1156,11 @@ subroutine CONDSE
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+ &
-             ENRGP*FOCEAN(I,J)*(1.-RSI(I,J))
+             ENRGP*FOCEAN(I,J)*(1.-si_atm%RSI(I,J))
         AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC)+ &
-             PRCP*FOCEAN(I,J)*(1.-RSI(I,J))
-        AIJ(I,J,IJ_PRECOO)=AIJ(I,J,IJ_PRECOO)+PRCP*PWATER*(1.-RSI(I,J))
-        AIJ(I,J,IJ_PRECSI)=AIJ(I,J,IJ_PRECSI)+PRCP*PWATER*RSI(I,J)
+             PRCP*FOCEAN(I,J)*(1.-si_atm%RSI(I,J))
+        AIJ(I,J,IJ_PRECOO)=AIJ(I,J,IJ_PRECOO)+PRCP*PWATER*(1.-si_atm%RSI(I,J))
+        AIJ(I,J,IJ_PRECSI)=AIJ(I,J,IJ_PRECSI)+PRCP*PWATER*si_atm%RSI(I,J)
         AIJ(I,J,IJ_PRECLI)=AIJ(I,J,IJ_PRECLI)+PRCP*FLICE(I,J)
         AIJ(I,J,IJ_PRECGR)=AIJ(I,J,IJ_PRECGR)+PRCP*FEARTH(I,J)
 
@@ -1223,10 +1224,10 @@ subroutine CONDSE
 
             !**** set skt from radiative temperature
             skt=sqrt(sqrt( &
-                 (focean(i,j)+flake(i,j))*(1.-rsi(i,j))*gtempr(1,i,j)**4+ &
-                 (focean(i,j)+flake(i,j))*    rsi(i,j) *gtempr(2,i,j)**4+ &
-                 flice(i,j) *gtempr(3,i,j)**4+ &
-                 fearth(i,j)*gtempr(4,i,j)**4))
+                 (focean(i,j)+flake(i,j))*(1.-si_atm%rsi(i,j))*atmocn%gtempr(i,j)**4+ &
+                 (focean(i,j)+flake(i,j))*    si_atm%rsi(i,j) *atmice%gtempr(i,j)**4+ &
+                 flice(i,j) *atmgla%gtempr(i,j)**4+ &
+                 fearth(i,j)*atmlnd%gtempr(i,j)**4))
             dem_s(l)=0.
             dem_c(l)=0.
             if(svlhxl(LM+1-L) .eq. lhe )   & ! large-scale water cloud

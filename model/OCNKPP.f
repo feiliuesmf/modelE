@@ -1121,7 +1121,7 @@ C****
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
-      USE OFLUXES, only : oRSI, oSOLAR, oDMUA,oDMVA, oDMUI,oDMVI
+      USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
       Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
      *    HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
@@ -1289,13 +1289,13 @@ C**** DMUA/I now defined over whole box, not just surface type
       UISTR = UISTR/IM
       VISTR = VISTR/IM
       U2rho = SQRT(
-     *     (oDMUA(1,JM,1) + UISTR)**2+
-     *     (oDMVA(1,JM,1) + VISTR)**2)*BYDTS
+     *     (oDMUA(1,JM) + UISTR)**2+
+     *     (oDMVA(1,JM) + VISTR)**2)*BYDTS
 C**** Calculate surface mass, salt and heat fluxes
       DELTAM = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
       DELTAE = (G0ML0(1) - G0ML(1))*BYDXYPO(JM)*BYDTS
       DELTAS = (S0ML0(1) - S0ML(1))*BYDXYPO(JM)*BYDTS
-      DELTASR= (oSOLAR(1,1,JM)*(1d0-oRSI(1,JM))+oSOLAR(3,1,JM)
+      DELTASR= (oSOLARw(1,JM)*(1d0-oRSI(1,JM))+oSOLARi(1,JM)
      *     *oRSI(1,JM))*BYDTS               ! W/m^2
 #ifdef TRACERS_OCEAN
       DELTATR(:) = (TRML(1,:)-TRML1(:))*BYDXYPO(JM)*BYDTS  !  kg/m2*s
@@ -1345,11 +1345,11 @@ C**** DMUA/I now defined over whole box, not just surface type
         ANSTR=1.-SIGN(0.25,LMV(I,J)-0.5)-SIGN(0.25,LMV(I,J-1)-0.5)
         VISTR = VISTR*ANSTR
       END IF
-      U2rho = SQRT((oDMUA(I,J,1) + UISTR)**2 +
-     *             (oDMVA(I,J,1) + VISTR)**2)*BYDTS
+      U2rho = SQRT((oDMUA(I,J) + UISTR)**2 +
+     *             (oDMVA(I,J) + VISTR)**2)*BYDTS
 C**** Calculate surface mass flux and Solar forcing
       DELTAM = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
-      DELTASR = (oSOLAR(1,I,J)*(1d0-oRSI(I,J))+oSOLAR(3,I,J)*oRSI(I,J))
+      DELTASR = (oSOLARw(I,J)*(1d0-oRSI(I,J))+oSOLARi(I,J)*oRSI(I,J))
      *     *BYDTS               ! W/m^2
       KPL(I,J) = 1  ! Initialize mixed layer depth
 

@@ -62,7 +62,7 @@ C****
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc,ij_rhs
-     *     ,ij_f0oi,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt,j_lwcorr
+     *     ,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt,j_lwcorr
      *     ,j_tsrf,j_shdt,j_trhdt,j_type,j_tg1,j_tg2,ijdd,idd_spr
      *     ,idd_pt5,idd_ts,idd_tg1
      *     ,idd_q5,idd_qs,idd_qg,idd_swg
@@ -100,26 +100,24 @@ C****
 #endif
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami
-      USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
-      USE LAKES_COM, only : mwl,gml,flake
+      USE SEAICE_COM, only : si_atm
+      USE LAKES_COM, only : mwl,gml,flake,icelak
       USE LAKES, only : minmld
 #ifdef mjo_subdd
       USE GHY_COM, only : FEARTH
 #endif
-      USE FLUXES, only : dth1,dq1,e0,e1,evapor,runoe,erunoe,sss
-     *     ,solar,dmua,dmva,gtemp,nstype,uflux1,vflux1,tflux1,qflux1
-     *     ,UOdrag,uosurf,vosurf,uisurf,visurf,ogeoza,gtempr
+      USE FLUXES, only : dth1,dq1,runoe,erunoe
+     *     ,nstype,uflux1,vflux1,tflux1,qflux1
+     *     ,UOdrag
      &     ,nisurf,fland,flice,focean
+     &     ,atmocn,atmice,atmgla,asflx
 #ifdef TRACERS_ON
-     *     ,trsrfflx,gtracer
+     *     ,trsrfflx
 #ifndef SKIP_TRACER_SRCS
      *     ,trsource
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     ,TRGASEX
-#endif
 #ifdef TRACERS_WATER
-     *     ,trevapor,trunoe
+     *     ,trunoe
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -130,9 +128,6 @@ C****
 #endif
 #ifdef TRACERS_DUST
      &     ,dust_flux2_glob
-#endif
-#ifdef TRACERS_DRYDEP
-     *     ,trdrydep
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc
@@ -198,12 +193,16 @@ C****
       REAL*8, DIMENSION(NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                         GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     TGRND,TGRN2,TGR4
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) ::
+     *     E1
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI0), Z1LIBYL=Z1E/ALAMI0
       REAL*8 QSAT,DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
+      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0,
+     &     dmua_ij,dmva_ij
 c      logical pole
 c
       logical :: lim_lake_evap,lim_dew ! for tracer convenience
@@ -255,7 +254,22 @@ C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       LOGICAL :: debug
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,SSS
+      REAL*8, DIMENSION(:,:,:), POINTER :: SSI
+#ifdef TRACERS_GASEXCH_ocean
+      REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
+#endif
+
       type (Timer_type), pointer :: aTimer
+
+      RSI => SI_ATM%RSI
+      MSI => SI_ATM%MSI
+      SNOWI => SI_ATM%SNOWI
+      SSI => SI_ATM%SSI
+      SSS => atmocn%SSS
+#ifdef TRACERS_GASEXCH_ocean
+      TRGASEX => atmocn%TRGASEX
+#endif
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -303,7 +317,7 @@ C****
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
-      CALL PRECIP_SI('LAKES')
+      CALL PRECIP_SI(si_atm,icelak,atmice)
       CALL PRECIP_LI
 #ifdef IRRIGATION_ON
 C**** CHECK FOR IRRIGATION POSSIBILITY
@@ -312,7 +326,7 @@ C**** CHECK FOR IRRIGATION POSSIBILITY
       CALL PRECIP_LK
          CALL CHECKT ('PRECIP')
 
-      call seaice_to_atmgrid
+      call seaice_to_atmgrid(atmice)
 
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
@@ -321,24 +335,35 @@ c in the domain is ocean
 C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
       DO J=J_0,J_1
       DO I=I_0,I_1
-        TGRND(2,I,J)=GTEMP(1,2,I,J)
-        TGRND(3,I,J)=GTEMP(1,3,I,J)
-        TGRN2(2,I,J)=GTEMP(2,2,I,J)
-        TGRN2(3,I,J)=GTEMP(2,3,I,J)
-        TGR4(2,I,J)=GTEMPR(2,I,J)**4
-        TGR4(3,I,J)=GTEMPR(3,I,J)**4
+        TGRND(2,I,J)=atmice%GTEMP(I,J)
+        TGRND(3,I,J)=atmgla%GTEMP(I,J)
+        TGRN2(2,I,J)=atmice%GTEMP2(I,J)
+        TGRN2(3,I,J)=atmgla%GTEMP2(I,J)
+        TGR4(2,I,J)=atmice%GTEMPR(I,J)**4
+        TGR4(3,I,J)=atmgla%GTEMPR(I,J)**4
       END DO 
       END DO 
 
 
 C**** Zero out fluxes summed over type and surface time step
-      E0=0. ; E1=0. ; EVAPOR=0. ; RUNOE=0. ; ERUNOE=0.
-      DMUA=0. ; DMVA=0. ; SOLAR=0.
+
+      do itype=1,4
+        asflx(itype)%solar(:,:) = 0.
+        asflx(itype)%dmua(:,:) = 0.
+        asflx(itype)%dmva(:,:) = 0.
+        asflx(itype)%e0(:,:) = 0.
+        asflx(itype)%evapor(:,:) = 0.
 #ifdef TRACERS_WATER
-      TREVAPOR = 0. ; TRUNOE = 0.
+        asflx(itype)%TREVAPOR(:,:,:) = 0.
 #endif
 #ifdef TRACERS_DRYDEP
-      TRDRYDEP = 0.
+        asflx(itype)%TRDRYDEP(:,:,:) = 0.
+#endif
+      enddo
+
+      E1=0. ; RUNOE=0. ; ERUNOE=0.
+#ifdef TRACERS_WATER
+      TRUNOE = 0.
 #endif
 #ifdef SCM
       EVPFLX= 0.0d0
@@ -444,9 +469,9 @@ C**** SSH does not work for qflux/fixed SST configurations
          if(ns.eq.1 .and. focean(i,j).gt.0.)
      &        aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + pocean
          IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
-           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)*FOCEAN(I,J)
+           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+atmocn%GTEMP(I,J)*FOCEAN(I,J)
            AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)*FOCEAN(I,J)
-           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+(OGEOZA(I,J)*BYGRAV+
+           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+(atmocn%OGEOZA(I,J)*BYGRAV+
      *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS)*FOCEAN(I,J)
          END IF
 C****
@@ -459,9 +484,9 @@ C****
 
       PTYPE=POCEAN
       IF (PTYPE.gt.0) THEN
-      TG1=GTEMP(1,1,I,J)
-      TG2=GTEMP(2,1,I,J)   ! diagnostic only
-      TR4=GTEMPR(1,I,J)**4
+      TG1=atmocn%GTEMP(I,J)
+      TG2=atmocn%GTEMP2(I,J)   ! diagnostic only
+      TR4=atmocn%GTEMPR(I,J)**4
       IF (FLAKE(I,J).gt.0) THEN
 C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         IF (MWL(I,J).lt.MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)) THEN
@@ -473,7 +498,7 @@ C**** limit evap/cooling if between MINMLD and 40cm, no evap below 40cm
         END IF
 #ifdef TRACERS_WATER
 C**** limit on tracer evporation from lake
-        TEVAPLIM(1:NTX)=EVAPLIM*GTRACER(NTIX(1:NTX),1,I,J)
+        TEVAPLIM(1:NTX)=EVAPLIM*atmocn%GTRACER(NTIX(1:NTX),I,J)
 #endif
         HTLIM = GML(I,J)/(FLAKE(I,J)*AXYP(I,J)) + 0.5*LHM*EVAPLIM
         IDTYPE=ITLAKE
@@ -482,14 +507,14 @@ C**** limit on tracer evporation from lake
         IDTYPE=ITOCEAN
         if (UOdrag.eq.1) then ! use uocean for drag calculation
 C**** UOSURF,VOSURF are on atm A grid
-            uocean = uosurf(i,j)
-            vocean = vosurf(i,j)
+            uocean = atmocn%uosurf(i,j)
+            vocean = atmocn%vosurf(i,j)
         else
           uocean=0. ; vocean=0.
         end if
       END IF
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-      SOLAR(1,I,J)=SOLAR(1,I,J)+DTSURF*SRHEAT
+      atmocn%SOLAR(I,J)=atmocn%SOLAR(I,J)+DTSURF*SRHEAT
             OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
       ELHX=LHE
 
@@ -513,8 +538,8 @@ C****
       ELSE
         IDTYPE=ITOICE
         if (UOdrag.eq.1) then ! use ice velocities in drag calculation
-            uocean = uisurf(i,j)
-            vocean = visurf(i,j)
+            uocean = atmice%uisurf(i,j)
+            vocean = atmice%visurf(i,j)
         else
           uocean = 0. ; vocean =0.
         end if
@@ -532,10 +557,10 @@ C**** determine heat capacity etc for top ice layers
       HCG2 = dEidTi(TG2,1d3*(SSI(2,I,J)/(XSI(2)*MSI1)))*XSI(2)*MSI1
 
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-      SOLAR(2,I,J)=SOLAR(2,I,J)+DTSURF*SRHEAT
+      atmice%SOLAR(I,J)=atmice%SOLAR(I,J)+DTSURF*SRHEAT
 C**** fraction of solar radiation leaving layer 1 and 2
       IF (SRHEAT.gt.0) THEN ! only bother if there is sun
-        call solar_ice_frac(SNOW,MSI2,FLAG_DSWS(I,J),FSRI,2)
+        call solar_ice_frac(SNOW,MSI2,si_atm%FLAG_DSWS(I,J),FSRI,2)
       ELSE
         FSRI(1:2) = 0
       END IF
@@ -547,7 +572,7 @@ C**** pass salinity in underlying water (zero for lakes)
 C**** Underlying ocean temperature with sanity check 
 C**** (to prevent rare anomalies that will be dealt with by
 C**** addice next time)
-      TGO=max(GTEMP(1,1,I,J),tfrez(sss(i,j)))
+      TGO=max(atmocn%GTEMP(I,J),tfrez(sss(i,j)))
       
       END IF
 C****
@@ -560,7 +585,7 @@ C****
       IDTYPE=ITLANDI
       SNOW=SNOWLI(I,J)
       TG1=TGRND(3,I,J)
-      TG2=GTEMP(2,3,I,J)
+      TG2=atmgla%GTEMP2(I,J)
       TR4=TGR4(3,I,J)
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
@@ -606,12 +631,12 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-         trgrnd(nx)=gtracer(n,itype,i,j)    
+         trgrnd(nx)=atmocn%gtracer(n,i,j)    
          trsfac(nx)=1.
          trconstflx(nx)=trgrnd(nx)
          if (i.eq.1.and.j.eq.45)
      .        write(*,'(a,3i5,3e12.4)') 'in SURFACE, gtracer:',
-     .        nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
+     .        nstep,I,J,sss(I,J),atmocn%gtracer(n,i,j),trgrnd(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -620,7 +645,7 @@ C**** they are water or another type of tracer
         pbl_args%tr_evap_max(nx)=1.
 C**** This distinguishes water from gases or particle
         if ( tr_wd_TYPE(n) == nWATER ) then
-          trgrnd(nx)=gtracer(n,itype,i,j)
+          trgrnd(nx)=asflx(itype)%gtracer(n,i,j)
 C**** trsfac and trconstflx are multiplied by cq*ws and QG_SAT in PBL
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
@@ -812,10 +837,11 @@ C**** Limit evaporation if lake mass is at minimum
       lim_lake_evap=.false.
       lim_dew=.false.
       IF (ITYPE.EQ.1 .and. FLAKE(I,J).GT.0 .and.
-     *     (EVAPOR(I,J,1)-DQ1X*MA1).gt.EVAPLIM) THEN
+     *     (atmocn%EVAPOR(I,J)-DQ1X*MA1).gt.EVAPLIM) THEN
         if (QCHECK) WRITE(99,*) "Lake EVAP limited: I,J,EVAP,MWL",I,J
-     *     ,EVAPOR(I,J,1)-DQ1X*MA1,MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
-        DQ1X=(EVAPOR(I,J,1)-EVAPLIM)*BYAM(1,I,J)
+     *     ,atmocn%EVAPOR(I,J)-DQ1X*MA1,
+     *     MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+        DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*BYAM(1,I,J)
         lim_lake_evap=.true.
       ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
         DQ1X=(Q1+DQ1(I,J))
@@ -871,11 +897,11 @@ C**** Limit evaporation if lake mass is at minimum
 #ifdef WATER_PROPORTIONAL
             if(lim_lake_evap) then
 #else
-            if( TREVAPOR(n,1,I,J)+TEVAP.gt.TEVAPLIM(NX)) THEN
+            if( atmocn%TREVAPOR(n,I,J)+TEVAP.gt.TEVAPLIM(NX)) THEN
 #endif
             IF (QCHECK) WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL"
-     *           ,N,TREVAPOR(n,1,I,J)+TEVAP,TEVAPLIM(NX)
-            TEVAP= TEVAPLIM(NX)-TREVAPOR(n,1,I,J)
+     *           ,N,atmocn%TREVAPOR(n,I,J)+TEVAP,TEVAPLIM(NX)
+            TEVAP= TEVAPLIM(NX)-atmocn%TREVAPOR(n,I,J)
             endif
           END IF
           TDP = TEVAP*AXYP(I,J)*ptype
@@ -892,7 +918,9 @@ C**** Limit evaporation if lake mass is at minimum
           ELSE
             trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
           END IF
-          TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
+          !TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
+          asflx(itype)%TREVAPOR(n,I,J)=
+     *         asflx(itype)%TREVAPOR(n,I,J)+TEVAP
         END IF
 #endif
 #ifdef TRACERS_GASEXCH_ocean
@@ -901,7 +929,7 @@ C**** Calculate Tracer Gas Exchange
 C****
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
 #ifdef TRACERS_GASEXCH_ocean_CFC
-          TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) +
+          TRGASEX(n,I,J) = TRGASEX(n,I,J) +
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n) = trsrfflx(i,j,n)
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
@@ -915,7 +943,7 @@ C****
 ! Its sign is positive for flux entering the ocean (positive down)
 ! because obio_carbon needs such. Units mol,CO2/m2/s (accumulated over itype)
 
-          TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) +
+          TRGASEX(n,I,J) = TRGASEX(n,I,J) +
      .          pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs(nx) 
      .         - pbl_args%alpha_gas * trgrnd(nx) ) 
      .         * 1d6/vol2mass(n)
@@ -928,7 +956,7 @@ C****
      . pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs(nx)
      .         - pbl_args%alpha_gas * trgrnd(nx) )
      .         * 1d6/vol2mass(n),
-     . dtsurf,dtsrc,1.d0-RSI(i,j),TRGASEX(n,ITYPE,I,J),
+     . dtsurf,dtsrc,1.d0-RSI(i,j),TRGASEX(n,I,J),
      . focean(i,j)
 
 ! trsrfflx is positive up 
@@ -951,7 +979,7 @@ C****
        write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',
 !      write(*,'(a,3i5,11e12.4)')'22222222222222222',
      . nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
-     . pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
+     . pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,I,J),
      . pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)*1.d6/vol2mass(n)
      .                 *ptype,
      . pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) 
@@ -1033,7 +1061,8 @@ C****
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
 ! trdrydep downward flux by surface type (kg/m^2)
-          trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
+          asflx(itype)%trdrydep(n,i,j)=
+     &         asflx(itype)%trdrydep(n,i,j) - tdryd
 ! diagnose turbulent and settling fluxes separately
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
      &         ptype*rtsdt*pbl_args%dep_vel(n)
@@ -1063,17 +1092,20 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
       IF (ITYPE.eq.1 .and. FLAKE(I,J).gt.0 .and.
-     *     E0(I,J,1)+F0DT+HTLIM.lt.0 .and. E0(I,J,1)+F0DT.lt.0) THEN
+     *     atmocn%E0(I,J)+F0DT+HTLIM.lt.0 .and.
+     *     atmocn%E0(I,J)+F0DT.lt.0) THEN
         if (QCHECK.and.HTLIM.le.0) write(6,*) "NEW case:"
         if (QCHECK) write(6,*) "Limiting heat flux from lake",i,j,SHDT
-     *       ,F0DT,E0(I,J,1),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
-        SHDT = -(max(0d0,HTLIM)+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
-        F0DT = -E0(I,J,1)-max(0d0,HTLIM)
+     *       ,F0DT,atmocn%E0(I,J),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
+        SHDT =-(max(0d0,HTLIM)+atmocn%E0(I,J)+DTSURF*SRHEAT+TRHDT+EVHDT)
+        F0DT = -atmocn%E0(I,J)-max(0d0,HTLIM)
         if (QCHECK) write(6,*) "New SHDT,F0DT",i,j,SHDT,F0DT
       END IF
-      E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
+      !E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
+      asflx(itype)%E0(I,J)=asflx(itype)%E0(I,J)+F0DT
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
-      EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
+      !EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
+      asflx(itype)%EVAPOR(I,J)=asflx(itype)%EVAPOR(I,J)+EVAP
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
           if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
@@ -1113,8 +1145,10 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-      DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
-      DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
+      DMUA_IJ=PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
+      DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
+      asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ
+      asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ
       uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)
       vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*(VS-VOCEAN)
 C****
@@ -1345,9 +1379,9 @@ C**** Save surface tracer concentration whether calculated or not
      .           + pbl_args%alpha_gas * focean(i,j) ! mol,CO2/m3/uatm
      .           * (1.d0 - RSI(i,j)) ! only over open water
                endif
-               if(NS==NIsurf) then
+               if(NS==NIsurf .and. itype==1) then
                  AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
-     .                + TRGASEX(n,ITYPE,I,J) * focean(i,j)
+     .                + TRGASEX(n,I,J) * focean(i,j)
      .                * 3600.*24.*365.    ! mol,CO2/m2/yr
      .                * (1.d0 - RSI(i,j)) ! only over open water
                endif
@@ -1390,14 +1424,14 @@ C**** Save surface tracer concentration whether calculated or not
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
-     *           trevapor(n,itype,i,j)*ptype
+     *           asflx(itype)%trevapor(n,i,j)*ptype
             if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
-     *           trevapor(n,itype,i,j)*ptype)
+     *           asflx(itype)%trevapor(n,i,j)*ptype)
             if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
-     *           (i,j,1,jls_isrc(2,n),trevapor(n,itype,i,j)*ptype)
+     *          (i,j,1,jls_isrc(2,n),asflx(itype)%trevapor(n,i,j)*ptype)
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         gtracer(n,itype,i,j)*ptype
+     *         asflx(itype)%gtracer(n,i,j)*ptype
 #endif
         end if
       end do 
@@ -1424,7 +1458,7 @@ C****
         OA(I,J,9)=OA(I,J,9)+TRHDT
         OA(I,J,10)=OA(I,J,10)+SHDT
         OA(I,J,11)=OA(I,J,11)+EVHDT
-        AIJ(I,J,IJ_F0OI) =AIJ(I,J,IJ_F0OI) +F0DT*PTYPE
+        AIJ(I,J,atmice%IJ_F0OI) =AIJ(I,J,atmice%IJ_F0OI) +F0DT*PTYPE
         AIJ(I,J,IJ_EVAPI)=AIJ(I,J,IJ_EVAPI)+EVAP*PTYPE
         AIJ(I,J,IJ_SILWU)=AIJ(I,J,IJ_SILWU)+(DTSURF*TRHR(0,I,J)-TRHDT)
      *       *PTYPE
@@ -1459,6 +1493,7 @@ C****
 C**** EARTH
 C****
       CALL EARTH(NS,MODDSF,MODDD)
+      IF(NS==Nisurf) CALL GROUND_E ! diagnostic only - should be merged with EARTH
 
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
@@ -1556,7 +1591,7 @@ C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
         PW_acc(I,J)=PW_acc(I,J)+SUM(Q(I,J,:)*AM(:,I,J))
         p_avg(I,J)=p_avg(I,J)+P(I,J)
         if (FOCEAN(I,J).gt.0) then
-          sst_avg(i,j)=sst_avg(i,j)+GTEMP(1,1,i,j)
+          sst_avg(i,j)=sst_avg(i,j)+atmocn%GTEMP(i,j)
         else
           sst_avg(i,j)=undef
         end if
@@ -1566,9 +1601,11 @@ C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
         POCEAN=PWATER-POICE
         PEARTH=FEARTH(I,J)
         PLICE=FLICE(I,J)
-        lwu_avg(i,j)=lwu_avg(i,j)+STBO*(POCEAN*GTEMPR(1,I,J)**4+
-     &         POICE *GTEMPR(2,I,J)**4+PLICE*GTEMPR(3,I,J)**4+
-     &         PEARTH*GTEMPR(4,I,J)**4)
+        lwu_avg(i,j)=lwu_avg(i,j)+STBO*(
+     &        POCEAN*atmocn%GTEMPR(I,J)**4
+     &       +POICE *atmice%GTEMPR(I,J)**4
+     &       +PLICE *atmgla%GTEMPR(I,J)**4
+     &       +PEARTH*atmlnd%GTEMPR(I,J)**4)
 C**** Accumulate 3D subdaily quantities
        DO K=1,LM
         u_avg(I,J,K)=u_avg(I,J,K)+u(I,J,K)
@@ -1589,19 +1626,25 @@ C**** Accumulate 3D subdaily quantities
 #ifdef CALCULATE_FLAMMABILITY
       call flammability_drv
 #endif
+
+      atmice%e1(:,:) = e1(:,:,2)
+      atmgla%e1(:,:) = e1(:,:,3)
+
 C**** APPLY SURFACE FLUXES TO LAND ICE
       CALL GROUND_LI
 
-      CALL UNDERICE('LAKES')
-      CALL GROUND_SI('LAKES')
+C****
+C**** LAKES
+C****
+      CALL UNDERICE(si_atm,icelak,atmocn)
+      CALL GROUND_SI(si_atm,icelak,atmice,atmocn)
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
          CALL CHECKT ('GRNDLK')
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
-      CALL GROUND_E    ! diagnostic only - should be merged with EARTH
-      CALL FORM_SI('LAKES')
-      CALL SI_diags('LAKES')
+      CALL FORM_SI(si_atm,icelak,atmice)
+      CALL SI_diags(si_atm,icelak,atmice)
 
       call stopTimer('SURFACE()')
 

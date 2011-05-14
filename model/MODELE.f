@@ -82,6 +82,8 @@ C**** Command line options
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
+      use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
+      use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -184,8 +186,8 @@ C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       call startTimer('Surface')
-      CALL PRECIP_SI('OCEAN')  ! move to ocean_driver
-      CALL PRECIP_OC           ! move to ocean_driver
+      CALL PRECIP_SI(si_ocn,iceocn,atmice)  ! move to ocean_driver
+      CALL PRECIP_OC(atmocn,iceocn)         ! move to ocean_driver
 
 C**** CALCULATE SURFACE FLUXES (and, for now, this procedure
 C**** also drives "surface" components that are on the atm grid)
@@ -400,6 +402,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
+      
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
@@ -514,10 +517,11 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
+      use fluxes, only : atmocn
       implicit none
       
       call daily_CAL(.true.)    ! end_of_day
-      call daily_OCEAN(.true.)  ! end_of_day
+      call daily_OCEAN(.true.,atmocn)  ! end_of_day
       call daily_ATM(.true.)
 
       return
@@ -624,6 +628,7 @@ C****    List of parameters that are disregarded at restarts
       integer istart_fixup
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
+
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
 C****
@@ -878,7 +883,8 @@ C**** component-specific ops, folding the latter into component inits
       call INPUT_ocean (istart,istart_fixup,
      &     do_IC_fixups,is_coldstart)
 
-      call INPUT_atm(istart,istart_fixup,is_coldstart,
+      call INPUT_atm(istart,istart_fixup,
+     &     do_IC_fixups,is_coldstart,
      &     KDISK_restart,IRANDI)
 
       if (istart.le.9) then

@@ -580,7 +580,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                          ,OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-      USE FLUXES, only: gtemp !Jaegle
+      !USE FLUXES, only: gtemp !Jaegle
       use Dictionary_mod, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
@@ -1379,7 +1379,7 @@ c can't be more than moles going in:
 c
       USE CONSTANT, only: rhow
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
-      USE SEAICE_COM, only: trsi, snowi
+      USE SEAICE_COM, only : si_atm
       USE TRACER_COM, only: trname
 #ifdef TRACERS_AEROSOLS_Koch
      *                     ,n_BCB,n_BCII,n_BCIA
@@ -1390,7 +1390,7 @@ c
 #endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn
-      USE FLUXES, only: gtracer,gtemp
+      USE FLUXES, only: atmice
       IMPLICIT NONE
 c Warren and Wiscombe 1985 includes age dependence
       real*8, parameter :: bc(29)=(/1.d0,2.d0,3.d0,4.d0,5.d0,
@@ -1439,7 +1439,7 @@ c snowi(i,j) snow amount on sea ice, kg/m2
 c afb(i,j)=fb, fraction that is bare soil
 c fv=1-fb fraction that is vegetated
 c rads is the snow grain size determined in GRAINS
-c gtracer(n,2,i,j) is tracer concentration in snow on sea ice?
+c gtracer(n,i,j) is tracer concentration in snow on sea ice?
 c Maybe I need tracer in snow on sea ice, or mass of sea ice...?
 c Does trsi accumulate for ALL tracers?
 c fractions??
@@ -1484,9 +1484,9 @@ c
         sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
       scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
-      if (snowi(i,j).gt.0.) then
+      if (si_atm%snowi(i,j).gt.0.) then
         do n=1,nspBC
-          icon=icon+gtracer(spBC(n),2,i,j)*1.d9
+          icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
         enddo
       endif
       bcc=DMAX1(icon,scon)

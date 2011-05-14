@@ -16,7 +16,7 @@
 !@calls sync_param
       USE CONSTANT, only: mair,sday
       USE MODEL_COM, only: dtsrc
-      USE FLUXES, only : nisurf
+      USE FLUXES, only : nisurf,atmice
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRDIAG_COM
@@ -27,6 +27,8 @@
       character*10, DIMENSION(NTM) :: CMR,CMRWT
       logical :: T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
+
+      atmice%taijn => taijn_loc
 
 C**** Get factor to convert from mass to volume mr if necessary
       do n=1,ntm
@@ -316,7 +318,7 @@ C**** Tracers in iceberg runoff
         denom_tij(k,n)=n_Water
 C**** Tracers in sea ice
       k = k+1
-      tij_seaice = k
+      atmice%tij_seaice = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_ice'
         lname_tij(k,n) = trim(TRNAME(n))//' in Sea Ice'
         if (to_per_mil(n) .eq.1) then
@@ -397,7 +399,7 @@ C**** Tracers conc. in land snow water
         denom_tij(k,n)=n_Water
 C**** Tracer ice-ocean flux
       k = k+1
-      tij_icocflx = k
+      atmice%tij_icocflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_ic_oc_flx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Ice-Ocean Flux'
@@ -427,14 +429,14 @@ C**** Tracers integrated N-S atmospheric flux
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated E-W sea ice flux
       k = k+1
-      tij_tusi = k
+      atmice%tij_tusi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
         lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 C**** Tracers integrated N-S sea ice flux
       k = k+1
-      tij_tvsi = k
+      atmice%tij_tvsi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
@@ -717,7 +719,7 @@ C****
      &     trname, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
-      USE SEAICE_COM, only : trsi
+      USE SEAICE_COM, only : si_atm,si_ocn
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
@@ -763,7 +765,13 @@ C**** Atmospheric decay
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
-          trsi(n,:,:,:)   = expdec(n)*trsi(n,:,:,:)
+          si_atm%trsi(n,:,:,:)   = expdec(n)*si_atm%trsi(n,:,:,:)
+          if(si_atm%grid%im_world .ne. si_ocn%grid%im_world) then
+            call stop_model(
+     &           'TDECAY: tracers in sea ice are no longer on the '//
+     &           'atm. grid - please move the next line',255)
+          endif
+          si_ocn%trsi(n,:,:,:)   = expdec(n)*si_ocn%trsi(n,:,:,:)
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
 C**** ...land surface tracers
@@ -1036,7 +1044,7 @@ c**** Interpolate two months of data to current day
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE ATM_COM, only : am
-      USE FLUXES, only : gtracer
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
       IMPLICIT NONE
@@ -1052,7 +1060,11 @@ c**** Interpolate two months of data to current day
       I_1 = grid%I_STOP
       nj = J_1 - J_0 + 1
 
-      CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
+      !CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
+      CALL CHECK3(atmocn%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACO')
+      CALL CHECK3(atmice%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACI')
+      CALL CHECK3(atmgla%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACG')
+      CALL CHECK3(atmlnd%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACE')
       do n=1,ntm
         CALL CHECK4(trmom(:,:,J_0:J_1,:,n),NMOM,IM,nJ,LM,SUBR,
      *       'X'//trname(n))
@@ -1765,7 +1777,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
-
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
+#endif
+#endif
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -1886,6 +1902,11 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
 #endif
 
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      call defvar(grid,fid,atrac,'atrac(dist_im,dist_jm,ntm)')
+#endif
+#endif
       return
       end subroutine def_rsf_tracer
 
@@ -1919,6 +1940,11 @@ c daily_z is currently only needed for CS
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
+#endif
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
+#endif
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,read_data,
@@ -2022,6 +2048,12 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call write_dist_data(grid,fid,'atrac',atrac)
+#endif
+#endif
+
       case (ioread)            ! input from restart file
         do n=1,ntm
           call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
@@ -2118,6 +2150,12 @@ c daily_z is currently only needed for CS
 
 #ifdef TRACERS_AEROSOLS_Koch
         call read_dist_data(grid,fid,'snosiz',snosiz)
+#endif
+
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call read_dist_data(grid,fid,'atrac',atrac)
+#endif
 #endif
 
       end select

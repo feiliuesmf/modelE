@@ -2317,6 +2317,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
+      USE FLUXES, only : atmocn
       implicit none
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       character*50 :: unit_string
@@ -3142,6 +3143,11 @@ c     Processes AMP Budget
 
         natmtrcons=N
       end do
+
+#ifdef TRACERS_OCEAN
+      atmocn%natmtrcons = natmtrcons
+#endif
+
 #endif /* TRACERS_ON */
 
       return
@@ -7676,6 +7682,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column, skip_parallel
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
@@ -7692,12 +7699,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *     ,trwm,trw0,tr_wd_type,nWATER,n_HDO,n_H2O18
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trsnowli,trlndi,snowli
-      USE SEAICE, only : xsi,ace1i
-      USE SEAICE_COM, only : rsi,msi,snowi,trsi,ssi
+      USE SEAICE_COM, only : si_atm,si_ocn
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
-      USE FLUXES, only : gtracer,flice,focean
+      USE FLUXES, only : flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
       USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
@@ -7747,7 +7753,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-      USE FLUXES, only : gtracer
 #ifdef OBIO_ON_GARYocean
       Use AFLUXES, Only: aTRAC
 #else
@@ -7761,7 +7766,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
 #endif
 #if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
-      USE FLUXES, only : gtracer
       USE RADPAR, only : xnow
 #endif
       use OldTracer_mod, only: trli0
@@ -7864,7 +7868,13 @@ C**** set some defaults for air mass tracers
 C**** set some defaults for water tracers
       trwm(:,J_0:J_1,:,n)=0. ! cloud liquid water
       trlake(n,:,:,J_0:J_1)=0.
-      trsi(n,:,:,J_0:J_1)=0.
+      si_atm%trsi(n,:,:,J_0:J_1)=0.
+      if(si_ocn%grid%im_world .ne. im) then
+        call stop_model(
+     &       'TRACER_IC: tracers in sea ice are no longer on the '//
+     &       'atm. grid - please move the si_ocn references',255)
+      endif
+      si_ocn%trsi(n,:,:,J_0:J_1)=0.
       trlndi(n,:,J_0:J_1)=0.
       trsnowli(n,:,J_0:J_1)=0.
       tr_w_ij(n,:,:,:,J_0:J_1)=0.
@@ -8140,6 +8150,9 @@ c     tmominit = 0.
           end do
         end if
 
+        call init_single_seaice_tracer(si_atm,n,trsi0(n))
+        call init_single_seaice_tracer(si_ocn,n,trsi0(n))
+
         do j=J_0,J_1
           do i=I_0,I_1
             tracerTs=trw0(n)
@@ -8160,7 +8173,7 @@ C**** lakes
               else
                 trlake(n,2,i,j)=0.
               end if
-              gtracer(n,1,i,j)=trw0(n)
+              atmocn%gtracer(n,i,j)=trw0(n)
             else !if (focean(i,j).eq.0) then
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
@@ -8168,24 +8181,18 @@ c            else
 c              trlake(n,1:2,i,j)=0.
             end if
 c**** ice
-            if (msi(i,j).gt.0) then
-              trsi(n,1,i,j)=trsi0(n)*
-     *             (xsi(1)*(snowi(i,j)+ace1i)-ssi(1,i,j))
-              trsi(n,2,i,j)=trsi0(n)*
-     *             (xsi(2)*(snowi(i,j)+ace1i)-ssi(2,i,j))
-              trsi(n,3,i,j)=trsi0(n)*(xsi(3)*msi(i,j)-ssi(3,i,j))
-              trsi(n,4,i,j)=trsi0(n)*(xsi(4)*msi(i,j)-ssi(4,i,j))
-              gtracer(n,2,i,j)=trsi0(n)
+            if (si_atm%msi(i,j).gt.0) then
+              atmice%gtracer(n,i,j)=trsi0(n)
             end if
 c**** landice
             if (flice(i,j).gt.0) then
               trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)
               trsnowli(n,i,j)=trli0(n)*snowli(i,j)
-              gtracer(n,3,i,j)=trli0(n)
+              atmgla%gtracer(n,i,j)=trli0(n)
             else
               trlndi(n,i,j)=0.
               trsnowli(n,i,j)=0.
-              gtracer(n,3,i,j)=0.
+              atmgla%gtracer(n,i,j)=0.
             end if
 c**** earth
             !!!if (fearth(i,j).gt.0) then
@@ -8199,13 +8206,13 @@ c**** earth
      &             tracerTs*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
      &             *fr_snow_ij(2,i,j)*conv
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
-              gtracer (n,4,i,j)=trw0(n)
+              atmlnd%gtracer (n,i,j)=trw0(n)
             else
               tr_w_ij  (n,:,:,i,j)=0.
               tr_wsn_ij(n,:,:,i,j)=0.
               !trsnowbv(n,1,i,j)=0.
               !trsnowbv(n,2,i,j)=0.
-              gtracer(n,4,i,j)=0.
+              atmlnd%gtracer(n,i,j)=0.
             end if
           end do
           end do
@@ -8417,16 +8424,16 @@ c**** earth
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
              !!!!trmom(:,i,j,l,n)=0.d0
-             gtracer(n,1,i,j) = vol2mass(n)
+             atmocn%gtracer(n,i,j) = vol2mass(n)
      .                    * atmCO2 * 1.d-6      !initialize gtracer
 #else
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * xnow(1) * 1.d-6
-             gtracer(n,1,i,j) = vol2mass(n)
+             atmocn%gtracer(n,i,j) = vol2mass(n)
      .                    * xnow(1) * 1.d-6      !initialize gtracer
 #endif
 #if defined(TRACERS_GASEXCH_ocean_CO2)
-             atrac(i,j,n) = gtracer(n,1,i,j)
+             atrac(i,j,n) = atmocn%gtracer(n,i,j)
 #endif
           end do; end do; end do
 #endif
@@ -8573,7 +8580,7 @@ C**** Initialise pbl profile if necessary
 #endif /* TRACERS_ON */
 #ifdef TRACERS_OCEAN
 C**** Initialise ocean tracers if necessary
-      call tracer_ic_ocean
+      call tracer_ic_ocean(atmocn)
 #endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -9107,7 +9114,7 @@ C**** at the start of any day
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
       USE FLUXES, only: trsource,fland,flice,focean
-      USE SEAICE_COM, only: rsi
+      USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
       USE PBLCOM, only: tsavg
@@ -9424,7 +9431,7 @@ c Schery source
           if (rnsrc.le.1) then
 C**** source from ice-free ocean
             trsource(i,j,1,n) =trsource(i,j,1,n)+ 1.6d-18*steppd*axyp(i
-     *           ,j)*(1.-fland(i,j))*(1.-rsi(i,j))
+     *           ,j)*(1.-fland(i,j))*(1.-si_atm%rsi(i,j))
           endif
           enddo                 !i
         enddo                   !j
@@ -9670,7 +9677,7 @@ C****
       if(no_emis_over_ice > 0)then
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            fice=flice(i,j)+rsi(i,j)*(focean(i,j)+flake(i,j))
+            fice=flice(i,j)+si_atm%rsi(i,j)*(focean(i,j)+flake(i,j))
             if(fice > 0.9d0) trsource(i,j,:,:)=0.d0
           enddo
         enddo

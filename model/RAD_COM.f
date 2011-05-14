@@ -65,8 +65,9 @@ C**** does not produce exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSURF
 !@var FSF Solar Forcing over each type (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSF
-!@var FSRDIR Direct beam solar incident at surface (W/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR
+!@var FSRDIR Solar incident at surface, direct fraction (1)
+!@var DIRVIS Direct beam solar incident at surface (W/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR,DIRVIS
 !@var SRVISSURF Incident solar direct+diffuse visible at surface (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
@@ -266,6 +267,11 @@ C**** Local variables initialised in init_RAD
       real*8 :: lat_dh2o(jm_dh2o)
 #endif
 
+      TARGET :: COSZ1
+#ifdef OBIO_RAD_coupling
+      TARGET :: DIRVIS,FSRDIF,DIRNIR,DIFNIR
+#endif
+
       END MODULE RAD_COM
 
       SUBROUTINE ALLOC_RAD_COM(grid)
@@ -284,7 +290,7 @@ C**** Local variables initialised in init_RAD
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
-     *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI
+     *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
 #ifdef mjo_subdd
      *     ,SWHR_cnt,LWHR_cnt,SWHR,LWHR,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -325,6 +331,7 @@ C**** Local variables initialised in init_RAD
      *     TRSURF(4, I_0H:I_1H, J_0H:J_1H),
      *     FSF(4,I_0H:I_1H, J_0H:J_1H),
      *     FSRDIR(I_0H:I_1H, J_0H:J_1H),
+     *     DIRVIS(I_0H:I_1H, J_0H:J_1H),
      *     SRVISSURF(I_0H:I_1H, J_0H:J_1H),
      *     FSRDIF(I_0H:I_1H, J_0H:J_1H),
      *     DIRNIR(I_0H:I_1H, J_0H:J_1H),
@@ -878,8 +885,10 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid, fid,'trsurf', trsurf, jdim=3)
         call read_dist_data(grid, fid,'fsf',  fsf, jdim=3)
         call read_dist_data(grid, fid,'salb', salb)
+        fsrdir = 0.; srvissurf = 0.
         call read_dist_data(grid, fid,'fsrdir', fsrdir)
         call read_dist_data(grid, fid,'srvissurf', srvissurf)
+        dirvis = fsrdir*srvissurf ! reconstruct when restarting.
         call read_dist_data(grid, fid,'fsrdif', fsrdif)
         call read_dist_data(grid, fid,'dirnir', dirnir)
         call read_dist_data(grid, fid,'difnir', difnir)
