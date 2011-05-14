@@ -630,7 +630,7 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP2(I,J) = GTEMP(1,I,J)
+                    GTEMP2(I,J) = GTEMP(I,J)
                 endif
             endif
 #endif

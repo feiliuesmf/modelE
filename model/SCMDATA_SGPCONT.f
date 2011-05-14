@@ -21,7 +21,7 @@ C-------------------------------------------------------------------------------
       USE LAKES_COM, only : FLAKE 
       USE CONSTANT , only : KAPA,TF   
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : GTEMP,GTEMPR 
+      USE FLUXES, only : atmocn,atmlnd
       USE FILEMANAGER
       USE Dictionary_mod
       IMPLICIT NONE
@@ -109,14 +109,15 @@ c
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
 
-      GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
-      GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
-      GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
-      GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+      atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
+      atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
+      atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN 
+      atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+      atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
 
-      write(iu_scm_prt,120) GTEMP(1,1,I_TARG,J_TARG),
-     &      GTEMP(2,1,I_TARG,J_TARG),GTEMP(1,4,I_TARG,J_TARG),
-     &      GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+      write(iu_scm_prt,120) atmocn%GTEMP(I_TARG,J_TARG),
+     &      atmocn%GTEMP2(I_TARG,J_TARG),atmlnd%GTEMP(I_TARG,J_TARG),
+     &      atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
  120  format(1x,
      &    'initial temps  gtemp11 gtemp21 gtemp14 gtempr1 gtempr4 ',
      &     5(f10.3))
@@ -768,7 +769,7 @@ c     enddo
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : GTEMP,GTEMPR
+      USE FLUXES, only : atmocn,atmlnd
       USE CONSTANT, only : tf,KAPA 
       USE SCMCOM
 C     
@@ -831,13 +832,14 @@ c            write(iu_scm_prt,310) L,Q(I_TARG,J_TARG,L),SG_T(L),
 c    &                     T(I_TARG,J_TARG,L)
 c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           enddo 
-          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
-          GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
-          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,340) GTEMP(1,4,I_TARG,J_TARG),
-     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
-     &       GTEMPR(1,I_TARG,J_TARG)
+          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
+          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN  
+          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,340) atmlnd%GTEMP(I_TARG,J_TARG),
+     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
+     &       atmocn%GTEMPR(I_TARG,J_TARG)
  340      format(1x,'SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 ',4(f10.3))
       endif
 
@@ -853,13 +855,14 @@ c
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
       if (SCM_SURFACE_FLAG.eq.1) then
-          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN   
-          GTEMPR(1,I_TARG,J_TARG) = ATSKIN+TF
-          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,360) GTEMP(1,4,I_TARG,J_TARG),
-     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
-     &       GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN   
+          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN   
+          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN+TF
+          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,360) atmlnd%GTEMP(I_TARG,J_TARG),
+     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
+     &       atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
  360      format(1x,
      &      'pass SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 GTEMPR4',
      &        5(f10.3))
