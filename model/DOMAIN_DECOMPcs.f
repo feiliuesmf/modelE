@@ -32,7 +32,7 @@ c      use mpp_domains_mod
       save
 
 c declare an instance of dist_grid for the atmosphere
-      type(dist_grid) :: grid
+      type(dist_grid), target :: grid
 
       contains
 

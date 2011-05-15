@@ -65,6 +65,8 @@
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5d0
 
+      target :: wsavg
+
       END MODULE PBLCOM
 
       SUBROUTINE io_pbl(kunit,iaction,ioerr)

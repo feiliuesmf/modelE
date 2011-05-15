@@ -15,7 +15,7 @@ c     save diagnostics for run of MODELE SCM
       USE SCMDIAG
       USE RAD_COM, only : srhr,trhr
       USE PBLCOM, only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG
-      USE FLUXES, only : GTEMP 
+      USE FLUXES, only : atmlnd 
 C     USE DYNAMICS, only : PK 
 C--- Added by J.W. starting ---C
       USE DYNAMICS, only : PK,GZ
@@ -222,7 +222,7 @@ C--- Added by J.W. ending ---C
       pk1000 = 1000.**kapa
       PCOL = P(I_TARG,J_TARG)
       TSURF = TSAVG(I_TARG,J_TARG)
-      TSKIN = GTEMP(1,4,I_TARG,J_TARG)
+      TSKIN = atmlnd%GTEMP(I_TARG,J_TARG)
       
       do L = 1,LM
 C--- Added by J.W. starting ---C

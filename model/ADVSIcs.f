@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE ADVSI
+      SUBROUTINE ADVSI(atmice)
 !@sum  ADVSI advects sea ice
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
 !@+    on the AGCM grid, and RSI/MSI/HSI etc. are unchanged)
@@ -11,32 +11,23 @@
 c NOTE: CURRENTLY ASSUMING THAT THERE IS NO TRANSPORT OF ICE TO/FROM
 c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE CONSTANT, only : byshi,lhm,grav
-      USE RESOLUTION, only : im
-      USE RESOLUTION, only : ptop
-      USE ATM_COM, only : p
       USE MODEL_COM, only : kocean,dts=>dtsrc
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
-      USE ICEDYN_COM, only : rsix,rsiy,rsisave,foa,byfoa
+      USE ICEDYN_COM, only : foa,byfoa
       USE SEAICE, only : ace1i,xsi
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
+      USE SEAICE_COM, only : si_ocn,lmi
 #ifdef TRACERS_WATER
-     *     ,trsi,ntm
-#endif
-      USE FLUXES, only : focean,gtemp,apress,msicnv,fwsim,uisurf,visurf
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
-      USE DIAG_COM, only : oa,aij=>aij_loc,
-     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
-#ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn=>taijn_loc,tij_tusi,tij_tvsi
+     *     ,ntm
 #endif
       USE ICEDYN, only : grid_icdyn,usi,vsi
       USE ICEDYN_COM, only : i2a_uc,i2a_vc,UVLLATUC,UVLLATVC,CONNECT
       use cs2ll_utils, only : ll2csint_lij
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
+      type(atmice_xchng_vars) :: atmice
+!
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
 #ifndef TRACERS_WATER
       INTEGER, PARAMETER :: NTRICE=2+2*LMI
@@ -45,7 +36,7 @@ c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       INTEGER ITR
       REAL*8 TRSNOW(NTM), TRICE(NTM)
 #endif
-      INTEGER I,J,L,K
+      INTEGER I,J,L,K,IM
       REAL*8 DMHSI,ASI,YRSI,XRSI,FRSI,SICE,COUR,FAO,CNEW,
      &     ull,vll
 C****
@@ -77,6 +68,13 @@ C****
      &         grid_icdyn%J_STRT_HALO:grid_icdyn%J_STOP_HALO) ::
      &     uvll
 
+      REAL*8, DIMENSION(:,:), POINTER ::
+     &     RSI,MSI,SNOWI,FOCEAN,RSIX,RSIY,RSISAVE
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI,SSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+#endif
+
       INTEGER I_0,I_1,J_0,J_1, I_0Y,I_1Y
 !@var coastfac: A proportionality factor to compute the component
 !@+   of advective velocity which limits ice buildup along
@@ -86,7 +84,32 @@ C****
       real*8 :: coastfac
 
 C**** Get grid parameters
+      IM = grid%im_world
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+      focean => atmice%focean
+      rsi => si_ocn%rsi
+      rsix => si_ocn%rsix
+      rsiy => si_ocn%rsiy
+      rsisave => si_ocn%rsisave
+      msi => si_ocn%msi
+      hsi => si_ocn%hsi
+      ssi => si_ocn%ssi
+      snowi => si_ocn%snowi
+#ifdef tracers_water
+      trsi => si_ocn%trsi
+#endif
+
+      atmice%musi(:,:)=0
+      atmice%husi(:,:)=0
+      atmice%susi(:,:)=0
+      atmice%mvsi(:,:)=0
+      atmice%hvsi(:,:)=0
+      atmice%svsi(:,:)=0
+#ifdef tracers_water
+      atmice%tusi(:,:,:)=0
+      atmice%tvsi(:,:,:)=0
+#endif
 
       i_0y = max(1 ,i_0-1)
       i_1y = min(im,i_1+1)
@@ -277,16 +300,15 @@ c**** sea ice velocity is northward at grid box edge
           fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i,j)
         end if
 c accumulate transports
-        aij(i,j,ij_mvsi)=aij(i,j,ij_mvsi)+sum(fmsi(1:2,i))
-        aij(i,j,ij_hvsi)=aij(i,j,ij_hvsi)+sum(fmsi(3:2+lmi,i))
-        aij(i,j,ij_svsi)=aij(i,j,ij_svsi)+sum(fmsi(3+lmi:2+2*lmi,i))
-c#ifdef TRACERS_WATER
-c        do itr=1,ntm
-c          taijn(i,j,ticij_tvsi,itr)=taijn(i,j,ticij_tvsi,itr)+
-c     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
-c        end do
-c#endif
-
+        atmice%mvsi(i,j)=sum(fmsi(1:2,i))
+        atmice%hvsi(i,j)=sum(fmsi(3:2+lmi,i))
+        atmice%svsi(i,j)=sum(fmsi(3+lmi:2+2*lmi,i))
+#ifdef TRACERS_WATER
+        do itr=1,ntm
+          atmice%tvsi(i,j,itr)=
+     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
+        enddo
+#endif
         if(faw_jm1(i).gt.0. .or. faw(i).lt.0.) then
 ! when there is inflow, use general-case formulas
           asi = rsi(i,j)*foa(i,j)
@@ -408,15 +430,15 @@ c**** sea ice velocity is eastward at grid box edge
           fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i,j)
         endif
 c accumulate transports
-        aij(i,j,ij_musi)=aij(i,j,ij_musi)+sum(fmsi(1:2,i))
-        aij(i,j,ij_husi)=aij(i,j,ij_husi)+sum(fmsi(3:2+lmi,i))
-        aij(i,j,ij_susi)=aij(i,j,ij_susi)+sum(fmsi(3+lmi:2+2*lmi,i))
-c#ifdef TRACERS_WATER
-c        do itr=1,ntm
-c          taijn(i,j,ticij_tusi,itr)=taijn(i,j,ticij_tusi,itr)+
-c     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
-c        enddo
-c#endif
+        atmice%musi(i,j)=sum(fmsi(1:2,i))
+        atmice%husi(i,j)=sum(fmsi(3:2+lmi,i))
+        atmice%susi(i,j)=sum(fmsi(3+lmi:2+2*lmi,i))
+#ifdef TRACERS_WATER
+        do itr=1,ntm
+          atmice%tusi(i,j,itr)=
+     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
+        enddo
+#endif
         if(faw_im1.gt.0. .or. faw(i).lt.0.) then
 ! when there is inflow, use general-case formulas
           asi = rsi(i,j)*foa(i,j)
@@ -489,9 +511,10 @@ C**** Currently on atmospheric grid, so no interpolation necessary
           DO I=I_0,I_1
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Fresh water sea ice mass convergence (needed for qflux model)
-            MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
-     *           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
-     *           +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
+            atmice%MSICNV(I,J) =
+     &             RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
+     &           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
+     &           +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
 C**** sea ice prognostic variables
             SNOWI(I,J)= MAX(0d0,MHS(1,I,J) - ACE1I)
             MSI(I,J)  = MHS(2,I,J)
@@ -530,24 +553,8 @@ C**** reconstruct tracer arrays
               END DO
             END DO
 #endif
-            FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
+            atmice%FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
      *           SUM(SSI(1:LMI,I,J)))
-            END IF
-          END DO
-        END DO
-C**** Set atmospheric arrays
-        DO J=J_0,J_1
-          DO I=I_0,I_1
-            IF (FOCEAN(I,J).gt.0) THEN
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-              APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-              GTEMP(1:2,2,I,J)=((HSI(1:2,I,J)-SSI(1:2,I,J)*LHM)/
-     *             (XSI(1:2)*(SNOWI(I,J)+ACE1I))+LHM)*BYSHI
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
-     *             -SSI(1,I,J))
-#endif
             END IF
           END DO
         END DO
@@ -555,7 +562,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
         DO J=J_0,J_1
           DO I=I_0,I_1
             IF (FOCEAN(I,J).gt.0) THEN
-              OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
+              atmice%HSICNV(I,J)=(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
      *             -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)

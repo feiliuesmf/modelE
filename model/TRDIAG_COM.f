@@ -73,14 +73,15 @@ C**** TAIJN
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
 !@var IJT_XX names for water-based taijn diagnostics
-      integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
-     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx
-     *     ,tij_tusi,tij_tvsi,tij_rvro,tij_icb
+      integer tij_rvr,tij_prec,tij_evap,tij_grnd,tij_lk1
+     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx
+     *     ,tij_rvro,tij_icb
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
+
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -551,6 +552,8 @@ C**** include some extra troposphere only ones
 #endif
 #endif  /* NEW IO */
 
+      target :: taijn_loc,tconsrv_loc,nofmt
+
       END MODULE TRDIAG_COM
 
 #ifdef TRACERS_ON
@@ -679,6 +682,133 @@ C****
       NSUM_TCON(NS,itr) = 0
       RETURN
       END SUBROUTINE set_tcon
+
+#ifdef TRACERS_OCEAN
+      SUBROUTINE SET_TCONO(NAME_CON,INST_UNIT,SUM_UNIT,
+     &     INST_SC,CHNG_SC, itr0)
+!@sum  SET_TCONO assigns ocean conservation diagnostic array indices
+!@auth Gavin Schmidt
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: dtsrc
+      USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
+      USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
+     *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
+     *     ,natmtrcons,nocntrcons
+      IMPLICIT NONE
+!@var NAME_CON name of conservation quantity
+      CHARACTER*8, INTENT(IN) :: NAME_CON
+!@var INST_UNIT string for unit for instant. values
+      CHARACTER*20, INTENT(IN) :: INST_UNIT
+!@var SUM_UNIT string for unit for summed changes
+      CHARACTER*20, INTENT(IN) :: SUM_UNIT
+!@var INST_SC scale for instantaneous value
+      REAL*8, INTENT(IN) :: INST_SC
+!@var CHNG_SC scale for changes
+      REAL*8, INTENT(IN) :: CHNG_SC
+!@var ITR index for the tracer
+      INTEGER, INTENT(IN) :: ITR0
+!@var QCON denotes at which points conservation diags are saved
+      LOGICAL, DIMENSION(npts) :: QCON
+!@var QSUM sets whether each diag is included in final sum
+!@+   should be zero for diags set using DIAGTCB (i.e. using difference)
+      LOGICAL, DIMENSION(npts) :: QSUM
+      LOGICAL, DIMENSION(npts) :: QSUM_CON   ! local version
+!@var sname name of conservation quantity (no spaces)
+      CHARACTER*8 :: sname
+!@var CONPT0_sname like CONPT0 but without spaces
+      CHARACTER*10, DIMENSION(npts) :: CONPT0_sname, CONPT
+      CHARACTER*11 CHGSTR
+      CHARACTER*40 clean_str
+      INTEGER NI,NM,NS,N,k,itr
+      LOGICAL, PARAMETER :: T=.true., F=.false.
+
+      nocntrcons=max(nocntrcons,itr0)
+      CONPT=CONPT0
+      CONPT(8)="OCN PHYS"
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      QSUM(:) = T
+#ifdef TRACERS_OceanBiology
+      CONPT(4)="OCN BIOL"
+#endif
+
+C**** make nice netcdf names
+      sname=trim(clean_str(name_con))
+      do n=1,npts
+         conpt0_sname(n) = trim(clean_str(conpt(n)))
+      enddo
+C****
+      NI=1
+      itr=itr0+natmtrcons
+      NOFMT(1,itr) = NI
+      TITLE_TCON(NI,itr) =
+     *     "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
+      SCALE_TCON(NI,itr) = INST_SC
+      name_tconsrv(NI,itr) ="inst_oc_"//sname
+      lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
+      units_tconsrv(NI,itr) = INST_UNIT
+      NSUM_TCON(NI,itr) = -1
+      IA_TCON(NI,itr) = 12
+      NM=NI
+      DO N=2,npts+1
+        IF (QCON(N-1)) THEN
+          NM = NM + 1
+          NOFMT(N,itr) = NM
+          QSUM_CON(NM)=.FALSE.
+          IF (QSUM(N-1)) QSUM_CON(NM)=.TRUE.
+          CHGSTR=" CHANGE OF "
+          if (n.le.npts+1) then
+            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
+     *         CONPT(N-1)
+            name_tconsrv(NM,itr) =
+     *           "chg_oc_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
+c          else
+c            IF (.not. QSUM(N-1)) CHGSTR="     DELTA "
+c            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
+c     *           CONPTs(N-npts-1)
+c            name_tconsrv(NM,itr) =
+c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
+          end if
+          lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
+          units_tconsrv(NM,itr) = SUM_UNIT
+          SELECT CASE (N)
+          CASE (2,8) ! ocean not affected by certain atm processes
+            call stop_model('nonsensical choice in set_tcono',255)
+          CASE (3,4,5,6,7,9,11,12)
+            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
+            IA_TCON(NM,itr) = ia_d5s
+          CASE (10)
+            SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
+            IA_TCON(NM,itr) = ia_12hr
+          CASE (13:)   ! special tracer sources
+            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
+            IA_TCON(NM,itr) = ia_src
+          END SELECT
+        ELSE
+          NOFMT(N,itr) = 0
+        END IF
+      END DO
+      NS=NM+1
+      IF (NS.gt.KTCON) THEN
+        WRITE(6,*) "KTCON not large enough for extra conserv diags",
+     *       KTCON,NI,NM,NS,NAME_CON
+        call stop_model(
+     &       "Change KTCON in tracer diagnostic common block",255)
+      END IF
+      DO NM=NI+1,NS-1
+        NSUM_TCON(NM,itr) = -1
+        IF (QSUM_CON(NM)) NSUM_TCON(NM,itr) = NS
+      END DO
+      TITLE_TCON(NS,itr) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
+      name_Tconsrv(NS,itr) ="sum_chg_oc_"//trim(sname)
+      lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
+      units_Tconsrv(NS,itr) = SUM_UNIT
+      SCALE_TCON(NS,itr) = 1.
+      IA_TCON(NS,itr) = 12
+      NSUM_TCON(NS,itr) = 0
+      RETURN
+      END SUBROUTINE set_tcono
+#endif /* TRACERS_OCEAN */
+
 
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
@@ -1139,6 +1269,7 @@ C*** Unpack read global data into local distributed arrays
       USE TRDIAG_COM
       USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT, GRID
       use diag_zonal, only : get_alloc_bounds
+      use fluxes, only : atmocn
       implicit none
       INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
@@ -1202,6 +1333,11 @@ C*** Unpack read global data into local distributed arrays
       if(am_i_root()) then
         ALLOCATE ( TAJL_out(JM_BUDG,LM,ktajl_), stat=status )
       endif
+#endif
+
+#ifdef TRACERS_OCEAN
+      atmocn%tconsrv => tconsrv_loc
+      atmocn%nofmt => nofmt
 #endif
 
 #endif  /* TRACERS_ON */

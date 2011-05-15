@@ -421,8 +421,8 @@ c -------------------------------------------------------------
       USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
-      USE SEAICE_COM, only : rsi,snowi
-      USE FLUXES, only : gtemp,flice,fland
+      USE SEAICE_COM, only : si_atm
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,flice,fland
 #ifdef USE_ENT
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
@@ -524,7 +524,7 @@ C things to be done regardless of inipbl
       do j=J_0,J_1
         do i=I_0,I_1
 C**** fix roughness length for ocean ice that turned to land ice
-          if (snowi(i,j).lt.-1.and.flice(i,j).gt.0)
+          if (si_atm%snowi(i,j).lt.-1.and.flice(i,j).gt.0)
      &         roughl(i,j)=30./(10.**1.84d0)
           if (fland(i,j).gt.0.and.roughl(i,j) .gt. 29.d0) then
             print*,"Roughness length not defined for i,j",i,j
@@ -538,6 +538,8 @@ C**** fix roughness length for ocean ice that turned to land ice
       call ccoeff0
       call getztop(zgs,ztop)
 
+      atmocn % wsavg => wsavg
+
       if(.not.inipbl) return
 
       do j=J_0,J_1
@@ -546,27 +548,27 @@ C**** fix roughness length for ocean ice that turned to land ice
         pwater=1.-pland
         plice=flice(i,j)
         psoil=fearth(i,j)
-        poice=rsi(i,j)*pwater
+        poice=si_atm%rsi(i,j)*pwater
         pocean=pwater-poice
         if (pocean.le.0.) then
           tgvdat(i,j,1)=0.
         else
-          tgvdat(i,j,1)=gtemp(1,1,i,j)+TF
+          tgvdat(i,j,1)=atmocn%gtemp(i,j)+TF
         end if
         if (poice.le.0.) then
           tgvdat(i,j,2)=0.
         else
-          tgvdat(i,j,2)=gtemp(1,2,i,j)+TF
+          tgvdat(i,j,2)=atmice%gtemp(i,j)+TF
         end if
         if (plice.le.0.) then
           tgvdat(i,j,3)=0.
         else
-          tgvdat(i,j,3)=gtemp(1,3,i,j)+TF
+          tgvdat(i,j,3)=atmgla%gtemp(i,j)+TF
         end if
         if (psoil.le.0.) then
           tgvdat(i,j,4)=0.
         else
-          tgvdat(i,j,4)=gtemp(1,4,i,j)+TF
+          tgvdat(i,j,4)=atmlnd%gtemp(i,j)+TF
         end if
       end do
       end do

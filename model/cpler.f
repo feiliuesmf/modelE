@@ -6,7 +6,8 @@
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
      &   ,flnma2o_tau,flnmcoso,lp
-      USE HYCOM_DIM, only : agrid,ogrid
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE HYCOM_DIM, only : ogrid
      &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
      &      J_0,  J_1,  J_0H,  J_1H
       USE DOMAIN_DECOMP_1D, only : am_i_root,pack_data,unpack_data

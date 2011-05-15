@@ -6,11 +6,10 @@
       MODULE LAKES_COM
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
-      USE RESOLUTION, only : IM,JM
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+      USE SEAICE_COM, only : icestate,iceocn_xchng_vars
       IMPLICIT NONE
       SAVE
 !@var MWL mass of lake water (kg)
@@ -41,6 +40,14 @@ Crgr      REAL*8,  ALLOCATABLE, DIMENSION(NTM,2,:,:) :: TRLAKE
       REAL*8,  ALLOCATABLE, DIMENSION(:,:,:,:) :: TRLAKE
 #endif
 
+!      type(icestate) :: lki_state ! not yet: lake-private ice variables
+
+!@var icelak derived-type strucure containing variables
+!@+   (or pointers thereto) needed for lake-ice interactions.
+      type(iceocn_xchng_vars) :: icelak
+
+      target :: flake,mldlk,dlake,glake,tlake
+
 !@param NRVRMX Max No. of named rivers
       INTEGER, PARAMETER :: NRVRMX = 42
 !@var NRVR actual No. of named rivers
@@ -61,13 +68,15 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@+    at run-time
 !@auth Raul Garza-Robles
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
-      USE RESOLUTION, only : IM, JM
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
-     &     ,HLAKE,DLAKE,GLAKE
+     &     ,HLAKE,DLAKE,GLAKE,icelak
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
       USE LAKES_COM, ONLY:  TRLAKE
 #endif
+      USE EXCHANGE_TYPES, only : alloc_xchng_vars
+      USE SEAICE_COM, only : alloc_icestate_type,si_atm
+      USE FLUXES, only : atmice
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: I_0H,I_1H, J_0H,J_1H
@@ -97,17 +106,32 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       ALLOCATE( TRLAKE(NTM,2,I_0H:I_1H,J_0H:J_1H)
      * , STAT=IER)
 #endif
+
+      call alloc_icestate_type(grid,si_atm,'LAKES')
+      !atmice%rsi   => si_atm%rsi
+      !atmice%snowi => si_atm%snowi
+
+      call alloc_xchng_vars(grid,icelak)
+
+      deallocate(icelak%fwater); icelak%fwater  => flake
+
+      icelak%mldlk   => mldlk
+      icelak%dlake   => dlake
+      icelak%glake   => glake
+
       RETURN
       END SUBROUTINE ALLOC_LAKES_COM
 
       SUBROUTINE io_lakes(kunit,iaction,ioerr)
 !@sum  io_lakes reads and writes lake arrays to file
 !@auth Gavin Schmidt
+      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA  , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_BLOCK,
      *     BACKSPACE_PARALLEL
       USE LAKES_COM
+      USE RESOLUTION, only : IM, JM
       IMPLICIT NONE
       INTEGER kunit   !@var kunit unit number of read/write
       INTEGER iaction !@var iaction flag for reading or writing to file
@@ -210,6 +234,8 @@ c            GO TO 10
 #endif
       call declare_conserv_diags( grid, fid, 'wliql(dist_im,dist_jm)' )
       call declare_conserv_diags( grid, fid, 'eliql(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'wlaki(dist_im,dist_jm)' )
+      call declare_conserv_diags( grid, fid, 'elaki(dist_im,dist_jm)' )
       return
       end subroutine def_rsf_lakes
 
@@ -217,6 +243,7 @@ c            GO TO 10
 !@sum  new_io_lakes read/write lake arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
       use lakes_com
@@ -225,6 +252,7 @@ c            GO TO 10
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       external conserv_LKM, conserv_LKE
+      external conserv_LMSI, conserv_LHSI
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'mldlk', mldlk)
@@ -237,6 +265,8 @@ c            GO TO 10
 #endif
         call dump_conserv_diags( grid, fid, 'wliql', conserv_LKM )
         call dump_conserv_diags( grid, fid, 'eliql', conserv_LKE )
+        call dump_conserv_diags( grid, fid, 'wlaki', conserv_LMSI )
+        call dump_conserv_diags( grid, fid, 'elaki', conserv_LHSI )
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'mldlk', mldlk)
         call read_dist_data(grid, fid, 'mwl',   mwl)
@@ -249,6 +279,95 @@ c            GO TO 10
       end select
       return
       end subroutine new_io_lakes
+
+      subroutine read_agrice_ic
+!@sum   read_agrice_ic read atm-grid floating ice initial conditions file.
+      use model_com, only : ioread
+      use pario, only : par_open,par_close
+      use domain_decomp_atm, only : grid
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_agrice (fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_agrice_ic
+
+      subroutine def_rsf_agrice(fid)
+!@sum  def_rsf_lakes defines atm-grid floating ice arrays in restart files
+!@auth M. Kelley
+!@ver  beta
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      use seaice_com, only : si_atm
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,si_atm%rsi,'rsi_atm(dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%snowi,'snowi_atm(dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%msi,'msi_atm(dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%pond_melt,
+     &     'pond_melt_atm(dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%flag_dsws,
+     &     'flag_dsws_atm(dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%hsi,'hsi_atm(lmi,dist_im,dist_jm)')
+      call defvar(grid,fid,si_atm%ssi,'ssi_atm(lmi,dist_im,dist_jm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,si_atm%trsi,
+     &     'trsi_atm(ntm,lmi,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_agrice
+
+      subroutine new_io_agrice(fid,iaction)
+!@sum  new_io_lakes read/write atm-grid floating ice arrays from/to rsf
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use model_com, only : ioread,iowrite
+      use seaice_com, only : si_atm
+      use fluxes, only : atmice
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call seaice_to_atmgrid(atmice)
+        call write_dist_data(grid, fid, 'rsi_atm', si_atm%rsi)
+        call write_dist_data(grid, fid, 'snowi_atm', si_atm%snowi)
+        call write_dist_data(grid, fid, 'msi_atm', si_atm%msi)
+        call write_dist_data(grid, fid, 'pond_melt_atm',
+     &       si_atm%pond_melt)
+        call write_dist_data(grid, fid, 'flag_dsws_atm',
+     &       si_atm%flag_dsws)
+        call write_dist_data(grid, fid, 'hsi_atm', si_atm%hsi, jdim=3)
+        call write_dist_data(grid, fid, 'ssi_atm', si_atm%ssi, jdim=3)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid, fid, 'trsi_atm', si_atm%trsi, jdim=4)
+#endif
+
+      case (ioread)            ! input from restart file
+        si_atm%rsi(:,:) = -1d30
+        call read_dist_data(grid, fid, 'rsi_atm', si_atm%rsi)
+        if(all(si_atm%rsi(:,:)==-1d30)) then
+          call stop_model('new_io_agrice: use a restart file '//
+     &         'containing atm-grid ice fields',255)
+        endif
+        si_atm%RSISAVE(:,:)=si_atm%RSI(:,:)
+        call read_dist_data(grid, fid, 'snowi_atm', si_atm%snowi)
+        call read_dist_data(grid, fid, 'msi_atm', si_atm%msi)
+        call read_dist_data(grid, fid, 'pond_melt_atm',
+     &       si_atm%pond_melt)
+        call read_dist_data(grid, fid, 'flag_dsws_atm',
+     &       si_atm%flag_dsws)
+        call read_dist_data(grid, fid, 'hsi_atm', si_atm%hsi, jdim=3)
+        call read_dist_data(grid, fid, 'ssi_atm', si_atm%ssi, jdim=3)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid, fid, 'trsi_atm', si_atm%trsi, jdim=4)
+#endif
+      end select
+      return
+      end subroutine new_io_agrice
 
       subroutine def_meta_rvracc(fid)
 !@sum  def_meta_rvracc defines river metadata in acc files

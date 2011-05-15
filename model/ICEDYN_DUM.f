@@ -1,27 +1,14 @@
 #include "rundeck_opts.h"
 
       MODULE ICEDYN_COM
+      USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       integer :: imic=0,kticij=0
-      real*8,dimension(:),allocatable :: rsix,rsiy,usi,vsi
-      real*8,dimension(:),allocatable :: USIDT,VSIDT,RSISAVE
       real*8,dimension(:),allocatable :: icij
-      contains
-      subroutine alloc_icedyn_com(grid)
-      use DOMAIN_DECOMP_ATM, only : DIST_GRID
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-      return
-      end subroutine alloc_icedyn_com
+      type(iceocn_xchng_vars) :: igice
       END MODULE ICEDYN_COM
 
       MODULE ICEDYN
-      use ICEDYN_COM, only : usi, vsi
       integer :: imicdyn=0
-      contains
-      subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP_ATM, only : DIST_GRID
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-      return
-      end subroutine alloc_icedyn
       END MODULE ICEDYN
 
       SUBROUTINE ICEDYN_DUM
@@ -32,8 +19,6 @@
       ENTRY io_icedyn
       ENTRY io_icdiag
       ENTRY reset_icdiag
-      ENTRY ADVSI
-      ENTRY init_icedyn
       ENTRY diag_ICEDYN
 #ifdef NEW_IO
       entry def_rsf_icedyn
@@ -47,19 +32,15 @@
       RETURN
       END SUBROUTINE ICEDYN_DUM
 
-      SUBROUTINE alloc_icedyn
+      subroutine alloc_icedyn(im,jm)
       use ICEDYN_COM
-      implicit none
-      allocate( rsix(2), rsiy(2), usi(2), vsi(2))
-      allocate( USIDT(2), VSIDT(2), RSISAVE(2) )
+      integer :: im,jm
       allocate( icij(2) )
-      rsix=0; rsiy=0; usi=0; vsi=0
-      USIDT=0; VSIDT=0; RSISAVE=0
       icij=0
-      END SUBROUTINE alloc_icedyn
+      return
+      end subroutine alloc_icedyn
 
-
-      SUBROUTINE DYNSI
+      SUBROUTINE DYNSI(atmice,iceocn,si_ocn)
 !@sum DYNSI simple coding to estimate ice-ocean friction velocity
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
@@ -69,14 +50,22 @@
       USE DOMAIN_DECOMP_ATM, only : grid, get
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
-      USE SEAICE_COM, only : rsi
-      USE FLUXES, only : UI2rho,dmua,dmva
-
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars,iceocn_xchng_vars
+      USE SEAICE_COM, only : icestate
       IMPLICIT NONE
+      type(atmice_xchng_vars) :: atmice
+      type(iceocn_xchng_vars) :: iceocn
+      type(icestate) :: si_ocn
+c
       INTEGER I,J
       REAL*8 ustar1
       INTEGER :: I_0,I_1, J_0,J_1
+      real*8, dimension(:,:), pointer :: rsi,ui2rho,dmua,dmva
 
+      rsi => si_ocn%rsi
+      ui2rho => iceocn%ui2rho
+      dmua => atmice%dmua
+      dmva => atmice%dmva
 
       IF (KOCEAN.eq.1) THEN
 
@@ -88,7 +77,7 @@
 c          UI2rho(I,J) = rhows*(oi_ustar0)**2  ! default
 C**** with wind stress dependence
           if (rsi(i,j)*focean(i,j).gt.0) then
-            ustar1= SQRT(SQRT(DMUA(I,J,2)**2+DMVA(I,J,2)**2)/(RSI(i,j)
+            ustar1= SQRT(SQRT(DMUA(I,J)**2+DMVA(I,J)**2)/(RSI(i,j)
      *           *focean(i,j)*DTSRC*RHOWS))
             UI2rho(I,J)=rhows*(oi_ustar0*max(1d0,1d3*ustar1))**2
           end if
@@ -98,3 +87,18 @@ C**** with wind stress dependence
 
       RETURN
       END SUBROUTINE DYNSI
+
+      SUBROUTINE ADVSI(atmice)
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
+      IMPLICIT NONE
+      type(atmice_xchng_vars) :: atmice
+      RETURN
+      END SUBROUTINE ADVSI
+
+      SUBROUTINE init_ICEDYN(iniOCEAN,atmice)
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
+      IMPLICIT NONE
+      integer :: iniOCEAN
+      type(atmice_xchng_vars) :: atmice
+      RETURN
+      END SUBROUTINE init_ICEDYN

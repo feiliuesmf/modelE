@@ -3,7 +3,7 @@
       MODULE ODEEP_COM
 !@sum  ODEEP_COM defines the variables for deep diffusing Qflux model
 !@auth Gavin Schmidt/Gary Russell
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       IMPLICIT NONE
       SAVE
 
@@ -32,7 +32,7 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
 !@sum  init_ODEEP initialise deep ocean arrays
 !@auth G. Schmidt
       USE FILEMANAGER, only : openunit,closeunit
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
       USE STATIC_OCEAN, only : tocean
       USE DOMAIN_DECOMP_ATM, only : GRID, am_I_root, unpack_data
@@ -91,7 +91,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsficno,lhead
       USE STATIC_OCEAN
       USE ODEEP_COM
-      USE DOMAIN_DECOMP_1D, only : GRID,am_I_root,pack_data,unpack_data
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : am_I_root,pack_data,unpack_data
       USE DOMAIN_DECOMP_1D, only : pack_column, unpack_column
       IMPLICIT NONE
 
@@ -166,9 +167,11 @@ C****
 !@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,iowrite_single
-     *     ,ioread_single,lhead,im,jm
+     *     ,ioread_single,lhead
+      USE RESOLUTION, only : im,jm
       USE ODEEP_COM
-      USE DOMAIN_DECOMP_1D, only : GRID, am_I_root
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : am_I_root
       USE DOMAIN_DECOMP_1D, only : pack_column, unpack_column
 
       IMPLICIT NONE
@@ -246,7 +249,8 @@ C**** Thus it is only initiallised here for case ii).
 !@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt
       USE CONSTANT, only : shw,rhows
-      USE MODEL_COM, only : im,jm,fim,focean
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE ODEEP_COM, only : dz,rtgo,lmom
@@ -295,13 +299,12 @@ C****
 !@calls ODFFUS
       USE FILEMANAGER
       USE CONSTANT, only : sday,tf
-      USE MODEL_COM, only : im,jm,focean,jmon,jday,jdate,itocean
-     *     ,itoice
+      USE MODEL_COM, only : jmon,jday,jdate
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
-      USE SEAICE_COM, only : rsi
-      USE DIAG_COM, only : aj,j_ftherm
-      USE FLUXES, only : gtemp,gtempr
+      USE SEAICE_COM, only : si_ocn
+      USE DIAG_COM, only : aj,j_ftherm,itocean,itoice
+      USE FLUXES, only : atmocn,focean
       USE STATIC_OCEAN, only : z12o,tocean
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
@@ -360,11 +363,12 @@ C**** Set first layer thickness
               TOCEAN(L,I,J)=TOCEAN(L,I,J)+(RTGO(1,I,J)-ADTG3)
             END DO
             AJ(J,J_FTHERM,ITOCEAN)=AJ(J,J_FTHERM,ITOCEAN)-(RTGO(1,I,J)
-     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*(1.-RSI(I,J))
+     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*(1.-si_ocn%RSI(I,J))
             AJ(J,J_FTHERM,ITOICE )=AJ(J,J_FTHERM,ITOICE )-(RTGO(1,I,J)
-     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*RSI(I,J)
-            GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
-            GTEMPR(1,I,J)    = TOCEAN(1,I,J)+TF
+     *           -ADTG3)*Z12O(I,J)*FOCEAN(I,J)*si_ocn%RSI(I,J)
+            atmocn%GTEMP(I,J) = TOCEAN(1,I,J)
+            atmocn%GTEMP2(I,J) = TOCEAN(2,I,J)
+            atmocn%GTEMPR(I,J)    = TOCEAN(1,I,J)+TF
           END IF
         END DO
       END DO
@@ -420,7 +424,8 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether deep ocean values are reasonable
 !@auth Original Development Team
-      USE MODEL_COM, only : im,jm,focean
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       USE STATIC_OCEAN, only : tocean
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -477,7 +482,9 @@ C**** Check for reasonable values for ocean variables
 !@$    ESMF: It should only be called from a serial region.
 !@$          It is NOT parallelized.
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : jm,lrunid,xlabel,idacc,focean
+      USE RESOLUTION, only : jm
+      USE MODEL_COM, only : lrunid,xlabel,idacc
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo=>rtgo_diag,dz
       USE DIAG_COM, only : qdiag,zoc
@@ -527,7 +534,6 @@ C****
       END SUBROUTINE diag_OCEAN
 
       SUBROUTINE ALLOC_ODEEP(grid)
-      USE MODEL_COM, only : im
       USE ODEEP_COM, only  : lmom,TG3M,RTGO,sTG3,dTG3
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID,GET
       IMPLICIT NONE

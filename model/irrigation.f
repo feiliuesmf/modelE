@@ -227,7 +227,7 @@ C**** diagnostic
       USE GHY_COM, only : tearth
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
-      USE FLUXES, only : gtracer
+      USE FLUXES, only : atmlnd
 #endif
 ! fixed i,j arrays - feed in from call?
       USE GEOM, only : axyp
@@ -323,8 +323,8 @@ C**** set default output
                irrig_gw        = irrig_water_act
                irrig_gw_energy = irrig_energy_act
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*gtracer(:,4,i,j)
-               irrig_gw_tracer  = irrig_gw*gtracer(:,4,i,j)
+               irrig_tracer_act = irrig_water_act*atmlnd%gtracer(:,i,j)
+               irrig_gw_tracer  = irrig_gw*atmlnd%gtracer(:,i,j)
 #endif
             endif
 

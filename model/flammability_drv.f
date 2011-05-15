@@ -51,8 +51,8 @@
 !@+    at run-time
 !@auth Greg Faluvegi
       use domain_decomp_atm, only: dist_grid, get
-      use param, only : get_param, is_set_param
-      use model_com, only: im, dtsrc
+      use dictionary_mod, only : get_param, is_set_param
+      use model_com, only: dtsrc
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
@@ -97,8 +97,8 @@
       subroutine init_flammability
 !@sum initialize flamability, veg density, etc. for fire model
 !@auth Greg Faluvegi based on direction from Olga Pechony
-      use model_com, only: im,jm,Itime,ItimeI
-      use param, only: sync_param
+      use model_com, only: Itime,ItimeI
+      use dictionary_mod, only: sync_param
       use flammability_com, only: flammability, veg_density, first_prec
      & ,missing,allowFlammabilityReinit
       use domain_decomp_atm,only: grid, get, am_i_root, readt_parallel
@@ -131,8 +131,10 @@
       subroutine io_flammability(kunit,iaction,ioerr)
 !@sum  io_flammabilty reads and writes flammability variables to file
 !@auth Greg Faluvegi (based on Jean Lerner io_tracer)
-      use model_com, only: im,jm,ioread,iowrite,irsfic,irsficno,irerun
-      use domain_decomp_1d, only: get,grid,am_i_root,
+      use resolution, only : im,jm
+      use domain_decomp_atm, only : grid
+      use model_com, only: ioread,iowrite,irsfic,irsficno,irerun
+      use domain_decomp_1d, only: get,am_i_root,
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
      & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec,flammability,raP_acc
@@ -316,7 +318,9 @@
 !@sum driver routine for flammability potential of surface
 !@+   vegetation calculation.
 !@auth Greg Faluvegi based on direction from Olga Pechony
-      use model_com, only: im, jm, dtsrc, ptop, p
+      use model_com, only: dtsrc
+      use resolution, only : jm,ptop
+      use atm_com, only : p
       use domain_decomp_atm,only: grid, get
       use flammability_com, only: flammability,veg_density,ravg_prec,
      & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,missing,

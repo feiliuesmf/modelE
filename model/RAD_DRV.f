@@ -40,6 +40,7 @@ C****
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
      &     ,readt_parallel
+      USE FLUXES, only : atmocn
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
@@ -60,7 +61,7 @@ C****
 #endif
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
-     *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
+     *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,cloud_rad_forc,aer_rad_forc
@@ -82,6 +83,9 @@ C****
 #endif
 #if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
      *     ,wfac
+#endif
+#ifdef OBIO_RAD_coupling
+      USE RAD_COM, only : DIRVIS,FSRDIF,DIRNIR,DIFNIR
 #endif
       use RAD_COSZ0, only : cosz_init
       USE CLOUDS_COM, only : llow
@@ -667,6 +671,14 @@ c        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
 c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
 c      end if
 
+      atmocn % COSZ1 => COSZ1
+#ifdef OBIO_RAD_coupling
+      atmocn % DIRVIS => DIRVIS
+      atmocn % DIFVIS => FSRDIF
+      atmocn % DIRNIR => DIRNIR
+      atmocn % DIFNIR => DIFNIR
+#endif
+
       RETURN
       END SUBROUTINE init_RAD
 
@@ -699,7 +711,7 @@ c      end if
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
-      USE FLUXES, only : focean,chl
+      USE FLUXES, only : focean,atmocn
 #endif
       use DIAG_COM, only : iwrite,jwrite,itwrite
       IMPLICIT NONE
@@ -807,18 +819,18 @@ C**** Calculate CHL for current day
         DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
 C**** CHL always uses quadratic fit
-            CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
+            atmocn%CHL(I,J)=ACHL(I,J)+BCHL(I,J)*TIME
      *           +CCHL(I,J)*(TIME**2-BY12)
-            if (CHL(I,J).lt. 0) CHL(I,J)=0. ! just in case
+            if (atmocn%CHL(I,J).lt. 0) atmocn%CHL(I,J)=0. ! just in case
           END IF
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE
       IF(HAVE_NORTH_POLE) then
-       if (FOCEAN(1,JM).gt.0) CHL(2:IM,JM)=CHL(1,JM)
+       if (FOCEAN(1,JM).gt.0) atmocn%CHL(2:IM,JM)=atmocn%CHL(1,JM)
       ENDIF
       IF(HAVE_SOUTH_POLE) then
-       if (FOCEAN(1, 1).gt.0) CHL(2:IM, 1)=CHL(1, 1)
+       if (FOCEAN(1, 1).gt.0) atmocn%CHL(2:IM, 1)=atmocn%CHL(1, 1)
       ENDIF
 #endif
 
@@ -1015,7 +1027,7 @@ C     OUTPUT DATA
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
+     *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
 #ifdef mjo_subdd
@@ -1085,7 +1097,7 @@ C     OUTPUT DATA
 
       USE ATM_COM, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
-      USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
+      USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
      *     ,aiearth,fr_snow_rad_ij,fearth
 #ifdef USE_ENT
@@ -1098,11 +1110,8 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : nstype,gtempr,bare_soil_wetness
+      USE FLUXES, only : asflx,atmocn,atmice,atmgla,atmlnd
      &     ,flice,fland,focean
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
-     .                  ,chl
-#endif
       USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM
       USE RAD_COSZ0, only : COSZT,COSZS
@@ -1273,6 +1282,15 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       real*8 :: nh4_on_no3
 #endif
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,POND_MELT
+      LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
+
+      RSI => SI_ATM%RSI
+      MSI => SI_ATM%MSI
+      SNOWI => SI_ATM%SNOWI
+      POND_MELT => SI_ATM%POND_MELT
+      FLAG_DSWS => SI_ATM%FLAG_DSWS
+
 C
 C****
       call startTimer('RADIA()')
@@ -1323,7 +1341,7 @@ C****        1 - any changes here also go in later (look for 'iu_rad')
 C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
-     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
+!     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
      *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
@@ -1550,9 +1568,10 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
         IF(ptype4(IT) > 0.) then
-          IF(GTEMPR(IT,I,J).LT.124..OR.GTEMPR(IT,I,J).GT.370.) then
+          IF(asflx(it)%GTEMPR(I,J).LT.124..OR.
+     &       asflx(it)%GTEMPR(I,J).GT.370.) then
             WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
-     *         ,GTEMPR(IT,I,J)
+     *         ,asflx(it)%GTEMPR(I,J)
 CCC         STOP 'In Radia: Grnd Temp out of range'
 c           ICKERR=ICKERR+1
           END IF
@@ -1562,8 +1581,8 @@ c           ICKERR=ICKERR+1
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
-          LOC_CHL = chl(I,J)
-          AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+CHL(I,J)*FOCEAN(I,J)
+          LOC_CHL = atmocn%chl(I,J)
+          AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
       endif
@@ -1746,7 +1765,9 @@ C**** TEMPERATURES
 C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
         IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
-          WRITE(6,*) 'GTEMPR:',GTEMPR(:,I,J)
+          WRITE(6,*) 'GTEMPR:',
+     &         asflx(1)%GTEMPR(I,J),asflx(2)%GTEMPR(I,J),
+     &         asflx(3)%GTEMPR(I,J),asflx(4)%GTEMPR(I,J)
 CCC       STOP 'In Radia: Temperature out of range'
 c         ICKERR=ICKERR+1
         END IF
@@ -1853,10 +1874,10 @@ C**** set radiative equilibirum extra tracer amount to zero
       end if
 C**** Zenith angle and GROUND/SURFACE parameters
       COSZ=COSZA(I,J)
-      TGO =GTEMPR(1,I,J)
-      TGOI=GTEMPR(2,I,J)
-      TGLI=GTEMPR(3,I,J)
-      TGE =GTEMPR(4,I,J)
+      TGO =atmocn%GTEMPR(I,J)
+      TGOI=atmice%GTEMPR(I,J)
+      TGLI=atmgla%GTEMPR(I,J)
+      TGE =atmlnd%GTEMPR(I,J)
       TSL=TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
@@ -1896,7 +1917,7 @@ C**** set up new lake depth parameter to incr. albedo for shallow lakes
 C****
       if (kradia .le. 0) then
         !WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
-        WEARTH=bare_soil_wetness(i,j)
+        WEARTH=atmlnd%bare_soil_wetness(i,j)
         if (wearth.gt.1.) wearth=1.
       else                            ! rad.frc. model
         wearth = wsoil(i,j)
@@ -2420,12 +2441,16 @@ C**** (some generalisation and coherence needed in the rad surf type calc)
       FSF(3,I,J)=FSRNFG(4)   !  land ice
       FSF(4,I,J)=FSRNFG(2)   !  soil
       SRHR(0,I,J)=SRNFLB(1)
-      TRHR(0,I,J)=STBO*(POCEAN*GTEMPR(1,I,J)**4+POICE*GTEMPR(2,I,J)**4+
-     +  PLICE*GTEMPR(3,I,J)**4+PEARTH*GTEMPR(4,I,J)**4)-TRNFLB(1)
-      TRSURF(1,I,J) = STBO*GTEMPR(1,I,J)**4  !  ocean
-      TRSURF(2,I,J) = STBO*GTEMPR(2,I,J)**4  !  ocean ice
-      TRSURF(3,I,J) = STBO*GTEMPR(3,I,J)**4  !  land ice
-      TRSURF(4,I,J) = STBO*GTEMPR(4,I,J)**4  !  soil
+      TRHR(0,I,J)=STBO*(
+     &      POCEAN*atmocn%GTEMPR(I,J)**4
+     &     + POICE*atmice%GTEMPR(I,J)**4
+     &     + PLICE*atmgla%GTEMPR(I,J)**4
+     &     +PEARTH*atmlnd%GTEMPR(I,J)**4)
+     &     -TRNFLB(1)
+      TRSURF(1,I,J) = STBO*atmocn%GTEMPR(I,J)**4  !  ocean
+      TRSURF(2,I,J) = STBO*atmice%GTEMPR(I,J)**4  !  ocean ice
+      TRSURF(3,I,J) = STBO*atmgla%GTEMPR(I,J)**4  !  land ice
+      TRSURF(4,I,J) = STBO*atmlnd%GTEMPR(I,J)**4  !  soil
       DO L=1,LM
         SRHR(L,I,J)=SRFHRL(L)
         TRHR(L,I,J)=-TRFCRL(L)
@@ -2490,6 +2515,7 @@ C****
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface **coefficient
       SRVISSURF(I,J)=SRDVIS     ! total visible solar at surface
+      DIRVIS(I,J)=SRXVIS*SRDVIS  ! direct visible solar at surface
       FSRDIF(I,J)=SRDVIS*(1-SRXVIS) ! diffuse visible solar at surface
 
       DIRNIR(I,J)=SRXNIR*SRDNIR     ! direct beam nir solar at surface
@@ -2581,7 +2607,7 @@ C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
      &     ,T,RQT,TsAvg         ! LM+LM_REQ+1+
      &     ,QR,P,CLDinfo,rsi,msi ! LM+1+3*LM+1+1+
-     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
+!     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
      &     ,wsoil,wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo ! 3+1+.5+.5+
      &     ,fr_snow_rad_ij,mwl,flake ! 2+1+1
