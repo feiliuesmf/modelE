@@ -23,7 +23,7 @@ TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
               ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
-ATMDYN_SCM_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
+ATMDYN_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
 ATMDYN_SCM_EXT ATM_UTILS
 SCM_COM SCMDATA_TWPICE              ! routines for reading and processing SCM forcings and IC's
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers

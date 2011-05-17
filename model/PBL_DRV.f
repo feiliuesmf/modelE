@@ -22,9 +22,6 @@
 
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE ATM_COM, only : t,q,u,v
-#ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-#endif
       USE GEOM, only : sinlat2d
       USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0

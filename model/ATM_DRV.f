@@ -5,7 +5,7 @@
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
-      USE ATM_COM, only : p,srfp,wm,nstepscm
+      USE ATM_COM, only : p,srfp,wm
       USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -29,10 +29,9 @@
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
       USE ATM_COM, only : t,p,q
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag
+     &    iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -476,6 +475,13 @@ C****
       if (USE_UNR_DRAG==1) CALL init_UNRDRAG
 #endif
 #endif
+
+#ifdef SCM
+!      read scm data and initialize model
+!      note:  usavg,vsavg and wsavg filled from here
+       call init_scmdata
+#endif
+
       CALL init_CLD(istart)
       CALL init_RAD(istart)
       CALL daily_orbit(.false.)             ! not end_of_day
@@ -518,18 +524,6 @@ C**** Initialize pbl (and read in file containing roughness length data)
       if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
 #endif
       CALL init_pbl(iniPBL,istart)
-
-#ifdef SCM
-        call stop_model(
-     &       'scm input: ok to call at end of input?',255)
-        call stop_model(
-     &       'scm input: gcm t already defined as potential',255)
-        call stop_model(
-     &       'scm input: update all init_scmdata instances',255)
-!      read scm data and initialize model
-!      note:  usavg,vsavg and wsavg filled from here
-       call init_scmdata
-#endif
 
 ! note there is an all-component call to reset_diag in init_diag
       CALL init_DIAG
@@ -576,7 +570,7 @@ C****
 
       subroutine alloc_drv_atm()
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : I_TARG,J_TARG
       use Dictionary_mod, only : sync_param
 #endif
 c Driver to allocate arrays that become dynamic as a result of

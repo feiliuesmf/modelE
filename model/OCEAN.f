@@ -135,9 +135,8 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
      &     READ_PARALLEL,REWIND_PARALLEL,BACKSPACE_PARALLEL,
      &     MREAD_PARALLEL,READT_PARALLEL
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
 c     for SCM cases using provided surface temps - do not overwrite 
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif 
       USE GEOM, ONLY : imaxj,lat2d
       USE SEAICE_COM, only : si_ocn
@@ -1009,8 +1008,7 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : kocean
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE GEOM, only : imaxj
       USE DIAG_COM, only : j_implm,j_implh,oa,jreg,itocean,itoice
@@ -1127,8 +1125,7 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : kocean,jday,dtsrc
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE GEOM, only : imaxj
       USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa,itocean,itoice

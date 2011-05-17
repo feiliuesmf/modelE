@@ -13,7 +13,7 @@
       SUBROUTINE DYNAM
       USE RESOLUTION, only: im,lm,ls1
       USE SOMTQ_COM,  only: tmom,mz
-      USE ATM_COM,    only: t,p,q,PMID,PEDN,PUA,PVA,SDA,NSTEPSCM     
+      USE ATM_COM,    only: t,p,q,PMID,PEDN,PUA,PVA,SDA
       USE DOMAIN_DECOMP_ATM, only : grid
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -51,13 +51,13 @@
 c     apply advective forcings from ARM Variational analysis to T and Q
 
       USE MODEL_COM,  only: DTSRC     
-      USE ATM_COM,    only: P,T,Q,PK,I_TARG,J_TARG,NSTEPSCM
+      USE ATM_COM,    only: P,T,Q,PK
       USE RESOLUTION, only: LM
       USE DYNAMICS,   only: SIG
       USE CONSTANT,   only: KAPA 
       USE CLOUDS,     only: SCM_DEL_T, SCM_DEL_Q
       USE SCMCOM,     only: SG_HOR_TMP_ADV, SG_VER_S_ADV, SG_HOR_Q_ADV,
-     &              SG_VER_Q_ADV,iu_scm_prt      
+     &              SG_VER_Q_ADV,iu_scm_prt,I_TARG,J_TARG,NSTEPSCM
 
       IMPLICIT NONE
 
@@ -137,9 +137,9 @@ c
   
       USE RESOLUTION, only: LM
       USE DYNAMICS,   only: DSIG
-      USE ATM_COM,    only: P, I_TARG, J_TARG   
+      USE ATM_COM,    only: P
       USe GEOM,       only: AXYP   
-      USE SCMCOM,     only: SG_WINDIV, SG_CONV    
+      USE SCMCOM,     only: SG_WINDIV, SG_CONV, I_TARG, J_TARG
    
       IMPLICIT NONE
 
@@ -176,9 +176,9 @@ c     want to fill SD (IDUM,JDUM)  check out
 !@auth Original development team
       USE CONSTANT,   only: grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE RESOLUTION, only: im,jm,lm,ls1,psfmpt,ptop
-      USE ATM_COM,    only: zatmo, gz, phi,I_TARG,J_TARG 
+      USE ATM_COM,    only: zatmo, gz, phi
       USE DIAG_COM,   only: modd5k
-      USE SCMCOM,     only: iu_scm_prt
+      USE SCMCOM,     only: iu_scm_prt,I_TARG,J_TARG 
       USE GEOM,       only: imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS,   only: sig,bydsig,do_polefix,
      *     dsig,sige,pu,pit,spa,dut,dvt,mrch

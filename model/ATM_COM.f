@@ -35,10 +35,6 @@
 !@var ij_debug: if i > 0, print out some extra info on bad ij box
       integer, dimension(2) :: ij_debug = (/ 0 , 1 /)
 
-!**** Target Coordinates for SCM
-      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
-      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
-
 !**** Diagnostic control parameters
 !@dbparam Kradia if -1 save data for, if 1|2 do   inst|adj forcing run
       integer :: Kradia=0,iu_rad

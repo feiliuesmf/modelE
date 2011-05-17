@@ -17,8 +17,8 @@
       USE MODEL_COM, only : dtsrc
       USE FLUXES, only : flice,focean
 #ifdef SCM
-      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -280,8 +280,8 @@ C****
 !@calls LANDICE:PRECLI
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj,axyp,byaxyp
@@ -410,8 +410,8 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      use atm_com, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp
