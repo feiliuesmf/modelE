@@ -615,6 +615,16 @@ ccc accumulate tracer dry deposition
      &     ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n),itcon_dd(n,1),n)
           if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
      &     ptype*rtsdt*axyp(i,j)*pbl_args%gs_vel(n),itcon_dd(n,2),n)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+c**** for subdaily diagnostics
+          depo_turb_glob( i, j, itype, n ) = depo_turb_glob( i, j, itype
+     &         , n ) + ptype * rts * pbl_args%dep_vel( n ) / nisurf
+          depo_grav_glob( i, j, itype, n ) = depo_grav_glob( i, j, itype
+     &         , n ) + ptype * rts * pbl_args%gs_vel( n ) / nisurf
+#endif
+
         end if
 #endif
 #ifdef BIOGENIC_EMISSIONS
@@ -716,23 +726,13 @@ c     ..........
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       DO n=1,Ntm_dust
-        dust_flux_glob(i,j,n)=pbl_args%dust_flux(n)*ptype
+        dust_flux_glob( i, j, n ) = dust_flux_glob( i, j, n ) +
+     &       pbl_args%dust_flux( n ) * ptype / nisurf
 #ifdef TRACERS_DUST
-        dust_flux2_glob(i,j,n)=pbl_args%dust_flux2(n)*ptype
+        dust_flux2_glob( i, j, n ) = dust_flux2_glob( i, j, n ) +
+     &       pbl_args%dust_flux2( n ) * ptype / nisurf
 #endif
       END DO
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-#ifdef TRACERS_DRYDEP
-      DO n=1,Ntm
-        IF (dodrydep(n)) THEN
-          depo_turb_glob(i,j,itype,n)=ptype*rts*pbl_args%dep_vel(n)
-          depo_grav_glob(i,j,itype,n)=ptype*rts*pbl_args%gs_vel(n)
-        END IF
-      END DO
-#endif
 #endif
 
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
@@ -743,16 +743,22 @@ c**** quantities accumulated hourly for diagDD
             if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
               tmp(idd_turb)=0.D0
               tmp(idd_grav)=0.D0
-              DO n=1,Ntm_dust
-                n1=n_clay+n-1
-                IF (dodrydep(n1)) THEN
-                  tmp(idd_turb)=tmp(idd_turb)+ptype*rts
-     &                 *pbl_args%dep_vel(n1)
-                  tmp(idd_grav)=tmp(idd_grav)+ptype*rts
-     &                 *pbl_args%gs_vel(n1)
-                END IF
-              END DO
-            END IF
+              nx = 0
+              do n = 1,ntm
+                if (itime_tr0( n ) <= itime .and. needtrs( n )) then
+                  nx = nx + 1
+                  if (dodrydep( n )) then
+                    select case(trname( n ))
+                    case('Clay', 'Silt1', 'Silt2', 'Silt3')
+                      tmp( idd_turb ) = tmp( idd_turb ) + ptype * rhosrf
+     &                     * pbl_args%trs( nx ) * pbl_args%dep_vel( n )
+                      tmp( idd_grav ) = tmp( idd_grav ) + ptype * rhosrf
+     &                     * pbl_args%trs( nx ) * pbl_args%gs_vel( n )
+                    end select
+                  end if
+                end if
+              end do
+            end if
           end do
         end if
       endif

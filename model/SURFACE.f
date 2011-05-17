@@ -121,7 +121,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-     &     ,pprec,pevap
+     &     ,pprec,pevap,dust_flux_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
@@ -149,7 +149,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE tracers_dust, only : hbaij,ricntd
+      USE tracers_dust, only : hbaij,ricntd,n_soildust
 #endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
@@ -371,6 +371,14 @@ C**** Zero out fluxes summed over type and surface time step
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       TRGASEX = 0.0d0
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      dust_flux_glob = 0.d0
+      dust_flux2_glob = 0.d0
+      depo_turb_glob = 0.d0
+      depo_grav_glob = 0.d0
 #endif
 
 C****
@@ -1084,7 +1092,18 @@ C****
      &     ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n),itcon_dd(n,1),n)
           if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
      &     ptype*rtsdt*axyp(i,j)*pbl_args%gs_vel(n),itcon_dd(n,2),n)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+c**** for subdaily diagnostics
+          depo_turb_glob( i, j, itype, n ) = depo_turb_glob( i, j, itype
+     &         , n ) + ptype * rts * pbl_args%dep_vel( n ) / nisurf
+          depo_grav_glob( i, j, itype, n ) = depo_grav_glob( i, j, itype
+     &         , n ) + ptype * rts * pbl_args%gs_vel( n ) / nisurf
+#endif
+
         end if
+
 #endif
       END DO 
 #endif
@@ -1226,22 +1245,6 @@ C**** SUBDD qblht_acc for PBL height *** YH Chen ***
 
         END IF
 
-c     ..........
-c     save global variables for subdaily diagnostics
-c     ..........
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-#ifdef TRACERS_DRYDEP
-      DO n=1,Ntm
-        IF (dodrydep(n)) THEN
-          depo_turb_glob(i,j,itype,n)=ptype*rts*pbl_args%dep_vel(n)
-          depo_grav_glob(i,j,itype,n)=ptype*rts*pbl_args%gs_vel(n)
-        END IF
-      END DO 
-#endif
-#endif
-
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         IF(MODDD.EQ.0) THEN
           DO KR=1,NDIUPT
@@ -1288,15 +1291,22 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 tmp(idd_turb)=0.D0
                 tmp(idd_grav)=0.D0
 #ifdef TRACERS_DRYDEP
-                DO n=1,Ntm_dust
-                  n1=n_clay+n-1
-                  IF (dodrydep(n1)) THEN
-                    tmp(idd_turb)=tmp(idd_turb)+ptype*rts
-     &                   *pbl_args%dep_vel(n1)
-                    tmp(idd_grav)=tmp(idd_grav)+ptype*rts
-     &                   *pbl_args%gs_vel(n1)
-                  END IF
-                END DO 
+                nx = 0
+                do n = 1,ntm
+                  if (itime_tr0( n ) <= itime .and. needtrs( n )) then
+                    nx = nx + 1
+                    if (dodrydep( n )) then
+                      select case(trname( n ))
+                      case('Clay', 'Silt1', 'Silt2', 'Silt3')
+                        tmp( idd_turb ) = tmp( idd_turb ) + ptype
+     &                       * rhosrf * trs( nx ) * pbl_args%dep_vel( n
+     &                       )
+                        tmp( idd_grav ) = tmp( idd_grav ) + ptype
+     &                       * rhosrf * trs( nx ) * pbl_args%gs_vel( n )
+                      end select
+                    end if
+                  end if
+                end do
 #endif
                 tmp(idd_ws2)=ws*ws*ptype
                 tmp(idd_ustar)=pbl_args%ustar*ptype
@@ -1481,7 +1491,6 @@ C****
       END DO   ! end of itype loop
       END DO   ! end of I loop
       END DO   ! end of J loop
-
 
 C****
 C**** dynamic vegetation time step

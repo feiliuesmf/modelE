@@ -1807,6 +1807,9 @@ c get_subdd
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+      datar8 = 0.d0
+      data = 0.
+
 #if (defined ttc_subdd) || (defined etc_subdd)
       CALL SUBDIAGS_FIXED_PRESS
 #endif
