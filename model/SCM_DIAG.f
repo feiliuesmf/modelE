@@ -5,9 +5,9 @@ c     save diagnostics for run of MODELE SCM
 
 
       USE RESOLUTION, only: LM
-      USE ATM_COM,    only: p,u,v,t,q,wm,I_TARG,J_TARG,NSTEPSCM
+      USE ATM_COM,    only: p,u,v,t,q,wm,gz,pk
       USE MODEL_COM , only: dtsrc
-      USE DYNAMICS,   only: sige,sig,gz,pk
+      USE DYNAMICS,   only: sige,sig
       USE CLOUDS_COM, only: SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
      &                cldss,cldmc,csizmc,csizss,ncol
       use DIAG_COM, only : npres,ntau,isccp_press,isccp_tau

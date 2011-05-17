@@ -25,9 +25,9 @@ C****
      *     ,lm
 #endif
 #ifdef SCM
-      use atm_com, only : I_TARG,J_TARG
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
+     &     ,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d

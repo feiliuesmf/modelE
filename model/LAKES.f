@@ -411,8 +411,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE MODEL_COM, only : dtsrc,jday
       USE ATM_COM, only : zatmo
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
@@ -923,8 +922,7 @@ C****
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
 #ifdef SCM
-      USE ATM_COM, Only: I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr, tij_rvro
@@ -1667,8 +1665,7 @@ C****
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE RESOLUTION, only : im
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
@@ -2075,8 +2072,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
@@ -2350,8 +2346,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE ATM_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
 

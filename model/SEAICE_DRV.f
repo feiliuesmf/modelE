@@ -1571,8 +1571,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
 #ifdef SCM
-      use atm_com, only : I_TARG,J_TARG
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
       USE SEAICE, only : ace1i,xsi,lmi,Ti
