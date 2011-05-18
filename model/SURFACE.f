@@ -126,7 +126,7 @@ C****
      &     ,depo_turb_glob,depo_grav_glob
 #endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
      &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_COSMO
