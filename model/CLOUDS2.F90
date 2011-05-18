@@ -1766,9 +1766,17 @@ contains
         DQM(LMAX)=DQM(LMAX)+QMPMAX
         DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
 #ifdef TRACERS_ON
-        DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
-        DTMOM(xymoms,LMAX,1:NTX) = &
-             DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
+       DO N=1,NTX
+        select case (trname(ntix(n)))
+        case('NH3')
+      DTM(LMIN,N) = DTM(LMIN,N) + TMPMAX(N)
+      DTMOM(xymoms,LMIN,N) = DTMOM(xymoms,LMIN,N) + TMOMPMAX(xymoms,N)
+
+        case default
+      DTM(LMAX,N) = DTM(LMAX,N) + TMPMAX(N)
+      DTMOM(xymoms,LMAX,N) = DTMOM(xymoms,LMAX,N) + TMOMPMAX(xymoms,N)
+        end select
+       end do
 #endif
         CCM(LMAX)=0.
         do K=1,KMAX
