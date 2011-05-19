@@ -1869,7 +1869,11 @@ C****
         enddo
       enddo
       enddo
-      if(am_i_root()) allocate(mfu_glob(im,jm),sf_glob(im,jm))
+      if(am_i_root()) then
+        allocate(mfu_glob(im,jm),sf_glob(im,jm))
+      else
+        allocate(mfu_glob(1,1),sf_glob(1,1))
+      endif
       call pack_data(grid,mfu,mfu_glob)
       if(am_i_root()) then
         FAC   = -2d-9/(NDYNO)
@@ -1877,7 +1881,7 @@ C****
         CALL STRMIJ(MFU_GLOB,FAC,OLNST(1,1,LN_MFLX),FACST,SF_GLOB)
       endif
       call unpack_data(grid,sf_glob,oij(:,:,ij_sf))
-      if(am_i_root()) deallocate(mfu_glob,sf_glob)
+      deallocate(mfu_glob,sf_glob)
 
 #ifdef TRACERS_OCEAN
 C****
