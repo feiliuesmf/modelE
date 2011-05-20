@@ -111,9 +111,9 @@
        oTRUNPSI => ocnice%TRUNPSI
        oTRUNOSI => ocnice%TRUNOSI
        oTRMELTI => ocnice%TRMELTI
-       oDTRSI   => ocnice%DTRSI
-
 #endif
+
+       oDTRSI   => ocnice%DTRSI
 
 #ifdef TRACERS_DRYDEP
        oTRDRYDEP => ocnatm%TRDRYDEP
