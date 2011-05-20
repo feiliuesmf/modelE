@@ -633,6 +633,8 @@ contains
     real*8, dimension(NMOM,LM,NTM) :: TMOMOLD
     real*8, dimension(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
     real*8, dimension(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
+    real*8 :: vsum
+    integer :: lborrow1
 #ifdef TRACERS_WATER
 !@var TRPCRP tracer mass in precip
     real*8, dimension(NTM)      :: TRPRCP
@@ -2147,19 +2149,43 @@ contains
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
+          if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
           do L=LDMIN,LMAX
-            if (TM(L,N).lt.0.) then
-              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
-                   ,j_debug,l,tm(l,n),cmneg(l)
-              !**** reduce subsidence post hoc.
-              LM1=max(1,L-1)
-              if (TM(LM1,N)+TM(L,N).lt.0) then
-                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!            if (TM(L,N).lt.0.) then
+!              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
+!                   ,j_debug,l,tm(l,n),cmneg(l)
+!              !**** reduce subsidence post hoc.
+!              LM1=max(1,L-1)
+!              if (TM(LM1,N)+TM(L,N).lt.0) then
+!                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!              else
+!                TM(L-1,N)=TM(L-1,N)+TM(L,N)
+!                TM(L,N)=0.
+!              end if
+!            end if
+            if (tm(l,n).lt.0.) then ! borrow mass from below
+              vsum = tm(l,n)
+              lborrow1 = l
+              do while(vsum.lt.0. .and. lborrow1.gt.1)
+                lborrow1 = lborrow1 - 1
+                vsum = vsum + tm(lborrow1,n)
+              enddo
+              if(vsum.lt.0.) then
+                write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
               else
-                TM(L-1,N)=TM(L-1,N)+TM(L,N)
-                TM(L,N)=0.
-              end if
-            end if
+                if(l-lborrow1.gt.1) then
+                  write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
+                else
+                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+                endif
+                ! note: borrowing from more than one layer is done by
+                ! multiplication rather than subtraction
+                tm(lborrow1:l-1,n)=tm(lborrow1:l-1,n)*(vsum/(vsum-tm(l,n)))
+                tm(l,n)=0.
+              endif
+            endif
           end do
         end do
 #endif
