@@ -2149,7 +2149,9 @@ contains
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
+#ifdef TRACERS_WATER
           if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
+#endif
           do L=LDMIN,LMAX
 !            if (TM(L,N).lt.0.) then
 !              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
