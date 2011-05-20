@@ -61,7 +61,10 @@
       REAL*8 Ts
 
 #ifdef TRACERS_ON
-      integer nx,n,nAMP
+      integer nx,n
+#ifndef TRACERS_TOMAS
+     *     ,nAMP
+#endif
 #endif
 c
       REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
@@ -234,6 +237,8 @@ c     ENDIF
       epbl(1:npbl-1)=eabl(1:npbl-1,itype,i,j)
 
 #ifdef TRACERS_ON
+!TOMAS- nx is different to ntix. NTIX=ntm
+!       trabl is same in all PBL layer initially. 
       do nx=1,pbl_args%ntx
         tr(:,nx)=trabl(:,pbl_args%ntix(nx),itype,i,j)
       end do
@@ -265,6 +270,11 @@ c     ENDIF
         endif   
        endif 
 #endif  
+c$$$#ifdef TRACERS_TOMAS
+c$$$
+c$$$      call dep_getdp(TM,Dp,density)
+c$$$
+c$$$#endif
       enddo
 #endif
 

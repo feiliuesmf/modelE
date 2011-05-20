@@ -109,7 +109,10 @@ subroutine CONDSE
   use TRACER_COM, only: imDust
 #endif
 #endif
-
+#ifdef TRACERS_TOMAS
+  use TRACER_COM, only: IDTNUMD,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,IDTOCIL, &
+       IDTDUST,IDTH2O,NBINS
+#endif
 #ifdef TRACERS_COSMO
   use COSMO_SOURCES, only : BE7W_acc
 #endif
@@ -121,7 +124,8 @@ subroutine CONDSE
        ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
   use TRDIAG_COM, only: jls_prec,tij_prec,trp_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
   use TRDIAG_COM, only: jls_incloud,ijts_aq
 #endif
 #ifdef TRDIAG_WETDEPO
@@ -138,7 +142,8 @@ subroutine CONDSE
        ,ntx,ntix                     ! global (same for all i,j)
 #ifdef TRACERS_WATER
   use CLOUDS, only : trwml,trsvwml,trprmc,trprss
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
   use CLOUDS, only : dt_sulf_mc,dt_sulf_ss
 #endif
 #ifdef TRDIAG_WETDEPO
@@ -211,7 +216,9 @@ subroutine CONDSE
        use AMP_AEROSOL, only : DIURN_LWP, DIURN_LWC
 #endif
 #endif
-
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only : AQSO4oxid_mc,AQSO4oxid_ls
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
   use tracer_sources, only : n__prec
 #endif
@@ -419,7 +426,10 @@ subroutine CONDSE
 #ifdef TRACERS_AMP
   AQsulfRATE = 0.d0
 #endif
-
+#ifdef TRACERS_TOMAS  
+      AQSO4oxid_mc(:,:,:) = 0.d0
+      AQSO4oxid_ls(:,:,:) = 0.d0
+#endif
 #endif
   saveMCCLDTP(:,:)=undef
 
@@ -1488,7 +1498,8 @@ subroutine CONDSE
 #endif
             trm_lni(l,n,i) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
             trmom_lni(:,l,n,i) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
             if (trname(n).eq."SO2".or.trname(n).eq."SO4".or. &
                 trname(n).eq."H2O2_s") then
               call inc_tajls(i,j,l,jls_incloud(1,n), &
@@ -1504,6 +1515,12 @@ subroutine CONDSE
             if (trname(n).eq."M_ACC_SU") then
               AQsulfRATE(i,j,l)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
             endif
+#endif
+#ifdef TRACERS_TOMAS
+           if (trname(n).eq."ASO4__01") then
+              AQSO4oxid_mc(i,j,l) = dt_sulf_mc(n,l)*(1.-fssl(l))
+              AQSO4oxid_ls(i,j,l) = dt_sulf_ss(n,l)
+           endif
 #endif
           end do
 #ifdef TRACERS_WATER

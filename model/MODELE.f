@@ -122,7 +122,6 @@ C****
       call closeunit(iu_IFILE)
 
       call initializeModelE
-
 C****
 C**** INITIALIZATIONS
 C****
@@ -171,7 +170,7 @@ C****
          call timer(NOW,MELSE)
         END IF
       end if
-      
+
       if (isBeginningOfDay(modelEclock)) then
         call startNewDay()
       end if
@@ -201,7 +200,6 @@ C**** also drives "surface" components that are on the atm grid)
 
 ! phase 2 changes surf pressure which affects the ocean
       call atm_phase2
-
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -376,7 +374,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 #endif
       call init_app()
       call initializeDefaultTimers()
-
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
@@ -977,6 +974,9 @@ C****
 #endif
 #ifdef TRACERS_AMP
       write(6,*) '...and aerosol microphysics'
+#endif
+#ifdef TRACERS_TOMAS
+      write(6,*) '...and TOMAS aerosol microphysics'
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_SPECIAL_Shindell

@@ -2,7 +2,7 @@
 
       MODULE TOMAS_AEROSOL
 
-      USE MODEL_COM, only : im,jm,lm     ! dimensions
+      USE RESOLUTION, only : im,jm,lm     ! dimensions
       USE TRACER_COM, only : ntm
       IMPLICIT NONE 
 
@@ -69,7 +69,7 @@ C SOArate is the rate of SOA condensing (kg/s)
 
       integer, dimension(101,101,101) :: binact10,binact02
       real*8,dimension(101,101,101) :: fraction10,fraction02
-      integer, parameter :: ptype=6 ! number of microphysics process 
+      integer, parameter :: ptype=7 ! number of microphysics process 
       real*8, ALLOCATABLE,dimension(:,:,:,:,:) :: AEROD
       real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls  !1 for Convective and 2 for large-scale
       real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  !h2so4 formation rate from so2+oh [kg of H2SO4/sec\
@@ -104,14 +104,13 @@ C     the GCM.
 c$$$     *     ,itcon_AMP,itcon_AMPm
 !      USE AEROSOL_SOURCES, only: off_HNO3
       USE FLUXES, only: tr3Dsource
-
-      USE MODEL_COM, only : im,jm,lm     ! dimensions
-     $                     ,t            ! potential temperature (C)
+      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
-     $                     ,dtsrc
+      USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
-      USE DYNAMICS,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
 
@@ -505,94 +504,6 @@ C     Check for negative tracer problems
      &              CALL STOP_MODEL('- tracer in TOMAS_DRV',255)   
                                 ! regular bins
 
-!TOMAS - TRM should not be updated here.. 
-c$$$!!!!!  diagnostics !!!!!!
-c$$$
-c$$$               do n=1,NBINS
-c$$$                  tracnum=IDTNUMD-1+n
-c$$$                  if (Nk(n) .ge. TRM(i,j,l,tracnum)) then
-c$$$                     TRM(i,j,l,tracnum)=Nk(n)
-c$$$                  else
-c$$$                     frac=Nk(n)/TRM(i,j,l,tracnum)
-c$$$                     call scalemom(i,j,l,tracnum,frac)
-c$$$                  endif
-c$$$                  do jc=1,icomp-idiag
-c$$$                     tracnum=IDTSO4-1+n+ibins*(jc-1)
-c$$$                     if (Mk(n,jc) .ge. TRM(i,j,l,tracnum)) then
-c$$$                        TRM(i,j,l,tracnum)=Mk(n,jc)
-c$$$                     else
-c$$$                        frac=Mk(n,jc)/TRM(i,j,l,tracnum)
-c$$$                        call scalemom(i,j,l,tracnum,frac)
-c$$$                     endif
-c$$$                  enddo
-c$$$                  tracnum=IDTH2O-1+n
-c$$$                  if (Mk(n,srth2o) .ge. TRM(i,j,l,tracnum)) then
-c$$$                     TRM(i,j,l,tracnum)=Mk(n,srth2o)
-c$$$                  else
-c$$$                     frac=Mk(n,srth2o)/TRM(i,j,l,tracnum)
-c$$$                     call scalemom(i,j,l,tracnum,frac)
-c$$$                  endif         
-c$$$               enddo
-c$$$               
-c$$$                                ! gas phase sulfuric acid
-c$$$               if (Gc(srtso4) .ge. TRM(i,j,l,n_H2SO4)) then
-c$$$                  TRM(i,j,l,n_H2SO4)=Gc(srtso4)
-c$$$               else
-c$$$                  frac=Gc(srtso4)/TRM(i,j,l,n_H2SO4)
-c$$$                  call scalemom(i,j,l,n_H2SO4,frac)
-c$$$               endif
-c$$$                                               ! gas phase ammonia
-c$$$               if (Gc(srtnh4) .ge. TRM(i,j,l,n_NH3)) then
-c$$$                  TRM(i,j,l,n_NH3)=Gc(srtnh4)
-c$$$               else
-c$$$                  frac=Gc(srtnh4)/TRM(i,j,l,n_NH3)
-c$$$                  call scalemom(i,j,l,n_NH3,frac)
-c$$$               endif
-c$$$                                ! aerosol ammonia
-c$$$               tot_aam = 0.d0
-c$$$               do n=1,NBINS
-c$$$                  tot_aam = tot_aam + Mk(n,srtnh4)
-c$$$               enddo
-c$$$               if (tot_aam .ge. TRM(i,j,l,n_NH4)) then
-c$$$                  TRM(i,j,l,n_NH4)=tot_aam
-c$$$               else
-c$$$                  frac=tot_aam/TRM(i,j,l,n_NH4)
-c$$$                  call scalemom(i,j,l,n_NH4,frac)
-c$$$               endif
-c$$$                                ! SOAgas
-c$$$               TRM(i,j,l,n_SOAgas)=INIT_SOA-SOArate*adt
-c$$$              
-c$$$               frac=TRM(i,j,l,n_SOAgas)/INIT_SOA
-c$$$               call scalemom(i,j,l,n_SOAgas,frac)
-
-c$$$C     Check for negative tracer problems
-c$$$               do n=1,ibins
-c$$$
-c$$$                  if (Nk(n) .lt. 0.0) then
-c$$$                     if (abs(Nk(n)) .gt. 1.e-5) then
-c$$$                                !serious problem - report error
-c$$$                    write(*,*) 'ERROR: Tracer ',n,' < 0 in box ', i,j,l
-c$$$                    call stop_model ('ERROR: Tracer in TOMAS',255)
-c$$$                     else
-c$$$                                !numerical problem - set to zero
-c$$$                        NK(n)=0.0
-c$$$                     endif
-c$$$                  endif
-c$$$
-c$$$                  do jc=1,icomp-idiag
-c$$$                  if (Mk(n,jc) .lt. 0.0) then
-c$$$                     if (abs(Mk(n,jc)) .gt. 1.e-5) then
-c$$$                                !serious problem - report error
-c$$$                    write(*,*) 'ERROR: Tracer ',n,' < 0 in box ', i,j,l
-c$$$                    call stop_model ('ERROR: Tracer in TOMAS',255)
-c$$$                     else
-c$$$                                !numerical problem - set to zero
-c$$$                        Mk(n,jc)=0.0
-c$$$                     endif
-c$$$                  endif
-c$$$                  enddo
-c$$$               enddo
-
                do n=1,ibins       
 !     Aerosol number             
                   tracnum=IDTNUMD-1+n 
@@ -687,155 +598,6 @@ c$$$            enddo
       endif
       return
       end subroutine nanstop
-
-
-c$$$C     **************************************************
-c$$$C     *  getdp                                         *
-c$$$C     **************************************************
-c$$$
-c$$$C     WRITTEN BY Peter Adams
-c$$$
-c$$$C     This function calculates the average diameter of aerosol
-c$$$C     particles in a given GCM grid cell and size bin.
-c$$$
-c$$$      subroutine dep_getdp(tm,getdp,size_density)                                            
-c$$$!      USE TOMAS_AEROSOL
-c$$$      USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
-c$$$     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
-c$$$     &     IDTNUMD,ntm,xk
-c$$$      USE CONSTANT,   only : pi 
-c$$$
-c$$$      IMPLICIT NONE
-c$$$
-c$$$C-----ARGUMENT DECLARATIONS------------------------------------------
-c$$$
-c$$$      integer i,j,l  !coordinate of GCM grid cell
-c$$$      integer n      !tracer index
-c$$$
-c$$$C-----VARIABLE DECLARATIONS------------------------------------------
-c$$$
-c$$$      integer k     !size bin index
-c$$$      real density                 !density (kg/m3) of current size bin
-c$$$      real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
-c$$$      real mecil,mecob,mocil,mocob
-c$$$      real mdust,mtot,mnacl             
-c$$$      real*8 mp          !particle mass (kg)
-c$$$      real*8 mu          !air viscosity (kg/m s)
-c$$$      real aerodens
-c$$$!      external aerodens
-c$$$!      REAL*8, INTENT(IN) :: TEMPK
-c$$$      REAL*8, intent(in), DIMENSION(ntm) :: TM
-c$$$      real,intent(out),DIMENSION(nbins) :: getdp,size_density
-c$$$C-----VARIABLE COMMENTS----------------------------------------------
-c$$$
-c$$$C-----ADJUSTABLE PARAMETERS------------------------------------------
-c$$$      real*8 Neps  !a small number of particles (#/box)
-c$$$      parameter (Neps=1.d-20)
-c$$$
-c$$$C-----CODE-----------------------------------------------------------
-c$$$
-c$$$!     Compute particle diameter for each bins - YUNHA LEE 
-c$$$      do k=1,nbins
-c$$$              
-c$$$         if (TM(IDTNUMD-1+k) .eq. 0.0) then
-c$$$            if (TM(IDTSO4-1+k) .gt. 1.) then
-c$$$               print*, 'ERROR in getdp - # = but mass > 0'
-c$$$               print*, 'bin=',k
-c$$$               print*, 'TM(#)=',TM(IDTNUMD-1+k)
-c$$$               print*, 'TM(SO4)=',TM(IDTSO4-1+k)
-c$$$               print*, 'TM(NACL)=',TM(IDTNA-1+k)
-c$$$               print*, 'TM(OCIL)=',TM(IDTOCIL-1+k)
-c$$$               call stop_model('ERROR IN getdp',255)
-c$$$            else
-c$$$!Not allow due to intent(in)?
-c$$$!               print*, 'zero for mso4 and mh2o in getdp'
-c$$$            endif
-c$$$         endif
-c$$$
-c$$$         mso4=TM(IDTSO4-1+k) 
-c$$$         mnacl=TM(IDTNA-1+k)
-c$$$         mno3=0.e0
-c$$$         if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-c$$$         mnh4=0.1875*mso4  !assume ammonium bisulfate
-c$$$         mecob=TM(IDTECOB-1+k)
-c$$$         mecil=TM(IDTECIL-1+k)
-c$$$         mocil=TM(IDTOCIL-1+k)
-c$$$         mocob=TM(IDTOCOB-1+k)
-c$$$         mdust=TM(IDTDUST-1+k)          
-c$$$         mh2o=TM(IDTH2O-1+k)   
-c$$$
-c$$$!in CLOUDS2.f - some tracers goes negative..
-c$$$!So, set to zero to prevent a problem in density calculation
-c$$$         if(mnacl.lt.0) mnacl=0.
-c$$$         if(mecob.lt.0) mecob=0.
-c$$$         if(mecil.lt.0) mecil=0.
-c$$$         if(mocob.lt.0) mocob=0.
-c$$$         if(mocil.lt.0) mocil=0.
-c$$$         if(mdust.lt.0) mdust=0.
-c$$$         if(mh2o.lt.0) mh2o=0.
-c$$$
-c$$$         mtot= 1.1875*TM(IDTSO4-1+k)+mnacl+mecil+mecob+
-c$$$     *        mocil+mocob+mdust+mh2o
-c$$$
-c$$$
-c$$$
-c$$$         density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
-c$$$     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
-c$$$         size_density(k)=density      
-c$$$         
-c$$$!        print*,'density', K,density, size_density(k)
-c$$$         
-c$$$         if (TM(IDTNUMD-1+k) .gt. Neps.and.mtot.gt.0.) then
-c$$$            mp=mtot/(TM(IDTNUMD-1+k))
-c$$$         else
-c$$$            mp=sqrt(xk(k+1)*xk(k))
-c$$$            if(TM(IDTNUMD-1+k) .gt. Neps) 
-c$$$     &           print*,'Warning in getdp:#>Neps but mtot=0',
-c$$$     &           k,mtot,TM(IDTNUMD-1+k)
-c$$$         endif
-c$$$         
-c$$$!     fix unrealistically large mp for low aerosol conc.
-c$$$         if (mp .gt. 1.d3*xk(NBINS+1)) then
-c$$$            
-c$$$            if ((TM(IDTNUMD-1+k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
-c$$$     &           (TM(IDTSO4-1+k) .lt. 3.)) then
-c$$$               mp=sqrt(xk(k+1)*xk(k))
-c$$$            else
-c$$$               if (TM(IDTNUMD-1+k) .gt. 1.d12) then
-c$$$!MODELE-TOMAS: during CONDSE, TM(H2O) is so large that causes too big mp. 
-c$$$!MODELE-TOMAS: So, if dry mass is less than the max size boundary, just take the max mp. 
-c$$$                  if((mtot-TM(IDTH2O-1+k)).lt.
-c$$$     &                 1.d1*xk(nbins+1)*TM(IDTNUMD-1+k))then
-c$$$                     print*,'Fudge mp in getdp: large mp by AH2O'
-c$$$                     mp=sqrt(xk(nbins+1)*xk(nbins))                     
-c$$$                  else
-c$$$                  print*,'ERROR in getdp: mp too large'
-c$$$                  print*, 'bin=',k
-c$$$                  print*, 'TM(#)=', TM(IDTNUMD-1+k)
-c$$$                  print*, 'TM(SO4)=', mso4, mh2o
-c$$$                  print*, 'TM(NACL)=', mnacl, mdust
-c$$$                  print*, 'TM(OC)=',mocob,mocil
-c$$$                  print*, 'TM(EC)=',mecob,mecil
-c$$$                  call stop_model('mp too large getdp',255)
-c$$$                  endif
-c$$$               endif
-c$$$            endif
-c$$$         endif
-c$$$!         print*,'getdp',k, mp,size_density(k)
-c$$$         getdp(k)=(6.d0*mp/(pi*size_density(k)))**(1.d0/3.d0)
-c$$$c$$$         if(getdp(k).le.0.or.size_density(k).le.0.) then
-c$$$c$$$            print*,'Dp=0 in getdp',k,getdp(k),size_density(k),mtot
-c$$$c$$$            getdp(k)=
-c$$$c$$$            CALL stop_model('Dp=0 in getdp',255)
-c$$$c$$$         endif
-c$$$      enddo
-c$$$
-c$$$! Finish computing particle diameter \
-c$$$
-c$$$      RETURN
-c$$$      END subroutine dep_getdp
-c$$$
-
 
 C     **************************************************
 C     *  drydep_getdp                                  *
@@ -975,7 +737,7 @@ C	readfraction.f
 
         implicit none
 
-	character*80 infile
+	character*17 infile  ! This size must be changed when the input file name is changed. 
 	integer innum, ii, jj, kk
 
 	real*8,intent(out),dimension(101,101,101):: fraction
@@ -1004,7 +766,7 @@ C	readbinact.f
 
         implicit none
 
-	character*80 infile
+	character*15 infile ! This size must be changed when the input file name is changed. 
 	integer innum, ii, jj, kk
 	integer,intent(out),dimension(101,101,101):: binact
 	parameter (innum=590)
@@ -1939,13 +1701,12 @@ C     at 273 K and sea salt at 273 K.
      *     ,ntm,ntm_TOMAS
 
       USE TRDIAG_COM, only : taijs=>taijs_loc !,taijls=>taijls_loc
-
-      USE MODEL_COM, only : im,jm,lm     ! dimensions
+      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
-     $                     ,t
-     $                     ,dtsrc
+      USE MODEL_COM, only : dtsrc
       USE CONSTANT,   only:  lhe
-      USE DYNAMICS,   only: pmid,pk ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk ! midpoint pressure in hPa (mb)
 
       IMPLICIT NONE
 
@@ -2066,155 +1827,6 @@ c$$$     &           trname(IDTSO4+n-1),trm(i,j,l,IDTSO4+n-1)
       
       RETURN
       END SUBROUTINE aeroupdate
-
-
-
-c$$$C     **************************************************
-c$$$C     *  GCM_ezwatereqm                                    *
-c$$$C     **************************************************
-c$$$
-c$$$C     WRITTEN BY Peter Adams, March 2000
-c$$$C     MODIFIED BY Yunha Lee, March 2011 - to use this in GCM subroutine 
-c$$$
-c$$$
-c$$$C     This routine uses the current RH to calculate how much water is 
-c$$$C     in equilibrium with the aerosol.  Aerosol water concentrations 
-c$$$C     are assumed to be in equilibrium at all times and the array of 
-c$$$C     concentrations is updated accordingly.
-c$$$
-c$$$C     This version of the routine works for sulfate and sea salt
-c$$$C     particles.  They are assumed to be externally mixed and their
-c$$$C     associated water is added up to get total aerosol water.
-c$$$C     wr is the ratio of wet mass to dry mass of a particle.  Instead
-c$$$C     of calling a thermodynamic equilibrium code, this routine uses a
-c$$$C     simple curve fits to estimate wr based on the current humidity.
-c$$$C     The curve fit is based on ISORROPIA results for ammonium bisulfate
-c$$$C     at 273 K and sea salt at 273 K.
-c$$$
-c$$$
-c$$$      SUBROUTINE aeroupdate
-c$$$
-c$$$
-c$$$      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,
-c$$$     &     am_i_root
-c$$$      USE TOMAS_AEROSOL 
-c$$$      USE GEOM, only: imaxj
-c$$$      USE TRACER_COM, only : IDTSO4, IDTNA, IDTOCIL,IDTH2O,NBINS
-c$$$     &     ,trm,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNUMD,TRNAME
-c$$$     *     ,ntm,xk
-c$$$
-c$$$      USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
-c$$$
-c$$$      USE MODEL_COM, only : im,jm,lm     ! dimensions
-c$$$     $                     ,q            ! saturated pressure
-c$$$
-c$$$      USE CONSTANT,   only:  lhe
-c$$$      USE DYNAMICS,   only: pmid ! midpoint pressure in hPa (mb)
-c$$$
-c$$$      IMPLICIT NONE
-c$$$
-c$$$      INTEGER J_0, J_1, I_0, I_1
-c$$$
-c$$$      integer i,j,l,k,n,jc  !counters
-c$$$
-c$$$      real Dp(nbins)            !particle diameter (m)
-c$$$      real density                 !density (kg/m3) of current size bin
-c$$$      real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
-c$$$      real mecil,mecob,mocil,mocob
-c$$$      real mdust,mtot,mnacl             
-c$$$      double precision mp          !particle mass (kg)
-c$$$
-c$$$      real aerodens
-c$$$      external aerodens
-c$$$
-c$$$
-c$$$C-----CODE-----------------------------------------------------------    
-c$$$C****
-c$$$C**** Extract useful local domain parameters from "grid"
-c$$$C****
-c$$$      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
-c$$$      I_0 = grid%I_STRT
-c$$$      I_1 = grid%I_STOP
-c$$$
-c$$$
-c$$$C     Loop over all grid cells
-c$$$      DO L=1,LM                            
-c$$$         DO J=J_0,J_1                          
-c$$$            DO I=I_0,IMAXJ(J)
-c$$$               DO K=1,NBINS
-c$$$                  mso4=TRM(i,j,l,IDTSO4-1+k) 
-c$$$                  mnacl=TRM(i,j,l,IDTNA-1+k)
-c$$$                  mno3=0.e0
-c$$$                  if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-c$$$                  mnh4=0.1875*mso4 !assume ammonium bisulfate
-c$$$                  mecob=TRM(i,j,l,IDTECOB-1+k)
-c$$$                  mecil=TRM(i,j,l,IDTECIL-1+k)
-c$$$                  mocil=TRM(i,j,l,IDTOCIL-1+k)
-c$$$                  mocob=TRM(i,j,l,IDTOCOB-1+k)
-c$$$                  mdust=TRM(i,j,l,IDTDUST-1+k)          
-c$$$                  mh2o=TRM(i,j,l,IDTH2O-1+k)   
-c$$$                  
-c$$$                  if ((mnacl) .lt. 0) mnacl=0.
-c$$$                  if ((mecob) .lt. 0) mecob=0.
-c$$$                  if ((mecil) .lt. 0) mecil=0.
-c$$$                  if ((mocob) .lt. 0) mocob=0.
-c$$$                  if ((mocil) .lt. 0) mocil=0.
-c$$$                  if ((mdust) .lt. 0) mdust=0.
-c$$$                  
-c$$$                  
-c$$$                  mtot= 1.1875*mso4+mnacl+mecil+mecob+
-c$$$     *                 mocil+mocob+mdust+mh2o
-c$$$                  
-c$$$                  density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
-c$$$     *                 ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
-c$$$                  
-c$$$                  
-c$$$                  if (TRM(i,j,l,IDTNUMD-1+k) .gt.1.d-20) then ! arbituary number !
-c$$$                     mp=mtot/(TRM(i,j,l,IDTNUMD-1+k))
-c$$$                  else
-c$$$                     mp=sqrt(xk(k+1)*xk(k))
-c$$$                  endif
-c$$$                  
-c$$$!     fix unrealistically large mp for low aerosol conc.
-c$$$             if (mp .gt. 1.d3*xk(NBINS+1)) then            
-c$$$                if ((TRM(i,j,l,IDTNUMD-1+k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
-c$$$     &               (TRM(i,j,l,IDTSO4-1+k) .lt. 3.)) then
-c$$$                   mp=sqrt(xk(k+1)*xk(k))
-c$$$                else
-c$$$                   if (TRM(i,j,l,IDTNUMD-1+k) .gt. 1.d12) then
-c$$$                      print*,'ERROR in aeroupdate: mp too large'
-c$$$                      print*, 'bin=',k,'i,j,',i,j,l
-c$$$                      print*, 'TRM(#)=', TRM(i,j,l,IDTNUMD-1+k)
-c$$$                      print*, 'TRM(SO4)=', mso4, mh2o
-c$$$                      print*, 'TRM(NACL)=', mnacl, mdust
-c$$$                      print*, 'TRM(OC)=',mocob,mocil
-c$$$                      print*, 'TRM(EC)=',mecob,mecil
-c$$$                      call stop_model('mp too large aeroupdate',13)
-c$$$                   endif
-c$$$                endif
-c$$$             endif   
-c$$$          enddo
-c$$$
-c$$$C Check for negative tracer problems
-c$$$      do n=1,ntm
-c$$$         if (TRM(i,j,l,n) .lt. 0.0) then
-c$$$            if (abs(TRM(i,j,l,n)) .gt. 1.e-10) then
-c$$$               !serious problem - report error
-c$$$               write(*,*) 'ERROR: Tracer ',trname(n),trm(i,j,l,n)
-c$$$               write(*,*) ' < 0 in box ', i,j,l
-c$$$               call stop_model('TRM<0 in aeroupdate',13)
-c$$$            else
-c$$$               !numerical problem - set to zero
-c$$$               TRM(i,j,l,n)=1.e-20 !5??
-c$$$            endif
-c$$$         endif
-c$$$      enddo
-c$$$            enddo
-c$$$         enddo
-c$$$      enddo
-c$$$      
-c$$$      RETURN
-c$$$      END SUBROUTINE aeroupdate
 
 
 C     **************************************************
@@ -2373,7 +1985,7 @@ C-----CODE--------------------------------------------------------------
 !@auth Susanne Bauer
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
-      use model_com, only     : lm
+      use resolution, only     : lm
 !      use tracer_com, only    : ntmAMP
       use TOMAS_aerosol
 

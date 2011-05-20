@@ -155,7 +155,11 @@ C*********************************************************************
 
 #ifdef TRACERS_DRYDEP
       SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL,
-     & stomatal_dep_vel,trnmm)
+     & stomatal_dep_vel,trnmm
+#ifdef TRACERS_TOMAS
+     & ,gs_vel,tm
+#endif
+     &     )
 !@sum  get_dep_vel computes the Bulk surface reistance to
 !@+    tracer dry deposition using a resistance-in-series model
 !@+    from a portion of the Harvard CTM dry deposition routine.
@@ -169,7 +173,7 @@ c
 C**** GLOBAL parameters and variables:  
 C
       USE GEOM,       only : imaxj
-      USE CONSTANT,   only : tf     
+      USE CONSTANT,   only : tf,pi,grav     
       USE RAD_COM,     only: COSZ1,cfrac,srdn
       USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname,
      & dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
@@ -180,7 +184,10 @@ C
       USE tracers_DRYDEP, only: NPOLY,IJREG,IJLAND,XYLAI,
      & DRYCOEFF,IJUSE,NTYPE,IDEP,IRI,IRLU,IRAC,IRGSS,IRGSO,
      & IRCLS,IRCLO,IVSMAX
-     
+#ifdef TRACERS_TOMAS 
+      USE TRACER_COM, only : NBS, NBINS,IDTSO4,TRNAME,IDTH2O
+     &     ,IDTNUMD,IDTOCIL,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNA
+#endif
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments
@@ -242,7 +249,20 @@ C
       INTEGER :: k,n,LDT,II,IW,IOLSON
       INTEGER, INTENT(IN) :: I,J,ITYPE  
       LOGICAL :: problem_point
-
+#ifdef TRACERS_TOMAS 
+      real*8  XNU
+      integer binnum    !@var binnum size bin # that corresponds to current tracer
+      real*8 rb(NBINS)  !@var rb quasilaminar sublayer resistance (s m-1)
+      real*8 vs(NBINS)  !@var vs gravitational settling velocity (m s-1)
+      REAL*8, INTENT(OUT), DIMENSION(NTM) :: gs_vel
+      REAL*8, INTENT(IN), DIMENSION(NTM) :: TM
+      real Dp(nbins),density(nbins) !particle diameter (m)
+      real*8 Dk          !@var Dk particle diffusivity (m2/s)
+      real*8 mu          !@var mu air viscosity (kg/m s)
+      real*8 Sc,St       !@var Sc/St  particle Schmidt and Stokes numbers
+      real*8 kB           !@var kB Boltzmann constant (J/K)
+      parameter (kB=1.38d-23)
+#endif
 C Use cosine of the solar zenith angle from the radiation code,
 C ...which seems to have a minumum of 0, like suncos used to have
 C when defined in SCALERAD subroutine from Harvard CTM.
@@ -266,6 +286,25 @@ C** TEMPK and TEMPC are surface air temperatures in K and in C
       byTEMPC = 1.D0/TEMPC    
       RAD0 = srdn(I,J)*suncos
               
+#ifdef TRACERS_TOMAS
+
+      XNU = 0.0000151*(TEMPK/273.15)**1.77
+      mu=2.5277e-7*tempk**0.75302
+                                
+!calculate particle physical and depositional properties      
+ 
+      call dep_getdp(i,j,1,Dp,density)
+       
+      do k=1,nbins         
+         Dk=kB*tempk/(3.0*pi*mu*Dp(k)) !S&P Table 12.1
+         Sc=XNU/Dk
+         vs(k)=density(k)*(Dp(k)**2)*grav/18.d0/mu !S&P eqn 19.19
+         St=vs(k)*USTARR**2/grav/XNU
+         rb(k)=1.d0/(USTARR     !S&P eqn 19.18
+     &        *(Sc**(-2.d0/3.d0)+10.d0**(-3.d0/St)))
+      enddo
+#endif
+
 C* Compute bulk surface resistance for gases.
 C*   
 C* Adjust external surface resistances for temperature;
@@ -461,6 +500,9 @@ C** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
               END IF                                 ! gases (above)
             
               IF (tr_wd_TYPE(K) == nPART) THEN ! aerosols (below)
+#ifdef TRACERS_TOMAS
+                 if(k.lt.IDTSO4)THEN 
+! for bulk aerosol model 
 C**             Get surface deposition velocity for aerosols if needed
 C**             Equations (15)-(17) of Walcek et al. [1986]            
                 VDS = 0.002d0*USTARR
@@ -469,6 +511,25 @@ C**             Equations (15)-(17) of Walcek et al. [1986]
                 CZH  = ZHH/OBK
                 IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
 
+                else
+!for size-resolved aerosol model
+       !use this formula for size-resolved aerosols
+       !Seinfeld & Pandis, eqn 19.7
+                 binnum=mod(K-IDTSO4+1,NBINS)
+                 if (binnum.eq.0) binnum=NBINS
+                 VDS=1.d0/rb(binnum)
+                 gs_vel(k)=vs(binnum) !grav. settling velocity for TOMAS model
+                 endif
+
+#else 
+C**             Get surface deposition velocity for aerosols if needed
+C**             Equations (15)-(17) of Walcek et al. [1986]            
+                VDS = 0.002d0*USTARR
+                IF(OBK < 0.)VDS = VDS*(1.d0+(-300.d0/OBK)**0.6667)
+                IF(OBK == 0.) call stop_model('OBK=0 in TRDRYDEP',255)
+                CZH  = ZHH/OBK
+                IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
+#endif
 C* Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
 C* VDSMAX is taken from Table 2 of Walcek et al. [1986].
 C* Invert to get corresponding R

@@ -499,7 +499,6 @@ c -----------------------------------------------------------------
       END SUBROUTINE READ_OFFSS
 c -----------------------------------------------------------------
 
-
       SUBROUTINE read_DMS_sources(swind,itype,i,j,DMS_flux) !!! T
 !@sum generates DMS ocean source
 !@auth Koch
@@ -651,7 +650,8 @@ c if after Feb 28 skip the leapyear day
 !@auth Dorothy Koch
       USE TRACER_COM
       USE TRDIAG_COM, only : 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -676,6 +676,9 @@ c if after Feb 28 skip the leapyear day
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only : h2so4_chem
+#endif
 c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
@@ -699,6 +702,10 @@ c Aerosol chemistry
       integer maxl,nrecs_skip
       logical :: newMonth
       save ifirst
+#ifdef TRACERS_TOMAS
+      REAL*8 TAU_hydro
+      integer k
+#endif
 
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
@@ -709,15 +716,26 @@ c Aerosol chemistry
 C**** initialise source arrays
         tr3Dsource(:,j_0:j_1,:,1,n_DMS)=0. ! DMS chem sink
 #ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
         tr3Dsource(:,j_0:j_1,:,1,n_MSA)=0. ! MSA chem sink
         tr3Dsource(:,j_0:j_1,:,1,n_SO4)=0. ! SO4 chem source
+#endif
 #endif
         tr3Dsource(:,j_0:j_1,:,nChemistry,n_SO2)=0. ! SO2 chem source
         tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
+#endif
+#ifdef TRACERS_TOMAS
+        H2SO4_chem(:,j_0:j_1,:)=0.0
+        do k=1,nbins
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECOB(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECIL(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCOB(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCIL(k))=0.
+        enddo
 #endif
 #ifdef TRACERS_HETCHEM
         tr3Dsource(:,j_0:j_1,:,1,n_SO4_d1) =0. ! SO4 on dust
@@ -733,7 +751,8 @@ C**** initialise source arrays
           tr3Dsource(:,j_0:j_1,:,1,n_OCIA)=0. ! OCIA source
         end if
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
           oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
@@ -847,7 +866,8 @@ c    Aging of industrial carbonaceous aerosols
           tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
           tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -895,10 +915,45 @@ c SO2 production from DMS
      *         ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
      *         ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
      *         /tr_mm(n_dms))/dtsrc
-          
-          
+#ifdef TRACERS_TOMAS 
+! EC/OC aging 
+        case ('AECIL_01')
+           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+
+           DO K=1,nbins
+              tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
+     &             trm(i,j,l,n_AECOB(K))*
+     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+
+              tr3Dsource(i,j,l,nChemistry,n_AECOB(K))=
+     &             -trm(i,j,l,n_AECOB(K))*
+     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+
+!              IF(am_i_root())
+!     &      print*,'ECOB aging',n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro)) 
+           ENDDO
+           
+        case ('AOCIL_01')
+           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           DO K=1,nbins
+              tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
+     &             =trm(i,j,l,n_AOCOB(K))*
+     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
+!     &             4.3D-6
+              tr3Dsource(i,j,l,nChemistry,n_AOCOB(K))
+     &             =-trm(i,j,l,n_AOCOB(K))*
+     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+!     &             4.3D-6
+!              IF(am_i_root())
+!     &      print*,'OCOB aging',n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+
+           ENDDO   
+
+#endif
+#ifndef TRACERS_TOMAS                   
           najl = jls_NO3
           call inc_tajls2(i,j,l,najl,ttno3)
+#endif
 #endif
         end select
         
@@ -931,7 +986,8 @@ c     if(l.le.maxl) then
         o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
       endif
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       do 33 n=1,ntm
         select case (trname(n))
         case ('SO2')
@@ -955,7 +1011,11 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        tr3Dsource(i,j,l,nChemloss,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
        tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
-#endif        
+#endif  
+#ifdef TRACERS_TOMAS
+       H2SO4_chem(i,j,l)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+     &      *tr_mm(n_H2SO4)/tr_mm(n) 
+#endif      
 #endif        
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
@@ -1113,6 +1173,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       SUBROUTINE GET_SULFATE(L,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
      *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
+
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
@@ -1315,9 +1376,9 @@ c can't be more than moles going in:
  22   continue
       do n=1,ntx
        select case (trname(ntix(n)))
-       case('SO4','M_ACC_SU')
+       case('SO4','M_ACC_SU','ASO4__01')
        is4=ntix(n)
-!       is4x=n
+
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
      *  +dso4d*tmcl(isx)*tmcl(ihx)) !kg
 
@@ -1388,6 +1449,9 @@ c
      *  ,n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
      *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
 #endif
+#ifdef TRACERS_TOMAS
+     *  ,n_AECIL,n_AECOB,nbins
+#endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn
       USE FLUXES, only: atmice
@@ -1430,6 +1494,9 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 #ifdef TRACERS_AMP
       integer, parameter :: nspBC=7
 #endif
+#ifdef TRACERS_TOMAS
+      integer, parameter :: nspBC=nbins+nbins
+#endif
       integer, dimension(nspBC) :: spBC
 c
 c tr_wsn_ij(n,nsl,2,i,j) tracer in snow layer l multiplied by fraction snow, kg/m2
@@ -1457,6 +1524,12 @@ c
       spBC(5)=n_M_BOC_BC
       spBC(6)=n_M_BCS_BC
       spBC(7)=n_M_MXX_BC
+#endif
+#ifdef TRACERS_TOMAS
+      do n=1,nbins
+         spBC(n)=n_AECOB(n)
+         spBC(n+nbins)=n_AECIL(n)
+      enddo
 #endif
       bc_dalb=0.
       scon=0.

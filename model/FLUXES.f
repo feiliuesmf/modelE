@@ -761,13 +761,15 @@ C**** fluxes associated with variable lake fractions
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 !@var trprec_dust dust/mineral tracers in precip [kg]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:):: trprec_dust
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 !@var pprec precipitation at previous time step [kg/m^2]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
 !@var pevap evaporation at previous time step [kg/m^2]
@@ -775,14 +777,16 @@ C**** fluxes associated with variable lake fractions
 !@var dust_flux_glob global array of dust emission flux [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux_glob
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
 !@var dust_flux2_glob global array of cubic dust emission flux (for diags only)
 !@+   [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux2_glob
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 #ifdef TRACERS_DRYDEP
 !@var depo_turb_glob global array of flux due to dry turb. dep. of tracers
 !@+   [kg/m^2/s]
@@ -834,7 +838,8 @@ C**** fluxes associated with variable lake fractions
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
 #endif
@@ -977,12 +982,14 @@ C**** Ensure that no round off error effects land with ice and earth
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       ALLOCATE(trprec_dust(Ntm_dust,I_0H:I_1H ,J_0H:J_1H),STAT=ier)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H,NSTYPE),STAT = IER)
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
@@ -993,7 +1000,8 @@ C**** Ensure that no round off error effects land with ice and earth
      &     ,STAT = IER)
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif
 

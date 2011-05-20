@@ -108,8 +108,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
+#ifdef TRACERS_TOMAS
+      INTEGER,PARAMETER :: ktaijs=3500 
+#else
       INTEGER,PARAMETER :: ktaijs=2147
-
+#endif
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
 !@param MaxDMc Maximum number of special wet depo diags for MC clouds
@@ -170,6 +173,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_AMPe(Ntm)
 !@var ijts_AMPp tracer independent array for AMP processes
       INTEGER ijts_AMPp(7,Ntm)
+#ifdef TRACERS_TOMAS
+!@var ijts_TOMAS tracer independent array for TOMAS processes
+      INTEGER ijts_TOMAS(7,Ntm)
+#endif
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
 !@var ijts_trdpls indices of taijs special wet depo diags for LS clouds
@@ -321,8 +328,11 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
+#ifndef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktajls=1124
-
+#else
+      INTEGER,PARAMETER :: ktajls=3000 ! 1017 - yhl for TOMAS 
+#endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3
      *     ,jls_phot,jls_incloud(2,ntm), jls_OHcon,jls_H2Omr
@@ -377,6 +387,9 @@ C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
 #ifdef TRACERS_AMP
+     &                             +3
+#endif
+#ifdef TRACERS_TOMAS
      &                             +3
 #endif
 !@param KTCON total number of conservation diagnostics for tracers
@@ -439,6 +452,10 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntmxcon) :: itcon_wt
 !@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
       INTEGER :: natmtrcons=0, nocntrcons=0
+#ifdef TRACERS_TOMAS
+!@var itcon_TOMAS Index array for microphysical processes diags
+      INTEGER, DIMENSION(7,ntmxcon) :: itcon_TOMAS
+#endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 
 !@var PDSIGJL temporary storage for mean pressures for jl diags

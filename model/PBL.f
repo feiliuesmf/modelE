@@ -31,8 +31,12 @@
      &     ,dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
      &     ,Ntm_dust
+#endif
+#ifdef TRACERS_TOMAS
+     &   ,NBINS,xk
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
@@ -44,10 +48,11 @@
      &     ,n_sil1quhe
 #endif /* TRACERS_QUARZHEM */
 #endif /* TRACERS_DUST */
-#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP */
+#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP||TRACERS_TOMAS */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       use tracers_dust,only : nAerocomDust
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -122,7 +127,8 @@ c**** Tracer input/output
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
 c**** input
 !@var pbl_args%wearth earth water of first layer [kg/m^2]
 !@var pbl_args%aiearth earth ice of first layer [kg/m^2]
@@ -177,7 +183,8 @@ c**** output
         LOGICAL :: qdust
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
         real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -449,19 +456,35 @@ C****
       real*8 :: fac_cq_tr(ntm),fk
 #endif
 #endif
+#ifndef TRACERS_TOMAS 
 #ifdef TRACERS_DRYDEP
       real*8 vgs
       real*8 :: tr_dens, tr_radius ! variable tracer density and size
       logical hydrate
 #endif
+#endif 
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
       real*8 wspdf,delt
 #endif
-
+#ifdef TRACERS_TOMAS
+      INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
+      real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
+      real*8, dimension(ntm) :: tr_dum
+      real*8, parameter :: scalesizeSS(nbins)=(/
+     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
+!scalesizeDU : distribute clay mass into bins from 10nm to 1 um. This is number is clay+silt! Should be updated only for clay size distribution. 
+      real*8, parameter :: scalesizeDU(nbins)=(/
+     &     7.33E-10,2.032E-08,3.849E-07,5.01E-06,
+     &     4.45E-05,2.714E-04,1.133E-03,3.27E-03,6.81E-03,
+     &     1.276E-02,2.155E-01,6.085E-01/)
+#endif
       if(xdelt /= 0d0) call stop_model(
      &     'PBL.f is not yet compatible with xdelt==deltx',255)
 
@@ -540,7 +563,12 @@ c**** get input from pbl_args structure
         pbl_args%trprime(:)=0
 #endif
       endif
-
+#ifdef TRACERS_TOMAS
+      ss_bin=0
+      num_bin=0
+      du_bin=0
+      num_bin2=0
+#endif
       do iter=1,itmax
 
         call get_tv(t,q,tv,n)
@@ -665,7 +693,8 @@ C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
      &     ,pbl_args%wsubwd,pbl_args%wsubwm)
@@ -695,12 +724,26 @@ C**** First, define some useful quantities
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
+#ifdef TRACERS_TOMAS
+!TOMAS - I think that tr is same in all PBL layer initially.
+!      At the end of this subroutine, tr at each PBL layer is computed. 
+!      So, I think it is okay to use tr(1,nx) instead of each PBL layer.   
+      do nx=1,pbl_args%ntx 
+         tr_dum(pbl_args%ntix(nx))=tr(1,nx)
+         pbl_args%gs_vel(pbl_args%ntix(nx))=0.
+      end do
+#endif
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
-     &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm)
+     &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm
+#ifdef TRACERS_TOMAS
+     &     ,pbl_args%gs_vel,tr_dum
+#endif
+     &     )
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       CALL dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
 #endif
 
@@ -753,7 +796,7 @@ C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
-
+#ifndef TRACERS_TOMAS  
 c****   set tracer size and density (not constant anymore)
         tr_radius = trnradius(pbl_args%ntix(itr))
         tr_dens =   trndens(pbl_args%ntix(itr))
@@ -771,13 +814,16 @@ C**** need to hydrate the sea salt before determining settling
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if
+#endif 
+!TOMAS - gs_vel for TOMAS is computed in TRDRYDEP.f. 
           trsf=pbl_args%trsfac(itr)*(pbl_args%dep_vel(pbl_args%ntix(itr)
      &         )+pbl_args%gs_vel(pbl_args%ntix(itr)))
         end if
 #endif
 
 C****   4) tracers with interactive sources
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
         select case (trname(pbl_args%ntix(itr)))
         case ('DMS')
           call read_DMS_sources(ws,itype,ilong,jlat,pbl_args%DMS_flux)
@@ -796,12 +842,30 @@ C****   4) tracers with interactive sources
           call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux,trname(pbl_args%ntix(itr)))
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
+
 #ifdef TRACERS_AEROSOLS_OCEAN
         case ('OCocean')
           call read_seasalt_sources(ws,itype,1,ilong,jlat
      &         ,pbl_args%OCocean_flux,trname(pbl_args%ntix(itr)))
           trcnst=pbl_args%OCocean_flux*byrho
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+
+#ifdef TRACERS_TOMAS
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+     &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+        ss_bin=ss_bin+1
+        if(ss_bin.eq.1)then          
+           call read_seasalt_sources(ws,itype,1,ilong,jlat
+     &          ,pbl_args%ss1_flux)
+           call read_seasalt_sources(ws,itype,2,ilong,jlat
+     &          ,pbl_args%ss2_flux)
+           tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
+        endif
+          trcnst=tot_seasalt*byrho
+     &         *scalesizeSS(ss_bin)
+          ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
+#endif 
         end select
 #endif
 
@@ -880,6 +944,49 @@ ccc dust emission from earth
             pbl_args%dust_flux(n1)=dsrcflx
             pbl_args%dust_flux2(n1)=dsrcflx2
           END DO
+        END SELECT
+#endif
+#ifdef TRACERS_TOMAS  
+        SELECT CASE (trname(pbl_args%ntix(itr)))
+        CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
+     &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+          du_bin=du_bin+1
+          if(du_bin.eq.1)then
+             n1=1
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx,dsrcflx2)
+                tot_dust=dsrcflx
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2
+          endif          
+          if(du_bin.le.10) trcnst=tot_dust*byrho*scalesizeDU(du_bin) 
+
+          if(du_bin.eq.11)then
+             n1=2             !silt1
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx, dsrcflx2)
+                tot_dust=dsrcflx
+                trcnst=tot_dust*byrho
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2
+          elseif(du_bin.eq.12)then
+             n1=3               !silt2
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx, dsrcflx2)
+                tot_dust=dsrcflx
+                trcnst=tot_dust*byrho
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2                
+          endif
+          dust_num(du_bin)=trcnst/sqrt(xk(du_bin)*xk(du_bin+1))
+          
+!TOMAS - Silt3 is out of size range for TOMAS. 
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
+     &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+           num_bin2=num_bin2+1
+           trcnst=dust_num(num_bin2)+ss_num(num_bin2)  
         END SELECT
 #endif
 
@@ -1001,7 +1108,8 @@ C**** tracer code output
       if (ddml_eq_1)
      &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pbl_args%wsgcm=wsgcm
       pbl_args%wspdf=wspdf
       pbl_args%z(:) = z(:)
@@ -3364,7 +3472,8 @@ C**** Use approximate value for small sig and unresolved delta function
 !@auth Reha Cakmur/Jan Perlwitz
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
       USE tracers_dust,ONLY : kim,kjm,table1,x11,x21
 
@@ -3454,7 +3563,8 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
       SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -3495,7 +3605,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -3536,7 +3647,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8, INTENT(OUT) :: y,dy
@@ -3586,7 +3698,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 !@sum locates parameters of integration in lookup table
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

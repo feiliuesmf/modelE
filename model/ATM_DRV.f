@@ -34,6 +34,10 @@
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
+     &     IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
+#endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
@@ -47,7 +51,9 @@
       INTEGER :: MDUM = 0
 
       REAL*8 start,now, DTIME,TOTALT
-
+#ifdef TRACERS_TOMAS
+      integer :: n
+#endif
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
@@ -140,6 +146,21 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (NOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
+#ifdef TRACERS_TOMAS
+!TOMAS- This next section of code ratios the higher order moments of
+!       aerosol mass to those of aerosol number so the distributions of
+!       aerosol mass and number within a grid cell are consistent
+      do n=1,NBINS
+         call momentfix(IDTNUMD-1+n, IDTSO4-1+n)  !sulfate mass
+         call momentfix(IDTNUMD-1+n, IDTNA -1+n)  !na+ mass
+         call momentfix(IDTNUMD-1+n, IDTECOB-1+n) !hydrophobic EC
+         call momentfix(IDTNUMD-1+n, IDTECIL-1+n)
+         call momentfix(IDTNUMD-1+n, IDTOCOB-1+n)
+         call momentfix(IDTNUMD-1+n, IDTOCIL-1+n)
+         call momentfix(IDTNUMD-1+n, IDTDUST-1+n)
+         call momentfix(IDTNUMD-1+n, IDTH2O-1+n)  !water mass
+      enddo
+#endif
 #ifdef TRAC_ADV_CPU
          CALL TIMER (NOW,MTRADV)
 #else
@@ -197,8 +218,9 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
-
-
+#ifdef TRACERS_TOMAS
+         CALL aeroupdate
+#endif
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
@@ -219,7 +241,9 @@ C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
 #endif
-
+#ifdef TRACERS_TOMAS
+      CALL aeroupdate
+#endif
       return
       end subroutine atm_phase1
 
@@ -295,6 +319,9 @@ C**** SEA LEVEL PRESSURE FILTER
 ! Reinitialize instantaneous consrv qtys (every timestep since
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter
+#endif
+#ifdef TRACERS_TOMAS
+      CALL aeroupdate
 #endif
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
@@ -634,14 +661,19 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       call alloc_aerosol_sources(grid)
 #endif
 #ifdef TRACERS_AMP
       call alloc_tracer_amp_com(grid)
 #endif
+#ifdef TRACERS_TOMAS
+      call alloc_tracer_tomas_com(grid)
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       CALL alloc_dust(grid)
 #endif
 #endif

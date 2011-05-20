@@ -253,7 +253,7 @@ c radii interpolation
 #endif  
 
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch)  || (defined TRACERS_TOMAS)
       SUBROUTINE SULFDUST
 !
 ! Version 1.   (version 2 needs to be written... without integration over ndr)

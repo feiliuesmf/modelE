@@ -15,13 +15,15 @@ c******************   TRACERS             ******************************
 #endif
       use sle001, only :
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
      *     ,trname
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
 #ifdef TRACERS_DRYDEP
@@ -42,7 +44,8 @@ c******************   TRACERS             ******************************
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : imDust
 #endif
       use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv,
@@ -75,13 +78,15 @@ c******************   TRACERS             ******************************
      *     ,trunoe,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
      &     ,prec,pprec,pevap,dust_flux_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
 #endif
-#ifdef TRACERS_DUST
+!#ifdef TRACERS_DUST 
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP) 
      &     ,dust_flux2_glob
 #endif
 
@@ -196,7 +201,8 @@ ccc extra stuff which was present in "earth" by default
       use pbl_drv, only : t_pbl_args
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       USE constant,ONLY : By3,sday
       USE model_com,ONLY : jday,jmon
       USE clouds_com,ONLY : ddml,fss
@@ -318,7 +324,8 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       pbl_args%snow=snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
@@ -397,7 +404,8 @@ c**** prescribed dust emission
       USE diag_com,ONLY : adiurn_dust,idd_grav,idd_turb,ijdd,ndiupt
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
 cddd#ifdef TRACERS_GASEXCH_land_CO2
@@ -409,14 +417,16 @@ cddd#endif
       type (t_pbl_args), intent(in) :: pbl_args
       real*8 :: byNIsurf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       integer :: n1
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
       real*8 tdryd,tdd,td1,rtsdt,rts
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       real*8 trc_flux
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -431,7 +441,31 @@ cddd#endif
       type (ghy_tr_str) :: ghy_tr
 #endif
       real*8 :: delta_C
+#ifdef TRACERS_TOMAS
+      INTEGER ss_bin,num_bin,du_bin,num_bin2
+      real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
+      real*8, parameter :: scalesizeSS(nbins)=(/
+     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
 
+!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
+!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
+      real*8, parameter :: scalesizeClay(nbins)=(/
+     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
+     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
+     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
+!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
+!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
+!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
+ 
+      real*8, parameter :: scalesizeSilt(nbins)=(/
+     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
+     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
+     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+
+
+#endif
 ccc tracers
       byNIsurf=1.d0/real(NIsurf)
 
@@ -459,7 +493,8 @@ cddd     &     (arauto+asoilresp-agpp)/dtsurf
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       hbaij(i,j)=pbl_args%hbaij
       ricntd(i,j)=pbl_args%ricntd
 c     saves precipitation for dust emission calculation at next time step
@@ -479,10 +514,17 @@ ccc accumulate tracer evaporation and runoff
      &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
 #endif
+#ifdef TRACERS_TOMAS
+      ss_bin=0
+      num_bin=0
+      du_bin=0
+      num_bin2=0
+#endif
       DO nx=1,ntx
         n=ntix(nx)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
 C**** technicallly some of these are ocean emissions, but if
 C**** fixed datasets are used, it can happen over land as well.
 
@@ -507,23 +549,77 @@ C**** fixed datasets are used, it can happen over land as well.
         case ('M_DDD_DU')
           trc_flux=sum(pbl_args%dust_flux(1:4))
 #endif
+!TOMAS - I don't think that seasalt emission is here.. 
+#ifdef TRACERS_TOMAS
+          CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
+     &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+
+          du_bin=du_bin+1
+
+          trc_flux=pbl_args%dust_flux(1)*scalesizeclay(du_bin)
+     &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
+          
+          dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
+          
+          case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
+     &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+           num_bin2=num_bin2+1
+           trc_flux=dust_num(num_bin2)
+#endif
         case default
           trc_flux=0
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       trc_flux*axyp(i,j)*ptype
+#ifndef TRACERS_TOMAS
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &       trc_flux*axyp(i,j)*ptype*dtsurf
         end if
+#else
+        if(n.lt.IDTNUMD.or.n.ge.IDTH2O)THEN !for dust and other?
+           if (ijts_isrc(1,n)>0) then
+              taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+     &             trc_flux*axyp(i,j)*ptype*dtsurf
+           end if
+        elseif(n.ge.IDTNUMD.and. n.lt.IDTH2O)THEN
+!ijts_isrc(2,n) for number: DUST number emission
+           if (ijts_isrc(2,n)>0) then
+              taijs(i,j,ijts_isrc(2,n))=taijs(i,j,ijts_isrc(2,n)) +
+     &             trc_flux*axyp(i,j)*ptype*dtsurf
+           end if
+        endif
+#endif
 
 #ifdef TRACERS_AMP
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 #else
+#ifdef TRACERS_TOMAS
+        if(n.lt.IDTNUMD.or.n.ge.IDTH2O)THEN !for dust and other?
+           if(jls_isrc(1,n)>0)  call inc_tajls(i,j,1,jls_isrc(1,n),
+     *          trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+           if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
+     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+
+        elseif(n.ge.IDTNUMD.and. n.lt.IDTH2O)THEN
+!jls_isrc(2,n) for number: DUST number emission
+           if(jls_isrc(2,n)>0)  call inc_tajls(i,j,1,jls_isrc(2,n),
+     *          trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+           if (itcon_surf(5,n).gt.0) call inc_diagtcb(i,j,
+     *          trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(5,n),n)
+        endif
+
+!jls_isrc is only for DU and SS.  
+!Unlike, itcon_surf, this does not need a different value for emission type.
+#endif
+#ifndef TRACERS_TOMAS
         if(jls_isrc(1,n)>0)  call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf)   ! why not for all aerosols?
+#endif
 #endif
 
 #endif

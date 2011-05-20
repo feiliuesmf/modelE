@@ -16,7 +16,8 @@ C****
      *     ,undef
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      &     ,By3
 #endif
       USE ATM_COM, only : u,v,t,p,q
@@ -51,6 +52,9 @@ C****
 #endif
 #ifdef TRACERS_DUST
      &     ,Ntm_dust
+#endif
+#ifdef TRACERS_TOMAS
+     &     ,xk,nbins,IDTSO4,IDTECIL
 #endif
 #endif
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
@@ -120,13 +124,14 @@ C****
      *     ,trunoe
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      &     ,pprec,pevap,dust_flux_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
 #endif
-#ifdef TRACERS_DUST
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP) 
      &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_COSMO
@@ -148,7 +153,8 @@ C****
       use trdiag_com, only: trcsurf,trcSurfByVol
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       USE tracers_dust, only : hbaij,ricntd,n_soildust
 #endif
 #endif
@@ -165,7 +171,8 @@ C****
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      &     ,ddml,fss
 #endif
       USE Timer_mod, only: Timer_type
@@ -248,6 +255,14 @@ C**** some shorthand indices and arrays for diurn diags
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       INTEGER :: idxd(n_idxd)
+#endif
+#ifdef TRACERS_TOMAS
+      INTEGER ss_bin,num_bin
+      real*8 ss_num(nbins),tot_seasalt
+      real*8, parameter :: scalesizeSS(nbins)=(/!0.0,0.0,0.0,
+     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
 #endif
       REAL*8 :: tmp(NDIUVAR)
 C****
@@ -374,7 +389,7 @@ C**** Zero out fluxes summed over type and surface time step
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
       dust_flux_glob = 0.d0
       dust_flux2_glob = 0.d0
       depo_turb_glob = 0.d0
@@ -717,7 +732,8 @@ c      pbl_args%pole = pole
       pbl_args%ntx = ntx
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) 
       pbl_args%hbaij=hbaij(i,j)
       pbl_args%ricntd=ricntd(i,j)
       pbl_args%pprec=pprec(i,j)
@@ -741,7 +757,8 @@ C**** Call pbl to calculate near surface profile
       trs(1:ntm) = pbl_args%trs(1:ntm)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) 
       hbaij(i,j)=pbl_args%hbaij
       ricntd(i,j)=pbl_args%ricntd
 #endif
@@ -862,6 +879,10 @@ C**** Limit evaporation if lake mass is at minimum
  3720 EVAP=-DQ1X*MA1
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_TOMAS
+      ss_bin=0
+      num_bin=0
+#endif
 C**** Loop over tracers
       DO NX=1,NTX
         N=NTIX(NX)
@@ -998,7 +1019,8 @@ C****
 #endif
        END IF
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 C****
 C**** Calculate Aersosol Exchange
 C****
@@ -1017,6 +1039,25 @@ C****
 #endif  /* TRACERS_AEROSOLS_OCEAN */
         case default
           trc_flux=0
+#ifdef TRACERS_TOMAS
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+     &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+
+          ss_bin=ss_bin+1
+          if(ss_bin.eq.1)
+     &     tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
+
+          trc_flux=tot_seasalt*scalesizeSS(ss_bin)
+          ss_num(ss_bin)=tot_seasalt*scalesizeSS(ss_bin)
+     &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
+
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
+     &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+           num_bin=num_bin+1
+           trc_flux=ss_num(num_bin)
+#endif
         end select
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
@@ -1033,8 +1074,42 @@ C****
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
             end select
 #else
+#ifndef TRACERS_TOMAS
+
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+#endif
+#endif
+
+      
+#ifdef TRACERS_TOMAS
+            select case (trname(n))
+
+            case ('DMS')              
+        if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
+     *              trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+     &       'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
+     &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+        
+        if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
+     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+        
+        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+        
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
+     &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
+     &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+        
+!TOMAS - itcon_surf (1,3) is for SO4/EC/OC.
+        if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,
+     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(4,n),n)
+
+        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+            end select
 #endif
 #endif
 
