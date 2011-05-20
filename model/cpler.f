@@ -93,7 +93,11 @@ c
       integer n,ia,ja
       real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
@@ -108,7 +112,7 @@ c
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine ssto2a
 
@@ -150,6 +154,12 @@ c
      &       tauxo(iio,jjo),tauyo(iio,jjo),
      &       sward(iio,jjo),eward(iio,jjo)
      &       )
+      else
+        allocate(
+     &       tauxa(1,1),tauya(1,1),
+     &       tauxo(1,1),tauyo(1,1),
+     &       sward(1,1),eward(1,1)
+     &       )
       endif
       call pack_data(agrid,tauxa_loc,tauxa)
       call pack_data(agrid,tauya_loc,tauya)
@@ -179,9 +189,7 @@ c --- rotate sward/eward to fit onto Panam grid
       endif ! am_i_root
       call unpack_data(ogrid,tauxo,tauxo_loc)
       call unpack_data(ogrid,tauyo,tauyo_loc)
-      if(am_i_root()) then
-        deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
-      endif
+      deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
       return
       end subroutine veca2o
 c
@@ -193,7 +201,11 @@ c
       integer i,j,l,n
       real*8 flda_loc(iia,aJ_0H:aJ_1H),fldo_loc(iio,J_0H:J_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(agrid,flda_loc,flda)
 c
       if(am_i_root()) then
@@ -210,7 +222,7 @@ c
       endif ! am_i_root
 c
       call unpack_data(ogrid,fldo,fldo_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine flxa2o
 
@@ -277,6 +289,12 @@ c
      &       tauxo(iio,jjo),tauyo(iio,jjo),
      &       nward(iio,jjo),eward(iio,jjo)
      &       )
+      else
+        allocate(
+     &       tauxa(1,1),tauya(1,1),
+     &       tauxo(1,1),tauyo(1,1),
+     &       nward(1,1),eward(1,1)
+     &       )
       endif
       call pack_data(ogrid,tauxo_loc,tauxo)
       call pack_data(ogrid,tauyo_loc,tauyo)
@@ -319,9 +337,7 @@ c
       endif ! am_i_root
       call unpack_data(agrid,tauxa,tauxa_loc)
       call unpack_data(agrid,tauya,tauya_loc)
-      if(am_i_root()) then
-        deallocate(tauxa,tauya,tauxo,tauyo,nward,eward)
-      endif
+      deallocate(tauxa,tauya,tauxo,tauyo,nward,eward)
       return
       end subroutine veco2a
 c
@@ -333,7 +349,11 @@ c
       integer n,ia,ja
       real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
@@ -349,7 +369,7 @@ c
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine tempro2a
 c
