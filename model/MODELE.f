@@ -122,6 +122,7 @@ C****
       call closeunit(iu_IFILE)
 
       call initializeModelE
+
 C****
 C**** INITIALIZATIONS
 C****
@@ -374,6 +375,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 #endif
       call init_app()
       call initializeDefaultTimers()
+
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
