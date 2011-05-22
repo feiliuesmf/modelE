@@ -576,7 +576,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       subroutine alloc_iceocn_xchng_vars(grd_dum,this)
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-#ifdef TRACERS_WATER
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE TRACER_COM, only: NTM
 #endif
       IMPLICIT NONE
@@ -634,6 +634,10 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       this % TRUNOSI = 0.
       this % TRMELTI = 0.
       this % FTRSI_IO = 0.
+#endif
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER) /* huh? */
+      ALLOCATE( this % DTRSI(NTM, 2, I_0H:I_1H, J_0H:J_1H),
+     &   STAT = IER)
       this % DTRSI = 0.
 #endif
 

@@ -10,9 +10,6 @@ subroutine CONDSE
   use RESOLUTION, only : im,jm,lm
   use ATM_COM, only : p,u,v,t,q,wm
   use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
-#ifdef SCM
-  use ATM_COM, only : NSTEPSCM, I_TARG,J_TARG
-#endif
   use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
   use QUSDEF, only : nmom
@@ -184,7 +181,7 @@ subroutine CONDSE
 
 #ifdef SCM
   use SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
-       SCM_ATURB_FLAG,iu_scm_prt,NRINIT
+       SCM_ATURB_FLAG,iu_scm_prt,NRINIT, NSTEPSCM, I_TARG,J_TARG
   use SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP,ENTSCM,ENTALL,ENTDEEP, &
        DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,dTHss,dqss, &

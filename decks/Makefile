@@ -32,6 +32,7 @@ include $(SCRIPTS_DIR)/modelErc
 sinclude $(MODELERC)
 export COMPILER
 export MODELERC
+export MPI
 
 V =
 

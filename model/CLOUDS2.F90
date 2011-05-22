@@ -18,9 +18,8 @@ module CLOUDS
   use DYNAMICS, only : sig,sige
 #endif
 #ifdef SCM
-  use ATM_COM, only: I_TARG,J_TARG
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
-       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
+       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT,I_TARG,J_TARG
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP, &
        ENTSCM,ENTALL,ENTDEEP,DETRAINDEEP, &
@@ -640,6 +639,8 @@ contains
     real*8, dimension(NMOM,LM,NTM) :: TMOMOLD
     real*8, dimension(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
     real*8, dimension(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
+    real*8 :: vsum
+    integer :: lborrow1
 #ifdef TRACERS_WATER
 !@var TRPCRP tracer mass in precip
     real*8, dimension(NTM)      :: TRPRCP
@@ -1507,8 +1508,8 @@ contains
                 ETAL1=EPLUME/MPOLD
                 FENTR=ETAL1*FPOLD
                 ENT(L)=0.001d0*FENTR/(GZL(L)*FPOLD)
-                FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
-                !!!!!TOMAS DEBUG!!!!    !FPLUME = MPLUME*BYAM(L) ! and use this instead
+                !     FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
+                FPLUME = MPLUME*BYAM(L) ! and use this instead
                 FENTRA = EPLUME*BYAM(L)
                 DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
                 DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
@@ -1796,9 +1797,17 @@ contains
         DQM(LMAX)=DQM(LMAX)+QMPMAX
         DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
 #ifdef TRACERS_ON
-        DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
-        DTMOM(xymoms,LMAX,1:NTX) = &
-             DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
+       DO N=1,NTX
+        select case (trname(ntix(n)))
+        case('NH3')
+      DTM(LMIN,N) = DTM(LMIN,N) + TMPMAX(N)
+      DTMOM(xymoms,LMIN,N) = DTMOM(xymoms,LMIN,N) + TMOMPMAX(xymoms,N)
+
+        case default
+      DTM(LMAX,N) = DTM(LMAX,N) + TMPMAX(N)
+      DTMOM(xymoms,LMAX,N) = DTMOM(xymoms,LMAX,N) + TMOMPMAX(xymoms,N)
+        end select
+       end do
 #endif
         CCM(LMAX)=0.
         do K=1,KMAX
@@ -2169,19 +2178,45 @@ contains
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
+#ifdef TRACERS_WATER
+          if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
+#endif
           do L=LDMIN,LMAX
-            if (TM(L,N).lt.0.) then
-              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
-                   ,j_debug,l,tm(l,n),cmneg(l)
-              !**** reduce subsidence post hoc.
-              LM1=max(1,L-1)
-              if (TM(LM1,N)+TM(L,N).lt.0) then
-                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!            if (TM(L,N).lt.0.) then
+!              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
+!                   ,j_debug,l,tm(l,n),cmneg(l)
+!              !**** reduce subsidence post hoc.
+!              LM1=max(1,L-1)
+!              if (TM(LM1,N)+TM(L,N).lt.0) then
+!                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!              else
+!                TM(L-1,N)=TM(L-1,N)+TM(L,N)
+!                TM(L,N)=0.
+!              end if
+!            end if
+            if (tm(l,n).lt.0.) then ! borrow mass from below
+              vsum = tm(l,n)
+              lborrow1 = l
+              do while(vsum.lt.0. .and. lborrow1.gt.1)
+                lborrow1 = lborrow1 - 1
+                vsum = vsum + tm(lborrow1,n)
+              enddo
+              if(vsum.lt.0.) then
+                write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
               else
-                TM(L-1,N)=TM(L-1,N)+TM(L,N)
-                TM(L,N)=0.
-              end if
-            end if
+                if(l-lborrow1.gt.1) then
+                  write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
+                else
+                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+                endif
+                ! note: borrowing from more than one layer is done by
+                ! multiplication rather than subtraction
+                tm(lborrow1:l-1,n)=tm(lborrow1:l-1,n)*(vsum/(vsum-tm(l,n)))
+                tm(l,n)=0.
+              endif
+            endif
           end do
         end do
 #endif

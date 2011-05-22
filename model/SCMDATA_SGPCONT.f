@@ -12,10 +12,9 @@ C-------------------------------------------------------------------------------
       USE SCMCOM , only : SCM_SURFACE_FLAG,NARM,TAUARM,NRINIT,IKT, 
      &                  AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
-     &                  iu_scm_prt    
+     &                  iu_scm_prt,I_TARG,J_TARG,NSTEPSCM
       USE RESOLUTION , only : LM, ls1, ptop,psf
-      USE DYNAMICS , only : SIG
-      USE ATM_COM , only : P,T,Q,U,V,I_TARG,J_TARG,NSTEPSCM        
+      USE ATM_COM , only : P,PK,T,Q,U,V
       use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE 
@@ -85,9 +84,9 @@ c     module
       call CALC_AMPK(LM)
       
       do L = 1,LM
-c        fill T with temperature as ARM provided - will be converted later in INPUT
+c        fill T with potential temperature as ARM provided
          Q(I_TARG,J_TARG,L) = SG_Q(L)
-         T(I_TARG,J_TARG,L) = SG_T(L)
+         T(I_TARG,J_TARG,L) = SG_T(L)/PK(L,I_TARG,J_TARG)
       enddo 
 
 c     also note for U,V initialize boxes around target I,J for mean wind
@@ -442,7 +441,6 @@ c     enddo
 
       SUBROUTINE pass_scm_surface
         
-      USE ATM_COM, only : NSTEPSCM    
       USE SCMCOM
       IMPLICIT NONE
 
@@ -694,7 +692,6 @@ C     to SCM sigma levels
 c         
       USE RESOLUTION, only: LM, ls1, ptop, psf
       USE DYNAMICS,   only: SIG
-      USE ATM_COM,    only: NSTEPSCM
       USE SCMCOM
 
 
@@ -762,9 +759,7 @@ c     enddo
       subroutine pass_SCMDATA
 
       USE RESOLUTION , only : LM, ls1, ptop, psf
-      USE DYNAMICS , only : SIG
-      USE ATM_COM , only : P,T,Q,U,V,PK,
-     &                I_TARG,J_TARG,NSTEPSCM        
+      USE ATM_COM , only : P,T,Q,U,V,PK
       use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE

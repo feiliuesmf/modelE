@@ -97,6 +97,10 @@ C SCM DATA as provided from ARM variational analysis
 !@var IKT index to arm data interpolated to time steps
       INTEGER IKT
       INTEGER iu_scm_prt,iu_scm_diag    
+
+!**** Target Coordinates for SCM
+      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
+      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
    
       
       INTEGER MCT

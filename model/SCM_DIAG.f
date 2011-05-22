@@ -5,9 +5,9 @@ c     save diagnostics for run of MODELE SCM
 
 
       USE RESOLUTION, only: LM
-      USE ATM_COM,    only: p,u,v,t,q,wm,I_TARG,J_TARG,NSTEPSCM
+      USE ATM_COM,    only: p,u,v,t,q,wm,gz,pk
       USE MODEL_COM , only: dtsrc
-      USE DYNAMICS,   only: sige,sig,gz,pk
+      USE DYNAMICS,   only: sige,sig
       USE CLOUDS_COM, only: SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
      &                cldss,cldmc,csizmc,csizss,ncol
       use DIAG_COM, only : npres,ntau,isccp_press,isccp_tau
@@ -16,10 +16,6 @@ c     save diagnostics for run of MODELE SCM
       USE RAD_COM, only : srhr,trhr
       USE PBLCOM, only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG
       USE FLUXES, only : atmlnd 
-C     USE DYNAMICS, only : PK 
-C--- Added by J.W. starting ---C
-      USE DYNAMICS, only : PK,GZ
-C--- Added by J.W. ending ---C
       USE CONSTANT, only : SHA, GRAV, kapa 
       USE GEOM, only : axyp 
       USE FILEMANAGER, only : openunit,closeunit
