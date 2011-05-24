@@ -293,6 +293,7 @@
 #ifdef OBIO_ON_GARYocean
        do 1000 j=j_0,j_1
        do 1000 i=i_0,i_1
+       dp1d(:) = 0.
        IF(FOCEAN(I,J).gt.0.) THEN
 #else
        do 1000 j=j_0,j_1             !1,jj
