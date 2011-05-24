@@ -4,11 +4,10 @@
 
 c Will add more documentation if this version becomes the modelE default.
 
-      SUBROUTINE OCEANS
+      SUBROUTINE OCEANS(atmocn,iceocn,dynsice)
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : msurf,itime
-      USE DIAG_COM, only : modd5s
       USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -36,8 +35,12 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_com, only: gather_pCO2
 #endif
-
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: iceocn
+      type(iceocn_xchng_vars) :: dynsice
+c
       Integer*4 I,J,L,N,NS,NST,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
@@ -53,11 +56,11 @@ c**** Extract domain decomposition info
      &     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 C***  Get the data from the atmospheric grid to the ocean grid
-      call AG2OG_oceans
+      call AG2OG_oceans(atmocn,iceocn)
 
 C***  Interpolate DYNSI outputs to the ocean grid
 C***  (at present, only the ice-ocean stress is used)
-      call IG2OG_oceans
+      call IG2OG_oceans(dynsice)
 
 c-------------------------------------------------------------------
 c Begin ocean-processors-only code region
@@ -74,7 +77,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES2
          CALL CHECKO('OSTRES')
          CALL TIMER (NOW,MSURF)
-         IF (MODD5S == 0) CALL DIAGCO (11)
+         IF (ATMOCN%MODD5S == 0) CALL DIAGCO (11,atmocn)
 
 C**** Apply ocean vertical mixing
       CALL OCONV
@@ -91,7 +94,7 @@ C**** Add ocean biology
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2
 #endif
-      IF (MODD5S.EQ.0) CALL DIAGCO (5)
+      IF (ATMOCN%MODD5S.EQ.0) CALL DIAGCO (5,atmocn)
 #endif
 
          CALL TIMER (NOW,MSGSO)
@@ -335,7 +338,7 @@ C****
       ENDDO  !  End of Do-loop NO=1,NOCEAN
 
         CALL TIMER (NOW,MDYNO)
-        IF (MODD5S == 0) CALL DIAGCO (12)
+        IF (ATMOCN%MODD5S == 0) CALL DIAGCO (12,atmocn)
 
 c
 c recalculate vbar etc. for ocean physics
@@ -388,11 +391,11 @@ c-------------------------------------------------------------------
       endif ocean_processors_only
 
 C***  Get the data from the ocean grid to the atmospheric grid
-      CALL TOC2SST
-      call OG2AG_oceans
+      CALL TOC2SST(atmocn)
+      call OG2AG_oceans(iceocn)
 
 C***  Interpolate ocean surface velocity to the DYNSI grid
-      call OG2IG_uvsurf
+      call OG2IG_uvsurf(dynsice,atmocn)
 
       RETURN
       END SUBROUTINE OCEANS
@@ -1878,14 +1881,14 @@ C****
       I=IMO
       DO IP1=1,IMO
         IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
-     *       (oDMUA(I,J,1) + oDMUA(IP1,J,1) + 2d0*oDMUI(I,J)) /
+     *       (oDMUA(I,J) + oDMUA(IP1,J) + 2d0*oDMUI(I,J)) /
      *       (  MO(I,J,1) +   MO(IP1,J,1))
         I=IP1
       END DO
       END DO
       if (have_north_pole) then
-        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO,1)/MO(1,JMO,1)
-        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO,1)/MO(1,JMO,1)
+        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO)/MO(1,JMO,1)
+        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO)/MO(1,JMO,1)
       end if
       call halo_update(ogrid, odmvi, from=south)
       DO J=J_0S,J_1S
@@ -1893,7 +1896,7 @@ C****
         DO IP1=1,IMO
           IF(LMU(I,J).gt.0.) THEN
             VOD(I,J,1) = VOD(I,J,1) + (
-     *           oDMVA(I,J,1)+oDMVA(IP1,J,1)
+     *           oDMVA(I,J)+oDMVA(IP1,J)
      *        +.5*(oDMVI(I,J-1)+oDMVI(IP1,J-1)+oDMVI(I,J)+oDMVI(IP1,J))
      *           )/(MO(I,J,1)+MO(IP1,J,1))
           ENDIF
@@ -1908,7 +1911,7 @@ C****
       DO J=J_0S,min(J_1S,JMO-2)
       DO I=1,IMO
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
-     *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
+     *       (oDMVA(I,J)*DXYNO(J) + oDMVA(I,J+1)*DXYSO(J+1)
      *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
       END DO
@@ -1917,8 +1920,8 @@ C**** Surface stress is applied to V component at the North Pole
       if (have_north_pole) then
       DO I=1,IMO
         VO(I,JMO-1,1) = VO(I,JMO-1,1) +
-     *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
-     *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
+     *    (oDMVA(I,JMO-1)*DXYNO(JMO-1)+
+     *    (oDMVA(1,JMO  )*COSIC(I) - oDMUA(1,JMO)*SINIC(I))*DXYSO(JMO)
      *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
      *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
       END DO
@@ -1930,7 +1933,7 @@ C**** Surface stress is applied to V component at the North Pole
         DO I=1,IMO
           IF(LMV(I,J).GT.0.) THEN
             UOD(I,J,1) = UOD(I,J,1) + (
-     *           oDMUA(I,J,1)+oDMUA(I,J+1,1)
+     *           oDMUA(I,J)+oDMUA(I,J+1)
      *     +.5*(oDMUI(IM1,J)+oDMUI(I,J)+oDMUI(IM1,J+1)+oDMUI(I,J+1))
      *           )/(MO(I,J,1)+MO(I,J+1,1))
           ENDIF

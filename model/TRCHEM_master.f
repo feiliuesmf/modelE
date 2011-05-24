@@ -55,7 +55,12 @@ c
      &                        n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU,
      &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU,
 #endif
-     &                        n_SO4,n_H2O2_s,oh_live,no3_live,
+#ifdef TRACERS_TOMAS
+     &                        n_ASO4,nbins,   
+#else
+     &                        n_SO4,
+#endif  
+     &                        n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
      *                        ,mass2vol,vol2mass
@@ -209,7 +214,9 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_AEROSOLS_SOA
       real*8 voc2nox_denom
 #endif  /* TRACERS_AEROSOLS_SOA */
-
+#ifdef TRACERS_TOMAS
+      integer :: k
+#endif
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
@@ -863,6 +870,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Recipricle
           ! layer thickness below is in 1/m units:
+#ifndef TRACERS_TOMAS
           sulfate(i,j,L)=
 #ifdef TRACERS_AMP
      &      (trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
@@ -878,6 +886,14 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 #endif
      &      *1.76d2*byaxyp(i,j)*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
+#endif
+#ifdef TRACERS_TOMAS
+           sulfate(i,j,l)=0.0
+           do k=1,nbins
+              sulfate(i,j,L)=sulfate(i,j,l)+trm(i,j,L,n_ASO4(k))*1.76d2
+     &            *byaxyp(i,j)*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
+           enddo
+#endif
         endif
 
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)

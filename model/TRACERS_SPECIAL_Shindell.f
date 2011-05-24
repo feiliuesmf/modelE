@@ -223,6 +223,9 @@ C we change that.)
 #ifdef TRACERS_AEROSOLS_Koch
      *                      n_BCIA,
 #endif
+#ifdef TRACERS_TOMAS
+     *                      IDTECOB,
+#endif
 !#ifdef TRACERS_AMP
 !     *                      n_M_BC1_BC,
 !#endif
@@ -243,6 +246,8 @@ C we change that.)
 !#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
 !    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       integer, parameter :: nmons=2
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      integer, parameter :: nmons=2
 #else
       integer, parameter :: nmons=1
 #endif
@@ -253,19 +258,26 @@ C we change that.)
      *  mon_files=(/'NOx_AIRC ','BCIA_AIRC'/)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !     *  mon_files=(/'NOx_AIRC','M_BC1_BC_AIRC'/)
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+     *  mon_files=(/'NOx_AIRC','AECOB_01_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell)
      *  mon_files=(/'NOx_AIRC'/)
 #elif (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'BCIA_AIRC'/)
+#elif (defined TRACERS_TOMAS)
+     *  mon_files=(/'AECOB_01_AIRC'/)
 #else
      *  mon_files=(/'M_BC1_BC_AIRC'/)
 #endif
+
       integer, dimension(nmons) :: mon_tracers ! define them later
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
 !    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-#else /* this is for both TRACERS_AEROSOLS_Koch and TRACERS_AMP */
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
+#else /* this is for both TRACERS_AEROSOLS_Koch and TRACERS_AMP and TRACERS_TOMAS*/
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
 #endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -287,6 +299,9 @@ C we change that.)
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_NOx
       mon_tracers(2)=n_BCIA
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=IDTECOB
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !      mon_tracers(1)=n_NOx
 !      mon_tracers(2)=n_M_BC1_BC
@@ -294,6 +309,8 @@ C we change that.)
       mon_tracers(1)=n_NOx
 #elif (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_BCIA
+#elif (defined TRACERS_TOMAS)
+      mon_tracers(1)=IDTECOB
 #else
       mon_tracers(1)=n_M_BC1_BC
 #endif

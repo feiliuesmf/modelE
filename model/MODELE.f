@@ -5,21 +5,23 @@
 !@auth T. Clune
 C**** Command line options
       logical :: qcRestart=.false.
+      logical :: coldRestart=.false.
       integer, parameter :: MAX_LEN_IFILE = 32
       character(len=MAX_LEN_IFILE) :: iFile
 
-      call read_options(qcRestart, iFile )
-      call GISS_modelE(qcRestart, iFile)
+      call read_options(qcRestart, coldRestart, iFile )
+      call GISS_modelE(qcRestart, coldRestart, iFile)
 
       contains
 
-      subroutine read_options(qcRestart, iFile )
+      subroutine read_options(qcRestart, coldRestart, iFile )
 !@sum Reads options from the command line
 !@auth I. Aleinov
       implicit none
 !@var qcRestart true if "-r" is present
 !@var iFile is name of the file containing run configuration data
       logical, intent(inout) :: qcRestart
+      logical, intent(inout) :: coldRestart
       character(*),intent(out)  :: ifile
       integer, parameter :: MAX_LEN_ARG = 80
       character(len=MAX_LEN_ARG) :: arg, value
@@ -31,6 +33,8 @@ C**** Command line options
         select case (arg)
         case ("-r")
           qcRestart = .true.
+        case ("-cold-restart")
+          coldRestart = .true.
         case ("-i")
           call nextarg( value, 0 )
           iFile=value
@@ -53,7 +57,7 @@ C**** Command line options
 
       end subroutine modelE_mainDriver
 
-      subroutine GISS_modelE(qcRestart, iFile)
+      subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
@@ -78,9 +82,12 @@ C**** Command line options
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
+      use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
+      use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
+      logical, intent(in) :: coldRestart
       character(len=*), intent(in) :: iFile
 
       INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
@@ -122,7 +129,7 @@ C****
          CALL TIMER (NOW,MDUM)
 
 C**** Read input/ic files
-      CALL INPUT (istart,ifile)
+      CALL INPUT (istart,ifile,coldRestart)
 
 C**** Set run_status to "run in progress"
       call write_run_status("Run in progress...",1)
@@ -164,7 +171,7 @@ C****
          call timer(NOW,MELSE)
         END IF
       end if
-      
+
       if (isBeginningOfDay(modelEclock)) then
         call startNewDay()
       end if
@@ -179,8 +186,8 @@ C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       call startTimer('Surface')
-      CALL PRECIP_SI('OCEAN')  ! move to ocean_driver
-      CALL PRECIP_OC           ! move to ocean_driver
+      CALL PRECIP_SI(si_ocn,iceocn,atmice)  ! move to ocean_driver
+      CALL PRECIP_OC(atmocn,iceocn)         ! move to ocean_driver
 
 C**** CALCULATE SURFACE FLUXES (and, for now, this procedure
 C**** also drives "surface" components that are on the atm grid)
@@ -194,7 +201,6 @@ C**** also drives "surface" components that are on the atm grid)
 
 ! phase 2 changes surf pressure which affects the ocean
       call atm_phase2
-
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -395,6 +401,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
+      
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
@@ -509,10 +516,11 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
+      use fluxes, only : atmocn
       implicit none
       
       call daily_CAL(.true.)    ! end_of_day
-      call daily_OCEAN(.true.)  ! end_of_day
+      call daily_OCEAN(.true.,atmocn)  ! end_of_day
       call daily_ATM(.true.)
 
       return
@@ -555,7 +563,7 @@ C**** Rundeck parameters:
 C****
       end subroutine init_Model
 
-      SUBROUTINE INPUT (istart,ifile)
+      SUBROUTINE INPUT (istart,ifile,coldRestart)
 
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
@@ -584,11 +592,12 @@ C****
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
+      character(*), intent(in) :: ifile
+      logical, intent(in) :: coldRestart
 !@dbparam init_topog_related : set = 1 if IC and topography are incompatible
       integer :: init_topog_related = 0
 !@dbparam do_IC_fixups : set = 1 if surface IC are to be checked/corrected
       integer :: do_IC_fixups = 0
-      character(*), intent(in) :: ifile
 !@var iu_AIC,iu_IFILE unit numbers for input files
       INTEGER iu_AIC,iu_IFILE
       INTEGER I,J,L,K,LID1,LID2,NOFF,ioerr
@@ -610,9 +619,15 @@ C****
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
+      NAMELIST/INPUTZ_cold/ ISTART,IRANDI
+     *     ,IWRITE,JWRITE,ITWRITE,QCHECK,KDIAG
+     *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
+C****    List of parameters that are disregarded at restarts
+     *     ,        HOURI,DATEI,MONTHI,YEARI
       integer istart_fixup
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
+
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
 C****
@@ -654,6 +669,7 @@ C****
       enddo
 
       READ (iu_IFILE,NML=INPUTZ,ERR=900)
+      if (coldRestart) READ (iu_IFILE,NML=INPUTZ_cold,ERR=900)
       call closeunit(iu_IFILE)
 
       IWRITE_sv = IWRITE
@@ -866,7 +882,8 @@ C**** component-specific ops, folding the latter into component inits
       call INPUT_ocean (istart,istart_fixup,
      &     do_IC_fixups,is_coldstart)
 
-      call INPUT_atm(istart,istart_fixup,is_coldstart,
+      call INPUT_atm(istart,istart_fixup,
+     &     do_IC_fixups,is_coldstart,
      &     KDISK_restart,IRANDI)
 
       if (istart.le.9) then
@@ -959,6 +976,9 @@ C****
 #endif
 #ifdef TRACERS_AMP
       write(6,*) '...and aerosol microphysics'
+#endif
+#ifdef TRACERS_TOMAS
+      write(6,*) '...and TOMAS aerosol microphysics'
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_SPECIAL_Shindell

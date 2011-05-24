@@ -11,28 +11,12 @@
 !@+    PRECIP_OC,OCEANS
       USE CONSTANT, only : rhows,rhoi,shw,by12,tf
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GET,
-     *                          READ_PARALLEL,
-     *                          REWIND_PARALLEL,
-     *                          BACKSPACE_PARALLEL
-     &     ,MREAD_PARALLEL,READT_PARALLEL
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only :
      *      Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean
-      USE GEOM, only : axyp, imaxj
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
      *     ,lmi, Ei
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi,ntm
-      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
-      USE TRACER_COM, only: trsi0
-#endif
-      USE LANDICE_COM, only : snowli,tlandi
-      USE FLUXES, only : gtemp,sss,fwsim,mlhc,gtempr,focean,fland,flice
-      USE DIAG_COM, only : aij=>aij_loc, jreg,ij_smfx,j_implh, j_implm,
-     *     j_imelt, j_hmelt, j_smelt, NREG, KAJ, ij_fwio, itocean,itoice
       IMPLICIT NONE
       SAVE
       logical :: off_line=.false.
@@ -54,6 +38,8 @@
       REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
      *          COSANG,CS2ANG,CS3ANG,CS4ANG
 
+!@var FOCEAN ocean fraction
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOCEAN
 !@var Z1O ocean mixed layer depth
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z1O
 !@var Z1OOLD previous ocean mixed layer depth
@@ -80,13 +66,16 @@ C     *     ,CRSI,KRSI
 !@sum  OSTRUC restructures the ocean temperature profile as ML
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE FLUXES, only : atmice
+      USE GEOM, only : imaxj
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
 !@var QTCHNG true if TOCEAN(1) is changed (needed for qflux calculation)
       LOGICAL, INTENT(IN) :: QTCHNG
       INTEGER :: J_0, J_1, I_0, I_1
+      REAL*8, DIMENSION(:,:), POINTER :: FWSIM
 C****
 C**** FLAND     LAND COVERAGE (1)
 C****
@@ -103,9 +92,12 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      FWSIM => ATMICE%FWSIM
+
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          IF (FLAND(I,J).GE.1.) CYCLE
+          !IF (FLAND(I,J).GE.1.) CYCLE
+          IF (FOCEAN(I,J).LE.0.) CYCLE
           IF (Z1OOLD(I,J).GE.Z12O(I,J)) GO TO 140
           IF (Z1O(I,J).EQ.Z1OOLD(I,J)) CYCLE
           WTR1O=RHOWS*Z1O(I,J)-FWSIM(I,J)
@@ -138,13 +130,27 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       SUBROUTINE OCLIM(end_of_day)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID,GLOBALSUM,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID,GET,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only :
+     &     READ_PARALLEL,REWIND_PARALLEL,BACKSPACE_PARALLEL,
+     &     MREAD_PARALLEL,READT_PARALLEL
 #ifdef SCM
 c     for SCM cases using provided surface temps - do not overwrite 
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-      USE MODEL_COM, only : I_TARG,J_TARG
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif 
-      USE GEOM, ONLY : lat2d
+      USE GEOM, ONLY : imaxj,lat2d
+      USE SEAICE_COM, only : si_ocn
+#ifdef TRACERS_WATER
+      USE SEAICE_COM, only : ntm
+#endif
+      USE FLUXES, only : atmocn,atmice
+
+      USE DIAG_COM, only : aij=>aij_loc, jreg,j_implh, j_implm,
+     *     itocean,itoice
+#ifdef TRACERS_WATER
+      USE TRDIAG_COM, only: taijn=>taijn_loc
+      USE TRACER_COM, only: trsi0
+#endif
       IMPLICIT NONE
 
 C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
@@ -168,11 +174,36 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       INTEGER :: ice_nskip_plus_1
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,FWSIM,SSS
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI,SSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+      INTEGER :: TIJ_ICOCFLX
+#endif
+      INTEGER :: IJ_SMFX,IJ_FWIO,J_IMELT,J_HMELT,J_SMELT
+
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      FWSIM => ATMICE%FWSIM
+      SSS => ATMOCN%SSS
+      RSI => SI_OCN%RSI
+      MSI => SI_OCN%MSI
+      HSI => SI_OCN%HSI
+      SSI => SI_OCN%SSI
+      SNOWI => SI_OCN%SNOWI
+#ifdef TRACERS_WATER
+      TRSI => SI_OCN%TRSI
+      TIJ_ICOCFLX = atmice%TIJ_ICOCFLX
+#endif
+      IJ_SMFX = atmice%IJ_SMFX
+      IJ_FWIO = atmice%IJ_FWIO
+      J_IMELT = atmice%J_IMELT
+      J_HMELT = atmice%J_HMELT
+      J_SMELT = atmice%J_SMELT
 
       IF (KOCEAN.EQ.1) GO TO 500
       if(.not.(end_of_day.or.itime.eq.itimei.or.off_line)) return
@@ -407,10 +438,10 @@ C**** adjust enthalpy and salt so temperature/salinity remain constant
             TRSI(:,3:4,I,J)=TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
 #endif
 C**** adjust some radiative fluxes for changes in ice fraction
-            if (rsinew.gt.rsi(i,j)) ! ice from ocean
-     *           call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),RSINEW)
-            if (rsinew.lt.rsi(i,j)) ! ocean from ice
-     *           call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-RSINEW)
+c            if (rsinew.gt.rsi(i,j)) ! ice from ocean
+c     *           call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),RSINEW)
+c            if (rsinew.lt.rsi(i,j)) ! ocean from ice
+c     *           call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-RSINEW)
 C****
             RSI(I,J)=RSINEW
             MSI(I,J)=MSINEW
@@ -430,13 +461,15 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               END DO
 #endif
               SNOWI(I,J)=0.
-              GTEMP(1:2,2,I,J)=TFO
-              GTEMPR(2,I,J) = TFO+TF
+              atmice%GTEMP(I,J)=TFO
+              atmice%GTEMP2(I,J)=TFO
+              atmice%GTEMPR(I,J) = TFO+TF
 #ifdef SCM
               if (I.eq.I_TARG.and.J.eq.J_TARG) then
                   if (SCM_SURFACE_FLAG.ge.1) then
-                      GTEMP(1:2,2,I,J) = ATSKIN
-                      GTEMPR(2,I,J) = ATSKIN + TF
+                      atmice%GTEMP(I,J) = ATSKIN
+                      atmice%GTEMP2(I,J) = ATSKIN
+                      atmice%GTEMPR(I,J) = ATSKIN + TF
                   endif
               endif
 #endif
@@ -459,8 +492,9 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
 #ifdef TRACERS_WATER
             TRSI(:,:,I,JM)=TRSI(:,:,1,JM)
 #endif
-            GTEMP(1:2,2,I,JM)=GTEMP(1:2,2,1,JM)
-            GTEMPR(2,I,JM)=GTEMPR(2,1,JM)
+            atmice%GTEMP(I,JM)=atmice%GTEMP(1,JM)
+            atmice%GTEMP2(I,JM)=atmice%GTEMP2(1,JM)
+            atmice%GTEMPR(I,JM)=atmice%GTEMPR(1,JM)
             FWSIM(I,JM)=FWSIM(1,JM)
           END DO
         END IF
@@ -477,8 +511,9 @@ C**** REPLICATE VALUES AT POLE (for prescribed data only)
 #ifdef TRACERS_WATER
             TRSI(:,:,I,1)=TRSI(:,:,1,1)
 #endif
-            GTEMP(1:2,2,I,1)=GTEMP(1:2,2,1,1)
-            GTEMPR(2,I,1)=GTEMPR(2,1,1)
+            atmice%GTEMP(I,1)=atmice%GTEMP(1,1)
+            atmice%GTEMP2(I,1)=atmice%GTEMP2(1,1)
+            atmice%GTEMPR(I,1)=atmice%GTEMPR(1,1)
             FWSIM(I,1)=FWSIM(1,1)
           END DO
         END IF
@@ -677,16 +712,14 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       END MODULE STATIC_OCEAN
 
-      SUBROUTINE ALLOC_OCEAN(grid)
-      USE RESOLUTION, only : im
+      SUBROUTINE ALLOC_OCEAN
       USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
-     &                          DM,AOST,EOST1,EOST0,BOST,
-     &                          COST,ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
+     &                          DM,AOST,EOST1,EOST0,BOST,COST,FOCEAN,
+     &                          ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
       USE STATIC_OCEAN, only  : KRSI
-      USE DOMAIN_DECOMP_ATM, only : DIST_GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
       INTEGER :: I_0H,I_1H,J_0H,J_1H,IER
-      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
@@ -700,6 +733,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       ALLOCATE(KRSI(I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
       ALLOCATE(   !alloc OTC(I_0H:I_1H,J_0H:J_1H),
+     &         FOCEAN(I_0H:I_1H,J_0H:J_1H),
      &         Z1O(I_0H:I_1H,J_0H:J_1H),
      &         Z1OOLD(I_0H:I_1H,J_0H:J_1H),
      &         Z12O(I_0H:I_1H,J_0H:J_1H),
@@ -723,7 +757,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       END SUBROUTINE ALLOC_OCEAN
 
 
-      SUBROUTINE init_OCEAN(iniOCEAN,istart)
+      SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
 !@sum init_OCEAN initiallises ocean variables
 !@auth Original Development Team
       USE FILEMANAGER
@@ -732,7 +766,6 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean
      *     ,iyear1,ioreadnt,ioread,jmpery
       USE GEOM, only : imaxj
@@ -740,26 +773,28 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
-      USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,sss,uosurf,vosurf,uisurf,visurf,ogeoza
-     *     ,gtempr,fland,flice,focean
+      USE FLUXES, only : atmice ! move uisurf,visurf init elsewhere
       USE SEAICE, only : qsfix, osurf_tilt
-      USE SEAICE_COM, only : snowi
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
-     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
+     *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX,focean
       USE DIAG_COM, only : npts,icon_OCE,conpt0
 #ifdef NEW_IO
       use pario, only : par_open, par_close
 #endif
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
-      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
+      INTEGER :: ISTART
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: dynsice ! not used here
+c
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       CHARACTER CONPT(NPTS)*10
       integer :: fid,status
 !@var iu_OHT unit number for reading in ocean heat transports & z12o_max
       INTEGER :: iu_OHT,iu_GIC
-      INTEGER :: I,J,m,ISTART,ioerr
+      INTEGER :: I,J,m,ioerr
       logical :: postProc = .false.
       logical :: readGIC = .false.
 
@@ -772,6 +807,8 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       call get(grid,j_strt=j_0,j_stop=j_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      focean(:,:) = atmocn%focean(:,:)
 
       if (kocean.ge.1) then
 C****   set conservation diagnostic for ocean heat
@@ -868,20 +905,21 @@ C**** Set fluxed arrays for oceans
       DO J=J_0,J_1
       DO I=I_0,I_1
         IF (FOCEAN(I,J).gt.0) THEN
-          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
-          SSS(I,J) = SSS0
+          atmocn%GTEMP(I,J)=TOCEAN(1,I,J)
+          atmocn%GTEMP2(I,J)=TOCEAN(2,I,J)
+          atmocn%GTEMPR(I,J) = TOCEAN(1,I,J)+TF
+          atmocn%SSS(I,J) = SSS0
 #ifdef TRACERS_WATER    
-          gtracer(:,1,i,j)=trw0()
+          atmocn%gtracer(:,i,j)=trw0()
 #endif
         ELSE
-          SSS(I,J) = 0.
+          atmocn%SSS(I,J) = 0.
         END IF
 C**** For the time being assume zero surface velocities for drag calc
-        uosurf(i,j)=0. ; vosurf(i,j)=0.
-        uisurf(i,j)=0. ; visurf(i,j)=0.
+        atmocn%uosurf(i,j)=0. ; atmocn%vosurf(i,j)=0.
+        atmice%uisurf(i,j)=0. ; atmice%visurf(i,j)=0. ! move elsewhere
 C**** Also zero out surface height variations
-        ogeoza(i,j)=0.
+        atmocn%ogeoza(i,j)=0.
       END DO
       END DO
 C**** keep salinity in sea ice constant for fixed-SST and qflux models
@@ -893,27 +931,31 @@ C**** surface tilt term.
       RETURN
       END SUBROUTINE init_OCEAN
 
-      SUBROUTINE daily_OCEAN(end_of_day)
+      SUBROUTINE daily_OCEAN(end_of_day,atmocn)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
       USE CONSTANT, only : twopi,edpery,shw,rhows,tf
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean,jday
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
-      USE FLUXES, only : gtemp,mlhc,fwsim,gtempr,focean
-      USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
+      USE FLUXES, only : atmice
+      USE STATIC_OCEAN, only : focean,tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
       INTEGER I,J
       LOGICAL, INTENT(IN) :: end_of_day
       REAL*8 ANGLE
+      REAL*8, DIMENSION(:,:), POINTER :: FWSIM
       INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      FWSIM => ATMICE%FWSIM
 
 C**** update ocean related climatologies
       CALL OCLIM(end_of_day)
@@ -949,9 +991,10 @@ C**** set gtemp array for ocean temperature
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         IF (FOCEAN(I,J).gt.0) THEN
-          GTEMP(1:2,1,I,J) = TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J)    = TOCEAN(1,I,J)+TF
-          MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
+          atmocn%GTEMP(I,J) = TOCEAN(1,I,J)
+          atmocn%GTEMP2(I,J) = TOCEAN(2,I,J)
+          atmocn%GTEMPR(I,J)    = TOCEAN(1,I,J)+TF
+          atmocn%MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
         END IF
       END DO
       END DO
@@ -959,34 +1002,53 @@ C****
       RETURN
       END SUBROUTINE daily_OCEAN
 
-      SUBROUTINE PRECIP_OC
+      SUBROUTINE PRECIP_OC(atmocn,iceocn)
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Original Development Team
       USE CONSTANT, only : rhows,shw,tf
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
-      USE GEOM, only : imaxj,axyp
+      USE GEOM, only : imaxj
       USE DIAG_COM, only : j_implm,j_implh,oa,jreg,itocean,itoice
-      USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
-     *     ,emelti,smelti,fwsim,gtempr,erunpsi,focean
+      USE FLUXES, only : atmice
       USE SEAICE, only : ace1i
-      USE SEAICE_COM, only : rsi,msi,snowi
-      USE STATIC_OCEAN, only : tocean,z1o
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
-      USE DIAG_COM, only : NREG, KAJ
+      USE SEAICE_COM, only : si_ocn
+      USE STATIC_OCEAN, only : focean,tocean,z1o
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: iceocn
+c
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
      *     ,SMSI0,ENRGW,WTRW0,WTRW,RUN0,RUN4,ROICE,SIMELT,ESIMELT
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, I_0,I_1
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,PREC,EPREC,
+     &     RUNPSI,ERUNPSI,SRUNPSI,MELTI,EMELTI,SMELTI,GTEMP,GTEMPR,
+     &     FWSIM
+
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      FWSIM => ATMICE%FWSIM
+      RSI => SI_OCN%RSI
+      MSI => SI_OCN%MSI
+      SNOWI => SI_OCN%SNOWI
+      PREC => ATMOCN%PREC
+      EPREC => ATMOCN%EPREC
+      RUNPSI => ICEOCN%RUNPSI
+      ERUNPSI => ICEOCN%ERUNPSI
+      SRUNPSI => ICEOCN%SRUNPSI
+      MELTI => ICEOCN%MELTI
+      EMELTI => ICEOCN%EMELTI
+      SMELTI => ICEOCN%SMELTI
+      GTEMP => ATMOCN%GTEMP
+      GTEMPR => ATMOCN%GTEMPR
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
@@ -998,8 +1060,8 @@ C****
           PRCP=PREC(I,J)
           ENRGP=EPREC(I,J)
           RUN0=RUNPSI(I,J)-SRUNPSI(I,J) ! fresh water runoff
-          SIMELT =(MELTI(I,J)-SMELTI(I,J))/(FOCEAN(I,J)*AXYP(I,J))
-          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J)*AXYP(I,J))
+          SIMELT =(MELTI(I,J)-SMELTI(I,J))/(FOCEAN(I,J))
+          ESIMELT=EMELTI(I,J)/(FOCEAN(I,J))
           OA(I,J,4)=OA(I,J,4)+ENRGP
 
           IF (KOCEAN .ge. 1) THEN
@@ -1034,17 +1096,17 @@ C**** Additional mass (precip) is balanced by deep removal
             CALL INC_AJ(I,J,ITOICE ,J_IMPLH,ERUN4*POICE)
             CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J))
             CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J))
-            MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
+            atmocn%MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
-          GTEMP(1,1,I,J)=TOCEAN(1,I,J)
-          GTEMPR(1,I,J) =TOCEAN(1,I,J)+TF
+          GTEMP(I,J)=TOCEAN(1,I,J)
+          GTEMPR(I,J) =TOCEAN(1,I,J)+TF
 #ifdef SCM
 c         keep ocean temp fixed for SCM case where surface
 c         temp is supplied
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.ge.1) then
-                  GTEMP(1,1,I,J) = ATSKIN
-                  GTEMPR(1,I,J) = ATSKIN + TF
+                  GTEMP(I,J) = ATSKIN
+                  GTEMPR(I,J) = ATSKIN + TF
               endif
           endif
 #endif
@@ -1056,35 +1118,34 @@ c         temp is supplied
 C****
       END SUBROUTINE PRECIP_OC
 
-      SUBROUTINE OCEANS
+      SUBROUTINE OCEANS(atmocn,iceocn,dynsice)
 !@sum  OCEANS driver for applying surface fluxes to ocean fraction
 !@auth Original Development Team
 !@calls OCEAN:OSOURC
       USE CONSTANT, only : rhows,shw,tf
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean,jday,dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
-      USE GEOM, only : imaxj,axyp
+      USE GEOM, only : imaxj
       USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa,itocean,itoice
-      USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
-     *     ,dssi,flowo,eflowo,gtemp,sss,fwsim,mlhc,gmelt,egmelt,gtempr
-     &     ,focean
+      USE FLUXES, only : atmice
 #ifdef TRACERS_WATER
-     *     ,dtrsi
       USE TRACER_COM, only: trsi0
 #endif
       USE SEAICE, only : ace1i,ssi0,tfrez
-      USE SEAICE_COM, only : rsi,msi,snowi
+      USE SEAICE_COM, only : si_ocn
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
-     *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
-      USE DIAG_COM, only : NREG, KAJ
+     &     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang,
+     &     focean
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: iceocn
+      type(iceocn_xchng_vars) :: dynsice ! not used here
 C**** grid box variables
-      REAL*8 POCEAN, POICE, DXYPIJ, TFO
+      REAL*8 POCEAN, POICE, TFO
 C**** prognostic variables
       REAL*8 TGW, WTRO, SMSI, ROICE
 C**** fluxes
@@ -1093,6 +1154,14 @@ C**** output from OSOURC
       REAL*8 ERUN4I, ERUN4O, RUN4I, RUN4O, ENRGFO, ACEFO, ACEFI, ENRGFI,
      *     WTRW
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,
+     &     FLOWO,EFLOWO,GMELT,EGMELT,E0,SSS,GTEMP,GTEMP2,GTEMPR,
+     &     RUNOSI,ERUNOSI,SRUNOSI,FWSIM
+      REAL*8, DIMENSION(:,:,:), POINTER :: DMSI,DHSI,DSSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: DTRSI
+#endif
+
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, I_0,I_1
 
@@ -1100,18 +1169,40 @@ C**** output from OSOURC
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      FWSIM => ATMICE%FWSIM
+      RSI => SI_OCN%RSI
+      MSI => SI_OCN%MSI
+      SNOWI => SI_OCN%SNOWI
+      FLOWO => ATMOCN%FLOWO
+      EFLOWO => ATMOCN%EFLOWO
+      GMELT => ATMOCN%GMELT
+      EGMELT => ATMOCN%EGMELT
+      E0 => ATMOCN%E0
+      SSS => ATMOCN%SSS
+      GTEMP => ATMOCN%GTEMP
+      GTEMP2 => ATMOCN%GTEMP2
+      GTEMPR => ATMOCN%GTEMPR
+      RUNOSI => ICEOCN%RUNOSI
+      ERUNOSI => ICEOCN%ERUNOSI
+      SRUNOSI => ICEOCN%SRUNOSI
+      DMSI => ICEOCN%DMSI
+      DHSI => ICEOCN%DHSI
+      DSSI => ICEOCN%DSSI
+#ifdef TRACERS_WATER
+      DTRSI => ICEOCN%DTRSI
+#endif
+
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
         ROICE=RSI(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
         IF (FOCEAN(I,J).gt.0) THEN
           TGW  =TOCEAN(1,I,J)
-          EVAPO=EVAPOR(I,J,1)
-          EVAPI=EVAPOR(I,J,2)   ! evapor/dew at the ice surface (kg/m^2)
-          FODT =E0(I,J,1)
+          EVAPO=atmocn%EVAPOR(I,J)
+          EVAPI=atmice%EVAPOR(I,J)   ! evapor/dew at the ice surface (kg/m^2)
+          FODT =E0(I,J)
           SMSI = 0.
           IF (ROICE.gt.0) SMSI =FWSIM(I,J)/ROICE
           TFO  =tfrez(sss(i,j))
@@ -1120,8 +1211,8 @@ C**** get ice-ocean fluxes from sea ice routine (no salt)
           FIDT=ERUNOSI(I,J)
 c          SALT=SRUNOSI(I,J)
 C**** get river runoff/iceberg melt flux
-          RVRRUN =( FLOWO(I,J)+ GMELT(I,J))/(FOCEAN(I,J)*DXYPIJ)
-          RVRERUN=(EFLOWO(I,J)+EGMELT(I,J))/(FOCEAN(I,J)*DXYPIJ)
+          RVRRUN = FLOWO(I,J)+ GMELT(I,J)
+          RVRERUN=EFLOWO(I,J)+EGMELT(I,J)
           OA(I,J,4)=OA(I,J,4)+RVRERUN ! add rvr E to surf. energy budget
 
           IF (KOCEAN .ge. 1) THEN
@@ -1149,7 +1240,7 @@ C**** Ice-covered ocean diagnostics
 C**** regional diagnostics
             CALL INC_AREG(I,J,JR,J_IMPLM,( RUN4O*POCEAN+ RUN4I*POICE)) 
             CALL INC_AREG(I,J,JR,J_IMPLH,(ERUN4O*POCEAN+ERUN4I*POICE)) 
-            MLHC(I,J)=SHW*WTRW
+            atmocn%MLHC(I,J)=SHW*WTRW
           ELSE
             ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
           END IF
@@ -1169,13 +1260,15 @@ C**** assume const mean tracer conc over freshwater amount
           DTRSI(:,2,I,J)=TRSI0()*ACEFI
 #endif
 C**** store surface temperatures
-          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
+          GTEMP(I,J)=TOCEAN(1,I,J)
+          GTEMP2(I,J)=TOCEAN(2,I,J)
+          GTEMPR(I,J) = TOCEAN(1,I,J)+TF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1:2,1,I,J) = ATSKIN
-                GTEMPR(1,I,J) = ATSKIN + TF
+                GTEMP(I,J) = ATSKIN
+                GTEMP2(I,J) = ATSKIN
+                GTEMPR(I,J) = ATSKIN + TF
               endif
           endif
 #endif
@@ -1191,30 +1284,61 @@ C****
 !@sum  ADVSI_DIAG adjust diagnostics + mlhc for qflux
 !@auth Gavin Schmidt
       USE CONSTANT, only : shw,rhows
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : kocean,itime,jmon
-      USE GEOM, only : axyp,imaxj
-      USE STATIC_OCEAN, only : tocean,z1o,z12o
+      USE GEOM, only : imaxj
+      USE STATIC_OCEAN, only : focean,tocean,z1o,z12o
       USE SEAICE, only : ace1i,lmi
-      USE SEAICE_COM, only : rsi,msi,hsi,ssi,snowi
+      USE SEAICE_COM, only : si_ocn
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : trsi, ntm
-      USE TRDIAG_COM, only : taijn=>taijn_loc, tij_icocflx
+      USE SEAICE_COM, only : ntm
+      USE TRDIAG_COM, only : taijn=>taijn_loc
 #endif
-      USE FLUXES, only : fwsim,msicnv,mlhc,focean
-      USE DIAG_COM, only : J_IMPLM,J_IMPLH,jreg,aij=>aij_loc,j_imelt
-     *     ,j_hmelt,j_smelt, ij_fwio, NREG,KAJ,itocean,itoice
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE FLUXES, only : atmocn,atmice
+      USE DIAG_COM, only : oa,J_IMPLM,J_IMPLH,jreg,aij=>aij_loc
+     *     ,itocean,itoice
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J,JR,N
       REAL*8 RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,FWSIM
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI,SSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+      INTEGER :: TIJ_ICOCFLX
+#endif
+
       INTEGER :: J_0,J_1, I_0,I_1
+      INTEGER :: IJ_FWIO,J_IMELT,J_HMELT,J_SMELT
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      IF (KOCEAN.ge.1) THEN     ! qflux model
+      FWSIM => ATMICE%FWSIM
+      RSI => SI_OCN%RSI
+      MSI => SI_OCN%MSI
+      HSI => SI_OCN%HSI
+      SSI => SI_OCN%SSI
+      SNOWI => SI_OCN%SNOWI
+#ifdef TRACERS_WATER
+      TRSI => SI_OCN%TRSI
+      TIJ_ICOCFLX = atmice%TIJ_ICOCFLX
+#endif
+      IJ_FWIO = atmice%IJ_FWIO
+      J_IMELT = atmice%J_IMELT
+      J_HMELT = atmice%J_HMELT
+      J_SMELT = atmice%J_SMELT
+
+      IF (KOCEAN.lt.1) THEN ! prescribed ice: accumulate implied heat conv.
+        DO J=J_0,J_1
+        DO I=I_0,IMAXJ(J)
+          IF (FOCEAN(I,J).gt.0) THEN
+            OA(I,J,13)=OA(I,J,13)+atmice%HSICNV(I,J)
+          END IF
+        END DO
+        END DO
+      ELSE     ! qflux model
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         JR=JREG(I,J)
@@ -1222,7 +1346,7 @@ C****
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
         IF (FOCEAN(I,J).gt.0) THEN
           TGW  = TOCEAN(1,I,J)
-          RUN4  = MSICNV(I,J)
+          RUN4  = atmice%MSICNV(I,J)
           ERUN4 = 0.  ! TGW*SHW*RUN4 ! force energy conservation
 C**** Ensure that we don't run out of ocean if ice gets too thick
           IF (POICE.GT.0) THEN
@@ -1274,7 +1398,7 @@ C**** update heat and salt
               END IF
             END IF
           END IF
-          MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
+          atmocn%MLHC(I,J) = SHW*(Z1O(I,J)*RHOWS-FWSIM(I,J))
 C**** Open Ocean diagnostics
           CALL INC_AJ(I,J,ITOCEAN,J_IMPLM, RUN4*POCEAN)
           CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,ERUN4*POCEAN)
@@ -1292,14 +1416,16 @@ C**** regional diagnostics
       RETURN
       END
 
-      SUBROUTINE DIAGCO (M)
+      SUBROUTINE DIAGCO (M,atmocn)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
       USE MODEL_COM, only : kocean
       USE DIAG_COM, only : icon_OCE
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called
       INTEGER, INTENT(IN) :: M
+      type(atmocn_xchng_vars) :: atmocn
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCO IS BEING CALLED
 C****     (see DIAGCA)
@@ -1312,72 +1438,65 @@ C****
       END SUBROUTINE DIAGCO
 
 
-      SUBROUTINE io_oda(kunit,it,iaction,ioerr)
-!@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
-!@auth Gavin Schmidt
-      USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : ioread,iowrite,Itime
-      USE DIAG_COM, only : ij_tgo2,aij=>aij_loc
-      USE SEAICE_COM, only : rsi,msi,hsi,ssi
-      USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID
-      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, ONLY : AM_I_ROOT
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var it input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
-      REAL*8 :: AIJ_tmp_glob(IM,JM)
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)           ! output
-        CALL PACK_DATA(grid, AIJ(:,:,IJ_TGO2), AIJ_tmp_glob)
-        IF (AM_I_ROOT()) WRITE (kunit,err=10) it,AIJ_tmp_glob
-      CASE (IOREAD:)            ! input
-        if ( AM_I_ROOT() )
-     *    READ (kunit,err=10) it,AIJ_tmp_glob
-          CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2))
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-C****
-      END SUBROUTINE io_oda
+!      SUBROUTINE io_oda(kunit,it,iaction,ioerr)
+!!@sum  io_oda reads/writes ocean/ice data for initializing deep ocean
+!!@auth Gavin Schmidt
+!      USE RESOLUTION, only : im,jm
+!      USE MODEL_COM, only : ioread,iowrite,Itime
+!      USE DIAG_COM, only : ij_tgo2,aij=>aij_loc
+!      USE SEAICE_COM, only : rsi,msi,hsi,ssi
+!      USE STATIC_OCEAN, only : tocean
+!      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+!      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA
+!      USE DOMAIN_DECOMP_1D, ONLY : AM_I_ROOT
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!!@var it input/ouput value of hour
+!      INTEGER, INTENT(INOUT) :: it
+!      REAL*8 :: AIJ_tmp_glob(IM,JM)
+!
+!      SELECT CASE (IACTION)
+!      CASE (:IOWRITE)           ! output
+!        CALL PACK_DATA(grid, AIJ(:,:,IJ_TGO2), AIJ_tmp_glob)
+!        IF (AM_I_ROOT()) WRITE (kunit,err=10) it,AIJ_tmp_glob
+!      CASE (IOREAD:)            ! input
+!        if ( AM_I_ROOT() )
+!     *    READ (kunit,err=10) it,AIJ_tmp_glob
+!          CALL UNPACK_DATA(grid, AIJ_tmp_glob, AIJ(:,:,IJ_TGO2))
+!      END SELECT
+!
+!      RETURN
+! 10   IOERR=1
+!      RETURN
+!C****
+!      END SUBROUTINE io_oda
 
 #ifdef TRACERS_WATER
-      subroutine tracer_ic_ocean
+      subroutine tracer_ic_ocean(atmocn)
 !@sum tracer_ic_ocean initialise ocean tracer concentration
 !@+   called only when tracers turn on
 !@auth Gavin Schmidt
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : itime
-      USE GEOM, only : imaxj
       USE TRACER_COM, only : trw0,ntm,itime_tr0
-      USE FLUXES, only : gtracer,focean
-      USE DOMAIN_DECOMP_ATM, only : grid,get
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
       INTEGER i,j,n
-      INTEGER :: j_0,j_1,i_0,i_1
-
-      call get(grid,j_strt=j_0,j_stop=j_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
       do n=1,ntm
         if (itime.eq.itime_tr0(n)) then
-          do j=j_0,j_1
-          do i=I_0,imaxj(j)
-            if (focean(i,j).gt.0) gtracer(n,1,i,j)=trw0(n)
+          do j=atmocn%j_0,atmocn%j_1
+          do i=atmocn%i_0,atmocn%imaxj(j)
+            if(atmocn%focean(i,j).gt.0) then
+              atmocn%gtracer(n,i,j)=trw0(n)
+            end if
           end do
           end do
         end if
       end do
-
       return
       end subroutine tracer_ic_ocean
 #endif

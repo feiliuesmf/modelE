@@ -30,9 +30,11 @@ editRundeck()
   head -$(( n1-1 )) templ                   > ${deck}
   echo "${ndisk_line}"                      >> ${deck}
   tail +${n1} templ | head -$(( n2 - n1 ))  >> ${deck}
-  eline=$( tail +${n1} templ | head -$(( n2 - n1 )) | grep -i istart | tail -1 )
-  echo  ' '${eline#*ISTART*,}               >> ${deck}
+#  eline=$( tail +${n1} templ | head -$(( n2 - n1 )) | grep -i istart | tail -1 )
+#  echo  ' '${eline#*ISTART*,}               >> ${deck}
   echo "${end_hour_line}"                   >> ${deck}
+  echo " ISTART=2, ${end_hour_line}"         >> ${deck}
   tail +${n2} templ                         >> ${deck}
 }
 
+editRundeck $1 $2 $3 $4;

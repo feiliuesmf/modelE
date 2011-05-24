@@ -4,7 +4,8 @@
 !@+               soil dust aerosols
 !@auth Jan Perlwitz
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
       use filemanager,only: nameunit,openunit,closeunit
       use constant, only: rgas
@@ -14,7 +15,8 @@
       use model_com, only: ioread,iowrite,irsfic,irsficno
      &     ,irerun,JDperY,JMperY,itime
       use fluxes, only: dust_flux_glob
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_DRYDEP
@@ -43,7 +45,7 @@
 
       integer :: i_0,i_1,j_0,j_1
 
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP*/
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
 
       contains
 
@@ -52,7 +54,8 @@ c init_dust
 !@sum  init_dust reads in source and parameter files for dust/mineral tracer at startup
 !@auth Jan Perlwitz
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
       IMPLICIT NONE
 
@@ -88,13 +91,14 @@ c**** temporary array to read in data
 #endif
 
 #ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
 c**** initialize dust names
       do n=1,Ntm_dust
         n1=n_soilDust+n-1
         dust_names(n) = trname(n1)
       end do
 #endif
-
+#endif
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
         CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)

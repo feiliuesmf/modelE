@@ -141,6 +141,10 @@ C**** Accumulating_period information
       INTEGER, DIMENSION(12) :: MONACC  !@var MONACC(1)=#Januaries, etc
       CHARACTER*12 :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
 
+!@param ia_cpl idacc-index currently associated with DTsrc, placed
+!@+            here for visibility to non-atmospheric components
+      integer, parameter :: ia_cpl=1 ! currently has to be == 1
+
       END MODULE MDIAG_COM
 
       MODULE TIMINGS

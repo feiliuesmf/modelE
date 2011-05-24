@@ -11,6 +11,10 @@ open(LOG,">nightlyTests.log");
     select $ofh;
 }
 
+
+# self update
+`/usr/local/other/git/1.7.3.4_GNU/libexec/git-core/git pull`;
+
 my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
 my $resultsDir = $ENV{NOBACKUP}."/regression_results";
 my $reference = "$scratchDir/modelE";
@@ -19,44 +23,38 @@ my $env = {};
 $env->{"intel"} = getEnvironment("intel",$scratchDir);
 $env->{"gfortran"} = getEnvironment("gfortran",$scratchDir);
 
-
 my $resolutions = {};
 $resolutions->{EC12} = "8x10";
 $resolutions->{EM20} = "4x5";
-$resolutions->{EF40} = "2x2.5";
+$resolutions->{E4F40} = "2x2.5";
 $resolutions->{E4TcadF40} = "2x2.5";
 $resolutions->{E4arobio_h4c} = "2x2.5";
 $resolutions->{E4arobio_g6c} = "2x2.5";
 $resolutions->{SCMSGPCONT} = "0"; #hack - serial only
 
-
-#my $rundecks = ["EM20", "E4F40", "E4TcadF40",
-#		"E4arobio_h4c", "E4arobio_g6c", "SCMSGPCONT"];
-my $compilers = ["intel", "gfortran"];
-
-my $rundecks = ["EM20"];
-#my $compilers = ["intel"];
-
 #set defaults
 
-#my $level = "AGGRESSIVE";
-my $level = "GENTLE";
+my $rundecks = ["EM20", "E4F40", "E4TcadF40",
+		"E4arobio_h4c", "E4arobio_g6c"];
+my $compilers = ["intel", "gfortran"];
+
+my $level = "AGGRESSIVE";
 my $numProcesses = {};
 
 $numProcesses->{"0"}->{GENTLE}     = [];
 $numProcesses->{"0"}->{AGGRESSIVE} = [];
 $numProcesses->{"0"}->{INSANE}     = [];
 
-$numProcesses->{"8x10"}->{GENTLE}     = [1,4];
+$numProcesses->{"8x10"}->{GENTLE}     = [4];
 $numProcesses->{"8x10"}->{AGGRESSIVE} = [1,4,12];
 $numProcesses->{"8x10"}->{INSANE}     = [1,4,22];
 
-$numProcesses->{"4x5"}->{GENTLE}     = [1,4];
+$numProcesses->{"4x5"}->{GENTLE}     = [4];
 $numProcesses->{"4x5"}->{AGGRESSIVE} = [1,4,23];
 $numProcesses->{"4x5"}->{INSANE}     = [1,4,23,44];
 
-$numProcesses->{"2x2.5"}->{GENTLE}     = [1,8];
-$numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,8,45];
+$numProcesses->{"2x2.5"}->{GENTLE}     = [8];
+$numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,45];
 $numProcesses->{"2x2.5"}->{INSANE}     = [1,8,45,88];
 
 my $useCases = {};
@@ -139,10 +137,12 @@ foreach my $rundeck (@$rundecks) {
 
 	my $results = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
 	print REPORT $results->{MESSAGES};
-
-	if ($results{ALL_COMPLETED} && $results{ARE_CONSISTENT} && $results{RESTART_CHECK}) {
+	print LOG "ALL_COMPLETED: $results->{ALL_COMPLETED} \n";
+	print LOG "ARE_CONSISTENT: $results->{ARE_CONSISTENT} \n";
+	print LOG "RESTART_CHECK: $results->{RESTART_CHECK} \n";
+	if ($results->{ALL_COMPLETED} && $results->{ARE_CONSISTENT} && $results->{RESTART_CHECK}) {
 	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
-	    if ($results{NEW_SERIAL}) {
+	    if ($results->{NEW_SERIAL}) {
 		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
                 `cd $resultsDir/$compiler; cp $rundeck.SERIAL.$compiler.1* $env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/.; `;
 	    }

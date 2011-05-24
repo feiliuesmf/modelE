@@ -884,6 +884,7 @@ c
      *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
      *     ,icon_HLI,icon_MICB,icon_HICB,title_con
       !USE SOIL_DRV, only: conserv_WTG,conserv_HTG
+      USE FLUXES, only : atmocn
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
@@ -955,7 +956,7 @@ C**** ICEBERG MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_HICB,icon_HICB)
 
 C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
-      CALL DIAGCO (M)
+      CALL DIAGCO (M,atmocn)
 
 #ifdef TRACERS_ON
 C**** Tracer calls are dealt with separately
@@ -1718,8 +1719,8 @@ c get_subdd
 #ifdef etc_subdd
      *     ,TTROPO
 #endif
-      USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
-     *     ,gtemp,gtempr,focean,flice
+      USE FLUXES, only : prec,tflux1,qflux1,uflux1,vflux1
+     *     ,focean,flice,atmocn,atmice,atmgla,atmlnd
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
      *     ,l1Ox_acc,l1NO2_acc,save_NO2column
@@ -1727,7 +1728,7 @@ c get_subdd
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
       USE LIGHTNING, only : saveC2gLightning,saveLightning
 #endif
-      USE SEAICE_COM, only : rsi,snowi
+      USE SEAICE_COM, only : si_atm
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
@@ -1792,6 +1793,11 @@ c get_subdd
 !@var long_name long name for netcdf output
       character(len=lname_strlen+len(kgz_max_suffixes)) :: long_name
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,SNOWI
+
+      RSI => SI_ATM%RSI
+      SNOWI => SI_ATM%SNOWI
+
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
@@ -1800,6 +1806,9 @@ c get_subdd
      &               HAVE_NORTH_POLE=have_north_pole)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
+
+      datar8 = 0.d0
+      data = 0.
 
 #if (defined ttc_subdd) || (defined etc_subdd)
       CALL SUBDIAGS_FIXED_PRESS
@@ -1850,7 +1859,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
-                datar8(i,j)=GTEMP(1,1,i,j)
+                datar8(i,j)=atmocn%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1867,8 +1876,8 @@ C**** accumulating/averaging mode ***
         case ("SIT")       ! surface sea/lake ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
-                datar8(i,j)=GTEMP(1,2,i,j)
+              if (rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
+                datar8(i,j)=atmice%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1880,7 +1889,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FLICE(I,J).gt.0) then
-                datar8(i,j)=GTEMP(1,3,i,j)
+                datar8(i,j)=atmgla%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1892,7 +1901,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                datar8(i,j)=gtemp(1,4,i,j)
+                datar8(i,j)=atmlnd%gtemp(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -2107,10 +2116,11 @@ c          datar8=sday*prec/dtsrc
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI
+              datar8(i,j)=1d3*(snowi(I,J)*POICE
+     &             +SNOWLI(I,J)*PLANDI
      &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
@@ -2120,8 +2130,8 @@ c          datar8=sday*prec/dtsrc
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               datar8(i,j)=0.d0
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
-              if(SNOWI(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              if(snowi(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
               PEARTH=FEARTH(I,J)
               if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
@@ -2186,13 +2196,15 @@ C**** accumulating/averaging mode ***
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-rsi(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=STBO*(POCEAN*GTEMPR(1,I,J)**4+
-     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
-     *             PEARTH*GTEMPR(4,I,J)**4)
+              datar8(i,j)=STBO*(
+     &              POCEAN*atmocn%GTEMPR(I,J)**4
+     &             +POICE *atmice%GTEMPR(I,J)**4
+     &             +PLANDI*atmgla%GTEMPR(I,J)**4
+     &             +PEARTH*atmlnd%GTEMPR(I,J)**4)
             end do
           end do
 #ifdef mjo_subdd
@@ -2206,14 +2218,15 @@ C**** accumulating/averaging mode ***
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + net surface emission
             do i=I_0,imaxj(j)
-              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-rsi(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=-SUM(TRHR(0:LM,I,J))+
-     *             STBO*(POCEAN*GTEMPR(1,I,J)**4+
-     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
-     *             PEARTH*GTEMPR(4,I,J)**4)
+              datar8(i,j)=-SUM(TRHR(0:LM,I,J))+ STBO*(
+     &              POCEAN*atmocn%GTEMPR(I,J)**4
+     &             +POICE *atmice%GTEMPR(I,J)**4
+     &             +PLANDI*atmgla%GTEMPR(I,J)**4
+     &             +PEARTH*atmlnd%GTEMPR(I,J)**4)
             end do
           end do
           units_of_data = 'W/m^2'
@@ -2227,7 +2240,7 @@ C**** accumulating/averaging mode ***
           units_of_data = 'W/m^2'
           long_name = 'Solar Net Flux at Top of Atmosphere'
         case ("ICEF")           ! ice fraction over open water (%)
-          datar8=RSI*100.
+          datar8=rsi*100.
           units_of_data = '%'
           long_name = 'Ice Fraction Over Open Water'
         case ("STX")            ! E-W surface stress (N/m^2)
@@ -3621,13 +3634,13 @@ C**** overkill, but useful now for EPA down-scaling:
           case ('FRAC') ! land, ocean, lake fractions incl ice+ice-free
             kunit=kunit+1
             polefix=.true.
-            data=RSI(:,:)*FOCEAN(:,:)         ! ocean ice
+            data=rsi(:,:)*FOCEAN(:,:)         ! ocean ice
             call write_data(data,kunit,polefix)
-            data=RSI(:,:)*FLAKE(:,:)          ! lake ice
+            data=rsi(:,:)*FLAKE(:,:)          ! lake ice
             call write_data(data,kunit,polefix)
-            data=(1.-RSI(:,:))*FOCEAN(:,:)    ! ice-free ocean
+            data=(1.-rsi(:,:))*FOCEAN(:,:)    ! ice-free ocean
             call write_data(data,kunit,polefix)
-            data=(1.-RSI(:,:))*FLAKE(:,:)     ! ice-free lake
+            data=(1.-rsi(:,:))*FLAKE(:,:)     ! ice-free lake
             call write_data(data,kunit,polefix)
             data=FLICE(:,:)                   ! land ice
             call write_data(data,kunit,polefix)
@@ -5201,12 +5214,13 @@ c**** find MSU channel 2,3,4 temperatures
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
       USE DYNAMICS, only : nfiltr
-      USE FLUXES, only : focean
+      USE FLUXES, only : focean,atmocn,atmice,atmgla,atmlnd
       USE GEOM, only : axyp,imaxj,lon2d_dg,lat2d_dg
       USE GEOM, only : lonlat_to_ij
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE ATM_COM, only : pednl00,pmidl00
+      USE DIAG_COM, only : aij_loc
       USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
       USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
@@ -5238,6 +5252,7 @@ c**** find MSU channel 2,3,4 temperatures
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
       USE SUBDAILY, only : init_subdd
+      USE DIAG_COM, only : itoice,itlkice,itocean,itlake
       IMPLICIT NONE
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
      *     ,jday0,jday,moff,kb,l850,l300,l50
@@ -5270,6 +5285,20 @@ c a parallelized i/o routine that understands it
      &     area_part
       CHARACTER aDATE*14
 
+      atmocn%aij => aij_loc
+      atmice%aij => aij_loc
+      atmgla%aij => aij_loc
+      atmlnd%aij => aij_loc
+
+      atmocn%jreg => jreg
+      atmice%jreg => jreg
+      atmgla%jreg => jreg
+      atmlnd%jreg => jreg
+
+      atmice%itoice = itoice
+      atmice%itlkice = itlkice
+      atmice%itocean = itocean
+      atmice%itlake = itlake
 
       IWRITE = IWRITE_sv
       JWRITE = JWRITE_sv
@@ -5617,7 +5646,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
             TSFREZ(I,J,TF_DAY1)=365.
             TSFREZ(I,J,TF_LAST)=365.
             IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
-              IF (RSI(I,J).gt.0) then
+              IF (si_atm%rsi(I,J).gt.0) then
                 TSFREZ(I,J,TF_LKON) = JDAY-1
                 TSFREZ(I,J,TF_LKOFF) = JDAY
               ELSE
@@ -5667,6 +5696,62 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       RETURN
       END SUBROUTINE init_DIAG
 
+      SUBROUTINE DECLARE_OCEANR_CONSRV(
+     &     icon_OMS,icon_OAM,icon_OKE,icon_OCE,icon_OSL)
+      USE DIAG_COM, only : npts,conpt0
+      IMPLICIT NONE
+      INTEGER :: icon_OMS,icon_OAM,icon_OKE,icon_OCE,icon_OSL
+c
+      LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
+      CHARACTER CONPT(NPTS)*10
+c
+C**** Set up oceanic component conservation diagnostics
+C**** Oceanic mass
+      CONPT=CONPT0
+      CONPT(8)="OCN PHYS"
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN MASS","(10**2 KG/M^2)  ",
+     *     "(10**-8 KG/SM^2)",1d-2,1d8,icon_OMS)
+C**** Oceanic angular momentum
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN AM  ","(10**12 JS/M^2) ",
+     *     "(10**2 J/M^2)   ",1d-12,1d-2,icon_OAM)
+C**** Oceanic kinetic energy
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCEAN KE","(J/M^2)         ",
+     *     "(10**-6 W/M^2)  ",1d0,1d6,icon_OKE)
+C**** Oceanic potential enthalpy (heat)
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN HEAT","(10**6 J/M^2)   ",
+     *     "(10**-2 W/M^2)  ",1d-6,1d2,icon_OCE)
+C**** Oceanic salt mass
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN SALT","(10 KG/M^2)     ",
+     *     "(10**-9 KG/SM^2)",1d-1,1d9,icon_OSL)
+      RETURN
+      END SUBROUTINE DECLARE_OCEANR_CONSRV
+
+      SUBROUTINE DECLARE_SEAICE_CONSRV
+C**** Set conservation diagnostics for ice mass, energy, salt
+      USE DIAG_COM, only : npts,conpt0,icon_OMSI,icon_OHSI,icon_OSSI
+      IMPLICIT NONE
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      CHARACTER CONPT(NPTS)*10
+      CONPT=CONPT0
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
+      CONPT(5)="THERMO"    ; CONPT(6)="ADVECT"
+      CONPT(8)="OCN FORM"
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE MAS","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_OMSI)
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE ENR","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_OHSI)
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE SLT","(10**-3 KG/M^2) ",
+     *     "(10**-12KG/SM^2)",1d3,1d12,icon_OSSI)
+      RETURN
+      END SUBROUTINE DECLARE_SEAICE_CONSRV
 
       SUBROUTINE reset_ADIAG(isum)
 !@sum  reset_ADIAG resets/initializes atm diagnostics
@@ -5732,7 +5817,7 @@ C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE DIAG_COM, only : aij=>aij_loc
@@ -5787,7 +5872,7 @@ C**** initialize/save South. Hemi. on Feb 28
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
      *             +1
-              IF (RSI(I,J).gt.0) THEN
+              IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = JDAY-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
@@ -5802,7 +5887,7 @@ C**** are counted from Sep 1 (NH only).
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,365)
      *             +1
-              IF (RSI(I,J).gt.0) THEN
+              IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = JDAY-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
@@ -5811,9 +5896,9 @@ C**** are counted from Sep 1 (NH only).
           END IF
 C**** set ice on/off days
           IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) THEN
-            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
+            IF (si_atm%rsi(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
      *           TSFREZ(I,J,TF_LKON)=JDAY
-            IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
+            IF (si_atm%rsi(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
           END IF
         END DO
       END DO
@@ -5987,7 +6072,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE FLUXES, only : focean,flice
       USE GEOM, only : imaxj
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -6002,9 +6087,9 @@ C****
       I_1 = GRID%I_STOP
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
+          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*si_atm%rsi(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE,I,J)
-          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*si_atm%rsi(I,J)
           FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
 C**** set land components of FTYPE array. Summation is necessary for
 C**** cases where Earth and Land Ice are lumped together
@@ -6473,3 +6558,42 @@ C****
       if(isccp_diags.eq.1) call diag_isccp_prep
       return
       end subroutine calc_derived_acc_atm
+
+      SUBROUTINE vflx_OCEAN
+!@sum  vflx_OCEAN saves quantities for OHT calculations
+!@auth Original Development Team
+      USE DIAG_COM, only : oa
+      USE SEAICE_COM, only : si_atm
+      USE FLUXES, only : atmice,focean
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      IMPLICIT NONE
+      INTEGER I,J
+      integer :: I_0, I_1, J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C****
+C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
+C****
+C****       1  SNOWOI (INSTANTANEOUS AT NOON GMT)
+C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
+C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
+C****
+      DO J=J_0, J_1
+        DO I=I_0, I_1
+          IF (FOCEAN(I,J).gt.0) THEN
+            OA(I,J,1)=si_atm%SNOWI(I,J)
+            OA(I,J,2)=atmice%FWSIM(I,J)
+            OA(I,J,3)=SUM(si_atm%HSI(:,I,J))
+          END IF
+        END DO
+      END DO
+
+      RETURN
+C****
+      END SUBROUTINE vflx_OCEAN

@@ -118,6 +118,8 @@ c --- write out  -ip-  array
 c --- data are written in strips 75 points wide
       if (AM_I_ROOT()) then
         allocate( ip_glob(idm,jdm) )
+      else
+        allocate( ip_glob(1,1) )
       endif
       call pack_data(ogrid, ip, ip_glob)
 
@@ -130,8 +132,8 @@ c --- data are written in strips 75 points wide
           write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
           write (lp,fmt) (i,(10*ip_glob(i,j),j=jfrst+1,jlast),i=1,ii)
  9    continue  
-      deallocate( ip_glob )
       endif
+      deallocate( ip_glob )
 c
       return
       end

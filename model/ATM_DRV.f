@@ -3,9 +3,9 @@
       subroutine atm_phase1
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
-      use resolution, only : im,jm,lm,ls1
+      use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
-      USE ATM_COM, only : p,wm
+      USE ATM_COM, only : p,srfp,wm
       USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -29,20 +29,30 @@
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
+      USE ATM_COM, only : t,p,q
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag
+     &    iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
+#endif
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
+     &     IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
       use RAD_COM, only : nrad,modrd
+      use seaice_com, only : si_atm,si_ocn,iceocn ! temporary until
+      use lakes_com, only : icelak                ! melt_si calls
+      use fluxes, only : atmocn,atmice            ! are moved
       implicit none
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER :: MDUM = 0
 
       REAL*8 start,now, DTIME,TOTALT
-
+#ifdef TRACERS_TOMAS
+      integer :: n
+#endif
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
@@ -135,12 +145,30 @@ C**** Scale WM mixing ratios to conserve liquid water
          CALL TIMER (NOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
+#ifdef TRACERS_TOMAS
+!TOMAS- This next section of code ratios the higher order moments of
+!       aerosol mass to those of aerosol number so the distributions of
+!       aerosol mass and number within a grid cell are consistent
+      do n=1,NBINS
+         call momentfix(IDTNUMD-1+n, IDTSO4-1+n)  !sulfate mass
+         call momentfix(IDTNUMD-1+n, IDTNA -1+n)  !na+ mass
+         call momentfix(IDTNUMD-1+n, IDTECOB-1+n) !hydrophobic EC
+         call momentfix(IDTNUMD-1+n, IDTECIL-1+n)
+         call momentfix(IDTNUMD-1+n, IDTOCOB-1+n)
+         call momentfix(IDTNUMD-1+n, IDTOCIL-1+n)
+         call momentfix(IDTNUMD-1+n, IDTDUST-1+n)
+         call momentfix(IDTNUMD-1+n, IDTH2O-1+n)  !water mass
+      enddo
+#endif
 #ifdef TRAC_ADV_CPU
          CALL TIMER (NOW,MTRADV)
 #else
          CALL TIMER (NOW,MTRACE)
 #endif
 #endif
+
+      SRFP = P+PTOP
+
       call stopTimer('Atm. Dynamics')
 
 C****
@@ -175,6 +203,7 @@ c dissipation gets included in the KE->PE adjustment
 
          IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
+         atmocn%MODD5S = MODD5S
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
@@ -183,13 +212,14 @@ C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
 C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 ! todo: move melt_si(ocean) to the end of the ocean driver, and
 ! possibly unite melt_si(lakes) with the rest of the lakes calls
-      CALL MELT_SI('OCEAN')
-      CALL MELT_SI('LAKES')
-      call seaice_to_atmgrid
+      CALL MELT_SI(si_ocn,iceocn,atmocn,atmice)
+      CALL MELT_SI(si_atm,icelak,atmocn,atmice)
+      call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
-
-
+#ifdef TRACERS_TOMAS
+         CALL aeroupdate
+#endif
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
@@ -210,7 +240,9 @@ C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
 #endif
-
+#ifdef TRACERS_TOMAS
+      CALL aeroupdate
+#endif
       return
       end subroutine atm_phase1
 
@@ -228,17 +260,26 @@ C**** Calculate non-interactive tracer surface sources and sinks
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : FILTER
+      USE ATM_COM, only : SRFP,P
+      USE RESOLUTION, only : PTOP
 #endif
 #ifdef SCM
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
      &    iu_scm_prt,iu_scm_diag
 #endif
+      USE FLUXES, only : atmice
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
       implicit none
 
       REAL*8 start,now
+
+      call seaice_to_atmgrid(atmice)
+      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise
+C**** SAVE some noon GMT ice quantities
+      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
+     &        call vflx_OCEAN
 
 C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
@@ -265,6 +306,7 @@ C**** SEA LEVEL PRESSURE FILTER
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER
+           SRFP = P+PTOP
            CALL CHECKT ('FILTER')
            CALL TIMER (NOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
@@ -276,6 +318,9 @@ C**** SEA LEVEL PRESSURE FILTER
 ! Reinitialize instantaneous consrv qtys (every timestep since
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter
+#endif
+#ifdef TRACERS_TOMAS
+      CALL aeroupdate
 #endif
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
@@ -313,8 +358,8 @@ c*****call scm diagnostics every time step
       return
       end subroutine atm_phase2
 
-      SUBROUTINE INPUT_atm (istart,istart_fixup,is_coldstart,
-     &     KDISK_restart,IRANDI)
+      SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups,
+     &     is_coldstart,KDISK_restart,IRANDI)
 
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
@@ -322,7 +367,7 @@ C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
       USE Dictionary_mod
       USE CONSTANT, only : grav
-      USE FLUXES, only : nisurf
+      USE FLUXES, only : nisurf,atmocn,atmice
       USE RESOLUTION, only : ls1,plbot
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
@@ -359,7 +404,7 @@ C****
 #endif
       IMPLICIT NONE
 !@var istart start(1-8)/restart(>8)  option
-      integer :: istart,istart_fixup
+      integer :: istart,istart_fixup,do_IC_fixups
       LOGICAL :: is_coldstart
       INTEGER :: KDISK_restart
       INTEGER :: IRANDI
@@ -457,6 +502,13 @@ C****
       if (USE_UNR_DRAG==1) CALL init_UNRDRAG
 #endif
 #endif
+
+#ifdef SCM
+!      read scm data and initialize model
+!      note:  usavg,vsavg and wsavg filled from here
+       call init_scmdata
+#endif
+
       CALL init_CLD(istart)
       CALL init_RAD(istart)
       CALL daily_orbit(.false.)             ! not end_of_day
@@ -464,7 +516,12 @@ C****
       CALL daily_RAD(.false.)
 
 C**** Initialize lake variables (including river directions)
+      if(istart.eq.2) call read_agrice_ic
       iniLAKE = is_coldstart
+      CALL init_lakeice(inilake,do_IC_fixups)
+c      call stop_model('set_noice_defaults prob that fwater==flake'//
+c     &     ' not initialized yet?',255)
+      call seaice_to_atmgrid(atmice) ! set gtemp etc.
       CALL init_LAKES(inilake,istart_fixup)
 
 C****
@@ -495,18 +552,6 @@ C**** Initialize pbl (and read in file containing roughness length data)
 #endif
       CALL init_pbl(iniPBL,istart)
 
-#ifdef SCM
-        call stop_model(
-     &       'scm input: ok to call at end of input?',255)
-        call stop_model(
-     &       'scm input: gcm t already defined as potential',255)
-        call stop_model(
-     &       'scm input: update all init_scmdata instances',255)
-!      read scm data and initialize model
-!      note:  usavg,vsavg and wsavg filled from here
-       call init_scmdata
-#endif
-
 ! note there is an all-component call to reset_diag in init_diag
       CALL init_DIAG
       CALL UPDTYPE   ! for atm-grid diags
@@ -530,9 +575,10 @@ C****
 ! ISTART=2 result differs if daily_OCEAN comes before init_pbl,
 ! since daily_OCEAN replaces the GIC values of gtemp
 ! with the values from the prescribed SST file
-      CALL daily_OCEAN(.false.)            ! not end_of_day
+      CALL daily_OCEAN(.false.,atmocn)            ! not end_of_day
 ! need to do this after prescribed-ice daily_OCEAN changes si frac.
 ! not needed once daily_OCEAN is moved before atm init.
+      call seaice_to_atmgrid(atmice) ! debug
       CALL UPDTYPE
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -550,6 +596,10 @@ C****
       end subroutine INPUT_atm
 
       subroutine alloc_drv_atm()
+#ifdef SCM
+      USE SCMCOM, only : I_TARG,J_TARG
+      use Dictionary_mod, only : sync_param
+#endif
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
@@ -570,7 +620,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_atm_com(grid)
       call alloc_smomtq(grid)
 
-      call alloc_fluxes(grid)
+      call alloc_fluxes !(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
@@ -605,14 +655,19 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       call alloc_aerosol_sources(grid)
 #endif
 #ifdef TRACERS_AMP
       call alloc_tracer_amp_com(grid)
 #endif
+#ifdef TRACERS_TOMAS
+      call alloc_tracer_tomas_com(grid)
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       CALL alloc_dust(grid)
 #endif
 #endif
@@ -643,6 +698,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       integer :: fid
       call def_rsf_atm    (fid)
       call def_rsf_lakes  (fid)
+      call def_rsf_agrice (fid)
       call def_rsf_icedyn (fid)
       call def_rsf_earth  (fid)
       call def_rsf_soils  (fid)
@@ -664,6 +720,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_tracer (fid)
 #endif
       call def_rsf_subdd  (fid)
+      call def_rsf_fluxes (fid)
       return
       end subroutine def_rsf_atmvars
 
@@ -672,6 +729,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       integer, intent(in) :: fid,iorw
       call new_io_atm    (fid,iorw)
       call new_io_lakes  (fid,iorw)
+      call new_io_agrice (fid,iorw)
       call new_io_earth  (fid,iorw)
       call new_io_soils  (fid,iorw)
       call new_io_vegetation  (fid,iorw)
@@ -696,6 +754,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_tracer (fid,iorw)
 #endif
       call new_io_subdd  (fid,iorw)
+      call new_io_fluxes (fid,iorw)
       return
       end subroutine new_io_atmvars
 
@@ -744,10 +803,12 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       subroutine finalize_atm
       USE SUBDAILY, only : close_subdd
 #ifdef USE_FVCORE
+      USE MODEL_COM, only : kdisk
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Finalize
 #endif
 #ifdef SCM
+      USE FILEMANAGER, only : closeunit
       USE SCMCOM , only : iu_scm_prt,iu_scm_diag
 #endif
       implicit none

@@ -164,8 +164,5 @@ C**** Conditions at non-polar points
         IMAXJ(J)=IM
       END DO
 
-      call set_oj_budg
-      call set_owtbudg
-
       Return
       End

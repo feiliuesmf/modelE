@@ -63,19 +63,21 @@
 !------------------------------------------------------------------------------
          !ONLY FOR HYCOM
 #ifndef OBIO_ON_GARYocean
-      subroutine init_gasexch_co2
-      USE hycom_atm, only : gtracer_loc,focean_loc
+      subroutine init_gasexch_co2(atmocn)
+      !USE hycom_atm, only : gtracer_loc,focean_loc
       USE TRACER_COM, only : ntm_gasexch  !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : atrac_loc
-      use domain_decomp_atm, only : agrid=>grid
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       implicit none
+      type(atmocn_xchng_vars) :: atmocn
+c
       integer nt,i,j
 
-      do j=agrid%j_strt,agrid%j_stop
-      do i=agrid%i_strt,agrid%i_stop
-      if (focean_loc(i,j).gt.0.) then
+      do j=atmocn%j_0,atmocn%j_1
+      do i=atmocn%i_0,atmocn%i_1
+      if (atmocn%focean(i,j).gt.0.) then
           do nt=1,ntm_gasexch
-            GTRACER_loc(nt,1,i,j)=atrac_loc(i,j,nt)
+            atmocn%GTRACER(nt,i,j)=atrac_loc(i,j,nt)
           enddo
       endif
       enddo

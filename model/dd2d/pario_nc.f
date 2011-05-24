@@ -253,8 +253,9 @@ c define/overwrite the success flag for error checking
       subroutine par_enddef(grid,fid)
       type(dist_grid), intent(in) :: grid
       integer :: fid
-      integer :: rc
+      integer :: rc,omode
       if(grid%am_i_globalroot) then
+        rc = nf_set_fill(fid,nf_nofill,omode)
         rc = nf_enddef(fid)
       endif
       return

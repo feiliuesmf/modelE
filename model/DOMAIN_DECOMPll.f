@@ -8,5 +8,5 @@
         use GlobalSum_mod
       implicit none
       public
-      type(dist_grid) :: grid
+      type(dist_grid), target :: grid
       END MODULE DOMAIN_DECOMP_ATM

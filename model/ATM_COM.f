@@ -35,10 +35,6 @@
 !@var ij_debug: if i > 0, print out some extra info on bad ij box
       integer, dimension(2) :: ij_debug = (/ 0 , 1 /)
 
-!**** Target Coordinates for SCM
-      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
-      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
-
 !**** Diagnostic control parameters
 !@dbparam Kradia if -1 save data for, if 1|2 do   inst|adj forcing run
       integer :: Kradia=0,iu_rad
@@ -126,6 +122,11 @@ C**** module should own dynam variables used by other routines
 !@var WSAVE vertical velocity (m/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
 
+!@var SRFP actual surface pressure (hecto-Pascals)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: SRFP
+
+      TARGET :: SRFP
+
       END MODULE ATM_COM
 
       SUBROUTINE ALLOC_ATM_COM(grid)
@@ -146,7 +147,7 @@ C**** module should own dynam variables used by other routines
      &     PLIJ,PDSIG,AM,BYAM,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     PUA,PVA,SDA,MB,MA,DKE,KEA,
-     &     UALIJ,VALIJ,WSAVE,
+     &     UALIJ,VALIJ,WSAVE,SRFP,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
      &     TTROPO,
@@ -264,6 +265,7 @@ C**** Check polar uniformity
 
       ! I-J arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
+     $          SRFP(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
 #ifdef etc_subdd

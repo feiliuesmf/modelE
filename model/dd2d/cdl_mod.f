@@ -5,7 +5,7 @@
       integer, parameter :: cdl_strlen=100
       integer, parameter :: ndims_max=100
       integer, parameter :: ndata_max=1000
-      integer, parameter :: nlines_max=20000
+      integer, parameter :: nlines_max=100000
       character(len=4) :: indent='    '
       character(len=8) :: indent2='        '
 

@@ -175,7 +175,7 @@ c******************************************************************
 !@auth Susanne Bauer
 !@ver
       USE RESOLUTION, only : im,jm,lm,plbot
-      USE DOMAIN_DECOMP_1D, only : grid
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -225,7 +225,8 @@ c******************************************************************
 !@ver
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : PMID ! Pressure at mid point of box (mb)
-      USE DOMAIN_DECOMP_1D, only : grid, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH
       IMPLICIT NONE
 
       INTEGER lmo               ! vertical dimensions of input
@@ -321,7 +322,8 @@ c**** get levels which don't change as a function of time
       subroutine read_nudge_file(un,vn,timestep)
 !@sum return velocities for specific time step
       USE RESOLUTION, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : grid, unpack_data, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : unpack_data, am_i_root
       USE NUDGE_COM
       implicit none
       include 'netcdf.inc'

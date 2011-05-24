@@ -5,7 +5,8 @@
 !@ver 2.0
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
@@ -226,12 +227,13 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 !+                      subdaily dust aerosol diagnostics
       type(dustDiagSubdd) :: dustDiagSubdd_acc
 
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP*/
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
 
       END MODULE tracers_dust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       SUBROUTINE alloc_dust(grid)
 !@sum  alloc_dust allocates dust/mineral tracer arrays
 !@auth Jan Perlwitz
@@ -310,4 +312,4 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 
       RETURN
       END SUBROUTINE alloc_dust
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP*/
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/

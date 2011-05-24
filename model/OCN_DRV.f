@@ -4,37 +4,53 @@
       use model_com, only : itime,nday
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
+      use seaice_com, only : si_ocn,iceocn
+#ifdef CUBED_SPHERE
+      use seaice_com, only : si_atm    ! temporary
+#endif
+      use fluxes, only : atmocn,atmice
+      use icedyn_com, only : igice
       implicit none
       call startTimer('OCEANS')
 C**** CALCULATE ICE DYNAMICS
-      CALL DYNSI
+#ifdef CUBED_SPHERE
+! Temporary fix until seaice moves to ocean grid:
+! to match previous results, using ice cover/amounts including
+! lakes. This matters along coastlines (gradient calcs), but the
+! earlier results are not more accurate.
+      call seaice_to_atmgrid(atmice)
+      si_ocn%rsisave(:,:) = si_ocn%rsi(:,:)
+      CALL DYNSI(atmice,iceocn,si_atm)
+#else
+      CALL DYNSI(atmice,iceocn,si_ocn)
+#endif
 C**** CALCULATE BASE ICE-OCEAN/LAKE FLUXES
-      CALL UNDERICE('OCEAN')
+      CALL UNDERICE(si_ocn,iceocn,atmocn)
 C**** APPLY SURFACE/BASE FLUXES TO SEA/LAKE ICE
-      CALL GROUND_SI('OCEAN')
+      CALL GROUND_SI(si_ocn,iceocn,atmice,atmocn)
          CALL CHECKT ('GRNDSI')
 C**** set total atmopsheric pressure anomaly in case needed by ocean
-      CALL CALC_APRESS
+      CALL CALC_APRESS(atmice)
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
-      CALL OCEANS
+      CALL OCEANS(atmocn,iceocn,igice)
          CALL CHECKT ('OCEANS')
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
-      CALL FORM_SI('OCEAN')
-      CALL SI_diags('OCEAN')
+      CALL FORM_SI(si_ocn,iceocn,atmice)
+      call seaice_to_atmgrid(atmice) ! needed only to preserve former result
          CALL CHECKT ('FORMSI')
 C**** ADVECT ICE
-      CALL ADVSI
-      CALL ADVSI_DIAG ! needed to update qflux model, dummy otherwise
+      CALL ADVSI(atmice)
          CALL CHECKT ('ADVSI ')
-C**** SAVE some noon GMT ice quantities
-      IF (MOD(Itime+1,NDAY).ne.0 .and. MOD(Itime+1,NDAY/2).eq.0)
-     &        call vflx_OCEAN
+      CALL SI_diags(si_ocn,iceocn,atmice)
+
 
       call stopTimer('OCEANS')
       end subroutine ocean_driver
 
       SUBROUTINE INPUT_ocean (istart,istart_fixup,
      &     do_IC_fixups,is_coldstart)
+      use fluxes, only : atmocn,atmice
+      use icedyn_com, only : igice
       implicit none
 !@var istart start(1-8)/restart(>8)  option
       integer :: istart,istart_fixup,do_IC_fixups
@@ -46,15 +62,17 @@ C**** SAVE some noon GMT ice quantities
 
 C**** Initialize sea ice
       if(istart.eq.2) call read_seaice_ic
-      CALL init_ice(iniOCEAN,do_IC_fixups)
+      CALL init_oceanice(iniOCEAN,do_IC_fixups,atmocn)
+      !call seaice_to_atmgrid(atmice)
 
 C**** Initialize ice dynamics code (if required)
-      CALL init_icedyn(iniOCEAN)
+      CALL init_icedyn(iniOCEAN,atmice)
 
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-      CALL init_OCEAN(iniOCEAN,istart_fixup)
+      CALL init_OCEAN(iniOCEAN,istart_fixup,atmocn
+     &     ,igice) ! not necessary now that dynsi uosurf,vosurf in rsf?
 
       return
       end subroutine INPUT_ocean
@@ -63,11 +81,15 @@ C****  KOCEAN = 0 => RSI/MSI factor
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid
+      USE SEAICE_COM, only : si_atm,si_ocn,sigrid
       IMPLICIT NONE
 
-      call alloc_icedyn()
+      call alloc_icedyn(grid%im_world,grid%jm_world)
       call alloc_icedyn_com(grid)
       call alloc_seaice_com(grid)
-      call alloc_ocean(grid)
+      si_atm%grid => grid
+      si_ocn%grid => grid
+      sigrid => grid
+      call alloc_ocean
 
       end subroutine alloc_drv_ocean
