@@ -6,7 +6,7 @@
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
      &   ,flnma2o_tau,flnmcoso,lp
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE DOMAIN_DECOMP_1D, only : dist_grid
       USE HYCOM_DIM, only : ogrid
      &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
      &      J_0,  J_1,  J_0H,  J_1H
@@ -15,6 +15,8 @@
 c
       implicit none
       private
+
+      type(dist_grid), pointer, public :: agrid
 
       public ssta2o,ssto2a,veca2o,flxa2o,flxo2a,veco2a,tempro2a,cpl_wgt
       public ssto2a_global,flxa2o_global

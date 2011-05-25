@@ -75,8 +75,12 @@ C**** Momemtum stresses are calculated as if they were over whole box
 #ifndef CUBED_SPHERE
 !@var dlatm latitudinal gridsize in minutes, for certain regrid routines
          real*8 :: dlatm
-!@var sini,cos sin(lon),cos(lon) for vector regrids
+!@var sini,cosi sin(lon),cos(lon) for vector regrids
          real*8, dimension(:), pointer :: sini,cosi
+#endif
+
+#ifdef TRACERS_ON
+         integer :: ntm=0
 #endif
 
       end type atmsrf_xchng_vars
@@ -112,6 +116,9 @@ C**** Momemtum stresses are calculated as if they were over whole box
 !@var TRGASEX  tracer gas exchange (mol,CO2/m^2/s)
          REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+         REAL*8, DIMENSION(:,:), POINTER :: pCO2
+#endif
 #ifdef OBIO_RAD_coupling
          REAL*8, DIMENSION(:,:), POINTER ::
      &     DIRVIS,DIFVIS,DIRNIR,DIFNIR
@@ -122,6 +129,10 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
          REAL*8, DIMENSION(:,:), POINTER :: CHL
 #endif
 
+!@var eflow_gl global integral of eflowo
+         real*8 :: eflow_gl
+         logical :: need_eflow_gl=.false.
+
 !@var modd5s,jm_budg,area_of_zone,conserv,nofm
 !@+   permit an ocean model to accumulate modelE-style
 !@+   conservation diagnostics.  see diag_com.
@@ -129,6 +140,17 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
          real*8, dimension(:), pointer :: area_of_zone
          real*8, dimension(:,:), pointer :: consrv
          integer, dimension(:,:), pointer :: nofm
+
+#ifdef TRACERS_ON
+! Some atmosphere-declared tracer info for uses within ocean codes.
+! See TRACER_COM.f
+         real*8, dimension(:), pointer :: trw0
+#ifdef TRACERS_GASEXCH_ocean
+         integer :: ntm_gasexch=0
+         real*8, dimension(:), pointer :: vol2mass
+#endif
+#endif
+
 #ifdef TRACERS_OCEAN
 !@var natmtrcons,tconsrv,nofmt
 !@+   permit an ocean model to accumulate modelE-style
@@ -182,6 +204,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
      &     ,j_rsnow,j_rsi,j_ace1,j_ace2,j_snow
          INTEGER :: itoice,itlkice,itocean,itlake
 #ifdef TRACERS_WATER
+         LOGICAL, DIMENSION(:), ALLOCATABLE :: DO_ACCUM
          REAL*8, DIMENSION(:,:,:), POINTER :: TUSI,TVSI,TRSIsum
          integer :: tij_icocflx, tij_seaice, tij_tusi, tij_tvsi
 #endif
@@ -269,6 +292,11 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
          type(band_pack_type), pointer :: pack_a2i,pack_i2a
 #endif
 
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+!@var ntm number of tracers participating in sea ice formation.
+         integer :: ntm=0
+#endif
+
       end type iceocn_xchng_vars
 
       interface alloc_xchng_vars
@@ -323,14 +351,18 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       subroutine alloc_atmsrf_xchng_vars(grd_dum,this)
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-#ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM
-#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmsrf_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
+#ifdef TRACERS_ON
+      integer :: ntm
+#endif
+
+#ifdef TRACERS_ON
+      ntm = this%ntm
+#endif
 
       call set_simple_bounds_type(grd_dum,this%simple_bounds_type)
 
@@ -363,6 +395,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #endif
 #endif
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % COSZ1   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % WSAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WORK1   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WORK2   ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
@@ -405,17 +439,25 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       subroutine alloc_atmocn_xchng_vars(grd_dum,this)
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-#ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_COM, only: NTM_gasexch
-#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmocn_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
+#ifdef TRACERS_ON
+      integer :: ntm
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      integer :: ntm_gasexch
+#endif
+
+#ifdef TRACERS_ON
+      ntm = this%ntm
+#endif
+
+#ifdef TRACERS_GASEXCH_ocean
+      ntm_gasexch = this%ntm_gasexch
+#endif
 
       call alloc_atmsrf_xchng_vars(grd_dum,this%atmsrf_xchng_vars)
       I_0H = grd_dum%I_STRT_HALO
@@ -441,6 +483,9 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #ifdef TRACERS_GASEXCH_ocean
      &          this % TRGASEX ( NTM_gasexch , I_0H:I_1H , J_0H:J_1H ),
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+     &          this % pCO2    ( I_0H:I_1H , J_0H:J_1H ),
+#endif
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      &          this % CHL     ( I_0H:I_1H , J_0H:J_1H ),
 #endif
@@ -459,6 +504,19 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     'alloc_atmocn_xchng_vars: ntm /= ntm_gasexch',255)
 #endif
 
+#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
+      this % CHL = 0.
+#endif
+
+#ifdef OBIO_RAD_coupling
+      allocate(
+     &          this % DIRVIS  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % DIFVIS  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % DIRNIR  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % DIFNIR  ( I_0H:I_1H , J_0H:J_1H ),
+     &   STAT = IER)
+#endif
+
       this % modd5s = -999
 
       return
@@ -466,14 +524,18 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       subroutine alloc_atmice_xchng_vars(grd_dum,this)
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-#ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM
-#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmice_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
+#ifdef TRACERS_WATER
+      integer :: ntm
+#endif
+
+#ifdef TRACERS_WATER
+      ntm = this%ntm
+#endif
 
       call alloc_atmsrf_xchng_vars(grd_dum,this%atmsrf_xchng_vars)
       I_0H = grd_dum%I_STRT_HALO
@@ -576,14 +638,19 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       subroutine alloc_iceocn_xchng_vars(grd_dum,this)
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
-      USE TRACER_COM, only: NTM
-#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(iceocn_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      integer :: ntm
+#endif
+
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      ntm = this%ntm
+#endif
+
 
       call set_simple_bounds_type(grd_dum,this%simple_bounds_type)
 
@@ -622,13 +689,15 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &           this % DHSI  (  2  , I_0H:I_1H , J_0H:J_1H ), 
      &           this % DSSI  (  2  , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
+       this % DMSI = 0.
+       this % DHSI = 0.
+       this % DSSI = 0.
 
 #ifdef TRACERS_WATER
       ALLOCATE( this % TRUNPSI (NTM, I_0H:I_1H, J_0H:J_1H),
      &          this % TRUNOSI (NTM, I_0H:I_1H, J_0H:J_1H),
      &          this % TRMELTI (NTM, I_0H:I_1H, J_0H:J_1H),
      &          this % FTRSI_IO(NTM, I_0H:I_1H, J_0H:J_1H),
-     &          this % DTRSI(NTM, 2, I_0H:I_1H, J_0H:J_1H),
      &   STAT = IER)
       this % TRUNPSI = 0.
       this % TRUNOSI = 0.
@@ -645,6 +714,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       end subroutine alloc_iceocn_xchng_vars
 
       END MODULE EXCHANGE_TYPES
+
 
       MODULE FLUXES
 !@sum  FLUXES contains the fluxes between various atm-grid components
@@ -846,6 +916,9 @@ C**** fluxes associated with variable lake fractions
     (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+      use tracer_com, only : ntm_gasexch
+#endif
 #endif
       USE ATM_COM, only : srfp
       IMPLICIT NONE
@@ -1011,6 +1084,15 @@ C**** Ensure that no round off error effects land with ice and earth
 
 #endif
 
+#ifdef TRACERS_ON
+      atmocn%ntm = ntm
+      atmice%ntm = ntm
+      atmgla%ntm = ntm
+      atmlnd%ntm = ntm
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      atmocn%ntm_gasexch = ntm_gasexch
+#endif
       call alloc_xchng_vars(grd_dum,atmocn)
       atmocn%grid => grd_dum
       atmocn%focean(:,:) = focean(:,:)

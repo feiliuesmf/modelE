@@ -17,7 +17,7 @@ c
       integer, dimension(:), allocatable :: ia_acc,denom_acc
       character(len=30), dimension(:), allocatable :: sname_acc
       character(len=30) :: vname
-      real*4, dimension(:), allocatable :: xout,xden
+      real*4, dimension(:), allocatable :: xout,xout_,xden
       real*4, dimension(:), allocatable ::
      &     accarr,accarr_hemis,accarr_vmean
       real*4, dimension(:,:,:,:,:), allocatable :: xcs
@@ -27,16 +27,17 @@ c
       integer :: idacc(12)
       integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim
       integer, dimension(7) :: srt,cnt,dimids,
-     &     accsizes,hemi_sizes,vmean_sizes
+     &     accsizes,shpout,hemi_sizes,vmean_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
       integer :: fid,status,ofid,accid,varid,accid_hemis,
-     &     jdimid,accid_vmean,nvars
+     &     jdimid,accid_vmean,nvars,ndims_out
       real*4, parameter :: undef=-1.e30
       character(len=132) :: xlabel
       character(len=100) :: fromto
       logical :: do_hemis,do_vmean
       integer :: remap_fid,jmdid,nl,nk,imlon,jmlat,im,order
       logical :: remap_output
+      integer :: tile_dim_out,d1,d2,d3
 
       fid = fids(1)
       remap_fid = fids(2)
@@ -93,7 +94,11 @@ c
       call get_vdimsizes(fid,trim(dcat),ndims,accsizes)
       srt(:) = 1
       cnt(1:ndims) = accsizes(1:ndims)
-
+      ndims_out = ndims-1
+      tile_dim_out = ndims_out
+      if(.not.remap_output) then
+        status = nf_get_att_int(fid,accid,'tile_dim_out',tile_dim_out)
+      endif
       write(6,*) 'processing ',trim(dcat)
 
 c
@@ -155,7 +160,14 @@ c
       allocate(ia_acc(kacc),denom_acc(kacc),scale_acc(kacc))
       allocate(sname_acc(kacc))
       allocate(xout(arrsize_out),xden(arrsize_out))
-
+      if(tile_dim_out.ne.ndims_out) then
+        allocate(xout_(arrsize_out))
+        shpout(1:sdim-1) = cnt(1:sdim-1)
+        shpout(sdim:ndims-1) = cnt(sdim+1:ndims)
+        d1 = product(shpout(1:tile_dim_out-1))
+        d3 = 6
+        d2 = arrsize_out/(d1*d3)
+      endif
 c
 c Some setup for hemispheric/global means.
 c We assume only that shnhgm and the latitude dimension
@@ -296,6 +308,10 @@ c
           end where
         endif
 
+        if(tile_dim_out.ne.ndims_out) then
+          xout_(:) = xout(:)
+          call swap_outer_dims(xout_,xout,d1,d2,d3)
+        endif
 c
 c write this field to the output file
 c
@@ -376,6 +392,7 @@ c
       deallocate(ia_acc,denom_acc,scale_acc)
       deallocate(sname_acc)
       deallocate(xout,xden)
+      if(tile_dim_out.ne.ndims_out) deallocate(xout_)
 #ifdef HIMEM
       deallocate(accarr)
       if(allocated(accarr_hemis)) deallocate(accarr_hemis)
@@ -480,3 +497,14 @@ c Fow now, using the ncgen utility to parse the metadata
       return
       end subroutine copy_slice_real
 #endif /* HIMEM */
+
+      subroutine swap_outer_dims(a,b,s1,s2,s3)
+      implicit none
+      integer :: s1,s2,s3
+      real*4 a(s1,s2,s3)
+      real*4 b(s1,s3,s2)
+      integer :: k
+      do k=1,s2
+        b(:,:,k) = a(:,k,:)
+      enddo
+      end subroutine swap_outer_dims

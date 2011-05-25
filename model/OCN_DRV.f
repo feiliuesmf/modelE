@@ -82,7 +82,36 @@ c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid
       USE SEAICE_COM, only : si_atm,si_ocn,sigrid
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      USE TRACER_COM, only : ntm
+#endif
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+      USE TRACER_COM, only : trname
+      USE OCN_TRACER_COM, only :
+     &     ntm_ocn    => ntm,
+     &     trname_ocn => trname
+#endif
+#if (defined TRACERS_WATER)
+      USE SEAICE, only : ntm_si=>ntm
+#endif
       IMPLICIT NONE
+
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! copy atmosphere-declared tracer info to ocean so that the ocean
+! can "inherit" it without referencing atm. code
+      ntm_ocn = ntm
+! trname is copied here rather than in init_tracer since it is
+! needed immediately when reading checkpoint files
+      allocate(trname_ocn(ntm))
+      trname_ocn(:) = trname(:)
+#endif
+
+#if (defined TRACERS_WATER)
+! copy atmosphere-declared tracer info to seaice so that the seaice
+! can "inherit" it without referencing atm. code
+      ntm_si = ntm
+      si_ocn % ntm = ntm
+#endif
 
       call alloc_icedyn(grid%im_world,grid%jm_world)
       call alloc_icedyn_com(grid)

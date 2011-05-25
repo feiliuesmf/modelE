@@ -152,6 +152,20 @@
       use OldTracer_mod, only: set_trli0
       use OldTracer_mod, only: set_trsi0
 
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! atmosphere copies atmosphere-declared tracer info to ocean
+! so that the ocean can "inherit" it without referencing atm. code
+      use ocn_tracer_com, only : 
+     &     n_Water_ocn      => n_Water,
+     &     itime_tr0_ocn    => itime_tr0,
+     &     ntrocn_ocn       => ntrocn,
+     &     to_per_mil_ocn   => to_per_mil,
+     &     t_qlimit_ocn     => t_qlimit,
+     &     conc_from_fw_ocn => conc_from_fw,
+     &     trdecay_ocn      => trdecay,
+     &     trw0_ocn         => trw0
+#endif
+      USE FLUXES, only : atmocn
       implicit none
       integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
@@ -254,10 +268,6 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 #ifdef TRACERS_SPECIAL_O18
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
-#if (defined TRACERS_OCEAN)
-      call sync_param ( "water_tracer_ic",water_tracer_ic  )
-#endif
-
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
@@ -2533,6 +2543,34 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_NPFMASS
       CALL SETUP_DIAM
       CALL SETUP_RAD
+#endif
+
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! atmosphere copies atmosphere-declared tracer info to ocean module
+! so that the ocean can "inherit" it without referencing atm. code
+      n_Water_ocn = n_Water
+      do n=1,ntm
+        itime_tr0_ocn(n)    = itime_tr0(n)
+        ntrocn_ocn(n)       = ntrocn(n)
+        to_per_mil_ocn(n)   = to_per_mil(n)
+        t_qlimit_ocn(n)     = t_qlimit(n)
+        conc_from_fw_ocn(n) = conc_from_fw(n) 
+        trdecay_ocn(n)      = trdecay(n)
+        trw0_ocn(n)         = trw0(n)
+      enddo
+#endif
+
+! copy atmosphere-declared tracer info to atm-ocean coupler data
+! structure for uses within ocean codes
+      allocate(atmocn%trw0(ntm))
+      do n=1,ntm
+        atmocn%trw0(n) = trw0(n)
+      enddo
+#ifdef TRACERS_GASEXCH_ocean
+      allocate(atmocn%vol2mass(ntm))
+      do n=1,ntm
+        atmocn%vol2mass(n) = vol2mass(n)
+      enddo
 #endif
 
       return
@@ -9845,11 +9883,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-#ifdef OBIO_ON_GARYocean
-      Use AFLUXES, Only: aTRAC
-#else
-      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
-#endif
       USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
@@ -10530,9 +10563,6 @@ c**** earth
      .                    * xnow(1) * 1.d-6
              atmocn%gtracer(n,i,j) = vol2mass(n)
      .                    * xnow(1) * 1.d-6      !initialize gtracer
-#endif
-#if defined(TRACERS_GASEXCH_ocean_CO2)
-             atrac(i,j,n) = atmocn%gtracer(n,i,j)
 #endif
           end do; end do; end do
 #endif

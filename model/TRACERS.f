@@ -29,6 +29,13 @@
       character*50 :: unit_string
 
       atmice%taijn => taijn_loc
+#ifdef TRACERS_WATER
+      allocate(atmice%do_accum(ntm))
+      do n=1,ntm
+        atmice%do_accum(n) =
+     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)
+      enddo
+#endif
 
 C**** Get factor to convert from mass to volume mr if necessary
       do n=1,ntm
@@ -1881,6 +1888,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use tracer_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
@@ -1905,11 +1913,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
-#endif
-#ifndef OBIO_ON_GARYocean
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
-#endif
 #endif
       implicit none
       integer fid   !@var fid file id
@@ -2033,7 +2036,8 @@ c daily_z is currently only needed for CS
 
 #ifndef OBIO_ON_GARYocean
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      call defvar(grid,fid,atrac,'atrac(dist_im,dist_jm,ntm)')
+      ! called atrac for historical reasons
+      call defvar(grid,fid,atmocn%gtracer,'atrac(ntm,dist_im,dist_jm)')
 #endif
 #endif
       return
@@ -2045,6 +2049,7 @@ c daily_z is currently only needed for CS
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
       use tracer_com
+      use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
@@ -2069,11 +2074,6 @@ c daily_z is currently only needed for CS
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
-#endif
-#ifndef OBIO_ON_GARYocean
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      USE TRACER_GASEXCH_COM, only : atrac=>atrac_loc
-#endif
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,read_data,
@@ -2179,7 +2179,7 @@ c daily_z is currently only needed for CS
 
 #ifndef OBIO_ON_GARYocean
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call write_dist_data(grid,fid,'atrac',atrac)
+        call write_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
 #endif
 #endif
 
@@ -2283,7 +2283,7 @@ c daily_z is currently only needed for CS
 
 #ifndef OBIO_ON_GARYocean
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call read_dist_data(grid,fid,'atrac',atrac)
+        call read_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
 #endif
 #endif
 

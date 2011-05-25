@@ -42,7 +42,7 @@ ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
 OCNDYN OCNDYN2                           ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
-OCEANR_DIM AFLUXES OFLUXES
+OCEANR_DIM OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 OFFT72E                 ! utilities

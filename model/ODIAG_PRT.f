@@ -10,6 +10,7 @@
       end subroutine diag_ocean_prep
 
       SUBROUTINE diag_OCEAN
+#ifndef NEW_IO
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
 C**** Note this is an incorporation and modification of the stand alone
@@ -108,8 +109,10 @@ C****
 C****
       RETURN
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
+#endif
       END SUBROUTINE diag_OCEAN
 
+#ifndef NEW_IO
       SUBROUTINE OIJOUT
 !@sum  OIJOUT prints out lat-lon diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
@@ -1043,6 +1046,7 @@ C****
   922 FORMAT (F6.0,2X,23I5)
 
       END SUBROUTINE OSFOUT
+#endif
 
       SUBROUTINE STROUT
 !@sum  STROUT prints out strait diagnostics for ocean
@@ -1346,6 +1350,7 @@ C****
       RETURN
       END
 
+#ifndef NEW_IO
       SUBROUTINE OJLOUT
 !@sum OJLOUT calculates basin means, lat. and long. sections
 !@+   and advective tracer fluxes
@@ -1736,6 +1741,7 @@ C**** Fluxes
 C****
       RETURN
       END SUBROUTINE OJLOUT
+#endif
 
       subroutine oijl_prep
 c
@@ -2152,6 +2158,7 @@ C**** combine OTJ and OTJCOMP into a single output array
       return
       end subroutine basin_prep
 
+#ifndef NEW_IO
       SUBROUTINE OTJOUT
 !@sum OTJOUT print vertically integrated basin and zonal
 !@+   northward transports
@@ -2260,6 +2267,7 @@ C****
   908 FORMAT ('1')
 
       END SUBROUTINE OTJOUT
+#endif
 
       Subroutine STRMJL_STRAITS (L,SF,OLNST,FACST)
 C****

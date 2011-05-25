@@ -30,7 +30,7 @@ C****
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
      &     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
@@ -1729,6 +1729,18 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL FORM_SI(si_atm,icelak,atmice)
       CALL SI_diags(si_atm,icelak,atmice)
+
+c calculate global integral of heat of river discharge
+      if(atmocn%need_eflow_gl) then
+        do j=J_0,J_1
+        do i=I_0,I_1
+          atmocn%work1(i,j) = 0.
+          if (focean(i,j).eq.0.) cycle
+          atmocn%work1(i,j) = atmocn%eflowo(i,j)*focean(i,j)*axyp(i,j)
+        enddo
+        enddo
+        call globalsum(grid, atmocn%work1, atmocn%eflow_gl, all=.true.)
+      endif
 
       call stopTimer('SURFACE()')
 

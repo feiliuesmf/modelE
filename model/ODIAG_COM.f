@@ -218,16 +218,16 @@ C****
 !@var toijl_xxx indices for TOIJL diags
       INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
      *     ,toijl_wtfl=10
-!@var TLNST strait diagnostics
-      REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
+!@var TLNST strait diagnostic
+      REAL*8, ALLOCATABLE :: TLNST(:,:,:,:) !(LMO,NMST,KOLNST,NTM)
 
 !@var ktoijlx total number of toijl output fields over all tracers
-      integer, parameter :: ktoijlx = ntm*8 + 1 ! +1 for mo used as denom
+      integer :: ktoijlx
 !@var TOIJL_out like TOIJL_loc, but reshaped/rescaled for offline postprocessing
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TOIJL_out
 !@var divbya_toijl, kn_toijl helper arrays for postprocessing
-      LOGICAL, DIMENSION(KTOIJLx) :: DIVBYA_TOIJL ! acc needs division by area?
-      INTEGER, DIMENSION(2,KTOIJLx) :: KN_TOIJL
+      LOGICAL, ALLOCATABLE :: DIVBYA_TOIJL(:) ! acc needs division by area?
+      INTEGER, ALLOCATABLE :: KN_TOIJL(:,:)
 #endif
 
 #ifdef NEW_IO
@@ -250,13 +250,12 @@ c instances of arrays
 !@var CDL_TOIJL consolidated metadata for TOIJL output fields in CDL notation
       type(cdl_type) :: cdl_toijl
 !@var ia_toijl IDACC numbers for TOIJL diagnostics
-      INTEGER, DIMENSION(KTOIJLx) :: IA_TOIJL
 !@var denom_toijl denominators for TOIJL diagnostics
-      INTEGER, DIMENSION(KTOIJLx) :: DENOM_TOIJL
+      INTEGER, ALLOCATABLE :: IA_TOIJL(:),DENOM_TOIJL(:)
 !@var scale_toijl scales for TOIJL diagnostics
-      REAL*8, DIMENSION(KTOIJLx) :: SCALE_TOIJL
+      REAL*8, ALLOCATABLE :: SCALE_TOIJL(:)
 !@var sname_toijl Short names for TOIJL diagnostics
-      CHARACTER(len=sname_strlen), DIMENSION(KTOIJLx) :: SNAME_TOIJL
+      CHARACTER(len=sname_strlen), ALLOCATABLE :: SNAME_TOIJL(:)
 #endif
 
 #endif
@@ -1966,6 +1965,14 @@ c
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
+
+#ifdef TRACERS_OCEAN
+      ALLOCATE(TLNST(LMO,NMST,KOLNST,NTM))
+      KTOIJLx = ntm*8 + 1 ! +1 for mo used as denom
+      ALLOCATE(DIVBYA_TOIJL(KTOIJLx),KN_TOIJL(2,KTOIJLx))
+      ALLOCATE(IA_TOIJL(KTOIJLx),DENOM_TOIJL(KTOIJLx),
+     &     SCALE_TOIJL(KTOIJLx), SNAME_TOIJL(KTOIJLx))
+#endif
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 

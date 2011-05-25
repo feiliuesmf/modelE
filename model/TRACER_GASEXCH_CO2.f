@@ -13,78 +13,9 @@
 
       private
 
-      public alloc_gasexch_com
-
-      public
-     .  tracflx !  tracer flux at air-sea intfc
-
-      public
-     .  tracflx1d
-
-      public atrac_loc
-
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atrac_loc
-
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
-  
-      real*8 tracflx1d(ntm)
-
-      contains
-
-!------------------------------------------------------------------------------
-      subroutine alloc_gasexch_com
-
-      USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
-      use domain_decomp_atm, only : agrid=>grid
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
-      USE HYCOM_DIM, only : ogrid
-#endif
-      integer i_0h,i_1h,j_0h,j_1h
-
-      i_0h=ogrid%I_STRT_HALO
-      i_1h=ogrid%I_STOP_HALO
-      j_0h=ogrid%J_STRT_HALO
-      j_1h=ogrid%J_STOP_HALO
-
-      ALLOCATE(tracflx(i_0h:i_1h,j_0h:j_1h,ntm))
-
-      allocate(atrac_loc(agrid%i_strt_halo:agrid%i_stop_halo,
-     &                   agrid%j_strt_halo:agrid%j_stop_halo,
-     &                   ntm ))
-
-      end subroutine alloc_gasexch_com
+      real*8, public :: tracflx1d(ntm)
 
       END MODULE TRACER_GASEXCH_COM
-
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-         !ONLY FOR HYCOM
-#ifndef OBIO_ON_GARYocean
-      subroutine init_gasexch_co2(atmocn)
-      !USE hycom_atm, only : gtracer_loc,focean_loc
-      USE TRACER_COM, only : ntm_gasexch  !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : atrac_loc
-      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
-      implicit none
-      type(atmocn_xchng_vars) :: atmocn
-c
-      integer nt,i,j
-
-      do j=atmocn%j_0,atmocn%j_1
-      do i=atmocn%i_0,atmocn%i_1
-      if (atmocn%focean(i,j).gt.0.) then
-          do nt=1,ntm_gasexch
-            atmocn%GTRACER(nt,i,j)=atrac_loc(i,j,nt)
-          enddo
-      endif
-      enddo
-      enddo
-
-      end subroutine init_gasexch_co2
-#endif
 
 c ---------------------------------------------------------------------
 
@@ -94,7 +25,7 @@ c ---------------------------------------------------------------------
   
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : trname,tr_mm,vol2mass,ntm_gasexch
+      USE TRACER_COM, only : vol2mass,ntm_gasexch
       USE obio_incom, only : awan
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
