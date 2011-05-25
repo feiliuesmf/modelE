@@ -146,11 +146,44 @@ C endif
       !!!real*8 :: Iron_BC = 0.002
       real*8 :: Iron_BC = -0.005
 #endif
-      contains
+
+      END MODULE obio_com
+
+!------------------------------------------------------------------------------
+      subroutine gather_pCO2
+      USE obio_com
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
+      USE HYCOM_DIM, only : ogrid
+#endif
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+ 
+      call pack_data( ogrid, pCO2, pCO2_glob )
+#ifndef OBIO_ON_GARYocean
+      call pack_data( ogrid, pp2tot_day, pp2tot_day_glob )
+      call pack_data( ogrid, cexpij, cexp_glob )
+      call pack_data( ogrid, caexpij, caexp_glob )
+#endif
+
+      end subroutine gather_pCO2
+
+      subroutine gather_chl
+      USE obio_com
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
+      USE HYCOM_DIM, only : ogrid
+#endif
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+
+      call pack_data( ogrid, tot_chlo, tot_chlo_glob )
+
+      end subroutine gather_chl
 
 !------------------------------------------------------------------------------
       subroutine alloc_obio_com
-
+      USE obio_com
       USE obio_dim
 
 #ifdef OBIO_ON_GARYocean
@@ -220,35 +253,248 @@ c**** Extract domain decomposition info
       end subroutine alloc_obio_com
 
 !------------------------------------------------------------------------------
-      subroutine gather_pCO2
 
 #ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
+
+      subroutine def_rsf_obio(fid)
+!@sum  def_rsf_ocean defines ocean array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      USE OCEANR_DIM, only : grid=>ogrid
+      Use OCN_TRACER_COM, Only : ntm,trname
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,nstep0
+     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
+      use pario, only : defvar
+      use domain_decomp_1d, only : get
+      implicit none
+      integer fid   !@var fid file id
+      integer :: n
+      call defvar(grid,fid,nstep0,'obio_nstep0')
+      call defvar(grid,fid,avgq,'avgq(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gcmax,'gcmax(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,tirrq3d,'tirrq3d(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,ihra,'ihra(dist_imo,dist_jmo)')
+      do n=1,ntm
+        call defvar(grid,fid,tracer(:,:,:,n),
+     &       'obio_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+      enddo
+      call defvar(grid,fid,pCO2,'pCO2(dist_imo,dist_jmo)')
+      call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
+      return
+      end subroutine def_rsf_obio
+
+      subroutine new_io_obio(fid,iaction)
+!@sum  new_io_ocean read/write ocean arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      USE OCEANR_DIM, only : grid=>ogrid
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      Use OCN_TRACER_COM, Only : ntm,trname
+      use model_com, only : nstep=>itime
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,nstep0
+     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
+      use domain_decomp_1d, only : get
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      integer :: n
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_data(grid,fid,'obio_nstep0',nstep)
+        call write_dist_data(grid,fid,'avgq',avgq)
+        call write_dist_data(grid,fid,'gcmax',gcmax)
+        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call write_dist_data(grid,fid,'ihra',ihra)
+        do n=1,ntm
+          call write_dist_data(grid,fid,'obio_'//trim(trname(n)),
+     &         tracer(:,:,:,n))
+        enddo
+        call write_dist_data(grid,fid,'pCO2',pCO2)
+        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+      case (ioread)            ! input from restart file
+        call read_data(grid,fid,'obio_nstep0',nstep0,
+     &       bcast_all=.true.)
+        call read_dist_data(grid,fid,'avgq',avgq)
+        call read_dist_data(grid,fid,'gcmax',gcmax)
+        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call read_dist_data(grid,fid,'ihra',ihra)
+        do n=1,ntm
+          call read_dist_data(grid,fid,'obio_'//trim(trname(n)),
+     &         tracer(:,:,:,n))
+        enddo
+        call read_dist_data(grid,fid,'pCO2',pCO2)
+        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+      end select
+      return
+      end subroutine new_io_obio
+
 #else
+
+      subroutine obio_set_data_after_archiv
+      USE obio_com, only:
+     .     diag_counter
+     .    ,plevav_loc,ao_co2fluxav_loc,tracav_loc, pp2tot_dayav_loc
+     .    ,pCO2av_loc, cexpav_loc
+#ifdef TRACERS_Alkalinity
+     .    ,caexpav_loc
+#endif
+      implicit none
+      diag_counter=0
+      tracav_loc = 0
+      plevav_loc = 0
+      ao_co2fluxav_loc=0
+      pCO2av_loc = 0
+      pp2tot_dayav_loc = 0
+      cexpav_loc = 0
+#ifdef TRACERS_Alkalinity
+      caexpav_loc = 0
+#endif
+      end subroutine obio_set_data_after_archiv
+
+      subroutine obio_gather_before_archive
       USE HYCOM_DIM, only : ogrid
-#endif
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
- 
-      call pack_data( ogrid, pCO2, pCO2_glob )
-#ifndef OBIO_ON_GARYocean
-      call pack_data( ogrid, pp2tot_day, pp2tot_day_glob )
-      call pack_data( ogrid, cexpij, cexp_glob )
-      call pack_data( ogrid, caexpij, caexp_glob )
+#if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
+      USE obio_com, only: tracav,tracav_loc,
+     .    plevav,plevav_loc
+#endif
+#ifdef TRACERS_OceanBiology
+      USE obio_com, only:
+     .     ao_co2fluxav_loc, ao_co2fluxav
+     .    ,pCO2av_loc, pCO2av
+     .    ,pp2tot_dayav_loc, pp2tot_dayav
+     .    ,cexpav_loc, cexpav
+#ifdef TRACERS_Alkalinity
+     .    ,caexpav_loc, caexpav
+#endif
+#endif
+      implicit none 
+
+#ifdef TRACERS_OceanBiology
+      call gather_chl
+
+      call pack_data(ogrid, ao_co2fluxav_loc, ao_co2fluxav)
+      call pack_data(ogrid, pCO2av_loc, pCO2av)
+      call pack_data(ogrid, pp2tot_dayav_loc, pp2tot_dayav)
+      call pack_data(ogrid, cexpav_loc, cexpav)
+#ifdef TRACERS_Alkalinity
+      call pack_data(ogrid, caexpav_loc, caexpav)
+#endif
 #endif
 
-      end subroutine gather_pCO2
-
-      subroutine gather_chl
-
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
-      USE HYCOM_DIM, only : ogrid
+#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+      || (defined TRACERS_ZEBRA)
+      call pack_data( ogrid,  tracav_loc, tracav )
+      call pack_data( ogrid,  plevav_loc, plevav )
 #endif
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+      return
+      end subroutine obio_gather_before_archive
 
-      call pack_data( ogrid, tot_chlo, tot_chlo_glob )
+      subroutine def_rsf_obio(fid)
+!@sum  def_rsf_ocean defines ocean array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      USE HYCOM_DIM, only : grid=>ogrid
+      use pario, only : defvar
+      USE HYCOM_ARRAYS, only : tracer
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     ao_co2fluxav=>ao_co2fluxav_loc,
+     &     pp2tot_dayav=>pp2tot_dayav_loc,
+     &     cexpav=>cexpav_loc,
+     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
+      use obio_dim, only : trname
+      implicit none
+      integer fid   !@var fid file id
+      integer :: n
+      character(len=14) :: str2d
+      character(len=18) :: str3d
+      character(len=20) :: str3d2
+      str2d ='(idm,dist_jdm)'
+      str3d ='(idm,dist_jdm,kdm)'
+      str3d2='(idm,dist_jdm,kdmx2)'
 
-      end subroutine gather_chl
+      do n=1,size(trname)
+        call defvar(grid,fid,tracer(:,:,:,n),
+     &       trim(trname(n))//str3d)
+      enddo
 
-      END MODULE obio_com
+c      call defvar(grid,fid,nstep,'obio_nstep0')
+      call defvar(grid,fid,diag_counter,'obio_diag_counter')
+      call defvar(grid,fid,avgq,'avgq'//str3d)
+      call defvar(grid,fid,gcmax,'gcmax'//str3d)
+      call defvar(grid,fid,tirrq3d,'tirrq3d'//str3d)
+      call defvar(grid,fid,ihra,'ihra'//str2d)
+      call defvar(grid,fid,pCO2av,'pCO2av'//str2d)
+      call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav'//str2d)
+      call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav'//str2d)
+      call defvar(grid,fid,cexpav,'cexpav'//str2d)
+      call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
+      call defvar(grid,fid,tracav,'tracav(idm,dist_jdm,kdm,ntrcr)')
+      call defvar(grid,fid,plevav,'plevav'//str3d)
+
+      return
+      end subroutine def_rsf_obio
+
+      subroutine new_io_obio(fid,iaction)
+!@sum  new_io_ocean read/write ocean arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      USE HYCOM_DIM, only : grid=>ogrid
+      USE HYCOM_ARRAYS, only : tracer
+      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
+     &     ao_co2fluxav=>ao_co2fluxav_loc,
+     &     pp2tot_dayav=>pp2tot_dayav_loc,
+     &     cexpav=>cexpav_loc,
+     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
+      use obio_dim, only : trname
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      integer :: n
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        do n=1,size(trname)
+          call write_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
+        enddo
+        call write_data(grid,fid,'obio_diag_counter',diag_counter)
+        call write_dist_data(grid,fid,'avgq',avgq)
+        call write_dist_data(grid,fid,'gcmax',gcmax)
+        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call write_dist_data(grid,fid,'ihra',ihra)
+        call write_dist_data(grid,fid,'pCO2av',pCO2av)
+        call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call write_dist_data(grid,fid,'cexpav',cexpav)
+        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call write_dist_data(grid,fid,'tracav',tracav)
+        call write_dist_data(grid,fid,'plevav',plevav)
+      case (ioread)            ! input from restart file
+        do n=1,size(trname)
+          call read_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
+        enddo
+        call read_data(grid,fid,'obio_diag_counter',diag_counter)
+        call read_dist_data(grid,fid,'avgq',avgq)
+        call read_dist_data(grid,fid,'gcmax',gcmax)
+        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
+        call read_dist_data(grid,fid,'ihra',ihra)
+        call read_dist_data(grid,fid,'pCO2av',pCO2av)
+        call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call read_dist_data(grid,fid,'cexpav',cexpav)
+        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call read_dist_data(grid,fid,'tracav',tracav)
+        call read_dist_data(grid,fid,'plevav',plevav)
+      end select
+      return
+      end subroutine new_io_obio
+#endif /* which ocean */

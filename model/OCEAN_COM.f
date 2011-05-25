@@ -37,7 +37,8 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8 :: 
      *     oc_salt_mean = -999. 
 #ifdef TRACERS_OCEAN
-     *     , oc_tracer_mean(ntm) = -999. 
+      ! move to ocn_tracer_com?
+      REAL*8, DIMENSION(:), ALLOCATABLE :: oc_tracer_mean
 #endif 
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
@@ -425,20 +426,19 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+     *       ,oc_tracer_mean
+      USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
       USE OCN_TRACER_COM, only : ntm
+#ifndef TRACERS_OCEAN_INDEP
+      USE OCN_TRACER_COM, only : itime_tr0, ntrocn, to_per_mil,
+     &     t_qlimit, conc_from_fw, trdecay, trw0
+#endif
 #endif
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
 
       USE OCEAN, only: alloc_odiff
-#ifdef TRACERS_OceanBiology
-      USE obio_forc, only: alloc_obio_forc
-      USE obio_com,  only: alloc_obio_com
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
-#endif
 
       USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
@@ -456,6 +456,26 @@ C****
 
       CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
  
+#ifdef TRACERS_OCEAN
+      allocate(oc_tracer_mean(ntm)) 
+      oc_tracer_mean(:) = -999.
+#ifndef TRACERS_OCEAN_INDEP
+      allocate(
+     &     itime_tr0(ntm), ntrocn(ntm), to_per_mil(ntm),
+     &     t_qlimit(ntm), conc_from_fw(ntm),
+     &     trdecay(ntm), trw0(ntm)
+     &     )
+#endif
+      ALLOCATE(TRMST(LMO,NMST,NTM),
+     &         TXMST(LMO,NMST,NTM),
+     &         TZMST(LMO,NMST,NTM),
+     &         TRME(2,NMST,LMO,NTM),
+     &         TXME(2,NMST,LMO,NTM),
+     &         TYME(2,NMST,LMO,NTM),
+     &         TZME(2,NMST,LMO,NTM)
+     &        )
+#endif
+
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   VO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -553,15 +573,12 @@ C**** Necessary initiallisation?
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
-      call alloc_afluxes
-      call ALLOC_OFLUXES(ogrid)
+      !call alloc_afluxes
+      !call ALLOC_OFLUXES(atmocn)
 
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc
       call alloc_obio_com
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      call alloc_gasexch_com
 #endif
       call alloc_odiff(ogrid)
 

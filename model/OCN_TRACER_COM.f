@@ -2,7 +2,7 @@
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       MODULE OCN_TRACER_COM
-
+      SAVE
 !@sum OCN_TRACER_COM: sets up tracer quantities for ocean tracers
 !@+   This information can either be set up directly from the AGCM
 !@+   or can be indpendently defined here.
@@ -95,13 +95,27 @@ C**** a default tracer if nothing else is defined
 
 #else   /* not tracers_ocean_indep */
 
-C**** use only agcm data
-      USE TRACER_COM, only : ntm, trname, itime_tr0, trdecay,
-     *        t_qlimit, trw0, ntrocn, n_water, conc_from_fw
-      USE TRDIAG_COM, only : to_per_mil
+C**** copies of data from the agcm, which has the responsibility of
+C**** initializing it
+      INTEGER :: ntm, n_water
+      INTEGER, DIMENSION(:), ALLOCATABLE ::
+     &     itime_tr0, ntrocn, to_per_mil
+      LOGICAL, DIMENSION(:), ALLOCATABLE ::
+     &     t_qlimit, conc_from_fw
+      REAL*8, DIMENSION(:), ALLOCATABLE ::
+     &     trdecay, trw0
+      CHARACTER(LEN=10), DIMENSION(:), ALLOCATABLE ::
+     &     trname
 
 #endif  /* TRACERS_OCEAN_INDEP */
       INTEGER :: n_age = 0, n_obio = 0
+
+      real*8, allocatable :: expdec(:)
+
+#ifdef TRACERS_SPECIAL_O18
+      ! could be made a local var in tracer_ic_ocean?
+      integer :: water_tracer_ic=1 ! Read water tracers ic from H2O18ic (=1) or set all to SMOW (=0)
+#endif
 
       END MODULE OCN_TRACER_COM
 #endif

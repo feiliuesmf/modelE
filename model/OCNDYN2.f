@@ -22,18 +22,12 @@ C****
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx, ijl_sflx, ijl_mfw2,
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
-
+      USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       Use ODIAG, Only: toijl=>toijl_loc,
      *               toijl_conc,toijl_tflx,toijl_gmfl
-#endif
-#ifdef TRACERS_OceanBiology
-      USE obio_com, only: gather_chl
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE obio_com, only: gather_pCO2
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -89,7 +83,7 @@ C**** Apply bottom and coastal drags
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
-      call obio_model
+      call obio_model(ocnatm)
       call gather_chl
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2

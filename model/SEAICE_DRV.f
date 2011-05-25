@@ -50,7 +50,7 @@ C****
       USE EXCHANGE_TYPES, only : atmice_xchng_vars,iceocn_xchng_vars
       USE SEAICE_COM, only : icestate
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
+      USE SEAICE, only : ntm
 #endif
       USE SEAICE, only : prec_si, ace1i, lmi,xsi,debug
       IMPLICIT NONE
@@ -176,7 +176,7 @@ C****
       USE CONSTANT, only : rhow,rhows,omega,rhoi,shw
       USE MODEL_COM, only : dtsrc,qcheck,kocean
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE SEAICE, only : ntm
 #endif
       USE SEAICE, only : lmi,xsi,icelake_fluxes,iceocean_fluxes,
      *     ac2oim,alpha,tfrez,debug,Ti,dEidTi,alami
@@ -352,7 +352,7 @@ C****
      &     atmocn_xchng_vars,atmice_xchng_vars
       USE SEAICE_COM, only : icestate
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
+      USE SEAICE, only : ntm
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -537,7 +537,7 @@ C**** replicate ice values at the poles
      &     atmice_xchng_vars,iceocn_xchng_vars,atmocn_xchng_vars
       USE SEAICE_COM, only : icestate
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only: ntm
+      USE SEAICE, only: ntm
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
      *     ,snowice, snow_ice, rhos, Ti
@@ -810,7 +810,7 @@ C****
       USE SEAICE_COM, only : icestate
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars,atmice_xchng_vars
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
+      USE SEAICE, only : ntm
 #endif
       IMPLICIT NONE
       type(icestate) :: si_state
@@ -1001,8 +1001,8 @@ C****
       USE SEAICE_COM, only : icestate
       USE SEAICE, only : rhos,ace1i
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
-      USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
+      USE SEAICE, only : ntm
+      !USE TRACER_COM, only : itime_tr0,tr_wd_type,nWater,nPART
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -1221,8 +1221,9 @@ C**** Ice-covered ocean diagnostics
 #ifdef TRACERS_WATER
 C**** Save sea ice tracer amount
           do n=1,ntm
-            if (itime_tr0(n).le.itime .and.
-     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)) then
+c            if (itime_tr0(n).le.itime .and.
+c     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)) then
+            if(atmice%do_accum(n)) then
               taijn(i,j,atmice%tij_seaice,n)=
      &             taijn(i,j,atmice%tij_seaice,n)+
      &             POICE*atmice%TRSIsum(n,I,J)

@@ -538,7 +538,7 @@ C**** fix roughness length for ocean ice that turned to land ice
       call ccoeff0
       call getztop(zgs,ztop)
 
-      atmocn % wsavg => wsavg
+      deallocate(atmocn%wsavg); atmocn % wsavg => wsavg
 
       if(.not.inipbl) return
 

@@ -141,7 +141,7 @@ c     for SCM cases using provided surface temps - do not overwrite
       USE GEOM, ONLY : imaxj,lat2d
       USE SEAICE_COM, only : si_ocn
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
+      USE SEAICE, only : ntm
 #endif
       USE FLUXES, only : atmocn,atmice
 
@@ -1290,7 +1290,7 @@ C****
       USE SEAICE, only : ace1i,lmi
       USE SEAICE_COM, only : si_ocn
 #ifdef TRACERS_WATER
-      USE SEAICE_COM, only : ntm
+      USE SEAICE, only : ntm
       USE TRDIAG_COM, only : taijn=>taijn_loc
 #endif
       USE FLUXES, only : atmocn,atmice

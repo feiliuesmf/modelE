@@ -11,14 +11,13 @@
       use ocn_tracer_com, only : ntrcr=>ntm, obio_tr_mm
       use model_com, only : nstep=>itime
       use ocean, only: trmo
+      use ofluxes, only : ocnatm
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
       use hycom_arrays, only : tracer,dpinit,scp2
       use hycom_scalars, only : nstep,onem
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only : tracflx
+      use hycom_atm, only : ocnatm
 #endif
       USE MODEL_COM, only: JMON
       USE obio_incom, only: mgchltouMC,solFe
@@ -56,9 +55,9 @@
       ! size 1 in the uninteresting directions to match
       ! expected interface.
 #ifdef OBIO_ON_GARYocean
-      sumFlux= areaIntegration(tracflx(:,:,1))
+      sumFlux= areaIntegration(ocnatm%trgasex(1,:,:)) !tracflx(:,:,1))
 #else
-      sumFlux= areaIntegration(tracflx(:,:,1))
+      sumFlux= areaIntegration(ocnatm%trgasex(1,:,:)) !tracflx(:,:,1))
 #endif
 #else
       sumFlux=0.   ! no surface flux

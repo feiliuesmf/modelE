@@ -1,12 +1,6 @@
 #include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
       subroutine mxkprf(m,n,mm,nn,k1m,k1n)
-#ifdef TRACERS_GASEXCH_ocean
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : tracflx
-#endif
-#endif
 ccc   use mod_xc    ! HYCOM communication interface
 ccc   use mod_pipe  ! HYCOM debugging interface
 c --- hycom version 2.1

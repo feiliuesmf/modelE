@@ -8,11 +8,6 @@
       SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
       USE SEAICE, only : osurf_tilt
-
-#ifdef TRACERS_OceanBiology
-      use obio_forc, only : atmco2
-      use write2giss_mod, only : write2giss_init
-#endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
      &  , nstep0, nstep, time0, time, itest, jtest
@@ -24,7 +19,7 @@
 #endif
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
-      USE HYCOM_CPLER, only : tempro2a, ssto2a
+      USE HYCOM_CPLER, only : agrid,tempro2a, ssto2a
 
       USE hycom_arrays_glob_renamer, only : temp_loc,saln_loc
       USE HYCOM_ATM, only : alloc_hycom_atm
@@ -39,6 +34,10 @@
 
       integer i,j,ia,ja
 
+      atmocn%need_eflow_gl = .true. ! tell atm that eflow_gl is needed
+
+      agrid => atmocn%grid ! grid used for pack_data/unpack_data in cpler
+
       aJ_0 = atmocn%J_0
       aJ_1 = atmocn%J_1
       aI_0 = atmocn%I_0
@@ -49,7 +48,7 @@
       aI_0H = atmocn%I_0H
       aI_1H = atmocn%I_1H
 
-      call alloc_hycom_atm
+      call alloc_hycom_atm(atmocn)
 
 #ifdef CUBED_SPHERE /* should be done for latlon atm also */
 C**** Make sure to use geostrophy for ocean tilt term in ice dynamics
@@ -69,13 +68,7 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       call sync_param( "jerlv0", jerlv0)
 
 #ifdef TRACERS_OceanBiology
-      call write2giss_init ! to get global focean array
-#ifdef constCO2
-      call get_param("atmCO2",atmCO2)   !need to do this here also
-      print*, 'OCEAN_hycom, atmco2=',atmCO2
-#else
-      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
-#endif
+      call obio_forc_init
 #endif
 c
       call geopar(iniOCEAN)
@@ -133,10 +126,6 @@ c
 !!      endif
 
       endif ! AM_I_ROOT
-
-#if defined(TRACERS_GASEXCH_ocean_CO2) && defined(TRACERS_OceanBiology)
-      call init_gasexch_co2(atmocn)
-#endif
 
       call scatter_hycom_arrays
 
@@ -840,15 +829,6 @@ c
       use pario, only : defvar
       USE HYCOM_SCALARS, only : nstep,time,oddev
       USE HYCOM_ARRAYS
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
-     &     ao_co2fluxav=>ao_co2fluxav_loc,
-     &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc,
-     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
-      use obio_dim, only : trname
-#endif
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -858,6 +838,10 @@ c
       str2d ='(idm,dist_jdm)'
       str3d ='(idm,dist_jdm,kdm)'
       str3d2='(idm,dist_jdm,kdmx2)'
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      call def_rsf_obio(fid)
+#endif
 
       call defvar(grid,fid,nstep,'nstep')
       call defvar(grid,fid,time,'time')
@@ -879,10 +863,6 @@ c
       call defvar(grid,fid,vflxav,'vflxav'//str3d)
       call defvar(grid,fid,diaflx,'diaflx'//str3d)
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      do n=1,size(trname)
-        call defvar(grid,fid,tracer(:,:,:,n),
-     &       trim(trname(n))//str3d)
-      enddo
 #else
       call defvar(grid,fid,tracer,'tracer(idm,dist_jdm,kdm,ntrcr)')
 #endif
@@ -908,22 +888,6 @@ c
       call defvar(grid,fid,tauyav,'tauyav'//str2d)
       call defvar(grid,fid,dpmxav,'dpmxav'//str2d)
       call defvar(grid,fid,oiceav,'oiceav'//str2d)
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-c      call defvar(grid,fid,nstep,'obio_nstep0')
-      call defvar(grid,fid,diag_counter,'obio_diag_counter')
-      call defvar(grid,fid,avgq,'avgq'//str3d)
-      call defvar(grid,fid,gcmax,'gcmax'//str3d)
-      call defvar(grid,fid,tirrq3d,'tirrq3d'//str3d)
-      call defvar(grid,fid,ihra,'ihra'//str2d)
-      call defvar(grid,fid,pCO2av,'pCO2av'//str2d)
-      call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav'//str2d)
-      call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav'//str2d)
-      call defvar(grid,fid,cexpav,'cexpav'//str2d)
-      call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
-      call defvar(grid,fid,tracav,'tracav(idm,dist_jdm,kdm,ntrcr)')
-      call defvar(grid,fid,plevav,'plevav'//str3d)
-#endif
 
 c write:
 c        WRITE (kunit,err=10) nstep,time
@@ -952,23 +916,16 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
       USE HYCOM_DIM, only : grid=>ogrid
-      use pario, only : defvar
       USE HYCOM_SCALARS, only : nstep,time,nstep0,time0,baclin,oddev
       USE HYCOM_ARRAYS
       USE HYCOM_ARRAYS_GLOB, only : gather_hycom_arrays   ! for now
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
-     &     ao_co2fluxav=>ao_co2fluxav_loc,
-     &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc,
-     &     diag_counter, tracav=>tracav_loc, plevav=>plevav_loc
-      use obio_dim, only : trname
-#endif
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call new_io_obio(fid,iaction)
+#endif
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_data(grid,fid,'nstep',nstep)
@@ -990,9 +947,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'vflxav',vflxav)
         call write_dist_data(grid,fid,'diaflx',diaflx)
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        do n=1,size(trname)
-          call write_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
-        enddo
+        ! will be written by obio routine
 #else
         call write_dist_data(grid,fid,'tracer',tracer)
 #endif
@@ -1018,20 +973,6 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'tauyav',tauyav)
         call write_dist_data(grid,fid,'dpmxav',dpmxav)
         call write_dist_data(grid,fid,'oiceav',oiceav)
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call write_data(grid,fid,'obio_diag_counter',diag_counter)
-        call write_dist_data(grid,fid,'avgq',avgq)
-        call write_dist_data(grid,fid,'gcmax',gcmax)
-        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call write_dist_data(grid,fid,'ihra',ihra)
-        call write_dist_data(grid,fid,'pCO2av',pCO2av)
-        call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
-        call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
-        call write_dist_data(grid,fid,'cexpav',cexpav)
-        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-        call write_dist_data(grid,fid,'tracav',tracav)
-        call write_dist_data(grid,fid,'plevav',plevav)
-#endif
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
         call read_data(grid,fid,'time',time0,bcast_all=.true.)
@@ -1057,9 +998,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call read_dist_data(grid,fid,'vflxav',vflxav)
         call read_dist_data(grid,fid,'diaflx',diaflx)
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        do n=1,size(trname)
-          call read_dist_data(grid,fid,trim(trname(n)),tracer(:,:,:,n))
-        enddo
+        ! will be read by obio routine
 #else
         call read_dist_data(grid,fid,'tracer',tracer)
 #endif
@@ -1088,21 +1027,8 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
 c certain initialization routines still work with global
 c arrays, so we have to gather
         call gather_hycom_arrays
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call read_data(grid,fid,'obio_diag_counter',diag_counter)
-        call read_dist_data(grid,fid,'avgq',avgq)
-        call read_dist_data(grid,fid,'gcmax',gcmax)
-        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call read_dist_data(grid,fid,'ihra',ihra)
-        call read_dist_data(grid,fid,'pCO2av',pCO2av)
-        call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
-        call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
-        call read_dist_data(grid,fid,'cexpav',cexpav)
-        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-        call read_dist_data(grid,fid,'tracav',tracav)
-        call read_dist_data(grid,fid,'plevav',plevav)
-#endif
       end select
+
       return
       end subroutine new_io_ocean
 #endif /* NEW_IO */
@@ -1190,15 +1116,6 @@ C     nothing to gather - ocean prescribed
       USE KPRF_ARRAYS, only : alloc_kprf_arrays, alloc_kprf_arrays_local
       USE HYCOM_ATM, only : alloc_hycom_atm
 
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
-#endif
-
-#ifdef TRACERS_OceanBiology
-      USE obio_forc, only: alloc_obio_forc
-      USE obio_com,  only: alloc_obio_com
-#endif
-
       implicit none
       
 
@@ -1219,9 +1136,6 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays
       call alloc_kprf_arrays_local
 
-#ifdef TRACERS_GASEXCH_ocean
-      call alloc_gasexch_com
-#endif
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc
       call alloc_obio_com
