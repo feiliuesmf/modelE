@@ -51,6 +51,9 @@ C
 
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACERS_VBS, only: vbs_bins
+#endif
 
 C
       IMPLICIT NONE
@@ -113,12 +116,17 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_shindell_extra=0
 #endif  /* SHINDELL_STRAT_EXTRA */
 !@var ntm_koch: Number of TRACERS_AEROSOLS_Koch tracers.
+!@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
       integer, parameter :: ntm_koch=5
+#elif (defined TRACERS_AEROSOLS_VBS)
+      integer, parameter :: ntm_koch=10
+      integer, parameter :: ntm_vbs=2*vbs_bins
 #else
       integer, parameter :: ntm_koch=13
-#endif  /* SULF_ONLY_AEROSOLS */
+      integer, parameter :: ntm_vbs=0
+#endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
 #else
       integer, parameter :: ntm_koch=0
 #endif  /* TRACERS_AEROSOLS_Koch */
@@ -321,8 +329,8 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
 #else
 !@param ntm number of tracers
       integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
-     *                          ntm_nitrate+ntm_cosmo+
+     *                          ntm_water+ntm_koch+ntm_vbs+ntm_dust+
+     *                          ntm_het+ntm_nitrate+ntm_cosmo+
      *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra+ntm_ococean
 
@@ -382,7 +390,14 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
 #ifndef SULF_ONLY_AEROSOLS
      *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
+#ifdef TRACERS_AEROSOLS_VBS
+     *    'vbsGm2  ','vbsGm1  ','vbsGz   ','vbsGp1  ','vbsGp2  ',
+     *    'vbsGp3  ','vbsGp4  ','vbsGp5  ','vbsGp6  ',
+     *    'vbsAm2  ','vbsAm1  ','vbsAz   ','vbsAp1  ','vbsAp2  ',
+     *    'vbsAp3  ','vbsAp4  ','vbsAp5  ','vbsAp6  ',
+#else
      *    'OCII    ','OCIA    ','OCB     ',
+#endif
 #endif  /* SULF_ONLY_AEROSOLS */
 #endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -881,6 +896,10 @@ C**** do igas=1,ntm_chem instances get corrected.
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
+     *     n_vbsGm2=0, n_vbsGm1=0, n_vbsGz=0,  n_vbsGp1=0, n_vbsGp2=0,
+     *     n_vbsGp3=0, n_vbsGp4=0, n_vbsGp5=0, n_vbsGp6=0,
+     *     n_vbsAm2=0, n_vbsAm1=0, n_vbsAz=0,  n_vbsAp1=0, n_vbsAp2=0,
+     *     n_vbsAp3=0, n_vbsAp4=0, n_vbsAp5=0, n_vbsAp6=0,
      *     n_OCocean=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
      &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,

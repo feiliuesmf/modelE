@@ -973,6 +973,9 @@ C****
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'
+#ifdef TRACERS_AEROSOLS_VBS
+      write(6,*) '   with VBS organics'
+#endif
 #endif
 #ifdef TRACERS_AMP
       write(6,*) '...and aerosol microphysics'

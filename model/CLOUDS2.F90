@@ -416,7 +416,7 @@ contains
 !@param RHOG,RHOIP density of graupel and ice particles
     !
 #ifdef CLD_AER_CDNC
-    integer, parameter :: SNTM=29+ntm_ococean !17+ntm_soa/2  !for tracers for CDNC
+    integer, parameter :: SNTM=31  !for tracers for CDNC
 #endif
     !
     !              *******************************
@@ -1354,6 +1354,35 @@ contains
                 DSGL(L,22)=tm_cdnc(n)
                 DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_AEROSOLS_VBS
+              case('vbsAm2')
+                DSGL(L,23)=tm_cdnc(n)
+                DSS(23) = DSGL(L,23)
+              case('vbsAm1')
+                DSGL(L,24)=tm_cdnc(n)
+                DSS(24) = DSGL(L,24)
+              case('vbsAz')
+                DSGL(L,25)=tm_cdnc(n)
+                DSS(25) = DSGL(L,25)
+              case('vbsAp1')
+                DSGL(L,26)=tm_cdnc(n)
+                DSS(26) = DSGL(L,26)
+              case('vbsAp2')
+                DSGL(L,27)=tm_cdnc(n)
+                DSS(27) = DSGL(L,27)
+              case('vbsAp3')
+                DSGL(L,28)=tm_cdnc(n)
+                DSS(28) = DSGL(L,28)
+              case('vbsAp4')
+                DSGL(L,29)=tm_cdnc(n)
+                DSS(29) = DSGL(L,29)
+              case('vbsAp5')
+                DSGL(L,30)=tm_cdnc(n)
+                DSS(30) = DSGL(L,30)
+              case('vbsAp6')
+                DSGL(L,31)=tm_cdnc(n)
+                DSS(31) = DSGL(L,31)
+#endif  /* TRACERS_AEROSOLS_VBS */
               end select
             end do      !end of n loop for tracers
 #endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
@@ -2972,7 +3001,7 @@ contains
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-    integer, parameter :: SNTM=29+ntm_ococean !17+ntm_soa/2+ntm_ococean
+    integer, parameter :: SNTM=31
     real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT &
          ,CDNL0,NEWCDN,OLDCDN,SNd
     real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -3433,6 +3462,35 @@ contains
           DSGL(L,22)=tm(l,n)
           DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_AEROSOLS_VBS
+        case('vbsAm2')
+          DSGL(L,23)=tm(l,n)
+          DSS(23) = DSGL(L,23)
+        case('vbsAm1')
+          DSGL(L,24)=tm(l,n)
+          DSS(24) = DSGL(L,24)
+        case('vbsAz')
+          DSGL(L,25)=tm(l,n)
+          DSS(25) = DSGL(L,25)
+        case('vbsAp1')
+          DSGL(L,26)=tm(l,n)
+          DSS(26) = DSGL(L,26)
+        case('vbsAp2')
+          DSGL(L,27)=tm(l,n)
+          DSS(27) = DSGL(L,27)
+        case('vbsAp3')
+          DSGL(L,28)=tm(l,n)
+          DSS(28) = DSGL(L,28)
+        case('vbsAp4')
+          DSGL(L,29)=tm(l,n)
+          DSS(29) = DSGL(L,29)
+        case('vbsAp5')
+          DSGL(L,30)=tm(l,n)
+          DSS(30) = DSGL(L,30)
+        case('vbsAp6')
+          DSGL(L,31)=tm(l,n)
+          DSS(31) = DSGL(L,31)
+#endif  /* TRACERS_AEROSOLS_VBS */
         end select
       end do      !end of n loop for tracers
 #endif   /* tracerpart and cld-aer part */
