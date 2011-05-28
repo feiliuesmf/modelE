@@ -15,7 +15,7 @@
       USE MODEL_COM, only: itime
       USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
 #ifdef TRACERS_SPECIAL_O18
-      USE TRACER_COM, only : water_tracer_ic
+      USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
 
       USE OCEAN, only : im,jm,lmo,focean,dxypo,mo,lmm,imaxj,oXYP
@@ -39,6 +39,7 @@
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : gather_ocean
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
+      USE Dictionary_mod
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -55,6 +56,13 @@ c
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S, J_STRT = J_0,
      *     J_STOP = J_1, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+
+#ifdef TRACERS_SPECIAL_O18
+      if (is_set_param('water_tracer_ic')) then
+        call get_param('water_tracer_ic', water_tracer_ic)
+      endif
+      !call sync_param ( "water_tracer_ic",water_tracer_ic  )
+#endif
 
 C**** Note that only sea ice related arrays are initialised if
 C**** only TRACERS_WATER is true.
@@ -349,15 +357,16 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 !@sum OC_TDECAY decays radioactive tracers in ocean
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : itime
-      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0
+      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0,expdec
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       IMPLICIT NONE
-      real*8, save, dimension(ntm) :: expdec = 1.
       real*8, intent(in) :: dts
       logical, save :: ifirst=.true.
       integer n
 
       if (ifirst) then               
+        allocate(expdec(ntm))
+        expdec(:) = 1.
         do n=1,ntm
           if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dts)
         end do

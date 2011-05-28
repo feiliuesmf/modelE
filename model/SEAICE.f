@@ -9,11 +9,11 @@
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
      *     ,rhows
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
       IMPLICIT NONE
       SAVE
+#ifdef TRACERS_WATER
+      INTEGER :: ntm
+#endif
 !@param LMI number of temperature layers in ice
       INTEGER, PARAMETER :: LMI = 4
 !@param XSI fractions of mass layer in each temp. layer
@@ -2225,9 +2225,6 @@ c        Em= 0.
       MODULE SEAICE_COM
 !@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
       USE SEAICE, only : lmi
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
@@ -2268,6 +2265,7 @@ C**** albedo calculations
          LOGICAL, DIMENSION(:,:), POINTER ::
      &        flag_dsws
 #ifdef TRACERS_WATER
+         INTEGER :: ntm=0
 !@var TRSI tracer amount in sea ice (kg/m^2)
          REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
 #endif
@@ -2296,6 +2294,7 @@ C**** albedo calculations
       INTEGER :: I_0H,I_1H, J_0H,J_1H, I_0,I_1, J_0,J_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
       INTEGER :: IER
+      INTEGER :: NTM
 
       CALL GET(grd_dum,
      &     I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1,
@@ -2351,6 +2350,7 @@ C**** albedo calculations
       state % ssi = 0.d0
 
 #ifdef TRACERS_WATER
+      NTM = state%NTM
       ALLOCATE( state % TRSI(NTM, LMI, I_0H:I_1H, J_0H:J_1H),
      *     STAT=IER)
       state % TRSI = 0.  ! default to prevent unecessary crash
@@ -2376,6 +2376,9 @@ C**** albedo calculations
 
       call alloc_icestate_type(grid,si_ocn,'OCEAN')
 
+#ifdef TRACERS_WATER
+      iceocn%ntm = si_ocn%ntm
+#endif
       call alloc_xchng_vars(grid,iceocn)
       deallocate(iceocn%rsi); iceocn%rsi => si_ocn%rsi
 

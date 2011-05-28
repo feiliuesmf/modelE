@@ -1027,7 +1027,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       USE SEAICE, only : ace1i,xsi,Ti,Ei
       USE SEAICE_COM, only : si_ocn,lmi
 #ifdef TRACERS_WATER
-     *     ,ntm
+      USE SEAICE, only : ntm
 #endif
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
@@ -1037,14 +1037,12 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMSI,
      &     FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
-#ifndef TRACERS_WATER
-      INTEGER, PARAMETER :: NTRICE=2+2*LMI
-#else
-      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
+      INTEGER :: NTRICE
+#ifdef TRACERS_WATER
       INTEGER ITR
       REAL*8 TRSNOW(NTM), TRICE(NTM)
 #endif
-      REAL*8 SFMSI(NTRICE),AMSI(NTRICE)
+      REAL*8, ALLOCATABLE :: SFMSI(:),AMSI(:)
 !@var MHS mass/heat/salt content of sea ice
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: FMSJ,MHS
       INTEGER I,J,L,IM1,IP1,K
@@ -1077,6 +1075,13 @@ C**** Get grid parameters
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 
+#ifndef TRACERS_WATER
+      NTRICE=2+2*LMI
+#else
+      NTRICE=2+(2+NTM)*LMI
+#endif
+
+      ALLOCATE(SFMSI(NTRICE),AMSI(NTRICE))
       ALLOCATE(FMSI(NTRICE,IM),FMSJ(IM,NTRICE,J_0H:J_1H))
       ALLOCATE(MHS(NTRICE,IM,J_0H:J_1H))
       ALLOCATE(FASI(IM,J_0H:J_1H)
@@ -1666,7 +1671,7 @@ C**** reset sea ice concentration
       END IF
 C****
 
-      DEALLOCATE(FMSI,FMSJ,MHS)
+      DEALLOCATE(FMSI,FMSJ,MHS,SFMSI,AMSI)
       DEALLOCATE(FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT)
 
       RETURN

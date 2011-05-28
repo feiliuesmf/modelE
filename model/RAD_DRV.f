@@ -671,12 +671,12 @@ c        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
 c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
 c      end if
 
-      atmocn % COSZ1 => COSZ1
+      deallocate(atmocn%COSZ1); atmocn % COSZ1 => COSZ1
 #ifdef OBIO_RAD_coupling
-      atmocn % DIRVIS => DIRVIS
-      atmocn % DIFVIS => FSRDIF
-      atmocn % DIRNIR => DIRNIR
-      atmocn % DIFNIR => DIFNIR
+      deallocate(atmocn%DIRVIS); atmocn % DIRVIS => DIRVIS
+      deallocate(atmocn%DIFVIS); atmocn % DIFVIS => FSRDIF
+      deallocate(atmocn%DIRNIR); atmocn % DIRNIR => DIRNIR
+      deallocate(atmocn%DIFNIR); atmocn % DIFNIR => DIFNIR
 #endif
 
       RETURN

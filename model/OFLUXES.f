@@ -46,15 +46,16 @@
 
       END MODULE OFLUXES
 
-      SUBROUTINE ALLOC_OFLUXES(grd_dum)
+      SUBROUTINE ALLOC_OFLUXES(atmocn)
 !@sum   Initializes FLUXES''s arrays
 !@auth  Larissa Nazarenko
       USE CONSTANT, only : tf
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE OCEANR_DIM, only : grd_dum=>ogrid
       USE OFLUXES
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
+      type(atmocn_xchng_vars) :: atmocn
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
@@ -64,6 +65,12 @@
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
 
+#ifdef TRACERS_ON
+      ocnatm % ntm = atmocn % ntm
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      ocnatm % ntm_gasexch = atmocn % ntm_gasexch
+#endif
       call alloc_xchng_vars(grd_dum,ocnatm)
 
       oSOLARw => ocnatm%SOLAR
@@ -78,6 +85,9 @@
       oGMELT  => ocnatm%GMELT
       oEGMELT => ocnatm%EGMELT
 
+#ifdef TRACERS_OCEAN
+      ocnice % ntm = atmocn % ntm
+#endif
       call alloc_xchng_vars(grd_dum,ocnice)
 
       oSOLARi  => ocnice%SOLAR

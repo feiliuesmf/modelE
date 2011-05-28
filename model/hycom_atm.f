@@ -5,13 +5,12 @@
 !@+   hycom will see them as global arrays
       USE HYCOM_DIM, only : aI_0, aI_1, aI_0H, aI_1H
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H
-
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_COM, only : ntm
-#endif
-
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       implicit none
+
       private
+
+      type(atmocn_xchng_vars), public :: ocnatm
 
       public alloc_hycom_atm
 
@@ -58,7 +57,18 @@
 
       contains
 
-      subroutine alloc_hycom_atm
+      subroutine alloc_hycom_atm(atmocn)
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
+      USE EXCHANGE_TYPES, only : alloc_xchng_vars
+      USE HYCOM_DIM, only : ogrid
+
+      type(atmocn_xchng_vars) :: atmocn
+
+#ifdef TRACERS_GASEXCH_ocean
+      ocnatm % ntm = atmocn % ntm
+      ocnatm % ntm_gasexch = atmocn % ntm_gasexch
+#endif
+      call alloc_xchng_vars(ogrid,ocnatm)
 
       ALLOCATE(
      &     ataux_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
@@ -74,7 +84,7 @@
      &     )
 
 #ifdef TRACERS_GASEXCH_ocean
-      ALLOCATE( atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,ntm) )
+      ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,atmocn%ntm_gasexch))
 #endif
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))

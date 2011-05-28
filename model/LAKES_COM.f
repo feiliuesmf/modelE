@@ -105,6 +105,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@var TRLAKE tracer amount in each lake level (kg)
       ALLOCATE( TRLAKE(NTM,2,I_0H:I_1H,J_0H:J_1H)
      * , STAT=IER)
+      si_atm % ntm = ntm
+      icelak % ntm = ntm
 #endif
 
       call alloc_icestate_type(grid,si_atm,'LAKES')

@@ -319,9 +319,6 @@
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
 #endif
-#ifdef TRACERS_OceanBiology
-      USE obio_forc, only : atmCO2
-#endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
 c
@@ -351,6 +348,11 @@ c**** Extract domain decomposition info
 !     soon obsolete: postProcessing case
       postProc = .false. ; if(istart < 1) postProc = .true.
 
+      if (LMO_MIN .lt. 2) then
+        write (*,*) ' Make minimum number of ocean layers equal to 2'
+        stop
+      end if
+
 C****
 C**** Check that KOCEAN is set correctly
 C****
@@ -370,13 +372,10 @@ C**** define initial condition options for global mean
       call sync_param("oc_tracer_mean",oc_tracer_mean,ntm)
 #endif
 
+      call alloc_ofluxes(atmocn)
+
 #ifdef TRACERS_OceanBiology
-#ifdef constCO2
-      call get_param("atmCO2",atmCO2)   !need to do this here also
-      print*, 'OCNDYN, atmco2=',atmCO2
-#else
-      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
-#endif
+      call obio_forc_init()
 #endif
 
 
@@ -1367,11 +1366,6 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : trname
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
-#endif
 #endif
       use pario, only : defvar
       use domain_decomp_1d, only : get
@@ -1428,17 +1422,7 @@ c tracer arrays in straits
       call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      call defvar(grid,fid,nstep0,'obio_nstep0')
-      call defvar(grid,fid,avgq,'avgq(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,gcmax,'gcmax(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,tirrq3d,'tirrq3d(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,ihra,'ihra(dist_imo,dist_jmo)')
-      do n=1,ntm
-        call defvar(grid,fid,tracer(:,:,:,n),
-     &       'obio_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
-      enddo
-      call defvar(grid,fid,pCO2,'pCO2(dist_imo,dist_jmo)')
-      call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
+      call def_rsf_obio(fid)
 #endif
 #endif
 
@@ -1466,12 +1450,6 @@ c tracer arrays in straits
      &     write_data,read_data
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : trname
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      use model_com, only : nstep=>itime
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pCO2,pp2tot_day
-#endif
 #endif
       use domain_decomp_1d, only : get
       implicit none
@@ -1528,19 +1506,6 @@ c tracer arrays in straits
         call write_data(grid,fid,'tzmst',tzmst)
 #ifdef TRACERS_WATER
         call write_data(grid,fid,'trsist',trsist)
-#endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call write_data(grid,fid,'obio_nstep0',nstep)
-        call write_dist_data(grid,fid,'avgq',avgq)
-        call write_dist_data(grid,fid,'gcmax',gcmax)
-        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call write_dist_data(grid,fid,'ihra',ihra)
-        do n=1,ntm
-          call write_dist_data(grid,fid,'obio_'//trim(trname(n)),
-     &         tracer(:,:,:,n))
-        enddo
-        call write_dist_data(grid,fid,'pCO2',pCO2)
-        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
 #endif
 #endif
         call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
@@ -1603,22 +1568,13 @@ c tracer arrays in straits
 #ifdef TRACERS_WATER
         call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
 #endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call read_data(grid,fid,'obio_nstep0',nstep0,
-     &       bcast_all=.true.)
-        call read_dist_data(grid,fid,'avgq',avgq)
-        call read_dist_data(grid,fid,'gcmax',gcmax)
-        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call read_dist_data(grid,fid,'ihra',ihra)
-        do n=1,ntm
-          call read_dist_data(grid,fid,'obio_'//trim(trname(n)),
-     &         tracer(:,:,:,n))
-        enddo
-        call read_dist_data(grid,fid,'pCO2',pCO2)
-        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-#endif
 #endif
       end select
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      call new_io_obio(fid,iaction)
+#endif
+
       return
       end subroutine new_io_ocean
 #endif /* NEW_IO */
@@ -4279,6 +4235,7 @@ C**** Surface stress is applied to V component at the North Pole
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
      *     , oDMSI, oDHSI, oDSSI
+     *     , ocnice
       USE ODIAG, only : oij=>oij_loc,ij_srhflx,ij_srwflx,ij_srhflxi
      *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr 
 #ifdef TRACERS_OCEAN
@@ -4437,8 +4394,10 @@ c        write(*,*) "store fluxes"
         oDSSI(2,I,J)=DSOI+SUM(DS0)  !  kg/m^2
 
 #ifdef TRACERS_OCEAN
-        oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
-        oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
+        if(ocnice%ntm == ntm) then
+          oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
+          oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
+        endif
 #endif
 
 C**** Calculate pressure anomaly at ocean surface (and scale for areas)
@@ -5124,123 +5083,11 @@ C****
       END SUBROUTINE ODIFF
 
       SUBROUTINE TOC2SST(atmocn)
-!@sum  TOC2SST convert ocean surface variables into atmospheric sst
-!@auth Gavin Schmidt
-      USE CONSTANT, only : tf
-      USE OCEANRES,   only : LMO_MIN
-      USE AFLUXES, only : aMO, aG0,aS0
-      USE MODEL_COM, only: nstep=>itime
-
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : trw0, ntm
-#else
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : trw0, ntm
-#endif
-#endif
-#ifdef TRACERS_OCEAN
-      Use AFLUXES, Only: aTRAC
-#endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
-c
-      INTEGER I,J
-      REAL*8 TEMGS,shcgs,TO
-      integer :: j_0,j_1,n,i_0,i_1
-
-      if (LMO_MIN .lt. 2) then
-        write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
-        write (*,*) ' Make minimum number of ocean layers equal to 2'
-        stop
-      end if
-
-      I_0 = atmocn%I_0
-      I_1 = atmocn%I_1
-      J_0 = atmocn%J_0
-      J_1 = atmocn%J_1
-
-!  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
-!
       call OG2AG_TOC2SST(atmocn)
-
-C****
-C**** Note that currently everything is on same grid
-C****
-      DO J=J_0,J_1
-        DO I=I_0,atmocn%IMAXJ(J)
-          IF (atmocn%FOCEAN(I,J).gt.0.) THEN
-            TO = TEMGS(aG0(I,J,1),aS0(I,J,1))
-            atmocn%GTEMP(I,J) = TO
-            atmocn%GTEMPR(I,J)  = TO+TF
-            atmocn%SSS(I,J) = 1d3*aS0(I,J,1)
-            atmocn%MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
-!            IF (LMM(I,J).gt.1) THEN
-              TO = TEMGS(aG0(I,J,2),aS0(I,J,2))
-!            END IF
-            atmocn%GTEMP2(I,J)= TO
-   ! atmospheric grid Ocean height
-!            atmocn%OGEOZA(I,J) = 0.5*(aOGEOZ(I,J)+aOGEOZ_SV(I,J))
-!            atmocn%UOSURF(I,J) = aUO1(I,J)
-!            atmocn%VOSURF(I,J) = aVO1(I,J)
-
-#ifdef TRACERS_GASEXCH_ocean
-            atmocn%GTRACER(:,I,J)=aTRAC(I,J,:)
-#endif
-
-#ifdef TRACERS_WATER
-#ifdef TRACERS_OCEAN
-            atmocn%GTRACER(:,I,J)=aTRAC(I,J,:)
-#else
-            atmocn%GTRACER(:,I,J)=trw0()
-#endif
-#endif
-          ELSE
-             atmocn%SSS(I,J)=0.
-          END IF
-
-        END DO
-      END DO
-
-C**** do poles
-      if (atmocn%HAVE_NORTH_POLE) then
-      IF (atmocn%FOCEAN(1,J_1).gt.0) THEN
-        DO I=2,I_1
-          atmocn%GTEMP(I,J_1)=atmocn%GTEMP(1,J_1)
-          atmocn%GTEMP2(I,J_1)=atmocn%GTEMP2(1,J_1)
-          atmocn%GTEMPR(I,J_1) =atmocn%GTEMPR(1,J_1)
-          atmocn%SSS(I,J_1)=atmocn%SSS(1,J_1)
-          atmocn%MLHC(I,J_1)=atmocn%MLHC(1,J_1)
-          atmocn%UOSURF(I,J_1) = atmocn%UOSURF(1,J_1)
-          atmocn%VOSURF(I,J_1) = atmocn%VOSURF(1,J_1)
-          atmocn%OGEOZA(I,J_1) = atmocn%OGEOZA(1,J_1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          atmocn%GTRACER(:,I,J_1)=atmocn%GTRACER(:,1,J_1)
-#endif
-        END DO
-      END IF
-      end if
-
-      if (atmocn%HAVE_SOUTH_POLE) then
-      IF (atmocn%FOCEAN(1,1).gt.0) THEN
-        DO I=2,I_1
-          atmocn%GTEMP(I,1)=atmocn%GTEMP(1,1)
-          atmocn%GTEMP2(I,1)=atmocn%GTEMP2(1,1)
-          atmocn%GTEMPR(I,1) =atmocn%GTEMPR(1,1)
-          atmocn%SSS(I,1)=atmocn%SSS(1,1)
-          atmocn%MLHC(I,1)=atmocn%MLHC(1,1)
-          atmocn%UOSURF(I,1) = atmocn%UOSURF(1,1)
-          atmocn%VOSURF(I,1) = atmocn%VOSURF(1,1)
-          atmocn%OGEOZA(I,1) = atmocn%OGEOZA(1,1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          atmocn%GTRACER(:,I,1)=atmocn%GTRACER(:,1,1)
-#endif
-        END DO
-      END IF
-      end if
-
       RETURN
-C****
       END SUBROUTINE TOC2SST
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
