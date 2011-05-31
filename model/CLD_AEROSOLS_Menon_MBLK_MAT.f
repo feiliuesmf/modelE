@@ -12,7 +12,7 @@
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
      *       SSMAL,SSMAO,SSML,SSMO
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=31 ! this MUST be equal to sntm
       real*8,dimension(nt)::DSS,DSU,ncaero
       integer L,n,nmodes,nm 
 
@@ -133,7 +133,7 @@ c
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
      *       SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3, SSM1a
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=31 ! this MUST be equal to sntm
       real*8,dimension(nt)::DSS,DSU
       integer L,n
 
@@ -170,8 +170,13 @@ C** Choose value that works as for sulfates
 c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
       SSM2 = 1.89d10*DSU(2)         ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
@@ -221,7 +226,7 @@ C*******************************************************************************
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
      *,SME,rho,PL,TL,WTURB
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=31 ! this MUST be equal to sntm
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
@@ -269,8 +274,13 @@ c     SSM8 = 2.98d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
@@ -423,7 +433,7 @@ C**************************************************************************
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
      *,LHX,WMUI,WCONST
       real*8 term1,term2,vterm,alf
-      integer, PARAMETER :: nt=17+ntm_soa/2
+      integer, PARAMETER :: nt=31 ! this MUST be equal to sntm
       real*8,dimension(nt)::DSU
 
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSMAL,SSML
@@ -447,8 +457,13 @@ c     SSM8 = 2.98d10*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA

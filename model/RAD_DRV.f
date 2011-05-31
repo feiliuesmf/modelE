@@ -350,6 +350,10 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
         NTRACE=1
         FS8OPX(1:NTRACE) = (/0d0/)
         FT8OPX(1:NTRACE) = (/0d0/)
+#elif (defined TRACERS_AEROSOLS_VBS)
+        NTRACE=7
+        FS8OPX(1:NTRACE) = (/0d0, 0d0, 1d0, 0d0, 0d0,  1d0 , 1d0/)
+        FT8OPX(1:NTRACE) = (/0d0, 0d0, 1d0, 0d0, 0d0, 1.3d0, 1d0/)
 #else
 c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
         FS8OPX = (/0d0, 0d0, 1d0, 0d0, 0d0, 0d0,  1d0 , 1d0/)
@@ -365,6 +369,21 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
       NTRIX(1:NTRACE)=(/n_SO4/)
 #else /* SULF aerosol allowed */
 #ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AEROSOLS_VBS
+      NTRACE=7
+      TRRDRY(1:NTRACE)=
+     &(/.15d0, .44d0, 1.7d0, .2d0, .2d0, .08d0, .08d0/)
+c augment BC by 50%
+      FSTASC(1:NTRACE)=
+     &(/1.d0,   1.d0, 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0/)
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR(1:NTRACE) = (/ 1,2,2, 4,4, 5,6/)
+      KRHTRA(1:NTRACE)=(/1,1,1, 1,1, 0,0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX(1:NTRACE)=(
+     &/n_sO4,n_seasalt1,n_seasalt2,n_vbsAm2,n_isopp1a,n_BCIA,n_BCB/)
+#else
       NTRACE=8
       TRRDRY(1:NTRACE)=
      &(/.15d0, .44d0, 1.7d0, .2d0, .2d0, .2d0, .08d0, .08d0/)
@@ -378,7 +397,21 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=(
      &/n_sO4,n_seasalt1,n_seasalt2,n_OCIA,n_OCB,n_isopp1a,n_BCIA,n_BCB/)
+#endif /* TRACERS_AEROSOLS_VBS */
 #else /* OFF: TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_VBS
+      NTRACE=6
+      TRRDRY(1:NTRACE)=(/.15d0, .44d0, 1.7d0, .2d0, .08d0, .08d0/)
+c augment BC by 50%
+      FSTASC(1:NTRACE)=(/1.d0,   1.d0, 1.d0 , 1.d0, 1.5d0, 1.5d0/)
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR(1:NTRACE) = (/ 1,2,2,4, 5,6/)
+      KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX(1:NTRACE)=
+     *(/ n_sO4, n_seasalt1, n_seasalt2, n_vbsAm2, n_BCIA, n_BCB/)
+#else
       NTRACE=7
       TRRDRY(1:NTRACE)=(/.15d0, .44d0, 1.7d0, .2d0, .2d0, .08d0, .08d0/)
 c augment BC by 50%
@@ -390,8 +423,9 @@ C**** Define indices to map model tracer arrays to radiation arrays
 C**** for the diagnostics
       NTRIX(1:NTRACE)=
      *(/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_OCB, n_BCIA, n_BCB/)
+#endif /* TRACERS_AEROSOLS_VBS */
 #endif /* TRACERS_AEROSOLS_SOA */
-#endif /* NOT defied: SULF_ONLY_AEROSOLS */
+#endif /* NOT defined: SULF_ONLY_AEROSOLS */
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
 
@@ -401,6 +435,27 @@ C**** define weighting (only used for clays so far)
       call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
 #else /* SULF aerosol allowed */
 #ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AEROSOLS_VBS
+      NTRACE=8
+      if (rad_interact_aer > 0) then ! turn off default nitrate
+        FS8OPX(3) = 0. ; FT8OPX(3) = 0.
+      end if
+      TRRDRY(1:NTRACE)=
+     * (/.15d0,.44d0, 1.7d0, .2d0, .2d0, .08d0, .08d0,0.15d0/)
+c augment BC by 50% (solar)
+      FSTASC(1:NTRACE)=
+     * (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,1.0d0/)
+      FTTASC(1:NTRACE)=
+     * (/1.d0,   1.d0 , 1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,1.0d0/)
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR(1:NTRACE) = (/ 1,2,2, 4,4, 5,6,3/)
+      KRHTRA(1:NTRACE)=(/1,1,1, 1,1, 0,0,1/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX(1:NTRACE)=
+     * (/ n_sO4, n_seasalt1, n_seasalt2, n_vbsAm2, n_isopp1a,
+     *   n_BCIA, n_BCB, n_NO3p/)
+#else
       NTRACE=9
       if (rad_interact_aer > 0) then ! turn off default nitrate
         FS8OPX(3) = 0. ; FT8OPX(3) = 0.
@@ -420,7 +475,29 @@ C**** for the diagnostics
       NTRIX(1:NTRACE)=
      * (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_OCB, n_isopp1a,
      *   n_BCIA, n_BCB, n_NO3p/)
+#endif /* TRACERS_AEROSOLS_VBS */
 #else /* OFF: TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_VBS
+      NTRACE=7
+      if (rad_interact_aer > 0) then ! turn off default nitrate
+        FS8OPX(3) = 0. ; FT8OPX(3) = 0.
+      end if
+      TRRDRY(1:NTRACE)=
+     * (/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
+c augment BC by 50% (solar)
+      FSTASC(1:NTRACE)=
+     *        (/1.d0,   1.d0 , 1.d0, 1.d0, 1.5d0, 1.5d0,1.0d0/)
+      FTTASC(1:NTRACE)=
+     *        (/1.d0,   1.d0 , 1.d0, 1.d0, 1.0d0, 1.0d0,1.0d0/)
+cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
+      ITR(1:NTRACE) = (/ 1,2,2,4, 5,6,3/)
+      KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0,1/)
+C**** Define indices to map model tracer arrays to radiation arrays
+C**** for the diagnostics
+      NTRIX(1:NTRACE)=
+     * (/ n_sO4, n_seasalt1, n_seasalt2, n_vbsAm2, n_BCIA, n_BCB,
+     *   n_NO3p/)
+#else
       NTRACE=8
       if (rad_interact_aer > 0) then ! turn off default nitrate
         FS8OPX(3) = 0. ; FT8OPX(3) = 0.
@@ -440,6 +517,7 @@ C**** for the diagnostics
       NTRIX(1:NTRACE)=
      * (/ n_sO4, n_seasalt1, n_seasalt2, n_OCIA, n_OCB, n_BCIA, n_BCB,
      *   n_NO3p/)
+#endif /* TRACERS_AEROSOLS_VBS */
 #endif /* TRACERS_AEROSOLS_SOA */
 C**** define weighting (only used for clays so far)
       WTTR(1:NTRACE) = 1d0
@@ -1133,6 +1211,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_AEROSOLS_Koch
 c    *     ,SNFST0,TNFST0
 #endif  /* TRACERS_AEROSOLS_Koch */
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACERS_VBS, only: vbs_tr
+#endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
      *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijts_sqex
      *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
@@ -1790,16 +1871,25 @@ C**** more than one tracer is lumped together for radiation purposes
       do n=1,NTRACE
         if (NTRIX(n).gt.0) then
           select case (trname(NTRIX(n)))
-          case ("OCIA")
-           TRACER(L,n)=(trm(i,j,l,n_OCII)+
+          case ("OCIA", 'vbsAm2')
+            TRACER(L,n)=(
+#ifdef TRACERS_AEROSOLS_VBS
+     *           sum(trm(i,j,l,vbs_tr%iaer))
+#else
+     *           trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA)
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
-     *           trm(i,j,l,n_ococean)+
+     *          +trm(i,j,l,n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     *           trm(i,j,l,n_OCIA))*BYAXYP(I,J)
+     *                  )*BYAXYP(I,J)
           case ("OCB") 
+#ifdef TRACERS_AEROSOLS_VBS
+           TRACER(L,n)=0.d0
+#else
            TRACER(L,n)=trm(i,j,l,n_OCB)*BYAXYP(I,J)
            ! The only reason this is a special case is, following
            ! how OCIA is done, it has no wttr factor like default does.
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
           case ("isopp1a")
            TRACER(L,n)=( trm(i,j,l,n_isopp1a)+trm(i,j,l,n_isopp2a)

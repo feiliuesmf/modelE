@@ -33,25 +33,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var OC_SS_enrich_fact OCocean enrichment factor of seasalt1
       real*8, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact !(im,jm)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-!@var BCI_src    BC Industrial source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: BCI_src !(im,jm)
-!@var BCBt_src    BC Biomass source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: BCBt_src !(im,jm)
-!@var OCI_src    OC Industrial source (kg/s/box)
-      INTEGER, PARAMETER :: nomsrc = 1
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCI_src !(im,jm,nomsrc)
 #ifndef TRACERS_AEROSOLS_SOA
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var OCBt_src OC trend Biomass source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: OCBt_src  !(im,jm)
-!@var hBC BC trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hbc  !(im,jm,2)
-!@var hOC OC trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hoc  !(im,jm,2)
-!@var hso2 so2 trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hso2  !(im,jm,2)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ss_src !(im,jm,nsssrc)
@@ -80,36 +65,23 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, dimension(ntm) :: om2oc=1.4d0
 !@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
       real*8:: BBinc=1.0d0
+#ifdef TRACERS_AEROSOLS_VBS
+!@var VBSemifact factor that distributes organic aerosols in volatility bins
+      real*8, allocatable, dimension(:) :: VBSemifact
+#endif /* TRACERS_AEROSOLS_VBS */
 
       END MODULE AEROSOL_SOURCES
 
-      MODULE LAKI_SOURCE
-      IMPLICIT NONE
-      SAVE
-      INTEGER, DIMENSION(10), PARAMETER :: LAKI_MON = (/6,6,6,
-     * 6,7,7,8,9,9,10/)
-      INTEGER, DIMENSION(10), PARAMETER :: LAKI_DAY = (/8,11,14,
-     * 27,9,29,31,7,26,25/)
-      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_T = (/1.98,
-     * 3.17,4.41,2.55,2.09,3.10,1.82,1.39,1.03,0.78/)
-      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_S = (/8.42,
-     * 13.53,18.79,10.85,8.91,13.20,7.78,5.91,4.37,3.32/)
-      END MODULE LAKI_SOURCE
-      
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, get
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
-     * BCI_src,BCBt_src,nomsrc,
-     * OCI_src,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * OCBt_src,
 #ifdef TRACERS_AEROSOLS_OCEAN
      * OC_SS_enrich_fact,
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
@@ -119,6 +91,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * ,off_HNO3,off_SS
 #ifdef TRACERS_RADON
      * ,rn_src
+#endif
+#ifdef TRACERS_AEROSOLS_VBS
+     * ,VBSemifact
+      use TRACERS_VBS, only: vbs_tr
 #endif
 
       use RESOLUTION, only: im,lm
@@ -143,15 +119,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_AEROSOLS_OCEAN
       allocate( OC_SS_enrich_fact(I_0H:I_1H,J_0H:J_1H) ,STAT=IER) 
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-      allocate( BCI_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
-      allocate( hbc(I_0H:I_1H,J_0H:J_1H,2),hoc(I_0H:I_1H,J_0H:J_1H,2)
-     *  ,hso2(I_0H:I_1H,J_0H:J_1H,2) ,STAT=IER)
-      allocate( BCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
-      allocate( OCI_src(I_0H:I_1H,J_0H:J_1H,nomsrc) ,STAT=IER)
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
-      allocate( OCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
@@ -172,6 +142,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 c off line 
       allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
       allocate(  off_SS(I_0H:I_1H,J_0H:J_1H,LM)     )
+#ifdef TRACERS_AEROSOLS_VBS
+      allocate(VBSemifact(vbs_tr%nbins))
+#endif
 
       return
       end SUBROUTINE alloc_aerosol_sources      
@@ -679,6 +652,11 @@ c if after Feb 28 skip the leapyear day
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : h2so4_chem
 #endif
+#ifdef TRACERS_AEROSOLS_VBS
+      use CONSTANT, only : gasc
+      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
+     &                       vbs_calc, vbs_tr
+#endif /* TRACERS_AEROSOLS_VBS */
 c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
@@ -694,11 +672,17 @@ c Aerosol chemistry
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,j_0,j_1,
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
+#ifdef TRACERS_AEROSOLS_VBS
+      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
+      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
+!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
+      real*8 :: kg2ugm3
+#endif /* TRACERS_AEROSOLS_VBS */
       integer maxl,nrecs_skip
       logical :: newMonth
       save ifirst
@@ -743,22 +727,28 @@ C**** initialise source arrays
         tr3Dsource(:,j_0:j_1,:,1,n_SO4_d3) =0. ! SO4 on dust
 #endif
         if (n_BCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_BCII)=0. ! BCII sink
-          tr3Dsource(:,j_0:j_1,:,1,n_BCIA)=0. ! BCIA source
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCII)=0. ! BCII sink
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCIA)=0. ! BCIA source
         end if
         if (n_OCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_OCII)=0. ! OCII sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCIA)=0. ! OCIA source
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCII)=0. ! OCII sink
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCIA)=0. ! OCIA source
         end if
+#ifdef TRACERS_AEROSOLS_VBS
+        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nChemloss,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nOther,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%iaer)=0.
+#endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
-          oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
-          tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
+        oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
+        tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
-          if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
+        if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
       endif
 
       if (coupled_chem.eq.0) then
@@ -854,7 +844,7 @@ c DMM is number density of air in molecules/cm3
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 
-      do 23 n=1,ntm
+      do 23 n=1,ntm ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
 
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
@@ -862,9 +852,65 @@ c    Aging of industrial carbonaceous aerosols
           tr3Dsource(i,j,l,nChemistry,n)=-bciage*trm(i,j,l,n)
           tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage*trm(i,j,l,n)
 
+#ifdef TRACERS_AEROSOLS_VBS
+        case ('vbsAm2') ! This handles all VBS tracers
+          kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
+     &            (am(l,i,j)*axyp(i,j)*gasc*te)
+          vbs_cond%dt=dtsrc
+          vbs_cond%OH=ohmc
+          vbs_cond%temp=te
+          vbs_cond%nvoa=(trm(i,j,l,n_BCII)
+     &                  +trm(i,j,l,n_BCIA)
+     &                  +trm(i,j,l,n_BCB)
+#ifdef TRACERS_AEROSOLS_SOA
+     &                  +trm(i,j,l,n_isopp1a)
+     &                  +trm(i,j,l,n_isopp2a)
+     &                  +trm(i,j,l,n_apinp1a)
+     &                  +trm(i,j,l,n_apinp2a)
+#endif /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                  +trm(i,j,l,n_ococean)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
+     &                  +trm(i,j,l,n_msa)
+     &                  +trm(i,j,l,n_so4)
+#ifdef TRACERS_NITRATE
+     &                  +trm(i,j,l,n_nh4)
+     &                  +trm(i,j,l,n_no3p)
+#endif
+     &                  )*kg2ugm3
+          vbs_tr_old%gas=trm(i,j,l,vbs_tr%igas)*kg2ugm3
+          vbs_tr_old%aer=trm(i,j,l,vbs_tr%iaer)*kg2ugm3
+
+          call vbs_calc(vbs_tr_old,vbs_cond)
+
+          tr3Dsource(i,j,l,nChemistry,vbs_tr%igas)=
+     &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
+          tr3Dsource(i,j,l,nChemloss,vbs_tr%igas)=
+     &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
+          tr3Dsource(i,j,l,nOther,vbs_tr%igas)=
+     &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
+          tr3Dsource(i,j,l,nChemistry,vbs_tr%iaer)=
+     &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
+!     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
+!      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
+!        print '(a,3e)','KOSTAS gas',
+!     &                 sum(vbs_tr_old%gas),
+!     &                 sum(vbs_tr%gas),
+!     &                 sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer)
+!        print '(a,3e)','KOSTAS aer',
+!     &                 sum(vbs_tr_old%aer),
+!     &                 sum(vbs_tr%aer),
+!     &                 sum(vbs_tr%gas)+sum(vbs_tr%aer)
+!        print '(a,3e)','KOSTAS bud',
+!     &                 sum(vbs_tr%chem_prod),
+!     &                 sum(vbs_tr%chem_loss),
+!     &                 sum(vbs_tr%partition)
+!      endif
+#else
         case ('OCII')
           tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
           tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
+#endif /* TRACERS_AEROSOLS_VBS */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -957,7 +1003,7 @@ c SO2 production from DMS
 #endif
         end select
         
- 23   CONTINUE
+ 23   CONTINUE ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
 c       endif
  22   CONTINUE
  21   CONTINUE

@@ -411,6 +411,9 @@ use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
 #endif
                       n_msa,n_so4,&
                       mass2vol
+#ifdef TRACERS_AEROSOLS_VBS
+use TRACERS_VBS, only: vbs_tr
+#endif
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_changeL_isoprene,&
@@ -527,8 +530,12 @@ DO JL=L,L
 ! Partitioning in both OC and BC always happens
 ! Partitioning in (SO4+MSA) and/or NH4/NO3 is also an option
 !
-  PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)+&
-      y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
+  PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)
+#ifdef TRACERS_AEROSOLS_VBS
+  PCP=PCP+sum(vbs_tr%aer(:))
+#else
+  PCP=PCP+y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
   PCP=PCP+y_ug(n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -546,8 +553,12 @@ DO JL=L,L
   do i=1,ntm
     y_mw(i)=y_ug(i)/mw(i)
   enddo
-  AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)+&
-          y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
+  AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)
+#ifdef TRACERS_AEROSOLS_VBS
+  AEROtot=AEROtot+sum(y_mw(vbs_tr%iaer))
+#else
+  AEROtot=AEROtot+y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
   AEROtot=AEROtot+y_mw(n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -603,9 +614,15 @@ DO JL=L,L
     xmf(imfbcii)=y_mw(n_bcii)/AEROtot
     xmf(imfbcia)=y_mw(n_bcia)/AEROtot
     xmf(imfbcb)=y_mw(n_bcb)/AEROtot
+#ifdef TRACERS_AEROSOLS_VBS
+    xmf(imfocii)=0.d0
+    xmf(imfocia)=sum(y_mw(vbs_tr%iaer))/AEROtot
+    xmf(imfocb)=0.d0
+#else
     xmf(imfocii)=y_mw(n_ocii)/AEROtot
     xmf(imfocia)=y_mw(n_ocia)/AEROtot
     xmf(imfocb)=y_mw(n_ocb)/AEROtot
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
     xmf(imfococean)=y_mw(n_ococean)/AEROtot
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -666,9 +683,16 @@ DO JL=L,L
 ! Calculate mean molecular weight
 !
   if (AEROtot > 0.d0) then
-    meanmw=y_mw(n_ocii)*mw(n_ocii)/AEROtot
+    meanmw=0.d0
+#ifdef TRACERS_AEROSOLS_VBS
+    do i=1,vbs_tr%nbins
+      meanmw=meanmw+y_mw(vbs_tr%iaer(i))*mw(vbs_tr%iaer(i))/AEROtot
+    enddo
+#else
+    meanmw=meanmw+y_mw(n_ocii)*mw(n_ocii)/AEROtot
     meanmw=meanmw+y_mw(n_ocia)*mw(n_ocia)/AEROtot
     meanmw=meanmw+y_mw(n_ocb)*mw(n_ocb)/AEROtot
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
     meanmw=meanmw+y_mw(n_ococean)*mw(n_ococean)/AEROtot
 #endif  /* TRACERS_AEROSOLS_OCEAN */

@@ -111,7 +111,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktaijs=3500 
 #else
-      INTEGER,PARAMETER :: ktaijs=2147
+      INTEGER,PARAMETER :: ktaijs=2300
 #endif
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
@@ -329,7 +329,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
 #ifndef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktajls=1124
+      INTEGER,PARAMETER :: ktajls=1260
 #else
       INTEGER,PARAMETER :: ktajls=3000 ! 1017 - yhl for TOMAS 
 #endif

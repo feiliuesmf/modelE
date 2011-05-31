@@ -174,7 +174,7 @@ c Now do the rest of the aerosols
         case ('SO4')      ; j=1 
         case ('seasalt1') ; j=2 
         case ('seasalt2') ; j=3 
-        case ('OCIA')     ; j=4 ! multiple tracers 
+        case ('OCIA', 'vbsAm2') ; j=4 ! multiple tracers 
         case ('OCB')      ; j=4 
         case ('isopp1a')  ; j=4 ! multiple tracers
         case ('BCIA')     ; j=5 
