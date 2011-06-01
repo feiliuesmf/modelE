@@ -120,6 +120,7 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
       integer, parameter :: ntm_koch=5
+      integer, parameter :: ntm_vbs=0
 #elif (defined TRACERS_AEROSOLS_VBS)
       integer, parameter :: ntm_koch=10
       integer, parameter :: ntm_vbs=2*vbs_bins
@@ -129,6 +130,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
 #else
       integer, parameter :: ntm_koch=0
+      integer, parameter :: ntm_vbs=0
 #endif  /* TRACERS_AEROSOLS_Koch */
 !@var ntm_ococean: Number of TRACERS_AEROSOLS_OCEAN tracers.
 #ifdef TRACERS_AEROSOLS_OCEAN
