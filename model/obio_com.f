@@ -256,6 +256,13 @@ c**** Extract domain decomposition info
 
 #ifdef OBIO_ON_GARYocean
 
+      subroutine obio_exports_init
+      use obio_com, only : pCO2
+      use ofluxes, only : ocnatm
+      implicit none
+      ocnatm%pCO2(:,:) = pCO2(:,:)
+      end subroutine obio_exports_init
+
       subroutine def_rsf_obio(fid)
 !@sum  def_rsf_ocean defines ocean array structure in restart files
 !@auth M. Kelley

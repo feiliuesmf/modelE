@@ -84,10 +84,6 @@
       subroutine obio_forc_init
       use obio_forc, only : atmco2
       use dictionary_mod
-#ifdef OBIO_ON_GARYocean
-      use obio_com, only : pCO2
-      use ofluxes, only : ocnatm
-#endif
       implicit none
 #ifdef constCO2
       call get_param("atmCO2",atmCO2)   !need to do this here also
@@ -98,8 +94,5 @@
 #endif
 #else
       atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
-#endif
-#ifdef OBIO_ON_GARYocean
-      ocnatm%pCO2(:,:) = pCO2(:,:)
 #endif
       end subroutine obio_forc_init
