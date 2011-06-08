@@ -375,6 +375,7 @@ C**** define initial condition options for global mean
       call alloc_ofluxes(atmocn)
 
 #ifdef TRACERS_OceanBiology
+      call obio_exports_init()
       call obio_forc_init()
 #endif
 
