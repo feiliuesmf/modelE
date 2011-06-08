@@ -249,7 +249,7 @@ c Now partition HOx into OH and HO2:
        ! CZ: OH->HO2 reactions :
        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
      & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
-     & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)*
+     & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)
      & *0.11d0+rr(30,L)*y(n_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
      & +rr(iTerpenesOH,L)*y(n_Terpenes,L)*0.85d0
