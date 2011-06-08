@@ -10722,7 +10722,7 @@ c**** earth
      *      ,'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6'
      *      ,'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2'
      *      ,'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
-#endif
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
      &      ,'OCocean'
 #endif
@@ -11343,11 +11343,13 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef TRACERS_SPECIAL_Shindell
             if (n>ntm_chem) then
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
               if(aer_int_yr > 0) then
                 xyear=aer_int_yr
               else
                 xyear=jyear
               endif
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
             endif
 #endif
@@ -12432,6 +12434,8 @@ C****
      &              *0.01d0
             src_index=n_SO2
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_VBS)
           case ('OCII')
             src_fact=om2oc(n)
           case ('BCB', 'M_BC1_BC', 'M_BOC_BC','AECOB_01')
@@ -12451,6 +12455,7 @@ C****
 #endif
             end select
             if(.not.do_fire(n))bb_fact=BBinc
+#endif
           end select
 
 !TOMAS - I need to call aircraft emission here. 
