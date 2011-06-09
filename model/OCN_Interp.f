@@ -890,8 +890,8 @@ C**** surface tracer concentration
 !total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
 !tot_chlo is defined over all ocean points. Here only use open water
 !chorophyll, because that is what is seen by radiation
-      oWEIGHT(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
       DO J=oJ_0,oJ_1
+       oWEIGHT(:,J) = oFOCEAN_loc(:,J) * (1.d0 - oRSI(:,J))
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
             oTOT_CHLO_loc(I,J) = ocnatm%chl(i,j) !tot_chlo(I,J)
@@ -909,8 +909,8 @@ C**** surface tracer concentration
 !involved in gas exchage with the atmosphere.
       ALLOCATE
      *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
-      oWEIGHT(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
       DO J=oJ_0,oJ_1
+        oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
             !pco2 is in uatm, convert to kg,CO2/kg,air
