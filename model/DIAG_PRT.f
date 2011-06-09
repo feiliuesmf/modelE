@@ -510,12 +510,14 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       USE DIAGKS
 
       PRIVATE
-      PUBLIC :: PRINT_DIAGS
       PUBLIC :: JLMAP
       PUBLIC :: MAPTXT
       PUBLIC :: IJ_avg
       PUBLIC :: scale_ijlmap
       PUBLIC :: focean_glob
+      PUBLIC :: diag_gather,diagj,diagjk,diagil,diag7p,diagij,diagcp,
+     &          diag5p,diagdd,diagdh,diag4,diagkn,diag_scatter,
+     &          diag_isccp
 
 !ESMF: These globalsum routines are private to this module and execute
 !      serially in a single processor.
@@ -628,74 +630,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 
 
 !------------------------------------------------
-
-
-      subroutine print_diags(partial)
-!@sum print_diag prints out binary and ascii diag output.
-!@auth  Original Development Team
-      USE MODEL_COM, only : itime,itimeI
-      USE DIAG_COM, only : kdiag,keynr,keyct,isccp_diags
-      IMPLICIT NONE
-!@var partial : accum period is complete (if =0) or partial (if =1)
-      INTEGER, INTENT(IN) :: partial
- 
-#ifdef SCM
-      return
-#endif
-
-      call calc_derived_aij
-      call calc_derived_aijk
-      if(isccp_diags.eq.1) call diag_isccp_prep
-      IF (KDIAG(12).LT.9) CALL diag_OCEAN_prep
-
-      CALL DIAG_GATHER
-
-      IF (AM_I_ROOT()) THEN
-
-      IF (KDIAG(1).LT.9) CALL DIAGJ_PREP
-      IF (KDIAG(1).LT.9) CALL DIAGJ
-      IF (KDIAG(2).LT.9) CALL DIAGJL_PREP
-      IF (KDIAG(2).LT.9) CALL DIAGGC_PREP
-      IF (KDIAG(2).LT.9) CALL DIAGJK
-      IF (KDIAG(10).LT.9) CALL DIAGIL
-      IF (KDIAG(7).LT.9) CALL DIAG7P
-      IF (KDIAG(3).LT.9) CALL DIAGIJ
-      IF (KDIAG(9).LT.9) CALL DIAGCP
-      IF (KDIAG(5).LT.9) CALL DIAG5P
-      IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
-      IF (KDIAG(13).LT.9) CALL DIAGDH
-      IF (KDIAG(4).LT.9) CALL DIAG4
-
-      END IF
-
-      IF (KDIAG(11).LT.9) CALL diag_RIVER
-
-      IF (AM_I_ROOT()) THEN
-
-      IF (KDIAG(12).LT.9) CALL diag_OCEAN
-      IF (KDIAG(12).LT.9) CALL diag_ICEDYN
-      IF (isccp_diags.eq.1) CALL diag_ISCCP
-      IF (partial.eq.0 .or. Itime.LE.ItimeI+1) THEN  ! full period or IC
-        CALL DIAGKN
-      ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
-        KEYNR(1:42,KEYCT)=0
-      END IF
-#ifdef TRACERS_ON
-      IF (KDIAG(8).LT.9) then
-        CALL DIAGJLT
-        CALL DIAGIJT
-        CALL DIAGIJLT
-      end if
-#endif
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      IF (KDIAG(8).LT.9) CALL DIAGTCP
-#endif
-      END IF ! AM_I_ROOT
-
-      CALL DIAG_SCATTER
-
-      return
-      end subroutine print_diags
 
       SUBROUTINE DIAGJ
 !@sum DIAGJ produces area weighted statistics of zonal budget diags
@@ -4880,3 +4814,72 @@ cddd      DEALLOCATE(tmp)
       END SUBROUTINE DIAG_SCATTER
 
       END MODULE DIAG_SERIAL
+
+      subroutine print_diags(partial)
+!@sum print_diag prints out binary and ascii diag output.
+!@auth  Original Development Team
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      USE DIAG_SERIAL
+      USE MODEL_COM, only : itime,itimeI
+      USE DIAG_COM, only : kdiag,keynr,keyct,isccp_diags
+      IMPLICIT NONE
+!@var partial : accum period is complete (if =0) or partial (if =1)
+      INTEGER, INTENT(IN) :: partial
+ 
+#ifdef SCM
+      return
+#endif
+
+      call calc_derived_aij
+      call calc_derived_aijk
+      if(isccp_diags.eq.1) call diag_isccp_prep
+      IF (KDIAG(12).LT.9) CALL diag_OCEAN_prep
+
+      CALL DIAG_GATHER
+
+      IF (AM_I_ROOT()) THEN
+
+      IF (KDIAG(1).LT.9) CALL DIAGJ_PREP
+      IF (KDIAG(1).LT.9) CALL DIAGJ
+      IF (KDIAG(2).LT.9) CALL DIAGJL_PREP
+      IF (KDIAG(2).LT.9) CALL DIAGGC_PREP
+      IF (KDIAG(2).LT.9) CALL DIAGJK
+      IF (KDIAG(10).LT.9) CALL DIAGIL
+      IF (KDIAG(7).LT.9) CALL DIAG7P
+      IF (KDIAG(3).LT.9) CALL DIAGIJ
+      IF (KDIAG(9).LT.9) CALL DIAGCP
+      IF (KDIAG(5).LT.9) CALL DIAG5P
+      IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
+      IF (KDIAG(13).LT.9) CALL DIAGDH
+      IF (KDIAG(4).LT.9) CALL DIAG4
+
+      END IF
+
+      IF (KDIAG(11).LT.9) CALL diag_RIVER
+
+      IF (AM_I_ROOT()) THEN
+
+      IF (KDIAG(12).LT.9) CALL diag_OCEAN
+      IF (KDIAG(12).LT.9) CALL diag_ICEDYN
+      IF (isccp_diags.eq.1) CALL diag_ISCCP
+      IF (partial.eq.0 .or. Itime.LE.ItimeI+1) THEN  ! full period or IC
+        CALL DIAGKN
+      ELSE                      ! RESET THE UNUSED KEYNUMBERS TO ZERO
+        KEYNR(1:42,KEYCT)=0
+      END IF
+#ifdef TRACERS_ON
+      IF (KDIAG(8).LT.9) then
+        CALL DIAGJLT
+        CALL DIAGIJT
+        CALL DIAGIJLT
+      end if
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      IF (KDIAG(8).LT.9) CALL DIAGTCP
+#endif
+      END IF ! AM_I_ROOT
+
+      CALL DIAG_SCATTER
+
+      return
+      end subroutine print_diags
