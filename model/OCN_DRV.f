@@ -22,27 +22,38 @@ C**** CALCULATE ICE DYNAMICS
       si_ocn%rsisave(:,:) = si_ocn%rsi(:,:)
       CALL DYNSI(atmice,iceocn,si_atm)
 #else
+#ifndef STANDALONE_HYCOM
       CALL DYNSI(atmice,iceocn,si_ocn)
+#endif
 #endif
 C**** CALCULATE BASE ICE-OCEAN/LAKE FLUXES
       CALL UNDERICE(si_ocn,iceocn,atmocn)
 C**** APPLY SURFACE/BASE FLUXES TO SEA/LAKE ICE
       CALL GROUND_SI(si_ocn,iceocn,atmice,atmocn)
+#ifndef STANDALONE_OCEAN
          CALL CHECKT ('GRNDSI')
+#endif
 C**** set total atmopsheric pressure anomaly in case needed by ocean
       CALL CALC_APRESS(atmice)
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
       CALL OCEANS(atmocn,iceocn,igice)
+#ifndef STANDALONE_OCEAN
          CALL CHECKT ('OCEANS')
+#endif
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI(si_ocn,iceocn,atmice)
+#ifndef STANDALONE_OCEAN
       call seaice_to_atmgrid(atmice) ! needed only to preserve former result
          CALL CHECKT ('FORMSI')
+#endif
+#ifndef STANDALONE_HYCOM
 C**** ADVECT ICE
       CALL ADVSI(atmice)
+#endif
+#ifndef STANDALONE_OCEAN
          CALL CHECKT ('ADVSI ')
       CALL SI_diags(si_ocn,iceocn,atmice)
-
+#endif
 
       call stopTimer('OCEANS')
       end subroutine ocean_driver
@@ -65,8 +76,10 @@ C**** Initialize sea ice
       CALL init_oceanice(iniOCEAN,do_IC_fixups,atmocn)
       !call seaice_to_atmgrid(atmice)
 
+#ifndef STANDALONE_HYCOM
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN,atmice)
+#endif
 
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
@@ -113,12 +126,15 @@ c set-up for MPI implementation
       si_ocn % ntm = ntm
 #endif
 
+#ifndef STANDALONE_HYCOM
       call alloc_icedyn(grid%im_world,grid%jm_world)
       call alloc_icedyn_com(grid)
+#endif
       call alloc_seaice_com(grid)
       si_atm%grid => grid
       si_ocn%grid => grid
       sigrid => grid
+#ifndef STANDALONE_OCEAN /* already done */
       call alloc_ocean
-
+#endif
       end subroutine alloc_drv_ocean

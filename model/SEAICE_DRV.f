@@ -77,6 +77,10 @@ C****
 #endif
       integer :: J_0, J_1, I_0,I_1
 
+c#ifdef STANDALONE_OCEAN
+c      call stop_model('add snow aging in here',255)
+c#endif
+
       I_0 = si_state%I_0
       I_1 = si_state%I_1
       J_0 = si_state%J_0
@@ -463,6 +467,7 @@ C**** now include lat melt for lakes and any RSI < 1
 #endif
      *           ,ENRGMAX,ENRGUSED,RUN0,SALT)
 
+#ifndef STANDALONE_OCEAN
 C**** Update prognostic sea ice variables + correction for rad. fluxes
           IF(DOMAIN.EQ.'LAKES') THEN
             if (roice.gt.rsi(i,j)) ! ice from ocean
@@ -471,6 +476,7 @@ C**** Update prognostic sea ice variables + correction for rad. fluxes
      *          call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-ROICE)
           ENDIF
 C****
+#endif
             RSI(I,J)=ROICE
             RSIstart(I,J)=ROICE
             MSI(I,J)=MSI2
@@ -928,6 +934,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES
 #ifdef TRACERS_WATER
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
+#ifndef STANDALONE_OCEAN
         IF (.not. QFIXR) THEN
           IF(DOMAIN.EQ.'LAKES') THEN
             if (roice.gt.rsi(i,j)) ! ice from ocean
@@ -944,7 +951,7 @@ C**** save implicit mass-flux diagnostics
           CALL INC_AJ(I,J,atmice%ITOICE,atmice%J_IMPLH,
      &                -DHIMP *POICE)
         END IF
-
+#endif
         TICEsave(I,J)=(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
         SSI1save(I,J)=(SSI(1,I,J)+SSI(2,I,J))/ACE1I
         SSI2save(I,J)=(SSI(3,I,J)+SSI(4,I,J))/MSI(I,J)
@@ -994,6 +1001,7 @@ C**** replicate ice values at the poles
 C****
       END SUBROUTINE FORM_SI
 
+#ifndef STANDALONE_OCEAN
       SUBROUTINE SI_diags(si_state,iceocn,atmice)
       USE MODEL_COM, only : kocean,itime
       USE CONSTANT, only : rhows,rhow,bylhm
@@ -1325,6 +1333,7 @@ C**** Accumulate regional diagnostics
 
       RETURN
       END SUBROUTINE SI_diags
+#endif
 
       subroutine set_noice_defaults(si_state,iceocn)
 !@sum  set_noice_defaults sets defaults for ice-free conditions
@@ -1472,8 +1481,10 @@ C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
         if(KOCEAN.EQ.0) call set_noice_defaults(si_ocn,iceocn)
       END IF
 
+#ifndef STANDALONE_OCEAN
 C**** Set conservation diagnostics for ice mass, energy, salt
       CALL DECLARE_SEAICE_CONSRV
+#endif
 
       END SUBROUTINE init_oceanice
 
@@ -1635,6 +1646,7 @@ C**** set GTEMP etc. array for ice
 
       DO J=J_0, J_1
       DO I=I_0, atmice%IMAXJ(J)
+#ifndef STANDALONE_OCEAN
         IF(atmice%FOCEAN(I,J).GT.0.) THEN
 C**** adjust rad fluxes for change in ice fraction
         if (si_atm%rsi(i,j).gt.si_atm%rsisave(i,j)) then ! ice from ocean
@@ -1645,6 +1657,7 @@ C**** adjust rad fluxes for change in ice fraction
      &         1.-si_atm%RSISAVE(I,J),1.-si_atm%RSI(I,J))
         endif
         ENDIF
+#endif
         si_atm%RSISAVE(i,j) = si_atm%RSI(i,j)
       END DO
       END DO
