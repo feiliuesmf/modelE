@@ -403,7 +403,7 @@ C**** do igas=1,ntm_chem instances get corrected.
 #endif  /* SULF_ONLY_AEROSOLS */
 #endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_OCEAN
-     *    'OCocean    ',
+     *    'OCocean ',
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_DUST
      *    'Clay    ','Silt1   ','Silt2   ','Silt3   ',

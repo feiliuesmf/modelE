@@ -6556,6 +6556,12 @@ C****
       call diaggc_prep
       call diag_river_prep
       if(isccp_diags.eq.1) call diag_isccp_prep
+#ifdef TRACERS_ON
+      call diag_trac_prep
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call diagtcp_prep
+#endif
       return
       end subroutine calc_derived_acc_atm
 

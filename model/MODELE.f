@@ -69,9 +69,7 @@ C**** Command line options
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
-      USE DIAG_COM, only : MODD5S
       USE MDIAG_COM, only : monacc,acc_period
-      USE DIAG_SERIAL, only : print_diags
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end
 #endif
@@ -193,9 +191,7 @@ C**** CALCULATE SURFACE FLUXES (and, for now, this procedure
 C**** also drives "surface" components that are on the atm grid)
       CALL SURFACE
       call stopTimer('Surface')
-         CALL CHECKT ('SURFACE')
          CALL TIMER (NOW,MSURF)
-         IF (MODD5S.EQ.0) CALL DIAGCA (5)
 
       call ocean_driver
 

@@ -16,7 +16,7 @@
       public ogrid
 
 c
-      TYPE(DIST_GRID) :: ogrid   ! ocean (Russell) grid
+      TYPE(DIST_GRID), target :: ogrid   ! ocean (Russell) grid
       ! domain bounds
       integer :: I_0,  I_1,  J_0,  J_1
       ! domain bounds with halos

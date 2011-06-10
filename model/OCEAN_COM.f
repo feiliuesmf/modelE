@@ -582,5 +582,22 @@ c??   call ALLOC_GM_COM(agrid)
 #endif
       call alloc_odiff(ogrid)
 
+      call read_ocean_topo
+      if(ogrid%have_domain) CALL GEOMO
+
       return
       end subroutine alloc_ocean
+
+      subroutine read_ocean_topo
+C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
+      USE FILEMANAGER, only : openunit,closeunit
+      USE OCEAN, only : IM,JM,FOCEAN,HATMO,HOCEAN
+      IMPLICIT NONE
+      INTEGER :: iu_TOPO
+      call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
+      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
+      call closeunit(iu_TOPO)
+      return
+      end subroutine read_ocean_topo

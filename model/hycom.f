@@ -322,16 +322,21 @@ c --- accumulate agcm fields over nhr
       admvi_loc = 0.
       call do_dynsi_accum(dtsrc,3600.*real(nhr))
 #else
+#ifdef STANDALONE_HYCOM
+      admui_loc = 0.
+      admvi_loc = 0.
+#else
 c combine wind and ice stresses before regridding
 c first redistribute ice-ocean stresses to the atmospheric domain decomp
       call band_pack(dynsice%pack_i2a, dynsice%dmui, admui_loc)
       call band_pack(dynsice%pack_i2a, dynsice%dmvi, admvi_loc)
 #endif
+#endif
 c
       eflow_gl = atmocn%eflow_gl
 c
       do 29 ia=aI_0,aI_1
-#ifdef CUBED_SPHERE
+#if (defined CUBED_SPHERE) || defined(STANDALONE_HYCOM)
       iam1 = ia ! avoid out-of-bounds indices in admui_loc==0
 #else
       iam1=mod(ia-2+iia,iia)+1
@@ -1348,9 +1353,11 @@ css   call iceo2a(omlhc,mlhc)
 #ifdef CUBED_SPHERE
       call veco2i(usf_loc,vsf_loc,dynsice%uosurf,dynsice%vosurf)
 #else
+#ifndef STANDALONE_HYCOM
 c when atm is lat-lon, dynsi grid == atm grid
       call band_pack(dynsice%pack_a2i, uosurf_loc, dynsice%UOSURF)
       call band_pack(dynsice%pack_a2i, vosurf_loc, dynsice%VOSURF)
+#endif
 #endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')

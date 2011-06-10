@@ -60,6 +60,7 @@ C****
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
+      USE DIAG_COM, only : MODD5S
       USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
      &     ,itocean,itoice,itlake,itlkice,itlandi
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
@@ -1741,6 +1742,9 @@ c calculate global integral of heat of river discharge
         enddo
         call globalsum(grid, atmocn%work1, atmocn%eflow_gl, all=.true.)
       endif
+
+         CALL CHECKT ('SURFACE')
+         IF (MODD5S.EQ.0) CALL DIAGCA (5)
 
       call stopTimer('SURFACE()')
 

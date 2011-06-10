@@ -93,9 +93,8 @@ c
         if(iaction.eq.iowrite_single) call write_acc_meta(fid)
         call new_io_acc(fid,iaction)
         call new_io_ocdiag(fid,iaction)
+#ifndef STANDALONE_HYCOM
         call new_io_icdiag(fid,iorw)
-#ifdef TRACERS_ON
-        call new_io_trdiag (fid,iaction)
 #endif
       endif
 C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
@@ -178,12 +177,11 @@ c idacc(5) is not additive
       call write_attr(grid,fid,'idacc','reduction','sum')
 
       call def_meta_atmacc(fid)
-      call def_meta_rvracc(fid)
       call def_meta_ocdiag(fid)
+#ifndef STANDALONE_HYCOM
       call def_meta_icdiag(fid)
-#ifdef TRACERS_ON
-      call def_meta_trdiag(fid)
 #endif
+
       return
   902 FORMAT ('From:',I6,A6,I2,',  Hr',I3,
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
@@ -197,11 +195,9 @@ c idacc(5) is not additive
       implicit none
       integer :: fid         !@var fid file id
       call write_meta_atmacc(fid)
-      call write_meta_rvracc(fid)
       call write_meta_ocdiag(fid)
+#ifndef STANDALONE_HYCOM
       call write_meta_icdiag(fid)
-#ifdef TRACERS_ON
-      call write_meta_trdiag(fid)
 #endif
       return
       end subroutine write_acc_meta
@@ -215,9 +211,8 @@ c idacc(5) is not additive
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
       call def_rsf_acc(fid,r4_on_disk)
       call def_rsf_ocdiag(fid,r4_on_disk)
+#ifndef STANDALONE_HYCOM
       call def_rsf_icdiag(fid,r4_on_disk)
-#ifdef TRACERS_ON
-      call def_rsf_trdiag(fid,r4_on_disk)
 #endif
       return
       end subroutine def_acc_all
@@ -493,11 +488,5 @@ c      call set_ioptrs_iceacc_extended
       implicit none
       call calc_derived_acc_atm
       call diag_ocean_prep
-#ifdef TRACERS_ON
-      call diag_trac_prep
-#endif
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call diagtcp_prep
-#endif
       return
       end subroutine calc_derived_acc

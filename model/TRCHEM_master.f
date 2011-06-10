@@ -497,6 +497,7 @@ c Tracers (converted from mass to number density):
         end if
       end if
 
+#ifdef TRACERS_AEROSOLS_Koch
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
@@ -508,6 +509,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
          yso2(i,j,l)=so2_offline(i,j,l)*1.0D-12*y(nM,L)
        endif
+#endif /* TRACERS_AEROSOLS_Koch */
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
@@ -870,30 +872,27 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Recipricle
           ! layer thickness below is in 1/m units:
-#ifndef TRACERS_TOMAS
-          sulfate(i,j,L)=
+           sulfate(i,j,l)=0.0
 #ifdef TRACERS_AMP
-     &      (trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
+          sulfate(i,j,L)=
+     &       trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
      &       trm(i,j,L,n_M_DD1_SU)+trm(i,j,L,n_M_DS1_SU)+
      &       trm(i,j,L,n_M_DD2_SU)+trm(i,j,L,n_M_DS2_SU)+
      &       trm(i,j,L,n_M_SSA_SU)+trm(i,j,L,n_M_OCC_SU)+
      &       trm(i,j,L,n_M_BC1_SU)+trm(i,j,L,n_M_BC2_SU)+
      &       trm(i,j,L,n_M_BC3_SU)+trm(i,j,L,n_M_DBC_SU)+
      &       trm(i,j,L,n_M_BOC_SU)+trm(i,j,L,n_M_BCS_SU)+
-     &       trm(i,j,L,n_M_MXX_SU))
-#else
-     &      trm(i,j,L,n_SO4)
-#endif
-     &      *1.76d2*byaxyp(i,j)*bythick(L)
-     &      *max(0.1d0,rh(L)*1.33333d0)
-#endif
-#ifdef TRACERS_TOMAS
-           sulfate(i,j,l)=0.0
+     &       trm(i,j,L,n_M_MXX_SU)
+#elif (defined TRACERS_AEROSOLS_Koch)
+          sulfate(i,j,L)=trm(i,j,L,n_SO4)
+#elif (defined TRACERS_TOMAS)
            do k=1,nbins
-              sulfate(i,j,L)=sulfate(i,j,l)+trm(i,j,L,n_ASO4(k))*1.76d2
-     &            *byaxyp(i,j)*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
+              sulfate(i,j,L)=sulfate(i,j,l)+trm(i,j,L,n_ASO4(k))
            enddo
 #endif
+          sulfate(i,j,l)=sulfate(i,j,l)
+     &      *1.76d2*byaxyp(i,j)*bythick(L)
+     &      *max(0.1d0,rh(L)*1.33333d0)
         endif
 
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)

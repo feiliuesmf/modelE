@@ -840,8 +840,10 @@ c
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
 
+#ifndef STANDALONE_OCEAN
       call set_oj_budg(atmocn%jm_budg)
       call set_owtbudg(atmocn%area_of_zone,atmocn%jm_budg)
+#endif
 
       byrho2 = .00097d0**2 ! reciprocal**2 of mean ocean density
 
@@ -1586,6 +1588,7 @@ c
         call stop_model("OIJmm diagnostic error",255)
       end if
 
+#ifndef STANDALONE_OCEAN
 C**** Set up oceanic component conservation diagnostics
       call declare_oceanr_consrv(
      &     icon_OMS,icon_OAM,icon_OKE,icon_OCE,icon_OSL)
@@ -1606,6 +1609,7 @@ C**** Oceanic tracers
      &       nt)
       end do
 #endif
+#endif /* STANDALONE_OCEAN */
 
 C**** Initialise ocean basins
       CALL OBASIN
