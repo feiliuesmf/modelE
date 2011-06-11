@@ -72,6 +72,9 @@ $path_doc_output = relpath($abs_doc_dir,$abs_output_dir);
 $path_output_doc = relpath($abs_output_dir,$abs_doc_dir);
 if ( ! $run_name ) { $run_name = $output_dir; }
 
+# the following is used to generate "official" web pages
+$html_include_dir = $ENV{'HTMLINCLUDEDIR'};
+
 #init global hashes:
 %db_vars = ();       #var name: module:sub:var
 %db_subs = ();       #sub name: module:sub
@@ -787,6 +790,9 @@ sub htm_start0 {
     print HTM "<TITLE>$title</TITLE>\n";
     print HTM "</head>\n";
     print HTM '<body BGCOLOR="#FFFFFF"TEXT="#000000">'."\n";
+    if ($html_include_dir) {
+	print HTM "<!--#include virtual=\"$html_include_dir/modelE_header.html\" -->\n";
+    }
 }
 
 sub htm_start {
@@ -808,6 +814,9 @@ sub htm_start {
 }
 
 sub htm_end {
+    if ($html_include_dir) {
+	print HTM "<!--#include virtual=\"$html_include_dir/footer.html\" -->\n";
+    }
     print HTM "</body>\n";
     print HTM "</html>\n";
     close HTM;
