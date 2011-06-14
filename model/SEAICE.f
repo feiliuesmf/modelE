@@ -2506,9 +2506,11 @@ C**** albedo calculations
 !@ver  beta
       use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : defvar
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid   !@var fid file id
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
       call defvar(grid,fid,si_ocn%rsi,'rsi(dist_im,dist_jm)')
       call defvar(grid,fid,si_ocn%snowi,'snowi(dist_im,dist_jm)')
       call defvar(grid,fid,si_ocn%msi,'msi(dist_im,dist_jm)')
@@ -2526,9 +2528,15 @@ C**** albedo calculations
       call defvar(grid,fid,iceocn%dhsi,'dhsi(two,dist_im,dist_jm)')
       call defvar(grid,fid,iceocn%dmsi,'dmsi(two,dist_im,dist_jm)')
       call defvar(grid,fid,iceocn%dssi,'dssi(two,dist_im,dist_jm)')
-      call declare_conserv_diags( grid, fid, 'wseai(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'eseai(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'sseai(dist_im,dist_jm)' )
+
+      call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &               j_strt_halo=j_0h,j_stop_halo=j_1h)
+      allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+      call defvar(grid, fid, arrdum, 'wseai(dist_im,dist_jm)' )
+      call defvar(grid, fid, arrdum, 'eseai(dist_im,dist_jm)' )
+      call defvar(grid, fid, arrdum, 'sseai(dist_im,dist_jm)' )
+      deallocate(arrdum)
+
       return
       end subroutine def_rsf_seaice
 
@@ -2539,11 +2547,12 @@ C**** albedo calculations
       use model_com, only : ioread,iowrite
       use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : write_dist_data,read_dist_data
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid      !@var fid unit number of read/write
       integer iaction  !@var iaction flag for reading or writing to file
-      external conserv_OMSI, conserv_OHSI, conserv_OSSI
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
       select case (iaction)
       case (iowrite)            ! output to standard restart file
         call write_dist_data(grid, fid, 'rsi', si_ocn%rsi)
@@ -2561,9 +2570,17 @@ C**** albedo calculations
         call write_dist_data(grid, fid, 'dhsi', iceocn%dhsi, jdim=3)
         call write_dist_data(grid, fid, 'dmsi', iceocn%dmsi, jdim=3)
         call write_dist_data(grid, fid, 'dssi', iceocn%dssi, jdim=3)
-        call dump_conserv_diags( grid, fid, 'wseai', conserv_OMSI )
-        call dump_conserv_diags( grid, fid, 'eseai', conserv_OHSI )
-        call dump_conserv_diags( grid, fid, 'sseai', conserv_OSSI )
+
+        call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
+        allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+        call conserv_OMSI(arrdum)
+        call write_dist_data( grid, fid, 'wseai', arrdum)
+        call conserv_OHSI(arrdum)
+        call write_dist_data( grid, fid, 'eseai', arrdum)
+        call conserv_OSSI(arrdum)
+        call write_dist_data( grid, fid, 'sseai', arrdum)
+        deallocate(arrdum)
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'rsi', si_ocn%rsi)
         call read_dist_data(grid, fid, 'snowi', si_ocn%snowi)
