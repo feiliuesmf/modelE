@@ -541,7 +541,6 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
-      use FLUXES, only : UOdrag,NIsurf
       implicit none
 
 C**** Rundeck parameters:
@@ -551,8 +550,6 @@ C**** Rundeck parameters:
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
-      call sync_param( "NIsurf", NIsurf )
-      call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
 
       RETURN

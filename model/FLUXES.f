@@ -921,12 +921,16 @@ C**** fluxes associated with variable lake fractions
 #endif
 #endif
       USE ATM_COM, only : srfp
+      USE Dictionary_mod
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       INTEGER :: iu_TOPO
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
+
+      call sync_param( "NIsurf", NIsurf )
+      call sync_param( "UOdrag", UOdrag )
 
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
