@@ -40,6 +40,12 @@ C**** Momemtum stresses are calculated as if they were over whole box
      &     ,COSZ1,LAT
 !@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S) (over all types)
      &     ,WSAVG
+#ifdef STANDALONE_OCEAN
+!@var USAVG,VSAVG,TSAVG,QSAVG surface air wind components, temp, humidity
+     &     ,USAVG,VSAVG,TSAVG,QSAVG ! in coupled model, PBL still owns
+!@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
+     &     ,FLONG,FSHORT
+#endif
 !@var SRFP actual surface pressure (hecto-Pascals)
      &     ,SRFP
 #ifdef TRACERS_ON
@@ -180,6 +186,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
      &     ,RSI,SNOWI
 !@var USI,VSI ice velocities (m/s)
      &     ,USI,VSI ! temporary while ice still on atm grid
+     &     ,SNOAGE ! really belongs to icestate
 
 ! Some arrays and indices for diagnostic purposes.  they are
 ! placed in this atm-ice interface type because the diagnostics
@@ -397,6 +404,15 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
      &          this % COSZ1   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WSAVG   ( I_0H:I_1H , J_0H:J_1H ),
+#ifdef STANDALONE_OCEAN
+     &          this % USAVG   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % VSAVG   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % TSAVG   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % QSAVG   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % FLONG   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % FSHORT  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SRFP    ( I_0H:I_1H , J_0H:J_1H ),
+#endif
      &          this % WORK1   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WORK2   ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
@@ -404,6 +420,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       this % GTEMP = 0.    ! initialize at 0 C
       this % GTEMP2 = 0.   ! initialize at 0 C
       this % GTEMPR = TF   ! initialize at 273 K
+      this % EVAPOR = 0.
 
 #ifdef TRACERS_ON
       this % GTRACER = 0.
@@ -557,11 +574,13 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % HVSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SUSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SVSI   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SNOAGE ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
       this % UISURF = 0.
       this % VISURF = 0.
       this % MSICNV = 0.
       this % HSICNV = 0.
+      this % SNOAGE = 0.
 
 #ifdef TRACERS_WATER
       ALLOCATE( this % TUSI   (I_0H:I_1H, J_0H:J_1H, NTM),
@@ -715,6 +734,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
       END MODULE EXCHANGE_TYPES
 
+#ifndef STANDALONE_OCEAN
 
       MODULE FLUXES
 !@sum  FLUXES contains the fluxes between various atm-grid components
@@ -921,12 +941,16 @@ C**** fluxes associated with variable lake fractions
 #endif
 #endif
       USE ATM_COM, only : srfp
+      USE Dictionary_mod
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       INTEGER :: iu_TOPO
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
+
+      call sync_param( "NIsurf", NIsurf )
+      call sync_param( "UOdrag", UOdrag )
 
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
@@ -1206,3 +1230,5 @@ C**** Ensure that no round off error effects land with ice and earth
       end select
       return
       end subroutine new_io_fluxes
+
+#endif /* not STANDALONE_OCEAN */
