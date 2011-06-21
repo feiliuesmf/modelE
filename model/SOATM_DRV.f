@@ -4,7 +4,7 @@
       implicit none
       save
 
-      real*8, dimension(:,:), allocatable :: runoff,sssobs
+      real*8, dimension(:,:), allocatable :: runoff
 
       real*8, dimension(:,:,:), allocatable ::
      &     swdn0,lwdn0,prec0,srfsal0,
@@ -45,7 +45,6 @@
       allocate(srfsal2(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(runoff(i_0h:i_1h,j_0h:j_1h))
-      allocate(sssobs(i_0h:i_1h,j_0h:j_1h))
 
       allocate(psl0(i_0h:i_1h,j_0h:j_1h,4*365))
       allocate(ts0(i_0h:i_1h,j_0h:j_1h,4*365))
@@ -315,15 +314,14 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
         else
           atmocn%EPREC(i,j) = -lhm*atmocn%PREC(i,j)
         endif
+c        atmocn%sssobs(i,j) = .001d0*(
+c     &       srfsal0(i,j,jmon)+t*(srfsal1(i,j,jmon)+t*srfsal2(i,j,jmon))
+c     &       )
       enddo
       enddo
 
-c      call stop_model('need to initialize evapor=0, save in rsf'//
-c     &     'until precip_oc,precip_si move to ocn_driver',255)
-c        sss(i,j) = .001d0*(
-c     &       srfsal0(i,j,jmon)+t*(srfsal1(i,j,jmon)+t*srfsal2(i,j,jmon))
-c     &       )
-c      call stop_model('.001*sss belongs to ocean side',255)
+      ! uniform 30-day restoring timescale
+c      atmocn%sss_restore(:,:) = exp(-dtsrc/(30.*86400.))
 
 c scale prec,runoff so that global evap = P+R
       do j=j_0,j_1
@@ -2219,7 +2217,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       subroutine def_rsf_atmvars(fid)
       use domain_decomp_atm, only : grid
       use pario, only : defvar
-      use fluxes, only : atmocn
+      use fluxes, only : atmocn,atmice
       implicit none
       integer :: fid
       character(len=17) :: ijstr
@@ -2235,6 +2233,11 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call defvar(grid,fid,atmocn%ogeoza,'ogeoza'//ijstr)
       call defvar(grid,fid,atmocn%uosurf,'uosurf'//ijstr)
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
+      call defvar(grid,fid,atmocn%evapor,'oevapor'//ijstr)
+      call defvar(grid,fid,atmice%evapor,'ievapor'//ijstr)
+#ifndef STANDALONE_HYCOM
+      call def_rsf_icedyn (fid)   ! move this!!!!
+#endif
       return
       end subroutine def_rsf_atmvars
 
@@ -2242,7 +2245,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       use model_com, only : iowrite,ioread
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
-      use fluxes, only : atmocn
+      use fluxes, only : atmocn,atmice
       use rad_com, only : cosz_day
       use geom, only : lon2d,lat2d
       implicit none
@@ -2261,6 +2264,8 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
         call write_dist_data(grid, fid, 'ogeoza',atmocn%ogeoza)
         call write_dist_data(grid, fid, 'uosurf',atmocn%uosurf)
         call write_dist_data(grid, fid, 'vosurf',atmocn%vosurf)
+        call write_dist_data(grid, fid, 'oevapor',atmocn%evapor)
+        call write_dist_data(grid, fid, 'ievapor',atmice%evapor)
       case (ioread)             ! input from restart file
         call read_dist_data(grid, fid, 'asst',atmocn%gtemp)
         call read_dist_data(grid, fid, 'atempr',atmocn%gtempr)
@@ -2268,17 +2273,31 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
         call read_dist_data(grid, fid, 'ogeoza',atmocn%ogeoza)
         call read_dist_data(grid, fid, 'uosurf',atmocn%uosurf)
         call read_dist_data(grid, fid, 'vosurf',atmocn%vosurf)
+        call read_dist_data(grid, fid, 'oevapor',atmocn%evapor)
+        call read_dist_data(grid, fid, 'ievapor',atmice%evapor)
       end select
+#ifndef STANDALONE_HYCOM
+      call new_io_icedyn (fid,iorw)  ! move this!!!
+#endif
       return
       end subroutine new_io_atmvars
 
-      subroutine daily_diag
+      subroutine daily_diag(newmonth)
+      implicit none
+      logical, intent(in) :: newmonth
+      if ( newmonth ) then
+        call reset_ADIAG(0)
+      end if
+      return
       end subroutine daily_diag
 
-      subroutine reset_adiag
+      subroutine reset_adiag(idum)
       use diag_com, only : aij
       implicit none
+      integer :: idum ! not used
+      call reset_mdiag  ! move this call to higher level!!!
       aij = 0.
+      call reset_icdiag ! move this!!!!
       return
       end subroutine reset_adiag
 
