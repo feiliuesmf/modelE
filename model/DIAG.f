@@ -5756,17 +5756,15 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       SUBROUTINE reset_ADIAG(isum)
 !@sum  reset_ADIAG resets/initializes atm diagnostics
 !@auth Original Development Team
-      USE MODEL_COM, only : Itime,iyear1,nday,
-     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
       USE ATM_COM, only : kradia,u
       USE DIAG_COM
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
-      INTEGER jd0
 
-      IDACC(1:12)=0
+      call reset_mdiag() ! move this call to higher level!!!
+
       if (kradia.gt.0) then
         AFLX_ST = 0.
         if (isum.eq.1) return
@@ -5788,19 +5786,18 @@ C**** Set conservation diagnostics for ice mass, energy, salt
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
+      ! move this call!!!
       call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return ! just adding up acc-files
 
-      AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      AIJ_loc(:,:,IJ_TMNMX)=1000.
 
 #ifndef CUBED_SPHERE
       CALL EPFLXI (U)  ! strat
 #endif
 
-  100 Itime0=Itime
-      call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
-     *     Jdate0,Jhour0,amon0)
+  100 continue
 
       RETURN
       END SUBROUTINE reset_ADIAG

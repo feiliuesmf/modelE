@@ -147,6 +147,20 @@ C**** Accumulating_period information
 
       END MODULE MDIAG_COM
 
+      subroutine reset_mdiag
+!@sum reset info common to all diagnostics
+      use model_com, only : idacc,
+     &     itime,itime0,nday,iyear1,jyear0,jmon0,jdate0,jhour0,amon0
+      implicit none
+      integer jd0
+      idacc(1:12)=0
+      idacc(12)=1
+      itime0=itime
+      call getdte(itime0,nday,iyear1,jyear0,jmon0,jd0,
+     *     jdate0,jhour0,amon0)
+      return
+      end subroutine reset_mdiag
+
       SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
 !@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
 !@+   if the earliest month is NOT the beginning of the 2-6 month period
