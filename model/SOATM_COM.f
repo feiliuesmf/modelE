@@ -12,14 +12,18 @@
       end module domain_decomp_atm
 
       module geom
+#ifdef STANDALONE_HYCOM
+      use hycom_dim, only : iio
+      use hycom_scalars, only : ipacs
+#endif
       implicit none
-
-      real*8, dimension(:,:), allocatable ::
+      private
+      real*8, dimension(:,:), allocatable, public ::
      &     lon2d,lat2d,lon2d_dg,lat2d_dg,sinlat2d,coslat2d,axyp
 
 #ifdef STANDALONE_HYCOM
-      integer, parameter :: im_nodup=318 ! fix hard-coding
-      integer, parameter :: iseam=69
+      integer, parameter, public ::
+     &     im_nodup=iio-ipacs/2   ! =(iio-im_panam)+jjo/4
 #endif
 
       end module geom
@@ -266,6 +270,7 @@ c
 #ifdef STANDALONE_HYCOM
       use hycom_arrays_glob, only : scatter_hycom_arrays
       use hycom_arrays, only : depths,lonij,latij,scp2
+      use hycom_scalars, only : ipacn,jpac, iatls,jatl
 #else
       use ocean, only : focean,dxypo,olon_dg,olat_dg,dlatm,sinic,cosic
 #endif
@@ -295,6 +300,9 @@ c
       do j=grid%j_strt,grid%j_stop
       do i=grid%i_strt,grid%i_stop
         if(depths(i,j).ne.0.) atmocn%focean(i,j) = 1.
+        ! zap bering strait duplicates
+        if(j==jpac .and. i==ipacn) atmocn%focean(i,j) = 0.
+        if(j==jatl .and. i==iatls) atmocn%focean(i,j) = 0.
         axyp(i,j) = scp2(i,j)
         lon2d(i,j) = lonij(i,j,3)-180.
         if(lon2d(i,j).lt.0.) lon2d(i,j)=lon2d(i,j)+360.
@@ -347,25 +355,35 @@ c
       subroutine panam_nodup(xin,xout)
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : am_i_root,pack_data,broadcast
-      use geom, only : im_nodup,iseam
+      use geom, only : im_nodup
       implicit none
       real*8 ::
      &      xin(grid%im_world,grid%j_strt_halo:grid%j_stop_halo),
      &     xout(     im_nodup,grid%j_strt_halo:grid%j_stop_halo)
       real*8, allocatable :: xtmp_loc(:,:),xtmp(:,:)
       integer :: i,j,jj
-      integer :: jm
+      integer :: im,jm,j_0,j_1
+      integer :: ni_extra,i1_flip,ni_flip
+! gridline connecting poles of panam grid lies between
+! panam_jpole and panam_jpole+1
+      integer, parameter :: panam_jpole=70
+      im = grid%im_world
       jm = grid%jm_world
-      allocate(xtmp_loc(iseam,grid%j_strt_halo:grid%j_stop_halo))
-      xtmp_loc(1:iseam,:) = xin(1:iseam,:)
-      xout(:,:) = xin(iseam+1:,:)
-      allocate(xtmp(iseam,jm))
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+      ni_extra=im-im_nodup ! number of extra gridpoints in i-direction
+      i1_flip=2            ! skip i=1 duplicate on arctic side of bering strait
+      ni_flip=1+ni_extra-i1_flip
+      allocate(xtmp_loc(ni_extra,grid%j_strt_halo:grid%j_stop_halo))
+      xtmp_loc(1:ni_extra,:) = xin(1:ni_extra,:)
+      xout(:,:) = xin(ni_extra+1:,:)
+      allocate(xtmp(ni_extra,jm))
       call pack_data(grid,xtmp_loc,xtmp)
       call broadcast(grid,xtmp)
-      ! fix hard-coding
-      do j=max(grid%j_strt,71),min(grid%j_stop,250)
-        jj = 141-j; if(jj.lt.1) jj=jj+jm
-        xout(1:iseam,j) = xtmp(iseam:1:-1,jj)
+      do j=max(j_0,panam_jpole+1),min(j_1,panam_jpole+jm/2)
+        jj = panam_jpole-(j-(panam_jpole+1))
+        if(jj.lt.1) jj=jj+jm
+        xout(1:ni_flip,j) = xtmp(ni_extra:i1_flip:-1,jj)
       enddo
       deallocate(xtmp_loc,xtmp)
       return
