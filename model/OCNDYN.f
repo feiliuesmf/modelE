@@ -4614,6 +4614,12 @@ C****
           END IF
         END DO
       END DO
+
+#ifdef STANDALONE_OCEAN
+! surface salinity restoration
+      call restore_surface_salinity!(atmocn)
+#endif
+
       endif ocean_processors_only
 
 C**** Convert ocean surface temp to atmospheric SST array

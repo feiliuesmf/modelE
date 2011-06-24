@@ -7,22 +7,33 @@
       real*8, dimension(:,:), allocatable :: runoff
 
       real*8, dimension(:,:,:), allocatable ::
-     &     swdn0,lwdn0,prec0,srfsal0,
-     &     swdn1,lwdn1,prec1,srfsal1,
-     &     swdn2,lwdn2,prec2,srfsal2
+     &     swdn0,lwdn0,prec0,srfsal0,rsi0,
+     &     swdn1,lwdn1,prec1,srfsal1,rsi1,
+     &     swdn2,lwdn2,prec2,srfsal2,rsi2
 
       real*8, dimension(:,:,:), allocatable ::
      &     psl0,ts0,qs0,us0,vs0,
      &     psl1,ts1,qs1,us1,vs1,
      &     psl2,ts2,qs2,us2,vs2
 
+!@dbparam sss_restore_dt timescale (days) for surf salinity
+!@+       relaxation back to observations
+      real*8 :: sss_restore_dt=2.*365.
+!@dbparam sss_restore_dtice timescale (days) for surf salinity
+!@+       relaxation back to observations in the presence of sea ice
+      real*8 :: sss_restore_dtice=30.
+
       end module core_data
 
       subroutine alloc_core_data
       use domain_decomp_atm, only : grid
       use core_data
+      use Dictionary_mod, only : sync_param
       implicit none
       integer :: j_0h,j_1h, i_0h,i_1h
+
+      call sync_param("sss_restore_dt",sss_restore_dt)
+      call sync_param("sss_restore_dtice",sss_restore_dtice)
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -33,16 +44,19 @@
       allocate(lwdn0(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec0(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal0(i_0h:i_1h,j_0h:j_1h,12))
+      allocate(rsi0(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(swdn1(i_0h:i_1h,j_0h:j_1h,365))
       allocate(lwdn1(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec1(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal1(i_0h:i_1h,j_0h:j_1h,12))
+      allocate(rsi1(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(swdn2(i_0h:i_1h,j_0h:j_1h,365))
       allocate(lwdn2(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec2(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal2(i_0h:i_1h,j_0h:j_1h,12))
+      allocate(rsi2(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(runoff(i_0h:i_1h,j_0h:j_1h))
 
@@ -111,6 +125,10 @@ c read sea surface salinity
       fid = par_open(grid,'SSS','read')
       call read_dist_data(grid, fid, 'SALT', srfsal0)
       call par_close(grid,fid)
+c read sea ice fraction
+      fid = par_open(grid,'RSI','read')
+      call read_dist_data(grid, fid, 'rsi', rsi0)
+      call par_close(grid,fid)
 #endif
 c
 c create parabolic coeffs for each time interval
@@ -132,6 +150,13 @@ c
           srfsal0(i,j,:) = a12
           srfsal1(i,j,:) = b12
           srfsal2(i,j,:) = c12
+c
+          n = 12
+          f12 = rsi0(i,j,:)
+          call coeffs1d_pos(f12,a12,b12,c12,n)
+          rsi0(i,j,:) = a12
+          rsi1(i,j,:) = b12
+          rsi2(i,j,:) = c12
 c
           n = 365
           f365 = lwdn0(i,j,:)
@@ -243,6 +268,12 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
         fr = c712*(fm_(i)+fm_(i+1))-c112*(fm_(i-1)+fm_(i+2))
         fl_ = max(fl,0d0)
         fr_ = max(fr,0d0)
+        if(fm_(i).le.0.) then
+          fl_ = 0.
+          fr_ = 0.
+        endif
+        if(fm_(i-1).le.0.) fl_ = 0.
+        if(fm_(i+1).le.0.) fr_ = 0.
         b2 = .75*(fr_+fl_-2.*fm(i))
         if(b2.ne.0d0) then
           b1 = .5*(fr_-fl_)
@@ -254,6 +285,12 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
             fr_ = fm(i)+momrat*(fr_-fm(i))
           endif
         endif
+        if(fm_(i).le.0.) then
+          fl_ = 0.
+          fr_ = 0.
+        endif
+        if(fm_(i-1).le.0.) fl_ = 0.
+        if(fm_(i+1).le.0.) fr_ = 0.
         c2(i) = (fr_+fl_-2.*fm(i))/(xl*xl+xr*xr-twoby3*(xr**3-xl**3)/dx)
         c1(i) = (fr_-fl_)/dx-c2(i)*(xr+xl)
         c0(i) = fl_-xl*(c1(i)+c2(i)*xl)
@@ -265,7 +302,7 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       end subroutine coeffs1d_pos
 
       subroutine get_ocean_forcings
-      use constant, only : lhm,tf
+      use constant, only : lhm,tf,sday
       use model_com, only : dtsrc,jmon,jday,nday,itime
       use domain_decomp_atm, only : grid
       use geom, only : axyp
@@ -276,22 +313,25 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: evx,prx
-      real*8 :: oevg,oprg,ebyp,t,rsi
-      integer :: i,j,l,n,j6hr,itmod,itperyr
+      real*8 :: oevg,oprg,ebyp,t,rsi,sssresfac,sssresfac_ice
+      integer :: i,j,l,n,j6hr,itmod,itperyr,jmm
       integer :: i_0,i_1, j_0,j_1
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       J_0 = grid%J_STRT
       J_1 = grid%J_STOP
+      sssresfac     = exp(-dtsrc/(sss_restore_dt   *sday))
+      sssresfac_ice = exp(-dtsrc/(sss_restore_dtice*sday))
       itperyr = nday*365
       itmod = mod(itime,itperyr)
       j6hr = 1+itmod*4/nday
       t = (real(itmod,kind=8)+.5d0)/real(itperyr,kind=8)
+      jmm = 1+int(12.*t)
       do j=j_0,j_1
       do i=i_0,i_1
         if(atmocn%focean(i,j).eq.0.) cycle
         atmocn%PREC(i,j) = dtsrc*(
-     &       prec0(i,j,jmon)+t*(prec1(i,j,jmon)+t*prec2(i,j,jmon))
+     &       prec0(i,j,jmm)+t*(prec1(i,j,jmm)+t*prec2(i,j,jmm))
      &       )
         atmocn%FLOWO(i,j) = runoff(i,j)*dtsrc
         atmocn%EFLOWO(i,j) = 0. ! for now
@@ -314,14 +354,21 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
         else
           atmocn%EPREC(i,j) = -lhm*atmocn%PREC(i,j)
         endif
-c        atmocn%sssobs(i,j) = .001d0*(
-c     &       srfsal0(i,j,jmon)+t*(srfsal1(i,j,jmon)+t*srfsal2(i,j,jmon))
-c     &       )
+        atmocn%sssobs(i,j) = .001d0*(
+     &       srfsal0(i,j,jmm)+t*(srfsal1(i,j,jmm)+t*srfsal2(i,j,jmm))
+     &       )
+        atmocn%rsiobs(i,j) = (
+     &       rsi0(i,j,jmm)+t*(rsi1(i,j,jmm)+t*rsi2(i,j,jmm)) )
+        !atmocn%rsiobs(i,j) = si_ocn%rsi(i,j)
+        rsi = atmocn%rsiobs(i,j)
+c        if(rsi.gt.0.) then
+c          atmocn%sssresfac(i,j) = sssresfac_ice
+c        else
+c          atmocn%sssresfac(i,j) = sssresfac
+c        endif
+        atmocn%sssresfac(i,j) = rsi*sssresfac_ice+(1.-rsi)*sssresfac
       enddo
       enddo
-
-      ! uniform 30-day restoring timescale
-c      atmocn%sss_restore(:,:) = exp(-dtsrc/(30.*86400.))
 
 c scale prec,runoff so that global evap = P+R
       do j=j_0,j_1
@@ -2495,7 +2542,6 @@ C****
 
       SRHEAT = atmocn%FSHORT(I,J)*atmocn%COSZ1(I,J)/
      &     (COSZ_DAY(I,J)+teeny)
-c      SRHEAT = S0*atmocn%COSZ1(I,J)
 
       aij(i,j,ij_foc) = aij(i,j,ij_foc) + 1.
       aij(i,j,ij_sst) = aij(i,j,ij_sst) + atmocn%GTEMP(I,J)
@@ -2703,3 +2749,132 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
 
       RETURN
       END SUBROUTINE SURFACE
+
+#ifdef STANDALONE_HYCOM
+      ! subroutine restore_surface_salinity to be written
+#else
+      subroutine restore_surface_salinity!(atmocn)
+      !use exchange_types, only : atmocn_xchng_vars
+      use fluxes, only : atmocn
+      use diag_com, only : aij,ij_salres
+      use ocean, only : imo=>im,jmo=>jm,imaxj
+     &     ,mo,s0m,focean,dxypo
+      use domain_decomp_1d, only : get,globalsum,am_i_root
+      use oceanr_dim, only : ogrid
+      implicit none
+      !type(atmocn_xchng_vars) :: atmocn
+c
+      integer :: i,j, j_0, j_1
+      logical :: have_south_pole,have_north_pole
+      real*8 :: restore,sal,ds,sumneg,sumpos,negfac,posfac
+      real*8, dimension(imo,ogrid%j_strt_halo:ogrid%j_stop_halo) ::
+     &     dsneg,dspos
+
+
+      call get(ogrid, j_strt=j_0, j_stop=j_1,
+     &     have_south_pole=have_south_pole,
+     &     have_north_pole=have_north_pole)
+      dsneg(:,:) = 0.
+      dspos(:,:) = 0.
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(focean(i,j).le.0.) cycle
+        restore = atmocn%sssresfac(i,j)
+        sal = s0m(i,j,1)/(dxypo(j)*mo(i,j,1))
+        sal = sal*restore + atmocn%sssobs(i,j)*(1.-restore)
+        ds = sal*(dxypo(j)*mo(i,j,1)) - s0m(i,j,1)
+        if(ds.gt.0.) then
+          dspos(i,j) = ds
+        else
+          dsneg(i,j) = ds
+        endif
+      enddo
+      enddo
+      if(have_south_pole) then
+        dsneg(2:imo,1) = dsneg(1,1)
+        dspos(2:imo,1) = dspos(1,1)
+      endif
+      if(have_north_pole) then
+        dsneg(2:imo,jmo) = dsneg(1,jmo)
+        dspos(2:imo,jmo) = dspos(1,jmo)
+      endif
+      call globalsum(ogrid,dsneg,sumneg,all=.true.)
+      call globalsum(ogrid,dspos,sumpos,all=.true.)
+      if(abs(sumneg).gt.sumpos) then
+        posfac = 1.
+        negfac = -sumpos/sumneg
+      else
+        negfac = 1.
+        posfac = -sumneg/sumpos
+      endif
+      if(am_i_root()) write(6,*) 'negfac,posfac ',negfac,posfac
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(focean(i,j).le.0.) cycle
+        ds = dsneg(i,j)*negfac+dspos(i,j)*posfac
+        s0m(i,j,1) = s0m(i,j,1) + ds
+        aij(i,j,ij_salres) = aij(i,j,ij_salres) +ds/dxypo(j)
+      enddo
+      enddo
+      return
+      end subroutine restore_surface_salinity
+
+      subroutine restore_surface_salinity2!(atmocn)
+      !use exchange_types, only : atmocn_xchng_vars
+      use fluxes, only : atmocn
+      use diag_com, only : aij,ij_salres
+      use ocean, only : imo=>im,jmo=>jm,imaxj,lmm
+     &     ,mo,s0m,focean,dxypo
+      use domain_decomp_1d, only : get,globalsum,am_i_root
+      use oceanr_dim, only : ogrid
+      implicit none
+      !type(atmocn_xchng_vars) :: atmocn
+c
+      integer :: i,j,l, j_0, j_1
+      logical :: have_south_pole,have_north_pole
+      real*8 :: restore,sal,salrat,sums,sumds
+      real*8, dimension(imo,ogrid%j_strt_halo:ogrid%j_stop_halo) ::
+     &     ds,ssum
+
+      call get(ogrid, j_strt=j_0, j_stop=j_1,
+     &     have_south_pole=have_south_pole,
+     &     have_north_pole=have_north_pole)
+      ds(:,:) = 0.
+      ssum(:,:) = 0.
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(focean(i,j).le.0.) cycle
+        restore = atmocn%sssresfac(i,j)
+        sal = s0m(i,j,1)/(dxypo(j)*mo(i,j,1))
+        sal = sal*restore + atmocn%sssobs(i,j)*(1.-restore)
+        ds(i,j) = sal*(dxypo(j)*mo(i,j,1)) - s0m(i,j,1)
+        ssum(i,j) = sum(s0m(i,j,1:lmm(i,j)))
+      enddo
+      enddo
+      if(have_south_pole) then
+        ds(2:imo,1) = ds(1,1)
+        ssum(2:imo,1) = ssum(1,1)
+      endif
+      if(have_north_pole) then
+        ds(2:imo,jmo) = ds(1,jmo)
+        ssum(2:imo,jmo) = ssum(1,jmo)
+      endif
+      call globalsum(ogrid,ds,sumds,all=.true.)
+      call globalsum(ogrid,ssum,sums,all=.true.)
+      salrat = sums/(sums+sumds)
+      if(am_i_root()) write(6,*) 'salrat ',salrat-1.
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(focean(i,j).le.0.) cycle
+        s0m(i,j,1) = s0m(i,j,1) + ds(i,j)
+        ssum(i,j) = ssum(i,j) + ds(i,j)
+        do l=1,lmm(i,j)
+          s0m(i,j,l) = s0m(i,j,l)*salrat
+        enddo
+        aij(i,j,ij_salres) = aij(i,j,ij_salres)
+     &       +(ds(i,j)+ssum(i,j)*(salrat-1.))/dxypo(j)
+      enddo
+      enddo
+      return
+      end subroutine restore_surface_salinity2
+#endif

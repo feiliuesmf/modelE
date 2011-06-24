@@ -68,6 +68,9 @@ DTsrc=1800.      ! cannot be changed after a run has been started
 
 KOCEAN=1            ! ocn is prognostic
 
+sss_restore_dt=300. ! timescale (days) for relaxing surf salinity back to obs
+sss_restore_dtice=10. ! surf. sal. relax. timescale under sea ice
+
 calc_orb_par=1
 paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 

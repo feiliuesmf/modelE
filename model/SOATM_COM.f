@@ -67,7 +67,8 @@
       character(len=lname_strlen), allocatable :: lname_aij(:)
 
       integer :: ij_foc,ij_roc,ij_rsi,ij_ocnsw,ij_sisw,
-     &     ij_ocnalb,ij_sialb,ij_msi,ij_ocheat,ij_sst,ij_sss
+     &     ij_ocnalb,ij_sialb,ij_msi,ij_ocheat,ij_sst,ij_sss,
+     &     ij_salres
 
       type(cdl_type) :: cdl_ij_template,cdl_aij
 
@@ -83,7 +84,7 @@
       end module diag_com
 
       subroutine alloc_adiag
-      use constant, only : rhoi
+      use constant, only : rhoi,sday
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : init_grid
       use mdiag_com
@@ -203,6 +204,16 @@ c
       units_aij_(k)="psu"
       scale_aij_(k)=1.
       denom_aij_(k)=ij_foc
+c
+c     the routine accumulating this one is called from the ocean
+c     code, so make sure that the counter index is correct.
+      k=k+1
+      IJ_SALRES=k
+      lname_aij_(k)='freshwater flux for surface salinity restoration'
+      sname_aij_(k)='salres'
+      units_aij_(k)='mm/day' !'psu/year'
+      ia_aij_(k)=ia_cpl
+      scale_aij_(k)=sday/dtsrc !1d3*(365.*sday)/dtsrc
 c
       kaij = k
       allocate(aij(i_0h:i_1h,j_0h:j_1h,kaij))

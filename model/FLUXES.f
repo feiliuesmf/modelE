@@ -110,6 +110,12 @@ C**** Momemtum stresses are calculated as if they were over whole box
      &     ,MLHC
 !@var SSS sea surface salinity (ppt)
      &     ,SSS
+#ifdef STANDALONE_OCEAN
+!@var SSSOBS,SSSRESFAC observed salinity and restoration factor toward it
+!@var RSIOBS observed sea ice fraction
+     &     ,SSSOBS,SSSRESFAC
+     &     ,RSIOBS
+#endif
 #ifdef TRACERS_WATER
 !@var TRFLOWO tracer in river runoff into ocean (kg/m^2)
          REAL*8, DIMENSION(:,:,:), POINTER :: TRFLOWO
@@ -490,6 +496,11 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % VOSURF  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % OGEOZA  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SSS     ( I_0H:I_1H , J_0H:J_1H ),
+#ifdef STANDALONE_OCEAN
+     &          this % SSSOBS  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SSSRESFAC ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % RSIOBS  ( I_0H:I_1H , J_0H:J_1H ),
+#endif
      &          this % MLHC    ( I_0H:I_1H , J_0H:J_1H ),
 #ifdef TRACERS_WATER
      &          this % TRFLOWO ( NTM , I_0H:I_1H , J_0H:J_1H ),
