@@ -942,7 +942,6 @@ C**** RESAVE PROGNOSTIC QUANTITIES
             if (roice.lt.rsi(i,j)) ! ocean from ice
      *         call RESET_SURF_FLUXES(I,J,2,1,1.-RSI(I,J),1.-ROICE)
           ENDIF
-          RSI(I,J)=ROICE
         ELSE
 C**** save implicit mass-flux diagnostics
           AIJ(I,J,atmice%IJ_SMFX)=AIJ(I,J,atmice%IJ_SMFX)+ROICE*DMIMP
@@ -952,6 +951,8 @@ C**** save implicit mass-flux diagnostics
      &                -DHIMP *POICE)
         END IF
 #endif
+        IF (.not. QFIXR) RSI(I,J)=ROICE
+
         TICEsave(I,J)=(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
         SSI1save(I,J)=(SSI(1,I,J)+SSI(2,I,J))/ACE1I
         SSI2save(I,J)=(SSI(3,I,J)+SSI(4,I,J))/MSI(I,J)
