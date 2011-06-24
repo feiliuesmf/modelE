@@ -91,6 +91,7 @@
       use cdl_mod, only : init_cdl_type,add_dim,add_var,add_varline
       use model_com, only : DTsrc
       use geom, only : lon2d_dg,lat2d_dg
+      use dictionary_mod, only : get_param
       implicit none
       integer :: i_0h, i_1h, j_1h, j_0h
       integer :: i, j, i_0, i_1, j_1, j_0
@@ -108,6 +109,8 @@
       j_0h = grid%j_strt_halo
       j_1h = grid%j_stop_halo
 
+
+      call get_param( "DTsrc", DTsrc ) ! move this!!!
 
       denom_aij_ = 0
       ia_aij_ = ia_cpl
