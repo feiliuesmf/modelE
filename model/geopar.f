@@ -631,17 +631,19 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
 
       function sind(x) result (ds)
         implicit none
-        real(kind(1.d0)), intent(in) :: x
-        real(kind(1.d0)) ds
-        real(kind(1.d0)), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        integer, parameter :: dp = selected_real_kind(15,307)
+        real(kind=dp), intent(in) :: x
+        real(kind=dp) ds
+        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
         ds = sin(pi_dp * x)
       end function sind
 
       function cosd(x) result(dc)
         implicit none
-        real(kind(1.d0)), intent(in) :: x
-        real(kind(1.d0)) dc
-        real(kind(1.d0)), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        integer, parameter :: dp = selected_real_kind(15,307)
+        real(kind=dp), intent(in) :: x
+        real(kind=dp) dc
+        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
         dc = cos(pi_dp * x)
       end function cosd
 
