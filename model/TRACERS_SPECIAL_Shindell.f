@@ -253,7 +253,7 @@ C we change that.)
 #endif
       integer, dimension(nmons) :: mon_units, imon
       integer l,i,j,k,ll
-      character*12, dimension(nmons) :: 
+      character*13, dimension(nmons) :: 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'NOx_AIRC ','BCIA_AIRC'/)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)

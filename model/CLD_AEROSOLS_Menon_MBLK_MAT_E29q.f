@@ -220,6 +220,66 @@ c
       RETURN
       END SUBROUTINE GET_CC_CDNC
 
+C****************************************************************************
+c
+#ifdef TRACERS_TOMAS 
+      SUBROUTINE GET_CC_CDNC_TOMAS(L,I,J,AIRM,DXYPJ,PL,TL,MCDNL1,MCDNO1)
+!@Use for calculating cloud droplet number for convective clouds
+!@when using mass based aerosols
+      USE CLOUDS_COM
+      USE TRACER_COM
+      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
+      IMPLICIT NONE
+      real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
+     *,MCDNL1,MCDNO1,amass,tams,DXYPJ,PL,TL,SSMAL,SSMAO
+      integer L,i,j,n,k
+      real*8 mtot(nbins)
+
+      SSMAL=0.d0
+      SSMAO=0.d0
+
+C** add in terms for AMASS from other program to get aerosol mass conc.
+C** amass is airmass in kg
+      amass=AIRM*mb2kg*DXYPJ
+C** This is air density in kg/m3
+      rho=1d2*PL/(RGAS*TL)
+C*** DSU gives you aerosol mass in  kg/m3, DSS is in kg of species
+C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
+      tams=1.d0/amass*rho
+
+c TOMAS: aerosol number is for all aerosol. 
+c SSMAL (Land number, cm-3) = trm(idtnumd-1+k)/mtot*(mtot-nacl)/boxvol
+c SSMAO (Ocean number, cm-3) = trm(idtnumd-1+k)/boxvol
+c
+C** Land Na (cm-3)  for all 
+C** Ocean Na (cm-3)  for all aerosol number
+c
+      DO K=1,NBINS
+        mtot(k)=trm(i,j,l,idtso4-1+k)+ 
+     *       trm(i,j,l,idtna-1+k)+ trm(i,j,l,idtecob-1+k)+ 
+     *       trm(i,j,l,idtecil-1+k)+ trm(i,j,l,idtocob-1+k)+ 
+     *       trm(i,j,l,idtocil-1+k)+ trm(i,j,l,idtdust-1+k)
+        SSMAO=TRM(i,j,l,idtnumd-1+k)+SSMAO         
+      ENDDO
+      
+      DO K=1,NBINS
+        SSMAL=(TRM(i,j,l,idtnumd-1+k)/mtot(k)
+     &       *(mtot(k)-trm(i,j,l,idtna-1+k)))+SSMAL 
+      ENDDO
+
+      SSMAO=SSMAO*tams*1.e-6 !#/cm3
+      SSMAL=SSMAL*tams*1.e-6 !#/cm3
+      IF(SSMAL.le.100.d0) SSMAL=100.d0
+      IF(SSMAO.le.50.d0) SSMAO=50.d0
+c     write(6,*)"AEROSOL MASS",DSU(1),DSU(2),DSU(4),DSU(5),DSU(6),DSU(7)
+C** We use data from Texas based on Segal et al. 2004 from Leon R.
+      MCDNL1 = 174.8d0 + (1.51d0*SSMAL**0.886d0)
+      MCDNO1 = -29.6d0 + (4.917d0*SSMAO**0.694d0)
+c     write(6,*)"CDNC for MC Clds",MCDNL1,MCDNO1,SSMAL,SSMAO,L
+c
+      RETURN
+      END SUBROUTINE GET_CC_CDNC_TOMAS
+#endif
 
 C************************************************************************************
 C** For large-scale stratus clouds

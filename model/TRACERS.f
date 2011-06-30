@@ -533,7 +533,8 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
       do n=1,ntm
         trflux1(:,:,n) = 0.
 #ifdef TRACERS_TOMAS
-        if(n.lt.idtso4.or.n.ge.IDTNUMD) tomas_ntsurf = ntsurfsrc(n) !gas/number/h2o
+        if(n.lt.idtso4.or.n.ge.IDTH2O) tomas_ntsurf = ntsurfsrc(n) !gas/h2o
+        if(n.ge.IDTNUMD.and.n.lt.IDTH2O) tomas_ntsurf=ntsurfsrc(IDTNUMD) !number
        if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
        if(n.ge.IDTNA.and.n.lt.IDTECOB) tomas_ntsurf = ntsurfsrc(n) !NACL
 !no surface emission for ecob and ecil for now!! 
