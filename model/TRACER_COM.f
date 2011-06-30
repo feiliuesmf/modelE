@@ -308,7 +308,7 @@ C    KCDGN is the number of cloud microphysics and optical depth diagnostics
       integer, parameter :: ntm_tomas=NBINS*(NAP+NAD+1)
 
       integer, parameter :: non_aerosol=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_het+  !exclude ntm_dust! 
+     *                          ntm_water+ntm_koch+ntm_vbs+ntm_het+  !exclude ntm_dust! 
      *                          ntm_nitrate+ntm_cosmo+
      *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra+ntm_ococean+NBS

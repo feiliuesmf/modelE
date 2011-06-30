@@ -165,6 +165,7 @@ c  Assume limiting temperature for ice of -40 deg C :
         endif
       enddo
 
+#ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
       iclay=0  
@@ -197,6 +198,7 @@ c Now do the rest of the aerosols
           enddo
         endif
       enddo
+#endif
 #endif
 
 c Top of the atmosphere

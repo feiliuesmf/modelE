@@ -76,6 +76,16 @@ C SOArate is the rate of SOA condensing (kg/s)
       integer ncomp
       parameter(ncomp=8)
 
+! Mie lookup tables
+      REAL*8, DIMENSION(124,101,91)      :: TOMAS_QEXT, TOMAS_QSCA,
+     &     TOMAS_QABS,TOMAS_GSCA !,TOMAS_QBACK 
+
+      ! FALSE : one Radiation call
+      ! TRUE  : nmodes Radiation calls
+      INTEGER                            :: TOMAS_DIAG_FC = 1 !debug 
+! 2=external mixing (=icomp-2) radiation calls  |
+! 1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
+! TOMAS_DIAG_FC=2 is only available now.  
 
       END MODULE TOMAS_AEROSOL
 
@@ -100,8 +110,7 @@ C     the GCM.
       USE TRACER_COM
 
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
-     *     ,ijts_TOMAS,itcon_TOMAS !ijlt_AMPm,ijlt_AMPext,ijts_AMPpdf
-c$$$     *     ,itcon_AMP,itcon_AMPm
+     *     ,ijts_TOMAS,itcon_TOMAS
 !      USE AEROSOL_SOURCES, only: off_HNO3
       USE FLUXES, only: tr3Dsource
       USE RESOLUTION, only : im,jm,lm     ! dimensions
@@ -113,21 +122,6 @@ c$$$     *     ,itcon_AMP,itcon_AMPm
       USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
-
-c$$$      USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-
-c$$$#ifndef NO_HDIURN
-c$$$c for the hourly diagnostic
-c$$$#ifdef CLD_AER_CDNC 
-c$$$      USE CLOUDS_COM, only: CDN3D  ! CDNC
-c$$$#endif
-c$$$      USE DIAG_COM, only: adiurn=>adiurn_loc,ndiuvar,iwrite,
-c$$$     *     jwrite,itwrite,ndiupt,idd_diam
-c$$$     *                    ,ijdd, idd_ccn, idd_cdnc, 
-c$$$     *     idd_lwp, idd_numb, idd_mass, idd_so2,
-c$$$     *                     idd_lwc, idd_ncL
-c$$$     *     ,hdiurn=>hdiurn_loc
-c$$$#endif
       IMPLICIT NONE
 
 C-----VARIABLE DECLARATIONS------------------------------------------
@@ -146,8 +140,6 @@ C-----VARIABLE DECLARATIONS------------------------------------------
       real*8 Gcout(icomp-1)
       real*8 tot_aam  ! total aerosol ammonia per grid cell across all bins
       real*8 Gcavg ! average h2so4 concentration during timstep
-!      real*8, dimension(ntm) :: tomas_init
-!      real*4 Mocob
              
       real*8 H2SO4rate_o ! H2SO4rate for the specific gridcell
       integer num_iter
@@ -163,14 +155,6 @@ C-----VARIABLE DECLARATIONS------------------------------------------
 
 c$$$      real*4, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
 c$$$     &     nucrate,nucrate1
-
-
-c$$$      ! variables for recording timesteps in cond_nuc
-c$$$      real tbinlimits(101) ! the time limits for each bin
-c$$$      integer stepsinbin(100) ! the number of time steps in each bin
-c$$$      real avgstep ! the average timestep taken during cond_nuc
-c$$$      integer intTAU
-
 
 C-----CODE-----------------------------------------------------------    
 C****
@@ -202,13 +186,6 @@ C     Loop over all grid cells
                H2SO4rate_o = H2SO4_chem(i,j,l) !kg of h2so4/sec  (from SO2+OH)
 
                                 !calculate SOA to condense
-c$$$               if(l.eq.1)then
-c$$$                  SOArate =  SOA_chem(i,j)*(1.d0-
-c$$$     &                 exp(-adt/(tau_soa*3600.*24.))) ! SOA_chem is kg/s 
-c$$$               else
-c$$$                  SOArate=0.0
-c$$$               endif
-
                SOArate = TRM(i,j,l,n_SOAgas)*(1.d0-
      &              exp(-adt/(tau_soa*3600.*24.)))/adt
 
@@ -242,7 +219,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
                   MK(n,srtocil)=TRM(i,j,l,IDTOCIL -1+n)      
                   Mk(n,srtdust)=TRM(i,j,l,IDTDUST -1+n)            
                   Mk(n,srth2o)=TRM(i,j,l,IDTH2O-1+n)
-                  Mk(n,srtnh4)=0.! 1875*Mk(n,srtso4) !TRM(i,j,l,IDTNH4A-1+n) - TOMAS -WILL FIX IT SOON. 
+                  Mk(n,srtnh4)=0.
                enddo
 
                INIT_NK(:) = NK(:)
@@ -281,13 +258,6 @@ C     ****************
                mpnum=6 
                call aerodiag(mpnum,i,j,l)
 
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'mnfix NK',Nk(1),Nkd(1)
-c$$$                  print*,'mnfix MK',Mk(8,srtso4),Mkd(8,srtso4),
-c$$$     *                 INIT_Mk(8,srtso4)
-c$$$               endif
-
 !! in-cloud oxidation! move from clouds2.f to here            
                call storenm()
                if(AQSO4oxid_mc(I,J,L).gt.0.)then
@@ -302,15 +272,6 @@ c$$$               endif
                mpnum=4 
                call aerodiag(mpnum,i,j,l)
 
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'aq mc NK',Nk(1),Nkd(1)
-c$$$                  print*,'aq mc MK',Mk(8,srtso4),Mkd(8,srtso4)
-c$$$               endif
-
-
-!Should I call aerodiag?  Can I call more than once?
-
                call storenm()
                if(AQSO4oxid_ls(I,J,L).gt.0.)then
                   call aqoxid(AQSO4oxid_ls(I,J,L),.false.,Nk,Mk,
@@ -322,12 +283,6 @@ c$$$               endif
 
                mpnum=5 
                call aerodiag(mpnum,i,j,l)
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'aq ls NK',Nk(1),Nkd(1)
-c$$$                  print*,'aq ls MK',Mk(8,srtso4),Mkd(8,srtso4)
-c$$$               endif
-
 ! get the total mass of S
                tot_s_1 = H2SO4rate_o*adt*32.d0/98.d0
                do k=1,ibins
@@ -348,20 +303,6 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
                mpnum=3 
                call aerodiag(mpnum,i,j,l)
 
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'nuc NK',Nk(1),Nkd(1)
-c$$$                  print*,'nuc MK',Mk(8,srtso4),Mkd(8,srtso4)
-c$$$               endif
-c$$$               
-
-c$$$               if(am_i_root())then
-c$$$!                  if(j.eq.50)then
-c$$$               print*,'nuc NK',Nk(1), Nkd(1),Nk(2)
-c$$$               print*,'nuc MK',Mk(1,1),Mk(1,2),Gc(srtso4)
-c$$$!                   endif
-c$$$               endif
-
                Mk(:,:)=Mkcond(:,:)
                Nk(:)=Nkcond(:)
 
@@ -371,30 +312,8 @@ c$$$               endif
 
                mpnum=1
                call aerodiag(mpnum,i,j,l)
-
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'cond NK',Nk(1),Nkd(1)
-c$$$                  print*,'cond MK',Mk(8,srtso4),Mkd(8,srtso4)
-c$$$               endif
-               
-
-c$$$               if(am_i_root())then
-c$$$!                  if(j.eq.50)then
-c$$$               print*,'cond_nuc NK',Nk(1), Nkd(1),Nk(2)
-c$$$               print*,'cond_nuc MK',Mk(1,1),Mk(1,2),Gc(srtso4)
-c$$$!                   endif
-c$$$               endif
-
                Mk(:,:)=Mkout(:,:)
                Nk(:)=Nkout(:)
-
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'cond/nuc out NK',Nk(1),Nkd(1)
-c$$$                  print*,'cond/nuc out MK',Mk(8,srtso4),Mkd(8,srtso4)
-c$$$               endif
-               
 
 !               nucrate(j,l)=nucrate(j,l)+fn
 !               nucrate1(j,l)=nucrate1(j,l)+fn1
@@ -425,23 +344,9 @@ c$$$               T3DC(I,J,L,2)=T3DC(I,J,L,2)+fn1*boxvol*adt
                call storenm()
                call multicoag(adt)
 
-c$$$               if(am_i_root())then
-c$$$!                  if(j.eq.50)then
-c$$$               print*,'multicoag NK',Nk(1), Nkd(1),INIT_Nk(1)
-c$$$               print*,'multicoag MK',Mk(1,1),Mk(1,2),Gc(srtso4)
-c$$$!                   endif
-c$$$               endif
-
                mpnum=2
                call aerodiag(mpnum,i,j,l)
-
-c$$$               if(am_i_root())then
-c$$$                  print*,'i',i,'j',j,'l',l
-c$$$                  print*,'coag NK',Nk(1),Nkd(1)
-c$$$                  print*,'coag MK',Mk(8,srtso4),Mkd(8,srtso4),
-c$$$     &                 aerod(i,j,l,idtso4+7,mpnum)
-c$$$               endif
-               
+           
 C     Do water eqm at appropriate times
                call eznh3eqm(Gc,Mk)
                call ezwatereqm(Mk)
@@ -479,10 +384,6 @@ C     ***********************
                      print*,'i',i,'j',j,'l',l
                      print*,'Init,Init1,Intm,Final',tot_s_1,
      *                    tot_s_1b,tot_s_2
-c$$$  print*,'Intermediate',tot_s_1a
-c$$$  print*,'Final',tot_s_2
-c$$$  print*,'Gen',H2SO4rate_o*adt*32.d0/98.d0
-c     STOP
                   endif
                endif
               
@@ -569,10 +470,6 @@ c$$$  TAJLS(J,L,K+9) = TAJLS(J,L,K+9) + TSUM(K)
 c$$$            enddo
          enddo                  !J loop
       enddo                     !L loop
-
-
-
-
       return
       END SUBROUTINE TOMAS_DRV                     !of main
       
@@ -684,9 +581,7 @@ C-----CODE-----------------------------------------------------------
          density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
          size_density(k)=density      
-         
-!        print*,'density', K,density, size_density(k)
-         
+ 
          if (TRM(I,J,L,IDTNUMD-1+k) .gt. Neps.and.mtot.gt.0.) then
             mp=mtot/(TRM(I,J,L,IDTNUMD-1+k))
          else
@@ -726,8 +621,6 @@ C-----CODE-----------------------------------------------------------
          getdp(k)=(6.d0*mp/(pi*size_density(k)))**(1.d0/3.d0)
       enddo
 
-! Finish computing particle diameter \
-
       RETURN
       END subroutine dep_getdp
 
@@ -757,8 +650,6 @@ C	readfraction.f
 	return 
 	end subroutine readfraction
 			 
-
-C	readbinact.f
 	subroutine readbinact(infile,binact)
 
 
@@ -780,16 +671,14 @@ C	readbinact.f
 			enddo
 		enddo
 	enddo
-!        print*,'binact last',binact(101,101,101)
 	close(innum)
 	return
 	end subroutine readbinact
 			 
 
 	subroutine getfraction(tr_conv,tm,fraction)
-Ckpc  change binact values
         USE TOMAS_AEROSOL, ONLY : binact02,binact10,
-     &       fraction02,fraction10 !,GCM_fraction
+     &       fraction02,fraction10 
         USE TRACER_COM, only : nbins,ntm,IDTECIL,
      &       IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
      &       IDTECOB
@@ -838,14 +727,11 @@ Ckpc  change binact values
            
            if (getbinact.gt.k) then
               fraction(k)=0.    !not activated
-!              GCM_fraction(i,j,l,k)=0.0
            else if (getbinact.eq.k) then
               
               fraction(k)=fraction10(iso4,inacl,iocil) !partly activated
-!              GCM_fraction(i,j,l,k)=fraction(k)
            else
               fraction(k)=1.    !all sizebin activated
-!              GCM_fraction(i,j,l,k)=1.
            endif
            if(getbinact.le.2)
      &          print*,'CONV CLD',getbinact,k,iso4,inacl,iocil
@@ -860,14 +746,11 @@ Ckpc  change binact values
 
            if (getbinact.gt.k) then
               fraction(k)=0.    !not activated
-!              GCM_fraction(i,j,l,k)=0.0
            else if (getbinact.eq.k) then
               
               fraction(k)=fraction02(iso4,inacl,iocil) !partly activated
-!              GCM_fraction(i,j,l,k)=fraction(k)
            else
               fraction(k)=1.    !all sizebin activated
-!              GCM_fraction(i,j,l,k)=1.
          
            if(getbinact.le.4)
      &          print*,'STRAT CLD',getbinact,k,iso4,inacl,iocil
@@ -1275,7 +1158,6 @@ C contributes to neutralizing sulfate
 
       !Calculate mixture density
       d=1./(xan/dan+xs0/ds0+xs1/ds1+xs2/ds2+xnacl/dss)  !Tang, eq. 10
-c      call nanstop(d,173,0,0)
       if (abs(d).ge.0) then
       else
          write(*,*) d,xtot,xan,xs0,xs1,xs2,xnacl,dan,ds0,ds1,ds2,dss
@@ -1290,15 +1172,11 @@ c      call nanstop(d,173,0,0)
       endif
 
 C Restore masses passed
-!      print*,'inodens end',mso4,mno3,so4temp,no3temp
-!      call stop_model('density',13)
       mso4=so4temp
       mno3=no3temp
       mnh4=nh4temp
       mnacl=nacltemp
       mh2o=h2otemp
-
-!      print*,'inodens end2',mso4,mno3,mnh4,mh2o,mnacl
 
 C Return the density
       inodens=1000.*d    !Convert g/cm3 to kg/m3
@@ -1343,7 +1221,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe
 
       real*8 waterso4, waternacl, waterocil
-!      external waterso4, waternacl, waterocil
 
 C     VARIABLE COMMENTS...
 
@@ -1722,8 +1599,6 @@ C     at 273 K and sea salt at 273 K.
 
 
       real*8 waterso4, waternacl, waterocil
-!      REAL(8):: TK
-!      external waterso4, waternacl, waterocil
 
 C     VARIABLE COMMENTS...
 
@@ -1762,7 +1637,7 @@ C ****************
 C Aerosol dynamics
 C ****************
 
-c$$$      !Do water eqm at appropriate times
+      !Do water eqm at appropriate times
 
       call storenm()
 ! I won't update Nk and Mk changes to aerodiag for now. 
@@ -1806,8 +1681,6 @@ C Swap Nk, Mk, and Gc arrays back to T0M
 C Check for negative tracer problems
       do n=1,ntm_TOMAS
          if (TRM(i,j,l,IDTSO4+n-1) .lt. 0.0) then
-c$$$            write(*,*) 'TRM<=0 in aeroupdate ',
-c$$$     &           trname(IDTSO4+n-1),trm(i,j,l,IDTSO4+n-1)
             if (abs(TRM(i,j,l,IDTSO4+n-1)) .gt. 1.e-10) then
                !serious problem - report error
                write(*,*) 'ERROR: Tracer ',trname(IDTSO4+n-1),
@@ -1982,11 +1855,9 @@ C-----CODE--------------------------------------------------------------
       subroutine alloc_tracer_TOMAS_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
-!@auth Susanne Bauer
-!@ver  1.0
+!@auth Yunha Lee
       use domain_decomp_atm, only : dist_grid, get
       use resolution, only     : lm
-!      use tracer_com, only    : ntmAMP
       use TOMAS_aerosol
 
       IMPLICIT NONE
@@ -2002,13 +1873,9 @@ C-----CODE--------------------------------------------------------------
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
 
-! I,J,L
       allocate(  AQSO4oxid_mc(I_0H:I_1H,J_0H:J_1H,LM)   )
       allocate(  AQSO4oxid_ls(I_0H:I_1H,J_0H:J_1H,LM)   )
-! other dimensions
-!      allocate(  SOA_chem(I_0H:I_1H,J_0H:J_1H)  )
       allocate(  H2SO4_chem(I_0H:I_1H,J_0H:J_1H,LM)  )
-
       allocate( AEROD(I_0H:I_1H,J_0H:J_1H,LM,NTM,ptype) )
      
       return

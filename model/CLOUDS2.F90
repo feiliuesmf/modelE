@@ -9,7 +9,8 @@ module CLOUDS
 !@cont MSTCNV,LSCOND,ANVIL_OPTICAL_THICKNESS,MC_CLOUD_FRACTION,
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
   use CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6 &
-       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
+       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi &
+       ,mb2kg
   use RESOLUTION, only : lm
   use MODEL_COM, only : dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
@@ -1388,6 +1389,7 @@ contains
 #endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
+#ifndef TRACERS_TOMAS
 #ifdef TRACERS_AMP
             do nm=1,nmodes
               ncaero(nm)=naerc(l,nm)*1.d-6
@@ -1400,6 +1402,11 @@ contains
                  MCDNL1,MCDNO1)
 
 #endif  /* (TRACERS_AMP) */
+#endif
+#ifdef TRACERS_TOMAS
+       CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC, &
+          DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
+#endif
             MNdO=MCDNO1
             MNdL=MCDNL1
             MNdO_max(L)=max(MNdO_max(L),MCDNO1)
@@ -3051,6 +3058,33 @@ contains
     real*8                    :: naero (mkx,nmodes)
     !     real*8,dimension(lm,nmodes)   :: nactc
 #endif
+#ifdef TRACERS_TOMAS
+      REAL*8,dimension(mkx)     :: nactl
+!Can
+!Can Droplet parameterization quantities
+!Can
+      INTEGER :: NCCNMx,NCC,NSECi
+      PARAMETER (NCCNMx=100, NCC=10)
+      REAL*8 SULFI, BOXVL, TOTi,TOT_MI, &
+           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), & 
+           NACTEarth, NACTOcean, NACT, NACTBL, &
+           SMAXEarth, SMAXOcean, SMAX, & 
+           REFFEarth, REFFOcean, REFF, REFFBL, REFFGISS, &
+           CLDTAUEarth, CLDTAUOcean, CLDTAU, CLDTAUBL, CLDTAULIQ, &
+           CLDTAUICE, TPARC,PPARC, & 
+           WPARCOcean, WPARCEarth, WPARC, & 
+           RHOSI,QLWC,EPSILON,AUTO(6),DIFFLWMR,DIFFEPS
+
+      INTEGER ITYP
+      LOGICAL EX
+!c$$$      REAL*8 CldLiqTauNS(IM,JM,LM), CldLiqTauBL(IM,JM,LM),
+!c$$$     &                 CldLiqTauGS(IM,JM,LM), CldIceTauGS(IM,JM,LM)
+!c$$$      COMMON /MICROPH/ CldLiqTauNS, CldLiqTauBL, CldLiqTauGS,
+!c$$$     &                 CldIceTauGS
+!Can
+!Can
+   
+#endif
 #endif
 
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
@@ -3576,6 +3610,73 @@ contains
            ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end',qr0=mrain, &
            nr0=nrain)
 #endif
+#ifdef TRACERS_TOMAS
+!CCC
+!Can *************************************************************************
+!Can      CLOUD DROPLET CALCULATION
+!Can *************************************************************************
+!CCC
+!CCC *** Input properties for parameterization
+!CCC
+      TOT_MI    = 0d0
+      WPARC      = 0d0
+      SMAX       = 0d0
+      NACT       = 0d0
+      REFF       = 0d0
+      CLDTAU     = 0d0
+      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
+!c$$$      QautP6     = 0d0
+!c$$$      QautKK     = 0d0 
+!c$$$      QautMC     = 0d0 
+!c$$$      QautBH     = 0d0
+!c$$$      QautGI     = 0d0 
+!c$$$      QautNS     = 0d0 
+!c$$$C
+!C Get CCN properties
+!C
+!      avol(l) = axyp(i_debug,j_debug)*am(i_debug,j_debug,l)/mair*
+!!!   byam(l) = [m2/kg of air]
+      boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
+          /100./PL(L) 
+
+      CALL getCCN (I_debug,J_debug,L,BOXVL,TOT_MI,TOTi,TPi,MLi, &
+         NCCNMx,NSECi)        ! Get CCN properties
+!C
+!C Call cloud microphysics
+!C    
+      IF (LHX.EQ.LHE) THEN         ! Liquid clouds present
+!CCC
+!CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
+!CCC
+!CYHL  I changed the updraft velocity from 0.25 to 0.35 m/s for ocean
+!CYHL  and from 0.5 to 1.0 m/s for land.
+
+         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
+         WPARCEarth = 0.3d0
+         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
+
+         QLWC=WMX(L)/(FCLD + 1.d-20)    	!in-cloud dimensionless LWC
+         QLWC=MIN(QLWC, 3.d-03)  		!(upper limit for the QLWC)
+
+         RHO=1.E5*PL(L)/(RGAS*TL(L))
+         RHOSI = RHO*1.e-3
+
+         TPARC=tk0(mkx)
+         PPARC=pk0(mkx)*100.d0  ! mbar to Pa
+         IF (TOTi.GT.6.d7) THEN  ! more than 60 particles per cc, call droplet activation
+            CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
+                 ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
+         ELSE
+            NACT = ndrop(mkx) ! 40.d6      ! Minimum droplet number
+            SMAX = 0.0001    ! Minimum supersaturation
+         ENDIF
+       NACTL(mkx)=NACT
+       ENDIF
+
+       ldummy=execute_bulk2m_driver('all' &
+            ,ndrop,mdrop,ncrys,mcrys,nactl,'end')
+
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
@@ -3598,6 +3699,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the TOMAS_actv interface from TOMAS 
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       ! Droplets' autoconversion: Beheng (concentration and content)
       !       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
@@ -4955,6 +5060,10 @@ contains
       OLDCDL(L)=SNd
       OLDCDI(L)=SNdi
 #endif
+#ifdef TRACERS_TOMAS
+       OLDCDL(L)=SNd
+       OLDCDI(L)=SNdi
+#endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
       ! Update thermo if environment was changed
@@ -4998,6 +5107,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the AMP_actv interface from MATRIX
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       rablk=execute_bulk2m_driver('get','value','nc') + ( &
            +execute_bulk2m_driver('get','npccn') &

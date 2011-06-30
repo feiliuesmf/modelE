@@ -3980,7 +3980,7 @@ C                                                                -------
 
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       USE RESOLUTION, only :LM
 #endif
       IMPLICIT NONE
@@ -4019,7 +4019,7 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
       REAL*8, DIMENSION(LM,33) :: TAB
 #endif
@@ -4215,7 +4215,19 @@ c LW
          TRBALK(l,:) = TAB(l,:)
        enddo
 #endif
+#ifdef TRACERS_TOMAS 
+      CALL SETTOMAS(EXT,SCT,GCB,TAB)
+       do L = L1,LM
+c SW
+         SRBEXT(l,:) = EXT(l,:)
+         SRBSCT(l,:) = SCT(l,:)
+         SRBGCB(l,:) = GCB(l,:)
+c LW
+         TRBALK(l,:) = TAB(l,:)
+       enddo
+#endif
 
+#ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
       IF(NTRACE <= 0) RETURN
 
@@ -4264,6 +4276,7 @@ C     ------------------------------------------------------------------
      *  *FTTASC(NT)
       TRBALK(L,:)=TRBALK(L,:)+TRTQAB(:,NRHNAN(L,NA),NT)*RHFTAU ! 1:33
   750 CONTINUE
+#endif
 #endif
       RETURN
       END SUBROUTINE SETAER
