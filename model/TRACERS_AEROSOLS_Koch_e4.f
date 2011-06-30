@@ -1692,7 +1692,7 @@ c melting snow
       USE MODEL_COM, only: jday,jyear,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
-     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel
+     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
@@ -1731,8 +1731,10 @@ C
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        if(imon/=2)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
@@ -1784,9 +1786,11 @@ c**** Interpolate two months of data to current day
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel
+     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
