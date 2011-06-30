@@ -369,7 +369,7 @@ c --- dmua on A-grid, admui on C-grid
       ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)
      .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
      .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
-      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)+
+      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)
      .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
      .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
