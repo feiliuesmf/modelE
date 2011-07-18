@@ -6,14 +6,16 @@ my $HYCOM = "E1fzhyc";
 
 my $extraFlags;
 $extraFlags{SERIAL}   = "";
-$extraFlags{MPI}      = "ESMF=YES NPES=\$npes";
+$extraFlags{MPI}      = "MPI=YES NPES=\$npes";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
 $extraFlags{SERIALMP} = "EXTRA_FFLAGS=-mp"; # Intel kludge for matching serial and OpenMP.
 
-$extraFlags{E1M20} ="";
-$extraFlags{E1F20} ="";
+$extraFlags{E4TcadF40} ="";
+$extraFlags{E4arobio_g6cc} ="";
+$extraFlags{E4arobio_h4c} ="";
+$extraFlags{EM20} ="";
+$extraFlags{E4F40} ="";
 $extraFlags{E1oM20} ="";
-$extraFlags{E001tr} ="";
 $extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
 
 $extraFlags{intel} = "";
@@ -39,7 +41,7 @@ sub compileRundeck {
   my $configuration = $env -> {CONFIGURATION};
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
-  
+ 
   my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
   $flags =~ s/(\$npes)/1/eeg;
 
@@ -54,9 +56,6 @@ sub compileRundeck {
 
   my $commandString = <<EOF;
   export MODELERC=$MODELERC;
-  echo "MODELERC is $MODELERC";
-  echo "CONTENTS: ";
-  cat $MODELERC;
   cd $installDir/decks;
   make rundeck RUN=$expName RUNSRC=$rundeck;
   make vclean RUN=$expName;
@@ -64,8 +63,8 @@ sub compileRundeck {
 EOF
 
   my $binDir = $expName . "_bin";
-  print "Compile? $commandString \n";
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC }));
+  print "compileRundeck: $commandString \n";
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC, RUNDECK => $rundeck  }));
 }
 
 sub runConfiguration {
@@ -81,7 +80,7 @@ sub runConfiguration {
 
     print "results dir $resultsDir \n";
 
-    my $flags = "$extraFlags{$configuration}";
+    my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
     $flags =~ s/(\$npes)/$npes/eeg;
     my $expName = "$rundeck.$configuration.$compiler";
 
@@ -100,8 +99,8 @@ sub runConfiguration {
     
     my $MODELERC = $env->{MODELERC};
 
-    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
-    my $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
+    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
+    my $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
     my $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
 
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes ";}
@@ -129,7 +128,7 @@ sub runConfiguration {
 	exit 1;
     fi
 EOF
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler} ));
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler, RUNDECK => $rundeck } ));
 }
 
 
@@ -209,8 +208,8 @@ sub getGfortranEnvironment {
     $env->{SCRATCH_DIRECTORY}=$scratchDir;
     $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
     $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
-#    $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
     $env->{GITROOT}="/home/modele/modelE";
+#    $env->{GITROOT}="simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
     $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
     $env->{CMRUNDIR}="$scratchDir/cmrun";
     $env->{EXECDIR}="$scratchDir/exec";
@@ -220,13 +219,15 @@ sub getGfortranEnvironment {
     $env->{OVERWRITE}="YES";
     $env->{OUTPUT_TO_FILES}="YES";
     $env->{VERBOSE_OUTPUT}="YES";
+
     $env->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
-    $env->{MPIDIR}="/usr/local/other/openMpi/gcc-4.5";
+    $env->{MPIDIR}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6";
     $env->{MPIDISTR}="openmpi";
-    $env->{COMPILER}="gfortran";
-    $env->{ESMF_BOPT}="O";
+
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
+    $env->{COMPILER}="gfortran";
+    $env->{ESMF_BOPT}="O";
     $env->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
     return $env;
 }
@@ -315,6 +316,31 @@ sub checkConsistency {
 	}
     }
     return $results;
+}
+
+sub saveForDiffreport()
+{
+# Save regTest.cfg in a format that is easily parsed by a bash script
+   require 'regTest.cfg';
+
+   my $file = ".regTest.cfg";
+   open (FH, "> $file") or die "Can't open $file for write: $!";
+   my $i = 0;
+   while($i <= $#decks)
+   {
+      print FH "DECK=$decks[$i]\n";
+      $i++;
+   }
+   my $i = 0;
+   while($i <= $#comps)
+   {
+      print FH "COMPILER=$comps[$i]\n";
+      $i++;
+   }   
+   print FH "LEVEL=$level\n";
+
+   close FH or die "Cannot close $file: $!"; 
+
 }
 
 1;
