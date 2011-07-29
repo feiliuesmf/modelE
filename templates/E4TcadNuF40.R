@@ -16,6 +16,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define NUDGE_ON                 ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
