@@ -16,6 +16,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define NUDGE_ON                 ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
@@ -41,7 +42,6 @@ Preprocessor Options
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 End Preprocessor Options

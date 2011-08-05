@@ -20,6 +20,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NUDGE_ON                     ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 End Preprocessor Options

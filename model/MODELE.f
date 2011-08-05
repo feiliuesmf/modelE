@@ -1007,6 +1007,9 @@ C****
 #endif
 #ifdef NUDGE_ON
       write(6,*) '...and nudging of meteorology'
+#ifdef MERRA_NUDGING
+      write(6,*) '   WITH MERRA WINDS.'
+#endif
 #endif
 #ifdef HTAP_LIKE_DIAGS
       write(6,*) '...and HTAP set of diagnostics'

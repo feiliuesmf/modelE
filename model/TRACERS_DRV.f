@@ -10268,6 +10268,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
+      xyear=0
+      xday=0
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -11465,6 +11467,8 @@ c      real*8 number  !for TOMAS debug only
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
+      xyear=0
+      xday=0
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

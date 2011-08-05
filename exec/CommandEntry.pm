@@ -17,6 +17,7 @@ sub new {
   $self -> {STDOUT_LOG_FILE} = "LOG";
   $self -> {STDERR_LOG_FILE} = "ERR";
   $self -> {COMPILER} = "";
+  $self -> {RUNDECK} = "";
 
   # override defaults with arguments
   while ( my ($key, $value) = each(%$args) ) {
@@ -83,6 +84,7 @@ sub runInBatch {
   my $commandString = shift;
   my $queue = shift;
   my $queueString = " ";
+  my $jobname  = $self->{RUNDECK};
   if ($queue) {$queueString = "-q $queue\n";};
 
 #  my $NODE_SIZE = 8;
@@ -95,21 +97,24 @@ sub runInBatch {
 
   $walltime = "3:00:00\n";
 
-  print " runInBatch: COMPILER=$self->{COMPILER}\n";
+  print " runInBatch: COMPILER=$self->{COMPILER}, jobname=$jobname\n";
   my $script = <<EOF;
 #!/bin/bash
 #PBS -l select=$nodes:ncpus=8:proc=neha
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
-#PBS -N regression
+#PBS -N $jobname
 #PBS -j oe
 #PBS $queueString
+#PBS -V
 
 cd \$PBS_O_WORKDIR
 
+export TMPDIR=/tmp
 
 . /usr/share/modules/init/bash
 module purge
+
 EOF
 
     if ($self->{COMPILER} eq intel) {
@@ -119,11 +124,8 @@ module load comp/intel-11.1.072  mpi/impi-3.2.2.006
 EOF
 
 } else {
-
   $script .= <<EOF;
-module load other/comp/gcc-4.5
-export PATH=/usr/local/other/openMpi/gcc-4.5/bin:\$PATH
-export LD_LIBRARY_PATH=/usr/local/other/openMpi/gcc-4.5/lib:\$LD_LIBRARY_PATH
+module load other/comp/gcc-4.6-20110312
 EOF
 
 }
@@ -149,6 +151,7 @@ sub launch {
   my $mode = $self -> {QUEUE};
 
   print " launch: COMPILER=$self->{COMPILER}\n";
+  $ENV{TMPDIR}="/tmp";
   setModuleEnvironment($self->{COMPILER});
   $ENV{MODELERC}=$self->{MODELRC};
   if ($self -> {QUEUE} eq LOCAL) {
@@ -167,9 +170,7 @@ sub setModuleEnvironment {
     if ($compiler eq intel) {
 	module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
     } elsif ($compiler eq gfortran) {
-	module (load, "other/comp/gcc-4.5");
-	$ENV{LD_LIBRARY_PATH}="/usr/local/other/openMpi/gcc-4.5/lib:".$ENV{LD_LIBRARY_PATH};
-	$ENV{PATH}="/usr/local/other/openMpi/gcc-4.5/bin:".$ENV{PATH};
+	module (load, "other/comp/gcc-4.6-20110312");
     } else {
     }
 }
