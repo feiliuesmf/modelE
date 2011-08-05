@@ -536,11 +536,11 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
         if(n.lt.idtso4.or.n.ge.IDTH2O) tomas_ntsurf = ntsurfsrc(n) !gas/h2o
         if(n.ge.IDTNUMD.and.n.lt.IDTH2O) tomas_ntsurf=ntsurfsrc(IDTNUMD) !number
        if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
-       if(n.ge.IDTNA.and.n.lt.IDTECOB) tomas_ntsurf = ntsurfsrc(n) !NACL
+!not here       if(n.ge.IDTNA.and.n.lt.IDTECOB) tomas_ntsurf = ntsurfsrc(n) !NACL
 !no surface emission for ecob and ecil for now!! 
        if(n.ge.IDTECOB.and.n.lt.IDTOCOB) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
        if(n.ge.IDTOCOB.and.n.lt.IDTDUST) tomas_ntsurf=ntsurfsrc(IDTOCOB) !ocob + ocil
-       if(n.ge.IDTDUST.and.n.lt.IDTNUMD) tomas_ntsurf = ntsurfsrc(n) !DUST
+!not here       if(n.ge.IDTDUST.and.n.lt.IDTNUMD) tomas_ntsurf = ntsurfsrc(n) !DUST
 
        do ns=1,tomas_ntsurf
 #else

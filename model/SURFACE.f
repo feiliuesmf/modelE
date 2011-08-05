@@ -1,3 +1,4 @@
+
 C****   
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
@@ -158,6 +159,9 @@ C****
     (defined TRACERS_TOMAS)
       USE tracers_dust, only : hbaij,ricntd,n_soildust
 #endif
+!#ifdef TRACERS_TOMAS
+!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
+!#endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_COM, only: vol2mass,tr_mm
@@ -883,6 +887,7 @@ C**** Limit evaporation if lake mass is at minimum
 #ifdef TRACERS_TOMAS
       ss_bin=0
       num_bin=0
+!      TOMAS_emis(I,J,:,1)=0.
 #endif
 C**** Loop over tracers
       DO NX=1,NTX
@@ -1053,11 +1058,15 @@ C****
           ss_num(ss_bin)=tot_seasalt*scalesizeSS(ss_bin)
      &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
 
+! No subgrid coagulation for sea-salt
+!        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
+
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
      &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
            num_bin=num_bin+1
            trc_flux=ss_num(num_bin)
+      
 #endif
         end select
 
@@ -1084,6 +1093,8 @@ C****
 
       
 #ifdef TRACERS_TOMAS
+
+        
             select case (trname(n))
 
             case ('DMS')              
@@ -1110,6 +1121,7 @@ C****
 
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+
             end select
 #endif
 #endif
@@ -1626,12 +1638,19 @@ C*** min/max tsurf
         aijmm(i,j,ij_tsurfmax) =
      &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
-      END DO 
+      END DO
+
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_2Dsource(dtsurf)
+#endif
+
+#ifdef TRACERS_TOMAS
+C**** Apply subgrid coagulation for freshly emitted particles
+        call subgridcoag_drv_2D(dtsurf)
+
 #endif
 c****
 c**** apply surface fluxes to the first layer of the atmosphere

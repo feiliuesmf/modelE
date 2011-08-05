@@ -176,6 +176,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #ifdef TRACERS_TOMAS
 !@var ijts_TOMAS tracer independent array for TOMAS processes
       INTEGER ijts_TOMAS(7,Ntm)
+!@var ijts_TOMAS tracer independent array for TOMAS subgrid coagulation
+      INTEGER ijts_subcoag(Ntm)
 #endif
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
       INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
@@ -455,6 +457,8 @@ C**** include some extra troposphere only ones
 #ifdef TRACERS_TOMAS
 !@var itcon_TOMAS Index array for microphysical processes diags
       INTEGER, DIMENSION(7,ntmxcon) :: itcon_TOMAS
+!@var itcon_TOMAS Index array for subgrid coagulation diags
+      INTEGER, DIMENSION(ntmxcon) :: itcon_subcoag
 #endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 

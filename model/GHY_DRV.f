@@ -407,6 +407,9 @@ c**** prescribed dust emission
     (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
+!#ifdef TRACERS_TOMAS
+!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
+!#endif
 cddd#ifdef TRACERS_GASEXCH_land_CO2
 cddd      USE FLUXES, only : TRGASEX
 cddd#endif
@@ -518,6 +521,7 @@ ccc accumulate tracer evaporation and runoff
       num_bin=0
       du_bin=0
       num_bin2=0
+!      TOMAS_emis(I,J,:,2)=0.
 #endif
       DO nx=1,ntx
         n=ntix(nx)
@@ -560,6 +564,9 @@ C**** fixed datasets are used, it can happen over land as well.
      &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
           
           dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
+
+! NO subgrid coagulation for dust 
+!        TOMAS_EMIS(I,J,du_bin,2)= trc_flux*axyp(i,j)*ptype
           
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',

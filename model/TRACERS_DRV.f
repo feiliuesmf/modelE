@@ -2729,6 +2729,7 @@ C**** set some defaults
 #endif
 #ifdef TRACERS_TOMAS
       itcon_TOMAS(:,:)=0
+      itcon_subcoag(:)=0
 #endif
 
       k = 0
@@ -3565,7 +3566,6 @@ c     Processes AMP Budget
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
          
-
           g=13; itcon_3Dsrc(nOther,n) = g
           qcon(g) = .true.; conpts(g-12) = 'Microphysics'
           qsum(g) = .true.
@@ -3592,6 +3592,10 @@ c     Processes TOMAS Budget
             g=g+1; itcon_TOMAS(7,n)= g
             qcon(g) = .true.;conpts(g-12)='Aeroupdate'
             qsum(g) = .false.
+
+          g=g+1; itcon_subcoag(n) = g
+          qcon(g) = .true.; conpts(g-12) = 'subgrid coag'
+          qsum(g) = .false.
             
             g=g+1; itcon_mc(n) = g
             qcon(g) = .true.; conpts(g-12) = 'MOIST CONV'
@@ -5481,6 +5485,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 #ifdef TRACERS_TOMAS
       ijts_TOMAS(:,:)=0
+      ijts_subcoag(:)=0 
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
@@ -6949,6 +6954,16 @@ c put in production of SO4 from gas phase
          ijts_power(k) = -15
          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+        k = k + 1
+        ijts_subcoag(n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Subgrid_coag_'//trim(trname(n))
+        sname_ijts(k) = 'Subgrid_coag_'//trim(trname(n))
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
 
          select case(trname(n))
         case ('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
@@ -11195,14 +11210,15 @@ C****
              
              do k=1,nbins
                 trsource(:,J_0:J_1,ns,IDTSO4+k-1)=
-     &               tot_emis(:,J_0:J_1)*scalesizeSO4(k)
-
+     &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
+                
                 trsource(:,J_0:J_1,1,IDTNUMD+k-1)=
      &           trsource(:,J_0:J_1,1,IDTNUMD+k-1) +
-     &              trsource(:,J_0:J_1,ns,IDTSO4+k-1)
+     &               trsource(:,J_0:J_1,ns,IDTSO4+k-1)
      &               /sqrt(xk(k)*xk(k+1))
+              enddo
 
-             enddo
+
           elseif(n.eq.n_AECOB(1))then
 
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,IDTECOB)
@@ -11238,6 +11254,7 @@ C****
      &            /sqrt(xk(k)*xk(k+1))  
              enddo
           endif
+        
 #endif
         enddo ! ns
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
@@ -11384,8 +11401,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRDIAG_COM, only : itcon_TOMAS 
+      USE TRDIAG_COM, only : itcon_TOMAS,itcon_subcoag 
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_TOMAS
+      USE TOMAS_AEROSOL, only : TRM_EMIS
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,
@@ -11546,22 +11564,6 @@ C****
 #endif
           end select
 
-!TOMAS - I need to call aircraft emission here. 
-!TOMAS - Dorothy's model calls the same later. 
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
-#ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
-#else
-      call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
-#endif
-#elif (defined TRACERS_TOMAS)
-#ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
-#else
-      call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
-#endif
-#endif
-
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
 C**** 3D volcanic source
@@ -11594,108 +11596,41 @@ C**** 3D biomass source
 #ifndef TRACERS_TOMAS
         call apply_tracer_3Dsource(nBiomass,n)
 #endif
-#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell || TRACERS_TOMAS*/
 
 #ifdef TRACERS_TOMAS
-!Initialize 
         if(n<IDTSO4) call apply_tracer_3Dsource(nBiomass,n)
 
-        do kk=1,nbins
-           TOMAS_bio(:,J_0:J_1,:,kk)=0.0
-           TOMAS_air(:,J_0:J_1,:,kk)=0.0
-        enddo
+!Initialize 
+       TOMAS_bio(:,J_0:J_1,:,:)=0.0
+       TOMAS_air(:,J_0:J_1,:,:)=0.0
+       
 
         select case (trname(n))
         case ('ASO4__01')
 
-           do kk=1,nbins
-              TOMAS_bio(:,J_0:J_1,:,kk)=
-     &             tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4)
-     &             *scalesizeSO4(kk)
-              
-           enddo
-
-           do k=1,nbins
-              tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)=
-     &             so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4(k)*src_fact
-              
-              tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1)=
-     *            TOMAS_bio(:,J_0:J_1,:,k)
-
-              tr3Dsource(:,J_0:J_1,:,1,IDTNUMD+k-1)=
-     &         (tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)
-     &         +tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1))
-     &             /(sqrt(xk(k)*xk(k+1)))  
-
-              call apply_tracer_3Dsource(nVolcanic,IDTSO4+k-1)
-              call apply_tracer_3Dsource(nBiomass, IDTSO4+k-1)
-              call apply_tracer_3Dsource(1,       IDTNUMD+k-1)  
-           enddo
-
-        case ('AECOB_01')
-
-           do kk=1,nbins
-              TOMAS_bio(:,J_0:J_1,:,kk)=
-     &             tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB)
-     &             *scalesizeCARBO100(kk)
-c$$$              
-              TOMAS_air(:,J_0:J_1,:,kk)=
-     &             tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB)
-     &             *scalesizeCARBO30(kk)            
-           enddo
-
-           do k=1,nbins
-              
-              tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB+k-1)=
-     *            TOMAS_bio(:,J_0:J_1,:,k)*0.8
-              tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECIL+k-1)=
-     *            TOMAS_bio(:,J_0:J_1,:,k)*0.2
-
-              tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB+k-1)=
-     *            TOMAS_air(:,J_0:J_1,:,k)*0.8
-
-              tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECIL+k-1)=
-     *            TOMAS_air(:,J_0:J_1,:,k)*0.2
-
-              tr3Dsource(:,J_0:J_1,:,2,IDTNUMD+k-1)=
-     &             (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
-     &             /(sqrt(xk(k)*xk(k+1)))  
-
-              call apply_tracer_3Dsource(nBiomass, IDTECOB+k-1)
-              call apply_tracer_3Dsource(nAircraft,IDTECOB+k-1)
-              call apply_tracer_3Dsource(nBiomass, IDTECIL+k-1)
-              call apply_tracer_3Dsource(nAircraft,IDTECIL+k-1)
-              call apply_tracer_3Dsource(2,       IDTNUMD+k-1)
-           enddo
-
-        case ('AOCOB_01')
-
-           do kk=1,nbins
-              TOMAS_bio(:,J_0:J_1,:,kk)=
-     &             tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB)
-     &             *scalesizeCARBO100(kk)      
-           enddo
-
-           do k=1,nbins
-              
-              tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB+k-1)=
-     *            TOMAS_bio(:,J_0:J_1,:,k)*0.5
-              tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCIL+k-1)=
-     *            TOMAS_bio(:,J_0:J_1,:,k)*0.5
-
-              tr3Dsource(:,J_0:J_1,:,4,IDTNUMD+k-1)=
-     &            (TOMAS_bio(:,J_0:J_1,:,k)
-     &             )/(sqrt(xk(k)*xk(k+1)))  
-
-
-              call apply_tracer_3Dsource(nBiomass, IDTOCOB+k-1)
-              call apply_tracer_3Dsource(nBiomass, IDTOCIL+k-1)
-! ntsurfsrc(n=3) is used for microphysics, so it is 4. 
-                 call apply_tracer_3Dsource(4,       IDTNUMD+k-1)
-
-           enddo
-               end select
+       do kk=1,nbins
+         TOMAS_bio(:,J_0:J_1,:,kk)=
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4)
+     &        *scalesizeSO4(kk)
+       enddo
+       
+       do k=1,nbins
+         tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)=
+     &        so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4(k)*src_fact
+         
+         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1)=
+     *        TOMAS_bio(:,J_0:J_1,:,k)
+         
+         tr3Dsource(:,J_0:J_1,:,1,IDTNUMD+k-1)=
+     &        (tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)
+     &        +tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1))
+     &        /(sqrt(xk(k)*xk(k+1)))  
+          
+       enddo
+       end select
 #endif
+
+#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell || TRACERS_TOMAS*/
 
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
@@ -11820,10 +11755,14 @@ C**** Allow overriding of transient emissions date:
 #ifdef TRACERS_AEROSOLS_Koch
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
 #endif
+#ifdef TRACERS_TOMAS
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,IDTECOB)  = 0.
+#endif
 !#ifdef TRACERS_AMP
 !      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
 !#endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch)
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_TOMAS) 
 !#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
 !    (defined TRACERS_AMP)
 #ifdef CUBED_SPHERE
@@ -11913,7 +11852,87 @@ C**** Apply chemistry and overwrite changes:
 #endif /* TRACERS_NITRATE */
 
 #ifdef TRACERS_TOMAS
+    
 
+       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+         trm_emis(i,j,l,:)=trm(i,j,l,:)
+       end do; end do; end do
+   
+       TOMAS_bio(:,J_0:J_1,:,:)=0.0
+       TOMAS_air(:,J_0:J_1,:,:)=0.0
+       
+       do kk=1,nbins
+         TOMAS_bio(:,J_0:J_1,:,kk)=
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB)
+     &        *scalesizeCARBO100(kk)
+c$$$  
+         TOMAS_air(:,J_0:J_1,:,kk)=
+     &        tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB)
+     &        *scalesizeCARBO30(kk)            
+       enddo
+       
+       do k=1,nbins
+         
+         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB+k-1)=
+     *        TOMAS_bio(:,J_0:J_1,:,k)*0.8
+         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECIL+k-1)=
+     *        TOMAS_bio(:,J_0:J_1,:,k)*0.2
+         
+         tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB+k-1)=
+     *        TOMAS_air(:,J_0:J_1,:,k)*0.8
+         
+         tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECIL+k-1)=
+     *        TOMAS_air(:,J_0:J_1,:,k)*0.2
+         
+         tr3Dsource(:,J_0:J_1,:,2,IDTNUMD+k-1)=
+     &        (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
+     &        /(sqrt(xk(k)*xk(k+1)))  
+         
+         call apply_tracer_3Dsource(nBiomass, IDTECOB+k-1)
+         call apply_tracer_3Dsource(nAircraft,IDTECOB+k-1)
+         call apply_tracer_3Dsource(nBiomass, IDTECIL+k-1)
+         call apply_tracer_3Dsource(nAircraft,IDTECIL+k-1)
+         call apply_tracer_3Dsource(2,       IDTNUMD+k-1)
+
+         call apply_tracer_3Dsource(nVolcanic,IDTSO4+k-1)
+         call apply_tracer_3Dsource(nBiomass, IDTSO4+k-1)
+         call apply_tracer_3Dsource(1,       IDTNUMD+k-1) 
+
+       enddo
+
+       TOMAS_bio(:,J_0:J_1,:,:)=0.0
+       TOMAS_air(:,J_0:J_1,:,:)=0.0
+
+       do kk=1,nbins
+         TOMAS_bio(:,J_0:J_1,:,kk)=
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB)
+     &        *scalesizeCARBO100(kk)      
+       enddo
+       
+       do k=1,nbins
+         
+         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB+k-1)=
+     *        TOMAS_bio(:,J_0:J_1,:,k)*0.5
+         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCIL+k-1)=
+     *        TOMAS_bio(:,J_0:J_1,:,k)*0.5
+         
+         tr3Dsource(:,J_0:J_1,:,4,IDTNUMD+k-1)=
+     &        (TOMAS_bio(:,J_0:J_1,:,k)
+     &        )/(sqrt(xk(k)*xk(k+1)))  
+         
+         
+         call apply_tracer_3Dsource(nBiomass, IDTOCOB+k-1)
+         call apply_tracer_3Dsource(nBiomass, IDTOCIL+k-1)
+!     ntsurfsrc(n=3) is used for microphysics, so it is 4. 
+         call apply_tracer_3Dsource(4,       IDTNUMD+k-1)
+         
+       enddo
+       
+!for debugging! 
+!       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+         call subgridcoag_drv(dtsrc)
+!       end do; end do; end do
+         
       DO n=1,ntm_TOMAS
 !         if(am_i_root()) print*,'tr3dsource',trname(IDTSO4+n-1)
         tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,IDTSO4+n-1) = 0.d0! Aerosol Mirophysics

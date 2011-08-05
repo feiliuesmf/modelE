@@ -133,7 +133,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
-     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL
+     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL,IJL_CDTOMAS
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc

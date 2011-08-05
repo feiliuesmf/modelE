@@ -6028,6 +6028,18 @@ c
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
       denom_ijl(k) = ijl_cfws
+
+#ifdef TRACERS_TOMAS
+
+      k=k+1
+      IJL_CDTOMAS=k
+      name_ijl(k) = 'CDNC_TOMAS'
+      lname_ijl(k) = 'Warm S CDNC TOMAS'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfws
+
+#endif
 c
       k=k+1
       IJL_CWWM=k

@@ -76,7 +76,7 @@ subroutine CONDSE
        ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws &
        ,ij_wmclwp,ij_wmctwp &
        ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis &
-       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis
+       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis,ijl_cdtomas
 #endif
 #ifdef TRACERS_DUST
   use DIAG_COM, only : idd_wet
@@ -173,7 +173,8 @@ subroutine CONDSE
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
        ,oldcdl,oldcdi,sme &
        ,cdn3dl,cre3dl,smlwp &
-       ,wmclwp,wmctwp
+       ,wmclwp,wmctwp,CDNC_TOMAS
+
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
        use CLOUDS, only : cteml,cd3dl,cl3dl,ci3dl
@@ -1443,6 +1444,9 @@ subroutine CONDSE
             AIJL(I,J,L,IJL_CFWS)= AIJL(I,J,L,IJL_CFWS)+CLDWT
             AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)*CLDWT
             AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)*CLDWT
+#ifdef TRACERS_TOMAS
+            AIJL(I,J,L,IJL_CDTOMAS)= AIJL(I,J,L,IJL_CDTOMAS)+CDNC_TOMAS(L)*CLDWT
+#endif
             AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)*CLDWT
             AIJ(I,J,IJ_DZWS)=AIJ(I,J,IJ_DZWS)+CLDWTDZ
             AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ

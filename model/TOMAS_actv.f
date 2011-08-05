@@ -895,18 +895,23 @@ C
 C
 C *** WRITTEN BY WEI-CHUN HSIEH
 C
+C *** Small change by YUNHA LEE, 07.18.2011 
+C     (DENA TO RHOSI) Because  DENA is actually RHOSI. 
 C======================================================================C
-      SUBROUTINE CLDPROP (DPNEW,NPART,NSEC3,DENA,NISUM,DPMEAN,SIGMA,
+!      SUBROUTINE CLDPROP (DPNEW,NPART,NSEC3,DENA,NISUM,DPMEAN,SIGMA,
+!     &           	EPSILON,LWMR)
+ 
+      SUBROUTINE CLDPROP (DPNEW,NPART,NSEC3,RHOSI,NISUM,DPMEAN,SIGMA,
      &           	EPSILON,LWMR)
-      
+     
       USE CONSTANT, only: gasc,pi,grav
       REAL*8 NIDP3,DPNEW(NSEC3),NPART(NSEC3),LWMR,
      &                 NITDPSUM,NISUM,DPMEAN,SIGSUM,SIGMA,EPSILON
-     *     ,DENW
+     *     ,DENW,RHOSI !RHOSI is added by YUNHA LEE 
       INTEGER I,J
 
       DENW  = 1D3
-C     DENA  = 1.2D0
+C     DENA  = 1.2D0 
 
       NITDPSUM = 0D0
       NISUM = 0D0
@@ -918,9 +923,11 @@ C     DENA  = 1.2D0
       NIDP3 = NIDP3 + NPART(I)*DPNEW(I)**3D0
       ENDDO
 
-      DPMEAN = NITDPSUM/NISUM
-      LWMR = DENW/DENA*PI/6D0*NIDP3
+      IF(NISUM.EQ.0.) PRINT*,'ZERO NISUM',NPART
 
+      DPMEAN = NITDPSUM/NISUM
+CYHL      LWMR = DENW/DENA*PI/6D0*NIDP3
+      LWMR = DENW/RHOSI*PI/6D0*NIDP3
       
       SIGSUM = 0D0
       DO I = 1, NSEC3
@@ -1011,7 +1018,8 @@ C      SUBROUTINE FIT(EPSILON,LWMR,ND,DPART,NPART)
       REAL*8 K,THETA,N0,LWC,LWMR,ND,EPSILON,DMX,DMN,RHOSI,
      &                 DLND,DAMH(NSEC+1),DPART(NSEC),NPART(NSEC),NTOT,
      &                 GA,GK,GKP3,GIN,GIM,GIP,E(N),R(N),D(N),NBOTT(N),
-     &                 EB(N+1),RB(N+1),DB(N+1),NBIN(20),DBIN(20),NTOT2
+     &                 EB(N+1),RB(N+1),DB(N+1),NBIN(20),DBIN(20),NTOT2,
+     &                 GINSMALL,GINLARGE
       DMX = 50D-6
       DMN = 0.4D-6
 
@@ -1078,7 +1086,9 @@ cyhl
       NTOT2 = NTOT2+NBIN(M)
       M = M + 1
       ENDDO
-C      PRINT*,ND,NTOT,THETA,N0,366
+
+CYHL      if(NTOT2.EQ.0.)PRINT*,'NTOT2',ND,NTOT,THETA,N0,
+CYHL     & GINLARGE,GINSMALL,EPSILON
 C      CALL INCOG(A,X,GIN,GIM,GIP)
 
       RETURN

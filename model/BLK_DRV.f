@@ -1571,7 +1571,7 @@ c Make supsat timescale
 !        integer      , INTENT (in)   ::nm0 
 c Local
         integer      :: mx0
-        character*22 :: sname='set_micro_bulk2m_mat: '
+        character*22 :: sname='set_micro_bulk2m_tom: '
         real*8, dimension(size(nc0,1)) :: nr00,qr00,ns00,qs00
         real*8                :: dtmic
         la     = .true.
@@ -6511,9 +6511,7 @@ C==============================================================================
         logical, intent(in) :: l1
        altitude_loop: do k=1,mx0
 
-c       npccn(k)=max(0.d0, ( (ncactv(k)/dt0/rho(k)) )! change to 2*dt0 if needed
         npccn(k)=max(0.d0, ( (ncactv(k)/rho(k) - nc3d(k))/(dt0) ) )! change to 2*dt0 if needed
-c       write(6,*)"MATRIX_HM",nc3d(k)*1d-6,ncactv(k)*1d-6,npccn(k)*1d-6
         mpccn(k)=mw0*npccn(k)
 
        enddo altitude_loop

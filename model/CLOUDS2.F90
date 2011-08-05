@@ -211,6 +211,8 @@ module CLOUDS
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
   real*8, dimension(LM) :: ACDNWS,ACDNIS
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
+  real*8, dimension(LM) :: CDNC_NENES,CDNC_TOMAS
+!@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds (cm^-3)
   real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
   real*8, dimension(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
@@ -3623,8 +3625,8 @@ contains
       SMAX       = 0d0
       NACT       = 0d0
       REFF       = 0d0
-      CLDTAU     = 0d0
-      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
+!      CLDTAU     = 0d0
+!      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
 !c$$$      QautP6     = 0d0
 !c$$$      QautKK     = 0d0 
 !c$$$      QautMC     = 0d0 
@@ -3648,33 +3650,45 @@ contains
 !CCC
 !CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
 !CCC
-!CYHL  I changed the updraft velocity from 0.25 to 0.35 m/s for ocean
-!CYHL  and from 0.5 to 1.0 m/s for land.
 
-         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
-         WPARCEarth = 0.3d0
-         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
+!Two options for Updrate velocity 
 
-         QLWC=WMX(L)/(FCLD + 1.d-20)    	!in-cloud dimensionless LWC
+!1. fixed as a constant  
+
+!         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
+!         WPARCEarth = 0.3d0
+!         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
+
+!2. computed using EGCM
+
+        WPARC=v0(mkx) !wturb=sqrt(0.6667*EGCM(l,i,j))
+!End of updrate velocity option. 
+
+
+         QLWC=WMX(L)/(FCLD + teeny)    	!in-cloud dimensionless LWC
          QLWC=MIN(QLWC, 3.d-03)  		!(upper limit for the QLWC)
 
-         RHO=1.E5*PL(L)/(RGAS*TL(L))
-         RHOSI = RHO*1.e-3
+         RHO=1.d5*PL(L)/(RGAS*TL(L))
+         RHOSI = RHO*1.d-3
+         if(rhosi.eq.0.) print*,'zero rho',rho,pl(l),tl(l)
 
          TPARC=tk0(mkx)
          PPARC=pk0(mkx)*100.d0  ! mbar to Pa
-         IF (TOTi.GT.6.d7) THEN  ! more than 60 particles per cc, call droplet activation
+         IF (TOTi.GT.6.d7.and.WPARC.gt.0.) THEN  ! more than 60 particles per cc, call droplet activation
             CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
                  ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
          ELSE
-            NACT = ndrop(mkx) ! 40.d6      ! Minimum droplet number
+!YUNHA- I don't know how to set the minimum NACT. For now, I put the same mininum as Nenes.  
+            NACT = 40.d6 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
             SMAX = 0.0001    ! Minimum supersaturation
          ENDIF
        NACTL(mkx)=NACT
+       CDNC_NENES(L)=NACT !FOR DIAGNOSTICS
        ENDIF
 
        ldummy=execute_bulk2m_driver('all' &
-            ,ndrop,mdrop,ncrys,mcrys,nactl,'end')
+            ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
+           nr0=nrain)
 
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
@@ -5021,6 +5035,7 @@ contains
     ALWIS=0.
     NLSW = 0
     NLSI = 0
+    CDNC_TOMAS=0.
 #endif
     do L=1,LP50
       FCLD=CLDSSL(L)+teeny
@@ -5214,6 +5229,9 @@ contains
         CDN3DL(L)=SCDNCW
         CRE3DL(L)=RCLDE
         NLSW  = NLSW + 1
+#ifdef TRACERS_TOMAS
+        CDNC_TOMAS(L)=CDNC_NENES(L)
+#endif
         !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
         !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
       elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then
