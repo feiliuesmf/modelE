@@ -288,7 +288,8 @@ c
       do 56 l=1,isp(j)
       do 56 i=ifp(j,l),ilp(j,l)
       pbavav(i,j)=pbavav(i,j)*factor
-      sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
+c     sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
+      sfhtav(i,j)=sfhtav(i,j)*factor
       dpmxav(i,j)=dpmxav(i,j)*factor
  56   oiceav(i,j)=oiceav(i,j)*factor
 c
