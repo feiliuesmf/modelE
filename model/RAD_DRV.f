@@ -2079,6 +2079,7 @@ C**** or not.
       onoff_aer=0; onoff_chem=0
       if (rad_interact_aer > 0) onoff_aer=1
       if (clim_interact_chem > 0) onoff_chem=1
+      use_o3_ref=0
 
 #ifdef RAD_O3_GCM_HRES
       O3natL(:)=O3JDAY_native(:,I,J)
