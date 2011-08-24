@@ -1,8 +1,9 @@
+#include "rundeck_opts.h"
       SUBROUTINE initTracerMetadata()
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP_ATM, only:AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE CONSTANT, only: mair,mwat,sday,pi
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
@@ -173,10 +174,8 @@
       real*8, parameter :: convert_HSTAR = 1.01325d2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-!@var PRES local nominal pressure for vertical interpolations
 !@var iu_data unit number
 !@var title header read in from file
-      REAL*8, DIMENSION(LM) :: PRES
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
@@ -205,6 +204,15 @@ C****
 
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 
+#ifdef TRACERS_TOMAS
+      CALL initbounds()
+      call readbinact ("binact10_12.dat",binact10) 
+      call readbinact ("binact02_12.dat",binact02) 
+      call readfraction("fraction10_12.dat",fraction10) 
+      call readfraction("fraction02_12.dat",fraction02) 
+      call readmielut ! aerosol radiation lookup table
+#endif
+
       call initializeOldTracers()
       do n=1,ntm
         call addTracer(trname(n))
@@ -225,7 +233,7 @@ C**** Many defaults are now set in OldTracers_mod.F90
       iso_index = 1             ! act like water by default
 #endif
 
-C**** Synchronise tracer related parameters from rundeck
+C**** Synchronise tracer related paramters from rundeck
 
 C**** Get itime_tr0 from rundeck if it exists
       values = iTime
@@ -299,7 +307,7 @@ C**** set super saturation parameter for isotopes if needed
      & call stop_model('nday_ch4 out of range',255)
       end do
 #endif
-      PRES(1:LM)=PMIDL00(1:LM)
+
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -500,6 +508,7 @@ C**** Define individual tracer characteristics
           n_mptable(n) = 1
           tcscale(n_MPtable(n)) = 1.
 #endif
+
       case ('CFC11')   !!! should start April 1
       n_CFC11 = n
           call set_ntm_power(n, -12)
@@ -678,24 +687,24 @@ C**** Get solar variability coefficient from namelist if it exits
 
       case ('ClOx')
       n_ClOx = n
-          call set_ntm_power(n, -11)
-          call set_tr_mm(n, 51.5d0)
-C         Interpolate ClOx altitude-dependence to model resolution:
-          CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES,ClOxalt,.true.)
+         call set_ntm_power(n, -11)
+         call set_tr_mm(n, 51.5d0)
+C        Interpolate ClOx altitude-dependence to model resolution:
+         CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PMIDL00,ClOxalt,.true.)
 
       case ('BrOx')
       n_BrOx = n
-          call set_ntm_power(n, -14)
-          call set_tr_mm(n, 95.9d0)
-C         Interpolate BrOx altitude-dependence to model resolution:
-          CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES,BrOxalt,.true.)
+         call set_ntm_power(n, -14)
+         call set_tr_mm(n, 95.9d0)
+C        Interpolate BrOx altitude-dependence to model resolution:
+         CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PMIDL00,BrOxalt,.true.)
 
       case ('HCl')
       n_HCl = n
           call set_ntm_power(n, -10)
           call set_tr_mm(n, 36.5d0)
 C         Interpolate HCl altitude-dependence to model resolution:
-          CALL LOGPINT(LCOalt,PCOalt,HClaltIN,LM,PRES,HClalt,.true.)
+          CALL LOGPINT(LCOalt,PCOalt,HClaltIN,LM,PMIDL00,HClalt,.true.)
 
       case ('ClONO2')
       n_ClONO2 = n
@@ -703,7 +712,7 @@ C         Interpolate HCl altitude-dependence to model resolution:
           call set_tr_mm(n, 97.5d0)
 C         Interpolate ClONO2 altitude-dependence to model resolution:
           CALL
-     &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PRES,ClONO2alt,.true.)
+     &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PMIDL00,ClONO2alt,.true.)
 
       case ('HOCl')
       n_HOCl = n
@@ -2427,121 +2436,5 @@ C**** Aerosol tracer output should be mass mixing ratio
 #endif /* TRACERS_ON */
 
       end do
-#ifdef TRACERS_ON
-#ifdef TRACERS_AEROSOLS_SOA
-      call soa_init
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_AEROSOLS_VBS
-      call vbs_init(ntm)
-#endif  /* TRACERS_AEROSOLS_VBS */
-C**** Get to_volume_MixRat from rundecks if it exists
-      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
-C**** Get to_conc from rundecks if it exists
-      call sync_param("to_conc",to_conc,ntm)
-
-C**** DIAGNOSTIC DEFINTIONS
-
-C**** Set some diags that are the same regardless
-      call set_generic_tracer_diags
-
-C**** Zonal mean/height diags
-      call init_jls_diag
-
-C**** lat/lon tracer sources, sinks and specials
-      call init_ijts_diag
-
-C**** lat/lon/height tracer specials
-      call init_ijlts_diag
-
-C**** Initialize conservation diagnostics
-      call init_tracer_cons_diag
-
-C**** Miscellaneous initialisations
-
-#ifdef TRACERS_DRYDEP
-C Read landuse parameters and coefficients for tracer dry deposition:
-      CALL RDLAND
-      CALL RDDRYCF
-#endif
-#ifdef BIOGENIC_EMISSIONS
-      CALL RDISOPCF
-      CALL RDISOBASE
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      call cheminit ! **** Initialize the chemistry ****
-      call special_layers_init
-#endif
-#ifdef TRACERS_COSMO
-      do n=1,ntm
-        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
-          call init_cosmo
-          exit
-        end if
-      end do
-#endif
-#endif /* TRACERS_ON */
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      !read in OCMIP based CFC-11 global emissions
-      !=sum(dC/dt) for each hemisphere
-      !these are *annual global averages* and need to be
-      !converted to our timestep value
-      print*, 'opening file=OCMIP_cfc.dat'
-      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
-      do n=1,ntm
-        do i=1,67
-          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
-        enddo
-      enddo
-      call closeunit(iu_data)
-#endif
-
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-      call sync_param("atmCO2",atmCO2)
-#endif
-
-#ifdef TRACERS_AMP
-      CALL SETUP_CONFIG
-      CALL SETUP_SPECIES_MAPS
-      CALL SETUP_DP0
-      CALL SETUP_AERO_MASS_MAP
-      CALL SETUP_COAG_TENSORS
-      CALL SETUP_DP0
-      CALL SETUP_KIJ
-      CALL SETUP_EMIS
-      CALL SETUP_KCI
-      CALL SETUP_NPFMASS
-      CALL SETUP_DIAM
-      CALL SETUP_RAD
-#endif
-
-#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
-! atmosphere copies atmosphere-declared tracer info to ocean module
-! so that the ocean can "inherit" it without referencing atm. code
-      n_Water_ocn = n_Water
-      do n=1,ntm
-        itime_tr0_ocn(n)    = itime_tr0(n)
-        ntrocn_ocn(n)       = ntrocn(n)
-        to_per_mil_ocn(n)   = to_per_mil(n)
-        t_qlimit_ocn(n)     = t_qlimit(n)
-        conc_from_fw_ocn(n) = conc_from_fw(n) 
-        trdecay_ocn(n)      = trdecay(n)
-        trw0_ocn(n)         = trw0(n)
-      enddo
-#endif
-
-! copy atmosphere-declared tracer info to atm-ocean coupler data
-! structure for uses within ocean codes
-      allocate(atmocn%trw0(ntm))
-      do n=1,ntm
-        atmocn%trw0(n) = trw0(n)
-      enddo
-#ifdef TRACERS_GASEXCH_ocean
-      allocate(atmocn%vol2mass(ntm))
-      do n=1,ntm
-        atmocn%vol2mass(n) = vol2mass(n)
-      enddo
-#endif
-
       return
       end subroutine initTracerMetadata

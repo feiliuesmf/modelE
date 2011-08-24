@@ -13,7 +13,6 @@
       call initTracerGriddedData()
       end subroutine init_tracer
 
-
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt

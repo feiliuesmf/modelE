@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       SUBROUTINE initTracerGriddedData()
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
@@ -174,10 +175,8 @@
       real*8, parameter :: convert_HSTAR = 1.01325d2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-!@var PRES local nominal pressure for vertical interpolations
 !@var iu_data unit number
 !@var title header read in from file
-      REAL*8, DIMENSION(LM) :: PRES
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
@@ -198,14 +197,6 @@
 
       INTEGER J_0, J_1, I_0, I_1
 
-#ifdef TRACERS_TOMAS
-      CALL initbounds()
-      call readbinact ("binact10_12.dat",binact10) 
-      call readbinact ("binact02_12.dat",binact02) 
-      call readfraction("fraction10_12.dat",fraction10) 
-      call readfraction("fraction02_12.dat",fraction02) 
-      call readmielut ! aerosol radiation lookup table
-#endif
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -214,21 +205,22 @@ C****
       I_1 = grid%I_STOP
 
       do n=1,ntm
-
-      select case (trname(n))
-
 #ifdef TRACERS_ON
-      case ('N2O')
+        select case (trname(n))
+
+        case ('N2O')
 #ifdef TRACERS_SPECIAL_Shindell
+c***          print*,'HERE!!!!!!!'
           call openunit('N2O_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),N2OICIN,0)
           call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
+           CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PMIDL00,N2OICL,.true.)
            N2OICX(I,J,:)=N2OICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif
+
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
 C**** determine initial CH4 distribution if set from rundeck
@@ -238,8 +230,10 @@ C**** This is only effective with a complete restart.
           call sync_param("fix_CH4_chemistry",fix_CH4_chemistry)
           call sync_param("scale_ch4_IC_file",scale_ch4_IC_file)
 C         Interpolate CH4 altitude-dependence to model resolution:
-          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
-          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
+          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PMIDL00,CH4altT,
+     &         .true.)
+          CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PMIDL00,CH4altX,
+     &         .true.)
           if(fix_CH4_chemistry.eq.-1)then
             call openunit('CH4_IC',iu_data,.true.,.true.)
             CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),
@@ -247,25 +241,28 @@ C         Interpolate CH4 altitude-dependence to model resolution:
             call closeunit(iu_data)
             do j=J_0,J_1  ; do i=I_0,I_1
              CH4ICINL(:)=CH4ICIN(I,J,:)! now in PPPM
-             CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PRES,CH4ICL,.true.)
+             CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PMIDL00,CH4ICL,
+     &            .true.)
              CH4ICX(I,J,:)=CH4ICL(:)*scale_ch4_IC_file*am(:,i,j)*
      *            axyp(i,j)
             end do     ; end do
           end if
 #endif /* TRACERS_SPECIAL_Shindell */
-#ifdef TRACERS_SPECIAL_Shindell
+
       case ('Ox')
+#ifdef TRACERS_SPECIAL_Shindell
           call openunit('Ox_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),OxICIN,0)
           call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            OxICINL(:)=OxICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
+           CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PMIDL00,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-          call check_aircraft_sectors ! special 3D source case
+#endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CFC')
+#ifdef TRACERS_SPECIAL_Shindell
           if(AM_I_ROOT( ))then
 C          check on GHG file's 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
@@ -294,24 +291,142 @@ C          read the CFC initial conditions:
           call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            CFCICINL(:)=CFCICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
+           CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PMIDL00,CFCICL,.true.)
            CFCIC(I,J,:)=CFCICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
+#endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CO')
+#ifdef TRACERS_SPECIAL_Shindell
           call openunit('CO_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),COICIN,0)
           call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            COICINL(:)=COICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PRES,COICL,.true.)
+           CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PMIDL00,COICL,.true.)
            COIC(I,J,:)=COICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-#endif  /* TRACERS_SPECIAL_Shindell */
+#endif /* TRACERS_SPECIAL_Shindell */
 
-#endif /* TRACERS_ON */
-      end select
+        end select
+#endif
       end do
+
+#ifdef TRACERS_ON
+#ifdef TRACERS_AEROSOLS_SOA
+      call soa_init
+#endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_VBS
+      call vbs_init(ntm)
+#endif  /* TRACERS_AEROSOLS_VBS */
+C**** Get to_volume_MixRat from rundecks if it exists
+      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+C**** Get to_conc from rundecks if it exists
+      call sync_param("to_conc",to_conc,ntm)
+
+C**** DIAGNOSTIC DEFINTIONS
+
+C**** Set some diags that are the same regardless
+      call set_generic_tracer_diags
+
+C**** Zonal mean/height diags
+      call init_jls_diag
+
+C**** lat/lon tracer sources, sinks and specials
+      call init_ijts_diag
+
+C**** lat/lon/height tracer specials
+      call init_ijlts_diag
+
+C**** Initialize conservation diagnostics
+      call init_tracer_cons_diag
+
+C**** Miscellaneous initialisations
+
+#ifdef TRACERS_DRYDEP
+C Read landuse parameters and coefficients for tracer dry deposition:
+      CALL RDLAND
+      CALL RDDRYCF
+#endif
+#ifdef BIOGENIC_EMISSIONS
+      CALL RDISOPCF
+      CALL RDISOBASE
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call cheminit ! **** Initialize the chemistry ****
+      call special_layers_init
+#endif
+#ifdef TRACERS_COSMO
+      do n=1,ntm
+        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
+          call init_cosmo
+          exit
+        end if
+      end do
+#endif
+#endif /* TRACERS_ON */
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
+      !read in OCMIP based CFC-11 global emissions
+      !=sum(dC/dt) for each hemisphere
+      !these are *annual global averages* and need to be
+      !converted to our timestep value
+      print*, 'opening file=OCMIP_cfc.dat'
+      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
+      do n=1,ntm
+        do i=1,67
+          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
+        enddo
+      enddo
+      call closeunit(iu_data)
+#endif
+
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
+      call sync_param("atmCO2",atmCO2)
+#endif
+
+#ifdef TRACERS_AMP
+      CALL SETUP_CONFIG
+      CALL SETUP_SPECIES_MAPS
+      CALL SETUP_DP0
+      CALL SETUP_AERO_MASS_MAP
+      CALL SETUP_COAG_TENSORS
+      CALL SETUP_DP0
+      CALL SETUP_KIJ
+      CALL SETUP_EMIS
+      CALL SETUP_KCI
+      CALL SETUP_NPFMASS
+      CALL SETUP_DIAM
+      CALL SETUP_RAD
+#endif
+
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! atmosphere copies atmosphere-declared tracer info to ocean module
+! so that the ocean can "inherit" it without referencing atm. code
+      n_Water_ocn = n_Water
+      do n=1,ntm
+        itime_tr0_ocn(n)    = itime_tr0(n)
+        ntrocn_ocn(n)       = ntrocn(n)
+        to_per_mil_ocn(n)   = to_per_mil(n)
+        t_qlimit_ocn(n)     = t_qlimit(n)
+        conc_from_fw_ocn(n) = conc_from_fw(n) 
+        trdecay_ocn(n)      = trdecay(n)
+        trw0_ocn(n)         = trw0(n)
+      enddo
+#endif
+
+! copy atmosphere-declared tracer info to atm-ocean coupler data
+! structure for uses within ocean codes
+      allocate(atmocn%trw0(ntm))
+      do n=1,ntm
+        atmocn%trw0(n) = trw0(n)
+      enddo
+#ifdef TRACERS_GASEXCH_ocean
+      allocate(atmocn%vol2mass(ntm))
+      do n=1,ntm
+        atmocn%vol2mass(n) = vol2mass(n)
+      enddo
+#endif
 
       return
       end subroutine initTracerGriddedData
