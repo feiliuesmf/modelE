@@ -38,10 +38,10 @@
       !-------------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: KIJ_NDGS  = KIJ_NDGS_SET ! number of geo. mean diameters
       INTEGER, PARAMETER :: KIJ_NSGS  =      3       ! number of geo. std. deviations
-      REAL(4), PARAMETER :: KIJ_TEMP1 =    325.0     ! [K]  \
+      REAL(4), PARAMETER :: KIJ_TEMP1 =    325.0     ! [K]  \.
       REAL(4), PARAMETER :: KIJ_TEMP2 =    260.0     ! [K]  - must have T1 > T2 > T3
       REAL(4), PARAMETER :: KIJ_TEMP3 =    200.0     ! [K]  / 
-      REAL(4), PARAMETER :: KIJ_PRES1 = 101325.0     ! [Pa] \
+      REAL(4), PARAMETER :: KIJ_PRES1 = 101325.0     ! [Pa] \.
       REAL(4), PARAMETER :: KIJ_PRES2 =  10132.50    ! [Pa] - must have p1 > p2 > p3
       REAL(4), PARAMETER :: KIJ_PRES3 =   1013.250   ! [Pa] /
       REAL(4), PARAMETER :: KIJ_SIGM1 =      1.6     ! [1]
