@@ -1,7 +1,4 @@
      ! atmospheric tracers
-TRACER_COM  TRACERS_DRV              ! configurable tracer code
-TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 TRDIAG
 TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
