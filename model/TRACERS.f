@@ -501,7 +501,8 @@ c
       USE RESOLUTION, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc,trname
+      USE TRACER_COM, only : NTM
+     &     ,trm,trmom,ntsurfsrc,ntisurfsrc,trname
 #ifdef TRACERS_TOMAS
      &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
@@ -612,7 +613,7 @@ C****
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
-      USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
+      USE TRACER_COM, only : NTM,trm,trmom,trname,alter_sources,
      * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
      * ,tr_sect_index3D,num_tr_sectors3d
       USE FLUXES, only : tr3Dsource
@@ -751,7 +752,8 @@ C****
       USE MODEL_COM, only : itime,dtsrc
       USE FLUXES, only : tr3Dsource
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0,n_Pb210,
+      USE TRACER_COM, only : NTM
+     &     ,trm,trmom,trdecay,itime_tr0,n_Pb210,
      &     trname, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
@@ -763,7 +765,7 @@ C****
       USE TRDIAG_COM, only : jls_decay,itcon_decay
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
-      real*8, save, dimension(ntm) :: expdec = 1.
+      real*8, dimension(ntm) :: expdec
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       logical, save :: ifirst=.true.
@@ -773,6 +775,8 @@ C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      expdec = 1. 
 
       if (ifirst) then
         do n=1,ntm
@@ -848,7 +852,7 @@ C****
       USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE ATM_COM, only : gz,pmid,pk
-      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
+      USE TRACER_COM, only : NTM,trm,trmom,itime_tr0,trradius
      *     ,trname,trpdens
 #ifdef TRACERS_AMP
      *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
@@ -858,7 +862,7 @@ C****
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
      &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
-     &     IDTNUMD,ntm,xk
+     &     IDTNUMD,xk
       USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
@@ -1202,7 +1206,7 @@ c**** Interpolate two months of data to current day
       CALL CHECK3(atmice%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACI')
       CALL CHECK3(atmgla%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACG')
       CALL CHECK3(atmlnd%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACE')
-      do n=1,ntm
+      do n=1,NTM
         CALL CHECK4(trmom(:,:,J_0:J_1,:,n),NMOM,IM,nJ,LM,SUBR,
      *       'X'//trname(n))
         CALL CHECK3(trm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,trname(n))
@@ -1436,8 +1440,8 @@ C**** check whether air mass is conserved
 #endif
 #endif
 
-      allocate(trcSurfMixR_acc_glob(im,jm,ntm)
-     &        ,trcSurfByVol_acc_glob(im,jm,ntm))
+      allocate(trcSurfMixR_acc_glob(im,jm,NTM)
+     &        ,trcSurfByVol_acc_glob(im,jm,NTM))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       allocate(sPM2p5_acc_glob(im,jm)
      &        ,sPM10_acc_glob(im,jm)
@@ -1920,8 +1924,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       integer :: n
       character(len=80) :: compstr
       character(len=20) :: ijldims
-      ijldims='(dist_im,dist_jm,lm)'
-      do n=1,ntm
+      ijldims='(dist_im,dist_jm,lm)' 
+      do n=1,NTM
         call defvar(grid,fid,trm(:,:,:,n),
      &       'trm_'//trim(trname(n))//ijldims)
         call defvar(grid,fid,trmom(:,:,:,:,n),
@@ -2086,7 +2090,7 @@ c daily_z is currently only needed for CS
       integer :: n
       select case (iaction)
       case (iowrite)            ! output to restart file
-        do n=1,ntm
+        do n=1,NTM
           call write_dist_data(grid,fid, 'trm_'//trim(trname(n)),
      &         trm(:,:,:,n))
           call write_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
@@ -2185,7 +2189,7 @@ c daily_z is currently only needed for CS
 #endif
 
       case (ioread)            ! input from restart file
-        do n=1,ntm
+        do n=1,NTM
           call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
      &         trm(:,:,:,n))
           call read_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
@@ -2414,7 +2418,8 @@ c daily_z is currently only needed for CS
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
+      USE TRACER_COM,only:itime_tr0,trname,sfc_src,NTM,
+     &     ntsurfsrcmax,
      & freq,nameT,ssname,ty_start,ty_end,delTyr
    
       implicit none
@@ -2424,7 +2429,9 @@ c daily_z is currently only needed for CS
       character*80 :: fname
       character*2 :: fnum
       character(len=300) :: out_line
-      logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
+      logical, save :: ifirst = .true.
+!TODO: kludge - ifirst2 now needs to be dynamically allocated due to NTM change
+      logical, save, allocatable, dimension(:,:) :: ifirst2
       real*8 :: alpha
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -2432,8 +2439,6 @@ c daily_z is currently only needed for CS
       integer, intent(IN) :: xyear, xday
       logical :: checkname
       
-      save ifirst2
-
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -2442,7 +2447,13 @@ c daily_z is currently only needed for CS
 
       if (itime < itime_tr0(n)) return
       if (nsrc <= 0) return
-   
+
+      if (ifirst) then
+        ifirst = .false.
+        allocate(ifirst2(NTM, ntsurfsrcmax))
+        ifirst2 = .true.
+      end if
+        
       do ns=1,nsrc
 
 ! open file and read its header:

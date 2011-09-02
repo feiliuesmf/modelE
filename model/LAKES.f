@@ -9,7 +9,7 @@
 !@ver  2010/08/04 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : trname,ntm
+      USE TRACER_COM, only : trname,ntm=>NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -1412,7 +1412,7 @@ C****
       USE GEOM, only : byaxyp
       USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
+      USE TRACER_COM, only : ntm=>NTM,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
@@ -1526,7 +1526,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
 #endif
       USE LAKES
       USE LAKES_COM
@@ -2927,7 +2927,7 @@ C****
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
 #endif
       USE SEAICE, only : lmi,xsi,ace1i,Ti
       USE SEAICE_COM, only : x=>si_atm

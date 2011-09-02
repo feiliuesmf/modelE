@@ -37,7 +37,7 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: ntm=>NTM, trname,t_qlimit,ntm_soa,ntm_ococean
 #ifdef TRACERS_AEROSOLS_OCEAN
   use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -137,7 +137,7 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
-  integer, dimension(ntm) :: ntix
+  integer, allocatable, dimension(:) :: ntix
   integer ntx
 #endif
   !**** ISCCP diag related variables
@@ -250,21 +250,21 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
-  real*8, dimension(LM,NTM) :: TM
-  real*8, dimension(nmom,lm,ntm) :: TMOM
+  real*8, allocatable, dimension(:,:) :: TM
+  real*8, allocatable, dimension(:,:,:) :: TMOM
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
-  real*8, dimension(NTM,LM) :: TRDNL
+  real*8, allocatable, dimension(:,:) :: TRDNL
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
-  real*8, dimension(NTM,LM) :: TRWML, TRSVWML
+  real*8, allocatable, dimension(:,:) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
-  real*8, dimension(NTM)    :: TRPRSS,TRPRMC
+  real*8, allocatable, dimension(:)    :: TRPRSS,TRPRMC
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   ! for diagnostics
-  real*8, dimension(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
+  real*8, allocatable, dimension(:,:) :: DT_SULF_MC,DT_SULF_SS
 #endif
 #ifdef TRDIAG_WETDEPO
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
@@ -275,7 +275,7 @@ module CLOUDS
 !@var trprcp_mc saves tracer precipitated from MC clouds [kg]
 !@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
 !@var trwash_mc saves tracers washed out by collision for MC clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trcond_mc,trdvap_mc,trflcw_mc, &
+  real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, &
        trprcp_mc,trnvap_mc,trwash_mc
 !@var trwash_ls saves tracers washed out by collision for LS clouds [kg]
 !@var trprcp_ls saves tracer precipitation from LS clouds [kg]
@@ -283,7 +283,7 @@ module CLOUDS
 !@var trevap_ls saves reevaporated tracers of LS cloud precip [kg]
 !@var trclwe_ls saves tracers evaporated from cloud water of LS clouds [kg]
 !@var trcond_ls saves tracer condensation in LS clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trwash_ls,trevap_ls,trclwc_ls, &
+  real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, &
        trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
@@ -338,15 +338,15 @@ module CLOUDS
   ! completion of MC calculations, MSTCNV resets these arrays to zero in
   ! the layers in which they were used.
 !@var DTM,DTMR: Vertical profiles of Tracers changes
-  real*8, dimension(LM,NTM)      :: DTM=0, DTMR=0, TMDNL=0
-  real*8, dimension(NMOM,LM,NTM) :: DTMOM=0, DTMOMR=0, TMOMDNL=0
+  real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
+  real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
 !@var TPOLD saved plume temperature after condensation for tracers
 !@+   (this is slightly different from TPSAV)
   real*8, dimension(LM)       :: TPOLD=0
 #ifdef TRACERS_WATER
 !@var TRCOND tracer mass in condensate
 !@var TRCONDV tracer mass in lofted condensate
-  real*8, dimension(NTM,LM)   :: TRCOND=0,TRCONDV=0
+  real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
 #endif
 #endif
 

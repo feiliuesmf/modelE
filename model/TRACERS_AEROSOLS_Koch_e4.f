@@ -62,7 +62,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
       real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
 !@var om2oc ratio of organic matter to organic carbon
-      real*8, dimension(ntm) :: om2oc=1.4d0
+      real*8, allocatable, dimension(:) :: om2oc
 !@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
       real*8:: BBinc=1.0d0
 #ifdef TRACERS_AEROSOLS_VBS
@@ -75,7 +75,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, get
-      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
+      use TRACER_COM, only: NTM
+      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -145,6 +146,8 @@ c off line
 #ifdef TRACERS_AEROSOLS_VBS
       allocate(VBSemifact(vbs_tr%nbins))
 #endif
+
+      allocate(om2oc(ntm)); om2oc = 1.4d0
 
       return
       end SUBROUTINE alloc_aerosol_sources      
@@ -844,7 +847,7 @@ c DMM is number density of air in molecules/cm3
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 
-      do 23 n=1,ntm ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
+      do 23 n=1,NTM ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
 
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
@@ -1034,7 +1037,7 @@ c     if(l.le.maxl) then
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      do 33 n=1,ntm
+      do 33 n=1,NTM
         select case (trname(n))
         case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
@@ -1228,7 +1231,8 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
+     *     ,trname,NTM
+     *     ,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
       USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
       USE MODEL_COM, only: dtsrc
 c

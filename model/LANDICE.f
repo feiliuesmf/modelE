@@ -10,7 +10,7 @@
 !@cont PRECLI,LNDICE
       USE CONSTANT, only : lhm,rhoi,shi
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -253,7 +253,7 @@ C**** CALCULATE TG2
 !@cont io_landice
       USE RESOLUTION, only : im,jm
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -289,7 +289,7 @@ C**** CALCULATE TG2
      *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : NTM
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid

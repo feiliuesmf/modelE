@@ -96,7 +96,7 @@ c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid
       USE SEAICE_COM, only : si_atm,si_ocn,sigrid
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm => NTM
 #endif
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
       USE TRACER_COM, only : trname

@@ -48,7 +48,7 @@ C       Environmental Protection Agency Report EPA/600/3-88/025,
 C       Research Triangle Park (NC), 1988.   
 C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C*********************************************************************
-      USE TRACER_COM, only   : ntm
+      USE TRACER_COM, only   : NTM
 
       IMPLICIT NONE
       SAVE
@@ -117,7 +117,7 @@ C*********************************************************************
 #ifdef BIN_OLSON
      &     ,FUSE_loc,XOLAI_loc,XOLAI2_loc
 #endif
-      use tracer_com, only    : ntm
+      use tracer_com, only    : NTM
 
       IMPLICIT NONE
 
@@ -175,7 +175,7 @@ C
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf,pi,grav     
       USE RAD_COM,     only: COSZ1,cfrac,srdn
-      USE TRACER_COM, only : ntm, tr_wd_TYPE, nPART, trname,
+      USE TRACER_COM, only : NTM, tr_wd_TYPE, nPART, trname,
      & dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
 #ifdef TRACERS_SPECIAL_Shindell
      & , n_NOx
