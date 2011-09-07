@@ -338,7 +338,8 @@ C****
       IHM = IH+(JDATE-1)*24
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
-      CALL PRECIP_LI
+      CALL PRECIP_LI         % Could be in LANDICE or GLIMMERICE
+
 #ifdef IRRIGATION_ON
 C**** CHECK FOR IRRIGATION POSSIBILITY
       CALL IRRIG_LK
