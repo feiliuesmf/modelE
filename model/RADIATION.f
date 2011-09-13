@@ -3187,9 +3187,14 @@ C**** Prior to first year of data, cycle through first year of data
 #ifdef TRACERS_SPECIAL_Shindell
 ! read the 3D field for O3 RCOMPX reference calls
       call openunit ('Ox_ref',ifile,.true.,.true.)
-      read(ifile)O3JREF
+      if (AM_I_ROOT()) print *, 'Reading ozone reference field file:'
+      do L=1,NLO3
+        read(ifile)title,O3JREF(L,:,:)
+        if (AM_I_ROOT()) print *, trim(title)
+      end do
       call closeunit(ifile)
 #endif
+
       IFIRST=0
       ENDIF
 
