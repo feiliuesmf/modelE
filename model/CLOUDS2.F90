@@ -9,16 +9,18 @@ module CLOUDS
 !@cont MSTCNV,LSCOND,ANVIL_OPTICAL_THICKNESS,MC_CLOUD_FRACTION,
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
   use CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6 &
-       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
-  use MODEL_COM, only : lm,dtsrc,itime
+       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi &
+       ,mb2kg
+  use RESOLUTION, only : lm
+  use MODEL_COM, only : dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use MODEL_COM, only : ptop,psf,ls1,sig,sige
+  use RESOLUTION, only : ptop,psf,ls1
+  use DYNAMICS, only : sig,sige
 #endif
 #ifdef SCM
-  use MODEL_COM, only: I_TARG,J_TARG
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
-       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
+       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT,I_TARG,J_TARG
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP, &
        ENTSCM,ENTALL,ENTDEEP,DETRAINDEEP, &
@@ -35,15 +37,20 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: ntm=>NTM, trname,t_qlimit,ntm_soa,ntm_ococean
 #ifdef TRACERS_AEROSOLS_OCEAN
   use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
   use TRACER_COM, only:        nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
        tr_evap_fact, gases_list,gases_count
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
   use TRACER_COM, only: aqchem_list,aqchem_count
+#endif
+#ifdef TRACERS_TOMAS
+  use TRACER_COM, only: IDTNUMD,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,IDTOCIL,  &
+        IDTDUST,IDTH2O,NBINS
 #endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
@@ -130,7 +137,7 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
-  integer, dimension(ntm) :: ntix
+  integer, allocatable, dimension(:) :: ntix
   integer ntx
 #endif
   !**** ISCCP diag related variables
@@ -204,6 +211,8 @@ module CLOUDS
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
   real*8, dimension(LM) :: ACDNWS,ACDNIS
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
+  real*8, dimension(LM) :: CDNC_NENES,CDNC_TOMAS
+!@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds (cm^-3)
   real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
   real*8, dimension(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
@@ -241,21 +250,21 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
-  real*8, dimension(LM,NTM) :: TM
-  real*8, dimension(nmom,lm,ntm) :: TMOM
+  real*8, allocatable, dimension(:,:) :: TM
+  real*8, allocatable, dimension(:,:,:) :: TMOM
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
-  real*8, dimension(NTM,LM) :: TRDNL
-  common/CLD_TRCCOM/TM,TMOM,TRDNL
+  real*8, allocatable, dimension(:,:) :: TRDNL
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
-  real*8, dimension(NTM,LM) :: TRWML, TRSVWML
+  real*8, allocatable, dimension(:,:) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
-  real*8, dimension(NTM)    :: TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+  real*8, allocatable, dimension(:)    :: TRPRSS,TRPRMC
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
   ! for diagnostics
-  real*8, dimension(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
+  real*8, allocatable, dimension(:,:) :: DT_SULF_MC,DT_SULF_SS
 #endif
 #ifdef TRDIAG_WETDEPO
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
@@ -266,7 +275,7 @@ module CLOUDS
 !@var trprcp_mc saves tracer precipitated from MC clouds [kg]
 !@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
 !@var trwash_mc saves tracers washed out by collision for MC clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trcond_mc,trdvap_mc,trflcw_mc, &
+  real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, &
        trprcp_mc,trnvap_mc,trwash_mc
 !@var trwash_ls saves tracers washed out by collision for LS clouds [kg]
 !@var trprcp_ls saves tracer precipitation from LS clouds [kg]
@@ -274,7 +283,7 @@ module CLOUDS
 !@var trevap_ls saves reevaporated tracers of LS cloud precip [kg]
 !@var trclwe_ls saves tracers evaporated from cloud water of LS clouds [kg]
 !@var trcond_ls saves tracer condensation in LS clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trwash_ls,trevap_ls,trclwc_ls, &
+  real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, &
        trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
@@ -285,21 +294,6 @@ module CLOUDS
   real*8,dimension(nmom,Lm,Ntm_dust) :: tmom_dust
 !@var trprc_dust dust/mineral tracer precip [kg]
   real*8,dimension(Lm,Ntm_dust) :: trprc_dust
-#endif
-#endif
-
-#ifdef TRACERS_WATER
-  common/CLD_WTRTRCCOM/TRWML,TRSVWML,TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-  common/CLD_WTRTRCCOM/DT_SULF_MC,DT_SULF_SS
-#endif
-#ifdef TRDIAG_WETDEPO
-  common/CLD_WTRTRCCOM/trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc, &
-       trwash_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trcond_ls
-#endif
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  common/CLD_PRECDUST/ tm_dust,tmom_dust,trprc_dust
 #endif
 #endif
 #endif
@@ -337,34 +331,6 @@ module CLOUDS
 !@var prebar1 copy of variable prebar
   real*8 prebar1(Lm+1)
 
-  common/CLDPRV/PLE,PL,PLK,AIRM,BYAM,ETAL &
-       ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP &
-       ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP,SVLAT1 &
-       ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPIJ,DDMFLX,PLAND &
-       ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1 &
-       ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL &
-       ,SM,QM,SMOM,QMOM,PEARTH,TS,QS,US,VS,RIS,RI1,RI2, AIRXL &
-       ,SMOMMC,QMOMMC,SMOMLS,QMOMLS,CLDSV1,PRHEAT,TDNL,QDNL,U00L &
-       ,PRCPMC,PRCPSS,HCNDSS,WMSUM,CLDSLWIJ,CLDDEPIJ,VLAT
-#ifdef CLD_AER_CDNC
-  common/CLDPRV/ACDNWM,ACDNIM,ACDNWS,ACDNIS &
-       ,AREWM,AREIM,AREWS,AREIS,ALWIM,ALWWM &
-       ,OLDCDL,OLDCDI &
-       ,SME &
-       ,SMLWP,CDN3DL,CRE3DL &
-       ,WMCLWP,WMCTWP
-#endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-  common/CLDPRV/CTEML,CD3DL,CL3DL,CI3DL
-#endif
-  common/CLDPRV/TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2 &
-       ,FSSL,WTURB,TVL,W2L,GZL &
-       ,SAVWL,SAVWL1,SAVE1L,SAVE2L
-#ifdef CLD_AER_CDNC
-  common/CLDPRV/NLSW,NLSI,NMCW,NMCI
-#endif
-  common/CLDPRV/prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
-
 #ifdef TRACERS_ON
   ! The following tracer arrays are workspace for MSTCNV.  They are
   ! declared as permanent arrays here to avoid the expense of initializing
@@ -372,15 +338,15 @@ module CLOUDS
   ! completion of MC calculations, MSTCNV resets these arrays to zero in
   ! the layers in which they were used.
 !@var DTM,DTMR: Vertical profiles of Tracers changes
-  real*8, dimension(LM,NTM)      :: DTM=0, DTMR=0, TMDNL=0
-  real*8, dimension(NMOM,LM,NTM) :: DTMOM=0, DTMOMR=0, TMOMDNL=0
+  real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
+  real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
 !@var TPOLD saved plume temperature after condensation for tracers
 !@+   (this is slightly different from TPSAV)
   real*8, dimension(LM)       :: TPOLD=0
 #ifdef TRACERS_WATER
 !@var TRCOND tracer mass in condensate
 !@var TRCONDV tracer mass in lofted condensate
-  real*8, dimension(NTM,LM)   :: TRCOND=0,TRCONDV=0
+  real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
 #endif
 #endif
 
@@ -390,7 +356,6 @@ contains
 
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
 !@calls adv1d,QSAT,DQSATDT,THBAR, MASS_FLUX, CONVECTIVE_MICROPHYSICS, PRECIP_MP,
 !@+     MC_PRECIP_PHASE, MC_CLOUD_FRACTION, ANVIL_OPTICAL_THICKNESS
 
@@ -454,7 +419,7 @@ contains
 !@param RHOG,RHOIP density of graupel and ice particles
     !
 #ifdef CLD_AER_CDNC
-    integer, parameter :: SNTM=29 !17+ntm_soa/2  !for tracers for CDNC
+    integer, parameter :: SNTM=31  !for tracers for CDNC
 #endif
     !
     !              *******************************
@@ -677,6 +642,8 @@ contains
     real*8, dimension(NMOM,LM,NTM) :: TMOMOLD
     real*8, dimension(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
     real*8, dimension(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
+    real*8 :: vsum
+    integer :: lborrow1
 #ifdef TRACERS_WATER
 !@var TRPCRP tracer mass in precip
     real*8, dimension(NTM)      :: TRPRCP
@@ -697,7 +664,8 @@ contains
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
     real*8 TMP_SUL(LM,NTM)
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
@@ -866,7 +834,8 @@ contains
 #ifdef TRACERS_ON
     TMOLD(:,1:NTX) = TM(:,1:NTX)
     TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
     DT_SULF_MC(1:NTM,:)=0.
 #endif
 #ifdef TRACERS_WATER
@@ -1111,6 +1080,12 @@ contains
             TMP(n) = TMOLD(LMIN,n)*FPLUME
             if(t_qlimit(n)) TMP(n) = min(TMP(n),0.95d0*TM(LMIN,n))
           enddo
+!TOMAS DEBUG
+            DO N=1,NTM
+              if(TMP(n).lt.0.) print*,'TMP<0 1',TMP(n),trname(n)
+            ENDDO
+!TOMAS DEBUG
+
           TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
           DTMR(LMIN,1:NTX)=-TMP(1:NTX)
           DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
@@ -1232,6 +1207,12 @@ contains
                    *TMOMP(xymoms,1:NTX)
               TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
               TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
+!TOMAS DEBUG
+            DO N=1,NTM
+              if(TMP(n).lt.0.) print*,'TMP<0 2',TMP(n),trname(n),DELTA
+            ENDDO
+!TOMAS DEBUG
+
 #endif
             end if
 
@@ -1373,14 +1354,44 @@ contains
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_OCEAN
               case('OCocean')
-                DSGL(L,22)=tm(l,n)
+                DSGL(L,22)=tm_cdnc(n)
                 DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_AEROSOLS_VBS
+              case('vbsAm2')
+                DSGL(L,23)=tm_cdnc(n)
+                DSS(23) = DSGL(L,23)
+              case('vbsAm1')
+                DSGL(L,24)=tm_cdnc(n)
+                DSS(24) = DSGL(L,24)
+              case('vbsAz')
+                DSGL(L,25)=tm_cdnc(n)
+                DSS(25) = DSGL(L,25)
+              case('vbsAp1')
+                DSGL(L,26)=tm_cdnc(n)
+                DSS(26) = DSGL(L,26)
+              case('vbsAp2')
+                DSGL(L,27)=tm_cdnc(n)
+                DSS(27) = DSGL(L,27)
+              case('vbsAp3')
+                DSGL(L,28)=tm_cdnc(n)
+                DSS(28) = DSGL(L,28)
+              case('vbsAp4')
+                DSGL(L,29)=tm_cdnc(n)
+                DSS(29) = DSGL(L,29)
+              case('vbsAp5')
+                DSGL(L,30)=tm_cdnc(n)
+                DSS(30) = DSGL(L,30)
+              case('vbsAp6')
+                DSGL(L,31)=tm_cdnc(n)
+                DSS(31) = DSGL(L,31)
+#endif  /* TRACERS_AEROSOLS_VBS */
               end select
             end do      !end of n loop for tracers
 #endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
+#ifndef TRACERS_TOMAS
 #ifdef TRACERS_AMP
             do nm=1,nmodes
               ncaero(nm)=naerc(l,nm)*1.d-6
@@ -1393,6 +1404,11 @@ contains
                  MCDNL1,MCDNO1)
 
 #endif  /* (TRACERS_AMP) */
+#endif
+#ifdef TRACERS_TOMAS
+       CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC, &
+          DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
+#endif
             MNdO=MCDNO1
             MNdL=MCDNL1
             MNdO_max(L)=max(MNdO_max(L),MCDNO1)
@@ -1424,7 +1440,8 @@ contains
             !**** CONDENSING TRACERS
             WMXTR=DQSUM*BYAM(L)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
 
             if (FPLUME.gt.teeny) then
@@ -1448,12 +1465,20 @@ contains
             enddo
 
 #endif
+            DO N=1,NTM
+              if(TMP(n).lt.0.) print*,'TMP<0 3',TMP(n),trname(n)
+            ENDDO
 
             TM_dum(:) = TMP(:)
             !     CALL GET_COND_FACTOR_array(
             !    &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
             !    &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
             !    &     ,ntix,CLDSAVT)
+!TOMAS DEBUG
+            DO N=1,NTM
+              if(TM_dum(n).lt.0.) print*,'TM_dum<0 1',TM_dum(n),trname(n)
+            ENDDO
+!TOMAS DEBUG
             call GET_COND_FACTOR_array( &
                  NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME &
                  ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L) &
@@ -1810,9 +1835,17 @@ contains
         DQM(LMAX)=DQM(LMAX)+QMPMAX
         DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
 #ifdef TRACERS_ON
-        DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
-        DTMOM(xymoms,LMAX,1:NTX) = &
-             DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
+       DO N=1,NTX
+        select case (trname(ntix(n)))
+        case('NH3')
+      DTM(LMIN,N) = DTM(LMIN,N) + TMPMAX(N)
+      DTMOM(xymoms,LMIN,N) = DTMOM(xymoms,LMIN,N) + TMOMPMAX(xymoms,N)
+
+        case default
+      DTM(LMAX,N) = DTM(LMAX,N) + TMPMAX(N)
+      DTMOM(xymoms,LMAX,N) = DTMOM(xymoms,LMAX,N) + TMOMPMAX(xymoms,N)
+        end select
+       end do
 #endif
         CCM(LMAX)=0.
         do K=1,KMAX
@@ -2183,19 +2216,45 @@ contains
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
+#ifdef TRACERS_WATER
+          if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
+#endif
           do L=LDMIN,LMAX
-            if (TM(L,N).lt.0.) then
-              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
-                   ,j_debug,l,tm(l,n),cmneg(l)
-              !**** reduce subsidence post hoc.
-              LM1=max(1,L-1)
-              if (TM(LM1,N)+TM(L,N).lt.0) then
-                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!            if (TM(L,N).lt.0.) then
+!              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
+!                   ,j_debug,l,tm(l,n),cmneg(l)
+!              !**** reduce subsidence post hoc.
+!              LM1=max(1,L-1)
+!              if (TM(LM1,N)+TM(L,N).lt.0) then
+!                write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
+!              else
+!                TM(L-1,N)=TM(L-1,N)+TM(L,N)
+!                TM(L,N)=0.
+!              end if
+!            end if
+            if (tm(l,n).lt.0.) then ! borrow mass from below
+              vsum = tm(l,n)
+              lborrow1 = l
+              do while(vsum.lt.0. .and. lborrow1.gt.1)
+                lborrow1 = lborrow1 - 1
+                vsum = vsum + tm(lborrow1,n)
+              enddo
+              if(vsum.lt.0.) then
+                write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
               else
-                TM(L-1,N)=TM(L-1,N)+TM(L,N)
-                TM(L,N)=0.
-              end if
-            end if
+                if(l-lborrow1.gt.1) then
+                  write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
+                else
+                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm', &
+                       itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+                endif
+                ! note: borrowing from more than one layer is done by
+                ! multiplication rather than subtraction
+                tm(lborrow1:l-1,n)=tm(lborrow1:l-1,n)*(vsum/(vsum-tm(l,n)))
+                tm(l,n)=0.
+              endif
+            endif
           end do
         end do
 #endif
@@ -2491,7 +2550,11 @@ contains
               TM_dum(:) = TM(L,:)
               call GET_WASH_factor_array( &
                    ntx,b_beta_dt,precip_mm,fwasht,told,lhx, &
-                   wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.true.)
+                   wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.true. &
+#ifdef TRACERS_TOMAS
+      ,i_debug,j_debug,L &
+#endif
+           )
               dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
               if (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx) &
@@ -2517,7 +2580,8 @@ contains
               WMXTR = PRCP*BYAM(L)
               precip_mm = PRCP*100.*bygrav
               b_beta_DT = FPLUME
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
               WA_VOL= precip_mm*DXYPIJ
 
               call GET_SULFATE(L,TOLD,FPLUME,WA_VOL,WMXTR,SULFIN, &
@@ -2537,7 +2601,11 @@ contains
               !dmk GET_WASH now has gas dissolution, extra arguments
               TM_dum(:) = TM(L,:)
               call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
-                   TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix,.true.)
+                   TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix,.true. &
+#ifdef TRACERS_TOMAS
+       ,i_debug,j_debug,L &
+#endif
+            )
               dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
               if (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx) &
@@ -2826,7 +2894,6 @@ contains
   subroutine LSCOND(IERR,WMERR,LERR,i_debug,j_debug)
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-!@ver  1.0 (taken from CB265)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
     implicit none
 
@@ -2919,7 +2986,8 @@ contains
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
     real*8 :: cldprec
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
@@ -2942,7 +3010,7 @@ contains
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-    integer, parameter :: SNTM=29+ntm_ococean !17+ntm_soa/2+ntm_ococean
+    integer, parameter :: SNTM=31
     real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT &
          ,CDNL0,NEWCDN,OLDCDN,SNd
     real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -2991,6 +3059,33 @@ contains
 #ifdef TRACERS_AMP
     real*8                    :: naero (mkx,nmodes)
     !     real*8,dimension(lm,nmodes)   :: nactc
+#endif
+#ifdef TRACERS_TOMAS
+      REAL*8,dimension(mkx)     :: nactl
+!Can
+!Can Droplet parameterization quantities
+!Can
+      INTEGER :: NCCNMx,NCC,NSECi
+      PARAMETER (NCCNMx=100, NCC=10)
+      REAL*8 SULFI, BOXVL, TOTi,TOT_MI, &
+           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), & 
+           NACTEarth, NACTOcean, NACT, NACTBL, &
+           SMAXEarth, SMAXOcean, SMAX, & 
+           REFFEarth, REFFOcean, REFF, REFFBL, REFFGISS, &
+           CLDTAUEarth, CLDTAUOcean, CLDTAU, CLDTAUBL, CLDTAULIQ, &
+           CLDTAUICE, TPARC,PPARC, & 
+           WPARCOcean, WPARCEarth, WPARC, & 
+           RHOSI,QLWC,EPSILON,AUTO(6),DIFFLWMR,DIFFEPS
+
+      INTEGER ITYP
+      LOGICAL EX
+!c$$$      REAL*8 CldLiqTauNS(IM,JM,LM), CldLiqTauBL(IM,JM,LM),
+!c$$$     &                 CldLiqTauGS(IM,JM,LM), CldIceTauGS(IM,JM,LM)
+!c$$$      COMMON /MICROPH/ CldLiqTauNS, CldLiqTauBL, CldLiqTauGS,
+!c$$$     &                 CldIceTauGS
+!Can
+!Can
+   
 #endif
 #endif
 
@@ -3092,7 +3187,8 @@ contains
     TRPRBAR = 0.
     BELOW_CLOUD=.false.
     CLOUD_YET=.false.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
     DT_SULF_SS(1:NTM,:)=0.
 #endif
     TR_LEF(:)=1. ! currently, only aqchem_list elements vary with layer
@@ -3402,6 +3498,35 @@ contains
           DSGL(L,22)=tm(l,n)
           DSS(22) = DSGL(L,22)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+#ifdef TRACERS_AEROSOLS_VBS
+        case('vbsAm2')
+          DSGL(L,23)=tm(l,n)
+          DSS(23) = DSGL(L,23)
+        case('vbsAm1')
+          DSGL(L,24)=tm(l,n)
+          DSS(24) = DSGL(L,24)
+        case('vbsAz')
+          DSGL(L,25)=tm(l,n)
+          DSS(25) = DSGL(L,25)
+        case('vbsAp1')
+          DSGL(L,26)=tm(l,n)
+          DSS(26) = DSGL(L,26)
+        case('vbsAp2')
+          DSGL(L,27)=tm(l,n)
+          DSS(27) = DSGL(L,27)
+        case('vbsAp3')
+          DSGL(L,28)=tm(l,n)
+          DSS(28) = DSGL(L,28)
+        case('vbsAp4')
+          DSGL(L,29)=tm(l,n)
+          DSS(29) = DSGL(L,29)
+        case('vbsAp5')
+          DSGL(L,30)=tm(l,n)
+          DSS(30) = DSGL(L,30)
+        case('vbsAp6')
+          DSGL(L,31)=tm(l,n)
+          DSS(31) = DSGL(L,31)
+#endif  /* TRACERS_AEROSOLS_VBS */
         end select
       end do      !end of n loop for tracers
 #endif   /* tracerpart and cld-aer part */
@@ -3487,6 +3612,85 @@ contains
            ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end',qr0=mrain, &
            nr0=nrain)
 #endif
+#ifdef TRACERS_TOMAS
+!CCC
+!Can *************************************************************************
+!Can      CLOUD DROPLET CALCULATION
+!Can *************************************************************************
+!CCC
+!CCC *** Input properties for parameterization
+!CCC
+      TOT_MI    = 0d0
+      WPARC      = 0d0
+      SMAX       = 0d0
+      NACT       = 0d0
+      REFF       = 0d0
+!      CLDTAU     = 0d0
+!      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
+!c$$$      QautP6     = 0d0
+!c$$$      QautKK     = 0d0 
+!c$$$      QautMC     = 0d0 
+!c$$$      QautBH     = 0d0
+!c$$$      QautGI     = 0d0 
+!c$$$      QautNS     = 0d0 
+!c$$$C
+!C Get CCN properties
+!C
+!      avol(l) = axyp(i_debug,j_debug)*am(i_debug,j_debug,l)/mair*
+!!!   byam(l) = [m2/kg of air]
+      boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
+          /100./PL(L) 
+
+      CALL getCCN (I_debug,J_debug,L,BOXVL,TOT_MI,TOTi,TPi,MLi, &
+         NCCNMx,NSECi)        ! Get CCN properties
+!C
+!C Call cloud microphysics
+!C    
+      IF (LHX.EQ.LHE) THEN         ! Liquid clouds present
+!CCC
+!CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
+!CCC
+
+!Two options for Updrate velocity 
+
+!1. fixed as a constant  
+
+!         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
+!         WPARCEarth = 0.3d0
+!         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
+
+!2. computed using EGCM
+
+        WPARC=v0(mkx) !wturb=sqrt(0.6667*EGCM(l,i,j))
+!End of updrate velocity option. 
+
+
+         QLWC=WMX(L)/(FCLD + teeny)    	!in-cloud dimensionless LWC
+         QLWC=MIN(QLWC, 3.d-03)  		!(upper limit for the QLWC)
+
+         RHO=1.d5*PL(L)/(RGAS*TL(L))
+         RHOSI = RHO*1.d-3
+         if(rhosi.eq.0.) print*,'zero rho',rho,pl(l),tl(l)
+
+         TPARC=tk0(mkx)
+         PPARC=pk0(mkx)*100.d0  ! mbar to Pa
+         IF (TOTi.GT.6.d7.and.WPARC.gt.0.) THEN  ! more than 60 particles per cc, call droplet activation
+            CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
+                 ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
+         ELSE
+!YUNHA- I don't know how to set the minimum NACT. For now, I put the same mininum as Nenes.  
+            NACT = 40.d6 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
+            SMAX = 0.0001    ! Minimum supersaturation
+         ENDIF
+       NACTL(mkx)=NACT
+       CDNC_NENES(L)=NACT !FOR DIAGNOSTICS
+       ENDIF
+
+       ldummy=execute_bulk2m_driver('all' &
+            ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
+           nr0=nrain)
+
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
@@ -3509,6 +3713,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the TOMAS_actv interface from TOMAS 
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       ! Droplets' autoconversion: Beheng (concentration and content)
       !       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
@@ -4234,7 +4442,8 @@ contains
       if (CLDSAVT.gt.1.) CLDSAVT=1.
       if (WMX(L).le.0.) CLDSAVT=0.
       CLDSAVT=CLDSAVT*FSSL(L)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       WA_VOL=0.
       if (WMNEW.gt.teeny) then
         WA_VOL=WMNEW*AIRM(L)*1.D2*BYGRAV*DXYPIJ
@@ -4293,6 +4502,11 @@ contains
       endif
 
       TM_dum(:) = TM(L,:)
+!TOMAS DEBUG
+            DO N=1,NTM
+              if(TM_dum(n).lt.0.) print*,'TM_dum<0 2',TM_dum(n),trname(n)
+            ENDDO
+!TOMAS DEBUG
       if(BELOW_CLOUD.and.WMX(L).lt.teeny) then
         FQTOWT(:)=0.
         THLAW(gases_list)=0.
@@ -4302,7 +4516,11 @@ contains
         if (wmxtr.lt.0.) wmxtr=0.
         call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
              tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
-             THWASH,pl(l),ntix,.true.) !washout
+             THWASH,pl(l),ntix,.true. &
+#ifdef TRACERS_TOMAS
+       ,i_debug,j_debug,L &
+#endif
+            )!washout
       else
         !         b_beta_DT is needed at the lowest precipitating level,
         !         so saving it here for below cloud case:
@@ -4349,7 +4567,11 @@ contains
         if (wmxtr.lt.0.) wmxtr=0.
         call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
              tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
-             THWASH,pl(l),ntix,.true.) !washout
+             THWASH,pl(l),ntix,.true. &
+#ifdef TRACERS_TOMAS
+       ,i_debug,j_debug,L &
+#endif
+            )!washout
       end if
 #endif
 
@@ -4448,7 +4670,8 @@ contains
           TL(L)=TL(L)+SLH*DQSUM
           QL(L)=QL(L)-DQSUM
           WMX(L)=WMX(L)+DQSUM*FSSL(L)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
           WA_VOL=0.
           if (WMX(L).gt.teeny) then
             WA_VOL=WMX(L)*AIRM(L)*1.D2*BYGRAV*DXYPIJ
@@ -4473,7 +4696,8 @@ contains
           CLDSAVT=CLDSAVT*FSSL(L)
           !dmks  I took out some code above this that was for below cloud
           !   processes - this should be all in-cloud
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
           call GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN, &
                SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX, &
@@ -4492,6 +4716,11 @@ contains
           ! below TR_LEFT(N) limits the amount of available tracer in gridbox
           !dmkf and below, extra arguments for GET_COND, addition of THLAW
           TM_dum(:) = TM(L,:)
+!TOMAS DEBUG
+            DO N=1,NTM
+              if(TM_dum(n).lt.0.) print*,'TM_dum<0 3',TM_dum(n),trname(n)
+            ENDDO
+!TOMAS DEBUG
           call GET_COND_FACTOR_array(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND &
                ,FQCONDT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,pl(l) &
                ,ntix,CLDSAVT)
@@ -4806,6 +5035,7 @@ contains
     ALWIS=0.
     NLSW = 0
     NLSI = 0
+    CDNC_TOMAS=0.
 #endif
     do L=1,LP50
       FCLD=CLDSSL(L)+teeny
@@ -4844,6 +5074,10 @@ contains
 #ifdef TRACERS_AMP
       OLDCDL(L)=SNd
       OLDCDI(L)=SNdi
+#endif
+#ifdef TRACERS_TOMAS
+       OLDCDL(L)=SNd
+       OLDCDI(L)=SNdi
 #endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
@@ -4888,6 +5122,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the AMP_actv interface from MATRIX
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       rablk=execute_bulk2m_driver('get','value','nc') + ( &
            +execute_bulk2m_driver('get','npccn') &
@@ -4982,6 +5220,7 @@ contains
       end if
       RCLDE1=5.*RCLDE          ! for precip optical thickness
       CSIZEL(L)=RCLDE
+      IF(FCLD.LE.teeny.AND.CSIZEL(L).GT.25.d0) CSIZEL(L)=25.d0
 #ifdef CLD_AER_CDNC  /* save for diag purposesi */
       if (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
         ACDNWS(L)= SCDNCW
@@ -4990,6 +5229,9 @@ contains
         CDN3DL(L)=SCDNCW
         CRE3DL(L)=RCLDE
         NLSW  = NLSW + 1
+#ifdef TRACERS_TOMAS
+        CDNC_TOMAS(L)=CDNC_NENES(L)
+#endif
         !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
         !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
       elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then
@@ -5679,7 +5921,8 @@ subroutine ISCCP_CLOUD_TYPES(sunlit,pfull &
   ! *****************************COPYRIGHT*******************************
   use CONSTANT, only : wtmair=>mair,Navo=>avog,bygrav,bymrat
   use RANDOM, only : randu
-  use MODEL_COM, only : nlev=>lm,qcheck
+  use RESOLUTION, only : nlev=>lm
+  use MODEL_COM, only : qcheck
   use CLOUDS, only : tautab,invtau
   use CLOUDS_COM, only : ncol
   implicit none

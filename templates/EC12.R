@@ -10,19 +10,16 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_C12 DIAG_RES_M           ! horiz/vert resolution, 4x5deg, 20 layers -> 0.1mb
+RES_C12 DIAG_RES_M           ! horiz/vert resolution, 8x10deg, 12 layers
 FFT36                         ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT                       ! diagn/post-processing output
 IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV QUS3D                       ! advection of Q/tracers
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
 
@@ -37,7 +34,7 @@ OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_36x24_input_files.nc"
-#include "static_ocn_1880_36x24_input_files"
+#include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
 
 RVR=RD8X10.RVR.bin           ! river direction file
 
@@ -50,7 +47,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-EC12 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)
+EC12 (ModelE4 8x10, 12 layers, 1850 atm, 1950 prescr. ocn)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -78,14 +75,14 @@ cloud_rad_forc=1
 crops_yr=-1
 
 DTsrc=1800.      ! cannot be changed after a run has been started
-DT=225.
+DT=450.          ! could be 900 if DTsrc=3600.  do not forget nda5 et al.
 ! parameters that control the Shapiro filter
-DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT
-DT_XVfilter=225. ! Shapiro filter on V in E-W direction; usually same as DT
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
-NIsurf=2         ! (surf.interaction NIsurf times per physics time step)
+NIsurf=1         ! (surf.interaction NIsurf times per physics time step)
 NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 

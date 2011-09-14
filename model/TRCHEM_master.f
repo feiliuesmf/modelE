@@ -2,7 +2,6 @@
       SUBROUTINE masterchem
 !@sum masterchem main chemistry routine
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem000_M23p)   
 !@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C IF ALTERING THIS ROUTINE, PLEASE SEE THE WARNING ABOUT THE CHANGEL
@@ -18,11 +17,16 @@ c
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
-      USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
-     &                        COUPLED_CHEM,JHOUR, itime, itimeI, itime0
+      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : IM,JM
+      USE ATM_COM, only     : T,Q
+      USE MODEL_COM, only   : JDAY,JYEAR,
+     &                        JHOUR, itime, itimeI, itime0
+      USE TRACER_COM, only  : COUPLED_CHEM
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
      &                        bygrav,lhe,undef
-      USE DYNAMICS, only    : pedn,LTROPO
+      USE ATM_COM, only     : pedn,LTROPO
+      USE DYNAMICS, only    : sig
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
@@ -51,7 +55,12 @@ c
      &                        n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU,
      &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU,
 #endif
-     &                        n_SO4,n_H2O2_s,oh_live,no3_live,
+#ifdef TRACERS_TOMAS
+     &                        n_ASO4,nbins,   
+#else
+     &                        n_SO4,
+#endif  
+     &                        n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
      *                        ,mass2vol,vol2mass
@@ -205,7 +214,9 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_AEROSOLS_SOA
       real*8 voc2nox_denom
 #endif  /* TRACERS_AEROSOLS_SOA */
-
+#ifdef TRACERS_TOMAS
+      integer :: k
+#endif
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
@@ -423,22 +434,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
 
       ierr_loc = 0
 
-CCCC!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
-CCCC!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
-CCCC!$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
-CCCC!$OMP* changeAldehyde,changeAlkenes,changeCO,changeIsoprene,changeHCHO,
-CCCC!$OMP* changeAlkylNit,changeHNO3,changeNOx,changeN2O5,changeOx,FACT_SO4,
-CCCC#ifdef TRACERS_HETCHEM
-CCCC!$OMP* changeN_d1,changeN_d2,changeN_d3,
-CCCC#endif
-CCCC!$OMP* aero, CLTOT, ClOx_old, COLMO2, COLMO3, changeClONO2, changeClOx,
-CCCC!$OMP* changehetClONO2, changeHOCl, changeHCl,
-CCCC!$OMP* chgHT3, chgHT4, chgHT5, fraQ,
-CCCC!$OMP* pscx, rmrclox, rmrbrox, rmrox, rmv,
-CCCC!$OMP* igas, inss, J, jay, L, LL, Lqq, maxl, N, error )
-CCCC!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
-CCCC!$OMP* N_ALKYLNIT)
-
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       j_loop: DO J=J_0,J_1          ! >>>> MAIN J LOOP BEGINS <<<<
 
@@ -502,6 +497,7 @@ c Tracers (converted from mass to number density):
         end if
       end if
 
+#ifdef TRACERS_AEROSOLS_Koch
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
@@ -513,6 +509,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
          yso2(i,j,l)=so2_offline(i,j,l)*1.0D-12*y(nM,L)
        endif
+#endif /* TRACERS_AEROSOLS_Koch */
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
@@ -875,19 +872,25 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Recipricle
           ! layer thickness below is in 1/m units:
-          sulfate(i,j,L)=
+           sulfate(i,j,l)=0.0
 #ifdef TRACERS_AMP
-     &      (trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
+          sulfate(i,j,L)=
+     &       trm(i,j,L,n_M_AKK_SU)+trm(i,j,L,n_M_ACC_SU)+
      &       trm(i,j,L,n_M_DD1_SU)+trm(i,j,L,n_M_DS1_SU)+
      &       trm(i,j,L,n_M_DD2_SU)+trm(i,j,L,n_M_DS2_SU)+
      &       trm(i,j,L,n_M_SSA_SU)+trm(i,j,L,n_M_OCC_SU)+
      &       trm(i,j,L,n_M_BC1_SU)+trm(i,j,L,n_M_BC2_SU)+
      &       trm(i,j,L,n_M_BC3_SU)+trm(i,j,L,n_M_DBC_SU)+
      &       trm(i,j,L,n_M_BOC_SU)+trm(i,j,L,n_M_BCS_SU)+
-     &       trm(i,j,L,n_M_MXX_SU))
-#else
-     &      trm(i,j,L,n_SO4)
+     &       trm(i,j,L,n_M_MXX_SU)
+#elif (defined TRACERS_AEROSOLS_Koch)
+          sulfate(i,j,L)=trm(i,j,L,n_SO4)
+#elif (defined TRACERS_TOMAS)
+           do k=1,nbins
+              sulfate(i,j,L)=sulfate(i,j,l)+trm(i,j,L,n_ASO4(k))
+           enddo
 #endif
+          sulfate(i,j,l)=sulfate(i,j,l)
      &      *1.76d2*byaxyp(i,j)*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
         endif
@@ -1661,7 +1664,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO j_loop ! >>>> MAIN J LOOP ENDS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-CCCCC!$OMP END PARALLEL DO  
 
       ! check if there was that error in certain section of chemstep
       ! anywhere in the world; if so, stop the model (all processors):
@@ -2054,10 +2056,11 @@ C Make sure nighttime chemistry changes are not too big:
 !@sum calculate photolysis rate for acetone geometrically
 !@+ taken from the UK Harwell Model
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on dsf_master_chem_GCM.S)
 !
-      use model_com, only: jday,jhour,LS1,LM
-      use dynamics, only: pmid
+      use resolution, only : ls1
+      use resolution, only : lm
+      use model_com, only: jday,jhour
+      use atm_com, only: pmid
       use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
 
@@ -2099,13 +2102,15 @@ C Make sure nighttime chemistry changes are not too big:
 !@+   #13 CO+OH->HO2+CO2, #15 HO2+HO2->H2O2+O2, #16 OH+HNO3->H2O+NO3,
 !@+   and reactions #29, and #42.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@ver  1.0 (based on masterchem000_M23p)
 
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: LM,JM,LS1,ptop,psf,sig,Itime,ItimeI
+      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : LM
+      USE MODEL_COM, only: Itime,ItimeI
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI
-      USE DYNAMICS, only : LTROPO
+      USE ATM_COM, only : LTROPO
+      USE DYNAMICS, only : sig
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      &        cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop
      &        ,pscX

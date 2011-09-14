@@ -4,7 +4,6 @@
 !@sum  atm_diffus updates u,v,t,q due to turbulent transport throughout
 !@+    all GCM layers using a non-local turbulence model
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from diffB347D6M20)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
 !@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
 !@var lbase_min/max levels through which to apply turbulence (dummy)
@@ -15,18 +14,19 @@
 !@var call_diag logical variable whether dout is called
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
-      USE MODEL_COM, only :
-     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
-     *     ,pmtop
+      USE RESOLUTION, only : psf,pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
+      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
+      USE TRACER_COM, only : ntm=>NTM,itime_tr0,trm,t_qlimit  !,trmom
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only: jlnt_turb
 #endif
@@ -116,7 +116,6 @@ C****
 
       !  convert input T to virtual T
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
@@ -128,7 +127,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
 #ifdef TRACERS_ON
       nx=0
@@ -148,26 +146,6 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
 
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,lm)
-
-!$OMP  PARALLEL DO DEFAULT(NONE)
-!$OMP&  PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
-!$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
-!$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
-!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
-!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
-!$OMP*   tpe0,tpe1,ediff,byamkg,amkg,dtrm
-#ifdef TRACERS_ON
-!$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
-#endif
-!$OMP*    ) SHARED(dtime,J_0,J_1,I_0,imaxj,u_3d_agrid,v_3d_agrid,
-!$OMP*   uasv,t_3d_virtual,q_3d,e_3d,rho_3d,rhoe_3d,dz_3d,byam,ntix,
-!$OMP*   trm, pek, tvsurf,uflux1,vflux1,qflux1,tflux1,qsavg,tsavg,
-!$OMP*   trflux1,prt,t_qlimit,dze_3d,byaxyp,dclev,t_3d,pk,pdsig,w2_3d,
-!$OMP*   JL_TRBHR,JL_TRBDLHT,JL_TRBKE,am,axyp,jlnt_turb,km_3d
-#ifdef TRACERS_ON
-!$OMP*    ,nta
-#endif
-!$OMP*    ) SCHEDULE(DYNAMIC,2)
 
       loop_j_tq: do j=J_0, J_1
         loop_i_tq: do i=I_0,imaxj(j)
@@ -447,7 +425,6 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
 
         end do loop_i_tq
       end do loop_j_tq
-!$OMP  END PARALLEL DO
 
 c
 c integrate differential eqns for U and V on velocity grid
@@ -575,7 +552,6 @@ c
 !@+    as well as the 3-d density rho and rhoe
 !@+    called at the primary grid (A-grid)
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var  tv virtual potential temp. referenced at 1 mb
 !@var  dz main grid spacing
 !@var  dze edge grid spacing
@@ -609,8 +585,7 @@ c
       !
       USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
-      USE MODEL_COM, only : im,jm
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE ATM_COM, only : pmid,pk,pedn
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
       implicit none
@@ -645,9 +620,6 @@ C****
       !@ temp0 virtual temperature (K) at (i,j) mid point
       !@ temp1 virtual temperature (K) at (i,j) edge 
       !@ temp1e average of temp0 and temp1
-!$OMP  PARALLEL DO PRIVATE (J,I,L,pl1,pl,pl1e,ple,temp0,temp1,temp1e,
-!$OMP*  plm1e)
-!$OMP*    SCHEDULE(DYNAMIC,2)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           do l=1,lm-1
@@ -676,7 +648,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
       return
       end subroutine getdz
@@ -686,7 +657,6 @@ C****
      &      ,uflx,vflx,tvflx,qflx,dbl,ldbl,i,j,n)
 !@sum dout writes out diagnostics at (i,j)
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var p  pressure at main grid z
 !@var pe  pressure at secondary grid ze
 !@var u  west-east   velocity component
@@ -712,7 +682,7 @@ C****
 !@var i/j horizontal location at which the output is written
 !@var n number of vertical main layers
 
-      USE DYNAMICS, only : pmid,pedn,pk,pek
+      USE ATM_COM, only : pmid,pedn,pk,pek
 
       implicit none
 
@@ -788,7 +758,6 @@ C****
 !@sum differential eqn solver for x using tridiagonal method
 !@+   d/dt x = d/dz (P1 d/dz x) + P4
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var x the unknown to be solved (at main drid)
 !@var x0 x at previous time step
 !@var p1,p4 coeff. of the d.e.
@@ -863,7 +832,6 @@ C****
 !@sum differential eqn solver for x using tridiagonal method
 !@+   d/dt x = d/dz (P1 d/dz x) - P3 x + P4
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var x the unknown to be solved (at edge drid)
 !@var x0 x at previous time step
 !@var p1,p3,p4 coeff. of the d.e.
@@ -919,7 +887,6 @@ C****
       subroutine apply_fluxes_to_atm
 !@sum dummy subroutine - replaces the real one needed by DRYCNV
 !@auth I. Aleinov
-!@ver  1.0
       return
       end subroutine apply_fluxes_to_atm
 
@@ -949,7 +916,6 @@ C****
       subroutine l_gcm(ze,lscale,n)
 !@sum l_gcm calculates the turbulent length scale
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var ze height (meters) of layer edge
 !@var lscale turbulent length scale
 !@var n number of layers
@@ -987,7 +953,6 @@ C****
 !@sum k_gcm computes the turbulent stability functions Km, Kc
 !@+   and the non-local part of the fluxes
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var tvflx virtual potential temperature flux at surface
 !@var qflx moisture flux at surface
 !@var ustar friction velocity
@@ -1099,7 +1064,6 @@ C****
 !@+   (Moeng and Sullivan 1994) for ze<=dbl and using the giss
 !@+   soc model (level 2) for ze>dbl
 !@auth  Ye Cheng
-!@ver   1.0
 !@var (see subroutine k_gcm)
 !@var lmonin Monin-Obukov length
 !@var g_alpha grav*alpha
@@ -1165,7 +1129,6 @@ C****
       subroutine find_pbl_top(e,ze,dbl,ldbl,n)
 !@sum find_pbl_top finds the pbl top (at main level)
 !@auth  Ye Cheng
-!@ver   1.0
 !@var e turbulent kinetic energy
 !@var ze height at the edge level (meters)
 !@var ldbl the (main) layer corresponding to top of pbl

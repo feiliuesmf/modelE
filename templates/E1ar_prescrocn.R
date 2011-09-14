@@ -50,8 +50,8 @@ DIAG_ZONAL                          ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
       FFT144                        ! utilities
 POUT                                ! post-processing output
-obio_ocalbedo|-r8|
-obio_reflectance|-r8|      ! chlorophyll effects
+obio_ocalbedo|$(R8)|
+obio_reflectance|$(R8)|      ! chlorophyll effects
 
 Components:
 ESMF_Interface shared

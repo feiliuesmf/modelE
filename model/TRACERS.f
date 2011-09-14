@@ -9,14 +9,14 @@
 !@+      Gravitaional Settling: trgrav
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       SUBROUTINE set_generic_tracer_diags
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param
       USE CONSTANT, only: mair,sday
-      USE MODEL_COM, only: dtsrc,nisurf
+      USE MODEL_COM, only: dtsrc
+      USE FLUXES, only : nisurf,atmice
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
       USE TRACER_COM
       USE TRDIAG_COM
@@ -27,6 +27,15 @@
       character*10, DIMENSION(NTM) :: CMR,CMRWT
       logical :: T=.TRUE. , F=.FALSE.
       character*50 :: unit_string
+
+      atmice%taijn => taijn_loc
+#ifdef TRACERS_WATER
+      allocate(atmice%do_accum(ntm))
+      do n=1,ntm
+        atmice%do_accum(n) =
+     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)
+      enddo
+#endif
 
 C**** Get factor to convert from mass to volume mr if necessary
       do n=1,ntm
@@ -77,8 +86,9 @@ C**** Tracer mass
         sname_jln(k,n) = trim(trname(n))//'_MASS'
         lname_jln(k,n) = trim(trname(n))//' MASS'
         jlq_power(k) = 4
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -317,7 +327,7 @@ C**** Tracers in iceberg runoff
         denom_tij(k,n)=n_Water
 C**** Tracers in sea ice
       k = k+1
-      tij_seaice = k
+      atmice%tij_seaice = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_ice'
         lname_tij(k,n) = trim(TRNAME(n))//' in Sea Ice'
         if (to_per_mil(n) .eq.1) then
@@ -398,7 +408,7 @@ C**** Tracers conc. in land snow water
         denom_tij(k,n)=n_Water
 C**** Tracer ice-ocean flux
       k = k+1
-      tij_icocflx = k
+      atmice%tij_icocflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_ic_oc_flx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Ice-Ocean Flux'
@@ -428,14 +438,14 @@ C**** Tracers integrated N-S atmospheric flux
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated E-W sea ice flux
       k = k+1
-      tij_tusi = k
+      atmice%tij_tusi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
         lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 C**** Tracers integrated N-S sea ice flux
       k = k+1
-      tij_tvsi = k
+      atmice%tij_tvsi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
@@ -488,10 +498,15 @@ c
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE MODEL_COM, only : jm
+      USE RESOLUTION, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc,trname
+      USE TRACER_COM, only : NTM
+     &     ,trm,trmom,ntsurfsrc,ntisurfsrc,trname
+#ifdef TRACERS_TOMAS
+     &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
+     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+#endif
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
@@ -504,7 +519,9 @@ c
       REAL*8 ftr1
 
       INTEGER :: J_0, J_1, I_0, I_1
-
+#ifdef TRACERS_TOMAS
+      INTEGER tomas_ntsurf !same as ntsurfsrc
+#endif
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -516,8 +533,21 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
         trflux1(:,:,n) = 0.
+#ifdef TRACERS_TOMAS
+        if(n.lt.idtso4.or.n.ge.IDTH2O) tomas_ntsurf = ntsurfsrc(n) !gas/h2o
+        if(n.ge.IDTNUMD.and.n.lt.IDTH2O) tomas_ntsurf=ntsurfsrc(IDTNUMD) !number
+       if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
+!not here       if(n.ge.IDTNA.and.n.lt.IDTECOB) tomas_ntsurf = ntsurfsrc(n) !NACL
+!no surface emission for ecob and ecil for now!! 
+       if(n.ge.IDTECOB.and.n.lt.IDTOCOB) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
+       if(n.ge.IDTOCOB.and.n.lt.IDTDUST) tomas_ntsurf=ntsurfsrc(IDTOCOB) !ocob + ocil
+!not here       if(n.ge.IDTDUST.and.n.lt.IDTNUMD) tomas_ntsurf = ntsurfsrc(n) !DUST
+
+       do ns=1,tomas_ntsurf
+#else
 C**** Non-interactive sources
         do ns=1,ntsurfsrc(n)
+#endif
 C**** diagnostics
           naij = ijts_source(ns,n)
           IF (naij > 0) THEN
@@ -579,10 +609,11 @@ C****
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : jm,im,lm,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
-      USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
+      USE TRACER_COM, only : NTM,trm,trmom,trname,alter_sources,
      * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
      * ,tr_sect_index3D,num_tr_sectors3d
       USE FLUXES, only : tr3Dsource
@@ -664,15 +695,20 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
-!$OMP PARALLEL DO DEFAULT(NONE) PRIVATE (L,I,J,fred)
-!$OMP&  SHARED(trm, dtrm, tr3Dsource, dtsrc, domom, naij, taijs, 
-!$OMP&         imaxj, eps, j_0, j_1, i_0, ns, n, trmom)
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
           dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
 C**** calculate fractional loss and update tracer mass
+#ifdef TRACERS_TOMAS
+          if(trm(i,j,l,n).gt.0.)then
           fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+          else
+             fred(i)=100.  !It won't be used anyway (fred<1 to be used)
+          endif
+#else
+          fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+#endif
           trm(i,j,l,n) = trm(i,j,l,n)+dtrm(i,j,l)
           if(fred(i).le.1d-16) trm(i,j,l,n) = 0.
         end do
@@ -690,7 +726,6 @@ C**** calculate fractional loss and update tracer mass
         end do
       end if
       end do ! l
-!$OMP END PARALLEL DO
 
       if(jls_3Dsource(ns,n) > 0) then
         do j=j_0,j_1
@@ -713,14 +748,16 @@ C****
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
-      USE MODEL_COM, only : im,jm,lm,itime,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : itime,dtsrc
       USE FLUXES, only : tr3Dsource
       USE GEOM, only : imaxj
-      USE TRACER_COM, only : ntm,trm,trmom,trdecay,itime_tr0,n_Pb210,
+      USE TRACER_COM, only : NTM
+     &     ,trm,trmom,trdecay,itime_tr0,n_Pb210,
      &     trname, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
-      USE SEAICE_COM, only : trsi
+      USE SEAICE_COM, only : si_atm,si_ocn
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
@@ -728,7 +765,7 @@ C****
       USE TRDIAG_COM, only : jls_decay,itcon_decay
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
-      real*8, save, dimension(ntm) :: expdec = 1.
+      real*8, dimension(ntm) :: expdec
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       logical, save :: ifirst=.true.
@@ -738,6 +775,8 @@ C****
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+
+      expdec = 1. 
 
       if (ifirst) then
         do n=1,ntm
@@ -766,7 +805,13 @@ C**** Atmospheric decay
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
-          trsi(n,:,:,:)   = expdec(n)*trsi(n,:,:,:)
+          si_atm%trsi(n,:,:,:)   = expdec(n)*si_atm%trsi(n,:,:,:)
+          if(si_atm%grid%im_world .ne. si_ocn%grid%im_world) then
+            call stop_model(
+     &           'TDECAY: tracers in sea ice are no longer on the '//
+     &           'atm. grid - please move the next line',255)
+          endif
+          si_ocn%trsi(n,:,:,:)   = expdec(n)*si_ocn%trsi(n,:,:,:)
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
 C**** ...land surface tracers
@@ -801,16 +846,24 @@ C****
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : grav,deltx,lhe,rgas,visc_air
-      USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only : itime,dtsrc
+      USE ATM_COM, only : t,q
       USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
-      USE DYNAMICS, only : gz,pmid,pk
-      USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
+      USE ATM_COM, only : gz,pmid,pk
+      USE TRACER_COM, only : NTM,trm,trmom,itime_tr0,trradius
      *     ,trname,trpdens
 #ifdef TRACERS_AMP
      *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
+#endif
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
+     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
+     &     IDTNUMD,xk
+      USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
@@ -821,9 +874,26 @@ C****
      *     ,gbygz
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: fluxd, fluxu
-      integer n,najl,i,j,l,nAMP
+      integer n,najl,i,j,l
+#ifndef TRACERS_TOMAS
+     &     ,nAMP
+#endif
       integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
+#ifdef TRACERS_TOMAS
+
+      integer binnum,k
+      real*8 vs(NBINS)          !gravitational settling velocity (m s-1)
+      real Dp(nbins)            !particle diameter (m)
+      real density                 !density (kg/m3) of current size bin
+      real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
+      real mecil,mecob,mocil,mocob
+      real mdust,mtot,mnacl             
+      real*8 mp          !particle mass (kg)
+      real*8 mu          !air viscosity (kg/m s)
+      real aerodens
+      external aerodens
+#endif
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
@@ -849,11 +919,6 @@ C**** air density + relative humidity (wrt water) + air viscosity
       end do
 
 C**** Gravitational settling
-!$OMP  PARALLEL DO DEFAULT (NONE)
-!$OMP&   SHARED(J_0,J_1,I_0,IMAXJ,trm,trpdens,trradius,dtsrc,
-!$OMP&          airden,rh,visc,gbygz,trmom,itime,itime_tr0,jls_grav )
-!$OMP&   PRIVATE (n,l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius,
-!$OMP&      hydrate, fluxd, fluxu, told, najl)
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling
@@ -892,11 +957,89 @@ C**** set particle properties
        endif 
 #endif  
 
+#ifndef TRACERS_TOMAS
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
                 stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
      *               ,tr_dens,visc(i,j,l),hydrate)
+#else 
+       
+       if(n.lt.IDTSO4)then
+!     no size resolved aerosol tracer (e.g. NH4)
+          stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
+     *         ,tr_dens,visc(i,j,l),hydrate)
+          
+       elseif(n.ge.IDTSO4) then
+          
+          if(n.eq.IDTSO4)THEN
+          DO K=1,NBINS
+             mso4=TRM(i,j,l,IDTSO4-1+k) 
+             mnacl=TRM(i,j,l,IDTNA-1+k)
+             mno3=0.e0
+             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
+             mnh4=0.1875*mso4   !assume ammonium bisulfate
+             mecob=TRM(i,j,l,IDTECOB-1+k)
+             mecil=TRM(i,j,l,IDTECIL-1+k)
+             mocil=TRM(i,j,l,IDTOCIL-1+k)
+             mocob=TRM(i,j,l,IDTOCOB-1+k)
+             mdust=TRM(i,j,l,IDTDUST-1+k)          
+             mh2o=TRM(i,j,l,IDTH2O-1+k)   
+             
+             if ((mnacl) .lt. 0) mnacl=0.
+             if ((mecob) .lt. 0) mecob=0.
+             if ((mecil) .lt. 0) mecil=0.
+             if ((mocob) .lt. 0) mocob=0.
+             if ((mocil) .lt. 0) mocil=0.
+             if ((mdust) .lt. 0) mdust=0.
+             
+             
+             mtot= 1.1875*mso4+mnacl+mecil+mecob+
+     *            mocil+mocob+mdust+mh2o
+             
+             density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
+     *            ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
+                 
 
+             if (TRM(i,j,l,IDTNUMD-1+k) .gt.1.d-20) then  ! arbituary number !
+                mp=mtot/(TRM(i,j,l,IDTNUMD-1+k))
+             else
+                mp=sqrt(xk(k+1)*xk(k))
+             endif
+             
+!     fix unrealistically large mp for low aerosol conc.
+             if (mp .gt. 1.d3*xk(NBINS+1)) then            
+                if ((TRM(i,j,l,IDTNUMD-1+k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
+     &               (TRM(i,j,l,IDTSO4-1+k) .lt. 3.)) then
+                   mp=sqrt(xk(k+1)*xk(k))
+                else
+                   if (TRM(i,j,l,IDTNUMD-1+k) .gt. 1.d12) then
+                      print*,'ERROR in TRGRAV: mp too large'
+                      print*, 'bin=',k,'i,j,',i,j,l
+                      print*, 'TRM(#)=', TRM(i,j,l,IDTNUMD-1+k)
+                      print*, 'TRM(SO4)=', mso4, mh2o
+                      print*, 'TRM(NACL)=', mnacl, mdust
+                      print*, 'TRM(OC)=',mocob,mocil
+                      print*, 'TRM(EC)=',mecob,mecil
+                      call stop_model('mp too large TRGRAV',13)
+                   endif
+                endif
+             endif
+
+!     print*,'getdp',k, mp,size_density(k)
+             Dp(k)=(6.d0*mp/(pi*density))**(1.d0/3.d0)   
+             vs(k)=density*(dp(k)**2)*grav
+     *            /18.d0/visc(i,j,l)     
+          enddo
+          
+       endif !N=IDTSO4
+
+          binnum=mod(N-IDTSO4+1,NBINS)
+          if (binnum.eq.0) binnum=NBINS
+          
+          stokevdt=dtsrc*vs(binnum) !grav. settling velocity for TOMAS model
+       endif !size-resolved aerosols
+
+#endif
 C**** Calculate height differences using geopotential
                 fgrfluxd=stokevdt*gbygz(i,j,l) 
                 fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
@@ -918,7 +1061,6 @@ C**** Calculate height differences using geopotential
           END IF
         end if
       end do
-!$OMP END PARALLEL DO
 
 C****
 
@@ -983,7 +1125,8 @@ C****
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: jday,idofm=>JDmidOfM
       implicit none
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -1035,14 +1178,14 @@ c**** Interpolate two months of data to current day
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
 !@auth Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : ls1,im,jm,lm,q,wm
+      USE RESOLUTION, only: im,jm,lm
+      USE ATM_COM, only : q,wm
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
-      USE DYNAMICS, only : am
-      USE FLUXES, only : gtracer
+      USE ATM_COM, only : am
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
       IMPLICIT NONE
@@ -1058,8 +1201,12 @@ c**** Interpolate two months of data to current day
       I_1 = grid%I_STOP
       nj = J_1 - J_0 + 1
 
-      CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
-      do n=1,ntm
+      !CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
+      CALL CHECK3(atmocn%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACO')
+      CALL CHECK3(atmice%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACI')
+      CALL CHECK3(atmgla%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACG')
+      CALL CHECK3(atmlnd%gtracer(1,1,J_0),NTM,IM,nJ,SUBR,'GTRACE')
+      do n=1,NTM
         CALL CHECK4(trmom(:,:,J_0:J_1,:,n),NMOM,IM,nJ,LM,SUBR,
      *       'X'//trname(n))
         CALL CHECK3(trm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,trname(n))
@@ -1152,13 +1299,12 @@ C**** check whether air mass is conserved
       SUBROUTINE io_tracer(kunit,iaction,ioerr)
 !@sum  io_tracer reads and writes tracer variables to file
 !@auth Jean Lerner
-!@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
-     &     ,coupled_chem
-      USE DOMAIN_DECOMP_1D, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &     ,UNPACK_COLUMN, esmf_bcast, get
+     &     ,UNPACK_COLUMN, broadcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1294,8 +1440,8 @@ C**** check whether air mass is conserved
 #endif
 #endif
 
-      allocate(trcSurfMixR_acc_glob(im,jm,ntm)
-     &        ,trcSurfByVol_acc_glob(im,jm,ntm))
+      allocate(trcSurfMixR_acc_glob(im,jm,NTM)
+     &        ,trcSurfByVol_acc_glob(im,jm,NTM))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
       allocate(sPM2p5_acc_glob(im,jm)
      &        ,sPM10_acc_glob(im,jm)
@@ -1656,9 +1802,9 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
-          call ESMF_BCAST( grid, iday_ncep )  
-          call ESMF_BCAST( grid, i0_ncep   )  
-          call ESMF_BCAST( grid, first_ncep)
+          call broadcast( grid, iday_ncep )  
+          call broadcast( grid, i0_ncep   )  
+          call broadcast( grid, first_ncep)
 #endif
 #endif
 
@@ -1744,10 +1890,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@sum  def_rsf_tracer defines tracer array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      use model_com, only : coupled_chem
       use tracer_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
@@ -1773,14 +1919,13 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
-
       implicit none
       integer fid   !@var fid file id
       integer :: n
       character(len=80) :: compstr
       character(len=20) :: ijldims
-      ijldims='(dist_im,dist_jm,lm)'
-      do n=1,ntm
+      ijldims='(dist_im,dist_jm,lm)' 
+      do n=1,NTM
         call defvar(grid,fid,trm(:,:,:,n),
      &       'trm_'//trim(trname(n))//ijldims)
         call defvar(grid,fid,trmom(:,:,:,:,n),
@@ -1894,6 +2039,12 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
 #endif
 
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      ! called atrac for historical reasons
+      call defvar(grid,fid,atmocn%gtracer,'atrac(ntm,dist_im,dist_jm)')
+#endif
+#endif
       return
       end subroutine def_rsf_tracer
 
@@ -1901,8 +2052,9 @@ c daily_z is currently only needed for CS
 !@sum  new_io_tracer read/write tracer arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite,coupled_chem
+      use model_com, only : ioread,iowrite
       use tracer_com
+      use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
@@ -1931,13 +2083,14 @@ c daily_z is currently only needed for CS
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,read_data,
      & write_data
+      USE Dictionary_mod
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
       select case (iaction)
       case (iowrite)            ! output to restart file
-        do n=1,ntm
+        do n=1,NTM
           call write_dist_data(grid,fid, 'trm_'//trim(trname(n)),
      &         trm(:,:,:,n))
           call write_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
@@ -2029,8 +2182,14 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call write_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
+#endif
+#endif
+
       case (ioread)            ! input from restart file
-        do n=1,ntm
+        do n=1,NTM
           call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
      &         trm(:,:,:,n))
           call read_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
@@ -2063,6 +2222,8 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'ySO2',ySO2)
         call read_dist_data(grid,fid,'sulfate',sulfate)
         call read_dist_data(grid,fid,'acetone',acetone)
+        if(is_set_param("coupled_chem"))
+     &       call get_param( "coupled_chem", coupled_chem )
         if(coupled_chem == 1) then
           call read_dist_data(grid,fid,'oh_live',oh_live)
           call read_dist_data(grid,fid,'no3_live',no3_live)
@@ -2125,6 +2286,12 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
+#ifndef OBIO_ON_GARYocean
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+        call read_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
+#endif
+#endif
+
       end select
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2148,7 +2315,8 @@ c daily_z is currently only needed for CS
       use TRACER_COM, only : ntsurfsrcmax,trname,
      & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
      & tr_sect_name, sect_name
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel,
+     &                             am_i_root
       USE FILEMANAGER, only: openunit,closeunit
       use Dictionary_mod, only : sync_param
       Use OldTracer_mod, only: set_ntsurfsrc
@@ -2172,14 +2340,15 @@ c daily_z is currently only needed for CS
 ! been reached.
 
       nsrc=0
-      print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
+      if (am_i_root()) 
+     &  print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
       loop_n: do n=1,ntsurfsrcmax
         if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
         else ; write(fnum,'(I2)')n ; endif
         fname=trim(trname(nt))//'_'//fnum
-        print*,'name: ', trim(fname)
+        if (am_i_root()) print*,'name: ', trim(fname)
         inquire(file=trim(fname),exist=qexist)
-        print*,'name: ', trim(fname), qexist
+        if (am_i_root()) print*,'name: ', trim(fname), qexist
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
@@ -2235,7 +2404,7 @@ c daily_z is currently only needed for CS
         call stop_model(trim(out_line),255)
       endif
 
-      print*,__LINE__,__FILE__,' nt = ', nt, nsrc
+      if (am_i_root()) print*,__LINE__,__FILE__,' nt = ', nt, nsrc
       call set_ntsurfsrc(nt, nsrc)
 
       end subroutine num_srf_sources
@@ -2244,11 +2413,13 @@ c daily_z is currently only needed for CS
       subroutine read_sfc_sources(n,nsrc,xyear,xday,checkname)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
-      USE MODEL_COM, only: itime,im,jm
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: itime
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
+      USE TRACER_COM,only:itime_tr0,trname,sfc_src,NTM,
+     &     ntsurfsrcmax,
      & freq,nameT,ssname,ty_start,ty_end,delTyr
    
       implicit none
@@ -2258,7 +2429,9 @@ c daily_z is currently only needed for CS
       character*80 :: fname
       character*2 :: fnum
       character(len=300) :: out_line
-      logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
+      logical, save :: ifirst = .true.
+!TODO: kludge - ifirst2 now needs to be dynamically allocated due to NTM change
+      logical, save, allocatable, dimension(:,:) :: ifirst2
       real*8 :: alpha
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -2266,8 +2439,6 @@ c daily_z is currently only needed for CS
       integer, intent(IN) :: xyear, xday
       logical :: checkname
       
-      save ifirst2
-
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -2276,7 +2447,13 @@ c daily_z is currently only needed for CS
 
       if (itime < itime_tr0(n)) return
       if (nsrc <= 0) return
-   
+
+      if (ifirst) then
+        ifirst = .false.
+        allocate(ifirst2(NTM, ntsurfsrcmax))
+        ifirst2 = .true.
+      end if
+        
       do ns=1,nsrc
 
 ! open file and read its header:
@@ -2509,7 +2686,8 @@ c daily_z is currently only needed for CS
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
-      USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: idofm=>JDmidOfM
       USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
 
       implicit none

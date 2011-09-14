@@ -10,7 +10,7 @@ C****
 !@auth  Gary Russell/Gavin Schmidt
 !@ver   2009/05/26
 C****
-      Use OCEAN,  Only: LMO
+      Use OCEANRES,  Only: LMO
       Use SEAICE, Only: LMI
 
 #ifdef TRACERS_WATER
@@ -101,9 +101,12 @@ C****
       integer, dimension(2,2,nmst) :: kn2
 
 #ifdef TRACERS_OCEAN
-      Real*8 TRMST(LMO,NMST,NTM),TXMST(LMO,NMST,NTM),TZMST(LMO,NMST,NTM)
+!@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
+     &     TRMST,TXMST,TZMST !(LMO,NMST,NTM)
 !@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
-      Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
+      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
+     &     TRME,TXME,TYME,TZME !(2,NMST,LMO,NTM)
 #endif
 #ifdef TRACERS_WATER
       Real*8 TRSIST(NTM_ATM,LMI,NMST)

@@ -28,82 +28,33 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
+     ! resolution-specific source codes
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
 RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
-MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
-MODELE                              ! Main and model overhead
-ALLOC_DRV                            ! domain decomposition, allocate global distributed arrays
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
-STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
-ATM_UTILS                           ! utilities for some atmospheric quantities
-QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV                     ! land surface and soils
-ENT_DRV ENT_COM VEG_DRV
-PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB_E1                            ! turbulence in whole atmosphere
-LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
-OCNDYN OCNDYN2                            ! dynamic ocean routines
-OCN_Interp OCN_Int_LATLON                 ! dynamic ocean routines
-OSTRAITS OCNGM OCNKPP                     ! dynamic ocean routines
-OCEANR_DIM AFLUXES OFLUXES
-ODIAG_PRT                              ! ocean diagnostic print out
-OCNFUNTAB                              ! ocean function look up table
-SNOW_DRV SNOW                          ! snow model
-RAD_COM RAD_DRV RADIATION              ! radiation modules
-RAD_UTILS ALBEDO                       ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
-DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
-DIAG_RES_F                             ! diagnostics (resolution dependent)
-FFT144 OFFT144E                        ! utilities
-POUT                                   ! post-processing output
-SparseCommunicator_mod                 ! sparse gather/scatter module
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TRACER_COM  TRACERS_DRV              ! configurable tracer code
-TRACERS                             ! generic tracer code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-TRDIAG
-TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
-!!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!   OCEAN TRACERS       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-OCN_TRACER_COM
-OCN_TRACER
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!   OCEAN BIOLOGY      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-obio_dim         |-r8|
-obio_incom       |-r8|
-obio_com         |-r8|
-obio_forc        |-r8|
-obio_init        |-r8|
-obio_bioinit_g   |-r8|
-obio_model       |-r8|
-obio_trint       |-r8|
-obio_daysetrad   |-r8|
-obio_daysetbio   |-r8|
-obio_ocalbedo    |-r8|
-obio_reflectance |-r8|
-obio_sfcirr      |-r8|
-obio_edeu        |-r8|
-obio_ptend       |-r8|
-obio_carbon      |-r8|
-obio_update      |-r8|
-obio_sinksettl   |-r8|
-obio_diffmod     |-r8|
-obio_diffmod     |-r8|
+DIAG_RES_F                          ! diagnostics (resolution dependent)
+FFT144 OFFT144E                     ! utilities
+OSTRAITS_F_COM                      ! dynamic ocean modules
 
-!!!ar!!!obio_oasimhr     |-r8|
-!!!ar!!!obio_limits      |-r8|
+IO_DRV                              ! new i/o 
+
+     ! GISS dynamics with gravity wave drag
+ATMDYN MOMEN2ND                     ! atmospheric dynamics
+QUS_DRV TQUS_DRV                    ! advection of Q/tracers
+STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
+
+#include "latlon_source_files"
+#include "modelE4_source_files"
+#include "dynamic_ocn_source_files"
+#include "tracer_shared_source_files"
+
+OCN_Int_LATLON                      ! atm-ocn regrid routines
+
+#include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
+
+obio_diffmod     |$(R8)|
+
+!!!ar!!!obio_oasimhr     |$(R8)|
+!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 tracers Ent shared ESMF_Interface solvers giss_LSM dd2d

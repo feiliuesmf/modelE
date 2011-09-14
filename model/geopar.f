@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+
 !global ?
       subroutine geopar(iniOCEAN)
 c
@@ -7,7 +8,7 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
 cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
@@ -20,6 +21,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DYNSI_CPLER
       use filemanager, only : findunit
       use hycom_dim, only : ogrid
+
       implicit none
       integer i,j,k,l,n,nn,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
@@ -30,6 +32,11 @@ c
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
       real, parameter :: glufac=3., zero=0.
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
+    
       !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
@@ -46,17 +53,13 @@ c --- read basin depth array
       rewind (iu1)
       read (iu1) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
       close (unit=iu1)
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 9 j=1,jj
       do 9 i=1,ii
  9    depths(i,j)=real4(i,j)
-c$OMP END PARALLEL DO
 c
-cccc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c     do 7 j=1,jj
 c     do 7 i=1,ii
 c7    if (depths(i,j).gt.0.) depths(i,j)=max(botmin.,depths(i,j))
-cccc$OMP END PARALLEL DO
 c
 c --- reset the Denmark Strait - done in advance
 c
@@ -114,13 +117,11 @@ c
       read (iu2) iz,jz,lat4,lon4
       close(iu2)
 c
-c$OMP PARALLEL DO PRIVATE(n) SCHEDULE(STATIC,jchunk)
       do 8 j=1,jj
       do 8 n=1,4
       do 8 i=1,ii
       latij(i,j,n)=lat4(i,j,n)
  8    lonij(i,j,n)=lon4(i,j,n)
-c$OMP end PARALLEL DO
 c
 c     write (lp,*) 'shown below: latitude of vorticity points'
 c     call zebra(latij(1,1,4),idm,ii,jj)
@@ -128,7 +129,6 @@ c     write (lp,*) 'shown below: longitude of vorticity points'
 c     call zebra(lonij(1,1,4),idm,ii,jj)
 c
 c --- define coriolis parameter and grid size
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 56 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -197,7 +197,6 @@ c
       end if
 c
  56   continue
-c$OMP END PARALLEL DO
 c
       if (beropn .and. scu2(ipacs,jpac).ne.scu2(iatln,jatl))
      .  write(*,'(a,6f13.5)') ' chk WRONG scu2'
@@ -239,7 +238,6 @@ c
       !if (nstep0.eq.0) then
       if (iniOCEAN) then
       write (lp,*) 'laying out arrays in memory ...'
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,1)=huge
@@ -338,9 +336,7 @@ c
       vflxav(i,j,k)=zero
       diaflx(i,j,k)=zero
  209  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do 210 j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 210 l=1,isq(j)
@@ -362,14 +358,12 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       dp(i  ,ja ,k+kk)=0.
       dp(i-1,ja ,k   )=0.
  210  dp(i-1,ja ,k+kk)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  u,ubavg,utotm,uflx,uflux,uflux2/3,uja,ujb  at points
 c --- located upstream and downstream (in i direction) of p points.
 c --- initialize  depthu,dpu,utotn,pgfx  upstream and downstream of p points
 c --- as well as at lateral neighbors of interior u points.
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do 156 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -392,9 +386,7 @@ c
       dpu(i,jb,k   )=0.
       dpu(i,jb,k+kk)=0.
  156  continue
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 158 j=1,jj
       do 158 l=1,isp(j)
       do 158 i=ifp(j,l),ilp(j,l)+1
@@ -418,7 +410,6 @@ c
       ufxcum(i,j,k)=0.
       u(i,j,k   )=0.
  158  u(i,j,k+kk)=0.
-c$OMP END PARALLEL DO
 c
 c --- initialize  v,vbavg,vtotm,vflx,vflux,vflux2/3,via,vib  at points
 c --- located upstream and downstream (in j direction) of p points.
@@ -478,7 +469,6 @@ c
 c
 c --- set 'glue' to values > 1 in regions where extra viscosity is needed
 c
-c$OMP PARALLEL DO PRIVATE(ia,ib,ja,jb) SCHEDULE(STATIC,jchunk)
       do 154 j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -509,7 +499,6 @@ c --- add glue to mediterranean:
 #endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
-c$OMP END PARALLEL DO
 c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       call findunit(iu3)
@@ -566,7 +555,7 @@ c
       call init_hycom_dynsi_cpler
 c
 
-      call esmf_bcast(ogrid,area)
+      call broadcast(ogrid,area)
 
       return
       end
@@ -576,6 +565,10 @@ c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
       USE CONSTANT, only: radius
       implicit none
       real x1,y1,x2,y2,sphdis,ang,radian
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
       data radian/57.2957795/
 c
       ang=mod(y2-y1+540.,360.)-180.
@@ -601,6 +594,10 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       real*8, dimension(3) :: vi,vip1,vn,cri,crip1,crn
       integer :: i
       real*8 :: twopibyn,cc
+#ifdef COMPILER_G95
+      real sind, cosd
+      external sind, cosd
+#endif
       twopibyn = twopi/n
       vn = v3d(lon(n),lat(n))
       vi = v3d(lon(1),lat(1))
@@ -629,6 +626,28 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       cross3d = cshift(v1,1)*cshift(v2,-1)-cshift(v1,-1)*cshift(v2,1)
       end function cross3d
       end subroutine gc_polyarea
+
+#ifdef COMPILER_G95
+
+      function sind(x) result (ds)
+        implicit none
+        integer, parameter :: dp = selected_real_kind(15,307)
+        real(kind=dp), intent(in) :: x
+        real(kind=dp) ds
+        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        ds = sin(pi_dp * x)
+      end function sind
+
+      function cosd(x) result(dc)
+        implicit none
+        integer, parameter :: dp = selected_real_kind(15,307)
+        real(kind=dp), intent(in) :: x
+        real(kind=dp) dc
+        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
+        dc = cos(pi_dp * x)
+      end function cosd
+
+#endif
 
 c
 c> Revision history

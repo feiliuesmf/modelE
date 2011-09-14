@@ -286,7 +286,7 @@ c F 40 model
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
       INTEGER, PARAMETER :: NMASS_SPCS = 5      ! total number of mass species
-      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !\
+      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !\.
       INTEGER, PARAMETER :: GAS_HNO3   = 2      !-indices in the GAS array
       INTEGER, PARAMETER :: GAS_NH3    = 3      !/
       INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)

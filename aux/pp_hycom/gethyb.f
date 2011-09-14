@@ -60,14 +60,12 @@ c
       write (*,'('' nstep,time:'',i11,f11.2,15x,'' sigma values:''/
      .   (1x,11f7.2))') nstep,day1,(theta(k),k=1,kdm)
 c
-c$OMP PARALLEL DO
       do j=1,jdm
        do i=1,idm
         thkice(i,j)=0.
         covice(i,j)=0.
        end do
       end do
-c$OMP END PARALLEL DO
 c
  4    nrec=nrec+1
       read (ni,rec=nrec,err=5) what,k,real4
@@ -338,7 +336,6 @@ c --- fix physical dimensions
 c
 !     fluxid1='eminp (m/yr)'
 c
-c$OMP PARALLEL DO
       do 20 j=1,jdm
 c
       do 21 i=1,idm
@@ -380,11 +377,9 @@ c
         th3d(i,j,k)=spval
       end if
  20   continue
-c$OMP END PARALLEL DO
 c
       call findmx(ip,dp(1,1,2),idm,idm-1,jdm-1,'layer 2 thknss')
 c
-c$OMP PARALLEL DO
       do 39 j=1,jdm
 c
 c --- save mixed layer fields for future use
@@ -401,7 +396,6 @@ c
       do 39 i=1,idm
       th3d(i,j,k)=max(th3d(i,j,k-1),th3d(i,j,k))
  39   p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
-c$OMP END PARALLEL DO
 c
 c --- transform hybrid fields to isopycnic coord.
 c
@@ -414,7 +408,6 @@ c
      .    v(1,1,kdm+1),temp(1,1,kdm+1),saln(1,1,kdm+1),
      .    tracer(1,1,kdm+1,1),th3d(1,1,kdm+1),pnew,theta,kdm,kdm)
 c
-c$OMP PARALLEL DO
         do 36 j=1,jdm
         do 36 k=1,kdm
         do 36 i=1,idm
@@ -427,7 +420,6 @@ c$OMP PARALLEL DO
         pnew(i,j,k+1)=p(i,j,k+1)
         if (ip(i,j).gt.0) dp(i,j,k)=pnew(i,j,k+1)-pnew(i,j,k)
  36     continue
-c$OMP END PARALLEL DO
       end if				! cnvert
 c
 !     write (*,'(a)') 'shown below: mixed layer density'

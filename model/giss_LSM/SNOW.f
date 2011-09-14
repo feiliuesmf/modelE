@@ -1,13 +1,11 @@
 !@sum contains code related to 3 layers snow model
 !@auth I.Aleinov
-!@ver  1.0
 
 #define DEBUG_SNOW
 
       MODULE SNOW_MODEL
 !@sum SNOW_MODEL does column physics for 3 layers snow model
 !@auth I.Aleinov
-!@ver  1.0
       USE FILEMANAGER, only: openunit
       USE CONSTANT, only :
      $     rho_water => rhow,   ! (kg m-3)
@@ -65,7 +63,6 @@ ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
      &                       rho_water, rho_fresh_snow)
 !@sum  pass extra water to the lower layers
 !@auth I.Aleinov
-!@ver  1.0
       implicit none
       integer nl
       real*8  wsn(nl), hsn(nl), dz(nl)
@@ -114,7 +111,6 @@ c!!!                may be ice*max_fract_water ??
      &     dz, nl, prsnow, dt, fract_cover, fract_cover_new)
 !@sum computes new snow fraction and returns it in fract_cover_new
 !@auth I.Aleinov
-!@ver  1.0
       implicit none
       integer nl
       !real*8 dz(TOTAL_NL+1), prsnow, dt
@@ -139,7 +135,6 @@ c!!!                may be ice*max_fract_water ??
      &     dz, wsn, hsn, nl, fract_cover_ratio, tr_flux, dt )
 !@sum  redistributes snow between the layers
 !@auth I.Aleinov
-!@ver  1.0
       implicit none
       integer nl
       !real*8 dz(TOTAL_NL+1), wsn(TOTAL_NL), hsn(TOTAL_NL)
@@ -240,7 +235,6 @@ ccc for tracers
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
 !@auth I.Aleinov
-!@ver  1.0
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
@@ -345,7 +339,6 @@ ccc checking if preserve water
       implicit none
 !@sum main program that does column snow physics
 !@auth I.Aleinov
-!@ver  1.0
 ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
@@ -593,7 +586,6 @@ ccc    limited. Check later.
       implicit none
 !@sum solves heat transport equation for snow layers
 !@auth I.Aleinov
-!@ver  1.0
 !@alg This solver is currently using a half-implicit scheme.
 !@+   Implicitness is controlled by the parameters:
 !@+       gamma - for upper boundary

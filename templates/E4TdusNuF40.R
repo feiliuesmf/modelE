@@ -16,6 +16,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define NUDGE_ON                 ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
@@ -33,10 +34,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT_netcdf                ! diagn/post-processing output
 IORSF                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
@@ -48,6 +45,7 @@ QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 #include "static_ocn_source_files"

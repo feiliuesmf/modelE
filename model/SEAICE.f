@@ -6,15 +6,14 @@
       MODULE SEAICE
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
-!@ver  1.0
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
       USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
      *     ,rhows
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
       IMPLICIT NONE
       SAVE
+#ifdef TRACERS_WATER
+      INTEGER :: ntm
+#endif
 !@param LMI number of temperature layers in ice
       INTEGER, PARAMETER :: LMI = 4
 !@param XSI fractions of mass layer in each temp. layer
@@ -84,7 +83,6 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
      &     WETSNOW)
 !@sum  PREC_SI Adds the precipitation to sea/lake ice
 !@auth Gary Russell
-!@ver  1.0
       IMPLICIT NONE
 !@param SNOMAX maximum allowed snowdepth (1m equivalent) (kg/m^2)
 !@param dSNdRN rate of conversion of snow to ice as a function of rain
@@ -328,7 +326,6 @@ C**** Diagnostics for output
      *     FMOC,FHOC,FSOC,RUN,ERUN,SRUN,WETSNOW,MELT12)
 !@sum  SEA_ICE applies surface fluxes to ice covered areas
 !@auth Gary Russell
-!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, PARAMETER :: dSNdML =0.
@@ -631,7 +628,6 @@ C****
      *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
 
       REAL*8, PARAMETER, DIMENSION(LMI) :: YSI =
@@ -1021,7 +1017,6 @@ C****
      &     MFLUX,HFLUX,SFLUX)
 !@sum  SSIDEC decays salinity in sea ice
 !@auth Jiping Liu
-!@ver  1.0
       IMPLICIT NONE
 
 !@var HSIL enthalpy of ice layers (J/m^2)
@@ -1207,14 +1202,13 @@ C****
       RETURN
       END SUBROUTINE SSIDEC
 
-      subroutine iceocean(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc,mlsh,
+      subroutine iceocean_fluxes(Ti,Si,Tm,Sm,dh,ustar,Coriol,dtsrc,mlsh,
 #ifdef TRACERS_WATER
      &     Tri,Trm,trflux,tralpha,
 #endif
      &     mflux,sflux,hflux)
 !@sum  iceocean calculates fluxes at base of sea ice
 !@auth Gavin Schmidt
-!@ver  1.0
 !@usage At the ice-ocean interface the following equations hold:
 !@+                                              Tb = -mu Sb         (1)
 !@+ -lam_i(Ti,Si)(Ti-Tb)/dh + rho_m shw g_T (Tb-Tm) = -m Lh(Tib,Sib)
@@ -1405,16 +1399,15 @@ C**** Tracers use salinity turbulent diffusion term
 #endif
 C****
       return
-      end subroutine iceocean
+      end subroutine iceocean_fluxes
 
-      subroutine icelake(Ti,Tm,dh,dtsrc,mlsh,
+      subroutine icelake_fluxes(Ti,Tm,dh,dtsrc,mlsh,
 #ifdef TRACERS_WATER
      &     Tri,Trm,trflux,tralpha,
 #endif
      &     mflux,hflux)
 !@sum  icelake calculates fluxes at base of lake ice (no salinity)
 !@auth Gavin Schmidt
-!@ver  1.0
 !@usage At the ice-lake interface the following equations hold:
 !@+   interface is at freezing point (Tb=0.)   (1)
 !@+   -lam_i Ti/dh - rho_m shw g_T Tm = -m Lh(Tib) + m shw Tib   (2)
@@ -1469,7 +1462,7 @@ C**** Tracers use tracer turbulent diffusion term
 #endif
 C****
       return
-      end subroutine icelake
+      end subroutine icelake_fluxes
 
       subroutine solar_ice_frac(snow,msi2,wetsnow,fsri,lmax)
 !@sum solar_ice_frac calculates the fraction of solar radiation
@@ -2232,224 +2225,318 @@ c        Em= 0.
       MODULE SEAICE_COM
 !@sum  SEAICE_COM contains the model arrays for seaice
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
       USE SEAICE, only : lmi
-
+      USE EXCHANGE_TYPES, only : iceocn_xchng_vars
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       IMPLICIT NONE
-!@var RSI fraction of open water area covered in ice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSI
+
+      type icestate
+!@var grid a pointer to the grid object whose domain bounds were
+!@+   used to allocate an instance of this type
+         type(dist_grid), pointer :: grid
+         CHARACTER(LEN=8) :: DOMAIN
+         INTEGER :: I_0,I_1, J_0,J_1
+         INTEGER :: I_0H,I_1H, J_0H,J_1H
+         LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+         INTEGER, DIMENSION(:), POINTER :: IMAXJ
+         REAL*8, DIMENSION(:,:), POINTER ::
+!@var FWATER water fraction of gridbox
+     &        FWATER
+!@var RSI fraction of water area covered in ice
+     &        ,RSI
 !@var SNOWI snow amount on sea ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWI
+     &        ,SNOWI
 !@var MSI mass of ice second layer (layer 1=const) (kg/m^2)
 C**** Note that MSI includes the mass of salt in sea ice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MSI
-!@var HSI enthalpy of each ice layer (J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: HSI
-!@var SSI sea ice salt content (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SSI
+     &        ,MSI
 !@var pond_melt amount of melt pond mass (kg/m^2)
 C**** Note this is a virtual meltpond and is only used for
 C**** albedo calculations
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: pond_melt
+     &        ,pond_melt
+!@var RSIX,RSIY first order moments of ice concentration (for advection)
+     &        ,RSIX,RSIY
+!@var RSISAVE saved value of sea ice concentration before DYNSI
+     &        ,RSISAVE
+!@var HSI enthalpy of each ice layer (J/m^2)
+!@var SSI sea ice salt content (kg/m^2)
+         REAL*8, DIMENSION(:,:,:), POINTER ::
+     &        HSI,SSI
 !@var flag_dsws true if snow on ice is wet (ie. rain or surface melt)
-      LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: flag_dsws
+         LOGICAL, DIMENSION(:,:), POINTER ::
+     &        flag_dsws
+#ifdef TRACERS_WATER
+         INTEGER :: ntm=0
+!@var TRSI tracer amount in sea ice (kg/m^2)
+         REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+#endif
+      end type icestate
+
+!@var si_ocn ocean instance of ice variables
+      type(icestate) :: si_ocn
+!@var si_atm is the atmos-grid instance of seaice variables.
+!@+   It contains lake ice variables in ocean-free atmos gridcells.
+      type(icestate) :: si_atm
+
+!@var iceocn derived-type strucure containing variables
+!@+   (or pointers thereto) needed for seaice interactions with ocean.
+      type(iceocn_xchng_vars) :: iceocn
+
+      type(dist_grid), pointer :: sigrid
+
+      CONTAINS
+
+      subroutine alloc_icestate_type(grd_dum,state,domain)
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,GET
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
+      TYPE(icestate) :: state
+      character(len=*), intent(in) :: domain
+      INTEGER :: I_0H,I_1H, J_0H,J_1H, I_0,I_1, J_0,J_1
+      LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+      INTEGER :: IER
+      INTEGER :: NTM
+
+      CALL GET(grd_dum,
+     &     I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1,
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      if(trim(domain).ne.'OCEAN' .and.
+     &   trim(domain).ne.'LAKES') then
+        call stop_model('alloc_icestate_type: unrecognized domain',255)
+      endif
+
+      state % domain = trim(domain)
+      state % I_0H = I_0H
+      state % I_1H = I_1H
+      state % J_0H = J_0H
+      state % J_1H = J_1H
+
+      state % I_0 = I_0
+      state % I_1 = I_1
+      state % J_0 = J_0
+      state % J_1 = J_1
+
+      state % HAVE_SOUTH_POLE = HAVE_SOUTH_POLE
+      state % HAVE_NORTH_POLE = HAVE_NORTH_POLE
+
+      ALLOCATE(
+     &     state % IMAXJ(J_0H:J_1H),
+     &     state % FWATER(I_0H:I_1H, J_0H:J_1H),
+     &     state % RSI(I_0H:I_1H, J_0H:J_1H),
+     &     state % SNOWI(I_0H:I_1H, J_0H:J_1H),
+     &     state % MSI(I_0H:I_1H, J_0H:J_1H),
+     &     state % pond_melt(I_0H:I_1H, J_0H:J_1H),
+     &     state % flag_dsws(I_0H:I_1H, J_0H:J_1H),
+     &     state % HSI(LMI, I_0H:I_1H, J_0H:J_1H),
+     &     state % SSI(LMI, I_0H:I_1H, J_0H:J_1H),
+     &     state % RSIX(I_0H:I_1H, J_0H:J_1H),
+     &     state % RSIY(I_0H:I_1H, J_0H:J_1H),
+     &     state % RSISAVE(I_0H:I_1H, J_0H:J_1H),
+     &     STAT=IER)
+
+      state % IMAXJ(:) = I_1
+      IF(HAVE_SOUTH_POLE) state%IMAXJ(J_0) = 1
+      IF(HAVE_NORTH_POLE) state%IMAXJ(J_1) = 1
+
+      state % rsi = 0.d0
+      state % SNOWI = 0.d0
+      state % MSI = 0.d0
+      state % pond_melt = 0.d0
+      state % flag_dsws  = .false.
+      state % hsi = 0.d0
+      state % ssi = 0.d0
 
 #ifdef TRACERS_WATER
-!@var TRSI tracer amount in sea ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSI
+      NTM = state%NTM
+      ALLOCATE( state % TRSI(NTM, LMI, I_0H:I_1H, J_0H:J_1H),
+     *     STAT=IER)
+      state % TRSI = 0.  ! default to prevent unecessary crash
 #endif
+
+      return
+      end subroutine alloc_icestate_type
 
       END MODULE SEAICE_COM
 
-      SUBROUTINE ALLOC_SEAICE_COM(grid)
+      SUBROUTINE ALLOC_SEAICE_COM(grid) !(IM_in,JM_in)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP_ATM, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : NTM
-#endif
-      USE SEAICE, only : LMI
-
-      USE SEAICE_COM, ONLY : RSI, SNOWI, MSI, HSI, SSI, pond_melt,
-     *     flag_dsws
-#ifdef TRACERS_WATER
-      USE SEAICE_COM, ONLY : TRSI
-#endif
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE SEAICE_COM, ONLY : iceocn, si_ocn, alloc_icestate_type
+      USE EXCHANGE_TYPES, only : alloc_xchng_vars
       IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(IN) :: grid
+      TYPE(DIST_GRID), INTENT(IN) :: GRID
+      !INTEGER, INTENT(IN) :: IM_in,JM_in
 
-      INTEGER :: I_1H, I_0H, J_1H, J_0H
-      INTEGER :: IER
+      !CALL INIT_GRID(sigrid,im_in,jm_in,1)
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
-      I_0H = grid%I_STRT_HALO
-      I_1H = grid%I_STOP_HALO
-
-      ALLOCATE( RSI(I_0H:I_1H, J_0H:J_1H),
-     *     SNOWI(I_0H:I_1H, J_0H:J_1H),
-     *     MSI(I_0H:I_1H, J_0H:J_1H),
-     *     pond_melt(I_0H:I_1H, J_0H:J_1H),
-     *     flag_dsws(I_0H:I_1H, J_0H:J_1H),
-     *     STAT=IER)
-
-!hack hack hack !!!!!!!!
-      rsi = 0.d0   !!!!  call to io_seaice may be missing during postproc.
-      SNOWI = 0.d0
-      MSI = 0.d0
-      pond_melt = 0.d0
-      flag_dsws  = .false.
-
-      ALLOCATE( HSI(LMI, I_0H:I_1H, J_0H:J_1H),
-     *     SSI(LMI, I_0H:I_1H, J_0H:J_1H),
-     *     STAT=IER)
-
-      hsi = 0.d0
-      ssi = 0.d0
+      call alloc_icestate_type(grid,si_ocn,'OCEAN')
 
 #ifdef TRACERS_WATER
-      ALLOCATE( TRSI(NTM, LMI, I_0H:I_1H, J_0H:J_1H),
-     *     STAT=IER)
-      TRSI(:, :, :, J_0H:J_1H) = 0.  ! default to prevent unecessary crash
+      iceocn%ntm = si_ocn%ntm
 #endif
+      call alloc_xchng_vars(grid,iceocn)
+      deallocate(iceocn%rsi); iceocn%rsi => si_ocn%rsi
 
       RETURN
       END SUBROUTINE ALLOC_SEAICE_COM
 
-      SUBROUTINE io_seaice(kunit,iaction,ioerr)
-!@sum  io_seaice reads and writes seaice variables to file
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE SEAICE_COM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
-      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, only :  UNPACK_BLOCK
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "SICE02"
-      REAL*8, DIMENSION(IM,JM) :: RSI_GLOB, SNOWI_GLOB
-      REAL*8, DIMENSION(IM,JM) :: MSI_GLOB, POND_MELT_GLOB
-      LOGICAL, DIMENSION(IM,JM) :: FLAG_DSWS_GLOB
-      REAL*8 :: HSI_GLOB(LMI,IM,JM), SSI_GLOB(LMI,IM,JM)
-      INTEGER :: J_0,J_1
-#ifdef TRACERS_WATER
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSICE01"
-      REAL*8 ::  TRSI_GLOB(NTM, LMI, IM, JM)
-
-      write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a8,i3,a1,i3,a)')'R8 TRSI(',ntm,',',lmi,',im,jm)'
-#endif
-
-      write (MODULE_HEADER(lhead+1:80),'(a14,i1,a20,i1,a23)')
-     * 'R8 F(im,jm),H(',lmi,',im,jm),snw,msi,ssi(',lmi,
-     *     '),pond_melt,L flag_dsws'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-         CALL PACK_DATA(grid, RSI, RSI_GLOB)
-         CALL PACK_DATA(grid, SNOWI, SNOWI_GLOB)
-         CALL PACK_DATA(grid, MSI, MSI_GLOB)
-         CALL PACK_DATA(grid, POND_MELT, POND_MELT_GLOB)
-         CALL PACK_DATA(grid, FLAG_DSWS, FLAG_DSWS_GLOB)
-         CALL PACK_COLUMN(grid, HSI, HSI_GLOB)
-         CALL PACK_COLUMN(grid, SSI, SSI_GLOB)
-#ifdef TRACERS_WATER
-         CALL PACK_BLOCK(grid, TRSI, TRSI_GLOB)
-#endif
-         IF (AM_I_ROOT()) THEN
-           WRITE (kunit,err=10) MODULE_HEADER, RSI_glob, HSI_glob,
-     *       SNOWI_glob, MSI_glob, SSI_glob,POND_MELT_glob,
-     *       FLAG_DSWS_glob
-#ifdef TRACERS_WATER
-
-           WRITE (kunit,err=10) TRMODULE_HEADER,TRSI_glob
-#endif
-        END IF
-      CASE (IOREAD:)            ! input from restart file
-         if ( AM_I_ROOT() ) then
-           READ (kunit,err=10) HEADER,RSI_GLOB,HSI_GLOB,
-     *        SNOWI_GLOB,MSI_GLOB,SSI_GLOB
-     *       ,POND_MELT_GLOB,FLAG_DSWS_GLOB
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-        end if
-
-        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-
-         CALL UNPACK_DATA( grid, RSI_GLOB,       RSI )
-         CALL UNPACK_DATA( grid, SNOWI_GLOB,     SNOWI )
-         CALL UNPACK_DATA( grid, MSI_GLOB,       MSI )
-         CALL UNPACK_DATA( grid, POND_MELT_GLOB, POND_MELT )
-         CALL UNPACK_DATA( grid, FLAG_DSWS_GLOB, FLAG_DSWS )
-
-         CALL UNPACK_COLUMN( grid, HSI_GLOB, HSI )
-         CALL UNPACK_COLUMN( grid, SSI_GLOB, SSI )
-
-#ifdef TRACERS_WATER
-        SELECT CASE (IACTION)
-        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
-          if  (AM_I_ROOT() ) then
-              READ (kunit,err=10) TRHEADER,TRSI_GLOB
-            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRHEADER
-     *             ,TRMODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-         CALL UNPACK_BLOCK(grid, TRSI_GLOB, TRSI)
-        END SELECT
-#endif
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_seaice
+!      SUBROUTINE io_seaice(kunit,iaction,ioerr)
+!!@sum  io_seaice reads and writes seaice variables to file
+!!@auth Gavin Schmidt
+!      USE RESOLUTION, only : im,jm
+!      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
+!      USE SEAICE_COM
+!      USE DOMAIN_DECOMP_ATM, only : GRID
+!      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
+!      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
+!      USE DOMAIN_DECOMP_1D, only :  UNPACK_BLOCK
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!!@var HEADER Character string label for individual records
+!      CHARACTER*80 :: HEADER, MODULE_HEADER = "SICE02"
+!      REAL*8, DIMENSION(IM,JM) :: RSI_GLOB, SNOWI_GLOB
+!      REAL*8, DIMENSION(IM,JM) :: MSI_GLOB, POND_MELT_GLOB
+!      LOGICAL, DIMENSION(IM,JM) :: FLAG_DSWS_GLOB
+!      REAL*8 :: HSI_GLOB(LMI,IM,JM), SSI_GLOB(LMI,IM,JM)
+!      INTEGER :: J_0,J_1
+!#ifdef TRACERS_WATER
+!!@var TRHEADER Character string label for individual records
+!      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSICE01"
+!      REAL*8 ::  TRSI_GLOB(NTM, LMI, IM, JM)
+!
+!      write (TRMODULE_HEADER(lhead+1:80)
+!     *     ,'(a8,i3,a1,i3,a)')'R8 TRSI(',ntm,',',lmi,',im,jm)'
+!#endif
+!
+!      write (MODULE_HEADER(lhead+1:80),'(a14,i1,a20,i1,a23)')
+!     * 'R8 F(im,jm),H(',lmi,',im,jm),snw,msi,ssi(',lmi,
+!     *     '),pond_melt,L flag_dsws'
+!
+!      SELECT CASE (IACTION)
+!      CASE (:IOWRITE)            ! output to standard restart file
+!         CALL PACK_DATA(grid, RSI, RSI_GLOB)
+!         CALL PACK_DATA(grid, SNOWI, SNOWI_GLOB)
+!         CALL PACK_DATA(grid, MSI, MSI_GLOB)
+!         CALL PACK_DATA(grid, POND_MELT, POND_MELT_GLOB)
+!         CALL PACK_DATA(grid, FLAG_DSWS, FLAG_DSWS_GLOB)
+!         CALL PACK_COLUMN(grid, HSI, HSI_GLOB)
+!         CALL PACK_COLUMN(grid, SSI, SSI_GLOB)
+!#ifdef TRACERS_WATER
+!         CALL PACK_BLOCK(grid, TRSI, TRSI_GLOB)
+!#endif
+!         IF (AM_I_ROOT()) THEN
+!           WRITE (kunit,err=10) MODULE_HEADER, RSI_glob, HSI_glob,
+!     *       SNOWI_glob, MSI_glob, SSI_glob,POND_MELT_glob,
+!     *       FLAG_DSWS_glob
+!#ifdef TRACERS_WATER
+!
+!           WRITE (kunit,err=10) TRMODULE_HEADER,TRSI_glob
+!#endif
+!        END IF
+!      CASE (IOREAD:)            ! input from restart file
+!         if ( AM_I_ROOT() ) then
+!           READ (kunit,err=10) HEADER,RSI_GLOB,HSI_GLOB,
+!     *        SNOWI_GLOB,MSI_GLOB,SSI_GLOB
+!     *       ,POND_MELT_GLOB,FLAG_DSWS_GLOB
+!          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+!            GO TO 10
+!          END IF
+!        end if
+!
+!        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+!
+!         CALL UNPACK_DATA( grid, RSI_GLOB,       RSI )
+!         CALL UNPACK_DATA( grid, SNOWI_GLOB,     SNOWI )
+!         CALL UNPACK_DATA( grid, MSI_GLOB,       MSI )
+!         CALL UNPACK_DATA( grid, POND_MELT_GLOB, POND_MELT )
+!         CALL UNPACK_DATA( grid, FLAG_DSWS_GLOB, FLAG_DSWS )
+!
+!         CALL UNPACK_COLUMN( grid, HSI_GLOB, HSI )
+!         CALL UNPACK_COLUMN( grid, SSI_GLOB, SSI )
+!
+!#ifdef TRACERS_WATER
+!        SELECT CASE (IACTION)
+!        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO) ! reruns/restarts
+!          if  (AM_I_ROOT() ) then
+!              READ (kunit,err=10) TRHEADER,TRSI_GLOB
+!            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",TRHEADER
+!     *             ,TRMODULE_HEADER
+!              GO TO 10
+!            END IF
+!          end if
+!         CALL UNPACK_BLOCK(grid, TRSI_GLOB, TRSI)
+!        END SELECT
+!#endif
+!      END SELECT
+!
+!      RETURN
+! 10   IOERR=1
+!      RETURN
+!      END SUBROUTINE io_seaice
 
 #ifdef NEW_IO
+      subroutine read_seaice_ic
+!@sum   read_seaice_ic read sea ice initial conditions file.
+      use model_com, only : ioread
+      use seaice_com, only : grid=>sigrid
+      use pario, only : par_open,par_close
+      implicit none
+      integer :: fid
+      fid = par_open(grid,'GIC','read')
+      call new_io_seaice (fid,ioread)
+      call par_close(grid,fid)
+      return
+      end subroutine read_seaice_ic
+
       subroutine def_rsf_seaice(fid)
 !@sum  def_rsf_seaice defines seaice array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      use seaice_com
-      use domain_decomp_atm, only : grid
+      use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : defvar
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid,fid,rsi,'rsi(dist_im,dist_jm)')
-      call defvar(grid,fid,snowi,'snowi(dist_im,dist_jm)')
-      call defvar(grid,fid,msi,'msi(dist_im,dist_jm)')
-      call defvar(grid,fid,pond_melt,'pond_melt(dist_im,dist_jm)')
-      call defvar(grid,fid,flag_dsws,'flag_dsws(dist_im,dist_jm)')
-      call defvar(grid,fid,hsi,'hsi(lmi,dist_im,dist_jm)')
-      call defvar(grid,fid,ssi,'ssi(lmi,dist_im,dist_jm)')
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
+      call defvar(grid,fid,si_ocn%rsi,'rsi(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%snowi,'snowi(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%msi,'msi(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%pond_melt,
+     &     'pond_melt(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%flag_dsws,
+     &     'flag_dsws(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%hsi,'hsi(lmi,dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%ssi,'ssi(lmi,dist_im,dist_jm)')
 #ifdef TRACERS_WATER
-      call defvar(grid,fid,trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
 #endif
-      call declare_conserv_diags( grid, fid, 'wlaki(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'elaki(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'wseai(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'eseai(dist_im,dist_jm)' )
-      call declare_conserv_diags( grid, fid, 'sseai(dist_im,dist_jm)' )
+      call defvar(grid,fid,si_ocn%rsix,'rsix(dist_im,dist_jm)')
+      call defvar(grid,fid,si_ocn%rsiy,'rsiy(dist_im,dist_jm)')
+      call defvar(grid,fid,iceocn%dhsi,'dhsi(two,dist_im,dist_jm)')
+      call defvar(grid,fid,iceocn%dmsi,'dmsi(two,dist_im,dist_jm)')
+      call defvar(grid,fid,iceocn%dssi,'dssi(two,dist_im,dist_jm)')
+
+      call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &               j_strt_halo=j_0h,j_stop_halo=j_1h)
+      allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+      call defvar(grid, fid, arrdum, 'wseai(dist_im,dist_jm)' )
+      call defvar(grid, fid, arrdum, 'eseai(dist_im,dist_jm)' )
+      call defvar(grid, fid, arrdum, 'sseai(dist_im,dist_jm)' )
+      deallocate(arrdum)
+
       return
       end subroutine def_rsf_seaice
 
@@ -2458,197 +2545,59 @@ C**** albedo calculations
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-      use seaice_com
-      use domain_decomp_atm, only : grid
+      use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : write_dist_data,read_dist_data
-      use conserv_diags
+      use domain_decomp_1d, only : get
       implicit none
       integer fid      !@var fid unit number of read/write
       integer iaction  !@var iaction flag for reading or writing to file
-      external conserv_LMSI, conserv_LHSI, conserv_OMSI, conserv_OHSI
-     &     , conserv_OSSI
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable :: arrdum
       select case (iaction)
       case (iowrite)            ! output to standard restart file
-        call write_dist_data(grid, fid, 'rsi', rsi)
-        call write_dist_data(grid, fid, 'snowi', snowi)
-        call write_dist_data(grid, fid, 'msi', msi)
-        call write_dist_data(grid, fid, 'pond_melt', pond_melt)
-        call write_dist_data(grid, fid, 'flag_dsws', flag_dsws)
-        call write_dist_data(grid, fid, 'hsi', hsi, jdim=3)
-        call write_dist_data(grid, fid, 'ssi', ssi, jdim=3)
+        call write_dist_data(grid, fid, 'rsi', si_ocn%rsi)
+        call write_dist_data(grid, fid, 'snowi', si_ocn%snowi)
+        call write_dist_data(grid, fid, 'msi', si_ocn%msi)
+        call write_dist_data(grid, fid, 'pond_melt', si_ocn%pond_melt)
+        call write_dist_data(grid, fid, 'flag_dsws', si_ocn%flag_dsws)
+        call write_dist_data(grid, fid, 'hsi', si_ocn%hsi, jdim=3)
+        call write_dist_data(grid, fid, 'ssi', si_ocn%ssi, jdim=3)
 #ifdef TRACERS_WATER
-        call write_dist_data(grid, fid, 'trsi', trsi, jdim=4)
+        call write_dist_data(grid, fid, 'trsi', si_ocn%trsi, jdim=4)
 #endif
-        call dump_conserv_diags( grid, fid, 'wlaki', conserv_LMSI )
-        call dump_conserv_diags( grid, fid, 'elaki', conserv_LHSI )
-        call dump_conserv_diags( grid, fid, 'wseai', conserv_OMSI )
-        call dump_conserv_diags( grid, fid, 'eseai', conserv_OHSI )
-        call dump_conserv_diags( grid, fid, 'sseai', conserv_OSSI )
+        call write_dist_data(grid, fid, 'rsix', si_ocn%rsix)
+        call write_dist_data(grid, fid, 'rsiy', si_ocn%rsiy)
+        call write_dist_data(grid, fid, 'dhsi', iceocn%dhsi, jdim=3)
+        call write_dist_data(grid, fid, 'dmsi', iceocn%dmsi, jdim=3)
+        call write_dist_data(grid, fid, 'dssi', iceocn%dssi, jdim=3)
+
+        call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+     &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
+        allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
+        call conserv_OMSI(arrdum)
+        call write_dist_data( grid, fid, 'wseai', arrdum)
+        call conserv_OHSI(arrdum)
+        call write_dist_data( grid, fid, 'eseai', arrdum)
+        call conserv_OSSI(arrdum)
+        call write_dist_data( grid, fid, 'sseai', arrdum)
+        deallocate(arrdum)
       case (ioread)             ! input from restart file
-        call read_dist_data(grid, fid, 'rsi', rsi)
-        call read_dist_data(grid, fid, 'snowi', snowi)
-        call read_dist_data(grid, fid, 'msi', msi)
-        call read_dist_data(grid, fid, 'pond_melt', pond_melt)
-        call read_dist_data(grid, fid, 'flag_dsws', flag_dsws)
-        call read_dist_data(grid, fid, 'hsi', hsi, jdim=3)
-        call read_dist_data(grid, fid, 'ssi', ssi, jdim=3)
+        call read_dist_data(grid, fid, 'rsi', si_ocn%rsi)
+        call read_dist_data(grid, fid, 'snowi', si_ocn%snowi)
+        call read_dist_data(grid, fid, 'msi', si_ocn%msi)
+        call read_dist_data(grid, fid, 'pond_melt', si_ocn%pond_melt)
+        call read_dist_data(grid, fid, 'flag_dsws', si_ocn%flag_dsws)
+        call read_dist_data(grid, fid, 'hsi', si_ocn%hsi, jdim=3)
+        call read_dist_data(grid, fid, 'ssi', si_ocn%ssi, jdim=3)
 #ifdef TRACERS_WATER
-        call read_dist_data(grid, fid, 'trsi', trsi, jdim=4)
+        call read_dist_data(grid, fid, 'trsi', si_ocn%trsi, jdim=4)
 #endif
+        call read_dist_data(grid, fid, 'rsix', si_ocn%rsix)
+        call read_dist_data(grid, fid, 'rsiy', si_ocn%rsiy)
+        call read_dist_data(grid, fid, 'dhsi', iceocn%dhsi, jdim=3)
+        call read_dist_data(grid, fid, 'dmsi', iceocn%dmsi, jdim=3)
+        call read_dist_data(grid, fid, 'dssi', iceocn%dssi, jdim=3)
       end select
       return
       end subroutine new_io_seaice
 #endif /* NEW_IO */
-
-      SUBROUTINE CHECKI(SUBR)
-!@sum  CHECKI Checks whether Ice values are reasonable
-!@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM
-      USE GEOM, only : imaxj
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname, t_qlimit
-#endif
-      USE SEAICE, only : lmi,xsi,ace1i,Ti
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi
-#ifdef TRACERS_WATER
-     *     ,trsi
-#endif
-      USE LAKES_COM, only : flake
-      USE FLUXES
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET
-      IMPLICIT NONE
-
-!@var SUBR identifies where CHECK was called from
-      CHARACTER*6, INTENT(IN) :: SUBR
-!@var QCHECKI true if errors found in seaice
-      LOGICAL QCHECKI
-      INTEGER I,J,L
-      REAL*8 TICE
-#ifdef TRACERS_WATER
-      integer :: imax,jmax, n
-      real*8 relerr,errmax
-#endif
-
-      integer :: J_0, J_1, J_0H, J_1H, I_0, I_1, I_0H, I_1H, njpol
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     *     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-      I_0H = grid%I_STRT_HALO
-      I_1H = grid%I_STOP_HALO
-      njpol = grid%J_STRT_SKP-grid%J_STRT
-
-C**** Check for NaN/INF in ice data
-      CALL CHECK3B(RSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'rsi   ')
-      CALL CHECK3B(MSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'msi   ')
-      CALL CHECK3C(HSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
-     &     SUBR,'hsi   ')
-      CALL CHECK3C(SSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
-     &     SUBR,'ssi   ')
-      CALL CHECK3B(SNOWI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'sni   ')
-
-      QCHECKI = .FALSE.
-C**** Check for reasonable values for ice variables
-      DO J=J_0, J_1
-        DO I=I_0,IMAXJ(J)
-          IF (RSI(I,J).lt.0 .or. RSI(I,j).gt.1 .or. MSI(I,J).lt.0) THEN
-            WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,RSI(I,J)
-     *           ,MSI(I,J)
-            QCHECKI = .TRUE.
-          END IF
-          IF ( (FOCEAN(I,J)+FLAKE(I,J))*RSI(I,J).gt.0) THEN
-          DO L=1,LMI
-            IF (L.le.2) TICE = Ti(HSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J)))
-     *           ,1d3*SSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J))))
-            IF (L.gt.2) TICE = Ti(HSI(L,I,J)/(XSI(L)*MSI(I,J))
-     *           ,1d3*SSI(L,I,J)/(XSI(L)*MSI(I,J)))
-            IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
-              WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
-     *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)
-              WRITE(6,*) HSI(:,I,J),MSI(I,J),SNOWI(I,J),SSI(:,I,J)
-              IF (TICE.gt.1d-3.or.TICE.lt.-100.) QCHECKI = .TRUE.
-            END IF
-            IF (SSI(L,I,J).lt.0) THEN
-              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,SSI(:,I
-     *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
-              QCHECKI = .TRUE.
-            END IF
-            IF (L.gt.2 .and. SSI(L,I,J).gt.0.04*XSI(L)*MSI(I,J)) THEN
-              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI/MSI=',I,J,L,1d3
-     *             *SSI(:,I,J)/(XSI(L)*MSI(I,J)),SSI(:,I,J),MSI(I,J)
-     *             ,SNOWI(I,J),RSI(I,J)
-              QCHECKI = .TRUE.
-            END IF
-          END DO
-          IF (SNOWI(I,J).lt.0) THEN
-            WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,SNOWI(I,J)
-            QCHECKI = .TRUE.
-          END IF
-          IF (MSI(I,J).gt.10000) THEN
-            WRITE(6,*) 'After ',SUBR,': I,J,MSI=',I,J,MSI(I,J),RSI(I,J)
-c            QCHECKI = .TRUE.
-          END IF
-          END IF
-        END DO
-      END DO
-
-#ifdef TRACERS_WATER
-      do n=1,ntm
-C**** check negative tracer mass
-        if (t_qlimit(n)) then
-        do j=J_0, J_1
-          do i=I_0,imaxj(j)
-            if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
-              do l=1,lmi
-                if (trsi(n,l,i,j).lt.0.) then
-                  print*,"Neg Tracer in sea ice after ",subr,i,j,l,
-     *                 trname(n),trsi(n,l,i,j),rsi(i,j),msi(i,j),ssi(l,i
-     *                 ,j),snowi(i,j)
-                  QCHECKI=.true.
-                end if
-              end do
-            end if
-          end do
-        end do
-        end if
-C**** Check conservation of water tracers in sea ice
-        if (trname(n).eq.'Water') then
-          errmax = 0. ; imax=I_0 ; jmax=J_0
-          do j=J_0, J_1
-          do i=I_0,imaxj(j)
-            if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then
-              relerr=max(
-     *             abs(trsi(n,1,i,j)-(snowi(i,j)+ace1i)*xsi(1)+ssi(1,i,j
-     *             ))/trsi(n,1,i,j),abs(trsi(n,2,i,j)-(snowi(i,j)+ace1i)
-     *             *xsi(2)+ssi(2,i,j))/trsi(n,2,i,j),abs(trsi(n,3,i,j)
-     *             -msi(i,j)*xsi(3)+ssi(3,i,j))/trsi(n,3,i,j),abs(trsi(n
-     *             ,4,i,j)-msi(i,j)*xsi(4)+ssi(4,i,j))/trsi(n,4,i,j))
-              if (relerr.gt.errmax) then
-                imax=i ; jmax=j ; errmax=relerr
-              end if
-            end if
-          end do
-          end do
-          write(*,'(A36,A7,A,2I3,11E24.16)')
-     $         "Relative error in sea ice mass after",trim(subr),":"
-     $         ,imax,jmax,errmax,trsi(n,:,imax,jmax),(snowi(imax,jmax)
-     $         +ace1i)*xsi(1)-ssi(1,imax,jmax),(snowi(imax,jmax)+ace1i)
-     $         *xsi(2)-ssi(2,imax,jmax),msi(imax,jmax)*xsi(3:4)-ssi(3:4
-     $         ,imax,jmax),rsi(imax,jmax),msi(imax,jmax)
-        end if
-      end do
-#endif
-
-      IF (QCHECKI)
-     &     call stop_model("CHECKI: Ice variables out of bounds",255)
-
-      END SUBROUTINE CHECKI
-

@@ -6,7 +6,7 @@
 #define USE_ATM_GLOBAL_ARRAYS
 #endif
 
-      subroutine OCEANS
+      subroutine OCEANS(atmocn,iceocn,dynsice)
 c
 c --- ------------------------------
 c --- MICOM-based hybrid ocean model
@@ -90,28 +90,18 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE DOMAIN_DECOMP_ATM, only : grid,globalsum_atm=>globalsum
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
      &                         haveLatitude, globalsum
       USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data,
      &     band_pack
-      USE HYCOM_ATM 
+      USE HYCOM_ATM
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
 !     . ,gmelt,egmelt,solar,gtempr,erunpsi
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : atrac_loc,
-     &     tracflx_loc=>tracflx
-! tracflx needs local , 
-! scatter after call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) 
-      USE TRACER_COM, only : vol2mass
-#endif
 
       !USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : fsss,tfrez,Ei ! number, functions - ok
-      USE GEOM, only : axyp ! ok
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -120,28 +110,9 @@ c
       USE CONSTANT, only : sday
 #endif
 #if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
-      USE obio_dim
-      USE obio_forc, only: owind_loc=>owind,osolz_loc=>osolz
-      USE obio_com, only: dobio, gather_pCO2
-     .    ,tracav_loc,ao_co2flux_loc,ao_co2fluxav_loc
-     .    ,diag_counter,plevav,plevav_loc
-     .    ,cexp_loc=>cexpij
-     .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
-     .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc
-#ifdef TRACERS_Alkalinity
-     .    ,caexp_loc=>caexpij,caexpav_loc
-#endif
+      !USE obio_dim
+      !USE obio_com, only: dobio
 #endif 
-#ifdef OBIO_RAD_coupling
-      !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
-      USE obio_forc, only:
-     &      ovisdir_loc=>ovisdir,ovisdif_loc=>ovisdif
-     &     ,onirdir_loc=>onirdir,onirdif_loc=>onirdif
-#ifdef TRACERS_OceanBiology
-      USE FLUXES, only: achl_loc=>chl
-      USE obio_com, only: tot_chlo_loc=>tot_chlo
-#endif
-#endif
       USE HYCOM_DIM_GLOB
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H,
      &                      aI_0, aI_1, aI_0H, aI_1H,
@@ -158,7 +129,11 @@ c
       use obio_diffmod
 #endif
       use TimerPackage_mod
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       implicit none
+      type(atmocn_xchng_vars) :: atmocn
+      type(iceocn_xchng_vars) :: iceocn
+      type(iceocn_xchng_vars) :: dynsice
 c
       integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
 !!! afogcm,nsavea should be initialized properly !
@@ -213,10 +188,32 @@ c
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_ocean
-     . ,otrac_loc(idm,J_0H:J_1H,ntm)
+      real, allocatable :: otrac_loc(:,:,:) !(idm,J_0H:J_1H,ntm)
 #endif
 
 #include "state_eqn.h"
+
+      real*8, dimension(:,:), pointer :: rsi_loc,focean_loc,
+     &     dmua_loc,dmva_loc,e0_loc,egmelt_loc,eflowo_loc,
+     &     prec_loc,eprec_loc,evapor_loc,flowo_loc,gmelt_loc,
+     &     melti_loc,emelti_loc,smelti_loc,
+     &     runosi_loc,erunosi_loc,srunosi_loc,
+     &     runpsi_loc,erunpsi_loc,srunpsi_loc,
+     &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
+      real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
+#ifdef TRACERS_OceanBiology
+      real*8, dimension(:,:,:), pointer :: TRGASEX_loc
+#endif
+#ifdef TRACERS_OceanBiology
+      real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
+#endif
+#ifdef OBIO_RAD_coupling
+      real*8, dimension(:,:), pointer ::
+     &     dirvis_loc,difvis_loc,dirnir_loc,difnir_loc
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      real*8, dimension(:,:,:), pointer :: GTRACER_loc
+#endif
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- initiate named-pipe comparison utility
@@ -233,11 +230,59 @@ c
       call start('hycom')
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
+      rsi_loc => iceocn%rsi
+      focean_loc => atmocn%focean
+      dmua_loc => atmocn%dmua
+      dmva_loc => atmocn%dmva
+      e0_loc => atmocn%e0
+      evapor_loc => atmocn%evapor
+      flowo_loc => atmocn%flowo
+      eflowo_loc => atmocn%eflowo
+      gmelt_loc => atmocn%gmelt
+      egmelt_loc => atmocn%egmelt
+      prec_loc => atmocn%prec
+      eprec_loc => atmocn%eprec
+      runosi_loc => iceocn%runosi
+      erunosi_loc => iceocn%erunosi
+      srunosi_loc => iceocn%srunosi
+      runpsi_loc => iceocn%runpsi
+      erunpsi_loc => iceocn%erunpsi
+      srunpsi_loc => iceocn%srunpsi
+      melti_loc => iceocn%melti
+      emelti_loc => iceocn%emelti
+      smelti_loc => iceocn%smelti
+#ifdef TRACERS_OceanBiology
+      TRGASEX_loc => atmocn%TRGASEX
+#endif
+#ifdef TRACERS_OceanBiology
+      cosz1_loc => atmocn%cosz1
+      wsavg_loc => atmocn%wsavg
+      achl_loc => atmocn%chl
+#endif
+#ifdef OBIO_RAD_coupling
+      dirvis_loc => atmocn%dirvis
+      difvis_loc => atmocn%difvis
+      dirnir_loc => atmocn%dirnir
+      difnir_loc => atmocn%difnir
+#endif
+
+      gtemp_loc => atmocn%gtemp
+      gtempr_loc => atmocn%gtempr
+      sss_loc => atmocn%sss
+      ogeoza_loc => atmocn%ogeoza
+      uosurf_loc => atmocn%uosurf
+      vosurf_loc => atmocn%vosurf
+#ifdef TRACERS_GASEXCH_ocean
+      gtracer_loc => atmocn%gtracer
+#endif
+      dmsi_loc => iceocn%dmsi
+      dhsi_loc => iceocn%dhsi
+      dssi_loc => iceocn%dssi
+
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
 c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 28 ja=aJ_0,aJ_1
         do 28 ia=aI_0,aI_1
           ataux_loc(ia,ja)=0.
@@ -249,7 +294,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
 #ifdef TRACERS_GASEXCH_ocean
-        do nt=1,ntm
+        do nt=1,atmocn%ntm_gasexch
         atracflx_loc(ia,ja,nt)=0.
         enddo
 #endif
@@ -267,10 +312,8 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 #ifdef CUBED_SPHERE
         call reset_dynsi_accum
 #endif
-c$OMP END PARALLEL DO
       endif
 c
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
 
 #ifdef CUBED_SPHERE
@@ -279,17 +322,21 @@ c --- accumulate agcm fields over nhr
       admvi_loc = 0.
       call do_dynsi_accum(dtsrc,3600.*real(nhr))
 #else
+#ifdef STANDALONE_HYCOM
+      admui_loc = 0.
+      admvi_loc = 0.
+#else
 c combine wind and ice stresses before regridding
 c first redistribute ice-ocean stresses to the atmospheric domain decomp
-      call band_pack(pack_i2a, dmui_loc, admui_loc)
-      call band_pack(pack_i2a, dmvi_loc, admvi_loc)
+      call band_pack(dynsice%pack_i2a, dynsice%dmui, admui_loc)
+      call band_pack(dynsice%pack_i2a, dynsice%dmvi, admvi_loc)
+#endif
 #endif
 c
-      eflow_gl=0.
-      call globalsum_atm(grid, eflowo_loc, eflow_gl, all=.true.)
+      eflow_gl = atmocn%eflow_gl
 c
       do 29 ia=aI_0,aI_1
-#ifdef CUBED_SPHERE
+#if (defined CUBED_SPHERE) || defined(STANDALONE_HYCOM)
       iam1 = ia ! avoid out-of-bounds indices in admui_loc==0
 #else
       iam1=mod(ia-2+iia,iia)+1
@@ -300,51 +347,51 @@ c
       ipa_loc(ia,ja)=1
 c --- accumulate
       aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                                  ! kg/m2 => m/s
-     .+((prec_loc(ia,ja)-evapor_loc(ia,ja,1))*(1.-rsi_loc(ia,ja))        ! open water
-     .+(flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja))/
-     .                       (axyp(ia,ja)*focean_loc(ia,ja))!ocn/ice
+     .+((prec_loc(ia,ja)-evapor_loc(ia,ja))*(1.-rsi_loc(ia,ja))          ! open water
+     .+flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja)/
+     .     focean_loc(ia,ja)    !ocn/ice
      .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref       ! ice
      .                                /(3600.*real(nhr))
       aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                              ! J/m2 => W/m2
-     . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))          ! ocean water
-     . +(                egmelt_loc(ia,ja)+emelti_loc(ia,ja))
-     .                              /(axyp(ia,ja)*focean_loc(ia,ja))     ! ocn or ice
+     . +((e0_loc(ia,ja)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))            ! ocean water
+     . +     egmelt_loc(ia,ja)+emelti_loc(ia,ja)
+     .     /focean_loc(ia,ja)                                            ! ocn or ice
      . + eflow_gl/area
      . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))          ! ice
      .                                 /(3600.*real(nhr))
       asalt_loc(ia,ja)=asalt_loc(ia,ja)                                  ! kg/m2/sec salt
      .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)           !
-     .   +smelti_loc(ia,ja)/(axyp(ia,ja)*focean_loc(ia,ja)))             !
+     .   +smelti_loc(ia,ja)/(focean_loc(ia,ja)))             !
      .                             /(3600.*real(nhr))
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                                  dtsrc/(real(nhr)*3600.)
 c --- dmua on A-grid, admui on C-grid
-      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja,1)
+      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)
      .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
      .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
-      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja,1)+
+      atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)
      .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
      .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
-     . sqrt(sqrt((dmua_loc(ia,ja,1)
+     . sqrt(sqrt((dmua_loc(ia,ja)
      .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
-     .          +(dmva_loc(ia,ja,1)
+     .          +(dmva_loc(ia,ja)
      .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
      .                               /dtsrc*thref))                      ! sqrt(T/r)=>m/s
      .                               *dtsrc/(real(nhr)*3600.)
-      aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(solar_loc(1,ia,ja)*
+      aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(atmocn%solar(ia,ja)*
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
-     .                         +solar_loc(3,ia,ja)*    rsi_loc(ia,ja))
+     .                         +iceocn%solar(ia,ja)*    rsi_loc(ia,ja))
      .                                 /(3600.*real(nhr))
 #ifdef TRACERS_GASEXCH_ocean
-            do nt=1,ntm
+            do nt=1,atmocn%ntm_gasexch
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
-     .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
+     .             + TRGASEX_loc(nt,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
 
               if (ia == itest .and. ja == jtest) then
                 write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
-     .          itime,jhour,ia,ja,TRGASEX_loc(nt,1,ia,ja),
+     .          itime,jhour,ia,ja,TRGASEX_loc(nt,ia,ja),
      .                       atracflx_loc(ia,ja,nt)
               end if
             enddo
@@ -357,10 +404,9 @@ c --- dmua on A-grid, admui on C-grid
 #endif
 #ifdef OBIO_RAD_coupling
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
-     .           +FSRDIR_loc(ia,ja)*SRVISSURF_loc(ia,ja)
-     .           *dtsrc/(3600.*real(nhr)) !
+     .           +DIRVIS_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
             avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
-     .           +FSRDIF_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +DIFVIS_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
             anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
      .           +DIRNIR_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
             anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
@@ -368,7 +414,6 @@ c --- dmua on A-grid, admui on C-grid
 #endif
 
  29   continue
-c$OMP END PARALLEL DO
 
 c
       nsavea=nsavea+1
@@ -404,19 +449,21 @@ c combine wind and ice stresses after regridding
       enddo
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      do nt=1,ntm
-        call flxa2o(atracflx_loc(:,:,nt),tracflx_loc(:,:,nt)) !tracer flux
+      do nt=1,atmocn%ntm_gasexch
+        !call flxa2o(atracflx_loc(:,:,nt),tracflx_loc(:,:,nt)) !tracer flux
+        call flxa2o(atracflx_loc(:,:,nt),ocnatm%work1)
+        ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      call flxa2o(asolz_loc,osolz_loc)
-      call flxa2o(awind_loc,owind_loc)
+      call flxa2o(asolz_loc,ocnatm%cosz1)
+      call flxa2o(awind_loc,ocnatm%wsavg)
 #endif
 #ifdef OBIO_RAD_coupling
-      call flxa2o(avisdir_loc,ovisdir_loc)
-      call flxa2o(avisdif_loc,ovisdif_loc)
-      call flxa2o(anirdir_loc,onirdir_loc)
-      call flxa2o(anirdif_loc,onirdif_loc)
+      call flxa2o(avisdir_loc,ocnatm%dirvis)
+      call flxa2o(avisdif_loc,ocnatm%difvis)
+      call flxa2o(anirdir_loc,ocnatm%dirnir)
+      call flxa2o(anirdif_loc,ocnatm%difnir)
 #endif
       call scatter1_hycom_arrays ! delete this call, if not the routine
 c
@@ -432,24 +479,7 @@ c
 c
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
 c
-c$OMP PARALLEL SHARED(mo0)
-c$    mo0=OMP_GET_NUM_THREADS()
-c$OMP END PARALLEL
-c$    call OMP_SET_DYNAMIC(.false.)
-c$    write (lp,'(2(a,i5))') ' hycom thread count',mo0
-c
-ccc$  call OMP_SET_NUM_THREADS(max(mo0,16))
-ccc$  OMP PARALLEL SHARED(mo1)
-ccc$  mo1=OMP_GET_NUM_THREADS()
-ccc$  OMP END PARALLEL
-ccc$  write (lp,'(2(a,i5))') ' hycom thread count',mo0,' changed to',mo1
-ccc$     . ,' =======  number of threads:',mo1,' ======='
-c$    if (AM_I_ROOT())
-c$   &  write (lp,'(2(a,i5))') ' hycom thread count:',mo0
       jchunk=50
-c     if (mo0.eq.4) jchunk=50           !  jdm=180
-c     if (mo0.eq.6) jchunk=32           !  jdm=180
-c     if (mo0.eq.8) jchunk=23           !  jdm=180
       if (jchunk.lt.0) then
         if (AM_I_ROOT()) write (lp,*) 'you forgot to define jchunk'
         stop   ! proper mpi_abort
@@ -600,7 +630,6 @@ c
       CALL HALO_UPDATE(ogrid,corio_loc,     FROM=NORTH)
       hekman_loc=0.;
 c
-c$OMP PARALLEL DO PRIVATE(jb)
       do 202 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 202 l=1,isp_loc(j)
@@ -610,8 +639,8 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
  202  continue
-c$OMP END PARALLEL DO
 #ifdef TRACERS_GASEXCH_ocean
+      allocate(otrac_loc(idm,J_0H:J_1H,atmocn%ntm_gasexch))
       otrac_loc(:,:,:) = 0.d0
 #endif
 c
@@ -670,7 +699,6 @@ c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
     || defined(TRACERS_OCEAN_WATER_MASSES) || defined(TRACERS_ZEBRA)
-c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
@@ -716,7 +744,6 @@ c$OMP PARALLEL DO
         tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
 #endif
  12     continue
-c$OMP END PARALLEL DO
 #endif
         call system_clock(after)        ! time elapsed since last system_clock
         trcadv_time = real(after-before)/real(rate)
@@ -726,14 +753,14 @@ c
       call system_clock(before)      ! time elapsed since last system_clock
       trcout = .true.
 c
-      if (dobio) then
+c      if (dobio) then
 c
           !call obio_listDifferences('obio_model', 'before')
-        call obio_model(nn,mm)
+        call obio_model(nn,mm,ocnatm)
           !call obio_listDifferences('obio_model', 'after')
         !call gather_pCO2
 c
-      endif
+c      endif
 #endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- available potential energy diagnostics:
@@ -1170,13 +1197,11 @@ c
         call archiv(n,nn)
 
 c --- diagnose meridional overturning and heat flux
-c$OMP PARALLEL DO
         do 3 j=1,jj
         do 3 k=1,kk
         do 3 l=1,isp(j)
         do 3 i=ifp(j,l),ilp(j,l)
  3      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
-c$OMP END PARALLEL DO
 c     call overtn(mm)
 c
       write (lp,105) nstep
@@ -1232,27 +1257,17 @@ ccc     .     'barotrop. v vel. (mm/s)')
       endif  !  AM_I_ROOT
       call set_data_after_archiv()
 
-#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
       || (defined TRACERS_ZEBRA)
+      ! These were being obtained from obio_com.  Why?
       diag_counter=0
       tracav_loc = 0
       plevav_loc = 0
-#ifdef TRACERS_OceanBiology
-      ao_co2fluxav_loc=0
-      pCO2av_loc = 0
-      pp2tot_dayav_loc = 0
-      cexpav_loc = 0
-#ifdef TRACERS_Alkalinity
-      caexpav_loc = 0
-#endif
-#endif
 #endif
 
  23   continue
 
 c --- accumulate fields for agcm
-c$OMP PARALLEL DO
 
       do 201 j=J_0,J_1
       do 201 l=1,isp_loc(j)
@@ -1277,16 +1292,16 @@ c$OMP PARALLEL DO
       do i=ifp_loc(j,l),ilp_loc(j,l)
       !define the tracer that participates in the gas exchange flux.
 #ifdef TRACERS_GASEXCH_ocean_CFC
-            do nt=1,ntm
+            do nt=1,atmocn%ntm_gasexch
               otrac_loc(i,j,nt)=otrac_loc(i,j,nt)  
      .             +tracer_loc(i,j,1,nt)
      .             *baclin/(3600.*real(nhr))
             enddo
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-            do nt=1,ntm
+            do nt=1,atmocn%ntm_gasexch
               otrac_loc(i,j,nt)= otrac_loc(i,j,nt)
-     .             + pCO2_loc(i,j)                !pCO2 is in ppmv(uatm)
+     .             + ocnatm%pCO2(i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
      .             * baclin/(3600.*real(nhr))
             enddo
 #endif
@@ -1295,7 +1310,6 @@ c$OMP PARALLEL DO
       enddo
 #endif
 
-c$OMP END PARALLEL DO
 c
       nsaveo=nsaveo+1
 
@@ -1313,12 +1327,10 @@ c
      &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
 
 c
-c$OMP PARALLEL DO
       do 88 j=J_0,J_1
       do 88 i=1,ii
       usf_loc(i,j)=u_loc(i,j,k1n)+ubavg_loc(i,j,n)
  88   vsf_loc(i,j)=v_loc(i,j,k1n)+vbavg_loc(i,j,n)
-c$OMP END PARALLEL DO
 
       call gather7hycom(usf_loc,vsf_loc,usf,vsf)
 
@@ -1331,38 +1343,21 @@ c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
 c      endif
 
-      call ssto2a(osst_loc,asst_loc)
-      call tempro2a(osst_loc,atempr_loc)
+      call ssto2a(osst_loc,atmocn%work1)
+      call tempro2a(osst_loc,atmocn%work2)
       call ssto2a(osss_loc,sss_loc)
 css   call iceo2a(omlhc,mlhc)
       call ssto2a(oogeoza_loc,ogeoza_loc)
       call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
       call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
 #ifdef CUBED_SPHERE
-      call veco2i(usf_loc,vsf_loc,uosurf_4dynsi_loc,vosurf_4dynsi_loc)
+      call veco2i(usf_loc,vsf_loc,dynsice%uosurf,dynsice%vosurf)
 #else
+#ifndef STANDALONE_HYCOM
 c when atm is lat-lon, dynsi grid == atm grid
-      call band_pack(pack_a2i, uosurf_loc, UOSURF_4DYNSI_loc)
-      call band_pack(pack_a2i, vosurf_loc, VOSURF_4DYNSI_loc)
+      call band_pack(dynsice%pack_a2i, uosurf_loc, dynsice%UOSURF)
+      call band_pack(dynsice%pack_a2i, vosurf_loc, dynsice%VOSURF)
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      do nt=1,ntm
-         call ssto2a(otrac_loc(:,:,nt),atrac_loc(:,:,nt))
-            !change units ppmv (uatm) -> kg,CO2/kg,air
-         atrac_loc(:,:,nt) =  aTRAC_loc(:,:,NT) * vol2mass(nt)* 1.d-6
-      enddo
-      do ja=aJ_0,aJ_1
-        do ia=aI_0,aI_1
-          if (focean_loc(ia,ja).gt.0.) then
-            do nt=1,ntm
-              GTRACER_loc(nt,1,ia,ja)=atrac_loc(ia,ja,nt)
-            enddo
-          endif
-        enddo
-      enddo
-#endif
-#ifdef TRACERS_OceanBiology
-      call ssto2a(tot_chlo_loc,achl_loc)
 #endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')
@@ -1378,12 +1373,11 @@ cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c
-c$OMP PARALLEL DO PRIVATE(tf)
       do 204 ja=aJ_0,aJ_1
       do 204 ia=aI_0,aI_1
       if (focean_loc(ia,ja).gt.0.) then
-        gtemp_loc(1,1,ia,ja)=asst_loc(ia,ja)
-        gtempr_loc(1,ia,ja)=atempr_loc(ia,ja)
+        gtemp_loc(ia,ja)=atmocn%work1(ia,ja)
+        gtempr_loc(ia,ja)=atmocn%work2(ia,ja)
         tf=tfrez(sss_loc(ia,ja),0.)
         dmsi_loc(1,ia,ja)=utila_loc(ia,ja)                        !kg/m2 per agcm step
 c --- this should be accumulated separately, no?
@@ -1400,7 +1394,26 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 
-c$OMP END PARALLEL DO
+#ifdef TRACERS_GASEXCH_ocean
+      do nt=1,atmocn%ntm_gasexch
+         call ssto2a(otrac_loc(:,:,nt),atmocn%work1)
+         do ja=aJ_0,aJ_1
+         do ia=aI_0,aI_1
+           if (focean_loc(ia,ja).gt.0.) then
+             GTRACER_loc(nt,ia,ja) = atmocn%work1(ia,ja)
+            !change units ppmv (uatm) -> kg,CO2/kg,air
+     &            *atmocn%vol2mass(nt)* 1.d-6
+           endif
+         enddo
+         enddo
+      enddo
+      deallocate(otrac_loc)
+#endif
+#ifdef TRACERS_OceanBiology
+      !call ssto2a(tot_chlo_loc,achl_loc)
+      call ssto2a(ocnatm%chl,achl_loc)
+#endif
+
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
@@ -1432,39 +1445,10 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
-#if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
-      USE obio_com, only: tracav,tracav_loc,
-     .    plevav,plevav_loc
-#endif
-#ifdef TRACERS_OceanBiology
-      USE obio_com, only: gather_chl
-     .    ,ao_co2fluxav_loc, ao_co2fluxav
-     .    ,pCO2av_loc, pCO2av
-     .    ,pp2tot_dayav_loc, pp2tot_dayav
-     .    ,cexpav_loc, cexpav
-#ifdef TRACERS_Alkalinity
-     .    ,caexpav_loc, caexpav
-#endif
-#endif
       implicit none 
 
 #ifdef TRACERS_OceanBiology
-      call gather_chl
-
-      call pack_data(ogrid, ao_co2fluxav_loc, ao_co2fluxav)
-      call pack_data(ogrid, pCO2av_loc, pCO2av)
-      call pack_data(ogrid, pp2tot_dayav_loc, pp2tot_dayav)
-      call pack_data(ogrid, cexpav_loc, cexpav)
-#ifdef TRACERS_Alkalinity
-      call pack_data(ogrid, caexpav_loc, caexpav)
-#endif
-#endif
-
-#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
-      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
-      call pack_data( ogrid,  tracav_loc, tracav )
-      call pack_data( ogrid,  plevav_loc, plevav )
+      call obio_gather_before_archive()
 #endif
 
       call pack_data( ogrid,  u_loc, u )
@@ -1554,6 +1538,10 @@ c
       vflxav(i,j,k)=0.
  602  diaflx(i,j,k)=0.
  60   continue
+
+#ifdef TRACERS_OceanBiology
+      call obio_set_data_after_archiv()
+#endif
 
       end subroutine set_data_after_archiv
 c------------------------------------------------------------------

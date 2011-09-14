@@ -7,16 +7,15 @@
 !@+        Tracer initialisation + sources: tracer_ic_ocean
 !@+
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
-      subroutine tracer_ic_ocean
+      subroutine tracer_ic_ocean(atmocn)
 !@sum tracer_ic_ocean initialise ocean tracers
 !@auth Gavin Schmidt
 !@ver 1.0
       USE MODEL_COM, only: itime
       USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
 #ifdef TRACERS_SPECIAL_O18
-      USE TRACER_COM, only : water_tracer_ic
+      USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
 
       USE OCEAN, only : im,jm,lmo,focean,dxypo,mo,lmm,imaxj,oXYP
@@ -35,12 +34,15 @@
 #endif
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : get, haveLatitude, GLOBALSUM,
-     *     ESMF_BCAST
+     *     broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
-      USE OCEAN, only : scatter_ocean, gather_ocean
-
+      USE OCEAN, only : gather_ocean
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
+      USE Dictionary_mod
       IMPLICIT NONE
+      type(atmocn_xchng_vars) :: atmocn
+c
       integer n,i,j,l,nst,i1,j1,i2,j2,ll
 #ifdef TRACERS_SPECIAL_O18
       integer iu_O18ic,ip1,im1
@@ -54,6 +56,13 @@
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S, J_STRT = J_0,
      *     J_STOP = J_1, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+
+#ifdef TRACERS_SPECIAL_O18
+      if (is_set_param('water_tracer_ic')) then
+        call get_param('water_tracer_ic', water_tracer_ic)
+      endif
+      !call sync_param ( "water_tracer_ic",water_tracer_ic  )
+#endif
 
 C**** Note that only sea ice related arrays are initialised if
 C**** only TRACERS_WATER is true.
@@ -77,15 +86,15 @@ C**** straits
             txmst(:,:,n)=0.
             tzmst(:,:,n)=0.
           end if
-          CALL ESMF_BCAST(grid, trmst)
-          CALL ESMF_BCAST(grid, txmst)
-          CALL ESMF_BCAST(grid, tzmst)
+          CALL broadcast(grid, trmst)
+          CALL broadcast(grid, txmst)
+          CALL broadcast(grid, tzmst)
 
 #endif
 
 #ifdef TRACERS_WATER
           if (am_i_root()) trsist(:,:,n)=0.
-          CALL ESMF_BCAST(grid, trsist)
+          CALL broadcast(grid, trsist)
 #endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
@@ -121,9 +130,9 @@ C**** straits
            if (am_i_root()) then
              txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
           endif
-          CALL ESMF_BCAST(grid, trmst)
-          CALL ESMF_BCAST(grid, txmst)
-          CALL ESMF_BCAST(grid, tzmst)
+          CALL broadcast(grid, trmst)
+          CALL broadcast(grid, txmst)
+          CALL broadcast(grid, tzmst)
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
@@ -284,7 +293,7 @@ C**** or oc_tracer_mean
      *             trname(n),(trsum/(wsum*trw0(n))-1d0)*1d3,frac_tr
             end if
           end if
-          call ESMF_BCAST(grid,  frac_tr)
+          call broadcast(grid,  frac_tr)
          
           if (frac_tr.ne.-999.) then    
             do l=1,lmo
@@ -311,9 +320,9 @@ C**** straits
                 END DO
               END DO
             end if
-            CALL ESMF_BCAST(grid, TRMST)
-            CALL ESMF_BCAST(grid, TXMST)
-            CALL ESMF_BCAST(grid, TZMST)
+            CALL broadcast(grid, TRMST)
+            CALL broadcast(grid, TXMST)
+            CALL broadcast(grid, TZMST)
 
 C**** Check
             CALL CONSERV_OTR(OTRACJ,N)
@@ -333,7 +342,7 @@ C****
       end do
 
 C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
-      CALL TOC2SST
+      CALL TOC2SST(atmocn)
 
       return
  800  write(6,*) "Error reading input file H2O18ic"
@@ -348,15 +357,16 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 !@sum OC_TDECAY decays radioactive tracers in ocean
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : itime
-      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0
+      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0,expdec
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       IMPLICIT NONE
-      real*8, save, dimension(ntm) :: expdec = 1.
       real*8, intent(in) :: dts
       logical, save :: ifirst=.true.
       integer n
 
       if (ifirst) then               
+        allocate(expdec(ntm))
+        expdec(:) = 1.
         do n=1,ntm
           if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dts)
         end do
@@ -421,26 +431,26 @@ C****
       end subroutine ocn_tr_age
 #endif
 
-      SUBROUTINE DIAGTCO (M,NT0)
+      SUBROUTINE DIAGTCO (M,NT0,atmocn)
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-!@ver  1.0
       USE OCEAN, only : IMO=>IM, oJ_BUDG, oJ_0B, oJ_1B
-      USE DIAG_COM, only : jm_budg
-      USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon,
-     *     natmtrcons,ntmxcon
       USE DOMAIN_DECOMP_1D, only : GET
       USE OCEANR_DIM, only : oGRID
+      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
 !@var NT0 index denoting tracer number, NT is index in tconsrv 
       INTEGER, INTENT(IN) :: nt0
+!@var atmocn
+      type(atmocn_xchng_vars) :: atmocn
+c
       INTEGER :: nt
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(IMO,
      &                  oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) :: TOTAL
-      REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
+      REAL*8, DIMENSION(oJ_0B:oJ_1B) :: TOTALJ
       INTEGER :: nm,ni
       INTEGER :: I, J, J_0, J_1, I_0, I_1
 
@@ -456,12 +466,12 @@ C**** NOFMT contains the indexes of the TCONSRV array where each
 C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
 C**** no calculation is done.
 C**** NOFMT(1,NT) is the index for the instantaneous value.
-      nt=nt0+natmtrcons
-      if (nofmt(m,nt).gt.0) then
+      nt=nt0+atmocn%natmtrcons
+      if (atmocn%nofmt(m,nt).gt.0) then
 C**** Calculate current value TOTAL (kg)
         call conserv_otr(total,nt0)
-        nm=nofmt(m,nt)
-        ni=nofmt(1,nt)
+        nm=atmocn%nofmt(m,nt)
+        ni=atmocn%nofmt(1,nt)
 
 C**** Calculate zonal sums
         totalj(oj_0b:oj_1b)=0.
@@ -473,12 +483,12 @@ C**** Calculate zonal sums
 
 c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(oJ_0b:oJ_1b,nm,nt) =
-     &         tconsrv(oJ_0b:oJ_1b,nm,nt)+(totalj(oJ_0b:oJ_1b)
-     *         -tconsrv(oJ_0b:oJ_1b,ni,nt)) 
+          atmocn%tconsrv(oJ_0b:oJ_1b,nm,nt) =
+     &         atmocn%tconsrv(oJ_0b:oJ_1b,nm,nt)
+     &         +(totalj(oJ_0b:oJ_1b)-atmocn%tconsrv(oJ_0b:oJ_1b,ni,nt)) 
         end if
 C**** Save current value in TCONSRV(NI)
-        tconsrv(oJ_0b:oJ_1b,ni,nt)=totalj(oJ_0b:oJ_1b)
+        atmocn%tconsrv(oJ_0b:oJ_1b,ni,nt)=totalj(oJ_0b:oJ_1b)
       end if
       return
       end subroutine diagtco
@@ -486,7 +496,6 @@ C**** Save current value in TCONSRV(NI)
       SUBROUTINE conserv_OTR(OTR,ITR)
 !@sum  conserv_OTR calculates zonal ocean tracer (kg) on ocean grid
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, imaxj,trmo
       USE STRAITS, only : nmst,jst,ist,lmst,trmst
       USE DOMAIN_DECOMP_1D, only : GET
@@ -521,125 +530,3 @@ C**** include straits variables
 C****
       RETURN
       END SUBROUTINE conserv_OTR
-
-      SUBROUTINE SET_TCONO(QCON,CONPT,NAME_CON,QSUM,INST_UNIT,SUM_UNIT
-     *     ,INST_SC,CHNG_SC, itr0)
-!@sum  SET_TCONO assigns ocean conservation diagnostic array indices
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,nfiltr
-      USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
-     *     ,conpt0
-      USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
-     *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
-     *     ,ntcons,npts,natmtrcons
-      IMPLICIT NONE
-!@var QCON denotes at which points conservation diags are saved
-      LOGICAL, INTENT(IN),DIMENSION(npts) :: QCON
-!@var QSUM sets whether each diag is included in final sum
-!@+   should be zero for diags set using DIAGTCB (i.e. using difference)
-      LOGICAL, INTENT(IN),DIMENSION(npts) :: QSUM
-      LOGICAL, DIMENSION(npts) :: QSUM_CON   ! local version
-!@var INST_SC scale for instantaneous value
-      REAL*8, INTENT(IN) :: INST_SC
-!@var CHNG_SC scale for changes
-      REAL*8, INTENT(IN) :: CHNG_SC
-!@var NAME_CON name of conservation quantity
-      CHARACTER*8, INTENT(IN) :: NAME_CON
-!@var sname name of conservation quantity (no spaces)
-      CHARACTER*8 :: sname
-!@var INST_UNIT string for unit for instant. values
-      CHARACTER*20, INTENT(IN) :: INST_UNIT
-!@var SUM_UNIT string for unit for summed changes
-      CHARACTER*20, INTENT(IN) :: SUM_UNIT
-!@var ITR index for the tracer
-      INTEGER, INTENT(IN) :: ITR0
-!@var CONPT0_sname like CONPT0 but without spaces
-      CHARACTER*10, DIMENSION(npts) :: CONPT0_sname, CONPT
-      CHARACTER*11 CHGSTR
-      CHARACTER*40 clean_str
-      INTEGER NI,NM,NS,N,k,itr
-
-C**** make nice netcdf names
-      sname=trim(clean_str(name_con))
-      do n=1,npts
-         conpt0_sname(n) = trim(clean_str(conpt(n)))
-      enddo
-C****
-      NI=1
-      itr=itr0+natmtrcons
-      NOFMT(1,itr) = NI
-      TITLE_TCON(NI,itr) =
-     *     "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
-      SCALE_TCON(NI,itr) = INST_SC
-      name_tconsrv(NI,itr) ="inst_oc_"//sname
-      lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
-      units_tconsrv(NI,itr) = INST_UNIT
-      NSUM_TCON(NI,itr) = -1
-      IA_TCON(NI,itr) = 12
-      NM=NI
-      DO N=2,npts+1
-        IF (QCON(N-1)) THEN
-          NM = NM + 1
-          NOFMT(N,itr) = NM
-          QSUM_CON(NM)=.FALSE.
-          IF (QSUM(N-1)) QSUM_CON(NM)=.TRUE.
-          CHGSTR=" CHANGE OF "
-          if (n.le.npts+1) then
-            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
-     *         CONPT(N-1)
-            name_tconsrv(NM,itr) =
-     *           "chg_oc_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
-c          else
-c            IF (.not. QSUM(N-1)) CHGSTR="     DELTA "
-c            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
-c     *           CONPTs(N-npts-1)
-c            name_tconsrv(NM,itr) =
-c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
-          end if
-          lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
-          units_tconsrv(NM,itr) = SUM_UNIT
-          SELECT CASE (N)
-          CASE (2)
-            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM,itr) = ia_d5d
-          CASE (3,4,5,6,7,9,11,12)
-            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM,itr) = ia_d5s
-          CASE (8)
-            SCALE_TCON(NM,itr) = CHNG_SC/(NFILTR*DTSRC)
-            IA_TCON(NM,itr) = ia_filt
-          CASE (10)
-            SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
-            IA_TCON(NM,itr) = ia_12hr
-          CASE (13:)   ! special tracer sources
-            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
-            IA_TCON(NM,itr) = ia_src
-          END SELECT
-        ELSE
-          NOFMT(N,itr) = 0
-        END IF
-      END DO
-      NS=NM+1
-      IF (NS.gt.KTCON) THEN
-        WRITE(6,*) "KTCON not large enough for extra conserv diags",
-     *       KTCON,NI,NM,NS,NAME_CON
-        call stop_model(
-     &       "Change KTCON in tracer diagnostic common block",255)
-      END IF
-      DO NM=NI+1,NS-1
-        NSUM_TCON(NM,itr) = -1
-        IF (QSUM_CON(NM)) NSUM_TCON(NM,itr) = NS
-      END DO
-      TITLE_TCON(NS,itr) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
-      name_Tconsrv(NS,itr) ="sum_chg_oc_"//trim(sname)
-      lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
-      units_Tconsrv(NS,itr) = SUM_UNIT
-      SCALE_TCON(NS,itr) = 1.
-      IA_TCON(NS,itr) = 12
-      NSUM_TCON(NS,itr) = 0
-      RETURN
-      END SUBROUTINE set_tcono
-
-

@@ -5,7 +5,8 @@
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
 
-      USE MODEL_COM, ONLY : IM,JM,LM,byim
+      USE RESOLUTION, ONLY : IM,JM,LM
+      USE GEOM, only : byim
       SAVE
       INTEGER, PARAMETER :: ncmax=10
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: NSTEPX
@@ -45,12 +46,13 @@ c arrays for upwind halos
       contains
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only :
-     &     grid, get, HALO_UPDATE,HALO_UPDATE_COLUMN, NORTH,SOUTH,
+     &     get, HALO_UPDATE,HALO_UPDATE_COLUMN, NORTH,SOUTH,
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb, ma
+      USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb, ma
       IMPLICIT NONE
       character*8 tname          !tracer name
       logical :: qlimit
@@ -276,8 +278,9 @@ c
 !@+   Decide how many cycles to take such that mass does not become
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
-      USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
+      USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM, HALO_UPDATE
      &     ,globalmax
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
       USE QUSCOM, ONLY : IM,JM,LM
@@ -817,7 +820,6 @@ c
 !@sum XSTEP determines the number of X timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
-!@ver  1.0
       USE QUSCOM, ONLY : IM
       IMPLICIT NONE
       integer :: jprt,lprt,ierr
@@ -878,7 +880,6 @@ c      ierr=0
 !@sum ZSTEP determines the number of Z timesteps for tracer dynamics
 !@+    using Courant limits
 !@auth M. Kelley
-!@ver  1.0
       IMPLICIT NONE
       integer :: nstep,nl
       REAL*8, dimension(nl) :: m0,ml,cm0,cm  ! ml,cm are temporary arrays
@@ -914,7 +915,6 @@ c      ierr=0
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_ADV
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE
@@ -961,7 +961,8 @@ C****
       subroutine aadvqx(rm,rmom,mass,mu,jmin,jmax,nstep,safv)
 !@sum  AADVQX advection driver for x-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -1218,8 +1219,8 @@ c****
       subroutine aadvqy(rm,rmom,mass,mv  ,sbf,sbm,sfbm,sbfv)
 !@sum  AADVQY advection driver for y-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, get
-      use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column,get
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
       use QUSCOM, only : im,jm,byim
@@ -1494,7 +1495,8 @@ c update north polar cap
      &     ,scf,scm,sfcm)
 !@sum  AADVQZ advection driver for z-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
@@ -1671,7 +1673,8 @@ c
       subroutine aadvqx2(rm,rmom,mass,mu,jmin,jmax,nstep,safv)
 !@sum  AADVQX2 version of AADVQX without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -1833,7 +1836,8 @@ c****
       subroutine aadvqy2(rm,rmom,mass,mv  ,sbf,sbm,sfbm,sbfv)
 !@sum  AADVQY2 version of AADVQY without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : get
       use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
@@ -2040,7 +2044,8 @@ c update north polar cap
      &     ,scf,scm,sfcm)
 !@sum  AADVQZ2 version of AADVQZ without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : grid
+      use DOMAIN_DECOMP_1D, only : GET
       use QUSDEF
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj

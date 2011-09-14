@@ -1,16 +1,17 @@
 #include "rundeck_opts.h"
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
+      USE TRACER_COM, only : ntm=>NTM
       USE AEROSOL_SOURCES, only: off_HNO3,off_SS
 
-      USE MODEL_COM, only : im,jm,lm     ! dimensions
-     $                     ,t            ! potential temperature (C)
+      USE ATM_COM, only :
+     $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
-     $                     ,dtsrc
+      USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc    ! latent heat of evaporation at 0 C       
       USE FLUXES, only: tr3Dsource
-      USE DYNAMICS,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
       USE DOMAIN_DECOMP_ATM,only: GRID, GET

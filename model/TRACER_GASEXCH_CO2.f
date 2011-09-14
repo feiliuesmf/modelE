@@ -2,7 +2,6 @@
 !@sum  TRACERS_GASEXCH_COM: module for ocean-atmosphere gas exchange
 !@+    special case for CO2
 !@auth Natassa Romanou
-!@ver  1.0
 
       MODULE TRACER_GASEXCH_COM
 
@@ -14,79 +13,9 @@
 
       private
 
-      public alloc_gasexch_com
-
-      public
-     .  tracflx !  tracer flux at air-sea intfc
-
-      public
-     .  tracflx1d
-
-      public atrac_loc
-
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atrac_loc
-
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
-  
-      real*8 tracflx1d(ntm)
-      common /gasexch3/tracflx1d
-!$OMP THREADPRIVATE(/gasexch3/)
-
-
-      contains
-
-!------------------------------------------------------------------------------
-      subroutine alloc_gasexch_com
-
-      USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
-      use domain_decomp_atm, only : agrid=>grid
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-#else
-      USE HYCOM_DIM, only : ogrid
-#endif
-      integer i_0h,i_1h,j_0h,j_1h
-
-      i_0h=ogrid%I_STRT_HALO
-      i_1h=ogrid%I_STOP_HALO
-      j_0h=ogrid%J_STRT_HALO
-      j_1h=ogrid%J_STOP_HALO
-
-      ALLOCATE(tracflx(i_0h:i_1h,j_0h:j_1h,ntm))
-
-      allocate(atrac_loc(agrid%i_strt_halo:agrid%i_stop_halo,
-     &                   agrid%j_strt_halo:agrid%j_stop_halo,
-     &                   ntm ))
-
-      end subroutine alloc_gasexch_com
+      real*8, public :: tracflx1d(ntm)
 
       END MODULE TRACER_GASEXCH_COM
-
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-         !ONLY FOR HYCOM
-#ifndef OBIO_ON_GARYocean
-      subroutine init_gasexch_co2
-      USE hycom_atm, only : gtracer_loc,focean_loc
-      USE TRACER_COM, only : ntm_gasexch  !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : atrac_loc
-      use domain_decomp_atm, only : agrid=>grid
-      implicit none
-      integer nt,i,j
-
-      do j=agrid%j_strt,agrid%j_stop
-      do i=agrid%i_strt,agrid%i_stop
-      if (focean_loc(i,j).gt.0.) then
-          do nt=1,ntm_gasexch
-            GTRACER_loc(nt,1,i,j)=atrac_loc(i,j,nt)
-          enddo
-      endif
-      enddo
-      enddo
-
-      end subroutine init_gasexch_co2
-#endif
 
 c ---------------------------------------------------------------------
 
@@ -96,7 +25,7 @@ c ---------------------------------------------------------------------
   
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : trname,tr_mm,vol2mass,ntm_gasexch
+      USE TRACER_COM, only : vol2mass,ntm_gasexch
       USE obio_incom, only : awan
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime

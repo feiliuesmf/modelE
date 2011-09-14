@@ -5,12 +5,17 @@
       MODULE RAD_COM
 !@sum  RAD_COM Model radiation arrays and parameters
 !@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,lm_req
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : lm_req
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
+
+!@dbparam NRad:   DT_Rad      =  NRad*DTsrc
+      INTEGER :: NRad = 5
+!@var MODRD: if MODRD=0 do radiation, else skip
+      INTEGER :: MODRD
 
 C**** DEFAULT ORBITAL PARAMETERS FOR EARTH
 C**** Note PMIP runs had specified values that do not necesarily
@@ -60,8 +65,9 @@ C**** does not produce exactly the same as the default values.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSURF
 !@var FSF Solar Forcing over each type (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: FSF
-!@var FSRDIR Direct beam solar incident at surface (W/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR
+!@var FSRDIR Solar incident at surface, direct fraction (1)
+!@var DIRVIS Direct beam solar incident at surface (W/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR,DIRVIS
 !@var SRVISSURF Incident solar direct+diffuse visible at surface (W/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF
 !@var SRDN Total incident solar at surface (W/m^2)
@@ -261,25 +267,30 @@ C**** Local variables initialised in init_RAD
       real*8 :: lat_dh2o(jm_dh2o)
 #endif
 
+      TARGET :: COSZ1
+#ifdef OBIO_RAD_coupling
+      TARGET :: DIRVIS,FSRDIF,DIRNIR,DIFNIR
+#endif
+
       END MODULE RAD_COM
 
       SUBROUTINE ALLOC_RAD_COM(grid)
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
 
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE DOMAIN_DECOMP_ATM, ONLY : GET
-      USE MODEL_COM, ONLY : IM, JM, LM, LM_REQ
+      USE RESOLUTION, ONLY : IM, JM, LM
+      USE ATM_COM, ONLY : LM_REQ
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm
+      USE tracer_com,ONLY : Ntm => NTM
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
-     *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI
+     *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
 #ifdef mjo_subdd
      *     ,SWHR_cnt,LWHR_cnt,SWHR,LWHR,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -320,6 +331,7 @@ C**** Local variables initialised in init_RAD
      *     TRSURF(4, I_0H:I_1H, J_0H:J_1H),
      *     FSF(4,I_0H:I_1H, J_0H:J_1H),
      *     FSRDIR(I_0H:I_1H, J_0H:J_1H),
+     *     DIRVIS(I_0H:I_1H, J_0H:J_1H),
      *     SRVISSURF(I_0H:I_1H, J_0H:J_1H),
      *     FSRDIF(I_0H:I_1H, J_0H:J_1H),
      *     DIRNIR(I_0H:I_1H, J_0H:J_1H),
@@ -400,19 +412,20 @@ C**** Local variables initialised in init_RAD
       SUBROUTINE io_rad(kunit,iaction,ioerr)
 !@sum  io_rad reads and writes radiation arrays to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,ioread_single
-     *         ,lhead,Kradia,irsficnt,irsficno
+     *         ,lhead,irsficnt,irsficno
+      USE ATM_COM, only : kradia
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm
+      USE tracer_com,ONLY : Ntm => NTM
 #endif
       USE RAD_COM
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_BLOCK , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA  , PACK_DATA
-      USE DOMAIN_DECOMP_1D, ONLY : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, ONLY : broadcast
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -642,9 +655,9 @@ C**** Local variables initialised in init_RAD
           end if
 
 #ifdef TRACERS_ON
-          CALL ESMF_BCAST(grid, ttausv_count)
+          CALL broadcast(grid, ttausv_count)
 #endif
-          CALL ESMF_BCAST(grid, S0)
+          CALL broadcast(grid, S0)
           CALL UNPACK_COLUMN(grid,  RQT_glob,  RQT)
           Call UNPACK_BLOCK( grid, kliq_glob, kliq)
           CALL UNPACK_COLUMN(grid, SRHR_glob, SRHR)
@@ -810,7 +823,7 @@ C**** Local variables initialised in init_RAD
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
 #ifdef TRACERS_ON
-      USE tracer_com , only : ntm
+      USE tracer_com , only : ntm => NTM
 #endif
       use rad_com
       use domain_decomp_atm, only : grid
@@ -872,8 +885,10 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid, fid,'trsurf', trsurf, jdim=3)
         call read_dist_data(grid, fid,'fsf',  fsf, jdim=3)
         call read_dist_data(grid, fid,'salb', salb)
+        fsrdir = 0.; srvissurf = 0.
         call read_dist_data(grid, fid,'fsrdir', fsrdir)
         call read_dist_data(grid, fid,'srvissurf', srvissurf)
+        dirvis = fsrdir*srvissurf ! reconstruct when restarting.
         call read_dist_data(grid, fid,'fsrdif', fsrdif)
         call read_dist_data(grid, fid,'dirnir', dirnir)
         call read_dist_data(grid, fid,'difnir', difnir)

@@ -19,29 +19,25 @@
 
 ## default settings
 $CMRUNDIR="/u/cmrun";
-$EXECDIR="/u/exec";
 $SAVEDISK="/raid1";
 $GCMSEARCHPATH="/u/cmrun";
 $NETCDFHOME="/usr/bin";
 $MAILTO="";
 $UMASK=002;
 $MIN_STACK=0;
-$omp=0;
 $mpi=0;
 $nproc=1;
-$flag_wait=0;
 $MPIDISTR="";
-$debugger="";
-$QSUB_STRING="";
 $MPIRUN_COMMAND="";
+$LOCATION="";
 
 ## if $HOME/.modelErc is present get settings from there
 
 if (exists $ENV{MODELERC}) {
-  $modelerc = $ENV{MODELERC}
+    $modelerc = $ENV{MODELERC}
 }
 else {
-  $modelerc = (getpwuid($>))[7]."/.modelErc";
+    $modelerc = (getpwuid($>))[7]."/.modelErc";
 }
 
 if ( -f $modelerc ) {
@@ -49,14 +45,15 @@ if ( -f $modelerc ) {
     open MODELERC, $modelerc or die "can't open $modelerc";
     while(<MODELERC>) {
 	$CMRUNDIR = $1 if /^ *CMRUNDIR *= *(\S+)/;
-	$EXECDIR = $1 if /^ *EXECDIR *= *(\S+)/;
 	$SAVEDISK = $1 if /^ *SAVEDISK *= *(\S+)/;
 	$GCMSEARCHPATH = $1 if /^ *GCMSEARCHPATH *= *(\S+)/;
 	$MAILTO = $1 if /^ *MAILTO *= *(\S+)/;
 	$UMASK = oct "$1" if /^ *UMASK *= *(\S+)/;
 	$NETCDFHOME = $1 if /^ *NETCDFHOME *= *(\S+)/;
-	$QSUB_STRING = $1 if /^ *QSUB_STRING *= *\"?([^ ^#][^#^"]*).*\n/;
-        $MPIRUN_COMMAND = $1 if /^ *MPIRUN_COMMAND *= *\"?([^ ^#][^#^"]*).*\n/;
+        $MPIDISTR = $1 if /^ *MPIDISTR *= *\"?([^ ^#][^#^"]*).*\n/;
+	$MPIRUN_COMMAND = $1 if /^ *MPIRUN_COMMAND *= *\"?([^ ^#][^#^"]*).*\n/;
+	$LOCATION = $1 if /^ *LOCATION *= *\"?([^ ^#][^#^"]*).*\n/;
+						#	])])]);
     }
     close MODELERC;
 } else {
@@ -65,35 +62,20 @@ if ( -f $modelerc ) {
 
 if ( $MAILTO =~ /^\s*$/ ) { $MAILTO = `whoami`; chop $MAILTO; }
 print "CMRUNDIR = $CMRUNDIR\n";
-print "EXECDIR = $EXECDIR\n";
 print "GCMSEARCHPATH = $GCMSEARCHPATH\n";
 print "SAVEDISK = $SAVEDISK\n";
 print "MAILTO = $MAILTO\n";
 printf "UMASK = %03lo\n", $UMASK;
-print "QSUB_STRING = $QSUB_STRING\n";
 print "MPIRUN_COMMAND = $MPIRUN_COMMAND\n";
 
 while ($_ = $ARGV[0], /^-/) {
     shift;
     last if /^--$/;
-    if (/^-omp\b/) { $omp = 1; $nproc = shift; next;}
-    if (/^-mpi\b/) { $mpi = 1; $nproc = shift; next;}
-    if (/^-wait\b/) { $flag_wait = 1; next;}
-    if (/^-mpidistr\b/) { $MPIDISTR = shift; next;}
-    if (/^-debug\b/) { $debugger = shift; $flag_wait = 1; next;}
+    if (/^-mpi\b/) { $mpi = 1; next;}
+    if (/^-mpidistr\b/) { $MPIDISTR = shift; $mpi = 1; next;}
     print "setup: unknown option $_ \n"; exit 1;
 }
 
-if ( $omp && $mpi ) {
-    print "you can't use -omp and -mpi at the same time\n";
-    exit 1;
-}
-
-if ( $nproc !~ /^\d+$/ || $nproc < 1 ) {
-    print "number of processors should be >= 1\n";
-    print "you have: $nproc\n";
-    exit 1;
-}
 
 if ( $#ARGV != 0 ) { 
     print "This script is not supposed to be run outside of Makefile\n";
@@ -184,12 +166,13 @@ chdir "$runID" or die "Can't chdir to $runID : $!\n";
 open PRT, ">$runID".".PRT" or die "can't open ${runID}.PRT for writing\n";
 print PRT "0Run $runID\n";
 
-## Move executable from "$runID"_bin directory to $runID
+## Copy executable from "$runID"_bin directory to $runID
 if ( ! -f "$DeckDir/$runID"."_bin/$runID.exe" ) {
     print "$DeckDir/$runID"."_bin/$runID.exe","not found\n";
     exit 1;
 }
-`mv -f "$DeckDir/$runID"_bin/$runID.exe $runID.exe`;
+
+`cp -f "$DeckDir/$runID"_bin/$runID.exe $runID.exe`;
 chmod 0777 & $umask_inv, "$runID.exe";
 
 open RFILE, "$DeckDir/$rfile" or die "can't open $DeckDir/$rfile";
@@ -197,8 +180,10 @@ open RFILE, "$DeckDir/$rfile" or die "can't open $DeckDir/$rfile";
 ## Check signature
 $_ = <RFILE>;
 if ( ! /^\s*$runID/ ) {
-    print "inconsistent Naming: $rfile is not $_\n" ;
-    exit 1;
+    #print "inconsistent Naming: $rfile is not $_\n" ;
+    #exit 1;
+    #if first line doesn't start from runID add (prepend) it
+    $_ = $runID." ".$_;
 }
 print PRT " $_";
 
@@ -234,19 +219,11 @@ foreach $_ ( @data_files ) {
 	$flag_missing_data_files = 1;
 	#exit 1;
     }
-    if ( $name !~ /^(AIC|OIC|GIC)$/ ) {
-	print RUNIDLN "ln -fs $dest $name\n";
-	print RUNIDULN "rm $name\n";
-    } else {
-	`ln -sf $dest $name` ; 
-	print "using $dest for IC only\n";
-    }
+    print RUNIDLN "ln -fs $dest $name\n";
+    print RUNIDULN "rm $name\n";
 }
 
-print RUNIDULN "chmod -R ugo+r . 2> /dev/null\n";
-
 if ( $flag_missing_data_files ) { exit 1; }
-
 
 close RUNIDLN;
 close RUNIDULN;
@@ -274,33 +251,32 @@ print RUNTIMEOPTS <<EOF;
 EOF
 close RUNTIMEOPTS;
 
-## Architecture-dependent commands to start openMP/MPI
-$omp_run = '';
-$mpi_run = 'echo no support for MPI, will not run ';
-if ( $uname =~ /IRIX64/ ) {
-    $omp_run = "export MP_SET_NUMTHREADS=\$NP; ";
-    $mpi_run = "mpirun -np \$NP ";
-} elsif ( $uname =~ /OSF1/ ) {
-    $omp_run = "set OMP_SET_NUMTHREADS=\$NP; ";
+## Architecture-dependent commands to start MPI runs
+# default commands
+$mpi_start = "";
+$mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
+$mpi_stop = "";
+
+if ( $MPIDISTR =~ /mvapich2/ ) {
+    $mpi_run = "mpirun_rsh -np \$NP -hostfile \$PBS_NODEFILE ";
+} elsif ( $MPIDISTR =~ /SCALI/ ) {
+    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP -inherit_limits ";
+} elsif ( $MPIDISTR =~ /openmpi/ ) {
+    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP --mca btl_openib_warn_no_hca_params_found 0 ";
+}
+
+# special cases for old architectures
+if ( $uname =~ /OSF1/ && ! $MPIDISTR) {
     $mpi_run = "prun -s -n \$NP ";
-} elsif ( $uname =~ /AIX/ ) {
-    $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check
-} elsif ( $uname =~ /Linux/ ) {
-    $omp_run = "export OMP_NUM_THREADS=\$NP; ";
-    if ( $MPIDISTR =~ /mvapich2/ ) {
-        $mpi_run = "mpirun_rsh -np \$NP -hostfile \\\$PBS_NODEFILE ";
-    } else {
-        $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
+}
+
+# special cases for particulat machines
+if ( $LOCATION =~ /Pleiades/i ) {
+    if ( $MPIDISTR =~ /intel/ ) {
+	$mpi_start = "mpdboot --file=\$PBS_NODEFILE --ncpus=1 --totalnum=`cat \$PBS_NODEFILE  | sort -u | wc -l` --ifhn=`head -1 \$PBS_NODEFILE` --rsh=ssh --mpd=`which mpd` --ordered";
+	$mpi_run = "mpiexec \$MPI_FLAGS -np \$NP";
+	$mpi_stop = "mpdallexit";
     }
-    if ( $MPIDISTR =~ /SCALI/ ) {
-	$mpi_run .= "-inherit_limits ";
-    }
-    if ( $MPIDISTR =~ /openmpi/ ) {
-        $mpi_run .= "--mca btl_openib_warn_no_hca_params_found 0 ";
-    }
-} elsif ( $uname =~ /Darwin/ ) {
-    $omp_run = "export OMP_NUM_THREADS=\$NP; ";
-    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
 }
 
 # overwrite the command with the one from modelErc if present
@@ -308,133 +284,55 @@ if ( $MPIRUN_COMMAND ) {
     $mpi_run = $MPIRUN_COMMAND." ";
 }
 
-
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
 
 open I, ">I" or die "can't open 'I' for writing\n";
 ## Check signature
 $_ = <RFILE>;
 if ( ! /^\s*$runID[ (]/ ) {
-    print "inconsistent Naming: $rfile is not start of $_\n" ;
-    exit 1;
+    #print "inconsistent Naming: $rfile is not start of $_\n" ;
+    #exit 1;
+    $_ = $runID." ".$_;
 }
 print I;
 $_ = <RFILE>;
 print I;
+
+## Hack: if in old format try to fix it
+$istr = "";
+$str_cold = "";
 while (<RFILE>) {
     chop;
     s/!.*//g;
     s/^\s*/ /;
     s/\s*$//;
     next if ( ! $_ ); 
-    print I "$_\n";
+    #print I "$_\n";
+    if ( /ISTART/ ) {
+	$str_cold .= "$_\n";
+    } else {
+	$istr .= "$_\n";
+    }
 }
+
+print I "$istr\n";
+
+if ( $str_cold ) {
+    print I " &INPUTZ_cold\n";
+    print I "$str_cold";
+    print I " /\n";
+}
+
 close I;
 close PRT;
 chmod 0666 & $umask_inv, "I", "${runID}.PRT";
 
-## Run the 1st hour then clean up
-print "starting the execution \n";
-print "current dir is ", `pwd`;
-
-## Switching to background
-if ( (!$flag_wait) && ($pid = fork) ) {
-    print "Starting 1st hour in the background.\n\n";
-    exit 0;
-}
-
-if ( ! defined $pid ) {
-    print "Fork failed. Continuing in foreground.\n";
-}
-
 if ( $mpi ) {
     $run_command = $mpi_run;
-    $qsub_command = $QSUB_STRING;
 } else {
-    $run_command = $omp_run; # serial also fits here
-    $qsub_command = "";
+    $run_command = "";
 }
 
-## a hack to run setup in debugger
-
-if ( $debugger ) {
-print <<`EOC`;
-    umask $umask_str
-    touch lock
-    . ./runtime_opts
-    echo "-99" > run_status
-    echo "INPUT not yet completed" >> run_status
-    ./"$runID"ln
-EOC
-exec "$debugger ./$runID.exe; rm -f AIC GIC OIC; ./${runID}uln; rm -f lock";
-}
-
-## If on some machines MPI can't be used interactively, a hack
-## can be intruduced here to run 1st hour in serial mode
-
-
-## hack to set "ulimit" for openmpi jobs
-# seems it is not needed any more (and sometimes causes problems)
-#$stack_in_wrapper = ($MIN_STACK>1024000) ? $MIN_STACK : 1024000;
-#if ( $MPIDISTR =~ /openmpi/ ) {
-#print <<`EOC`;
-#    echo "#!/bin/sh" > ${runID}.wrapper
-#    echo "ulimit -s $stack_in_wrapper" >> ${runID}.wrapper
-#    echo `pwd`/"$runID.exe \\\$\@" >> ${runID}.wrapper
-#EOC
-#} else {
-#    `ln -sf $runID.exe $runID.wrapper`;
-#}
-#`chmod 755 $runID.wrapper`;
-
-## Running the model
-print <<`EOC`;
-    umask $umask_str
-    touch lock
-    . ./runtime_opts
-    echo "-99" > run_status
-    echo "INPUT not yet completed" >> run_status
-    if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
-    ./"$runID"ln
-    NP=$nproc
-    echo "#!/bin/sh" > setup_command
-    echo cd `pwd` >> setup_command
-    echo "$run_command ./"$runID".exe -i I >> ${runID}.PRT" >> setup_command
-    chmod 755 setup_command
-    $qsub_command ./setup_command
-    touch run_status  # don't trust clocks on batch nodes
-    rc=`head -1 run_status`
-    rm -f AIC GIC OIC
-    ./"$runID"uln
-    rm -f lock
-    exit \$rc
-EOC
-
-# print warning if any
-open(PRTFILE, "$runID.PRT") or die "can't open $runID.PRT\n";
-while(<PRTFILE>) {
-    if ( /^ ?WARNING/ ) { print ; }
-}
-	close PRTFILE;
-
-$rcode = $? >> 8;
-# mpirun returns 0 on success...
-if ( $rcode != 13 && $rcode != 12 ) {
-    print " Problem encountered while running hour 1 :\n";
-    if ( $rcode != 1 ) {
-	$error_message = `tail -1 run_status`; chop $error_message;
-    } else {
-	$error_message = "Unknown reason (Segmentation fault?)";
-    }
-    print " >>> $error_message <<<\n";
-    exit 4 ;
-} else {
-    print "1st hour completed successfully\n";
-}
-
-## HACK needed for proper setup of mvapich2 runs
-#  (need to remove extra '\')
-$run_command =~ s/\\(?=\$PBS_NODEFILE)//g;
 
 ## Create executable script file RUNID
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
@@ -442,9 +340,12 @@ print RUNID <<EOF;
 \#!/bin/sh
     PRTFILE=${runID}.PRT
     IFILE="I"
-    RESTART=0
     NP="\$MP_SET_NUMTHREADS"
+    debug=0
+    opts=
+    touch_ifile=0
     if [ "\$NP"x = x ] ; then NP=1; fi
+    if [ "\$DEBUG_COMMAND"x = x ] ; then DEBUG_COMMAND="xterm -e gdb "; fi
     while [ \$\# -ge 1 ] ; do
       OPT=\$1 ; shift
       case \$OPT in
@@ -457,11 +358,14 @@ print RUNID <<EOF;
         -i)
             IFILE="\$1" ; shift
             ;;
-        -r)
-            RESTART=1
-            ;;
         -np)
             NP="\$1" ; shift
+            ;;
+        -d)
+            debug=1
+            ;;
+        -cold-restart)
+            opts="\$opts -cold-restart" ; touch_ifile=1
             ;;
          *)
             echo "Warning: wrong option ignored: \$OPT"
@@ -469,10 +373,13 @@ print RUNID <<EOF;
       esac
     done
     umask $umask_str
-    if [ `head -1 run_status` -eq 13 ] ; then
+    rc=99
+    if [ -s run_status ] ; then rc=`head -1 run_status` ; fi
+    if [ \$rc -eq 13 ] ; then
       if [ `find run_status -newer I` ] ; then
         echo 'run seems to have finished'
-      exit 1; fi; fi
+        exit 1; fi
+    fi
     if [ -f lock ] ; then
       echo 'lock file present - aborting' ; exit 1 ; fi
     touch lock
@@ -481,20 +388,23 @@ print RUNID <<EOF;
     . ./runtime_opts
     if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
     ./${runID}ln
-    $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
+    $mpi_start
+    if [ \$debug -eq 1 ] ; then
+      $run_command \$DEBUG_COMMAND ./${runID}.exe
+    else
+      $run_command ./${runID}.exe -i ./\$IFILE \$opts > \$PRTFILE
+    fi
+    $mpi_stop
     rc=`head -1 run_status`
     ./${runID}uln
     rm -f lock
-    if [ \$RESTART -ge 1 ] ; then exit \$rc ; fi
-    exec $EXECDIR/runpmE $runID \$rc $MAILTO
+    if [ \$touch_ifile -eq 1 ] ; then touch \$IFILE ; fi
+    exit \$rc
 EOF
 close RUNID;
 chmod 0777 & $umask_inv, $runID;
 ## end of RUNID script
 `ln -sf $runID E`;
-
-## overwrite RUNID.I omitting ISTART=.. line.
-`umask $umask_str; grep -v "ISTART=" I > I.tmp; mv -f I.tmp I`;
 
 ## setup finished normally
 exit 0 ;

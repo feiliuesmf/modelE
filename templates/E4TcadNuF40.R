@@ -16,6 +16,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define NUDGE_ON                 ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
@@ -41,7 +42,6 @@ Preprocessor Options
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 End Preprocessor Options
@@ -52,10 +52,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT_netcdf                ! diagn/post-processing output
 IORSF                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
@@ -69,6 +65,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 lightning                           ! Colin Price lightning model

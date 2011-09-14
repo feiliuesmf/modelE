@@ -11,7 +11,7 @@
 
       USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,
-     *                          ESMF_BCAST, UNPACK_DATA, GLOBALSUM
+     *                          UNPACK_DATA, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
@@ -172,7 +172,6 @@ c**** Extract domain decomposition info
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
 
 C**** Initialize SLOPES common block of coefficients
-!$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
         ASX0(:,:,L)=0. ;ASX1(:,:,L)=0. ; ASX2(:,:,L)=0. ; ASX3(:,:,L)=0.
         AIX0(:,:,L)=0. ;AIX1(:,:,L)=0. ; AIX2(:,:,L)=0. ; AIX3(:,:,L)=0.
@@ -182,7 +181,6 @@ C**** Initialize SLOPES common block of coefficients
         S2Y0(:,:,L)=0. ;S2Y1(:,:,L)=0. ; S2Y2(:,:,L)=0. ; S2Y3(:,:,L)=0.
          BXX(:,:,L)=0. ; BYY(:,:,L)=0. ;  BZZ(:,:,L)=0.
       END DO
-!$OMP END PARALLEL DO
 
 C**** Calculate all diffusivities
       CALL ISOSLOPE4
@@ -193,7 +191,6 @@ C**** Calculate all diffusivities
      *           :) , FROM=SOUTH)
 
 C**** Surface layer is calculated directly with appropriate AI,S = 0
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO       !Calculating all layers!
       DO J=J_0STG,J_1STG
       IM1 = IM
@@ -269,12 +266,25 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
       AEZY(I,J,L)  =  ASY3(I,J,L)
       EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L)
       CEZY(I,J,L)  = -ASY1(I,J,L)
+      ELSE
+      IF (L.gt.1) BZZ(I,J,L-1) = 0.
+      AZX(I,J,L)   = 0.
+      BZX(I,J,L)   = 0.
+      CZX(I,J,L)   = 0.
+      AEZX(I,J,L)  = 0.
+      EZX(I,J,L)   = 0.
+      CEZX(I,J,L)  = 0.
+      AZY(I,J,L)   = 0.
+      BZY(I,J,L)   = 0.
+      CZY(I,J,L)   = 0.
+      AEZY(I,J,L)  = 0.
+      EZY(I,J,L)   = 0.
+      CEZY(I,J,L)  = 0.
       END IF
   110 IM1 = I
       END DO
       END DO
       END DO
-!$OMP END PARALLEL DO
 
 !     calculate CDYZ,CYZ,CEYZ,BYY at J_1 from J_1 + 1
       IF (QCROSS) THEN
@@ -314,7 +324,6 @@ C****
       SUBROUTINE GMFEXP (TRM, TXM, TYM, TZM, QLIMIT, GIJL)
 !@sum  GMFEXP apply GM fluxes to tracer quantities
 !@auth Gavin Schmidt/Dan Collins
-!@ver  1.0
       USE GM_COM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -343,7 +352,6 @@ c**** Extract domain decomposition info
       DT4 = 0.25*DTS
 C**** Explicit calculation of "fluxes" (R(T))
 C**** Calculate tracer concentration
-!$OMP PARALLEL DO  PRIVATE(L,J,I)
       DO L = 1,LMO
         DO J = J_0,J_1
           DO I = 1,IM
@@ -358,12 +366,10 @@ C**** Calculate tracer concentration
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 
       CALL HALO_UPDATE(grid,TR(:,grid%j_strt_halo:grid%j_stop_halo,:) ,
      *                 FROM=NORTH+SOUTH)
 
-!$OMP PARALLEL DO  PRIVATE(L,J,DT4DY,DT4DX,IM1,I,IP1)
       DO L=1,LMO
       DO J=J_0S,J_1S
 C**** 1/DYPO(DXP) from Y(X) gradient of T for FZY(FZX)
@@ -451,7 +457,6 @@ C**** Skip for L+1 greater than LMM(I,J+1)
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
 !     HALO data used in computeFluxes 
       CALL HALO_UPDATE(grid,MO(:,grid%j_strt_halo:grid%j_stop_halo
@@ -489,7 +494,6 @@ C****
       SUBROUTINE computeFluxes(DT4, flux_x, flux_y, flux_z, TXM, TYM,
      &                         TZM, FXX, FXZ, FYY, FYZ, FZZ, FZX, FZY)
 !@sum  computes GM fluxes for tracer quantities
-!@ver  1.0
       USE GM_COM, ONLY: grid,GET,IM,JM,LMO,LMM,LMU,LMV,
      &                  DXYPO,MO, kpl,
      &                  BXX, BYY, BZZ, BYDH, ARAI, BYDXP, BYDYP
@@ -515,7 +519,6 @@ c**** Extract domain decomposition info
 C**** Summation of explicit fluxes to TR, (R(T))
       flux_x = 0.0; flux_y = 0.0; flux_z = 0.0;
 
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,MOFX,RFXT,MOFY,RFYT,MOFZ,RFZT)
       DO L=1,LMO
 C**** Non-Polar boxes
       DO J=J_0S,J_1S
@@ -644,7 +647,6 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
       END IF   ! HAVE_SOUTH_POLE
 
  620  END DO   ! L loop
-!$OMP END PARALLEL DO
 
       RETURN
       END SUBROUTINE computeFluxes
@@ -652,7 +654,6 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
       SUBROUTINE wrapAdjustFluxes(TRM, flux_x, flux_y, flux_z, GIJL)
 !@sum Applies limiter to GM flux divergence to prevent tracer quantities
 !@+   from becoming negative.
-!@ver  1.0
       USE GM_COM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -805,7 +806,6 @@ c
 
       SUBROUTINE addFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
 !@sum applies GM fluxes to tracer quantities
-!@ver  1.0
       USE GM_COM, only: grid, GET, IM, JM, LMO,DXYPO,MO,
      &                        LMM, LMU, LMV, KPL
       IMPLICIT NONE
@@ -1007,10 +1007,6 @@ C**** diffusion coefficient is calculated for each triad as well.
 C**** The diffusion coefficient is taken from Visbeck et al (1997)
 C****
 C**** Main Loop over I,J and L
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I, byAIDT,
-!$omp&  AIX0ST,AIX1ST,AIX2ST,AIX3ST, AIY0ST,AIY1ST,AIY2ST,AIY3ST,
-!$OMP&  SIX0  ,SIX1  ,SIX2  ,SIX3  , SIY0  ,SIY1  ,SIY2  ,SIY3  ,
-!$OMP&  DSX0sq,DSX1sq,DSX2sq,DSX3sq, DSY0sq,DSY1sq,DSY2sq,DSY3sq)
       DO L=1,LMO
       DO J=J_0STG,J_1STG
       IM1=IM
@@ -1115,14 +1111,12 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       END DO
       END DO
       END DO
-!$OMP END PARALLEL DO
       RETURN
       END SUBROUTINE ISOSLOPE4
 C****
       SUBROUTINE DENSGRAD
 !@sum  DENSGRAD calculates all horizontal and vertical density gradients
 !@auth Gavin Schmidt/Dan Collins
-!@ver  1.0
       USE GM_COM
       USE FILEMANAGER
       IMPLICIT NONE
@@ -1182,7 +1176,6 @@ C****
       RHO = -0.0; BYDH = -0.0;
       DZV = -0.0; BYDZV = -0.0;
 
-!$OMP PARALLEL DO  PRIVATE(L,J,I,BYRHO,DH0,DZVLM1)
       DO L=1,LMO
       DO J=J_0,J_1
       DO I=1,IM
@@ -1210,7 +1203,6 @@ C**** RHO(I,J,L)  Density=1/specific volume
  911  END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
       CALL HALO_UPDATE(grid,RHO (:,grid%j_strt_halo:grid%j_stop_halo,:),
      *                 FROM=SOUTH+NORTH)
@@ -1222,7 +1214,6 @@ C**** Calculate density gradients
       RHOY = -0.0; RHOX = -0.0;
 
       J_1HR = min(J_1STG+1, JM)
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I)
       DO L=1,LMO
         DO J=J_0STG,J_1HR
           IM1 = IM
@@ -1245,12 +1236,9 @@ C**** Calculate horizontal gradients
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
       ARIV = 0.
-!$OMP PARALLEL DO  PRIVATE(J,CORI,BETA,IM1,I,ARHO,ARHOX,ARHOY,
-!$OMP&  DZSUMX,DZSUMY,LAV,L,ARHOZ,AN,RD,BYTEADY)
       DO J=J_0S,J_1S
         CORI = ABS(2d0*OMEGA*SINPO(J))
         BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
@@ -1308,7 +1296,6 @@ C**** Set diagnostics
           OIJ(I,J,IJ_GMSC) = OIJ(I,J,IJ_GMSC) + AINV(I,J) ! GM-scaling
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C**** North pole
       if ( HAVE_NORTH_POLE ) then
         IF (LMM(1,JM).gt.0) THEN
@@ -1438,7 +1425,6 @@ C****
       Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
       Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
 
-C$OMP ParallelDo   Private (I,J,L,IMAX)
       Do J=J1,JNH
         IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
         Do I=1,IMAX

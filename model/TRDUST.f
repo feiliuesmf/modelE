@@ -4,8 +4,10 @@
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE model_com,ONLY : dtsrc,nisurf
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      USE model_com,ONLY : dtsrc
+      use fluxes, only : nisurf
       USE socpbl,ONLY : t_pbl_args
       USE tracers_dust,ONLY : imDust,lim,ljm,lkm,table,x1,x2,x3
 
@@ -297,7 +299,8 @@ c**** output
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       USE socpbl,ONLY : t_pbl_args
       USE tracer_com,ONLY : Ntm_dust,trname,n_clay,n_clayilli
       use tracers_dust,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
@@ -405,7 +408,7 @@ c**** Interactive dust emission
         END SELECT
 
 #else
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         SELECT CASE (n)
         CASE (1)
           IF (imDust == 0) THEN
@@ -515,7 +518,7 @@ c**** prescribed AEROCOM dust emission
 
 #else
 
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         dsrcflx=d_dust(n)
 #endif
 
@@ -533,7 +536,8 @@ c**** prescribed AEROCOM dust emission
       SUBROUTINE polint3dlin(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy) 
  
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)  || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM)  || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
       implicit none 
       INTEGER, INTENT(IN) :: m,n,lkm 
@@ -584,7 +588,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint3dcub(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       implicit none
       INTEGER, INTENT(IN) :: m,n,lkm
       REAL*8, INTENT(IN) :: x1,x2,x3,x1a(m),x2a(n),x3a(lkm),ya(m,n,lkm)
@@ -634,7 +639,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
 
       IMPLICIT NONE
 
@@ -683,7 +689,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE locate(xx,n,x,j)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j
@@ -720,12 +727,11 @@ c****
     (defined TRACERS_QUARZHEM)
       USE constant,ONLY : Grav
       USE resolution,ONLY : Jm,Lm
-      USE model_com,ONLY : zatmo
+      USE atm_com,ONLY : zatmo,gz
       USE fluxes,ONLY : prec
       USE clouds,ONLY : tm_dust,tmom_dust,trprc_dust
       USE tracer_com,ONLY : Ntm_dust,trname
       USE tracers_dust,ONLY : prelay
-      USE dynamics,ONLY : gz
 
       IMPLICIT NONE
 
@@ -739,9 +745,6 @@ c****
       REAL*8 :: y
       REAL*8 :: height
       REAL*8,DIMENSION(Lm,Ntm_dust) :: tmold
-
-      COMMON /dustprv/ l,layer,y,height,lwdep,h,tmold
-!$OMP  THREADPRIVATE (/dustprv/)
 
 #ifdef WET_DEPO_Ina
       SELECT CASE(j)

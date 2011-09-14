@@ -8,7 +8,6 @@
 !@+ Feautrier/Auer/Prather version.
 !@auth UCI (see note below), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23.S)
 !@calls SET_PROF,JVALUE,PRTATM,JRATET
 c  Fastj2 photolysis scheme obtained from H. Bian (UCI) 8/2002.
 c  An expanded version of fastJ that includes stratosphere
@@ -18,7 +17,7 @@ c  D. Shindell, Aug. 2002
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM,only : GRID,GET
-      USE MODEL_COM, only    : LM
+      USE RESOLUTION, only   : LM
       USE CONSTANT, only     : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
      &                           szamax,U0,NCFASTJ2,iprn,jprn,prnrts
@@ -69,10 +68,11 @@ c
 !@+  tracers from the model into account.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
-!@ver  1.0 (based on ds4p_fastj2_M23)
 c
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: IM,JM,LM,Itime,month=>JMON
+      USE RESOLUTION, only  : JM,LM
+      USE GEOM, only: lat2d_dg
+      USE MODEL_COM, only: Itime,month=>JMON
       USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
      &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
      &     dmfastj2,NBFASTJ,AER2,MXFASTJ
@@ -109,7 +109,7 @@ c  1000 mb are assumed to extend down to the actual P(nslon,nslat).
       pstd(52) = 0.d0
 
 c  Select appropriate monthly and latitudinal profiles:
-      ydgrd=-(90.d0-(real(nslat)*90.d0/(real(JM)/2.d0)))!lat in degrees
+      ydgrd=lat2d_dg(nslon,nslat)
       m = max(1,min(12,month))
       l = max(1,min(18,(int(ydgrd)+99)/10))
 
@@ -165,6 +165,7 @@ c  Assume limiting temperature for ice of -40 deg C :
         endif
       enddo
 
+#ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
       iclay=0  
@@ -174,7 +175,7 @@ c Now do the rest of the aerosols
         case ('SO4')      ; j=1 
         case ('seasalt1') ; j=2 
         case ('seasalt2') ; j=3 
-        case ('OCIA')     ; j=4 ! multiple tracers 
+        case ('OCIA', 'vbsAm2') ; j=4 ! multiple tracers 
         case ('OCB')      ; j=4 
         case ('isopp1a')  ; j=4 ! multiple tracers
         case ('BCIA')     ; j=5 
@@ -198,6 +199,7 @@ c Now do the rest of the aerosols
         endif
       enddo
 #endif
+#endif
 
 c Top of the atmosphere
       AER2(:,LM+1) = 0.d0
@@ -218,11 +220,10 @@ c  Calculate column quantities for Fast-J2:
 !@sum CLDSRF to set cloud and surface properties
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only    : IM,LM
+      USE RESOLUTION, only   : LM
       USE RAD_COM, only      : ALB
       USE TRCHEM_Shindell_COM, only: RCLOUDFJ,odsum,odmax,
      &            nlbatm,RFLECT,NBFASTJ,AER2,jadsub,dtausub,odcol
@@ -289,11 +290,10 @@ c Set sub-division switch if appropriate
 !@+   the CTM.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only: IM,LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: jpnl,TFASTJ,VALJ,NW1,NW2,NJVAL,
      &                               QQQ,JPPJ,ZJ,jfacta,FFF,TQQ,JIND
 
@@ -350,11 +350,12 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@sum PRTATM Print out the atmosphere and calculate appropriate columns
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE MODEL_COM, only: JM, month=>JMON 
+      USE RESOLUTION, only  : JM
+      USE GEOM, only: lat2d_dg
+      USE MODEL_COM, only: month=>JMON 
       USE TRCHEM_Shindell_COM, only: SZA,NBFASTJ,MXFASTJ,DMFASTJ2,TJ2,
      &             masfac,dlogp2,oref2,tref2,DO32,AER2,PFASTJ2,ZFASTJ2
 
@@ -408,7 +409,7 @@ C---Print out atmosphere:
 C---Print out climatology:
       if(NFASTJq > 2) then
         climat(:)=0.d0
-        ydgrd=-(90.d0-(real(nslat)*90.d0/(real(JM)/2.d0)))!lat degrees
+        ydgrd=lat2d_dg(nslon,nslat)
         m = max(1,min(12,month))
         l = max(1,min(18,(int(ydgrd)+99)/10))
         write(out_line,*) 'Specified Climatology'
@@ -448,11 +449,10 @@ C---Print out climatology:
 !@+   SZA value. 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
-      USE MODEL_COM, only: LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: NW1,NW2,NBFASTJ,WL,FL,FFF,JPNL,TJ2
 
       IMPLICIT NONE
@@ -494,7 +494,6 @@ C---Loop over all wavelength bins:
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -522,7 +521,6 @@ C**** Local parameters and variables and arguments:
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -550,7 +548,6 @@ C**** Local parameters and variables and arguments:
 !@+   S_R Bands yet!
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls FLINT
 
 C**** GLOBAL parameters and variables:
@@ -577,7 +574,6 @@ C**** Local parameters and variables and arguments:
 !@sum FLINT Three-point linear interpolation function
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
       IMPLICIT NONE
 
@@ -613,12 +609,11 @@ C**** Local parameters and variables and arguments:
 !@+   beam (where tangent height is below altitude J-value desired at). 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
       USE CONSTANT, only: radius
-      USE MODEL_COM, only: LM
+      USE RESOLUTION, only: LM
       USE TRCHEM_Shindell_COM, only: U0,NBFASTJ,ZFASTJ2,ZZHT,TANHT,
      & nlbatm,AMF
 
@@ -705,7 +700,6 @@ c Lowest level intersected by emergent beam;
 !@+   4-Gauss pts.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 c
 C Currently allow up to NP aerosol phase functions (at all altitudes)
 C to be associated with optical depth AER2(1:NC) = aerosol opt.depth
@@ -784,7 +778,8 @@ C
 C**** GLOBAL parameters and variables:
 C
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE MODEL_COM, only: LM,itime
+      USE RESOLUTION, only : LM
+      USE MODEL_COM, only: itime
       USE TRCHEM_Shindell_COM, only: NBFASTJ,POMEGA,NCFASTJ2,
      & POMEGAJ,MIEDX2,QAAFASTJ,SSA,NLBATM,DO32,DMFASTJ2,QRAYL,
      & AMF,PAA,jaddlv,dtaumax,dtausub,dsubdiv,U0,RFLECT,MXFASTJ,
@@ -1121,7 +1116,6 @@ c Accumulate attenuation for selected levels:
 !@+  see comments. 
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls BLKSLV, GAUSSP, LEGND0
 C
 C-------------------------------------------------------------------
@@ -1182,7 +1176,6 @@ C Solve eqn of R.T. only for first-order M=1
 !@+   A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -1277,7 +1270,6 @@ C----------MEAN J & H
 !@+    system:  A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
 
@@ -1445,7 +1437,6 @@ C------------intermediate points:  can be even or odd, A & C diagonal
 !@+   from P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 !@calls 
                            
       IMPLICIT NONE
@@ -1472,7 +1463,6 @@ C---Always does PL(2) = P[1]
 !@+   (mjp, old...)
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
-!@ver  1.0 (based on ds4p_fastj2_M23)
 
       IMPLICIT NONE
 

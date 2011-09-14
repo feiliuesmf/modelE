@@ -58,7 +58,7 @@ c  Carbon type 2    = DIC
       integer i1,i2,j1,j2,k1,k2
       integer lm
 
-      integer nir,nt
+      integer nir(nrg),nt
       integer iu_bioinit
 
       real dicmin,dicmax
@@ -69,9 +69,6 @@ c  Carbon type 2    = DIC
 
       character*2 ntchar
       character*80 filename
-
-      common /bir/ nir(nrg)
-
 
       INTEGER :: j_0h,j_1h,i_0h,i_1h
 
@@ -415,8 +412,7 @@ c       13 -- Mediterranean/Black Seas
 
       real rlat,rlon
 
-      integer nir
-      common /bir/ nir(nrg)
+      integer nir(nrg)
 
       real antlat,rnpolat
       data antlat,rnpolat /-40.0, 40.0/

@@ -1,14 +1,8 @@
 #include "rundeck_opts.h"
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
 
 module GatherScatter_mod
   use MpiSupport_mod
   use dist_grid_mod
-#ifdef USE_ESMF
-  use ESMF_Mod
-#endif
   implicit none
   private
 
@@ -28,7 +22,7 @@ module GatherScatter_mod
   public :: gatherReal8
   public :: scatterReal8
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
   public :: integerGather
   public :: integerScatter
 #endif
@@ -134,81 +128,10 @@ module GatherScatter_mod
 
 contains
 
-
 #ifdef USE_MPI
 
-  subroutine packBufferInt(axisIndex, array, buffer)
-    type (ESMF_AxisIndex), intent(in) :: axisIndex(0:,:)
-    integer, intent(in) :: array(:,:)
-    integer, intent(out) :: buffer(0:)
-
-    integer i, i1, in, j1, jn
-    integer :: count, displacement, newDisplacement
-    integer :: npes
-    
-    npes = size(axisIndex, 1)
-
-    displacement = 0
-    do i = 0, npes - 1
-
-      i1 = axisIndex(i,1)%min
-      in = axisIndex(i,1)%max
-      j1 = axisIndex(i,2)%min
-      jn = axisIndex(i,2)%max
-
-      count = getCount(axisIndex(i,:))
-      newDisplacement = displacement + count
-
-      buffer(displacement:newDisplacement-1) = &
-           & reshape(array(i1:in,j1:jn), shape=(/count/))
-      displacement = newDisplacement
-    enddo
-
-  end subroutine packBufferInt
-
-  subroutine packBufferLogical(axisIndex, array, buffer)
-    type (ESMF_AxisIndex), intent(in) :: axisIndex(0:,:)
-    logical, intent(in) :: array(:,:)
-    logical, intent(out) :: buffer(0:)
-
-    integer i, i1, in, j1, jn
-    integer :: count, displacement, newDisplacement
-    integer :: npes
-    
-    npes = size(axisIndex, 1)
-
-    displacement = 0
-    do i = 0, npes-1
-      i1 = axisIndex(i,1)%min
-      in = axisIndex(i,1)%max
-      j1 = axisIndex(i,2)%min
-      jn = axisIndex(i,2)%max
-
-      count = getCount(axisIndex(i,:))
-      newDisplacement = displacement + count
-
-      buffer(displacement:newDisplacement-1) =   &
-           &         reshape(array(i1:in,j1:jn), shape=(/count/))
-      displacement = newDisplacement
-    enddo
-
-  end subroutine packBufferLogical
-
-  integer function getCount(axisIndex) result(count)
-    type (ESMF_AxisIndex), intent(in) :: axisIndex(2)
-    integer :: i1, in, j1, jn
-
-    I1 = axisIndex(1)%min
-    IN = axisIndex(1)%max
-    J1 = axisIndex(2)%min
-    JN = axisIndex(2)%max
-
-    count = (in - i1 + 1)*(jn - j1 + 1)
-
-  end function getCount
-
-  subroutine getCountsAndDisplacements(axisIndex, counts, displacements)
-    type (ESMF_AxisIndex), intent(in) :: axisIndex(0:,:)
+  subroutine getCountsAndDisplacements(AI, counts, displacements)
+    type (AxisIndex), intent(in) :: AI(0:,:)
     integer, intent(out) :: counts(0:)
     integer, intent(out) :: displacements(0:)
 
@@ -216,15 +139,15 @@ contains
     integer :: p, dim
     integer :: numProcesses, numDims
 
-    numProcesses = size(axisIndex,1)
-    numDims = size(axisIndex,2)
+    numProcesses = size(AI,1)
+    numDims = size(AI,2)
 
     displacements(0) = 0
     do p = 0, numProcesses - 1
       count = 1
-      do dim = 1, size(axisIndex,2)
-        i1 = axisIndex(p,dim)%min
-        in = axisIndex(p,dim)%max
+      do dim = 1, size(AI,2)
+        i1 = AI(p,dim)%min
+        in = AI(p,dim)%max
         count = count*(in - i1 + 1)
       end do
       counts(p) = count
@@ -250,7 +173,7 @@ contains
     integer :: ierr, rc
     integer :: scount, offset, npes
     integer, allocatable :: rcounts(:), displs(:)
-    type (ESMF_Axisindex), pointer :: ai(:,:)
+    type (AxisIndex), pointer :: ai(:,:)
 
     ! create new mpi types for use in communication
     !----------------------------------------------
@@ -260,9 +183,10 @@ contains
     npes = getNumAllProcesses(grid)
 
     allocate (rcounts(0:NPES-1), displs(0:NPES), stat=rc)
-    call getAxisIndex(grid, ai)
-    call getCountsAndDisplacements(ai(:,2:2), rcounts, displs)
-    deallocate(ai)
+    allocate(AI(NPES,3))
+    call getAxisIndex(grid, AI)
+    call getCountsAndDisplacements(AI(:,2:2), rcounts, displs)
+    deallocate(AI)
 
     scount = rcounts(my_pet)
     offset = baseSize*getOffset(shp, scount, dist_idx)
@@ -299,7 +223,7 @@ contains
     integer :: rc, ierr
     integer :: p, rcount, offset, npes
     integer, allocatable :: scounts(:), displs(:)
-    type (ESMF_Axisindex), pointer :: AI(:,:)
+    type (AxisIndex), pointer :: AI(:,:)
 
     ! create a new mpi type for use in communication
     !-------------------------------
@@ -309,9 +233,10 @@ contains
     npes = getNumAllProcesses(grid)
 
     allocate (scounts(0:NPES-1), displs(0:NPES), stat=rc)
-    call getAxisIndex(grid, ai)
-    call getCountsAndDisplacements(ai(:,2:2), scounts, displs)
-    deallocate(ai)
+    allocate(AI(NPES,3))
+    call getAxisIndex(grid, AI)
+    call getCountsAndDisplacements(AI(:,2:2), scounts, displs)
+    deallocate(AI)
 
     rcount = scounts(my_pet)
     offset = baseSize*getOffset(shp, rcount, dist_idx)
@@ -417,17 +342,6 @@ contains
     offset = product(shp(:dist_idx-1)) * haloWidth
   end function getOffset
 
-  subroutine getAxisIndex(grid, axisIndex)
-    type (dist_grid), intent(in) :: grid
-    type (ESMF_AxisIndex), pointer :: axisIndex(:,:)
-    integer :: rc
-    
-    allocate(axisIndex(getNumAllProcesses(grid),3))
-    call ESMF_GridGetAllAxisIndex(grid%esmf_grid, globalAI=axisIndex, &
-         &     horzRelLoc=ESMF_CELL_CENTER, &
-         &     vertRelLoc=ESMF_CELL_CELL, rc=rc)
-    end subroutine getAxisIndex
-
   subroutine scatterReal8(grid, arr_glob, arr_loc, shp, dist_idx, local)
     type (dist_grid) :: grid
     real(kind=8) :: arr_glob(*)
@@ -441,7 +355,7 @@ contains
     integer :: rc, ierr
     integer :: p, rcount, offset, npes
     integer, allocatable :: scounts(:), displs(:)
-    type (ESMF_Axisindex), pointer :: AI(:,:)
+    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -468,7 +382,7 @@ contains
     integer :: rc, ierr
     integer :: p, rcount, offset, npes
     integer, allocatable :: scounts(:), displs(:)
-    type (ESMF_Axisindex), pointer :: AI(:,:)
+    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -496,7 +410,7 @@ contains
     integer :: rc, ierr
     integer :: p, rcount, offset, npes
     integer, allocatable :: scounts(:), displs(:)
-    type (ESMF_Axisindex), pointer :: AI(:,:)
+    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -512,7 +426,7 @@ contains
 
 #endif
 
-#ifndef USE_ESMF
+#ifndef USE_MPI
   subroutine gatherReal8(grid, arr_loc, arr_glob, shp, dist_idx, all)
     type (dist_grid) :: grid
     real(kind=8) :: arr_loc(*)
@@ -1010,7 +924,7 @@ contains
   
 end module GatherScatter_mod
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
 subroutine genericTypeGather(grid, arr_loc, arr_glob, shp, numDims, dist_idx, &
      & baseType, baseSize, all)
   use dist_grid_mod, only: dist_grid

@@ -7,7 +7,6 @@
       MODULE SOCPBL
 !@sum  SOCPBL deals with boundary layer physics
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from PBLB336E)
 !@cont pbl,advanc,stars,getl,dflux,simil,griddr,tfix
 !@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn
 !@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
@@ -18,13 +17,10 @@
       USE SEAICE, only : tfrez
       USE LANDICE, only : snmin
 #ifdef TRACERS_ON
-#ifdef RUNTIME_NTM
-      USE TRACER_COM, only : maxntm
-#endif
 #ifdef WATER_PROPORTIONAL
       USE TRACER_COM, only : force_limit=>force_limit_pbl
 #endif
-      USE TRACER_COM, only : ntm,trname,tr_wd_TYPE, nWATER
+      USE TRACER_COM, only : NTM,trname,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
      *     ,n_water
 #endif
@@ -32,8 +28,12 @@
      &     ,dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
      &     ,Ntm_dust
+#endif
+#ifdef TRACERS_TOMAS
+     &   ,NBINS,xk
 #endif
 #ifdef TRACERS_DUST
      &     ,n_clay
@@ -45,10 +45,11 @@
      &     ,n_sil1quhe
 #endif /* TRACERS_QUARZHEM */
 #endif /* TRACERS_DUST */
-#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP */
+#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP||TRACERS_TOMAS */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       use tracers_dust,only : nAerocomDust
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -65,6 +66,7 @@
 
       ! public interfaces
       public advanc,inits,ccoeff0
+      public alloc_pbl_args, dealloc_pbl_args
 
       ! model coefficients (actually a hack, but leave it for now)
       public rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
@@ -77,12 +79,7 @@
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: npbl=n
-
-#ifdef TRACERS_ON
-#ifndef RUNTIME_NTM
-      integer, parameter :: maxntm=ntm
-#endif
-#endif
+      integer, public :: MAXNTM
 
 c**** t_pbl_args is a derived type structure which contains all
 c**** input/output arguments for PBL
@@ -111,19 +108,22 @@ c**** Tracer input/output
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
 !@var trprime anomalous tracer concentration in downdraft
-        real*8, dimension(maxntm) :: trtop,trs,trsfac,trconstflx
-        real*8, dimension(maxntm) :: trdn1,trprime,trgrnd2
+
+        real*8, allocatable, dimension(:) :: trtop,trs,trsfac,trconstflx
+        real*8, allocatable, dimension(:) :: trdn1,trprime,trgrnd2
         integer ntx
-        integer, dimension(maxntm) :: ntix
+        integer, allocatable, dimension(:) :: ntix
 #ifdef TRACERS_SPECIAL_O18
-        real*8, dimension(maxntm) :: frack
+        public :: frack
+        real*8, allocatable, dimension(:) :: frack
 #endif
 #ifdef BIOGENIC_EMISSIONS
         real*8 :: emisop
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
 c**** input
 !@var pbl_args%wearth earth water of first layer [kg/m^2]
 !@var pbl_args%aiearth earth ice of first layer [kg/m^2]
@@ -178,7 +178,8 @@ c**** output
         LOGICAL :: qdust
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
         real*8 :: DMS_flux,ss1_flux,ss2_flux
 #endif
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -188,13 +189,13 @@ c**** output
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
 !@var stomatal_dep_vel turbulent deposition velocity via stomata(m/s)
-        real*8, dimension(maxntm) :: dep_vel,gs_vel
+        real*8, pointer, dimension(:) :: dep_vel,gs_vel
         real*8 :: stomatal_dep_vel
 #endif
 
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
-        real*8, dimension(maxntm) :: tr_evap_max
+        real*8, pointer, dimension(:) :: tr_evap_max
 #endif
 
 
@@ -409,8 +410,8 @@ c  internals:
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, intent(in) :: ptype
-      real*8, dimension(ntm), intent(in) :: trnradius,trndens,trnmm
-      real*8, dimension(n,ntm), intent(inout) :: tr
+      real*8, dimension(NTM), intent(in) :: trnradius,trndens,trnmm
+      real*8, dimension(n,NTM), intent(inout) :: tr
 #endif
 
 c**** local vars for input from pbl_args
@@ -439,7 +440,7 @@ C****
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
       REAL*8 :: lmonin,lmonin_dry,snow
 #ifdef TRACERS_ON
-      real*8, dimension(n,ntm) :: trsave
+      real*8, dimension(n,NTM) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
       real*8, dimension(n-1) :: kqsave
       integer itr
@@ -447,22 +448,38 @@ C****
       real*8 :: trc2         ! could be passed out....
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: trc1,trs1    ! could be passed out....
-      real*8 :: fac_cq_tr(ntm),fk
+      real*8 :: fac_cq_tr(NTM),fk
 #endif
 #endif
+#ifndef TRACERS_TOMAS 
 #ifdef TRACERS_DRYDEP
       real*8 vgs
       real*8 :: tr_dens, tr_radius ! variable tracer density and size
       logical hydrate
 #endif
+#endif 
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
       real*8 wspdf,delt
 #endif
-
+#ifdef TRACERS_TOMAS
+      INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
+      real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
+      real*8, dimension(NTM) :: tr_dum
+      real*8, parameter :: scalesizeSS(nbins)=(/
+     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
+!scalesizeDU : distribute clay mass into bins from 10nm to 1 um. This is number is clay+silt! Should be updated only for clay size distribution. 
+      real*8, parameter :: scalesizeDU(nbins)=(/
+     &     7.33E-10,2.032E-08,3.849E-07,5.01E-06,
+     &     4.45E-05,2.714E-04,1.133E-03,3.27E-03,6.81E-03,
+     &     1.276E-02,2.155E-01,6.085E-01/)
+#endif
       if(xdelt /= 0d0) call stop_model(
      &     'PBL.f is not yet compatible with xdelt==deltx',255)
 
@@ -541,7 +558,12 @@ c**** get input from pbl_args structure
         pbl_args%trprime(:)=0
 #endif
       endif
-
+#ifdef TRACERS_TOMAS
+      ss_bin=0
+      num_bin=0
+      du_bin=0
+      num_bin2=0
+#endif
       do iter=1,itmax
 
         call get_tv(t,q,tv,n)
@@ -582,11 +604,6 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         cqsave=cq
 #endif
 
-#ifdef USE_PBL_E1
-        call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
-     2                 ustar,dtime,n)
-#endif
-
         !@var wstar the convection-induced wind according to
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
@@ -594,24 +611,18 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         if(tv(2).lt.tv(1)) then !convective
           wstar3=-dbl*grav*2.*(tv(2)-tv(1))*kh(1)/((tv(2)+tv(1))*dzh(1))
           wstar2h = wstar3**twoby3
-#ifdef USE_PBL_E1
-          gusti=0.
-#else
           ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
           gusti=pbl_args%gusti ! defined in PBL_DRV.f
-#endif
         else
           wstar3=0.
           wstar2h=0.
           gusti=0.
         endif
 
-#ifndef USE_PBL_E1
         call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
         call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
-#endif
 
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
@@ -677,7 +688,8 @@ C**** To use, uncomment next two lines and adapt the next chunk for
 C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
      &     ,pbl_args%wsubwd,pbl_args%wsubwm)
@@ -707,12 +719,26 @@ C**** First, define some useful quantities
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
+#ifdef TRACERS_TOMAS
+!TOMAS - I think that tr is same in all PBL layer initially.
+!      At the end of this subroutine, tr at each PBL layer is computed. 
+!      So, I think it is okay to use tr(1,nx) instead of each PBL layer.   
+      do nx=1,pbl_args%ntx 
+         tr_dum(pbl_args%ntix(nx))=tr(1,nx)
+         pbl_args%gs_vel(pbl_args%ntix(nx))=0.
+      end do
+#endif
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
-     &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm)
+     &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm
+#ifdef TRACERS_TOMAS
+     &     ,pbl_args%gs_vel,tr_dum
+#endif
+     &     )
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       CALL dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
 #endif
 
@@ -765,7 +791,7 @@ C****   3) dry deposited tracers (including gravitational settling)
 C**** Tracer Dry Deposition boundary condition for dry dep tracers:
         if(dodrydep(pbl_args%ntix(itr))) then
 C****   get settling velocity
-
+#ifndef TRACERS_TOMAS  
 c****   set tracer size and density (not constant anymore)
         tr_radius = trnradius(pbl_args%ntix(itr))
         tr_dens =   trndens(pbl_args%ntix(itr))
@@ -783,13 +809,16 @@ C**** need to hydrate the sea salt before determining settling
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if
+#endif 
+!TOMAS - gs_vel for TOMAS is computed in TRDRYDEP.f. 
           trsf=pbl_args%trsfac(itr)*(pbl_args%dep_vel(pbl_args%ntix(itr)
      &         )+pbl_args%gs_vel(pbl_args%ntix(itr)))
         end if
 #endif
 
 C****   4) tracers with interactive sources
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
         select case (trname(pbl_args%ntix(itr)))
         case ('DMS')
           call read_DMS_sources(ws,itype,ilong,jlat,pbl_args%DMS_flux)
@@ -808,12 +837,30 @@ C****   4) tracers with interactive sources
           call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux,trname(pbl_args%ntix(itr)))
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
+
 #ifdef TRACERS_AEROSOLS_OCEAN
         case ('OCocean')
           call read_seasalt_sources(ws,itype,1,ilong,jlat
      &         ,pbl_args%OCocean_flux,trname(pbl_args%ntix(itr)))
           trcnst=pbl_args%OCocean_flux*byrho
 #endif  /* TRACERS_AEROSOLS_OCEAN */
+
+#ifdef TRACERS_TOMAS
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+     &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+        ss_bin=ss_bin+1
+        if(ss_bin.eq.1)then          
+           call read_seasalt_sources(ws,itype,1,ilong,jlat
+     &          ,pbl_args%ss1_flux)
+           call read_seasalt_sources(ws,itype,2,ilong,jlat
+     &          ,pbl_args%ss2_flux)
+           tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
+        endif
+          trcnst=tot_seasalt*byrho
+     &         *scalesizeSS(ss_bin)
+          ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
+#endif 
         end select
 #endif
 
@@ -892,6 +939,49 @@ ccc dust emission from earth
             pbl_args%dust_flux(n1)=dsrcflx
             pbl_args%dust_flux2(n1)=dsrcflx2
           END DO
+        END SELECT
+#endif
+#ifdef TRACERS_TOMAS  
+        SELECT CASE (trname(pbl_args%ntix(itr)))
+        CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
+     &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+          du_bin=du_bin+1
+          if(du_bin.eq.1)then
+             n1=1
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx,dsrcflx2)
+                tot_dust=dsrcflx
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2
+          endif          
+          if(du_bin.le.10) trcnst=tot_dust*byrho*scalesizeDU(du_bin) 
+
+          if(du_bin.eq.11)then
+             n1=2             !silt1
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx, dsrcflx2)
+                tot_dust=dsrcflx
+                trcnst=tot_dust*byrho
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2
+          elseif(du_bin.eq.12)then
+             n1=3               !silt2
+                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+     &              dsrcflx, dsrcflx2)
+                tot_dust=dsrcflx
+                trcnst=tot_dust*byrho
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2                
+          endif
+          dust_num(du_bin)=trcnst/sqrt(xk(du_bin)*xk(du_bin+1))
+          
+!TOMAS - Silt3 is out of size range for TOMAS. 
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
+     &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+           num_bin2=num_bin2+1
+           trcnst=dust_num(num_bin2)+ss_num(num_bin2)  
         END SELECT
 #endif
 
@@ -1008,12 +1098,13 @@ c**** copy output to pbl_args
 
 C**** tracer code output
 #ifdef TRACERS_ON
-      pbl_args%trs(1:ntm) = tr(1,1:ntm)
+      pbl_args%trs(1:NTM) = tr(1,1:NTM)
 
-      if (ddml_eq_1)
-     &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
+      if (ddml_eq_1) pbl_args%trprime(1:NTM) = 
+     &     pbl_args%trdn1(1:NTM)-tr(1,1:NTM)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pbl_args%wsgcm=wsgcm
       pbl_args%wspdf=wspdf
       pbl_args%z(:) = z(:)
@@ -1040,7 +1131,6 @@ C**** tracer code output
 !@+   Heat flux     = USTAR*TSTAR
 !@+   MOISTURE flux = USTAR*QSTAR
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from PBLB336E)
 !@var USTAR the friction speed
 !@var TSTAR the virtual potential temperature scale
 !@var QSTAR the moisture scale
@@ -1056,7 +1146,7 @@ C**** tracer code output
       real*8, intent(out) :: ustar,tstar,qstar,lmonin,lmonin_dry
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
 #ifdef TRACERS_SPECIAL_O18
-      real*8, intent(out) :: fac_cq_tr(ntm)
+      real*8, intent(out) :: fac_cq_tr(NTM)
 #endif
 
 
@@ -1075,11 +1165,7 @@ C**** tracer code output
       qflx   = kq(1)*(q(2)-q(1))/dz
       tvflx = tflx*(1.+deltx*q(1)) + t(1)*deltx*qflx
       ustar  = sqrt(km(1)*dudz)
-#ifdef USE_PBL_E1
-      ustar  = max(ustar,teeny)
-#else
       ustar  = max(ustar,ustar_min)
-#endif
       tstar  = tflx/ustar
       if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
@@ -1095,13 +1181,9 @@ C**** tracer code output
 
       if (ustar.gt.smax*vel1) ustar=smax*vel1
       if (ustar.lt.smin*vel1) ustar=smin*vel1
-#ifdef USE_PBL_E1
-      ! do nothing
-#else
       if (tstar.eq.0.) tstar=teeny
       if (tstarv.eq.0.) tstarv=teeny
       ustar  = max(ustar,ustar_min)
-#endif
 
       lmonin_dry = ustar*ustar*tgrnd/(kappa*grav*tstar)
       if(abs(lmonin_dry).lt.lmonin_min)
@@ -1182,11 +1264,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       integer :: i   !@var i  array dimension
       real*8 kz,l0,ls,lb,an2,an,qty,qturb,zeta
 
-#ifdef USE_PBL_E1
-      l0=.16d0*dbl ! Moeng and Sullivan 1994
-#else
       l0=.3d0*dbl ! Moeng and Sullivan 1994
-#endif
 
       if (l0.lt.zhat(1)) l0=zhat(1)
 
@@ -1260,8 +1338,8 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 #ifdef TRACERS_SPECIAL_O18
-      real*8, intent(out) :: fac_cq_tr(ntm)
-      real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr,get_diff_rel
+      real*8, intent(out) :: fac_cq_tr(NTM)
+      real*8 :: cq_tr(NTM),z0q_tr(NTM),Sc_tr,get_diff_rel
       integer :: itr
 #endif
 
@@ -1270,11 +1348,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
 C**** Kinematic viscosity
-#ifdef PBL_E1
-      nu=1.5d-5                 ! temperature independent (original E1 value)
-#else
       nu=visc_air_kin(ts)       ! temperature dependent
-#endif
 
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
@@ -1284,22 +1358,12 @@ c Compute roughness lengths using smooth/rough surface formulation:
 c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
         z0m=0.135d0*nu/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
-#ifdef USE_PBL_E1
-        nuh=0.395d0*nu ;  nuq=0.624d0*nu
-c**** more accurate nuh, nuq assuming Sc and Pr so that this is
-c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
-c       nuh=0.39522377113362589d0*nu ;  nuq=0.63943320118296587d0*nu
-
-        z0h=nuh/ustar + 1.4d-5
-        z0q=nuq/ustar + 1.3d-4
-#else
         call getzhq(ustar,z0m,Pr,nu,1.4d-5,z0h)  ! heat
         call getzhq(ustar,z0m,Sc,nu,1.3d-4,z0q)  ! vapour
-#endif
 
 #ifdef TRACERS_SPECIAL_O18
 C**** calculate different z0q for different diffusivities
-          do itr=1,ntm
+          do itr=1,NTM
             if (tr_wd_TYPE(itr).eq.nWater) then
               Sc_tr=Sc*get_diff_rel(itr)
               call getzhq(ustar,z0m,Sc_tr,nu,1.3d-4,z0q_tr(itr))
@@ -1324,11 +1388,11 @@ c *********************************************************************
       call getchq(zgs,z0m,lmonin,dm,z0q,dum,cq)
 
 #ifdef TRACERS_SPECIAL_O18
-      do itr=1,ntm
+      do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)
      *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr),dum)
       end do
-      do itr=1,ntm
+      do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)
      *       fac_cq_tr(itr)=cq_tr(itr)/cq_tr(n_Water)
       end do
@@ -1588,7 +1652,6 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
      &  ,byzs=1.d0/10.d0,bydzs=1.d0/4.7914d0
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
-!$OMP  THREADPRIVATE(/GRIDS_99/)
       external fgrid2
       real*8 rtsafe
       integer i,iter  !@var i,iter loop variable
@@ -1678,11 +1741,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       implicit none
 
       ! temperary variable
-#ifdef USE_PBL_E1
-      real*8 :: del
-#else
       real*8 :: del,aa,bb,cc,tmp
-#endif
 
       prt=     0.82d0
       b1=     19.3d0
@@ -1726,9 +1785,6 @@ c     find rimax:
       rimax=(c2+sqrt(c2**2-4.*c1*c3))/(2.*c1)
       rimax=int(rimax*1000.)/1000.
 
-#ifdef USE_PBL_E1
-      ! do nothing
-#else
 c     find gm_at_rimax
 
       aa=c1*rimax*rimax-c2*rimax+c3
@@ -1741,7 +1797,6 @@ c     find gm_at_rimax
          gm_at_rimax=(-bb-sqrt(tmp))/(2.*aa)
       endif
       ! rimax=.96,  gm_at_rimax=.1366285d6
-#endif
 
 c     find ghmin,ghmax,gmmax0:
 
@@ -1878,7 +1933,6 @@ c     at edge: e,lscale,km,kh,gm,gh
 !@+   e(1)=(1/2)*B1**(2/3)*ustar**2
 !@+   at the top, dedz is continuous
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -2036,7 +2090,6 @@ c     rhs(n-1)=0.
 !@+   where tprime=tdns-t1/(1+xdelt*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature ref. to the surface
@@ -2143,7 +2196,6 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 !@+   where qprime=qdns-q1, q1 is q at surf
 !@+   at the top, the moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var q z-profle of specific humidity
 !@var q0 z-profle of q at previous time step
 !@var kq z-profile of moisture diffusivity
@@ -2249,7 +2301,6 @@ c****             - ( 1 - fr_sat ) * flux_max
 !@+   This should be flexible enough to deal with most situations.
 !@+   at the top, the tracer conc. is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var tr z-profle of tracer concentration
 !@var tr0 z-profle of tr at previous time step
 !@var kq z-profile of moisture diffusivity
@@ -2352,7 +2403,6 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
 !@+   km * dv/dz = cm * usurf * v
 !@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var u0 z-profle of u at previous time step
@@ -2456,7 +2506,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    kh * dt/dz = ch * usurf * (t - tg)
 !@+    at the top, virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -2517,7 +2566,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    kq * dq/dz = cq * usurf * (q - qg)
 !@+    at the top, moisture is prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature
@@ -2579,7 +2627,6 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
 !@+    km * dv/dz = cm * usurf * v
 !@+    at the top, the winds are prescribed.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var z vertical height at the main grids (meter)
@@ -2753,22 +2800,15 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 #ifdef TRACERS_SPECIAL_O18
-      real*8 :: fac_cq_tr(ntm)   ! not used here
+      real*8 :: fac_cq_tr(NTM)   ! not used here
 #endif
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
 
-c**** special threadprivate common block (compaq compiler stupidity)
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
 c****  passed for scm
       real*8  ug,vg
-
-!!      common/pbluvtq/u,v,t,q,e
-
-!!!$OMP  THREADPRIVATE (/pbluvtq/)
-C**** end special threadprivate common block
-
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
@@ -3217,19 +3257,69 @@ c ----------------------------------------------------------------------
 9000  format (1x)
       end subroutine output
 
+      subroutine alloc_pbl_args(pbl_args)
+      type (t_pbl_args), intent(inout) :: pbl_args
+
+#ifdef TRACERS_ON
+      allocate(pbl_args%trtop(maxNTM))
+      allocate(pbl_args%trs(maxNTM))
+      allocate(pbl_args%trsfac(maxNTM))
+      allocate(pbl_args%trconstflx(maxNTM))
+      allocate(pbl_args%trdn1(maxNTM))
+      allocate(pbl_args%trprime(maxNTM))
+      allocate(pbl_args%trgrnd2(maxNTM))
+      allocate(pbl_args%ntix(maxNTM))
+#ifdef TRACERS_SPECIAL_O18
+      allocate(pbl_args%frack(maxNTM))
+#endif
+      
+#ifdef TRACERS_DRYDEP
+      allocate(pbl_args%dep_vel(maxntm))
+      allocate(pbl_args%gs_vel(maxntm))
+#endif
+#ifdef TRACERS_WATER
+      allocate(pbl_args%tr_evap_max(maxntm))
+#endif
+#endif
+      end subroutine alloc_pbl_args
+
+      subroutine dealloc_pbl_args(pbl_args)
+      type (t_pbl_args), intent(inout) :: pbl_args
+
+#ifdef TRACERS_ON
+      deallocate(pbl_args%trtop)
+      deallocate(pbl_args%trs)
+      deallocate(pbl_args%trsfac)
+      deallocate(pbl_args%trconstflx)
+      deallocate(pbl_args%trdn1)
+      deallocate(pbl_args%trprime)
+      deallocate(pbl_args%trgrnd2)
+      deallocate(pbl_args%ntix)
+#ifdef TRACERS_SPECIAL_O18
+      deallocate(pbl_args%frack)
+#endif
+      
+#ifdef TRACERS_DRYDEP
+      deallocate(pbl_args%dep_vel)
+      deallocate(pbl_args%gs_vel)
+#endif
+#ifdef TRACERS_WATER
+      deallocate(pbl_args%tr_evap_max)
+#endif
+#endif
+      end subroutine dealloc_pbl_args
+      
       END MODULE SOCPBL
 
       subroutine fgrid2(z,f,df)
 !@sum  fgrid2 computes functional relationship of z and xi + derivative
 !@+    fgrid2 will be called in function rtsafe(fgrid2,x1,x2,xacc)
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
       implicit none
       real*8, intent(in) :: z
       real*8, intent(out) :: f,df
       real*8 z1,zn,bgrid,xi,lznbyz1
       common /grids_99/z1,zn,bgrid,xi,lznbyz1
-!$OMP  THREADPRIVATE(/GRIDS_99/)
 
       f=z+bgrid*((zn-z1)*log(z/z1)-(z-z1)*lznbyz1)-xi
       df=1.+bgrid*((zn-z1)/z-lznbyz1)
@@ -3429,7 +3519,8 @@ C**** Use approximate value for small sig and unresolved delta function
 !@auth Reha Cakmur/Jan Perlwitz
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 
       USE tracers_dust,ONLY : kim,kjm,table1,x11,x21
 
@@ -3519,7 +3610,8 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
       SUBROUTINE polint2dlin(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -3560,7 +3652,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polint2dcub(x1a,x2a,ya,m,n,x1,x2,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER,INTENT(IN) :: m,n
       REAL*8,INTENT(IN) :: x1a(m),x2a(n),ya(m,n),x1,x2
@@ -3601,7 +3694,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
       SUBROUTINE polintpbl(xa,ya,n,x,y,dy)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: n
       REAL*8, INTENT(OUT) :: y,dy
@@ -3651,7 +3745,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 !@sum locates parameters of integration in lookup table
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       implicit none
       INTEGER, INTENT(IN):: n
       INTEGER, INTENT(OUT):: j

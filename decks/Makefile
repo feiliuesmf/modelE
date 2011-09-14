@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests
+.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
 
 # modelE directory structure
 MODEL_E_ROOT = ..
@@ -12,6 +12,7 @@ CONFIG_DIR = $(MODEL_E_ROOT)/config
 TEMPLATES_DIR = $(MODEL_E_ROOT)/templates
 HTMLDOC_DIR = $(DECKS_DIR)/$(RUN)_html
 export HTMLDOC_DIR
+RUN_COMMAND = $(SCRIPTS_DIR)/runE
 
 RUNSRC  = E1M20
 RUN     =
@@ -31,27 +32,13 @@ include $(SCRIPTS_DIR)/modelErc
 sinclude $(MODELERC)
 export COMPILER
 export MODELERC
+export MPI
 
 V =
 
 ifeq ($(VERBOSE_OUTPUT),NO)
   MAKEFLAGS=-s
 endif
-
-# SETUP = $(SCRIPTS_DIR)/setup_e
-
-RUNSRC = E1M20
-
-ALIAS_LIST = CMPE001 qc
-
-ifeq ($(MPP),YES)
-  MPI=YES
-endif
-
-ifeq ($(ESMF),YES)
-  MPI=YES
-endif
-
 
 help:
 	$(MAKE) -C $(MODEL_DIR) help
@@ -95,7 +82,7 @@ depend: $(RUN).mk
 	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 
-gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend
+gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend check_vars
 	$(MAKE) -C $(MODEL_DIR) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
@@ -142,9 +129,9 @@ setup_script:
 	@echo '---------        Starting setup for $(RUN)        ----------'
 	@echo '--------------------------------------------------------------'
 ifeq ($(MPI),YES)
-	@$(SETUP) $(SETUP_FLAGS) -mpidistr "$(MPIDISTR)"  -mpi $(NPES) $(RUN)
+	@$(SETUP) $(SETUP_FLAGS) -mpi $(RUN)
 else
-	@$(SETUP) $(SETUP_FLAGS) -omp $(NPROC) $(RUN)
+	@$(SETUP) $(SETUP_FLAGS) $(RUN)
 endif
 
 $(SETUP_GFDL):
@@ -197,7 +184,7 @@ clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
 	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 
-exe: gcm
+exe: $(RUN)/$(RUN) gcm
 	@if [ -n "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ] ; then \
 	echo 'Rundeck in repository is ok - will add info'; \
 	else \
@@ -239,17 +226,14 @@ exe: gcm
 	@rm -f $(DECKS_REPOSITORY)/$(RUN).R.tmp
 	@echo done
 
+setup-run: setup
+	$(RUN_COMMAND) $(RUN) -cold-restart -np $(NPES) &
+
 newstart:
 	@if [ "$(RUN)" = "" ]; then \
 	echo 'You should specify run name on a command line (i.e. RUN=...)'; \
 	exit 1; fi
 	rm -i $(CMRUNDIR)/$(RUN)/*
-
-alias: aux
-	for i in $(ALIAS_LIST); do ln -sf $(BIN_DIR)/$$i .; done
-
-unalias:
-	for i in $(ALIAS_LIST); do rm -f $$i; done
 
 htmldoc: depend
 	-rm -rf $(HTMLDOC_DIR)
@@ -294,3 +278,15 @@ check_sanity:
 	  echo "Your rundeck contains no Components" ; \
 	  echo "Old style rundeck ?  ... aborting ..." ; \
 	  exit 1 ; fi
+
+check_vars:
+ifeq ($(ESMF),YES)
+ifeq ($(ESMF5_DIR),)
+ifeq ($(BASELIBDIR5),)
+	@echo
+	@echo "You have to set ESMF5_DIR or BASELIBDIR5 in your ~/.modelErc"
+	@echo
+	@exit 1
+endif
+endif
+endif

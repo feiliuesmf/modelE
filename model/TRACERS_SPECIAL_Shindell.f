@@ -94,13 +94,13 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-!@ver  1.0
       use domain_decomp_atm, only : dist_grid, get, write_parallel
       USE Dictionary_mod, only : get_param, is_set_param
-      use model_com, only : lm, DTsrc, NIsurf
-      use tracer_com, only : ntm
+      use resolution, only : lm
+      use model_com, only : DTsrc
+      use tracer_com, only : NTM
       use tracer_sources
-
+      use fluxes, only : NIsurf
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
@@ -161,10 +161,10 @@
 C****
 C**** Right now, there is just one L=1 source that changes 
 C**** linearly in time (at 1% increase per year)
-
-      USE MODEL_COM, only: itime,itimei,DTsrc,im,jm
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: itime,itimei,DTsrc
       USE GEOM, only: axyp,IMAXJ  
-      USE DYNAMICS, only: am
+      USE ATM_COM, only: am
       USE TRACER_COM, only: trname,trm,n_GLT,vol2mass,itime_tr0
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
@@ -209,7 +209,8 @@ C we change that.)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      use model_com, only: itime,JDperY,im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
+      use model_com, only: itime,JDperY
       use domain_decomp_atm, only: GRID, GET, write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit
@@ -221,6 +222,9 @@ C we change that.)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
      *                      n_BCIA,
+#endif
+#ifdef TRACERS_TOMAS
+     *                      IDTECOB,
 #endif
 !#ifdef TRACERS_AMP
 !     *                      n_M_BC1_BC,
@@ -242,29 +246,38 @@ C we change that.)
 !#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
 !    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       integer, parameter :: nmons=2
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      integer, parameter :: nmons=2
 #else
       integer, parameter :: nmons=1
 #endif
       integer, dimension(nmons) :: mon_units, imon
       integer l,i,j,k,ll
-      character*12, dimension(nmons) :: 
+      character*13, dimension(nmons) :: 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'NOx_AIRC ','BCIA_AIRC'/)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !     *  mon_files=(/'NOx_AIRC','M_BC1_BC_AIRC'/)
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+     *  mon_files=(/'NOx_AIRC','AECOB_01_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell)
      *  mon_files=(/'NOx_AIRC'/)
 #elif (defined TRACERS_AEROSOLS_Koch)
      *  mon_files=(/'BCIA_AIRC'/)
+#elif (defined TRACERS_TOMAS)
+     *  mon_files=(/'AECOB_01_AIRC'/)
 #else
      *  mon_files=(/'M_BC1_BC_AIRC'/)
 #endif
+
       integer, dimension(nmons) :: mon_tracers ! define them later
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
 !#if ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)) ||\
 !    ((defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP))
       logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-#else /* this is for both TRACERS_AEROSOLS_Koch and TRACERS_AMP */
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
+#else /* this is for both TRACERS_AEROSOLS_Koch and TRACERS_AMP and TRACERS_TOMAS*/
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
 #endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -286,6 +299,9 @@ C we change that.)
 #if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_NOx
       mon_tracers(2)=n_BCIA
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=IDTECOB
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !      mon_tracers(1)=n_NOx
 !      mon_tracers(2)=n_M_BC1_BC
@@ -293,6 +309,8 @@ C we change that.)
       mon_tracers(1)=n_NOx
 #elif (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_BCIA
+#elif (defined TRACERS_TOMAS)
+      mon_tracers(1)=IDTECOB
 #else
       mon_tracers(1)=n_M_BC1_BC
 #endif
@@ -353,7 +371,6 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
-!@ver  1.0
       use tracer_com, only: n_NOx,nAircraft,num_tr_sectors3D,
      & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
@@ -413,9 +430,10 @@ C we change that.)
 !@+    call read_aero(sulfate,'SULFATE_SA')
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
-!@ver  1.0 
-
-      USE MODEL_COM, only: jyear,jday,im,jm,lm,ptop,psf,sig
+      USE RESOLUTION, only : ptop,psf
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only: jyear,jday
+      USE DYNAMICS, only : sig
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
@@ -485,7 +503,8 @@ C====
      & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)
 !@sum Read in monthly sources and interpolate to current day
 !@auth Jean Lerner and others / Greg Faluvegi
-      USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL
@@ -528,8 +547,10 @@ C
         do while(xday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        if(imon/=2)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
@@ -587,9 +608,11 @@ c**** Interpolate two months of data to current day
         do while(xday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        if(am_i_root())write(6,*) 'Not using this first record:' 
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:' 
+          call readt_parallel
+     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
@@ -664,12 +687,12 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       subroutine get_CH4_IC(icall)
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@auth Greg Faluvegi/Drew Shindell
-!@ver  1.0 (based on DB396Tds3M23)
-
-      USE MODEL_COM, only  : im,jm,lm,ls1,DTsrc
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only  : DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root
       USE GEOM, only       : axyp,lat2d_dg
-      USE DYNAMICS, only   : am
+      USE ATM_COM, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, n_CH4, nOverwrite, vol2mass
       USE FLUXES, only: tr3Dsource
@@ -752,9 +775,8 @@ c     mixing ratios to 1.79 (observed):
 !@+   that this routine will only be used when the COSZ1 from the 
 !@+   radiation code is < 0, i.e. SZA > 90 deg.
 !@auth Greg Faluvegi, based on the Harvard CTM routine SCALERAD
-!@ver 1.0
-
-      USE MODEL_COM, only: IM,JM,nday,Itime,DTsrc 
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: nday,Itime,DTsrc 
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
@@ -800,7 +822,6 @@ c     mixing ratios to 1.79 (observed):
 !@sum LOGPINT does vertical interpolation of column variable,
 !@+   linearly in ln(P).
 !@auth Greg Faluvegi
-!@ver 1.0
  
       IMPLICIT NONE
 
@@ -865,9 +886,9 @@ C
 !@+ so that hardcoded levels are not needed when switching
 !@+ vertical resolutions.
 !@auth Greg Faluvegi
-!@ver 1.0
-
-      USE MODEL_COM, only : LM,SIG,PSF,PTOP
+      USE RESOLUTION, only : ptop,psf
+      USE RESOLUTION, only : LM
+      USE DYNAMICS, only : sig
       USE TRCHEM_Shindell_COM, only: L75P,L75M,F75P,F75M, ! FACT1
      &                           L569P,L569M,F569P,F569M  ! CH4
  
@@ -912,7 +933,6 @@ C
 !@+ air temperature, and ground wetness. 
 !@+ I suppose I could generalized this in the future.
 !@auth Greg Faluvegi
-!@ver 1.0
 C
 C**** Global variables:
 c
@@ -992,8 +1012,8 @@ C
 !@+ running average of these. Calculated the portion to add to
 !@+ the CH4 source to be used later in subroutine alter_wetlands_source.
 !@auth Greg Faluvegi based on Jean Lerner
-
-      USE MODEL_COM, only: im,jm,jday
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
@@ -1096,9 +1116,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@+ You also have the option to exclude the U.S. and E.U. from 
 !@+ wetland distribution changes.
 !@auth Greg Faluvegi
-      USE MODEL_COM, only: itime,im,jm,fland,jday
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : fland
+      USE MODEL_COM, only: itime,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
-     &   esmf_bcast, write_parallel
+     &   broadcast, write_parallel
 #ifdef CUBED_SPHERE
       USE DD2D_UTILS, only : 
 #else
@@ -1168,7 +1190,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
        ! for nearest-neighbor all processors must know global source:
        if(nn_or_zon==0)then 
          call pack_data(grid,sfc_src(:,:,n,ns_wet),src_glob)
-         call esmf_bcast(grid,src_glob)
+         call broadcast(grid,src_glob)
 #ifdef CUBED_SPHERE
          ! Reorient the global array to the i-j index space of this
          ! processor. Implicit assumption (for now): wetlands exist on
@@ -1353,7 +1375,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only: jday,idofm=>JDmidOfM
 
       implicit none
 

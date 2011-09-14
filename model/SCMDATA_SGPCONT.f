@@ -12,19 +12,34 @@ C-------------------------------------------------------------------------------
       USE SCMCOM , only : SCM_SURFACE_FLAG,NARM,TAUARM,NRINIT,IKT, 
      &                  AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
-     &                  iu_scm_prt    
-      USE RESOLUTION , only : LM
-      USE MODEL_COM , only : P,T,Q,U,V,LS1,SIG,PTOP,PSF,
-     &                I_TARG,J_TARG,NSTEPSCM        
-     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+     &                  iu_scm_prt,I_TARG,J_TARG,NSTEPSCM
+      USE RESOLUTION , only : LM, ls1, ptop,psf
+      USE ATM_COM , only : P,PK,T,Q,U,V
+      use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
-      USE LAKES_COM, only : FLAKE
+      USE LAKES_COM, only : FLAKE 
       USE CONSTANT , only : KAPA,TF   
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : GTEMP,GTEMPR 
+      USE FLUXES, only : atmocn,atmlnd
+      USE FILEMANAGER
+      USE Dictionary_mod
       IMPLICIT NONE
 
       INTEGER L,I,J       
+
+      call openunit("scm.prt",iu_scm_prt,.false.,.false.)
+      call sync_param( "I_TARG",I_TARG)
+      call sync_param( "J_TARG",J_TARG)
+      write(0,*) 'I/J Targets set ',I_TARG,J_TARG
+      write(iu_scm_prt,*) 'I/J Targets set ',I_TARG,J_TARG
+
+      if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
+     &    (J_TARG.lt.2 .or. J_TARG.gt.89)) then
+        write(iu_scm_prt,*)
+     &             'Invalid grid coordinates for selected box ',
+     &       I_TARG,J_TARG
+        STOP 100
+      endif
 
       if (SCM_SURFACE_FLAG.eq.0) then
           write(0,*) 
@@ -69,9 +84,9 @@ c     module
       call CALC_AMPK(LM)
       
       do L = 1,LM
-c        fill T with temperature as ARM provided - will be converted later in INPUT
+c        fill T with potential temperature as ARM provided
          Q(I_TARG,J_TARG,L) = SG_Q(L)
-         T(I_TARG,J_TARG,L) = SG_T(L)
+         T(I_TARG,J_TARG,L) = SG_T(L)/PK(L,I_TARG,J_TARG)
       enddo 
 
 c     also note for U,V initialize boxes around target I,J for mean wind
@@ -93,14 +108,15 @@ c
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
 
-      GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
-      GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
-      GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
-      GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+      atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
+      atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
+      atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN 
+      atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+      atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
 
-      write(iu_scm_prt,120) GTEMP(1,1,I_TARG,J_TARG),
-     &      GTEMP(2,1,I_TARG,J_TARG),GTEMP(1,4,I_TARG,J_TARG),
-     &      GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+      write(iu_scm_prt,120) atmocn%GTEMP(I_TARG,J_TARG),
+     &      atmocn%GTEMP2(I_TARG,J_TARG),atmlnd%GTEMP(I_TARG,J_TARG),
+     &      atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
  120  format(1x,
      &    'initial temps  gtemp11 gtemp21 gtemp14 gtempr1 gtempr4 ',
      &     5(f10.3))
@@ -425,7 +441,6 @@ c     enddo
 
       SUBROUTINE pass_scm_surface
         
-      USE MODEL_COM, only : NSTEPSCM    
       USE SCMCOM
       IMPLICIT NONE
 
@@ -675,8 +690,8 @@ C     to SCM sigma levels
 
       SUBROUTINE pass_scm_layers 
 c         
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only  : NSTEPSCM, LS1,SIG,PTOP,PSF 
+      USE RESOLUTION, only: LM, ls1, ptop, psf
+      USE DYNAMICS,   only: SIG
       USE SCMCOM
 
 
@@ -743,16 +758,14 @@ c     enddo
  
       subroutine pass_SCMDATA
 
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only  : NSTEPSCM,LS1,SIG,P,T,Q,U,V,I_TARG,J_TARG,
-     &                        PTOP,PSF 
-     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+      USE RESOLUTION , only : LM, ls1, ptop, psf
+      USE ATM_COM , only : P,T,Q,U,V,PK
+      use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : GTEMP,GTEMPR
+      USE FLUXES, only : atmocn,atmlnd
       USE CONSTANT, only : tf,KAPA 
-      USE DYNAMICS, only : PK
       USE SCMCOM
 C     
 C
@@ -814,13 +827,14 @@ c            write(iu_scm_prt,310) L,Q(I_TARG,J_TARG,L),SG_T(L),
 c    &                     T(I_TARG,J_TARG,L)
 c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           enddo 
-          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
-          GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
-          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,340) GTEMP(1,4,I_TARG,J_TARG),
-     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
-     &       GTEMPR(1,I_TARG,J_TARG)
+          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
+          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN  
+          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,340) atmlnd%GTEMP(I_TARG,J_TARG),
+     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
+     &       atmocn%GTEMPR(I_TARG,J_TARG)
  340      format(1x,'SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 ',4(f10.3))
       endif
 
@@ -836,13 +850,14 @@ c
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
       if (SCM_SURFACE_FLAG.eq.1) then
-          GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN   
-          GTEMPR(1,I_TARG,J_TARG) = ATSKIN+TF
-          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,360) GTEMP(1,4,I_TARG,J_TARG),
-     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
-     &       GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN   
+          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN   
+          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN+TF
+          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,360) atmlnd%GTEMP(I_TARG,J_TARG),
+     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
+     &       atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
  360      format(1x,
      &      'pass SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 GTEMPR4',
      &        5(f10.3))
@@ -861,8 +876,8 @@ C     pressure
 C
       SUBROUTINE arm_to_sig(parm)
 
-      USE RESOLUTION , only : LM 
-      USE MODEL_COM , only : LS1,PTOP,PSF,SIG,SIGE
+      USE RESOLUTION , only : LM,LS1,PTOP,PSF
+      USE DYNAMICS, only : SIG,SIGE
       USE SCMCOM  
       USE CONSTANT , only : grav
 C

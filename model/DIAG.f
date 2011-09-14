@@ -9,7 +9,6 @@
 
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
-!@ver  1.0
 C**** AJ(J,N)  (ZONAL SUM OVER LONGITUDE AND TIME)
 C****   See j_defs for contents
 C****                                                             IDACC
@@ -44,7 +43,7 @@ C****
       MODULE DIAG_LOC
 !@sum DIAG_LOC is a local module for some saved diagnostic calculations
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 C**** Variables passed from DIAGA to DIAGB
@@ -67,7 +66,7 @@ C**** Some local constants
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP_ATM, only : GET
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
       USE DIAG_LOC, only  : W,TX
       IMPLICIT NONE
       LOGICAL, SAVE :: init=.false.
@@ -97,16 +96,18 @@ C**** Some local constants
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair   
-      USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
-     *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
-     *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
+      USE RESOLUTION, only : ls1,ptop,pmtop,psfmpt
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : idacc
+     *     ,mdyn,mdiag
+      USE ATM_COM, only : zatmo,WM,u,v,t,p,q,lm_req,req_fac_m
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj,
      &     lon2d_dg,byaxyp
       USE RAD_COM, only : rqt
-      USE DIAG_COM, only : ia_dga,jreg,
+      USE ATM_COM, only : pmidl00
+      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
      *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_t100,ij_q850,ij_q500
@@ -136,8 +137,9 @@ C**** Some local constants
       USE TRACER_COM, only: trm,mass2vol,n_CO,n_Ox,n_NOx
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
-      USE DYNAMICS, only : pk,pek,phi,pmid,pdsig,plij, SD,pedn,am
-     &     ,ua=>ualij,va=>valij,wcp
+      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,am
+     &     ,ua=>ualij,va=>valij
+      USE DYNAMICS, only : SD,wcp,sig,sige,dsig
       USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
@@ -798,8 +800,9 @@ c ajl(jl_dtdyn) will be incremented by +t after the dynamics, giving
 c the tendency.
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only: imaxj
-      USE DYNAMICS, only: pk, pdsig
-      use MODEL_COM, only: LM, t
+      USE ATM_COM, only: pk, pdsig
+      USE RESOLUTION, only : LM
+      use ATM_COM, only: t
       use DIAG_COM, only: jl_dtdyn
       implicit none
 
@@ -872,16 +875,16 @@ c
 !@sum  DIAGCA Keeps track of the conservation properties of angular
 !@+    momentum, kinetic energy, mass, total potential energy and water
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : mdiag,itime
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,ntm  !xcon
+      USE TRACER_COM, only: itime_tr0,NTM  !xcon
 #endif
       USE DIAG_COM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
      *     ,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI,icon_LHSI,icon_MLI
      *     ,icon_HLI,icon_MICB,icon_HICB,title_con
       !USE SOIL_DRV, only: conserv_WTG,conserv_HTG
+      USE FLUXES, only : atmocn
       IMPLICIT NONE
 !@var M index denoting from where DIAGCA is called
       INTEGER, INTENT(IN) :: M
@@ -953,7 +956,7 @@ C**** ICEBERG MASS AND ENERGY
       CALL conserv_DIAG(M,conserv_HICB,icon_HICB)
 
 C**** OCEAN CALLS ARE DEALT WITH SEPARATELY
-      CALL DIAGCO (M)
+      CALL DIAGCO (M,atmocn)
 
 #ifdef TRACERS_ON
 C**** Tracer calls are dealt with separately
@@ -972,7 +975,6 @@ C****
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b, imaxj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
@@ -1030,9 +1032,10 @@ C****
       SUBROUTINE conserv_MS(RMASS)
 !@sum  conserv_MA calculates total atmospheric mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,p,pstrat
+      USE RESOLUTION, only : pstrat
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : p
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -1066,11 +1069,12 @@ C****
       SUBROUTINE conserv_PE(TPE)
 !@sum  conserv_TPE calculates total atmospheric potential energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sha,mb2kg
-      USE MODEL_COM, only : im,jm,lm,t,p,ptop,zatmo
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t,p,zatmo
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pk,pdsig
+      USE ATM_COM, only : pk,pdsig
       USE DOMAIN_DECOMP_ATM, only : GET,GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1106,11 +1110,11 @@ C****
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,wm,q
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : wm,q
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pdsig
+      USE ATM_COM, only : pdsig
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
 
@@ -1148,11 +1152,11 @@ C****
       SUBROUTINE conserv_EWM(EWATER)
 !@sum  conserv_EWM calculates total atmospheric water energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : mb2kg,shv,grav,lhe
-      USE MODEL_COM, only : im,jm,lm,wm,t,q,p
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : wm,t,q,p
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pdsig, pmid, pk
+      USE ATM_COM, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -1196,8 +1200,9 @@ C****
 C****
 C**** THIS ROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
-      USE MODEL_COM, only : im,istrat,IDACC
-      USE DIAG_COM, only : energy,speca,ned
+      USE RESOLUTION, only : im
+      USE MODEL_COM, only : IDACC
+      USE DIAG_COM, only : energy,speca,ned,istrat
       IMPLICIT NONE
 
       INTEGER :: I,IDACC5,N,NM
@@ -1236,7 +1241,8 @@ C****
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: get,grid,am_i_root
-      USE MODEL_COM, only : im,jm,lm,itime,itime0,nday,iyear1,jyear
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : itime,itime0,nday,iyear1,jyear
      &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM,lrunid
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
@@ -1459,7 +1465,7 @@ C**** initialise special subdd accumulation
 #ifdef TRACERS_ON
       allocate(rTrname(nTracerRadiaActive))
       allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
-      allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,ntm))
+      allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,NTM))
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1598,8 +1604,7 @@ c accSubdd
       call get(grid,i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
 
 #ifdef TRACERS_ON
-!$OMP PARALLEL DO PRIVATE(i,j,n)
-      do n=1,ntm
+      do n=1,NTM
         do j=j_0,j_1
           do i=i_0,i_1
             trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)+trcSurf(i,j,n)
@@ -1608,7 +1613,6 @@ c accSubdd
           end do
         end do
       end do
-!$OMP END PARALLEL DO
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1683,7 +1687,9 @@ c get_subdd
 !@auth Gavin Schmidt/Reto Ruedy
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
      *     ,lhe,rhow,undef,stbo,bysha
-      USE MODEL_COM, only : lm,p,ptop,zatmo,u,v,focean,flice,t,q
+      USE RESOLUTION, only : ptop
+      USE RESOLUTION, only : lm
+      USE ATM_COM, only : p,zatmo,u,v,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
 #ifdef ttc_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -1706,15 +1712,15 @@ c get_subdd
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
-      USE DYNAMICS, only : ptropo,am,byam,wsave,pk,phi,pmid
+      USE ATM_COM, only : ptropo,am,byam,wsave,pk,phi,pmid
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,pedn
 #endif
 #ifdef etc_subdd
      *     ,TTROPO
 #endif
-      USE FLUXES, only : prec,dmua,dmva,tflux1,qflux1,uflux1,vflux1
-     *     ,gtemp,gtempr
+      USE FLUXES, only : prec,tflux1,qflux1,uflux1,vflux1
+     *     ,focean,flice,atmocn,atmice,atmgla,atmlnd
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
      *     ,l1Ox_acc,l1NO2_acc,save_NO2column
@@ -1722,7 +1728,7 @@ c get_subdd
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
       USE LIGHTNING, only : saveC2gLightning,saveLightning
 #endif
-      USE SEAICE_COM, only : rsi,snowi
+      USE SEAICE_COM, only : si_atm
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
@@ -1735,8 +1741,10 @@ c get_subdd
 #ifdef TRACERS_ON
      & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save,ttausv_cs_save
      & ,aerAbs6SaveInst
+      use TRDIAG_COM, only: MMR_to_VMR
 #endif
-      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb,lname_strlen
+      USE MDIAG_COM, only : lname_strlen
+      USE DIAG_COM, only : z_inst,rh_inst,t_inst,tdiurn,pmb
      * ,isccp_diags,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI
      * ,saveSCLDI,saveTCLDI,saveMCCLDTP
 #if (defined ttc_subdd) || (defined etc_subdd)
@@ -1785,6 +1793,11 @@ c get_subdd
 !@var long_name long name for netcdf output
       character(len=lname_strlen+len(kgz_max_suffixes)) :: long_name
 
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,SNOWI
+
+      RSI => SI_ATM%RSI
+      SNOWI => SI_ATM%SNOWI
+
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
@@ -1793,6 +1806,9 @@ c get_subdd
      &               HAVE_NORTH_POLE=have_north_pole)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
+
+      datar8 = 0.d0
+      data = 0.
 
 #if (defined ttc_subdd) || (defined etc_subdd)
       CALL SUBDIAGS_FIXED_PRESS
@@ -1843,7 +1859,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
-                datar8(i,j)=GTEMP(1,1,i,j)
+                datar8(i,j)=atmocn%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1860,8 +1876,8 @@ C**** accumulating/averaging mode ***
         case ("SIT")       ! surface sea/lake ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
-                datar8(i,j)=GTEMP(1,2,i,j)
+              if (rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
+                datar8(i,j)=atmice%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1873,7 +1889,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (FLICE(I,J).gt.0) then
-                datar8(i,j)=GTEMP(1,3,i,j)
+                datar8(i,j)=atmgla%GTEMP(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -1885,7 +1901,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
-                datar8(i,j)=gtemp(1,4,i,j)
+                datar8(i,j)=atmlnd%gtemp(i,j)
               else
                 datar8(i,j)=undef
               end if
@@ -2067,7 +2083,7 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_WATER
         case ("TRP1")
-          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2077,7 +2093,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
-          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2087,7 +2103,7 @@ c          datar8=sday*prec/dtsrc
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
-          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2100,10 +2116,11 @@ c          datar8=sday*prec/dtsrc
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=1d3*(SNOWI(I,J)*POICE+SNOWLI(I,J)*PLANDI
+              datar8(i,j)=1d3*(snowi(I,J)*POICE
+     &             +SNOWLI(I,J)*PLANDI
      &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
@@ -2113,8 +2130,8 @@ c          datar8=sday*prec/dtsrc
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               datar8(i,j)=0.d0
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
-              if(SNOWI(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              if(snowi(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
               PEARTH=FEARTH(I,J)
               if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
@@ -2179,13 +2196,15 @@ C**** accumulating/averaging mode ***
         case ("LWU")            ! LW upward flux at surface (W/m^2)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-rsi(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=STBO*(POCEAN*GTEMPR(1,I,J)**4+
-     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
-     *             PEARTH*GTEMPR(4,I,J)**4)
+              datar8(i,j)=STBO*(
+     &              POCEAN*atmocn%GTEMPR(I,J)**4
+     &             +POICE *atmice%GTEMPR(I,J)**4
+     &             +PLANDI*atmgla%GTEMPR(I,J)**4
+     &             +PEARTH*atmlnd%GTEMPR(I,J)**4)
             end do
           end do
 #ifdef mjo_subdd
@@ -2199,14 +2218,15 @@ C**** accumulating/averaging mode ***
         case ("LWT")            ! LW upward flux at TOA (P1) (W/m^2)
           do j=J_0,J_1     ! sum up all cooling rates + net surface emission
             do i=I_0,imaxj(j)
-              POCEAN=(1.-RSI(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
-              POICE=RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
+              POCEAN=(1.-rsi(I,J))*(FOCEAN(I,J)+FLAKE(I,J))
+              POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
-              datar8(i,j)=-SUM(TRHR(0:LM,I,J))+
-     *             STBO*(POCEAN*GTEMPR(1,I,J)**4+
-     *             POICE *GTEMPR(2,I,J)**4+PLANDI*GTEMPR(3,I,J)**4+
-     *             PEARTH*GTEMPR(4,I,J)**4)
+              datar8(i,j)=-SUM(TRHR(0:LM,I,J))+ STBO*(
+     &              POCEAN*atmocn%GTEMPR(I,J)**4
+     &             +POICE *atmice%GTEMPR(I,J)**4
+     &             +PLANDI*atmgla%GTEMPR(I,J)**4
+     &             +PEARTH*atmlnd%GTEMPR(I,J)**4)
             end do
           end do
           units_of_data = 'W/m^2'
@@ -2220,7 +2240,7 @@ C**** accumulating/averaging mode ***
           units_of_data = 'W/m^2'
           long_name = 'Solar Net Flux at Top of Atmosphere'
         case ("ICEF")           ! ice fraction over open water (%)
-          datar8=RSI*100.
+          datar8=rsi*100.
           units_of_data = '%'
           long_name = 'Ice Fraction Over Open Water'
         case ("STX")            ! E-W surface stress (N/m^2)
@@ -3212,6 +3232,42 @@ C**** get model level
           end do
         end select
 
+!=========== any tracer 3d output at the model levels ==========
+! tracer name should have the prefix "t", to avoid confusion with
+! pre-existing diagnostics which are in many cases in different
+! units. 
+#ifdef TRACERS_ON
+        polefix=.true.
+        do n=1,NTM
+          if ('t'//trim(trname(n)) == namedd(k)) then
+            do l=1,LmaxSUBDD
+              kunit=kunit+1
+              do j=J_0,J_1
+                do i=I_0,imaxj(j)
+                  datar8(i,j)=trm(i,j,l,n)*MMR_to_VMR(n)/
+     *                 (am(l,i,j)*axyp(i,j))
+                end do
+              end do
+              LmaxSUBDD_array(:,:,l)=datar8
+              data=datar8
+              call write_data(data,kunit,polefix)
+            end do
+            if (MMR_to_VMR(n) == 1.d0) then
+              units_of_data = 'mass mixing ratio'
+            else
+              units_of_data = 'volume mixing ratio'
+            endif
+            long_name = trim(trname(n))//' tracer'
+#ifdef NEW_IO_SUBDD
+            call write_subdd(trim(namedd(k)),LmaxSUBDD_array,polefix
+     &           ,units_of_data,long_name=long_name,positive='up')
+#endif
+            exit
+          end if
+        end do
+#endif
+!===========
+
 C**** Additional diags - multiple records per file
         select case (namedd(k))
 C**** cases using all levels up to LmaxSUBDD
@@ -3237,7 +3293,7 @@ c***** "instantaneous" is a relative term.)
             case ("itAOD","ictAOD")   !tot aero(+dust,etc) opt dep, inst.
               if (any(tracerRadiaActiveFlag)) then
                 datar8=0.
-                do n=1,ntm        ! sum over rad code tracers is used
+                do n=1,NTM        ! sum over rad code tracers is used
                   if(tracerRadiaActiveFlag(n))then
                     select case(namedd(k))
                     case('itAOD')
@@ -3453,7 +3509,7 @@ c***** for (c)tAOD the sum over tracers of aerosol optical depth
               if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
               if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
               datar8=0.
-              do n=1,ntm        ! sum over rad code tracers is used
+              do n=1,NTM        ! sum over rad code tracers is used
                 if(tracerRadiaActiveFlag(n))then
                   select case(namedd(k))
                   case('tAOD')
@@ -3489,7 +3545,7 @@ C**** for (c)AOD multiple tracers are written to one file:
               if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
               if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
               nc=0
-              do n=1,ntm
+              do n=1,NTM
                 if(tracerRadiaActiveFlag(n))then
                   nc=nc+1
                   select case(namedd(k))
@@ -3523,8 +3579,7 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
           case('TrSMIXR')
             kunit=kunit+1
             polefix=.true.
-            do n=1,ntm
-!$OMP PARALLEL DO PRIVATE(i,j)
+            do n=1,NTM
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)
@@ -3533,7 +3588,6 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
                   trcSurfMixR_acc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
               TRACER_array(:,:,n)=datar8
@@ -3551,8 +3605,7 @@ c**** Concentration for all tracers at surface [kg/m^3]
           case('TrSCONC')
             kunit=kunit+1
             polefix=.true.
-            do n=1,ntm
-!$OMP PARALLEL DO PRIVATE(i,j)
+            do n=1,NTM
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfByVol_acc(i,j,n)=trcSurfByVol_acc(i,j,n)
@@ -3561,7 +3614,6 @@ c**** Concentration for all tracers at surface [kg/m^3]
                   trcSurfByVol_acc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
               TRACER_array(:,:,n)=datar8
@@ -3582,13 +3634,13 @@ C**** overkill, but useful now for EPA down-scaling:
           case ('FRAC') ! land, ocean, lake fractions incl ice+ice-free
             kunit=kunit+1
             polefix=.true.
-            data=RSI(:,:)*FOCEAN(:,:)         ! ocean ice
+            data=rsi(:,:)*FOCEAN(:,:)         ! ocean ice
             call write_data(data,kunit,polefix)
-            data=RSI(:,:)*FLAKE(:,:)          ! lake ice
+            data=rsi(:,:)*FLAKE(:,:)          ! lake ice
             call write_data(data,kunit,polefix)
-            data=(1.-RSI(:,:))*FOCEAN(:,:)    ! ice-free ocean
+            data=(1.-rsi(:,:))*FOCEAN(:,:)    ! ice-free ocean
             call write_data(data,kunit,polefix)
-            data=(1.-RSI(:,:))*FLAKE(:,:)     ! ice-free lake
+            data=(1.-rsi(:,:))*FLAKE(:,:)     ! ice-free lake
             call write_data(data,kunit,polefix)
             data=FLICE(:,:)                   ! land ice
             call write_data(data,kunit,polefix)
@@ -3608,7 +3660,6 @@ C**** first set: no 'if' tests
             select case (namedd(k))
 
             CASE ('DuEMIS')     ! Dust emission flux [kg/m^2/s]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustEmission(i,j,n)
@@ -3616,12 +3667,10 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustEmission(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/(s*m^2)'
               long_name = 'Emission of'
 #ifdef TRACERS_DUST
             CASE ('DuEMIS2')    ! Dust emission flux 2 (diag. var. only) [kg/m^2/s]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustEmission2(i,j,n)
@@ -3629,13 +3678,11 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustEmission2(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/(s*m^2)'
               long_name =
      &             'Emission According to Cubic Formula (diag only) of'
 #endif
             CASE ('DuSMIXR')      ! Mixing ratio of dust tracers at surface [kg/kg]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustSurfMixR(i,j,n)
@@ -3643,11 +3690,9 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustSurfMixR(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/kg'
               long_name = 'Mixing Ratio at Surface of'
             CASE ('DuSCONC')  ! Concentration of dust tracers at surface [kg/m^3]
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustSurfConc(i,j,n)
@@ -3655,11 +3700,9 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustSurfConc(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^3'
               long_name = 'Concentration at Surface of'
             CASE ('DuLOAD')     ! Dust load [kg/m^2]
-!$OMP PARALLEL DO PRIVATE(i,j,l)
               do l=1,lm
                 do j=j_0,j_1
                   do i=i_0,i_1
@@ -3669,9 +3712,7 @@ C**** first set: no 'if' tests
                   end do
                 end do
               end do
-!$OMP END PARALLEL DO
               datar8=0.D0
-!$OMP PARALLEL DO PRIVATE(i,j,l)
               do j=j_0,j_1
                 do i=i_0,i_1
                   do l=1,lm
@@ -3682,7 +3723,6 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustMass(i,j,:,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               units_of_data='kg/m^2'
               long_name = 'Mass in Atmospheric Column of'
             end select
@@ -3703,7 +3743,6 @@ C**** first set: no 'if' tests
           polefix=.true.
           do n=1,Ntm_dust
             do l=1,LmaxSUBDD
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j) = dustDiagSubdd_acc%dustConc(i,j,l,n)
@@ -3711,7 +3750,6 @@ C**** first set: no 'if' tests
                   dustDiagSubdd_acc%dustConc(i,j,l,n)=0.d0
                 end do
               end do
-!$OMP END PARALLEL DO
               dust4d_array(:,:,l,n) = datar8
               data=datar8
               call write_data(data,kunit,polefix)
@@ -3764,7 +3802,6 @@ C**** other dust special cases
           do n=1,Ntm_dust
             n1=n_soilDust+n-1
             if (dodrydep(n1)) then
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustDepoTurb(i,j,n)
@@ -3772,7 +3809,6 @@ C**** other dust special cases
                   dustDiagSubdd_acc%dustDepoTurb(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               polefix=.true.
               dust3d_array(:,:,n)=datar8
               data=datar8
@@ -3793,7 +3829,6 @@ C**** other dust special cases
           do n=1,Ntm_dust
             n1=n_soilDust+n-1
             IF (dodrydep(n1)) THEN
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustDepoGrav(i,j,n)
@@ -3801,7 +3836,6 @@ C**** other dust special cases
                   dustDiagSubdd_acc%dustDepoGrav(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
               polefix=.true.
               dust3d_array(:,:,n)=datar8
               data=datar8
@@ -3825,15 +3859,13 @@ C**** other dust special cases
 #ifdef TRACERS_WATER
             if (dowetdep(n1)) then
 #endif
-!$OMP PARALLEL DO PRIVATE(i,j)
               do j=j_0,j_1
                 do i=i_0,i_1
                   datar8(i,j)=dustDiagSubdd_acc%dustMassInPrec(i,j,n)
-     &                 *byaxyp(i,j)/Dtsrc/real(Nsubdd,kind=8)
+     &                 /Dtsrc/real(Nsubdd,kind=8)
                   dustDiagSubdd_acc%dustMassInPrec(i,j,n)=0.D0
                 end do
               end do
-!$OMP END PARALLEL DO
 #ifdef TRACERS_WATER
             end if
 #endif
@@ -3877,7 +3909,8 @@ c****
 #ifdef etc_subdd
       USE RESOLUTION, only : PLbot
 #endif
-      USE MODEL_COM, only : jm,lm,p,ptop,u,v
+      USE RESOLUTION, only : jm,lm,ptop
+      USE ATM_COM, only : p,u,v
       USE GEOM, only : imaxj
 #if (defined etc_subdd) || (defined ttc_subdd)
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -3887,7 +3920,7 @@ c****
       USE CLOUDS_COM, only : cldss,cldmc,CLWC3D,CIWC3D
      *              ,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
-      USE DYNAMICS, only : pedn,pmid
+      USE ATM_COM, only : pedn,pmid
 #ifdef etc_subdd
      *     ,TTROPO,wsave
 #endif
@@ -4160,7 +4193,8 @@ C**** large-scale conden(L),deep conv(E),shallow conv(S) at fixed pressure level
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp_1d, only : grid,get,writei_parallel,
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : get,writei_parallel,
      &     hasSouthPole, hasNorthPole
 
       implicit none
@@ -4928,7 +4962,7 @@ c define physical variable
           end do
         else
           call defvar(grid,fid,data,trim(qtyname)//'
-     &         ('// trim(dist_x)//','//trim(dist_y)//',level,ntm)'
+     &         ('// trim(dist_x)//','//trim(dist_y)//',level,NTM)'
      &         ,with_record_dim=.true.,r4_on_disk=qr4)
           call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
           if (present(long_name)) then
@@ -4997,12 +5031,14 @@ c write physical variable
 !@sum ahourly saves instantaneous variables at sub-daily frequency
 !@+   for diurnal cycle diagnostics
 !@auth Reha Cakmur/Jan Perlwitz
-
-      USE MODEL_COM, only : u,v,t,p,q,jdate,jhour,ptop,sig
+      USE RESOLUTION, only : ptop
+      USE MODEL_COM, only : jdate,jhour
+      USE ATM_COM, only : u,v,t,p,q
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,get,globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE DYNAMICS, only : phi,wsave,pek,byam
+      USE ATM_COM, only : phi,wsave,pek,byam
+      USE DYNAMICS, only : sig
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
@@ -5057,8 +5093,6 @@ C****
 
       ih=jhour+1
       ihm=ih+(jdate-1)*24
-!$OMP PARALLEL DO PRIVATE(i,j,kr,n,psk,n1,tmp)
-!$OMP*   SCHEDULE(DYNAMIC,2)
       do j=j_0,j_1
       do i=I_0,imaxj(j)
       psk=pek(1,i,j)
@@ -5109,7 +5143,6 @@ C****
       enddo
       enddo
       enddo
-!$OMP END PARALLEL DO
 
       return
       end subroutine ahourly
@@ -5138,7 +5171,7 @@ c**** read in the MSU weights file
       subroutine diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
 !@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
 !@auth Reto A Ruedy (input file created by Makiko Sato)
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
@@ -5168,22 +5201,30 @@ c**** find MSU channel 2,3,4 temperatures
       return
       end subroutine diag_msu
 
-      SUBROUTINE init_DIAG(postProc,num_acc_files)
+      SUBROUTINE init_DIAG
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sday,kapa,undef
-      USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
+      USE RESOLUTION, only : pmtop
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only : Itime,ItimeI,Itime0,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
-     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
-     *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
+     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
+     *     ,nmonav,ItimeE,lrunid
+     &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
+      USE ATM_COM, only : lm_req
+      USE DYNAMICS, only : nfiltr
+      USE FLUXES, only : focean,atmocn,atmice,atmgla,atmlnd
       USE GEOM, only : axyp,imaxj,lon2d_dg,lat2d_dg
       USE GEOM, only : lonlat_to_ij
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
+      USE ATM_COM, only : pednl00,pmidl00
+      USE DIAG_COM, only : aij_loc
+      USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
       USE DIAG_COM, only : NPTS, NAMDD, NDIUPT, IJDD,LLDD, ISCCP_DIAGS
-      USE DIAG_COM, only : monacc, acc_period, keyct, KEYNR, PLE
+      USE DIAG_COM, only : keyct, KEYNR, PLE
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
       USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
@@ -5192,6 +5233,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
+      USE DIAG_COM, only : ndasf,nda4,nda5s,nda5k,nda5d,ndaa,modd5k
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
      &     ,consrv_loc
 #ifndef NO_HDIURN
@@ -5201,14 +5243,17 @@ c**** find MSU channel 2,3,4 temperatures
 #ifdef TES_LIKE_DIAGS
       USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
 #endif
+      USE DIAG_COM, only : iu_vflxo,koa
+      USE DIAG_COM, only : iwrite,jwrite,itwrite,kdiag
       USE DIAG_LOC
       USE Dictionary_mod
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
+      USE SUBDAILY, only : init_subdd
+      USE DIAG_COM, only : itoice,itlkice,itocean,itlake
       IMPLICIT NONE
-      logical :: postProc ; integer :: num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
      *     ,jday0,jday,moff,kb,l850,l300,l50
       REAL*8 PLE_tmp
@@ -5238,11 +5283,41 @@ c a parallelized i/o routine that understands it
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     area_part
+      CHARACTER aDATE*14
+
+      atmocn%aij => aij_loc
+      atmice%aij => aij_loc
+      atmgla%aij => aij_loc
+      atmlnd%aij => aij_loc
+
+      atmocn%jreg => jreg
+      atmice%jreg => jreg
+      atmgla%jreg => jreg
+      atmlnd%jreg => jreg
+
+      atmice%itoice = itoice
+      atmice%itlkice = itlkice
+      atmice%itocean = itocean
+      atmice%itlake = itlake
+
+      IWRITE = IWRITE_sv
+      JWRITE = JWRITE_sv
+      ITWRITE = ITWRITE_sv
+      KDIAG = KDIAG_sv
+
+      MODD5K=1000
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
+      call sync_param( "Kvflxo", Kvflxo ) !!
+      call sync_param( "NDASF", NDASF )
+      call sync_param( "NDA4", NDA4 ) !!
+      call sync_param( "NDA5S", NDA5S ) !!
+      call sync_param( "NDA5K", NDA5K ) !!
+      call sync_param( "NDA5D", NDA5D ) !!
+      call sync_param( "NDAA", NDAA ) !!
 
 C****   READ SPECIAL REGIONS
 #ifndef ASCII_REGIONS
@@ -5369,51 +5444,6 @@ c if people still want to specify dd points as ij, let them
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)
-
-      IF(postProc) THEN  ! initialize for post-processing
-        call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
-     *       ,amon0)
-        call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
-     *       ,amon)
-        months=1 ; years=monacc(jmon0) ; mswitch=0 ; moff=0 ; kb=jmon0
-        do kl=jmon0+1,jmon0+11
-          k = kl
-          if (k.gt.12) k=k-12
-          if (monacc(k).eq.years) then
-            months=months+1
-          else if (monacc(k).ne.0) then
-C****            write(6,*) 'uneven period:',monacc
-            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
-     &                          "('uneven period:',12I5)")
-            call stop_model( 'uneven period', 255 )
-          end if
-          if(monacc(k).ne.monacc(kb)) mswitch = mswitch+1
-          if(mswitch.eq.2) moff = moff+1
-          kb = k
-        end do
-        if (mswitch.gt.2) then
-C****          write(6,*) 'non-consecutive period:',monacc
-            CALL WRITE_PARALLEL(monacc, UNIT=6, format=
-     &                          "('non-consecutive period:',12I5)")
-          call stop_model( 'non-consecutive period', 255 )
-        end if
-        call aPERIOD (JMON0,JYEAR0,months,years,moff, acc_period,Ldate)
-        if (num_acc_files.gt.1) then  ! save the summed acc-file
-          write(out_line,*) num_acc_files,' files are summed up'
-          CALL WRITE_PARALLEL(TRIM(out_line), UNIT=6)
-          keyct=1 ; KEYNR=0
-          XLABEL(128:132)='     '
-          XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
-C****          write(6,*) XLABEL
-          CALL WRITE_PARALLEL(XLABEL, UNIT=6)
-          filenm=acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
-          call io_rsf (filenm,Itime,iowrite_single,ioerr)
-        end if
-        ItimeE = -1
-        close (6)
-        open(6,file=acc_period(1:Ldate)//'.'//XLABEL(1:LRUNID)//'.PRT',
-     *       FORM='FORMATTED')
-      END IF
 
 C**** Initialize certain arrays used by more than one print routine
       DO L=1,LM
@@ -5606,17 +5636,17 @@ c**** Initialize acc-array names, units, idacc-indices
       call def_acc
 
 C**** Ensure that diagnostics are reset at the beginning of the run
-      IF (Itime.le.ItimeI .and. .not.postProc) THEN
+      IF (Itime.le.ItimeI) THEN
         call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *       ,amon)
-        CALL reset_DIAG(0)
+        CALL reset_ADIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=J_0,J_1
           DO I=I_0,IMAXJ(J)
             TSFREZ(I,J,TF_DAY1)=365.
             TSFREZ(I,J,TF_LAST)=365.
             IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
-              IF (RSI(I,J).gt.0) then
+              IF (si_atm%rsi(I,J).gt.0) then
                 TSFREZ(I,J,TF_LKON) = JDAY-1
                 TSFREZ(I,J,TF_LKOFF) = JDAY
               ELSE
@@ -5629,7 +5659,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
             END IF
           END DO
         END DO
-        CALL daily_DIAG
+        CALL daily_DIAG(.false.)
       END IF
 
 c
@@ -5648,24 +5678,93 @@ c read MSU weighting functions for diagnostics
 c
       call read_msu_wts
 
+C**** NEED TO GET aDATE IN A SAFER WAY
+      write(aDATE(1:7),'(a3,I4.4)') aMON0(1:3),Jyear0
+
+C****
+C**** Open and position output history files if needed
+C****
+      if (Kvflxo.ne.0) then
+        call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+        call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
+      end if
+
+C**** Initiallise file for sub-daily diagnostics, controlled by space-
+C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
+      call init_subdd(aDATE)
+
       RETURN
       END SUBROUTINE init_DIAG
 
+      SUBROUTINE DECLARE_OCEANR_CONSRV(
+     &     icon_OMS,icon_OAM,icon_OKE,icon_OCE,icon_OSL)
+      USE DIAG_COM, only : npts,conpt0
+      IMPLICIT NONE
+      INTEGER :: icon_OMS,icon_OAM,icon_OKE,icon_OCE,icon_OSL
+c
+      LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
+      CHARACTER CONPT(NPTS)*10
+c
+C**** Set up oceanic component conservation diagnostics
+C**** Oceanic mass
+      CONPT=CONPT0
+      CONPT(8)="OCN PHYS"
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN MASS","(10**2 KG/M^2)  ",
+     *     "(10**-8 KG/SM^2)",1d-2,1d8,icon_OMS)
+C**** Oceanic angular momentum
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN AM  ","(10**12 JS/M^2) ",
+     *     "(10**2 J/M^2)   ",1d-12,1d-2,icon_OAM)
+C**** Oceanic kinetic energy
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCEAN KE","(J/M^2)         ",
+     *     "(10**-6 W/M^2)  ",1d0,1d6,icon_OKE)
+C**** Oceanic potential enthalpy (heat)
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN HEAT","(10**6 J/M^2)   ",
+     *     "(10**-2 W/M^2)  ",1d-6,1d2,icon_OCE)
+C**** Oceanic salt mass
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      CALL SET_CON(QCON,CONPT,"OCN SALT","(10 KG/M^2)     ",
+     *     "(10**-9 KG/SM^2)",1d-1,1d9,icon_OSL)
+      RETURN
+      END SUBROUTINE DECLARE_OCEANR_CONSRV
 
-      SUBROUTINE reset_DIAG(isum)
-!@sum  reset_DIAG resets/initializes diagnostics
+      SUBROUTINE DECLARE_SEAICE_CONSRV
+C**** Set conservation diagnostics for ice mass, energy, salt
+      USE DIAG_COM, only : npts,conpt0,icon_OMSI,icon_OHSI,icon_OSSI
+      IMPLICIT NONE
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
+      CHARACTER CONPT(NPTS)*10
+      CONPT=CONPT0
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
+      CONPT(5)="THERMO"    ; CONPT(6)="ADVECT"
+      CONPT(8)="OCN FORM"
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE MAS","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_OMSI)
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE ENR","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_OHSI)
+      QCON=(/ F, F, T, T, T, T, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"OICE SLT","(10**-3 KG/M^2) ",
+     *     "(10**-12KG/SM^2)",1d3,1d12,icon_OSSI)
+      RETURN
+      END SUBROUTINE DECLARE_SEAICE_CONSRV
+
+      SUBROUTINE reset_ADIAG(isum)
+!@sum  reset_ADIAG resets/initializes atm diagnostics
 !@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM, only : Itime,iyear1,nday,kradia,
-     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
+      USE ATM_COM, only : kradia,u
       USE DIAG_COM
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
-      INTEGER jd0
 
-      IDACC(1:12)=0
+      call reset_mdiag() ! move this call to higher level!!!
+
       if (kradia.gt.0) then
         AFLX_ST = 0.
         if (isum.eq.1) return
@@ -5687,43 +5786,50 @@ c
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
-      call reset_ODIAG(isum)  ! ocean diags if required
+      ! move this call!!!
       call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return ! just adding up acc-files
 
-      AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      AIJ_loc(:,:,IJ_TMNMX)=1000.
 
 #ifndef CUBED_SPHERE
       CALL EPFLXI (U)  ! strat
 #endif
 
-  100 Itime0=Itime
-      call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
-     *     Jdate0,Jhour0,amon0)
+  100 continue
 
       RETURN
-      END SUBROUTINE reset_DIAG
+      END SUBROUTINE reset_ADIAG
 
 
-      SUBROUTINE daily_DIAG
+      SUBROUTINE daily_DIAG(newmonth)
 !@sum  daily_DIAG resets diagnostics at beginning of each day
 !@auth Original Development Team
-!@ver  1.0
+      USE FILEMANAGER
       USE CONSTANT, only : undef
-      USE MODEL_COM, only : im,jm,jday,focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : jday,JDendOfM,aMON
+     &     ,JMperY,Jmon,Jmon0,Jyear,Jyear0,NMONAV
+      USE ATM_COM, only : kradia,iu_rad
+      USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
+      USE DIAG_COM, only : kvflxo,iu_VFLXO
+      USE SUBDAILY, only : reset_subdd
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       IMPLICIT NONE
+      logical, intent(in) :: newmonth
+      character(len=16) :: aDate
+      integer :: months
       INTEGER I,J
       INTEGER :: J_0, J_1, I_0,I_1
 
@@ -5763,7 +5869,7 @@ C**** initialize/save South. Hemi. on Feb 28
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
      *             +1
-              IF (RSI(I,J).gt.0) THEN
+              IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = JDAY-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
@@ -5778,7 +5884,7 @@ C**** are counted from Sep 1 (NH only).
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,365)
      *             +1
-              IF (RSI(I,J).gt.0) THEN
+              IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = JDAY-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
@@ -5787,9 +5893,9 @@ C**** are counted from Sep 1 (NH only).
           END IF
 C**** set ice on/off days
           IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) THEN
-            IF (RSI(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
+            IF (si_atm%rsi(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
      *           TSFREZ(I,J,TF_LKON)=JDAY
-            IF (RSI(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
+            IF (si_atm%rsi(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
           END IF
         END DO
       END DO
@@ -5819,6 +5925,29 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 #ifdef TRACERS_ON
       ttausv_count=0.d0
 #endif
+
+
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
+      if ( newmonth ) then
+        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+        if (Kradia.ne.0 .and. Kradia<10) then
+          if (Kradia.gt.0) aDATE(4:7)='    '
+          call closeunit( iu_RAD )
+          call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
+        end if
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
+        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+        if ( months.ge.NMONAV ) then
+          call reset_ADIAG(0)
+          if (Kvflxo.ne.0) then
+            call closeunit( iu_VFLXO )
+            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+          end if
+C**** reset sub-daily diag files
+          call reset_subdd(aDATE)
+        end if                  !  beginning of acc.period
+      end if                    !  beginning of month
+
       END SUBROUTINE daily_DIAG
 
 
@@ -5826,9 +5955,9 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
      *     ,CHNG_SC,ICON)
 !@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : sday
-      USE MODEL_COM, only : dtsrc,nfiltr
+      USE DYNAMICS, only : nfiltr
+      USE MODEL_COM, only : dtsrc
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_inst
      *     ,name_consrv,lname_consrv,units_consrv
@@ -5937,13 +6066,15 @@ C****
       SUBROUTINE UPDTYPE
 !@sum UPDTYPE updates FTYPE array to ensure correct budget diagnostics
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,focean,flice,itocean
-     *     ,itoice,itlandi,itearth,itlake,itlkice,ftype
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : focean,flice
       USE GEOM, only : imaxj
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DIAG_COM, only :
+     &     ftype,itocean,itoice,itlandi,itearth,itlake,itlkice
       IMPLICIT NONE
       INTEGER I,J
       INTEGER :: J_0,J_1,I_0,I_1
@@ -5953,9 +6084,9 @@ C****
       I_1 = GRID%I_STOP
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*RSI(I,J)
+          FTYPE(ITOICE ,I,J)=FOCEAN(I,J)*si_atm%rsi(I,J)
           FTYPE(ITOCEAN,I,J)=FOCEAN(I,J)-FTYPE(ITOICE,I,J)
-          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*RSI(I,J)
+          FTYPE(ITLKICE,I,J)=FLAKE(I,J)*si_atm%rsi(I,J)
           FTYPE(ITLAKE ,I,J)=FLAKE(I,J)-FTYPE(ITLKICE,I,J)
 C**** set land components of FTYPE array. Summation is necessary for
 C**** cases where Earth and Land Ice are lumped together
@@ -5974,8 +6105,11 @@ C****
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID,SUMXPE,AM_I_ROOT
       USE Domain_decomp_1d, only: hasSouthPole, hasNorthPole
-      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop,
-     &     im,jm
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : idacc
+      USE ATM_COM, only : zatmo
+      USE RESOLUTION, only : pmtop
+      USE FLUXES, only : fearth0,flice,focean
       USE GEOM, only : imaxj,axyp,lat2d,areag
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
      &     kaij,hemis_ij,jgrid_ij,
@@ -6158,9 +6292,9 @@ c
       SUBROUTINE DIAGJ_PREP
       USE DOMAIN_DECOMP_ATM, ONLY : AM_I_ROOT
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : dtsrc,idacc,ntype
+      USE MODEL_COM, only : dtsrc,idacc
       USE DIAG_COM, only : jm_budg,
-     &     aj,ntype_out,wt=>wtj_comp,aj_out,areg,areg_out,
+     &     aj,ntype_out,ntype,wt=>wtj_comp,aj_out,areg,areg_out,
      &     nreg,kaj,j_albp0,j_srincp0,j_albg,j_srincg,
      &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
@@ -6264,7 +6398,9 @@ c
       END SUBROUTINE DIAGJ_PREP
 
       subroutine diagjl_prep
-      use model_com, only : lm,lm_req,do_gwdrag
+      use resolution, only : lm
+      use atm_com, only : lm_req
+      use dynamics, only : do_gwdrag
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
      &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool,
@@ -6417,5 +6553,50 @@ C****
       call diaggc_prep
       call diag_river_prep
       if(isccp_diags.eq.1) call diag_isccp_prep
+#ifdef TRACERS_ON
+      call diag_trac_prep
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call diagtcp_prep
+#endif
       return
       end subroutine calc_derived_acc_atm
+
+      SUBROUTINE vflx_OCEAN
+!@sum  vflx_OCEAN saves quantities for OHT calculations
+!@auth Original Development Team
+      USE DIAG_COM, only : oa
+      USE SEAICE_COM, only : si_atm
+      USE FLUXES, only : atmice,focean
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      IMPLICIT NONE
+      INTEGER I,J
+      integer :: I_0, I_1, J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C****
+C****       DATA SAVED IN ORDER TO CALCULATE OCEAN TRANSPORTS
+C****
+C****       1  SNOWOI (INSTANTANEOUS AT NOON GMT)
+C****       2  FWSIM  (INSTANTANEOUS AT NOON GMT)
+C****       3  HSIT   (INSTANTANEOUS AT NOON GMT)
+C****
+      DO J=J_0, J_1
+        DO I=I_0, I_1
+          IF (FOCEAN(I,J).gt.0) THEN
+            OA(I,J,1)=si_atm%SNOWI(I,J)
+            OA(I,J,2)=atmice%FWSIM(I,J)
+            OA(I,J,3)=SUM(si_atm%HSI(:,I,J))
+          END IF
+        END DO
+      END DO
+
+      RETURN
+C****
+      END SUBROUTINE vflx_OCEAN

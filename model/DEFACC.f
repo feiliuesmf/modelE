@@ -52,12 +52,15 @@ c#endif
 !@auth G. Schmidt/M. Kelley
       use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
      &     ,radian,radius
-      use MODEL_COM, only : jm,lm,ls1,dtsrc,sige,kocean,qcheck
+      USE RESOLUTION, only : ls1
+      use MODEL_COM, only : dtsrc,kocean,qcheck
+      use DYNAMICS, only : sige
       use DIAG_COM
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
 #endif
+      USE FLUXES, only : atmice
       implicit none
       character(len=30), parameter ::
      &     fmt906='(A16,3F7.2,2X,24F4.1)'
@@ -426,7 +429,7 @@ c
       fmt_reg(k) = fmt910
 c
       k=k+1
-      J_HMELT = k ! net amount of energy associated with ice melt/form
+      atmice%J_HMELT = k ! net amount of energy associated with ice melt/form
       name_j(k) = 'ht_ice_melt'
       lname_j(k) = 'NET HEAT OF ICE MELT/FORMATION'
       units_j(k) = 'W/m^2'
@@ -440,6 +443,7 @@ C**** Note this is used for ice in fixed SST runs, but for ocean in
 C**** qflux runs. Over land, it is always used for landice changes.
       k=k+1
       J_IMPLH = k               !                                 1 GP
+      atmice%J_IMPLH = k
       name_j(k) = 'impl_ht'
       lname_j(k) = 'DOWNWARD IMPLICIT HEAT FLUX AT ICE BASE/OCN ML'
       units_j(k) = 'W/m^2'
@@ -546,7 +550,7 @@ c
       fmt_reg(k) = fmt910
 c
       k=k+1
-      J_IMELT = k ! net amount ice melt/formation in oc/lk  1 GP
+      atmice%J_IMELT = k ! net amount ice melt/formation in oc/lk  1 GP
       name_j(k) = 'ice_melt'
       lname_j(k) = 'NET ICE MELTING/FORMATION'
       units_j(k) = 'mm/day'
@@ -560,6 +564,7 @@ C**** Note this is used for ice in fixed SST runs, but for ocean in
 C**** qflux runs. Over land, it is always used for landice changes.
       k=k+1
       J_IMPLM = k               !                                 1 GP
+      atmice%J_IMPLM = k
       name_j(k) = 'impl_m_flux'
       lname_j(k) =
      *     'DOWNWARD IMPLICIT FRESHWATER FLUX AT ICE BASE/OCN ML'
@@ -582,7 +587,7 @@ c
       fmt_reg(k) = fmt910
 c
       k=k+1
-      J_SMELT= k ! salt flux associated with ice melt/formation   1 GD
+      atmice%J_SMELT= k ! salt flux associated with ice melt/formation   1 GD
       name_j(k) = 's_ice_melt'
       lname_j(k) = 'SALT IN ICE MELT/FORMATION'
       units_j(k) = '10^-3 kg/m^2/day'
@@ -837,6 +842,7 @@ c
 c
       k=k+1
       J_ACE1  = k ! ACE1 (KG/m**2)                                1 GD
+      atmice%J_ACE1 = k
       name_j(k) = 'ice_g1'
       lname_j(k) = 'ICE IN GROUND LAYER 1'
       units_j(k) = 'kg/m^2'
@@ -856,6 +862,7 @@ c
 c
       k=k+1
       J_ACE2  = k ! ACE2 (KG/m**2)                                1 GD
+      atmice%J_ACE2 = k
       name_j(k) = 'ice_g2'
       lname_j(k) = 'ICE IN GROUND LAYER 2'
       units_j(k) = '10^2 kg/m^2'
@@ -865,6 +872,7 @@ c
 c
       k=k+1
       J_SNOW  = k ! SNOW (KG/m**2)                                1 GD
+      atmice%J_SNOW = k
       name_j(k) = 'snowdp'
       lname_j(k) = 'SNOW DEPTH'
       units_j(k) = 'kg/m^2'
@@ -875,6 +883,7 @@ c
 c
       k=k+1
       J_RSNOW = k ! PSNOW (1)                                     4 DA
+      atmice%J_RSNOW = k
       name_j(k) = 'snow_cover'
       lname_j(k) = 'SNOW COVER'
       units_j(k) = '%'
@@ -885,6 +894,7 @@ c
 c
       k=k+1
       J_RSI   = k ! RSI (1)                                       1 GD
+      atmice%J_RSI = k
       name_j(k) = 'ocn_lak_ice_frac'
       lname_j(k) = 'OCEAN/LAKE ICE COVER'
       units_j(k) = '%'
@@ -1094,10 +1104,12 @@ c
       use MODEL_COM
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use fluxes, only : nisurf,atmice
 #ifdef NEW_IO
       use cdl_mod
 #endif
       use geom
+      use dynamics, only : do_gwdrag,ido_gwdrag
       implicit none
       integer :: i,k,kk,k1,l,n
       character(len=16) :: ijstr
@@ -1129,6 +1141,7 @@ C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 c
       k=k+1 !
       IJ_RSOI = k ! POICE (1)            1 GD
+      atmice%IJ_RSOI = k
       lname_ij(k) = 'OCEAN/LAKE ICE COVERAGE'
       units_ij(k) = '%'
       name_ij(k) = 'oicefr'
@@ -1201,6 +1214,7 @@ c
 c
       k=k+1 !
       IJ_RSNW = k ! PSNOW (1)            1 GD
+      atmice%IJ_RSNW = k
       lname_ij(k) = 'SNOW COVERAGE'
       units_ij(k) = '%'
       name_ij(k) = 'snowfr'
@@ -1209,6 +1223,7 @@ c
 c
       k=k+1 !
       IJ_SNOW = k ! SNOW (KG/m**2)       1 GD
+      atmice%IJ_SNOW = k
       lname_ij(k) = 'SNOW DEPTH'    ! 'SNOW MASS'
       units_ij(k) = 'mm H2O'
       name_ij(k) = 'snowdp'
@@ -2137,6 +2152,7 @@ c
 c
       k=k+1 !
       IJ_RSIT = k ! POICE+PLICE+(IF SNOW)PEARTH               4 DA
+      atmice%IJ_RSIT = k
       lname_ij(k) = 'SNOW AND ICE COVERAGE'
       units_ij(k) = '%'
       name_ij(k) = 'snowicefr'
@@ -2414,6 +2430,7 @@ c
 c
       k=k+1 !
       IJ_ZSNOW = k ! snow thickness over all surface types
+      atmice%IJ_ZSNOW = k
       lname_ij(k) = 'SNOW THICKNESS'
       units_ij(k) = 'm'
       name_ij(k) = 'zsnow'
@@ -2625,7 +2642,7 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_MSI = k ! ACE2OI+ACE1I= (MSI2+MSI1)*POICE/RHOI (m)   1 GD
+      atmice%IJ_MSI = k ! ACE2OI+ACE1I= (MSI2+MSI1)*POICE/RHOI (m)   1 GD
       lname_ij(k) = 'OCEAN ICE THICKNESS'
       units_ij(k) = 'm'
       name_ij(k) = 'ZSI'
@@ -2721,7 +2738,7 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_FWIO = k ! NET FRESH WATER AT ICE-OCEAN INTERFACE
+      atmice%IJ_FWIO = k ! NET FRESH WATER AT ICE-OCEAN INTERFACE
       lname_ij(k) = 'NET ICE-OCEAN FRESH WATER'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'netfw_icoc'
@@ -2730,7 +2747,7 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_HTIO = k ! NET HEAT AT ICE-OCEAN INTERFACE
+      atmice%IJ_HTIO = k ! NET HEAT AT ICE-OCEAN INTERFACE
       lname_ij(k) = 'NET ICE-OCEAN HEAT'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_icoc'
@@ -2739,7 +2756,7 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_STIO = k ! NET SALT AT ICE-OCEAN INTERFACE
+      atmice%IJ_STIO = k ! NET SALT AT ICE-OCEAN INTERFACE
       lname_ij(k) = 'NET ICE-OCEAN SALT'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'netst_icoc'
@@ -2748,7 +2765,7 @@ c
       denom_ij(k) = IJ_POCEAN
 c
       k=k+1 !
-      IJ_F0OI = k ! F0DT*POICE, NET HEAT AT Z0  (J/m**2)     1 GD
+      atmice%IJ_F0OI = k ! F0DT*POICE, NET HEAT AT Z0  (J/m**2)     1 GD
       lname_ij(k) = 'NET HEAT INTO OCEAN ICE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_oice'
@@ -3917,7 +3934,7 @@ c
       scale_ij(k) = 1.
 
       k=k+1
-      IJ_TSI = k
+      atmice%IJ_TSI = k
       lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2)'
       units_ij(k) = 'C'
       name_ij(k) = 'TEMPSI'
@@ -3926,7 +3943,7 @@ c
       denom_ij(k) = IJ_RSOI
 
       k=k+1
-      IJ_SSI1 = k
+      atmice%IJ_SSI1 = k
       lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 1)'
       units_ij(k) = 'psu'
       name_ij(k) = 'SSI1'
@@ -3935,7 +3952,7 @@ c
       denom_ij(k) = IJ_RSOI
 
       k=k+1
-      IJ_SSI2 = k
+      atmice%IJ_SSI2 = k
       lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 2)'
       units_ij(k) = 'psu'
       name_ij(k) = 'SSI2'
@@ -3944,7 +3961,7 @@ c
       denom_ij(k) = IJ_RSOI
 
       k=k+1
-      IJ_MLTP = k
+      atmice%IJ_MLTP = k
       lname_ij(k) = 'SEA ICE MELT POND MASS'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'MLTP'
@@ -3963,7 +3980,7 @@ c
 
       IF (KOCEAN.ne.1) THEN
         k=k+1
-        IJ_SMFX = k
+        atmice%IJ_SMFX = k
         lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
         units_ij(k) = 'kg/m^2'
         name_ij(k) = 'SIMSFX'
@@ -3972,7 +3989,7 @@ c
       END IF
 c
       k=k+1
-      IJ_TSICE = k
+      atmice%IJ_TSICE = k
       lname_ij(k) = 'SEA ICE SURFACE TEMPERATURE'
       units_ij(k) = 'K'
       name_ij(k) = 'ts_oice'
@@ -3980,7 +3997,7 @@ c
       denom_ij(k) = IJ_RSOI
 c
       k=k+1
-      IJ_SISNWF = k
+      atmice%IJ_SISNWF = k
       lname_ij(k) = 'SEA ICE SNOWFALL RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'prsn_oice'
@@ -3989,7 +4006,7 @@ c
       denom_ij(k) = IJ_RSOI
 c
       k=k+1
-      IJ_SIGRFR = k
+      atmice%IJ_SIGRFR = k
       lname_ij(k) = 'SEA ICE FRAZIL GROWTH RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'grfraz_oice'
@@ -3998,7 +4015,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       k=k+1
-      IJ_SIGRCG = k
+      atmice%IJ_SIGRCG = k
       lname_ij(k) = 'SEA ICE CONGELATION GROWTH RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'grcong_oice'
@@ -4007,7 +4024,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       k=k+1
-      IJ_SIGRLT = k   ! i.e. negative of lateral melt
+      atmice%IJ_SIGRLT = k   ! i.e. negative of lateral melt
       lname_ij(k) = 'SEA ICE LATERAL GROWTH RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'grlat_oice'
@@ -4016,7 +4033,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       k=k+1
-      IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
+      atmice%IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
       lname_ij(k) = 'SNOW ICE FORMATION RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'snotoice'
@@ -4025,7 +4042,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       k=k+1
-      IJ_SITOPMLT = k
+      atmice%IJ_SITOPMLT = k
       lname_ij(k) = 'SEA ICE SURFACE MELT RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'topmlt_oice'
@@ -4034,7 +4051,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       k=k+1
-      IJ_SIBOTMLT = k
+      atmice%IJ_SIBOTMLT = k
       lname_ij(k) = 'SEA ICE BASAL MELT RATE'
       units_ij(k) = 'kg/m^2/s'
       name_ij(k) = 'botmlt_oice'
@@ -4043,7 +4060,7 @@ c
       denom_ij(k) = IJ_PWATER
 c
       K = K+1
-      IJ_MSNFLOOD = K
+      atmice%IJ_MSNFLOOD = K
       LNAME_IJ(K) = 'ICE MASS FROZEN by SNOW FLOOD'
       UNITS_IJ(K) = 'kg/s*m^2'
       NAME_IJ(K)  = 'msnflood'
@@ -4052,7 +4069,7 @@ c
       DENOM_IJ(K) = IJ_PWATER
 c
       K = K+1
-      IJ_HSNFLOOD = K
+      atmice%IJ_HSNFLOOD = K
       LNAME_IJ(K) = 'ICE HEAT FROZEN by SNOW FLOOD'
       UNITS_IJ(K) = 'W/m^2'
       NAME_IJ(K)  = 'hsnflood'
@@ -4061,7 +4078,7 @@ c
       DENOM_IJ(K) = IJ_PWATER
 c
       k=k+1
-      IJ_SIHC = k   ! note this is referenced to water at 0 deg C
+      atmice%IJ_SIHC = k   ! note this is referenced to water at 0 deg C
       lname_ij(k) = 'SEA ICE HEAT CONTENT'
       units_ij(k) = 'J/m^2'
       name_ij(k) = 'hc_oice'
@@ -4357,7 +4374,7 @@ c
       scale_ij(k) = 100.
 c
       k=k+1
-      IJ_MUSI=k
+      atmice%IJ_MUSI=k
       lname_ij(k)="Sea ice EW mass flux"
       name_ij(k)="musi"
       units_ij(k)="10^7 kg/s"
@@ -4365,7 +4382,7 @@ c
       igrid_ij(k)=2
 c
       k=k+1
-      IJ_MVSI=k
+      atmice%IJ_MVSI=k
       lname_ij(k)="Sea ice NS mass flux"
       name_ij(k)="mvsi"
       units_ij(k)="10^7 kg/s"
@@ -4373,7 +4390,7 @@ c
       jgrid_ij(k)=2
 c
       k=k+1
-      IJ_HUSI=k
+      atmice%IJ_HUSI=k
       lname_ij(k)="Sea ice EW heat flux"
       name_ij(k)="husi"
       units_ij(k)="10^12 W"
@@ -4381,7 +4398,7 @@ c
       igrid_ij(k)=2
 c
       k=k+1
-      IJ_HVSI=k
+      atmice%IJ_HVSI=k
       lname_ij(k)="Sea ice NS heat flux"
       name_ij(k)="hvsi"
       units_ij(k)="10^12 W"
@@ -4389,7 +4406,7 @@ c
       jgrid_ij(k)=2
 c
       k=k+1
-      IJ_SUSI=k
+      atmice%IJ_SUSI=k
       lname_ij(k)="Sea ice EW salt flux"
       name_ij(k)="susi"
       units_ij(k)="10^3 kg/s"
@@ -4397,7 +4414,7 @@ c
       igrid_ij(k)=2
 c
       k=k+1
-      IJ_SVSI=k
+      atmice%IJ_SVSI=k
       lname_ij(k)="Sea ice NS salt flux"
       name_ij(k)="svsi"
       units_ij(k)="10^3 kg/s"
@@ -4901,8 +4918,12 @@ c
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
      &     ,bymrat
-      use MODEL_COM, only : fim,dtsrc,nidyn,qcheck,psfmpt,do_gwdrag
+      use MODEL_COM, only : dtsrc,qcheck
+      use DYNAMICS, only : nidyn,do_gwdrag
       use DIAG_COM
+#ifdef CUBED_SPHERE
+      use GCDIAG, only : fim
+#endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
@@ -6007,6 +6028,18 @@ c
       units_ijl(k) = 'cm-3'
       ia_ijl(k) = ia_src
       denom_ijl(k) = ijl_cfws
+
+#ifdef TRACERS_TOMAS
+
+      k=k+1
+      IJL_CDTOMAS=k
+      name_ijl(k) = 'CDNC_TOMAS'
+      lname_ijl(k) = 'Warm S CDNC TOMAS'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = ijl_cfws
+
+#endif
 c
       k=k+1
       IJL_CWWM=k
@@ -6287,9 +6320,9 @@ c
       subroutine diurn_defs
 !@sum  diurn_defs definitions for diurnal diagnostic accumulated arrays
 !@auth G. Schmidt
-!@ver  1.0
       use CONSTANT, only : sha,rgas,twopi,sday,grav
-      use MODEL_COM, only : dtsrc,nisurf,qcheck,lm
+      use MODEL_COM, only : dtsrc,qcheck
+      use FLUXES, only : nisurf
       use DIAG_COM
       use SOCPBL, only : npbl=>n
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -6628,6 +6661,13 @@ c
       units_dd(k)=' '
       scale_dd(k)= 1.
       lname_dd(k)=' AOT'
+c
+      k=k+1
+      IDD_aot2=k
+      name_dd(k)='QSCAT'
+      units_dd(k)=' '
+      scale_dd(k)= 1.
+      lname_dd(k)='qscat'
 
 #ifdef TRACERS_AMP
 c
@@ -6708,6 +6748,15 @@ c Column Diagnostics
           scale_dd(k)=1.
           lname_dd(k)=' LWC_L'//lst(l)
         end do
+
+       idd_pres=k+1
+        do l=1,LM
+          k=k+1
+          name_dd(k)='Pres_L'//lst(l)
+          units_dd(k)='hPa'
+          scale_dd(k)=1.
+          lname_dd(k)=' PRES_L'//lst(l)
+        end do     
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

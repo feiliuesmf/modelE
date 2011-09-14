@@ -1305,7 +1305,6 @@ contains
 
  do n=1,kd
 
-!$omp parallel do private(i,j,k, ptmp, tm)
     do j=js,je
 
        do 1000 i=is,ie
@@ -1354,7 +1353,6 @@ contains
 
  do n=1,kd
 
-!$omp parallel do private(i,j,k)
     do j=js,je
        do 1000 i=is,ie
           do k=1,km

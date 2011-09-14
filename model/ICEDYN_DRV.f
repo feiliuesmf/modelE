@@ -16,10 +16,7 @@ C****
       MODULE ICEDYN_COM
 !@sum  ICEDYN_COM holds global variables for dynamic sea ice
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-      USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
+      USE MDIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBED_SPHERE
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
 #else
@@ -28,35 +25,20 @@ C****
 #ifdef NEW_IO
       use cdl_mod
 #endif
+      USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       IMPLICIT NONE
       SAVE
 
 C**** Dimensions of ice advection grid (EDIT FOR ADVSI GRID CHANGE) are the same as 
 C**** atmospheric grid
-      INTEGER, parameter :: IMIC=IM, JMIC=JM
+      !INTEGER, parameter :: IMIC=IM, JMIC=JM
 
 C**** Ice advection grid, same as atmospheric grid (CS or latlon)
 C**** dimensions IMIC = IM, JMIC = JM
-      TYPE(DIST_GRID) :: grid_MIC
+      !TYPE(DIST_GRID) :: grid_MIC
 
-C**** variables used in advection (on ICE grid)
-!@var RSIX,RSIY first order moments for seaice concentration
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSIX,RSIY
-
-!@var USIDT,VSIDT sea ice fluxes, saved for advection (m)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: USIDT,VSIDT
-
-C**** Needed for ADVSI (on ATM grid)
-!@var RSISAVE saved value of sea ice concentration before DYNSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSISAVE
-
-!@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
-!@+   On ice C grid for now
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMUI,DMVI
-
-!@var UOSURF,VOSURF ocean surface velocity (m/s)
-!@+   On ice A grid for now
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
+!@var igice 
+      type(iceocn_xchng_vars) :: igice
 
 #ifdef CUBED_SPHERE
       type(cs2llint_type) :: CS2ICEint_a,CS2ICEint_b
@@ -69,19 +51,19 @@ c arrays for sea ice advection
 ! To allow the ice dynamics to run on a subset of processors:
 !@var pack_a2i,pack_i2a contain info for redistributing data from
 !@+   atmos. domains to icedyn domains and vice versa.
-      type(band_pack_type) :: pack_a2i,pack_i2a
+      type(band_pack_type), target :: pack_a2i,pack_i2a
 #endif
 
 !@var aUSI,aVSI sea ice velocities (B-grid) having atmos. domain bounds,
 !@+   needed in the lat-lon version of ADVSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: aUSI,aVSI
+      !REAL*8, ALLOCATABLE, DIMENSION(:,:) :: aUSI,aVSI
 
 C**** Ice dynamics diagnostics
       INTEGER, PARAMETER :: KICIJ=6
 !@var IJ_xxx Names for ICIJ diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_RSI
 !@var ICIJ lat-lon ice dynamic diagnostics (on ice dyn. grid)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ,ICIJg
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ!,ICIJg
 !@var lname_icij Long names for ICIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KICIJ) :: LNAME_ICIJ
 !@var sname_icij Short names for ICIJ diagnostics
@@ -108,16 +90,12 @@ C**** Ice dynamics diagnostics
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
 
-      USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID,am_I_root
-      USE MODEL_COM, only : im
-      USE ICEDYN_COM, only : grid_MIC,imic,jmic
+      USE DOMAIN_DECOMP_1D, only : GET,DIST_GRID,am_I_root
+      !USE ICEDYN_COM, only : grid_MIC
       USE ICEDYN_COM, only : KICIJ
-      USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ,ICIJg
-     &     ,DMUI,DMVI,UOSURF,VOSURF
+      USE ICEDYN_COM, only : ICIJ,igice
 #ifdef CUBED_SPHERE
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
-#else
-      USE ICEDYN_COM, only : aUSI, aVSI
 #endif
       USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
@@ -140,48 +118,36 @@ C**** Allocate arrays defined on the ice rheology grid
       CALL GET(grid_icdyn, I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
      &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
 
-      ALLOCATE(DMUI( I_0H:I_1H , J_0H:J_1H ),
-     &         DMVI( I_0H:I_1H , J_0H:J_1H ))
+      igice%grid => grid_icdyn
 
-      ALLOCATE(UOSURF( I_0H:I_1H , J_0H:J_1H ),
-     &         VOSURF( I_0H:I_1H , J_0H:J_1H ))
-      UOSURF = 0. ! in case there is no dynamic ocean
-      VOSURF = 0. ! ""
+      ALLOCATE(igice % DMUI( I_0H:I_1H , J_0H:J_1H ),
+     &         igice % DMVI( I_0H:I_1H , J_0H:J_1H ))
+
+      ALLOCATE(igice % UOSURF( I_0H:I_1H , J_0H:J_1H ),
+     &         igice % VOSURF( I_0H:I_1H , J_0H:J_1H ))
+      igice % UOSURF = 0. ! in case there is no dynamic ocean
+      igice % VOSURF = 0. ! ""
 
       ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
      &     STAT = IER)
       
-      if(am_I_root()) then
-         allocate(ICIJg(imic,jmic,KICIJ))
-      else
-         allocate(ICIJg(1,1,1))
-      end if
+c      if(am_I_root()) then
+c         allocate(ICIJg(imic,jmic,KICIJ))
+c      else
+c         allocate(ICIJg(1,1,1))
+c      end if
 
-
-C**** Allocate ice advection arrays defined on the atmospheric grid
-      grid_MIC=grid_atm
-
-      CALL GET(grid_MIC, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
-     &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
-
-      ALLOCATE( USIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &          VSIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &     STAT = IER)
-
-      ALLOCATE( RSIX(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &          RSIY(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &     STAT = IER)
-
-      ALLOCATE( RSISAVE(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &     STAT = IER)
 
 #ifdef CUBED_SPHERE
+C**** Allocate ice advection arrays defined on the atmospheric grid
+      !grid_MIC=grid_atm
+
+      CALL GET(grid_atm, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
+     &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &        CONNECT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
-#else
-      ALLOCATE(aUSI(IM, J_0H_MIC:J_1H_MIC),
-     &         aVSI(IM, J_0H_MIC:J_1H_MIC))
 #endif
 
       return
@@ -191,7 +157,6 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 !@sum  collect the local acc-arrays into global arrays
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
        USE ICEDYN_COM
 
@@ -199,167 +164,163 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
        IMPLICIT NONE
 
-       call pack_data (grid_mic, ICIJ  , ICIJg)
-
        END SUBROUTINE gather_icdiags
 
 
-      SUBROUTINE io_icedyn(kunit,iaction,ioerr)
-!@sum  io_icedyn reads and writes dynamic ice arrays to file
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
-     *     ,irerun,lhead
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
-      USE ICEDYN_COM
-      USE ICEDYN, only : grid_ICDYN,imicdyn,jmicdyn,USI,VSI
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
-      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob
-      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: USI_glob,VSI_glob
-
-      write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
-     *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_DATA(grid_MIC, RSIX, RSIX_GLOB)
-        CALL PACK_DATA(grid_MIC, RSIY, RSIY_GLOB)
-        if(grid_ICDYN%have_domain) then
-          CALL PACK_DATA(grid_ICDYN,  USI,  USI_GLOB) ! TODO: usi/vsi not on atm grid anymore
-          CALL PACK_DATA(grid_ICDYN,  VSI,  VSI_GLOB) ! idem
-        endif
-        IF (AM_I_ROOT())
-     &   WRITE (kunit,err=10) MODULE_HEADER,RSIX_glob,RSIY_glob
-     &                                     , USI_glob, VSI_glob
-      CASE (IOREAD:)            ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (IRSFICNO)           ! initial conditions (no ocean)
-        CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
-          if (AM_I_ROOT() ) then
-            READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
-     &                                         , USI_glob, VSI_glob
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER,
-     &             MODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX)
-          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY)
-          if(grid_ICDYN%have_domain) then
-            CALL UNPACK_DATA(grid_ICDYN,  USI_GLOB,  USI)
-            CALL UNPACK_DATA(grid_ICDYN,  VSI_GLOB,  VSI)
-          endif
-        END SELECT
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-C****
-      END SUBROUTINE io_icedyn
-
-      SUBROUTINE io_icdiag(kunit,it,iaction,ioerr)
-!@sum  io_icdiag reads and writes ice dynamic diagnostic arrays to file
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irsfic,irsficnt,irerun,ioread_single,lhead
-      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
-      use icedyn, only : grid=>grid_icdyn
-      USE ICEDYN_COM
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICDIAG01"
-!@var it input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
-!@var ICIJ4 dummy arrays for reading diag. files
-      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4
-      REAL*4, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB
-      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB8
-      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
-      INTEGER :: J_0H_MIC, J_1H_MIC
-
-      if(.not. grid%have_domain) return
-
-      write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
-     *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
-
-      CALL GET(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
-
-      if(am_I_root()) then
-        allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
-     &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
-      else
-        allocate(ICIJ4_GLOB(1,1,1),
-     &    ICIJ4_GLOB8(1,1,1),ICIJ_GLOB(1,1,1))
-      end if
-
-      SELECT CASE (IACTION)
-      CASE (IOWRITE)  ! output to standard restart file
-        CALL PACK_DATA(grid, icij, icij_glob)
-        IF (AM_I_ROOT())
-     &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
-      CASE (IOWRITE_SINGLE)    ! output to acc file
-        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        CALL PACK_DATA(grid, icij, icij_glob)
-        IF (AM_I_ROOT())
-     &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
-      CASE (IOREAD:)            ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (ioread_single)    ! accumulate diagnostic files
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) HEADER,ICIJ4_GLOB,it
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-              GO TO 10
-            END IF
-          endif
-C**** accumulate diagnostics
-          allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
-          ICIJ4 = 0.d0 ! should do "halo_update" instead?
-          ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
-          CALL UNPACK_DATA(grid, ICIJ4_GLOB8, ICIJ4)
-          call ESMF_BCAST(grid, it)   !MPI_BCAST instead
-          ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
-     &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
-          deallocate( ICIJ4 )
-        CASE (ioread)    ! restarts
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) HEADER,ICIJ_GLOB,it
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *           ,MODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-          CALL UNPACK_DATA(grid, ICIJ_GLOB, ICIJ)
-          call ESMF_BCAST(grid, it)
-        END SELECT
-      END SELECT
-
-      deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
-
-      RETURN
- 10   IOERR=1
-      RETURN
-C****
-      END SUBROUTINE io_icdiag
+!      SUBROUTINE io_icedyn(kunit,iaction,ioerr)
+!!@sum  io_icedyn reads and writes dynamic ice arrays to file
+!!@auth Gavin Schmidt
+!      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
+!     *     ,irerun,lhead
+!      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
+!      USE ICEDYN_COM
+!      USE ICEDYN, only : grid_ICDYN,imicdyn,jmicdyn,USI,VSI
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!!@var HEADER Character string label for individual records
+!      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
+!      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob
+!      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: USI_glob,VSI_glob
+!
+!      write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
+!     *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
+!
+!      SELECT CASE (IACTION)
+!      CASE (:IOWRITE)            ! output to standard restart file
+!        CALL PACK_DATA(grid_MIC, RSIX, RSIX_GLOB)
+!        CALL PACK_DATA(grid_MIC, RSIY, RSIY_GLOB)
+!        if(grid_ICDYN%have_domain) then
+!          CALL PACK_DATA(grid_ICDYN,  USI,  USI_GLOB) ! TODO: usi/vsi not on atm grid anymore
+!          CALL PACK_DATA(grid_ICDYN,  VSI,  VSI_GLOB) ! idem
+!        endif
+!        IF (AM_I_ROOT())
+!     &   WRITE (kunit,err=10) MODULE_HEADER,RSIX_glob,RSIY_glob
+!     &                                     , USI_glob, VSI_glob
+!      CASE (IOREAD:)            ! input from restart file
+!        SELECT CASE (IACTION)
+!        CASE (IRSFICNO)           ! initial conditions (no ocean)
+!        CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
+!          if (AM_I_ROOT() ) then
+!            READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
+!     &                                         , USI_glob, VSI_glob
+!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",HEADER,
+!     &             MODULE_HEADER
+!              GO TO 10
+!            END IF
+!          end if
+!          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX)
+!          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY)
+!          if(grid_ICDYN%have_domain) then
+!            CALL UNPACK_DATA(grid_ICDYN,  USI_GLOB,  USI)
+!            CALL UNPACK_DATA(grid_ICDYN,  VSI_GLOB,  VSI)
+!          endif
+!        END SELECT
+!      END SELECT
+!
+!      RETURN
+! 10   IOERR=1
+!      RETURN
+!C****
+!      END SUBROUTINE io_icedyn
+!
+!      SUBROUTINE io_icdiag(kunit,it,iaction,ioerr)
+!!@sum  io_icdiag reads and writes ice dynamic diagnostic arrays to file
+!!@auth Gavin Schmidt
+!      USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
+!     *     ,irsfic,irsficnt,irerun,ioread_single,lhead
+!      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
+!      USE DOMAIN_DECOMP_1D, only : broadcast
+!      use icedyn, only : grid=>grid_icdyn
+!      USE ICEDYN_COM
+!      IMPLICIT NONE
+!
+!      INTEGER kunit   !@var kunit unit number of read/write
+!      INTEGER iaction !@var iaction flag for reading or writing to file
+!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+!      INTEGER, INTENT(INOUT) :: IOERR
+!!@var HEADER Character string label for individual records
+!      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICDIAG01"
+!!@var it input/ouput value of hour
+!      INTEGER, INTENT(INOUT) :: it
+!!@var ICIJ4 dummy arrays for reading diag. files
+!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4
+!      REAL*4, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB
+!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB8
+!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
+!      INTEGER :: J_0H_MIC, J_1H_MIC
+!
+!      if(.not. grid%have_domain) return
+!
+!      write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
+!     *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
+!
+!      CALL GET(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+!
+!      if(am_I_root()) then
+!        allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
+!     &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
+!      else
+!        allocate(ICIJ4_GLOB(1,1,1),
+!     &    ICIJ4_GLOB8(1,1,1),ICIJ_GLOB(1,1,1))
+!      end if
+!
+!      SELECT CASE (IACTION)
+!      CASE (IOWRITE)  ! output to standard restart file
+!        CALL PACK_DATA(grid, icij, icij_glob)
+!        IF (AM_I_ROOT())
+!     &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
+!      CASE (IOWRITE_SINGLE)    ! output to acc file
+!        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
+!        CALL PACK_DATA(grid, icij, icij_glob)
+!        IF (AM_I_ROOT())
+!     &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
+!      CASE (IOREAD:)            ! input from restart file
+!        SELECT CASE (IACTION)
+!        CASE (ioread_single)    ! accumulate diagnostic files
+!          if ( AM_I_ROOT() ) then
+!            READ (kunit,err=10) HEADER,ICIJ4_GLOB,it
+!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",HEADER
+!     *           ,MODULE_HEADER
+!              GO TO 10
+!            END IF
+!          endif
+!C**** accumulate diagnostics
+!          allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
+!          ICIJ4 = 0.d0 ! should do "halo_update" instead?
+!          ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
+!          CALL UNPACK_DATA(grid, ICIJ4_GLOB8, ICIJ4)
+!          call broadcast(grid, it)   !MPI_BCAST instead
+!          ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
+!     &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
+!          deallocate( ICIJ4 )
+!        CASE (ioread)    ! restarts
+!          if ( AM_I_ROOT() ) then
+!            READ (kunit,err=10) HEADER,ICIJ_GLOB,it
+!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+!              PRINT*,"Discrepancy in module version ",HEADER
+!     *           ,MODULE_HEADER
+!              GO TO 10
+!            END IF
+!          end if
+!          CALL UNPACK_DATA(grid, ICIJ_GLOB, ICIJ)
+!          call broadcast(grid, it)
+!        END SELECT
+!      END SELECT
+!
+!      deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
+!
+!      RETURN
+! 10   IOERR=1
+!      RETURN
+!C****
+!      END SUBROUTINE io_icdiag
 
 #ifdef NEW_IO
       subroutine def_rsf_icedyn(fid)
@@ -367,17 +328,15 @@ C****
 !@auth M. Kelley
 !@ver  beta
       use icedyn, only : grid_icdyn,usi,vsi
-      use icedyn_com, only : grid_mic,rsix,rsiy,uosurf,vosurf
+      use icedyn_com, only : igice
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid_mic,fid,rsix,'rsix(dist_im,dist_jm)')
-      call defvar(grid_mic,fid,rsiy,'rsiy(dist_im,dist_jm)')
       call defvar(grid_icdyn,fid,usi,'usi(dist_imic,dist_jmic)')
       call defvar(grid_icdyn,fid,vsi,'vsi(dist_imic,dist_jmic)')
-      call defvar(grid_icdyn,fid,uosurf,
+      call defvar(grid_icdyn,fid,igice%uosurf,
      &     'uosurf_icdyn(dist_imic,dist_jmic)')
-      call defvar(grid_icdyn,fid,vosurf,
+      call defvar(grid_icdyn,fid,igice%vosurf,
      &     'vosurf_icdyn(dist_imic,dist_jmic)')
       return
       end subroutine def_rsf_icedyn
@@ -387,7 +346,7 @@ C****
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use icedyn, only : grid_icdyn,usi,vsi
-      use icedyn_com, only : grid_mic,rsix,rsiy,uosurf,vosurf
+      use icedyn_com, only : igice
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -395,19 +354,19 @@ C****
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)           ! output to restart file
-        call write_dist_data(grid_mic, fid, 'rsix', rsix)
-        call write_dist_data(grid_mic, fid, 'rsiy', rsiy)
         call write_dist_data(grid_icdyn, fid, 'usi', usi)
         call write_dist_data(grid_icdyn, fid, 'vsi', vsi)
-        call write_dist_data(grid_icdyn, fid, 'uosurf_icdyn', uosurf)
-        call write_dist_data(grid_icdyn, fid, 'vosurf_icdyn', vosurf)
+        call write_dist_data(grid_icdyn, fid, 'uosurf_icdyn',
+     &       igice%uosurf)
+        call write_dist_data(grid_icdyn, fid, 'vosurf_icdyn',
+     &       igice%vosurf)
       case (ioread)            ! input from restart file
-        call read_dist_data(grid_mic, fid, 'rsix', rsix)
-        call read_dist_data(grid_mic, fid, 'rsiy', rsiy)
         call read_dist_data(grid_icdyn, fid, 'usi', usi)
         call read_dist_data(grid_icdyn, fid, 'vsi', vsi)
-        call read_dist_data(grid_icdyn, fid, 'uosurf_icdyn', uosurf)
-        call read_dist_data(grid_icdyn, fid, 'vosurf_icdyn', vosurf)
+        call read_dist_data(grid_icdyn, fid, 'uosurf_icdyn',
+     &       igice%uosurf)
+        call read_dist_data(grid_icdyn, fid, 'vosurf_icdyn',
+     &       igice%vosurf)
       end select
       return      
       end subroutine new_io_icedyn
@@ -512,35 +471,26 @@ c temporarily empty.
       RETURN
       END SUBROUTINE reset_icdiag
 
-      SUBROUTINE DYNSI
+      SUBROUTINE DYNSI(atmice,iceocn,si_ocn)
 !@sum  DYNSI calculates ice velocites
 !@+    Note that the ice velocities are calculated on the ice grid
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang), D. Gueyffier (cubed sphere)
 !@auth M. Kelley (cubed sphere)
-!@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
-      USE MODEL_COM, only : dts=>dtsrc,focean
-      USE RESOLUTION, only : aIM=>IM, aJM=>JM
+      USE MODEL_COM, only : dts=>dtsrc
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-     &     ATM_HALO=>HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET, ICE_HALO=>HALO_UPDATE,
-     &     NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : GET, ICE_HALO=>HALO_UPDATE,
+     &     NORTH, SOUTH, hasSouthPole, hasNorthPole
       USE ICEDYN, only : dxyn,dxys,bydxyp,dxyv,dxp,dyv
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,dmu,dmv
      *     ,usi,vsi,iFOCEAN=>FOCEAN
-      USE ICEDYN_COM, only : rsisave,dmui,dmvi,icij,ij_usi
-     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
-     &     ,ausi,avsi
-      USE FLUXES, only : dmua,dmva,UI2rho,ogeoza
-     *     ,apress,uisurf,visurf
+      USE ICEDYN_COM, only : icij,ij_usi
+     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,igice
       USE SEAICE, only : ace1i
-      USE SEAICE_COM, only : rsi,msi,snowi
-      USE DOMAIN_DECOMP_1D, only : hasSouthPole, hasNorthPole
 #ifdef CUBED_SPHERE
       use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
@@ -548,12 +498,17 @@ c temporarily empty.
 #else
       USE DOMAIN_DECOMP_1D, only : band_pack,
      &     hasSouthPole, hasNorthPole
-      USE GEOM, only : cosip,sinip
+      !needs evaluation USE GEOM, only : cosip,sinip
       use icedyn_com, only : pack_a2i,pack_i2a
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars,iceocn_xchng_vars
+      USE SEAICE_COM, only : icestate
       IMPLICIT NONE
+      type(atmice_xchng_vars) :: atmice
+      type(iceocn_xchng_vars) :: iceocn
+      type(icestate) :: si_ocn
       SAVE
 C**** intermediate calculation for pressure gradient terms
       REAL*8, DIMENSION(IMICDYN, 
@@ -564,10 +519,15 @@ C****
      &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho,admu,admv
       real*8, allocatable, dimension(:,:,:) :: alij_tmp,ilij_tmp
 
+      REAL*8, DIMENSION(:,:), POINTER ::
+     &     RSI,MSI,SNOWI,FOCEAN,RSISAVE,DMUA,DMVA,
+     &     UOSURF,VOSURF,DMUI,DMVI
+
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
       INTEGER I,J,ip1,im1
       REAL*8 USINP,DMUINP,duA,dvA,rsib
+      INTEGER :: aIM, aJM
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
       INTEGER :: iJ_1H  , iJ_0H
@@ -579,16 +539,31 @@ C****
       INTEGER :: aJ_1S  , aJ_0S
 
       call startTimer('DYNSI()')
+
+      FOCEAN => ATMICE%FOCEAN
+      DMUA => ATMICE%DMUA
+      DMVA => ATMICE%DMVA
+      RSI => SI_OCN%RSI
+      MSI => SI_OCN%MSI
+      SNOWI => SI_OCN%SNOWI
+      RSISAVE => SI_OCN%RSISAVE
+      UOSURF => IGICE%UOSURF
+      VOSURF => IGICE%VOSURF
+      DMUI => IGICE%DMUI
+      DMVI => IGICE%DMVI
+
 C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
-      CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
+      CALL GET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
      &                   , J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
-      call iGET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
-      call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
+      call GET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
+      call GET(atmice%grid    , I_STRT=aI_0        , I_STOP=aI_1     
      &                   , J_STRT=aJ_0        , J_STOP=aJ_1     )
-      call aGET(agrid    , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H     
+      call GET(atmice%grid    , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H     
      &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
-      call aGET(agrid    , J_STRT_SKP=aJ_0S   , J_STOP_SKP=aJ_1S)
+      call GET(atmice%grid    , J_STRT_SKP=aJ_0S   , J_STOP_SKP=aJ_1S)
+      aIM = atmice%grid%im_world
+      aJM = atmice%grid%jm_world
 
       allocate(
      &     aPtmp(aI_0H:aI_1H,aJ_0H:aJ_1H),
@@ -599,11 +574,12 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
 
 C**** Start main loop
 C**** Replicate polar boxes
-      if (hasNorthPole(agrid)) then
+      if (hasNorthPole(atmice%grid)) then
         RSI(2:aIM,aJM)=RSI(1,aJM)
         MSI(2:aIM,aJM)=MSI(1,aJM)
-        DMUA(2:aIM,aJM,2) = DMUA(1,aJM,2)
-        DMVA(2:aIM,aJM,2) = DMVA(1,aJM,2)
+        SNOWI(2:aIM,aJM)=SNOWI(1,aJM)
+        DMUA(2:aIM,aJM) = DMUA(1,aJM)
+        DMVA(2:aIM,aJM) = DMVA(1,aJM)
       end if
 
 c**** interpolate air stress from A grid in atmos, to B grid in ice
@@ -614,11 +590,11 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
       DO J=aJ_0,aJ_1
         do i=aI_0,aI_1 
           IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
-            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
-            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+            DMUA(I,J) = DMUA(I,J)/(FOCEAN(I,J)*RSI(I,J))
+            DMVA(I,J) = DMVA(I,J)/(FOCEAN(I,J)*RSI(I,J))
           ELSE
-            DMUA(I,J,2) = 0.
-            DMVA(I,J,2) = 0.
+            DMUA(I,J) = 0.
+            DMVA(I,J) = 0.
           END IF
         END DO
       END DO
@@ -627,7 +603,7 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
       allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
      &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
 #ifdef CUBED_SPHERE
-      call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
+      call cs2llint_lluv(atmice%grid,CS2ICEint_b,dmua,dmva,
      &     idmua,idmva)
       do j=iJ_0,iJ_1S
         do i=1,imicdyn
@@ -638,8 +614,8 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
         gairy((/1,nx1/),j) = gairy((/nx1-1,2/),j)
       enddo
 #else
-      call band_pack(pack_a2i, DMUA(:,:,2), iDMUA) ! fills halo
-      call band_pack(pack_a2i, DMVA(:,:,2), iDMVA) ! fills halo
+      call band_pack(pack_a2i, DMUA, iDMUA) ! fills halo
+      call band_pack(pack_a2i, DMVA, iDMVA) ! fills halo
 
 c needs evaluation      if (grid_icdyn%HAVE_NORTH_POLE) then
 c needs evaluation        dua = idmua(1,jmicdyn)
@@ -688,9 +664,9 @@ C**** geostrophy if osurf_tilt=0.
 C**** PGF is an accelaration
 
 C****  define scalar pressure on atm grid then regrid it to the icedyn grid  
-      DO J=aJ_0,aJ_1            
-         DO I=aI_0,aI_1           
-             aPtmp(I,J)=(OGEOZA(I,J)
+      DO J=aJ_0,aJ_1
+         DO I=aI_0,aI_1
+             aPtmp(I,J)=(iceocn%OGEOZA(I,J)
      *            +(RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))*GRAV/RHOWS) 
         END DO
       END DO
@@ -706,7 +682,7 @@ c bundle the qtys to be interpolated
           alij_tmp(3,i,j) = MSI(i,j)
         enddo
       enddo
-      call cs2llint_lij(agrid,CS2ICEint_a,alij_tmp,ilij_tmp)
+      call cs2llint_lij(atmice%grid,CS2ICEint_a,alij_tmp,ilij_tmp)
       do j=iJ_0,iJ_1
         do i=1,IMICDYN
           iPtmp(i,j) = ilij_tmp(1,i,j)
@@ -993,11 +969,11 @@ C**** UI2rho = | tau |
         enddo
       enddo
       IF(hasNorthPole(grid_ICDYN)) iUI2rho(:,jmicdyn)=0.
-      call ll2csint_ij(grid_icdyn,ICE2CSint,iUI2rho,UI2rho)
+      call ll2csint_ij(grid_icdyn,ICE2CSint,iUI2rho,iceocn%UI2rho)
       deallocate(iUI2rho)
       do j=aJ_0,aJ_1
         do i=aI_0,aI_1
-          if(FOCEAN(I,J)*RSI(i,j).eq.0) UI2rho(i,j)=0
+          if(iceocn%FWATER(I,J)*RSI(i,j).eq.0) iceocn%UI2rho(i,j)=0
         enddo
       enddo
 #else /* calculate stress magnitude after regrid */
@@ -1008,13 +984,13 @@ C**** calculate 4 point average of B grid values of stresses
       call band_pack(pack_i2a, dmv, admv) ! fills halo
       do j=aJ_0,aJ_1
         do i=1,aim
-          UI2rho(i,j)=0
-          if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
+          iceocn%UI2rho(i,j)=0
+          if (iceocn%FWATER(I,J)*RSI(i,j).gt.0) THEN
             duA = 0.5*(DXYN(J)*(admu(i+1,j)+admu(i,j))
      *           +DXYS(j)*(admu(i+1,j-1)+admu(i,j-1)))*BYDXYP(J)
             dvA = 0.5*(DXYN(J)*(admv(i+1,j)+admv(i,j))
      *           +DXYS(j)*(admv(i+1,j-1)+admv(i,j-1)))*BYDXYP(J)
-            UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
+            iceocn%UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
           endif
         enddo
       enddo
@@ -1023,7 +999,7 @@ C**** calculate 4 point average of B grid values of stresses
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
 C**** uisurf/visurf are on atm grid but are latlon oriented
-      call get_uisurf(usi,vsi,uisurf,visurf,ausi,avsi)
+      call get_uisurf(usi,vsi,atmice)
 
       deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
@@ -1032,7 +1008,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       END SUBROUTINE DYNSI
 
 #ifndef CUBED_SPHERE
-      SUBROUTINE ADVSI
+      SUBROUTINE ADVSI(atmice)
 !@sum  ADVSI advects sea ice
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
 !@+    on the AGCM grid, and RSI/MSI/HSI etc. are unchanged)
@@ -1040,53 +1016,38 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
-      USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean,dts=>dtsrc
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE MODEL_COM, only :  kocean,dts=>dtsrc
+      USE DOMAIN_DECOMP_1D, only : GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN, 
      &     hasNorthPole, hasSouthPole
-
-      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
-      USE ICEDYN_COM, only : usidt,vsidt,ausi,avsi,rsix,rsiy,rsisave
-#ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : taijn=>taijn_loc,tij_tusi,tij_tvsi
-#endif
-      USE ICEDYN_COM, only : grid_MIC
+      USE ICEDYN, only : dxyp,dyp,dxp,dxv,bydxyp
+      !USE ICEDYN_COM, only : grid_MIC
       USE SEAICE, only : ace1i,xsi,Ti,Ei
-      USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
+      USE SEAICE_COM, only : si_ocn,lmi
 #ifdef TRACERS_WATER
-     *     ,trsi,ntm
+      USE SEAICE, only : ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim,gtempr
-#ifdef TRACERS_WATER
-     *     ,gtracer
-#endif
-      USE DIAG_COM, only : oa,aij=>aij_loc,
-     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
-!      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     FASI, FXSI, FYSI, FAW
+      type(atmice_xchng_vars) :: atmice
+
+!@var USIDT,VSIDT sea ice fluxes, saved for advection (m)
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMSI,
+     &     FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
-#ifndef TRACERS_WATER
-      INTEGER, PARAMETER :: NTRICE=2+2*LMI
-#else
-      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
+      INTEGER :: NTRICE
+#ifdef TRACERS_WATER
       INTEGER ITR
       REAL*8 TRSNOW(NTM), TRICE(NTM)
 #endif
-      REAL*8 FMSI(NTRICE,IM),SFMSI(NTRICE),AMSI(NTRICE)
-      REAL*8 FMSJ(IM,NTRICE,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 BYFOA(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,cmsi1(grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,cmsi2(grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,cssi1(grid%J_STRT_HALO:grid%J_STOP_HALO)
-     *     ,cssi2(grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8, ALLOCATABLE :: SFMSI(:),AMSI(:)
+!@var MHS mass/heat/salt content of sea ice
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: FMSJ,MHS
       INTEGER I,J,L,IM1,IP1,K
       REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP,TICE,ENRG
-!@var MHS mass/heat/salt content of sea ice
-      REAL*8 MHS(NTRICE,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+
 C****
 C**** FLUXCB  USIDT  U compon of time integrated sea ice velocity (m)
 C****         VSIDT  V compon of time integrated sea ice velocity (m)
@@ -1095,14 +1056,68 @@ C****         FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 
+      REAL*8, DIMENSION(:,:), POINTER ::
+     &     RSI,MSI,SNOWI,FOCEAN,AUSI,AVSI,RSIX,RSIY,RSISAVE
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI,SSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+#endif
+      INTEGER :: IM,JM
       INTEGER J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 C**** Get grid parameters
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      IM = si_ocn%grid%IM_WORLD
+      JM = si_ocn%grid%JM_WORLD
+      CALL GET(si_ocn%grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO =J_1H ,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+
+#ifndef TRACERS_WATER
+      NTRICE=2+2*LMI
+#else
+      NTRICE=2+(2+NTM)*LMI
+#endif
+
+      ALLOCATE(SFMSI(NTRICE),AMSI(NTRICE))
+      ALLOCATE(FMSI(NTRICE,IM),FMSJ(IM,NTRICE,J_0H:J_1H))
+      ALLOCATE(MHS(NTRICE,IM,J_0H:J_1H))
+      ALLOCATE(FASI(IM,J_0H:J_1H)
+     &     ,FXSI(IM,J_0H:J_1H)
+     &     ,FYSI(IM,J_0H:J_1H)
+     &     ,FAW(IM,J_0H:J_1H)
+     &     ,BYFOA(IM,J_0H:J_1H) )
+
+      ALLOCATE( USIDT(IM, J_0H:J_1H), VSIDT(IM, J_0H:J_1H) )
+
+
+      FOCEAN => ATMICE%FOCEAN
+      RSI => SI_OCN%RSI
+      RSIX => SI_OCN%RSIX
+      RSIY => SI_OCN%RSIY
+      RSISAVE => SI_OCN%RSISAVE
+      MSI => SI_OCN%MSI
+      HSI => SI_OCN%HSI
+      SSI => SI_OCN%SSI
+      SNOWI => SI_OCN%SNOWI
+      AUSI => ATMICE%USI
+      AVSI => ATMICE%VSI
+#ifdef TRACERS_WATER
+      TRSI => SI_OCN%TRSI
+#endif
+
+      ATMICE%MUSI(:,:)=0
+      ATMICE%HUSI(:,:)=0
+      ATMICE%SUSI(:,:)=0
+      ATMICE%MVSI(:,:)=0
+      ATMICE%HVSI(:,:)=0
+      ATMICE%SVSI(:,:)=0
+#ifdef TRACERS_WATER
+      ATMICE%TUSI(:,:,:)=0
+      ATMICE%TVSI(:,:,:)=0
+#endif
 
 C**** Regularise ice concentration gradients to prevent advection errors
       DO J=J_0S, J_1S
@@ -1177,9 +1192,9 @@ C****
       SFMSI(1:NTRICE) = 0.
 
 C**** Update halo of RSI,FOCEAN
-      CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
-      CALL HALO_UPDATE(grid, RSISAVE  , FROM=NORTH)
-      CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, RSI  , FROM=NORTH)
+      CALL HALO_UPDATE(si_ocn%grid, RSISAVE  , FROM=NORTH)
+      CALL HALO_UPDATE(si_ocn%grid,FOCEAN, FROM=NORTH+SOUTH)
 
 C**** calculate mass fluxes for the ice advection
       DO J=J_0,J_1S
@@ -1200,7 +1215,7 @@ C**** calculate mass fluxes for the ice advection
           IM1=I
         END DO
       END DO
-      IF (hasNorthPole(grid)) THEN
+      IF (hasNorthPole(si_ocn%grid)) THEN
         VSIDT(1:IM,JM)=0.
         USIDT(1:IM,JM)=AUSI(1,JM)*DTS
       END IF
@@ -1209,17 +1224,17 @@ C**** update RSISAVE for diagnostics
       RSISAVE(:,:)=RSI(:,:)
 
 C**** Update halo of RSIY,RSIX,and MHS
-      CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
+      CALL HALO_UPDATE_COLUMN(si_ocn%grid, MHS  , FROM=NORTH)
 
-      CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, VSIDT, FROM=SOUTH)
 
 cmpi MPI tag sequences in "grid_MIC" and "grid" occasionally collide
 cmpi since "grid_MIC" is initialized to "grid" (so, same communicator).
 cmpi Use "grid" everywhere
 cmpi      CALL HALO_UPDATE(grid_MIC, RSIY, FROM=NORTH)
 cmpi      CALL HALO_UPDATE(grid_MIC, RSIX, FROM=NORTH)
-      CALL HALO_UPDATE(grid, RSIY, FROM=NORTH)
-      CALL HALO_UPDATE(grid, RSIX, FROM=NORTH)
+      CALL HALO_UPDATE(si_ocn%grid, RSIY, FROM=NORTH)
+      CALL HALO_UPDATE(si_ocn%grid, RSIX, FROM=NORTH)
 
       DO I=1,IM
 C****
@@ -1246,13 +1261,13 @@ C**** Sea ice velocity is northward at grid box edge
      *       -3d0*FASI(I,J))
         FMSJ(I,1:NTRICE,J) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-        AIJ(I,J,IJ_MVSI)=AIJ(I,J,IJ_MVSI)+SUM(FMSJ(I,1:2,J))
-        AIJ(I,J,IJ_HVSI)=AIJ(I,J,IJ_HVSI)+SUM(FMSJ(I,3:2+LMI,J))
-        AIJ(I,J,IJ_SVSI)=AIJ(I,J,IJ_SVSI)+SUM(FMSJ(I,3+LMI:2+2*LMI,J))
+        ATMICE%MVSI(I,J)=SUM(FMSJ(I,1:2,J))
+        ATMICE%HVSI(I,J)=SUM(FMSJ(I,3:2+LMI,J))
+        ATMICE%SVSI(I,J)=SUM(FMSJ(I,3+LMI:2+2*LMI,J))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
-           TAIJN(I,J,TIJ_TVSI,ITR)=TAIJN(I,J,TIJ_TVSI,ITR)+
-     *          SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
+           ATMICE%TVSI(I,J,ITR)=
+     &          SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
          END DO
 #endif
   120 CONTINUE
@@ -1280,15 +1295,13 @@ C**** Sea ice velocity is northward into North Pole box
 C**** Accumulate sea ice leaving and entering North Pole box
         SFASI = SFASI + FASI(I,JM-1)
         SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSJ(I,1:NTRICE,JM-1)
-         AIJ(I,JM-1,IJ_MVSI)=AIJ(I,JM-1,IJ_MVSI)+SUM(FMSJ(I,1:2,JM-1))
-         AIJ(I,JM-1,IJ_HVSI)=AIJ(I,JM-1,IJ_HVSI)
-     &                        +SUM(FMSJ(I,3:2+LMI,JM-1))
-         AIJ(I,JM-1,IJ_SVSI)=AIJ(I,JM-1,IJ_SVSI)+
-     *      SUM(FMSJ(I,3+LMI:2+2*LMI,JM-1))
+         ATMICE%MVSI(I,JM-1)=SUM(FMSJ(I,1:2,JM-1))
+         ATMICE%HVSI(I,JM-1)=SUM(FMSJ(I,3:2+LMI,JM-1))
+         ATMICE%SVSI(I,JM-1)=SUM(FMSJ(I,3+LMI:2+2*LMI,JM-1))
 #ifdef TRACERS_WATER
            DO ITR=1,NTM
-             TAIJN(I,JM-1,TIJ_TVSI,ITR)=TAIJN(I,JM-1,TIJ_TVSI,ITR)+
-     *            SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
+             ATMICE%TVSI(I,JM-1,ITR)=
+     &            SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
            END DO
 #endif
       ENDIF
@@ -1299,11 +1312,11 @@ C**** Update sea ice variables due to south-north fluxes
 C****
 
 C****Update halo of VSIDT, FASI, FAW, FOCEAN, FMSI, and FXSI
-      CALL HALO_UPDATE_COLUMN(grid, FMSJ, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FASI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FXSI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FYSI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, FAW,  FROM=SOUTH)
+      CALL HALO_UPDATE_COLUMN(si_ocn%grid, FMSJ, FROM=SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, FASI, FROM=SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, FXSI, FROM=SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, FYSI, FROM=SOUTH)
+      CALL HALO_UPDATE(si_ocn%grid, FAW,  FROM=SOUTH)
 
       DO I=1,IM
       DO 330 J=J_0S, J_1S
@@ -1459,13 +1472,13 @@ C**** Sea ice velocity is eastward at grid box edge
         FYSI(I,J)=FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
         FMSI(1:NTRICE,I) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-         AIJ(I,J,IJ_MUSI)=AIJ(I,J,IJ_MUSI)+SUM(FMSI(1:2,I))
-         AIJ(I,J,IJ_HUSI)=AIJ(I,J,IJ_HUSI)+SUM(FMSI(3:2+LMI,I))
-         AIJ(I,J,IJ_SUSI)=AIJ(I,J,IJ_SUSI)+SUM(FMSI(3+LMI:2+2*LMI,I))
+         ATMICE%MUSI(I,J)=SUM(FMSI(1:2,I))
+         ATMICE%HUSI(I,J)=SUM(FMSI(3:2+LMI,I))
+         ATMICE%SUSI(I,J)=SUM(FMSI(3+LMI:2+2*LMI,I))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
-           TAIJN(I,J,TIJ_TUSI,ITR)=TAIJN(I,J,TIJ_TUSI,ITR)+
-     *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
+           ATMICE%TUSI(I,J,ITR)=
+     &          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
          END DO
 #endif
   420 I=IP1
@@ -1575,12 +1588,13 @@ C**** End of loop over J
 C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
         DO J=J_0, J_1
-          DO I=1,IMAXJ(J)
+          DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Fresh water sea ice mass convergence (needed for qflux model)
-            MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
-     *           +LMI:2*LMI+2,I,J))) - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
-     *           +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
+            atmice%MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)
+     &             -SUM(MHS(3+LMI:2*LMI+2,I,J)))
+     &             -RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
+     *             +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
 C**** sea ice prognostic variables
             SNOWI(I,J)= MAX(0d0,MHS(1,I,J) - ACE1I)
             MSI(I,J)  = MHS(2,I,J)
@@ -1625,66 +1639,30 @@ C**** reconstruct tracer arrays
               END DO
             END DO
 #endif
-            FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
+            atmice%FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
      *           SUM(SSI(1:LMI,I,J)))
             END IF
           END DO
         END DO
-C**** Set atmospheric arrays
-        DO J=J_0, J_1
-          DO I=1,IMAXJ(J)
-            IF (FOCEAN(I,J).gt.0) THEN
-C**** set total atmopsheric pressure anomaly in case needed by ocean
-              APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
-     *             *(SNOWI(I,J)+ACE1I+MSI(I,J))*GRAV
-              GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(1,I,J)/(XSI(1)*(SNOWI(I,J)+ACE1I)))
-              GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I))
-     *             ,1d3*SSI(2,I,J)/(XSI(2)*(SNOWI(I,J)+ACE1I)))
-              GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,J)=TRSI(:,1,I,J)/(XSI(1)*MHS(1,I,J)
-     *             -SSI(1,I,J))
-#endif
-C**** adjust rad fluxes for change in ice fraction
-              if (rsi(i,j).gt.rsisave(i,j)) ! ice from ocean
-     *       call RESET_SURF_FLUXES(I,J,1,2,RSISAVE(I,J),RSI(I,J))
-              if (rsi(i,j).lt.rsisave(i,j)) ! ocean from ice
-     *       call RESET_SURF_FLUXES(I,J,2,1,1.-RSISAVE(I,J),1.-RSI(I,J))
-C****
-            END IF
-          END DO
-        END DO
-        IF (HAVE_NORTH_POLE) THEN
-          IF (FOCEAN(1,JM).gt.0) THEN
-            DO I=2,IM           ! North pole
-              APRESS(I,JM)=APRESS(1,JM)
-              GTEMP(1:2,2,I,JM)= GTEMP(1:2,2,1,JM)
-              GTEMPR(2,I,JM)   = GTEMPR(2,1,JM)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,JM)=GTRACER(:,2,1,JM)
-#endif
-            END DO
-          END IF
-        END IF
-        IF (HAVE_SOUTH_POLE) THEN
-          IF (FOCEAN(1,1).gt.0) THEN
-            DO I=2,IM           ! North pole
-              APRESS(I,1)=APRESS(1,1)
-              GTEMP(1:2,2,I,1)= GTEMP(1:2,2,1,1)
-              GTEMPR(2,I,1)   = GTEMPR(2,1,1)
-#ifdef TRACERS_WATER
-              GTRACER(:,2,I,1)=GTRACER(:,2,1,1)
-#endif
-            END DO
-          END IF
-        END IF
+cC**** Set atmospheric arrays
+c        DO J=J_0, J_1
+c          DO I=1,si_ocn%IMAXJ(J)
+c            IF (FOCEAN(I,J).gt.0) THEN
+cC**** adjust rad fluxes for change in ice fraction
+c              if (rsi(i,j).gt.rsisave(i,j)) ! ice from ocean
+c     *       call RESET_SURF_FLUXES(I,J,1,2,RSISAVE(I,J),RSI(I,J))
+c              if (rsi(i,j).lt.rsisave(i,j)) ! ocean from ice
+c     *       call RESET_SURF_FLUXES(I,J,2,1,1.-RSISAVE(I,J),1.-RSI(I,J))
+cC****
+c            END IF
+c          END DO
+c        END DO
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
-          DO I=1,IMAXJ(J)
+          DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
-     *             -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
+              atmice%HSICNV(I,J)=(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
+     *                       -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)
             END IF
@@ -1692,10 +1670,15 @@ C**** reset sea ice concentration
         END DO
       END IF
 C****
+
+      DEALLOCATE(FMSI,FMSJ,MHS,SFMSI,AMSI)
+      DEALLOCATE(FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT)
+
       RETURN
       END SUBROUTINE ADVSI
 #endif
 
+#ifdef CUBED_SPHERE
       subroutine INT_AtmA2IceA_XY(aA,iA)
 !@sum interpolate from Atm A-grid to Ice A-grid
 !@+   CS version uses interpolation in CS XY-space
@@ -1705,17 +1688,14 @@ C****
       USE DOMAIN_DECOMP_1D, only : ICE_PACK=>PACK_DATA,am_i_root,
      &     HALO_UPDATE
       USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
-#ifdef CUBED_SPHERE
       USE ICEDYN_COM, only : CS2ICEint_a
       USE cs2ll_utils, only : cs2llint_ij
-#endif
       IMPLICIT NONE
       real*8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-#ifdef CUBED_SPHERE
 c      character*80 :: title
 c      real*8, allocatable :: iA_glob(:,:)
 c      real*4, allocatable :: iA4_glob(:,:)
@@ -1732,58 +1712,21 @@ c      write(900) title,iA4_glob
 c      close(900)
 c      endif
 c      deallocate(iA_glob,iA4_glob)
-#else 
+
+      end subroutine INT_AtmA2IceA_XY
+#else
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
-      iA=aA
+c      iA=aA
 #endif
-      end subroutine INT_AtmA2IceA_XY
 
-c      subroutine INT_IceB2AtmA(iAb,aAa)
-c!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
-c!@auth Denis Gueyffier
-c      USE RESOLUTION, only : aIM=>IM,aJM=>JM
-c      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
-c     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
-c      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
-c      IMPLICIT NONE
-c      integer :: mype,ierr
-c      character*80 :: title
-c      real *8 ::
-c     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
-c     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-c     &     iAb(1:IMICDYN,                             ! on ice B grid
-c     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
-c 
-c#ifdef CUBED_SPHERE
-c      real*8, allocatable :: aA_glob(:,:,:)
-c      real*4, allocatable :: a4_glob(:,:,:)
-c      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
-c      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
-c     &     iAb,aA_glob,IMICDYN,JMICDYN)
-c
-cc      if (am_i_root()) then
-cc      open(900,FILE="iB2aA",FORM='unformatted',
-cc     &        STATUS='unknown')
-cc      title="test"
-cc      a4_glob=aA_glob
-cc      write(900) title,a4_glob
-cc      close(900)
-cc      endif
-c
-c      call ATM_UNPACK(agrid,aA_glob,aAa)
-c      deallocate(aA_glob,a4_glob)
-c#endif
-c      end subroutine INT_IceB2AtmA
-
-      SUBROUTINE init_icedyn(iniOCEAN)
+      SUBROUTINE init_icedyn(iniOCEAN,atmice)
 !@sum  init_icedyn initializes ice dynamics variables
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,dtsrc,afocean=>focean
-      USE DIAG_COM, only : ia_src
+      USE MODEL_COM, only : dtsrc
+      USE MDIAG_COM, only : ia_src=>ia_cpl
       USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_HALO=>HALO_UPDATE
-      USE ICEDYN_COM, only : imic,jmic,rsix,rsiy,ausi,avsi
+      USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
      &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
      &     ,ij_dmvi,ij_rsi,ij_pice
@@ -1793,8 +1736,9 @@ c      end subroutine INT_IceB2AtmA
       USE ICEDYN, only : ifocean=>focean,
      &     osurf_tilt,bydts,usi,vsi,uice,vice,lon_dg,lat_dg
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
-     &     GEOMICDYN,ICDYN_MASKS
+     &     GEOMICDYN,ICDYN_MASKS,DLATM
 #ifdef CUBED_SPHERE
+      use dd2d_utils, only : ATM_HALO=>HALO_UPDATE
       USE ICEDYN, only : lon,lat,lonb,latb,uvm
       USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc
      &     ,ICE2CSint ,UVLLATUC,UVLLATVC,UVMATUC,UVMATVC,CONNECT
@@ -1807,15 +1751,17 @@ c      USE DOMAIN_DECOMP_1D, only : READT_PARALLEL
 c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 #else
       use domain_decomp_1d, only : init_band_pack_type,band_pack
-      use icedyn_com, only : pack_a2i,pack_i2a,ausi,avsi
+      use icedyn_com, only : pack_a2i,pack_i2a
 #endif
-      USE FLUXES, only : uisurf,visurf
       use Dictionary_mod
 #ifdef NEW_IO
       use cdl_mod
 #endif
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
+      type(atmice_xchng_vars) :: atmice
+c
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
 #ifdef CUBED_SPHERE
@@ -1829,6 +1775,7 @@ C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
 
 C**** Calculate spherical geometry
       call GEOMICDYN()
+      igice%dlatm = dlatm
 
 #ifdef CUBED_SPHERE
 c Get the ice dynamics land mask from the ocean topo file
@@ -1837,25 +1784,27 @@ c      CALL READT_PARALLEL(grid_icdyn,iu_mask,NAMEUNIT(iu_mask),
 c     &     iFOCEAN,1)
 c      call closeunit(iu_mask)
 c**** set up CS2ICEint, a data structure for CS to latlon interpolation
-      call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,1,JMICDYN,
+      call init_cs2llint_type(atmice%grid,grid_ICDYN,lon,lat,1,JMICDYN,
      &     CS2ICEint_a)
       lonb_tmp = lonb-pi
-      call init_cs2llint_type(agrid,grid_ICDYN,lonb_tmp,latb,
+      call init_cs2llint_type(atmice%grid,grid_ICDYN,lonb_tmp,latb,
      &     1,JMICDYN-1,
      &     CS2ICEint_b,setup_rot_pol=.true.)
 C**** Derive the ice dynamics land mask from the atmosphere mask
-      call INT_AtmA2IceA_XY(aFocean,iFocean)
+      call INT_AtmA2IceA_XY(atmice%focean,iFocean)
 #else
 C**** Initialize derived types used for passing arrays between the
 C**** atmosphere and ice dynamics
-      call init_band_pack_type(agrid, grid_ICDYN,
+      call init_band_pack_type(atmice%grid, grid_ICDYN,
      &     grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO,
      &     pack_a2i)
-      call init_band_pack_type(grid_ICDYN, agrid,
-     &     agrid%J_STRT_HALO,agrid%J_STOP_HALO,
+      call init_band_pack_type(grid_ICDYN, atmice%grid,
+     &     atmice%grid%J_STRT_HALO,atmice%grid%J_STOP_HALO,
      &     pack_i2a)
+      igice%pack_a2i => pack_a2i
+      igice%pack_i2a => pack_i2a
 C**** The ice dynamics land mask is that of the atmosphere      
-      call band_pack(pack_a2i, afocean, ifocean) ! ifocean = afocean
+      call band_pack(pack_a2i, atmice%focean, ifocean) ! ifocean = afocean
 #endif
 
       icedyn_processors_only: if(grid_ICDYN%have_domain) then
@@ -1871,31 +1820,29 @@ C**** The ice dynamics land mask is that of the atmosphere
 
 C**** Initialise ice dynamics if ocean model needs initialising
       if (iniOCEAN) THEN
-         RSIX=0.
-         RSIY=0.
          USI=0.
          VSI=0.
       endif
 
 #ifdef CUBED_SPHERE
 C**** precompute some arrays for ice advection on the atm grid
-      do j=agrid%j_strt,agrid%j_stop
-        do i=agrid%i_strt,agrid%i_stop
-          FOA(I,J)=AXYP(I,J)*aFOCEAN(I,J)
-          IF(aFOCEAN(I,J).gt.0) THEN
-            BYFOA(I,J)=BYAXYP(I,J)/aFOCEAN(I,J)
+      do j=atmice%grid%j_strt,atmice%grid%j_stop
+        do i=atmice%grid%i_strt,atmice%grid%i_stop
+          FOA(I,J)=AXYP(I,J)*atmice%focean(I,J)
+          IF(atmice%focean(I,J).gt.0) THEN
+            BYFOA(I,J)=BYAXYP(I,J)/atmice%focean(I,J)
           ELSE
             BYFOA(I,J)=0.
           END IF
         enddo
       enddo
-      call ATM_HALO(agrid, FOA)
-      call ATM_HALO(agrid, BYFOA)
+      call ATM_HALO(atmice%grid, FOA)
+      call ATM_HALO(atmice%grid, BYFOA)
 C**** precompute some interpolation info for ice advection
 c ice b-grid -> atm "west" edges
       imin=lbound(lonuc,1); imax=ubound(lonuc,1)
       jmin=lbound(lonuc,2); jmax=ubound(lonuc,2)
-      call init_ll2csint_type(grid_icdyn,agrid,
+      call init_ll2csint_type(grid_icdyn,atmice%grid,
      &     lonb,latb, 1,JMICDYN-1,
      &     imin,imax,jmin,jmax,lonuc,latuc,
      &     i2a_uc)
@@ -1904,16 +1851,17 @@ c ice b-grid -> atm "west" edges
 c ice b-grid -> atm "south" edges
       imin=lbound(lonvc,1); imax=ubound(lonvc,1)
       jmin=lbound(lonvc,2); jmax=ubound(lonvc,2)
-      call init_ll2csint_type(grid_icdyn,agrid,
+      call init_ll2csint_type(grid_icdyn,atmice%grid,
      &     lonb,latb, 1,JMICDYN-1,
      &     imin,imax,jmin,jmax,lonvc,latvc,
      &     i2a_vc)
       allocate(uvllatvc(2,imin:imax,jmin:jmax))
       allocate(uvmatvc(imin:imax,jmin:jmax))
 c ice b-grid -> atm a-grid
-      call init_ll2csint_type(grid_icdyn,agrid,
+      call init_ll2csint_type(grid_icdyn,atmice%grid,
      &     lonb,latb, 1,JMICDYN-1,
-     &     agrid%isd,agrid%ied,agrid%jsd,agrid%jed,
+     &     atmice%grid%isd,atmice%grid%ied,
+     &          atmice%grid%jsd,atmice%grid%jed,
      &     lon2d,lat2d,
      &     ICE2CSint,skip_halos=.true.)
 
@@ -1925,37 +1873,37 @@ c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8].
       call ll2csint_ij(grid_icdyn,i2a_uc,uvm_tmp,uvmatuc)
       call ll2csint_ij(grid_icdyn,i2a_vc,uvm_tmp,uvmatvc)
       deallocate(uvm_tmp)
-      do j=agrid%j_strt,agrid%j_stop
-        do i=agrid%i_strt,agrid%i_stop
+      do j=atmice%grid%j_strt,atmice%grid%j_stop
+        do i=atmice%grid%i_strt,atmice%grid%i_stop
           connect(i,j) = 0
 c Gridcells whose ocean fraction is <10% are not ocean-connected.
-c          if(afocean(i,j).gt.0.1d0) then
-c            if(afocean(i-1,j).gt.0.1d0 .and. uvmatuc(i  ,j).gt.0.)
+c          if(atmice%focean(i,j).gt.0.1d0) then
+c            if(atmice%focean(i-1,j).gt.0.1d0 .and. uvmatuc(i  ,j).gt.0.)
 c     &           connect(i,j) = connect(i,j) + 1
-c            if(afocean(i+1,j).gt.0.1d0 .and. uvmatuc(i+1,j).gt.0.)
+c            if(atmice%focean(i+1,j).gt.0.1d0 .and. uvmatuc(i+1,j).gt.0.)
 c     &           connect(i,j) = connect(i,j) + 2
-c            if(afocean(i,j-1).gt.0.1d0 .and. uvmatvc(i,j  ).gt.0.)
+c            if(atmice%focean(i,j-1).gt.0.1d0 .and. uvmatvc(i,j  ).gt.0.)
 c     &           connect(i,j) = connect(i,j) + 4
-c            if(afocean(i,j+1).gt.0.1d0 .and. uvmatvc(i,j+1).gt.0.)
+c            if(atmice%focean(i,j+1).gt.0.1d0 .and. uvmatvc(i,j+1).gt.0.)
 c     &           connect(i,j) = connect(i,j) + 8
 c          endif
-          if(afocean(i,j).gt.0.0d0) then
-            if(afocean(i-1,j).gt.0.0d0)
+          if(atmice%focean(i,j).gt.0.0d0) then
+            if(atmice%focean(i-1,j).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 1
-            if(afocean(i+1,j).gt.0.0d0)
+            if(atmice%focean(i+1,j).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 2
-            if(afocean(i,j-1).gt.0.0d0)
+            if(atmice%focean(i,j-1).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 4
-            if(afocean(i,j+1).gt.0.0d0)
+            if(atmice%focean(i,j+1).gt.0.0d0)
      &           connect(i,j) = connect(i,j) + 8
           endif
         enddo
       enddo
-      call atm_halo(agrid, connect)
+      call atm_halo(atmice%grid, connect)
 #endif
 
 C**** set uisurf,visurf for atmospheric drag calculations
-      call get_uisurf(usi,vsi,uisurf,visurf,ausi,avsi)
+      call get_uisurf(usi,vsi,atmice)
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij
@@ -2052,105 +2000,102 @@ c
 
 #ifndef CUBED_SPHERE
       SUBROUTINE diag_ICEDYN
-!@sum  diag_ICEDYN prints out diagnostics for ice dynamics
-!@&    ESMF: It should only be called from a serial region.
-!@$          It is NOT parallelized
-!@auth Gavin Schmidt
-      USE CONSTANT, only : undef,teeny
-      USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear
-      USE DIAG_COM, only : qdiag,acc_period,
-     &     lname_strlen,sname_strlen,units_strlen
-      USE ICEDYN_COM
-      USE DIAG_SERIAL, only : focean=>FOCEAN_glob
-      USE FILEMANAGER, only : openunit
-      IMPLICIT NONE
-      REAL*8, DIMENSION(IMIC,JMIC) :: Q,ADENOM
-      INTEGER I,J,L,N,KXLB,IP1,k1,k
-      CHARACTER XLB*30
-      CHARACTER TITLE*80
-      CHARACTER(len=lname_strlen) :: lname
-      CHARACTER(len=sname_strlen) :: sname
-      CHARACTER(len=units_strlen) :: units
-      REAL*8 QJ(JM),QSUM
-      REAL*8 byiacc
-
-      IF (.not. QDIAG) RETURN
-C**** determine label to be added to all titles
-      KXLB = INDEX(XLABEL(1:11),'(')-1
-      IF(KXLB.le.0) KXLB = 10
-      XLB = ' '
-      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
-      XLB = TRIM(XLB)//" "//XLABEL(1:KXLB)
-
-C**** Open output files
-      call open_ij(trim(acc_period)//'.icij'//
-     *     XLABEL(1:LRUNID),imic,jmic)
-C****
-C**** Simple scaled ICIJ diagnostics
-C****
-      DO K=1,KICIJ
-        byiacc=1./(IDACC(IA_ICIJ(K))+teeny)
-        lname=lname_icij(k)
-        if(denom_icij(k).gt.0) then
-          adenom=icijg(1:imic,1:jmic,denom_icij(k)) * byiacc
-        else
-          adenom=1.
-        endif
-        k1 = index(lname,' x ')
-        if (k1 .gt. 0) then
-          if (index(lname,' x POICEU') .gt. 0) then
-            do j=1,jmic
-            i=imic
-            do ip1=1,imic
-              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(ip1,j,ij_rsi))
-     *             * byiacc
-              i=ip1
-            end do
-            end do
-          else if (index(lname,' x POICEV') .gt. 0) then
-            do j=1,jmic-1
-            do i=1,imic
-              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(i,j+1,ij_rsi))
-     *             * byiacc
-            end do
-            end do
-          end if
-          lname(k1:50) = ' '
-        end if
-
-        Q=UNDEF ; QJ=UNDEF ; QSUM=UNDEF
-        DO J=1,JMIC
-          DO I=1,IMIC
-            IF (ADENOM(I,J).gt.0 .and. FOCEAN(I,J).gt.0.5)
-     *           Q(I,J)=SCALE_ICIJ(K)*ICIJg(I,J,K)*byiacc/adenom(i,j)
-          END DO
-        END DO
-        Q(2:IMIC,JMIC)=Q(1,JMIC)
-        Q(2:IMIC,1)=Q(1,1)
-        TITLE=trim(LNAME)//" ("//trim(UNITS_ICIJ(K))//") "
-        TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME_ICIJ(K),LNAME_ICIJ(K),UNITS_ICIJ(K),Q
-     *       ,QJ,QSUM,IGRID_ICIJ(K),JGRID_ICIJ(K))
-
-      END DO
-
-      call close_ij
-C****
+!!@sum  diag_ICEDYN prints out diagnostics for ice dynamics
+!!@&    ESMF: It should only be called from a serial region.
+!!@$          It is NOT parallelized
+!!@auth Gavin Schmidt
+!      USE CONSTANT, only : undef,teeny
+!      USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
+!     *     ,amon0,jdate,amon,jyear
+!      USE DIAG_COM, only : qdiag
+!      USE MDIAG_COM, only : acc_period,
+!     &     lname_strlen,sname_strlen,units_strlen
+!      USE ICEDYN_COM
+!      USE DIAG_SERIAL, only : focean=>FOCEAN_glob
+!      USE FILEMANAGER, only : openunit
+!      IMPLICIT NONE
+!      REAL*8, DIMENSION(IMIC,JMIC) :: Q,ADENOM
+!      INTEGER I,J,L,N,KXLB,IP1,k1,k
+!      CHARACTER XLB*30
+!      CHARACTER TITLE*80
+!      CHARACTER(len=lname_strlen) :: lname
+!      CHARACTER(len=sname_strlen) :: sname
+!      CHARACTER(len=units_strlen) :: units
+!      REAL*8 QJ(JM),QSUM
+!      REAL*8 byiacc
+!
+!      IF (.not. QDIAG) RETURN
+!C**** determine label to be added to all titles
+!      KXLB = INDEX(XLABEL(1:11),'(')-1
+!      IF(KXLB.le.0) KXLB = 10
+!      XLB = ' '
+!      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
+!      XLB = TRIM(XLB)//" "//XLABEL(1:KXLB)
+!
+!C**** Open output files
+!      call open_ij(trim(acc_period)//'.icij'//
+!     *     XLABEL(1:LRUNID),imic,jmic)
+!C****
+!C**** Simple scaled ICIJ diagnostics
+!C****
+!      DO K=1,KICIJ
+!        byiacc=1./(IDACC(IA_ICIJ(K))+teeny)
+!        lname=lname_icij(k)
+!        if(denom_icij(k).gt.0) then
+!          adenom=icijg(1:imic,1:jmic,denom_icij(k)) * byiacc
+!        else
+!          adenom=1.
+!        endif
+!        k1 = index(lname,' x ')
+!        if (k1 .gt. 0) then
+!          if (index(lname,' x POICEU') .gt. 0) then
+!            do j=1,jmic
+!            i=imic
+!            do ip1=1,imic
+!              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(ip1,j,ij_rsi))
+!     *             * byiacc
+!              i=ip1
+!            end do
+!            end do
+!          else if (index(lname,' x POICEV') .gt. 0) then
+!            do j=1,jmic-1
+!            do i=1,imic
+!              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(i,j+1,ij_rsi))
+!     *             * byiacc
+!            end do
+!            end do
+!          end if
+!          lname(k1:50) = ' '
+!        end if
+!
+!        Q=UNDEF ; QJ=UNDEF ; QSUM=UNDEF
+!        DO J=1,JMIC
+!          DO I=1,IMIC
+!            IF (ADENOM(I,J).gt.0 .and. FOCEAN(I,J).gt.0.5)
+!     *           Q(I,J)=SCALE_ICIJ(K)*ICIJg(I,J,K)*byiacc/adenom(i,j)
+!          END DO
+!        END DO
+!        Q(2:IMIC,JMIC)=Q(1,JMIC)
+!        Q(2:IMIC,1)=Q(1,1)
+!        TITLE=trim(LNAME)//" ("//trim(UNITS_ICIJ(K))//") "
+!        TITLE(51:80)=XLB
+!        CALL POUT_IJ(TITLE,SNAME_ICIJ(K),LNAME_ICIJ(K),UNITS_ICIJ(K),Q
+!     *       ,QJ,QSUM,IGRID_ICIJ(K),JGRID_ICIJ(K))
+!
+!      END DO
+!
+!      call close_ij
+!C****
       RETURN
       END SUBROUTINE diag_ICEDYN
 #endif /* not CUBED_SPHERE */
 
-      SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF,AUSI,AVSI)
+      SUBROUTINE GET_UISURF(UICE,VICE,atmice)
 !@sum calculate atmos. A grid winds from B grid
 !@auth Gavin Schmidt, Denis Gueyffier
 !@auth M. Kelley
-      USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : get
-      ! xlf bug: please leave lines in this order, i.e. grid=>grid_icdyn first
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : ll2csint_lij
       use icedyn_com, only : ICE2CSint
@@ -2158,18 +2103,15 @@ C****
       USE DOMAIN_DECOMP_1D, only : band_pack,
      &     hasSouthPole, hasNorthPole
       use icedyn_com, only : pack_i2a
-      use GEOM,only : cosu,sinu
+      use icedyn, only : cosiu,siniu
 #endif
+      USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       REAL*8, DIMENSION(IMICDYN,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UICE,VICE
-      REAL*8, DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &                  agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     INTENT(INOUT) :: UISURF,VISURF
-     &     ,AUSI,AVSI ! latlon-only: UICE,VICE with atm. domain decomp.
-      INTEGER :: J_0S,J_1S,I,J,IM1
-      LOGICAL :: pole
-      REAL*8 :: hemi
+      type(atmice_xchng_vars) :: atmice
+c
+      INTEGER :: J_0S,J_1S,I,J,IM1,IM,JM
       real*8, allocatable :: uvice(:,:,:),uvice_cs(:,:,:)
 
 #ifdef CUBED_SPHERE
@@ -2183,55 +2125,62 @@ c this is not necessary since usi,vsi already have this
           IF (abs(uvice(2,i,j)).lt.1d-10) uvice(2,i,j)=0.
         enddo
       enddo
-      allocate(uvice_cs(2,agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &                    agrid%J_STRT_HALO:agrid%J_STOP_HALO))
+      allocate(uvice_cs(2,
+     &     atmice%grid%I_STRT_HALO:atmice%grid%I_STOP_HALO,
+     &     atmice%grid%J_STRT_HALO:atmice%grid%J_STOP_HALO))
       call ll2csint_lij(grid,ICE2CSint,uvice,uvice_cs,
      &     is_ll_vector=.true.)
-      do j=agrid%J_STRT,agrid%J_STOP
-        do i=agrid%I_STRT,agrid%I_STOP
-          uisurf(i,j) = uvice_cs(1,i,j)
-          visurf(i,j) = uvice_cs(2,i,j)
+      do j=atmice%grid%J_STRT,atmice%grid%J_STOP
+        do i=atmice%grid%I_STRT,atmice%grid%I_STOP
+          atmice%uisurf(i,j) = uvice_cs(1,i,j)
+          atmice%visurf(i,j) = uvice_cs(2,i,j)
         enddo
       enddo
       deallocate(uvice_cs)
       deallocate(uvice)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
-      call band_pack(pack_i2a, uice, ausi) ! fills halos
-      call band_pack(pack_i2a, vice, avsi) ! fills halos
-      CALL GET(agrid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
+      im = atmice%grid%im_world
+      jm = atmice%grid%jm_world
+      call band_pack(pack_i2a, uice, atmice%usi) ! fills halos
+      call band_pack(pack_i2a, vice, atmice%vsi) ! fills halos
+      CALL GET(atmice%grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
       do j=J_0S,J_1S
          im1 = IM
          do i=1,IM
 c*** B->A : 4 points averaging
-            uisurf(i,j) = 0.25*(ausi(i  ,j)+ausi(i  ,j-1)+
-     &                          ausi(im1,j)+ausi(im1,j-1))
-            visurf(i,j) = 0.25*(avsi(i  ,j)+avsi(i  ,j-1)+
-     &                          avsi(im1,j)+avsi(im1,j-1))
+            atmice%uisurf(i,j) =
+     &          0.25*(atmice%usi(i  ,j)+atmice%usi(i  ,j-1)+
+     &                atmice%usi(im1,j)+atmice%usi(im1,j-1))
+            atmice%visurf(i,j) =
+     &           0.25*(atmice%vsi(i  ,j)+atmice%vsi(i  ,j-1)+
+     &                 atmice%vsi(im1,j)+atmice%vsi(im1,j-1))
             im1 = i
          enddo
       enddo
 c*** Poles
-      if (hasSouthPole(agrid)) then
-         uisurf(1,1) = 0. ; visurf(1,1) = 0.
+      if (hasSouthPole(atmice%grid)) then
+         atmice%uisurf(1,1) = 0. ; atmice%visurf(1,1) = 0.
          do i=1,IM
-            uisurf(1,1) = uisurf(1,1)+(avsi(i,1)*sinu(i))*2./IM
-            visurf(1,1) = visurf(1,1)+(avsi(i,1)*cosu(i))*2./IM
+           atmice%uisurf(1,1) = atmice%uisurf(1,1)
+     &          +(atmice%vsi(i,1)*siniu(i))*2./IM
+           atmice%visurf(1,1) = atmice%visurf(1,1)
+     &          +(atmice%vsi(i,1)*cosiu(i))*2./IM
          end do
-         uisurf(:,1)=uisurf(1,1)
-         visurf(:,1)=visurf(1,1)
+         atmice%uisurf(:,1)=atmice%uisurf(1,1)
+         atmice%visurf(:,1)=atmice%visurf(1,1)
       endif
       
-      if (hasNorthPole(agrid)) then
-         uisurf(1,JM) = 0. ; visurf(1,JM) = 0.
+      if (hasNorthPole(atmice%grid)) then
+         atmice%uisurf(1,JM) = 0. ; atmice%visurf(1,JM) = 0.
          do i=1,IM
-            uisurf(1,JM) = uisurf(1,JM)-(avsi(i,JM-1)*sinu(i))
-     &           *2./IM
-            visurf(1,JM) = visurf(1,JM)+(avsi(i,JM-1)*cosu(i))
-     &           *2./IM
+           atmice%uisurf(1,JM) = atmice%uisurf(1,JM)
+     &          -(atmice%vsi(i,JM-1)*siniu(i))*2./IM
+           atmice%visurf(1,JM) = atmice%visurf(1,JM)
+     &          +(atmice%vsi(i,JM-1)*cosiu(i))*2./IM
          end do
-         uisurf(:,JM)=uisurf(1,JM)
-         visurf(:,JM)=visurf(1,JM)
+         atmice%uisurf(:,JM)=atmice%uisurf(1,JM)
+         atmice%visurf(:,JM)=atmice%visurf(1,JM)
       endif
 #endif
 

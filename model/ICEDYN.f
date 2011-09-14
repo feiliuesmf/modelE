@@ -18,12 +18,8 @@ C*************************************************************
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius,TWOPI
-      USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
-c#ifdef CUBED_SPHERE
-c      USE OCEANRES, only : imo,jmo
-c#endif
       IMPLICIT NONE
       SAVE
 
@@ -34,19 +30,21 @@ C**** rheology calculations without changing ADVSI grid.
 !@+  (calculated points from 2 through nx1-1. End points are boundaries)
 !@var ny1 number of grid points in the latitudinal direction
 !@+  (calculated points from 2 through ny1-1. End points are boundaries)
-#ifdef CUBED_SPHERE
-      INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM
-c      integer, parameter :: imicdyn=imo, jmicdyn=jmo
-#else
-      INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM
-#endif
+!#ifdef CUBED_SPHERE
+!      INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM
+!#else
+!      INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM
+!#endif
+      INTEGER :: IMICDYN, JMICDYN
 !     dimensions of grid_NXY:
-      INTEGER, parameter :: NX1=IMICDYN+2, NY1=JMICDYN
-      INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
+      !INTEGER, parameter :: NX1=IMICDYN+2, NY1=JMICDYN
+      INTEGER :: NX1, NY1
+      !INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
+      INTEGER :: NYPOLE,NXLCYC
       integer :: NPOL=1,LCYC=1
 
       TYPE(DIST_GRID) :: grid_NXY
-      TYPE(DIST_GRID) :: grid_ICDYN
+      TYPE(DIST_GRID), target :: grid_ICDYN
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN
@@ -85,9 +83,14 @@ C**** Geometry
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
 !@var DXT,DXU x-direction distances on tracer and velocity grid
 !@var DYT,DYU y-direction distances on tracer and velocity grid
-      REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
-      REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,
-     &                          CSU,TNGT,TNG,BYCSU
+!      REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
+!      REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,
+!     &                          CSU,TNGT,TNG,BYCSU
+
+      REAL*8, DIMENSION(:), ALLOCATABLE ::
+     &     DXT,DXU,BYDX2,BYDXR,
+     &     DYT,DYU,BYDY2,BYDYR,CST,
+     &     CSU,TNGT,TNG,BYCSU
 
 !@var OIPHI ice-ocean turning angle (25 degrees)
 !@var ECCEN value of eccentricity for yield curve ellipse
@@ -96,41 +99,49 @@ C**** Geometry
       REAL*8 SINWAT,COSWAT
 
 C**** Geometry inherited from geomb
+      REAL*8, DIMENSION(:), ALLOCATABLE ::
+     &     LAT,LATB,LON,LONB,DXYP,BYDXYP,DXYV,DXP,DYP,DXV,DYV,DXYS,DXYN,
+     &     SINIU,COSIU
+      REAL*8, DIMENSION(:,:), ALLOCATABLE ::
+     &     LON_DG,LAT_DG
+
 !@param  DLON grid spacing in longitude (deg)
-      REAL*8, PARAMETER :: FIM=IMICDYN, BYIM=1./FIM
-      REAL*8, PARAMETER :: DLON = TWOPI*BYIM
+      !REAL*8, PARAMETER :: FIM=IMICDYN, BYIM=1./FIM
+      !REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 !@var DLAT,DLAT_DG,DLATM grid spacing in latitude (rad,deg,minutes)
-      REAL*8  :: DLAT,DLON_DG,DLAT_DG,DLATM
-!@param FJEQ equatorial value of J
-      REAL*8, PARAMETER :: FJEQ=.5*(1+JMICDYN)
-!@var  LAT latitude of mid point of primary grid box (radians)
-      REAL*8, DIMENSION(JMICDYN) :: LAT,LATB
-!@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
-      REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG  ! for diags
-!@var  LON longitude of mid points of primary grid box (radians)
-      REAL*8, DIMENSION(IMICDYN) :: LON,LONB
-!@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
-      REAL*8, DIMENSION(IMICDYN,2) :: LON_DG  ! for diags
-!@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
-C**** Note that this is not the exact area, but is what is required for
-C**** some B-grid conservation quantities
-      REAL*8, DIMENSION(JMICDYN) :: DXYP,BYDXYP
-      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: aDXYP
-!@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
-      REAL*8, DIMENSION(JMICDYN) :: DXYV,BYDXYV
-!@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
-!@+     (+inverse)
-      REAL*8, DIMENSION(JMICDYN) :: DXP,DYP,BYDXP,BYDYP
-!@var  DXV,DYV distance between velocity points (secondary grid)
-      REAL*8, DIMENSION(JMICDYN) :: DXV,DYV
-!@var  DXYN,DXYS half box areas to the North,South of primary grid point
-      REAL*8, DIMENSION(JMICDYN) :: DXYS,DXYN
-!@var  SINP sin of latitude at primary grid points
-      REAL*8, DIMENSION(JMICDYN) :: SINP
-!@var  COSP, COSV cos of latitude at primary, secondary latitudes
-      REAL*8, DIMENSION(JMICDYN) :: COSP,COSV
-!@var  IMAXJ varying number of used longitudes
-      INTEGER, DIMENSION(JMICDYN) :: IMAXJ
+      REAL*8  :: DLON,DLAT,DLON_DG,DLAT_DG,DLATM
+      !REAL*8 :: FIM,BYIM
+
+!!@param FJEQ equatorial value of J
+!      !REAL*8, PARAMETER :: FJEQ=.5*(1+JMICDYN)
+!!@var  LAT latitude of mid point of primary grid box (radians)
+!      REAL*8, DIMENSION(JMICDYN) :: LAT,LATB
+!!@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+!      REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG  ! for diags
+!!@var  LON longitude of mid points of primary grid box (radians)
+!      REAL*8, DIMENSION(IMICDYN) :: LON,LONB
+!!@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
+!      REAL*8, DIMENSION(IMICDYN,2) :: LON_DG  ! for diags
+!!@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
+!C**** Note that this is not the exact area, but is what is required for
+!C**** some B-grid conservation quantities
+!      REAL*8, DIMENSION(JMICDYN) :: DXYP,BYDXYP
+!      !REAL*8, DIMENSION(IMICDYN,JMICDYN) :: aDXYP
+!!@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
+!      REAL*8, DIMENSION(JMICDYN) :: DXYV !,BYDXYV
+!!@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
+!!@+     (+inverse)
+!      REAL*8, DIMENSION(JMICDYN) :: DXP,DYP !,BYDXP,BYDYP
+!!@var  DXV,DYV distance between velocity points (secondary grid)
+!      REAL*8, DIMENSION(JMICDYN) :: DXV,DYV
+!!@var  DXYN,DXYS half box areas to the North,South of primary grid point
+!      REAL*8, DIMENSION(JMICDYN) :: DXYS,DXYN
+!!@var  SINP sin of latitude at primary grid points
+!      !REAL*8, DIMENSION(JMICDYN) :: SINP
+!!@var  COSP, COSV cos of latitude at primary, secondary latitudes
+!      !REAL*8, DIMENSION(JMICDYN) :: COSP,COSV
+!!@var  IMAXJ varying number of used longitudes
+!      !INTEGER, DIMENSION(JMICDYN) :: IMAXJ
 
 !@var PSTAR maximum sea ice pressure per unit thickness (Pa/m)
       REAL*8, PARAMETER :: PSTAR=2.75d4
@@ -143,7 +154,6 @@ C**** some B-grid conservation quantities
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
@@ -285,7 +295,6 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
       SUBROUTINE PLAST
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
@@ -381,7 +390,6 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       SUBROUTINE RELAX
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-!@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT,
@@ -884,6 +892,7 @@ C NOW THE SECOND HALF
       REAL*8 :: LAT1,COSP1,DXP1
       REAL*8 :: phit,phiu,fjeq,acor,acoru
       REAL*8 :: SINV,SINVm1
+      REAL*8 :: FIM,BYIM
 
 C****
 C**** Extract useful local domain parameters from ice dynamics grid
@@ -898,6 +907,11 @@ C****
 c**** Geometry inherited from lat-lon B-grid (geomb)
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
+
+      FIM=IMICDYN
+      BYIM=1./FIM
+      DLON = TWOPI*BYIM
+
       DLON_DG=360./REAL(IMICDYN)
       DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole (default)
       IF (JMICDYN.eq.90) DLAT_DG=2.  ! full box at pole for 2 deg res
@@ -1000,26 +1014,26 @@ C**** (can't use 'have_north_pole', needs adjacent boxes too!)
       LAT(JMICDYN) = -LAT(1)
       LAT_DG(1,1:2)  = -90
       LAT_DG(JMICDYN,1) = +90
-      SINP(1)  = -1.
-      SINP(JMICDYN) = 1.
-      COSP(1)  = 0.
-      COSP(JMICDYN) = 0.
+      !SINP(1)  = -1.
+      !SINP(JMICDYN) = 1.
+      !COSP(1)  = 0.
+      !COSP(JMICDYN) = 0.
       DXP(1)  = 0.
       DXP(JMICDYN) = 0.
       DO J=2,JMICDYN-1
         LAT(J)  = DLAT*(J-FJEQ)
         LAT_DG(J,1)  = DLAT_DG*(J-FJEQ)
-        SINP(J) = SIN(LAT(J))
-        COSP(J) = COS(LAT(J))
-        DXP(J)  = RADIUS*DLON*COSP(J)
+        !SINP(J) = SIN(LAT(J))
+        !COSP(J) = COS(LAT(J))
+        DXP(J)  = RADIUS*DLON*COS(LAT(J)) !COSP(J)
       END DO
-      BYDXP(2:JMICDYN-1) = 1.D0/DXP(2:JMICDYN-1)
+      !BYDXP(2:JMICDYN-1) = 1.D0/DXP(2:JMICDYN-1)
       LAT1    = DLAT*(1.-FJEQ)
       COSP1   = COS(LAT1)
       DXP1    = RADIUS*DLON*COSP1
       DO J=2,JMICDYN
         LAT_DG(J,2)  = DLAT_DG*(J-FJEQ-.5)
-        COSV(J) = .5*(COSP(J-1)+COSP(J))
+        !COSV(J) = .5*(COSP(J-1)+COSP(J))
         DXV(J)  = .5*(DXP(J-1)+DXP(J))
         DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
 C**** The following corrections have no effect for half polar boxes
@@ -1039,13 +1053,13 @@ C****
       DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
       BYDXYP(1) = 1./DXYP(1)
 
-      aDXYP(:,1) = DXYP(1) 
+      !aDXYP(:,1) = DXYP(1) 
 
       SINVm1  = Sin (DLAT*(JMICDYN-.5-FJEQ))
       DXYP(JMICDYN)= RADIUS*RADIUS*DLON*(1-SINVm1)
       BYDXYP(JMICDYN) = 1./DXYP(JMICDYN)
 
-      aDXYP(:,JMICDYN) = DXYP(JMICDYN) 
+      !aDXYP(:,JMICDYN) = DXYP(JMICDYN) 
 
       DXYS(1)  = 0.
       DXYS(JMICDYN) = DXYP(JMICDYN)
@@ -1058,7 +1072,7 @@ C****
         SINV    = Sin (DLAT*(J+.5-FJEQ))
         DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
 
-        aDXYP(:,J) = DXYP(J) 
+        !aDXYP(:,J) = DXYP(J) 
 
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
@@ -1066,12 +1080,12 @@ C****
       END DO
       DO J=2,JMICDYN
         DXYV(J) = DXYN(J-1)+DXYS(J)
-        BYDXYV(J) = 1./DXYV(J)
+        !BYDXYV(J) = 1./DXYV(J)
       END DO
 C**** imaxj
-      IMAXJ(1)=1
-      IMAXJ(JMICDYN)=1
-      IMAXJ(2:JMICDYN-1)=IMICDYN
+      !IMAXJ(1)=1
+      !IMAXJ(JMICDYN)=1
+      !IMAXJ(2:JMICDYN-1)=IMICDYN
 
 C**** LONGITUDES (degrees) for diagnostics
       LON_DG(1,1) = -180.+0.5*dlon_dg
@@ -1086,6 +1100,13 @@ c store b-grid lons/lats for interpolations
       lonb(:) = lon_dg(:,2)*radian + pi
       latb(1:jmicdyn-1) = lat_dg(2:jmicdyn,2)*radian
       latb(jmicdyn) = pi/2. ! not used
+
+      DO I=1,IMICDYN
+        SINIU(I) =SIN (I*TWOPI/IMICDYN)
+        COSIU(I) =COS (I*TWOPI/IMICDYN)
+      END DO
+      SINIU(IMICDYN) = 0
+      COSIU(IMICDYN) = 1
 
       end subroutine GEOMICDYN
 
@@ -1299,7 +1320,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       RETURN
       END SUBROUTINE VPICEDYN
 
-      SUBROUTINE ALLOC_ICEDYN
+      SUBROUTINE ALLOC_ICEDYN(IM_in,JM_in)
 !@sum ALLOC_ICEDYN allocates arrays defined in the ICEDYN module.
 !@auth Rosalinda de Fainchtein
 
@@ -1310,7 +1331,7 @@ C**** In the case that ny1 is NOT equal to JM, a structure appropriately
 C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
-
+      !USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,GET
       USE DOMAIN_DECOMP_1D, ONLY : INIT_GRID
       USE ICEDYN, ONLY : FOCEAN
@@ -1319,10 +1340,15 @@ C**** to ALLOC_ICEDYN.
      &                   PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,
      &                   VICEC,DMU,DMV,HEFF,AREA,UICE,
      &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
-     &                   CST,CSU,TNGT,TNG,BYCSU,USI,VSI
-      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,NY1
+     &                   CST,CSU,TNGT,TNG,BYCSU,USI,VSI,
+     &                   DXT,DXU,BYDX2,BYDXR
+      USE ICEDYN, ONLY :
+     &     LAT,LATB,LON,LONB,DXYP,BYDXYP,DXYV,DXP,DYP,DXV,DYV,DXYS,DXYN,
+     &     LON_DG,LAT_DG,SINIU,COSIU
+      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,NY1,NYPOLE,NXLCYC
       USE ICEDYN, ONLY :  grid_NXY, grid_ICDYN
       IMPLICIT NONE
+      INTEGER, INTENT(IN) :: IM_in,JM_in
       LOGICAL, SAVE :: init = .false.
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
@@ -1332,6 +1358,34 @@ C**** to ALLOC_ICEDYN.
          Return ! Only invoke once
       End If
       init = .true.
+
+#ifdef CUBED_SPHERE
+      IMICDYN = 2*IM_in
+      JMICDYN = 2*IM_in
+#else
+      IMICDYN = IM_in
+      JMICDYN = JM_in
+#endif
+
+      NX1=IMICDYN+2
+      NY1=JMICDYN
+      NYPOLE=NY1-1
+      NXLCYC=NX1-1
+
+      ALLOCATE(DXT(NX1),DXU(NX1),BYDX2(NX1),BYDXR(NX1))
+      ALLOCATE(DYT(NY1),DYU(NY1),BYDY2(NY1),BYDYR(NY1))
+      ALLOCATE(CST(NY1),CSU(NY1),TNGT(NY1),TNG(NY1),BYCSU(NY1))
+
+      ALLOCATE(LAT(JMICDYN),LATB(JMICDYN))
+      ALLOCATE(LON(IMICDYN),LONB(IMICDYN))
+      ALLOCATE(DXYP(JMICDYN),BYDXYP(JMICDYN))
+      ALLOCATE(DXYV(JMICDYN))
+      ALLOCATE(DXP(JMICDYN),DYP(JMICDYN))
+      ALLOCATE(DXV(JMICDYN),DYV(JMICDYN))
+      ALLOCATE(DXYS(JMICDYN),DXYN(JMICDYN))
+      ALLOCATE(LAT_DG(JMICDYN,2))
+      ALLOCATE(LON_DG(IMICDYN,2))
+      ALLOCATE(SINIU(IMICDYN),COSIU(IMICDYN))
 
 c***   - grid_NXY is the ice dynamics grid (for the resolution of the momentum equation) 
 c***     it is a latlon grid with dimensions IMICDYN+2 and JMICDYN, 

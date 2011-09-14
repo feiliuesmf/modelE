@@ -8,7 +8,6 @@
 subroutine exit_rc (code)
 !@sum  exit_rc stops the run and sets a return code
 !@auth Reto A Ruedy
-!@ver  1.0 (SGI,IBM,Linux,DEC)
 #if ( defined(COMPILER_NAG) )
   use f90_unix_proc
 #endif
@@ -30,7 +29,6 @@ end subroutine exit_rc
 subroutine sys_flush (unit)
 !@sum system call to flush corresponding I/O unit
 !@auth I. Aleinov
-!@ver  1.0 (SGI,IBM,Linux,DEC)
 #if ( defined(COMPILER_NAG) )
   use f90_unix_io
 #endif
@@ -59,7 +57,6 @@ end subroutine sys_flush
 subroutine sys_signal (sig, prog)
 !@sum system call to "signal"
 !@auth I. Aleinov
-!@ver  1.0 (SGI,IBM,Linux,Dec) !! should check if works with DEC !!
   implicit none
 !@var unit signal number to catch
   integer, intent(IN) :: sig

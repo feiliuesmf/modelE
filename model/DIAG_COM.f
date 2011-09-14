@@ -3,23 +3,36 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  2010/11/12
-      use resolution, only : ls1
-      USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
+      use resolution, only : ls1,kep,istrat
+      use resolution, only : im,jm,lm
+      USE ATM_COM, only : lm_req
       use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
       use socpbl, only : npbl=>n
 #ifdef NEW_IO
       use cdl_mod
 #endif
+#ifndef CUBED_SPHERE
+      use geom, only : imh,fim,byim
+#endif
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
+      use mdiag_com, only : ia_cpl
       IMPLICIT NONE
       SAVE
       private
 
-      public LM_REQ,im,jm,lm,imlonh,ntype,istrat,kep,jm_budg,jmlat,xwon
+      public LM_REQ,im,jm,lm,imlonh,istrat,kep,jm_budg,jmlat,xwon
 
-C**** Accumulating_period information
-      INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
-      CHARACTER*12, public :: ACC_PERIOD='PARTIAL'    !@var string MONyyr1-yyr2
-!@var AMON0,JMON0,JDATE0,JYEAR0,JHOUR0,Itime0  beg.of acc-period
+#ifndef CUBED_SPHERE
+      public :: imh,fim,byim
+#endif
+
+c!@param IMH half the number of latitudinal boxes
+c      INTEGER, PARAMETER, public :: IMH=IM/2
+c!@param FIM,BYIM real values related to number of long. grid boxes
+c      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
+!@param JEQ grid box zone around or immediately north of the equator
+      INTEGER, PARAMETER, public :: JEQ=1+JM/2
+
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
@@ -43,6 +56,16 @@ C**** ACCUMULATING DIAGNOSTIC ARRAYS
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
      &     ,AJ_out
+
+C**** Define surface types (mostly used for weighting AJ diagnostics)
+!@param NTYPE number of different surface types
+      INTEGER, PARAMETER, public :: NTYPE=6   ! orig = 3
+!@var FTYPE fractions of each surface type
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public   :: FTYPE
+
+!@param ITxx indices of various types (used only when it matters)
+      INTEGER, PARAMETER, public :: ITOCEAN=1, ITOICE=2, ITEARTH=3,
+     *                              ITLANDI=4, ITLAKE=5, ITLKICE=6
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
@@ -110,7 +133,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
-     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL
+     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL,IJL_CDTOMAS
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc
@@ -186,13 +209,13 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
 #else
 #ifdef TRACERS_DUST
-      INTEGER, PARAMETER, public :: NDIUVAR=73+14*lmax_dd2+6*npbl
+      INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl
      &     +4*(npbl-1)
 #else
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER, PARAMETER, public :: NDIUVAR=62
 #else
-      INTEGER, PARAMETER, public :: NDIUVAR=56
+      INTEGER, PARAMETER, public :: NDIUVAR=60
 #endif
 #endif
 #endif
@@ -472,10 +495,15 @@ C**** Extra array needed for dealing with advected ice
 C****      13  HCHSI  (HORIZ CONV SEA ICE ENRG, INTEGRATED OVER THE DAY)
 C****
 !@param KOA number of diagnostics needed for ocean heat transp. calcs
+      INTEGER, public :: iu_VFLXO
       INTEGER, PARAMETER, public :: KOA = 13
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: OA
       ! REAL*8 :: OA_glob    (IM, JM, KOA)
       REAL*8,allocatable, public :: OA_glob(:,:,:)
+
+!**** Diagnostic control parameters
+!@dbparam Kvflxo if 1 => vert.fluxes into ocean are saved daily
+      integer, public :: Kvflxo=0
 
 C****
 C**** Information about acc-arrays:
@@ -491,9 +519,6 @@ C****      names, indices, units, idacc-numbers, etc.
       REAL*8, dimension(ndparm_max), public :: dparm
       integer, public :: ndparm=0
 
-      integer, parameter, public ::
-     &     sname_strlen=30,units_strlen=30,lname_strlen=80
-
 !@var J_xxx zonal J diagnostic names
       INTEGER, public ::
      &     J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
@@ -503,7 +528,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
      *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4, J_LWCORR,
-     *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
+     *     J_RVRD,J_ERVR,J_IMPLM, J_IMPLH,
      *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
      *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
      *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
@@ -551,16 +576,16 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SLP, IJ_UJET, IJ_VJET, IJ_PCLDL, IJ_PCLDM, IJ_PCLDH,
      *     IJ_BTMPW, IJ_SRREF, IJ_SRVIS, IJ_TOC2, IJ_TAUS, IJ_TAUUS,
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
-     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI, IJ_TGO2, IJ_EVAPO, ij_RHs,
-     *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
+     *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_TGO2, IJ_EVAPO, ij_RHs,
+     *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0LI,IJ_F0E,
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAXE, IJ_TMAXC, IJ_TMINC, IJ_TMNMX, IJ_PEVAP,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
-     *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
-     *     IJ_SSI1,IJ_SSI2,IJ_SMFX,     ! IJ_MSU2,IJ_MSU2R,
-     *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
+     *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,
+     *     ! IJ_MSU2,IJ_MSU2R,
+     *     IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
      *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, IJ_LAI, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
@@ -568,7 +593,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
      *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
-     *     IJ_FWIO, IJ_HTIO, IJ_STIO, IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
+     *     IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
@@ -585,12 +610,11 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
      *     ,ij_kw, ij_alpha, ij_gasx, ij_rvrflo
-     *     ,ij_sisnd,ij_tsice,ij_sisnwf,ij_sigrfr
-     *     ,ij_sigrcg,ij_sigrlt,ij_sntosi,ij_sitopmlt,ij_sibotmlt
-     *     ,ij_sihc,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
+     *     ,ij_sisnd
+     *     ,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
-     *     ,IJ_MLKtoGR,IJ_HLKtoGR, IJ_MSNFLOOD,IJ_HSNFLOOD
+     *     ,IJ_MLKtoGR,IJ_HLKtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
@@ -605,9 +629,6 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
      *     ,IJ_GW9
-!@var IJ_[MHS][UV]SI indices for sea ice mass/heat/salt transport diags
-      INTEGER, public ::
-     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
@@ -888,8 +909,8 @@ c     names for npbl layers dust diagnostics
 c     names for npbl-1 layers dust diagnostics
      &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
-     *     ,idd_diam, idd_aot, idd_lwp, idd_ccn, idd_cdnc
-     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL
+     *     ,idd_diam, idd_aot, idd_aot2, idd_lwp, idd_ccn, idd_cdnc
+     *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL, idd_pres
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
@@ -920,7 +941,8 @@ C**** weighting functions for surface types
 
 c idacc-indices of various processes
       integer, parameter, public ::
-     &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
+     &     ia_src=ia_cpl, !=1
+     &               ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
      *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_rad_frc=11,
      *     ia_inst=12
 
@@ -945,6 +967,18 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@param L_ROSSBY_NUMBER length scale for budget-page Rossby number
       real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
+!@dbparam NDAA:   DT_DiagA    =  NDAA*DTsrc + 2*DT(dyn)
+!@dbparam NDA5k:  DT_Diag5k   =  NDA5k*DTsrc + 2*DT(dyn) SpAnal KE
+!@dbparam NDA5d:  DT_Diag5d   =  NDA5d*DTsrc     Consrv  SpAnal dyn
+!@dbparam NDA5s:  DT_Diag5s   =  NDA5s*DTsrc     Consrv  SpAnal src
+!@dbparam NDASf:  DT_DiagSrfc =  NDASf*DTsrc + DTsrc/NIsurf
+!@dbparam NDA4:   DT_Diag4    =  NDA4 *DTsrc   Energy history
+      INTEGER, public ::
+     &     NDAa=7, NDA5d=1, NDA5k=7, NDA5s=1, NDASf=1, NDA4=24
+!@var MODD5K,MODD5S: if MODxxx=0 do xxx, else skip xxx
+      INTEGER, public :: MODD5K, MODD5S
+
+      target :: AIJ_loc,JREG,DXYP_BUDG,CONSRV_loc,NOFM
 
 #ifdef NEW_IO
       type(cdl_type), public :: cdl_latbudg,cdl_heights
@@ -991,14 +1025,13 @@ c instances of arrays
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
-      USE MODEL_COM, ONLY : NTYPE,lm_req
+      USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
-     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
+     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST,ftype,ntype
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,u_inst,v_inst
@@ -1034,7 +1067,8 @@ c instances of arrays
 #endif
 #endif
       use diag_zonal, only : get_alloc_bounds
-
+      use fluxes, only : atmocn
+      USE DIAG_COM, only : dxyp_budg,nofm,consrv_loc
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: I_1H, I_0H, J_1H, J_0H
@@ -1138,6 +1172,7 @@ c instances of arrays
      &         STAT = IER)
 
       P_acc=0.d0; PM_acc=0.d0
+      OA = 0d0
 
       ALLOCATE( AIJK_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJK),
      &         AFLX_ST(LM+LM_REQ+1,I_0H:I_1H,J_0H:J_1H,5),
@@ -1180,13 +1215,20 @@ c allocate master copies of budget- and JK-arrays on root
 
       endif
 
+      ALLOCATE(FTYPE(NTYPE,I_0H:I_1H,J_0H:J_1H), STAT = IER)
+      FTYPE(:,:,:) = 0.d0
+
+      atmocn%jm_budg = jm_budg
+      atmocn%area_of_zone => dxyp_budg
+      atmocn%consrv => consrv_loc
+      atmocn%nofm => nofm
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
 
       SUBROUTINE ALLOC_ijdiag_glob
 !@sum  To allocate large global arrays only when needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
@@ -1217,7 +1259,6 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE DEALLOC_ijdiag_glob
 !@sum  To deallocate large global arrays not currently needed
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
@@ -1230,15 +1271,16 @@ c allocate master copies of budget- and JK-arrays on root
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,ioread_single,irerun
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
-     *    ,Kradia
+      USE ATM_COM, only : Kradia
+      USE MDIAG_COM, only : monacc
       USE DIAG_COM
-      USE DOMAIN_DECOMP_1D, Only : grid, GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, Only : grid
+      USE DOMAIN_DECOMP_1D, Only : GET, PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, Only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, Only : broadcast
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -1331,8 +1373,8 @@ c allocate master copies of budget- and JK-arrays on root
            END IF
           endif
           CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL ESMF_BCAST(grid, idacc)
-          CALL ESMF_BCAST(grid, it   )
+          CALL broadcast(grid, idacc)
+          CALL broadcast(grid, it   )
 
         CASE (IOREAD_SINGLE)      !
 !ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
@@ -1344,8 +1386,8 @@ c allocate master copies of budget- and JK-arrays on root
              deallocate (AFLX4)
           end if
           CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL ESMF_BCAST(grid,idac1)
-          CALL ESMF_BCAST(grid,monac1)
+          CALL broadcast(grid,idac1)
+          CALL broadcast(grid,monac1)
           IDACC(2) = IDACC(2) + IDAC1(2)
           monacc = monacc + monac1
         END SELECT
@@ -1508,8 +1550,8 @@ c**** read accumulation arrays for subdaily diagnostics
             GO TO 10
           END IF
         End If
-        CALL ESMF_BCAST(grid, keyct )
-        CALL ESMF_BCAST(grid, KEYNR )
+        CALL broadcast(grid, keyct )
+        CALL broadcast(grid, KEYNR )
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
       END SELECT
 
@@ -1526,19 +1568,19 @@ c**** read accumulation arrays for subdaily diagnostics
       Contains
 
       Subroutine BCAST_Scalars()
-        CALL ESMF_BCAST(grid, keyct )
-        CALL ESMF_BCAST(grid, KEYNR )
-        CALL ESMF_BCAST(grid, idacc )
-        CALL ESMF_BCAST(grid, ENERGY)
-        CALL ESMF_BCAST(grid, SPECA )
-        CALL ESMF_BCAST(grid, ATPE  )
-c        CALL ESMF_BCAST(grid, ADIURN)
-        CALL ESMF_BCAST(grid, WAVE  )
-        CALL ESMF_BCAST(grid, AISCCP)
+        CALL broadcast(grid, keyct )
+        CALL broadcast(grid, KEYNR )
+        CALL broadcast(grid, idacc )
+        CALL broadcast(grid, ENERGY)
+        CALL broadcast(grid, SPECA )
+        CALL broadcast(grid, ATPE  )
+c        CALL broadcast(grid, ADIURN)
+        CALL broadcast(grid, WAVE  )
+        CALL broadcast(grid, AISCCP)
 #ifndef NO_HDIURN
-c        CALL ESMF_BCAST(grid, HDIURN)
+c        CALL broadcast(grid, HDIURN)
 #endif
-        CALL ESMF_BCAST(grid, it    )
+        CALL broadcast(grid, it    )
       End Subroutine BCAST_Scalars
 
       Subroutine Scatter_Diagnostics()
@@ -1580,7 +1622,8 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
-      use domain_decomp_1d, only : grid,pack_data
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : pack_data
       use diag_com
       implicit none
       call gather_zonal_diags
@@ -1665,100 +1708,6 @@ c more complicated logic
       return
       End Subroutine Scatter_zonal_diags
 
-      SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
-!@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
-!@+   if the earliest month is NOT the beginning of the 2-6 month period
-!@+   the name will reflect that fact ONLY for 2 or 3-month periods
-!@auth Reto A. Ruedy
-!@ver  1.0
-      USE MODEL_COM, only : AMONTH
-      implicit none
-!@var JMON1,JYR1 month,year of beginning of period 1
-      INTEGER JMON1,JYR1
-!@var JMONM,JMONL middle,last month of period
-      INTEGER JMONM,JMONL
-!@var months,years length of 1 period,number of periods
-      INTEGER months,years
-!@var moff = # of months from beginning of period to JMON1 if months<12
-      integer moff
-!@var yr1,yr2 (end)year of 1st and last period
-      INTEGER yr1,yr2
-!@var aDATE date string: MONyyr1(-yyr2)
-      character*12 aDATE
-!@var LDATE length of date string (7 or 12)
-      INTEGER LDATE
-
-      LDATE = 7                  ! if years=1
-      if(years.gt.1) LDATE = 12
-
-      aDATE(1:12)=' '
-      aDATE(1:3)=AMONTH(JMON1)        ! letters 1-3 of month IF months=1
-      yr1=JYR1
-      JMONL=JMON1+months-1
-      if(JMONL.GT.12) then
-         yr1=yr1+1
-         JMONL=JMONL-12
-      end if
-      if (moff.gt.0.and.months.le.3) then  ! earliest month is NOT month
-        JMONL = 1 + mod(10+jmon1,12)       ! 1 of the 2-3 month period
-        yr1=JYR1
-        if (jmon1.gt.1) yr1=yr1+1
-      end if
-      yr2=yr1+years-1
-      write(aDATE(4:7),'(i4.4)') yr1
-      if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
-
-      if(months.gt.12) aDATE(1:1)='x'                ! should not happen
-      if(months.le.1 .or. months.gt.12) return
-
-!**** 1<months<13: adjust characters 1-3 of aDATE (=beg) if necessary:
-!**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
-!****    =F+L                                        for 2 month periods
-!****    =FML where M=letter 1 of Middle month       for 3 month periods
-!****    =FnL where n=length of period if n>3         4-11 month periods
-      aDATE(3:3)=AMONTH(JMONL)(1:1)            ! we know: months>1
-      IF (months.eq.2) then
-        aDATE(2:2)='+'
-        return
-      end if
-      if (months.eq.3) then
-        JMONM = JMONL-1
-        if (moff.eq.1) jmonm = jmon1+1
-        if (jmonm.gt.12) jmonm = jmonm-12
-        if (jmonm.le.0 ) jmonm = jmonm+12
-        aDATE(2:2)=AMONTH(JMONM)(1:1)
-        return
-      end if
-      if (moff.gt.0) then  ! can't tell non-consec. from consec. periods
-        jmon1 = jmon1-moff
-        if (jmon1.le.0) jmon1 = jmon1+12
-        JMONL=JMON1+months-1
-        if (jmonl.gt.12) jmonl = jmonl-12
-        aDATE(1:1)=AMONTH(JMON1)(1:1)
-        aDATE(3:3)=AMONTH(JMONL)(1:1)
-      end if
-      IF (months.ge.4.and.months.le.9) write (aDATE(2:2),'(I1)') months
-      IF (months.eq.10) aDATE(2:2)='X'         ! roman 10
-      IF (months.eq.11) aDATE(2:2)='B'         ! hex   11
-      IF (months.eq.6) THEN                    !    exceptions:
-         IF (JMON1.eq. 5) aDATE(1:3)='NHW'     ! NH warm season May-Oct
-         IF (JMON1.eq.11) aDATE(1:3)='NHC'     ! NH cold season Nov-Apr
-      END IF
-      IF (months.eq.7) THEN                    !    to avoid ambiguity:
-         IF (JMON1.eq. 1) aDATE(1:3)='J7L'     ! Jan-Jul J7J->J7L
-         IF (JMON1.eq. 7) aDATE(1:3)='L7J'     ! Jul-Jan J7J->L7J
-      END IF
-      IF (months.eq.12) THEN
-C****    beg=ANn where the period ends with month n if n<10 (except 4)
-         aDATE(1:3)='ANN'                      ! regular annual mean
-         IF (JMONL.le. 9) WRITE(aDATE(3:3),'(I1)') JMONL
-         IF (JMONL.eq. 4) aDATE(1:3)='W+C'     ! NH warm+cold seasons
-         IF (JMONL.eq.10) aDATE(1:3)='C+W'     ! NH cold+warm seasons
-         IF (JMONL.eq.11) aDATE(1:3)='ANM'     ! meteor. annual mean
-      END IF
-      return
-      end SUBROUTINE aPERIOD
-
 C**** Routines associated with the budget grid
 
       SUBROUTINE SET_J_BUDG
@@ -1799,7 +1748,9 @@ C**** define limits on budget indices for each processor
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
       USE GEOM, only : j_budg, axyp, imaxj
-      USE MODEL_COM, only : fim
+#ifndef CUBED_SPHERE
+      USE DIAG_COM, only : im,fim
+#endif
       USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,lat_budg,dxyp_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
@@ -1847,7 +1798,7 @@ C**** box in lat/lon case.
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
-      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
+      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,broadcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment
@@ -1866,7 +1817,7 @@ C**** box in lat/lon case.
 
       increment = .false.
       call SUMXPE(dxyp_budg_loc,dxyp_budg,increment)   !summing global area
-      call esmf_bcast(grid,dxyp_budg)
+      call broadcast(grid,dxyp_budg)
 
       return
       end subroutine set_budg_area
@@ -1978,7 +1929,8 @@ c temporary variant of inc_ajl without any weighting
 !@auth M. Kelley
 !@ver  beta
       use model_com, only : idacc
-      use diag_com, only : monacc,
+      use mdiag_com, only : monacc
+      use diag_com, only :
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
@@ -2066,6 +2018,10 @@ c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
 #endif
       endif
 
+#ifdef TRACERS_ON
+      call def_rsf_trdiag(fid,r4_on_disk)
+#endif
+
       return
       end subroutine def_rsf_acc
 
@@ -2073,12 +2029,14 @@ c       call write_attr(grid,fid,tmpstr,'consrv' ,'no')
 !@sum  new_io_acc read/write accumulation arrays from/to restart/acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : im,jm,lm,ioread,iowrite,iowrite_single,
-     &     idacc
+      use resolution, only : im,jm,lm
+      use model_com, only : ioread,iowrite,iowrite_single,iowrite_mon
+     &     ,idacc
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
-      use diag_com, only : monacc,kaijl,
+      use mdiag_com, only : monacc
+      use diag_com, only : kaijl,
      &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
@@ -2171,7 +2129,19 @@ c for which scalars is bcast_all=.true. necessary?
 
         call read_data(grid,fid,'areg',areg)
 
+      case (iowrite_mon)            ! specials
+        call stop_model('new_io_acc: fix io_oda call',255)
+c            If (AM_I_ROOT())
+c     *           call openunit(aDATE(1:7)//'.oda'//XLABEL(1:LRUNID)
+c     *           ,iu_ODA,.true.,.false.)
+c            call io_oda(iu_ODA,Itime,iowrite,ioerr)
+c            IF (AM_I_ROOT()) call closeunit(iu_ODA)
       end select
+
+#ifdef TRACERS_ON
+        call new_io_trdiag (fid,iaction)
+#endif
+
       return
       end subroutine new_io_acc
 
@@ -2271,7 +2241,6 @@ c new_io_subdd
 !@sum  def_meta_atmacc defines metadata in atm acc files
 !@auth M. Kelley
 !@ver  beta
-      use model_com, only : im
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -2442,13 +2411,19 @@ c new_io_subdd
       call defvar(grid,fid,isccp_tau,'isccp_tau(ntau)')
       call defvar(grid,fid,isccp_late,'isccp_late(nisccp_plus_1)')
 
+      call def_meta_rvracc(fid)
+
+#ifdef TRACERS_ON
+      call def_meta_trdiag(fid)
+#endif
+
       return
       end subroutine def_meta_atmacc
 
       subroutine write_meta_atmacc(fid)
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
-      use model_com, only : im,nday,idacc
+      use model_com, only : nday,idacc
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -2571,6 +2546,12 @@ c new_io_subdd
       call write_data(grid,fid,'isccp_tau',isccp_tau)
       call write_data(grid,fid,'isccp_late',isccp_late)
       call write_data(grid,fid,'wisccp',wisccp)
+
+      call write_meta_rvracc(fid)
+
+#ifdef TRACERS_ON
+      call write_meta_trdiag(fid)
+#endif
 
       return
       end subroutine write_meta_atmacc

@@ -121,17 +121,22 @@ in the repository on simplex</b></A>
 <p>
  (equivalent of &quot;cvs update&quot;):
 <pre>
-    git pull <it>username</it>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
-</pre>
-in most cases you can just do:
-<pre>
     git pull
 </pre>
-since Git remembers the repository you &quot;cloned&quot; the code from. But
-when you start performing more complicated tasks with Git, like
-working with more than one repository (not described in this
-document), it may become not obvious which repository is a
-default one. So it is better to specify it explicitly.
+This will &quot;pull&quot; the latest changes from the repository you 
+cloned from (<tt>simplex.giss.nasagov:/giss/gitrepo/modelE.git</tt> in
+our case). You can also use a more explicit form of this command
+<pre>
+    git pull <it>username</it>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git branch_name
+</pre>
+This allows you to pull from a different repository (like a private 
+repository of other researcher) and from a different branch if
+necessary. But be carefull when using this explicit command, for example
+<pre>
+    git pull <it>username</it>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
+</pre>
+will always pull from &quot;master&quot; branch even if you are on a
+different branch.
 </p>
 
 <LI> <A name="part1_1a"><b> to commit your code to the central

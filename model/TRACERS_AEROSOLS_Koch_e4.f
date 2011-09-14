@@ -8,7 +8,6 @@
 !@ read_mon3Dsources
 !@ READ_OFFHNO3
 !@ READ_OFFSS
-!@ get_BCOC
 !@ read_DMS_sources
 !@ read_seasalt_sources
 !@ aerosol_gas_chem
@@ -34,29 +33,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var OC_SS_enrich_fact OCocean enrichment factor of seasalt1
       real*8, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact !(im,jm)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-!@var BCI_src    BC Industrial source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: BCI_src !(im,jm)
-!@var BCBt_src    BC Biomass source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: BCBt_src !(im,jm)
-!@var OCI_src    OC Industrial source (kg/s/box)
-#ifdef TRACERS_OM_SP
-      INTEGER, PARAMETER :: nomsrc  = 8
-#else
-      INTEGER, PARAMETER :: nomsrc = 1
-#endif
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCI_src !(im,jm,nomsrc)
 #ifndef TRACERS_AEROSOLS_SOA
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var OCBt_src OC trend Biomass source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: OCBt_src  !(im,jm)
-!@var hBC BC trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hbc  !(im,jm,2)
-!@var hOC OC trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hoc  !(im,jm,2)
-!@var hso2 so2 trend source (kg/s/box)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: hso2  !(im,jm,2)
 !@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
       INTEGER, PARAMETER :: nsssrc = 2
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ss_src !(im,jm,nsssrc)
@@ -82,39 +62,27 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
       real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
 !@var om2oc ratio of organic matter to organic carbon
-      real*8, dimension(ntm) :: om2oc=1.4d0
+      real*8, allocatable, dimension(:) :: om2oc
 !@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
       real*8:: BBinc=1.0d0
+#ifdef TRACERS_AEROSOLS_VBS
+!@var VBSemifact factor that distributes organic aerosols in volatility bins
+      real*8, allocatable, dimension(:) :: VBSemifact
+#endif /* TRACERS_AEROSOLS_VBS */
 
       END MODULE AEROSOL_SOURCES
 
-      MODULE LAKI_SOURCE
-      IMPLICIT NONE
-      SAVE
-      INTEGER, DIMENSION(10), PARAMETER :: LAKI_MON = (/6,6,6,
-     * 6,7,7,8,9,9,10/)
-      INTEGER, DIMENSION(10), PARAMETER :: LAKI_DAY = (/8,11,14,
-     * 27,9,29,31,7,26,25/)
-      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_T = (/1.98,
-     * 3.17,4.41,2.55,2.09,3.10,1.82,1.39,1.03,0.78/)
-      REAL*8, DIMENSION(10), PARAMETER :: LAKI_AMT_S = (/8.42,
-     * 13.53,18.79,10.85,8.91,13.20,7.78,5.91,4.37,3.32/)
-      END MODULE LAKI_SOURCE
-      
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, get
-      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
-     * BCI_src,BCBt_src,nomsrc,
-     * OCI_src,
+      use TRACER_COM, only: NTM
+      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * OCBt_src,
 #ifdef TRACERS_AEROSOLS_OCEAN
      * OC_SS_enrich_fact,
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
@@ -125,8 +93,12 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_RADON
      * ,rn_src
 #endif
+#ifdef TRACERS_AEROSOLS_VBS
+     * ,VBSemifact
+      use TRACERS_VBS, only: vbs_tr
+#endif
 
-      use MODEL_COM, only: im,lm
+      use RESOLUTION, only: im,lm
       
       IMPLICIT NONE
       type (dist_grid), intent(in) :: grid
@@ -148,15 +120,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_AEROSOLS_OCEAN
       allocate( OC_SS_enrich_fact(I_0H:I_1H,J_0H:J_1H) ,STAT=IER) 
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-      allocate( BCI_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
-      allocate( hbc(I_0H:I_1H,J_0H:J_1H,2),hoc(I_0H:I_1H,J_0H:J_1H,2)
-     *  ,hso2(I_0H:I_1H,J_0H:J_1H,2) ,STAT=IER)
-      allocate( BCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
-      allocate( OCI_src(I_0H:I_1H,J_0H:J_1H,nomsrc) ,STAT=IER)
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
-      allocate( OCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
@@ -177,6 +143,11 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 c off line 
       allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
       allocate(  off_SS(I_0H:I_1H,J_0H:J_1H,LM)     )
+#ifdef TRACERS_AEROSOLS_VBS
+      allocate(VBSemifact(vbs_tr%nbins))
+#endif
+
+      allocate(om2oc(ntm)); om2oc = 1.4d0
 
       return
       end SUBROUTINE alloc_aerosol_sources      
@@ -185,7 +156,8 @@ c off line
 c
 C**** GLOBAL parameters and variables:
 C
-      use model_com, only: jday,im,jm,lm
+      use resolution, only: im,jm,lm
+      use model_com, only: jday
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
       use domain_decomp_atm, only: grid, get, write_parallel
@@ -261,7 +233,8 @@ c
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
+      use resolution, only: im,jm
+      USE MODEL_COM, only: jday,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
      &     REWIND_PARALLEL,write_parallel
@@ -337,7 +310,8 @@ c**** Interpolate two months of data to current day
       end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
-      USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
+      use resolution, only: im,jm,lm
+      USE MODEL_COM, only : jdate,JDendOFM,jmon
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -418,7 +392,8 @@ c -----------------------------------------------------------------
 c -----------------------------------------------------------------
 
       SUBROUTINE READ_OFFSS(OUT)
-      USE MODEL_COM, only : im,jm,lm,jdate,jmon,JDendOFM
+      use resolution, only: im,jm,lm
+      USE MODEL_COM, only : jdate,jmon,JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -500,249 +475,6 @@ c -----------------------------------------------------------------
       END SUBROUTINE READ_OFFSS
 c -----------------------------------------------------------------
 
-
-      SUBROUTINE get_BCOC(end_of_day,xday)
-c Carbonaceous aerosol emissions
-      USE GEOM, only: AXYP
-      USE MODEL_COM, only: jyear,jmon,jday,im,jm
-      USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
-      USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_bcii,n_ocii,delTyr
-      USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
-     * ,hbc,hoc,om2oc
-      implicit none
-      character*20 title
-      integer :: iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
-     * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
-     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear,kstep=10
-      logical, intent(in) :: end_of_day
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     &     hOC_read,hBC_read,hOC_all,hBC_all,sfc_a,sfc_b
-c     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
-c    &     hOC_all,hBC_all
-      real*8 d1,d2,d3,xbcff,xbcbm,xombm,tot
-      real*8 alpha
-      logical :: checkname=.true.
-      integer, intent(IN) :: xday
-      save jb1,jb2,ihyr
-      
-      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
-     *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      
-#ifdef TRACERS_AMP
-      checkname=.false.
-#endif
-c if run just starting or if it is a new year
-c   then open new files
-c     if (.not. end_of_day .or.jday.eq.1) then
-      BCI_src(:,:)=0.d0
-      OCI_src(:,:,:)=0.d0
-      if (aer_int_yr.eq.0) then
-      xyear=jyear
-      else
-      xyear=aer_int_yr
-      endif
-      ihyr=xyear  ! don't need both of these
-      hbc(:,:,:)=0.0
-      hoc(:,:,:)=0.0
-      hoc_all(:,:)=0.0
-      hbc_all(:,:)=0.0
-c for now we assume the number of decades BC and OC are the same   
-      ns=7
-      n=n_BCII
-      do nc=1,ns
-      hbc_read(:,:)=0.0
-      write(title,111) 'BC_EM_',nc
-      call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc,checkname)
-! -------------- non-transient emissions ----------------------------!
-        if(ty_start(n,ns)==ty_end(n,ns))then
-
-c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-c     do iy=1,ndec
-          select case(freq(n,ns))
-          case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
-          case('a')        ! annual file, only read first time
-       call readt_parallel(grid,iuc,nameunit(iuc),hbc_read(:,:),0)
-c hardcoding - old sources are kg/year
-          end select
-      hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)
-     *    +hbc_read(I_0:I_1,J_0:J_1)
-! --------------- transient emissions -------------------------------!
-        else
-          select case(freq(n,ns))
-          case('a')        ! annual file, only read first time + new steps
-            kstep=delTyr(n,ns)
-            ipos=1
-            alpha=0.d0 ! before start year, use start year value
-            kx=ty_start(n,ns) ! just for printing
-            if(xyear>ty_end(n,ns).or.
-     &      (xyear==ty_end(n,ns).and.xday>=183))then
-              alpha=1.d0 ! after end year, use end year value
-              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
-              kx=ty_end(n,ns)-kstep
-            endif
-            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
-!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
-              if(xyear>k .or. (xyear==k.and.xday>=183)) then
-                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
-                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
-     &                  (365.d0*real(kstep))
-                  kx=k
-                  exit
-                endif
-              endif
-      end do
-
-!should do! if(ifirst2(n,ns)) then
-            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
-            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
-!should do! endif
-            hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)
-     *      +sfc_a(I_0:I_1,J_0:J_1)*
-     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
-c           write(out_line,*)
-c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
-c           call write_parallel(trim(out_line))
-c           ifirst2(n,ns) = .false.
-          case('m')        ! monthly file, interpolate to now
-            call read_mon_src_2(n,ns,iuc,hbc_read(:,:),xyear,xday)
-c           ifirst2(n,ns) = .false. ! needed?
-       hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)+
-     *  hbc_read(I_0:I_1,J_0:J_1)
-          end select
-
-        endif
-
-c     end do
-      call closeunit(iuc)
-      end do
-c 
-      ns=7
-      n=n_OCII
-      do nc=1,ns
-      hoc_read(:,:)=0.0
-      write(title,111) 'OC_EM_',nc
- 111  format(a6,i1)
-      call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc,checkname)
-c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-c     do iy=1,ndec
-! -------------- non-transient emissions ----------------------------!
-        if(ty_start(n,ns)==ty_end(n,ns))then
-
-          select case(freq(n,ns))
-          case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hoc_read(:,:),jyear,jday)
-          case('a')
-       call readt_parallel(grid,iuc,nameunit(iuc),hoc_read(:,:),0)
-c hardcoding - old sources are kg/year
-          end select
-      hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)
-     *    +hoc_read(I_0:I_1,J_0:J_1)
-! --------------- transient emissions -------------------------------!
-        else
-          select case(freq(n,ns))
-          case('a')        ! annual file, only read first time + new steps
-            kstep=delTyr(n,ns)
-            ipos=1
-            alpha=0.d0 ! before start year, use start year value
-            kx=ty_start(n,ns) ! just for printing
-            if(xyear>ty_end(n,ns).or.
-     &      (xyear==ty_end(n,ns).and.xday>=183))then
-              alpha=1.d0 ! after end year, use end year value
-              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
-              kx=ty_end(n,ns)-kstep
-            endif
-            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
-!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
-              if(xyear>k .or. (xyear==k.and.xday>=183)) then
-                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
-                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
-     &                  (365.d0*real(kstep))
-                  kx=k
-                  exit
-                endif
-              endif
-      end do
-
-!should do! if(ifirst2(n,ns)) then
-            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
-            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
-!should do! endif
-            hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)
-     *      +sfc_a(I_0:I_1,J_0:J_1)*
-     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
-c           write(out_line,*)
-c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
-c           call write_parallel(trim(out_line))
-c           ifirst2(n,ns) = .false.
-          case('m')        ! monthly file, interpolate to now
-            call read_mon_src_2(n,ns,iuc,hoc_read(:,:),xyear,xday)
-c           ifirst2(n,ns) = .false. ! needed?
-       hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)+
-     *  hoc_read(I_0:I_1,J_0:J_1)
-          end select
-
-        endif
-
-c     end do
-      call closeunit(iuc)
-      end do
-c     tye=ty_end(n,ns)
-c     tys=ty_start(n,ns)
-c     if (ihyr.lt.tys) ihyr=tys
-c     if (ihyr.ge.tye) ihyr=tye
-
-c     do i=1,ndec
-c     jbt=tys+(i-1)*10
-c     if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
-c     jb1=jbt
-c     jb2=jbt+10
-c     irr=i
-c     go to 23
-c     endif
-c     end do
-c 23  continue
-c     hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
-c     hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
-c  the AR5 emissions are kg/m2/s
-      do j=j_0,j_1
-      do i=i_0,i_1
-      hbc_all(i,j)=hbc_all(i,j)*axyp(i,j)
-      hoc_all(i,j)=hoc_all(i,j)*axyp(i,j)
-      end do
-      end do
-c      tot=0
-c      do i=1,im
-c      do j=1,jm
-c      tot=tot+hbc_all(i,j,1)*axyp(i,j)
-c      end do
-c      end do
-c kg/year to kg/s
-      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*om2oc(n)
-c interpolate to model year
-c    
-c     d1=real(ihyr-jb1)
-c     d2=real(jb2-ihyr)
-c     d3=real(jb2-jb1)
-      BCI_src(i_0:i_1,j_0:j_1)=hbc_all(i_0:i_1,j_0:j_1)
-      OCI_src(i_0:i_1,j_0:j_1,1)=hoc_all(i_0:i_1,j_0:j_1)
-c     BCI_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
-c    * +d2*hbc(:,j_0:j_1,1))/d3
-c     OCI_src(:,j_0:j_1,1)=(d1*hoc(:,j_0:j_1,2)
-c    * +d2*hoc(:,j_0:j_1,1))/d3
-  
-      end SUBROUTINE get_BCOC
-      
       SUBROUTINE read_DMS_sources(swind,itype,i,j,DMS_flux) !!! T
 !@sum generates DMS ocean source
 !@auth Koch
@@ -753,7 +485,8 @@ c want kg DMS/m2/s
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
-      USE MODEL_COM, only: jmon,jday,lm,jyear
+      use resolution, only: lm
+      USE MODEL_COM, only: jmon,jday,jyear
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
@@ -822,7 +555,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                          ,OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-      USE FLUXES, only: gtemp !Jaegle
+      !USE FLUXES, only: gtemp !Jaegle
       use Dictionary_mod, only: sync_param
       implicit none
       REAL*8 erate,swind_cap
@@ -893,7 +626,8 @@ c if after Feb 28 skip the leapyear day
 !@auth Dorothy Koch
       USE TRACER_COM
       USE TRDIAG_COM, only : 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -902,9 +636,11 @@ c if after Feb 28 skip the leapyear day
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
-      USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,jmon,
-     * coupled_chem
-      USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
+      USE RESOLUTION, only : ls1
+      use resolution, only: im,jm,lm
+      use atm_com, only : t,q
+      USE MODEL_COM, only: jmon,dtsrc,jday,jmon
+      USE ATM_COM, only: pmid,am,pk,LTROPO,byam
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
@@ -912,10 +648,18 @@ c if after Feb 28 skip the leapyear day
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
-       USE CONSTANT, only : mair
+       USE CONSTANT, only : mair, sday
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only : h2so4_chem
+#endif
+#ifdef TRACERS_AEROSOLS_VBS
+      use CONSTANT, only : gasc
+      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
+     &                       vbs_calc, vbs_tr
+#endif /* TRACERS_AEROSOLS_VBS */
 c Aerosol chemistry
       implicit none
       logical :: ifirst=.true.
@@ -931,14 +675,24 @@ c Aerosol chemistry
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,j_0,j_1,
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
+#ifdef TRACERS_AEROSOLS_VBS
+      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
+      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
+!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
+      real*8 :: kg2ugm3
+#endif /* TRACERS_AEROSOLS_VBS */
       integer maxl,nrecs_skip
       logical :: newMonth
       save ifirst
+#ifdef TRACERS_TOMAS
+      REAL*8 TAU_hydro
+      integer k
+#endif
 
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
@@ -947,18 +701,28 @@ c Aerosol chemistry
       I_1 = grid%I_STOP
 
 C**** initialise source arrays
-ccOMP PARALLEL DO PRIVATE (L)
         tr3Dsource(:,j_0:j_1,:,1,n_DMS)=0. ! DMS chem sink
 #ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
         tr3Dsource(:,j_0:j_1,:,1,n_MSA)=0. ! MSA chem sink
         tr3Dsource(:,j_0:j_1,:,1,n_SO4)=0. ! SO4 chem source
+#endif
 #endif
         tr3Dsource(:,j_0:j_1,:,nChemistry,n_SO2)=0. ! SO2 chem source
         tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
+#endif
+#ifdef TRACERS_TOMAS
+        H2SO4_chem(:,j_0:j_1,:)=0.0
+        do k=1,nbins
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECOB(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECIL(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCOB(k))=0.
+           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCIL(k))=0.
+        enddo
 #endif
 #ifdef TRACERS_HETCHEM
         tr3Dsource(:,j_0:j_1,:,1,n_SO4_d1) =0. ! SO4 on dust
@@ -966,36 +730,28 @@ ccOMP PARALLEL DO PRIVATE (L)
         tr3Dsource(:,j_0:j_1,:,1,n_SO4_d3) =0. ! SO4 on dust
 #endif
         if (n_BCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_BCII)=0. ! BCII sink
-          tr3Dsource(:,j_0:j_1,:,1,n_BCIA)=0. ! BCIA source
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCII)=0. ! BCII sink
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCIA)=0. ! BCIA source
         end if
         if (n_OCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_OCII)=0. ! OCII sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCIA)=0. ! OCIA source
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCII)=0. ! OCII sink
+          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCIA)=0. ! OCIA source
         end if
-        if (n_OCI1.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,2,n_OCI1)=0. ! OCI1 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA1)=0. ! OCA1 source
-        end if
-        if (n_OCI2.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,2,n_OCI2)=0. ! OCI2 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA2)=0. ! OCA2 source
-        end if
-        if (n_OCI3.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,1,n_OCI3)=0. ! OCI3 sink
-          tr3Dsource(:,j_0:j_1,:,1,n_OCA3)=0. ! OCA3 source
-        end if
-ccOMP END PARALLEL DO
+#ifdef TRACERS_AEROSOLS_VBS
+        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nChemloss,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nOther,vbs_tr%igas)=0.
+        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%iaer)=0.
+#endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
-ccOMP PARALLEL DO PRIVATE (L)
-          oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
-          tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
+        oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
+        tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
 c Set h2o2_s =0 and use on-line h2o2 from chemistry
-          if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
-ccOMP END PARALLEL DO
+        if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
       endif
 
       if (coupled_chem.eq.0) then
@@ -1069,6 +825,8 @@ c     endif
 #endif
 #endif
       dtt=dtsrc
+      bciage=(1.d0-exp(-dtsrc/(2.7d0*sday)))/dtsrc !efold time of 2.7 days
+      ociage=(1.d0-exp(-dtsrc/(1.6d0*sday)))/dtsrc !efold time of 1.6 days
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,lm
       do 21 j=j_0,j_1
@@ -1089,37 +847,76 @@ c DMM is number density of air in molecules/cm3
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 
-      do 23 n=1,ntm
+      do 23 n=1,NTM ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
 
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*trm(i,j,l,n) !efold time of 1 day        
-c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
-c       bciage=1.0D-7*trm(i,j,l,n)
-        tr3Dsource(i,j,l,1,n)=-bciage        
-        tr3Dsource(i,j,l,1,n_BCIA)=bciage        
+          tr3Dsource(i,j,l,nChemistry,n)=-bciage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage*trm(i,j,l,n)
 
+#ifdef TRACERS_AEROSOLS_VBS
+        case ('vbsAm2') ! This handles all VBS tracers
+          kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
+     &            (am(l,i,j)*axyp(i,j)*gasc*te)
+          vbs_cond%dt=dtsrc
+          vbs_cond%OH=ohmc
+          vbs_cond%temp=te
+          vbs_cond%nvoa=(trm(i,j,l,n_BCII)
+     &                  +trm(i,j,l,n_BCIA)
+     &                  +trm(i,j,l,n_BCB)
+#ifdef TRACERS_AEROSOLS_SOA
+     &                  +trm(i,j,l,n_isopp1a)
+     &                  +trm(i,j,l,n_isopp2a)
+     &                  +trm(i,j,l,n_apinp1a)
+     &                  +trm(i,j,l,n_apinp2a)
+#endif /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                  +trm(i,j,l,n_ococean)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
+     &                  +trm(i,j,l,n_msa)
+     &                  +trm(i,j,l,n_so4)
+#ifdef TRACERS_NITRATE
+     &                  +trm(i,j,l,n_nh4)
+     &                  +trm(i,j,l,n_no3p)
+#endif
+     &                  )*kg2ugm3
+          vbs_tr_old%gas=trm(i,j,l,vbs_tr%igas)*kg2ugm3
+          vbs_tr_old%aer=trm(i,j,l,vbs_tr%iaer)*kg2ugm3
+
+          call vbs_calc(vbs_tr_old,vbs_cond)
+
+          tr3Dsource(i,j,l,nChemistry,vbs_tr%igas)=
+     &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
+          tr3Dsource(i,j,l,nChemloss,vbs_tr%igas)=
+     &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
+          tr3Dsource(i,j,l,nOther,vbs_tr%igas)=
+     &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
+          tr3Dsource(i,j,l,nChemistry,vbs_tr%iaer)=
+     &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
+!     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
+!      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
+!        print '(a,3e)','KOSTAS gas',
+!     &                 sum(vbs_tr_old%gas),
+!     &                 sum(vbs_tr%gas),
+!     &                 sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer)
+!        print '(a,3e)','KOSTAS aer',
+!     &                 sum(vbs_tr_old%aer),
+!     &                 sum(vbs_tr%aer),
+!     &                 sum(vbs_tr%gas)+sum(vbs_tr%aer)
+!        print '(a,3e)','KOSTAS bud',
+!     &                 sum(vbs_tr%chem_prod),
+!     &                 sum(vbs_tr%chem_loss),
+!     &                 sum(vbs_tr%partition)
+!      endif
+#else
         case ('OCII')
-        ociage=7.3D-6*trm(i,j,l,n)  !used this first 
-c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
-c       ociage=3.D-7*trm(i,j,l,n)
-        tr3Dsource(i,j,l,1,n)=-ociage        
-        tr3Dsource(i,j,l,1,n_OCIA)=ociage        
+          tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
+          tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
+#endif /* TRACERS_AEROSOLS_VBS */
 
-        case ('OCI1')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA1)=ociage
-        case ('OCI2')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA2)=ociage
-        case ('OCI3')
-        ociage=4.3D-6*trm(i,j,l,n)
-        tr3Dsource(i,j,l,2,n)=-ociage
-        tr3Dsource(i,j,l,1,n_OCA3)=ociage
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -1167,14 +964,49 @@ c SO2 production from DMS
      *         ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
      *         ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
      *         /tr_mm(n_dms))/dtsrc
-          
-          
+#ifdef TRACERS_TOMAS 
+! EC/OC aging 
+        case ('AECIL_01')
+           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+
+           DO K=1,nbins
+              tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
+     &             trm(i,j,l,n_AECOB(K))*
+     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+
+              tr3Dsource(i,j,l,nChemistry,n_AECOB(K))=
+     &             -trm(i,j,l,n_AECOB(K))*
+     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+
+!              IF(am_i_root())
+!     &      print*,'ECOB aging',n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro)) 
+           ENDDO
+           
+        case ('AOCIL_01')
+           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           DO K=1,nbins
+              tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
+     &             =trm(i,j,l,n_AOCOB(K))*
+     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
+!     &             4.3D-6
+              tr3Dsource(i,j,l,nChemistry,n_AOCOB(K))
+     &             =-trm(i,j,l,n_AOCOB(K))*
+     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+!     &             4.3D-6
+!              IF(am_i_root())
+!     &      print*,'OCOB aging',n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+
+           ENDDO   
+
+#endif
+#ifndef TRACERS_TOMAS                   
           najl = jls_NO3
           call inc_tajls2(i,j,l,najl,ttno3)
 #endif
+#endif
         end select
         
- 23   CONTINUE
+ 23   CONTINUE ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
 c       endif
  22   CONTINUE
  21   CONTINUE
@@ -1203,8 +1035,9 @@ c     if(l.le.maxl) then
         o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
       endif
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      do 33 n=1,ntm
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      do 33 n=1,NTM
         select case (trname(n))
         case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
@@ -1227,7 +1060,11 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        tr3Dsource(i,j,l,nChemloss,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
        tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
-#endif        
+#endif  
+#ifdef TRACERS_TOMAS
+       H2SO4_chem(i,j,l)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+     &      *tr_mm(n_H2SO4)/tr_mm(n) 
+#endif      
 #endif        
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
@@ -1329,7 +1166,7 @@ c     endif
 
       SUBROUTINE SCALERAD
       use constant, only : pi
-      use MODEL_COM, only: im,jm,lm
+      use resolution, only: im,jm,lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID,GET
       use RAD_COM, only: cosz1,cosz_day,sunset
@@ -1385,18 +1222,19 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       SUBROUTINE GET_SULFATE(L,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
      *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
+
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch
-!@ver  1.0 (based on CLOUDCHCC and CLOUDCHEM subroutines)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
       USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,ntm,tr_mm,lm,n_SO4,n_H2O2,mass2vol
+     *     ,trname,NTM
+     *     ,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
       USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
-      USE MODEL_COM, only: dtsrc,coupled_chem
+      USE MODEL_COM, only: dtsrc
 c
       IMPLICIT NONE
 c
@@ -1588,9 +1426,9 @@ c can't be more than moles going in:
  22   continue
       do n=1,ntx
        select case (trname(ntix(n)))
-       case('SO4','M_ACC_SU')
+       case('SO4','M_ACC_SU','ASO4__01')
        is4=ntix(n)
-!       is4x=n
+
        sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
      *  +dso4d*tmcl(isx)*tmcl(ihx)) !kg
 
@@ -1652,7 +1490,7 @@ c can't be more than moles going in:
 c
       USE CONSTANT, only: rhow
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
-      USE SEAICE_COM, only: trsi, snowi
+      USE SEAICE_COM, only : si_atm
       USE TRACER_COM, only: trname
 #ifdef TRACERS_AEROSOLS_Koch
      *                     ,n_BCB,n_BCII,n_BCIA
@@ -1661,9 +1499,12 @@ c
      *  ,n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
      *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
 #endif
+#ifdef TRACERS_TOMAS
+     *  ,n_AECIL,n_AECOB,nbins
+#endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn
-      USE FLUXES, only: gtracer,gtemp
+      USE FLUXES, only: atmice
       IMPLICIT NONE
 c Warren and Wiscombe 1985 includes age dependence
       real*8, parameter :: bc(29)=(/1.d0,2.d0,3.d0,4.d0,5.d0,
@@ -1703,6 +1544,9 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 #ifdef TRACERS_AMP
       integer, parameter :: nspBC=7
 #endif
+#ifdef TRACERS_TOMAS
+      integer, parameter :: nspBC=nbins+nbins
+#endif
       integer, dimension(nspBC) :: spBC
 c
 c tr_wsn_ij(n,nsl,2,i,j) tracer in snow layer l multiplied by fraction snow, kg/m2
@@ -1712,7 +1556,7 @@ c snowi(i,j) snow amount on sea ice, kg/m2
 c afb(i,j)=fb, fraction that is bare soil
 c fv=1-fb fraction that is vegetated
 c rads is the snow grain size determined in GRAINS
-c gtracer(n,2,i,j) is tracer concentration in snow on sea ice?
+c gtracer(n,i,j) is tracer concentration in snow on sea ice?
 c Maybe I need tracer in snow on sea ice, or mass of sea ice...?
 c Does trsi accumulate for ALL tracers?
 c fractions??
@@ -1730,6 +1574,12 @@ c
       spBC(5)=n_M_BOC_BC
       spBC(6)=n_M_BCS_BC
       spBC(7)=n_M_MXX_BC
+#endif
+#ifdef TRACERS_TOMAS
+      do n=1,nbins
+         spBC(n)=n_AECOB(n)
+         spBC(n+nbins)=n_AECIL(n)
+      enddo
 #endif
       bc_dalb=0.
       scon=0.
@@ -1757,9 +1607,9 @@ c
         sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
       scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
-      if (snowi(i,j).gt.0.) then
+      if (si_atm%snowi(i,j).gt.0.) then
         do n=1,nspBC
-          icon=icon+gtracer(spBC(n),2,i,j)*1.d9
+          icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
         enddo
       endif
       bcc=DMAX1(icon,scon)
@@ -1842,10 +1692,11 @@ c melting snow
 !@auth Jean Lerner and others / Greg Faluvegi
 ! taken from TRACERS_SPECIAL_Shindell, in case we
 !  we run aerosols independent of gases
-      USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
+      use resolution, only: im,jm
+      USE MODEL_COM, only: jday,jyear,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
-     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel
+     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
@@ -1884,8 +1735,10 @@ C
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        if(imon/=2)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
@@ -1937,9 +1790,11 @@ c**** Interpolate two months of data to current day
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel
+     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        end if
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)

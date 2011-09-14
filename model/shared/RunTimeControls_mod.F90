@@ -12,6 +12,7 @@
 
 
 
+#include "rundeck_opts.h"
 module RunTimeControls_mod
 !@sum This module contains a set of Fortran logicals that correspondend
 !@+ to CPP conditionals in a 1-1 fashion.   Fortran logicals are preferable,
@@ -659,12 +660,6 @@ module RunTimeControls_mod
   logical, parameter :: old_rayf = .false.
 #endif
 
-#if defined(PBL_E1)
-  logical, parameter :: pbl_e1 = .true.
-#else
-  logical, parameter :: pbl_e1 = .false.
-#endif
-
 #if defined(PFT_MODEL_ENT)
   logical, parameter :: pft_model_ent = .true.
 #else
@@ -881,16 +876,34 @@ module RunTimeControls_mod
   logical, parameter :: tracers_aerosols_koch = .false.
 #endif
 
+#if defined(TRACERS_AEROSOLS_OCEAN)
+  logical, parameter :: tracers_aerosols_ocean = .true.
+#else
+  logical, parameter :: tracers_aerosols_ocean = .false.
+#endif
+
 #if defined(TRACERS_AEROSOLS_SOA)
   logical, parameter :: tracers_aerosols_soa = .true.
 #else
   logical, parameter :: tracers_aerosols_soa = .false.
 #endif
 
+#if defined(TRACERS_AEROSOLS_VBS)
+  logical, parameter :: tracers_aerosols_vbs = .true.
+#else
+  logical, parameter :: tracers_aerosols_vbs = .false.
+#endif
+
 #if defined(TRACERS_AGE_OCEAN)
   logical, parameter :: tracers_age_ocean = .true.
 #else
   logical, parameter :: tracers_age_ocean = .false.
+#endif
+
+#if defined(TRACERS_AIR)
+  logical, parameter :: tracers_air = .true.
+#else
+  logical, parameter :: tracers_air = .false.
 #endif
 
 #if defined(TRACERS_AMP)
@@ -1109,6 +1122,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_terp = .false.
 #endif
 
+#if defined(TRACERS_TOMAS)
+  logical, parameter :: tracers_tomas = .true.
+#else
+  logical, parameter :: tracers_tomas = .false.
+#endif
+
 #if defined(TRACERS_WATER)
   logical, parameter :: tracers_water = .true.
 #else
@@ -1235,22 +1254,10 @@ module RunTimeControls_mod
   logical, parameter :: use_norm_vect = .false.
 #endif
 
-#if defined(USE_PBL_E1)
-  logical, parameter :: use_pbl_e1 = .true.
-#else
-  logical, parameter :: use_pbl_e1 = .false.
-#endif
-
 #if defined(USE_PFUNIT)
   logical, parameter :: use_pfunit = .true.
 #else
   logical, parameter :: use_pfunit = .false.
-#endif
-
-#if defined(USE_RADIATION_E1)
-  logical, parameter :: use_radiation_e1 = .true.
-#else
-  logical, parameter :: use_radiation_e1 = .false.
 #endif
 
 #if defined(USE_SYSUSAGE)

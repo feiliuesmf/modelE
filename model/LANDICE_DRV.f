@@ -11,13 +11,14 @@
       SUBROUTINE init_LI(istart)
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
-!@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,tf
       USE FILEMANAGER
-      USE MODEL_COM, only : im,jm,flice,focean,dtsrc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
+      USE FLUXES, only : flice,focean
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -33,9 +34,8 @@
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trdwnimp
 #endif
-      USE FLUXES, only : gtemp,gmelt,egmelt,gtempr
+      USE FLUXES, only : atmgla,gmelt,egmelt
 #ifdef TRACERS_WATER
-     *     ,gtracer
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
@@ -63,7 +63,7 @@
       LOGICAL :: do_glmelt = .false.
       INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
-      Real*8  :: DTSRCzY
+      Real*8  :: DTSRCzY,byoarea
       CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
       CHARACTER*72 :: TITLE
 
@@ -75,14 +75,15 @@ C**** set GTEMP array for landice
       DO J=J_0,J_1
         DO I=I_0,I_1
           IF (FLICE(I,J).gt.0) THEN
-            GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-            GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+            atmgla%GTEMP(I,J)=TLANDI(1,I,J)
+            atmgla%GTEMP2(I,J)=TLANDI(2,I,J)
+            atmgla%GTEMPR(I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP(1,3,I,J) = ATSKIN
-                    GTEMP(2,3,I,J) = ATSKIN
-                    GTEMPR(3,I,J) = ATSKIN + TF
+                    atmgla%GTEMP(I,J) = ATSKIN
+                    atmgla%GTEMP2(I,J) = ATSKIN
+                    atmgla%GTEMPR(I,J) = ATSKIN + TF
                 endif
             endif
 #endif
@@ -91,9 +92,9 @@ C**** set GTEMP array for landice
 !TODO and may be different for each individual tracer (reto) 
             if (istart.ge.9) then ! ok if all tracers start at beg.of run
             IF (SNOWLI(I,J).gt.SNMIN) THEN
-              GTRACER(:,3,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
+              atmgla%GTRACER(:,I,J)=TRSNOWLI(:,I,J)/SNOWLI(I,J)
             ELSE
-              GTRACER(:,3,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
+              atmgla%GTRACER(:,I,J)=TRLNDI(:,I,J)/(ACE1LI+ACE2LI)
             END IF
             end if
 #endif
@@ -200,8 +201,8 @@ C**** for Antarctica and for Greenland it is 316x10**12 kg/year
         EACCPDA = -LHM*ACCPDA ; EACCPDG = -LHM*ACCPDG ! J/year
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-        TRACCPDA(:) = trglac(:)*ACCPDA ! kg/year
-        TRACCPDG(:) = trglac(:)*ACCPDG ! kg/year
+        TRACCPDA(:) = trglac()*ACCPDA ! kg/year
+        TRACCPDG(:) = trglac()*ACCPDG ! kg/year
 #endif
 #endif /* TNL: inserted */
 
@@ -239,6 +240,16 @@ C****   from total hemispere ACCPDA (kg per year)
 #endif
 #endif /* TNL: inserted */
           END IF
+          IF (LOC_GLM(I,J) .and. FOCEAN(I,J).GT.0.) THEN
+            byoarea = 1.d0/(AXYP(I,J)*FOCEAN(I,J))
+             GMELT(I,J) =  GMELT(I,J)*byoarea
+            EGMELT(I,J) = EGMELT(I,J)*byoarea
+#ifdef TRACERS_WATER  /* TNL: inserted */
+#ifdef TRACERS_OCEAN
+            TRGMELT(:,I,J) = TRGMELT(:,I,J)*byoarea
+#endif
+#endif /* TNL: inserted */
+          ENDIF
         END DO
       END DO
 #endif
@@ -266,18 +277,17 @@ C****
       SUBROUTINE PRECIP_LI
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
-!@ver  1.0
 !@calls LANDICE:PRECLI
-      USE MODEL_COM, only : im,jm,flice,itlandi
+      USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
+      USE FLUXES, only : atmgla,runoli,prec,eprec,flice
 #ifdef TRACERS_WATER
-     *     ,trunoli,trprec,gtracer
+     *     ,trunoli,trprec
 #endif
       USE LANDICE, only: ace1li,ace2li,precli,snmin
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
@@ -285,7 +295,7 @@ C****
      *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li
-     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli
+     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli,itlandi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 
@@ -330,7 +340,7 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TRPRCP(:)=TRPREC(:,I,J)*BYAXYP(I,J)
+        TRPRCP(:)=TRPREC(:,I,J)
 #endif
         AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
@@ -345,14 +355,15 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
-        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+        atmgla%GTEMP(I,J)=TLANDI(1,I,J)
+        atmgla%GTEMP2(I,J)=TLANDI(2,I,J)
+        atmgla%GTEMPR(I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1,3,I,J) = ATSKIN
-                GTEMP(2,3,I,J) = ATSKIN
-                GTEMPR(3,I,J) = ATSKIN + TF
+                atmgla%GTEMP(I,J) = ATSKIN
+                atmgla%GTEMP2(I,J) = ATSKIN
+                atmgla%GTEMPR(I,J) = ATSKIN + TF
             endif
         endif
 #endif
@@ -365,9 +376,9 @@ C**** accumulate implicit fluxes for setting ocean balance
         TRUNOLI(:,I,J)=TRUN0(:)
         TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
         IF (SNOW.gt.SNMIN) THEN
-          GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
+          atmgla%GTRACER(:,I,J)=TRSNOW(:)/SNOW
         ELSE
-          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+          atmgla%GTRACER(:,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
@@ -396,30 +407,30 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@ver  2010/10/06
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf,sday,edpery
-      USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice,dtsrc
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+     &     ,I_TARG,J_TARG
 #endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp
      *     ,eicbimp,accpda,accpdg,eaccpda,eaccpdg
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : si_atm
       USE SEAICE, only : rhos
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run,ij_imphli,ij_impmli
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
      *     ,j_rvrd,j_ervr,ij_micb,ij_eicb,ij_zsnow,ij_fwoc,ij_li
+     &     ,itlandi,itocean,itoice
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp  !,tricbimp,traccpda,traccpdg
 #endif
-      USE FLUXES, only : e0,e1,evapor,gtemp,runoli,gmelt,egmelt,gtempr
+      USE FLUXES, only : atmgla,runoli,gmelt,egmelt
+     &     ,flice,focean
 #ifdef TRACERS_WATER
-     *     ,trunoli,trevapor,gtracer
-#ifdef TRACERS_DRYDEP
-     *     ,trdrydep
-#endif
+     *     ,trunoli
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
@@ -466,15 +477,15 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
         SNOW=SNOWLI(I,J)
         TG1=TLANDI(1,I,J)
         TG2=TLANDI(2,I,J)
-        F0DT=E0(I,J,3)
-        F1DT=E1(I,J,3)
-        EVAP=EVAPOR(I,J,3)
+        F0DT=atmgla%E0(I,J)
+        F1DT=atmgla%E1(I,J)
+        EVAP=atmgla%EVAPOR(I,J)
 #ifdef TRACERS_WATER
         TRLI(:)=TRLNDI(:,I,J)
         TRSNOW(:)=TRSNOWLI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,3,I,J)
+        TREVAP(:)=atmgla%TREVAPOR(:,I,J)
 #ifdef TRACERS_DRYDEP
-     *       -trdrydep(:,3,i,j)
+     *       -atmgla%trdrydep(:,i,j)
 #endif
 #endif
         CALL LNDICE(SNOW,TG1,TG2,F0DT,F1DT,EVAP,
@@ -487,14 +498,15 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
-        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+        atmgla%GTEMP(I,J)=TLANDI(1,I,J)
+        atmgla%GTEMP2(I,J)=TLANDI(2,I,J)
+        atmgla%GTEMPR(I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1,3,I,J) = ATSKIN
-                GTEMP(2,3,I,J) = ATSKIN
-                GTEMPR(3,I,J) = ATSKIN + TF
+                atmgla%GTEMP(I,J) = ATSKIN
+                atmgla%GTEMP2(I,J) = ATSKIN
+                atmgla%GTEMPR(I,J) = ATSKIN + TF
             endif
         endif
 #endif
@@ -507,9 +519,9 @@ C**** accumulate implicit fluxes for setting ocean balance
         TRUNOLI(:,I,J)=TRUN0(:)
         TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+TRDIFS(:)*PLICE*DXYPIJ
         IF (SNOW.gt.SNMIN) THEN
-          GTRACER(:,3,I,J)=TRSNOW(:)/SNOW
+          atmgla%GTRACER(:,I,J)=TRSNOW(:)/SNOW
         ELSE
-          GTRACER(:,3,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
+          atmgla%GTRACER(:,I,J)=TRLI(:)/(ACE1LI+ACE2LI)
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
@@ -543,23 +555,27 @@ C**** ACCUMULATE DIAGNOSTICS
         AIJ(I,J,IJ_IMPHLI)=AIJ(I,J,IJ_IMPHLI)+EDIFS*PLICE
       END IF
 
-      CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-RSI(I,J))* GMELT(I,J)
-     *     *BYAXYP(I,J))
-      CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-RSI(I,J))*EGMELT(I,J)
-     *     *BYAXYP(I,J))
-      CALL INC_AJ(I,J,ITOICE,J_RVRD,RSI(I,J)* GMELT(I,J)*BYAXYP(I,J))
-      CALL INC_AJ(I,J,ITOICE,J_ERVR,RSI(I,J)*EGMELT(I,J)*BYAXYP(I,J))
-      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*BYAXYP(I,J)
-      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*BYAXYP(I,J)
+      CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-si_atm%RSI(I,J))* GMELT(I,J)
+     *     *FOCEAN(I,J))
+      CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-si_atm%RSI(I,J))*EGMELT(I,J)
+     *     *FOCEAN(I,J))
+      CALL INC_AJ(I,J,ITOICE,J_RVRD,
+     *     si_atm%RSI(I,J)* GMELT(I,J)*FOCEAN(I,J))
+      CALL INC_AJ(I,J,ITOICE,J_ERVR,
+     *     si_atm%RSI(I,J)*EGMELT(I,J)*FOCEAN(I,J))
+      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*FOCEAN(I,J)
+      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*FOCEAN(I,J)
 
-      CALL INC_AREG(I,J,JR,J_RVRD, GMELT(I,J)*BYAXYP(I,J))
-      CALL INC_AREG(I,J,JR,J_ERVR,EGMELT(I,J)*BYAXYP(I,J))
-      AIJ(I,J,IJ_MICB)=AIJ(I,J,IJ_MICB) +  GMELT(I,J)
-      AIJ(I,J,IJ_EICB)=AIJ(I,J,IJ_EICB) + EGMELT(I,J)
+      CALL INC_AREG(I,J,JR,J_RVRD, GMELT(I,J)*FOCEAN(I,J))
+      CALL INC_AREG(I,J,JR,J_ERVR,EGMELT(I,J)*FOCEAN(I,J))
+      AIJ(I,J,IJ_MICB)=AIJ(I,J,IJ_MICB) +
+     &      GMELT(I,J)*FOCEAN(I,J)*AXYP(I,J)
+      AIJ(I,J,IJ_EICB)=AIJ(I,J,IJ_EICB) +
+     &     EGMELT(I,J)*FOCEAN(I,J)*AXYP(I,J)
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
       TAIJN(I,J,TIJ_ICB,:)=TAIJN(I,J,TIJ_ICB,:)+ TRGMELT(:,I,J)
-     *     *BYAXYP(I,J)
+     *     *FOCEAN(I,J)
 #endif
 #endif  /* TNL: inserted */
 C****
@@ -572,8 +588,8 @@ C****
       SUBROUTINE conserv_MLI(ICE)
 !@sum  conserv_MLI calculates total amount of snow and ice in land ice
 !@auth Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,flice
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : flice
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli
       USE LANDICE, only : lndice,ace1li,ace2li
@@ -607,9 +623,9 @@ C****
       SUBROUTINE conserv_HLI(EICE)
 !@sum  conserv_HLI calculates total land ice energy
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : shi,lhm
-      USE MODEL_COM, only : im,jm,fim,flice
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : flice
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : ace1li,ace2li
@@ -645,7 +661,7 @@ C****
 !@+      is distributed spatially into MICB (kg/m^2) according to FSHGLM
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
-      Use MODEL_COM,         Only: IM,JM
+      USE RESOLUTION, only : im,jm
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, MDWNIMP
       Use LANDICE,           Only: MICBIMP
@@ -692,7 +708,7 @@ C**** array MICB(I,J) acording to FSHGLM and FNHGLM
 !@+      is distributed spatially into HICB (J/m^2) according to FSHGLM
 !@auth Gavin Schmidt, Gary Russell
 !@ver  2010/10/14
-      Use MODEL_COM,         Only: IM,JM
+      USE RESOLUTION, only : im,jm
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, EDWNIMP
       Use LANDICE,           Only: EICBIMP
@@ -739,7 +755,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@auth Gavin Schmidt
 !@ver  2010/10/13
       USE CONSTANT, only : edpery,sday,lhm,shi
-      USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -757,20 +774,20 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
-      USE FLUXES, only : gmelt,egmelt
+      USE FLUXES, only : gmelt,egmelt,flice,focean
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,trgmelt
 #endif
 #endif    /* TNL: inserted */
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
-     *     ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation
 
       Real*8 MDWNIMP_SH,MDWNIMP_NH, EDWNIMP_SH,EDWNIMP_NH, DTSRCzY
+     &     ,byoarea
 #ifdef TRACERS_WATER
       REAL*8 trdwnimp_SH(NTM),trdwnimp_NH(NTM)
 #endif
@@ -959,6 +976,16 @@ C****   from total hemisphere ACCPDA or ACCPDG (kg per year)
 #endif
 #endif    /* TNL: inserted */
           END IF
+          IF (FOCEAN(I,J).GT.0.) THEN
+            byoarea = 1.d0/(AXYP(I,J)*FOCEAN(I,J))
+             GMELT(I,J) =  GMELT(I,J)*byoarea
+            EGMELT(I,J) = EGMELT(I,J)*byoarea
+#ifdef TRACERS_WATER  /* TNL: inserted */
+#ifdef TRACERS_OCEAN
+            TRGMELT(:,I,J) = TRGMELT(:,I,J)*byoarea
+#endif
+#endif /* TNL: inserted */
+          ENDIF
         END DO
       END DO
 
@@ -978,13 +1005,14 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       SUBROUTINE CHECKLI (SUBR)
 !@sum  CHECKLI checks whether the land ice variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
       USE CONSTANT, only : teeny
-      USE MODEL_COM, only : im,jm,qcheck,flice
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : qcheck
+      USE FLUXES, only : flice
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname
+      USE TRACER_COM, only : NTM, trname
 #endif
       USE LANDICE, only : ace1li, ace2li
       USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp

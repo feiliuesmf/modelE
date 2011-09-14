@@ -97,13 +97,11 @@ c --- determine mesh size
       avgbot=0.
       area=0.
 c
-c$OMP PARALLEL DO REDUCTION(+:area,avgbot)
       do 10 j=1,jdm
       do 10 l=1,isp(j)
       do 10 i=ifp(j,l),ilp(j,l)
       avgbot=avgbot+depths(i,j)*scp2(i,j)
  10   area=area+scp2(i,j)
-c$OMP END PARALLEL DO
       avgbot=avgbot/area
       write (*,104) avgbot,area
  104  format(' mean basin depth (m) and area (10^6 km^2):',f9.1,
@@ -229,8 +227,6 @@ c
       arean3 =0.
       vol=0.
       if (idm.ne.387.and.jdm.ne.360) stop 'reset nino3 domain'
-c$OMP PARALLEL DO REDUCTION(+:tsum,ssum,trc,vol,ssh0,sstsum,ssssum
-c$OMP.                       ,iceextn,iceexts)
       do 5 j=1,jdm
       do 5 k=1,kdm
       do 5 l=1,isp(j)
@@ -258,7 +254,6 @@ c
       trc=trc+tracer(i,j,k,1)*dp(i,j,k)*scp2(i,j)
       vol=vol+dp(i,j,k)*scp2(i,j)
  5    continue
-c$OMP END PARALLEL DO
 c
       heatot=spcifh*rho*tsum/area
       write(301,fmt=FMT2)
@@ -279,7 +274,6 @@ c --- calculate flux
       call getdat(flnm,day0,day1,lexist)
       if (.not.lexist) stop 'file open or read error'
 c
-c$OMP PARALLEL DO
       do 13 j=1,jdm
       do 13 i=1,idm
       ubavav(i,j)=ubavav(i,j)+ubavg(i,j,1)*mon1/julian
@@ -287,14 +281,12 @@ c$OMP PARALLEL DO
       do 13 k=1,kdm
       uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)		! uflx: Sv*intvl
  13   vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)		! vflx: Sv*intvl
-c$OMP END PARALLEL DO
 c
  152  continue
       uflxav(:,:,:)=uflxav(:,:,:)/(365.*86400.)		! => annual in Sv
       vflxav(:,:,:)=vflxav(:,:,:)/(365.*86400.)		! => annual in Sv
 c
       flux(:,:,:)=0.
-c$OMP PARALLEL DO
       do 181 j=1,jdm
       do 181 i=1,idm
       if(im(i,j).eq.1.or.im(i,j).eq.2) then          ! Atlantic
@@ -303,7 +295,6 @@ c$OMP PARALLEL DO
         enddo
       endif
  181   continue
-c$OMP END PARALLEL DO
 c
       do 184 k=2,kdm
       do 184 i=1,idm
@@ -349,7 +340,6 @@ c --- read archive data
       call getdat(flnm,day0,day1,lexist)
       if (.not.lexist) stop 'file open or read error'
 c
-c$OMP PARALLEL DO
       do 113 i=1,idm
       ia=max(1,i-1)
       do 113 j=1,jdm
@@ -369,7 +359,6 @@ c$OMP PARALLEL DO
         heatfl(i,3)=heatfl(i,3)+(temp(i,j,k)+temp(ia,j,k))*uflx(i,j,k)
       endif
  113  continue
-c$OMP END PARALLEL DO
 c
  154  continue
  153  continue   ! ny=ny1,ny2
@@ -381,7 +370,6 @@ c
 c
       flux(:,:,:)=0.
 c --- global domain
-c$OMP PARALLEL DO
       do j=1,jdm
       do k=1,kdm
       do i=1,idm
@@ -389,10 +377,8 @@ c$OMP PARALLEL DO
       enddo
       enddo
       enddo
-c$OMP END PARALLEL DO
 
 c --- each basin
-c$OMP PARALLEL DO
       do 81 j=1,jdm
       do 81 i=1,idm
       if (im(i,j).eq.1.or.im(i,j).eq.2) then ! Atlantic
@@ -409,7 +395,6 @@ c$OMP PARALLEL DO
         enddo
       endif
  81   continue
-c$OMP END PARALLEL DO
 c
       do 84 l=1,4
       do 84 i=1,idm
@@ -462,7 +447,6 @@ c --- determine initial pressure field (needed for finding rho-dot)
         if (.not.lexist) stop '(file open or read error)'
 c
 c --- subtract out portion of flux attributable to interface displacement
-c$OMP PARALLEL DO
         do 34 j=1,jdm
         do 34 k=2,kdm
         do 34 i=1,idm
@@ -479,7 +463,6 @@ c$OMP PARALLEL DO
      .     +(p(i,j,k)-pfinl(i,j,k))*scp2(i,j)*tinvrs*1.e-6	! => Sv
         endif
  34     continue
-c$OMP END PARALLEL DO
       end if
 c
       do l=1,4

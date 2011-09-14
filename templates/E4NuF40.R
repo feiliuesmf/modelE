@@ -20,6 +20,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NUDGE_ON                     ! nudged winds on
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 End Preprocessor Options
@@ -30,10 +31,6 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-    ! lat-lon grid specific source codes
-GEOM_B                              ! model geometry
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_PRT POUT                       ! diagn/post-processing output
 IORSF                               ! old i/o
 
      ! GISS dynamics with gravity wave drag
@@ -41,6 +38,7 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV TQUS_DRV                    ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
+#include "latlon_source_files"
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
 

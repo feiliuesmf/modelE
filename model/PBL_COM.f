@@ -3,10 +3,9 @@
       MODULE PBLCOM
 !@sum  PBLCOM contains the arrays used by the Boundary Layer code
 !@auth Greg Hartke/Ye Cheng
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm => NTM
 #endif
       USE SOCPBL, only : npbl=>n
       IMPLICIT NONE
@@ -63,15 +62,20 @@
 !@var qflux surface turbulent q-flux (=-<qw>)
       real*8, allocatable, dimension(:,:) :: uflux,vflux,tflux,qflux
 
+!@ egcm_init_max maximum initial vaule of egcm
+      real*8, parameter :: egcm_init_max=0.5d0
+
+      target :: wsavg
+
       END MODULE PBLCOM
 
       SUBROUTINE io_pbl(kunit,iaction,ioerr)
 !@sum  io_pbl reads and writes model variables to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
-      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : pack_column, pack_data
       USE DOMAIN_DECOMP_1D, only : unpack_column, unpack_data
       USE DOMAIN_DECOMP_1D, only : pack_block , unpack_block
@@ -232,9 +236,9 @@
       SUBROUTINE io_bldat(kunit,iaction,ioerr)
 !@sum  io_bldat reads and writes boundary layer data to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP_1D, only : GET, grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN
       USE PBLCOM
@@ -467,13 +471,14 @@
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
+      USE CONSTANT, only : by3
+      USE ATM_COM, only : temperature_istart1
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: I_1H, I_0H, J_1H, J_0H
+      INTEGER :: I_1H, I_0H, J_1H, J_0H, L
       INTEGER :: IER
 
 C****
@@ -517,6 +522,11 @@ C****
      *         STAT=IER)
       w2_l1(:,J_0H:J_1H) =0.
 
+      TSAVG(:,:)=temperature_istart1
+
+C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
+      DCLEV(:,:)=1.
+
       ALLOCATE(    ustar_pbl(4,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
@@ -544,6 +554,12 @@ C****
       t1_after_aturb(:,J_0H:J_1H) = 0.
       u1_after_aturb(:,J_0H:J_1H) = 0.
       v1_after_aturb(:,J_0H:J_1H) = 0.
+
+C**** initialize egcm to be used in ATURB.f
+      DO L=1,LM
+        egcm(l,:,:)=egcm_init_max/(float(l)**2)
+        w2gcm(l,:,:)=egcm(l,:,:)*2.*by3
+      END DO
 
       END SUBROUTINE ALLOC_PBL_COM
 

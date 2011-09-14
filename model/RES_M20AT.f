@@ -1,12 +1,10 @@
 !@sum  RES_M20AT Resolution info for 20 layer, 4x5 non-strat model
 !@+    (M18A with 2 more layers between 984mb and 710mb - NO GWdrag)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

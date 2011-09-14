@@ -1,7 +1,6 @@
       MODULE FFT72
 !@sum  FFT72 calculates the Fast Fourier Transform
 !@auth Gary Russell
-!@ver  1.0 (for KM=72)
       USE CONSTANT, only : twopi,rt2,rt3
       IMPLICIT NONE
       SAVE
@@ -26,14 +25,12 @@
       REAL*8 :: C21(0:18),C22(0:18),S21(0:18),S22(0:18)
       COMMON /FFTCOM/ C240,C241,S241,C8,S8,C41,C42,C43,C44,
      *                S41,S42,S43,S44,C21,C22,S21,S22
-!$OMP  THREADPRIVATE(/FFTCOM/)
 
       END MODULE FFT72
 C****
       SUBROUTINE FFT0 (IM)
 !@sum  FFT0 initializes sines and cosines used by FFT routines.
 !@auth Gary Russell
-!@ver  1.0
       USE FFT72
       IMPLICIT NONE
       INTEGER N !@var N loop variables
@@ -113,7 +110,6 @@ C****
       SUBROUTINE FFTI (A,B,F)
 !@sum  FFTI performs an inverse fast fourier transform
 !@auth Gary Russell
-!@ver  1.0 (KM=72)
       USE FFT72
       IMPLICIT NONE
       REAL*8, INTENT(OUT) :: F(KM)     !@var F output gridpoint array
@@ -310,7 +306,6 @@ C****
       SUBROUTINE DOCALC(F)
 !@sum  DOCALC calculate intermediate expressions for FFT
 !@auth Gary Russell
-!@ver  1.0 (KM=72)
       USE FFT72
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: F(KM) !@var F input grid point array

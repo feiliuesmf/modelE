@@ -637,15 +637,27 @@ c
 
 
       subroutine alloc_hycom_arrays_glob
-      USE HYCOM_DIM, only : idm,jdm,kdm,ntrcr
+      USE HYCOM_DIM, only :
+     &     idm_full=>idm,jdm_full=>jdm,kdm_full=>kdm,ntrcr_full=>ntrcr
       use domain_decomp_1d, only : am_i_root
+      integer :: idm,jdm,kdm,ntrcr
+
+      if(am_i_root()) then
+        idm = idm_full
+        jdm = jdm_full
+        kdm = kdm_full
+        ntrcr = ntrcr_full
+      else
+        idm = 1
+        jdm = 1
+        kdm = 1
+        ntrcr = 1
+      endif
 
       allocate(
-     &     depths(idm,jdm) 
+     &     depths(idm_full,jdm_full) 
      &     )
       depths = 0
-
-      if(.not.am_i_root()) return
 
       allocate( 
      . u(idm,jdm,2*kdm),v(idm,jdm,2*kdm) 

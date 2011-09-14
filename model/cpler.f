@@ -1,4 +1,7 @@
 #include "rundeck_opts.h"
+#include "hycom_mpi_hacks.h"
+
+#ifndef STANDALONE_HYCOM
 
 #ifndef CUBED_SPHERE
 
@@ -6,7 +9,8 @@
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
      &   ,flnma2o_tau,flnmcoso,lp
-      USE HYCOM_DIM, only : agrid,ogrid
+      USE DOMAIN_DECOMP_1D, only : dist_grid
+      USE HYCOM_DIM, only : ogrid
      &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
      &      J_0,  J_1,  J_0H,  J_1H
       USE DOMAIN_DECOMP_1D, only : am_i_root,pack_data,unpack_data
@@ -14,6 +18,8 @@
 c
       implicit none
       private
+
+      type(dist_grid), pointer, public :: agrid
 
       public ssta2o,ssto2a,veca2o,flxa2o,flxo2a,veco2a,tempro2a,cpl_wgt
       public ssto2a_global,flxa2o_global
@@ -70,7 +76,6 @@ c
       real*8, intent(in)  :: flda(iia,jja)
       real*8, intent(out) :: fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -81,7 +86,6 @@ c
      .                        *wlista2o_s(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine ssta2o
@@ -94,11 +98,14 @@ c
       integer n,ia,ja
       real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -107,11 +114,10 @@ c
  17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
      .                                              *wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO             
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine ssto2a
 
@@ -123,7 +129,6 @@ c
       integer n,ia,ja
       real*8 flda(iia,jja),fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -132,7 +137,6 @@ c
  17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
      .                                              *wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO             
 c
       return
       end subroutine ssto2a_global
@@ -155,13 +159,18 @@ c
      &       tauxo(iio,jjo),tauyo(iio,jjo),
      &       sward(iio,jjo),eward(iio,jjo)
      &       )
+      else
+        allocate(
+     &       tauxa(1,1),tauya(1,1),
+     &       tauxo(1,1),tauyo(1,1),
+     &       sward(1,1),eward(1,1)
+     &       )
       endif
       call pack_data(agrid,tauxa_loc,tauxa)
       call pack_data(agrid,tauya_loc,tauya)
       if(am_i_root()) then
 c
 c --- mapping tauxa/tauya to ogcm grid
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -174,23 +183,18 @@ c
  7    sward(i,j)=sward(i,j)-tauya(itaua2o(i,j,n),jtaua2o(i,j,n))
      .                                          *wtaua2o(i,j,n)
  6    continue
-c$OMP END PARALLEL DO
 c
 c --- rotate sward/eward to fit onto Panam grid
-c$OMP PARALLEL DO
       do 9 j=1,jj
       do 9 l=1,isp(j)           
       do 9 i=ifp(j,l),ilp(j,l)
       tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
       tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
  9    continue
-c$OMP END PARALLEL DO           
       endif ! am_i_root
       call unpack_data(ogrid,tauxo,tauxo_loc)
       call unpack_data(ogrid,tauyo,tauyo_loc)
-      if(am_i_root()) then
-        deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
-      endif
+      deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
       return
       end subroutine veca2o
 c
@@ -202,11 +206,14 @@ c
       integer i,j,l,n
       real*8 flda_loc(iia,aJ_0H:aJ_1H),fldo_loc(iio,J_0H:J_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(agrid,flda_loc,flda)
 c
       if(am_i_root()) then
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -217,11 +224,10 @@ c
      .                        *wlista2o(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
       endif ! am_i_root
 c
       call unpack_data(ogrid,fldo,fldo_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine flxa2o
 
@@ -234,7 +240,6 @@ c
       real*8, intent(in)  :: flda(iia,jja)
       real*8, intent(out) :: fldo(iio,jjo)
 c
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -245,7 +250,6 @@ c
      .                        *wlista2o(i,j,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine flxa2o_global
@@ -259,7 +263,6 @@ c
       real*8, intent(out) :: flda(iia,jja)
       integer n,ia,ja
 c
-c$OMP PARALLEL DO
       do 8 ja=1,jja
       do 8 ia=1,iia
       flda(ia,ja)=0.
@@ -269,7 +272,6 @@ c
      . fldo(ilisto2a_f(ia,ja,n),jlisto2a_f(ia,ja,n))*wlisto2a_f(ia,ja,n)
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 c
       return
       end subroutine flxo2a
@@ -292,21 +294,24 @@ c
      &       tauxo(iio,jjo),tauyo(iio,jjo),
      &       nward(iio,jjo),eward(iio,jjo)
      &       )
+      else
+        allocate(
+     &       tauxa(1,1),tauya(1,1),
+     &       tauxo(1,1),tauyo(1,1),
+     &       nward(1,1),eward(1,1)
+     &       )
       endif
       call pack_data(ogrid,tauxo_loc,tauxo)
       call pack_data(ogrid,tauyo_loc,tauyo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 10 j=1,jj
       do 10 i=1,ii
       nward(i,j)=0.
  10   eward(i,j)=0.
-c$OMP END PARALLEL DO
 c
 c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
 c --- check velocity bounds
-c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
@@ -319,11 +324,9 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
       endif
  12   continue
-c$OMP END PARALLEL DO           
 c
 c --- weights are for mapping nward/eward from ogcm to agcm, both on A grid
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       tauxa(ia,ja)=0.
@@ -335,14 +338,11 @@ c
  17   tauya(ia,ja)=tauya(ia,ja)+nward(ilisto2a(ia,ja,n)
      .            ,jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
  16   continue
-c$OMP END PARALLEL DO
 c
       endif ! am_i_root
       call unpack_data(agrid,tauxa,tauxa_loc)
       call unpack_data(agrid,tauya,tauya_loc)
-      if(am_i_root()) then
-        deallocate(tauxa,tauya,tauxo,tauyo,nward,eward)
-      endif
+      deallocate(tauxa,tauya,tauxo,tauyo,nward,eward)
       return
       end subroutine veco2a
 c
@@ -354,11 +354,14 @@ c
       integer n,ia,ja
       real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
       real*8, allocatable :: flda(:,:),fldo(:,:)
-      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      if(am_i_root()) then
+        allocate(flda(iia,jja),fldo(iio,jjo))
+      else
+        allocate(flda(1,1),fldo(1,1))
+      endif
       call pack_data(ogrid,fldo_loc,fldo)
       if(am_i_root()) then
 c
-c$OMP PARALLEL DO
       do 16 ja=1,jja
       do 16 ia=1,iia
       flda(ia,ja)=0.
@@ -368,11 +371,10 @@ c
      .    +273.16d0)**4*wlisto2a(ia,ja,n)
       flda(ia,ja)=sqrt(sqrt(flda(ia,ja)))       ! Kelvin for radiation
  16   continue
-c$OMP END PARALLEL DO             
 c
       endif ! am_i_root
       call unpack_data(agrid,flda,flda_loc)
-      if(am_i_root()) deallocate(flda,fldo)
+      deallocate(flda,fldo)
       return
       end subroutine tempro2a
 c
@@ -595,7 +597,6 @@ c
       if(am_i_root()) then
 c
 c --- mapping B-grid tauxi/tauyi to A-grid ogcm
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -608,17 +609,14 @@ c
  7    sward(i,j)=sward(i,j)-tauyi(ilisti2o(i,j,n),jlisti2o(i,j,n))
      .                                           *wlisti2o(i,j,n)
  6    continue
-c$OMP END PARALLEL DO
 c
 c --- rotate sward/eward to fit onto Panam grid
-c$OMP PARALLEL DO
       do 9 j=1,jj
       do 9 l=1,isp(j)           
       do 9 i=ifp(j,l),ilp(j,l)
       tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
       tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
  9    continue
-c$OMP END PARALLEL DO           
       endif ! am_i_root
       call unpack_data(ogrid,tauxo,tauxo_loc)
       call unpack_data(ogrid,tauyo,tauyo_loc)
@@ -656,7 +654,6 @@ c
       eward(:,:)=0.
 c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
 c --- check velocity bounds
-c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
       jb=mod(j,jj)+1
       do 12 l=1,isp(j)           
@@ -669,11 +666,9 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
      .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
       endif
  12   continue
-c$OMP END PARALLEL DO           
 c
 c --- mapping nward/eward from A-grid ogcm to B-grid ice model
 c
-c$OMP PARALLEL DO
       do 16 j=1,jji
       do 16 i=1,iii
       tauxi(i,j)=0.
@@ -685,7 +680,6 @@ c
  17   tauyi(i,j)=tauyi(i,j)+nward(ilisto2i(i,j,n)
      .          ,jlisto2i(i,j,n))*wlisto2i(i,j,n)
  16   continue
-c$OMP END PARALLEL DO
 c
       endif ! am_i_root
       if(igrid%have_domain) then
@@ -721,7 +715,6 @@ c
       if(am_i_root()) then
 c
 c --- mapping B-grid fldi to A-grid ogcm
-c$OMP PARALLEL DO
       do 6 j=1,jj               
       do 6 l=1,isp(j)           
       do 6 i=ifp(j,l),ilp(j,l)
@@ -731,7 +724,6 @@ c$OMP PARALLEL DO
      .                                          *wlisti2o(i,j,n)
       enddo
  6    continue
-c$OMP END PARALLEL DO
       endif ! am_i_root
       call unpack_data(ogrid,fldo,fldo_loc)
       if(am_i_root()) then
@@ -743,3 +735,150 @@ c$OMP END PARALLEL DO
       end module hycom_dynsi_cpler
 
 #endif /* cubed-sphere versus lat-lon atm */
+
+#else /* code below is a trivial coupler for the standalone ocean */
+
+      module hycom_cpler
+      USE HYCOM_DIM_GLOB, only : iio,jjo,jj
+      USE DOMAIN_DECOMP_1D, only : dist_grid
+      USE HYCOM_DIM, only : ogrid, J_0,J_1, J_0H,J_1H
+     &    ,isp,ifp,ilp,ip
+c
+      implicit none
+      private
+
+      type(dist_grid), pointer, public :: agrid
+
+      public ssto2a,veca2o,flxa2o,veco2a,tempro2a,cpl_wgt
+
+      public coso_glob, sino_glob
+
+      real*8, dimension(:,:), allocatable :: coso,sino
+      real*8, dimension(:,:), allocatable :: coso_glob,sino_glob
+
+      contains
+
+      subroutine ssto2a(fldo,flda)
+c --- mapping sst from ogcm A grid to agcm A grid
+c     input: fldo, output: flda
+c
+      implicit none
+      real*8 fldo(iio,J_0H:J_1H),flda(iio,J_0H:J_1H)
+      flda(:,:) = fldo(:,:)
+      return
+      end subroutine ssto2a
+
+      subroutine veca2o(tauxa,tauya,tauxo,tauyo)
+c --- mapping vector like stress from agcm to ogcm, both on A grid
+c --- input  tauxa/tauya: E_/N_ward on agcm A grid
+c --- output tauxo/tauyo: +i_/+j_ward on ogcm A grid (S_/E_ward in Mercador domain)
+c
+      implicit none
+      real*8, dimension(iio,J_0H:J_1H) :: tauxa,tauya,tauxo,tauyo
+      real*8, dimension(iio,J_0H:J_1H) :: sward,eward
+      integer i,j,l,n
+
+      eward(:,:) = +tauxa(:,:)
+      sward(:,:) = -tauya(:,:)
+
+c
+c --- rotate sward/eward to fit onto Panam grid
+      do 9 j=j_0,j_1
+      do 9 l=1,isp(j)           
+      do 9 i=ifp(j,l),ilp(j,l)
+      tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
+      tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
+ 9    continue
+
+      end subroutine veca2o
+c
+      subroutine flxa2o(flda,fldo)
+c --- mapping flux-like field from agcm A grid to ogcm A grid
+c     input: flda (W/m*m), output: fldo (W/m*m)
+c
+      implicit none
+      real*8 flda(iio,J_0H:J_1H),fldo(iio,J_0H:J_1H)
+      fldo(:,:) = flda(:,:)
+      return
+      end subroutine flxa2o
+
+      subroutine veco2a(tauxo,tauyo,tauxa,tauya)
+c --- mapping vector like velocity from C grid ogcm to A grid agcm
+c --- input  tauxo/tauyo: +i_/+j_ward (S_/E_ward in Mercador domain) on ocean C grid (@ i-1/2 & j-1/2)
+c --- output tauxa/tauya: E_/N_ward on agcm A grid
+c
+      use domain_decomp_1d, only : halo_update
+      implicit none
+      integer i,j,l,n,ia,ja,jb
+      real*8, dimension(iio,J_0H:J_1H) :: tauxo,tauyo,tauxa,tauya
+      real*8 sine
+
+      call halo_update(ogrid,tauyo)
+
+      tauxa(:,:) = 0.
+      tauya(:,:) = 0.
+
+c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
+c --- check velocity bounds
+      do 12 j=j_0,j_1
+      jb = PERIODIC_INDEX(j+1, jj) !mod(j,jj)+1
+      do 12 l=1,isp(j)           
+      do 12 i=ifp(j,l),ilp(j,l)
+      if (ip(i,j).eq.1) then
+      sine=sino(i,j)*sino(i,j)+coso(i,j)*coso(i,j)
+      tauya(i,j)=((tauyo(i,j)+tauyo(i ,jb))*sino(i,j)
+     .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sine)
+      tauxa(i,j)=((tauyo(i,j)+tauyo(i ,jb))*coso(i,j)
+     .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
+      endif
+ 12   continue
+
+      return
+      end subroutine veco2a
+c
+      subroutine tempro2a(fldo,flda)
+c --- mapping sqrt(sqrt(temp**4)) from ogcm A grid to agcm A grid
+c --- input: fldo in deg C; outout: flda in deg K
+c
+      implicit none
+      real*8 fldo(iio,J_0H:J_1H),flda(iio,J_0H:J_1H)
+      flda(:,:) = fldo(:,:)+273.16d0
+      return
+      end subroutine tempro2a
+c
+      subroutine cpl_wgt
+      USE HYCOM_SCALARS, only : flnmcoso,lp
+      use filemanager, only : findunit
+      USE DOMAIN_DECOMP_1D, only : am_i_root,unpack_data
+      implicit none
+      integer :: iu1,iz,jz
+
+c read rotation coeffs between hycom gridlines and geographic north
+      allocate(coso(iio,j_0h:j_1h),sino(iio,j_0h:j_1h))
+      if(am_i_root()) then
+        allocate(coso_glob(iio,jjo),sino_glob(iio,jjo))
+        call findunit(iu1)
+        open(iu1,file=flnmcoso,form='unformatted',status='old')
+        read(iu1) iz,jz,coso_glob,sino_glob
+        close(iu1)
+        if (iz.ne.iio .or. jz.ne.jjo) then
+          write(6,*) ' iz,jz=',iz,jz
+          stop '(wrong iz/jz in cososino.8bin)'
+        endif
+      endif
+      call unpack_data(ogrid,coso_glob,coso)
+      call unpack_data(ogrid,sino_glob,sino)
+
+      return
+      end subroutine cpl_wgt
+
+      end module hycom_cpler
+
+      module hycom_dynsi_cpler
+      contains
+      subroutine init_hycom_dynsi_cpler
+      end subroutine init_hycom_dynsi_cpler
+      end module hycom_dynsi_cpler
+
+
+#endif /* standalone ocean */

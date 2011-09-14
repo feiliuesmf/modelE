@@ -3,20 +3,15 @@
 #include "mpi_defs.h"
 #endif
 
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 #define FILL(N) IAND(USABLE_FROM,N)==N
   
 module Halo_mod
   use dist_grid_mod
-#ifdef USE_ESMF
+#ifdef USE_MPI
   use MpiSupport_mod, only: getNeighbors
   use MpiSupport_mod, only: createDecompMpiType
   use MpiSupport_mod, only: freeMpiType
 #endif
-!!$  use ESMF_MOD_private, only: NORTH, SOUTH
   implicit none
   private
 
@@ -225,7 +220,7 @@ contains
 
   end subroutine halo_update_column_7d
 
-#ifdef USE_ESMF
+#ifdef USE_MPI
   Subroutine sendrecv(grid, arr, shp, dist_idx, from, bc_periodic_)
     Type (Dist_Grid) :: grid
     Real(Kind=8) :: arr(*)
@@ -256,8 +251,8 @@ contains
 
     ! Determine neigboring processes
     !-------------------------------
-    call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
-    call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
+    call gridRootPELocation(grid,  px,  py)
+    call gridPELayout(grid, npx, npy)
     Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
 
     sz = Product(shp(1:dist_idx-1))
@@ -267,43 +262,21 @@ contains
     off(3) = 1+sz*(n-2)
     off(4) = 1+sz*(n-1)
 
-    nSendMessages = 0
-    nRecvMessages = 0
-    call incrementMpiTag(grid)
     IF(FILL(NORTH)) THEN
-      if (pe_north /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
-      if (pe_south /= MPI_PROC_NULL) then
-        nSendMessages = nSendMessages + 1
-        call MPI_Isend(arr(off(2)), 1, new_type, pe_south, getMpiTag(grid), &
-             &  getMpiCommunicator(grid), requests(nSendMessages), &
-             &  ierr)
-      end if
-    end if
+      call incrementMpiTag(grid)
+      Call MPI_SendRecv( &
+           &       arr(off(2)), 1, new_type, pe_south, getMpiTag(grid), &
+           &       arr(off(4)), 1, new_type, pe_north, getMpiTag(grid), &
+           &       getMpiCommunicator(grid), status, ierr)
+    End If
 
     IF(FILL(SOUTH)) THEN
-      if (pe_south /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
-      if (pe_north /= MPI_PROC_NULL) then
-        nSendMessages = nSendMessages + 1
-        call MPI_Isend(arr(off(3)), 1, new_type, pe_north, getMpiTag(grid), &
-             &  getMpiCommunicator(grid), requests(nSendMessages), &
-             &  ierr)
-      end if
-    end if
-
-    do i = 1, nRecvMessages
-      call MPI_Probe(MPI_ANY_SOURCE, getMpiTag(grid), getMpiCommunicator(grid), &
-           &        status, ierr)
-      if (status(MPI_SOURCE) == pe_north) then
-        call MPI_Recv( arr(off(4)), 1, new_type, pe_north, &
-             &          getMpiTag(grid), getMpiCommunicator(grid), status, ierr)
-      else
-        call MPI_Recv( arr(off(1)), 1, new_type, pe_south, &
-             &          getMpiTag(grid), getMpiCommunicator(grid), status, ierr)
-      end If
-    end do
-
-    call MPI_WaitAll(nSendMessages, requests,MPI_STATUSES_IGNORE,ierr)
-
+      call incrementMpiTag(grid)
+      Call MPI_SendRecv( &
+           &       arr(off(3)), 1, new_type, pe_north, getMpiTag(grid), &
+           &       arr(off(1)), 1, new_type, pe_south, getMpiTag(grid), &
+           &       getMpiCommunicator(grid), status, ierr)
+    End If
 
     call freeMpiType(new_type)
 
@@ -334,8 +307,8 @@ contains
 
     ! Determine neigboring processes
     !-------------------------------
-    call ESMF_GRID_MY_PE_LOC(grid,  px,  py)
-    call ESMF_GRID_PE_LAYOUT(grid, npx, npy)
+    call gridRootPELocation(grid,  px,  py)
+    call gridPELayout(grid, npx, npy)
     Call GetNeighbors(py, npy, pe_south, pe_north, bc_periodic)
 
     sz = Product(shp(1:dist_idx-1))

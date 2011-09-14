@@ -2,7 +2,6 @@
 
 !@sum  POUT default output routines for standard GISS formats
 !@auth Gavin Schmidt
-!@ver  1.0
 
 C****
 C**** If other formats are desired, please replace these routines
@@ -16,7 +15,7 @@ C**** have to wait.
       module gissout
 !@sum gissout contains variables for outputting GISS format binaries
 !@auth G. Schmidt
-      use diag_com, only : sname_strlen,units_strlen,lname_strlen
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn,iu_jc !units for selected 
 !@+   diag. output
@@ -34,7 +33,6 @@ C**** have to wait.
       subroutine open_ij(filename,im_gcm,jm_gcm)
 !@sum  OPEN_IJ opens the lat-lon binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -56,7 +54,6 @@ C**** set dimensions
       subroutine close_ij
 !@sum  CLOSE_IJ closes the lat-lon binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -68,7 +65,6 @@ C**** set dimensions
      &     IGRID,JGRID)
 !@sum  POUT_IJ output lat-lon binary records
 !@auth Gavin Schmidt
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -96,7 +92,6 @@ C**** set dimensions
       subroutine open_wp(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_WP uses OPEN_JL to open the wave power binary output file
 !@auth M. Kelley
-!@ver  1.0
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
@@ -113,7 +108,6 @@ C**** set dimensions
       subroutine close_wp
 !@sum  CLOSE_WP uses CLOSE_JL to close the wave power binary output file
 !@auth M. Kelley
-!@ver  1.0
       IMPLICIT NONE
       call close_jl
       return
@@ -123,7 +117,6 @@ C**** set dimensions
      &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_WP calls POUT_JL to output wave power binary records
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -150,7 +143,6 @@ C**** set dimensions
       subroutine open_jl(filename,jm_gcm,lm_gcm,lm_req_gcm,lat_dg_gcm)
 !@sum  OPEN_JL opens the lat-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -175,7 +167,6 @@ C**** set dimensions
       subroutine close_jl
 !@sum  CLOSE_JL closes the lat-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -187,7 +178,6 @@ C**** set dimensions
      &     J1,KLMAX,XJL,PM,CX,CY)
 !@sum  POUT_JL output lat-height binary records
 !@auth Gavin Schmidt
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -232,7 +222,6 @@ C**** set dimensions
       subroutine open_il(filename,im_gcm,lm_gcm,lm_req_gcm)
 !@sum  OPEN_IL opens the lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -254,7 +243,6 @@ C**** set units
       subroutine close_il
 !@sum  CLOSE_IL closes the lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -266,7 +254,6 @@ C**** set units
      *     ,PM,CX,CY,ASUM,GSUM,ZONAL)
 !@sum  POUT_IL output lon-height binary records
 !@auth Gavin Schmidt
-!@ver  1.0
       USE GISSOUT
 #ifndef CUBED_SPHERE
       USE GEOM, only : lon_dg
@@ -318,7 +305,6 @@ C**** Allow for the possibility of wrap-around arrays
       subroutine close_j
 !@sum  CLOSE_J closes the latitudinal budget-page ascii output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -329,7 +315,6 @@ C**** Allow for the possibility of wrap-around arrays
       subroutine open_j(filename,ntypes,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_J opens the latitudinal budget-page ascii output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -355,7 +340,6 @@ C**** set dimensions
      *     iotype)
 !@sum  POUT_J output zonal budget ascii file (aplot format)
 !@auth Gavin Schmidt
-!@ver  1.0
       USE GISSOUT
       USE DIAG_COM, only : KAJ
       IMPLICIT NONE
@@ -406,7 +390,6 @@ C**** output hemispheric and global means
       subroutine open_ijk(filename,im_gcm,jm_gcm,lm_gcm)
 !@sum  OPEN_IJK opens the lat-lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -428,7 +411,6 @@ C**** set dimensions
       subroutine close_ijk
 !@sum  CLOSE_IJK closes the lat-lon-height binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -439,7 +421,6 @@ C**** set dimensions
       subroutine POUT_IJK(TITLE,SNAME,LNAME,UNITS,XIJK,XJK,XK,IJGRID)
 !@sum  POUT_IJK outputs lat-lon-height binary records
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -471,7 +452,6 @@ C**** set dimensions
      &     kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl)
 !@sum  OPEN_IJK opens the lat-lon-layer binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -499,7 +479,6 @@ C**** set dimensions
       subroutine close_ijl
 !@sum  CLOSE_IJL closes the lat-lon-layer binary output file
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -510,7 +489,6 @@ C**** set dimensions
       subroutine POUT_IJL(TITLE,SNAME,LNAME,UNITS,XIJL,XJL,XL,IJGRID)
 !@sum  POUT_IJL outputs lat-lon-layer binary records
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -541,7 +519,6 @@ C**** set dimensions
       subroutine open_isccp(filename,ntau,npres,nisccp)
 !@sum  OPEN_ISCCP opens the binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -563,7 +540,6 @@ C**** set dimensions
       subroutine close_isccp
 !@sum  CLOSE_ISCCP closes the binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -574,7 +550,6 @@ C**** set dimensions
       subroutine POUT_ISCCP(TITLE,SNAME,LNAME,UNITS,XIJK,TAUM,PRES)
 !@sum  POUT_ISCCP outputs tau-height-lat binary output file of ISCCP histograms
 !@auth M. Kelley
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -609,7 +584,6 @@ c restored "GISS 4D format"
       subroutine close_diurn
 !@sum  CLOSE_DIURN closes the hourly diurnal_cycle ascii output file
 !@auth J. Lerner     
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -620,7 +594,6 @@ c restored "GISS 4D format"
       subroutine open_diurn(filename,hr_in_day,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_DIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner     
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -637,7 +610,6 @@ c restored "GISS 4D format"
      &     HR_IN_DAY,kp)
 !@sum  POUT_diurn output hourly diurnal_cycle ascii file (aplot format)
 !@auth J. Lerner     
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var NAME,UNITS dummy strings
@@ -682,7 +654,6 @@ C**** output daily mean
       subroutine close_hdiurn
 !@sum  CLOSE_HDIURN closes the hourly diurnal_cycle ascii output file
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -693,7 +664,6 @@ C**** output daily mean
       subroutine open_hdiurn(filename,hr_in_month,NDIUVAR_gcm,kr1,kr2)
 !@sum  OPEN_HDIURN opens the hourly diurnal_cycle ascii output file
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -710,7 +680,6 @@ C**** output daily mean
      &     HR_IN_period,kp)
 !@sum  POUT_hdiurn output hourly diurnal_cycle ascii file (aplot format)
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
 !@var NAME,UNITS dummy strings
@@ -748,7 +717,6 @@ C**** Try simply removing spaces for compactness
       subroutine close_jc
 !@sum  CLOSE_jc closes the conservation quantity ascii output file
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -759,7 +727,6 @@ C**** Try simply removing spaces for compactness
       subroutine open_jc(filename,jm_gcm,lat_dg_gcm)
 !@sum  OPEN_jc opens the conservation quantity ascii output file
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       USE FILEMANAGER
       IMPLICIT NONE
@@ -782,7 +749,6 @@ C**** set dimensions
       subroutine POUT_jc(TITLE,SNAME,LNAME,UNITS,cnslat,KMAX)
 !@sum  POUT_JC output zonal conservation ascii file (aplot format)
 !@auth J. Lerner
-!@ver  1.0
       USE GISSOUT
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: KMAX

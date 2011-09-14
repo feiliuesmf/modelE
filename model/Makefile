@@ -3,7 +3,7 @@
 .SUFFIXES:
 .PHONY: FORCE
 
-AVAILABLE_COMPONENTS = profiler ESMF_Interface Ent giss_LSM shared solvers dd2d
+AVAILABLE_COMPONENTS = profiler ESMF_Interface Ent giss_LSM shared solvers dd2d tracers
 
 export MOD_DIR := $(shell pwd)/mod
 export INCLUDE_DIR := $(shell pwd)/include
@@ -31,7 +31,7 @@ $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 	@echo "===> building component $(1)"
 	$(MAKE) -C $(1) $(OPTS_$(1))
 #	mv -f .liblist .liblist_tmp
-	echo $(1)/lib$(1).a >> .liblist
+	echo $(1)/lib*.a >> .liblist
 #	cat .liblist_tmp >> .liblist
 #	rm -f .liblist_tmp
 	@echo "===> component $(1) ok"

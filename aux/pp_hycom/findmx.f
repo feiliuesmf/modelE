@@ -14,7 +14,6 @@ c
 c
       if (jj.gt.jmax) stop '(error subr.findmx -- jmax < jj)'
 c
-c$OMP PARALLEL DO PRIVATE(difpos,difneg,ipos,jpos,ineg,jneg)
       do j=1,jj
          difpos=-huge
          difneg= huge
@@ -40,7 +39,6 @@ c
          inej(j)=ineg
          jnej(j)=jneg
       end do
-c$OMP END PARALLEL DO
 c
       difpos=-huge
       difneg= huge

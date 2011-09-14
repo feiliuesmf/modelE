@@ -8,7 +8,7 @@
 
 c get grid-independent procedures from domain_decomp_1d
       use domain_decomp_1d, only : get, am_i_root, sumxpe,
-     &     read_parallel,write_parallel,esmf_bcast,
+     &     read_parallel,write_parallel,broadcast,
      &     load_cap_config,globalmax, setMpiCommunicator,
      &     hasSouthPole, hasNorthPole
 
@@ -32,14 +32,14 @@ c      use mpp_domains_mod
       save
 
 c declare an instance of dist_grid for the atmosphere
-      type(dist_grid) :: grid
+      type(dist_grid), target :: grid
 
       contains
 
       SUBROUTINE INIT_GRID(grd_dum, IM,JM,LM,
      &     width,vm,J_SCM,bc_periodic,CREATE_CAP) ! optional arguments
       USE ESMF_MOD
-      USE ESMF_CUSTOM_MOD, Only : modelE_vm
+      USE DIST_GRID_MOD, Only : modelE_vm
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
       INTEGER, INTENT(IN) :: IM,JM,LM
@@ -147,11 +147,9 @@ c
       cf = load_cap_config('cap.rc',IM,JM*6,LM,npesx,npesy)
       vm_ => modelE_vm
       If (Present(vm)) vm_ => vm
-      print*, 'Started AppGridCreateF'
-      grd_dum%ESMF_GRID = AppGridCreateF(cf, vm_, rc)
-c is this needed?
-      call ESMF_GridGet(grd_dum%ESMF_GRID, delayout=layout, rc=rc)
-      print*, 'Finished AppGridCreateF'
+      print*, 'Creating grid for FVcubed core...'
+      grd_dum%ESMF_GRID = AppGridCreateF(IM, JM*6, LM, npesx, npesy, rc)
+      print*, 'Done creating grid for FVcubed core'
 
       return
       END SUBROUTINE INIT_GRID

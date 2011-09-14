@@ -26,15 +26,15 @@ cddd      END subroutine init_MOM
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 !@sum  ADVECV Advects momentum (incl. coriolis) using 4-th order scheme
 !@auth Original development team
-!@ver  1.0
       USE constant, only : by3,by6,by12
-      USE MODEL_COM, only : im,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
+      USE RESOLUTION, only : im,jm,lm,ls1,psfmpt
+      USE DIAG_COM, only : modd5k
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
-      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
+      USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,dsig,mrch
       !USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP_1D, only : grid, NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, CHECKSUM, GET
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : haveLatitude, NORTH, SOUTH
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
 
@@ -218,7 +218,6 @@ C**** CONSIDER P TO BE ZERO BEYOND THE POLES
 
 C     DUT=0.
 C     DVT=0.
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
         If (haveLatitude(grid, J=1)) THEN
           DUT(:,1,L)=0.
@@ -233,14 +232,10 @@ C     DVT=0.
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
 C****
 C**** BEGINNING OF LAYER LOOP : FIND HORIZONTAL FLUXES
 C****
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,IM1,IP1,FX,FX1,GY,GY1,
-!$OMP*                     FLUX,FLUXU,FLUXV,J_START,J_STP,
-!$OMP*                     FLUX_U,FLUX_V)
       DO 300 L=1,LM
 !       write(iunit_hang,*)'L=',l
         I=IM
@@ -433,7 +428,6 @@ C****
 C**** GISS/ESMF exception above.
 C****
   300 CONTINUE
-!$OMP  END PARALLEL DO
 C****
 C**** VERTICAL ADVECTION OF MOMENTUM
 C****
@@ -449,7 +443,6 @@ C     DVT(I,J,L)  =DVT(I,J,L)  +SDU*(V(I,J,L)+V(I,J,L+1))
 C     DVT(I,J,L+1)=DVT(I,J,L+1)-SDU*(V(I,J,L)+V(I,J,L+1))
 C 310 I=IP1
       call HALO_UPDATE( grid, SD, from=SOUTH )
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM-1
 cgsfc      DO J=2,JM
       DO J = J_0SG, J_1SG
@@ -464,13 +457,11 @@ cgsfc      DO J=2,JM
      *                (SD(IM,J,L)+SD(1,J,L))*RAVPS(J))
       END DO
       END DO
-!$OMP  END PARALLEL DO
       L=1
       DO J = J_0SG, J_1SG
         DUT(:,J,L)  =DUT(:,J,L)  +ASDU(:,J,L)  *(U(:,J,L)+U(:,J,L+1))
         DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
       END DO
-!$OMP  PARALLEL DO PRIVATE (J,L)
       DO L=2,LM-1
       DO J = J_0SG, J_1SG
          DUT(:,J,L)  =DUT(:,J,L)  -ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
@@ -479,7 +470,6 @@ cgsfc      DO J=2,JM
          DVT(:,J,L)  =DVT(:,J,L)  +ASDU(:,J,L)  *(V(:,J,L)+V(:,J,L+1))
       END DO
       END DO
-!$OMP  END PARALLEL DO
       L=LM
       DO J = J_0SG, J_1SG
          DUT(:,J,L)=DUT(:,J,L)-ASDU(:,J,L-1)*(U(:,J,L-1)+U(:,J,L))
@@ -488,7 +478,6 @@ cgsfc      DO J=2,JM
 C**** CALL DIAGNOSTICS
          IF(MODD5K.LT.MRCH) CALL DIAG5D (4,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (GRID,1,U,V,DUT,DVT,DT1,PIT)
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
       DO J = J_0SG, J_1SG
       DO I=1,IM
@@ -500,13 +489,11 @@ C**** CALL DIAGNOSTICS
       END DO
       END DO
 
-!$OMP  END PARALLEL DO
 C****
 C**** CORIOLIS FORCE
 C****
 
       call HALO_UPDATE( grid,  P, from=SOUTH )
-!$OMP  PARALLEL DO PRIVATE (I,IM1,J,L,FD,PDT4,ALPH)
       DO 430 L=1,LM
       IM1=IM
       DO 405 I=1,IM
@@ -535,11 +522,9 @@ C**** Set the Coriolis term to zero at the Poles:
   420 IM1=I
   425 CONTINUE
   430 CONTINUE
-!$OMP  END PARALLEL DO
 C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
          IF(MODD5K.LT.MRCH) CALL DIAG5D (5,MRCH,DUT,DVT)
          IF(MRCH.GT.0) CALL DIAGCD (GRID,2,U,V,DUT,DVT,DT1)
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
       DO J=J_0SG,J_1SG
       DO I=1,IM
@@ -550,7 +535,6 @@ C**** CALL DIAGNOSTICS, ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 C****
 C**** UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
@@ -611,7 +595,6 @@ C****
 
 C     DUT=0.
 C     DVT=0.
-!$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LM
         If (haveLatitude(grid, J=1)) THEN
           DUT(:,1,L)=0.
@@ -626,7 +609,6 @@ C     DVT=0.
       END DO
       END DO
       END DO
-!$OMP  END PARALLEL DO
 
       RETURN
       END SUBROUTINE ADVECV

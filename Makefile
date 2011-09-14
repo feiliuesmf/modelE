@@ -1,6 +1,7 @@
 .SUFFIXES:
 .PHONY: update help
 
+#
 # modelE directory structure
 MODEL_E_ROOT = .
 MODEL_DIR = $(MODEL_E_ROOT)/model

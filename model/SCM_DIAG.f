@@ -4,21 +4,18 @@ c     save diagnostics for run of MODELE SCM
       SUBROUTINE  SCM_DIAG  
 
 
-      USE RESOLUTION, only : LM
-      USE MODEL_COM , only :  p,u,v,t,q,wm,NSTEPSCM,sige,sig,
-     &                        I_TARG,J_TARG,dtsrc 
-      USE CLOUDS_COM, only : SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
+      USE RESOLUTION, only: LM
+      USE ATM_COM,    only: p,u,v,t,q,wm,gz,pk
+      USE MODEL_COM , only: dtsrc
+      USE DYNAMICS,   only: sige,sig
+      USE CLOUDS_COM, only: SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
      &                cldss,cldmc,csizmc,csizss,ncol
       use DIAG_COM, only : npres,ntau,isccp_press,isccp_tau
       USE SCMCOM
       USE SCMDIAG
       USE RAD_COM, only : srhr,trhr
       USE PBLCOM, only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG
-      USE FLUXES, only : GTEMP 
-C     USE DYNAMICS, only : PK 
-C--- Added by J.W. starting ---C
-      USE DYNAMICS, only : PK,GZ
-C--- Added by J.W. ending ---C
+      USE FLUXES, only : atmlnd 
       USE CONSTANT, only : SHA, GRAV, kapa 
       USE GEOM, only : axyp 
       USE FILEMANAGER, only : openunit,closeunit
@@ -221,7 +218,7 @@ C--- Added by J.W. ending ---C
       pk1000 = 1000.**kapa
       PCOL = P(I_TARG,J_TARG)
       TSURF = TSAVG(I_TARG,J_TARG)
-      TSKIN = GTEMP(1,4,I_TARG,J_TARG)
+      TSKIN = atmlnd%GTEMP(I_TARG,J_TARG)
       
       do L = 1,LM
 C--- Added by J.W. starting ---C

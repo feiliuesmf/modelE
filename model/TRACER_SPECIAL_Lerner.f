@@ -14,7 +14,7 @@
 !@+    Michael Prather.  The chemistry is parameterized as frequencies
 C**** Stratospheric chemistry: consolidated commons
 C**** These variables are used by both ozone and strat chem routines
-      USE MODEL_COM, only: jm,lm
+      USE RESOLUTION, only: jm,lm
       INTEGER, ALLOCATABLE, DIMENSION(:) :: jlatmd
       real*8 p0l(lm+1)
 !@dbparam NSTRTC # of strat chem layers (counting top down) (=12 for M23)
@@ -22,7 +22,8 @@ C**** These variables are used by both ozone and strat chem routines
 
       contains
       subroutine set_prather_constants
-      USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
+      USE RESOLUTION, only: jm,lm ! ,psfmpt,sige,ptop
+      USE ATM_COM, only: pednl00
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE CH4_SOURCES
       USE Dictionary_mod
@@ -74,7 +75,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 
       MODULE TRACERS_MPchem_COM
 !@sum Variables for Prather's Stratospheric chemistry loss model
-      USE MODEL_COM, only: jm,lm
+      USE RESOLUTION, only: jm,lm
       USE TRACER_COM, only: ntm
 !@var n_MPtable_max:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
@@ -156,7 +157,8 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
 !@var T0L is the amount 'lost' to chemistry this time step
 !@var facbb: APPLY AN AD-HOC FACTOR TO BRING CH4 INTO BALANCE
       USE CONSTANT, only: by3
-      USE MODEL_COM, only: im,jm,lm,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
@@ -243,7 +245,8 @@ cc      end do
       SUBROUTINE STRTL
 C**** This is called at the beginning of each month
 C**** Prather strat chem
-      USE MODEL_COM, only: jm,lm,jmon
+      USE RESOLUTION, only: jm,lm
+      USE MODEL_COM, only: jmon
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
@@ -291,11 +294,12 @@ C---- CTM layers LM down
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
-      USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
-     *  readt8_parallel,haveLatitude,esmf_bcast,
+     *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
-      USE GEOM, only: imaxj
+      USE GEOM, only: imaxj,byim
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
@@ -338,7 +342,7 @@ C**** Create interpolated table for this resolution
         END IF
         ! the following call is actually serving as MPI_Barrier
         ! do not remove it unless you know what you are doing
-        call esmf_bcast(grid, ifirst)
+        call broadcast(grid, ifirst)
         IF (AM_I_ROOT()) 
      *  call openunit(FRQname,FRQfile,.true.,.true.)
       end if
@@ -415,7 +419,9 @@ C     n_O3=tracer number for linoz O3
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE CONSTANT, only: mair
-      USE MODEL_COM, only: im,jm,lm,pednl00,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: dtsrc
+      USE ATM_COM, only: pednl00
       USE TRACER_COM, only: ntm,tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
       implicit none
@@ -531,11 +537,12 @@ c-----------------------------------------------------------------------
 c   Troposphere is forced by Harvard tables
 c-----------------------------------------------------------------------
 c
-      USE MODEL_COM, only: jm,jmon,t,itime,dtsrc
+      USE RESOLUTION, only: jm
+      USE MODEL_COM, only: jmon,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj,axyp
-      USE DYNAMICS, only: pmid,pk,pdsig
+      USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM
       USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
       USE FLUXES, only: tr3Dsource
@@ -587,8 +594,9 @@ C**** Deposition Velocity is in cm/sec.  Convert to kg
 C****
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE LINOZ_CHEM_COM, only: O3_DepVel
-      USE MODEL_COM, only: im,jm,jmon,t,itime,dtsrc
-      USE DYNAMICS, only: pmid,pk,pdsig
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: jmon,itime,dtsrc
+      USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM
       USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj
@@ -662,9 +670,10 @@ c!@+ use dsol=0.0 for 'standard linoz' runs
 cXXXXX DSOL NOT USED XXXXX
 
       USE CONSTANT, only : avog
-      USE MODEL_COM, only: itime,im,jm,lm,t,dtsrc
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
-      USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: t,pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,axyp
       USE TRACER_COM
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -761,7 +770,8 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c-------- monthly fixup of chemistry PARAM'S
 c
-      USE MODEL_COM, only: jmon,jm,lm
+      USE RESOLUTION, only: jm,lm
+      USE MODEL_COM, only: jmon
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
@@ -929,7 +939,9 @@ C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth0,flake0
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: itime,JDperY,jday
+      USE FLUXES, only: focean,fearth0,flake0
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
       USE FILEMANAGER, only: openunit,closeunit
@@ -1055,7 +1067,8 @@ C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm
+      USE RESOLUTION, only: im,jm
+      USE MODEL_COM, only: itime,jday,JDperY
       USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
@@ -1143,9 +1156,11 @@ C**** NOTE: tracer is supposed to start on 10/16
 C**** October 1963 14CO2 Concentrations for GCM  2/26/99
 C**** 2/2/2: generalized code for modelE
 C****
-      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
+      USE RESOLUTION, ONLY: im,jm,lm
+      USE RESOLUTION, ONLY: ls1,psf,ptop
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
-      USE DYNAMICS, only: pedn
+      USE DYNAMICS, only: sige
+      USE ATM_COM, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG
       IMPLICIT NONE
@@ -1407,7 +1422,9 @@ C**** Output: temporary file is for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C**** However, we'll stop at LMTC, which is lower, and let strat
 C****   chem pick up from there.
-      USE MODEL_COM, only: im,jm,lm,psf,pmidl00
+      USE RESOLUTION, only: im,jm,lm
+      USE RESOLUTION, only: psf
+      USE ATM_COM, only: pmidl00
       USE GEOM, only : DLAT_DG
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
@@ -1517,9 +1534,12 @@ C****    But what WOULD be correct???
       SUBROUTINE get_wofsy_gas_IC(cgas,gasjl)
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
-      USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,amonth,jmon0
+      USE RESOLUTION, ONLY: im,jm,lm
+      USE RESOLUTION, ONLY: ls1,psf,ptop
+      USE MODEL_COM, ONLY: amonth,jmon0
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT
-      USE DYNAMICS, only: pedn
+      USE DYNAMICS, only: sige
+      USE ATM_COM, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG,lat_dg
       implicit none
@@ -1654,7 +1674,6 @@ c     call closeunit(iu)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE PRATHER_CHEM_COM
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
@@ -1692,7 +1711,6 @@ C**** ESMF: This array is read in only
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE LINOZ_CHEM_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE

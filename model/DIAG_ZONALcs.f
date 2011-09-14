@@ -3,10 +3,9 @@
 !@+    accumulation arrays, and will soon include other code
 !@+    and better documentation.
 !@auth Cubed Sphere Development Team
-!@ver  1.0
       module diag_zonal
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : dist_grid,sumxpe,am_i_root
       use precision_mod, only : reduce_precision
       implicit none

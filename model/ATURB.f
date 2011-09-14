@@ -4,7 +4,6 @@
 !@sum  atm_diffus updates u,v,t,q due to turbulent transport throughout
 !@+    all GCM layers using a non-local turbulence model
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@ver  1.0 (from diffB347D6M20)
 !@cont atm_diffus,getdz,dout,de_solver_main,de_solver_edge,l_gcm,k_gcm,
 !@+    e_gcm,find_pbl_top,zze,apply_fluxes_to_atm
 !@var lbase_min/max levels through which to apply turbulence (dummy)
@@ -15,17 +14,17 @@
 !@var call_diag logical variable whether dout is called
 
       USE CONSTANT, only : grav,deltx,lhe,sha,by3,teeny,mb2kg
-      USE MODEL_COM, only :
-     *     im,jm,lm,u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q,itime,psf
-     *     ,pmtop
+      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : psf,pmtop
+      USE MODEL_COM, only : itime
+      USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG,NSTEPSCM
-      USE SCMCOM, only : iu_scm_prt
+      USE SCMCOM, only : iu_scm_prt,NSTEPSCM, I_TARG,J_TARG
 #endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am,pmid
+      USE ATM_COM, only : pk,pdsig,plij,pek,byam,am,pmid
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
@@ -117,7 +116,6 @@ C****
 
       !  convert input T to virtual T
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
@@ -129,7 +127,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
 #ifdef TRACERS_ON
       nx=0
@@ -160,21 +157,6 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
 
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,dz0,im,jm,lm)
-
-!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
-!$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
-!$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
-!$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
-!$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
-!$OMP*   tpe0,tpe1,ediff,p,ldbl_max,z,den
-#ifdef TRACERS_ON
-!$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
-#endif
-!$OMP*    ) SHARED(dtime
-#ifdef TRACERS_ON
-!$OMP*    ,nta
-#endif
-!$OMP*    ) SCHEDULE(DYNAMIC,2)
 
       loop_j_tq: do j=J_0, J_1
         loop_i_tq: do i=I_0,imaxj(j)
@@ -496,7 +478,6 @@ c diffuse velocities on the primary grid in single-column model
 
         end do loop_i_tq
       end do loop_j_tq
-!$OMP  END PARALLEL DO
 
 
 #ifndef SCM
@@ -627,7 +608,6 @@ c
 !@+    as well as the 3-d density rho and rhoe
 !@+    called at the primary grid (A-grid)
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var  tv virtual potential temp. referenced at 1 mb
 !@var  dz0 z(1)-ze(1)
 !@var  dz main grid spacing
@@ -664,7 +644,7 @@ c
       !
       USE CONSTANT, only : grav,rgas
       USE GEOM, only : imaxj
-      USE DYNAMICS, only : pmid,pk,pedn
+      USE ATM_COM, only : pmid,pk,pedn
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
       implicit none
@@ -702,9 +682,6 @@ C****
       !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
       !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
       !@ temp1e average of temp0 and temp1
-!$OMP  PARALLEL DO PRIVATE (J,I,L,pl1,pl,pl1e,ple,temp0,temp1,temp1e,
-!$OMP*  plm1e)
-!$OMP*    SCHEDULE(DYNAMIC,2)
       do j=J_0, J_1
         do i=I_0,imaxj(j)
           do l=1,lm-1
@@ -735,7 +712,6 @@ C****
           end do
         end do
       end do
-!$OMP  END PARALLEL DO
 
       return
       end subroutine getdz
@@ -771,7 +747,7 @@ C****
 !@var i/j horizontal location at which the output is written
 !@var n number of vertical main layers
 
-      USE DYNAMICS, only : pmid,pedn,pk,pek
+      USE ATM_COM, only : pmid,pedn,pk,pek
       USE SOCPBL, only : rimax
 
       implicit none
@@ -979,7 +955,6 @@ C****
       subroutine apply_fluxes_to_atm
 !@sum dummy subroutine - replaces the real one needed by DRYCNV
 !@auth I. Aleinov
-!@ver  1.0
       return
       end subroutine apply_fluxes_to_atm
 
@@ -1019,7 +994,6 @@ C****
 !@Ref Nakanishi(2001)'s surface length scale
 !@Ref Holtslag and Boville 1993, J. Climate, 6, 1825-1842.
 !@auth Ye Cheng/G. Hartke
-!@ver  1.0
 !@var ze height (meters) of layer edge
 !@var dbl pbl depth (meters)
 !@var lscale turbulent length scale

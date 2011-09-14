@@ -1,7 +1,3 @@
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 module GlobalSum_mod
   use MpiSupport_mod, only: ROOT_PROCESS
   use dist_grid_mod
@@ -492,7 +488,7 @@ contains
     
     call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision, &
          &             recv_buf, rcnts, rdspl, mpi_double_precision, &
-         &             getMpiCommunicator(grid), ierr)
+         &             getMpiCommunicator(grd_dum), ierr)
     
     tsum=sum(recv_buf,2)
     
@@ -504,7 +500,7 @@ contains
     
     call MPI_GatherV(tsum, dik, mpi_double_precision, &
          & gsum, dik_map, rdspl, mpi_double_precision, &
-         & ROOT_PROCESS, getMpiCommunicator(grid), ierr)
+         & ROOT_PROCESS, getMpiCommunicator(grd_dum), ierr)
     
     deallocate(recv_buf)
     deallocate(send_buf)
@@ -512,7 +508,7 @@ contains
     
     if (all_) then
       call MPI_BCAST(gsum, size(gsum), MPI_DOUBLE_PRECISION, ROOT_PROCESS, &
-           &        getMpiCommunicator(grid), ierr)
+           &        getMpiCommunicator(grd_dum), ierr)
     end if
 #else
     gsum = sum(arr(:,j_0:j_1,:),2)

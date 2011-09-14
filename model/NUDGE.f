@@ -1,13 +1,17 @@
-
+#include "rundeck_opts.h"
       MODULE NUDGE_COM
 !@sum  NUDGE_COM contains all the nudging related variables
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
-!@param nlevnc vertical levels of NCEP data
-      INTEGER, PARAMETER :: nlevnc =17
+!@param nlevnc vertical levels of input data
+#ifdef MERRA_NUDGING
+      INTEGER, PARAMETER :: nlevnc =42 ! MERRA
+#else
+      INTEGER, PARAMETER :: nlevnc =17 ! NCEP (default)
+#endif
 !@param nts_max max number of time steps in file (4*365)
       INTEGER, PARAMETER :: nts_max = 1460
 !@var  U1, V1 NCEP wind at prior ncep timestep (m/s)
@@ -17,7 +21,7 @@
       REAL*4, DIMENSION(nlevnc) :: pl
       REAL*8, DIMENSION(IM,JM,LM) :: u18,v18,u28,v28
       REAL*8, DIMENSION(IM,JM,LM) :: UN18,VN18,UN28,VN28
-      REAL*8, DIMENSION(LM) :: pl8
+      REAL*8, DIMENSION(nlevnc) :: pl8
 !@var netcdf integer
       INTEGER :: ncidu,ncidv,uid,vid,plid
 !@var step_rea current second set timestamp
@@ -64,8 +68,10 @@ c******************************************************************
 !@sum  Initialization for Nudging - called once at beginning of run
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
-      USE DOMAIN_DECOMP_1D, only: am_i_root, esmf_bcast, grid
-      USE MODEL_COM, only : im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast
+      USE RESOLUTION, only : im,jm,lm
+      USE MODEL_COM, only : jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       USE Dictionary_mod
       IMPLICIT NONE
@@ -90,7 +96,7 @@ C**** always need to open at least one file
 
       if(am_i_root()) call open_nudge_file(nstr1)
 C**** broadcast pressure levels just once (since they don't change)
-      call esmf_bcast(grid,pl8)
+      call broadcast(grid,pl8)
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
 
 C**** read first set of nudged winds
@@ -122,7 +128,8 @@ c******************************************************************
 !@auth Susanne Bauer/Gavin Schmidt
 !@ver
       USE DOMAIN_DECOMP_1D, only: am_i_root
-      USE MODEL_COM, only: im,jm,lm,jhour,jday,itime,nday,jyear,iyear1
+      USE RESOLUTION, only: im,jm,lm
+      USE MODEL_COM, only: jhour,jday,itime,nday,jyear,iyear1
       USE NUDGE_COM
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -171,8 +178,8 @@ c******************************************************************
 !@sum  Nudging of the horizontal wind components to reanalysis data sets
 !@auth Susanne Bauer
 !@ver
-      USE MODEL_COM, only : im,jm,lm,plbot
-      USE DOMAIN_DECOMP_1D, only : grid
+      USE RESOLUTION, only : im,jm,lm,plbot
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE NUDGE_COM, only : u1,v1,u2,v2,tau,anudgeu,anudgev,pl,nlevnc
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -220,13 +227,15 @@ c******************************************************************
 !@sum  vertical interpolation to gcm grid
 !@auth Susanne Bauer
 !@ver
-      USE MODEL_COM, only : im,jm,lm
-      USE DYNAMICS, only : PMID ! Pressure at mid point of box (mb)
-      USE DOMAIN_DECOMP_1D, only : grid, HALO_UPDATE, SOUTH
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : PMID ! Pressure at mid point of box (mb)
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH
+      USE CONSTANT, only : undef
       IMPLICIT NONE
 
       INTEGER lmo               ! vertical dimensions of input
-      INTEGER  i,j,lo,ln
+      INTEGER  i,j,lo,ln,ll,llowest
 
       real po(lmo)              ! pressure levels in millibars of the input
       REAL*8 scratch(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lmo)
@@ -242,11 +251,26 @@ c******************************************************************
       varo = sngl(scratch)
       do j= J_0SG, J_1SG        ! Please pay attention j_gcm starts at 2
         do i=1,im
+
+          llowest=1 ! will be 1 for NCEP default
+
+#ifdef MERRA_NUDGING
+! because MERRA data has missing values "below ground", so to speak, 
+! we want to make sure not to use those, so find the lowest level
+! that has actual wind data: 
+          loop_ll: do ll=1,lmo
+            if(varo(i,j-1,ll).ne.sngl(undef)) then
+              llowest=ll
+              exit loop_ll
+            end if
+          end do loop_ll
+#endif
+
           do ln=1,lm
             
-            lo=1
-            if (pmid(ln,i,j).ge.po(1))then
-              varn(i,j,ln) =  varo(i,j-1,1)
+            lo=llowest
+            if (pmid(ln,i,j).ge.po(llowest))then
+              varn(i,j,ln) =  varo(i,j-1,llowest)
             else if (pmid(ln,i,j).le.po(lmo)) then
               varn(i,j,ln) =  varo(i,j-1,lmo)
             else
@@ -255,10 +279,18 @@ c******************************************************************
                 dp1 = (-pmid(ln,i,j)+po(lo))
                 dp2 = (pmid(ln,i,j)-po(lo+1))
 
+#ifdef MERRA_NUDGING
+                ! Just in case. Can be removed if never happens:
+                if(varo(i,j-1,lo)==sngl(undef).or.
+     &          varo(i,j-1,lo+1)==sngl(undef))    
+     &          call stop_model('undefined wind in vinterana2mod',13)
+#endif
                 varn(i,j,ln)=((varo(i,j-1,lo) * dp1)
      &               + (varo(i,j-1,lo+1) *dp2)) / (dp1 + dp2)
               else
                 lo=lo+1
+                if(lo==lmo)call stop_model(
+     &          'lo reached lmo in NUDGING.',13)
                 if (lo.le.lmo) goto 10
               end if
             endif
@@ -280,20 +312,22 @@ c******************************************************************
       character(len=3) :: nstr
       integer status
       
-      print*, 'IN NUDGE: OPEN NF FILES','  u'//trim(nstr)//'.nc'
+      print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
       status=NF_OPEN('u'//trim(nstr)//'.nc',NCNOWRIT,ncidu)
-      if ( status .ne. NF_NOERR ) call stop_model(
-     &     "NUDGE_OPEN: error opening: u"//trim(nstr)//'.nc',255)
+      if(status /= nf_noerr)call nudgeStop('opening U file',status)
       status=NF_OPEN('v'//trim(nstr)//'.nc',NCNOWRIT,ncidv)
-      if ( status .ne. NF_NOERR ) call stop_model(
-     &     "NUDGE_OPEN: error opening: v"//trim(nstr)//'.nc',255)
+      if(status /= nf_noerr)call nudgeStop('opening V file',status)
       
       status=NF_INQ_VARID(ncidu,'level',plid)
+      if(status /= nf_noerr)call nudgeStop('finding pl var',status)
       status=NF_INQ_VARID(ncidu,'uwnd',uid)
+      if(status /= nf_noerr)call nudgeStop('finding uwnd var',status)
       status=NF_INQ_VARID(ncidv,'vwnd',vid)
+      if(status /= nf_noerr)call nudgeStop('finding vwnd var',status)
 
 c**** get levels which don't change as a function of time
       status=NF_GET_VARA_REAL(ncidu,plid,1,nlevnc,pl)
+      if(status /= nf_noerr)call nudgeStop('reading pl var',status)
       pl8=0.d0
       pl8(1:nlevnc)=dble(pl(1:nlevnc))
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
@@ -309,16 +343,19 @@ c**** get levels which don't change as a function of time
       character(len=3) :: nstr
       integer status
 
-      status=NF_CLOSE('u'//trim(nstr)//'.nc',NCNOWRIT,ncidu)
-      status=NF_CLOSE('v'//trim(nstr)//'.nc',NCNOWRIT,ncidv)
+      status=NF_CLOSE(ncidu)
+      if(status /= nf_noerr)call nudgeStop('closing u file',status)
+      status=NF_CLOSE(ncidv)
+      if(status /= nf_noerr)call nudgeStop('closing v file',status)
       
       return
       end subroutine close_nudge_file
 
       subroutine read_nudge_file(un,vn,timestep)
 !@sum return velocities for specific time step
-      USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : grid, unpack_data, am_i_root
+      USE RESOLUTION, only : im,jm
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : unpack_data, am_i_root
       USE NUDGE_COM
       implicit none
       include 'netcdf.inc'
@@ -338,6 +375,7 @@ c -----------------------------------------------------------------
         scratch_glob=0.
         status=NF_GET_VARA_REAL(ncidu,uid,start,count,
      &                        scratch_glob(:,1:JM-1,:))
+        if(status /= nf_noerr)call nudgeStop('reading u var',status)
       endif
       call unpack_data(grid, dble(scratch_glob), scratch)
       un=sngl(scratch)
@@ -345,9 +383,25 @@ c -----------------------------------------------------------------
       if(am_i_root()) then
         status=NF_GET_VARA_REAL(ncidv,vid,start,count,
      &                        scratch_glob(:,1:JM-1,:))
+        if(status /= nf_noerr)call nudgeStop('reading v var',status)
       endif
       call unpack_data(grid, dble(scratch_glob), scratch)
       vn=sngl(scratch)
 
       return
       end subroutine read_nudge_file
+
+
+      subroutine nudgeStop(activityString,status)
+!@sum error handling for the netCDF/Fortran interface calls  
+      implicit none
+      include 'netcdf.inc'
+      character*80 :: activityString
+      integer status
+
+      print*, 'WIND NUDGING: while model was '//trim(activityString)
+     &//', encountered the NF error: ',trim(trim(nf_strerror(status)))
+
+      call stop_model('Nudging error: see PRT for detailed message.',13)
+
+      end subroutine nudgeStop

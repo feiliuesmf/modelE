@@ -19,7 +19,6 @@ c --- function for determining depth at u,v points
 c
       call cpy_p(pbot)
 c
-c$OMP PARALLEL DO PRIVATE(ja,jb) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
       jb=mod(j     ,jj)+1
@@ -38,9 +37,7 @@ c
       pvtrop(i  ,j)=corio(i  ,j)*2./(pbot(i,j)+pbot(i,ja ))
  152  pvtrop(i+1,j)=corio(i+1,j)*2./(pbot(i,j)+pbot(i,ja ))
       end do
-c$OMP END PARALLEL DO
 c
-c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
       do j=1,jj
       ja=mod(j-2+jj,jj)+1
       do 153 l=1,isq(j)
@@ -48,7 +45,6 @@ c$OMP PARALLEL DO PRIVATE(ja) SCHEDULE(STATIC,jchunk)
  153  pvtrop(i,j)=corio(i,j)*4./(pbot(i,j  )+pbot(i-1,j  )
      .                          +pbot(i,ja )+pbot(i-1,ja ))
       end do
-c$OMP END PARALLEL DO
 c
       return
       end

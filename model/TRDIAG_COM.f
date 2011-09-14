@@ -5,11 +5,12 @@
 !@+    Mostly tracer independent, but this may depend on applications
 !@auth Jean Lerner
 !ver   1.0
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
-     &     ,sname_strlen,units_strlen,lname_strlen,jm_budg
+     &     ,jm_budg
+      USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: NTM
 #ifdef TRACERS_AEROSOLS_SOA
      &                     ,nsoa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -31,19 +32,19 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@dbparam to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-      INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: to_volume_MixRat
 !@dbparam to_conc: For printout of 3D tracer concentration in kg/m3
 !@+   to_conc=0: printout is as defined by to_volume_MixRat
 !@+   to_conc=1: printout is in kg/m3
-      INTEGER, DIMENSION(NTM) :: to_conc=0
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: to_conc
 #endif  /* TRACERS_ON */
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil
-      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: to_per_mil
 #endif
 #ifdef TRACERS_ON
 !@var MMR_to_VMR: converts tracer mass mixing ratio to volume mr
-      REAL*8, DIMENSION(NTM) :: MMR_to_VMR
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: MMR_to_VMR
 
 !!! WARNING: if new diagnostics are added, keep io_trdiag up-to-date !!!
 C**** TAIJLN
@@ -51,17 +52,16 @@ C**** TAIJLN
       real*8, allocatable, dimension(:,:,:,:) :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
-      character(len=sname_strlen), dimension(ntm) :: sname_ijt
-      character(len=units_strlen), dimension(ntm) :: units_ijt
+      character(len=sname_strlen), allocatable,dimension(:) :: sname_ijt
+      character(len=units_strlen), allocatable,dimension(:) :: units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
-      character(len=lname_strlen), dimension(ntm) ::
-     &     lname_ijt = 'unused'
+      character(len=lname_strlen), allocatable, dimension(:) ::lname_ijt
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
-      REAL*8, dimension(ntm) :: scale_ijt
+      REAL*8, allocatable, dimension(:) :: scale_ijt
 !@var IJTC_POWER: power of 10 used for tracer IJ concentration diags
-      integer, dimension(ntm) :: ijtc_power
+      integer, allocatable, dimension(:) :: ijtc_power
 !@var IJTM_POWER: power of 10 used for tracer IJ mass unit diags
-      integer, dimension(ntm) :: ijtm_power
+      integer, allocatable, dimension(:) :: ijtm_power
 
 C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along 
@@ -72,19 +72,20 @@ C**** TAIJN
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
 !@var IJT_XX names for water-based taijn diagnostics
-      integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
-     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx
-     *     ,tij_tusi,tij_tvsi,tij_rvro,tij_icb
+      integer tij_rvr,tij_prec,tij_evap,tij_grnd,tij_lk1
+     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx
+     *     ,tij_rvro,tij_icb
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
+
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
-      REAL*8, dimension(ktaij,ntm) :: scale_tij
+      REAL*8, allocatable :: scale_tij(:,:)
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
-      character(len=sname_strlen), dimension(ktaij,ntm) :: sname_tij
-      character(len=units_strlen), dimension(ktaij,ntm) :: units_tij
+      character(len=sname_strlen), allocatable :: sname_tij(:,:)
+      character(len=units_strlen), allocatable :: units_tij(:,:)
 !@var DNAME_TIJ, DENOM_TIJ: Short names, indices of tij denominators.
 !@+   Currently, denom is specified along with the standard metadata,
 !@+   and the dnames are looked up afterward.  Exception: denominators
@@ -92,11 +93,10 @@ C**** TAIJN
 !@+   For now the denom index indicates which _tracer_ index is to be
 !@+   used as a denominator.  Ratios of 2 accumulation types are
 !@+   not yet needed.
-      character(len=sname_strlen), dimension(ktaij,ntm) :: dname_tij=''
-      integer, dimension(ktaij,ntm) :: denom_tij=0
+      character(len=sname_strlen),allocatable,dimension(:,:)::dname_tij
+      integer, allocatable, dimension(:,:) :: denom_tij
 !@var LNAME_TIJ: descriptions of tracer IJK diags
-      character(len=lname_strlen), dimension(ktaij,ntm) ::
-     &     lname_tij = 'unused'
+      character(len=lname_strlen),allocatable, dimension(:,:)::lname_tij
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
@@ -106,8 +106,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=2147
-
+#ifdef TRACERS_TOMAS
+      INTEGER,PARAMETER :: ktaijs=3590
+#else
+      INTEGER,PARAMETER :: ktaijs=2300
+#endif
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
 !@param MaxDMc Maximum number of special wet depo diags for MC clouds
@@ -122,60 +125,66 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
-      INTEGER ijts_source(ntsurfsrcmax,ntm)
+      INTEGER, ALLOCATABLE ::ijts_source(:,:)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
-      INTEGER ijts_isrc(ntsurfsrcmax,ntm)
+      INTEGER, ALLOCATABLE ::ijts_isrc(:,:)
 !@var ijts_aq tracer independent array for TAIJS aqueous change
-      INTEGER ijts_aq(ntm)
+      INTEGER, ALLOCATABLE ::ijts_aq(:)
 !@var ijts_alb BC impact on snow/ice albedo, grain size,sw and lw radiation
       INTEGER ijts_alb(2)
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
-      INTEGER ijts_tau(2,ntm)
+      INTEGER, ALLOCATABLE ::ijts_tau(:,:)
 !@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes
-      INTEGER ijts_tausub(2,Ntm,MaxSubCl)
+      INTEGER, ALLOCATABLE ::ijts_tausub(:,:,:)
 !@var ijts_sqex index for TAIJS total extinction for 6 radiation bands
-      INTEGER ijts_sqex(2,6,Ntm)
+      INTEGER, ALLOCATABLE ::ijts_sqex(:,:,:)
 !@var ijts_sqexsub index for TAIJS total extinction for 6 radiation bands for
 !@+   tracer sub classes
-      INTEGER ijts_sqexsub(2,6,Ntm,MaxSubCl)
+      INTEGER, ALLOCATABLE ::ijts_sqexsub(:,:,:,:)
 !@var ijts_sqsc index for TAIJS scattering extinction for 6 radiation bands
-      INTEGER ijts_sqsc(2,6,Ntm)
+      INTEGER, ALLOCATABLE ::ijts_sqsc(:,:,:)
 !@var ijts_sqscsub index for TAIJS scattering extinction for 6 radiation
 !@+   bands for tracer sub classes
-      INTEGER ijts_sqscsub(2,6,Ntm,MaxSubCl)
+      INTEGER, ALLOCATABLE ::ijts_sqscsub(:,:,:,:)
 !@var ijts_sqcb index for TAIJS sct asymmetry factor for 6 radiation bands
-      INTEGER ijts_sqcb(2,6,Ntm)
+      INTEGER, ALLOCATABLE ::ijts_sqcb(:,:,:)
 !@var ijts_sqcbsub index for TAIJS sct asymmetry factor for 6 radiation bands
 !@+   for tracer sub classes
-      INTEGER ijts_sqcbsub(2,6,Ntm,MaxSubCl)
+      INTEGER, ALLOCATABLE ::ijts_sqcbsub(:,:,:,:)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
-      INTEGER ijts_fc(8,ntm)
+      INTEGER, ALLOCATABLE ::ijts_fc(:,:)
 #ifdef AUXILIARY_OX_RADF
 !@var ijts_auxfc auxiliary Ox array for TAIJS SW/LW rad. forcings
       INTEGER ijts_auxfc(4)
 #endif
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
-      INTEGER ijts_fcsub(8,Ntm,MaxSubCl)
+      INTEGER, ALLOCATABLE ::ijts_fcsub(:,:,:)
 !@var ijts_spec index for TAIJS diags. not associated with single tracer
       INTEGER :: ijts_spec(MaxSpec)
 !@var ijts_gasex index for TAIJS associated with atm/oc gas exchange
-      INTEGER :: ijts_gasex(3,Ntm)
+      INTEGER, ALLOCATABLE :: ijts_gasex(:,:)
 #ifdef TRACERS_AMP
 !@var ijts_AMPpdf special diagnostic for not-transported tracers
       INTEGER ijts_AMPpdf(1,nbins)
 #endif
 !@var ijts_AMPe tracer independent array for emissions
-      INTEGER ijts_AMPe(Ntm)
+      INTEGER, ALLOCATABLE ::ijts_AMPe(:)
 !@var ijts_AMPp tracer independent array for AMP processes
-      INTEGER ijts_AMPp(7,Ntm)
+      INTEGER, ALLOCATABLE ::ijts_AMPp(:,:)
+#ifdef TRACERS_TOMAS
+!@var ijts_TOMAS tracer independent array for TOMAS processes
+      INTEGER, ALLOCATABLE ::ijts_TOMAS(:,:)
+!@var ijts_TOMAS tracer independent array for TOMAS subgrid coagulation
+      INTEGER, ALLOCATABLE ::ijts_subcoag(:)
+#endif
 !@var ijts_trdpmc indices of taijs special wet depo diags for MC clouds
-      INTEGER :: ijts_trdpmc(MaxDMc,Ntm)
+      INTEGER, ALLOCATABLE :: ijts_trdpmc(:,:)
 !@var ijts_trdpls indices of taijs special wet depo diags for LS clouds
-      INTEGER :: ijts_trdpls(MaxDLs,Ntm)
+      INTEGER, ALLOCATABLE :: ijts_trdpls(:,:)
 !@var ijts_wet tracer independent array for TAIJS wet depo diagnostics
-      INTEGER :: ijts_wet(Ntm)
+      INTEGER, ALLOCATABLE :: ijts_wet(:)
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
-      INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
+      INTEGER, ALLOCATABLE ::ijts_3Dsource(:,:)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
       character(len=sname_strlen), dimension(ktaijs) :: sname_ijts
       character(len=units_strlen), dimension(ktaijs) :: units_ijts
@@ -283,10 +292,11 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers
 !@var ijlt_AMPm tracer independent array for AMP modes
-      INTEGER :: ijlt_AMPext(6),ijlt_AMPm(2,ntm)
+      INTEGER :: ijlt_AMPext(6)
+      integer, allocatable :: ijlt_AMPm(:,:)
 #endif 
 !@var ijlt_3Dtau 3D tracer independent array for hydrated opt. thick.
-      INTEGER ijlt_3Dtau(ntm)
+      integer, allocatable :: ijlt_3Dtau(:)
 
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
@@ -301,11 +311,10 @@ C**** TAJLN
      &  jlnt_bepb,jlnt_cldh2o
 
 !@var SNAME_JLN: Names of lat-sigma tracer JL diagnostics
-      character(len=sname_strlen), dimension(ktajlx,ntm) :: sname_jln
+      character(len=sname_strlen), allocatable ::sname_jln(:,:)
 !@var LNAME_JLN,UNITS_JLN: descriptions/units of tracer JL diagnostics
-      character(len=lname_strlen), dimension(ktajlx,ntm) ::
-     &     lname_jln = 'unused'
-      character(len=units_strlen), dimension(ktajlx,ntm) :: units_jln
+      character(len=lname_strlen), allocatable :: lname_jln(:,:)
+      character(len=units_strlen), allocatable :: units_jln(:,:)
 !@var SCALE_JLQ: printout scaling factor for tracer JL diagnostics
       REAL*8, dimension(ktajlx) :: scale_jlq
 !@var IA_JLQ,JGRID_JLQ: idacc-numbers,gridtypes for tracer JL diags
@@ -314,40 +323,43 @@ C**** TAJLN
 !@+        It is associated with a specific physical process
       integer jlq_power(ktajlx)
 !@var scale_jln: Scale for jl maps
-      REAL*8, DIMENSION(ntm) :: scale_jln
+      REAL*8, allocatable, DIMENSION(:) :: scale_jln
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktajls=1124
-
+#ifndef TRACERS_TOMAS
+      INTEGER,PARAMETER :: ktajls=1260
+#else
+      INTEGER,PARAMETER :: ktajls=3000 ! 1017 - yhl for TOMAS 
+#endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3
-     *     ,jls_phot,jls_incloud(2,ntm), jls_OHcon,jls_H2Omr
+     *     ,jls_phot,jls_OHcon,jls_H2Omr
      *     ,jls_N2O5sulf,jls_day,jls_COd,jls_COp,jls_Oxd,jls_Oxp
      *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem,jls_OxdT,jls_OxpT
-
+      integer, allocatable :: jls_incloud(:,:)
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
-      INTEGER jls_source(ntsurfsrcmax,ntm)
+      INTEGER, ALLOCATABLE :: jls_source(:,:)
 !@var jls_isrc tracer indep. array for TAJLS interactive surface src. diags
-      INTEGER jls_isrc(ntsurfsrcmax,ntm)
+      INTEGER, ALLOCATABLE :: jls_isrc(:,:)
 !@var jls_3Dsource tracer independent array for TAJLS 3D source diags
-      INTEGER jls_3Dsource(nt3Dsrcmax,ntm)
+      INTEGER, ALLOCATABLE :: jls_3Dsource(:,:)
 !@var jls_decay tracer independent array for radioactive sinks
-      INTEGER, DIMENSION(NTM) :: jls_decay
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: jls_decay
 !@var jls_grav tracer independent array for grav. settling sink
-      INTEGER, DIMENSION(NTM) :: jls_grav
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: jls_grav
 !@var jls_prec tracer independent array for precipitation/wet dep
-      INTEGER, DIMENSION(2,NTM) :: jls_prec
-!@var jls_trdpmc indices of tajls special wet depo diags for MC clouds
-      INTEGER :: jls_trdpmc(MaxDMc,Ntm)
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: jls_prec
+!@var jls_trdpmc14 indices of tajls special wet depo diags for MC clouds
+      INTEGER, ALLOCATABLE:: jls_trdpmc(:,:)
 !@var jls_trdpls indices of tajls special wet depo diags for LS clouds
-      INTEGER :: jls_trdpls(MaxDLs,Ntm)
+      INTEGER, ALLOCATABLE:: jls_trdpls(:,:)
 !@var jls_wet tracer independent array for wet deposition (for old dust)
-      INTEGER, DIMENSION(NTM) :: jls_wet
+      INTEGER, allocatable, DIMENSION(:) :: jls_wet
 
 !@var jls_spec index for TAJLS for special diagnostics not associated with
 !@var jls_spec single tracer
@@ -377,66 +389,67 @@ C**** TCONSRV
 #ifdef TRACERS_AMP
      &                             +3
 #endif
+#ifdef TRACERS_TOMAS
+     &                             +3
+#endif
 !@param KTCON total number of conservation diagnostics for tracers
       INTEGER, PARAMETER :: KTCON=npts+ntcons+2
 !@param ntmxcon total number of conservation quantities
-#ifdef TRACERS_SPECIAL_Shindell
-C**** include some extra troposphere only ones
-      INTEGER, PARAMETER :: ntmxcon = ntm+3
-#else 
-#ifdef TRACERS_OCEAN
-      INTEGER, PARAMETER :: ntmxcon = ntm+20 ! arbitrary increase, may change
-#else
-      INTEGER, PARAMETER :: ntmxcon = ntm
-#endif
-#endif
+      integer :: ntmxcon
+
 !@var TCONSRV conservation diagnostics for tracers
-      REAL*8, DIMENSION(JM_BUDG,ktcon,ntmxcon) :: TCONSRV,TCONSRV_loc 
+      REAL*8, allocatable, DIMENSION(:,:,:) :: TCONSRV,TCONSRV_loc 
 !@var SCALE_TCON scales for tracer conservation diagnostics
-      REAL*8, DIMENSION(ktcon,ntmxcon) :: SCALE_TCON
+      REAL*8, allocatable, DIMENSION(:,:) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
-      CHARACTER*38, DIMENSION(ktcon,ntmxcon) :: TITLE_TCON
+      CHARACTER*38, allocatable, DIMENSION(:,:) :: TITLE_TCON
 !@var IA_TCON IDACC numbers for tracer conservation diagnostics
-      INTEGER, DIMENSION(ktcon,ntmxcon) ::  IA_TCON
+      INTEGER, allocatable, DIMENSION(:,:) ::  IA_TCON
 !@var NSUM_TCON indices for summation of conservation diagnostics
-      INTEGER, DIMENSION(ktcon,ntmxcon) :: NSUM_TCON
+      INTEGER, allocatable, DIMENSION(:,:) :: NSUM_TCON
 !@var NOFMT indices for TCONSRV array
-      INTEGER, DIMENSION(ktcon,ntmxcon) :: NOFMT
+      INTEGER, allocatable, DIMENSION(:,:) :: NOFMT
 !@var CONPTS names of special processes for tracer conservation diags
       CHARACTER*16, DIMENSION(ntcons) :: CONPTS
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
-      INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
+      INTEGER, allocatable, DIMENSION(:):: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
-      character(len=sname_strlen), dimension(ktcon,ntmxcon) ::
-     &     name_tconsrv='unused'
-      character(len=units_strlen), dimension(ktcon,ntmxcon) ::
+      character(len=sname_strlen), allocatable, dimension(:,:) :: 
+     &     name_tconsrv
+      character(len=units_strlen), allocatable, dimension(:,:) ::
      &     units_tconsrv
-      character(len=lname_strlen), dimension(ktcon,ntmxcon) ::
+      character(len=lname_strlen), allocatable, dimension(:,:) ::
      &     lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
-      REAL*8, dimension(ntmxcon) :: SCALE_INST,SCALE_CHANGE
+      REAL*8, allocatable, dimension(:) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags
-      INTEGER, DIMENSION(ntsurfsrcmax,ntmxcon) :: itcon_surf
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_surf
 !@var itcon_3Dsrc Index array for 3D source/sink conservation diags
-      INTEGER, DIMENSION(nt3Dsrcmax,ntmxcon) :: itcon_3Dsrc
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_3Dsrc
 !@var itcon_decay Index array for decay conservation diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_decay
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_decay
 !@var itcon_mc Index array for moist convection conserv. diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_mc
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_mc
 !@var itcon_ss Index array for large-scale condensation conserv. diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_ss
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_ss
 !@var itcon_amp Index array for microphysical processes diags
-      INTEGER, DIMENSION(7,ntmxcon) :: itcon_amp
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_amp
 !@var itcon_amp Index array for microphysical processes diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_ampe
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_ampe
 !@var itcon_amp Index array for microphysical processes diags
-      INTEGER, DIMENSION(2,ntmxcon) :: itcon_ampm
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_ampm
 !@var itcon_dd Index array for dry deposition conserv. diags
-      INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_dd
 !@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
-      INTEGER, DIMENSION(ntmxcon) :: itcon_wt
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_wt
 !@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
       INTEGER :: natmtrcons=0, nocntrcons=0
+#ifdef TRACERS_TOMAS
+!@var itcon_TOMAS Index array for microphysical processes diags
+      INTEGER, ALLOCATABLE, DIMENSION(7,ntmxcon) :: itcon_TOMAS
+!@var itcon_TOMAS Index array for subgrid coagulation diags
+      INTEGER, ALLOCATABLE, DIMENSION(ntmxcon) :: itcon_subcoag
+#endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 
 !@var PDSIGJL temporary storage for mean pressures for jl diags
@@ -487,12 +500,14 @@ C**** include some extra troposphere only ones
 ! Denominator information is stored in denom_xxx.
 ! Metadata for scaled outputs is consolidated in cdl_xxx.
 ! 
-      integer, parameter :: ktaij_ = (ktaij*ntm+ktaijs
+      ! This was NTM, but NTM is now dynamic. Introducing MAXNTM instead.
+      integer, parameter :: MAXNTM = 1000 ! rather than making all ktaij_ arrays allocatable - TLC
+      integer, parameter :: ktaij_ = (ktaij*MAXNTM+ktaijs
 #ifdef TRACERS_SPECIAL_O18
      &     + 4                  ! include dexcess + D17O diags
 #endif
 #ifdef TRACERS_DRYDEP
-     &     + ntm                ! include dry dep % diags
+     &     + MAXNTM             ! include dry dep % diags
 #endif
      &     )*3/2  ! make 50% larger for denoms and extra specials
       integer :: ktaij_out ! actual number of qtys in taij_out
@@ -505,36 +520,25 @@ C**** include some extra troposphere only ones
       type(cdl_type) :: cdl_taij,cdl_taij_latlon
       real*8, dimension(:,:,:), allocatable :: hemis_taij
 
-      integer, parameter :: ktaijl_ = (ntm+ktaijl
-#ifdef TRACERS_SPECIAL_O18
-     *     + 2        ! include dexcess + D17O diags
-#endif
-     &     )*3/2  ! make 50% larger for denoms and extra specials
+      integer :: ktaijl_
       integer :: ktaijl_out ! actual number of qtys in taijl_out
       real*8, dimension(:,:,:,:), allocatable :: taijl_out
-      integer, dimension(ktaijl_) :: ir_taijl,ia_taijl,denom_taijl
-      character(len=lname_strlen), dimension(ktaijl_) :: lname_taijl
-      character(len=sname_strlen), dimension(ktaijl_) :: sname_taijl
-      character(len=units_strlen), dimension(ktaijl_) :: units_taijl
-      real*8, dimension(ktaijl_) :: scale_taijl
+      integer, allocatable, dimension(:) ::ir_taijl,ia_taijl,denom_taijl
+      character(len=lname_strlen),allocatable,dimension(:) ::lname_taijl
+      character(len=sname_strlen),allocatable,dimension(:) ::sname_taijl
+      character(len=units_strlen),allocatable,dimension(:) ::units_taijl
+      real*8, allocatable, dimension(:) :: scale_taijl
       type(cdl_type) :: cdl_taijl,cdl_taijl_latlon
 
-      integer, parameter :: ktajl_ = (ktajlx*ntm+ktajls
-#ifdef TRACERS_SPECIAL_O18
-     &     + 4                  ! include dexcess + D17O diags
-#endif
-#ifdef TRACERS_COSMO
-     &     + 2                  ! beryllium ratios
-#endif
-     &     )*3/2  ! make 50% larger for denoms and extra specials
+      integer :: ktajl_
       integer :: ktajl_out ! actual number of qtys in tajl_out
       real*8, dimension(:,:,:), allocatable :: tajl_out
-      integer, dimension(ktajl_) :: pow_tajl,ia_tajl,denom_tajl,
+      integer, allocatable, dimension(:) :: pow_tajl,ia_tajl,denom_tajl,
      &     jgrid_tajl,lgrid_tajl,ltop_tajl
-      character(len=lname_strlen), dimension(ktajl_) :: lname_tajl
-      character(len=sname_strlen), dimension(ktajl_) :: sname_tajl
-      character(len=units_strlen), dimension(ktajl_) :: units_tajl
-      real*8, dimension(ktajl_) :: scale_tajl
+      character(len=lname_strlen),allocatable,dimension(:) :: lname_tajl
+      character(len=sname_strlen),allocatable,dimension(:) :: sname_tajl
+      character(len=units_strlen),allocatable,dimension(:) :: units_tajl
+      real*8, allocatable, dimension(:) :: scale_tajl
       type(cdl_type) :: cdl_tajl
       real*8, dimension(:,:,:), allocatable :: hemis_tajl,vmean_tajl
 #endif /* TRACERS_ON */
@@ -550,6 +554,8 @@ C**** include some extra troposphere only ones
 #endif
 #endif  /* NEW IO */
 
+      target :: taijn_loc,tconsrv_loc,nofmt
+
       END MODULE TRDIAG_COM
 
 #ifdef TRACERS_ON
@@ -557,9 +563,9 @@ C**** include some extra troposphere only ones
      *     ,INST_SC,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only: sday
-      USE MODEL_COM, only: dtsrc,nfiltr
+      USE MODEL_COM, only: dtsrc
+      USE DYNAMICS, only : nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
      *     ,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
@@ -679,16 +685,143 @@ C****
       RETURN
       END SUBROUTINE set_tcon
 
+#ifdef TRACERS_OCEAN
+      SUBROUTINE SET_TCONO(NAME_CON,INST_UNIT,SUM_UNIT,
+     &     INST_SC,CHNG_SC, itr0)
+!@sum  SET_TCONO assigns ocean conservation diagnostic array indices
+!@auth Gavin Schmidt
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: dtsrc
+      USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
+      USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
+     *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
+     *     ,natmtrcons,nocntrcons
+      IMPLICIT NONE
+!@var NAME_CON name of conservation quantity
+      CHARACTER*8, INTENT(IN) :: NAME_CON
+!@var INST_UNIT string for unit for instant. values
+      CHARACTER*20, INTENT(IN) :: INST_UNIT
+!@var SUM_UNIT string for unit for summed changes
+      CHARACTER*20, INTENT(IN) :: SUM_UNIT
+!@var INST_SC scale for instantaneous value
+      REAL*8, INTENT(IN) :: INST_SC
+!@var CHNG_SC scale for changes
+      REAL*8, INTENT(IN) :: CHNG_SC
+!@var ITR index for the tracer
+      INTEGER, INTENT(IN) :: ITR0
+!@var QCON denotes at which points conservation diags are saved
+      LOGICAL, DIMENSION(npts) :: QCON
+!@var QSUM sets whether each diag is included in final sum
+!@+   should be zero for diags set using DIAGTCB (i.e. using difference)
+      LOGICAL, DIMENSION(npts) :: QSUM
+      LOGICAL, DIMENSION(npts) :: QSUM_CON   ! local version
+!@var sname name of conservation quantity (no spaces)
+      CHARACTER*8 :: sname
+!@var CONPT0_sname like CONPT0 but without spaces
+      CHARACTER*10, DIMENSION(npts) :: CONPT0_sname, CONPT
+      CHARACTER*11 CHGSTR
+      CHARACTER*40 clean_str
+      INTEGER NI,NM,NS,N,k,itr
+      LOGICAL, PARAMETER :: T=.true., F=.false.
+
+      nocntrcons=max(nocntrcons,itr0)
+      CONPT=CONPT0
+      CONPT(8)="OCN PHYS"
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      QSUM(:) = T
+#ifdef TRACERS_OceanBiology
+      CONPT(4)="OCN BIOL"
+#endif
+
+C**** make nice netcdf names
+      sname=trim(clean_str(name_con))
+      do n=1,npts
+         conpt0_sname(n) = trim(clean_str(conpt(n)))
+      enddo
+C****
+      NI=1
+      itr=itr0+natmtrcons
+      NOFMT(1,itr) = NI
+      TITLE_TCON(NI,itr) =
+     *     "0INSTANT "//TRIM(NAME_CON)//" "//TRIM(INST_UNIT)
+      SCALE_TCON(NI,itr) = INST_SC
+      name_tconsrv(NI,itr) ="inst_oc_"//sname
+      lname_tconsrv(NI,itr) = "INSTANT "//TRIM(NAME_CON)
+      units_tconsrv(NI,itr) = INST_UNIT
+      NSUM_TCON(NI,itr) = -1
+      IA_TCON(NI,itr) = 12
+      NM=NI
+      DO N=2,npts+1
+        IF (QCON(N-1)) THEN
+          NM = NM + 1
+          NOFMT(N,itr) = NM
+          QSUM_CON(NM)=.FALSE.
+          IF (QSUM(N-1)) QSUM_CON(NM)=.TRUE.
+          CHGSTR=" CHANGE OF "
+          if (n.le.npts+1) then
+            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
+     *         CONPT(N-1)
+            name_tconsrv(NM,itr) =
+     *           "chg_oc_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
+c          else
+c            IF (.not. QSUM(N-1)) CHGSTR="     DELTA "
+c            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
+c     *           CONPTs(N-npts-1)
+c            name_tconsrv(NM,itr) =
+c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
+          end if
+          lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
+          units_tconsrv(NM,itr) = SUM_UNIT
+          SELECT CASE (N)
+          CASE (2,8) ! ocean not affected by certain atm processes
+            call stop_model('nonsensical choice in set_tcono',255)
+          CASE (3,4,5,6,7,9,11,12)
+            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
+            IA_TCON(NM,itr) = ia_d5s
+          CASE (10)
+            SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
+            IA_TCON(NM,itr) = ia_12hr
+          CASE (13:)   ! special tracer sources
+            SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
+            IA_TCON(NM,itr) = ia_src
+          END SELECT
+        ELSE
+          NOFMT(N,itr) = 0
+        END IF
+      END DO
+      NS=NM+1
+      IF (NS.gt.KTCON) THEN
+        WRITE(6,*) "KTCON not large enough for extra conserv diags",
+     *       KTCON,NI,NM,NS,NAME_CON
+        call stop_model(
+     &       "Change KTCON in tracer diagnostic common block",255)
+      END IF
+      DO NM=NI+1,NS-1
+        NSUM_TCON(NM,itr) = -1
+        IF (QSUM_CON(NM)) NSUM_TCON(NM,itr) = NS
+      END DO
+      TITLE_TCON(NS,itr) = " SUM OF CHANGES "//TRIM(SUM_UNIT)
+      name_Tconsrv(NS,itr) ="sum_chg_oc_"//trim(sname)
+      lname_Tconsrv(NS,itr) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
+      units_Tconsrv(NS,itr) = SUM_UNIT
+      SCALE_TCON(NS,itr) = 1.
+      IA_TCON(NS,itr) = 12
+      NSUM_TCON(NS,itr) = 0
+      RETURN
+      END SUBROUTINE set_tcono
+#endif /* TRACERS_OCEAN */
+
+
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, ESMF_BCAST, grid, GET
-      USE TRACER_COM, only: ntm
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, broadcast, GET
+      USE TRACER_COM, only: NTM
       USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
      *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
      *     tajls_loc,  tajls, tconsrv_loc, tconsrv, pdsigjl, ktaij,
@@ -706,10 +839,7 @@ C****
       INTEGER, INTENT(INOUT) :: it
       INTEGER it_check ! =it if all diag. TA..4 were kept up-to-date
 !@param KTACC total number of tracer diagnostic words
-      INTEGER, PARAMETER ::
-     *     ktacc=IM*JM*LM*NTM + IM*JM*LM*ktaijl + IM*JM*ktaij*NTM + IM
-     *     *JM*ktaijs +JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls +
-     *     JM_BUDG*ktcon*ntmxcon
+      integer :: ktacc
 !@var TA..4(...) dummy arrays for reading diagnostics files
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
       real*4, allocatable, dimension(:,:,:,:) :: taijls4
@@ -728,6 +858,10 @@ C****
 
       write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
      *   'R8 TACC(',ktacc,'),it'
+
+      ktacc=IM*JM*LM*NTM + IM*JM*LM*ktaijl + IM*JM*ktaij*NTM + IM
+     *     *JM*ktaijs +JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls +
+     *     JM_BUDG*ktcon*ntmxcon
 
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_SINGLE)  
@@ -816,7 +950,7 @@ C*** Unpack read global data into local distributed arrays
 
           call scatter_trdiag
 
-          CALL ESMF_BCAST( grid, it )
+          CALL broadcast( grid, it )
         END SELECT
       END SELECT
 
@@ -1138,6 +1272,7 @@ C*** Unpack read global data into local distributed arrays
       USE TRDIAG_COM
       USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT, GRID
       use diag_zonal, only : get_alloc_bounds
+      use fluxes, only : atmocn
       implicit none
       INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
@@ -1193,6 +1328,185 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
 
+      allocate(jls_incloud(2,ntm))
+      jls_incloud = 0
+      allocate(jls_source(ntsurfsrcmax,NTM))
+      jls_source = 0
+      allocate(jls_isrc(ntsurfsrcmax,NTM))
+      jls_isrc = 0
+      allocate(jls_3Dsource(nt3Dsrcmax,NTM))
+      jls_3Dsource = 0
+      allocate(jls_decay(NTM))
+      jls_decay = 0
+      allocate(jls_grav(NTM))
+      jls_grav = 0
+      allocate(jls_prec(2,NTM))
+      jls_prec = 0
+      allocate(jls_trdpmc(MaxDMc,NTM))
+      jls_trdpmc = 0
+      allocate(jls_trdpls(MaxDLs,NTM))
+      jls_trdpls = 0
+      allocate(jls_wet(NTM))
+      jls_wet = 0
+
+
+      allocate(to_volume_MixRat(NTM))
+      to_volume_MixRat = 0
+      allocate(to_conc(NTM))
+      to_conc = 0
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+      allocate(to_per_mil(NTM))
+      to_per_mil = 0
+#endif
+      allocate(MMR_to_VMR(NTM))
+
+      allocate(scale_tij(ktaij,ntm))
+      allocate(sname_tij(ktaij,ntm))
+      allocate(units_tij(ktaij,ntm))
+      allocate(dname_tij(ktaij,NTM))
+      dname_tij=''
+      allocate(denom_tij(ktaij,NTM))
+      denom_tij = 0
+      allocate(lname_tij(ktaij,NTM))
+      lname_tij = 'unused'
+
+      allocate(sname_ijt(NTM))
+      allocate(units_ijt(NTM))
+      allocate(lname_ijt(NTM))
+      lname_ijt(:) = 'unused'
+
+      allocate(scale_ijt(NTM))
+      allocate(ijtc_power(NTM))
+      allocate(ijtm_power(NTM))
+
+      allocate(ijts_source(ntsurfsrcmax,ntm))
+      ijts_source = 0
+      allocate(ijts_isrc(ntsurfsrcmax,ntm))
+      allocate(ijts_aq(ntm))
+      allocate(ijts_tau(2,ntm))
+      allocate(ijts_tausub(2,Ntm,MaxSubCl))
+      allocate(ijts_sqex(2,6,Ntm))
+      allocate(ijts_sqexsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_sqsc(2,6,Ntm))
+      allocate(ijts_sqscsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_sqcb(2,6,Ntm))
+      allocate(ijts_sqcbsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_fc(8,ntm))
+      allocate(ijts_fcsub(8,Ntm,MaxSubCl))
+      allocate(ijts_gasex(3,Ntm))
+
+      allocate(ijts_AMPe(Ntm))
+      allocate(ijts_AMPp(7,Ntm))
+#ifdef TRACERS_TOMAS
+      allocate(ijts_TOMAS(7,Ntm))
+      allocate(ijts_subcoag(Ntm))
+#endif
+      allocate(ijts_trdpmc(MaxDMc,Ntm))
+      allocate(ijts_trdpls(MaxDLs,Ntm))
+      allocate(ijts_wet(Ntm))
+      allocate(ijts_3Dsource(nt3Dsrcmax,ntm))
+#endif  /* TRACERS_ON */
+
+#ifdef TRACERS_AMP
+      allocate(ijlt_AMPm(2,ntm))
+#endif 
+      allocate(ijlt_3Dtau(ntm))
+
+      allocate(sname_jln(ktajlx,ntm))
+      allocate(lname_jln(ktajlx,ntm))
+      lname_jln = 'unused'
+      allocate(units_jln(ktajlx,ntm))
+      allocate(scale_jln(ntm))
+
+
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+
+#ifdef TRACERS_SPECIAL_Shindell
+C**** include some extra troposphere only ones
+      ntmxcon = ntm + 3
+#else 
+#ifdef TRACERS_OCEAN
+      ntmxcon = ntm + 20 ! arbitrary increase, may change
+#else
+      ntmxcon = ntm
+#endif
+#endif
+      allocate(TCONSRV(JM_BUDG,ktcon,ntmxcon))
+      allocate(TCONSRV_loc(JM_BUDG,ktcon,ntmxcon))
+
+      allocate(SCALE_TCON(ktcon,ntmxcon))
+      allocate(TITLE_TCON(ktcon,ntmxcon))
+      allocate(IA_TCON(ktcon,ntmxcon))
+      allocate(NSUM_TCON(ktcon,ntmxcon))
+      allocate(NOFMT(ktcon,ntmxcon))
+
+#ifdef TRACERS_OCEAN
+      atmocn%tconsrv => tconsrv_loc
+      atmocn%nofmt => nofmt
+#endif
+
+      allocate(kt_power_inst(ntm))
+      allocate(kt_power_change(ntm))
+      allocate(name_tconsrv(ktcon,ntmxcon))
+      name_tconsrv='unused'
+      allocate(units_tconsrv(ktcon,ntmxcon))
+      allocate(lname_tconsrv(ktcon,ntmxcon))
+
+      allocate(SCALE_INST(ntmxcon))
+      allocate(SCALE_CHANGE(ntmxcon))
+      allocate(itcon_surf(ntsurfsrcmax,ntmxcon))
+      allocate(itcon_3Dsrc(nt3Dsrcmax,ntmxcon))
+
+      allocate(itcon_decay(ntmxcon))
+      allocate(itcon_mc(ntmxcon))
+      allocate(itcon_ss(ntmxcon))
+      allocate(itcon_amp(7,ntmxcon))
+      allocate(itcon_ampm(2,ntmxcon))
+      allocate(itcon_ampe(ntmxcon))
+      allocate(itcon_dd(ntmxcon,2))
+      allocate(itcon_wt(ntmxcon))
+
+#ifdef TRACERS_TOMAS
+      allocate(itcon_TOMAS(7,ntmxcon))
+      allocate(itcon_subcoag(ntmxcon))
+#endif
+#endif  /* TRACERS_ON  or  TRACERS_OCEAN */
+
+      ktaijl_ = (ntm + ktaijl
+#ifdef TRACERS_SPECIAL_O18
+     *     + 2        ! include dexcess + D17O diags
+#endif
+     &     )*3/2  ! make 50% larger for denoms and extra specials
+
+
+      allocate(ir_taijl(ktaijl_))
+      allocate(ia_taijl(ktaijl_))
+      allocate(denom_taijl(ktaijl_))
+      allocate(lname_taijl(ktaijl_))
+      allocate(sname_taijl(ktaijl_))
+      allocate(units_taijl(ktaijl_))
+      allocate(scale_taijl(ktaijl_))
+
+      ktajl_ = (ktajlx*ntm+ktajls
+#ifdef TRACERS_SPECIAL_O18
+     &     + 4                  ! include dexcess + D17O diags
+#endif
+#ifdef TRACERS_COSMO
+     &     + 2                  ! beryllium ratios
+#endif
+     &     )*3/2  ! make 50% larger for denoms and extra specials
+      allocate(pow_tajl(ktajl_))
+      allocate(ia_tajl(ktajl_))
+      allocate(denom_tajl(ktajl_))
+      allocate(jgrid_tajl(ktajl_))
+      allocate(lgrid_tajl(ktajl_))
+      allocate(ltop_tajl(ktajl_))
+      allocate(lname_tajl(ktajl_))
+      allocate(sname_tajl(ktajl_))
+      allocate(units_tajl(ktajl_))
+      allocate(scale_tajl(ktajl_))
+
 #ifdef NEW_IO
 ! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
 ! will be reallocated to the proper sizes later.
@@ -1203,7 +1517,6 @@ C*** Unpack read global data into local distributed arrays
       endif
 #endif
 
-#endif  /* TRACERS_ON */
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
 
@@ -1291,7 +1604,8 @@ c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
       subroutine gather_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
      *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
@@ -1317,7 +1631,8 @@ c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
       subroutine scatter_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
      *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJLS, TAIJLS_loc)

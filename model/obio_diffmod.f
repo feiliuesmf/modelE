@@ -174,7 +174,7 @@ c
       integer, intent(inout) :: ijk(3)
       character(len=*), intent(in) :: operation
       
-#ifdef USE_ESMF
+#ifdef USE_MPI
       include 'mpif.h'
 #endif
       integer :: ierr
@@ -182,7 +182,7 @@ c
       real*8 :: outBuffer(2,3) ! 3 pairs of form {value, index}
 
       integer :: mpiOperation
-#ifdef USE_ESMF
+#ifdef USE_MPI
       ! use MPI_Reduce to find maxval and associated indices
       inBuffer(1,1:3) = value
       inBuffer(2,1:3) = ijk

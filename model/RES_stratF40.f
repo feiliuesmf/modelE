@@ -1,12 +1,10 @@
 !@sum  RES_stratF40 Resolution info for 40 layer, 2x2.5 model
 !@+    (top at .1 mb, GWDRAG is used)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

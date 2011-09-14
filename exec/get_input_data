@@ -70,6 +70,7 @@ if ( ! -d $data_dir ) {
     mkdir $data_dir, 0755 or die "can't create dir: $data_dir\n";
 }
 
+$failed_downloads = "";
 foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
@@ -81,7 +82,7 @@ foreach $str (@a) {
 	    print "Downloading:     $filename\n";
 	    `cd $file_dir &&  wget $DATA_PORTAL_URL/$filename`;
 	    $rcode = $? >> 8;
-	    if ( $rcode != 0 ) { die "download failed\n"; }
+	    if ( $rcode != 0 ) { $failed_downloads .= $filename."\n"; }
 	} else {
 	    if ( -M "$GCMSEARCHPATH/$filename" < $max_age ) {
 		print "Copying:     $filename\n";
@@ -96,6 +97,9 @@ foreach $str (@a) {
     }
 }
 
+if ( $failed_downloads ) {
+    die "\nERROR: Failed to download:\n$failed_downloads\n";
+}
 
 sub create_path {
     my $path = shift;

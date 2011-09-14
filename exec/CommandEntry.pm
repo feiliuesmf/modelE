@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 package CommandEntry;
+use Env;
 
 sub new {
   my $proto = shift;
@@ -15,6 +16,8 @@ sub new {
   $self -> {STATUS} = PENDING;
   $self -> {STDOUT_LOG_FILE} = "LOG";
   $self -> {STDERR_LOG_FILE} = "ERR";
+  $self -> {COMPILER} = "";
+  $self -> {RUNDECK} = "";
 
   # override defaults with arguments
   while ( my ($key, $value) = each(%$args) ) {
@@ -81,9 +84,11 @@ sub runInBatch {
   my $commandString = shift;
   my $queue = shift;
   my $queueString = " ";
+  my $jobname  = $self->{RUNDECK};
   if ($queue) {$queueString = "-q $queue\n";};
 
-  my $NODE_SIZE = 8;
+#  my $NODE_SIZE = 8;
+  my $NODE_SIZE = 16;
 
   my $nCPUS = $self -> {NUM_PROCS};
   my $nodes = 1 + int(($nCPUS-1)/$NODE_SIZE);
@@ -91,24 +96,44 @@ sub runInBatch {
   $ncpus = $NODE_SIZE if ($ncpus > $NODE_SIZE);
 
   $walltime = "3:00:00\n";
-#  if ($queue == "datamove") {$walltime = "0:30:00\n"};
 
+  print " runInBatch: COMPILER=$self->{COMPILER}, jobname=$jobname\n";
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=$ncpus:proc=neha
+#PBS -l select=$nodes:ncpus=8:proc=neha
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
-#PBS -N regression
+#PBS -N $jobname
 #PBS -j oe
-##PBS -o foo
 #PBS $queueString
+#PBS -V
 
 cd \$PBS_O_WORKDIR
+
+export TMPDIR=/tmp
+
 . /usr/share/modules/init/bash
 module purge
-module load comp/intel-10.1.023 lib/mkl-10.1.2.024 mpi/impi-3.2.1.009
 
+EOF
+
+    if ($self->{COMPILER} eq intel) {
+
+  $script .= <<EOF;
+module load comp/intel-11.1.072  mpi/impi-3.2.2.006
+EOF
+
+} else {
+  $script .= <<EOF;
+module load other/comp/gcc-4.6-20110312
+EOF
+
+}
+
+$script .= <<EOF;
 $commandString
+date
+env
 EOF
 
 `echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
@@ -125,6 +150,10 @@ sub launch {
 
   my $mode = $self -> {QUEUE};
 
+  print " launch: COMPILER=$self->{COMPILER}\n";
+  $ENV{TMPDIR}="/tmp";
+  setModuleEnvironment($self->{COMPILER});
+  $ENV{MODELERC}=$self->{MODELRC};
   if ($self -> {QUEUE} eq LOCAL) {
     `($commandString) &`; # run in background
   }
@@ -133,25 +162,17 @@ sub launch {
   }
 }
 
-sub launchMultiple {
-  my $cmds       = shift;
-  my $semaphores = shift;
-
-  my $commandString;
-
-  foreach (@$cmds) {
-    $commandString .= "(";
-    $commandString .= ($_) -> {COMMAND};
-    $commandString .= "; touch " . shift(@$semaphores) . ") &;";
-  }
-  $commandString .= "wait";
-
-  if ($self -> {QUEUE} eq LOCAL) {
-    `$commandString`;
-  }
-  else {
-    $self -> runInBatch($commandString, $self -> {QUEUE});
-  }
+sub setModuleEnvironment {
+    my $compiler = shift;
+    print " setModuleEnvironment: COMPILER=$compiler\n";
+    require "$ENV{MODULESHOME}/init/perl";  
+    module (purge);
+    if ($compiler eq intel) {
+	module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
+    } elsif ($compiler eq gfortran) {
+	module (load, "other/comp/gcc-4.6-20110312");
+    } else {
+    }
 }
 
 1;

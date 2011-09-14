@@ -13,21 +13,29 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define SCM                          ! run as Single Column Model
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
+#include "latlon_source_files"
+
+ATM_COM
 RES_F40                             ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-MODEL_COM GEOM_B IORSF              ! model variables and geometry
+MODEL_COM                           ! model variables and geometry
+IO_DRV                              ! new i/o
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
-              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
-ATMDYN_SCM_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
+ALLOC_DRV                           ! domain decomposition, allocate 
+                                    ! global distributed arrays
+ATM_DRV                             ! driver for atmosphere-grid components
+OCN_DRV                             ! driver for ocean-grid components
+ATMDYN_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
 ATMDYN_SCM_EXT ATM_UTILS
 SCM_COM SCMDATA_SGPCONT             ! routines for reading and processing SCM forcings and IC's
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
-CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds mods newest from Yao-withSCMandDRY
+CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE  FLUXES                     ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils and use ARM surface forcings     
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -41,41 +49,31 @@ OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics (diag, diag_prt dummies in scm_diag) 
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
+DIAG_COM DEFACC DIAG                ! diagnostics (diag, diag_prt dummies in scm_diag) 
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
       FFT144                        ! utilities
-POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+ESMF_Interface shared dd2d
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
+GIC=GIC.144X90.DEC01.1.ext.nc   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
 RVR=RD_modelE_F.RVR.bin      ! river direction file
+
 #include "rad_input_files"
-TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
-TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
-TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
-TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+
+#include "TAero2003_input_files"
+
+#include "O3_2005_input_files"
+
+
 GHG=GHG.Mar2004.txt
 TOP_INDEX=top_index_144x90_a.ij.ext
 MSU_wts=MSU.RSS.weights.data

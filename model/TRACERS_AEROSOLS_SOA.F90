@@ -8,8 +8,9 @@ module TRACERS_SOA
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel, am_i_root
-use TRACER_COM, only: ntm,nsoa,tr_mm,&
+use TRACER_COM, only: NTM,nsoa,tr_mm,&
                       n_Isoprene,&
+
 #ifdef TRACERS_TERP
                       n_Terpenes,&
                       n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,&
@@ -23,7 +24,7 @@ integer                    :: n_soa_i,n_soa_e
 !@var mw the molecular weight of all tracers, in units of tracer mass per mole
 !@+      in order to replace the tm_mm which in some exceptional cases is in units of
 !@+      a certain atom (typically C or S) per mole.
-real*8, dimension(ntm)     :: mw
+real*8, allocatable, dimension(:)     :: mw
 !@var apartmass the mass-based yield of semivolatile species from chemistry
 !@var apartmolar the molar-based yield of semivolatile species from chemistry
 real*8, dimension(LM,nsoa) :: apartmass,apartmolar
@@ -37,7 +38,7 @@ real*8, dimension(LM)      :: voc2nox
 !@var apartmass_nox_ref the high-NOx mass-based yield of semivolatile species from chemistry
 real*8, dimension(nsoa)    :: apartmass_ref,apartmass_nox_ref
 !@var  molec2ug converts molec/cm3 to ug/m3. 1.d0/molec2ug converts ug/m3 to molec/cm3
-real*8, dimension(ntm) :: molec2ug
+real*8, allocatable, dimension(:)     :: molec2ug
 !@param LM_soa the uppermost level where chemical production of semivolatile gases is allowed
 !WRONG ON PURPOSE
 ! SOA production from chemistry should be allowed everywhere, but
@@ -50,7 +51,7 @@ integer, parameter :: LM_soa=floor(float(LM)/3.)
 ! soa semivolatile products in aerosol phase
 !
 !@var whichsoa converts tracer index to soa index
-integer, dimension(ntm)  :: whichsoa
+integer, allocatable, dimension(:)     :: whichsoa
 !@var issoa converts soa index to tracer index
 integer, dimension(nsoa) :: issoa
 
@@ -234,9 +235,12 @@ issoa(3)=n_apinp1a
 issoa(4)=n_apinp2a
 #endif  /* TRACERS_TERP */
 
+allocate(mw(ntm))
+allocate(molec2ug(ntm))
 !
 ! create whichsoa from issoa, in order to correlate the two variables
 !
+allocate(whichsoa(ntm))
 whichsoa=0
 do i=1,nsoa
   do j=1,ntm
@@ -411,6 +415,9 @@ use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
 #endif
                       n_msa,n_so4,&
                       mass2vol
+#ifdef TRACERS_AEROSOLS_VBS
+use TRACERS_VBS, only: vbs_tr
+#endif
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_changeL_isoprene,&
@@ -527,8 +534,12 @@ DO JL=L,L
 ! Partitioning in both OC and BC always happens
 ! Partitioning in (SO4+MSA) and/or NH4/NO3 is also an option
 !
-  PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)+&
-      y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
+  PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)
+#ifdef TRACERS_AEROSOLS_VBS
+  PCP=PCP+sum(vbs_tr%aer(:))
+#else
+  PCP=PCP+y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
   PCP=PCP+y_ug(n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -546,8 +557,12 @@ DO JL=L,L
   do i=1,ntm
     y_mw(i)=y_ug(i)/mw(i)
   enddo
-  AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)+&
-          y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
+  AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)
+#ifdef TRACERS_AEROSOLS_VBS
+  AEROtot=AEROtot+sum(y_mw(vbs_tr%iaer))
+#else
+  AEROtot=AEROtot+y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
   AEROtot=AEROtot+y_mw(n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -603,9 +618,15 @@ DO JL=L,L
     xmf(imfbcii)=y_mw(n_bcii)/AEROtot
     xmf(imfbcia)=y_mw(n_bcia)/AEROtot
     xmf(imfbcb)=y_mw(n_bcb)/AEROtot
+#ifdef TRACERS_AEROSOLS_VBS
+    xmf(imfocii)=0.d0
+    xmf(imfocia)=sum(y_mw(vbs_tr%iaer))/AEROtot
+    xmf(imfocb)=0.d0
+#else
     xmf(imfocii)=y_mw(n_ocii)/AEROtot
     xmf(imfocia)=y_mw(n_ocia)/AEROtot
     xmf(imfocb)=y_mw(n_ocb)/AEROtot
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
     xmf(imfococean)=y_mw(n_ococean)/AEROtot
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -666,9 +687,16 @@ DO JL=L,L
 ! Calculate mean molecular weight
 !
   if (AEROtot > 0.d0) then
-    meanmw=y_mw(n_ocii)*mw(n_ocii)/AEROtot
+    meanmw=0.d0
+#ifdef TRACERS_AEROSOLS_VBS
+    do i=1,vbs_tr%nbins
+      meanmw=meanmw+y_mw(vbs_tr%iaer(i))*mw(vbs_tr%iaer(i))/AEROtot
+    enddo
+#else
+    meanmw=meanmw+y_mw(n_ocii)*mw(n_ocii)/AEROtot
     meanmw=meanmw+y_mw(n_ocia)*mw(n_ocia)/AEROtot
     meanmw=meanmw+y_mw(n_ocb)*mw(n_ocb)/AEROtot
+#endif /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
     meanmw=meanmw+y_mw(n_ococean)*mw(n_ococean)/AEROtot
 #endif  /* TRACERS_AEROSOLS_OCEAN */

@@ -1,14 +1,13 @@
 #include "rundeck_opts.h"
 
 #ifdef OBIO_ON_GARYocean
-      subroutine obio_model
+      subroutine obio_model(atm)
 #else
-      subroutine obio_model(nn,mm)
+      subroutine obio_model(nn,mm,atm)
 #endif
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
 !@auth Natassa Romanou/Watson Gregg
-!@ver  1.0
 
       USE Dictionary_mod
       USE obio_dim
@@ -16,17 +15,15 @@
       USE obio_forc, only: solz,tirrq,Ed,Es
      .                    ,rmud,atmFe,avgq,ihra,sunz
      .                    ,wind
-     .                    ,owind,osolz
      .                    ,alk
      .                    ,tirrq3d
 #ifdef OBIO_RAD_coupling
      .                    ,eda_frac,esa_frac
-     .                    ,ovisdir,ovisdif,onirdir,onirdif
      .                    ,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
      .                    ,Eda,Esa,Eda2,Esa2
 #endif
-      USE obio_com,  only: gcmax,day_of_month,hour_of_day
+      USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
@@ -87,8 +84,8 @@
       USE FILEMANAGER, only: openunit,closeunit
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : tracflx,tracflx1d
+      USE TRACER_COM, only : ntm=>NTM    !tracers involved in air-sea gas exch
+      USE TRACER_GASEXCH_COM, only : tracflx1d !,tracflx
 #endif
 
 
@@ -119,8 +116,9 @@
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
       use TimerPackage_mod
 
-
+      use exchange_types, only : atmocn_xchng_vars
       implicit none
+      type(atmocn_xchng_vars) :: atm
 
       integer i,j,k,l,km,nn,mm
 
@@ -141,6 +139,8 @@
       character jstring*3
 
       logical vrbos,noon,errcon
+
+      if(.not.dobio) return
 
       call start(' obio_model')
 !--------------------------------------------------------
@@ -290,12 +290,11 @@
 #endif
 
       call start('  obio main loop')
-c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
-c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
 #ifdef OBIO_ON_GARYocean
        do 1000 j=j_0,j_1
        do 1000 i=i_0,i_1
+       dp1d(:) = 0.
        IF(FOCEAN(I,J).gt.0.) THEN
 #else
        do 1000 j=j_0,j_1             !1,jj
@@ -475,10 +474,10 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 
 #ifdef OBIO_RAD_coupling
-       ovisdir_ij=ovisdir(i,j)
-       ovisdif_ij=ovisdif(i,j)
-       onirdir_ij=onirdir(i,j)
-       onirdif_ij=onirdif(i,j)
+       ovisdir_ij=atm%dirvis(i,j)
+       ovisdif_ij=atm%difvis(i,j)
+       onirdir_ij=atm%dirnir(i,j)
+       onirdif_ij=atm%difnir(i,j)
 
        if (vrbos)write(*,'(/,a,3i5,4e12.4)')
      .    'obio_model, radiation: ',
@@ -512,14 +511,14 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 !        solz=solz2(ihr0)     !because of bi-hourly values
 !        sunz=sunz2(ihr0)     !in degs
-         solz=osolz(i,j)      !read instead from modelE
+         solz=atm%cosz1(i,j) !osolz(i,j)      !read instead from modelE
          sunz=acos(solz)*rad  !in degs
 
 
 !      wind=wndspd(i,j,l0)*w0+wndspd(i,j,l1)*w1
 !    .     +wndspd(i,j,l2)*w2+wndspd(i,j,l3)*w3
 
-       wind=owind(i,j)
+       wind=atm%wsavg(i,j) !owind(i,j)
 
 !      atmFe_ij=atmFe_all(i,j,l0)*w0 + atmFe_all(i,j,l1)*w1
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
@@ -536,7 +535,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
        do nt=1,ntm
-          tracflx1d(nt) = tracflx(i,j,nt)
+          tracflx1d(nt) = atm%trgasex(nt,i,j) !tracflx(i,j,nt)
 !         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
 !    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
        enddo
@@ -1019,6 +1018,7 @@ cdiag     endif
        do nt=1,nchl
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
+       atm%chl(i,j) = tot_chlo(i,j)
        if (vrbos) then
           !!!write(*,'(/,a,3i5,e12.4)')
           write(*,*)
@@ -1043,6 +1043,7 @@ cdiag     endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
+       atm%pCO2(i,j)=pCO2_ij
 
 #ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
        !update cexp array
@@ -1144,7 +1145,6 @@ cdiag     endif
 #endif
 
  1000 continue
-c$OMP END PARALLEL DO
       call stop('  obio main loop')
 
       call start('  obio gather')

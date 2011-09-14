@@ -6,7 +6,11 @@ SUPPORTED_OPTIONS = ESMF NC_IO
 FSRCS = cdl_mod.f
 
 ifeq ($(NC_IO),PNETCDF)
+ifeq ($(MPI),YES)
 FSRCS += pario_pnc.f
+else
+FSRCS += pario_nc.f
+endif
 else
 FSRCS += pario_nc.f
 endif

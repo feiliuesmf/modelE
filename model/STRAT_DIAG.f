@@ -1,6 +1,5 @@
 !@sum  STRAT_DIAG file for special E-P flux diagnostics from strat model
 !@auth B. Suozzo/J/ Lerner
-!@ver  1.0
 
       SUBROUTINE EPFLUX
 #ifndef CUBED_SPHERE
@@ -8,7 +7,6 @@
 #endif
 !@sum  EPFLUX calculates finite difference EP Flux on B-grid
 !@auth B. Suozzo/J. Lerner
-!@ver  1.0
 C**** B-grid
 C**** INPUT:
 C****     U - Zonal wind (corners) (m s-1)
@@ -30,27 +28,28 @@ C****                (L=1 is ground level)
 C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
-      USE MODEL_COM, only : lm,pdsigl00
+      USE RESOLUTION, only : lm
       USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, SOUTH, NORTH,
      &     HALO_UPDATEj
 #ifdef CUBED_SPHERE
-      USE MODEL_COM, only : ls1,psfmpt,dsig
-      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,byim, jl_dpb,
+      USE RESOLUTION, only : ls1,psfmpt
+      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,byim,jl_dpb,
      &     dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp,dxyp
       USE GCDIAG, only : cs2llinta,cs2llintb
       use cs2ll_utils, only : cs2llint_ij,cs2llint_ijl,cs2llint_lluv_3d
-      use model_com, only : pcs=>p,tcs=>t
+      use atm_com, only : pcs=>p,tcs=>t,ualij,valij
       use domain_decomp_atm, only : grid_cs=>grid
-      USE DYNAMICS, only : ualij,valij,conv
+      USE DYNAMICS, only : dsig,conv
       use geom, only : byaxyp
 #else
-      USE DOMAIN_DECOMP_1D, only : GRID
-      USE MODEL_COM, only : im,jm,byim
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
+      USE DIAG_COM, only : byim
 #endif
-      USE  DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
-
+      USE DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
+      USE ATM_COM, only : pdsigl00
       IMPLICIT NONE
 #ifdef CUBED_SPHERE
       real*8, dimension(:,:,:), allocatable :: u,v,t,w, uijl,vijl,wcs
@@ -67,7 +66,7 @@ C**** ARRAYS CALCULATED HERE:
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UV,UW,FD
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *        STB,TI
+     *        STB,TI,AX
      *     ,VR,WR,RX,UI,VI,WI
       REAL*8  RXCL(LM),UCL(LM), WXXS(IM),WXXN(IM)
 
@@ -584,8 +583,9 @@ C****
 #ifndef CUBED_SPHERE
       subroutine EPFLXI(U)
 C****     U - Zonal wind (corners) (m s-1)
-      USE DOMAIN_DECOMP_1D, only : grid, get
-      USE MODEL_COM, only : im,jm,lm,pdsigl00
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, only : get
+      USE RESOLUTION, only : im,jm,lm
       USE  DIAG_COM, only : agc=>agc_loc,KAGC
       REAL*8, INTENT(INOUT), 
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -602,7 +602,6 @@ C****
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
 !@auth B. Suozzo/J. Lerner
-!@ver  1.0
 C****
 C**** B-grid
 C**** INPUT:
@@ -621,21 +620,24 @@ C****        COR(j,l),CORR(j,l) - same as above   m3 s-2
 C****        ER1,ER2 - error terms 1 and 2   m s-2
 C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
-      USE MODEL_COM, only : lm,dsig,dtsrce=>dtsrc
-     *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
-      USE DIAG_COM, only : ajl,kagc,kep,agc,jl_damdc,jl_dammc
+      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : lm
+      USE MODEL_COM, only : dtsrce=>dtsrc,idacc
+      USE DYNAMICS, only : dsig
+      USE DIAG_COM, only : ndaa,ajl,kagc,kep,agc,jl_damdc,jl_dammc
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dudtsdif,jl_dudtvdif
      &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
-     &     ,sname_strlen,units_strlen,lname_strlen
      &     ,lname=>lname_gc,sname=>sname_gc,units=>units_gc,pow=>pow_gc
+      USE ATM_COM, only : pmidl00,pdsigl00
 #ifdef CUBED_SPHERE
       USE GCDIAG, only : im=>imlon,jm=>jmlat,byim,fim,
      &     dxv,cosv,cosp,dxyp,dyv,bydxyv
 #else
       USE DIAG_SERIAL, only : JLMAP
-      USE MODEL_COM, only : im,jm,byim,fim
+      USE RESOLUTION, only : im,jm
       USE GEOM, only : dxv,cosv,cosp,dyv,bydxyv
+      USE DIAG_COM, only : fim,byim
 #endif
       USE GCDIAG, only : jl_dpb,jk_dudt_sum1,jk_dudt_meanadv,
      &     jk_dudt_eddycnv,jk_dudt_trnsadv,jk_dudt_epflxdiv,
@@ -670,7 +672,7 @@ C**** ARRAYS CALCULATED HERE:
 
       REAL*8,DIMENSION(JM,LM,KEP) :: XEP
       REAL*8 DTAEP,BYDT,SCALEP,SCALE1,BYIAEP
-      INTEGER J,L,N,JL
+      INTEGER I,J,L,N,JL
 
 C**** Initialize constants
       DTAEP = DTsrce*NDAA   ! change of definition of NDAA
@@ -869,14 +871,14 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
       SUBROUTINE AVGI (X,XI)
 !@sum  AVGI average a 3-dimensional array in the x-direction
 !@auth B. Suozzo
-!@ver  1.0
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
 #ifdef CUBED_SPHERE
-      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM
+      USE GCDIAG, only : grid,im=>imlon,BYIM
 #else
-      USE MODEL_COM, only : im,jm,BYIM
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE RESOLUTION, only : im
+      USE DOMAIN_DECOMP_ATM, only : GRID
       USE GEOM, only : imaxj
+      USE DIAG_COM, only : BYIM
 #endif
       USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
@@ -918,13 +920,13 @@ C****
       SUBROUTINE AVGVI (X,XI)
 !@sum  AVGVI average a 3-dimensional array in the x-direction (no pole)
 !@auth B. Suozzo
-!@ver  1.0
-      USE MODEL_COM, only : lm
+      USE RESOLUTION, only : lm
 #ifdef CUBED_SPHERE
-      USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,BYIM
+      USE GCDIAG, only : grid,im=>imlon,BYIM
 #else
-      USE MODEL_COM, only : im,jm,BYIM
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE RESOLUTION, only : im
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DIAG_COM, only : BYIM
 #endif
       USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE

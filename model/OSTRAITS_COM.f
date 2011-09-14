@@ -6,7 +6,6 @@
 !@sum  STRAITS ocean strait related variables
 !@+    RESOLUTION DEPENDENT: This version is for 72x46 - M
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm_atm=>ntm
 #endif
@@ -14,7 +13,7 @@
       USE OCN_TRACER_COM, only : ntm
 #endif
       USE SEAICE, only : lmi
-      USE OCEAN, only : lmo
+      USE OCEANRES, only : lmo
       IMPLICIT NONE
       SAVE
 C**** These values are highly resolution dependent
@@ -108,9 +107,11 @@ C****
 
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
-      REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
+     &     TRMST,TXMST,TZMST !(LMO,NMST,NTM)
 !@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
-      Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
+      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
+     &     TRME,TXME,TYME,TZME !(2,NMST,LMO,NTM)
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)

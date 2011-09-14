@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module PBL_DRV
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       implicit none
 
 c     input data:
@@ -10,9 +10,6 @@ c     input data:
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
       real*8 :: evap_max,fr_sat
-      common/pbl_loc/evap_max,fr_sat,uocean,vocean
-!$OMP  THREADPRIVATE (/pbl_loc/)
-
       real*8 :: cdnl(im,jm)
 
 ccc   some variables introduced in later code, first for tracers,
@@ -25,19 +22,18 @@ ccc   then globally. hope they are not used ...
       subroutine pbl(i,j,itype,ptype)
 !@sum  simple replacement for PBL
 !@auth I. Aleinov/G. Russell
-!@ver  1.0
 
 C    input: ZS1,TGV,TKV,QG_SAT,HEMI,DTSURF,POLE,UOCEAN,VOCEAN
 C    output:US,VS,WS,WSM,WSH,TSV,QSRF,PSI,DBL,KMS,KHS,KQS,PPBL
 C          ,UG,VG,WG,W2_1
 
       use constant, only :  rgas,grav,deltx,twopi ! ,teeny omega2,
-      use model_com, only :  t,q,u,v
+      use atm_com, only :  t,q,u,v
  !    &     , only : im,jm,lm, t,q,u,v,p,ptop,ls1,psf,itime
       use geom, only : idij,idjj,kmaxj,rapj,cosiv,siniv !,sinp
-      use dynamics, only : pk !,pedn  ! pmid,
+ !     use dynamics, only : pk !,pedn  ! pmid,
  !    &    ,dpdx_by_rho,dpdy_by_rho,dpdx_by_rho_0,dpdy_by_rho_0
-      use SEAICE_COM, only : msi
+      use SEAICE_COM, only : si_atm
       use seaice, only : ACE1I
       use socpbl, only :  ! npbl=>n ,
      &     zs1,tgv,tkv,qg_sat,hemi,pole    ! rest local
@@ -45,7 +41,7 @@ C          ,UG,VG,WG,W2_1
      &     ,ug,vg,wg,zgs,w2_1,wint
       use pblcom
 ccc for simple model:
-      use dynamics, only : am,pedn,pek
+      use atm_com, only : am,pedn,pek,pk
       use QUSDEF, only : mz
       use SOMTQ_COM, only : tmom,qmom
       implicit none
@@ -127,7 +123,7 @@ ccc compute cdn
       case(1) ! Ocean
         CDN   = .0009d0 + .0000025d0*WSSQ
       case(2) ! Ocean ice
-        CDN   = .00095417d0 + .0000005d0*ACE1I  + .0000005d0*MSI(I,J)
+        CDN   = .00095417d0 +.0000005d0*ACE1I+.0000005d0*si_atm%MSI(I,J)
       case(3,4) ! Land ice, Land, snow
         CDN = CDNL(I,J)
       case default
@@ -215,7 +211,7 @@ ccc hack to remove dependence on these numbers
       end module PBL_DRV
 
 
-      subroutine init_pbl(inipbl)
+      subroutine init_pbl(inipbl,istart)
 c -------------------------------------------------------------
 c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
@@ -233,6 +229,7 @@ c -------------------------------------------------------------
 
 !@var inipbl whether to init prog vars
       logical, intent(in) :: inipbl
+      integer :: istart
 !@var iu_CDN unit number for roughness length input file
       integer :: iu_CDNL
 
@@ -248,7 +245,7 @@ ccc read Gary's file here
       subroutine loadbl
 !@sum loadbl initiallise boundary layer calc each surface time step
 !@auth Ye Cheng
-      USE MODEL_COM, only : jm
+      USE RESOLUTION, only : jm
       USE GEOM, only : imaxj
       USE PBLCOM, only :
      *     wsavg,tsavg,qsavg,usavg,vsavg,tauavg
@@ -285,8 +282,7 @@ C**** initialise some pbl common variables
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
-!@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE RESOLUTION, only : im,jm
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
       IMPLICIT NONE

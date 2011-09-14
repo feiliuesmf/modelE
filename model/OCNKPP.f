@@ -6,7 +6,6 @@ C****
       MODULE KPP_COM
 !@sum  KPP_COM holds variables related to the KPP mixing scheme
 !@auth Gavin Schmidt
-!@ver  1.0
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
@@ -30,7 +29,6 @@ C****
       MODULE KPPE
 !@sum  KPPE contains variables and routines for KPP mixing scheme
 !@auth NCAR (modifications by Gavin Schmidt)
-!@ver  1.0
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
@@ -128,7 +126,6 @@ c
       real*8, parameter :: Ricr= 0.3d0, cekman= 0.7d0, cmonob=1d0, concv
      *     =1.8d0,hbf=1d0
       real*8 Vtc
-      common /kmixcbd/ Vtc
 
 c     parameters and common arrays for subroutines "kmixinit" and
 c     "wscale" to compute turbulent velocity scales:
@@ -151,8 +148,7 @@ c               for scalars
 
       integer, parameter :: nni = 890, nnj = 480
 c
-      real*8 wmt,wst
-      common /kmixcws/ wmt(0:nni+1,0:nnj+1),wst(0:nni+1,0:nnj+1)
+      real*8 wmt(0:nni+1,0:nnj+1),wst(0:nni+1,0:nnj+1)
       real*8, parameter :: zmin=-4d-7,zmax=0.,umin=0.,umax=4d-2,
      *     deltaz = (zmax-zmin)/(nni+1), deltau = (umax-umin)/(nnj+1),
      *     rdeltaz = 1./deltaz, rdeltau = 1./deltau
@@ -199,14 +195,12 @@ c     to compute mixing within boundary layer:
 
       real*8, parameter :: cstar = 10d0
       real*8 cg
-      common /kmixcbm/ cg
 
 c add variables for depth dependent mixing due to rough topography
 !@var diftop diffusion scale for topographic mixing
 !@var fz500 diffusion scale as function of height above topography
       real*8, parameter :: diftop=0d0    ! 10d0 * r10000)
-      real*8 fz500
-      common /topomix/FZ500(km,km)
+      real*8 fz500(km,km)
 
       END MODULE KPPE
 
@@ -1127,7 +1121,7 @@ C****
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
-      USE OFLUXES, only : oRSI, oSOLAR, oDMUA,oDMVA, oDMUI,oDMVI
+      USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
       Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
      *    HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
@@ -1195,7 +1189,6 @@ C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
       call halo_update (grid, UOD, from=south)
-!$OMP PARALLEL DO PRIVATE(L)
       ukm = 0
       ukmd = 0
       DO L=1,LMO
@@ -1204,26 +1197,12 @@ C**** will be fixed during convection.
         UTD(:,:,L) = UOD(:,:,L)
         VTD(:,:,L) = VOD(:,:,L)
       END DO
-!$OMP END PARALLEL DO
 C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
-!$OMP PARALLEL DO  PRIVATE(ANSTR,AKVM,AKVS,AKVG,ALPHADT, BYMML,BYMMLT,
-!$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
-!$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
-!$OMP&  FLG,FLS,G,G0ML0,G0ML,GHAT,GHATM,GHATG,GHATS,GZML, HBL,HBLP,
-!$OMP&  GXML,GYML, SXML,SYML,
-!$OMP&  HWIDE,I,II,IM1,ITER,J,K,KBL,KMUV,L,LMIJ,LMUV,MML,MML0,
-!$OMP&  MMLT, NSIGG,NSIGS, PO, QPOLE, R,R2,RAVM,RAMV,RITOP,
-!$OMP&  RHO,RHO1,RHOM, S,S0ML0,S0ML,SBETA,SHSQ,SZML, TO,TALPHA,TXY,
-#ifdef TRACERS_OCEAN
-!$OMP&  N,TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT, TXML,TYML,
-#endif
-!$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
-!$OMP&  SHARED(DTS)
       DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
@@ -1310,13 +1289,13 @@ C**** DMUA/I now defined over whole box, not just surface type
       UISTR = UISTR/IM
       VISTR = VISTR/IM
       U2rho = SQRT(
-     *     (oDMUA(1,JM,1) + UISTR)**2+
-     *     (oDMVA(1,JM,1) + VISTR)**2)*BYDTS
+     *     (oDMUA(1,JM) + UISTR)**2+
+     *     (oDMVA(1,JM) + VISTR)**2)*BYDTS
 C**** Calculate surface mass, salt and heat fluxes
       DELTAM = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
       DELTAE = (G0ML0(1) - G0ML(1))*BYDXYPO(JM)*BYDTS
       DELTAS = (S0ML0(1) - S0ML(1))*BYDXYPO(JM)*BYDTS
-      DELTASR= (oSOLAR(1,1,JM)*(1d0-oRSI(1,JM))+oSOLAR(3,1,JM)
+      DELTASR= (oSOLARw(1,JM)*(1d0-oRSI(1,JM))+oSOLARi(1,JM)
      *     *oRSI(1,JM))*BYDTS               ! W/m^2
 #ifdef TRACERS_OCEAN
       DELTATR(:) = (TRML(1,:)-TRML1(:))*BYDXYPO(JM)*BYDTS  !  kg/m2*s
@@ -1366,11 +1345,11 @@ C**** DMUA/I now defined over whole box, not just surface type
         ANSTR=1.-SIGN(0.25,LMV(I,J)-0.5)-SIGN(0.25,LMV(I,J-1)-0.5)
         VISTR = VISTR*ANSTR
       END IF
-      U2rho = SQRT((oDMUA(I,J,1) + UISTR)**2 +
-     *             (oDMVA(I,J,1) + VISTR)**2)*BYDTS
+      U2rho = SQRT((oDMUA(I,J) + UISTR)**2 +
+     *             (oDMVA(I,J) + VISTR)**2)*BYDTS
 C**** Calculate surface mass flux and Solar forcing
       DELTAM = (MO(I,J,1) -  MO1(I,J))*BYDTS ! kg/m^2 s
-      DELTASR = (oSOLAR(1,I,J)*(1d0-oRSI(I,J))+oSOLAR(3,I,J)*oRSI(I,J))
+      DELTASR = (oSOLARw(I,J)*(1d0-oRSI(I,J))+oSOLARi(I,J)*oRSI(I,J))
      *     *BYDTS               ! W/m^2
       KPL(I,J) = 1  ! Initialize mixed layer depth
 
@@ -1884,7 +1863,6 @@ C****
       END DO
 C**** End of outside J loop
   790 CONTINUE
-!$OMP END PARALLEL DO
 
 C**** Update velocities outside parallel region
       call halo_update_block (grid, UKM, from=north)
@@ -1961,7 +1939,6 @@ C****
       SUBROUTINE STCONV
 !@sum  STCONV uses vertical diffusion coefficients from KPP schmeme
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit
@@ -2251,7 +2228,6 @@ C**** End of outside loop over straits
       SUBROUTINE OVDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
 !@sum  OVDIFF Implicit vertical diff + non local transport for velocity
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
@@ -2292,7 +2268,6 @@ C**** Calculate operators for tridiagonal solver
       SUBROUTINE OVDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
 !@sum  OVDIFFS Implicit vertical diff + non local transport for tracers
 !@auth Gavin Schmidt
-!@ver  1.0
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
@@ -2354,7 +2329,6 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-!@ver  1.0
 
       USE DOMAIN_DECOMP_1D, only : dist_grid,get
 !      USE OCEANR_DIM

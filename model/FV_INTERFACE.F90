@@ -1,17 +1,16 @@
 #define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
 #define RETURN_(status) If (Present(rc)) rc=status; return
 
-!#define NO_FORCING
-
-!---------------------------------------------------------------------------------------------
-! The following module provides an interface for modelE to use the ESMF-wrapped version of
-! the FV dynamical core from GEOS-5.  Many elements closely resemble an ESMF coupler component,
-! which is to be expected given the intended role for this layer.
-!---------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------
+! The following module provides an interface for modelE to use the ESMF-wrapped 
+! version of the FV dynamical core from GEOS-5.  Many elements closely resemble
+! an ESMF coupler component, which is to be expected given the intended role for
+! this layer.
+!--------------------------------------------------------------------------------
 
 module FV_INTERFACE_MOD
 
-  use esmf_mod
+  use ESMF_mod
   use FV_UTILS
 
 #ifdef CUBED_SPHERE
@@ -21,6 +20,7 @@ module FV_INTERFACE_MOD
 #endif
 
   implicit none
+  save
   private
 
   ! except for
@@ -31,7 +31,7 @@ module FV_INTERFACE_MOD
   public :: Finalize               ! Uses modelE data to finalize the FV gridded component
 
   public :: FV_CORE_WRAPPER        ! Derived type to encapsulate FV + modelE data
-  public :: Init_app_clock         ! modelE does not use ESMF clocks, but ESMF requires one
+
   public :: Compute_Tendencies     ! Temporarily a separate method, but will move within Run() soon.
 
   Interface Initialize
@@ -51,53 +51,69 @@ module FV_INTERFACE_MOD
   Integer :: rc ! return code from ESMF
 
   Type FV_CORE_WRAPPER
-     PRIVATE
-
-     type(FV_CORE) :: fv
-
+    PRIVATE
+    type(FV_CORE) :: fv
   END Type FV_CORE_WRAPPER
+
+  Type (FV_CORE_WRAPPER), public :: fvstate
+
+  Character(Len=*), Parameter :: config_file = 'fv_config.rc'
 
 contains
 
-  subroutine Initialize_fv(fv_wrapper, istart, vm, grid, clock, config_file)
-
+!-------------------------------------------------------------------------------
+  subroutine Initialize_fv(fv_wrapper, istart, kdisk)
+!-------------------------------------------------------------------------------
+    use atm_com, only : clock=>atmclock
+    Use Domain_decomp_atm, only: grid, AM_I_ROOT
     type (fv_core_wrapper),    intent(inout) :: fv_wrapper
-    integer,           intent(in) :: istart
-    type (esmf_vm),    intent(in) :: vm
-    type (esmf_grid),  intent(inout) :: grid
-    type (esmf_clock), intent(in) :: clock
-    character(len=*),  intent(in) :: config_file ! filename for resource file
-    type (esmf_config)            :: cf
+    integer,           intent(in) :: istart,kdisk
+    type (ESMF_config)            :: cf
+    character(len=1) :: suffix
 
-    call SetupForESMF(fv_wrapper % fv, vm, grid, cf, config_file)
+! if warm start, copy FV restart files to expected names
+      if(AM_I_ROOT() .and. istart.ge.8) then
+        if(istart.lt.10) then
+          call system('cp AICfv  dyncore_internal_restart')
+          call system('cp AICdfv tendencies_checkpoint')
+        else
+          write(suffix,'(i1)') KDISK
+          call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+          call system('cp dfv.'// suffix // ' tendencies_checkpoint')
+        endif
+      endif
+
+    call setupForESMF(fv_wrapper%fv, grid%esmf_grid, cf, config_file)
 
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
-    call create_restart_file(fv_wrapper % fv, istart, cf, clock)
+    call createInternalRestart(fv_wrapper%fv, istart, cf, clock)
 
-    call GridSpecificInit(fv_wrapper % fv, clock)
+    call gridCompInit(fv_wrapper%fv, clock)
 
-    Call allocate_tendency_storage(fv_wrapper % fv, istart)
+    Call allocateTendencyStorage(fv_wrapper%fv, istart)
 
-    call HumidityInit(fv_wrapper % fv, grid)
+    call addQfieldToFVImport(fv_wrapper%fv)
 
   end subroutine Initialize_fv
 
-  subroutine run_fv(fv_wrapper, clock)
-    USE DOMAIN_DECOMP_ATM, only: grid, halo_update, get, grid
-    USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
-    USE MODEL_COM, only : NIdyn, DT, DTSRC
+!-------------------------------------------------------------------------------
+  subroutine run_fv(fv_wrapper)
+!-------------------------------------------------------------------------------
+    use atm_com, only : clock=>atmclock
+    USE RESOLUTION, Only : IM, JM, LM
+    USE ATM_COM, Only : U, V, T, P, ZATMO
+    USE MODEL_COM, only : DT => DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
 #ifdef FVCUBED_SKIPPED_THIS
     USE ATMDYN, only:  COMPUTE_MASS_FLUX_DIAGS
 #endif
-    USE DYNAMICS, only: MA, PHI, GZ
-    USE DYNAMICS, ONLY: PU, PV, CONV
-    USE DYNAMICS, ONLY: SD, PUA, PVA, SDA
+    USE DYNAMICS, ONLY: PU, PV, SD, CONV
+    USE ATM_COM, ONLY: MA, PHI, GZ, PUA, PVA, SDA
 
     Type (FV_CORE_WRAPPER)    :: fv_wrapper
-    Type (ESMF_Clock) :: clock
+!    Type (ESMF_Clock) :: clock
     type (ESMF_TimeInterval) :: timeInterval
 
     integer :: L,istep, NS, NIdyn_fv
@@ -114,23 +130,26 @@ contains
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
 
-    Call Copy_modelE_to_FV_import(fv_wrapper % fv)
+    Call Copy_modelE_to_FV_import(fv_wrapper%fv)
 
     call clear_accumulated_mass_fluxes()
 
     ! Run dycore
-    NIdyn_fv = DTsrc / (DT)
+    NIdyn_fv = 1 !DTsrc / (DT)
     do istep = 1, NIdyn_fv
 
-       call ESMF_GridCompRun ( fv_wrapper % fv % gc, fv_wrapper % fv % import, fv_wrapper % fv % export, clock, addIncsPhase, rc=rc )
-       call clearTendencies(fv_wrapper % fv)
-       call ESMF_GridCompRun ( fv_wrapper % fv % gc, fv_wrapper % fv % import, fv_wrapper % fv % export, clock, rc=rc )
+       call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
+            fv_wrapper%fv%export, clock, phase=addIncsPhase, rc=rc )
+
+       call clearTendencies(fv_wrapper%fv)
+       call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
+            fv_wrapper%fv%export, clock, rc=rc )
 
        call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
        call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
-       call accumulate_mass_fluxes(fv_wrapper % fv)
-       call Copy_FV_export_to_modelE(fv_wrapper % fv) ! inside loop to accumulate PUA,PVA,SDA
+       call accumulate_mass_fluxes(fv_wrapper%fv)
+       call Copy_FV_export_to_modelE(fv_wrapper%fv) ! inside loop to accumulate PUA,PVA,SDA
 
        call reset_tmom
 #if defined(USE_FV_Q)
@@ -147,15 +166,17 @@ contains
     call compute_cp_vvel(pua,pva,sda,p)
 
     gz  = phi
+    
+  contains
 
-    contains
+    !---------------------------------------------------------------------------
+    subroutine reset_tmom
+    !---------------------------------------------------------------------------
 
-     subroutine reset_tmom
-
-      USE MODEL_COM, only : im,jm,lm,t
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : t,pmid,pedn
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
-      USE DYNAMICS, only : pmid,pedn
       implicit none
 
       integer :: i,j,l
@@ -185,14 +206,16 @@ contains
 
       return
 
-     end subroutine reset_tmom
+    end subroutine reset_tmom
 
-     subroutine reset_qmom
+    !---------------------------------------------------------------------------
+    subroutine reset_qmom
+    !---------------------------------------------------------------------------
 
-      USE MODEL_COM, only : im,jm,lm,q
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : q,pmid,pedn
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
-      USE DYNAMICS, only : pmid,pedn
       implicit none
 
       integer :: i,j,l
@@ -229,18 +252,39 @@ contains
 
   end subroutine run_fv
 
-  subroutine Checkpoint(fv_wrapper, clock, fv_fname, fv_dfname)
-    USE DOMAIN_DECOMP_ATM, only: am_I_root
-
+!-------------------------------------------------------------------------------
+  subroutine Checkpoint(fv_wrapper, modelEfilename)
+!-------------------------------------------------------------------------------
+    use model_com, only : rsf_file_name,xlabel,lrunid
+    use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (esmf_clock), intent(in) :: clock
-    character(len=*), intent(in) :: fv_fname, fv_dfname
+    character(len=*), intent(in) :: modelEfilename
 
     character(len=*), parameter :: SUFFIX_TEMPLATE = '.YYYYMMDD_HHMMz.bin'
     character(len=len(SUFFIX_TEMPLATE)) :: suffix
     Type (ESMF_Time)  :: currentTime
     integer :: year, month, day, hour, minute, second
     logical :: isFinalize
+
+    character(len=80) :: fv_fname, fv_dfname
+    character(len=1)  :: c1
+    integer :: m
+
+    if( any(rsf_file_name(:)==trim(modelEfilename)) ) then
+      ! standard checkpoint file
+      do m=1,size(rsf_file_name)
+        if(rsf_file_name(m) == trim(modelEfilename)) exit
+      enddo
+      write(c1,'(i1)') m
+      fv_fname='fv.'//c1
+      fv_dfname='dfv.'//c1
+    elseif( index(modelEfilename,'.rsf')==9 ) then
+      ! end-of-month file of the form 1MONYEAR.rsfRUNNAME
+      fv_fname  = modelEfilename(1:8)//'.fv'//XLABEL(1:LRUNID)
+      fv_dfname = modelEfilename(1:8)//'.dfv'//XLABEL(1:LRUNID)
+    else
+      call stop_model('checkpoint_fv: unrecognized modelEfilename',255)
+    endif
 
     ! dyncore_internal_restart.YYYYMMDD_HHMMz.bin
     call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
@@ -251,33 +295,42 @@ contains
          & year, month, day, hour, minute
 
     isFinalize = .false.
-    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
+    call DumpState(fv_wrapper%fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
 
   end subroutine Checkpoint
 
-  subroutine Finalize(fv_wrapper, clock, fv_fname, fv_dfname)
-    USE DOMAIN_DECOMP_ATM, only: am_I_root
-
+!-------------------------------------------------------------------------------
+  subroutine Finalize(fv_wrapper, kdisk)
+!-------------------------------------------------------------------------------
+    use atm_com, only : clock=>atmclock
     Type (FV_Core_Wrapper) :: fv_wrapper
-    type (esmf_clock), intent(in) :: clock
-    character(len=*), intent(in) :: fv_fname, fv_dfname
+    integer, intent(in) :: kdisk
 
     character(len=0) :: suffix = ''
     logical :: isFinalize
+    character(len=28) :: fv_fname, fv_dfname
+    character(len=1)  :: c1
+
+    write(c1,'(i1)') kdisk
+    fv_fname='fv.'//c1
+    fv_dfname='dfv.'//c1
 
     isFinalize = .true.
-    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
+    call DumpState(fv_wrapper%fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
 
-    Deallocate(fv_wrapper % fv % U_old, fv_wrapper % fv % V_old, &
-          &    fv_wrapper % fv % dPT_old, fv_wrapper % fv % dT_old, &
-          &    fv_wrapper % fv % PE_old)
+    Deallocate(fv_wrapper%fv%U_old, fv_wrapper%fv%V_old, &
+          &    fv_wrapper%fv%dPT_old, fv_wrapper%fv%dT_old, &
+          &    fv_wrapper%fv%PE_old)
 
   end subroutine Finalize
 
-  Subroutine allocate_tendency_storage(fv, istart)
+!-------------------------------------------------------------------------------
+  Subroutine allocateTendencyStorage(fv, istart)
+!-------------------------------------------------------------------------------
     Use Domain_decomp_atm, only: GRID, GET, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
-    USE MODEL_COM, only: U, V, T, DTsrc
+    USE MODEL_COM, only: DTsrc
+    USE ATM_COM, only: U, V, T
     use FILEMANAGER
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
 #ifdef CUBED_SPHERE
@@ -299,23 +352,23 @@ contains
          & J_STRT=J_0, J_STOP=J_1, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
     ! 1) Link/copy modelE data to import state
-    call ESMFL_StateGetPointerToData ( fv % import,fv % dudt,'DUDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%import,fv%dudt,'DUDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % import,fv % dvdt,'DVDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%import,fv%dvdt,'DVDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % import,fv % dtdt,'DTDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%import,fv%dtdt,'DTDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % import,fv % dpedt,'DPEDT',rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%import,fv%dpedt,'DPEDT',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % import,fv % phis, 'PHIS', rc=rc)
+    call ESMFL_StateGetPointerToData ( fv%import,fv%phis, 'PHIS', rc=rc)
     VERIFY_(rc)
 
     ! 2) Allocate space for storing old values from which to compute tendencies
-    Allocate(fv % U_old(I_0:I_1,J_0:J_1,LM), &
-         &   fv % V_old(I_0:I_1,J_0:J_1,LM), &
-         &   fv % dPT_old(I_0:I_1,J_0:J_1,LM), &
-         &   fv % dT_old(I_0:I_1,J_0:J_1,LM), &
-         &   fv % PE_old(I_0:I_1,J_0:J_1,LM+1))
+    Allocate(fv%U_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv%V_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv%dPT_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv%dT_old(I_0:I_1,J_0:J_1,LM), &
+         &   fv%PE_old(I_0:I_1,J_0:J_1,LM+1))
 
     select case (istart)
     case (:initial_start)
@@ -336,28 +389,28 @@ contains
        Deallocate(U_temp, V_temp)
 
        ! the tendency must be scaled by DT for use by the core's ADD_INCS routine
-       fv % dudt=ReverseLevels(U(I_0:I_1,J_0:J_1,:))/DTsrc
-       fv % dvdt=ReverseLevels(V(I_0:I_1,J_0:J_1,:))/DTsrc
+       fv%dudt=ReverseLevels(U(I_0:I_1,J_0:J_1,:))/DTsrc
+       fv%dvdt=ReverseLevels(V(I_0:I_1,J_0:J_1,:))/DTsrc
 #else
-       fv % dudt=0
-       fv % dvdt=0
+       fv%dudt=0
+       fv%dvdt=0
 #endif
-       fv % dtdt=0
-       fv % dpedt=0
+       fv%dtdt=0
+       fv%dpedt=0
 
-       fv % U_old = U(I_0:I_1,J_0:J_1,:)
-       fv % V_old = V(I_0:I_1,J_0:J_1,:)
-       fv % dPT_old = DeltPressure_DryTemp_GISS()
-       fv % dT_old = DryTemp_GISS()
-       fv % PE_old   = EdgePressure_GISS()
+       fv%U_old = U(I_0:I_1,J_0:J_1,:)
+       fv%V_old = V(I_0:I_1,J_0:J_1,:)
+       fv%dPT_old = DeltPressure_DryTemp_GISS()
+       fv%dT_old = DryTemp_GISS()
+       fv%PE_old   = EdgePressure_GISS()
     case (extend_run:)
        ! input couplings are in a file somewhere and already read in
        call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
-       call readArr(iunit, fv % U_old)
-       call readArr(iunit, fv % V_old)
-       call readArr(iunit, fv % dPT_old)
-       call readArr(iunit, fv % PE_old)
-       call readArr(iunit, fv % dT_old)
+       call readArr(iunit, fv%U_old)
+       call readArr(iunit, fv%V_old)
+       call readArr(iunit, fv%dPT_old)
+       call readArr(iunit, fv%PE_old)
+       call readArr(iunit, fv%dT_old)
        call closeunit(iunit)
 
        if (AM_I_ROOT()) then
@@ -393,13 +446,15 @@ contains
 
     end subroutine readArr
 
-  End Subroutine allocate_tendency_storage
+  End Subroutine allocateTendencyStorage
 
   ! Compute tendencies
   ! ------------------
+!-------------------------------------------------------------------------------
   subroutine compute_tendencies_internal(fv)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM
-    USE MODEL_COM, Only: U, V, T
+    USE ATM_COM, Only: U, V, T
     USE DOMAIN_DECOMP_ATM, only: grid, get
     USE DYNAMICS, only: DUT, DVT
 
@@ -411,16 +466,22 @@ contains
     Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! U, V
-    DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), fv % U_old(I_0:I_1,J_0:J_1,:))
-    DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), fv % V_old(I_0:I_1,J_0:J_1,:))
-    call ConvertUV_GISS2FV(ReverseLevels(DUT(I_0:I_1,J_0:J_1,:)), ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), fv % dudt, fv % dvdt)
+    DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), &
+                                      fv%U_old(I_0:I_1,J_0:J_1,:))
+    DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), &
+                                      fv%V_old(I_0:I_1,J_0:J_1,:))
+    call ConvertUV_GISS2FV(ReverseLevels(DUT(I_0:I_1,J_0:J_1,:)), &
+                           ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), &
+                           fv%dudt, fv%dvdt)
 
     ! delta pressure weighted Temperature
-    fv  %  dtdt = ReverseLevels(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv % dT_old)) * &
-         & (PRESSURE_UNIT_RATIO)
+    fv % dtdt = ReverseLevels(DeltPressure_GISS() * &
+                              Tendency(DryTemp_GISS(), fv%dT_old)) * &
+                              (PRESSURE_UNIT_RATIO)
 
     ! Edge Pressure
-       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
+       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), &
+                                              fv%dpedt)
 
 #ifdef NO_FORCING
        call clearTendencies(fv)
@@ -429,10 +490,12 @@ contains
   end subroutine compute_tendencies_internal
 
   ! This routine exposes compute_tendencies to the main program, using the fv_wrapper
+!-------------------------------------------------------------------------------
   subroutine compute_tendencies_external(fv_wrapper)
+!-------------------------------------------------------------------------------
      Type (FV_CORE_WRAPPER) :: fv_wrapper
 
-     call compute_tendencies(fv_wrapper % fv)
+     call compute_tendencies(fv_wrapper%fv)
   end subroutine compute_tendencies_external
 
 end module FV_INTERFACE_MOD

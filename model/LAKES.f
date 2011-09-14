@@ -8,9 +8,8 @@
 !@auth Gavin Schmidt/Gary Russell
 !@ver  2010/08/04 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
-      USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : trname,ntm
+      USE TRACER_COM, only : trname,ntm=>NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -72,7 +71,6 @@ C**** 1-8 anti-clockwise from top RH corner
      *     EVAPO,ENRGFO,ACEFO,ACEFI,ENRGFI)
 !@sum  LKSOURC applies fluxes to lake in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : qcheck
       USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
       IMPLICIT NONE
@@ -273,7 +271,6 @@ C**** distribute ice fluxes according to flux amounts
      *     HLAKE,TKE,ROICE,DTSRC)
 !@sum  LKMIX calculates mixing and entrainment in lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       IMPLICIT NONE
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
@@ -380,9 +377,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
-      USE MODEL_COM, only : IM, JM
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
      *     KD911,IFL911,JFL911
       IMPLICIT NONE
@@ -410,30 +405,27 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       SUBROUTINE init_LAKES(inilake,istart)
 !@sum  init_LAKES initiallises lake variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
-      USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
-     *     ,focean,jday,fearth0
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,jday
+      USE ATM_COM, only : zatmo
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
-c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
-      USE FLUXES, only : gtracer
 #endif
-      USE FLUXES, only : gtemp,mlhc,gtempr
-      USE SEAICE_COM, only : rsi
+      USE FLUXES, only : atmocn
+     &     ,flice,focean,fearth0,flake0,fland
       USE PBLCOM, only : tsavg
       USE GHY_COM, only : fearth
       USE LAKES
       USE LAKES_COM
-      USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
+      USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
@@ -441,13 +433,12 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       INTEGER :: JMIN_FILL,JMAX_FILL
       integer :: iu_warn
 
-c***      Type (ESMF_HaloDirection) :: direction
-      Integer :: direction ! ESMF_HaloDirection not yet implemented
       LOGICAL, INTENT(InOut) :: inilake
       INTEGER, INTENT(IN) :: ISTART
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
+      INTEGER iu_SILL  !@var iu_TOPO unit number for sill depth file
       CHARACTER TITLEI*80, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -463,6 +454,17 @@ c***      Type (ESMF_HaloDirection) :: direction
       REAL*8, dimension(2) :: ll
       REAL*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
       INTEGER get_dir
+      REAL*8, DIMENSION(:,:), POINTER :: GTEMP,GTEMP2,GTEMPR
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
+#endif
+
+      GTEMP => ATMOCN%GTEMP
+      GTEMP2 => ATMOCN%GTEMP2
+      GTEMPR => ATMOCN%GTEMPR
+#ifdef TRACERS_WATER
+      GTRACER => ATMOCN%GTRACER
+#endif
 
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
@@ -493,6 +495,11 @@ C**** Get parameters from rundeck
       call sync_param("variable_lk",variable_lk)
       call sync_param("lake_rise_max",lake_rise_max)
 
+C**** Read Lake Depths
+      call openunit("TOPO",iu_SILL,.true.,.true.)
+      CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
+      call closeunit(iu_SILL)
+
 C**** initialise FLAKE if requested (i.e. from older restart files)
       if (INILAKE) THEN
         print*,"Initialising FLAKE from TOPO file..."
@@ -516,6 +523,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       IF (INILAKE) THEN
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
+        if(istart==2) then ! pbl has not been initialized yet
+          call read_pbl_tsurf_from_nmcfile
+        endif
         DO J=J_0, J_1
           DO I=I_0, I_1
             IF (FLAKE(I,J).gt.0) THEN
@@ -590,44 +600,44 @@ C**** Set GTEMP arrays for lakes
        DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
+            GTEMP(I,J)=TLAKE(I,J)
+            GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP(1,1,I,J) = ATSKIN
-                    GTEMPR(1,I,J) = ATSKIN + TF
+                    GTEMP(I,J) = ATSKIN
+                    GTEMPR(I,J) = ATSKIN + TF
                 endif
             endif
 #endif
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*
      &           AXYP(I,J)) THEN
-              GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
+             GTEMP2(I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
      *             *FLAKE(I,J)*AXYP(I,J))/(SHW*(MWL(I,J)-MLDLK(I,J)
      *             *RHOW*FLAKE(I,J)*AXYP(I,J)))
 C**** If starting from a possibly corrupted rsf file, check Tlk2
-              IF(GTEMP(2,1,I,J)>TLAKE(I,J)+1.and.GTEMP(2,1,I,J)>10
+              IF(GTEMP2(I,J)>TLAKE(I,J)+1.and.GTEMP2(I,J)>10
      *           .and. istart<9) THEN
-                WRITE(6,*) "Warning: Unphysical Tlk2 fixed",I,J,GTEMP(:
-     *               ,1,I,J)
-                GTEMP(2,1,I,J)=GTEMP(1,1,I,J)  ! set to Tlk1
+                WRITE(6,*) "Warning: Unphysical Tlk2 fixed",I,J,
+     &               GTEMP(I,J),GTEMP2(I,J)
+                GTEMP2(I,J)=GTEMP(I,J)  ! set to Tlk1
                 GML(I,J)=TLAKE(I,J)*SHW*MWL(I,J)
               END IF
             ELSE
-              GTEMP(2,1,I,J)=TLAKE(I,J)
+              GTEMP2(I,J)=TLAKE(I,J)
             END IF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
+                    GTEMP2(I,J) = GTEMP(I,J)
                 endif
             endif
 #endif
 #ifdef TRACERS_WATER
-            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+            GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
 #endif
-            MLHC(I,J)= SHW*MLDLK(I,J)*RHOW
+            atmocn%MLHC(I,J)= SHW*MLDLK(I,J)*RHOW
           END IF
         END DO
       END DO
@@ -663,7 +673,7 @@ C**** Read in down stream lat/lon positions
       CALL HALO_UPDATE(GRID, down_lon_loc)
       CALL HALO_UPDATE(GRID, down_lat_911_loc)
       CALL HALO_UPDATE(GRID, down_lon_911_loc)
-      CALL HALO_UPDATE(GRID, FLICE)
+
 C****
 C**** From each box calculate the downstream river box
 C****
@@ -770,6 +780,27 @@ C****
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
 
+C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
+C**** as residual terms.
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+!!      FLAND(I,J)=1.-FOCEAN(I,J)  !! already set if FOCEAN>0
+        IF (FOCEAN(I,J).le.0) THEN
+          FLAND(I,J)=1
+          IF (FLAKE(I,J).gt.0) FLAND(I,J)=1.-FLAKE(I,J)
+        END IF
+        FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
+      END DO
+      END DO
+      If (HAVE_SOUTH_POLE) Then
+         FLAND(2:IM,1)=FLAND(1,1)
+         FEARTH(2:IM,1)=FEARTH(1,1)
+      End If
+      If (HAVE_NORTH_POLE) Then
+         FLAND(2:IM,JM)=FLAND(1,JM)
+         FEARTH(2:IM,JM)=FEARTH(1,JM)
+      End If
+
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
       CONPT(4)="PREC+LAT M"
@@ -872,29 +903,30 @@ C****
 !@ver  2010/09/27 (based on LB265)
 
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
-      USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland,dtsrc,itime
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc,itime
+      USE ATM_COM, only : zatmo
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       use domain_decomp_1d, only: hasSouthPole, hasNorthPole
 
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc,ij_ervro,ij_mrvro, ij_rvrflo
+     &     ,itlake,itlkice,itocean,itoice
       USE GHY_COM, only : fearth
-      USE FLUXES, only : flowo,eflowo,gtemp,mlhc,gtempr
+      USE FLUXES, only : atmocn,flowo,eflowo,focean,fland
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
-      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
-      USE SEAICE_COM, only : rsi
+      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake
+      USE SEAICE_COM, only : lakeice=>si_atm
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
 #ifdef SCM
-      Use MODEL_COM, Only: I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr, tij_rvro
-      USE FLUXES, only : trflowo,gtracer
+      USE FLUXES, only : trflowo
       Use LAKES_COM, Only: NTM,TRLAKE
 #endif
 
@@ -905,7 +937,7 @@ C****
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
       Real*8 MWLSILL, !  lake mass (kg) below sill depth
      *      MWlSILLD, !  downstream lake mass (kg) below sill depth
-     *       MLM,DMM,DGM,HLK1,DPE,FLFAC, FLAKEU,FLAKED
+     *       MLM,DMM,DGM,HLK1,DPE,FLFAC, FLAKEU,FLAKED,BYOAREA
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
@@ -918,6 +950,11 @@ C****
       REAL*8, DIMENSION(NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                      GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      * :: TRFLOW
+#endif
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,GTEMP,GTEMPR
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
 #endif
 
 C**** MWL (kg) = Lake water in cell, defined even when FLAKE = 0
@@ -980,6 +1017,13 @@ C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
       TRFLOWO = 0.
 #endif
 
+      RSI => LAKEICE%RSI
+      GTEMP => ATMOCN%GTEMP
+      GTEMPR => ATMOCN%GTEMPR
+#ifdef TRACERS_WATER
+      GTRACER => ATMOCN%GTRACER
+#endif
+
       CALL HALO_UPDATE(GRID, FLAND) ! fixed
       CALL HALO_UPDATE(GRID,FEARTH)
       CALL HALO_UPDATE(GRID, HLAKE)
@@ -989,7 +1033,7 @@ C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
       CALL HALO_UPDATE(grid, TLAKE)
       CALL HALO_UPDATE(grid,  RATE) ! fixed
 #ifdef TRACERS_WATER
-      CALL HALO_UPDATE(grid,  GTRACER(:,1,:,:), jdim=3)
+      CALL HALO_UPDATE(grid,  GTRACER, jdim=3)
       CALL HALO_UPDATE(grid,  TRLAKE(:,1,:,:), jdim=3)
 #endif
 
@@ -1079,7 +1123,7 @@ C**** Backwash river flow is invoked
 
           DGM = TLAKE(ID,JD)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
-          DTM(:) = DMM*GTRACER(:,1,ID,JD)
+          DTM(:) = DMM*GTRACER(:,ID,JD)
 #endif
           GoTo 300
 
@@ -1098,7 +1142,7 @@ C****
           DGM = TLAKE(IU,JU)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
           If (FLAKE(IU,JU) > 0)
-     *      Then  ;  DTM(:) = DMM*GTRACER(:,1,IU,JU)
+     *      Then  ;  DTM(:) = DMM*GTRACER(:,IU,JU)
             Else  ;  DTM(:) = DMM*TRLAKE(:,1,IU,JU)/MWL(IU,JU)  ;  EndIf
 #endif
 
@@ -1218,7 +1262,7 @@ C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
           AIJ(ID,JD,IJ_MRVRO)= AIJ(ID,JD,IJ_MRVRO)- DMM
           AIJ(ID,JD,IJ_ERVRO)= AIJ(ID,JD,IJ_ERVRO)- DGM
 #ifdef TRACERS_WATER
-          DTM(:) = DMM*GTRACER(:,1,ID,JD)
+          DTM(:) = DMM*GTRACER(:,ID,JD)
           TAIJN(IU,JU,TIJ_RVR,:) = TAIJN(IU,JU,TIJ_RVR,:) -
      *                             DTM(:)*byAXYP(IU,JU)
           TAIJN(ID,JD,TIJ_RVRO,:)= TAIJN(ID,JD,TIJ_RVRO,:) -
@@ -1239,7 +1283,7 @@ C**** DMM > 0: Move water from grid cell (IU,JU) to cell (ID,JD)
           AIJ(IU,JU,IJ_MRVRO)= AIJ(IU,JU,IJ_MRVRO)+ DMM
           AIJ(IU,JU,IJ_ERVRO)= AIJ(IU,JU,IJ_ERVRO)+ DGM
 #ifdef TRACERS_WATER
-          DTM(:) = DMM*GTRACER(:,1,IU,JU)
+          DTM(:) = DMM*GTRACER(:,IU,JU)
           TAIJN(ID,JD,TIJ_RVR,:) = TAIJN(ID,JD,TIJ_RVR,:) +
      *                             DTM(:)*byAXYP(ID,JD)
           TAIJN(IU,JU,TIJ_RVRO,:)= TAIJN(IU,JU,TIJ_RVRO,:) +
@@ -1310,25 +1354,44 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
+            GTEMP(I,J)=TLAKE(I,J)
+            GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP(1,1,I,J) = ATSKIN
-                    GTEMPR(1,I,J) = ATSKIN + TF
+                    GTEMP(I,J) = ATSKIN
+                    GTEMPR(I,J) = ATSKIN + TF
                 endif
             endif
 #endif
 
 #ifdef TRACERS_WATER
-            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+            GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
 #endif
-            MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
+            atmocn%MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
           END IF
         END DO
       END DO
+
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        if(focean(i,j).gt.0.) then
+          byoarea = 1.d0/(axyp(i,j)*focean(i,j))
+          flowo(i,j) = flowo(i,j)*byoarea
+          eflowo(i,j) = eflowo(i,j)*byoarea
+#ifdef TRACERS_WATER
+          trflowo(:,i,j) = trflowo(:,i,j)*byoarea
+#endif
+c        else
+c          flowo(i,j) = 0.
+c          eflowo(i,j) = 0.
+c#ifdef TRACERS_WATER
+c          trflowo(:,i,j) = 0.
+c#endif
+        endif
+      enddo
+      enddo
 
       call stopTimer('RIVERF()')
       RETURN
@@ -1339,17 +1402,17 @@ C****
 !@sum  diag_RIVER prints out the river outflow for various rivers
 !@sum  (now parallel)
 !@auth Gavin Schmidt
-!@ver  1.0
 
       USE CONSTANT, only : rhow,sday,teeny,undef
-      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon,im,jm
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
      $     AM_I_ROOT, get, sumxpe
       USE GEOM, only : byaxyp
       USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
+      USE TRACER_COM, only : ntm=>NTM,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
@@ -1456,13 +1519,14 @@ C****
       SUBROUTINE CHECKL (SUBR)
 !@sum  CHECKL checks whether the lake variables are reasonable.
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
-      USE MODEL_COM, only : im,jm,hlake,qcheck,focean
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : qcheck
+      USE FLUXES, only : focean
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
 #endif
       USE LAKES
       USE LAKES_COM
@@ -1599,26 +1663,24 @@ C****
 !@auth G. Schmidt
 !@ver  2010/11/12
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
-      USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
+      USE RESOLUTION, only : im
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
-      USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
+      USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
+     &     ,svflake,hlake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE SEAICE_COM, only : rsi,msi,hsi,snowi
-#ifdef TRACERS_WATER
-     *     ,trsi
-#endif
+      USE SEAICE_COM, only : lakeice=>si_atm
       USE SEAICE, only : ace1i,xsi,ac2oim
       USE GEOM, only : axyp,imaxj,byaxyp
       USE GHY_COM, only : fearth
-      USE FLUXES, only : dmwldf,dgml,gtemp,mlhc,gtempr
+      USE FLUXES, only : atmocn,dmwldf,dgml
+     &     ,fland,flice,focean
 #ifdef TRACERS_WATER
-     *     ,dtrl,gtracer
+     *     ,dtrl
 #endif
       USE LANDICE_COM, only : mdwnimp,edwnimp
 #ifdef TRACERS_WATER
@@ -1627,8 +1689,8 @@ C****
 #ifdef IRRIGATION_ON
       USE IRRIGATE_CROP, only : irrigate_flux
 #endif
-      USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
-     *                    ,J_IMPLH, AIJ=>AIJ_LOC,
+      USE DIAG_COM, only : j_run,j_erun,jreg,j_implm
+     *                    ,J_IMPLH, AIJ=>AIJ_LOC,itlkice,itlake,
      *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       use CubicEquation_mod, only : cubicroot
@@ -1644,6 +1706,26 @@ C****
       real*8 :: a,b,c,d, x(3), mwtot1, y, mwsat
       real*8 :: m1,m2,m1t1,m2t2,f_entr,new_tlake
       integer :: n_roots
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,GTEMP,GTEMPR
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
+#endif
+
+      RSI => LAKEICE%RSI
+      MSI => LAKEICE%MSI
+      HSI => LAKEICE%HSI
+      SNOWI => LAKEICE%SNOWI
+#ifdef TRACERS_WATER
+      TRSI => LAKEICE%TRSI
+#endif
+      GTEMP => ATMOCN%GTEMP
+      GTEMPR => ATMOCN%GTEMPR
+#ifdef TRACERS_WATER
+      GTRACER => ATMOCN%GTRACER
+#endif
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -1923,11 +2005,11 @@ C****
                   MSI(I,J)=AC2OIM
 
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
-                  GTEMPR(1,I,J)=TF
+                  GTEMPR(I,J)=TF
 #ifdef SCM
                   if ((I.eq.I_TARG.and.J.eq.J_TARG).and.
      &                 SCM_SURFACE_FLAG.ge.1) then
-                        GTEMPR(1,I,J) = ATSKIN + TF
+                        GTEMPR(I,J) = ATSKIN + TF
                   endif
 #endif
                   MLDLK(I,J)=MINMLD
@@ -1962,21 +2044,21 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
+            GTEMP(I,J)=TLAKE(I,J)
+            GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMP(1,1,I,J) = ATSKIN
-                    GTEMPR(1,I,J) = ATSKIN + TF
+                    GTEMP(I,J) = ATSKIN
+                    GTEMPR(I,J) = ATSKIN + TF
                 endif
             endif
 #endif
 #ifdef TRACERS_WATER
-            GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+            GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
 #endif
-            MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
+            atmocn%MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
           END IF
         END DO
       END DO
@@ -1987,26 +2069,25 @@ C****
       SUBROUTINE PRECIP_LK
 !@sum  PRECIP_LK driver for applying precipitation/melt to lake fraction
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
-      USE MODEL_COM, only : im,jm,flice,itlake,itlkice
+      USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE SEAICE_COM, only : rsi
-      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+      USE SEAICE_COM, only : lakeice=>si_atm
+      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake,dlake,glake
+     *     ,icelak
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE FLUXES, only : runpsi,runoli,prec,eprec,gtemp,melti,emelti,
-     *      gtempr
+      USE FLUXES, only : atmocn,runoli,prec,eprec,flice
 #ifdef TRACERS_WATER
-     *     ,trunpsi,trunoli,trprec,gtracer,trmelti
+     *     ,trunoli,trprec
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_run,aij=>aij_loc,ij_lk
+     &     ,itlake,itlkice
       IMPLICIT NONE
 
       REAL*8 PRCP,ENRGP,PLICE,PLKICE,RUN0,ERUN0,POLAKE,HLK1
@@ -2014,6 +2095,25 @@ C****
       INTEGER I,J,ITYPE
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0
+#endif
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,GTEMP,GTEMP2,GTEMPR,
+     &     RUNPSI,MELTI,EMELTI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER,TRUNPSI,TRMELTI
+#endif
+
+      RSI => LAKEICE%RSI
+      GTEMP => ATMOCN%GTEMP
+      GTEMP2 => ATMOCN%GTEMP2
+      GTEMPR => ATMOCN%GTEMPR
+      RUNPSI => ICELAK%RUNPSI
+      MELTI => ICELAK%MELTI
+      EMELTI => ICELAK%EMELTI
+#ifdef TRACERS_WATER
+      GTRACER => ATMOCN%GTRACER
+      TRUNPSI => ICELAK%TRUNPSI
+      TRMELTI => ICELAK%TRMELTI
 #endif
 
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
@@ -2036,18 +2136,18 @@ C**** calculate fluxes over whole box
         RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
-C**** simelt is given as kg, so divide by area
+C**** simelt is given as kg/area
         IF (FLAKE(I,J).gt.0) THEN
-          RUN0  =RUN0+ MELTI(I,J)*BYAXYP(I,J)
-          ERUN0=ERUN0+EMELTI(I,J)*BYAXYP(I,J)
+          RUN0  =RUN0+ MELTI(I,J)
+          ERUN0=ERUN0+EMELTI(I,J)
         END IF
 
         MWL(I,J) = MWL(I,J) +  RUN0*AXYP(I,J)
         GML(I,J) = GML(I,J) + ERUN0*AXYP(I,J)
 #ifdef TRACERS_WATER
-        TRUN0(:) = POLAKE*TRPREC(:,I,J)*BYAXYP(I,J)
+        TRUN0(:) = POLAKE*TRPREC(:,I,J)
      *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
-        IF(FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)*BYAXYP(I,J)
+        IF(FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*AXYP(I,J)
 #endif
 
@@ -2056,39 +2156,43 @@ C**** simelt is given as kg, so divide by area
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
-          GTEMP(1,1,I,J)=TLAKE(I,J)
-          GTEMPR(1,I,J) =TLAKE(I,J)+TF
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
+          GTEMP(I,J)=TLAKE(I,J)
+          GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.ge.1) then
-                  GTEMP(1,1,I,J) = ATSKIN
-                  GTEMPR(1,I,J) = ATSKIN + TF
+                  GTEMP(I,J) = ATSKIN
+                  GTEMPR(I,J) = ATSKIN + TF
               endif
           endif
 #endif
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*AXYP(I,J))
      *         THEN
-            GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
+            GTEMP2(I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
      *           *FLAKE(I,J)*AXYP(I,J))/(SHW*(MWL(I,J)-MLDLK(I,J)
      *           *RHOW*FLAKE(I,J)*AXYP(I,J)))
           ELSE
-            GTEMP(2,1,I,J)=TLAKE(I,J)
+            GTEMP2(I,J)=TLAKE(I,J)
           END IF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.ge.1) then
-                  GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
+                  GTEMP2(I,J) = GTEMP(I,J)
               endif
           endif
 #endif
 #ifdef TRACERS_WATER
-          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+          GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
 #endif
           CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J)*(1.-RSI(I,J)))
           CALL INC_AJ(I,J,ITLKICE,J_RUN,-PLICE*RUNOLI(I,J)   *RSI(I,J))
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
           CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J))
@@ -2108,10 +2212,10 @@ C****
 !@sum  IRRIG_LK driver for calculating irrigation fluxes from lakes/rivers
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhow,shw,teeny
-      USE MODEL_COM, only : im,jm,fland,itearth
+      USE RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,axyp
-      USE DIAG_COM, only : jreg,aij=>aij_loc,ij_mwlir
+      USE DIAG_COM, only : itearth,jreg,aij=>aij_loc,ij_mwlir
      *     ,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
@@ -2119,9 +2223,9 @@ C****
 #endif
       USE LAKES, only : minmld,hlake_min
       USE IRRIGATE_CROP, only : irrigate_extract
-      USE FLUXES,only : irrig_water_act, irrig_energy_act
+      USE FLUXES,only : fland,irrig_water_act, irrig_energy_act
 #ifdef TRACERS_WATER
-     *     ,irrig_tracer_act,gtracer
+     *     ,irrig_tracer_act
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -2237,30 +2341,26 @@ C****
       SUBROUTINE GROUND_LK
 !@sum  GROUND_LK driver for applying surface fluxes to lake fraction
 !@auth Gavin Schmidt
-!@ver  1.0
 !@calls
       USE CONSTANT, only : rhow,shw,teeny,tf
-      USE MODEL_COM, only : im,jm,flice,fland,hlake
-     *     ,dtsrc,itlake,itlkice,itearth
+      USE RESOLUTION, only : im,jm
+      USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE MODEL_COM, only : I_TARG,J_TARG
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
 
       USE GEOM, only : imaxj,axyp
-      USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
-     *     runoli, runoe, erunoe, solar, dmua, dmva, gtemp, gtempr
+      USE FLUXES, only : atmocn,
+     *     runoli, runoe, erunoe
+     &     ,flice,fland
 #ifdef TRACERS_WATER
-     *     ,trunoli,trunoe,trevapor,dtrsi,trunosi,gtracer
-#ifdef TRACERS_DRYDEP
-     *     ,trdrydep
+     *     ,trunoli,trunoe
 #endif
-#endif
-      USE SEAICE_COM, only : rsi
+      USE SEAICE_COM, only : lakeice=>si_atm
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
-     *     ,aij=>aij_loc,ij_mwl,ij_gml
-      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+     *     ,aij=>aij_loc,ij_mwl,ij_gml,itlake,itlkice,itearth
+      USE LAKES_COM, only : icelak,mwl,gml,tlake,mldlk,flake,hlake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
@@ -2285,6 +2385,40 @@ C**** output from LKSOURC
 #endif
       INTEGER I,J,JR
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,GTEMP,GTEMP2,GTEMPR,
+     &     RUNOSI,ERUNOSI,EVAPOR,E0
+      REAL*8, DIMENSION(:,:,:), POINTER :: DMSI,DHSI,DSSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: DTRSI
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER,TREVAPOR,TRUNOSI
+#ifdef TRACERS_DRYDEP
+      REAL*8, DIMENSION(:,:,:), POINTER :: TRDRYDEP
+#endif
+#endif
+
+      RSI => LAKEICE%RSI
+      E0 => ATMOCN%E0
+      EVAPOR => ATMOCN%EVAPOR
+      GTEMP => ATMOCN%GTEMP
+      GTEMP2 => ATMOCN%GTEMP2
+      GTEMPR => ATMOCN%GTEMPR
+#ifdef TRACERS_WATER
+      TREVAPOR => ATMOCN%TREVAPOR
+#ifdef TRACERS_DRYDEP
+      TRDRYDEP => ATMOCN%TRDRYDEP
+#endif
+      GTRACER => ATMOCN%GTRACER
+#endif
+      RUNOSI => ICELAK%RUNOSI
+      ERUNOSI => ICELAK%ERUNOSI
+      DMSI => ICELAK%DMSI
+      DHSI => ICELAK%DHSI
+      DSSI => ICELAK%DSSI
+#ifdef TRACERS_WATER
+      TRUNOSI => ICELAK%TRUNOSI
+      DTRSI => ICELAK%DTRSI
+#endif
 
       call startTimer('GROUND_LK()')
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
@@ -2326,7 +2460,7 @@ C**** calculate flux over whole box
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
 #ifdef TRACERS_WATER
-          GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
+          GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
 #endif
           CALL INC_AJ(I,J,ITLAKE ,J_RUN ,-(RUNE*PEARTH+RUNLI*PLICE)
@@ -2346,10 +2480,10 @@ C**** no regional diagnostics required
 
       IF (FLAKE(I,J).gt.0) THEN
         TLK1 =TLAKE(I,J)
-        EVAPO=EVAPOR(I,J,1)     ! evap/dew over open lake (kg/m^2)
-        FODT =E0(I,J,1)         ! net heat over open lake (J/m^2)
-        SROX(1)=SOLAR(1,I,J)      ! solar radiation open lake (J/m^2)
-        SROX(2)=SOLAR(3,I,J)      ! solar radiation through ice (J/m^2)
+        EVAPO=EVAPOR(I,J)     ! evap/dew over open lake (kg/m^2)
+        FODT =E0(I,J)         ! net heat over open lake (J/m^2)
+        SROX(1)=atmocn%SOLAR(I,J)      ! solar radiation open lake (J/m^2)
+        SROX(2)=icelak%SOLAR(I,J)      ! solar radiation through ice (J/m^2)
         FSR2 =EXP(-MLDLK(I,J)*BYZETA)
 C**** get ice-lake fluxes from sea ice routine (over ice fraction)
         RUN0 =RUNOSI(I,J) ! includes ACE2M + basal term
@@ -2362,9 +2496,9 @@ C**** calculate kg/m^2, J/m^2 from saved variables
 #ifdef TRACERS_WATER
         TRLAKEL(:,:)=TRLAKE(:,:,I,J)/(FLAKE(I,J)*AXYP(I,J))
         TRUN0(:)=TRUNOSI(:,I,J)
-        TREVAP(:)=TREVAPOR(:,1,I,J)
+        TREVAP(:)=TREVAPOR(:,I,J)
 #ifdef TRACERS_DRYDEP
-     *       -trdrydep(:,1,i,j)
+     *       -trdrydep(:,i,j)
 #endif
 #endif
         IF (MLAKE(2).lt.1d-10) THEN
@@ -2418,17 +2552,17 @@ C**** Resave prognostic variables
           TRLAKEL(:,1)=TOTTRL(:)-TRLAKEL(:,2)
         END IF
         TRLAKE(:,:,I,J)=TRLAKEL(:,:)*(FLAKE(I,J)*AXYP(I,J))
-        GTRACER(:,1,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
+        GTRACER(:,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
 #endif
-        GTEMP(1,1,I,J)=TLAKE(I,J)
-        GTEMP(2,1,I,J)=TLK2       ! diagnostic only
-        GTEMPR(1,I,J) =TLAKE(I,J)+TF
+        GTEMP(I,J)=TLAKE(I,J)
+        GTEMP2(I,J)=TLK2       ! diagnostic only
+        GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.ge.1) then
-                GTEMP(1,1,I,J) = ATSKIN
-                GTEMP(2,1,I,J) = ATSKIN
-                GTEMPR(1,I,J) = ATSKIN + TF
+                GTEMP(I,J) = ATSKIN
+                GTEMP2(I,J) = ATSKIN
+                GTEMPR(I,J) = ATSKIN + TF
             endif
         endif
 #endif
@@ -2472,7 +2606,6 @@ C****
       SUBROUTINE PRINTLK(STR)
 !@sum  PRINTLK print out selected diagnostics from specified lakes
 !@auth Gavin Schmidt
-!@ver  1.0
       USE CONSTANT, only : lhm,byshi,rhow,shw
       USE MODEL_COM, only : qcheck
       USE GEOM, only : axyp
@@ -2481,7 +2614,7 @@ C****
      *         ,trlake
 #endif
       USE SEAICE, only : xsi,ace1i,rhoi
-      USE SEAICE_COM, only : rsi,hsi,msi,snowi
+      USE SEAICE_COM, only : lakeice=>si_atm
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
@@ -2490,6 +2623,20 @@ C****
       INTEGER, DIMENSION(NDIAG) :: IDIAG = (/112, 103, 131, 79/),
      *                             JDIAG = (/66, 59, 33, 34/)
       REAL*8 HLK2,TLK2, TSIL(4)
+
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI
+      REAL*8, DIMENSION(:,:,:), POINTER :: HSI
+#ifdef TRACERS_WATER
+      REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
+#endif
+
+      RSI => LAKEICE%RSI
+      MSI => LAKEICE%MSI
+      HSI => LAKEICE%HSI
+      SNOWI => LAKEICE%SNOWI
+#ifdef TRACERS_WATER
+      TRSI => LAKEICE%TRSI
+#endif
 
       IF (.NOT.QCHECK) RETURN
 
@@ -2532,8 +2679,8 @@ C****
       SUBROUTINE conserv_LKM(LKM)
 !@sum  conserv_LKM calculates lake mass
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,fland,fim
+      USE RESOLUTION, only : im,jm
+      USE FLUXES, only : fland
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : mwl,flake
@@ -2571,8 +2718,9 @@ C****
       SUBROUTINE conserv_LKE(LKE)
 !@sum  conserv_LKE calculates lake energy
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,zatmo,fim,fland
+      USE RESOLUTION, only : im,jm
+      USE ATM_COM, only : zatmo
+      USE FLUXES, only : fland
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : gml,mwl,flake
@@ -2638,3 +2786,294 @@ c**** sum over processors to compose the global table
       call sumxpe(rvrout_loc, rvrout)
       return
       end subroutine diag_river_prep
+
+      SUBROUTINE init_lakeice(iniLAKE,do_IC_fixups)
+!@sum  init_ice initialises ice arrays
+!@auth Original Development Team
+      USE CONSTANT, only : rhows,omega
+      USE MODEL_COM, only : kocean
+      USE SEAICE_COM, only : lakeice=>si_atm
+      USE LAKES_COM, only : icelak
+      USE FLUXES, only : flake0,atmice
+      USE Dictionary_mod
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      USE GEOM, only : sinlat2d
+      USE DIAG_COM, only : npts,conpt0,icon_LMSI,icon_LHSI
+      IMPLICIT NONE
+      LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniLAKE
+      CHARACTER CONPT(NPTS)*10
+      INTEGER I,J,do_IC_fixups
+      integer :: I_0, I_1, J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C**** clean up ice fraction/sea ice salinity possibly incorrect in I.C.
+      if (do_IC_fixups == 1) then
+        DO J=J_0, J_1
+        DO I=I_0, I_1
+          IF (FLAKE0(I,J).eq.0 .and. lakeice%RSI(i,j).gt.0)
+     &         lakeice%RSI(I,J)=0
+          IF (lakeice%RSI(I,J).gt.0 .and. FLAKE0(I,J).gt.0)
+     &         lakeice%SSI(:,I,J)=0.
+        END DO
+        END DO
+      end if
+
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        icelak%coriol(i,j) = ABS(2.*OMEGA*SINLAT2D(I,J))
+      ENDDO
+      ENDDO
+
+      IF (KOCEAN.EQ.0.and.iniLAKE) THEN
+        ! why should lake ice init depend on kocean,iniocean?
+        call set_noice_defaults(lakeice,icelak)
+      END IF
+
+      !call seaice_to_atmgrid(atmice) ! set gtemp etc.
+
+C**** Set conservation diagnostics for Lake ice mass and energy
+      CONPT=CONPT0
+      CONPT(3)="LAT. MELT" ; CONPT(4)="PRECIP"
+      CONPT(5)="THERMO"
+      CONPT(8)="LK FORM"
+      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LKICE MS","(KG/M^2)        ",
+     *     "(10**-9 KG/SM^2)",1d0,1d9,icon_LMSI)
+      QCON=(/ F, F, T, T, T, F, F, T, T, F, F/)
+      CALL SET_CON(QCON,CONPT,"LKICE EN","(10**6 J/M^2)   ",
+     *     "(10**-3 W/M^2)  ",1d-6,1d3,icon_LHSI)
+
+      END SUBROUTINE init_lakeice
+
+      SUBROUTINE conserv_LMSI(ICE)
+!@sum  conserv_LMSI calculates total amount of snow and ice over lakes
+!@auth Gavin Schmidt
+      USE RESOLUTION, only : im,jm
+      USE GEOM, only : imaxj
+      USE SEAICE, only : ace1i
+      USE SEAICE_COM, only : lakeice=>si_atm
+      USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      IMPLICIT NONE
+!@var ICE total lake snow and ice mass (kg/m^2)
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ICE
+      INTEGER I,J
+
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, I_0,I_1
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        ICE(I,J)=lakeice%RSI(I,J)*
+     &       (lakeice%MSI(I,J)+ACE1I+lakeice%SNOWI(I,J))*FLAKE(I,J)
+      END DO
+      END DO
+      IF (HAVE_SOUTH_POLE) ICE(2:im,1) =ICE(1,1)
+      IF (HAVE_NORTH_POLE) ICE(2:im,JM)=ICE(1,JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_LMSI
+
+      SUBROUTINE conserv_LHSI(EICE)
+!@sum  conserv_LHSI calculates total ice energy over lakes
+!@auth Gavin Schmidt
+      USE RESOLUTION, only : im,jm
+      USE GEOM, only : imaxj
+      USE SEAICE_COM, only : lakeice=>si_atm
+      USE LAKES_COM, only : flake
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      IMPLICIT NONE
+!@var EICE total lake snow and ice energy (J/m^2)
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: EICE
+      INTEGER I,J
+
+c**** Extract useful domain information from grid
+      INTEGER J_0, J_1, I_0,I_1
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        EICE(I,J)=lakeice%RSI(I,J)*FLAKE(I,J)*SUM(lakeice%HSI(:,I,J))
+      END DO
+      END DO
+      IF (HAVE_SOUTH_POLE) EICE(2:im,1) =EICE(1,1)
+      IF (HAVE_NORTH_POLE) EICE(2:im,JM)=EICE(1,JM)
+      RETURN
+C****
+      END SUBROUTINE conserv_LHSI
+
+      SUBROUTINE CHECKI(SUBR)
+!@sum  CHECKI Checks whether Ice values are reasonable
+!@auth Original Development Team
+      USE MODEL_COM
+      USE GEOM, only : imaxj
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
+#endif
+      USE SEAICE, only : lmi,xsi,ace1i,Ti
+      USE SEAICE_COM, only : x=>si_atm
+      USE LAKES_COM, only : flake
+      USE FLUXES
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      IMPLICIT NONE
+
+!@var SUBR identifies where CHECK was called from
+      CHARACTER*6, INTENT(IN) :: SUBR
+!@var QCHECKI true if errors found in seaice
+      LOGICAL QCHECKI
+      INTEGER I,J,L
+      REAL*8 TICE
+#ifdef TRACERS_WATER
+      integer :: imax,jmax, n
+      real*8 relerr,errmax
+#endif
+
+      integer :: J_0, J_1, J_0H, J_1H, I_0, I_1, I_0H, I_1H, njpol
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+     *     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      njpol = grid%J_STRT_SKP-grid%J_STRT
+
+C**** Check for NaN/INF in ice data
+      CALL CHECK3B(x%RSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'rsi   ')
+      CALL CHECK3B(x%MSI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'msi   ')
+      CALL CHECK3C(x%HSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'hsi   ')
+      CALL CHECK3C(x%SSI(:,I_0:I_1,J_0:J_1),LMI,I_0,I_1,J_0,J_1,NJPOL,
+     &     SUBR,'ssi   ')
+      CALL CHECK3B(x%SNOWI(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
+     &     SUBR,'sni   ')
+
+      QCHECKI = .FALSE.
+C**** Check for reasonable values for ice variables
+      DO J=J_0, J_1
+        DO I=I_0,IMAXJ(J)
+          IF (x%RSI(I,J).lt.0 .or. x%RSI(I,j).gt.1
+     *         .or. x%MSI(I,J).lt.0) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,RSI,MSI=',I,J,x%RSI(I,J)
+     *           ,x%MSI(I,J)
+            QCHECKI = .TRUE.
+          END IF
+          IF ( (FOCEAN(I,J)+FLAKE(I,J))*x%RSI(I,J).gt.0) THEN
+          DO L=1,LMI
+            IF (L.le.2) TICE =
+     *           Ti(x%HSI(L,I,J)/(XSI(L)*(ACE1I+x%SNOWI(I,J)))
+     *           ,1d3*x%SSI(L,I,J)/(XSI(L)*(ACE1I+x%SNOWI(I,J))))
+            IF (L.gt.2) TICE = Ti(x%HSI(L,I,J)/(XSI(L)*x%MSI(I,J))
+     *           ,1d3*x%SSI(L,I,J)/(XSI(L)*x%MSI(I,J)))
+            IF (x%HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
+              WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
+     *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,x%RSI(I,J)
+            WRITE(6,*) x%HSI(:,I,J),x%MSI(I,J),x%SNOWI(I,J),x%SSI(:,I,J)
+              IF (TICE.gt.1d-3.or.TICE.lt.-100.) QCHECKI = .TRUE.
+            END IF
+            IF (x%SSI(L,I,J).lt.0) THEN
+              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI=',I,J,L,x%SSI(:,I
+     *             ,J),x%MSI(I,J),x%SNOWI(I,J),x%RSI(I,J)
+              QCHECKI = .TRUE.
+            END IF
+           IF (L.gt.2 .and. x%SSI(L,I,J).gt.0.04*XSI(L)*x%MSI(I,J)) THEN
+              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI/MSI=',I,J,L,1d3
+     *         *x%SSI(:,I,J)/(XSI(L)*x%MSI(I,J)),x%SSI(:,I,J),x%MSI(I,J)
+     *             ,x%SNOWI(I,J),x%RSI(I,J)
+              QCHECKI = .TRUE.
+            END IF
+          END DO
+          IF (x%SNOWI(I,J).lt.0) THEN
+            WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,x%SNOWI(I,J)
+            QCHECKI = .TRUE.
+          END IF
+          IF (x%MSI(I,J).gt.10000) THEN
+         WRITE(6,*) 'After ',SUBR,': I,J,MSI=',I,J,x%MSI(I,J),x%RSI(I,J)
+c            QCHECKI = .TRUE.
+          END IF
+          END IF
+        END DO
+      END DO
+
+#ifdef TRACERS_WATER
+      do n=1,ntm
+C**** check negative tracer mass
+        if (t_qlimit(n)) then
+        do j=J_0, J_1
+          do i=I_0,imaxj(j)
+            if ((focean(i,j)+flake(i,j))*x%rsi(i,j).gt.0) then
+              do l=1,lmi
+                if (x%trsi(n,l,i,j).lt.0.) then
+                  print*,"Neg Tracer in sea ice after ",subr,i,j,l,
+     *                 trname(n),x%trsi(n,l,i,j),x%rsi(i,j),
+     *                 x%msi(i,j),x%ssi(l,i,j),x%snowi(i,j)
+                  QCHECKI=.true.
+                end if
+              end do
+            end if
+          end do
+        end do
+        end if
+C**** Check conservation of water tracers in sea ice
+        if (trname(n).eq.'Water') then
+          errmax = 0. ; imax=I_0 ; jmax=J_0
+          do j=J_0, J_1
+          do i=I_0,imaxj(j)
+            if ((focean(i,j)+flake(i,j))*x%rsi(i,j).gt.0) then
+              relerr=max(
+     *        abs(x%trsi(n,1,i,j)-(x%snowi(i,j)+ace1i)*xsi(1)+
+     &             x%ssi(1,i,j
+     *           ))/x%trsi(n,1,i,j),abs(x%trsi(n,2,i,j)-
+     &             (x%snowi(i,j)+ace1i)
+     *             *xsi(2)+x%ssi(2,i,j))/x%trsi(n,2,i,j),
+     &             abs(x%trsi(n,3,i,j)
+     *        -x%msi(i,j)*xsi(3)+x%ssi(3,i,j))/x%trsi(n,3,i,j),
+     &             abs(x%trsi(n
+     *       ,4,i,j)-x%msi(i,j)*xsi(4)+x%ssi(4,i,j))/x%trsi(n,4,i,j))
+              if (relerr.gt.errmax) then
+                imax=i ; jmax=j ; errmax=relerr
+              end if
+            end if
+          end do
+          end do
+          write(*,'(A36,A7,A,2I3,11E24.16)')
+     $         "Relative error in sea ice mass after",trim(subr),":"
+     $         ,imax,jmax,errmax,x%trsi(n,:,imax,jmax),
+     $         (x%snowi(imax,jmax)
+     $         +ace1i)*xsi(1)-x%ssi(1,imax,jmax),
+     $         (x%snowi(imax,jmax)+ace1i)
+     $         *xsi(2)-x%ssi(2,imax,jmax),
+     $         x%msi(imax,jmax)*xsi(3:4)-x%ssi(3:4
+     $         ,imax,jmax),x%rsi(imax,jmax),x%msi(imax,jmax)
+        end if
+      end do
+#endif
+
+      IF (QCHECKI)
+     &     call stop_model("CHECKI: Ice variables out of bounds",255)
+
+      END SUBROUTINE CHECKI

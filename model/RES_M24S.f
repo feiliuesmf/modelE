@@ -1,12 +1,10 @@
 !@sum  RES_M24S Resolution info for 24 layer, 4x5 strat model
 !@+    (M20b with 4 more layers between 984mb and 150mb)
 !@auth Original Development Team
-!@ver  1.0
 
       MODULE RESOLUTION
 !@sum  RESOLUTION contains horiz/vert resolution variables
 !@auth Original Development Team
-!@ver  1.0
       IMPLICIT NONE
       SAVE
 !@var IM,JM longitudinal and latitudinal number of grid boxes

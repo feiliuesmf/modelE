@@ -89,7 +89,6 @@ c
 c
       if (smooth) then
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do j=1,jj
          do k=1,kk
           do l=1,isp(j)
@@ -99,14 +98,12 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
           end do
         end do
        end do
-cc$OMP END PARALLEL DO
 c
        do k=2,kk
         call psmo1(p(1,1,k),pbot)
        end do
 c
       dpsmo=huge
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
        do j=1,jj
         do k=1,kk
          do l=1,isp(j)
@@ -116,7 +113,6 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
          end do
         end do
        end do
-cc$OMP END PARALLEL DO
 c
       end if                            !  smooth
 c
@@ -212,7 +208,6 @@ c --- output time-averaged fields
 c
       factor=baclin/(jdate*86400.)
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 55 j=1,jj
       do 55 l=1,isp(j)
       do 55 i=ifp(j,l),ilp(j,l)
@@ -223,7 +218,6 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       tauxav(i,j)=tauxav(i,j)*factor
       tauyav(i,j)=tauyav(i,j)*factor
  55   continue
-cc$OMP END PARALLEL DO
 c
 #ifdef TRACERS_OceanBiology
       if (diag_counter .ne. 0.d0) then
@@ -245,7 +239,6 @@ c
 
       do 58 k=1,kk
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 59 j=1,jj
       do 591 l=1,isu(j)
       do 591 i=ifu(j,l),ilu(j,l)
@@ -268,7 +261,6 @@ c
 c --- convert diapycnal thickness changes into actual interface fluxes
       if (k.gt.1) diaflx(i,j,k)=diaflx(i,j,k)+diaflx(i,j,k-1)
  59   continue
-cc$OMP END PARALLEL DO
 ccc      write (lp,'(a,i3)') 'shown below: N.Atl. diaflx, bottm of layer',k
 ccc      call zebra(diaflx(1,int(.8*jdm),k),idm,idm/3,idm/3)
 c
@@ -286,7 +278,6 @@ c
       write (lp,100)     '     diaflx_'//intvl,k,no
  58   continue
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 56 j=1,jj
       do 561 l=1,isu(j)
       do 561 i=ifu(j,l),ilu(j,l)
@@ -297,10 +288,10 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 56 l=1,isp(j)
       do 56 i=ifp(j,l),ilp(j,l)
       pbavav(i,j)=pbavav(i,j)*factor
-      sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
+c     sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
+      sfhtav(i,j)=sfhtav(i,j)*factor
       dpmxav(i,j)=dpmxav(i,j)*factor
  56   oiceav(i,j)=oiceav(i,j)*factor
-cc$OMP END PARALLEL DO
 c
 c     write (lp,'(3a)') 'shown below: ',intvl,'- day SSH average'
 c     call zebra(sfhtav,idm,ii1,jj)
@@ -429,7 +420,6 @@ c
 !     call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
 #endif
 
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 60 j=1,jj
 c
       do 601 i=1,ii
@@ -472,7 +462,6 @@ c
       vflxav(i,j,k)=0.
  602  diaflx(i,j,k)=0.
  60   continue
-cc$OMP END PARALLEL DO
 c
       return
       end
@@ -486,11 +475,9 @@ c
       real real8(idm,jdm)
       real*4 real4(idm,jdm)
 c
-cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 1 j=1,jdm
       do 1 i=1,idm
  1    real4(i,j)=real8(i,j)
-cc$OMP END PARALLEL DO
 c
       return
       end

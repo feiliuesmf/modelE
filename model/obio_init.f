@@ -618,7 +618,7 @@ c------------------------------------------------------------------------------
       USE OCEANRES, only : idm=>imo,jdm=>jmo
       USE OCEAN, only : oDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
 
       implicit none
 
@@ -733,7 +733,7 @@ c
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
       implicit none
 
       integer i,j,k,l,n
@@ -827,7 +827,6 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
 !     endif
 
       !--------------------------------------------------------
-c$OMP PARALLEL DO
       do 8 j=1,jj
       do 8 l=1,isp(j)
       do 8 i=ifp(j,l),ilp(j,l)
@@ -842,7 +841,6 @@ c
  91   continue
  9    continue
  8    continue
-c$OMP END PARALLEL DO
 
 !     !this is needed for dic
 !     do k=1,kgrd
@@ -857,7 +855,6 @@ c$OMP END PARALLEL DO
       !--------------------------------------------------------
       endif   !if am-i-root
 
-      !call ESMF_BCAST(ogrid, fldo)
       call unpack_data(ogrid, fldo_glob, fldo)
       return
   

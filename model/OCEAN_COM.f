@@ -6,7 +6,6 @@ C****
       Module OCEAN
 !@sum  OCEAN dynamic ocean related variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
@@ -38,7 +37,8 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8 :: 
      *     oc_salt_mean = -999. 
 #ifdef TRACERS_OCEAN
-     *     , oc_tracer_mean(ntm) = -999. 
+      ! move to ocn_tracer_com?
+      REAL*8, DIMENSION(:), ALLOCATABLE :: oc_tracer_mean
 #endif 
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
@@ -349,7 +349,6 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       Module OCEAN_DYN
 !@sum  OCEAN_DYN contains variables used in ocean dynamics
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       Use OCEAN, Only : im,jm,lmo
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
@@ -375,7 +374,6 @@ C****
       Module SW2OCEAN
 !@sum  SW2OCEAN variables for putting solar radiation into ocean
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       Use OCEAN, Only : ze,lsrpd
       Implicit None
       REAL*8, DIMENSION(LSRPD) :: FSR,FSRZ,dFSRdZ,dFSRdZB
@@ -386,7 +384,6 @@ C****
       SUBROUTINE init_solar
 !@sum  init_solar calculates penetration of solar radiation
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
       REAL*8 EF,EFZ,Z
       INTEGER L
       EF(Z) = RFRAC*EXP(-Z/ZETA1) + (1d0-RFRAC)*EXP(-Z/ZETA2)
@@ -413,8 +410,6 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-!@ver  1.0
-      USE DOMAIN_DECOMP_ATM, only : dist_grid,agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get, am_i_root
       USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
@@ -431,20 +426,19 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+     *       ,oc_tracer_mean
+      USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
       USE OCN_TRACER_COM, only : ntm
+#ifndef TRACERS_OCEAN_INDEP
+      USE OCN_TRACER_COM, only : itime_tr0, ntrocn, to_per_mil,
+     &     t_qlimit, conc_from_fw, trdecay, trw0
+#endif
 #endif
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
 
       USE OCEAN, only: alloc_odiff
-#ifdef TRACERS_OceanBiology
-      USE obio_forc, only: alloc_obio_forc
-      USE obio_com,  only: alloc_obio_com
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
-#endif
 
       USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
@@ -462,6 +456,26 @@ C****
 
       CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
  
+#ifdef TRACERS_OCEAN
+      allocate(oc_tracer_mean(ntm)) 
+      oc_tracer_mean(:) = -999.
+#ifndef TRACERS_OCEAN_INDEP
+      allocate(
+     &     itime_tr0(ntm), ntrocn(ntm), to_per_mil(ntm),
+     &     t_qlimit(ntm), conc_from_fw(ntm),
+     &     trdecay(ntm), trw0(ntm)
+     &     )
+#endif
+      ALLOCATE(TRMST(LMO,NMST,NTM),
+     &         TXMST(LMO,NMST,NTM),
+     &         TZMST(LMO,NMST,NTM),
+     &         TRME(2,NMST,LMO,NTM),
+     &         TXME(2,NMST,LMO,NTM),
+     &         TYME(2,NMST,LMO,NTM),
+     &         TZME(2,NMST,LMO,NTM)
+     &        )
+#endif
+
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   VO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -559,17 +573,31 @@ C**** Necessary initiallisation?
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
-      call alloc_afluxes(agrid)
-      call ALLOC_OFLUXES(ogrid)
+      !call alloc_afluxes
+      !call ALLOC_OFLUXES(atmocn)
 
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc
       call alloc_obio_com
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      call alloc_gasexch_com
-#endif
       call alloc_odiff(ogrid)
+
+      call read_ocean_topo
+      if(ogrid%have_domain) CALL GEOMO
 
       return
       end subroutine alloc_ocean
+
+      subroutine read_ocean_topo
+C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
+      USE FILEMANAGER, only : openunit,closeunit
+      USE OCEAN, only : IM,JM,FOCEAN,HATMO,HOCEAN
+      IMPLICIT NONE
+      INTEGER :: iu_TOPO
+      call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
+      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
+      call closeunit(iu_TOPO)
+      return
+      end subroutine read_ocean_topo

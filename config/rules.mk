@@ -4,11 +4,9 @@
 
 .PHONY:
 ifdef MOD_DIR
-VPATH = $(MOD_DIR)
+  VPATH = $(MOD_DIR)
 endif
 
-#VPATH = $(MODULES_CMPLR_OPT)
-#VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########
 
 # EXTRA_FFLAGS specifies some extra flags you want to pass 
@@ -33,9 +31,9 @@ endif
 
 # if -s specified enable some extra messages
 ifeq ($(findstring s,$(MFLAGS)),s)
-MSG = 
+  MSG = 
 else
-MSG = > /dev/null
+  MSG = > /dev/null
 endif
 
 #
@@ -74,23 +72,23 @@ RFLAGS = $(shell perl \
 )
 
 
-# check consistency of compilation flugs and redefine some
+# check consistency of compilation flags and redefine some
 # flags if necessary
 ifeq ($(ESMF),YES)
-MPI = YES
+  MPI = YES
 endif
 
 ifeq ($(FVCORE),YES)
-MPI = YES
+  MPI = YES
 endif
 
 ifeq ($(FVCUBED),YES)
-MPI = YES
+  ESMF = YES
 endif
 
 # hack to keep Intel8 name valid (only temporarily)
 ifeq ($(COMPILER),Intel8)
-COMPILER=intel
+  COMPILER=intel
 endif
 
 # include machine-specific options
@@ -99,21 +97,17 @@ include $(CONFIG_DIR)/machine.$(MACHINE).mk
 
 # if COMPILER is not defined try default
 ifndef COMPILER
-COMPILER = $(MACHINE)
+  COMPILER = $(MACHINE)
 endif
 
 #include compiler-specific options
 include $(CONFIG_DIR)/compiler.$(COMPILER).mk
 
-# hack to include netcdf_stubs only when netcdf is missing
-#ifdef NETCDFHOME
-#NETCDF_STUBS=
-#else
-#NETCDF_STUBS=-lnetcdf_stubs
-#endif
+ifeq ($(MPI),YES)
+  CPPFLAGS += -DUSE_MPI
+endif
 
-
-# include ESMF library if necessary
+# include ESMF library if necessary (sets CPPFLAGS appropriately)
 ifeq ($(ESMF),YES)
   include $(CONFIG_DIR)/ESMF.default.mk
 endif
@@ -147,9 +141,10 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
-  LIBS += -lesmf
+  LIBS += $(ESMFLIBDIR)/libesmf.a
+
 endif
 
 ifeq ($(FVCORE),YES)
@@ -177,11 +172,11 @@ ifeq ($(CUBED_SPHERE),YES)
 endif
 
 ifeq ($(MPP),YES)  
-CPPFLAGS += -DUSE_MPP
-FFLAGS += -I$(MPPDIR)/include
-F90FLAGS += -I$(MPPDIR)/include
-LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
-LIBS += -lfmpi -lmpi
+  CPPFLAGS += -DUSE_MPP
+  FFLAGS += -I$(MPPDIR)/include
+  F90FLAGS += -I$(MPPDIR)/include
+  LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
+  #LIBS += -lfmpi -lmpi
 endif
 
 ifeq ($(USE_ENT),YES)
@@ -216,24 +211,21 @@ endif
 
 ifdef NETCDFHOME
 ifeq ($(MACHINE),IRIX64)
-  LIBS += -L$(NETCDFHOME)/lib64 -lnetcdf
+  NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
 else
-  LIBS += -L$(NETCDFHOME)/lib -lnetcdf
+  NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
 endif
-  FFLAGS += -I$(NETCDFHOME)/include
-  INCS += -I$(NETCDFHOME)/include
+  LIBS += $(NETCDFLIB)
+  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
+  FFLAGS += $(NETCDFINCLUDE)
+  F90FLAGS += $(NETCDFINCLUDE)
+  INCS += $(NETCDFINCLUDE)
 endif
-
-#ifdef PNETCDFHOME
-#  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
-#  FFLAGS += -I$(PNETCDFHOME)/include
-#  INCS += -I$(PNETCDFHOME)/include
-#endif
 
 # access new interfaces in sub-directory.
 ifdef ESMF_Interface
-FFLAGS += -$(I)$(ESMF_Interface)
-F90FLAGS += -$(I)$(ESMF_Interface)
+  FFLAGS += -$(I)$(ESMF_Interface)
+  F90FLAGS += -$(I)$(ESMF_Interface)
 endif
 CPPFLAGS += $(INCS)
 
@@ -251,8 +243,6 @@ endif
 ifdef MPIDIR
   CPPFLAGS += -I$(MPIDIR)/include
 endif
-
-
 
 ifeq ($(COMPARE_MODULES_HACK),NO)
 CMP_MOD = cmp -s

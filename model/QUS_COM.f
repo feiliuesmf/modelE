@@ -2,9 +2,8 @@
       MODULE SOMTQ_COM
 !@sum  SOMTQ_COM contains the arrays containing second order moments
 !@auth Gary Russell
-!@ver  1.0
       USE QUSDEF
-      USE MODEL_COM, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 !     REAL*8, DIMENSION(NMOM,IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO ,LM)  
@@ -17,10 +16,9 @@
 !@sum  init_smomtq allocates the arrays in this module which
 !@+    must now be dynamic for the distributed memory implementation.
 !@auth Rosalinda de Fainchtein
-!@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE QUSDEF, ONLY : NMOM
-      USE MODEL_COM, ONLY : LM
+      USE RESOLUTION, ONLY : LM
       USE SOMTQ_COM, ONLY : TMOM,QMOM
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -45,10 +43,9 @@
       SUBROUTINE io_somtq(kunit,iaction,ioerr)
 !@sum  io_somtq reads and writes second order moments to file
 !@auth Gavin Schmidt
-!@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : grid
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN, AM_I_ROOT
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -144,7 +141,6 @@
 #endif /* NEW_IO */
 
       subroutine tq_zmom_init(t,q,pmid,pedn)
-      USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM
       implicit none

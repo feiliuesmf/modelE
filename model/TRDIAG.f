@@ -14,8 +14,9 @@
       SUBROUTINE DIAGJLT_prep
 ! comments to be added
       use constant, only : teeny,grav
-      USE MODEL_COM, only: lm,idacc,fim
-      USE TRACER_COM, only : ntm,ntm_power,trname
+      use resolution, only : lm
+      USE MODEL_COM, only: idacc
+      USE TRACER_COM, only : ntm=>NTM,ntm_power,trname
      &     ,n_Water,n_CH4,n_O3
 #ifdef TRACERS_WATER
      &     ,trw0,dowetdep
@@ -27,6 +28,9 @@
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
      &     ia_dga,ia_src,ajl,cdl_jl_template
      &     ,jl_dpa,jl_dpasrc,jl_dwasrc
+#ifndef CUBED_SPHERE
+     &     ,fim
+#endif
       USE TRDIAG_COM, only : tajln, tajls, lname_jln, sname_jln,
      *     units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -158,8 +162,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       if(n.eq.n_Pb210) k_Pb210 = k
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
@@ -174,7 +177,7 @@ C****
       ia_tajl(k) = ia_jlq(kk)
       jtpow = ntm_power(n)+jlq_power(kk)
       tajl(:,:,k) = tajln(:,:,kk,n)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
+#if (defined TRACERS_AEROSOLS_Koch)
       jtpow = jtpow+13
 #else
       denom_tajl(k) = k_dpa
@@ -611,9 +614,11 @@ c
 
       subroutine diagijt_prep
 ! comments to be added
-      use model_com, only: im,jm,lm,idacc,focean
+      use resolution, only : im,jm
+      use model_com, only: idacc
       use tracer_com
       use diag_com
+      use mdiag_com, only : sname_strlen
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
      &     ktaij_,ktaij_out,taij=>taij_out,
      &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,
@@ -690,7 +695,7 @@ C**** Fill in the undefined pole box duplicates
 c
 c Tracer sums/means and ground conc
 c
-      do n=1,ntm
+      do n=1,NTM
       do kx=1,ktaij
         if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
@@ -1005,7 +1010,8 @@ c
 
       SUBROUTINE DIAGIJLt_prep
 ! comments to be added
-      use model_com, only: im,jm,lm,idacc
+      use resolution, only : im,jm,lm
+      use model_com, only: idacc
       use tracer_com
       use diag_com
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
@@ -1069,7 +1075,7 @@ C**** Fill in the undefined pole box duplicates
       k = 0
 
 C**** Tracer concentrations
-      do n=1,ntm
+      do n=1,NTM
         k = k+1
         sname_taijl(k) = sname_ijt(n)
         lname_taijl(k) = lname_ijt(n)

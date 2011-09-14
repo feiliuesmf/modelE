@@ -2,7 +2,7 @@
 
       module hycom_dim_glob
 
-#ifndef CUBED_SPHERE
+#if !(defined CUBED_SPHERE) && !defined(STANDALONE_HYCOM)
       use hycom_dim, only : iia,jja
 #endif
 
@@ -102,7 +102,7 @@ cddd     .     msk
       implicit none
       private
 
-#ifndef CUBED_SPHERE
+#if !(defined CUBED_SPHERE) && !defined(STANDALONE_HYCOM)
       public iia,jja
 #endif
 
@@ -168,27 +168,27 @@ cddd     .     msk
       call pack_dataj( ogrid, ifp_loc,  ifp )
       call pack_dataj( ogrid, ilp_loc,  ilp )
       call pack_data( ogrid, isp_loc,  isp )
-      !call esmf_bcast ( ogrid,  jfp, jfp_loc )
-      !call esmf_bcast ( ogrid,  jlp, jlp_loc )
-      !call esmf_bcast ( ogrid,  jsp, jsp_loc )
+      !call broadcast ( ogrid,  jfp, jfp_loc )
+      !call broadcast ( ogrid,  jlp, jlp_loc )
+      !call broadcast ( ogrid,  jsp, jsp_loc )
       call pack_dataj( ogrid, ifq_loc,  ifq )
       call pack_dataj( ogrid, ilq_loc,  ilq )
       call pack_data( ogrid, isq_loc,  isq )
-      !call esmf_bcast ( ogrid,  jfq, jfq_loc )
-      !call esmf_bcast ( ogrid,  jlq, jlq_loc )
-      !call esmf_bcast ( ogrid,  jsq, jsq_loc )
+      !call broadcast ( ogrid,  jfq, jfq_loc )
+      !call broadcast ( ogrid,  jlq, jlq_loc )
+      !call broadcast ( ogrid,  jsq, jsq_loc )
       call pack_dataj( ogrid, ifu_loc,  ifu )
       call pack_dataj( ogrid, ilu_loc,  ilu )
       call pack_data( ogrid, isu_loc,  isu )
-      !call esmf_bcast ( ogrid,  jfu, jfu_loc )
-      !call esmf_bcast ( ogrid,  jlu, jlu_loc )
-      !call esmf_bcast ( ogrid,  jsu, jsu_loc )
+      !call broadcast ( ogrid,  jfu, jfu_loc )
+      !call broadcast ( ogrid,  jlu, jlu_loc )
+      !call broadcast ( ogrid,  jsu, jsu_loc )
       call pack_dataj( ogrid, ifv_loc,  ifv )
       call pack_dataj( ogrid, ilv_loc,  ilv )
       call pack_data( ogrid, isv_loc,  isv )
-      !call esmf_bcast ( ogrid,  jfv, jfv_loc )
-      !call esmf_bcast ( ogrid,  jlv, jlv_loc )
-      !call esmf_bcast ( ogrid,  jsv, jsv_loc )
+      !call broadcast ( ogrid,  jfv, jfv_loc )
+      !call broadcast ( ogrid,  jlv, jlv_loc )
+      !call broadcast ( ogrid,  jsv, jsv_loc )
       call pack_data( ogrid, msk_loc,  msk )
 
 cddd       ip= ip_loc 

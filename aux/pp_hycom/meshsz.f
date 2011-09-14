@@ -51,7 +51,6 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         call extrct(lon4(1,1,n),iorign,jorign,lonij(1,1,n))
       end do
 c
-c$OMP PARALLEL DO
       do 56 j=1,jdm
       ja=mod(j-2+jdm,jdm)+1
       jb=mod(j      ,jdm)+1
@@ -81,7 +80,6 @@ c
      .                   latij(i,ja ,3),lonij(i,ja ,3))
       scp2(i,j)=scpx(i,j)*scpy(i,j)
  56   continue
-c$OMP END PARALLEL DO
 c
       return
       end

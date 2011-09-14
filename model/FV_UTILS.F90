@@ -15,23 +15,24 @@ module FV_UTILS
   public :: ConvertPotTemp_FV2GISS
   public :: ConvertPressure_GISS2FV
   public :: ConvertPressure_FV2GISS
+  public :: ConvertUV_GISS2FV
   public :: EdgePressure_GISS
   public :: DryTemp_GISS
   public :: DeltPressure_DryTemp_GISS
   public :: DeltPressure_GISS
   public :: compute_phi
-  public :: init_app_clock
   public :: MoveFile
-  public :: AllocateFvExport3D
+  public :: allocateFvExport3D
   public :: DumpState
   public :: load_configuration
-  public :: SetupForESMF
-  public :: HumidityInit
   public :: Copy_modelE_to_FV_import
+  public :: Copy_FV_export_to_modelE
   public :: Tendency
   public :: ClearTendencies
   public :: SaveTendencies
   public :: clear_accumulated_mass_fluxes
+  public :: writeFVCSstate
+  public :: StateWriteToFile
 
   Interface ReverseLevels
      Module Procedure reverse_3d_r8
@@ -53,8 +54,8 @@ module FV_UTILS
   End Interface
 
   ! Public parameters
-  character(len=*), parameter, public :: FVCORE_INTERNAL_RESTART = 'dyncore_internal_restart'
-  character(len=*), parameter, public :: FVCORE_IMPORT_RESTART   = 'dyncore_import_restart'
+  character(len=*), parameter, public :: FVCORE_INTERNAL_RESTART = 'fvcore_internal_rst'
+  character(len=*), parameter, public :: FVCORE_IMPORT_RESTART   = 'fvcore_import_rst'
   character(len=*), parameter, public :: FVCORE_LAYOUT           = 'fvcore_layout.rc'
 
   character(len=*), parameter, public :: TENDENCIES_FILE = 'tendencies_checkpoint'
@@ -66,18 +67,20 @@ module FV_UTILS
   integer, parameter, public :: INITIAL_START = 2 ! ISTART=2: cold start, no FV restart files
   integer, parameter, public :: EXTEND_RUN = 3    ! ISTART>2: FV restart files are read
 
+
   ! This data structure is o convenient entity for storing persistent data between
   ! calls to this module.  In addition to
   Type FV_CORE
 
-     type (esmf_gridcomp) :: gc   ! This is the handle for the fv dynamical core
 
-     type (esmf_grid)     :: grid ! Although modelE is not an ESMF component, it does have an ESMF_Grid
-     type (esmf_vm)       :: vm   ! Should be eliminated ... Only used to obtain NPES for config file.
+     type (ESMF_gridcomp) :: gc   ! This is the handle for the fv dynamical core
+
+     type (ESMF_grid)     :: grid ! Although modelE is not an ESMF component, it does have an ESMF_Grid
+     type (ESMF_vm)       :: vm   ! Should be eliminated ... Only used to obtain NPES for config file.
 
      ! Import and Export states for FV dycore
-     type(esmf_state) :: import   ! Allocated within FV component
-     type(esmf_state) :: export   ! Allocated within FV component
+     type(ESMF_state) :: import   ! Allocated within FV component
+     type(ESMF_state) :: export   ! Allocated within FV component
 
      ! The following pointers can be re-extracted from the import state at each iteration,
      ! but it is convenient to have a simpler means of access.
@@ -112,7 +115,9 @@ contains
   ! GISS termination routine.   The line number and return code are
   ! written into a buffer which is passed to stop_model().
   !----------------------------------------------------------------
+!-------------------------------------------------------------------------------
   Subroutine abort_core(line,rc)
+!-------------------------------------------------------------------------------
     Implicit None
     Integer, Intent(In) :: line
     Integer, Intent(In) :: rc
@@ -158,11 +163,12 @@ contains
   End Function reverse_3d_r4
 
   function EdgePressure_GISS() Result(PE)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    Use DYNAMICS, only : SIG, SIGE
+    use atm_com, only : P
     use domain_decomp_atm, only: grid, get
 
-    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
 
     INTEGER :: L, i_0, i_1, j_0, j_1
 
@@ -183,11 +189,11 @@ contains
   ! Compute Delta-pressure for GISS model
   function DeltPressure_GISS() Result(dP)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: dP(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: dP(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
 
     INTEGER :: k
 
@@ -201,12 +207,12 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DeltPressure_DryTemp_GISS() Result(dPT)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: dPT(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
-    REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: dPT(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
+    REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
     Call Get(grid, J_STRT=J_0, J_STOP=J_1)
@@ -222,11 +228,11 @@ contains
   ! Convert Potential Temperature into (dry) Temperature
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only: T
+    Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
     Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -237,11 +243,12 @@ contains
   end function DryTemp_GISS
 
   function PKZ_GISS() Result(PKZ)
-    USE RESOLUTION, only: IM, LM, LS1
-    Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
+    USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
+    USE DYNAMICS, only : SIG
+    Use ATM_COM, only : P
     use domain_decomp_atm, only: grid, get
 
-    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: L
     INTEGER :: I_0, I_1, J_0,J_1
@@ -258,7 +265,33 @@ contains
     End Do
   end function PKZ_GISS
 
+!-------------------------------------------------------------------------------
+  subroutine ConvertUV_GISS2FV(U_orig, V_orig, U_d, V_d)
+!-------------------------------------------------------------------------------
+! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
+    Use Resolution, only : LM
+    Use Domain_decomp_atm, only : grid, get
+    Real*8, intent(in), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_orig, V_orig
+    Real*4, intent(out), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_d, V_d
+
+    Integer :: i,j,k
+    integer :: I_0, I_1, j_0, j_1
+
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+
+    Do k = 1, LM
+       Do j = j_0,j_1
+          Do i = i_0,i_1
+             U_d(i,j,k) = U_orig(i,j,k)
+             V_d(i,j,k) = V_orig(i,j,k)
+          End do
+       end do
+    end do
+  end subroutine ConvertUV_GISS2FV
+
+!-------------------------------------------------------------------------------
   subroutine ConvertPressure_GISS2FV_r4(P_giss, P_fv)
+!-------------------------------------------------------------------------------
     Real*8, intent(in) :: P_giss(:,:,:)
     Real*4, intent(out) :: P_fv(:,:,:)   ! no halo in this case
 
@@ -266,7 +299,9 @@ contains
 
   end Subroutine ConvertPressure_GISS2FV_r4
 
+!-------------------------------------------------------------------------------
   subroutine ConvertPressure_GISS2FV_r8(P_giss, P_fv)
+!-------------------------------------------------------------------------------
     Real*8, intent(in) :: P_giss(:,:,:)
     Real*8, intent(out) :: P_fv(:,:,:)   ! no halo in this case
 
@@ -276,7 +311,9 @@ contains
 
   ! Convert pressure from GISS representation to FV representation.
   ! Both the order of levels and the units must be adjusted.
+!-------------------------------------------------------------------------------
   subroutine ConvertPressure_FV2GISS(P_fv, P_giss)
+!-------------------------------------------------------------------------------
     Real*4, intent(in) :: P_fv(:,:,:)
     Real*8, intent(out) :: P_giss(:,:,:)
 
@@ -285,7 +322,9 @@ contains
   end Subroutine ConvertPressure_FV2GISS
 
   ! Convert potential temperature between the two representations.
+!-------------------------------------------------------------------------------
   subroutine CnvPotTemp_GISS2FV_r8(PT_giss, PT_fv)
+!-------------------------------------------------------------------------------
     Real*8, intent(in) :: PT_giss(:,:,:)
     Real*8, intent(out) :: PT_fv(:,:,:)
 
@@ -294,7 +333,9 @@ contains
   end Subroutine CnvPotTemp_GISS2FV_r8
 
   ! Convert potential temperature between the two representations.
+!-------------------------------------------------------------------------------
   subroutine CnvPotTemp_GISS2FV_r4(PT_giss, PT_fv)
+!-------------------------------------------------------------------------------
     Real*8, intent(in) :: PT_giss(:,:,:)
     Real*4, intent(out) :: PT_fv(:,:,:)
 
@@ -307,7 +348,9 @@ contains
   ! potential temperauture within modelE.  Note that FV export uses
   ! a reference pressure of 10^5 pa.
   !------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
   subroutine CnvPotTemp_FV2GISS_r4(PT_fv, PT_giss)
+!-------------------------------------------------------------------------------
     Real*4, intent(in) :: PT_fv(:,:,:)
     Real*8, intent(out) :: PT_giss(:,:,:)
 
@@ -323,10 +366,12 @@ contains
 
   end Subroutine CnvPotTemp_FV2GISS_r4
 
+!-------------------------------------------------------------------------------
   function compute_phi(P, T, SZ, zatmo) result(phi)
+!-------------------------------------------------------------------------------
     USE CONSTANT, only : rgas,bykapa,bykapap1,bykapap2
-    USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
-    USE MODEL_COM, only: IM, JM, LM
+    USE DYNAMICS, only: DSIG, SIG, SIGE
+    USE RESOLUTION, only: IM, JM, LM, LS1, PTOP, PSFMPT
     USE DOMAIN_DECOMP_ATM, Only: grid, Get
     implicit none
 
@@ -355,8 +400,6 @@ contains
        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
     END DO
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
-!$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
     DO J=J_0,J_1
 
        DO I=I_0,I_1
@@ -404,7 +447,6 @@ contains
           END DO
        END DO
     END DO
-    !$OMP END PARALLEL DO
 
     !**** SET POLAR VALUES FROM THOSE AT I=1
     IF (HAVE_SOUTH_POLE) THEN
@@ -421,105 +463,75 @@ contains
 
   end function compute_phi
 
-  function init_app_clock(start_time, end_time, interval) Result(clock)
-    integer :: start_time(6)
-    integer :: end_time(6)
-    integer :: interval
-    type (esmf_clock)              :: clock
-
-    type (esmf_time) :: startTime
-    type (esmf_time) :: stopTime
-    type (esmf_timeinterval) :: timeStep
-    type (esmf_calendar) :: gregorianCalendar
-
-    ! initialize calendar to be Gregorian type
-    gregorianCalendar = esmf_calendarcreate("GregorianCalendar", ESMF_CAL_GREGORIAN, rc)
-    VERIFY_(rc)
-
-    ! initialize start time
-    write(*,*)'Time Set Start: ',START_TIME
-    call esmf_timeset(startTime, YY=START_TIME(1), MM= START_TIME(2), &
-         & DD=START_TIME(3), H=START_TIME(4),                         &
-         & M=START_TIME(5),  S=START_TIME(6),                         &
-         & calendar=gregorianCalendar, rc=rc)
-    VERIFY_(rc)
-
-    ! initialize stop time
-    write(*,*)'Time Set End: ',END_TIME
-    call esmf_timeset(stopTime, YY=END_TIME(1), MM= END_TIME(2), &
-         & DD=END_TIME(3), H=END_TIME(4),                        &
-         & M=END_TIME(5),  S=END_TIME(6),                        &
-         & calendar=gregorianCalendar, rc=rc)
-    VERIFY_(rc)
-
-    ! initialize time interval
-    call esmf_timeintervalset(timeStep, &
-         & S=INT(interval), rc=rc)
-    VERIFY_(rc)
-
-    ! initialize the clock with the above values
-    clock = esmf_clockcreate("ApplClock", timeStep, startTime, stopTime, rc=rc)
-    VERIFY_(rc)
-
-  end function init_app_clock
-
+!-------------------------------------------------------------------------------
   subroutine MoveFile(fv_fname, fv_dfname, suffix)
+!-------------------------------------------------------------------------------
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
 
     call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // trim(fv_fname) )
     call system('mv ' // FVCORE_IMPORT_RESTART // ' ' // trim(fv_dfname) )
   end subroutine MoveFile
 
-  subroutine AllocateFvExport3D ( state, name )
+!-------------------------------------------------------------------------------
+  subroutine allocateFvExport3D ( state, name )
+!-------------------------------------------------------------------------------
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
     type(ESMF_State),  intent(INOUT) :: state
     character(len=*),  intent(IN   ) :: name
 
     real, pointer :: ptr(:,:,:)
-    integer       :: status
     logical       :: alloc
 
     alloc = .true.
-    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc , status )
-    VERIFY_(status)
+    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc, rc=rc )
+    VERIFY_(rc)
 
-  end subroutine AllocateFvExport3D
+  end subroutine allocateFvExport3D
+
 #ifdef CUBED_SPHERE
 #define USE_MAPL
 #endif
 
 #ifdef USE_MAPL
+!-------------------------------------------------------------------------------
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
+!-------------------------------------------------------------------------------
     use MAPL_mod, only: MAPL_MetaComp
-    use MAPL_mod, only: MAPL_InternalStateGet
+    use MAPL_mod, only: MAPL_GetObjectFromGC
     use MAPL_mod, only: MAPL_Get
-    use MAPL_mod, only: MAPL_ESMFStateWriteToFile
     use MAPL_mod, only: MAPL_GetResource
     use domain_decomp_atm, only: AM_I_ROOT
 
     Type (FV_CORE),    intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+    type (ESMF_clock), intent(inout) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
     logical, intent(in) :: isFinalize
 
     type (MAPL_MetaComp), pointer :: internalState
-    type (ESMF_State) :: esmfInternalState
+    type (ESMF_State) :: ESMFInternalState
     integer :: hdr
+    integer :: rc
 
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+       call ESMF_GridCompFinalize( fv%gc, importState=fv%import, exportState=fv%export, &
+                                   clock=clock, rc=rc)
     else
-       ! workaround for RecordPhase since modelE is not using MAPL interface for alarms
-       call MAPL_InternalStateGet( fv % gc, internalSTate, rc=rc)
-       call MAPL_Get(internalState, internal_esmf_state=esmfInternalState, rc=rc)
+       ! workaround for RecordPhase since modelE is not using MAPL interface 
+       ! for alarms
+       call MAPL_GetObjectFromGC( fv%gc, internalSTate)
+       call MAPL_Get(internalState, internal_ESMF_state=ESMFInternalState, rc=rc)
+       VERIFY_(rc)
        call MAPL_GetResource( internalState   , hdr,         &
                                default=0, &
                                LABEL="INTERNAL_HEADER:", &
                                RC=rc)
-       call MAPL_ESMFStateWriteToFile(esmfInternalState, clock, FVCORE_INTERNAL_RESTART // suffix, &
-            & 'binary',internalState,hdr==1, rc=rc)
+       VERIFY_(rc)
+       call StateWriteToFile(ESMFInternalState, clock, &
+            & FVCORE_INTERNAL_RESTART // suffix,       &
+            & 'binary',internalState, hdr==1, rc=rc)
+       VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -530,22 +542,26 @@ contains
   end subroutine DumpState
 #else
 
+!-------------------------------------------------------------------------------
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
+!-------------------------------------------------------------------------------
     use GEOS_mod, only: RecordPhase=>GEOS_RecordPhae
     use domain_decomp_atm, only: AM_I_ROOT
 
     Type (FV_CORE),    intent(inout) :: fv
-    type (esmf_clock), intent(in) :: clock
+    type (ESMF_clock), intent(in) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
     logical, intent(in) :: isFinalize
 
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+       call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, rc=rc)
+       VERIFY_(rc)
     else
-       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, &
+       call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, &
             &  phase=RecordPhase, rc=rc)
+       VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -556,192 +572,102 @@ contains
   end subroutine DumpState
 #endif
 
+!-------------------------------------------------------------------------------
   function load_configuration(config_file) result( config )
+!-------------------------------------------------------------------------------
     use ESMF_mod
     use FILEMANAGER
-    Use MODEL_COM,  only: DT
+    Use MODEL_COM,  only: DT=>DTsrc
     character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     character(len=*), intent(in) :: config_file
-    type (esmf_config)           :: config
+    type (ESMF_config)           :: config
 
     integer :: iunit
     type (ESMF_VM) :: vm
 
-    config = esmf_configcreate(rc=rc)
+    config = ESMF_configcreate(rc=rc)
     VERIFY_(rc)
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
     write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
     write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
-!!$ write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
-!!$ write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
     write(iunit,*)'FVCORE_LAYOUT:                    ', FVCORE_LAYOUT
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
     Call ESMF_VMGetGlobal(vm, rc)
-    call esmF_VMbarrier(vm, rc)
-    call esmf_configloadfile(config, config_file, rc=rc)
+    call ESMF_VMbarrier(vm, rc)
+    call ESMF_configloadfile(config, config_file, rc=rc)
     VERIFY_(rc)
 
   end function load_configuration
 
-  subroutine SetupForESMF(fv, vm, grid, cf, config_file)
-    use DOMAIN_DECOMP_ATM, only : AM_I_ROOT
-#ifdef CUBED_SPHERE
-    use FVCubed_dycore_GridCompMod, only: SetServices
-#else
-    use fvdycore_gridcompmod, only: SetServices
-#endif
 
-    Type(FV_CORE), intent(inout) :: fv
-    type (esmf_vm),   intent(in) :: vm
-    type (esmf_grid), intent(in) :: grid
-    type (esmf_config), intent(inout) :: cf
-    character(len=*),  intent(in) :: config_file ! filename for resource file
-
-#ifdef CUBED_SPHERE
-    character(len=*), parameter :: gridCompName = 'FVCORE'
-#else
-    character(len=*), parameter :: gridCompName = 'FV dynamics'
-#endif
-
-    fv % vm  =vm
-    fv % grid=grid
-
-    ! Load configuration information from resource file
-    !  ------------------------------------------------
-    cf = load_configuration(config_file)
-
-    !  Create the dynamics component, using same layout as application
-    !  ------------------------------------------------------------------
-    fv % gc = ESMF_GridCompCreate ( vm=vm, name=gridCompName, &
-         & grid=grid, gridcomptype=ESMF_ATM,              &
-         & config=cf, rc=rc)
-    VERIFY_(rc)
-
-    ! Create couplings
-    fv % import = ESMF_StateCreate ( 'fv dycore imports', ESMF_STATE_IMPORT, rc=rc )
-    VERIFY_(rc)
-    fv % export = ESMF_StateCreate ( 'fv dycore exports', ESMF_STATE_EXPORT, rc=rc )
-    VERIFY_(rc)
-
-    !  Register services for components
-    !  --------------------------------
-    !   print*,'calling set services'
-    call ESMF_GridCompSetServices ( fv % gc, SetServices, rc )
-    VERIFY_(rc)
-
-    ! 1) Create layout resource file - independent of actual restart file.
-    If (AM_I_ROOT()) Then
-       Call Write_Layout(FVCORE_LAYOUT, fv)
-    End If
-
-    contains
-
-      Subroutine write_layout(fname, fv)
-#ifdef CUBED_SPHERE
-        Use MAPL_IOMod, only: GETFILE, Free_file
-#else
-        Use GEOS_IOMod, only: GETFILE, Free_file
-#endif
-
-      USE RESOLUTION, only: IM, JM, LM, LS1
-      Use MODEL_COM,  only: DT
-      character(len=*), intent(in) :: fname
-      type (fv_core), intent(in)   :: fv
-
-      Type (esmf_axisindex), pointer :: AI(:,:)
-      Integer :: unit
-      Integer :: npes
-      Integer :: mppnx, mppny
-
-      call esmf_vmget(fv % vm, petcount = npes, rc=rc)
-      Allocate(AI(npes,3))
-      call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
-           &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
-
-      unit = GetFile(fname, form="formatted", rc=rc)
-
-      mppnx = 0
-      mppny = 0
-      if(mod(NPES,6) == 0) then
-         mppnx = int(floor(sqrt(real(NPES/6))))
-         mppny = (NPES / mppnx) / 6
-      endif
-
-      ! Lat-Lon parameters
-      write(unit,*)' # empty line #'
-      Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
-      Write(unit,*)'    im: ',IM
-      Write(unit,*)'    jm: ',JM
-      Write(unit,*)'    km: ',LM
-      Write(unit,*)'    dt: ',DT
-      Write(unit,*)' ntotq: ',1
-      Write(unit,*)'  imxy: ',IM
-      Write(unit,'(a,100(1x,I3))')'  jmxy: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,'(a,100(1x,I3))')'  jmyz: ',AI(:,2) % MAX-AI(:,2) % MIN+1
-      Write(unit,*)'   kmyz: ',LM
-
-      ! Common parameters
-      Write(unit,*)'nsplit: ',0
-      Write(unit,*)'    nq: ',1
-
-      ! Cubed-Sphere parameters
-      Write(unit,*)'      npx: ',IM
-      Write(unit,*)'      npy: ',JM
-      Write(unit,*)'      npz: ',LM
-      Write(unit,*)'       dt: ',DT
-      Write(unit,*)'   npes_x: ',mppnx
-      Write(unit,*)'   npes_y: ',mppny
-      Write(unit,*)' consv_te: ',0.
-      Write(unit,*)' dgrid_imports: ',.true.
-
-      Call Free_File(unit)
-
-      Deallocate(AI)
-
-    End Subroutine write_layout
-
-  end subroutine SetupForESMF
-
-  subroutine HumidityInit(fv, grid)
+!-------------------------------------------------------------------------------
+  Subroutine Copy_FV_export_to_modelE(fv)
+!-------------------------------------------------------------------------------
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    use domain_decomp_atm, only : get
+    Use Resolution, only: IM,JM,LM,LS1,Ptop
+    USE ATM_COM, ONLY: PUA,PVA,SDA
+    USE DYNAMICS, ONLY: PU, PV, SD
+    Use ATM_COM, only: U, V, T, P, Q
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    USE GEOM
+    
+    Type (FV_CORE) :: fv
+    real*4, Dimension(:,:,:), Pointer :: T_fv, PLE, U_d, V_d
 
-    Type(FV_CORE), intent(inout) :: fv
-    Type(ESMF_GRID), intent(inout) :: grid
+    Integer :: unit
 
-    type (ESMF_Bundle)               :: bundle
-    type (ESMF_Field)                :: Qfield
-    type (ESMF_Array)                :: Qarray
-    type (ESMF_FieldDataMap)         :: datamap
+    Integer :: i,j,k
+    Integer :: i_0, i_1, j_0, j_1
 
-    ! Specific Humidity - need to reserve space in FV import state
-    call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
+    Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
+
+    ! First compute updated values for modelE.  Then capture the
+    ! new state in fv%*_old for computing tendencies.
+    ! ----------------------------------------------------------
+    call ESMFL_StateGetPointerToData ( fv%export,U_d,'U_DGRID',rc=rc)
     VERIFY_(rc)
-    fv%q = 0.0
-!!$    Allocate(fv % Qtr(IM,J_0:J_1,LM))
-
-    Qarray = ESMF_ArrayCreate(fv % q, ESMF_DATA_REF, RC=rc)
+    call ESMFL_StateGetPointerToData ( fv%export,V_d,'V_DGRID',rc=rc)
     VERIFY_(rc)
-        call ESMF_FieldDataMapSetDefault(datamap, dataRank=3, rc=rc)
-    Qfield = ESMF_FieldCreate( grid, Qarray, horzRelloc=ESMF_CELL_CENTER, &
-         datamap=datamap, name="Q", rc=rc)
+    U(I_0:I_1,J_0:J_1,:) = ReverseLevels(U_d)
+    V(I_0:I_1,J_0:J_1,:) = ReverseLevels(V_d)
+    fv%U_old = U(I_0:I_1,J_0:J_1,:)
+    fv%V_old = V(I_0:I_1,J_0:J_1,:)
+
+    ! Potential temperature (save dry Temperature for computing tendencies)
+    !----------------------------------------------------------------------
+    call ESMFL_StateGetPointerToData ( fv%export,T_fv,'TH',rc=rc)
+    VERIFY_(rc)
+    call ConvertPotTemp_FV2GISS(T_fv, T)
+
+    ! Use edge pressure export to update surface pressure
+    !----------------------------------------------------------------------
+    call ESMFL_StateGetPointerToData ( fv%export,PLE,'PLE',rc=rc)
     VERIFY_(rc)
 
-    ! First obtain a reference field from the state (avoids tedious details)
-    call ESMF_StateGetBundle (fv % import, 'QTR'  , bundle, rc=rc)
-    VERIFY_(rc)
-    Call ESMF_BundleAddField(bundle, Qfield, rc=rc)
-    VERIFY_(rc)
+    call ConvertPressure_FV2GISS(PLE, fv%PE_old)
+    ! Just need surface pressure - Ptop
+    P(I_0:I_1,J_0:J_1) = fv%PE_old(:,:,1) - Ptop
+    CALL CALC_AMPK(LS1-1)
 
-  end subroutine HumidityInit
+    ! Preserve state information for later computation of tendencies.
+    fv%dT_old = DryTemp_GISS()
+    fv%dPT_old = DeltPressure_DryTemp_GISS()
 
+#if defined(USE_FV_Q)
+    Q(I_0:I_1,j_0:j_1,:) = ReverseLevels(fv%Q)
+#endif
+
+  End Subroutine Copy_FV_export_to_modelE
+
+!-------------------------------------------------------------------------------
   Subroutine Copy_modelE_to_FV_import(fv)
-    USE MODEL_COM, only:  Q     ! Secific Humidity
-    USE MODEL_COM, only:  ZATMO ! Geopotential Height?
-    USE MODEL_COM, Only : U, V, T
+!-------------------------------------------------------------------------------
+    USE ATM_COM, only:  Q     ! Secific Humidity
+    USE ATM_COM, only:  ZATMO ! Geopotential Height?
+    USE ATM_COM, Only : U, V, T
     Use Domain_decomp_atm, Only: grid, Get
     Type (FV_CORE) :: fv
 
@@ -752,16 +678,16 @@ contains
     Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! 1) Link/copy modelE data to import state
-    fv % phis=ZATMO(I_0:I_1,j_0:j_1)
+    fv%phis=ZATMO(I_0:I_1,j_0:j_1)
 #ifdef NO_FORCING
-    fv % phis = 0
+    fv%phis = 0
 #endif
 
     ! Moisture
 #ifndef ADIABATIC
-    fv % Q = ReverseLevels(Q(I_0:I_1,j_0:j_1,:))
+    fv%Q = ReverseLevels(Q(I_0:I_1,j_0:j_1,:))
 #ifdef NO_FORCING
-    fv % Q = 0
+    fv%Q = 0
 #endif
 #endif
 
@@ -771,7 +697,9 @@ contains
   ! d/dt A
   ! Note that FV needs tendency with the order of vertical levels reversed.
   !-----------
+!-------------------------------------------------------------------------------
   Function Tendency(A, A_old) Result(tend)
+!-------------------------------------------------------------------------------
     USE MODEL_COM, Only: DTsrc
     REAL*8, INTENT(IN) :: A(:,:,:)
     REAL*8, INTENT(IN) :: A_old(:,:,:)
@@ -781,17 +709,21 @@ contains
 
   End Function Tendency
 
+!-------------------------------------------------------------------------------
   subroutine ClearTendencies(fv)
+!-------------------------------------------------------------------------------
     Type (FV_CORE) :: fv
 
-    fv % dudt = 0
-    fv % dvdt = 0
-    fv % dtdt = 0
-    fv % dpedt = 0
+    fv%dudt = 0
+    fv%dvdt = 0
+    fv%dtdt = 0
+    fv%dpedt = 0
 
   end subroutine ClearTendencies
 
+!-------------------------------------------------------------------------------
   subroutine SaveTendencies(fv, fv_dfname)
+!-------------------------------------------------------------------------------
     use domain_decomp_atm, only: AM_I_ROOT
     use FILEMANAGER
 
@@ -801,17 +733,19 @@ contains
 
     call OpenUnit(trim(fv_dfname) , iunit, qbin=.true.)
 
-    call SaveArr(iunit, fv % U_old)
-    call SaveArr(iunit, fv % V_old)
-    call SaveArr(iunit, fv % dPT_old)
-    call SaveArr(iunit, fv % PE_old)
-    call SaveArr(iunit, fv % dT_old)
+    call SaveArr(iunit, fv%U_old)
+    call SaveArr(iunit, fv%V_old)
+    call SaveArr(iunit, fv%dPT_old)
+    call SaveArr(iunit, fv%PE_old)
+    call SaveArr(iunit, fv%dT_old)
 
     call closeunit(iunit)
 
   contains
 
+    !---------------------------------------------------------------------------
     subroutine SaveArr(iunit, arr)
+    !---------------------------------------------------------------------------
       use domain_decomp_atm, only: grid, dwrite8_parallel, get
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
@@ -833,13 +767,137 @@ contains
 
   end subroutine SaveTendencies
 
+!-------------------------------------------------------------------------------
   subroutine clear_accumulated_mass_fluxes()
-    USE DYNAMICS, ONLY: PUA,PVA,SDA
-
+!-------------------------------------------------------------------------------
+    USE ATM_COM, ONLY: PUA,PVA,SDA
     PUA(:,:,:) = 0.0
     PVA(:,:,:) = 0.0
     SDA(:,:,:) = 0.0
-
   end subroutine clear_accumulated_mass_fluxes
+
+!-------------------------------------------------------------------------------
+  subroutine writeFVCSstate
+!-------------------------------------------------------------------------------
+! This is a temporary routine to write the Cubed Sphere state to a file
+! that can be read with grads (thus real*4 fields are written out).
+! Unfortunately the fields are represented in the CS-grid and so a conversion
+! to lat-lon may be desirable.
+    Use MAPL_IOMod, only: GETFILE, Free_file, MAPL_VarWrite
+    USE DOMAIN_DECOMP_ATM, only: grid
+    USE RESOLUTION, Only : IM, JM, LM
+    USE ATM_COM, Only : U, V, T, P
+    real*4 u4(im,jm,lm), v4(im,jm,lm)
+    real*4 pt4(im,jm,lm), p4(im,jm)
+    integer :: unit, rc
+
+    u4=u; v4=v; pt4=t; p4=p
+    unit = GetFile('fvout.dat', form="unformatted", rc=rc)
+    VERIFY_(rc)
+    Call MAPL_VarWrite(unit, grid%ESMF_GRID, p4)
+    Call MAPL_VarWrite(unit, grid%ESMF_GRID, u4)
+    Call MAPL_VarWrite(unit, grid%ESMF_GRID, v4)
+    Call MAPL_VarWrite(unit, grid%ESMF_GRID, pt4)
+    Call Free_File(unit)
+
+  end subroutine writeFVCSstate
+
+!-------------------------------------------------------------------------------
+  subroutine StateWriteToFile(STATE,CLOCK,FILENAME,FILETYPE,MPL,HDR,RC)
+!-------------------------------------------------------------------------------
+    use MAPL_mod, only: MAPL_MetaComp
+    Use MAPL_IOMod, only: GETFILE, Free_file, MAPL_VarWrite, Write_parallel
+    USE RESOLUTION, only: IM, JM, LM
+    type(ESMF_State),                 intent(INOUT) :: STATE
+    type(ESMF_Clock),                 intent(IN   ) :: CLOCK
+    character(len=*),                 intent(IN   ) :: FILENAME
+    character(LEN=*),                 intent(IN   ) :: FILETYPE
+    type(MAPL_MetaComp),              intent(INOUT) :: MPL
+    logical,                          intent(IN   ) :: HDR
+    integer, optional,                intent(  OUT) :: RC
+
+    character(len=ESMF_MAXSTR), parameter :: IAm="StateWriteToFile"
+
+    type (ESMF_StateItemType), pointer    :: ITEMTYPES(:)
+    character(len=ESMF_MAXSTR ), pointer  :: ITEMNAMES(:)
+    integer                               :: ITEMCOUNT
+    integer                               :: UNIT
+    integer                               :: I, J, K, L, N
+    integer                               :: YYYY, MM, DD, H, M, S
+    type(ESMF_Time)                       :: currentTime
+    integer                               :: HEADER(6)
+
+! Get information from state
+!---------------------------
+
+    call ESMF_StateGet(STATE,ITEMCOUNT=ITEMCOUNT,RC=rc)
+    VERIFY_(rc)
+
+    allocate(ITEMNAMES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+    allocate(ITEMTYPES(ITEMCOUNT),STAT=rc)
+    VERIFY_(rc)
+
+    call ESMF_StateGet(STATE,ITEMNAMELIST=ITEMNAMES, &
+         & STATEITEMTYPELIST=ITEMTYPES,RC=rc)
+    VERIFY_(rc)
+
+! Open file
+!----------
+
+    if (filetype == 'binary' .or. filetype == 'BINARY') then
+       UNIT = GETFILE(FILENAME, form="unformatted", rc=rc)
+       VERIFY_(rc)
+    elseif(filetype=="formatted".or.filetype=="FORMATTED") then
+       UNIT = GETFILE(FILENAME, form="formatted", rc=rc)
+       VERIFY_(rc)
+    else
+       UNIT=0
+    end if
+
+! Write data
+!-----------
+
+    call ESMF_ClockGet (clock, currTime=currentTime, rc=rc)
+    VERIFY_(rc)
+    call ESMF_TimeGet(CurrentTime, &
+      &   YY=YYYY, MM=MM, DD=DD,   &
+      &   H=H, M=M, S=S, rc=rc)
+    VERIFY_(rc)
+
+    HEADER(1) = YYYY
+    HEADER(2) = MM
+    HEADER(3) = DD
+    HEADER(4) = H
+    HEADER(5) = M
+    HEADER(6) = S
+    
+    call Write_Parallel(HEADER, UNIT, RC=rc)
+    VERIFY_(rc)
+    
+    HEADER(1) = IM
+    HEADER(2) = JM
+    HEADER(3) = LM
+    HEADER(4) = 0
+    HEADER(5) = 0
+    
+    call Write_Parallel(HEADER(1:5), UNIT, RC=rc)
+    VERIFY_(rc)
+    
+    if(UNIT/=0) then
+       do J = 1, ITEMCOUNT
+          call MAPL_VarWrite(UNIT=UNIT, STATE=STATE, NAME=ITEMNAMES(J), rc=rc)
+          VERIFY_(rc)
+       end do
+       call FREE_FILE(UNIT)
+    else
+       rc = -1  ! not yet
+       VERIFY_(rc)
+    endif
+    
+    deallocate(ITEMNAMES) 
+    deallocate(ITEMTYPES)
+
+  end subroutine StateWriteToFile
 
 end module FV_UTILS

@@ -4,15 +4,14 @@
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
 !@+    This version for simple trace gases/chemistry/isotopes
 !@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
 
       MODULE TRACER_COM
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
-!@ver  1.0
 C
+      use newTracer_COM, only: getTracerNames, MAXLEN_TRACER_NAME
       USE QUSDEF, only: nmom
-      USE MODEL_COM, only: im,jm,lm
+      USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
@@ -53,10 +52,16 @@ C
 
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACERS_VBS, only: vbs_bins
+#endif
 
 C
       IMPLICIT NONE
       SAVE
+
+!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+      integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
@@ -112,14 +117,21 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_shindell_extra=0
 #endif  /* SHINDELL_STRAT_EXTRA */
 !@var ntm_koch: Number of TRACERS_AEROSOLS_Koch tracers.
+!@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
       integer, parameter :: ntm_koch=5
+      integer, parameter :: ntm_vbs=0
+#elif (defined TRACERS_AEROSOLS_VBS)
+      integer, parameter :: ntm_koch=10
+      integer, parameter :: ntm_vbs=2*vbs_bins
 #else
       integer, parameter :: ntm_koch=13
-#endif  /* SULF_ONLY_AEROSOLS */
+      integer, parameter :: ntm_vbs=0
+#endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
 #else
       integer, parameter :: ntm_koch=0
+      integer, parameter :: ntm_vbs=0
 #endif  /* TRACERS_AEROSOLS_Koch */
 !@var ntm_ococean: Number of TRACERS_AEROSOLS_OCEAN tracers.
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -130,8 +142,10 @@ C**** Each tracer has a variable name and a unique index
 
 !@var ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)||\
+    (defined TRACERS_TOMAS) 
+#if (defined TRACERS_DUST) || (defined TRACERS_AMP)||\
+    (defined TRACERS_TOMAS) 
 #ifdef TRACERS_DUST_Silt4
       integer, parameter :: ntm_dust=5
 #else
@@ -200,12 +214,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_cosmo=0
 #endif  /* TRACERS_COSMO */
-!@var ntm_om_sp: Number of TRACERS_OM_SP tracers.
-#ifdef TRACERS_OM_SP
-      integer, parameter :: ntm_om_sp=7
-#else
-      integer, parameter :: ntm_om_sp=0
-#endif  /* TRACERS_OM_SP */
 !@var ntm_ocean: Number of TRACERS_OCEAN tracers.
 #ifdef TRACERS_OCEAN
       integer, parameter :: ntm_ocean=0
@@ -256,173 +264,84 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AMP
 ! This is kept seperate, as ntm_dust needs to be set 
 c          (in order to calculate dust emissions), but not added to ntm.
-      integer, parameter :: ntm=ntm_amp+ntm_chem
+      integer, parameter :: oldNTM=ntm_amp+ntm_chem
+#else
+#ifdef TRACERS_TOMAS
+       !constants that have to do with the number of tracers
+C    NBS is the number of bulk species (gases and aerosols that don't
+C	 have size resolution such as MSA)
+C    NAP is the number of size-resolved "prognostic" aerosol species
+C	 (ones that undergo transport)
+C    NAD is the number of size-resolved "diagnostic" aerosol species
+C	 (ones that don't undergo transport or have a complete budget
+C	 such as aerosol water and nitrate)
+C    NSPECIES is the number of unique chemical species not counting
+C	 size-resolved species more than once (the sum of NBS, NAP,
+C	 and NAD)
+C    NBINS is the number of bins used to resolve the size distribution
+C    NTM is the total number of tracer concentrations that the model
+C	 tracks.  This counts bulk species, and both prognostic and 
+C	 diagnostic aerosols.  Each size-resolved aerosol has a number
+C	 of tracers equal to NBINS to resolve its mass distribution.
+C	 An additional NBINS are required to resolve the aerosol number
+C	 distribution.
+C    NTT is the total number of transported tracers.  This is the same
+C	 as NTM, but excludes the "diagnostic" aerosol species which
+C	 do not undergo transport - ??? will I use this
+
+       !constants that determine the size of diagnostic arrays
+C    NXP is the number of transport processes that are tracked
+C	 separately
+C    NCR is the number of chemical reactions for which data is saved
+C    NOPT is the number of aerosol optical properties tracked
+C    NFOR is the number of different forcings that are calculated
+C    NAERO is the number of aerosol microphysics diagnostics
+C    NCONS is the number of conservation quantity diagnostics
+C    KCDGN is the number of cloud microphysics and optical depth diagnostics
+
+!yhl - nbs should be deleted, and use shindell gas species..
+
+!@param ntm number of tracers
+
+! yhl - NAP is changed to 6 to exclude mineral dust for now (1/20/2011)
+
+      integer, parameter :: NBS=7,NAP=7, NAD=1,  NBINS=12 !, NXP=7, NCR=2, 
+      integer, parameter :: ntm_tomas=NBINS*(NAP+NAD+1)
+
+      integer, parameter :: non_aerosol=ntm_O18+ntm_gasexch+ntm_lerner+
+     *                          ntm_water+ntm_koch+ntm_vbs+ntm_het+  !exclude ntm_dust! 
+     *                          ntm_nitrate+ntm_cosmo+
+     *                          ntm_ocean+ntm_air+ntm_chem+
+     *                          ntm_shindell_extra+ntm_ococean+NBS
+
+      integer, parameter :: 
+c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
+     *     IDTSO4  = non_aerosol+1, !36;NBINS for sulfate mass dist.
+     &     IDTNA   = IDTSO4 +NBINS, !66;
+     &     IDTECOB = IDTNA+NBINS, !126; NBINS for Hydrophobic EC
+     &     IDTECIL = IDTECOB + NBINS, !96; NBINS for Hydrophillic EC
+     &     IDTOCOB = IDTECIL+NBINS, !186
+     &     IDTOCIL = IDTOCOB+NBINS, !156; OC
+     &     IDTDUST = IDTOCIL+NBINS, !216
+     &     IDTNUMD = IDTDUST+NBINS,
+     &     IDTH2O  = IDTNUMD+NBINS  !246
+      double precision, dimension(nbins) :: xk(nbins+1)
+!      integer, parameter :: oldNTM=ntm_tomas
+      integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
+
 #else
 !@param ntm number of tracers
-      integer, parameter :: ntm=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
-     *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
+      integer, parameter :: oldNTM=ntm_O18+ntm_gasexch+ntm_lerner+
+     *                          ntm_water+ntm_koch+ntm_vbs+ntm_dust+
+     *                          ntm_het+ntm_nitrate+ntm_cosmo+
      *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra+ntm_ococean
-#endif
-C**** Each tracer has a variable name and a unique index
-C**** The chemistry species need to be declared first, until the
-C**** do igas=1,ntm_chem instances get corrected.
-!@var trname_p1: dummy matrix for the definitions only
-!@var trname: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
-      character*8, parameter :: trname_p1(ntm+1)=(/
-#ifdef TRACERS_SPECIAL_Shindell
-     *    'Ox      ','NOx     ','ClOx    ','BrOx    ',
-     *                          'N2O5    ','HNO3    ','H2O2    ',
-     *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
-     *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
-#ifdef TRACERS_TERP
-     *    'Terpenes',
-#endif  /* TRACERS_TERP */
-#ifdef TRACERS_AEROSOLS_SOA
-     *    'isopp1g ','isopp1a ','isopp2g ','isopp2a ',
-#ifdef TRACERS_TERP
-     *    'apinp1g ','apinp1a ','apinp2g ','apinp2a ',
-#endif  /* TRACERS_TERP */
-#endif  /* TRACERS_AEROSOLS_SOA */
-     *                          'HCl     ','HOCl    ','ClONO2  ',
-     *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
-#ifdef SHINDELL_STRAT_EXTRA
-#ifdef ACCMIP_LIKE_DIAGS
-     *    'codirect','stratOx ','GLT     ',
-#else
-     *    'GLT     ', ! used to also do Be7, Be10
-#endif /* ACCMIP_LIKE_DIAGS */
-#else
-!kt     *    'Water   ',
-#endif  /* SHINDELL_STRAT_EXTRA */
-#endif  /* TRACERS_SPECIAL_Shindell */
-#ifndef TRACERS_AMP
-#ifdef TRACERS_WATER
-     *    'Water   ',
-#endif  /* TRACERS_WATER */
-#endif
-#ifdef TRACERS_SPECIAL_O18
-     *     'H2O18   ','HDO     ',   !'H2O17   ',
-#endif  /* TRACERS_SPECIAL_O18 */
-#ifdef TRACERS_GASEXCH_ocean_CFC
-     *     'CFCn    ',
-#endif  /* TRACERS_GASEXCH_ocean_CFC */
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-     *     'CO2n    ',
-#endif  /* TRACERS_GASEXCH_ocean_CO2 */
-#ifdef TRACERS_SPECIAL_Lerner
-     *     'SF6     ','Rn222   ','CO2     ','N2O     ',
-     *     'CFC11   ','14CO2   ','CH4     ','O3      ','SF6_c   ',
-#endif  /* TRACERS_SPECIAL_LERNER */
-#ifdef TRACERS_AEROSOLS_Koch
-     *    'DMS     ','MSA     ','SO2     ','SO4     ','H2O2_s  ',
-#ifndef SULF_ONLY_AEROSOLS
-     *    'seasalt1','seasalt2','BCII    ','BCIA    ','BCB     ',
-     *    'OCII    ','OCIA    ','OCB     ',
-#endif  /* SULF_ONLY_AEROSOLS */
-#endif  /* TRACERS_AEROSOLS_Koch */
-#ifdef TRACERS_AEROSOLS_OCEAN
-     *    'OCocean    ',
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-#ifdef TRACERS_DUST
-     *    'Clay    ','Silt1   ','Silt2   ','Silt3   ',
-#ifdef TRACERS_DUST_Silt4
-     *    'Silt4   ',
-#endif  /* TRACERS_DUST_Silt4 */
-#endif  /* TRACERS_DUST */
-#ifdef TRACERS_NITRATE
-     *    'NH3     ','NH4     ','NO3p    ',
-#endif  /* TRACERS_NITRATE */
-#ifdef TRACERS_HETCHEM
-     *    'SO4_d1  ','SO4_d2  ','SO4_d3  ',
-#ifdef TRACERS_NITRATE
-     *    'N_d1    ','N_d2    ','N_d3    ',
-#endif  /* TRACERS_NITRATE */
-#endif  /* TRACERS_HETCHEM */
-#ifdef TRACERS_COSMO
-#ifdef TRACERS_RADON
-     *    'Pb210   ',
-#endif  /* TRACERS_RADON */
-     *    'Be7     ','Be10    ',
-#ifdef TRACERS_RADON
-     *               'Rn222   ',
-#endif  /* TRACERS_RADON */
-#endif  /* TRACERS_COSMO */
-#ifdef TRACERS_OM_SP
-     *    'OCI1    ','OCI2    ','OCI3    ','OCA1    ','OCA2    ',
-     *    'OCA3    ','OCA4    ',
-#endif  /* TRACERS_OM_SP */
-#ifdef TRACERS_MINERALS
-     *     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     *     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     *     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     *     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-#endif  /* TRACERS_MINERALS */
-#ifdef TRACERS_QUARZHEM
-     *     'Sil1QuHe','Sil2QuHe','Sil3QuHe',
-#endif  /* TRACERS_QUARZHEM */
-#ifdef TRACERS_OCEAN
-!#ifdef TRACERS_AGE_OCEAN
-!     *     'Age     ',
-!#endif  /* TRACERS_AGE_OCEAN */
-#endif  /* TRACERS_OCEAN */
-#if defined TRACERS_AIR || defined HTAP_LIKE_DIAGS
-     *     'Air     ',
-#endif  /* TRACERS_AIR */
-#ifdef TRACERS_AMP
-! The order of the ntmAMP aerosols matters!!!
-     *    'M_NO3   ','M_NH4   ','M_H2O   ',
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M3 \
- || defined TRACERS_AMP_M5 || defined TRACERS_AMP_M6 || defined TRACERS_AMP_M7
-     *    'M_AKK_SU','N_AKK_1 ',                                 !AKK
-#endif
-     *    'M_ACC_SU','N_ACC_1 ',                                 !ACC
-     *    'M_DD1_SU','M_DD1_DU','N_DD1_1 ',                      !DD1  
-     *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ',                      !DS1
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M3 \
- || defined TRACERS_AMP_M4
-     *    'M_DD2_SU','M_DD2_DU','N_DD2_1 ',                      !DD2
-     *    'M_DS2_SU','M_DS2_DU','N_DS2_1 ',                      !DS2
-#endif
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M3 \
- || defined TRACERS_AMP_M5 || defined TRACERS_AMP_M6 || defined TRACERS_AMP_M7
-     *    'M_SSA_SU','M_SSA_SS',                                 !SSA
-     *    'M_SSC_SS',                                            !SSC  
-#endif
-#if defined TRACERS_AMP_M4 || defined TRACERS_AMP_M8
-     *    'M_SSS_SU','M_SSS_SS',                                 !SSS
-#endif
-     *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ',                      !OCC
-     *    'M_BC1_SU','M_BC1_BC','N_BC1_1 ',                      !BC1
-     *    'M_BC2_SU','M_BC2_BC','N_BC2_1 ',                      !BC2
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M3 \
- || defined TRACERS_AMP_M5 || defined TRACERS_AMP_M6 || defined TRACERS_AMP_M7
-#endif
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M5
-     *    'M_BC3_SU','M_BC3_BC','N_BC3_1 ',                      !BC3
-#endif
-#if defined TRACERS_AMP_M2 || defined TRACERS_AMP_M6
-     *    'M_OCS_SU','M_OCS_OC','N_OCS_1 ',                      !OCS
-#endif
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M6
-     *    'M_DBC_SU','M_DBC_BC','M_DBC_DU','N_DBC_1 ',           !DBC
-#endif
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M3 \
- || defined TRACERS_AMP_M6 || defined TRACERS_AMP_M7
-     *    'M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',           !BOC
-#endif
-#if defined TRACERS_AMP_M1 || defined TRACERS_AMP_M2 || defined TRACERS_AMP_M5 \
- || defined TRACERS_AMP_M6
-     *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ',                      !BCS
-#endif
-     *    'M_MXX_SU',                                            !MXX
-     *    'M_MXX_BC','M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ',
-     *    'H2SO4   ','DMS     ','SO2     ','H2O2_s  ','NH3     ',
-#endif  /* TRACERS_AMP */
-     *     'Dummyspc'/) ! This line should always be last!
 
-      character*8, parameter :: trname(ntm)=(/trname_p1(1:ntm)/)
+#endif  /* TRACERS_TOMAS */
+#endif
+
+      integer :: NTM
+      character(len=MAXLEN_TRACER_NAME), allocatable :: trname(:)
 
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
@@ -756,7 +675,18 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    27,28,29   /)
 #endif
 #endif   /* TRACERS_AMP */
-
+#ifdef TRACERS_TOMAS
+      integer, dimension(nbins) :: n_ANUM =0
+      integer, dimension(nbins) :: n_ASO4 =0
+      integer, dimension(nbins) :: n_ANACL=0
+      integer, dimension(nbins) :: n_AECIL=0
+      integer, dimension(nbins) :: n_AECOB=0
+      integer, dimension(nbins) :: n_AOCIL=0
+      integer, dimension(nbins) :: n_AOCOB=0
+      integer, dimension(nbins) :: n_AH2O=0
+      integer, dimension(nbins) :: n_ADUST=0  
+      integer :: n_SOAgas=0
+#endif
 !@var N_XXX: variable names of indices for tracers (init = 0)
       integer ::
      *                 n_SF6_c=0,                                        
@@ -779,8 +709,10 @@ C**** do igas=1,ntm_chem instances get corrected.
      &     n_NH3=0,   n_NH4=0,   n_NO3p=0,
      *     n_BCII=0,  n_BCIA=0,  n_BCB=0,
      *     n_OCII=0,  n_OCIA=0,  n_OCB=0,
-     *     n_OCI1=0,  n_OCI2=0,  n_OCI3=0,
-     *     n_OCA1=0,  n_OCA2=0,  n_OCA3=0, n_OCA4,
+     *     n_vbsGm2=0, n_vbsGm1=0, n_vbsGz=0,  n_vbsGp1=0, n_vbsGp2=0,
+     *     n_vbsGp3=0, n_vbsGp4=0, n_vbsGp5=0, n_vbsGp6=0,
+     *     n_vbsAm2=0, n_vbsAm1=0, n_vbsAz=0,  n_vbsAp1=0, n_vbsAp2=0,
+     *     n_vbsAp3=0, n_vbsAp4=0, n_vbsAp5=0, n_vbsAp6=0,
      *     n_OCocean=0,
      &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
      &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,
@@ -872,19 +804,15 @@ C**** ABOUT MOVING IT ELSEWHERE
 #ifdef TRACERS_SPECIAL_O18
 C**** Water isotope specific parameters
 
-#ifdef TRACERS_OCEAN
-      integer :: water_tracer_ic=1 ! Read water tracers ic from H2O18ic (=1) or set all to SMOW (=0)
-#endif
-
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
 !@var iso_index indexing taking actual tracer number to isotope
 !@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
-      integer :: iso_index(ntm)
+      integer, allocatable :: iso_index(:)
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
 C**** Chemistry specific 3-D arrays
 
 !@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
@@ -892,8 +820,8 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
-    (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
 C**** Aerosol specific switches and arrays
 
 !!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission
@@ -927,20 +855,20 @@ C**** arrays that could be general, but are only used by chemistry
 !! dbparam trans_emis_overr_day day for overriding tracer transient emis
 !@var trans_emis_overr_yr year for overriding tracer transient emis
 !@var trans_emis_overr_day day for overriding tracer transient emis
-      character*30, dimension(ntm,ntsurfsrcmax) :: ssname ! some maybe
-      character*10, dimension(ntm,ntsurfsrcmax) :: nameT  ! need not be
-      character*1, dimension(ntm,ntsurfsrcmax) :: freq,res ! arrays
-      character*9, dimension(ntm,ntsurfsrcmax) :: Tyears   ! here...
-      integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end,delTyr
+      character*30, allocatable, dimension(:,:) :: ssname ! some maybe
+      character*10, allocatable, dimension(:,:) :: nameT  ! need not be
+      character*1, allocatable, dimension(:,:) :: freq,res ! arrays
+      character*9, allocatable, dimension(:,:) :: Tyears   ! here...
+      integer, allocatable, dimension(:,:) :: ty_start,ty_end,delTyr
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_sect maximum number of sectors for emissions altering
 !@param n_max_reg  maximum number of regions for emissions altering
       integer, parameter :: n_max_sect=10, n_max_reg=10
 !@var num_tr_sectors number of sectors for a particular tracer and source
-      integer, dimension(ntm,ntsurfsrcmax) :: num_tr_sectors
+      integer, allocatable, dimension(:,:) :: num_tr_sectors
 !@var num_tr_sectors3D number of sectors for a tracer's 3D source
-      integer, dimension(ntm,nt3Dsrcmax) :: num_tr_sectors3D
+      integer, allocatable, dimension(:,:) :: num_tr_sectors3D
 !@var num_regions the number of source-altering regions from rundeck
 !@var num_sectors the number of source-altering sectors from rundeck
       integer :: num_regions, num_sectors
@@ -952,13 +880,13 @@ C**** arrays that could be general, but are only used by chemistry
 !@var reg_W the west  edge of rectangular regions for emissions altering
       real*8, dimension(n_max_reg) :: reg_N,reg_S,reg_E,reg_W
 !@var tr_sect_index array hold the sector index for given tracer/source
-      integer, dimension(ntm,ntsurfsrcmax,n_max_sect) :: tr_sect_index
+      integer, allocatable, dimension(:,:,:) :: tr_sect_index
 !@var tr_sect_index3D holds 3d source sector index for given tracer/source
-      integer, dimension(ntm,nt3Dsrcmax,n_max_sect) :: tr_sect_index3D
+      integer, allocatable, dimension(:,:,:) :: tr_sect_index3D
 !@var tr_sect_name array hold the sector name for given tracer/source
-      character*10,dimension(ntm,ntsurfsrcmax,n_max_sect):: tr_sect_name
+      character*10,allocatable, dimension(:,:,:):: tr_sect_name
 !@var tr_sect_name3D holds 3d source sector name for given tracer/source
-      character*10,dimension(ntm,nt3Dsrcmax,n_max_sect):: tr_sect_name3D
+      character*10,allocatable, dimension(:,:,:):: tr_sect_name3D
 !@var sect_name array hold the sector names (all)
       character*10,dimension(n_max_sect):: sect_name
 !@var ef_fact the actual factors that alter sources by region/sector
@@ -1014,9 +942,38 @@ c note: not applying CPP when declaring counts/lists.
 
       contains
 
+      subroutine initTracerCom()
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      integer :: i
+
+      call getTracerNames(trname)
+      NTM = size(trname)
+
+      allocate(ssname(NTM, ntsurfsrcmax))
+      allocate(nameT(NTM, ntsurfsrcmax))
+      allocate(freq(NTM, ntsurfsrcmax))
+      allocate(res(NTM, ntsurfsrcmax))
+      allocate(Tyears(NTM, ntsurfsrcmax))
+      allocate(ty_start(NTM, ntsurfsrcmax))
+      allocate(ty_end(NTM, ntsurfsrcmax))
+      allocate(delTyr(NTM, ntsurfsrcmax))
+      allocate(num_tr_sectors(NTM, ntsurfsrcmax))
+      
+      allocate(num_tr_sectors3D(NTM,nt3Dsrcmax))
+      allocate(tr_sect_index(NTM,ntsurfsrcmax,n_max_sect))
+      allocate(tr_sect_index3D(NTM,nt3Dsrcmax,n_max_sect))
+      allocate(tr_sect_name(NTM,ntsurfsrcmax,n_max_sect))
+      allocate(tr_sect_name3D(NTM,nt3Dsrcmax,n_max_sect))
+
+#ifdef TRACERS_SPECIAL_O18
+      allocate(iso_index(NTM))
+#endif
+
+      end subroutine initTracerCom
+
       subroutine remake_tracer_lists()
 !@sum regenerates the counts and lists of tracers in various categories
-      use model_com, only : itime,coupled_chem
+      use model_com, only : itime
       implicit none
       integer :: n,nactive
       integer, dimension(1000) ::
@@ -1028,7 +985,7 @@ c note: not applying CPP when declaring counts/lists.
       water_count = 0
       hlawt_count = 0
       aqchem_count = 0
-      do n=1,ntm
+      do n=1,NTM
 
         if(itime.lt.itime_tr0(n)) cycle
 
@@ -1050,7 +1007,8 @@ c note: not applying CPP when declaring counts/lists.
           water_count = water_count + 1
           tmplist_water(water_count) = active_count
         end select
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)||\
+    (defined TRACERS_TOMAS)
         select case (trname(n))
         case('SO2','SO4','H2O2_s','H2O2')
           if ( .not.(
@@ -1083,7 +1041,8 @@ c note: not applying CPP when declaring counts/lists.
       allocate(hlawt_list(hlawt_count))
       hlawt_list = tmplist_hlawt(1:hlawt_count)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       if(allocated(aqchem_list)) deallocate(aqchem_list)
       allocate(aqchem_list(aqchem_count))
       aqchem_list = tmplist_aqchem(1:aqchem_count)
@@ -1098,7 +1057,6 @@ c note: not applying CPP when declaring counts/lists.
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
@@ -1119,7 +1077,7 @@ C****
      *                  trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trdn1(NTM,I_0H:I_1H,J_0H:J_1H),
-     *              sfc_src(I_0H:I_1H,J_0H:J_1H,ntm,ntsurfsrcmax))
+     *              sfc_src(I_0H:I_1H,J_0H:J_1H,NTM,ntsurfsrcmax))
 
       ALLOCATE(  daily_z(I_0H:I_1H,J_0H:J_1H,LM) )
       daily_z = 0.
@@ -1136,7 +1094,7 @@ C****
      *          krate(I_0H:I_1H,J_0H:J_1H,LM,8,rhet))
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE(  rsulf1(I_0H:I_1H,J_0H:J_1H,LM),
      *           rsulf2(I_0H:I_1H,J_0H:J_1H,LM),
      *           rsulf3(I_0H:I_1H,J_0H:J_1H,LM),

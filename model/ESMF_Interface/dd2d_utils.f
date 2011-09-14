@@ -101,15 +101,10 @@ c
 #ifdef OFFLINE
 #else
 c see whether model E is running in serial mode
-#ifndef USE_ESMF
+#ifndef USE_MPI
 #define SERIAL_MODE
 #endif
 #endif
-
-#if ( defined USE_ESMF )  || ( defined USE_MPP )
-#define USE_MPI
-#endif
-
 
 #ifdef USE_ESMF
       use ESMF_Mod
@@ -226,6 +221,7 @@ c
 #ifdef USE_ESMF
         TYPE (ESMF_Grid) :: ESMF_GRID
 #endif
+        INTEGER :: NPES_USED
          ! Parameters for Global domain
         INTEGER :: IM_WORLD     ! Number of Longitudes
         INTEGER :: JM_WORLD     ! Number of latitudes

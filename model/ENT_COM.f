@@ -3,8 +3,7 @@
       module ent_com
 !@sum  ENT_COM contains the data needed for Dynamic Vegetation Model (ENT)
 !@auth I. Aleinov
-!@ver  1.0
-      use model_com, only : im,jm
+      use resolution, only : im,jm
       use ghy_com, only : ngm,imt,nlsn
       use ent_mod
       implicit none
@@ -99,8 +98,9 @@
 
       subroutine ent_read_state_plain( kunit, retcode )
 !@sum read ent state from the file
-      use domain_decomp_1d, only : grid, am_i_root, get
-      use domain_decomp_1d, only : UNPACK_COLUMN, ESMF_BCAST
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root, get
+      use domain_decomp_1d, only : UNPACK_COLUMN, broadcast
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
       integer, intent(out) :: retcode
@@ -125,7 +125,7 @@
         BACKSPACE kunit
         if ( retcode == 0 ) READ (kunit,err=10) HEADER, buf_glob
       endif
-      call ESMF_BCAST(grid, retcode)
+      call broadcast(grid, retcode)
       if ( retcode == 0 ) then
         CALL UNPACK_COLUMN(grid, buf_glob, buf)
         call copy_array_to_ent_state( buf )
@@ -141,7 +141,8 @@
 
       subroutine ent_write_state_plain( kunit )
 !@sum write ent state to the file
-      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root, get
       use domain_decomp_1d, only : PACK_COLUMN
       !use ent_com, only : entcells
       integer, intent(in) :: kunit
@@ -178,7 +179,8 @@
 
       subroutine ent_read_state( kunit )
 !@sum read ent state from the file
-      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root, get
       use domain_decomp_1d, only : send_to_j, recv_from_j
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
@@ -234,7 +236,8 @@
 
       subroutine ent_write_state( kunit )
 !@sum write ent state to the file
-      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root, get
       use domain_decomp_1d, only : send_to_j, recv_from_j
       !use ent_com, only : entcells
       integer, intent(in) :: kunit
@@ -291,10 +294,10 @@
       subroutine io_vegetation(kunit,iaction,ioerr)
 !@sum  io_soils reads and writes soil arrays to file
 !@auth I. Aleinov
-!@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      use model_com, only : im,jm
-      use domain_decomp_1d, only : grid, am_i_root
+      use resolution, only : im,jm
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : am_i_root
       use domain_decomp_1d, only : pack_data, unpack_data
       use ent_com, only : Cint, Qfol, cnc_ij,excess_C,
      &     ent_read_state,ent_write_state,
@@ -380,7 +383,6 @@
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-!@ver  1.0
       USE ENT_MOD
       USE ENT_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
