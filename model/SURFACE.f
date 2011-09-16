@@ -40,7 +40,7 @@ C****
 #endif
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,
+      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom,
      *     n_CO2n, n_CFCn, n_Be7, n_Be10, n_clay, trname
 #ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrc
@@ -60,6 +60,7 @@ C****
 #endif
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
+      USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
       USE DIAG_COM, only : MODD5S
       USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
@@ -435,6 +436,7 @@ C**** Set up tracers for PBL calculation if required
 
       call recalc_agrid_uv
 
+      call alloc_pbl_args(pbl_args)
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -1580,7 +1582,7 @@ C****
       END DO   ! end of itype loop
       END DO   ! end of I loop
       END DO   ! end of J loop
-
+      call dealloc_pbl_args(pbl_args)
 C****
 C**** dynamic vegetation time step
 C****

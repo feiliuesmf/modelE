@@ -10,7 +10,7 @@
       USE RESOLUTION, only : im,jm
 !!!      USE SLE001, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : NTM
 #endif
 
 
@@ -402,7 +402,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       USE DOMAIN_DECOMP_1D, ONLY: PACK_BLOCK, UNPACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_COLUMN
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : NTM
 #endif
       USE GHY_COM
       IMPLICIT NONE

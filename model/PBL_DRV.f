@@ -4,12 +4,13 @@
 
       module PBL_DRV
       use SOCPBL, only : t_pbl_args, xdelt
+      use SOCPBL, only : alloc_pbl_args, dealloc_pbl_args
       implicit none
 
       private
 
       public t_pbl_args, pbl, xdelt
-
+      public alloc_pbl_args, dealloc_pbl_args
       contains
 
       SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
@@ -29,7 +30,7 @@
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,trdn1
+      USE TRACER_COM, only : ntm=>NTM,trdn1
 #ifdef TRACERS_DRYDEP
      &    ,trradius,trpdens,tr_mm
 #endif
@@ -410,10 +411,13 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE ATM_COM, only : u,v,p,t,q
       USE GEOM, only : imaxj,sinlat2d
+#ifdef TRACERS_ON
+      use TRACER_COM, only: NTM
+#endif
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
-     &     ,xdelt
+     &     ,xdelt, maxNTM
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
@@ -466,6 +470,12 @@ C**** ignore ocean currents for initialisation.
 
        character*80 :: titrrr
        real*8 rrr(im,grid%J_STRT_HALO:grid%J_STOP_HALO)
+
+
+#ifdef TRACERS_ON
+       maxNTM = NTM
+#endif
+
 
         titrrr = "roughness length over land"
         rrr = 0.

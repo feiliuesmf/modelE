@@ -1481,7 +1481,7 @@ C****
 !@+   called only when tracers turn on
 !@auth Gavin Schmidt
       USE MODEL_COM, only : itime
-      USE TRACER_COM, only : trw0,ntm,itime_tr0
+      USE TRACER_COM, only : trw0,ntm=>NTM,itime_tr0
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn

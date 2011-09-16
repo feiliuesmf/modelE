@@ -16,7 +16,7 @@
       use constant, only : teeny,grav
       use resolution, only : lm
       USE MODEL_COM, only: idacc
-      USE TRACER_COM, only : ntm,ntm_power,trname
+      USE TRACER_COM, only : ntm=>NTM,ntm_power,trname
      &     ,n_Water,n_CH4,n_O3
 #ifdef TRACERS_WATER
      &     ,trw0,dowetdep
@@ -695,7 +695,7 @@ C**** Fill in the undefined pole box duplicates
 c
 c Tracer sums/means and ground conc
 c
-      do n=1,ntm
+      do n=1,NTM
       do kx=1,ktaij
         if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
@@ -1075,7 +1075,7 @@ C**** Fill in the undefined pole box duplicates
       k = 0
 
 C**** Tracer concentrations
-      do n=1,ntm
+      do n=1,NTM
         k = k+1
         sname_taijl(k) = sname_ijt(n)
         lname_taijl(k) = lname_ijt(n)

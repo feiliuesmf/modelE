@@ -98,7 +98,7 @@
       USE Dictionary_mod, only : get_param, is_set_param
       use resolution, only : lm
       use model_com, only : DTsrc
-      use tracer_com, only : ntm
+      use tracer_com, only : NTM
       use tracer_sources
       use fluxes, only : NIsurf
       IMPLICIT NONE

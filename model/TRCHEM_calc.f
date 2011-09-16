@@ -31,10 +31,10 @@ C
      &                   n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
-     &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
-     &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
-     &                   vol2mass
+     &                  n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,NTM,
+     &                  n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
+     &                  n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
+     &                  vol2mass
 #ifdef TRACERS_WATER
      &                   ,trm,trmom,tr_wd_type,nwater,tr_H2ObyCH4
 #endif

@@ -755,7 +755,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,atmice_xchng_vars,
      &     atmsrf_xchng_vars,atmlnd_xchng_vars,atmgla_xchng_vars
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: NTM
 #ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
@@ -941,7 +941,7 @@ C**** fluxes associated with variable lake fractions
       USE GEOM, only : dlatm,sinip,cosip
 #endif
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm
+      USE tracer_com,ONLY : Ntm=> NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

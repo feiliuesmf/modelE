@@ -71,7 +71,7 @@ c**** temporary array to read in data
 
       LOGICAL,SAVE :: qfirst=.TRUE.
       CHARACTER :: cierr*3,name*256
-      CHARACTER(50) :: OptModelVers='No Entry'
+      CHARACTER(80) :: OptModelVers='No Entry'
 
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
@@ -273,13 +273,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.091393298D0  ! not optimized yet
-              fracSiltPDFscheme = 0.10973922D0   ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.10309873D0   ! not optimized yet
-              fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -328,13 +333,16 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.086874723D0 ! not optimized yet
-              fracSiltPDFscheme = 0.097082074D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0 ! same as for dust only case
+              fracSiltPDFscheme = 0.13299809D0  ! same as for dust only case
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.091387274D0 ! not optimized yet
-              fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT'
             end if
             ires=5
           end select
@@ -383,13 +391,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.051027254D0 ! not optimized yet
-              fracSiltPDFscheme = 0.047415049D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.059176377D0 ! not optimized yet
-              fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -438,13 +451,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.03586315D0  ! not optimized yet
-              fracSiltPDFscheme = 0.028140008D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.036893354D0 ! not optimized yet
-              fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -493,13 +511,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.083940461D0 ! not optimized yet
-              fracSiltPDFscheme = 0.06811547D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.09620785D0  ! not optimized yet
-              fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -517,7 +540,7 @@ c**** set parameters depending on the preferred sources chosen
             write(6,*) '  following file with preferred dust sources:'
             write(6,*) '  >> '
      &           ,trim(dustSourceFile(prefDustSources,ires)),' <<'
-            write(6,*) '  for model version from ',trim(OptModelVers)
+            write(6,*) '  for model version: ',trim(OptModelVers)
             if (coupled_chem == 1) then
               write(6,*) '  for all aerosols and chemistry'
             else

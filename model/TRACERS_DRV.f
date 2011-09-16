@@ -22,7 +22,7 @@
 #endif /* TRACERS_ON */
       USE FLUXES, only : atmocn
       implicit none
-      character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
+      character*20 sum_unit(NTM),inst_unit(NTM)   ! for conservation
       character*50 :: unit_string
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
@@ -70,7 +70,7 @@ c      qsum(itcon_ss(n)) = .false.
      *      , F,  F,  F
 #endif
      *      /)
-      do n=1,ntm
+      do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
       end do
@@ -94,7 +94,7 @@ C**** set some defaults
 #endif
 
       k = 0
-      do n=1,ntm
+      do n=1,NTM
         select case (trname(n))
 
         case ('Air','CFCn', 'SF6', 'SF6_c')
@@ -1189,7 +1189,7 @@ C**** set defaults for some precip/wet-dep related diags
 #endif
 
       k = 0
-      do n=1,ntm
+      do n=1,NTM
       select case (trname(n))
 
       case ('SF6','SF6_c','CFCn')
@@ -2851,7 +2851,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
 
-      do n=1,ntm
+      do n=1,NTM
       select case (trname(n))
 
       case ('CFCn')
@@ -5441,7 +5441,7 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
-      do n=1,ntm
+      do n=1,NTM
       select case(trname(n))
       CASE('M_AKK_SU','M_ACC_SU',
      &     'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
@@ -5927,7 +5927,7 @@ c clear sky scattering asymmetry factor in six solar bands
 C**** use this routine to set 3D tracer-related diagnostics.
 
 C**** some tracer specific 3D arrays
-      do n=1,ntm
+      do n=1,NTM
         select case(trname(n))
 
 #ifdef TRACERS_DUST
@@ -6450,7 +6450,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE ATM_COM, only: pmidl00
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
-      USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
+      USE TRACER_COM, only: NTM,
+     *     trm,trmom,itime_tr0,trname,needtrs,
      *     tr_mm,rnsrc,vol2mass,trsi0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -7551,7 +7552,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
       USE TRACER_COM, only: coupled_chem,daily_z
       USE CONSTANT, only: grav
-      USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
+      USE TRACER_COM, only: NTM,trname,itime_tr0,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
      & trans_emis_overr_yr,trans_emis_overr_day,nBBsources
 #ifdef TRACERS_SPECIAL_Shindell
@@ -7644,7 +7645,7 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
-      do n=1,ntm
+      do n=1,NTM
         if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
           call linoz_setup(n)
           exit
@@ -7652,7 +7653,7 @@ C**** Initialize tables for linoz
       end do
 
 C**** Initialize tables for Prather StratChem tracers
-      do n=1,ntm
+      do n=1,NTM
         if (trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
      *      trname(n).eq."CFC11")
      *    call stratchem_setup(n_MPtable(n),trname(n))
@@ -7661,14 +7662,14 @@ C**** Initialize tables for Prather StratChem tracers
 
 C**** Prather StratChem tracers and linoz tables change each month
       IF (JMON.NE.last_month) THEN
-        do n=1,ntm
+        do n=1,NTM
           if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
      *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
             CALL STRTL  ! one call does all based on n_MPtable_max
             exit
           end if
         end do
-        do n=1,ntm
+        do n=1,NTM
           if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
             CALL linoz_STRATL
             exit
@@ -7678,7 +7679,7 @@ C**** Prather StratChem tracers and linoz tables change each month
       END IF
 
 C**** Tracer specific call for CO2
-      do n=1,ntm
+      do n=1,NTM
         if (trname(n).eq."CO2") then
           call read_CO2_sources(n)
           exit
@@ -7686,7 +7687,7 @@ C**** Tracer specific call for CO2
       end do
 
 C**** Tracer specific call for CH4
-      do n=1,ntm
+      do n=1,NTM
         if (trname(n).eq."CH4") then
           call read_CH4_sources(n)
           exit
@@ -7748,7 +7749,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       call get_aircraft_tracer(xyear,xday,daily_gz,.true.)
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-      do n=1,ntm
+      do n=1,NTM
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
          nread=ntsurfsrc(n)+nBBsources(n)
@@ -7771,7 +7772,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 !!!    (defined TRACERS_TOMAS)
 !!!          if ( ! this if statement is needed, since some tracers have ntsurfsrc>0 but no trname_XX files. It should dissappear one day.
 !!!#ifdef TRACERS_SPECIAL_Shindell
-!!!     &        n<=ntm_chem .or.
+!!!     &        n<=NTM_chem .or.
 !!!#endif
 !!!     &        n==n_SO2
 !!!#ifdef TRACERS_AEROSOLS_Koch
@@ -7897,7 +7898,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 !!!          endif ! n=n_...
 !!!#endif
         endif !------------------------------------------------------
-      end do ! ntm
+      end do ! NTM
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect),xyear,
@@ -8058,7 +8059,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       real*8  :: factor
       real*8  :: trsource_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                        GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      real*8, dimension(ntm) :: trsource_glbavg
+      real*8, dimension(NTM) :: trsource_glbavg
 #endif
       INTEGER I_0, I_1, J_0, J_1
 #ifdef TRACERS_TOMAS
@@ -8091,7 +8092,7 @@ C****
         enddo
 #endif
 C**** All sources are saved as kg/s
-      do n=1,ntm
+      do n=1,NTM
       if (itime.lt.itime_tr0(n)) cycle
       select case (trname(n))
 
@@ -8836,7 +8837,7 @@ C****
 
 
 C**** All sources are saved as kg/s
-      do n=1,ntm
+      do n=1,NTM
       if (itime.lt.itime_tr0(n)) cycle
 
       select case (trname(n))
@@ -9365,7 +9366,7 @@ C       stop
 ! This section is to accumulate/aggregate certain tracers' SURFACE and
 ! L=1 values into particulate matter PM2.5 and PM10 for use in the sub-
 ! daily diags. Saved in ppmm or kg/m3. Also save Ox and NO2 in ppmv:
-      do n=1,ntm
+      do n=1,NTM
         select case (trname(n))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_AEROSOLS_SOA)
@@ -9473,7 +9474,7 @@ c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
-     *     ,trname,ntm,lm,t_qlimit,fq_aer,trpdens
+     *     ,trname,NTM,lm,t_qlimit,fq_aer,trpdens
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
 #endif
@@ -9514,10 +9515,10 @@ c     *     , by3 /)
 #endif
       REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX, TR_LEF
      *     , pl,CLDSAVT
-      REAL*8,  INTENT(IN), DIMENSION(ntm,lm) :: trwml
-      REAL*8,  INTENT(IN), DIMENSION(lm,ntm) :: TM
+      REAL*8,  INTENT(IN), DIMENSION(NTM,lm) :: trwml
+      REAL*8,  INTENT(IN), DIMENSION(lm,NTM) :: TM
       REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: L, N, ntix(ntm)
+      INTEGER, INTENT(IN) :: L, N, ntix(NTM)
       LOGICAL TR_CONV
       REAL*8 :: SUPSAT
 c
@@ -9712,7 +9713,7 @@ C**** GLOBAL parameters and variables:
      &     gases_list,aero_list,water_list,hlawt_list
 
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
-     *     ,trname,ntm,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
+     *     ,trname,NTM,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
 #endif
@@ -9750,10 +9751,10 @@ C**** Local parameters and variables and arguments:
 #endif
       REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX
      &     , TR_LEF(NTM), pl,CLDSAVT
-      REAL*8,  INTENT(IN), DIMENSION(ntm) :: trwml
-      REAL*8,  INTENT(IN), DIMENSION(ntm) :: TM
-      REAL*8,  INTENT(OUT):: fq(ntm),thlaw(ntm)
-      INTEGER, INTENT(IN) :: NTX, ntix(ntm)
+      REAL*8,  INTENT(IN), DIMENSION(NTM) :: trwml
+      REAL*8,  INTENT(IN), DIMENSION(NTM) :: TM
+      REAL*8,  INTENT(OUT):: fq(NTM),thlaw(NTM)
+      INTEGER, INTENT(IN) :: NTX, ntix(NTM)
       LOGICAL TR_CONV
       REAL*8 :: FQ0FAC,SUPSAT,SSFAC(NTM),SSFAC0
       INTEGER :: N,IGAS,IAERO,IWAT
@@ -10056,12 +10057,12 @@ C**** Local parameters and variables and arguments:
 !@+   percipitating layer.
 !@+   The name was chosen to correspond to Koch et al. p. 23,802.
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: N,L,ntix(ntm)
+      INTEGER, INTENT(IN) :: N,L,ntix(NTM)
       REAL*8, INTENT(OUT):: FQ,THLAW
       REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
      *  TM(LM,NTM),pl
       REAL*8, PARAMETER :: rc_wash = 1.D-1, BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac, RKD, TRPR(ntm)
+      REAL*8 Ppas, tfac, ssfac, RKD, TRPR(NTM)
 C
       thlaw=0.
       SELECT CASE(tr_wd_type(NTIX(N)))
@@ -10159,13 +10160,13 @@ C**** Local parameters and variables and arguments:
 !@+   percipitating layer.
 !@+   The name was chosen to correspond to Koch et al. p. 23,802.
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: NTX,ntix(ntm)
+      INTEGER, INTENT(IN) :: NTX,ntix(NTM)
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: THLAW
       REAL*8, INTENT(INOUT), DIMENSION(NTM) :: FQ
       REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
-     *  TM(NTM),pl, TRPR(ntm)
+     *  TM(NTM),pl, TRPR(NTM)
       REAL*8, PARAMETER :: BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac0, ssfac(ntm), bb_tmp
+      REAL*8 Ppas, tfac, ssfac0, ssfac(NTM), bb_tmp
       INTEGER :: N,IGAS,IAERO
       LOGICAL BELOW_CLOUD
 C
@@ -10284,7 +10285,8 @@ c         endif
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_type,nwater,trname
+      USE TRACER_COM, only: NTM,
+     *     tr_evap_fact, tr_wd_type,nwater,trname
 c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
@@ -10293,7 +10295,7 @@ C**** Local parameters and variables and arguments:
 !@var FQ            fraction of tracer evaporated
 !@var FQ0 [default] fraction of tracer evaporated
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: N,ntix(ntm)
+      INTEGER, INTENT(IN) :: N,ntix(NTM)
       REAL*8,  INTENT(OUT):: FQ
       REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
 !@var QBELOW true if evap is occuring below cloud
@@ -10342,7 +10344,8 @@ C**** no fractionation for ice evap
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_type,nwater,trname
+      USE TRACER_COM, only: NTM,
+     &     tr_evap_fact, tr_wd_type,nwater,trname
      &     ,water_count,water_list
 c      USE CLOUDS, only: NTIX
 c
@@ -10352,7 +10355,7 @@ C**** Local parameters and variables and arguments:
 !@var FQ            fraction of tracer evaporated
 !@var FQ0 [default] fraction of tracer evaporated
 !@var N index for tracer number loop
-      INTEGER, INTENT(IN) :: NTX,ntix(ntm)
+      INTEGER, INTENT(IN) :: NTX,ntix(NTM)
       REAL*8,  INTENT(OUT):: FQ(NTM)
       REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
 !@var QBELOW true if evap is occuring below cloud

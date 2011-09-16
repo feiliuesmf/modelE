@@ -84,7 +84,7 @@
       USE FILEMANAGER, only: openunit,closeunit
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+      USE TRACER_COM, only : ntm=>NTM    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : tracflx1d !,tracflx
 #endif
 

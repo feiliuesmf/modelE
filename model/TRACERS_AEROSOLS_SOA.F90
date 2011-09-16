@@ -8,8 +8,9 @@ module TRACERS_SOA
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel, am_i_root
-use TRACER_COM, only: ntm,nsoa,tr_mm,&
+use TRACER_COM, only: NTM,nsoa,tr_mm,&
                       n_Isoprene,&
+
 #ifdef TRACERS_TERP
                       n_Terpenes,&
                       n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,&
@@ -23,7 +24,7 @@ integer                    :: n_soa_i,n_soa_e
 !@var mw the molecular weight of all tracers, in units of tracer mass per mole
 !@+      in order to replace the tm_mm which in some exceptional cases is in units of
 !@+      a certain atom (typically C or S) per mole.
-real*8, dimension(ntm)     :: mw
+real*8, allocatable, dimension(:)     :: mw
 !@var apartmass the mass-based yield of semivolatile species from chemistry
 !@var apartmolar the molar-based yield of semivolatile species from chemistry
 real*8, dimension(LM,nsoa) :: apartmass,apartmolar
@@ -37,7 +38,7 @@ real*8, dimension(LM)      :: voc2nox
 !@var apartmass_nox_ref the high-NOx mass-based yield of semivolatile species from chemistry
 real*8, dimension(nsoa)    :: apartmass_ref,apartmass_nox_ref
 !@var  molec2ug converts molec/cm3 to ug/m3. 1.d0/molec2ug converts ug/m3 to molec/cm3
-real*8, dimension(ntm) :: molec2ug
+real*8, allocatable, dimension(:)     :: molec2ug
 !@param LM_soa the uppermost level where chemical production of semivolatile gases is allowed
 !WRONG ON PURPOSE
 ! SOA production from chemistry should be allowed everywhere, but
@@ -50,7 +51,7 @@ integer, parameter :: LM_soa=floor(float(LM)/3.)
 ! soa semivolatile products in aerosol phase
 !
 !@var whichsoa converts tracer index to soa index
-integer, dimension(ntm)  :: whichsoa
+integer, allocatable, dimension(:)     :: whichsoa
 !@var issoa converts soa index to tracer index
 integer, dimension(nsoa) :: issoa
 
@@ -234,9 +235,12 @@ issoa(3)=n_apinp1a
 issoa(4)=n_apinp2a
 #endif  /* TRACERS_TERP */
 
+allocate(mw(ntm))
+allocate(molec2ug(ntm))
 !
 ! create whichsoa from issoa, in order to correlate the two variables
 !
+allocate(whichsoa(ntm))
 whichsoa=0
 do i=1,nsoa
   do j=1,ntm

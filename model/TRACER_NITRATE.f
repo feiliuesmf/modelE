@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE EQSAM_DRV
       USE TRACER_COM
+      USE TRACER_COM, only : ntm=>NTM
       USE AEROSOL_SOURCES, only: off_HNO3,off_SS
 
       USE ATM_COM, only :
