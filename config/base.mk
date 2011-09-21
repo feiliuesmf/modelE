@@ -55,6 +55,7 @@ FFSRCS_CPP = $(FSRCS_CPP) $(F90SRCS_CPP)
 
 #rule for "ar" , should be moved to rules later
 $(LIB): $(OBJS)
+	-rm -f $(LIB)
 	ar rcs $(LIB) $(OBJS)
 	$(RANLIB) $(RANLIB_FLAGS) $(LIB)
 	-cp -p $(MODS) $(MOD_DIR)
