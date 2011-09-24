@@ -13,8 +13,8 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
-#define NEW_IO
-#define TRAC_ADV_CPU
+#define NEW_IO                   ! new I/O (netcdf) on
+#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
@@ -74,10 +74,9 @@ lightning                           ! Colin Price lightning model
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"    /* without "Ent" */
+#include "E4_components_nc"    /* without "Ent" */
 tracers
 Ent
-dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
