@@ -103,11 +103,11 @@ c**** wind speed
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
-     &   ,'Ginoux2001_source_VegMask_144x90_C90    (uses 144x90 params)'
-     &   ,'Ginoux_source_v2009_VegMask_0.25x0.25_to_C90(uses 144x90 pa)'
-     &   ,'Ginoux_source_v2009_NoVegMask_144x90_C90(uses 144x90 params)'
-     &   ,'GriniZender_DustSources_C90_from_144x90 (uses 144x90 params)'
-     &   ,'Tegen_DustSources_C90_from_0.5x0.5      (uses 144x90 params)'
+     &   ,'Ginoux2001_source_VegMask_144x90_C90                        '
+     &   ,'Ginoux_source_v2009_VegMask_0.25x0.25_to_C90                '
+     &   ,'Ginoux_source_v2009_NoVegMask_144x90_C90                    '
+     &   ,'GriniZender_DustSources_C90_from_144x90                     '
+     &   ,'Tegen_DustSources_C90_from_0.5x0.5                          '
      &   /),(/numDustSourceOpt,numResolutionOpt/))
 
 !@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
@@ -184,6 +184,12 @@ c**** Parameters for dust/mineral tracer specific diagnostics
 !@param nDustEm2ij in ijts_isrc
       INTEGER,PARAMETER :: nDustEm2ij=2
 #endif
+
+!@dbparam to_conc_soildust: For printout of 3D soil dust aerosol concentration
+!@+   in kg/m3
+!@+   to_conc_soildust = 0: printout is as defined by to_volume_MixRat
+!@+   to_conc_soildust = 1: printout is in kg/m3
+      integer :: to_conc_soildust = 0
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

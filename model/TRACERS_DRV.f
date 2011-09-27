@@ -6514,7 +6514,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : hbaij,ricntd
-      use trdust_drv, only: init_dust
+      use trdust_drv, only: tracer_ic_soildust
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
@@ -7528,7 +7528,7 @@ c units are mg Terpene/m2/month
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c **** reads in files for dust/mineral tracers
-      CALL init_dust
+      call tracer_ic_soildust
 #endif
 
       end subroutine tracer_IC

@@ -19,6 +19,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
+#define NEW_IO                       ! new I/O (netcdf) on
 #define NUDGE_ON                     ! nudged winds on
 ! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 !#define TRACERS_ON                  ! include tracers code
@@ -31,7 +32,7 @@ RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-IORSF                               ! old i/o
+IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
@@ -45,7 +46,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 NUDGE                               ! code for nudging winds
 
 Components:
-#include "E4_components"    /* without "Ent" */
+#include "E4_components_nc"    /* without "Ent" */
 Ent
 
 Component Options:
@@ -53,7 +54,7 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
-#include "IC_144x90_input_files"
+#include "IC_144x90_input_files_nc"
 #include "static_ocn_2000_144x90_input_files"
 
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file

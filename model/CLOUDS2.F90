@@ -3187,6 +3187,7 @@ contains
     TRPRBAR = 0.
     BELOW_CLOUD=.false.
     CLOUD_YET=.false.
+    CLDSAVT=0.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
     DT_SULF_SS(1:NTM,:)=0.

@@ -35,6 +35,7 @@
     (defined TRACERS_TOMAS)
       use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
      &   ,fracSiltPDFscheme
+      use trdust_drv, only : init_soildust
 #endif
 #ifdef TRACERS_QUARZHEM
      &   ,DenHema,DenQuarz,FreeFe,FrHeQu
@@ -323,6 +324,13 @@ C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
 C**** Get to_conc from rundecks if it exists
       call sync_param("to_conc",to_conc,ntm)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+c**** soil dust aerosol initializations
+      call init_soildust
+#endif
 
 C**** DIAGNOSTIC DEFINTIONS
 
