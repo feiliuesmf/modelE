@@ -6950,7 +6950,7 @@ c**** ice
             end if
 c**** landice
             if (flice(i,j).gt.0) then
-              trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)
+              trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
               trsnowli(n,i,j)=trli0(n)*snowli(i,j)
               atmgla%gtracer(n,i,j)=trli0(n)
             else
