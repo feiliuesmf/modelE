@@ -57,7 +57,7 @@ PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 DRYCNV                              ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
+LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DUM  ! or ICEDYN_DRV ICEDYN  ! dynamic ice modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
