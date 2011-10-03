@@ -35,7 +35,7 @@ c
       real dt,onemu,q,clip,vlume,amount,bfore,after
       integer iord,ip1,im1,jp1,jm1
       logical wrap,recovr
-      data recovr/.false./
+      data recovr/.true./
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (onemu=.0098)				!  SI units
