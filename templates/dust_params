@@ -8,5 +8,5 @@ prefDustSources=1     ! 0: Ginoux 2001 w/ vegetation mask
 !fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
 !fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
                       ! set internally for 0-4
-
+!to_conc_soildust=1   ! three-dimensional dust output as concentration [kg/m^3]
 !-------------------------------------------------

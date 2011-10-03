@@ -26,7 +26,7 @@ c
       real dt,onemu,q,clip,vlume,amount,bfore,after,epsil
       integer iord,jaa
       logical wrap,recovr
-      data recovr/.false./
+      data recovr/.true./
 c
       parameter (epsil=1.e-11,onemu=.0098)
 c
