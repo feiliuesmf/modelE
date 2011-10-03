@@ -215,7 +215,7 @@ ifeq ($(MACHINE),IRIX64)
 else
   NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
 endif
-  LIBS += $(NETCDFLIB)
+  LIBS += $(subst ",,$(NETCDFLIB))
   NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
   FFLAGS += $(NETCDFINCLUDE)
   F90FLAGS += $(NETCDFINCLUDE)
