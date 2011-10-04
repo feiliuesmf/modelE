@@ -13,7 +13,9 @@
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
 #endif
+#ifdef COUPLE_GLIMMER
       USE glint_main, only : glint_params
+#endif
 
       IMPLICIT NONE
       SAVE
@@ -37,8 +39,10 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRDWNIMP
 #endif
 
+#ifdef COUPLE_GLIMMER
 !@var glint_greenland Glimmer model of the Greenland ice sheet
       type(glint_params) :: glint_greenland;
+#endif
 
       END MODULE LANDICE_COM
 
