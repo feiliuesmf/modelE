@@ -10679,7 +10679,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ICfactor
+     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfactor
           end do; end do; end do
 
         case ('AlkylNit')
