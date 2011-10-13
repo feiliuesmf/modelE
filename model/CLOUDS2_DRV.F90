@@ -76,7 +76,7 @@ subroutine CONDSE
        ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws &
        ,ij_wmclwp,ij_wmctwp &
        ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis &
-       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis
+       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis,ijl_cdtomas
 #endif
 #ifdef TRACERS_DUST
   use DIAG_COM, only : idd_wet
@@ -173,7 +173,8 @@ subroutine CONDSE
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
        ,oldcdl,oldcdi,sme &
        ,cdn3dl,cre3dl,smlwp &
-       ,wmclwp,wmctwp
+       ,wmclwp,wmctwp,CDNC_TOMAS
+
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
        use CLOUDS, only : cteml,cd3dl,cl3dl,ci3dl
@@ -1443,6 +1444,9 @@ subroutine CONDSE
             AIJL(I,J,L,IJL_CFWS)= AIJL(I,J,L,IJL_CFWS)+CLDWT
             AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)*CLDWT
             AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)*CLDWT
+#ifdef TRACERS_TOMAS
+            AIJL(I,J,L,IJL_CDTOMAS)= AIJL(I,J,L,IJL_CDTOMAS)+CDNC_TOMAS(L)*CLDWT
+#endif
             AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)*CLDWT
             AIJ(I,J,IJ_DZWS)=AIJ(I,J,IJ_DZWS)+CLDWTDZ
             AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ
@@ -1808,6 +1812,26 @@ subroutine init_CLD(istart)
        ,funio_denominator,autoconv_multiplier,radius_multiplier &
        ,entrainment_cont1,entrainment_cont2,wmui_multiplier &
        ,RA,UM,VM,UM1,VM1,U_0,V_0
+#ifdef TRACERS_ON
+  use TRACER_COM, only: NTM
+  use QUSDEF, only: nmom
+
+#ifdef TRACERS_WATER
+  use CLOUDS, only : trwml,trsvwml,trprmc,trprss
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+  use CLOUDS, only : dt_sulf_mc,dt_sulf_ss
+#endif
+#endif
+#ifdef TRDIAG_WETDEPO
+  use CLOUDS, only : TRCOND, TRCONDV &
+       ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
+       ,trcond_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trwash_ls
+#endif
+  use CLOUDS, only: ntix, TM, TMOM, TRDNL &
+       ,DTM, DTMR, TMDNL, DTMOM, DTMOMR, TMOMDNL
+#endif
+  
   use CLOUDS_COM, only : llow,lmid,lhi &
        ,isccp_reg2d,UKM,VKM,ttold,qtold
   use DIAG_COM, only : nisccp,isccp_late &
@@ -1876,6 +1900,53 @@ subroutine init_CLD(istart)
     end do
   endif
 
+  ! allocate misc variables sized with number of tracers
+#ifdef TRACERS_ON
+  allocate(ntix(ntm))
+  allocate(TM(LM,NTM))
+  allocate(TMOM(nmom,lm,ntm))
+  allocate(TRDNL(NTM,LM))
+#ifdef TRACERS_WATER
+  allocate(TRWML(NTM,LM))
+  allocate(TRSVWML(NTM,LM))
+  allocate(TRPRSS(NTM))
+  allocate(TRPRMC(NTM))
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+  ! for diagnostics
+    allocate(DT_SULF_MC(NTM,LM))
+    allocate(DT_SULF_SS(NTM,LM))
+#endif
+#ifdef TRDIAG_WETDEPO
+    allocate(trcond_mc(LM,NTM))
+    allocate(trdvap_mc(LM,NTM))
+    allocate(trflcw_mc(LM,NTM))
+    allocate(trprcp_mc(LM,NTM))
+    allocate(trnvap_mc(LM,NTM))
+    allocate(trwash_mc(LM,NTM))
+
+    allocate(trcond_ls(LM,NTM))
+    allocate(trevap_ls(LM,NTM))
+    allocate(trclwc_ls(LM,NTM))
+    allocate(trprcp_ls(LM,NTM))
+    allocate(trclwe_ls(LM,NTM))
+    allocate(trwash_ls(LM,NTM))
+#endif
+#else
+#endif
+
+    allocate(DTM(LM,NTM)); DTM = 0
+    allocate(DTMR(LM,NTM)); DTMR = 0
+    allocate(TMDNL(LM,NTM)); TMDNL = 0
+    allocate(DTMOM(NMOM,LM,NTM)); DTMOM = 0
+    allocate(DTMOMR(NMOM,LM,NTM)); DTMOMR = 0
+    allocate(TMOMDNL(NMOM,LM,NTM)); TMOMDNL = 0
+#ifdef TRACERS_WATER
+    allocate(TRCOND(NTM,LM)); TRCOND = 0
+    allocate(TRCONDV(NTM,LM)); TRCONDV = 0
+#endif
+#endif
+  
   !
   ! allocate space for the varying number of staggered
   ! wind data to be vertically mixed by clouds on the A grid
@@ -1982,7 +2053,7 @@ subroutine qmom_topo_adjustments
   use somtq_com, only : tmom,qmom
   use domain_decomp_atm, only : grid,get,halo_update
 #ifdef TRACERS_WATER
-  use tracer_com, only: trm,trmom,ntm,tr_wd_type,nwater
+  use tracer_com, only: trm,trmom,ntm=>NTM,tr_wd_type,nwater
 #endif
   use clouds_com, only : svlhx
   implicit none

@@ -17,13 +17,10 @@
       USE SEAICE, only : tfrez
       USE LANDICE, only : snmin
 #ifdef TRACERS_ON
-#ifdef RUNTIME_NTM
-      USE TRACER_COM, only : maxntm
-#endif
 #ifdef WATER_PROPORTIONAL
       USE TRACER_COM, only : force_limit=>force_limit_pbl
 #endif
-      USE TRACER_COM, only : ntm,trname,tr_wd_TYPE, nWATER
+      USE TRACER_COM, only : NTM,trname,tr_wd_TYPE, nWATER
 #ifdef TRACERS_SPECIAL_O18
      *     ,n_water
 #endif
@@ -69,6 +66,7 @@
 
       ! public interfaces
       public advanc,inits,ccoeff0
+      public alloc_pbl_args, dealloc_pbl_args
 
       ! model coefficients (actually a hack, but leave it for now)
       public rimax,ghmin,ghmax,gmmax0,gm_at_rimax,d1,d2,d3,d4,d5
@@ -81,12 +79,7 @@
 
       integer, parameter :: n=8  !@param n  no of pbl. layers
       integer, parameter :: npbl=n
-
-#ifdef TRACERS_ON
-#ifndef RUNTIME_NTM
-      integer, parameter :: maxntm=ntm
-#endif
-#endif
+      integer, public :: MAXNTM
 
 c**** t_pbl_args is a derived type structure which contains all
 c**** input/output arguments for PBL
@@ -115,12 +108,14 @@ c**** Tracer input/output
 !@var ntx number of tracers that need pbl calculation
 !@var ntix index array to map local tracer number to global
 !@var trprime anomalous tracer concentration in downdraft
-        real*8, dimension(maxntm) :: trtop,trs,trsfac,trconstflx
-        real*8, dimension(maxntm) :: trdn1,trprime,trgrnd2
+
+        real*8, allocatable, dimension(:) :: trtop,trs,trsfac,trconstflx
+        real*8, allocatable, dimension(:) :: trdn1,trprime,trgrnd2
         integer ntx
-        integer, dimension(maxntm) :: ntix
+        integer, allocatable, dimension(:) :: ntix
 #ifdef TRACERS_SPECIAL_O18
-        real*8, dimension(maxntm) :: frack
+        public :: frack
+        real*8, allocatable, dimension(:) :: frack
 #endif
 #ifdef BIOGENIC_EMISSIONS
         real*8 :: emisop
@@ -194,13 +189,13 @@ c**** output
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
 !@var stomatal_dep_vel turbulent deposition velocity via stomata(m/s)
-        real*8, dimension(maxntm) :: dep_vel,gs_vel
+        real*8, pointer, dimension(:) :: dep_vel,gs_vel
         real*8 :: stomatal_dep_vel
 #endif
 
 #ifdef TRACERS_WATER
 !@var tr_evap_max maximum amount of tracer available in ground reservoir
-        real*8, dimension(maxntm) :: tr_evap_max
+        real*8, pointer, dimension(:) :: tr_evap_max
 #endif
 
 
@@ -415,8 +410,8 @@ c  internals:
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, intent(in) :: ptype
-      real*8, dimension(ntm), intent(in) :: trnradius,trndens,trnmm
-      real*8, dimension(n,ntm), intent(inout) :: tr
+      real*8, dimension(NTM), intent(in) :: trnradius,trndens,trnmm
+      real*8, dimension(n,NTM), intent(inout) :: tr
 #endif
 
 c**** local vars for input from pbl_args
@@ -445,7 +440,7 @@ C****
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
       REAL*8 :: lmonin,lmonin_dry,snow
 #ifdef TRACERS_ON
-      real*8, dimension(n,ntm) :: trsave
+      real*8, dimension(n,NTM) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
       real*8, dimension(n-1) :: kqsave
       integer itr
@@ -453,7 +448,7 @@ C****
       real*8 :: trc2         ! could be passed out....
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: trc1,trs1    ! could be passed out....
-      real*8 :: fac_cq_tr(ntm),fk
+      real*8 :: fac_cq_tr(NTM),fk
 #endif
 #endif
 #ifndef TRACERS_TOMAS 
@@ -474,7 +469,7 @@ C****
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-      real*8, dimension(ntm) :: tr_dum
+      real*8, dimension(NTM) :: tr_dum
       real*8, parameter :: scalesizeSS(nbins)=(/
      *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
      *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
@@ -1103,10 +1098,10 @@ c**** copy output to pbl_args
 
 C**** tracer code output
 #ifdef TRACERS_ON
-      pbl_args%trs(1:ntm) = tr(1,1:ntm)
+      pbl_args%trs(1:NTM) = tr(1,1:NTM)
 
-      if (ddml_eq_1)
-     &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
+      if (ddml_eq_1) pbl_args%trprime(1:NTM) = 
+     &     pbl_args%trdn1(1:NTM)-tr(1,1:NTM)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -1151,7 +1146,7 @@ C**** tracer code output
       real*8, intent(out) :: ustar,tstar,qstar,lmonin,lmonin_dry
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
 #ifdef TRACERS_SPECIAL_O18
-      real*8, intent(out) :: fac_cq_tr(ntm)
+      real*8, intent(out) :: fac_cq_tr(NTM)
 #endif
 
 
@@ -1343,8 +1338,8 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       real*8,  intent(inout) :: z0m
       real*8,  intent(out) :: cm,ch,cq,z0h,z0q
 #ifdef TRACERS_SPECIAL_O18
-      real*8, intent(out) :: fac_cq_tr(ntm)
-      real*8 :: cq_tr(ntm),z0q_tr(ntm),Sc_tr,get_diff_rel
+      real*8, intent(out) :: fac_cq_tr(NTM)
+      real*8 :: cq_tr(NTM),z0q_tr(NTM),Sc_tr,get_diff_rel
       integer :: itr
 #endif
 
@@ -1368,7 +1363,7 @@ c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
 
 #ifdef TRACERS_SPECIAL_O18
 C**** calculate different z0q for different diffusivities
-          do itr=1,ntm
+          do itr=1,NTM
             if (tr_wd_TYPE(itr).eq.nWater) then
               Sc_tr=Sc*get_diff_rel(itr)
               call getzhq(ustar,z0m,Sc_tr,nu,1.3d-4,z0q_tr(itr))
@@ -1393,11 +1388,11 @@ c *********************************************************************
       call getchq(zgs,z0m,lmonin,dm,z0q,dum,cq)
 
 #ifdef TRACERS_SPECIAL_O18
-      do itr=1,ntm
+      do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)
      *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr),dum)
       end do
-      do itr=1,ntm
+      do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)
      *       fac_cq_tr(itr)=cq_tr(itr)/cq_tr(n_Water)
       end do
@@ -2805,7 +2800,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,j,iter,ierr  !@var i,j,iter loop variable
 #ifdef TRACERS_SPECIAL_O18
-      real*8 :: fac_cq_tr(ntm)   ! not used here
+      real*8 :: fac_cq_tr(NTM)   ! not used here
 #endif
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
@@ -3262,6 +3257,58 @@ c ----------------------------------------------------------------------
 9000  format (1x)
       end subroutine output
 
+      subroutine alloc_pbl_args(pbl_args)
+      type (t_pbl_args), intent(inout) :: pbl_args
+
+#ifdef TRACERS_ON
+      allocate(pbl_args%trtop(maxNTM))
+      allocate(pbl_args%trs(maxNTM))
+      allocate(pbl_args%trsfac(maxNTM))
+      allocate(pbl_args%trconstflx(maxNTM))
+      allocate(pbl_args%trdn1(maxNTM))
+      allocate(pbl_args%trprime(maxNTM))
+      allocate(pbl_args%trgrnd2(maxNTM))
+      allocate(pbl_args%ntix(maxNTM))
+#ifdef TRACERS_SPECIAL_O18
+      allocate(pbl_args%frack(maxNTM))
+#endif
+      
+#ifdef TRACERS_DRYDEP
+      allocate(pbl_args%dep_vel(maxntm))
+      allocate(pbl_args%gs_vel(maxntm))
+#endif
+#ifdef TRACERS_WATER
+      allocate(pbl_args%tr_evap_max(maxntm))
+#endif
+#endif
+      end subroutine alloc_pbl_args
+
+      subroutine dealloc_pbl_args(pbl_args)
+      type (t_pbl_args), intent(inout) :: pbl_args
+
+#ifdef TRACERS_ON
+      deallocate(pbl_args%trtop)
+      deallocate(pbl_args%trs)
+      deallocate(pbl_args%trsfac)
+      deallocate(pbl_args%trconstflx)
+      deallocate(pbl_args%trdn1)
+      deallocate(pbl_args%trprime)
+      deallocate(pbl_args%trgrnd2)
+      deallocate(pbl_args%ntix)
+#ifdef TRACERS_SPECIAL_O18
+      deallocate(pbl_args%frack)
+#endif
+      
+#ifdef TRACERS_DRYDEP
+      deallocate(pbl_args%dep_vel)
+      deallocate(pbl_args%gs_vel)
+#endif
+#ifdef TRACERS_WATER
+      deallocate(pbl_args%tr_evap_max)
+#endif
+#endif
+      end subroutine dealloc_pbl_args
+      
       END MODULE SOCPBL
 
       subroutine fgrid2(z,f,df)

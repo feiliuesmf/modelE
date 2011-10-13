@@ -69,9 +69,7 @@ C**** Command line options
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
-      USE DIAG_COM, only : MODD5S
       USE MDIAG_COM, only : monacc,acc_period
-      USE DIAG_SERIAL, only : print_diags
 #ifdef USE_MPP
       USE fms_mod,         only : fms_init, fms_end
 #endif
@@ -193,9 +191,7 @@ C**** CALCULATE SURFACE FLUXES (and, for now, this procedure
 C**** also drives "surface" components that are on the atm grid)
       CALL SURFACE
       call stopTimer('Surface')
-         CALL CHECKT ('SURFACE')
          CALL TIMER (NOW,MSURF)
-         IF (MODD5S.EQ.0) CALL DIAGCA (5)
 
       call ocean_driver
 
@@ -367,6 +363,9 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine initializeModelE
       USE DOMAIN_DECOMP_1D, ONLY : init_app
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      use TRACER_COM, only: initTracerCom
+#endif
 
       call initializeSysTimers()
 
@@ -376,6 +375,9 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call init_app()
       call initializeDefaultTimers()
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call initTracerCom
+#endif
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
@@ -545,7 +547,6 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
-      use FLUXES, only : UOdrag,NIsurf
       implicit none
 
 C**** Rundeck parameters:
@@ -555,8 +556,6 @@ C**** Rundeck parameters:
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
-      call sync_param( "NIsurf", NIsurf )
-      call sync_param( "UOdrag", UOdrag )
       call sync_param( "IRAND", IRAND )
 
       RETURN
@@ -589,6 +588,7 @@ C****
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
 #endif
+
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
@@ -853,6 +853,7 @@ C**** Updating Parameters: If any of them changed beyond this line
 C**** use set_param(.., .., 'o') to update them in the database (DB)
 
 C**** Get the rest of parameters from DB or put defaults to DB
+
       call init_Model
 
 C**** Set julian date information
@@ -1014,6 +1015,9 @@ C****
 #endif
 #ifdef NUDGE_ON
       write(6,*) '...and nudging of meteorology'
+#ifdef MERRA_NUDGING
+      write(6,*) '   WITH MERRA WINDS.'
+#endif
 #endif
 #ifdef HTAP_LIKE_DIAGS
       write(6,*) '...and HTAP set of diagnostics'

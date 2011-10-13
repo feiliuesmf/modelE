@@ -2,7 +2,7 @@
 
       module hycom_dim_glob
 
-#ifndef CUBED_SPHERE
+#if !(defined CUBED_SPHERE) && !defined(STANDALONE_HYCOM)
       use hycom_dim, only : iia,jja
 #endif
 
@@ -102,7 +102,7 @@ cddd     .     msk
       implicit none
       private
 
-#ifndef CUBED_SPHERE
+#if !(defined CUBED_SPHERE) && !defined(STANDALONE_HYCOM)
       public iia,jja
 #endif
 

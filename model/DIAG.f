@@ -877,7 +877,7 @@ c
 !@auth Gary Russell/Gavin Schmidt
       USE MODEL_COM, only : mdiag,itime
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,ntm  !xcon
+      USE TRACER_COM, only: itime_tr0,NTM  !xcon
 #endif
       USE DIAG_COM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
@@ -1465,7 +1465,7 @@ C**** initialise special subdd accumulation
 #ifdef TRACERS_ON
       allocate(rTrname(nTracerRadiaActive))
       allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
-      allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,ntm))
+      allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,NTM))
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1604,7 +1604,7 @@ c accSubdd
       call get(grid,i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
 
 #ifdef TRACERS_ON
-      do n=1,ntm
+      do n=1,NTM
         do j=j_0,j_1
           do i=i_0,i_1
             trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)+trcSurf(i,j,n)
@@ -3238,7 +3238,7 @@ C**** get model level
 ! units. 
 #ifdef TRACERS_ON
         polefix=.true.
-        do n=1,ntm
+        do n=1,NTM
           if ('t'//trim(trname(n)) == namedd(k)) then
             do l=1,LmaxSUBDD
               kunit=kunit+1
@@ -3293,7 +3293,7 @@ c***** "instantaneous" is a relative term.)
             case ("itAOD","ictAOD")   !tot aero(+dust,etc) opt dep, inst.
               if (any(tracerRadiaActiveFlag)) then
                 datar8=0.
-                do n=1,ntm        ! sum over rad code tracers is used
+                do n=1,NTM        ! sum over rad code tracers is used
                   if(tracerRadiaActiveFlag(n))then
                     select case(namedd(k))
                     case('itAOD')
@@ -3509,7 +3509,7 @@ c***** for (c)tAOD the sum over tracers of aerosol optical depth
               if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
               if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
               datar8=0.
-              do n=1,ntm        ! sum over rad code tracers is used
+              do n=1,NTM        ! sum over rad code tracers is used
                 if(tracerRadiaActiveFlag(n))then
                   select case(namedd(k))
                   case('tAOD')
@@ -3545,7 +3545,7 @@ C**** for (c)AOD multiple tracers are written to one file:
               if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
               if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
               nc=0
-              do n=1,ntm
+              do n=1,NTM
                 if(tracerRadiaActiveFlag(n))then
                   nc=nc+1
                   select case(namedd(k))
@@ -3579,7 +3579,7 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
           case('TrSMIXR')
             kunit=kunit+1
             polefix=.true.
-            do n=1,ntm
+            do n=1,NTM
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfMixR_acc(i,j,n)=trcSurfMixR_acc(i,j,n)
@@ -3605,7 +3605,7 @@ c**** Concentration for all tracers at surface [kg/m^3]
           case('TrSCONC')
             kunit=kunit+1
             polefix=.true.
-            do n=1,ntm
+            do n=1,NTM
               do j=j_0,j_1
                 do i=i_0,i_1
                   trcSurfByVol_acc(i,j,n)=trcSurfByVol_acc(i,j,n)
@@ -4962,7 +4962,7 @@ c define physical variable
           end do
         else
           call defvar(grid,fid,data,trim(qtyname)//'
-     &         ('// trim(dist_x)//','//trim(dist_y)//',level,ntm)'
+     &         ('// trim(dist_x)//','//trim(dist_y)//',level,NTM)'
      &         ,with_record_dim=.true.,r4_on_disk=qr4)
           call write_attr(grid,fid,trim(qtyname),'units',units_of_data)
           if (present(long_name)) then
@@ -5756,17 +5756,15 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       SUBROUTINE reset_ADIAG(isum)
 !@sum  reset_ADIAG resets/initializes atm diagnostics
 !@auth Original Development Team
-      USE MODEL_COM, only : Itime,iyear1,nday,
-     *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc
       USE ATM_COM, only : kradia,u
       USE DIAG_COM
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
-      INTEGER jd0
 
-      IDACC(1:12)=0
+      call reset_mdiag() ! move this call to higher level!!!
+
       if (kradia.gt.0) then
         AFLX_ST = 0.
         if (isum.eq.1) return
@@ -5788,19 +5786,18 @@ C**** Set conservation diagnostics for ice mass, energy, salt
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
+      ! move this call!!!
       call reset_icdiag       ! ice dynamic diags if required
 
       if (isum.eq.1) return ! just adding up acc-files
 
-      AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
+      AIJ_loc(:,:,IJ_TMNMX)=1000.
 
 #ifndef CUBED_SPHERE
       CALL EPFLXI (U)  ! strat
 #endif
 
-  100 Itime0=Itime
-      call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
-     *     Jdate0,Jhour0,amon0)
+  100 continue
 
       RETURN
       END SUBROUTINE reset_ADIAG
@@ -6556,6 +6553,12 @@ C****
       call diaggc_prep
       call diag_river_prep
       if(isccp_diags.eq.1) call diag_isccp_prep
+#ifdef TRACERS_ON
+      call diag_trac_prep
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call diagtcp_prep
+#endif
       return
       end subroutine calc_derived_acc_atm
 

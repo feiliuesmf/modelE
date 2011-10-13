@@ -19,7 +19,8 @@ c******************   TRACERS             ******************************
     (defined TRACERS_TOMAS)
       use sle001,ONLY : aevap
 #endif
-      use tracer_com, only : ntm,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+      use tracer_com, only : NTM
+     *     ,itime_tr0,needtrs,trm,trmom,ntsurfsrc
      *     ,trname
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
@@ -109,8 +110,9 @@ ccc extra stuff which was present in "earth" by default
       public ghy_tracers_set_cell
       public ghy_tracers_save_cell
 
-      real*8 totflux(ntm)
-      integer ntx,ntix(ntm)
+      real*8, allocatable :: totflux(:)
+      integer, allocatable :: ntix(:)
+      integer ntx
       integer, parameter :: itype=4
 
       contains
@@ -131,6 +133,15 @@ ccc extra stuff which was present in "earth" by default
       logical :: is_water(ntm)
 #endif
       integer n
+      logical :: ifirst = .true.
+
+!TODO: this "ifirst" should go away, but need it for now to handle
+! one time only allocations.
+      if (ifirst) then
+        ifirst = .false.
+        allocate(totflux(ntm))
+        allocate(ntix(ntm))
+      end if
 
       ntx=0
 #ifdef TRACERS_WATER
@@ -407,6 +418,9 @@ c**** prescribed dust emission
     (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
+!#ifdef TRACERS_TOMAS
+!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
+!#endif
 cddd#ifdef TRACERS_GASEXCH_land_CO2
 cddd      USE FLUXES, only : TRGASEX
 cddd#endif
@@ -518,6 +532,7 @@ ccc accumulate tracer evaporation and runoff
       num_bin=0
       du_bin=0
       num_bin2=0
+!      TOMAS_emis(I,J,:,2)=0.
 #endif
       DO nx=1,ntx
         n=ntix(nx)
@@ -560,6 +575,9 @@ C**** fixed datasets are used, it can happen over land as well.
      &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
           
           dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
+
+! NO subgrid coagulation for dust 
+!        TOMAS_EMIS(I,J,du_bin,2)= trc_flux*axyp(i,j)*ptype
           
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
@@ -1008,6 +1026,7 @@ c****
      &    t_vegcell
 #endif
       use pbl_drv, only : pbl, t_pbl_args, xdelt
+      use pbl_drv, only : alloc_pbl_args, dealloc_pbl_args
 
       use snow_drvm, only : snow_cover_same_as_rad
       use snow_model, only : i_earth,j_earth
@@ -1019,7 +1038,7 @@ c****
      &     ghy_tracers_save_cell, ghy_tracers_finish_step
 #endif
 #ifdef WATER_PROPORTIONAL
-      use tracer_com, only : ntm,trm
+      use tracer_com, only : NTM,trm
       use fluxes, only : trsrfflx
       use geom, only : axyp
       use atm_com, only : am
@@ -1208,6 +1227,7 @@ c****
 !!      call update_vegetation_data( entcells,
 !!     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 
+      call alloc_pbl_args(pbl_args)
       loop_j: do j=J_0,J_1
   !    hemi=1.
   !    if(j.le.jm/2) hemi=-1.
@@ -1685,6 +1705,7 @@ c another surface type
       end do loop_i
       end do loop_j
 
+      call dealloc_pbl_args(pbl_args)
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
@@ -2392,7 +2413,8 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only : vdata
 #endif
 #ifdef TRACERS_WATER
-      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
+      use tracer_com, only : NTM,tr_wd_TYPE,nwater,itime_tr0,
+     &     needtrs
 #ifndef USE_ENT
       use veg_com, only:  avh !,afb
 #endif
@@ -3528,7 +3550,7 @@ cddd      end subroutine retp2
      *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC,wfcs
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
-      USE TRACER_COM, only : ntm, trname, t_qlimit
+      USE TRACER_COM, only : NTM, trname, t_qlimit
 #endif
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       implicit none
@@ -4559,7 +4581,7 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
      &     ,w_ij,ht_ij,fearth,shc_soil_texture
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : ntm,needtrs,itime_tr0
+      use TRACER_COM, only : NTM,needtrs,itime_tr0
       use model_com, only : itime
 #endif
 #ifdef USE_ENT
@@ -4769,7 +4791,7 @@ cddd      sinday=sin(twopi/edpery*jday)
      &     ,fr_snow_rad_ij,snowbv,top_dev_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
-      use TRACER_COM, only : ntm
+      use TRACER_COM, only : NTM
 #endif
       !use veg_com, only : ala !,afb
       use LAKES_COM, only : flake, svflake
@@ -5048,7 +5070,7 @@ c**** Also reset snow fraction for albedo computation
      &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : ntm,needtrs,itime_tr0
+      use TRACER_COM, only : NTM,needtrs,itime_tr0
       use model_com, only : itime
 #endif
 #ifdef SCM
@@ -5169,7 +5191,7 @@ c**** wearth+aiearth are used in radiation only
      &     fr_snow_ij,fearth,w_ij,ngm,wsn_max
 #ifdef TRACERS_WATER
      &     ,tr_wsn_ij
-      use TRACER_COM, only : ntm
+      use TRACER_COM, only : NTM
 #endif
       !use veg_com, only : afb
       use LAKES_COM, only : flake

@@ -1,3 +1,4 @@
+
 C****   
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
@@ -39,7 +40,7 @@ C****
 #endif
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,needtrs,trm,trmom,
+      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom,
      *     n_CO2n, n_CFCn, n_Be7, n_Be10, n_clay, trname
 #ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrc
@@ -59,7 +60,9 @@ C****
 #endif
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
+      USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
+      USE DIAG_COM, only : MODD5S
       USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
      &     ,itocean,itoice,itlake,itlkice,itlandi
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
@@ -157,6 +160,9 @@ C****
     (defined TRACERS_TOMAS)
       USE tracers_dust, only : hbaij,ricntd,n_soildust
 #endif
+!#ifdef TRACERS_TOMAS
+!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
+!#endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_COM, only: vol2mass,tr_mm
@@ -333,7 +339,8 @@ C****
       IHM = IH+(JDATE-1)*24
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
-      CALL PRECIP_LI
+      CALL PRECIP_LI         ! Could be in LANDICE or GLIMMERICE
+
 #ifdef IRRIGATION_ON
 C**** CHECK FOR IRRIGATION POSSIBILITY
       CALL IRRIG_LK
@@ -429,6 +436,7 @@ C**** Set up tracers for PBL calculation if required
 
       call recalc_agrid_uv
 
+      call alloc_pbl_args(pbl_args)
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
@@ -882,6 +890,7 @@ C**** Limit evaporation if lake mass is at minimum
 #ifdef TRACERS_TOMAS
       ss_bin=0
       num_bin=0
+!      TOMAS_emis(I,J,:,1)=0.
 #endif
 C**** Loop over tracers
       DO NX=1,NTX
@@ -1052,11 +1061,15 @@ C****
           ss_num(ss_bin)=tot_seasalt*scalesizeSS(ss_bin)
      &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
 
+! No subgrid coagulation for sea-salt
+!        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
+
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
      &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
            num_bin=num_bin+1
            trc_flux=ss_num(num_bin)
+      
 #endif
         end select
 
@@ -1083,6 +1096,8 @@ C****
 
       
 #ifdef TRACERS_TOMAS
+
+        
             select case (trname(n))
 
             case ('DMS')              
@@ -1109,6 +1124,7 @@ C****
 
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+
             end select
 #endif
 #endif
@@ -1566,7 +1582,7 @@ C****
       END DO   ! end of itype loop
       END DO   ! end of I loop
       END DO   ! end of J loop
-
+      call dealloc_pbl_args(pbl_args)
 C****
 C**** dynamic vegetation time step
 C****
@@ -1625,12 +1641,19 @@ C*** min/max tsurf
         aijmm(i,j,ij_tsurfmax) =
      &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
-      END DO 
+      END DO
+
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_2Dsource(dtsurf)
+#endif
+
+#ifdef TRACERS_TOMAS
+C**** Apply subgrid coagulation for freshly emitted particles
+        call subgridcoag_drv_2D(dtsurf)
+
 #endif
 c****
 c**** apply surface fluxes to the first layer of the atmosphere
@@ -1741,6 +1764,9 @@ c calculate global integral of heat of river discharge
         enddo
         call globalsum(grid, atmocn%work1, atmocn%eflow_gl, all=.true.)
       endif
+
+         CALL CHECKT ('SURFACE')
+         IF (MODD5S.EQ.0) CALL DIAGCA (5)
 
       call stopTimer('SURFACE()')
 

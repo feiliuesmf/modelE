@@ -262,43 +262,21 @@ contains
     off(3) = 1+sz*(n-2)
     off(4) = 1+sz*(n-1)
 
-    nSendMessages = 0
-    nRecvMessages = 0
-    call incrementMpiTag(grid)
     IF(FILL(NORTH)) THEN
-      if (pe_north /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
-      if (pe_south /= MPI_PROC_NULL) then
-        nSendMessages = nSendMessages + 1
-        call MPI_Isend(arr(off(2)), 1, new_type, pe_south, getMpiTag(grid), &
-             &  getMpiCommunicator(grid), requests(nSendMessages), &
-             &  ierr)
-      end if
-    end if
+      call incrementMpiTag(grid)
+      Call MPI_SendRecv( &
+           &       arr(off(2)), 1, new_type, pe_south, getMpiTag(grid), &
+           &       arr(off(4)), 1, new_type, pe_north, getMpiTag(grid), &
+           &       getMpiCommunicator(grid), status, ierr)
+    End If
 
     IF(FILL(SOUTH)) THEN
-      if (pe_south /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
-      if (pe_north /= MPI_PROC_NULL) then
-        nSendMessages = nSendMessages + 1
-        call MPI_Isend(arr(off(3)), 1, new_type, pe_north, getMpiTag(grid), &
-             &  getMpiCommunicator(grid), requests(nSendMessages), &
-             &  ierr)
-      end if
-    end if
-
-    do i = 1, nRecvMessages
-      call MPI_Probe(MPI_ANY_SOURCE, getMpiTag(grid), getMpiCommunicator(grid), &
-           &        status, ierr)
-      if (status(MPI_SOURCE) == pe_north) then
-        call MPI_Recv( arr(off(4)), 1, new_type, pe_north, &
-             &          getMpiTag(grid), getMpiCommunicator(grid), status, ierr)
-      else
-        call MPI_Recv( arr(off(1)), 1, new_type, pe_south, &
-             &          getMpiTag(grid), getMpiCommunicator(grid), status, ierr)
-      end If
-    end do
-
-    call MPI_WaitAll(nSendMessages, requests,MPI_STATUSES_IGNORE,ierr)
-
+      call incrementMpiTag(grid)
+      Call MPI_SendRecv( &
+           &       arr(off(3)), 1, new_type, pe_north, getMpiTag(grid), &
+           &       arr(off(1)), 1, new_type, pe_south, getMpiTag(grid), &
+           &       getMpiCommunicator(grid), status, ierr)
+    End If
 
     call freeMpiType(new_type)
 

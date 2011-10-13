@@ -317,6 +317,7 @@ C
           module procedure set_termo_bulk2m
           module procedure set_micro_bulk2m
           module procedure set_micro_bulk2m_mat
+          module procedure set_micro_bulk2m_tomas
           module procedure update_micro_tendencies_bulk2m
           module procedure execute_bulk2m_sedimentation_gcm
 c          module procedure execute_bulk2m_driver0
@@ -1155,6 +1156,18 @@ c       case_tag: select case(trim(tag))
                 call stop_model(msg,255)
               end select case_action4
 C************************************************************************************
+C**********This is to use the TOMAS activated fraction 
+c       case_tag: select case(trim(tag))
+          case ('toma')
+            case_action5: select case (trim(action))
+              case ("drop_nucl")
+                ldummy=toma_drop_activation(dt0,k0,.false.)
+              case default
+                msg=trim(tag)//
+     *             " Case "//trim(action)//" is not implemented"
+                call stop_model(msg,255)
+              end select case_action5
+C************************************************************************************
           case ('surabi')
             case_action1: select case (trim(action))
               case ("GET_CDNC_UPD")
@@ -1547,6 +1560,110 @@ c Make supsat timescale
         ldummy=make_xxxx_timescale(dtmic,'all',mx0)
         la=.NOT.lcheck
       END FUNCTION set_micro_bulk2m_mat
+      LOGICAL FUNCTION set_micro_bulk2m_tomas(tag,nc0,qc0,ni0,qi0 
+     * ,na0,tag0
+     * ,nr0,qr0,ns0,qs0) RESULT (la)
+      IMPLICIT NONE
+        CHARACTER (len = *),INTENT (in)       :: tag,tag0
+        real*8,dimension(:),intent(in)          :: nc0,qc0,ni0,qi0
+        real*8,dimension(:),intent(in)        :: na0
+        real*8,dimension(:),intent(in),optional :: nr0,qr0,ns0,qs0
+!        integer      , INTENT (in)   ::nm0 
+c Local
+        integer      :: mx0
+        character*22 :: sname='set_micro_bulk2m_tom: '
+        real*8, dimension(size(nc0,1)) :: nr00,qr00,ns00,qs00
+        real*8                :: dtmic
+        la     = .true.
+        mx0=SIZE(nc0,1)
+c        stop 890
+        dtmic = dt
+
+        ncactv(1:mx0) = na0(1:mx0)
+c       write(6,*)"IN MODES",nm0
+!         print*,'bulk2m_tomas',mx0,na0(mx0),ncactv(1:mx0)
+c       write(6,*)"NUMBER",ncactv(1:mx0),mx0
+        if(PRESENT(nr0)) then
+          nr00=nr0/rho
+        else
+          nr00=0.0d0
+        endif
+        if(PRESENT(qr0)) then
+          qr00=qr0
+        else
+          qr00=0.0d0
+        endif
+        if(PRESENT(ns0)) then
+          ns00=ns0/rho
+        else
+          ns00=0.0d0
+        endif
+        if(PRESENT(qs0)) then
+          qs00=qs0
+        else
+          qs00=0.0d0
+        endif
+        lcold =  tk3d.le.273.15
+        lwarm =  .NOT. lcold
+        select case (trim(tag))
+           case ('drop')
+             nc3d=nc0/rho;qc3d=qc0
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'drop',mx0)
+             lqc3d = qc3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'drop',mx0)
+           case ('crys')
+             ni3d=ni0/rho;qi3d=qi0
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'crys',mx0)
+             lqi3d = qi3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'crys',mx0)
+           case ('all')
+             nc3d=nc0/rho;qc3d=qc0;ni3d=ni0/rho;qi3d=qi0
+             nr3d=nr00/rho;qr3d=qr00;ns3d=ns00/rho;qs3d=qs00
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'all',mx0)
+             lqc3d = qc3d.ge.qsmall
+             lqi3d = qi3d.ge.qsmall
+             lqs3d = qs3d.ge.qsmall
+             lqr3d = qr3d.ge.qsmall
+           case ('nc')
+             nc3d=nc0/rho
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'drop',mx0)
+             lqc3d = qc3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'drop',mx0)
+           case ('qc')
+             qc3d=qc0
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'drop',mx0)
+             lqc3d = qc3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'drop',mx0)
+           case ('ni')
+             ni3d=ni0/rho
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'crys',mx0)
+             lqi3d = qi3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'crys',mx0)
+           case ('qi')
+             qi3d=qi0
+             ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
+     *         ,tk3d,pp3d,qsmall,'crys',mx0)
+             lqi3d = qi3d.ge.qsmall
+             ldummy=make_xxxx_timescale(dtmic,'crys',mx0)
+           case ('nr'); nr3d=nr00/rho
+           case ('qr'); qr3d=qr00
+           case ('ns'); ns3d=ns00/rho
+           case ('qs'); qs3d=qs00
+          case default
+            msg=sname//"Case "//trim(tag)//" is not implemented"
+            call stop_model(msg,255)             
+        end select
+c
+c Make supsat timescale 
+        ldummy=make_xxxx_timescale(dtmic,'all',mx0)
+        la=.NOT.lcheck
+      END FUNCTION set_micro_bulk2m_tomas
 C
 C==============================================================================
       LOGICAL FUNCTION set_termo_bulk2m(tag,tk0,qk0,pk0,w0
@@ -6383,6 +6500,24 @@ c       write(6,*)"MATRIX_HM",nc3d(k)*1d-6,ncactv(k)*1d-6,npccn(k)*1d-6
 
         la=.NOT.lcheck
       END FUNCTION matr_drop_activation
+C========================================================================
+C Include file: blk_add_matr_drop_activation.f
+C========================================================================
+C==============================================================================
+      LOGICAL FUNCTION toma_drop_activation(dt0,mx0,l1) RESULT (la)
+      IMPLICIT NONE
+        real*8,             INTENT (in)       :: dt0
+        integer, intent(in)                   :: mx0
+        logical, intent(in) :: l1
+       altitude_loop: do k=1,mx0
+
+        npccn(k)=max(0.d0, ( (ncactv(k)/rho(k) - nc3d(k))/(dt0) ) )! change to 2*dt0 if needed
+        mpccn(k)=mw0*npccn(k)
+
+       enddo altitude_loop
+
+        la=.NOT.lcheck
+      END FUNCTION toma_drop_activation
 C
 C========================================================================
 C

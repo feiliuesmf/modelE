@@ -86,7 +86,7 @@ c
 !!     .        ifu,ilu,isu,jfu,jlu,jsu,ifv,ilv,isv,jfv,jlv,jsv,msk
 
       ! MPI decomposition stuff (maybe should move to a separate module?)
-      TYPE(DIST_GRID) :: ogrid   ! ocean (hycom) grid
+      TYPE(DIST_GRID), target :: ogrid   ! ocean (hycom) grid
       ! domain bounds
       integer :: I_0,  I_1,  J_0,  J_1
       integer ::aI_0, aI_1, aJ_0, aJ_1

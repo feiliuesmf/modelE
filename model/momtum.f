@@ -909,7 +909,7 @@ c
       do 867 i=ifp(j,l),ilp(j,l)
       pbavg(i,j,n)=pbavg(i,j,m)
       pbavav(i,j)=pbavav(i,j)+pbavg(i,j,m)
-      sfhtav(i,j)=sfhtav(i,j)+montg(i,j,1)
+      sfhtav(i,j)=sfhtav(i,j)+(montg(i,j,1)+thref*pbavg(i,j,m))/g
  867  continue
 c
       return

@@ -51,7 +51,7 @@ PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
+LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN ICEDYN_DRV                       ! ice dynamics modules
 ADVSIcs
 ODIAG_COM OCEAN_COM OSTRAITS_1QX1_COM OGEOM  ! dynamic ocean modules

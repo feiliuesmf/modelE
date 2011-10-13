@@ -8,6 +8,7 @@ LFLAGS =
 
 # option to treat default real as real*8
 R8 = -fdefault-real-8
+EXTENDED_SOURCE = -ffixed-line-length-132
 
 #
 # Set the following to ensure that the beginning/end of records

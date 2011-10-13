@@ -96,6 +96,9 @@ C****
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
 #endif
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only: icomp
+#endif
       use IndirectAerParam_mod, only: dCDNC_est, aermix
       IMPLICIT NONE
 
@@ -343,6 +346,20 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
      *        n_N_BC2_1 ,n_N_BC3_1,
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+#endif
+#ifdef TRACERS_TOMAS
+!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+      if (rad_interact_aer > 0) then
+C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
+        FS8OPX = (/0d0,   0d0,   1d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
+        FT8OPX = (/0d0,   0d0,   1d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
+      end if
+      NTRACE=icomp-2 
+! ANUM(1) for internal-mixing case
+! Others(ncomp-1) for external-mixing case.
+      NTRIX(1:ntrace)=
+     *     (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
+     &     n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
@@ -977,7 +994,7 @@ C**** Update orbital parameters at start of year
       USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
-     *     ,ntm
+     *     ,ntm=>NTM
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
       USE DOMAIN_DECOMP_ATM, only : grid, GET, am_I_root
@@ -1193,7 +1210,8 @@ C     OUTPUT DATA
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
+      USE TRACER_COM, only: NTM=>NTM
+     *     ,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
      *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
@@ -1231,6 +1249,10 @@ c    *     ,SNFST0,TNFST0
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
       USE AMP_AEROSOL, only: AMP_DIAG_FC
+#endif
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
+      USE TRACER_COM, only : n_ANUM
 #endif
 #ifdef RAD_O3_GCM_HRES
       use RAD_native_O3, only: O3JDAY_native,O3JREF_native
@@ -1335,7 +1357,7 @@ C
       REAL*8 :: TMP(NDIUVAR)
       INTEGER, PARAMETER :: NLOC_DIU_VAR = 8
       INTEGER :: idx(NLOC_DIU_VAR)
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 5
 #else
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
@@ -1360,6 +1382,9 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 #ifdef TRACERS_NITRATE
       real*8 :: nh4_on_no3
 #endif
+#ifdef TRACERS_TOMAS
+      real*8 :: qcb_col(6,ICOMP-2)
+#endif
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,POND_MELT
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
@@ -1375,7 +1400,7 @@ C****
       call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA, idd_aot, idd_aot2 /)
 #else
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
@@ -1837,6 +1862,12 @@ C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
+#ifdef TRACERS_TOMAS
+      TTAUSV(:,:)=0.
+      aesqex(:,:,:)=0.0
+      aesqsc(:,:,:)=0.0
+      aesqcb(:,:,:)=0.0 
+#endif
       PLB(LM+1)=PEDN(LM+1,I,J)
       DO L=1,LM
         PLB(L)=PEDN(L,I,J)
@@ -1931,7 +1962,9 @@ C**** more than one tracer is lumped together for radiation purposes
 #ifdef TRACERS_AMP
       CALL SETAMP_LEV(i,j,l)
 #endif
-
+#ifdef TRACERS_TOMAS
+      CALL SETTOMAS_LEV(i,j,l)
+#endif
       END DO
 C**** Radiative Equilibrium Layer data
       DO K=1,LM_REQ
@@ -1980,8 +2013,8 @@ C**** set up parameters for new sea ice and snow albedo
       dALBsn = xdalbs*depobc(ilon,jlat)
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #if (defined BC_ALB) &&\
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)) ||\
-    (defined TRACERS_TOMAS)
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS))
       call GET_BC_DALBEDO(i,j,dALBsn1)
       dALBsn=dALBsn1
 #endif
@@ -2047,6 +2080,7 @@ C**** or not.
       onoff_aer=0; onoff_chem=0
       if (rad_interact_aer > 0) onoff_aer=1
       if (clim_interact_chem > 0) onoff_chem=1
+      use_o3_ref=0
 
 #ifdef RAD_O3_GCM_HRES
       O3natL(:)=O3JDAY_native(:,I,J)
@@ -2234,6 +2268,34 @@ c set for BC-albedo effect
           FTTOPX(:) = onoff_aer !
         ENDIF
 #endif
+#ifdef TRACERS_TOMAS
+        IF (TOMAS_DIAG_FC == 2) THEN
+            FSTOPX(:) = onoff_aer !turns on online tracer
+            FTTOPX(:) = onoff_aer !
+          Do n = 1,icomp-2   
+            FSTOPX(n) = 1-onoff_aer !turns off online tracer
+            FTTOPX(n) = 1-onoff_aer !
+            CALL RCOMPX
+            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+            TNFST(1,n,I,J)=TRNFLB(1)
+            SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+            TNFST(2,n,I,J)=TRNFLB(LFRC)
+            FSTOPX(n) = onoff_aer !turns on online tracer
+            FTTOPX(n) = onoff_aer !
+          ENDDO
+        ELSE
+           n = 1
+          FSTOPX(:) = 1-onoff_aer !turns off online tracer
+          FTTOPX(:) = 1-onoff_aer !
+          CALL RCOMPX
+          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,n,I,J)=TRNFLB(1)
+          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+          TNFST(2,n,I,J)=TRNFLB(LFRC)
+          FSTOPX(:) = onoff_aer !turns on online tracer
+          FTTOPX(:) = onoff_aer !
+        ENDIF
+#endif
 C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
@@ -2320,12 +2382,14 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_AMP)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
 #ifdef TRACERS_AMP
       NTRACE = nmodes
 #endif
-
+#ifdef TRACERS_TOMAS
+      NTRACE = icomp-2
+#endif
 C**** Save optical depth diags
       do n=1,NTRACE
         IF (ntrix(n) > 0) THEN
@@ -2408,6 +2472,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &               taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
      &               =taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
      &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
+#ifndef TRACERS_TOMAS
                 IF (ijts_sqcb(1,kr,ntrix(n)) > 0)
      &               taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
      &               =taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
@@ -2418,6 +2483,24 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
+#else
+                qcb_col(kr,n)=0.d0
+                do l=1,lm
+                  qcb_col(kr,n)=qcb_col(kr,n)+aesqcb(l,kr,n)*
+     *                 aesqsc(l,kr,n)
+                enddo
+
+                IF (ijts_sqcb(1,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
+     &               +qcb_col(kr,n)
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+                IF (ijts_sqcb(2,kr,ntrix(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+     &               +qcb_col(kr,n)
+     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY        
+#endif
               END DO
             END IF
           END SELECT
@@ -2721,7 +2804,7 @@ C****
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
               TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:NTRACE))!*OPNSKY
               TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:NTRACE))!*OPNSKY
 #endif
@@ -2850,7 +2933,8 @@ C**** AERRF diags if required
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes (for aerosols)
@@ -2867,6 +2951,14 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
             NTRIX(1) = 1
          ENDIF
 #endif /* TRACERS_AMP */
+#ifdef  TRACERS_TOMAS
+         IF (TOMAS_DIAG_FC == 2) THEN
+            NTRACE = icomp-2
+         ELSE
+            NTRACE = 1
+            NTRIX(1) = 1
+         ENDIF
+#endif /* TRACERS_TOMAS */
          if (ntrace > 0) then
 #ifdef BC_ALB
       if (ijts_alb(1).gt.0)
@@ -3010,6 +3102,13 @@ c longwave forcing at surface clear sky (if required)
          NTRIX(1)=  n_N_AKK_1
          ENDIF
 #endif /* TRACERS_AMP */
+#ifdef  TRACERS_TOMAS
+!I don't know why this is used..
+         IF (TOMAS_DIAG_FC == 2) THEN
+         ELSE
+         NTRIX(1)=  n_ANUM(1)
+         ENDIF
+#endif /* TRACERS_TOMAS */
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
 c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2

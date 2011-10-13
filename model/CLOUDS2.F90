@@ -9,7 +9,8 @@ module CLOUDS
 !@cont MSTCNV,LSCOND,ANVIL_OPTICAL_THICKNESS,MC_CLOUD_FRACTION,
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
   use CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6 &
-       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
+       ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi &
+       ,mb2kg
   use RESOLUTION, only : lm
   use MODEL_COM, only : dtsrc,itime
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
@@ -36,7 +37,7 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: ntm=>NTM, trname,t_qlimit,ntm_soa,ntm_ococean
 #ifdef TRACERS_AEROSOLS_OCEAN
   use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -136,7 +137,7 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
-  integer, dimension(ntm) :: ntix
+  integer, allocatable, dimension(:) :: ntix
   integer ntx
 #endif
   !**** ISCCP diag related variables
@@ -210,6 +211,8 @@ module CLOUDS
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
   real*8, dimension(LM) :: ACDNWS,ACDNIS
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
+  real*8, dimension(LM) :: CDNC_NENES,CDNC_TOMAS
+!@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds (cm^-3)
   real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
 !@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
   real*8, dimension(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
@@ -247,21 +250,21 @@ module CLOUDS
 
 #ifdef TRACERS_ON
 !@var TM Vertical profiles of tracers
-  real*8, dimension(LM,NTM) :: TM
-  real*8, dimension(nmom,lm,ntm) :: TMOM
+  real*8, allocatable, dimension(:,:) :: TM
+  real*8, allocatable, dimension(:,:,:) :: TMOM
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
-  real*8, dimension(NTM,LM) :: TRDNL
+  real*8, allocatable, dimension(:,:) :: TRDNL
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
-  real*8, dimension(NTM,LM) :: TRWML, TRSVWML
+  real*8, allocatable, dimension(:,:) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
-  real*8, dimension(NTM)    :: TRPRSS,TRPRMC
+  real*8, allocatable, dimension(:)    :: TRPRSS,TRPRMC
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   ! for diagnostics
-  real*8, dimension(NTM,LM) :: DT_SULF_MC,DT_SULF_SS
+  real*8, allocatable, dimension(:,:) :: DT_SULF_MC,DT_SULF_SS
 #endif
 #ifdef TRDIAG_WETDEPO
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
@@ -272,7 +275,7 @@ module CLOUDS
 !@var trprcp_mc saves tracer precipitated from MC clouds [kg]
 !@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
 !@var trwash_mc saves tracers washed out by collision for MC clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trcond_mc,trdvap_mc,trflcw_mc, &
+  real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, &
        trprcp_mc,trnvap_mc,trwash_mc
 !@var trwash_ls saves tracers washed out by collision for LS clouds [kg]
 !@var trprcp_ls saves tracer precipitation from LS clouds [kg]
@@ -280,7 +283,7 @@ module CLOUDS
 !@var trevap_ls saves reevaporated tracers of LS cloud precip [kg]
 !@var trclwe_ls saves tracers evaporated from cloud water of LS clouds [kg]
 !@var trcond_ls saves tracer condensation in LS clouds [kg]
-  real*8,dimension(Lm,Ntm) :: trwash_ls,trevap_ls,trclwc_ls, &
+  real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, &
        trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
@@ -335,15 +338,15 @@ module CLOUDS
   ! completion of MC calculations, MSTCNV resets these arrays to zero in
   ! the layers in which they were used.
 !@var DTM,DTMR: Vertical profiles of Tracers changes
-  real*8, dimension(LM,NTM)      :: DTM=0, DTMR=0, TMDNL=0
-  real*8, dimension(NMOM,LM,NTM) :: DTMOM=0, DTMOMR=0, TMOMDNL=0
+  real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
+  real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
 !@var TPOLD saved plume temperature after condensation for tracers
 !@+   (this is slightly different from TPSAV)
   real*8, dimension(LM)       :: TPOLD=0
 #ifdef TRACERS_WATER
 !@var TRCOND tracer mass in condensate
 !@var TRCONDV tracer mass in lofted condensate
-  real*8, dimension(NTM,LM)   :: TRCOND=0,TRCONDV=0
+  real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
 #endif
 #endif
 
@@ -1388,6 +1391,7 @@ contains
 #endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
+#ifndef TRACERS_TOMAS
 #ifdef TRACERS_AMP
             do nm=1,nmodes
               ncaero(nm)=naerc(l,nm)*1.d-6
@@ -1400,6 +1404,11 @@ contains
                  MCDNL1,MCDNO1)
 
 #endif  /* (TRACERS_AMP) */
+#endif
+#ifdef TRACERS_TOMAS
+       CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC, &
+          DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
+#endif
             MNdO=MCDNO1
             MNdL=MCDNL1
             MNdO_max(L)=max(MNdO_max(L),MCDNO1)
@@ -3051,6 +3060,33 @@ contains
     real*8                    :: naero (mkx,nmodes)
     !     real*8,dimension(lm,nmodes)   :: nactc
 #endif
+#ifdef TRACERS_TOMAS
+      REAL*8,dimension(mkx)     :: nactl
+!Can
+!Can Droplet parameterization quantities
+!Can
+      INTEGER :: NCCNMx,NCC,NSECi
+      PARAMETER (NCCNMx=100, NCC=10)
+      REAL*8 SULFI, BOXVL, TOTi,TOT_MI, &
+           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), & 
+           NACTEarth, NACTOcean, NACT, NACTBL, &
+           SMAXEarth, SMAXOcean, SMAX, & 
+           REFFEarth, REFFOcean, REFF, REFFBL, REFFGISS, &
+           CLDTAUEarth, CLDTAUOcean, CLDTAU, CLDTAUBL, CLDTAULIQ, &
+           CLDTAUICE, TPARC,PPARC, & 
+           WPARCOcean, WPARCEarth, WPARC, & 
+           RHOSI,QLWC,EPSILON,AUTO(6),DIFFLWMR,DIFFEPS
+
+      INTEGER ITYP
+      LOGICAL EX
+!c$$$      REAL*8 CldLiqTauNS(IM,JM,LM), CldLiqTauBL(IM,JM,LM),
+!c$$$     &                 CldLiqTauGS(IM,JM,LM), CldIceTauGS(IM,JM,LM)
+!c$$$      COMMON /MICROPH/ CldLiqTauNS, CldLiqTauBL, CldLiqTauGS,
+!c$$$     &                 CldIceTauGS
+!Can
+!Can
+   
+#endif
 #endif
 
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
@@ -3151,6 +3187,7 @@ contains
     TRPRBAR = 0.
     BELOW_CLOUD=.false.
     CLOUD_YET=.false.
+    CLDSAVT=0.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
     DT_SULF_SS(1:NTM,:)=0.
@@ -3576,6 +3613,85 @@ contains
            ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end',qr0=mrain, &
            nr0=nrain)
 #endif
+#ifdef TRACERS_TOMAS
+!CCC
+!Can *************************************************************************
+!Can      CLOUD DROPLET CALCULATION
+!Can *************************************************************************
+!CCC
+!CCC *** Input properties for parameterization
+!CCC
+      TOT_MI    = 0d0
+      WPARC      = 0d0
+      SMAX       = 0d0
+      NACT       = 0d0
+      REFF       = 0d0
+!      CLDTAU     = 0d0
+!      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
+!c$$$      QautP6     = 0d0
+!c$$$      QautKK     = 0d0 
+!c$$$      QautMC     = 0d0 
+!c$$$      QautBH     = 0d0
+!c$$$      QautGI     = 0d0 
+!c$$$      QautNS     = 0d0 
+!c$$$C
+!C Get CCN properties
+!C
+!      avol(l) = axyp(i_debug,j_debug)*am(i_debug,j_debug,l)/mair*
+!!!   byam(l) = [m2/kg of air]
+      boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
+          /100./PL(L) 
+
+      CALL getCCN (I_debug,J_debug,L,BOXVL,TOT_MI,TOTi,TPi,MLi, &
+         NCCNMx,NSECi)        ! Get CCN properties
+!C
+!C Call cloud microphysics
+!C    
+      IF (LHX.EQ.LHE) THEN         ! Liquid clouds present
+!CCC
+!CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
+!CCC
+
+!Two options for Updrate velocity 
+
+!1. fixed as a constant  
+
+!         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
+!         WPARCEarth = 0.3d0
+!         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
+
+!2. computed using EGCM
+
+        WPARC=v0(mkx) !wturb=sqrt(0.6667*EGCM(l,i,j))
+!End of updrate velocity option. 
+
+
+         QLWC=WMX(L)/(FCLD + teeny)    	!in-cloud dimensionless LWC
+         QLWC=MIN(QLWC, 3.d-03)  		!(upper limit for the QLWC)
+
+         RHO=1.d5*PL(L)/(RGAS*TL(L))
+         RHOSI = RHO*1.d-3
+         if(rhosi.eq.0.) print*,'zero rho',rho,pl(l),tl(l)
+
+         TPARC=tk0(mkx)
+         PPARC=pk0(mkx)*100.d0  ! mbar to Pa
+         IF (TOTi.GT.6.d7.and.WPARC.gt.0.) THEN  ! more than 60 particles per cc, call droplet activation
+            CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
+                 ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
+         ELSE
+!YUNHA- I don't know how to set the minimum NACT. For now, I put the same mininum as Nenes.  
+            NACT = 40.d6 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
+            SMAX = 0.0001    ! Minimum supersaturation
+         ENDIF
+       NACTL(mkx)=NACT
+       CDNC_NENES(L)=NACT !FOR DIAGNOSTICS
+       ENDIF
+
+       ldummy=execute_bulk2m_driver('all' &
+            ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
+           nr0=nrain)
+
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
@@ -3598,6 +3714,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the TOMAS_actv interface from TOMAS 
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       ! Droplets' autoconversion: Beheng (concentration and content)
       !       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
@@ -4916,6 +5036,7 @@ contains
     ALWIS=0.
     NLSW = 0
     NLSI = 0
+    CDNC_TOMAS=0.
 #endif
     do L=1,LP50
       FCLD=CLDSSL(L)+teeny
@@ -4954,6 +5075,10 @@ contains
 #ifdef TRACERS_AMP
       OLDCDL(L)=SNd
       OLDCDI(L)=SNdi
+#endif
+#ifdef TRACERS_TOMAS
+       OLDCDL(L)=SNd
+       OLDCDI(L)=SNdi
 #endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
@@ -4998,6 +5123,10 @@ contains
 #ifdef TRACERS_AMP
       !*** Using the AMP_actv interface from MATRIX
       ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#endif
+#ifdef TRACERS_TOMAS
+      !*** Using the AMP_actv interface from MATRIX
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       rablk=execute_bulk2m_driver('get','value','nc') + ( &
            +execute_bulk2m_driver('get','npccn') &
@@ -5101,6 +5230,9 @@ contains
         CDN3DL(L)=SCDNCW
         CRE3DL(L)=RCLDE
         NLSW  = NLSW + 1
+#ifdef TRACERS_TOMAS
+        CDNC_TOMAS(L)=CDNC_NENES(L)
+#endif
         !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
         !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
       elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then

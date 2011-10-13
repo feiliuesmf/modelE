@@ -211,12 +211,15 @@ endif
 
 ifdef NETCDFHOME
 ifeq ($(MACHINE),IRIX64)
-  LIBS += -L$(NETCDFHOME)/lib64 -lnetcdf
+  NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
 else
-  LIBS += -L$(NETCDFHOME)/lib -lnetcdf
+  NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
 endif
-  FFLAGS += -I$(NETCDFHOME)/include
-  INCS += -I$(NETCDFHOME)/include
+  LIBS += $(subst ",,$(NETCDFLIB))
+  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
+  FFLAGS += $(NETCDFINCLUDE)
+  F90FLAGS += $(NETCDFINCLUDE)
+  INCS += $(NETCDFINCLUDE)
 endif
 
 # access new interfaces in sub-directory.

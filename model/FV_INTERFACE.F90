@@ -266,7 +266,7 @@ contains
     integer :: year, month, day, hour, minute, second
     logical :: isFinalize
 
-    character(len=28) :: fv_fname, fv_dfname
+    character(len=80) :: fv_fname, fv_dfname
     character(len=1)  :: c1
     integer :: m
 

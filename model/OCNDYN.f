@@ -420,19 +420,11 @@ C**** Read in table function for specific volume
       WRITE (6,*) 'Read from unit ',iu_OFTAB,': ',TITLE
       call closeunit(iu_OFTAB)
 
-C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
-      call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
-      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
-      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
-      call closeunit(iu_TOPO)
-
 c-------------------------------------------------------------------
 c Begin ocean-processors-only code region
       ocean_processors_only: if(grid%have_domain) then
 c-------------------------------------------------------------------
 
-      CALL GEOMO
       CALL OFFT0(IM)
 
       FOCEAN_loc(:,j_0:j_1) = FOCEAN(:,j_0:j_1)
@@ -4622,6 +4614,12 @@ C****
           END IF
         END DO
       END DO
+
+#ifdef STANDALONE_OCEAN
+! surface salinity restoration
+      call restore_surface_salinity!(atmocn)
+#endif
+
       endif ocean_processors_only
 
 C**** Convert ocean surface temp to atmospheric SST array

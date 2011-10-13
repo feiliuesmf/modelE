@@ -10,6 +10,7 @@
       use filemanager,only: nameunit,openunit,closeunit
       use constant, only: rgas
       use resolution, only: im,jm,lm
+      use Dictionary_mod, only : sync_param
       use domain_decomp_atm, only: am_i_root,grid,dread_parallel
      &     ,broadcast,write_parallel,get
       use model_com, only: ioread,iowrite,irsfic,irsficno
@@ -35,7 +36,7 @@
 #ifdef TRACERS_WATER
      &     ,dowetdep
 #endif
-      use trdiag_com, only: trcsurf,trcSurfByVol
+      use trdiag_com, only: trcsurf,trcSurfByVol,to_conc
       use tracers_dust
 #ifdef NEW_IO
       use pario, only: defvar,read_dist_data,write_dist_data
@@ -49,34 +50,23 @@
 
       contains
 
-c init_dust
-      subroutine init_dust
-!@sum  init_dust reads in source and parameter files for dust/mineral tracer at startup
+c init_soildust
+      subroutine init_soildust
+!@sum init_soildust  initializiations for soil dust/mineral dust aerosols
+!@+    at startup
 !@auth Jan Perlwitz
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 
-      IMPLICIT NONE
+      implicit none
 
-      INCLUDE 'netcdf.inc'
+      logical, save :: qfirst = .true.
 
-      integer :: i,ierr,j,io_data,k,ires,n,n1
-      INTEGER startd(3),countd(3),statusd
-      INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
-      REAL*8 :: zsum,tabsum
-c**** temporary array to read in data
-      REAL*4,DIMENSION(grid%i_strt:grid%i_stop,
-     &                 grid%j_strt:grid%j_stop) :: work ! no halo
+      integer :: n, n1
 
-      LOGICAL,SAVE :: qfirst=.TRUE.
-      CHARACTER :: cierr*3,name*256
-      CHARACTER(50) :: OptModelVers='No Entry'
-
-      IF (.NOT. qfirst) RETURN
-      qfirst=.FALSE.
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      if ( .not. qfirst ) return
+      qfirst = .false.
 
 #ifdef TRACERS_DUST
       n_soilDust = n_clay
@@ -99,6 +89,49 @@ c**** initialize dust names
       end do
 #endif
 #endif
+
+c**** insert to_conc_soildust into to_conc
+
+      if ( .not. any( to_conc( n_soilDust:n_soilDust+ntm_dust-1 ) > 0 )
+     &     ) then
+        call sync_param( 'to_conc_soildust', to_conc_soildust )
+        to_conc( n_soilDust:n_soilDust+ntm_dust-1 ) = to_conc_soildust
+      end if
+
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
+      return
+      end subroutine init_soildust
+
+c tracer_ic_soildust
+      subroutine tracer_ic_soildust
+!@sum tracer_ic_soildust  reads in source and parameter files for
+!@+    dust/mineral tracer at itime_tr0
+!@auth Jan Perlwitz
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+
+      IMPLICIT NONE
+
+      INCLUDE 'netcdf.inc'
+
+      integer :: i,ierr,j,io_data,k,ires
+      INTEGER startd(3),countd(3),statusd
+      INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
+      REAL*8 :: zsum,tabsum
+c**** temporary array to read in data
+      REAL*4,DIMENSION(grid%i_strt:grid%i_stop,
+     &                 grid%j_strt:grid%j_stop) :: work ! no halo
+
+      LOGICAL,SAVE :: qfirst=.TRUE.
+      CHARACTER :: cierr*3,name*256
+      CHARACTER(80) :: OptModelVers='No Entry'
+
+      IF (.NOT. qfirst) RETURN
+      qfirst=.FALSE.
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
         CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)
@@ -273,13 +306,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.091393298D0  ! not optimized yet
-              fracSiltPDFscheme = 0.10973922D0   ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.10309873D0   ! not optimized yet
-              fracSiltPDFscheme = 0.080987688D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -328,13 +366,16 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.086874723D0 ! not optimized yet
-              fracSiltPDFscheme = 0.097082074D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0 ! same as for dust only case
+              fracSiltPDFscheme = 0.13299809D0  ! same as for dust only case
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.091387274D0 ! not optimized yet
-              fracSiltPDFscheme = 0.15582714D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT'
             end if
             ires=5
           end select
@@ -383,13 +424,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.051027254D0 ! not optimized yet
-              fracSiltPDFscheme = 0.047415049D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.059176377D0 ! not optimized yet
-              fracSiltPDFscheme = 0.056770932D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -438,13 +484,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.03586315D0  ! not optimized yet
-              fracSiltPDFscheme = 0.028140008D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.036893354D0 ! not optimized yet
-              fracSiltPDFscheme = 0.039649002D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -493,13 +544,18 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
             end if
             ires=4
-          case(90)              ! uses values for im=144 for now
+          case(90)              ! same as for prefDustSources = 1
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.083940461D0 ! not optimized yet
-              fracSiltPDFscheme = 0.06811547D0  ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1' //
+     &             ' and coupled chemistry = 0'
             else
-              fracClayPDFscheme = 0.09620785D0  ! not optimized yet
-              fracSiltPDFscheme = 0.058139336D0 ! not optimized yet
+              fracClayPDFscheme = 0.059819419D0
+              fracSiltPDFscheme = 0.13299809D0
+              OptModelVers = 'AR5 branch, 07/04/2011, 11:55 PM EDT' //
+     &             ', same as for prefDustSources = 1'
             end if
             ires=5
           end select
@@ -517,7 +573,7 @@ c**** set parameters depending on the preferred sources chosen
             write(6,*) '  following file with preferred dust sources:'
             write(6,*) '  >> '
      &           ,trim(dustSourceFile(prefDustSources,ires)),' <<'
-            write(6,*) '  for model version from ',trim(OptModelVers)
+            write(6,*) '  for model version: ',trim(OptModelVers)
             if (coupled_chem == 1) then
               write(6,*) '  for all aerosols and chemistry'
             else
@@ -583,9 +639,9 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         CALL closeunit(io_data)
 #endif
 
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
+#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
       RETURN
-      END SUBROUTINE init_dust
+      end subroutine tracer_ic_soildust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

@@ -31,7 +31,11 @@ $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 	@echo "===> building component $(1)"
 	$(MAKE) -C $(1) $(OPTS_$(1))
 #	mv -f .liblist .liblist_tmp
-	echo $(1)/lib$(1).a >> .liblist
+	if [ -f $(1)/liblist ] ; then \
+	  cat $(1)/liblist | sed 's/\blib/$(1)\/lib/g' >> .liblist ; \
+	else \
+	  echo $(1)/lib$(1).a >> .liblist ; \
+	fi
 #	cat .liblist_tmp >> .liblist
 #	rm -f .liblist_tmp
 	@echo "===> component $(1) ok"

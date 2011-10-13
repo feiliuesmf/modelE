@@ -1,4 +1,7 @@
 #include "rundeck_opts.h"
+#include "hycom_mpi_hacks.h"
+
+#ifndef STANDALONE_HYCOM
 
 #ifndef CUBED_SPHERE
 
@@ -732,3 +735,150 @@ c --- mapping B-grid fldi to A-grid ogcm
       end module hycom_dynsi_cpler
 
 #endif /* cubed-sphere versus lat-lon atm */
+
+#else /* code below is a trivial coupler for the standalone ocean */
+
+      module hycom_cpler
+      USE HYCOM_DIM_GLOB, only : iio,jjo,jj
+      USE DOMAIN_DECOMP_1D, only : dist_grid
+      USE HYCOM_DIM, only : ogrid, J_0,J_1, J_0H,J_1H
+     &    ,isp,ifp,ilp,ip
+c
+      implicit none
+      private
+
+      type(dist_grid), pointer, public :: agrid
+
+      public ssto2a,veca2o,flxa2o,veco2a,tempro2a,cpl_wgt
+
+      public coso_glob, sino_glob
+
+      real*8, dimension(:,:), allocatable :: coso,sino
+      real*8, dimension(:,:), allocatable :: coso_glob,sino_glob
+
+      contains
+
+      subroutine ssto2a(fldo,flda)
+c --- mapping sst from ogcm A grid to agcm A grid
+c     input: fldo, output: flda
+c
+      implicit none
+      real*8 fldo(iio,J_0H:J_1H),flda(iio,J_0H:J_1H)
+      flda(:,:) = fldo(:,:)
+      return
+      end subroutine ssto2a
+
+      subroutine veca2o(tauxa,tauya,tauxo,tauyo)
+c --- mapping vector like stress from agcm to ogcm, both on A grid
+c --- input  tauxa/tauya: E_/N_ward on agcm A grid
+c --- output tauxo/tauyo: +i_/+j_ward on ogcm A grid (S_/E_ward in Mercador domain)
+c
+      implicit none
+      real*8, dimension(iio,J_0H:J_1H) :: tauxa,tauya,tauxo,tauyo
+      real*8, dimension(iio,J_0H:J_1H) :: sward,eward
+      integer i,j,l,n
+
+      eward(:,:) = +tauxa(:,:)
+      sward(:,:) = -tauya(:,:)
+
+c
+c --- rotate sward/eward to fit onto Panam grid
+      do 9 j=j_0,j_1
+      do 9 l=1,isp(j)           
+      do 9 i=ifp(j,l),ilp(j,l)
+      tauxo(i,j)= sward(i,j)*coso(i,j)+eward(i,j)*sino(i,j)
+      tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
+ 9    continue
+
+      end subroutine veca2o
+c
+      subroutine flxa2o(flda,fldo)
+c --- mapping flux-like field from agcm A grid to ogcm A grid
+c     input: flda (W/m*m), output: fldo (W/m*m)
+c
+      implicit none
+      real*8 flda(iio,J_0H:J_1H),fldo(iio,J_0H:J_1H)
+      fldo(:,:) = flda(:,:)
+      return
+      end subroutine flxa2o
+
+      subroutine veco2a(tauxo,tauyo,tauxa,tauya)
+c --- mapping vector like velocity from C grid ogcm to A grid agcm
+c --- input  tauxo/tauyo: +i_/+j_ward (S_/E_ward in Mercador domain) on ocean C grid (@ i-1/2 & j-1/2)
+c --- output tauxa/tauya: E_/N_ward on agcm A grid
+c
+      use domain_decomp_1d, only : halo_update
+      implicit none
+      integer i,j,l,n,ia,ja,jb
+      real*8, dimension(iio,J_0H:J_1H) :: tauxo,tauyo,tauxa,tauya
+      real*8 sine
+
+      call halo_update(ogrid,tauyo)
+
+      tauxa(:,:) = 0.
+      tauya(:,:) = 0.
+
+c --- average tauxo/tauyo from C to A grid & rotate to n/e orientation at A grid
+c --- check velocity bounds
+      do 12 j=j_0,j_1
+      jb = PERIODIC_INDEX(j+1, jj) !mod(j,jj)+1
+      do 12 l=1,isp(j)           
+      do 12 i=ifp(j,l),ilp(j,l)
+      if (ip(i,j).eq.1) then
+      sine=sino(i,j)*sino(i,j)+coso(i,j)*coso(i,j)
+      tauya(i,j)=((tauyo(i,j)+tauyo(i ,jb))*sino(i,j)
+     .           -(tauxo(i,j)+tauxo(i+1,j))*coso(i,j))/(2.*sine)
+      tauxa(i,j)=((tauyo(i,j)+tauyo(i ,jb))*coso(i,j)
+     .           +(tauxo(i,j)+tauxo(i+1,j))*sino(i,j))/(2.*sine)
+      endif
+ 12   continue
+
+      return
+      end subroutine veco2a
+c
+      subroutine tempro2a(fldo,flda)
+c --- mapping sqrt(sqrt(temp**4)) from ogcm A grid to agcm A grid
+c --- input: fldo in deg C; outout: flda in deg K
+c
+      implicit none
+      real*8 fldo(iio,J_0H:J_1H),flda(iio,J_0H:J_1H)
+      flda(:,:) = fldo(:,:)+273.16d0
+      return
+      end subroutine tempro2a
+c
+      subroutine cpl_wgt
+      USE HYCOM_SCALARS, only : flnmcoso,lp
+      use filemanager, only : findunit
+      USE DOMAIN_DECOMP_1D, only : am_i_root,unpack_data
+      implicit none
+      integer :: iu1,iz,jz
+
+c read rotation coeffs between hycom gridlines and geographic north
+      allocate(coso(iio,j_0h:j_1h),sino(iio,j_0h:j_1h))
+      if(am_i_root()) then
+        allocate(coso_glob(iio,jjo),sino_glob(iio,jjo))
+        call findunit(iu1)
+        open(iu1,file=flnmcoso,form='unformatted',status='old')
+        read(iu1) iz,jz,coso_glob,sino_glob
+        close(iu1)
+        if (iz.ne.iio .or. jz.ne.jjo) then
+          write(6,*) ' iz,jz=',iz,jz
+          stop '(wrong iz/jz in cososino.8bin)'
+        endif
+      endif
+      call unpack_data(ogrid,coso_glob,coso)
+      call unpack_data(ogrid,sino_glob,sino)
+
+      return
+      end subroutine cpl_wgt
+
+      end module hycom_cpler
+
+      module hycom_dynsi_cpler
+      contains
+      subroutine init_hycom_dynsi_cpler
+      end subroutine init_hycom_dynsi_cpler
+      end module hycom_dynsi_cpler
+
+
+#endif /* standalone ocean */

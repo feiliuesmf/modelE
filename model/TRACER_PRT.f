@@ -60,7 +60,7 @@ C**** save some basic model diags for weighting
         end do
       end do
 
-      do 600 n=1,ntm
+      do 600 n=1,NTM
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
       if (to_conc(n).eq.1) then ! kg/m3
@@ -351,7 +351,7 @@ C**** No need to save current value
      &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only: areag 
-      USE TRACER_COM, only: ntm ,itime_tr0
+      USE TRACER_COM, only: NTM,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
@@ -513,7 +513,7 @@ C****
       integer k,n,kpmax
 
 !@var jlnt_xx Names for TAJL diagnostics
-      do n=1,ntm
+      do n=1,NTM
       k = ktajl+1
         jlnt_nt_eddy = k
         sname_jln(k,n) = 'tr_nt_eddy_'//trname(n)
@@ -1223,12 +1223,15 @@ C****
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
-      integer, parameter :: ktmax = ktaij*ntm+ktaijs
+!TODO fix kludge
+      integer, parameter :: MAXNTM = 1000 ! kludge - NTM is now dynamic
+
+      integer, parameter :: ktmax = ktaij*MAXNTM+ktaijs
 #ifdef TRACERS_SPECIAL_O18
      *     + 4                  ! include dexcess + D17O diags
 #endif
 #ifdef TRACERS_DRYDEP
-     *     + ntm                ! include dry dep % diags
+     *     + MAXNTM                ! include dry dep % diags
 #endif
 
 !@var Qk: if Qk(k)=.true. field k still has to be processed
@@ -1279,7 +1282,7 @@ C**** Fill in the undefined pole box duplicates
       end do
 
 C**** Fill in maplet indices for tracer sums/means and ground conc
-      do n=1,ntm
+      do n=1,NTM
       do kx=1,ktaij
         if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
@@ -1593,7 +1596,9 @@ C****
       CHARACTER*3 CLEV(LM)
       INTEGER i,j,l,kxlb,k
 
-      integer, parameter :: ktmax = ntm+ktaijl
+!TODO fix kludge - NTM replaced with MAXNTM to allow ktmax to be a parameter
+      integer, parameter :: MAXNTM=1000
+      integer, parameter :: ktmax = maxntm+ktaijl
 #ifdef TRACERS_SPECIAL_O18
      *     + 2        ! include dexcess + D17O diags
 #endif
@@ -1653,7 +1658,7 @@ C**** Fill in the undefined pole box duplicates
       end do
 
 C**** Fill in maplet indices for tracer concentrations
-      do n=1,ntm
+      do n=1,NTM
         k = k+1
         iord(k) = n
         ijtype(k) = 1

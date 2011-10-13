@@ -12,6 +12,7 @@
 
 
 
+#include "rundeck_opts.h"
 module RunTimeControls_mod
 !@sum This module contains a set of Fortran logicals that correspondend
 !@+ to CPP conditionals in a 1-1 fashion.   Fortran logicals are preferable,
@@ -875,6 +876,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_aerosols_koch = .false.
 #endif
 
+#if defined(TRACERS_AEROSOLS_OCEAN)
+  logical, parameter :: tracers_aerosols_ocean = .true.
+#else
+  logical, parameter :: tracers_aerosols_ocean = .false.
+#endif
+
 #if defined(TRACERS_AEROSOLS_SOA)
   logical, parameter :: tracers_aerosols_soa = .true.
 #else
@@ -891,6 +898,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_age_ocean = .true.
 #else
   logical, parameter :: tracers_age_ocean = .false.
+#endif
+
+#if defined(TRACERS_AIR)
+  logical, parameter :: tracers_air = .true.
+#else
+  logical, parameter :: tracers_air = .false.
 #endif
 
 #if defined(TRACERS_AMP)
@@ -1107,6 +1120,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_terp = .true.
 #else
   logical, parameter :: tracers_terp = .false.
+#endif
+
+#if defined(TRACERS_TOMAS)
+  logical, parameter :: tracers_tomas = .true.
+#else
+  logical, parameter :: tracers_tomas = .false.
 #endif
 
 #if defined(TRACERS_WATER)

@@ -464,6 +464,14 @@ MODULE dist_grid_mod
 
      distGrid % private%PERIODICBC = isPeriodic(bc_periodic)
 
+     ! assumption: decomposition along "east-west" direction
+     ! not used for lat-lon grids
+     if(distGrid % private%PERIODICBC) then
+        distGrid%private%hasSouthPole = .false.
+        distGrid%private%hasNorthPole = .false.
+        distGrid%private%hasEquator    = .false.
+     endif
+
      ! set lookup table PET(J)
      Allocate(distGrid%private%lookup_pet(1:JM))
      distGrid%private%lookup_pet(:) = 0

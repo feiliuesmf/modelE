@@ -5,7 +5,7 @@
 !@auth Greg Hartke/Ye Cheng
       USE RESOLUTION, only : im,jm,lm
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm => NTM
 #endif
       USE SOCPBL, only : npbl=>n
       IMPLICIT NONE

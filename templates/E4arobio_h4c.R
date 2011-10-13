@@ -44,6 +44,7 @@ ALLOC_DRV                           ! allocate global distributed arrays
 #include "modelE4_source_files"
 #include "hycom_source_files"
 #include "ocarbon_cycle_oH_files"   
+#include "tracer_shared_source_files"
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */

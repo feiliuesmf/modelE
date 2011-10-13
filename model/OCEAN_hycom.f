@@ -71,8 +71,7 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       call obio_forc_init
 #endif
 c
-      call geopar(iniOCEAN)
-c
+
       if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
      .                                                              then
         call inikpp
@@ -1026,11 +1025,60 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call read_dist_data(grid,fid,'oiceav',oiceav)
 c certain initialization routines still work with global
 c arrays, so we have to gather
-        call gather_hycom_arrays
+        call gather_checkpointed_hycom_arrays
       end select
 
       return
       end subroutine new_io_ocean
+
+      subroutine gather_checkpointed_hycom_arrays
+      ! TODO: see which global-domain arrays are
+      ! really needed in non-parallelized init routines
+      use hycom_arrays_glob
+      use hycom_arrays_glob_renamer
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+      call pack_data( ogrid,  u_loc, u )
+      call pack_data( ogrid,  v_loc, v )
+      call pack_data( ogrid,  dp_loc, dp )
+      call pack_data( ogrid,  temp_loc, temp )
+      call pack_data( ogrid,  saln_loc, saln )
+      call pack_data( ogrid,  th3d_loc, th3d )
+      call pack_data( ogrid,  ubavg_loc, ubavg )
+      call pack_data( ogrid,  vbavg_loc, vbavg )
+      call pack_data( ogrid,  pbavg_loc, pbavg )
+      call pack_data( ogrid,  pbot_loc, pbot )
+      call pack_data( ogrid,  psikk_loc, psikk )
+      call pack_data( ogrid,  thkk_loc, thkk )
+      call pack_data( ogrid,  dpmixl_loc, dpmixl )
+      call pack_data( ogrid,  uflxav_loc, uflxav )
+      call pack_data( ogrid,  vflxav_loc, vflxav )
+      call pack_data( ogrid,  diaflx_loc, diaflx )
+      call pack_data( ogrid,  tracer_loc, tracer )
+      call pack_data( ogrid,  dpinit_loc, dpinit )
+      call pack_data( ogrid,  uav_loc, uav )
+      call pack_data( ogrid,  vav_loc, vav )
+      call pack_data( ogrid,  dpuav_loc, dpuav )
+      call pack_data( ogrid,  dpvav_loc, dpvav )
+      call pack_data( ogrid,  dpav_loc, dpav )
+      call pack_data( ogrid,  temav_loc, temav )
+      call pack_data( ogrid,  salav_loc, salav )
+      call pack_data( ogrid,  th3av_loc, th3av )
+      call pack_data( ogrid,  ubavav_loc, ubavav )
+      call pack_data( ogrid,  vbavav_loc, vbavav )
+      call pack_data( ogrid,  pbavav_loc, pbavav )
+      call pack_data( ogrid,  sfhtav_loc, sfhtav )
+      call pack_data( ogrid,  eminpav_loc, eminpav )
+      call pack_data( ogrid,  surflav_loc, surflav )
+      call pack_data( ogrid,  salflav_loc, salflav )
+      call pack_data( ogrid,  brineav_loc, brineav )
+      call pack_data( ogrid,  tauxav_loc, tauxav )
+      call pack_data( ogrid,  tauyav_loc, tauyav )
+      call pack_data( ogrid,  dpmxav_loc, dpmxav )
+      call pack_data( ogrid,  oiceav_loc, oiceav )
+      return
+      end subroutine gather_checkpointed_hycom_arrays
+
 #endif /* NEW_IO */
 
 c
@@ -1140,6 +1188,8 @@ C     nothing to gather - ocean prescribed
       call alloc_obio_forc
       call alloc_obio_com
 #endif
+
+      call geopar(.true.)
 
       !!call reset_hycom_arrays
 

@@ -11,7 +11,6 @@ open(LOG,">nightlyTests.log");
     select $ofh;
 }
 
-
 # self update
 `/usr/local/other/git/1.7.3.4_GNU/libexec/git-core/git pull`;
 
@@ -26,19 +25,23 @@ $env->{"gfortran"} = getEnvironment("gfortran",$scratchDir);
 my $resolutions = {};
 $resolutions->{EC12} = "8x10";
 $resolutions->{EM20} = "4x5";
+$resolutions->{E1oM20} = "4x5";
 $resolutions->{E4F40} = "2x2.5";
 $resolutions->{E4TcadF40} = "2x2.5";
 $resolutions->{E4arobio_h4c} = "2x2.5";
 $resolutions->{E4arobio_g6c} = "2x2.5";
 $resolutions->{SCMSGPCONT} = "0"; #hack - serial only
 
-#set defaults
+# Get rundecks, compiler, level settings from file
+require 'regTest.cfg';
+# Save settings for diffreport
+saveForDiffreport();
 
-my $rundecks = ["EM20", "E4F40", "E4TcadF40",
-		"E4arobio_h4c", "E4arobio_g6c"];
-my $compilers = ["intel", "gfortran"];
+# get references to arrays:
+my $rundecks = \@decks;
+my $compilers = \@comps;
+#my $level = \@levels;
 
-my $level = "AGGRESSIVE";
 my $numProcesses = {};
 
 $numProcesses->{"0"}->{GENTLE}     = [];
@@ -68,18 +71,17 @@ foreach my $rundeck (@$rundecks) {
 # Override anything else here
 $useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
 
+# This should only be necessary if compiler==gfortran...until we make openmpi a module
+$ENV{PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/bin:".$ENV{PATH};
+$ENV{LD_LIBRARY_PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/lib:".$ENV{LD_LIBRARY_PATH};
 
 my $pool = CommandPool->new();
 
-my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* regression.o* $resultsDir/*/*;"});
+my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* *.o[0-9]* $resultsDir/*/*;"});
 my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
 $pool->add($clean);
 $pool->add($git);
-
-# This should only be necessary if compiler==gfortran
-$ENV{PATH}="/usr/local/other/gcc/4.5/bin:/usr/local/other/openMpi/gcc-4.5/bin:".$ENV{PATH};
-$ENV{LD_LIBRARY_PATH}="/usr/local/other/gcc/4.5/lib64:/usr/local/other/openMpi/gcc-4.5/lib:".$ENV{LD_LIBRARY_PATH};
 
 foreach $compiler (@$compilers) {
     $pool->add(writeModelErcFile($env->{$compiler}, $git));
@@ -94,13 +96,14 @@ foreach my $rundeck (@$rundecks) {
 	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
 
 	    $env->{$compiler}->{CONFIGURATION} = $configuration;
-
 	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
+
 	    my $copy  = createTemporaryCopy($reference, $tempDir);
 	    $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
 	    $pool->add($copy, $git);
 
 	    my $build = compileRundeck($env->{$compiler}, $tempDir);
+
 	    $pool->add($build, $copy);
 	    
 	    my $previous = $build; # for dependencies
@@ -125,6 +128,7 @@ print LOG "***************************\n\n";
 $pool->run(*LOG, true);
 
 open(REPORT,">Report");
+
 print "Completed: $pool->{notCompleted} \n";
 if ($pool->{notCompleted}) {
     print REPORT "***************************************\n";
@@ -132,14 +136,21 @@ if ($pool->{notCompleted}) {
     print REPORT "***************************************\n";
 }
 
+# Skip this section. diffreport is done by ~/diffreport.j
+goto SKIP;
+
 foreach my $rundeck (@$rundecks) { 
     foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
 
+	print LOG "Comparing resulst for rundek $rundeck and compiler $compiler.\n";
 	my $results = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
+	print LOG "  ... done\n";
+
 	print REPORT $results->{MESSAGES};
 	print LOG "ALL_COMPLETED: $results->{ALL_COMPLETED} \n";
 	print LOG "ARE_CONSISTENT: $results->{ARE_CONSISTENT} \n";
 	print LOG "RESTART_CHECK: $results->{RESTART_CHECK} \n";
+
 	if ($results->{ALL_COMPLETED} && $results->{ARE_CONSISTENT} && $results->{RESTART_CHECK}) {
 	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
 	    if ($results->{NEW_SERIAL}) {
@@ -151,9 +162,11 @@ foreach my $rundeck (@$rundecks) {
     }
 }
 
+SKIP:
+
 close REPORT;
 # Mail report to mailing list
-`mail -s "discover results" giss-modelE-regression\@lists.nasa.gov < Report`;
+##`mail -s "discover results" giss-modelE-regression\@lists.nasa.gov < Report`;
 
 print LOG "Completed nightly regression tests.\n";
 close(LOG);

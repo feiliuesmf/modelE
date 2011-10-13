@@ -26,7 +26,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
+      USE TRACER_COM, only : ntm=>NTM,itime_tr0,trm,t_qlimit  !,trmom
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only: jlnt_turb
 #endif

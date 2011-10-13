@@ -409,8 +409,8 @@ c -----------------------------------------------------------------
       Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: trpdens_local
 
-      allocate(trpdens_local(ntm))
-      do x=1,ntm
+      allocate(trpdens_local(NTM))
+      do x=1,NTM
         trpdens_local(x)=trpdens(x)
       enddo
  
@@ -439,8 +439,8 @@ c -----------------------------------------------------------------
       Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: tr_mm_local
 
-      allocate(tr_mm_local(ntm))
-      do x=1,ntm
+      allocate(tr_mm_local(NTM))
+      do x=1,NTM
         tr_mm_local(x)=tr_mm(x)
       enddo
 

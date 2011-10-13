@@ -223,7 +223,7 @@ c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
      & rsulf2(i,j,l)*ydms(i,j,l))
 
        cqqz=(2.d0*(ss(4,L,I,J)*y(n_H2O2,L))+ss(9,L,I,J)*y(n_HNO3,L)+
-     & ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
+     & 2.d0*(ss(13,L,I,J)*y(n_HCHO,L))+ss(14,L,I,J)*y(n_CH3OOH,L)+
      & (rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
      & *yCH3O2(I,J,L))
 

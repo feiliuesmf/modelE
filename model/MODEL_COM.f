@@ -147,6 +147,113 @@ C**** Accumulating_period information
 
       END MODULE MDIAG_COM
 
+      subroutine reset_mdiag
+!@sum reset info common to all diagnostics
+      use model_com, only : idacc,
+     &     itime,itime0,nday,iyear1,jyear0,jmon0,jdate0,jhour0,amon0
+      implicit none
+      integer jd0
+      idacc(1:12)=0
+      idacc(12)=1
+      itime0=itime
+      call getdte(itime0,nday,iyear1,jyear0,jmon0,jd0,
+     *     jdate0,jhour0,amon0)
+      return
+      end subroutine reset_mdiag
+
+      SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
+!@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
+!@+   if the earliest month is NOT the beginning of the 2-6 month period
+!@+   the name will reflect that fact ONLY for 2 or 3-month periods
+!@auth Reto A. Ruedy
+      USE MODEL_COM, only : AMONTH
+      implicit none
+!@var JMON1,JYR1 month,year of beginning of period 1
+      INTEGER JMON1,JYR1
+!@var JMONM,JMONL middle,last month of period
+      INTEGER JMONM,JMONL
+!@var months,years length of 1 period,number of periods
+      INTEGER months,years
+!@var moff = # of months from beginning of period to JMON1 if months<12
+      integer moff
+!@var yr1,yr2 (end)year of 1st and last period
+      INTEGER yr1,yr2
+!@var aDATE date string: MONyyr1(-yyr2)
+      character*12 aDATE
+!@var LDATE length of date string (7 or 12)
+      INTEGER LDATE
+
+      LDATE = 7                  ! if years=1
+      if(years.gt.1) LDATE = 12
+
+      aDATE(1:12)=' '
+      aDATE(1:3)=AMONTH(JMON1)        ! letters 1-3 of month IF months=1
+      yr1=JYR1
+      JMONL=JMON1+months-1
+      if(JMONL.GT.12) then
+         yr1=yr1+1
+         JMONL=JMONL-12
+      end if
+      if (moff.gt.0.and.months.le.3) then  ! earliest month is NOT month
+        JMONL = 1 + mod(10+jmon1,12)       ! 1 of the 2-3 month period
+        yr1=JYR1
+        if (jmon1.gt.1) yr1=yr1+1
+      end if
+      yr2=yr1+years-1
+      write(aDATE(4:7),'(i4.4)') yr1
+      if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
+
+      if(months.gt.12) aDATE(1:1)='x'                ! should not happen
+      if(months.le.1 .or. months.gt.12) return
+
+!**** 1<months<13: adjust characters 1-3 of aDATE (=beg) if necessary:
+!**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
+!****    =F+L                                        for 2 month periods
+!****    =FML where M=letter 1 of Middle month       for 3 month periods
+!****    =FnL where n=length of period if n>3         4-11 month periods
+      aDATE(3:3)=AMONTH(JMONL)(1:1)            ! we know: months>1
+      IF (months.eq.2) then
+        aDATE(2:2)='+'
+        return
+      end if
+      if (months.eq.3) then
+        JMONM = JMONL-1
+        if (moff.eq.1) jmonm = jmon1+1
+        if (jmonm.gt.12) jmonm = jmonm-12
+        if (jmonm.le.0 ) jmonm = jmonm+12
+        aDATE(2:2)=AMONTH(JMONM)(1:1)
+        return
+      end if
+      if (moff.gt.0) then  ! can't tell non-consec. from consec. periods
+        jmon1 = jmon1-moff
+        if (jmon1.le.0) jmon1 = jmon1+12
+        JMONL=JMON1+months-1
+        if (jmonl.gt.12) jmonl = jmonl-12
+        aDATE(1:1)=AMONTH(JMON1)(1:1)
+        aDATE(3:3)=AMONTH(JMONL)(1:1)
+      end if
+      IF (months.ge.4.and.months.le.9) write (aDATE(2:2),'(I1)') months
+      IF (months.eq.10) aDATE(2:2)='X'         ! roman 10
+      IF (months.eq.11) aDATE(2:2)='B'         ! hex   11
+      IF (months.eq.6) THEN                    !    exceptions:
+         IF (JMON1.eq. 5) aDATE(1:3)='NHW'     ! NH warm season May-Oct
+         IF (JMON1.eq.11) aDATE(1:3)='NHC'     ! NH cold season Nov-Apr
+      END IF
+      IF (months.eq.7) THEN                    !    to avoid ambiguity:
+         IF (JMON1.eq. 1) aDATE(1:3)='J7L'     ! Jan-Jul J7J->J7L
+         IF (JMON1.eq. 7) aDATE(1:3)='L7J'     ! Jul-Jan J7J->L7J
+      END IF
+      IF (months.eq.12) THEN
+C****    beg=ANn where the period ends with month n if n<10 (except 4)
+         aDATE(1:3)='ANN'                      ! regular annual mean
+         IF (JMONL.le. 9) WRITE(aDATE(3:3),'(I1)') JMONL
+         IF (JMONL.eq. 4) aDATE(1:3)='W+C'     ! NH warm+cold seasons
+         IF (JMONL.eq.10) aDATE(1:3)='C+W'     ! NH cold+warm seasons
+         IF (JMONL.eq.11) aDATE(1:3)='ANM'     ! meteor. annual mean
+      END IF
+      return
+      end SUBROUTINE aPERIOD
+
       MODULE TIMINGS
 !@sum  TIMINGS contains variables for keeping track of computing time
 !@auth Gavin Schmidt

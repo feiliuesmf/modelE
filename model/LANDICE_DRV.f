@@ -1012,7 +1012,7 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm, trname
+      USE TRACER_COM, only : NTM, trname
 #endif
       USE LANDICE, only : ace1li, ace2li
       USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp

@@ -4,4 +4,4 @@
 
     ! start from observed conditions AIC(,OIC), model ground data GIC   ISTART=2
 AIC=AIC.RES_C12.D771201      ! observed init cond (atm. only)
-GIC=GIC.8X10.modelE.1        ! initial ground conditions
+GIC=GIC.8X10.modelE.1.nc        ! initial ground conditions

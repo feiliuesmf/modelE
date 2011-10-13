@@ -33,7 +33,7 @@ PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
+LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN_hycom|$(R8)|                                                 !ocean model
  hycom|$(R8)| advfct|$(R8)|    ape|$(R8)| archyb|$(R8)| barotp|$(R8)|      !ocean model

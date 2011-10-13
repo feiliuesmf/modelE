@@ -30,7 +30,7 @@ ATURB                               ! turbulence in whole atmosphere
 ! DRYCNV                            ! drycnv
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
-LANDICE LANDICE_DRV                 ! land ice modules
+LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 OCEAN OCNML                         ! ocean modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 SNOW_DRV SNOW                       ! snow model
