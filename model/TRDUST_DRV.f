@@ -87,8 +87,6 @@ c**** initialize dust names
         n1=n_soilDust+n-1
         dust_names(n) = trname(n1)
       end do
-#endif
-#endif
 
 c**** insert to_conc_soildust into to_conc
 
@@ -97,6 +95,8 @@ c**** insert to_conc_soildust into to_conc
         call sync_param( 'to_conc_soildust', to_conc_soildust )
         to_conc( n_soilDust:n_soilDust+ntm_dust-1 ) = to_conc_soildust
       end if
+#endif
+#endif
 
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
       return
