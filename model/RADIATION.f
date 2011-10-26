@@ -1020,7 +1020,7 @@ C----------------
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
       REAL*8 :: chem_IN(2,LX)
-      INTEGER :: use_tracer_chem(2),use_o3_ref
+      INTEGER :: use_tracer_chem(2),use_o3_ref=0
       LOGICAL*4 :: flags
 !@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
