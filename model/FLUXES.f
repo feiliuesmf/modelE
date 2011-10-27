@@ -1,5 +1,17 @@
 #include "rundeck_opts.h"
 
+
+	  !@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
+	  module itype_enum
+	  	integer, parameter :: ITYPE_MIN = 1
+	  	integer, parameter :: ITYPE_OCEAN = 1
+	  	integer, parameter :: ITYPE_OCEANICE = 2
+	  	integer, parameter :: ITYPE_LANDICE = 3
+	  	integer, parameter :: ITYPE_LAND = 4
+	  	integer, parameter :: ITYPE_MAX = 4
+	  end module itype_enum
+
+
       MODULE EXCHANGE_TYPES ! todo: move to another file.
       use dist_grid_mod, only : dist_grid
 #ifdef CUBED_SPHERE
@@ -763,7 +775,9 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       IMPLICIT NONE
 
 !@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
-      INTEGER :: NIsurf = 2
+!      INTEGER :: NIsurf = 2
+!@dbparam Set to 1 to test SURFACE_LANDICE.f against control
+      INTEGER :: NIsurf = 1
 
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAND
