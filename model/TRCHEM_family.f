@@ -203,7 +203,7 @@ c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
 c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
 
-       aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
+       aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 
        bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
@@ -222,13 +222,13 @@ c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
      & +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
      & rsulf2(i,j,l)*ydms(i,j,l))
 
-       cqqz=(2.d0*ss(4,L,I,J)*y(n_H2O2,L)+ss(9,L,I,J)*y(n_HNO3,L)+
-     & 2.d0*ss(13,L,I,J)*y(n_HCHO,L)+ss(14,L,I,J)*y(n_CH3OOH,L)+
-     & (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
+       cqqz=(2.d0*(ss(4,L,I,J)*y(n_H2O2,L))+ss(9,L,I,J)*y(n_HNO3,L)+
+     & 2.d0*(ss(13,L,I,J)*y(n_HCHO,L))+ss(14,L,I,J)*y(n_CH3OOH,L)+
+     & (rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
      & *yCH3O2(I,J,L))
 
        cqqz=cqqz+
-     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ((2.d0*(rr(10,L)*y(nH2O,L))+rr(11,L)*y(n_CH4,L))*
      & ss(2,L,I,J)*y(nO3,L))/
      & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
@@ -260,7 +260,7 @@ c Now partition HOx into OH and HO2:
 
        ! DZ: HO2->OH reactions :
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     & +rr(41,L)*0.79d0*y(nC2O3,L)
+     & +rr(41,L)*(0.79d0*y(nC2O3,L))
 
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.

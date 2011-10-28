@@ -1315,9 +1315,9 @@ C -- apinp2g --  (apinp2g from gas phase rxns)
 c -- Isoprene -- (Isoprene from gas phase rxns)
         changeL(L,n_Isoprene)=
      &  changeIsoprene*pfactor*vol2mass(n_Isoprene)
-        IF((trm(i,j,l,n_Isoprene)+changeL(l,n_Isoprene)) < 1.d0)
+        IF((trm(i,j,l,n_Isoprene)+changeL(l,n_Isoprene)) < 0.d0)
      &  THEN
-          changeL(l,n_Isoprene) = 1.d0 - trm(i,j,l,n_Isoprene)
+          changeL(l,n_Isoprene) = 0.d0 - trm(i,j,l,n_Isoprene)
           changeIsoprene=changeL(L,n_Isoprene)*mass2vol(n_Isoprene)
      &    *bypfactor
         END IF

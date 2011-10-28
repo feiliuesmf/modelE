@@ -2629,7 +2629,8 @@ c daily_z is currently only needed for CS
       if(str(1:n1-1) /= 'res')error=7
       read(str(n1+1:n1+1),*)res(n,ns)
 #ifndef CUBED_SPHERE
-      if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
+      if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F' .and.
+     & res(n,ns) /= 'C') error=8
 #endif
 
       n1 = scan( str, ' ')

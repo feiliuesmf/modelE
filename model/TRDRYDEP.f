@@ -88,7 +88,13 @@ C*********************************************************************
 ! to the 11 dry-deposition types in drydep.table
      &                      NTYPE   = 21,
 #else
+#ifdef ALLOW_MORE_DRYDEP_NTYPE
+! The same thing seemed to happen when we regridded to 8x10 lat lon files,
+! so allowing optional larger number here:
+     &                      NTYPE   = 21,
+#else
      &                      NTYPE   = 16,
+#endif
 #endif
      &                      NVEGTYPE= 74
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: XYLAI,XLAI,XLAI2
@@ -893,6 +899,8 @@ c***  Read VEGTYPEt2b.f for documentation about the binary format
             do K=1,NVEGTYPE
                if (FUSE_loc(I,J,K) .gt. 5.d-4) then
                    regcount=regcount+1
+                   if(regcount > NTYPE)call stop_model
+     &             ('drydep regcount > NTYPE',13)
                    ILAND(I,J,regcount)=K-1
                    IUSE(I,J,regcount)=
      &                  NINT(1000.*FUSE_loc(I,J,K))

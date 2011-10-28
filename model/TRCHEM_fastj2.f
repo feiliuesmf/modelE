@@ -1106,7 +1106,7 @@ c Accumulate attenuation for selected levels:
  1000 format(1x,i3,3(2x,1pe10.4),1x,i3)
  1300 format(1x,50(i3))
  1500 format(' Too many levels in photolysis code: need ',i5,' but ',a,
-     $       ' dimensioned as ',i3)
+     $       ' dimensioned as ',i4)
       END SUBROUTINE OPMIE      
 
 

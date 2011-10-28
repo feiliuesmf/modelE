@@ -26,7 +26,7 @@
 !     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM
-      USE AEROSOL_SOURCES, only: NH3_src_con, NH3_src_cyc,off_HNO3,off_SS
+      USE AEROSOL_SOURCES, only: off_HNO3, off_SS
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)
@@ -65,6 +65,7 @@
       REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
       REAL(8) :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
+      REAL(8) :: TOT_SALT  ! total salt(sol+insol) [ug/m^3]
       REAL(8) :: TK        ! absolute temperature  [K]          
       REAL(8) :: RH        ! relative humidity     [0-1]
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
@@ -138,7 +139,7 @@ c avol [m3/gb] mass of air pro m3
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm(i,j,l,n_NH3) *1.d9 /AVOL
       ANH4 = trm(i,j,l,n_NH4) *1.d9 /AVOL
-      ASO4 = trm(i,j,l,n_SO4) *1.d9 /AVOL
+      ASO4 = (trm(i,j,l,n_SO4)+trm(i,j,l,n_SO4_d1)+trm(i,j,l,n_SO4_d2)+trm(i,j,l,n_SO4_d3)) *1.d9 /AVOL
       ANO3 = trm(i,j,l,n_NO3p)*1.d9 /AVOL
 #ifdef  TRACERS_SPECIAL_Shindell
       GHNO3= trm(i,j,l,n_HNO3) *1.d9 /AVOL
@@ -150,6 +151,8 @@ c avol [m3/gb] mass of air pro m3
       TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
      *           *1.d9 /AVOL
 #endif
+      TOT_SALT  =(trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))
+     *           *1.d9 /AVOL
 
 
 ! Mass balance check:
@@ -166,7 +169,7 @@ c avol [m3/gb] mass of air pro m3
       YI(1,4)  =                   ASO4*RMW_ASO4  ! from [ug/m^3] to [umol/m^3]
       YI(1,5)  = GHNO3*RMW_GHNO3 + ANO3*RMW_ANO3  ! from [ug/m^3] to [umol/m^3]
       YI(1,6)  = TOT_DUST*CONV_NAION              ! from [ug dust/m^3] to [umol Na+/m^3]
-      YI(1,7)  = 0.0                              ! (HCl + Cl-)
+      YI(1,7)  = TOT_SALT*CONV_NAION              ! (HCl + Cl-)
       YI(1,8)  = TOT_DUST*CONV_KION               ! from [ug dust/m^3] to [umol K+ /m^3]
       YI(1,9)  = TOT_DUST*CONV_CAION              ! from [ug dust/m^3] to [umol Ca+/m^3]
       YI(1,10) = TOT_DUST*CONV_MGION              ! from [ug dust/m^3] to [umol Mg+/m^3]
@@ -233,7 +236,7 @@ c avol [m3/gb] mass of air pro m3
 ! 
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM
-      USE AEROSOL_SOURCES, only: NH3_src_con, NH3_src_cyc,off_HNO3,off_SS
+      USE AEROSOL_SOURCES, only: off_HNO3,off_SS
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)
@@ -386,7 +389,7 @@ c      MASS_1_NH4 = ANH4 + GNH3
       AERSLD(:) = 0.0D+00
       OTHER(:)  = 0.0D+00
 
-      CALL ISOROPIA ( WI, H, TK, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
+!      CALL ISOROPIA ( WI, H, TK, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
       GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       GHNO3 = MAX( GAS(2)*CMW_GHNO3, 0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
