@@ -24,7 +24,7 @@ cat > driver.f << EOF
       character(len=80) :: ifile,argstr
       character(len=160) :: progargs
       integer :: iarg,nargs
-      integer, external :: iargc
+      !integer, external :: iargc
       nargs = iargc()
       call getarg(1,ifile)
       progargs=''
@@ -73,7 +73,7 @@ cat > driver.f << EOF
       character(len=200) :: ifile,remap_file
       character(len=80) :: accname
       integer :: i1,i2,nargs
-      integer, external :: iargc
+      !integer, external :: iargc
       nargs = iargc()
       if(nargs.ne.2 .and. nargs.ne.3) then
          write(6,*)
@@ -83,9 +83,10 @@ cat > driver.f << EOF
       call getarg(1,ifile)
       call getarg(2,accname)
       i1 = index(ifile,'.acc')
+      if(i1.eq.0) i1 = index(ifile,'.subdd')
       i2 = index(ifile,'.nc')
       if(i1.eq.0 .or. i1.gt.i2) then
-        stop 'expecting acc-file name of the form *.acc*.nc'
+        stop 'expecting filename of the form *.acc*.nc or *.subdd*.nc'
       endif
       status = nf_open(trim(ifile),nf_nowrite,ifids(1))
       if(status.ne.nf_noerr) then
