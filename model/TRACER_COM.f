@@ -656,7 +656,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      *    4 ,5 ,          !SSS
      *    5 ,5 ,5, 6, 6,  !OCC,BC1
      *    6, 7, 7, 7, 8,  !BC1,BC2
-     *    8,8,8,8,8,/)    !MXX
+     *    8,8,8,8,8/)    !MXX
       integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/
      *    0 ,0 ,0 ,       !
      *    0 ,1 ,0 ,0 ,2,  !ACC,DD1
@@ -665,7 +665,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      *    0 ,0 ,          !SSS
      *    0 ,0 ,5, 0, 0,  !OCC,BC1
      *    6, 0, 0, 7, 0,  !BC1,BC2
-     *    0,0,0,0,8,/)    !MXX
+     *    0,0,0,0,8/)    !MXX
       integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/
      *    1 ,2 ,3 ,4 ,5 ,        
      *    6 ,7 ,8 ,9 ,10,        

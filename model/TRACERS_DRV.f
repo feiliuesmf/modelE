@@ -28,6 +28,9 @@
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       logical :: Qf
       integer n,k,g,kk
+#endif
+
+#ifdef TRACERS_ON
 
 C**** To add a new conservation diagnostic:
 C****       Set up a QCON, and call SET_TCON to allocate array numbers,
@@ -54,22 +57,32 @@ c      qsum(itcon_ss(n)) = .false.
       Qf = .true.   ! SLP filter on
 #endif
 
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       QCON=(/ t,                                           !instant.
      *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
      *      , F,  F,  F
-#endif
      *      /)
       QSUM=(/ f,                                           !instant.
      *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
      *      , F,  F,  F
-#endif
      *      /)
+
+#else
+      QCON=(/ t,                                           !instant.
+     *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
+     *      /)
+      QSUM=(/ f,                                           !instant.
+     *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F        !21-ktcon-1
+     *      /)
+#endif
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -1155,7 +1168,8 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
      &   ,imDust
 #endif
 #ifdef TRACERS_DUST
-     &   ,nDustEm2jl
+      USE tracers_dust,only:
+     &   nDustEm2jl
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
@@ -2807,14 +2821,17 @@ c Oxidants
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_DUST
+      USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
+     &   ,imDust
+     &   ,nDustEm2ij
+#else
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
      &   ,imDust
 #endif
-#ifdef TRACERS_DUST
-     &   ,nDustEm2ij
 #endif
+
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
@@ -4868,8 +4885,8 @@ c dust optical thickness of four clay sub size classes
               k = k + 1
               ijts_tausub(1,n,kr) = k
               ia_ijts(k) = ia_rad
-              lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *             /' optical thickness'
+              lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *             ' optical thickness'
               sname_ijts(k) = 'tau_'//trim(trname(n))//char(48+kr)
               ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
@@ -4881,8 +4898,8 @@ c dust clear sky optical thickness of four clay sub size classes
               k = k + 1
               ijts_tausub(2,n,kr) = k
               ia_ijts(k) = ia_rad
-              lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *             /' CS optical thickness'
+              lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *             ' CS optical thickness'
               sname_ijts(k) = 'tau_CS_'//trim(trname(n))//char(48+kr)
               dname_ijts(k) = 'clrsky'
               ijts_power(k) = -2
@@ -5003,8 +5020,8 @@ c dust shortwave radiative forcing of four clay sub size classes
             k = k + 1
             ijts_fcsub(1,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' SW radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' SW radiative forcing'
             sname_ijts(k) = 'swf_'//trim(trname(n))//char(48+kr)
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5016,8 +5033,8 @@ c dust longwave radiative forcing of four clay sub size classes
             k = k + 1
             ijts_fcsub(2,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' LW radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' LW radiative forcing'
             sname_ijts(k) = 'lwf_'//trim(trname(n))//char(48+kr)
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5029,8 +5046,8 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
             k = k + 1
             ijts_fcsub(3,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' SW Surf radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' SW Surf radiative forcing'
             sname_ijts(k) = 'swf_surf_'//trim(trname(n))//char(48+kr)
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5042,8 +5059,8 @@ c dust longwave radiative forcing at surface of four sub size classes
             k = k + 1
             ijts_fcsub(4,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' LW Surf radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' LW Surf radiative forcing'
             sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//char(48+kr)
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -5055,8 +5072,8 @@ c dust clear sky shortwave radiative forcing of four clay sub size classes
             k = k + 1
             ijts_fcsub(5,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' clr sky SW radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' clr sky SW radiative forcing'
             sname_ijts(k) = 'swf_CS_'//trim(trname(n))//char(48+kr)
             dname_ijts(k) = 'clrsky'
             ijts_power(k) = -2
@@ -5069,8 +5086,8 @@ c dust clear sky longwave radiative forcing of four clay sub size classes
             k = k + 1
             ijts_fcsub(6,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' clr sky LW radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr) //
+     *           ' clr sky LW radiative forcing'
             sname_ijts(k) = 'lwf_CS_'//trim(trname(n))//char(48+kr)
             dname_ijts(k) = 'clrsky'
             ijts_power(k) = -2
@@ -5083,8 +5100,8 @@ c dust clear sky shortwave radiative forcing at surface of four clay sub size cl
             k = k + 1
             ijts_fcsub(7,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' clr sky SW Surf radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' clr sky SW Surf radiative forcing'
             sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))//char(48+kr)
             dname_ijts(k) = 'clrsky'
             ijts_power(k) = -2
@@ -5097,8 +5114,8 @@ c dust clear sky longwave radiative forcing at surface of four sub size classes
             k = k + 1
             ijts_fcsub(8,n,kr) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trim(trname(n))//char(48+kr)/
-     *           /' clr sky LW Surf radiative forcing'
+            lname_ijts(k) = trim(trname(n))//char(48+kr)//
+     *           ' clr sky LW Surf radiative forcing'
             sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))//char(48+kr)
             dname_ijts(k) = 'clrsky'
             ijts_power(k) = -2
@@ -6455,13 +6472,16 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *     tr_mm,rnsrc,vol2mass,trsi0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-     *     ,n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
+      USE TRACER_COM, only:
+     *     n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
-     *     ,n_ASO4,n_AOCOB,IDTSO4,IDTNUMD,xk,nbins
+      USE TRACER_COM, only:
+     *     n_ASO4,n_AOCOB,IDTSO4,IDTNUMD,xk,nbins
 #endif
 #endif
 #ifdef TRACERS_WATER
-     *     ,trwm,trw0,tr_wd_type,nWATER,n_HDO,n_H2O18
+      USE TRACER_COM,only:
+     *     trwm,trw0,tr_wd_type,nWATER,n_HDO,n_H2O18
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trsnowli,trlndi,snowli
       USE SEAICE_COM, only : si_atm,si_ocn
@@ -6481,7 +6501,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-     &  ,stratO3_tracer_save
+      USE RAD_COM, only:
+     &  stratO3_tracer_save
 #endif
       USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
@@ -6500,10 +6521,12 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       USE AEROSOL_SOURCES, only: DMSinput,
-     * om2oc,
+     * om2oc
 #ifndef TRACERS_AEROSOLS_SOA
-     * OCT_src,n_OCII,
+      USE AEROSOL_SOURCES, only:
+     * OCT_src,n_OCII
 #endif  /* TRACERS_AEROSOLS_SOA */
+      USE AEROSOL_SOURCES, only:
      * DMS_AER,SS1_AER,SS2_AER,
      * SO2_src_3D
 #endif
@@ -6531,6 +6554,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE RADPAR, only : xnow
 #endif
       use OldTracer_mod, only: trli0
+#endif /* TRACERS_ON */
+
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -6540,6 +6565,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       REAL*8 :: trinit =1., tmominit=0.
       real*8 tracerTs
 
+#ifdef TRACERS_ON
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                CO2ic,ic14CO2
@@ -6607,7 +6633,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: initial_GHG_setup
+#endif /* TRACERS_ON */
 
+#ifdef TRACERS_ON
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -7374,13 +7402,10 @@ C**** Initialise pbl profile if necessary
           if(tr_wd_type(n).eq.nWATER)THEN
             trabl(ipbl,n,it,:,j) = trinit*qabl(ipbl,it,:,j)
           ELSE
-#endif
             trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
-
-
-#ifdef TRACERS_WATER
           END IF
 #endif
+            trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
         end do
         end do
         end do
@@ -7515,10 +7540,14 @@ c units are mg Terpene/m2/month
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
 #ifndef TRACERS_TOMAS
 #ifdef TRACERS_AMP
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
      +                  *om2oc(n_M_OCC_OC)
 #else
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
      +                  *om2oc(n_OCII)
 #endif
+#else
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
 #endif
       end do; end do; end do
 #endif
@@ -7792,7 +7821,13 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 !!!     &        ) then
 #ifdef TRACERS_SPECIAL_Shindell
             if (n>ntm_chem) then
-#endif
+              if(aer_int_yr > 0) then
+                xyear=aer_int_yr
+              else
+                xyear=jyear
+              endif
+            end if
+#else
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
               if(aer_int_yr > 0) then
@@ -7801,8 +7836,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
                 xyear=jyear
               endif
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-            endif
 #endif
 !!!#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
 
@@ -8006,10 +8039,10 @@ C**** at the start of any day
     (defined TRACERS_TOMAS)
       USE AEROSOL_SOURCES, only: BBinc,om2oc
 #ifndef TRACERS_AEROSOLS_SOA
-     * ,OCT_src
+      USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_VBS
-     * ,VBSemifact
+      USE AEROSOL_SOURCES, only: VBSemifact
       use TRACERS_VBS, only: vbs_tr
 #endif
 #endif
@@ -8754,7 +8787,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
     (defined TRACERS_TOMAS)
       USE AEROSOL_SOURCES, only: so2_src_3d,BBinc,om2oc
 #ifdef TRACERS_AEROSOLS_VBS
-     &     ,VBSemifact
+      USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
 #endif
@@ -9476,10 +9509,12 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
      *     ,trname,NTM,lm,t_qlimit,fq_aer,trpdens
 #ifdef TRACERS_SPECIAL_O18
-     &     ,supsatfac
+      USE TRACER_COM, only:
+     &     supsatfac
 #endif
 #ifdef TRACERS_HETCHEM
-     *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
+      USE TRACER_COM, only:
+     *     trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p
       USE MODEL_COM, only  : dtsrc
 #endif
@@ -9715,15 +9750,15 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
      *     ,trname,NTM,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
-     &     ,supsatfac
+      USE TRACER_COM, only: supsatfac
 #endif
 #ifdef TRACERS_TOMAS
-     &     ,NBS,NBINS
+      USE TRACER_COM, only: NBS,NBINS
      &     ,IDTNUMD,IDTSO4,IDTNA,IDTECIL,IDTECOB
      &     ,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O
 #endif
 #ifdef TRACERS_HETCHEM
-     *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
+      USE TRACER_COM, only: trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p, n_Clay,n_Silt1,n_Silt2
       USE MODEL_COM, only  : dtsrc
 #endif
@@ -10141,7 +10176,8 @@ c     USE PBLCOM, only: wsavg
 ! NB: these lists are often used for implicit loops
      &     gases_list,aero_list,water_list,hlawt_list
 #ifdef TRACERS_TOMAS 
-     &     ,NBS,NBINS,IDTNUMD,IDTSO4,IDTNA,xk
+      USE TRACER_COM, only :
+     &     NBS,NBINS,IDTNUMD,IDTSO4,IDTNA,xk
      &    ,IDTOCOB,IDTECIL,IDTECOB,IDTOCIL,IDTDUST,IDTH2O
      &     ,non_aerosol
       use OldTracer_mod, only: set_rc_washt
@@ -10422,7 +10458,7 @@ C**** no fractionation for ice evap
 #endif
       INTEGER J_0, J_1, I_0, I_1
       real*8 ppres,te,tt,mm,dmm,rk4,ek4,f
-CGreg: certain things now done outside the loops for speed:
+C Greg: certain things now done outside the loops for speed:
       real*8, parameter ::  a= 73.41463d20, ! 6.02d20/.082d0
      *     aa=1.d-20,
      *     b= 0.357d-22,         ! 1.7d-22*0.21d0*1.d-20/aa

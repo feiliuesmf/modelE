@@ -259,6 +259,7 @@ c**** Read input: source function data
      &       ,dustSourceFunction)
         CALL closeunit(io_data)
 
+        ires = 1 ! default
 c**** set parameters depending on the preferred sources chosen
         select case(prefDustSources)
         case(0)                 ! Ginoux 2001 sources w/ vegetation mask
