@@ -972,7 +972,13 @@ c Reinitialize level arrays:
           write(out_line,1500)
      &    jaddto(NCFASTJ2)+NCFASTJ2,'NLFASTJ',NLFASTJ
           call write_parallel(trim(out_line),crit=.true.)
-          call stop_model('problem in fastj2 with jaddto',255)
+          call stop_model('problem in fastj2 with jaddto; This may
+     &    reflect issues with the optical depth of a tracer or 
+     &    clouds being unreasonable. Please check!!
+     &    If in 1997 (very anomalous fire year), it is OK to 
+     &    increase NLFASTJ to 1200 in TRCHEM_Shindell_COM.
+     &    But for other years, please check
+     &    for possible issues.',255)
         endif
         jndlev(:)=jndlev(:)+jaddto(jndlev(:)-1) ! LM
         jaddto(NCFASTJ2)=jaddlv(NCFASTJ2)
@@ -1068,7 +1074,13 @@ C---Update total number of levels and check does not exceed N__
         if(nd > N__) then
           write(out_line,1500) ND, 'N__',N__
           call write_parallel(trim(out_line),crit=.true.)
-          call stop_model('problem in fastj2 with ND',255)
+          call stop_model('problem in fastj2 with ND; This may
+     &    reflect issues with the optical depth of a tracer or 
+     &    clouds being unreasonable. Please check!!
+     &    If in 1997 (very anomalous fire year), it is OK to 
+     &    increase N__ to 3000 in TRCHEM_Shindell_COM.
+     &    But for other years, please check
+     &    for possible issues.',255)
         endif
 
 C---Add boundary/ground layer to ensure no negative Js caused by
