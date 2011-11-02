@@ -1783,7 +1783,7 @@ C**** Accumulate 3D subdaily quantities
       call flammability_drv
 #endif
 
-            atmice%e1(:,:) = e1(:,:,2)  ! This is wrong at i=22, j=11
+      atmice%e1(:,:) = e1(:,:,2)
       atmgla%e1(:,:) = e1(:,:,3)
 
 C**** APPLY SURFACE FLUXES TO LAND ICE
