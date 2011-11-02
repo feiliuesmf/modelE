@@ -13,9 +13,22 @@ contains
 !**** Each tracer has a variable name and a unique index
 !**** The chemistry species need to be declared first, until the
 !**** do igas=1,ntm_chem instances get corrected.
+
+  subroutine printTracerNames(tracerNames)
+    character(len=MAXLEN_TRACER_NAME), allocatable :: tracerNames(:)
+    integer :: ntm       ! # of tracers
+    integer :: i
+
+    NTM = size(tracerNames)
+    do i=1,NTM
+        write(6,*) 'TRACER',i,trim(tracerNames(i))
+    end do
+  end subroutine printTracerNames
+    
  
 !TODO in F2003 this should be a function
   subroutine getTracerNames(tracerNames)  
+
 !TODO use "ONLY" clause to specify which controls are used.
     use RunTimeControls_mod
     character(len=MAXLEN_TRACER_NAME), allocatable :: tracerNames(:)
@@ -76,6 +89,9 @@ contains
     if (tracers_amp) call appendAMP_tracers()
 
     if (tracers_tomas) call appendTomasTracers()
+
+    ! Print it all out so we can see what's what!
+    call printTracerNames(tracerNames)
 
   contains
 
