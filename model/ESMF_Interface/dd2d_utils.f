@@ -262,6 +262,7 @@ c public interfaces
       public :: pack_row,unpack_row
       public :: halo_update
       public :: globalsum
+      public :: isInLocalSubdomain
 
 c
 c pack/unpack interfaces
@@ -1038,6 +1039,19 @@ c on the diagonal
       end subroutine traverse_square_ccw
 
 #endif /* not SERIAL_MODE */
+
+! ----------------------------------------------------------------------
+      logical function isInLocalSubdomain(distGrid, i, j)
+! ----------------------------------------------------------------------
+        type (DIST_GRID), intent(in) :: distGrid
+        integer, intent(in) :: i
+        integer, intent(in) :: j
+
+        isInLocalSubdomain = 
+     &       (i >= distGrid%i_strt .and. i <= distGrid%i_stop) .and.
+     &       (j >= distGrid%j_strt .and. j <= distGrid%j_stop)
+
+      end function isInLocalSubdomain
 
       end module dd2d_utils
 

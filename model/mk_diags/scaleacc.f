@@ -25,7 +25,8 @@ c
       real*4, dimension(:), allocatable :: xout_hemis,xden_hemis
       real*4, dimension(:), allocatable :: xout_vmean,xden_vmean
       integer :: idacc(12)
-      integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim
+      integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim,
+     &     kk
       integer, dimension(7) :: srt,cnt,dimids,
      &     accsizes,shpout,hemi_sizes,vmean_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
@@ -210,8 +211,17 @@ c
 c Define the output file
 c
       k = index(accfile,'.acc')
+      kk = index(accfile,'.subdd')
+      if(k.gt.0) then
+        kk = k+4
+      elseif(kk.gt.0) then
+        k = kk
+        kk = kk+6
+      else
+        stop 'expecting *.acc*nc or *.subdd*.nc input file'
+      endif
       ofile_base = accfile(1:k)//trim(dcat)//
-     &     accfile(k+4:index(accfile,'.nc')-1)
+     &     accfile(kk:index(accfile,'.nc')-1)
       k = index(ofile_base,'/',back=.true.)
       if(k.gt.0) ofile_base=ofile_base(k+1:len(ofile_base))
       call parse_cdl(fid,dcat_cdl,ofile_base,xlabel,fromto,

@@ -189,6 +189,7 @@ MODULE dist_grid_mod
 #endif
 
    public :: haveLatitude
+   public :: isinLocalSubdomain
 
 ! Remaining variables are private to the module.
 
@@ -2057,12 +2058,25 @@ MODULE dist_grid_mod
 ! ----------------------------------------------------------------------
       logical function haveLatitude(distGrid, j)
 ! ----------------------------------------------------------------------
-      type (DIST_GRID), intent(in) :: distGrid
-      integer, intent(in) :: j
+        type (DIST_GRID), intent(in) :: distGrid
+        integer, intent(in) :: j
 
-      haveLatitude = (j >= distGrid%j_strt .and. j <= distGrid%J_STOP)
+        haveLatitude = (j >= distGrid%j_strt .and. j <= distGrid%J_STOP)
 
       end function haveLatitude
+
+! ----------------------------------------------------------------------
+      logical function isInLocalSubdomain(distGrid, i, j)
+! ----------------------------------------------------------------------
+        type (DIST_GRID), intent(in) :: distGrid
+        integer, intent(in) :: i
+        integer, intent(in) :: j
+
+        isInLocalSubdomain = (i >= distGrid%i_strt .and. i <= distGrid%i_stop)
+        isInLocalSubdomain = isInLocalSubdomain .and. &
+             (j >= distGrid%j_strt .and. j <= distGrid%j_stop)
+
+      end function isInLocalSubdomain
 
 ! ----------------------------------------------------------------------
       subroutine SEND_TO_J_1D(distGrid, arr, j_dest, tag)

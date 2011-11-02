@@ -157,16 +157,14 @@ C
       REAL*8 FFKG(4,3),RBBK(3)
       REAL*8, PARAMETER, DIMENSION(14) :: GVALUE = (/.0,.25,.45,.50,.55,
      *     .60,.65,.70,.75,.80,.85,.90,.95,1./)
-      REAL*8 RBB,CUSPWM,CUSPWE,G,TAU,EG,DELTAU,TI
+      REAL*8 RBB,G,TAU,EG,DELTAU,TI
      *     ,WTJ,WTI,GI,WGI,WGJ,F1,F2,F3,F4,F21,F32,F43,F3221,F4332,A,B,C
-     *     ,D,XF,FFCUSP,XEXM,CUSPWT,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
+     *     ,D,XF,FFCUSP,XEXM,FFLINR,RB2,RB3,TBB,TB2,TB3,XG,XM
      *     ,XP,RBBB,RI,WRJ,WRI,EI,WEI,WEJ,DELALB,X1,X2,X3,X4,XX,BB,DTAU
       INTEGER I,J,K,KTERPL,IT,JT,IG,JG,ITERPL,IGM,JGP,KG,IR,JR,IE,JE,IEM
      *     ,JEP
-
+      real*8, external :: compute
       KTERPL=0
-      CUSPWM=0.5
-      CUSPWE=0.5
 
       G=GIN
       TAU=TAUIN
@@ -255,53 +253,25 @@ C                                    ---------------------------------
 
       K=0
       DO 270 KG=IGM,JGP
-      K=K+1
-      F1=SALBTG(IT-1,KG)
-      F2=SALBTG(IT  ,KG)
-      F3=SALBTG(JT  ,KG)
-      F4=SALBTG(JT+1,KG)
-      IF(IT == 1) F1=-F3
-      F21=(F2-F1)
-      F32=(F3-F2)
-      F43=(F4-F3)
-      F3221=(F32+F21)*0.5D0
-      F4332=(F43+F32)*0.5D0
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=(F3221+F4332-F32-F32)
-      XF=WTJ
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XEXM = (1-2*XF)**2  ! = XE**2
-      CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FFLINR=A+XF*F32
-      FFKG(K,1)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
-      FFKG(K,2)=F2
-      FFKG(K,3)=F3
+        K=K+1
+        F1=SALBTG(IT-1,KG)
+        F2=SALBTG(IT  ,KG)
+        F3=SALBTG(JT  ,KG)
+        F4=SALBTG(JT+1,KG)
+        IF(IT == 1) F1=-F3
+        FFKG(K,1) = compute(F1,F2,F3,F4,WTJ)
+        FFKG(K,2)=F2
+        FFKG(K,3)=F3
   270 CONTINUE
 
       IF(ITERPL < 4) GO TO 290
 
       DO 280 K=1,3
-      F1=FFKG(1,K)
-      F2=FFKG(2,K)
-      F3=FFKG(3,K)
-      F4=FFKG(4,K)
-      F21=(F2-F1)
-      F32=(F3-F2)
-      F43=(F4-F3)
-      F3221=(F32+F21)*0.5D0
-      F4332=(F43+F32)*0.5D0
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=(F3221+F4332-F32-F32)
-      XF=WGJ
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XEXM = (1-2*XF)**2  ! = XE**2
-      CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FFLINR=A+XF*F32
-      RBBK(K)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+        F1=FFKG(1,K)
+        F2=FFKG(2,K)
+        F3=FFKG(3,K)
+        F4=FFKG(4,K)
+        RBBK(K)=compute(F1,F2,F3,F4,WGJ)
   280 CONTINUE
       RBB=RBBK(1)
       RB2=RBBK(2)
@@ -360,29 +330,15 @@ C                                    ---------------------------------
       JEP=JE+1
       K=0
       DO 330 KG=IEM,JEP
-      K=K+1
-      F1=TAUGSA(IR-1,KG)
-      F2=TAUGSA(IR  ,KG)
-      F3=TAUGSA(JR  ,KG)
-      F4=TAUGSA(JR+1,KG)
-      IF(IR == 1) F1=-F3
-      F21=(F2-F1)
-      F32=(F3-F2)
-      F43=(F4-F3)
-      F3221=(F32+F21)*0.5D0
-      F4332=(F43+F32)*0.5D0
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=(F3221+F4332-F32-F32)
-      XF=WRJ
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XEXM = (1-2*XF)**2  ! = XE**2
-      CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FFLINR=A+XF*F32
-      FFKG(K,1)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
-      FFKG(K,2)=F2
-      FFKG(K,3)=F3
+        K=K+1
+        F1=TAUGSA(IR-1,KG)
+        F2=TAUGSA(IR  ,KG)
+        F3=TAUGSA(JR  ,KG)
+        F4=TAUGSA(JR+1,KG)
+        IF(IR == 1) F1=-F3
+        FFKG(K,1)=compute(F1,F2,F3,F4,WRJ)
+        FFKG(K,2)=F2
+        FFKG(K,3)=F3
   330 CONTINUE
       X1=GVALUE(IE-1)
       X2=GVALUE(IE  )
@@ -392,25 +348,11 @@ C                                    ---------------------------------
       IF(ITERPL < 4) GO TO 350
 
       DO 340 K=1,3
-      F1=FFKG(1,K)
-      F2=FFKG(2,K)
-      F3=FFKG(3,K)
-      F4=FFKG(4,K)
-      F21=(F2-F1)
-      F32=(F3-F2)
-      F43=(F4-F3)
-      F3221=(F32+F21)*0.5D0
-      F4332=(F43+F32)*0.5D0
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=(F3221+F4332-F32-F32)
-      XF=WEJ
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XEXM = (1-2*XF)**2  ! = XE**2
-      CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FFLINR=A+XF*F32
-      RBBK(K)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+        F1=FFKG(1,K)
+        F2=FFKG(2,K)
+        F3=FFKG(3,K)
+        F4=FFKG(4,K)
+        RBBK(K)=compute(F1,F2,F3,F4,WEJ)
   340 CONTINUE
       TBB=RBBK(1)
       TB2=RBBK(2)
@@ -446,6 +388,7 @@ C                                    ---------------------------------
       RBBOUT=RBBB
 
       RETURN
+
       END SUBROUTINE GTSALB
 
 
@@ -596,159 +539,8 @@ C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
 
-      REAL*8 x1,x2,x3,x4, x21,x32,x43,x31,x42, betw,FFCUSP,FFLINR,CUSPWT
-      REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332,  a,b,c,d, xf,xe,xexm
-      INTEGER K
+      call SPLINEVector(X,F,1,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
 
-      K=2
-      X2=X(K)
-      X3=X(NXF-1)
-      BETW=(XX-X2)*(X3-XX)
-      IF(BETW <= 0.D0) GO TO 120
-
-  100 CONTINUE
-      K=K+1
-      X3=X(K)
-      BETW=(XX-X2)*(X3-XX)
-      IF(BETW >= 0.D0) GO TO 110
-      X2=X3
-      GO TO 100
-
-  110 CONTINUE
-      F3=F(K)
-      F4=F(K+1)
-      X4=X(K+1)
-      F2=F(K-1)
-      X2=X(K-1)
-      F1=F(K-2)
-      X1=X(K-2)
-      X21=X2-X1
-      X31=X3-X1
-      X32=X3-X2
-      X43=X4-X3
-      X42=X4-X2
-      F21=(F2-F1)/(X21*X21)
-      F32=(F3-F2)/(X32*X32)
-      F43=(F4-F3)/(X43*X43)
-      F3221=(F32+F21)/X31*X21
-      F4332=(F43+F32)/X42*X43
-      A=F2
-      B=X32*F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=(F3221+F4332-F32-F32)/X32
-      XF=XX-X2
-
-C                             FFCUSP= Cubic Spline Interpolation Result
-C                             -----------------------------------------
-
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=(X3+X2-XX-XX)/X32
-      IF(XE < 0.D0) XE=-XE
-      XEXM=XE**2
-      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-
-C                                   FFLINR= Linear Interpolation Result
-C                                   -----------------------------------
-      FFLINR=A+XF*F32*X32
-      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
-      GO TO 160
-
-C                Edge Point Interval Interpolation and/or Extrapolation
-C                ------------------------------------------------------
-  120 CONTINUE
-      BETW=(X2-XX)*(X3-X2)
-      IF(BETW < 0.D0) GO TO 140
-
-C                          X(1),X(2)  Edge Point Interval Interpolation
-C                          --------------------------------------------
-      X1=X(1)
-      F1=F(1)
-      F2=F(2)
-      X21=X2-X1
-      F21=(F2-F1)/X21
-      XF=XX-X1
-      BETW=(X2-XX)*XF
-      IF(BETW < 0.D0) GO TO 130
-      F3=F(3)
-      X3=X(3)
-      X32=X3-X2
-      X31=X3-X1
-      C=((F3-F2)/X32-F21)/X31
-      B=F21-X21*C
-      A=F1
-      FFCUSP=A+XF*(B+XF*C)
-      FFLINR=A+XF*F21
-      XE=1.D0-2.D0*XF/X21
-      IF(XE < 0.D0) XE=-XE
-      XEXM=XE**2
-      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
-      GO TO 160
-
-  130 CONTINUE
-C                  Extrapolation for XX Outside of Interval X(1) - X(2)
-C                  ----------------------------------------------------
-C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
-C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
-
-      IF(KXTRAP == 0) FF=0.D0
-      IF(KXTRAP == 1) FF=F1
-      IF(KXTRAP == 2) FF=F1+XF*F21
-      GO TO 160
-
-  140 CONTINUE
-C                    X(NXF-1),X(NXF)  Edge Point Interval Interpolation
-C                    --------------------------------------------------
-      F3=F(NXF)
-      X3=X(NXF)
-      F2=F(NXF-1)
-      X2=X(NXF-1)
-      X32=X3-X2
-      F32=(F3-F2)/X32
-      XF=XX-X3
-      BETW=(X2-XX)*(XX-X3)
-      IF(BETW < 0.D0) GO TO 150
-      F1=F(NXF-2)
-      X1=X(NXF-2)
-      X21=X2-X1
-      X31=X3-X1
-      F21=(F2-F1)/X21
-      XF=XX-X2
-
-C                    3-Point Quadratic Interpolation for Edge Intervals
-C                    --------------------------------------------------
-C
-C      (Edge Option)     ----------------------------------------------
-C                        For Linear Interpolation within Edge Intervals
-C                        between X(1),X(2), and between X(NXF-1),X(NXF)
-C                        set the value of coefficient C below, to C=0.0
-C                        ----------------------------------------------
-
-      C=(F32-F21)/X31
-      B=F21+X21*C
-      A=F2
-      FFCUSP=A+XF*(B+XF*C)
-      FFLINR=A+XF*F32
-      XE=1.D0-2.D0*XF/X32
-      IF(XE < 0.D0) XE=-XE
-      XEXM=XE**2
-      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
-      GO TO 160
-
-  150 CONTINUE
-C              Extrapolation for X Outside of Interval  X(NXF-1)-X(NXF)
-C              --------------------------------------------------------
-C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
-C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
-C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
-
-      IF(KXTRAP == 0) FF=0.D0
-      IF(KXTRAP == 1) FF=F3
-      IF(KXTRAP == 2) FF=F3+XF*(F3-F2)/(X3-X2)
-
-  160 CONTINUE
       RETURN
       END SUBROUTINE SPLINE
 
@@ -764,35 +556,6 @@ C---------------------------------------------------------------------
 C
 C    SPLINEVector is identical to SPLINE, except operates on vector functions
 C    rather than scalar functions.  More efficient than calling in a loop.
-C
-C---------------------------------------------------------------------
-C
-C    Custom Control Parameters:  CUSPWM,CUSPWE,KXTRAP
-C------------------------------
-C
-C    In cases where data points are unevenly spaced and/or data points
-C    exhibit abrupt changes in value, Spline Interpolation may produce
-C    undesirable bulging of interpolated values. In more extreme cases
-C    Linear Interpolation may be less problematic to use.
-C
-C    Interpolation can be weighted between: Cubic Spline and Linear by
-C    adjusting weights CUSPWM and CUSPWE to values between 1.0 and 0.0
-C
-C    CUSPWM = Cubic Spline Weight at the (X2-X3) Interval Mid-point
-C    CUSPWE = Cubic Spline Weight at the (X2-X3) Interval End-points
-C
-C    For example, with:
-C
-C    CUSPWM=1.0,CUSPWE=1.0  FF returns Cubic Spline interpolated value
-C    CUSPWM=0.0,CUSPWE=0.0  FF returns   Linearly   interpolated value
-C
-C---------------------------------------------------------------------
-C
-C     Extrapolation for XX outside of defined interval:  X(1)<->X(NXF)
-C
-C               KXTRAP = 0    No Extrapolation  (i.e., sets F(XX)=0.0)
-C                        1    Fixed Extrapolation (F(XX) = edge value)
-C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
 
@@ -978,30 +741,14 @@ C--------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: NLAT, JALIM, JBLIM
       REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT, TAULAT
-      REAL*8, INTENT(OUT) :: TAU
-      REAL*8 ASUM,TSUM,PI,RADIAN,RLAT1,ALAT1,RLAT2,ALAT2,ALATJ
-      INTEGER J1,J,J2
+      REAL*8, INTENT(OUT) :: TAU 
+      REAL*8 :: ASUM,TSUM
+      REAL*8 :: ONES(NLAT)
 
-      ASUM=0.D0
-      TSUM=0.D0
-      PI=ACOS(-1.D0)
-      RADIAN=180.D0/PI
-      J1=JALIM-1
-      IF(J1 < 1) J1=1
-      RLAT1=(0.5D0*(DEGLAT(J1)+DEGLAT(JALIM))+90.D0)/RADIAN
-      ALAT1=SIN(RLAT1)
-      DO 110 J=JALIM,JBLIM
-      J2=J+1
-      IF(J2 > NLAT) J2=NLAT
-      RLAT2=(0.5D0*(DEGLAT(J)+DEGLAT(J2))+90.D0)/RADIAN
-      ALAT2=SIN(RLAT2)
-      ALATJ=0.5D0*(ALAT1+ALAT2)/(RLAT2-RLAT1)
-      ASUM=ASUM+ALATJ
-      TSUM=TSUM+ALATJ*TAULAT(J)
-      RLAT1=RLAT2
-      ALAT1=ALAT2
-  110 CONTINUE
+      ONES = 1.0d0
+      call BOXAV(DEGLAT,ONES,TAULAT,NLAT,JALIM,JBLIM,TSUM,ASUM)
       TAU=TSUM/ASUM
+
       RETURN
       END SUBROUTINE BOXAV1
 
@@ -1026,7 +773,35 @@ C
       INTEGER, INTENT(IN) :: NLAT,JALIM,JBLIM
       REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT,TAULAT,SIZLAT
       REAL*8, INTENT(OUT) :: SIZ
-      REAL*8 ASUM,TSUM,PI,RADIAN,RLAT1,RLAT2,ALAT1,ALAT2,ALATJ
+      REAL*8 ASUM,TSUM
+
+      call BOXAV(DEGLAT,TAULAT,SIZLAT,NLAT,JALIM,JBLIM,TSUM,ASUM)
+      SIZ=(1.D-20+TSUM)/(1.D-10+ASUM)
+
+      RETURN
+      END SUBROUTINE BOXAV2
+
+      SUBROUTINE BOXAV(DEGLAT,W1,ARR,NLAT,JALIM,JBLIM,TSUM,ASUM)
+      IMPLICIT NONE
+C
+C--------------------------------------------------------------------
+C     BOXAV  Performs:
+C                       W1 weighted sums of ARR
+C
+C              DEGLAT   Center latitude of grid-box variable (W1)
+C                       of the form:  DEGLAT = -90+(J-1)*180/(NLAT-1)
+C
+C              W1       Zonal average value is constant over grid-box
+C              SIZLAT   Zonal average value is constant over grid-box
+C
+C        JALIM, JBLIM   Latitude boxes for which variable is averaged
+C
+C--------------------------------------------------------------------
+C
+      INTEGER, INTENT(IN) :: NLAT,JALIM,JBLIM
+      REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT,W1,ARR
+      REAL*8, INTENT(OUT) :: TSUM, ASUM
+      REAL*8 PI,RADIAN,RLAT1,RLAT2,ALAT1,ALAT2,ALATJ
       INTEGER J,J1,J2
 
       ASUM=0.D0
@@ -1037,21 +812,19 @@ C
       IF(J1 < 1) J1=1
       RLAT1=(0.5D0*(DEGLAT(J1)+DEGLAT(JALIM))+90.D0)/RADIAN
       ALAT1=SIN(RLAT1)
-      DO 110 J=JALIM,JBLIM
-      J2=J+1
-      IF(J2 > NLAT) J2=NLAT
-      RLAT2=(0.5D0*(DEGLAT(J)+DEGLAT(J2))+90.D0)/RADIAN
-      ALAT2=SIN(RLAT2)
-      ALATJ=0.5D0*(ALAT1+ALAT2)/(RLAT2-RLAT1)
-      ASUM=ASUM+ALATJ*TAULAT(J)
-      TSUM=TSUM+ALATJ*TAULAT(J)*SIZLAT(J)
-      RLAT1=RLAT2
-      ALAT1=ALAT2
-  110 CONTINUE
-      SIZ=(1.D-20+TSUM)/(1.D-10+ASUM)
+      DO J=JALIM,JBLIM
+        J2=J+1
+        IF(J2 > NLAT) J2=NLAT
+        RLAT2=(0.5D0*(DEGLAT(J)+DEGLAT(J2))+90.D0)/RADIAN
+        ALAT2=SIN(RLAT2)
+        ALATJ=0.5D0*(ALAT1+ALAT2)/(RLAT2-RLAT1)
+        ASUM=ASUM+ALATJ*W1(J)
+        TSUM=TSUM+ALATJ*W1(J)*ARR(J)
+        RLAT1=RLAT2
+        ALAT1=ALAT2
+      END DO
       RETURN
-      END SUBROUTINE BOXAV2
-
+      END SUBROUTINE BOXAV
 
       SUBROUTINE PHATMO(P,H,D,T,O,Q,S,OCM,WCM,NPHD,NATM)
       IMPLICIT NONE
@@ -1155,8 +928,8 @@ C-----------------------------------------------------------------------
      4      5.618D 01,4.763D 01,4.045D 01,1.831D 01,8.600D 00,4.181D 00,
      5      2.097D 00,1.101D 00,9.210D-02,5.000D-04/
       DATA TMP1/  300.0,294.0,288.0,284.0,277.0,270.0,264.0,257.0,250.0,
-     1244.0,237.0,230.0,224.0,217.0,210.0,204.0,197.0,195.0,199.0,203.0,
-     2207.0,211.0,215.0,217.0,219.0,221.0,232.0,243.0,254.0,265.0,270.0,
+     1 244.0,237.0,230.0,224.0,217.0,210.0,204.0,197.0,195.0,199.0,203.,
+     2 207.0,211.0,215.0,217.0,219.0,221.0,232.0,243.0,254.0,265.0,270.,
      3  219.0,210.0/
       DATA WVP1/1.9D 01,1.3D 01,9.3D 00,4.7D 00,2.2D 00,1.5D 00,8.5D-01,
      1  4.7D-01,2.5D-01,1.2D-01,5.0D-02,1.7D-02,6.0D-03,1.8D-03,1.0D-03,
@@ -1186,8 +959,8 @@ C-----------------------------------------------------------------------
      4      5.867D 01,5.014D 01,4.288D 01,1.322D 01,6.519D 00,3.330D 00,
      5      1.757D 00,9.512D-01,6.706D-02,5.000D-04/
       DATA TMP2/  294.0,290.0,285.0,279.0,273.0,267.0,261.0,255.0,248.0,
-     1242.0,235.0,229.0,222.0,216.0,216.0,216.0,216.0,216.0,216.0,217.0,
-     2218.0,219.0,220.0,222.0,223.0,224.0,234.0,245.0,258.0,270.0,276.0,
+     1 242.0,235.0,229.0,222.0,216.0,216.0,216.0,216.0,216.0,216.0,217.,
+     2 218.0,219.0,220.0,222.0,223.0,224.0,234.0,245.0,258.0,270.0,276.,
      3  218.0,210.0/
       DATA WVP2/1.4D 01,9.3D 00,5.9D 00,3.3D 00,1.9D 00,1.0D 00,6.1D-01,
      1  3.7D-01,2.1D-01,1.2D-01,6.4D-02,2.2D-02,6.0D-03,1.8D-03,1.0D-03,
@@ -1217,9 +990,11 @@ C-----------------------------------------------------------------------
      4      5.415D 01,4.624D 01,3.950D 01,1.783D 01,7.924D 00,3.625D 00,
      5      1.741D 00,8.954D-01,7.051D-02,5.000D-04/
       DATA TMP3/  272.2,268.7,265.2,261.7,255.7,249.7,243.7,237.7,231.7,
-     1225.7,219.7,219.2,218.7,218.2,217.7,217.2,216.7,216.2,215.7,215.2,
-     2215.2,215.2,215.2,215.2,215.2,215.2,217.4,227.8,243.2,258.5,265.7,
-     3  230.7,210.2/
+     1 225.7,219.7,219.2,218.7,218.2,217.7,217.2,216.7,216.2,215.7,
+     2 215.2,
+     3 215.2,215.2,215.2,215.2,215.2,215.2,217.4,227.8,243.2,258.5,
+     4 265.7,
+     5 230.7,210.2/
       DATA WVP3/3.5D 00,2.5D 00,1.8D 00,1.2D 00,6.6D-01,3.8D-01,2.1D-01,
      1  8.5D-02,3.5D-02,1.6D-02,7.5D-03,6.9D-03,6.0D-03,1.8D-03,1.0D-03,
      2  7.6D-04,6.4D-04,5.6D-04,5.0D-04,4.9D-04,4.5D-04,5.1D-04,5.1D-04,
@@ -1248,8 +1023,8 @@ C-----------------------------------------------------------------------
      4      5.805D 01,4.963D 01,4.247D 01,1.338D 01,6.614D 00,3.404D 00,
      5      1.817D 00,9.868D-01,7.071D-02,5.000D-04/
       DATA TMP4/  287.0,282.0,276.0,271.0,266.0,260.0,253.0,246.0,239.0,
-     1232.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,
-     2225.0,225.0,225.0,225.0,226.0,228.0,235.0,247.0,262.0,274.0,277.0,
+     1 232.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.0,225.,
+     2 225.0,225.0,225.0,225.0,226.0,228.0,235.0,247.0,262.0,274.0,277.,
      3  216.0,210.0/
       DATA WVP4/9.1D 00,6.0D 00,4.2D 00,2.7D 00,1.7D 00,1.0D 00,5.4D-01,
      1  2.9D-01,1.3D-02,4.2D-02,1.5D-02,9.4D-03,6.0D-03,1.8D-03,1.0D-03,
@@ -1279,8 +1054,8 @@ C-----------------------------------------------------------------------
      4      5.100D 01,4.358D 01,3.722D 01,1.645D 01,7.368D 00,3.330D 00,
      5      1.569D 00,7.682D-01,5.695D-02,5.000D-04/
       DATA TMP5/  257.1,259.1,255.9,252.7,247.7,240.9,234.1,227.3,220.6,
-     1217.2,217.2,217.2,217.2,217.2,217.2,217.2,216.6,216.0,215.4,214.8,
-     2214.1,213.6,213.0,212.4,211.8,211.2,216.0,222.2,234.7,247.0,259.3,
+     1 217.2,217.2,217.2,217.2,217.2,217.2,217.2,216.6,216.,215.4,214.8,
+     2 214.1,213.6,213.0,212.4,211.8,211.2,216.0,222.2,234.7,247.,259.3,
      3  245.7,210.0/
       DATA WVP5/1.2D 00,1.2D 00,9.4D-01,6.8D-01,4.1D-01,2.0D-01,9.8D-02,
      1  5.4D-02,1.1D-02,8.4D-03,5.5D-03,3.8D-03,2.6D-03,1.8D-03,1.0D-03,
@@ -1682,10 +1457,38 @@ C     ------------------------------------------------------------------
       IMPLICIT NONE
 
 C     ------------------------------------------------------------------
+C     See procedure REPARTINT below
+C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NXB,NYB
+      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB-1)
+
+      call repartint(FXL,XLB,NXB,GYL,YLB,NYB,'repart')
+      END SUBROUTINE REPART
+
+      SUBROUTINE RETERP(FXL,XLB,NXB,GYL,YLB,NYB)
+      IMPLICIT NONE
+C     ------------------------------------------------------------------
+C     See procedure REPARTINT below
+C     ------------------------------------------------------------------
+      INTEGER, INTENT(IN) :: NXB,NYB
+      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
+      REAL*8, INTENT(OUT) :: GYL(NYB-1)
+
+      call repartint(FXL,XLB,NXB,GYL,YLB,NYB,'interp')
+
+      END SUBROUTINE RETERP
+
+      SUBROUTINE REPARTINT(FXL,XLB,NXB,GYL,YLB,NYB,oper)
+      IMPLICIT NONE
+
+C     ------------------------------------------------------------------
 C
-C     REPART   Repartitions FXL (a histogram-type distribution function)
-C              where XLB depicts the NXB partitions that define FXL data
-C              FXL is assumed to be constant between XLB(N) AND XLB(N+1)
+C     REPART/RETERP
+C              Repartitions or Interpolates FXL (a histogram-type 
+C              distribution function) where XLB depicts the NXB 
+C              partitions that define FXL data. FXL is assumed to be
+C              constant between XLB(N) AND XLB(N+1)
 C
 C              GYL(N) is the new histogram distribution function defined
 C              by the (input) NYB partitions YLB(N).  The YLB partitions
@@ -1701,9 +1504,10 @@ C              conserved, within the Repartition Interval that is common
 C              to to XLB and YLB (layer bottom edge and top edge) limits
 C
 C     ------------------------------------------------------------------
-      INTEGER, INTENT(IN) :: NXB,NYB
-      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
-      REAL*8, INTENT(OUT) :: GYL(NYB-1)
+      integer, intent(in) :: nxb,nyb
+      real*8, intent(in) :: fxl(nxb-1),xlb(nxb),ylb(nyb)
+      real*8, intent(out) :: gyl(nyb-1)
+      character(len=*), intent(in) :: oper ! either 'repart' or 'interp'
       INTEGER NXF,NYG
       REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
       INTEGER I,J
@@ -1743,7 +1547,12 @@ C     ------------------------------------------------------------------
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
-      GYL(J)=SUMG
+      select case (oper)
+      case ('repart')
+         GYL(J)=SUMG
+      case ('interp')
+         GYL(J)=SUMG/SUMY
+      end select
       J=J+1
       IF(J > NYG) GO TO 160
       SUMG=0.D0
@@ -1761,7 +1570,12 @@ C     ------------------------------------------------------------------
       XB=XLB(I+1)
       GO TO 120
   140 CONTINUE
-      GYL(J)=SUMG
+      select case (oper)
+      case ('repart')
+         GYL(J)=SUMG
+      case ('interp')
+         GYL(J)=SUMG/SUMY
+      end select
   150 CONTINUE
       J=J+1
       IF(J > NYG) GO TO 160
@@ -1792,7 +1606,12 @@ C     ------------------------------------------------------------------
       PART=(YB-XAYA)/(XB-XA)
       SUMG=SUMG+PART*FXL(I)
       SUMY=SUMY+PART
-      GYL(J)=SUMG
+      select case (oper)
+      case ('repart')
+         GYL(J)=SUMG
+      case ('interp')
+         GYL(J)=SUMG/SUMY
+      end select
       J=J+1
       IF(J > NYG) GO TO 260
       SUMG=0.D0
@@ -1810,7 +1629,12 @@ C     ------------------------------------------------------------------
       XB=XLB(I+1)
       GO TO 220
   240 CONTINUE
-      GYL(J)=SUMG
+      select case (oper)
+      case ('repart')
+         GYL(J)=SUMG
+      case ('interp')
+         GYL(J)=SUMG/SUMY
+      end select
   250 CONTINUE
       J=J+1
       IF(J > NYG) GO TO 260
@@ -1820,146 +1644,7 @@ C     ------------------------------------------------------------------
 
   300 CONTINUE
       RETURN
-      END SUBROUTINE REPART
-
-      SUBROUTINE RETERP(FXL,XLB,NXB,GYL,YLB,NYB)
-      IMPLICIT NONE
-C     ------------------------------------------------------------------
-C     RETERP
-C              Interpolates FXL (a histogram-type distribution function)
-C              where XLB depicts the NXB partitions that define FXL data
-C              FXL is assumed to be constant between XLB(N) AND XLB(N+1)
-C
-C              GYL(N) is the new histogram distribution function defined
-C              by the (input) NYB partitions YLB(N).  The YLB partitions
-C              can differ from XLB in number and/or spacing, or in upper
-C              and lower limits.  XLB and YLB coordinates are assumed to
-C              be linear both increasing or decreasing in the same sense
-C
-C     RETURNS  GYL as a histogram-type distribution function, with NYB-1
-C              values assumed to be constant between YLB(N) and YLB(N+1)
-C
-C     ------------------------------------------------------------------
-      INTEGER, INTENT(IN) :: NXB,NYB
-      REAL*8, INTENT(IN) :: FXL(NXB-1),XLB(NXB),YLB(NYB)
-      REAL*8, INTENT(OUT) :: GYL(NYB-1)
-      INTEGER NXF,NYG
-      REAL*8 SUMG,SUMY,XA,YA,XB,YB,XAYA,PART
-      INTEGER I,J
-
-      NXF=NXB-1
-      NYG=NYB-1
-      SUMG=0.D0
-      DO 50 I=1,NYG
-      GYL(I)=0.D0
-   50 CONTINUE
-      SUMY=0.D0
-      I=1
-      XA=XLB(I)
-      J=1
-      YA=YLB(J)
-      XB=XLB(I+1)
-      IF(XB < XA) GO TO 200
-  100 CONTINUE
-      YB=YLB(J+1)
-      IF(YB > XA) GO TO 110
-      GYL(J)=0.D0
-      J=J+1
-      IF(J > NYG) GO TO 160
-      YA=YB
-      GO TO 100
-  110 CONTINUE
-      XB=XLB(I+1)
-      IF(XB > YA) GO TO 120
-      I=I+1
-      IF(I > NXF) GO TO 160
-      XA=XB
-      GO TO 110
-  120 CONTINUE
-      XAYA=XA
-      IF(YA > XA) XAYA=YA
-      IF(YB > XB) GO TO 130
-      PART=(YB-XAYA)/(XB-XA)
-      SUMG=SUMG+PART*FXL(I)
-      SUMY=SUMY+PART
-      GYL(J)=SUMG/SUMY
-      J=J+1
-      IF(J > NYG) GO TO 160
-      SUMG=0.D0
-      SUMY=0.D0
-      YA=YB
-      YB=YLB(J+1)
-      GO TO 120
-  130 CONTINUE
-      PART=(XB-XAYA)/(XB-XA)
-      SUMG=SUMG+PART*FXL(I)
-      SUMY=SUMY+PART
-      I=I+1
-      IF(I > NXF) GO TO 140
-      XA=XB
-      XB=XLB(I+1)
-      GO TO 120
-  140 CONTINUE
-      GYL(J)=SUMG/SUMY
-  150 CONTINUE
-      J=J+1
-      IF(J > NYG) GO TO 160
-      GYL(J)=0.D0
-      GO TO 150
-  160 CONTINUE
-      GO TO 300
-
-  200 CONTINUE
-      YB=YLB(J+1)
-      IF(YB < XA) GO TO 210
-      GYL(J)=0.D0
-      J=J+1
-      IF(J > NYG) GO TO 260
-      YA=YB
-      GO TO 200
-  210 CONTINUE
-      XB=XLB(I+1)
-      IF(XB < YA) GO TO 220
-      I=I+1
-      IF(I > NXF) GO TO 260
-      XA=XB
-      GO TO 210
-  220 CONTINUE
-      XAYA=XA
-      IF(YA < XA) XAYA=YA
-      IF(YB < XB) GO TO 230
-      PART=(YB-XAYA)/(XB-XA)
-      SUMG=SUMG+PART*FXL(I)
-      SUMY=SUMY+PART
-      GYL(J)=SUMG/SUMY
-      J=J+1
-      IF(J > NYG) GO TO 260
-      SUMG=0.D0
-      SUMY=0.D0
-      YA=YB
-      YB=YLB(J+1)
-      GO TO 220
-  230 CONTINUE
-      PART=(XB-XAYA)/(XB-XA)
-      SUMG=SUMG+PART*FXL(I)
-      SUMY=SUMY+PART
-      I=I+1
-      IF(I > NXF) GO TO 240
-      XA=XB
-      XB=XLB(I+1)
-      GO TO 220
-  240 CONTINUE
-      GYL(J)=SUMG/SUMY
-  250 CONTINUE
-      J=J+1
-      IF(J > NYG) GO TO 260
-      GYL(J)=0.D0
-      GO TO 250
-  260 CONTINUE
-
-  300 CONTINUE
-      RETURN
-      END SUBROUTINE RETERP
+      END SUBROUTINE REPARTINT
 
       SUBROUTINE FABINT(F,X,NX,ALIM,BLIM,ABINT)
       IMPLICIT NONE
@@ -2619,6 +2304,41 @@ C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
       RETURN
       END SUBROUTINE SPLINV
 
+      SUBROUTINE threePtQuadInterpolation(NVEC,X21,X31,X32,XF,
+     &     CUSPWM,CUSPWE,
+     &     F21, F32, F2, FF)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: NVEC
+      REAL*8, INTENT(IN) :: X21, X31, X32, XF, CUSPWM, CUSPWE
+      REAL*8, DIMENSION(NVEC), INTENT(IN) :: F32, F21, F2
+      REAL*8, INTENT(OUT) :: FF(NVEC)
+
+C                    3-Point Quadratic Interpolation for Edge Intervals
+C                    --------------------------------------------------
+C
+C      (Edge Option)     ----------------------------------------------
+C                        For Linear Interpolation within Edge Intervals
+C                        between X(1),X(2), and between X(NXF-1),X(NXF)
+C                        set the value of coefficient C below, to C=0.0
+C                        ----------------------------------------------
+      INTEGER :: K
+      REAL*8 :: A, B, C, FFCUSP, XE, XEXM, CUSPWT, FFLINR
+
+      DO K = 1, NVEC
+        C=(F32(K)-F21(K))/X31
+        B=F21(K)+X21*C
+        A=F2(K)
+        FFCUSP=A+XF*(B+XF*C)
+        FFLINR=A+XF*F32(K)
+        XE=1.D0-2.D0*XF/X32
+        IF(XE < 0.D0) XE=-XE
+        XEXM=XE**2
+        CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+        FF(K)=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      END DO
+      RETURN
+      END SUBROUTINE threePtQuadInterpolation
+
       SUBROUTINE SPLN44(Q,NI,NJ,IR,DR,JN,DN,QQ)
       IMPLICIT NONE
 
@@ -2630,55 +2350,24 @@ C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
       REAL*8 QK(4),  ffcusp,a,b,c,d,xf,xe,xexm
       REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
       INTEGER k,kr,irm,irp
+      real*8, external :: compute2
 
       K=0
       IRM=IR-1
       IRP=IR+2
       DO 110 KR=IRM,IRP
-      K=K+1
-      F1=Q(KR,JN-1)
-      F2=Q(KR,JN)
-      F3=Q(KR,JN+1)
-      F4=Q(KR,JN+2)
-      F21=F2-F1
-      F32=F3-F2
-      F43=F4-F3
-      F3221=0.5D0*(F32+F21)
-      F4332=0.5D0*(F43+F32)
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=F3221+F4332-F32-F32
-      XF=DN
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE < 0.0) XE=-XE
-      XEXM=XE**2
-!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-!nu   FFLINR=A+XF*F32
-      QK(K)=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+        K=K+1
+        F1=Q(KR,JN-1)
+        F2=Q(KR,JN)
+        F3=Q(KR,JN+1)
+        F4=Q(KR,JN+2)
+        QK(K)=compute2(F1,F2,F3,F4,DN)
   110 CONTINUE
       F1=QK(1)
       F2=QK(2)
       F3=QK(3)
       F4=QK(4)
-      F21=F2-F1
-      F32=F3-F2
-      F43=F4-F3
-      F3221=0.5D0*(F32+F21)
-      F4332=0.5D0*(F43+F32)
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=F3221+F4332-F32-F32
-      XF=DR
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE < 0.0) XE=-XE
-      XEXM=XE**2
-!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-!nu   FFLINR=A+XF*F32
-      QQ=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+      QQ=compute2(F1,F2,F3,F4,DR)
       RETURN
       END SUBROUTINE SPLN44
 
@@ -2692,28 +2381,13 @@ C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
 !nu   REAL*8,save :: CUSPWM=1., CUSPWE=1. ,CUSPWT,fflinr
       REAL*8 ffcusp,a,b,c,d,xf,xe,xexm
       REAL*8 f1,f2,f3,f4, f21,f32,f43,f3221,f4332
+      real*8, external :: compute2
 
       F1=Q(IR,JN-1)
       F2=Q(IR,JN)
       F3=Q(IR,JN+1)
       F4=Q(IR,JN+2)
-      F21=F2-F1
-      F32=F3-F2
-      F43=F4-F3
-      F3221=0.5D0*(F32+F21)
-      F4332=0.5D0*(F43+F32)
-      A=F2
-      B=F3221
-      C=3.D0*F32-F3221-F3221-F4332
-      D=F3221+F4332-F32-F32
-      XF=DN
-      FFCUSP=A+XF*(B+XF*(C+XF*D))
-      XE=1.D0-XF-XF
-      IF(XE < 0.0) XE=-XE
-      XEXM=XE**2
-!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
-!nu   FFLINR=A+XF*F32
-      QQ=FFCUSP ! *CUSPWT+FFLINR*(1.D0-CUSPWT)
+      QQ = compute2(F1,F2,F3,F4,DN)
       RETURN
       END SUBROUTINE SPLNI4
 
@@ -3422,3 +3096,56 @@ C     functions
       IF(NA == 4) RHDTNA=RHDOCX(TK)
       RETURN
       END  FUNCTION RHDTNA
+
+      real*8 function compute(f1, f2, f3, f4, var) result(result)
+        implicit none
+        real*8, intent(in) :: f1, f2, f3, f4
+        real*8, intent(in) :: var
+        real*8 :: F21, F32, F43, F3221, F4332
+        real*8 :: A, B, C, D, XF, FFCUSP, XEXM, CUSPWT
+        real*8 :: FFLINR
+        real*8, parameter :: CUSPWM=0.5
+        real*8, parameter :: CUSPWE=0.5
+        F21=(F2-F1)
+        F32=(F3-F2)
+        F43=(F4-F3)
+        F3221=(F32+F21)*0.5D0
+        F4332=(F43+F32)*0.5D0
+        A=F2
+        B=F3221
+        C=3.D0*F32-F3221-F3221-F4332
+        D=(F3221+F4332-F32-F32)
+        XF=var
+        FFCUSP=A+XF*(B+XF*(C+XF*D))
+        XEXM = (1-2*XF)**2      ! = XE**2
+        CUSPWT=(1.0-XEXM)*CUSPWM+XEXM*CUSPWE
+        FFLINR=A+XF*F32
+        result = FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      end function compute
+
+      real*8 function compute2(f1, f2, f3, f4, var) result(result)
+       implicit none
+        real*8, intent(in) :: f1, f2, f3, f4
+        real*8, intent(in) :: var
+        real*8 :: F21, F32, F43, F3221, F4332
+        real*8 :: A, B, C, D, XF, FFCUSP, XEXM, XE, CUSPWT
+        real*8 :: FFLINR
+        F21=(F2-F1)
+        F32=(F3-F2)
+        F43=(F4-F3)
+        F3221=(F32+F21)*0.5D0
+        F4332=(F43+F32)*0.5D0
+        A=F2
+        B=F3221
+        C=3.D0*F32-F3221-F3221-F4332
+        D=(F3221+F4332-F32-F32)
+        XF=var
+        FFCUSP=A+XF*(B+XF*(C+XF*D))
+        XE=1.D0-XF-XF
+        IF(XE < 0.0) XE=-XE
+        XEXM=XE**2
+!=1   CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+!nu   FFLINR=A+XF*F32
+        result = FFCUSP
+      end function compute2
+
