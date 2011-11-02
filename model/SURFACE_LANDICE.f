@@ -293,7 +293,6 @@ C****
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
-      write(6,*) '========== Starting SURFACE_LANDICE ========'
 
       RSI => SI_ATM%RSI
       MSI => SI_ATM%MSI
@@ -443,7 +442,6 @@ C****
       PTYPE = PLICE
       IF (PTYPE <= 0) CYCLE
 
-      write(6,*) 'Good ptype for i,j = ',i,j
 
 c      debug=i.eq.65.and.j.eq.38
 
@@ -746,7 +744,6 @@ C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
         TRHDT=DTSURF*(TRHEAT+DTG*DTRDTG)
         F1DT=DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
-      write(6,*) 'TG1',i,j,TG1
       endif
 ! END ------------------------------------------------------------
 
@@ -1307,15 +1304,14 @@ C**** Save surface tracer concentration whether calculated or not
 #endif
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then
-!      write(6,*) 'TAIJN-1b',i,j,itype,tij_evap,n,taijn(i,j,tij_evap,n),
-!     *           asflx(itype)%trevapor(n,i,j),ptype
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           asflx(itype)%trevapor(n,i,j)*ptype
-! DEBUGGING
+! ==== DEBUGGING: Remove these lines to get exact match in regression tests
             if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *           asflx(itype)%trevapor(n,i,j)*ptype)
             if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
      *          (i,j,1,jls_isrc(2,n),asflx(itype)%trevapor(n,i,j)*ptype)
+! ===== END DEBUGGING
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         asflx(itype)%gtracer(n,i,j)*ptype
@@ -1332,7 +1328,6 @@ C****
 !!!      CASE (3) ! land ice
       if ( ITYPE == ITYPE_LANDICE ) then
         IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
-        write(6,*) 'TDIRUN',i,j,TG1,TDIURN(I,J,8)
         IF (MODDSF.eq.0) AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(TS-TF)*PTYPE
         AIJ(I,J,IJ_SHDTLI)=AIJ(I,J,IJ_SHDTLI)+ SHDT*PTYPE
         AIJ(I,J,IJ_EVHDT)=AIJ(I,J,IJ_EVHDT)  +EVHDT*PTYPE
@@ -1353,7 +1348,6 @@ C****
 
       call stopTimer('SURFACE_LANDICE()')
 
-      write(6,*) '========== Leaving SURFACE_LANDICE ========'
       RETURN
 C****
       END SUBROUTINE SURFACE_LANDICE
