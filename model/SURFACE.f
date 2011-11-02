@@ -31,6 +31,7 @@ C****
 
 ! For debugging
       USE DIAG_COM, only : name_dd
+      use pblcom, only : trabl
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
@@ -473,12 +474,15 @@ C****
          DO J=J_0,J_1
             DO I=I_0,IMAXJ(J)
 
+!      write(6,*) 'OUTER_LOOP',i,j
+
                EVAPLIM = 0. ; HTLIM=0. ! need initialisation
 #ifdef TRACERS_WATER
                tevaplim = 0.
 #endif
 
-c     debug=i.eq.65.and.j.eq.38
+      debug=i.eq.3.and.j.eq.20
+!      if (debug) write(6,*) 'TRABL-1',trabl(1,18,3,3,20)
 
 C**** 
 C**** DETERMINE SURFACE CONDITIONS
@@ -557,6 +561,7 @@ C****
                      if ( ITYPE == ITYPE_OCEAN ) then
 
                         PTYPE=POCEAN
+!      write(6,*) 'ITYPE_OCEAN',i,j,PTYPE
                         IF (PTYPE.gt.0) THEN
                            TG1=atmocn%GTEMP(I,J)
                            TG2=atmocn%GTEMP2(I,J) ! diagnostic only
@@ -589,6 +594,7 @@ C**** UOSURF,VOSURF are on atm A grid
                            END IF
                            SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
                            atmocn%SOLAR(I,J)=atmocn%SOLAR(I,J)+DTSURF*SRHEAT
+!      write(6,*) 'OA_5',i,j,OA(I,J,5),SRHEAT,DTSURF
                            OA(I,J,5)=OA(I,J,5)+SRHEAT*DTSURF
                            ELHX=LHE
 
@@ -652,34 +658,35 @@ C**** addice next time)
 C**** 
 C**** LAND ICE
 C**** 
-#ifndef BOB_REFACTOR       /* Bob Refactoring */
-!     Moved to SURFACE_LANDICE.f
-                     else if ( ITYPE == ITYPE_LANDICE ) then
-
-                        PTYPE=PLICE
-                        IF (PTYPE.gt.0) THEN
-                           IDTYPE=ITLANDI
-                           SNOW=SNOWLI(I,J)
-                           TG1=TGRND(3,I,J)
-                           TG2=atmgla%GTEMP2(I,J)
-                           TR4=TGR4(3,I,J)
-                           SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
-                           Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
-                           CDTERM=TG2
-                           CDENOM=1./(2.*Z1BY6L+Z2LI3L)
-                           HCG1=HC1LI+SNOW*SHI
-                           ELHX=LHS
-                           uocean = 0. ; vocean = 0. ! no land ice velocity
-#ifdef TRACERS_WATER
-                           do nx=1,ntx
-                              trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
-                           end do
-#endif
-                        END IF
-#endif     /* Bob Refactoring */
+! #ifndef BOB_REFACTOR       /* Bob Refactoring */
+! !     Moved to SURFACE_LANDICE.f
+!                      else if ( ITYPE == ITYPE_LANDICE ) then
+! 
+!                         PTYPE=PLICE
+!                         IF (PTYPE.gt.0) THEN
+!                            IDTYPE=ITLANDI
+!                            SNOW=SNOWLI(I,J)
+!                            TG1=TGRND(3,I,J)
+!                            TG2=atmgla%GTEMP2(I,J)
+!                            TR4=TGR4(3,I,J)
+!                            SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
+!                            Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
+!                            CDTERM=TG2
+!                            CDENOM=1./(2.*Z1BY6L+Z2LI3L)
+!                            HCG1=HC1LI+SNOW*SHI
+!                            ELHX=LHS
+!                            uocean = 0. ; vocean = 0. ! no land ice velocity
+! #ifdef TRACERS_WATER
+!                            do nx=1,ntx
+!                               trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
+!                            end do
+! #endif
+!                         END IF
+! #endif     /* Bob Refactoring */
 
                      endif      ! ITYPE == ITYPE_LANDICE
 C**** 
+!      if (debug) write(6,*) 'TRABL-2',trabl(1,18,3,3,20)
                      IF (PTYPE.gt.0) THEN
 C**** 
 C**** BOUNDARY LAYER INTERACTION
@@ -697,6 +704,8 @@ C****
                         pbl_args%ELHX=ELHX ! relevant latent heat
                         pbl_args%QSOL=SRHEAT ! solar heating
                         pbl_args%TGV=TG*(1.+QG_SAT*xdelt)
+
+!      if (itype.eq.3) write (6,*) 'PBL_DEBUG3',i,j,TG,TG1,TF
 
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
@@ -803,6 +812,10 @@ c**** wspdf in PBL.f for the other soil types.
                            pbl_args%mcfrac=0.D0
                         END IF
 #endif
+
+!      write(6,*) 'PBL',i,j,itype,ptype
+!      call io_rsf('bob_checkpoint_afterX',Itime,-1,ioerr)
+!      call stop_model('Checkpointing', 255)
 
 !     Calculate drag coefficients, wind speed, air density, etc.
 !     PBL = "Planetary Boundary Layer"
@@ -1577,14 +1590,19 @@ C**** Save surface tracer concentration whether calculated or not
                                  endif !gasexch tracers
 #endif
 #ifdef TRACERS_WATER
-                                 if (tr_wd_type(n).eq.nWater) then
+                                if (tr_wd_type(n).eq.nWater) then
+!      write(6,*) 'TAIJN-1a',i,j,itype,tij_evap,n,taijn(i,j,tij_evap,n),
+!     *           asflx(itype)%trevapor(n,i,j),ptype
                                     taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *                                   asflx(itype)%trevapor(n,i,j)*ptype
+! DEBUGGING
                                     if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *                                   asflx(itype)%trevapor(n,i,j)*ptype)
                                     if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
      *                                   (i,j,1,jls_isrc(2,n),asflx(itype)%trevapor(n,i,j)*ptype)
                                  end if
+!      write(6,*) 'TAIJN-2',i,j,itype,tij_grnd,n,taijn(i,j,tij_grnd,n),
+!     *           asflx(itype)%gtracer(n,i,j),ptype
                                  taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *                                asflx(itype)%gtracer(n,i,j)*ptype
 #endif
@@ -1633,6 +1651,7 @@ C****
                            endif
 C**** 
                         END IF
+!      if (debug) write(6,*) 'TRABL-3',trabl(1,18,3,3,20),itype
                      END DO     ! end of itype loop
                   END DO        ! end of I loop
                END DO           ! end of J loop
@@ -1649,6 +1668,8 @@ C****
 #ifdef BOB_REFACTOR
                CALL SURFACE_LANDICE(NS,MODDSF,MODDD, TGRND,TGRN2,TGR4,E1)
 #endif
+!      write(6,*) 'TRABL-4',trabl(1,18,3,3,20)
+!      call io_rsf('bob_checkpoint_after0',Itime,-1,ioerr)
                CALL EARTH(NS,MODDSF,MODDD)
                IF(NS==Nisurf) CALL GROUND_E ! diagnostic only - should be merged with EARTH
 
@@ -1850,7 +1871,6 @@ c     calculate global integral of heat of river discharge
 
       ! Debugging: write a checkpoint file
 !      call io_rsf('bob_checkpoint_after12',Itime,-1,ioerr)
-!      write(6,*),'name_dd',294,name_dd(294)
 !      call stop_model('Checkpointing', 255)
 
             RETURN

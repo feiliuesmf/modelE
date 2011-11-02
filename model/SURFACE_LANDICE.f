@@ -70,7 +70,7 @@ C****
       USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
       USE DIAG_COM, only : MODD5S
-      USE DIAG_COM, only : ndasf,ia_srf,ia_src,oa,aij=>aij_loc,aijmm
+      USE DIAG_COM, only : ndasf,ia_srf,ia_src,aij=>aij_loc,aijmm
      &     ,itocean,itoice,itlake,itlkice,itlandi
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
@@ -414,6 +414,20 @@ c and it's already zeroed out before outer loop
 ! ==============================================================
 
 
+#ifdef TRACERS_ON
+C**** Set up tracers for PBL calculation if required
+      nx=0
+      do n=1,ntm
+        if (itime_tr0(n).le.itime .and. needtrs(n)) then
+          nx=nx+1
+          ntix(nx) = n
+        end if
+      end do 
+      ntx = nx
+#endif
+
+! I don't think this is needed because it's not in GHY_DRV.f
+!      call recalc_agrid_uv
 
 
       call alloc_pbl_args(pbl_args)
@@ -469,32 +483,32 @@ C**** Calculate first layer tracer concentration
       end do
 #endif
 
-C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
-         IF(MODDD.EQ.0) THEN
-         DO KR=1,NDIUPT
-           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
-             tmp(IDD_SPR)=PS
-             do ii=1,5
-               tmp(IDD_PT5+ii-1)=PSK*T(I,J,ii)
-               tmp(IDD_Q5+ii-1) =Q(I,J,ii)
-             end do
-             ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
-#ifndef NO_HDIURN
-             HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
-#endif
-           END IF
-                          END DO
-         END IF
-C**** save some ocean diags regardless of PTYPE
-C**** SSH does not work for qflux/fixed SST configurations
-         if(ns.eq.1 .and. focean(i,j).gt.0.)
-     &        aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + pocean
-         IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
-           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+atmocn%GTEMP(I,J)*FOCEAN(I,J)
-           AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)*FOCEAN(I,J)
-           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+(atmocn%OGEOZA(I,J)*BYGRAV+
-     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS)*FOCEAN(I,J)
-         END IF
+!C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
+!         IF(MODDD.EQ.0) THEN
+!         DO KR=1,NDIUPT
+!           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+!             tmp(IDD_SPR)=PS
+!             do ii=1,5
+!               tmp(IDD_PT5+ii-1)=PSK*T(I,J,ii)
+!               tmp(IDD_Q5+ii-1) =Q(I,J,ii)
+!             end do
+!             ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
+!#ifndef NO_HDIURN
+!             HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
+!#endif
+!           END IF
+!         END DO
+!         END IF
+!C**** save some ocean diags regardless of PTYPE
+!C**** SSH does not work for qflux/fixed SST configurations
+!         if(ns.eq.1 .and. focean(i,j).gt.0.)
+!     &        aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + pocean
+!         IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
+!           AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+atmocn%GTEMP(I,J)*FOCEAN(I,J)
+!           AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)*FOCEAN(I,J)
+!           AIJ(I,J,IJ_SSH)=AIJ(I,J,IJ_SSH)+(atmocn%OGEOZA(I,J)*BYGRAV+
+!     *          RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS)*FOCEAN(I,J)
+!         END IF
 C****
       DO ITYPE=ITYPE_LANDICE, ITYPE_LANDICE    ! no earth type
   !    ipbl(itype,i,j)=0
@@ -792,8 +806,26 @@ C**** tracer flux is set by source tracer concentration
 #endif       // #ifdef TRACERS_SPECIAL_O18
             END IF
           END IF
+          TDP = TEVAP*AXYP(I,J)*ptype
+          TDT1 = trsrfflx(I,J,n)*DTSURF
+#ifdef WATER_PROPORTIONAL
+          if(lim_dew) then
+#else
+          IF (TRM(I,J,1,n)+TDT1+TDP.lt.0..and.tdp.lt.0) THEN
+#endif
+            IF (QCHECK) WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1
+     *           ,n),TDT1
+            TEVAP = -(TRM(I,J,1,n)+TDT1)/(AXYP(I,J)*ptype)
+            trsrfflx(I,J,n)= - TRM(I,J,1,n)/DTSURF
+          ELSE
+            trsrfflx(I,J,n)=trsrfflx(I,J,n)+TDP/DTSURF
+          END IF
+          !TREVAPOR(n,ITYPE,I,J)=TREVAPOR(n,ITYPE,I,J)+TEVAP
+          asflx(itype)%TREVAPOR(n,I,J)=
+     *         asflx(itype)%TREVAPOR(n,I,J)+TEVAP
+        END IF
 #endif // #ifdef TRACERS_WATER
-        end if     ! if (IType.ne.1)
+!        end if     ! if (IType.ne.1)
 
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -1275,8 +1307,11 @@ C**** Save surface tracer concentration whether calculated or not
 #endif
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then
+!      write(6,*) 'TAIJN-1b',i,j,itype,tij_evap,n,taijn(i,j,tij_evap,n),
+!     *           asflx(itype)%trevapor(n,i,j),ptype
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           asflx(itype)%trevapor(n,i,j)*ptype
+! DEBUGGING
             if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *           asflx(itype)%trevapor(n,i,j)*ptype)
             if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
