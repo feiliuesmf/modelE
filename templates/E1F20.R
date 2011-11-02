@@ -30,7 +30,7 @@ ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
+SURFACE SURFACE_LANDICE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl

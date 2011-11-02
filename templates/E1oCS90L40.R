@@ -44,7 +44,7 @@ FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
 QUS_COM QUSDEF              ! advection of tracers
 QUScubed
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
+SURFACE SURFACE_LANDICE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl

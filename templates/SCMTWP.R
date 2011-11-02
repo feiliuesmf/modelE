@@ -29,7 +29,7 @@ SCM_COM SCMDATA_TWPICE              ! routines for reading and processing SCM fo
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds mods newest from Yao-withSCMandDRY
-SURFACE  FLUXES                     ! surface calculation and fluxes
+SURFACE SURFACE_LANDICE  FLUXES                     ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils and use ARM surface forcings     
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl

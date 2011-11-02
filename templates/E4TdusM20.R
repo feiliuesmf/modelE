@@ -40,7 +40,7 @@ TRDRYDEP                            ! dry deposition of tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
+SURFACE SURFACE_LANDICE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV ! + component giss_LSM: land surface and soils
 VEG_DRV                             ! vegetation
 ! VEG_COM VEGETATION                ! old vegetation
