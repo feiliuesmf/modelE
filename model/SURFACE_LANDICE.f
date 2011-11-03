@@ -200,9 +200,10 @@ C****
      *       NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &       GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     TGRND,TGRN2,TGR4
-      REAL*8, intent(inout), DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) ::
-     *     E1
+      REAL*8, intent(inout), DIMENSION(
+     &       GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &       GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) :: E1
+
 ! ================ VARIABLE DECLARATIONS ======================
       INTEGER I,J,K,KR,JR,NSTEPS,ITYPE,IH,IHM,IDTYPE
      *     ,ii
