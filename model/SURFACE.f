@@ -26,9 +26,9 @@ C****
 !@+   surface specific humidity, and surface wind components.
 !@auth Nobody will claim responsibilty
 
-      ! --------- For Debugging
-      USE DIAG_COM, only : name_dd
-      use pblcom, only : trabl
+      ! --------- For Debugging (if needed)
+      ! USE DIAG_COM, only : name_dd
+      ! use pblcom, only : trabl
       ! --------- End Debugging USE Statements
 
       USE CONSTANT, only : rgas,lhm,lhe,lhs
