@@ -268,7 +268,7 @@ CCC      real*8 :: bgrid
      &     ,dtdt_gcm,utop_old,vtop_old
      &     ,ilong,jlat,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
-     &     ,u,v,temp,q,e
+     &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
      &     ,tr,ptype,trnradius,trndens,trnmm
 #endif
@@ -348,7 +348,7 @@ c   output:
 !@var WINT   = integrated surface wind speed over sgs wind distribution
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
-!@var  temp  local virtual potential temperature
+!@var  t  local virtual potential temperature
 !@+          (if xdelt=0, t is the actual temperature)
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
@@ -405,7 +405,7 @@ c  internals:
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       !-- inout:
       real*8, intent(inout) :: z0m
-      real*8, dimension(n),   intent(inout) :: u,v,temp,q
+      real*8, dimension(n),   intent(inout) :: u,v,t,q
       real*8, dimension(n-1), intent(inout) :: e
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
@@ -483,9 +483,6 @@ C****
       if(xdelt /= 0d0) call stop_model(
      &     'PBL.f is not yet compatible with xdelt==deltx',255)
 
-
-
-
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
       tgrnd0 = pbl_args%tgv
@@ -516,14 +513,13 @@ c**** get input from pbl_args structure
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),
-     &      temp(1),q(1)
+        print*,"advanc: i,j,itype=",ilong,jlat,itype,u(1),v(1),t(1),q(1)
         call stop_model("PBL error in advanc",255)
       end if
 
       usave(:)=u(:)
       vsave(:)=v(:)
-      tsave(:)=temp(:)
+      tsave(:)=t(:)
       qsave(:)=q(:)
       esave(:)=e(:)
 
@@ -544,14 +540,14 @@ c**** get input from pbl_args structure
       tgskin=tg                 ! initially assume no skin/bulk difference
       tgr4skin=tr4              ! initially assume no skin/bulk difference
       dskin=0
-      ts=temp(1)/(1+q(1)*xdelt)
+      ts=t(1)/(1+q(1)*xdelt)
 
       call getl1(e,zhat,dzh,lscale,n)
 
       if(ddml_eq_1) then
         tdns=pbl_args%tdns
         qdns=pbl_args%qdns
-        tprime=tdns-temp(1)/(1.+xdelt*q(1))
+        tprime=tdns-t(1)/(1.+xdelt*q(1))
         qprime=qdns-q(1)
       else ! either ddml(ilong,jlat).ne.1 or USE_PBL_E1
         tdns=0.d0
@@ -570,15 +566,15 @@ c**** get input from pbl_args structure
 #endif
       do iter=1,itmax
 
-        call get_tv(temp,q,tv,n)
+        call get_tv(t,q,tv,n)
 
         if(iter.gt.1) then
           call getl(e,u,v,tv,zhat,dzh,lmonin,ustar,lscale,dbl,n)
 C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
           if (itype.eq.1 .and. skin_effect.gt.0) then
 c estimate net flux and ustar_oc from current tg,qg etc.
-            ts=temp(1)/(1+q(1)*xdelt)
-            rhosrf=100.*psurf/(rgas*temp(1)) ! surface air density
+            ts=t(1)/(1+q(1)*xdelt)
+            rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
      &           +(ws-ws0)*qprime)        ! Latent
      &           + sha*ch*rhosrf*(ws*(ts-tgskin)+(ws-ws0)*tprime) ! Sensible
@@ -598,14 +594,11 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 
         call getk(km,kh,kq,ke,gm,gh,u,v,tv,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
-     2             u,v,temp,q,z,z0m,z0h,z0q,cm,ch,cq,
+     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
 #endif
      3             km,kh,kq,dzh,itype,n)
-
-
-
 #ifdef TRACERS_ON
         kqsave=kq
         cqsave=cq
@@ -641,12 +634,10 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         call q_eqn(qsave,q,kq,dz,dzh,cq,ws,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat,ws0,qprime,qdns,ddml_eq_1)
 
-!      write(6,*) '      AA temp(1)=',temp(1)
-        call t_eqn(u,v,tsave,temp,q,z,kh,kq,dz,dzh
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh
      &       ,ch,ws,tgrnd,ttop,dtdt_gcm,dtime
      &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns
      &       ,qdns,ddml_eq_1)
-!      write(6,*) '      AA temp(1)=',temp(1)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh
      &       ,ustar,cm,z0m,utop,vtop,utop_old,vtop_old
@@ -655,11 +646,11 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 
         if ( ((ttop.ge.tgrnd).and.(lmonin_dry.le.0.)).or.
      &       ((ttop.le.tgrnd).and.(lmonin_dry.ge.0.)) )
-     &     call tfix(temp,z,ttop,tgrnd
+     &     call tfix(t,z,ttop,tgrnd
      &              ,lmonin_dry,tstar,ustar,kh(1),n)
 
         if(ddml_eq_1) then
-          tprime=tdns-temp(1)/(1.+xdelt*q(1))
+          tprime=tdns-t(1)/(1.+xdelt*q(1))
           qprime=qdns-q(1)
         endif
 
@@ -670,23 +661,22 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         do i=1,n-1
           u(i)=w*usave1(i)+(1.-w)*u(i)
           v(i)=w*vsave1(i)+(1.-w)*v(i)
-          temp(i)=w*tsave1(i)+(1.-w)*temp(i)
+          t(i)=w*tsave1(i)+(1.-w)*t(i)
           q(i)=w*qsave1(i)+(1.-w)*q(i)
           e(i)=w*esave1(i)+(1.-w)*e(i)
           usave1(i)=u(i)
           vsave1(i)=v(i)
-          tsave1(i)=temp(i)
+          tsave1(i)=t(i)
           qsave1(i)=q(i)
           esave1(i)=e(i)
         end do
-
         end if
         ustar0=ustar
 cc      WRITE(0,*) 'advanc iter t(1),q(1) ',iter,t(1),q(1)
 
       end do ! end of iter loop
 
-      call get_tv(temp,q,tv,n)
+      call get_tv(t,q,tv,n)
 
 c**** cannot update ws without taking care that ws used for tracers is
 c**** the same as that used for q
@@ -700,8 +690,8 @@ C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-      delt = temp(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
-      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,temp(1),pbl_args%wsubtke
+      delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
+      CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
      &     ,pbl_args%wsubwd,pbl_args%wsubwm)
       CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
      &     ,pbl_args%mcfrac,wsgcm,wspdf)
@@ -718,9 +708,9 @@ csgs      call integrate_sgswind(sig0,wt,wmin,wmax,ws,icase,wint)
 C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
-      ts=temp(1)/(1.+q(1)*xdelt)   ! surface air temp (K)
+      ts=t(1)/(1.+q(1)*xdelt)   ! surface air temp (K)
       visc=visc_air(ts)         ! viscosity
-      rhosrf=100.*psurf/(rgas*temp(1)) ! surface air density
+      rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
       byrho=1d0/rhosrf
       tg1 = tgskin-tf ! re-calculate ground T (C)
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
@@ -1053,7 +1043,7 @@ C**** with maximum allowed flux.
 
       us  = u(1)
       vs  = v(1)
-      tsv = temp(1)
+      tsv = t(1)
       qsrf  = q(1)
 
       kms = km(1)
@@ -1062,7 +1052,7 @@ C**** with maximum allowed flux.
 
       ufluxs=km(1)*(u(2)-u(1))/dzh(1)
       vfluxs=km(1)*(v(2)-v(1))/dzh(1)
-      tfluxs=kh(1)*(temp(2)-temp(1))/dzh(1)
+      tfluxs=kh(1)*(t(2)-t(1))/dzh(1)
       qfluxs=kq(1)*(q(2)-q(1))/dzh(1)
 
       an2=2.*grav*(tv(n)-tv(n-1))/((tv(n)+tv(n-1))*dzh(n-1))
@@ -1079,7 +1069,7 @@ c     call check1(ustar,1,ilong,jlat,2)
 c Diagnostics printed at a selected point:
 
       if ((ilong.eq.iprint).and.(jlat.eq.jprint)) then
-        call output(u,v,temp,q,e,lscale,z,zhat,dzh,
+        call output(u,v,t,q,e,lscale,z,zhat,dzh,
      2              km,kh,kq,ke,gm,gh,cm,ch,cq,z0m,z0h,z0q,
      3              ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      4              utop,vtop,ttop,qtop,
@@ -1177,10 +1167,8 @@ C**** tracer code output
       ustar  = sqrt(km(1)*dudz)
       ustar  = max(ustar,ustar_min)
       tstar  = tflx/ustar
-      if (abs(tstar).gt.smax*abs(t(1)-tgrnd))
-     &    tstar=smax*(t(1)-tgrnd)
-      if (abs(tstar).lt.smin*abs(t(1)-tgrnd))
-     &    tstar=smin*(t(1)-tgrnd)
+      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
+      if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
       qstar  = qflx/ustar
       if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
@@ -2083,7 +2071,7 @@ c     rhs(n-1)=0.
       return
       end subroutine e_les
 
-      subroutine t_eqn(u,v,t0,temp,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
+      subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
      &     ,ttop,dtdt_gcm,dtime,n
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns
      &     ,qdns,ddml_eq_1)
@@ -2130,7 +2118,7 @@ c     rhs(n-1)=0.
 
       real*8, dimension(n), intent(in) :: u,v,t0,q,z,dz
       real*8, dimension(n-1), intent(in) :: dzh,kh,kq
-      real*8, dimension(n), intent(inout) :: temp
+      real*8, dimension(n), intent(inout) :: t
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtdt_gcm,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
@@ -2162,7 +2150,7 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 #ifdef PBL_USES_GCM_TENDENCIES
         rhs(i)=t0(i)+dtime*dtdt_gcm ! maybe scale by a function of height
 #else
-        rhs(i)=t0(i)-dtime*temp(i)*bygrav*(v(i)*facty+u(i)*factx)
+        rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 #endif
       end do
 #endif
@@ -2185,7 +2173,7 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       sub(n) = 0.
       rhs(n) = ttop
 
-      call TRIDIAG(sub,dia,sup,rhs,temp,n)
+      call TRIDIAG(sub,dia,sup,rhs,t,n)
 
       return
       end subroutine t_eqn
