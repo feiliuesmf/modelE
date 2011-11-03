@@ -900,7 +900,7 @@ C****
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
 !@auth Gary Russell/Gavin Schmidt
-!@ver  2010/09/27 (based on LB265)
+!@ver  2011/11/03 (based on LB265)
 
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE RESOLUTION, only : im,jm
@@ -1250,7 +1250,7 @@ C****
           If (DMM > 0)  GoTo 420
 
 C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
-          If (MWL(ID,JD) <= 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD))  GoTo 430
+          If (MWL(ID,JD) <= 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD))  GoTo 440
           If (DMM < 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD))
      *        DMM = 1*RHOW*FLAKE(ID,JD)*AXYP(ID,JD) - MWL(ID,JD)
           DGM = TLAKE(ID,JD)*DMM*SHW
@@ -1271,7 +1271,7 @@ C**** DMM < 0: Move water from grid cell (ID,JD) to cell (IU,JU)
           GoTo 430
 
 C**** DMM > 0: Move water from grid cell (IU,JU) to cell (ID,JD)
-  420     If (MWL(IU,JU) <= 1*RHOW*FLAKE(IU,JU)*AXYP(ID,JD))  GoTo 430
+  420     If (MWL(IU,JU) <= 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU))  GoTo 440
           If (DMM > MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU))
      *        DMM = MWL(IU,JU) - 1*RHOW*FLAKE(IU,JU)*AXYP(IU,JU)
           DGM = TLAKE(IU,JU)*DMM*SHW
