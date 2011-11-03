@@ -775,9 +775,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       IMPLICIT NONE
 
 !@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
-!      INTEGER :: NIsurf = 2
-!@dbparam Set to 1 to test SURFACE_LANDICE.f against control
-      INTEGER :: NIsurf = 1
+      INTEGER :: NIsurf = 2
 
 !@var Fxx fraction of gridbox of type xx (land,ocean,...)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAND
