@@ -6,7 +6,7 @@ ATMDYN_COM                          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF                      ! T/Q moments, 1D QUS
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
-SURFACE FLUXES                      ! surface calculation and fluxes
+SURFACE SURFACE_LANDICE FLUXES      ! surface calculation and fluxes
 GHY_COM GHY_DRV    ! + giss_LSM     ! land surface and soils + snow model
 VEG_DRV                             ! vegetation
 ! VEG_COM VEGETATION                ! old vegetation
