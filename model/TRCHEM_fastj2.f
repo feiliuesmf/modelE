@@ -462,7 +462,7 @@ C**** Local parameters and variables and arguments:
 !@var XQO2_2   fastj2 Absorption cross-section of O2
 !@var WAVE Effective wavelength of each wavelength bin
 !@var AVGF Attenuation of beam at each level for each wavelength
-      INTEGER                    :: K
+      INTEGER                    :: K,J
       INTEGER, INTENT(IN)        :: NSLON, NSLAT
       REAL*8, DIMENSION(NBFASTJ) :: XQO3_2, XQO2_2
       REAL*8, DIMENSION(JPNL)    :: AVGF
@@ -478,11 +478,13 @@ C---Calculate spherical weighting functions:
 C---Loop over all wavelength bins:
       DO K=NW1,NW2
         WAVE = WL(K)
-        XQO3_2(:) = XSECO3(K,TJ2(:)) ! J=1,NBFASTJ
-        XQO2_2(:) = XSECO2(K,TJ2(:)) ! J=1,NBFASTJ
+        DO J=1,NBFASTJ
+          XQO3_2(J) = XSECO3(K,TJ2(J))
+          XQO2_2(J) = XSECO2(K,TJ2(J))
+        END DO
         CALL OPMIE(K,WAVE,XQO2_2,XQO3_2,AVGF)
-        FFF(K,:) = FFF(K,:) + FL(K)*AVGF(:) ! J=1,JPNL
-      ENDDO
+        FFF(K,:) = FFF(K,:) + FL(K)*AVGF(:) ! 1,JPNL
+      END DO
 
       RETURN
       END SUBROUTINE JVALUE
