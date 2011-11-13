@@ -38,7 +38,8 @@
       use trdust_drv, only : init_soildust
 #endif
 #ifdef TRACERS_QUARZHEM
-     &   ,DenHema,DenQuarz,FreeFe,FrHeQu
+     &     ,DensityHematite, DensityQuartz, FreeFe, frHemaInQuarAggr,
+     &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2

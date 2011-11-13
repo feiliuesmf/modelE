@@ -302,14 +302,12 @@ c**** output
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       USE socpbl,ONLY : t_pbl_args
-      USE tracer_com,ONLY : Ntm_dust,trname,n_clay,n_clayilli
+      use tracer_com, only: Ntm_dust, trname
       use tracers_dust,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
      &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &     ,Mtrac
-#endif
-#ifdef TRACERS_QUARZHEM
-     &     ,FreeFe
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     , n_soildust
 #endif
 
       IMPLICIT NONE
@@ -320,7 +318,7 @@ c**** output
 
       REAL*8,INTENT(OUT) :: dsrcflx,dsrcflx2
 
-      INTEGER :: n1
+      integer :: n1
       REAL*8 :: vtrsh
       real(kind=8) :: d_dust(nAerocomDust)
       REAL*8 :: frtrac
@@ -328,7 +326,7 @@ c**** output
       REAL*8 :: frclay,frsilt
       real(kind=8) :: ers_data,dustSourceFunction,soilvtrsh,pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      REAL*8 :: minfr(Mtrac)
+      real(kind=8) :: mineralFractions( Ntm_dust )
 #endif
 
 c**** input
@@ -342,7 +340,7 @@ c**** input
       soilvtrsh=pbl_args%wtrsh
       pdfint=pbl_args%pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      minfr(:)=pbl_args%minfr(:)
+      mineralFractions( : ) = pbl_args%mineralFractions( : )
 #endif
 
 c**** initialize
@@ -374,40 +372,15 @@ c**** Interactive dust emission
           ELSE IF (imDust == 2) THEN
             frtrac=FSiWiCub*frsilt
           END IF
+        case default
+          return
         END SELECT
 
-#ifdef TRACERS_MINERALS
-        SELECT CASE(trname(n))
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
-          n1=n-n_clayilli+1
-        CASE ('Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
-          n1=n-n_clayilli+1
-        CASE ('Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps')
-          n1=n-n_clayilli-4
-        CASE ('Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
-          n1=n-n_clayilli-9
-        END SELECT
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+        frtrac = frtrac * mineralFractions( n - n_soildust + 1 )
 #endif
 
-        SELECT CASE(trname(n))
-#ifdef TRACERS_MINERALS
-        CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
-          frtrac=frtrac*minfr(n1)
-#ifdef TRACERS_QUARZHEM
-     &         -frtrac*MIN((1.D0-FreeFe)*minfr(9),minfr(n1))
-#endif
-#endif
-#ifdef TRACERS_QUARZHEM
-        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=frtrac*MIN((1.D0-FreeFe)*minfr(9),minfr(6))
-#endif
-#ifdef TRACERS_MINERALS
-        CASE DEFAULT
-          frtrac=frtrac*minfr(n1)
-#endif
-        END SELECT
-
-#else
+#else /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         SELECT CASE (n)
         CASE (1)
@@ -423,7 +396,7 @@ c**** Interactive dust emission
             frtrac=FSiWiCub*frsilt
           END IF
         END SELECT
-#endif
+#endif /* TRACERS_AMP || TRACERS_TOMAS */
 
 #endif
 
@@ -453,70 +426,27 @@ c**** prescribed AEROCOM dust emission
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 
-#ifdef TRACERS_DUST
-
         SELECT CASE(trname(n))
         CASE ('Clay','Silt1','Silt2','Silt3')
-          n1=n-n_clay+1
-          dsrcflx=d_dust(n1)
-        END SELECT
-
-#else
-#ifdef TRACERS_MINERALS
-      
-        SELECT CASE(trname(n))
+          dsrcflx = d_dust( n - n_soildust + 1 )
         CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
-          n1=n-n_clayilli+1
           dsrcflx=d_dust(1)
-        CASE ('Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps')
-          n1=n-n_clayilli+1
+        case( 'Sil1Quar', 'Sil1Feld', 'Sil1Calc', 'Sil1Hema', 'Sil1Gyps'
+     &         , 'Sil1QuHe' )
           dsrcflx=d_dust(2)
-        CASE ('Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps')
-          n1=n-n_clayilli-4
+        case( 'Sil2Quar', 'Sil2Feld', 'Sil2Calc', 'Sil2Hema', 'Sil2Gyps'
+     &         , 'Sil2QuHe' )
           dsrcflx=d_dust(3)
-        CASE ('Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps')
-          n1=n-n_clayilli-9
+       CASE( 'Sil3Quar', 'Sil3Feld', 'Sil3Calc', 'Sil3Hema', 'Sil3Gyps'
+     &         , 'Sil3QuHe')
           dsrcflx=d_dust(4)
         END SELECT
 
-#endif /* TRACERS_MINERALS */
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+        dsrcflx = dsrcflx * mineralFractions( n - n_soildust + 1 )
+#endif
 
-#ifdef TRACERS_QUARZHEM
-
-        SELECT CASE(trname(n))
-        CASE ('Sil1QuHe')
-          dsrcflx=d_dust(2)
-        CASE ('Sil2QuHe')
-          dsrcflx=d_dust(3)
-        CASE ('Sil3QuHe')
-          dsrcflx=d_dust(4)
-        END SELECT
-
-#endif /* TRACERS_QUARZHEM */
-
-        SELECT CASE(trname(n))
-#ifdef TRACERS_MINERALS
-        CASE ('Sil1Quar','Sil2Quar','Sil3Quar')
-          frtrac=minfr(n1)
-#ifdef TRACERS_QUARZHEM
-     &         -MIN((1.D0-FreeFe)*minfr(9),minfr(n1))
-#endif /* TRACERS_QUARZHEM */
-#endif /* TRACERS_MINERALS */
-#ifdef TRACERS_QUARZHEM
-        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          frtrac=MIN((1.D0-FreeFe)*minfr(9),minfr(6))
-#endif /* TRACERS_QUARZHEM */
-#ifdef TRACERS_MINERALS
-        CASE DEFAULT
-          frtrac=minfr(n1)
-#endif /* TRACERS_MINERALS */
-        END SELECT
-
-        dsrcflx=dsrcflx*frtrac
-
-#endif /* TRACERS_MINERALS || TRACERS_QUARZHEM */
-
-#else
+#else /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         dsrcflx=d_dust(n)
@@ -530,7 +460,8 @@ c**** prescribed AEROCOM dust emission
 
 #endif
             
-      RETURN
+      return
+
       END SUBROUTINE local_dust_emission
 
       SUBROUTINE polint3dlin(x1a,x2a,x3a,ya,m,n,lkm,x1,x2,x3,y,dy) 

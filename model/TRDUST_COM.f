@@ -10,7 +10,7 @@
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
-      use tracer_com, only: trname
+      use tracer_com, only: trname, ntm_dust
 
       IMPLICIT NONE
 
@@ -152,17 +152,33 @@ c**** additional declarations for dust tracers with mineralogical composition
 !@param Mtrac number of different fields with tracer fractions in grid box
 !@+           5 clay; 5 silt
       INTEGER,PARAMETER :: Mtrac=10
-!@param DenQuarz particle density of quartz
-!@param DenHema particle density of hematite
-      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
+!@param DensityQuartz  particle density of Quartz
+!@+            (measured; http://www.mindat.org/min-3337.html)
+      real(kind=8), parameter :: DensityQuartz = 2.655d3 ! 
+!@param DensityHematite  particle density of average of Hematite and Goethite
+!@+            (Hematite measured: 5.26d3; http://www.mindat.org/min-1856.html)
+!@+            (Goethite measured; 4.28d3; http://www.mindat.org/min-1719.html)
+      real(kind=8), parameter :: DensityHematite = 4.77d3
+!@dbparam brittleFactor  one-dimension array of size Mtrac with factors to
+!@+                      weight fractionation of minerals during emission
+      real(kind=8), dimension(Mtrac) :: brittleFactor = 1.d0
 #ifdef TRACERS_QUARZHEM
-!@dbparam FreeFe free iron to total iron (free+structural) ratio in minerals
-      REAL*8 :: FreeFe=0.5D0
-!@dbparam FrHeQu fraction of hematite in quartz/hematite aggregate
-      REAL*8 :: FrHeQu=0.1D0
+      REAL*8 :: FreeFe=0.5D0 ! not used anywhere in code, currently
+!@dbparam frHemaInQuarAggr fraction of hematite in quartz/hematite aggregate
+      real(kind=8) :: frHemaInQuarAggr = 0.1d0 ! arbitrary assumption
+!@dbparam purebyTotalHematite fraction of pure hematite minerals to all
+!@+                           hematite in minerals (pure + aggregate)
+      real(kind=8) :: pureByTotalHematite = 0.1d0 ! arbitrary assumption
+!@dbparam calcMineralAggrProb 1: calculate mineral aggregation probabilities
+!@+                           from mineral fractions in soil; 0: use
+!@+                           prescribed pureByTotalHematite
+      integer :: calcMineralAggrProb = 0
 #endif
-!@var minf distribution of tracer fractions in grid box
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: minfr
+!@var minfr distribution of mtrac mineral fractions in soils
+       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: minfr
+!@var mineralFractions distribution of mineral fractions in soils for each
+!@+   mineralogical soil dust tracer
+      real(kind=8), allocatable, dimension(:,:,:) :: mineralFractions
 #endif
 
 c**** Parameters for dust/mineral tracer specific diagnostics
@@ -170,21 +186,18 @@ c**** Parameters for dust/mineral tracer specific diagnostics
     (defined TRACERS_QUARZHEM)
 !@param nDustEmij index of dust emission in ijts_isrc
       INTEGER,PARAMETER :: nDustEmij=1
+!@param nDustEm2ij index of dust emission according to cubic scheme
+!@+                in ijts_isrc
+      INTEGER,PARAMETER :: nDustEm2ij=2
 !@param nDustTurbij index of dust dry turbulent deposition in ijts_isrc
       INTEGER,PARAMETER :: nDustTurbij=3  ! not used?
 !@param nDustEv1ij index of number of dust events below threshold wind
-!@param nDustEv1ij in ijts_spec
+!@+                in ijts_spec
 !@param nDustEv2ij index of number of dust events above threshold wind
-!@param nDustEv2ij in ijts_spec
+!@+                in ijts_spec
 !@param nDustWthij index of threshold velocity in ijts_spec
       INTEGER,PARAMETER :: nDustEv1ij=1,nDustEv2ij=2,nDustWthij=3
 #endif
-#ifdef TRACERS_DUST
-!@param nDustEm2ij index of dust emission according to cubic scheme
-!@param nDustEm2ij in ijts_isrc
-      INTEGER,PARAMETER :: nDustEm2ij=2
-#endif
-
 !@dbparam to_conc_soildust: For printout of 3D soil dust aerosol concentration
 !@+   in kg/m3
 !@+   to_conc_soildust = 0: printout is as defined by to_volume_MixRat
@@ -195,19 +208,17 @@ c**** Parameters for dust/mineral tracer specific diagnostics
     (defined TRACERS_QUARZHEM)
 !@param nDustEmjl index of dust emission in jls_source
       INTEGER,PARAMETER :: nDustEmjl=1
+!@param nDustEm2jl index of dust emission according to cubic scheme
+!@+                in jls_source
+      INTEGER,PARAMETER :: nDustEm2jl=2
 !@param nDustTurbjl index of dust dry turbulent deposition in jls_source
       INTEGER,PARAMETER :: nDustTurbjl=3
 !@param nDustEv1jl index of number of dust events below threshold wind
-!@param nDustEv1jl in jls_spec
+!@+                in jls_spec
 !@param nDustEv2jl index of number of dust events above threshold wind
-!@param nDustEv2jl in jls_spec
+!@+                in jls_spec
 !@param nDustWthjl index of threshold velocity in ijts_spec
       INTEGER,PARAMETER :: nDustEv1jl=1,nDustEv2jl=2,nDustWthjl=3
-#endif
-#ifdef TRACERS_DUST
-!@param nDustEm2jl index of dust emission according to cubic scheme
-!@param nDustEm2jl in jls_source
-      INTEGER,PARAMETER :: nDustEm2jl=2
 #endif
 
 c**** Variables for specific subdaily soil dust aerosol diagnostics
@@ -280,12 +291,18 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,JDperY),
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     minfr(i_0h:i_1h,j_0h:j_1h,Mtrac),
+     &     mineralFractions( i_0h:i_1h, j_0h:j_1h, ntm_dust ),
 #endif
      &     STAT=ier)
 
       ALLOCATE(table(Lim,Ljm,Lkm),STAT=ier)
 
       d_dust(i_0h:i_1h,j_0h:j_1h,:,:)=0.D0
+
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      minfr( i_0h:i_1h, j_0h:j_1h, : ) = 0.d0
+      mineralFractions( i_0h:i_1h, j_0h:j_1h, : ) = 0.d0
+#endif
 
       allocate(dustDiagSubdd_acc%dustEmission(i_0h:i_1h,j_0h:j_1h
      &     ,Ntm_dust))

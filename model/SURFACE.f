@@ -150,13 +150,10 @@ C****
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-     &     ,pprec,pevap,dust_flux_glob
+     &     ,pprec,pevap,dust_flux_glob,dust_flux2_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
 #endif
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP) 
-     &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc

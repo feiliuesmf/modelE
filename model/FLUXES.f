@@ -894,12 +894,9 @@ C**** fluxes associated with variable lake fractions
 !@var dust_flux_glob global array of dust emission flux [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux_glob
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) 
 !@var dust_flux2_glob global array of cubic dust emission flux (for diags only)
 !@+   [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux2_glob
-#endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
