@@ -150,7 +150,7 @@ c**** input
         REAL(KIND=8) :: mcfrac
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !@var pbl_args%minfr distribution of tracer fractions in grid box
-        REAL*8 :: minfr(Mtrac)
+        real(kind=8) :: mineralFractions( Ntm_dust )
 #endif
 c**** output
 !@var pbl_args%pdfint integral of dust emission probability density function

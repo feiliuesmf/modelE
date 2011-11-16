@@ -1164,12 +1164,8 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : nDustEmjl,nDustEv1jl,nDustEv2jl,nDustWthjl
-     &   ,imDust
-#endif
-#ifdef TRACERS_DUST
-      USE tracers_dust,only:
-     &   nDustEm2jl
+      use tracers_dust, only: nDustEmjl, nDustEm2jl, nDustEv1jl,
+     &   nDustEv2jl, nDustWthjl, imDust
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
@@ -2479,7 +2475,6 @@ c gravitational settling
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
-#ifdef TRACERS_DUST
         IF (imDust == 0) THEN
           k=k+1
           jls_isrc(nDustEm2jl,n)=k
@@ -2489,7 +2484,6 @@ c gravitational settling
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
         END IF
-#endif
 #ifndef TRACERS_DRYDEP
         k=k+1
           jls_isrc(nDustTurbjl,n)=k
@@ -2821,17 +2815,11 @@ c Oxidants
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#ifdef TRACERS_DUST
-      USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
-     &   ,imDust
-     &   ,nDustEm2ij
-#else
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
-     &   ,imDust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      use tracers_dust, only: nDustEmij, nDustEm2ij, nDustEv1ij
+     &   ,nDustEv2ij, nDustWthij, imDust
 #endif
-#endif
-
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
@@ -4843,7 +4831,6 @@ c SS clear sky longwave surface radiative forcing
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef TRACERS_DUST
         IF (imDust == 0) THEN
         k=k+1
         ijts_isrc(nDustEm2ij,n)=k
@@ -4854,7 +4841,6 @@ c SS clear sky longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         END IF
-#endif
 #ifndef TRACERS_DRYDEP
       k=k+1
         ijts_isrc(nDustTurbij,n)=k

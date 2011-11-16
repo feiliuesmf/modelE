@@ -67,12 +67,9 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : nDustEmij,nDustEmjl
+      USE tracers_dust,ONLY : nDustEmij,nDustEm2ij,nDustEmjl,nDustEm2jl
      &     ,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
-#endif
-#ifdef TRACERS_DUST
-     &     ,nDustEm2ij,nDustEm2jl
 #endif
       use fluxes, only : trsource,trsrfflx
 #ifdef TRACERS_WATER
@@ -221,7 +218,7 @@ ccc extra stuff which was present in "earth" by default
       use tracers_dust,only : nAerocomDust,d_dust,ers_data,hbaij,ricntd
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &     ,minfr
+     &     ,mineralFractions
 #endif
 #endif
 #ifdef TRACERS_WATER
@@ -364,7 +361,7 @@ c**** prescribed dust emission
      &     /Sday/axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      pbl_args%minfr(:)=minfr(i,j,:)
+      pbl_args%mineralFractions(:)=mineralFractions(i,j,:)
 #endif
 
       end subroutine ghy_tracers_set_cell

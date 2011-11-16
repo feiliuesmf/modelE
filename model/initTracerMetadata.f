@@ -36,7 +36,8 @@
      &   ,fracSiltPDFscheme
 #endif
 #ifdef TRACERS_QUARZHEM
-     &   ,DenHema,DenQuarz,FreeFe,FrHeQu
+     &     ,DensityHematite, DensityQuartz, FreeFe, frHemaInQuarAggr,
+     &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
@@ -337,8 +338,8 @@ C**** decide on AEROCOM or interactive emissions
       call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
 #endif
 #ifdef TRACERS_QUARZHEM
-      CALL sync_param('FreeFe',FreeFe)
-      CALL sync_param('FrHeQu',FrHeQu)
+      call sync_param( 'frHemaInQuarAggr', frHemaInQuarAggr )
+      call sync_param( 'pureByTotalHematite', pureByTotalHematite )
 #endif
 
 #if (defined TRACERS_COSMO)
@@ -1375,7 +1376,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('ClayIlli')          ! http://webmineral.com/data/Illite.shtml
       n_clayilli=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.61D3)
+          call set_trpdens(n, 2.795d3) ! measured; http://www.mindat.org/min-2011.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -1388,7 +1389,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('ClayKaol')       ! http://www.webmineral.com/data/Kaolinite.shtml
       n_claykaol=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.63D3)
+          call set_trpdens(n, 2.63d3) ! calculated; http://www.mindat.org/min-2011.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -1414,7 +1415,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('ClayCalc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_claycalc=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71D3)
+          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -1427,7 +1428,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('ClayQuar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_clayquar=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenQuarz)   ! 2.62D3
+          call set_trpdens(n, DensityQuartz)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 0.46D-06)
 #endif
@@ -1440,7 +1441,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil1Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil1quar=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenQuarz)   ! 2.62D3
+          call set_trpdens(n, DensityQuartz)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1450,10 +1451,10 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
-      CASE('Sil1Feld')       ! http://www.mindat.org/min-1624.html
+      CASE('Sil1Feld')       ! http://webmineral.com/data/Plagioclase.shtml
       n_sil1feld=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
+          call set_trpdens(n, 2.68d3) ! average Plagioclase
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1466,7 +1467,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil1Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil1calc=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71D3)
+          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1479,7 +1480,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil1Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil1hema=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenHema)    ! 5.3D3
+          call set_trpdens(n, DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1492,7 +1493,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil1Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil1gyps=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.3D3)
+          call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1505,7 +1506,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil2Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil2quar=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenQuarz)   ! 2.62D3
+          call set_trpdens(n, DensityQuartz)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1515,10 +1516,10 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
-      CASE('Sil2Feld')       ! http://www.mindat.org/min-1624.html
+      CASE('Sil2Feld')       ! http://webmineral.com/data/Plagioclase.shtml
       n_sil2feld=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
+          call set_trpdens(n, 2.68d3) ! average Plagioclase
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1531,7 +1532,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil2Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil2calc=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71D3)
+          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1544,7 +1545,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil2Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil2hema=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenHema)    ! 5.3D3
+          call set_trpdens(n, DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1557,7 +1558,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil2Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil2gyps=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.3D3)
+          call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1570,7 +1571,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil3Quar')       ! http://www.webmineral.com/data/Quartz.shtml
       n_sil3quar=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenQuarz)   ! 2.62D3
+          call set_trpdens(n, DensityQuartz)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif
@@ -1580,10 +1581,10 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
           call set_tr_mm(n, 1.d+0)
           call set_isdust(n, 1)
 
-      CASE('Sil3Feld')       ! http://www.mindat.org/min-1624.html
+      CASE('Sil3Feld')       ! http://webmineral.com/data/Plagioclase.shtml
       n_sil3feld=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.65D3)     ! assumed, varies strongly among types
+          call set_trpdens(n, 2.68d3) ! average Plagioclase
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif
@@ -1596,7 +1597,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil3Calc')       ! http://www.webmineral.com/data/Calcite.shtml
       n_sil3calc=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71D3)
+          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif
@@ -1609,7 +1610,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil3Hema')       ! http://www.webmineral.com/data/Hematite.shtml
       n_sil3hema=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, DenHema)    ! 5.3D3
+          call set_trpdens(n, DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif
@@ -1622,7 +1623,7 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil3Gyps')       ! http://www.webmineral.com/data/Gypsum.shtml
       n_sil3gyps=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.3D3)
+          call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif
@@ -1637,7 +1638,8 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil1QuHe')
       n_sil1quhe=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
+          call set_trpdens(n, (1.d0 - frHemaInQuarAggr) * DensityQuartz
+     &         + frHemaInQuarAggr * DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 1.47D-06)
 #endif
@@ -1650,7 +1652,8 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil2QuHe')
       n_sil2quhe=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
+          call set_trpdens(n, (1.d0 - frHemaInQuarAggr) * DensityQuartz
+     &         + frHemaInQuarAggr * DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 2.94D-06)
 #endif
@@ -1663,7 +1666,8 @@ c         call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       CASE('Sil3QuHe')
       n_sil3quhe=n
           call set_ntm_power(n, -9)
-          call set_trpdens(n, (1-FrHeQu)*DenQuarz+FrHeQu*DenHema)
+          call set_trpdens(n, (1.d0 - frHemaInQuarAggr) * DensityQuartz
+     &         + frHemaInQuarAggr * DensityHematite)
 #ifdef TRACERS_DRYDEP
           call set_trradius(n, 5.88D-06)
 #endif

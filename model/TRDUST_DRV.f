@@ -44,6 +44,8 @@
 
       implicit none
 
+      include 'netcdf.inc'
+
       integer :: i_0,i_1,j_0,j_1
 
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
@@ -98,6 +100,11 @@ c**** insert to_conc_soildust into to_conc
 #endif
 #endif
 
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      call sync_param( 'brittleFactor', brittleFactor, Mtrac )
+      call sync_param( 'calcMineralAggrProb', calcMineralAggrProb )
+#endif
+
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
       return
       end subroutine init_soildust
@@ -113,9 +120,7 @@ c tracer_ic_soildust
 
       IMPLICIT NONE
 
-      INCLUDE 'netcdf.inc'
-
-      integer :: i,ierr,j,io_data,k,ires
+      integer :: i,ierr,j,io_data,k,ires,m
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
       REAL*8 :: zsum,tabsum
@@ -261,6 +266,7 @@ c**** Read input: source function data
 
         ires = 1 ! default
 c**** set parameters depending on the preferred sources chosen
+        ires = 0
         select case(prefDustSources)
         case(0)                 ! Ginoux 2001 sources w/ vegetation mask
           select case(im)
@@ -568,7 +574,7 @@ c**** set parameters depending on the preferred sources chosen
      &         ,fracClayPDFscheme
           write(6,'(1x,a28,f12.9)') '  Silt: fracSiltPDFscheme = '
      &         ,fracSiltPDFscheme
-          if (prefDustSources <= numDustSourceOpt-1) then
+          if (prefDustSources <= numDustSourceOpt-1 .and. ires > 0) then
             write(6,*) '  For prefDustSources =',prefDustSources,','
             write(6,*) '  these parameters are the optimized values for'
             write(6,*) '  following file with preferred dust sources:'
@@ -635,13 +641,20 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
       END IF
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-        CALL openunit('MINFR',io_data,.TRUE.,.TRUE.)
-        CALL dread_parallel(grid,io_data,nameunit(io_data),minfr)
-        CALL closeunit(io_data)
-#endif
+!     read mineral fractions from input file
+      call read_minfr_claquin1999_netcdf
+
+!     apply mineral dependent brittle factor to mineral fractions
+      do m = 1,mtrac
+        minfr( i_0:i_1, j_0:j_1, m ) = brittleFactor( m ) * minfr(
+     &       i_0:i_1, j_0:j_1, m )
+      end do
+      call fraction_of_mineral_claquin1999
+#endif /* TRACERS_MINERAL || TRACERS_QUARZHEM */
 
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM || TRACERS_AMP || TRACERS_TOMAS*/
       RETURN
+
       end subroutine tracer_ic_soildust
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -917,5 +930,342 @@ c accSubddDust
       return
       end subroutine accSubddDust
 #endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
+
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+c read_minfr_claquin1999_netcdf
+      subroutine read_minfr_claquin1999_netcdf
+!@sum read_minfr_claquin1999_netcdf  reads mineral fractions in soil from file
+!@+                                  according to Claquin et al. JGR, 1999 data
+!@auth jan perlwitz
+
+      implicit none
+
+      logical, dimension(Mtrac) :: qminfr = .false.
+
+      integer :: m, n, ncid
+      integer :: count(2), start(2)
+      integer, dimension(mtrac) :: min_index, varid
+      real(kind=8), dimension( grid%i_strt:grid%i_stop,
+     &                 grid%j_strt:grid%j_stop ) :: work ! no halo
+
+      call get( grid, j_strt=j_0, j_stop=j_1, i_strt=i_0, i_stop=i_1 )
+
+      call write_parallel( 'Read from file MINFR', unit=6 )
+
+      call check_netcdf( nf_open( 'MINFR', ncnowrit, ncid ),
+     &     'nf_open called from read_minfr_claquin1999_netcdf ' //
+     &     'in TRDUST_DRV.f' )
+
+      start( 1 ) = i_0
+      start( 2 ) = j_0
+
+      count( 1 ) = 1 + ( i_1 - i_0 )
+      count( 2 ) = 1 + ( j_1 - j_0 )
+
+      m = 0
+      do n = 1,Ntm_dust
+
+        select case ( dust_names( n ) )
+
+#ifdef TRACERS_MINERALS
+        case( "ClayIlli" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralClayIllite',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 1
+          qminfr( min_index( m ) ) = .true.
+
+        case( "ClayKaol" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralClayKaolinite'
+     &         , varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 2
+          qminfr( min_index( m ) ) = .true.
+
+        case( "ClaySmec" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralClaySmectite'
+     &         , varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 3
+          qminfr( min_index( m ) ) = .true.
+
+        case( "ClayCalc" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralClayCalcite',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 4
+          qminfr( min_index( m ) ) = .true.
+
+        case( "ClayQuar" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralClayQuartz',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 5
+          qminfr( min_index( m ) ) = .true.
+
+        case( "Sil1Quar" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltQuartz',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 6
+          qminfr( min_index( m ) ) = .true.
+
+        case( "Sil1Feld" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltFeldspar',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 7
+          qminfr( min_index( m ) ) = .true.
+
+        case( "Sil1Calc" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltCalcite',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 8
+          qminfr( min_index( m ) ) = .true.
+
+        case( "Sil1Hema" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltHematite',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 9
+          qminfr( min_index( m ) ) = .true.
+
+        case( "Sil1Gyps" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltGypsum',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 10
+          qminfr( min_index( m ) ) = .true.
+
+#else /* TRACERS_MINERALS */
+#ifdef TRACERS_QUARZHEM
+        case( "Sil1QuHe" )
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltQuartz',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 6
+          qminfr( min_index( m ) ) = .true.
+          m = m + 1
+          call check_netcdf( nf_inq_varid ( ncid, 'mineralSiltHematite',
+     &         varid( m ) ), 'nf_inq_varid called from ' //
+     &         'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+          min_index( m ) = 9
+          qminfr( min_index( m ) ) = .true.
+#endif /* TRACERS_QUARZHEM */
+#endif
+
+        end select
+
+      end do                    ! Ntm_dust
+
+
+      do m = 1,mtrac
+
+        if ( .not. qminfr( min_index ( m ) ) ) cycle
+
+        call check_netcdf( nf_get_vara_double ( ncid, varid ( m ), start
+     &       , count, work ), 'nf_get_vara_double called from ' //
+     &       'read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+        minfr( i_0:i_1, j_0:j_1, min_index( m ) ) = max( work( i_0:i_1,
+     &       j_0:j_1 ), 0.d0 )
+
+      end do
+
+      call check_netcdf( nf_close( ncid ), 'nf_close called ' //
+     &     'from read_minfr_claquin1999_netcdf in TRDUST_DRV.f' )
+
+      return
+      end subroutine read_minfr_claquin1999_netcdf
+
+c fraction_of_mineral_claquin1999
+      subroutine fraction_of_mineral_claquin1999
+!@sum fraction of mineral  determines fraction of each mineral for each bin
+!@+                        from input mineral fractions of clay and silt
+!@+                        based on data provided by Claquin et al., JGR 1999.
+!@auth jan perlwitz
+
+      implicit none
+
+      integer :: i, j, m, n, n1
+      real(kind=8) :: fac2, fac3, summinfr, y
+      real(kind=8), dimension( grid%i_strt:grid%i_stop,
+     &     grid%j_strt:grid%j_stop, ntm_dust ) :: work
+      real(kind=8), dimension( grid%i_strt:grid%i_stop,
+     &     grid%j_strt:grid%j_stop ) :: fac1
+!@var hematiteAggrProb probability of iron oxide in aggregate with other mineral
+      real(kind=8), dimension( grid%i_strt:grid%i_stop,
+     &     grid%j_strt:grid%j_stop, Mtrac ) :: hematiteAggrProb
+
+c**** Treatment of Quartz, iron oxide mineral (Hematite), and internally
+c**** mixed Quartz-Hematite aggregates in grid box, when aggregates are
+c**** switched on:
+c**** 1. a) pureByTotalHematite - prescribed initial fraction of
+c****       Hematite that stays a pure mineral relative to all Hematite
+c****       (pure plus aggregating with Quartz).
+c****    b) pureByTotalHematite - calculated as function of aggregation
+c****       probability depending on mineral fractions in soil;
+c****       probability of Hematite-other mineral aggegrate = (1 -
+c****       fraction of Hematite) * fraction of other mineral.
+c**** 2. frHemaInQuarAggr - prescribes the ratio of Hematite mass in
+c****    internally mixed aggregate to total Quartz-Hematite aggregate
+c****    mass.
+c**** 3. pure Quartz fraction equals initial Quartz fraction minus
+c****    fraction of the available Quartz fraction that goes into
+c****    aggregates. The Quartz fraction needed for aggregate formation
+c****    increases with decreasing parameter frHemaInQuarAggr,
+c****    decreasing the pure Quartz fraction.
+c**** 4. pure Hematite fraction equals prescribed initial pure Hematite
+c****    fraction plus Hematite fraction that is not forming aggregates
+c****    anymore, after the available Quartz fraction has been
+c****    exhausted.
+c**** 5. the fraction of internally mixed Quartz-Hematite aggregates
+c****    depends on the fraction of Hematite that is allowed to form
+c****    aggregates and the available Quartz fraction. It can't be
+c****    larger than the initial Quartz fraction plus the available
+c****    Hematite fraction mixed in according to parameter
+c****    frHemaInQuarAggr.
+
+      if (  calcMineralAggrProb == 1 ) then
+        hematiteAggrProb = 0.d0
+! loop over silt mineral fractions
+        m = 5
+        do while ( m < Mtrac )
+          m = m + 1
+          if ( m == 9 ) cycle ! skip Hematite
+          do j = j_0,j_1
+            do i = i_0,i_1
+! Although the original fractions of the minerals in soil add up to 1,
+! this is not the case anymore, if the fractions are weighted, e.g., by
+! multiplying with a brittle factor, to account for different
+! fractionating of the minerals during emission. Therefore the fractions
+! are renormalized to 1 using summinfr for calculating the aggregation
+! probabilities.
+              summinfr = sum( minfr( i, j, 6:mtrac ) ) + tiny( sum(
+     &             minfr( i, j, 6:mtrac ) ) )
+              hematiteAggrProb( i, j, m ) = (1.d0 - minfr( i, j, 9 ) /
+     &             summinfr) * minfr( i, j, m ) / summinfr
+            end do
+          end do
+        end do
+! Since Quartz-iron oxide is currently the only aggregate, all
+! aggregation probabilities are lumped together as probability of
+! Quartz-iron oxide formation.
+        fac1( i_0:i_1, j_0:j_1 ) = sum( hematiteAggrProb( i_0:i_1,
+     &       j_0:j_1, 6:mtrac), dim=3 )
+      else
+        fac1 = 1.d0 - pureByTotalHematite
+      end if
+
+      fac2 = 1.d0 / (frHemaInQuarAggr + tiny( frHemaInQuarAggr ))
+      y = 1.d0 - frHemaInQuarAggr
+      fac3 = 1.d0 / (y + tiny( y ))
+
+      do n = 1,ntm_dust
+
+        select case( dust_names( n ) )
+
+        case( 'ClayIlli', 'ClayKaol', 'ClaySmec', 'ClayCalc', 'ClayQuar'
+     &       , 'Sil1Quar', 'Sil1Feld', 'Sil1Calc', 'Sil1Hema',
+     &       'Sil1Gyps')
+          n1 = n
+        case( 'Sil2Quar', 'Sil2Feld', 'Sil2Calc', 'Sil2Hema',
+     &         'Sil2Gyps')
+          n1 = n - 5
+        case( 'Sil3Quar', 'Sil3Feld', 'Sil3Calc', 'Sil3Hema',
+     &         'Sil3Gyps')
+          n1 = n - 10
+
+        end select
+
+        select case( dust_names( n ) )
+
+#ifdef TRACERS_MINERALS
+        case ( 'Sil1Quar', 'Sil2Quar', 'Sil3Quar' )
+          do j = j_0,j_1
+            do i = i_0,i_1
+! initial Quartz fraction
+              work( i, j, n ) = minfr( i, j, n1 )
+#ifdef TRACERS_QUARZHEM
+! calculate the pure Quartz fraction from initial Quartz fraction minus
+! the fraction used for Quartz-Hematite aggregates up to the exhaustion
+! of available Quartz
+     &             - min( fac1( i, j ) * minfr ( i, j, 9 ) * (fac2 -
+     &             1.d0), minfr( i, j, n1 ) )
+#endif
+            end do
+          end do
+#ifdef TRACERS_QUARZHEM
+        case ( 'Sil1Hema', 'Sil2Hema', 'Sil3Hema' )
+! calculate the pure Hematite fraction as sum of non-aggregated Hematite
+! plus leftover Hematite after exhaustion of Quartz available for
+! aggregation with Hematite
+          do j = j_0,j_1
+            do i = i_0,i_1
+              work( i, j, n ) = (1.d0 - fac1( i, j )) * minfr( i, j, n1
+     &             ) + max( fac1( i, j ) * minfr( i, j, n1 ) - minfr( i,
+     &             j, 6 ) * fac3 / fac2, 0.d0 )
+            end do
+          end do
+#endif
+#endif
+#ifdef TRACERS_QUARZHEM
+        case ( 'Sil1QuHe', 'Sil2QuHe', 'Sil3QuHe' )
+! calculate the fraction of Quartz-Hematite aggregates from the Hematite
+! fraction up to the exhaustion of available Quartz
+          do j = j_0,j_1
+            do i = i_0,i_1
+              work( i, j, n ) = min( fac1( i, j ) * minfr( i, j, 9 ) *
+     &             fac2, minfr( i, j, 6 ) * fac3 )
+            end do
+          end do
+#endif
+#ifdef TRACERS_MINERALS
+        case default
+! non-aggegrated minerals
+          work( i_0:i_1, j_0:j_1, n ) = minfr( i_0:i_1, j_0:j_1, n1 )
+#endif
+
+        end select
+
+        mineralFractions( i_0:i_1, j_0:j_1, n ) = work( i_0:i_1, j_0:j_1
+     &       , n )
+
+      end do
+
+      return
+      end subroutine fraction_of_mineral_claquin1999
+#endif /*  TRACERS_MINERALS || TRACERS_QUARZHEM */
+
+      subroutine check_netcdf( status, infostring )
+!@sum check_netcdf  checks for netcdf error messages
+!@auth jan perlwitz
+
+      implicit none
+
+      integer, intent(in) :: status
+      character(len=*), intent(in) :: infostring
+
+      character(len=256) :: outstring
+
+      if( status /= nf_noerr ) then
+        outstring = trim( nf_strerror( status ) ) // ' in ' // trim(
+     &       infostring )
+        call stop_model( trim( outstring ), 255 )
+      end if
+
+      return
+      end subroutine check_netcdf
 
       end module trdust_drv

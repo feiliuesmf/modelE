@@ -919,7 +919,8 @@ C****
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
-              IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or. ITYPE.ne.ITYPE_LANDICE) THEN
+              IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or.
+     &        ITYPE.ne.ITYPE_LANDICE) THEN
                 TEVAP=EVAP*trgrnd(nx)
               ELSE ! special treatment for landice when EVAP>SNOW>SNMIN
                 TEVAP=SNOW*(trgrnd(nx)-trgrnd2(nx))+EVAP*trgrnd2(nx)

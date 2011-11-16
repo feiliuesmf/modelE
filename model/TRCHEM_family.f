@@ -201,7 +201,8 @@ C ------------ Troposphere ------------
 c First calculate equilibrium amount of HOx:
 c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
-c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
+c C: prod equations
+c all: in terms of HO2 (so *pHOx when OH is reactant)
 
        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
@@ -223,7 +224,7 @@ c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
      & rsulf2(i,j,l)*ydms(i,j,l))
 
        cqqz=(2.d0*(ss(4,L,I,J)*y(n_H2O2,L))+ss(9,L,I,J)*y(n_HNO3,L)+
-     & 2.d0*(ss(13,L,I,J)*y(n_HCHO,L))+ss(14,L,I,J)*y(n_CH3OOH,L)+
+     & 2.d0*(ss(13,L,I,J)*y(n_HCHO,L))+2.d0*ss(14,L,I,J)*y(n_CH3OOH,L)+
      & (rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
      & *yCH3O2(I,J,L))
 
@@ -289,9 +290,10 @@ c---->   warning: OH caps follow   <----
 C ------------ Stratosphere ------------
       do L=maxl+1,lmax
 c First calculate equilibrium amount of HOx:
-c A: loss rxns with HOx**2,
-c B: loss rxns linear in HOx,
-c C: prod equations in terms of HO2 (so *pHOx when OH is reactant):
+c A: loss rxns with HOx**2
+c B: loss rxns linear in HOx
+c C: prod equations
+c all: in terms of HO2 (so *pHOx when OH is reactant)
 
        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
