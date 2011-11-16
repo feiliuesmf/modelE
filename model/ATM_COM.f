@@ -77,9 +77,9 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
 !@var  PK   PMID**KAPA
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
-!@var  PEUP  Pressure at lower edge of box (incl. surface) (mb)
+!@var  PEDN  Pressure at lower edge of box (incl. surface) (mb)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
-!@var  PEK  PEUP**KAPA
+!@var  PEK  PEDN**KAPA
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
 !@var  SQRTP  square root of P (used in diagnostics)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTP

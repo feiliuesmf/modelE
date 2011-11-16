@@ -65,7 +65,8 @@ C****
      &     ,xk,nbins,IDTSO4,IDTECIL
 #endif
 #endif
-      USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
+      ! USE PBLCOM, only : tsavg,dclev   ! Not used
+      USE PBLCOM, only : eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
@@ -200,6 +201,8 @@ C****
      *       NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &       GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     TGRND,TGRN2,TGR4
+
+    !@var E1 net energy flux at layer 1 (from FLUXES.f)
       REAL*8, intent(inout), DIMENSION(
      &       GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &       GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) :: E1
@@ -207,7 +210,9 @@ C****
 ! ================ VARIABLE DECLARATIONS ======================
       INTEGER I,J,K,KR,JR,NSTEPS,ITYPE,IH,IHM,IDTYPE
      *     ,ii
-      REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
+      REAL*8 PLAND,PLICE,POICE,POCEAN
+c      REAL*8 PIJ      ! Not Used!
+      REAL*8 PS,P1K
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
@@ -223,11 +228,18 @@ C****
       REAL*8 MA1, MSI1
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8, PARAMETER :: Z2LI3L=Z2LI/(3.*ALAMI0), Z1LIBYL=Z1E/ALAMI0
-      REAL*8 QSAT,DQSATDT,TR4
+      REAL*8, EXTERNAL :: QSAT
+      REAL*8 DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0,
+      real*8 qg_sat,dtsurf,qsrf,us,vs,ws,ws0,
      &     dmua_ij,dmva_ij
+
+      ! This is for making a correction to the surface wind stress
+      ! (which is proportional to |u_air - u_ocean|, or  | u_air - u_seaice |)
+      ! For land ice, the difference in magnitudes makes the correction negligible.
+      ! Hence, we will have always uocean == vocean == 0
+      real*8 uocean, vocean
 c      logical pole
 c
       logical :: lim_lake_evap,lim_dew ! for tracer convenience
@@ -451,25 +463,75 @@ C**** DETERMINE SURFACE CONDITIONS
 C****
       PLAND=FLAND(I,J)
       PWATER=1.-PLAND
-C     RSI   RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+
+      ! RSI = RATIO OF OCEAN ICE COVERAGE TO WATER COVERAGE (1)
+      ! POICE = Percentage of grid box that's sea ice
       POICE=RSI(I,J)*PWATER
+      ! POCEAN = Percentage of grid box that's open ocean
       POCEAN=PWATER-POICE
+
 C     Not Used.  P == pressure?
-      PIJ=P(I,J)
-c     ./model/ATMDYN_COM.f:!@var PEDN edge pressure (top of box) (mb)
+!      PIJ=P(I,J)
+
+      ! PS = Pressure at Surface
+      ! PEDN = Pressure at lower edge of box (incl. surface) (mb)  (ATM_COM.f)
       PS=PEDN(1,I,J)
-c !@var  PEK  PEDN**KAPA
+
+      ! PEK = PEDN**KAPA
+      ! kapa = ideal gas law exponent for dry air (.2862)
+      ! kapa = (g-1)/g where g = 1.401 = c_p/c_v
+      !     [or: kapa = (c_p - c_v) / c_p ]
+      ! g (or srat) = c_p/c_v = ratio of specific heats at const. press. and vol. (=1.401)
       PSK=PEK(1,I,J)
-c !@var  PK   PMID**KAPA
+
+      ! PK = PMID**KAPA
+      ! PMID  Pressure at mid point of box (mb)
+      ! kapa = ideal gas law exponent for dry air (.2862)
       P1K=PK(1,I,J)
-C !@var Q specific humidity (kg water vapor/kg air)
+
+      ! Q = specific humidity (kg water vapor/kg air)
+      !     (This is the same as mixing ratio)
+      ! Q1 = Specific humidity of the bottom atmosphere layer
+      ! TODO: This needs to be adjusted for downscaling
       Q1=Q(I,J,1)
-C T=Temperature
 
+      ! T(I,J,Z) = Dry Potential Temperature (theta) referenced to 1 millibar
+      ! Actual Temperature temp = T*pk = T * [(p/p0)**(R/cp)]
+      !      (p = pressure, p0 = 1 millibar,
+      !       R is gas constant of air (NOT the Universal Gas Constant),
+      !       cp is specific heat capacity at constant pressure.) 
+      ! See: http://en.wikipedia.org/wiki/Potential_temperature
+      !      http://en.wikipedia.org/wiki/Gas_constant
+      ! If T is a temperature, then virtual temperature VT can be approximated with:
+      !      VT = T * (1 + Q*epsilon)
+      !      where epsilon = R_d/R_v = M_v/M_d ~= .622 in Earth's Atmosphere
+      !      R_d = gas constant for air; R_v = gas constant for water vapor
+      ! THV1 = Virtual Potential Temperature.
+      ! deltx = epsilon = coeff. of humidity in virtual temperature defn. (0.6078)
+      ! xdelt = deltx (or 0, if we want to define PBL code to take and receive
+      !     actual temperatures to the external workd).
+      ! Note from Max Kelley:
+      ! 	Virtual potential temperature is for computing the static stability of
+      ! 	the atmosphere (usually for turbulence parameterizations).  My
+      ! 	understanding is that the new code to be introduced for downscaling
+      ! 	probably does not need to re-compute any turbulence-related quantities
+      ! 	differently than the model is already doing.  So just compute the
+      ! 	virtual temperature passed to the PBL using co-located T and Q,
+      ! 	getting Q for the height classes with the same interpolation used for
+      ! 	T I guess.
+      !
+      ! 	But keep in mind that virtual temperature effects are negligible in
+      ! 	"cold" regions of the globe, and that the parameter xdelt is actually
+      ! 	set to zero these days (virtual temp. effects on buoyancy are
+      ! 	considered only _within_ the PBL code).
+      ! TODO: THV1 needs to get downscaled for topography
       THV1=T(I,J,1)*(1.+Q1*xdelt)
-      JR=JREG(I,J)  !@var JREG lat/lon array defining regions for AREG diagnostics
-      MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 
+      ! int JREG = lat/lon array defining regions for AREG diagnostics
+      JR=JREG(I,J)
+
+      ! MA1 = mass of lowest atmospheric layer (kg/m^2)
+      MA1=AM(1,I,J)
 
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
@@ -521,16 +583,56 @@ C****
       PTYPE=PLICE
       IF (PTYPE.gt.0) THEN
           IDTYPE=ITLANDI
+          ! snow amount on land ice (kg/m^2)
           SNOW=SNOWLI(I,J)
+          ! Temperature of top ice layer (C)
           TG1=TGRND(3,I,J)
+          ! Temperature of second ice layer
           TG2=atmgla%GTEMP2(I,J)
+
+          ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
+          ! (Needed for Stefan-Boltzmann Law)
+          ! GTEMPR radiative ground temperature over surface type (K)
           TR4=TGR4(3,I,J)
+
+          ! SRHEAT = Solar Heating
+          ! FSF = Solar Forcing over each type (W/m^2)
+          ! FSF = net absorption (for cosZ = 1)
+          ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
           SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
+
+
+          ! Z1E = Thickness of top landice layer (.1m const)
+          ! ALAMI0 = Lambda coefficient for ice J/(m*degC*sec) = W/(m K) (2.11 const)
+          !     (Lambda is thermal conductivity)
+          ! Z1LIBYL = "Z1 Land Ice by Lambda" = Z1E / ALAMI0
+          ! SNOW = snow amount on land ice (kg/m^2)
+          !                                          +---- m -------+
+          !                   m     J/(m*degC*sec)   kg/m^2    kg/m^3   J/(m*degC*sec)
+          ! Z1BY6L = 1/6 * [(Z1E / ALAMI0)          + ((SNOW / RHOS)   /   ALAMS)]
+          ! Z1BY6L units = (m^2 * degC * sec) / J
+          ! Z1BY6L = "Z1 by 6 Lambda"
           Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
+
+          ! TG2 = Temperature of second ice layer
           CDTERM=TG2
+
+          ! Z2LI = Thickness of second layer of ice (2.9m)
+          ! Z2LI3L = "Z2LI by 3 Lambda" = 1/3 (Z2LI / ALAMI0)
+          ! Z2LI3L=Z2LI/(3.*ALAMI0)
+          ! 2 * Z1BY6L = "Z1 by 3 Lambda"
+          ! CDENOM = 3 Lambda(ice) / (Z1 + Z2 = 3m)
           CDENOM=1./(2.*Z1BY6L+Z2LI3L)
+
+          ! HC1LI = heat capacity of first layer land ice (J/m^2)
+          ! SNOW = snow amount on land ice (kg/m^2)
+          ! SHI = heat capacity of pure ice (at 0 C) (2060 J/kg C)
+          ! SNOW*SHI = Heat capacity of snow layer (J/m^2)
           HCG1=HC1LI+SNOW*SHI
+
+          ! LHS = latent heat of sublimation at 0 C (J/kg)
           ELHX=LHS
+
           uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
               do nx=1,ntx
@@ -554,17 +656,24 @@ C****
       TRHDT=0.
       F1DT=0.
 
+      ! TG = Temperature of top ice layer (K)
+      ! TF = freezing point of water at 1 atm (273.16 K)
       TG=TG1+TF
+
+      ! LHS = latent heat of sublimation at 0 C (J/kg)
+      ! QG_SAT = Saturation vapor mixing ratio (kg vapor / kg air in a given volume)
+      ! PS = Pressure (TODO: Must change with height classes)
       QG_SAT=QSAT(TG,ELHX,PS)
+
 !      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       pbl_args%TG=TG   ! actual ground temperature
       pbl_args%TR4=TR4 ! radiative temperature K^4
       pbl_args%ELHX=ELHX   ! relevant latent heat
       pbl_args%QSOL=SRHEAT   ! solar heating
-      pbl_args%TGV=TG*(1.+QG_SAT*xdelt)
+      pbl_args%TGV=TG*(1.+QG_SAT*xdelt)  ! Virtual temperature of the ground
 
-         write (6,*) 'PBL_DEBUG3',i,j,
-     &      TG,TG1,TF
+!         write (6,*) 'PBL_DEBUG3',i,j,
+!     &      TG,TG1,TF
 !         write (6,*) 'PBL_DEBUG2',i,j,
 !     &      pbl_args%TGV,TG,QG_SAT,xdelt,ELHX,PS,QSAT(TG,ELHX,PS)
 
@@ -633,8 +742,15 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #endif
 C =====================================================================
       pbl_args%dtsurf = dtsurf
+
+      ! TKV = Virtual temperature at the surface
+      ! TKV = ttop = virtual potential temperature at the top of the
+      !              Planetary Boundary layer (PBL).
+      !              (if xdelt=0, ttop is the actual temperature)
       pbl_args%TKV=THV1*PSK     ! TKV is referenced to the surface pressure
+
       pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/PMID(1,I,J)
+      ! TODO: qg_sat changes with height (this will come out automatically)
       pbl_args%qg_sat = qg_sat
       pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
       pbl_args%hemi = sign(1d0,lat2d(i,j))
@@ -643,6 +759,7 @@ c      pbl_args%pole = pole
       pbl_args%fr_sat = 1. ! entire surface is saturated
       pbl_args%uocean = uocean
       pbl_args%vocean = vocean
+      ! TODO: This will change with height
       pbl_args%psurf = PS
       pbl_args%trhr0 = TRHR(0,I,J)
       pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)    !false
@@ -700,6 +817,7 @@ C**** Call pbl to calculate near surface profile
 C =====================================================================
 
 C**** Adjust ground variables to account for skin effects
+      ! TG comes from the landice model.
       TG = TG + pbl_args%dskin
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (pbl_args%ocean) QG_SAT=0.98d0*QG_SAT
@@ -717,6 +835,8 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the sensible heat flux:
+      ! TS = Temperature @ surface air (10m)
+      ! TG = Temperature of ground
       SHEAT=SHA*(RCDHWS*(TS-TG)+RCDHDWS*pbl_args%tprime)
       ! Including gustiness in the latent heat flux:
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
@@ -731,8 +851,21 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
 C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
       if ( ITYPE == ITYPE_LANDICE ) then   ! true
 
+        ! F0 = Energy flux between atmosphere and surface
+        ! SRHEAT = Solar Heating
+        ! TRHEAT = Thermal-Radiation (longwave; down?)
+        ! SHEAT = Sensible Heat
+        ! EVHEAT = Latent Heat
         F0=SRHEAT+TRHEAT+SHEAT+EVHEAT
+
+        ! F1 = Energy flux between first and second ice layers
+        ! TG1 = Temperature of top ice layer
+        ! CDTERM = TG2 = Temperature of second ice layer
+        ! F0 = Energy flux between atmosphere and surface
+        ! Z1BY6L =
+        ! CDENOM =
         F1=(TG1-CDTERM-F0*Z1BY6L)*CDENOM
+
         DSHDTG=-RCDHWS*SHA
         DQGDTG=QG_SAT*DQSATDT(TG,ELHX)
         DEVDTG=-RCDQWS*LHE*DQGDTG
@@ -995,8 +1128,15 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
       !E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
+      ! for itype==ITYPE_LANDICE, asflx(itype) === atmgla
+      ! atmgla%e0 = net energy flux at surface (J/m^2)
       asflx(itype)%E0(I,J)=asflx(itype)%E0(I,J)+F0DT
+
+      ! atmgla%e1 <= e1 (set below in SURFACE.f)
+      ! E1 = net energy flux at layer 1
+      ! (I believe this means between the top 10cm layer and the 2.9m layer below it)
       E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
+
       !EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
       asflx(itype)%EVAPOR(I,J)=asflx(itype)%EVAPOR(I,J)+EVAP
 #ifdef SCM

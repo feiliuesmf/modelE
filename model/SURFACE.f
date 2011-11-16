@@ -365,7 +365,7 @@ C****
       IHM = IH+(JDATE-1)*24
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
-      CALL PRECIP_LI         ! Could be in LANDICE or GLIMMERICE
+      CALL PRECIP_LI
 
 #ifdef IRRIGATION_ON
 C**** CHECK FOR IRRIGATION POSSIBILITY
@@ -383,6 +383,9 @@ c in the domain is ocean
 C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
       DO J=J_0,J_1
       DO I=I_0,I_1
+        ! GTEMP temperature of surface (C)
+        ! GTEMP2 "ground" temperature of "second" layer (C)
+        ! GTEMPR radiative ground temperature over surface type (K)
         TGRND(2,I,J)=atmice%GTEMP(I,J)
         TGRND(3,I,J)=atmgla%GTEMP(I,J)
         TGRN2(2,I,J)=atmice%GTEMP2(I,J)

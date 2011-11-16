@@ -87,7 +87,10 @@ c**** Please, use this structure to pass all your arguments to PBL
 c**** Do not use global variables for that purpose !
       type t_pbl_args
         ! input:
-        real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi,tr4
+        real*8 dtsurf,zs1,tgv,tkv
+        !@var qg_sat Saturation vapor mixing ratio (kg vapor / kg air in a given volume)
+        real*8 qg_sat
+        real*8 qg_aver,hemi,tr4
         real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
         real*8 tg,elhx,qsol,sss_loc
         logical :: ocean,ddml_eq_1

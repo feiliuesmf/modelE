@@ -236,10 +236,13 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 
       end type atmice_xchng_vars
 
+      ! -----------------------------------------------------
+      ! For coupling of atmosphere with glacial ice.
       type, extends(atmsrf_xchng_vars) :: atmgla_xchng_vars
-!@var E1 net energy flux at layer 1
+         !@var E1 net energy flux at layer 1
          REAL*8, DIMENSION(:,:), POINTER :: E1
       end type atmgla_xchng_vars
+      ! -----------------------------------------------------
 
       type, extends(atmsrf_xchng_vars) :: atmlnd_xchng_vars
 !@var bare_soil_wetness bare_soil_wetness (1)
