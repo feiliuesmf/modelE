@@ -9391,6 +9391,7 @@ C       stop
     (defined TRACERS_AEROSOLS_SOA)
 ! 100% of these: <-----------------------------------------------------
         case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
+     &       'NH4','MSA',
 #ifdef TRACERS_AEROSOLS_VBS
      &       'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &       'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
