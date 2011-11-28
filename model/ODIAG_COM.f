@@ -1111,7 +1111,7 @@ c
       IJL_PDM = k
       denom_oijl(k) = IJL_MO
       sname_oijl(k) = 'pot_dens'
-      units_oijl(k) = 'KG/M^3'
+      units_oijl(k) = 'KG/M^3 - 1000'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
       k=k+1

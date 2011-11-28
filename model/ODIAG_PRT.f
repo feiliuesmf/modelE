@@ -239,7 +239,7 @@ C**** Loop over layers
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
           GOS = OIJL(I,J,L,IJL_G0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
           SOS = OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
-          Q(I,J) = 1./VOLGS(GOS,SOS)
+          Q(I,J) = 1./VOLGS(GOS,SOS) - 1000.
         END IF
       END DO
       END DO
@@ -1803,7 +1803,7 @@ c
         gos = oijl(i,j,l,ijl_g0m) / mass
         sos = oijl(i,j,l,ijl_s0m) / mass
         oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
-        oijl_out(i,j,l,ijl_pdm) = mass/volgs(gos,sos)
+        oijl_out(i,j,l,ijl_pdm) = mass*(1d0/volgs(gos,sos)-1000d0)
       enddo
       enddo
       enddo
