@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=64,KOIJL=32,KOL=6,KOLNST=8,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=64,KOIJL=33,KOL=6,KOLNST=8,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -81,7 +81,7 @@
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
-     *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2
+     *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
@@ -946,6 +946,13 @@ c
       jgrid_oijl(k) = 2
 c
       k=k+1
+      IJL_AREA = k
+      sname_oijl(k) = 'oxyp3' ! denominator for vertical fluxes
+      units_oijl(k) = 'm2'
+      lname_oijl(k) = 'gridbox area * focean'
+      lgrid_oijl(k) = 2
+c
+      k=k+1
       IJL_G0M = k
       denom_oijl(k) = IJL_MO
       sname_oijl(k) = 'heat'
@@ -981,6 +988,7 @@ c
 c
       k=k+1
       IJL_MFW = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'w'
       units_oijl(k) = 'cm/s'
       lname_oijl(k) = 'DOWNWARD VERTICAL VELOCITY'
@@ -1005,6 +1013,7 @@ c      IJL_GFLX_ns = k
 c
       k=k+1
 c      IJL_GFLX_vert = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'gflx_z'
       units_oijl(k) = 'W/m^2'
       lname_oijl(k) = 'VERT. HEAT FLUX'
@@ -1030,6 +1039,7 @@ c      IJL_SFLX_vert = k
 c
       k=k+1
       IJL_KVM = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'kvm'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'VERT. MOM. DIFF.'
@@ -1038,6 +1048,7 @@ c
 c
       k=k+1
       IJL_KVG = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'kvg'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'VERT. HEAT DIFF.'
@@ -1046,6 +1057,7 @@ c
 c
       k=k+1
       IJL_WGFL = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'wgfl'
       units_oijl(k) = 'W/m^2'
       lname_oijl(k) = 'VERT. HEAT DIFF. FLUX'
@@ -1054,6 +1066,7 @@ c
 c
       k=k+1
       IJL_WSFL = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'wsfl'
       units_oijl(k) = '10^-6 kg/m^2'
       lname_oijl(k) = 'VERT. SALT DIFF. FLUX'
@@ -1078,6 +1091,7 @@ c      IJL_GGMFL_ns = k
 c
       k=k+1
 c      IJL_GGMFL_vert = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'ggmflx_z'
       units_oijl(k) = 'W/m^2'
       lname_oijl(k) = 'GM/EDDY VERT. HEAT FLUX'
@@ -1102,6 +1116,7 @@ c      IJL_SGMFL_ns = k
 c
       k=k+1
 c      IJL_SGMFL_vert = k
+      denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'sgmflx_z'
       units_oijl(k) = '10^-6 kg/m^2 s'
       lname_oijl(k) = 'GM/EDDY VERT. SALT FLUX'
@@ -1124,6 +1139,7 @@ c
 c
       k=k+1
       IJL_MFW2=k
+      denom_oijl(k) = IJL_AREA
       lname_oijl(k) = "Ocean vertical mass flux squared"
       sname_oijl(k) = "mfw2"
       units_oijl(k) = "kg^2/m^4"

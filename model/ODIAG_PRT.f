@@ -1746,7 +1746,7 @@ c
 c Convert oijl accumulations into the desired units
 c
       use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo,dts
-      use odiag, only : koijl,oijl_out,oijl=>oijl_loc
+      use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
@@ -1762,6 +1762,8 @@ c
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : am_i_root,halo_update,south
      &     ,pack_data,unpack_data ! for horz stream function
+      use mdiag_com, only : ia_cpl
+      use model_com, only : idacc
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,fac,facst
@@ -1811,16 +1813,19 @@ c
       do l=1,lmo-1
       do j=j_0,j_1
       do i=1,imaxj(j)
-        oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)/dxypo(j)
-        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/(dxypo(j)**2)
-        oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)/dxypo(j)
-        oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)/dxypo(j)
-        oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)
-        oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)
-        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)/dxypo(j)
+        if(l.lt.lmm(i,j)) then
+          oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
+        endif
+        oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)
+        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
+        oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)
+        oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)
+        oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)
+        oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)
+        oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)*dxypo(j)
+        oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)*dxypo(j)
+        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
+        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
       enddo
       enddo
       enddo
