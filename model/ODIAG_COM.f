@@ -473,7 +473,9 @@ c instances of arrays
       call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntmo)',
      &     r4_on_disk=r4_on_disk)
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call def_rsf_tcons(fid,r4_on_disk)
+#endif
 #endif
 #endif
       return
@@ -529,7 +531,9 @@ c straits arrays
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call new_io_tcons(fid,iaction)
+#endif
 #endif
 #endif
       return
@@ -609,7 +613,9 @@ c straits arrays
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call def_meta_tcons(fid)
+#endif
 #endif
       call write_attr(grid,fid,'toijl','reduction','sum')
       call write_attr(grid,fid,'toijl','split_dim',4)
@@ -675,7 +681,9 @@ c straits arrays
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call write_meta_tcons(fid)
+#endif
 #endif
       call write_data(grid,fid,'ia_toijl',ia_toijl)
       call write_data(grid,fid,'denom_toijl',denom_toijl)
@@ -1952,7 +1960,9 @@ c
       if (am_i_root()) TOIJL=0. 
       TOIJL_loc=0. ; TLNST = 0.
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call reset_tcons
+#endif
 #endif
 #endif
       return
@@ -2054,7 +2064,9 @@ c
 #ifdef TRACERS_OCEAN
       call pack_data (grid, TOIJL_loc, TOIJL)
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call gather_zonal_tcons
+#endif
 #endif
 #endif
       return
@@ -2076,7 +2088,9 @@ c
       call unpack_data (grid, TOIJL, TOIJL_loc)
       CALL broadcast(grid, TLNST)
 #ifndef TRACERS_ON
+#ifndef STANDALONE_OCEAN
       call scatter_zonal_tcons
+#endif
 #endif
 #endif
       return
