@@ -1818,14 +1818,15 @@ subroutine init_CLD(istart)
 
 #ifdef TRACERS_WATER
   use CLOUDS, only : trwml,trsvwml,trprmc,trprss
+  use CLOUDS, only : TRCOND, TRCONDV
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   use CLOUDS, only : dt_sulf_mc,dt_sulf_ss
 #endif
 #endif
 #ifdef TRDIAG_WETDEPO
-  use CLOUDS, only : TRCOND, TRCONDV &
-       ,trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
+  use CLOUDS, only : 
+        trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
        ,trcond_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trwash_ls
 #endif
   use CLOUDS, only: ntix, TM, TMOM, TRDNL &
