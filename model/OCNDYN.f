@@ -713,6 +713,10 @@ C**** Initialize KPP mixing scheme
 C***  Initialize ODIFF
       call init_ODIFF(grid)
 
+#ifdef TRACERS_OCEAN
+      call tracer_ic_ocean(atmocn)
+#endif
+
 c-------------------------------------------------------------------
 c End ocean-processors-only code region
       endif ocean_processors_only
@@ -1021,6 +1025,11 @@ C**** Only do this at end of the day
 
 C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SDAY)
+
+c uncomment following call to activate tracers at arbitrary times
+c#ifdef TRACERS_OCEAN
+c      call tracer_ic_ocean(atmocn)
+c#endif
 
 C**** set gtemp arrays for ocean
         CALL TOC2SST(atmocn)

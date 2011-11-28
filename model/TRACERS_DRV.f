@@ -7404,10 +7404,6 @@ C**** Initialise pbl profile if necessary
       end if
       end do
 #endif /* TRACERS_ON */
-#ifdef TRACERS_OCEAN
-C**** Initialise ocean tracers if necessary
-      call tracer_ic_ocean(atmocn)
-#endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

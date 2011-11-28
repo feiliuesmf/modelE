@@ -342,7 +342,8 @@ C****
       end do
 
 C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
-      CALL TOC2SST(atmocn)
+      ! call now made at higher level
+      !CALL TOC2SST(atmocn)
 
       return
  800  write(6,*) "Error reading input file H2O18ic"
