@@ -55,7 +55,12 @@ C**** accounting purposes only. They are not real icebergs!
 #ifdef TRACERS_OCEAN
 !@var TRACCPDA total tracer flux per year for Antarctica (kg/yr)
 !@var TRACCPDG total tracer flux per year for Greenland (kg/yr)
-      REAL*8 :: TRACCPDA(NTM), TRACCPDG(NTM)
+      !REAL*8 :: TRACCPDA(NTM), TRACCPDG(NTM)
+      ! landice_com should really be the owner of *ACC[PDA,PDG]
+      ! and other "iceberg" variables, since these variables are
+      ! not intrinsic to the 1D ice physics.
+      ! Allocation using runtime-determined NTM is in alloc_landice_com
+      REAL*8, ALLOCATABLE :: TRACCPDA(:), TRACCPDG(:)
 !@var TRICBIMP( ) + Sum[TRDWNIMP(over hemisphere)] = instantaneous
 !@var   tracer content of icebergs (implicit) in each hemisphere (kg)
 c      REAL*8, DIMENSION(NTM,2) :: TRICBIMP
