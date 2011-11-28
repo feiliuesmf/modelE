@@ -1738,7 +1738,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit, n_age
+      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
 !      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
