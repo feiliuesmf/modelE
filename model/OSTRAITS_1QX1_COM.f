@@ -109,7 +109,7 @@ C****
      &     TRME,TXME,TYME,TZME !(2,NMST,LMO,NTM)
 #endif
 #ifdef TRACERS_WATER
-      Real*8 TRSIST(NTM_ATM,LMI,NMST)
+      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
 #endif
 
 !@param NMST no. of ocean straits

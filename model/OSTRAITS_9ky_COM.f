@@ -116,7 +116,7 @@ C****
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
-      REAL*8, DIMENSION(NTM_ATM,LMI,NMST) :: TRSIST
+      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
 #endif
 
       END MODULE STRAITS

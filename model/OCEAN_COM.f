@@ -433,6 +433,15 @@ C****
       USE OCN_TRACER_COM, only : itime_tr0, ntrocn, to_per_mil,
      &     t_qlimit, conc_from_fw, trdecay, trw0
 #endif
+#ifdef TRACERS_WATER
+      ! The ocean model should not have to know how many layers
+      ! the sea ice model uses - this dependence is unfriendly
+      ! to componentization and will be eliminated at some point,
+      ! if the array TRSIST is not eliminated first (as of 11/2201
+      ! TRSIST is inactive but still needs to be allocated).  -M.K.
+      USE STRAITS, only : TRSIST
+      USE SEAICE, only : LMI
+#endif
 #endif
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
@@ -474,6 +483,9 @@ C****
      &         TYME(2,NMST,LMO,NTM),
      &         TZME(2,NMST,LMO,NTM)
      &        )
+#ifdef TRACERS_WATER
+      ALLOCATE(TRSIST(NTM,LMI,NMST))
+#endif
 #endif
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
