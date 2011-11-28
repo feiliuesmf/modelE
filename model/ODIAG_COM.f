@@ -967,7 +967,7 @@ c
       sname_oijl(k) = 'u'
       units_oijl(k) = 'cm/s'
       lname_oijl(k) = 'EAST-WEST VELOCITY'
-      scale_oijl(k) = 1d2*(2./ndyno)
+      scale_oijl(k) = 1d2/dts
       igrid_oijl(k) = 2
 c
       k=k+1
@@ -976,7 +976,7 @@ c
       sname_oijl(k) = 'v'
       units_oijl(k) = 'cm/s'
       lname_oijl(k) = 'NORTH-SOUTH VELOCITY'
-      scale_oijl(k) = 1d2*(2./ndyno)
+      scale_oijl(k) = 1d2/dts
       jgrid_oijl(k) = 2
 c
       k=k+1
@@ -984,7 +984,7 @@ c
       sname_oijl(k) = 'w'
       units_oijl(k) = 'cm/s'
       lname_oijl(k) = 'DOWNWARD VERTICAL VELOCITY'
-      scale_oijl(k) = (1d2/RHOWS)*(2./ndyno)
+      scale_oijl(k) = (1d2/RHOWS)/dts
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -1127,7 +1127,7 @@ c
       lname_oijl(k) = "Ocean vertical mass flux squared"
       sname_oijl(k) = "mfw2"
       units_oijl(k) = "kg^2/m^4"
-      scale_oijl(k) = (2./ndyno)*(2./ndyno)
+      scale_oijl(k) = 1.
       lgrid_oijl(k) = 2
 c
 #ifdef OCN_Mesoscales

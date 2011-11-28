@@ -269,21 +269,24 @@ c
         do j=j_0s,j_1s
           do n=1,nbyzu(j,l)
             do i=i1yzu(n,j,l),i2yzu(n,j,l)
-              OIJL(I,J,L,IJL_MFU) = OIJL(I,J,L,IJL_MFU) + SMU(I,J,L)
+              OIJL(I,J,L,IJL_MFU) = OIJL(I,J,L,IJL_MFU) +
+     &             SMU(I,J,L)*DTOLF
             enddo
           enddo
         enddo
         do j=j_0,j_1
           do n=1,nbyzv(j,l)
             do i=i1yzv(n,j,l),i2yzv(n,j,l)
-              OIJL(I,J,L,IJL_MFV) = OIJL(I,J,L,IJL_MFV) + SMV(I,J,L)
+              OIJL(I,J,L,IJL_MFV) = OIJL(I,J,L,IJL_MFV) +
+     &             SMV(I,J,L)*DTOLF
             enddo
           enddo
           do n=1,nbyzm(j,l)
             do i=i1yzm(n,j,l),i2yzm(n,j,l)
-              OIJL(I,J,L,IJL_MFW) = OIJL(I,J,L,IJL_MFW) + SMW(I,J,L)
+              OIJL(I,J,L,IJL_MFW) = OIJL(I,J,L,IJL_MFW) +
+     &             SMW(I,J,L)*DTOLF
               OIJL(I,J,L,IJL_MFW2)= OIJL(I,J,L,IJL_MFW2)+
-     *             SMW(I,J,L)*SMW(I,J,L)
+     &             byno*(SMW(I,J,L)/neven)**2
               OIJL(I,J,L,IJL_MO)  = OIJL(I,J,L,IJL_MO) +  MO(I,J,L)*byno
               OIJL(I,J,L,IJL_G0M) = OIJL(I,J,L,IJL_G0M) +G0M(I,J,L)*byno
               OIJL(I,J,L,IJL_S0M) = OIJL(I,J,L,IJL_S0M) +S0M(I,J,L)*byno
