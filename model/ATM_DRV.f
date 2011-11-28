@@ -607,7 +607,14 @@ c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
       USE RESOLUTION, only : im,jm,lm
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      use TRACER_COM, only: initTracerCom
+#endif
       IMPLICIT NONE
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call initTracerCom
+#endif
 
 #ifdef SCM
 !TODO push init_grid SCM option down into INIT_GRID.

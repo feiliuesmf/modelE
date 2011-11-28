@@ -363,9 +363,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine initializeModelE
       USE DOMAIN_DECOMP_1D, ONLY : init_app
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      use TRACER_COM, only: initTracerCom
-#endif
 
       call initializeSysTimers()
 
@@ -375,9 +372,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call init_app()
       call initializeDefaultTimers()
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call initTracerCom
-#endif
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
