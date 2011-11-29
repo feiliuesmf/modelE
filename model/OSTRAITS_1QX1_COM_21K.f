@@ -13,12 +13,6 @@ C****
       Use OCEANRES,  Only: LMO
       Use SEAICE, Only: LMI
 
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm_atm=>ntm
-#endif
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
       Implicit None
       Save
 C****

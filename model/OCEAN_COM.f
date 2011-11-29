@@ -10,9 +10,6 @@ C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
       Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO
-#ifdef TRACERS_OCEAN
-      Use OCN_TRACER_COM, Only : ntm
-#endif
       Use SparseCommunicator_mod
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : aoremap_type=>xgridremap_type
@@ -423,26 +420,6 @@ C****
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
-#ifdef TRACERS_OCEAN
-      USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
-     *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
-     *       ,oc_tracer_mean
-      USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
-      USE OCN_TRACER_COM, only : ntm
-#ifndef TRACERS_OCEAN_INDEP
-      USE OCN_TRACER_COM, only : itime_tr0, ntrocn, to_per_mil,
-     &     t_qlimit, conc_from_fw, trdecay, trw0
-#endif
-#ifdef TRACERS_WATER
-      ! The ocean model should not have to know how many layers
-      ! the sea ice model uses - this dependence is unfriendly
-      ! to componentization and will be eliminated at some point,
-      ! if the array TRSIST is not eliminated first (as of 11/2201
-      ! TRSIST is inactive but still needs to be allocated).  -M.K.
-      USE STRAITS, only : TRSIST
-      USE SEAICE, only : LMI
-#endif
-#endif
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
@@ -451,7 +428,6 @@ C****
 
       USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
-
       IMPLICIT NONE
 
       INTEGER :: IER
@@ -462,30 +438,11 @@ C**** Define the ocean (Russell) grid
 C*
       call init_oceanr_grid  
 C****
-
-      CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
  
+      CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
 #ifdef TRACERS_OCEAN
-      allocate(oc_tracer_mean(ntm)) 
-      oc_tracer_mean(:) = -999.
-#ifndef TRACERS_OCEAN_INDEP
-      allocate(
-     &     itime_tr0(ntm), ntrocn(ntm), to_per_mil(ntm),
-     &     t_qlimit(ntm), conc_from_fw(ntm),
-     &     trdecay(ntm), trw0(ntm)
-     &     )
-#endif
-      ALLOCATE(TRMST(LMO,NMST,NTM),
-     &         TXMST(LMO,NMST,NTM),
-     &         TZMST(LMO,NMST,NTM),
-     &         TRME(2,NMST,LMO,NTM),
-     &         TXME(2,NMST,LMO,NTM),
-     &         TYME(2,NMST,LMO,NTM),
-     &         TZME(2,NMST,LMO,NTM)
-     &        )
-#ifdef TRACERS_WATER
-      ALLOCATE(TRSIST(NTM,LMI,NMST))
-#endif
+      call alloc_ocn_tracer_com
 #endif
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -535,17 +492,7 @@ C****
       ALLOCATE( OLAT2D_DG  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OJ_BUDG  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OWTBUDG  (IM,J_0H:J_1H), STAT = IER)
-#ifdef TRACERS_OCEAN
-      ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
 
-      ALLOCATE( TRMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TYMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-      ALLOCATE( TZMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
-#endif
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   DH(IM,J_0H:J_1H,LMO), STAT = IER)

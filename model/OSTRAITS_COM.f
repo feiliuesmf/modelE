@@ -6,12 +6,6 @@
 !@sum  STRAITS ocean strait related variables
 !@+    RESOLUTION DEPENDENT: This version is for 72x46 - M
 !@auth Gary Russell/Gavin Schmidt
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm_atm=>ntm
-#endif
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
       USE SEAICE, only : lmi
       USE OCEANRES, only : lmo
       IMPLICIT NONE

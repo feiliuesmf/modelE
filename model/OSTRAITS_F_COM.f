@@ -12,9 +12,6 @@ C****
 C****
       USE SEAICE, only : lmi
       USE OCEANRES, only : lmo
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      USE OCN_TRACER_COM, only : ntm
-#endif
       IMPLICIT NONE
 
       SAVE

@@ -79,8 +79,7 @@ C****
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit
-      Use OCEAN,   Only: NTM
+      USE OCN_TRACER_COM, only : ntm,t_qlimit
       Use STRAITS, Only: TRMST,TXMST,TZMST, TRME,TXME,TYME,TZME
       Use ODIAG, Only: tlnst
 #endif
@@ -869,6 +868,9 @@ C****
       USE STRAITS
       use domain_decomp_1d, only : am_i_root
       USE OCEANR_DIM, only : grid=>ogrid
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -881,8 +883,10 @@ C****
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
 #endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */
+      integer :: ntm_atm
 
 #ifdef TRACERS_WATER
+      ntm_atm = size(trsist,1)
 #  ifndef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm_atm
@@ -1005,6 +1009,9 @@ C****
       subroutine gather_ocean_straits
       USE STRAITS
       USE OCEAN
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       implicit none
 
       call gather_straits_pairs(MO,MOe,lmo)
@@ -1049,6 +1056,9 @@ c dimensioned as (2*nmst,:) rather than (2,nmst,:)
       subroutine scatter_ocean_straits
       USE STRAITS
       USE OCEAN
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       implicit none
 
       call scatter_straits_pairs(MOe,MO,lmo)
