@@ -87,6 +87,7 @@
      *          STAT=IER)
 #ifdef TRACERS_OCEAN
       ALLOCATE(TRACCPDA(NTM), TRACCPDG(NTM))
+      TRACCPDA = 0.; TRACCPDG = 0.
 #endif
 #endif
 
