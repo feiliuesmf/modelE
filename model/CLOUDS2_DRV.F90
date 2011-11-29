@@ -1825,7 +1825,7 @@ subroutine init_CLD(istart)
 #endif
 #endif
 #ifdef TRDIAG_WETDEPO
-  use CLOUDS, only : 
+  use CLOUDS, only : &
         trcond_mc,trdvap_mc,trflcw_mc,trprcp_mc,trnvap_mc,trwash_mc &
        ,trcond_ls,trevap_ls,trclwc_ls,trprcp_ls,trclwe_ls,trwash_ls
 #endif
