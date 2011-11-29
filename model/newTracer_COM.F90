@@ -39,7 +39,10 @@ contains
 
     if ((.not. tracers_amp) .and. tracers_water) call appendNames(['Water   '])
 
-    if (tracers_special_o18) call appendNames(['H2O18   ','HDO     '])
+    if (tracers_special_o18) then
+      call appendNames(['H2O18   ','HDO     '])
+!!$      call appendNames(['HTO     ','H2O17   '])
+    end if
 
     if (tracers_gasexch_ocean_cfc) call appendNames(['CFCn    '])
 
