@@ -54,6 +54,12 @@
 
       REAL*8, PARAMETER :: eps=TINY(1.D0)
 
+#ifdef CONSTANT_MESO_LENSCALE
+!@dbparam meso_lenscale_const a fixed length scale (meters) to use in
+!@+       lieu of Rossby radius RD in AINV = AMU * RD**2 * BYTEADY
+      real*8 :: meso_lenscale_const
+#endif
+
       REAL*8, ALLOCATABLE, DIMENSION(:) ::
      *     BYDYP,BYDXP,BYDYV
 
@@ -157,6 +163,7 @@ c**** allocate arrays
 !@+   for Redi and GM isopycnal skew fluxes
 !@auth Dan Collins/Gavin Schmidt
       USE GM_COM
+      USE Dictionary_mod
       IMPLICIT NONE
       INTEGER I,J,L,IM1
 
@@ -166,6 +173,9 @@ c**** allocate arrays
       if ( IFIRST.ne.0 ) then
         IFIRST = 0
         call ALLOC_GM_COM
+#ifdef CONSTANT_MESO_LENSCALE
+        call get_param( 'meso_lenscale_const', meso_lenscale_const )
+#endif
       endif
 
 c**** Extract domain decomposition info
@@ -1302,8 +1312,12 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
             IF (ARHOZ.gt.0) THEN
               AN = SQRT(GRAV * ARHOZ / ARHO)
+#ifdef CONSTANT_MESO_LENSCALE
+              RD = meso_lenscale_const
+#else
               RD = AN * HUP / CORI
               IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
+#endif
               BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
      *             *ARHO)
               AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
@@ -1343,7 +1357,11 @@ C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
+#ifdef CONSTANT_MESO_LENSCALE
+            RD = meso_lenscale_const
+#else
             RD = AN * HUP / CORI
+#endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
             AINV(1,JM) = AMU * RD**2 * BYTEADY ! was = AIN
           END IF
@@ -1382,7 +1400,11 @@ C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
+#ifdef CONSTANT_MESO_LENSCALE
+            RD = meso_lenscale_const
+#else
             RD = AN * HUP / CORI
+#endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
             AINV(1,1) = AMU * RD**2 * BYTEADY ! was = AIN
           END IF
