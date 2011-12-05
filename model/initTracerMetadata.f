@@ -479,6 +479,7 @@ C**** get rundeck parameter for cosmogenic source factor
 C**** Define individual tracer characteristics
       numTr = 0
       if (tracers_special_shindell) then
+#ifdef TRACERS_SPECIAL_Shindell
         n_Ox = Ox_setSpec(numTr)
         n_NOx = NOx_setSpec(numTr)
         n_ClOx = ClOx_setSpec(numTr)
@@ -532,7 +533,9 @@ C**** Define individual tracer characteristics
             n_GLT = GLT_setSpec(numTr) ! generic linear tracer
           end if
         end if
-      end if
+
+#endif /* TRACERS_SPECIAL_Shindell */
+      end if  ! tracers_special_shindell
 
       if ((.not. tracers_amp) .and. tracers_water) then
         n_Water = Water_setSpec(numTr)
@@ -1170,6 +1173,7 @@ C**** Get solar variability coefficient from namelist if it exits
       call set_tr_mm(n, 108.02d0)
       end function N2O5_setSpec
 
+#ifdef TRACERS_SPECIAL_Shindell
       integer function ClOx_setSpec(n) result(n_ClOx)
       integer, intent(inout) :: n
       n = n + 1
@@ -1218,7 +1222,7 @@ C     Interpolate ClONO2 altitude-dependence to model resolution:
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 52.5d0)
       end function HOCl_setSpec
-
+#endif /* TRACERS_SPECIAL_Shindell */ 
 
       integer function HBr_setSpec(n) result(n_HBr)
       integer, intent(inout) :: n
