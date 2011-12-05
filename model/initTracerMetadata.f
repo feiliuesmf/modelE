@@ -1162,7 +1162,9 @@ C**** Get solar variability coefficient from namelist if it exits
      & 2.1700112d-07, 3.0054335d-07, 0.0000000d+00, 0.0000000d+00,
      & 0.0000000d+00, 0.0000000d+00/)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
       call check_aircraft_sectors(n_NOx) ! special 3D source case
+#endif
       end function NOx_setSpec
 
       integer function N2O5_setSpec(n) result(n_N2O5)
