@@ -5,22 +5,22 @@ SHELL=/bin/sh
 
 NC=/usr/local/other/netcdf/3.6.2_intel-10.1.013
 
-LEVEL_OPT = -g -traceback
+LEVEL_OPT = -g -traceback -C
 LEVEL_OPT = -O2 
 
-FC=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C -openmp
-FC=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C 
+FC=     ifort $(LEVEL_OPT)   -convert big_endian -openmp
+FC=     ifort $(LEVEL_OPT)   -convert big_endian 
 
-LD=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C -I${NC}/include -openmp
-LD=     ifort -traceback $(LEVEL_OPT)   -convert big_endian -C -I${NC}/include 
+LD=     ifort $(LEVEL_OPT)   -convert big_endian -I${NC}/include -openmp
+LD=     ifort $(LEVEL_OPT)   -convert big_endian -I${NC}/include 
 
 LDFLAGS =  
 CPPFLAGS =
 LIBS = -L${NC}/lib -lnetcdf
 
-avg_obj=const_proc.o hycom_dimen.o hycom_arrays.o avg.o gethyb.o extrct.o \
-	prtmsk.o bigrid.o gtdpth.o meshsz.o restep.o findmx.o thruflow.o \
-        zebra.o
+avg_obj=const_proc.o hycom_dimen.o hycom_arrays.o coagflx.o avg.o \
+	gethyb.o extrct.o prtmsk.o bigrid.o gtdpth.o meshsz.o restep.o findmx.o \
+	psmoo.o thruflow.o zebra.o
 avg_src = $(avg_obj:.o=.f)
 
 ov2_obj=const_proc.o hycom_dimen.o hycom_arrays.o pltov_mon.o gethyb.o \
@@ -35,14 +35,6 @@ latlonz_src = $(latlonz_obj:.o=.f)
 
 get2d_obj=const_proc.o hycom_dimen.o get2d.o 
 get2d_src = $(get2d_obj:.o=.f)
-
-bigrid.o:	hycom_dimen.o
-cpler.o:	hycom_dimen.o const_proc.o
-extrct.o:	hycom_dimen.o const_proc.o
-getdat.o:	hycom_dimen.o const_proc.o hycom_arrays.o
-gtdpth.o:	hycom_dimen.o const_proc.o
-latlonz.o:	hycom_dimen.o const_proc.o hycom_arrays.o cpler.o
-restep.o:	hycom_dimen.o const_proc.o
 
 avg:    $(avg_obj)
 	$(LD) -o avg $(avg_obj) $(LIBS) $(LDFLAGS)
@@ -60,8 +52,12 @@ avg.o: avg.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c avg.f
 bigrid.o: bigrid.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c bigrid.f
+coagflx.o: coagflx.f const_proc.f hycom_dimen.f
+	$(LD) $(LDFLAGS) -c coagflx.f
 const_proc.o: const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c const_proc.f
+cpler.o: cpler.f hycom_dimen.f
+	$(LD) $(LDFLAGS) -c cpler.f
 extrct.o: extrct.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c extrct.f
 get2d.o: get2d.f const_proc.f hycom_dimen.f
@@ -78,6 +74,8 @@ hycom_arrays.o: hycom_arrays.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c hycom_arrays.f
 latlonz.o: latlonz.f const_proc.f hycom_dimen.f hycom_arrays.f
 	$(LD) $(LDFLAGS) -c latlonz.f
+psmoo.o: psmoo.f hycom_dimen.f
+	$(LD) $(LDFLAGS) -c psmoo.f
 restep.o: restep.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c restep.f
 
@@ -87,4 +85,3 @@ tar: makefile input readme $(latlonz_src) $(get2d_src) $(avg_src)
 
 clean: 
 	\rm *.o *.mod
-

@@ -23,8 +23,8 @@ c
       real, allocatable ::
      . montg(:,:,:)			! montgomery potential
      .,defor1(:,:),defor2(:,:)		! deformation components
-     .,ubavg(:,:,:),vbavg(:,:,:)	! barotropic velocity
-     .,pbavg(:,:,:)			! barotropic pressure
+     .,ubavg(:,:),vbavg(:,:)	        ! barotropic velocity
+     .,pbavg(:,:)			! barotropic pressure
      .,ubrhs(:,:),vbrhs(:,:)		! rhs of barotropic u,v eqns.
      .,utotm(:,:),vtotm(:,:)		! total (barotrop.+baroclin.)...
      .,utotn(:,:),vtotn(:,:)		! ...velocities at 2 time levels
@@ -91,6 +91,8 @@ c    .,odhsi(:,:)			! heat borrowed from frozen
      .,dmfz(:,:)			! ice mass due to freezing
      .,thmix(:,:),tmix(:,:),smix(:,:),umix(:,:),vmix(:,:)
 c
+     .,ylo(:,:),southfl(:,:),xlo(:,:),eastfl(:,:)
+
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
      .,ijlist         !global ij index
@@ -148,8 +150,8 @@ c
       allocate( 
      . montg(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,defor1(I_0H:I_1H,J_0H:J_1H),defor2(I_0H:I_1H,J_0H:J_1H) 
-     .,ubavg(I_0H:I_1H,J_0H:J_1H,3),vbavg(I_0H:I_1H,J_0H:J_1H,3) 
-     .,pbavg(I_0H:I_1H,J_0H:J_1H,3) 
+     .,ubavg(I_0H:I_1H,J_0H:J_1H),vbavg(I_0H:I_1H,J_0H:J_1H) 
+     .,pbavg(I_0H:I_1H,J_0H:J_1H) 
      .,ubrhs(I_0H:I_1H,J_0H:J_1H),vbrhs(I_0H:I_1H,J_0H:J_1H) 
      .,utotm(I_0H:I_1H,J_0H:J_1H),vtotm(I_0H:I_1H,J_0H:J_1H) 
      .,utotn(I_0H:I_1H,J_0H:J_1H),vtotn(I_0H:I_1H,J_0H:J_1H) 
@@ -220,8 +222,13 @@ c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,tmix(I_0H:I_1H,J_0H:J_1H)
      .,smix(I_0H:I_1H,J_0H:J_1H)
      .,umix(I_0H:I_1H,J_0H:J_1H)
-     .,vmix(I_0H:I_1H,J_0H:J_1H) )
+     .,vmix(I_0H:I_1H,J_0H:J_1H) 
 c 
+     .,ylo    (I_0H:I_1H,J_0H:J_1H) 
+     .,xlo    (I_0H:I_1H,J_0H:J_1H) 
+     .,southfl(I_0H:I_1H,J_0H:J_1H) 
+     .,eastfl (I_0H:I_1H,J_0H:J_1H) )
+
       allocate( klist(I_0H:I_1H,J_0H:J_1H) 
      .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )
 c  

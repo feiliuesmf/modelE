@@ -3,6 +3,7 @@
 
       integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
      .   ,iold=359, ntrcr = 1, equat=229, iia=360,jja=180,k33=33
+     ,   ,ifull=idm, jfull=jdm
       integer, public, parameter :: I_0H=1, I_1H=idm, J_0H=1, J_1H=jdm
       integer :: i,j,k,l,n,jchunk
 c
