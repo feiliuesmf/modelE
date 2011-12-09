@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE GM_COM
 !@sum  GM_COM variables related to GM isopycnal and Redi fluxes
 !@auth Gavin Schmidt/Dan Collins
