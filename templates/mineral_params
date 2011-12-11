@@ -1,0 +1,8 @@
+#include "dust_params"
+!--------- mineral parameters --------------------
+!pureByTotalHematite=0.d0 ! fraction of pure iron oxide to all iron oxide mineral mass
+                       ! not used for calcMineralAggrProb=1
+calcMineralAggrProb=1  ! 1: calculate aggregation probabilities from mineral fractions
+frHemaInQuarAggr=0.1d0 ! fraction of iron oxide in quartz-iron oxide aggregates
+brittleFactor=1.,1.,1.,1.,1., 1.,1.,1.,1.,1. ! brittle factor of minerals in soils
+!-------------------------------------------------
