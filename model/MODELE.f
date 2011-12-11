@@ -363,9 +363,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       subroutine initializeModelE
       USE DOMAIN_DECOMP_1D, ONLY : init_app
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      use TRACER_COM, only: initTracerCom
-#endif
 
       call initializeSysTimers()
 
@@ -375,9 +372,6 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call init_app()
       call initializeDefaultTimers()
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      call initTracerCom
-#endif
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
@@ -585,10 +579,11 @@ C****
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE RANDOM
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+#ifndef STANDALONE_OCEAN
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
 #endif
-
+#endif
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
@@ -862,6 +857,7 @@ C**** Set julian date information
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
+#ifndef STANDALONE_OCEAN
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
@@ -870,6 +866,7 @@ C**** component-specific ops, folding the latter into component inits
       if(istart.eq.2) call read_nmc()  ! hack, see TODO
       CALL CALC_AMPK(LM)               ! hack
       call init_tracer
+#endif
 #endif
 
 !!! hack: may be prevented if post-processing option is eliminated

@@ -935,7 +935,7 @@ C**** tracer flux is set by source tracer concentration
               TEVAP=EVAP*trs(nx)/(QSRF*frac+teeny)
 #else
               TEVAP=EVAP*trs(nx)/(QSRF+teeny)
-#endif       // #ifdef TRACERS_SPECIAL_O18
+#endif       /* ifdef TRACERS_SPECIAL_O18 */
             END IF
           END IF
           TDP = TEVAP*AXYP(I,J)*ptype
@@ -956,7 +956,7 @@ C**** tracer flux is set by source tracer concentration
           asflx(itype)%TREVAPOR(n,I,J)=
      *         asflx(itype)%TREVAPOR(n,I,J)+TEVAP
         END IF
-#endif // #ifdef TRACERS_WATER
+#endif /* ifdef TRACERS_WATER */
 !        end if     ! if (IType.ne.1)
 
 
@@ -1023,7 +1023,7 @@ C****
 
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
-#endif    // #ifndef TRACERS_TOMAS
+#endif    /* ifndef TRACERS_TOMAS */
 #endif
 
       

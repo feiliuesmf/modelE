@@ -1941,13 +1941,13 @@ C****
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit
+      USE OCN_TRACER_COM, only : ntm,t_qlimit
 #endif
       USE OCEAN,only : lmo,dts,ze,sinpo
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
 #ifdef TRACERS_OCEAN
-     *     ,trmst,txmst,tzmst,ntm
+     *     ,trmst,txmst,tzmst
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
       IMPLICIT NONE

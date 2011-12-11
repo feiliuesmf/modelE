@@ -317,7 +317,8 @@
       USE OCEAN, only : oDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
-      Use OCEAN, Only: oc_tracer_mean,ntm
+      Use OCEAN, Only: oc_tracer_mean
+      Use OCN_TRACER_COM, Only: ntm
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -713,6 +714,10 @@ C**** Initialize KPP mixing scheme
 C***  Initialize ODIFF
       call init_ODIFF(grid)
 
+#ifdef TRACERS_OCEAN
+      call tracer_ic_ocean(atmocn)
+#endif
+
 c-------------------------------------------------------------------
 c End ocean-processors-only code region
       endif ocean_processors_only
@@ -1021,6 +1026,11 @@ C**** Only do this at end of the day
 
 C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SDAY)
+
+c uncomment following call to activate tracers at arbitrary times
+c#ifdef TRACERS_OCEAN
+c      call tracer_ic_ocean(atmocn)
+c#endif
 
 C**** set gtemp arrays for ocean
         CALL TOC2SST(atmocn)
@@ -1358,7 +1368,7 @@ C****
       use straits
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
-      Use OCN_TRACER_COM, Only : trname
+      Use OCN_TRACER_COM, Only : ntm,trname
 #endif
       use pario, only : defvar
       use domain_decomp_1d, only : get
@@ -1442,7 +1452,7 @@ c tracer arrays in straits
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
 #ifdef TRACERS_OCEAN
-      Use OCN_TRACER_COM, Only : trname
+      Use OCN_TRACER_COM, Only : ntm,trname
 #endif
       use domain_decomp_1d, only : get
       implicit none
@@ -1729,7 +1739,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit, n_age
+      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
 !      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
@@ -4089,7 +4099,8 @@ C****
       USE CONSTANT, only : sday
       USE OCEAN, only : im,jm,dts,lmm,gxmo,gymo,sxmo,symo
 #ifdef TRACERS_OCEAN
-     *     ,ntm,txmo,tymo
+     *     ,txmo,tymo
+      Use OCN_TRACER_COM, Only: ntm
 #endif
 !      use domain_decomp_1d, only : grid, get
       use domain_decomp_1d, only : get
@@ -4232,8 +4243,8 @@ C**** Surface stress is applied to V component at the North Pole
       USE ODIAG, only : oij=>oij_loc,ij_srhflx,ij_srwflx,ij_srhflxi
      *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : trw0
-      Use OCEAN, Only: TRMO, NTM
+      USE OCN_TRACER_COM, only : ntm,trw0
+      Use OCEAN, Only: TRMO
 #endif
 #ifdef TRACERS_OCEAN
       Use OFLUXES, Only:  oDTRSI

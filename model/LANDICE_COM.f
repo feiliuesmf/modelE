@@ -57,6 +57,10 @@
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : NTM
+#ifdef TRACERS_OCEAN
+      ! landice_com should really be the owner of *ACC[PDA,PDG]
+      USE LANDICE, only : TRACCPDA, TRACCPDG
+#endif
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -81,6 +85,10 @@
      *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H),
      *          TRDWNIMP(NTM,I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
+#ifdef TRACERS_OCEAN
+      ALLOCATE(TRACCPDA(NTM), TRACCPDG(NTM))
+      TRACCPDA = 0.; TRACCPDG = 0.
+#endif
 #endif
 
       RETURN

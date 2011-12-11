@@ -12,9 +12,6 @@ C****
 C****
       USE SEAICE, only : lmi
       USE OCEANRES, only : lmo
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      USE OCN_TRACER_COM, only : ntm
-#endif
       IMPLICIT NONE
 
       SAVE
@@ -116,7 +113,7 @@ C****
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
-      REAL*8, DIMENSION(NTM,LMI,NMST) :: TRSIST
+      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
 #endif
 
       END MODULE STRAITS

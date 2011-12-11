@@ -19,7 +19,7 @@ C**** ocean grid.
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE OCEAN, only : im,jm,lmo,ndyno,dts,dto,imaxj,lmm,ze
+      USE OCEAN, only : im,jm,lmo,dts,imaxj,lmm,ze
       USE DIAG_COM, only : qdiag,zoc_pout=>zoc,zoc1_pout=>zoc1
       USE MDIAG_COM, only : acc_period
       USE ODIAG
@@ -122,8 +122,7 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water,n_obio
 #endif
-      USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
-     *     ,imaxj,lmm,ze,dxvo,dypo
+      USE OCEAN, only: im,jm,lmo,focean,dxypo,dts,imaxj,lmm,ze,dxvo,dypo
       USE DIAG_COM, only : qdiag
       USE MDIAG_COM, only :
      &     sname_strlen,units_strlen,lname_strlen
@@ -239,7 +238,7 @@ C**** Loop over layers
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
           GOS = OIJL(I,J,L,IJL_G0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
           SOS = OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)*DXYPO(J))
-          Q(I,J) = 1./VOLGS(GOS,SOS)
+          Q(I,J) = 1./VOLGS(GOS,SOS) - 1000.
         END IF
       END DO
       END DO
@@ -418,7 +417,7 @@ C****
           DO L=LMINMF,LMAXMF
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 2d-9* Q(I,J) / (IDACC(1)*NDYNO+teeny)
+          Q(I,J) = 1d-9* Q(I,J) / (IDACC(1)*DTS+teeny)
           I=IP1
         END DO
       END DO
@@ -448,7 +447,7 @@ C****
           DO L=LMINMF,LMAXMF
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 2d-9* Q(I,J) / (IDACC(1)*NDYNO+teeny)
+          Q(I,J) = 1d-9* Q(I,J) / (IDACC(1)*DTS+teeny)
         END DO
       END DO
       Q(2:IM,1)=Q(1,1)
@@ -477,7 +476,7 @@ c        L =KVMF(K)
         SNAME='vert_mfl_L'//LEVSTR(L)
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            Q(I,J) = 1d-9*2.*OIJL(I,J,L,IJL_MFW) / real(IDACC(1)*NDYNO)
+            Q(I,J) = 1d-9*OIJL(I,J,L,IJL_MFW) / real(IDACC(1)*DTS)
           END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -838,8 +837,8 @@ C****
 C****
 C**** Calculate Salt Stream Function and write it
 C****
-c      FAC   = -1d-6/(IDACC(1)*NDYNO*DTO)
-c      FACST = -.5E-6/(IDACC(1)*NDYNO*DTO)
+c      FAC   = -1d-6/(IDACC(1)*DTS)
+c      FACST = -.5E-6/(IDACC(1)*DTS)
 c      CALL STRMIJ (OIJL(1,1,1,IJL_SFLX),FAC,OLNST(1,1,LN_SFLX),FACST
 c     *     ,SFIJS)
 C**** Subtract .035 times the Mass Stream Function
@@ -1054,8 +1053,7 @@ C****
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
-     *     ,imaxj,lmm,ze,dxvo,dypo
+      USE OCEAN, only : im,jm,lmo,dts,ze
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG
       IMPLICIT NONE
@@ -1360,7 +1358,7 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
-      USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
+      USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,dypo,dts,dxvo
      *     ,dxypo, oDLAT_DG, oDLON_DG
       USE DIAG_COM, only : qdiag
       USE MDIAG_COM, only :
@@ -1570,7 +1568,7 @@ C**** one place for compatibility with AGCM output format routines
             DO J= 1,JM-1
 C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
               IF (OIJL(I,J,L,IJL_MFU).ne.0) THEN
-                XB0(J,L,1)= 2d0*OIJL(I,J,L,IJL_MFU)/(IDACC(1)*NDYNO
+                XB0(J,L,1)= 1d0*OIJL(I,J,L,IJL_MFU)/(IDACC(1)*DTS
      *               *DYPO(J) *(ZE(L)-ZE(L-1)))
                 XBG(J,L,1)= 1d-6*(OIJL(I,J,L,IJL_GFLX)+OIJL(I,J,L
      *               ,IJL_GGMFL))/(IDACC(1)*DTS*DYPO(J)*(ZE(L)-ZE(L-1)))
@@ -1699,7 +1697,7 @@ C**** Fluxes
               I = II+I1-1
               IF (I.gt.IM) I=I-IM
               IF (OIJL(I,J,L,IJL_MFV).ne.0) THEN
-                X0(II,L)= 2d0*OIJL(I,J,L,IJL_MFV)/(IDACC(1)*NDYNO
+                X0(II,L)= OIJL(I,J,L,IJL_MFV)/(IDACC(1)*DTS
      *               *DXVO(J) *(ZE(L)-ZE(L-1)))
                 XG(II,L)= 1d-6*(OIJL(I,J,L,IJL_GFLX+1)+OIJL(I,J,L
      *               ,IJL_GGMFL+1))/(IDACC(1)*DTS*DXVO(J)*(ZE(L)-ZE(L-1)
@@ -1747,9 +1745,8 @@ C****
 c
 c Convert oijl accumulations into the desired units
 c
-      use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo
-     &     ,ndyno,dto
-      use odiag, only : koijl,oijl_out,oijl=>oijl_loc
+      use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo,dts
+      use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
@@ -1765,6 +1762,8 @@ c
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : am_i_root,halo_update,south
      &     ,pack_data,unpack_data ! for horz stream function
+      use mdiag_com, only : ia_cpl
+      use model_com, only : idacc
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,fac,facst
@@ -1803,7 +1802,7 @@ c
         gos = oijl(i,j,l,ijl_g0m) / mass
         sos = oijl(i,j,l,ijl_s0m) / mass
         oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
-        oijl_out(i,j,l,ijl_pdm) = mass/volgs(gos,sos)
+        oijl_out(i,j,l,ijl_pdm) = mass*(1d0/volgs(gos,sos)-1000d0)
       enddo
       enddo
       enddo
@@ -1814,16 +1813,19 @@ c
       do l=1,lmo-1
       do j=j_0,j_1
       do i=1,imaxj(j)
-        oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)/dxypo(j)
-        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/(dxypo(j)**2)
-        oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)/dxypo(j)
-        oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)/dxypo(j)
-        oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)
-        oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)
-        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)/dxypo(j)
-        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)/dxypo(j)
+        if(l.lt.lmm(i,j)) then
+          oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
+        endif
+        oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)
+        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
+        oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)
+        oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)
+        oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)
+        oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)
+        oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)*dxypo(j)
+        oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)*dxypo(j)
+        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
+        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
       enddo
       enddo
       enddo
@@ -1882,8 +1884,8 @@ C****
       endif
       call pack_data(grid,mfu,mfu_glob)
       if(am_i_root()) then
-        FAC   = -2d-9/(NDYNO)
-        FACST = -1d-9/(NDYNO*DTO)
+        FAC   = -1d-9/dts
+        FACST = -1d-9/dts
         CALL STRMIJ(MFU_GLOB,FAC,OLNST(1,1,LN_MFLX),FACST,SF_GLOB)
       endif
       call unpack_data(grid,sf_glob,oij(:,:,ij_sf))
@@ -1921,7 +1923,7 @@ c
 c Calculate zonal sums for ocean basins
 c
       use ocean, only : im,jm,lmo,imaxj,focean,dxypo
-      USE OCEAN, only : ndyno,dts,dto
+      USE OCEAN, only : dts
       USE STRAITS, only : nmst
       use odiag, only : oijl=>oijl_loc,kbasin
      &     ,ijl_mo,ijl_g0m,ijl_s0m,ijl_mfu,ijl_mfv,ijl_gflx,ijl_sflx
@@ -1983,8 +1985,8 @@ c
 C****
 C**** Calculate Mass Stream Function
 C****
-      FAC   = -2d-9/(NDYNO)
-      FACST = -1d-9/(NDYNO*DTO)
+      FAC   = -1d-9/DTS
+      FACST = -1d-9/DTS
       CALL STRMJL (OIJL(1,j_0h,1,IJL_MFU),FAC,
      &     OLNST(1,1,LN_MFLX),FACST,SFM)
       if(am_i_root()) then
@@ -2013,7 +2015,7 @@ C**** LN_MFLX  Strait mass flux (kg/s)            1/IDACC(1)*DTS
 C**** LN_GFLX  Strait heat flux (J/s)            .5/IDACC(1)*DTS
 C**** LN_SFLX  Strait salt flux (kg/s)           .5/IDACC(1)*DTS
 C****
-      SCALEM(1) = 2.D- 9/(NDYNO)
+      SCALEM(1) = 1.D- 9/(DTS)
       SCALEM(2) = 1.D-15/(DTS)
       SCALEM(3) = 1.D- 6/(DTS)
       SCALES(1) = 1.D- 9/(DTS)

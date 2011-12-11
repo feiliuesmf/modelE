@@ -475,7 +475,9 @@ c Fow now, using the ncgen utility to parse the metadata
         if(k.eq.kgw) then
           write(10,*) '// global attributes:'
           write(10,'(a)') '    :xlabel = "'//trim(xlabel)//'" ;'
-          write(10,'(a)') '    :fromto = "'//fromto//'" ;'
+          if(len_trim(fromto).gt.0) then
+            write(10,'(a)') '    :fromto = "'//fromto//'" ;'
+          endif
         endif
         write(10,'(a)') cdl(k)
       enddo

@@ -5,6 +5,9 @@
 *~
 .depend
 .depend_tmp.old
+/#notes#
+/.#notes
 /.current_options
 /.depend_subdirs
 /.liblist
+/notes

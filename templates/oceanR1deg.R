@@ -48,6 +48,7 @@ U10=CORE/R1/CNYF_2/u.nc
 V10=CORE/R1/CNYF_2/v.nc
 RUNOFF=CORE/R1/runoff.nc
 SSS=CORE/R1/srfsal.nc
+RSI=CORE/R1/SICE_288x180.1975-1984avg.HadISST1.1.nc
 
 #include "dynamic_ocn_288x180_input_files_AR5"
 

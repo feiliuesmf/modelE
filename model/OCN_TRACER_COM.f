@@ -1,5 +1,12 @@
 #include "rundeck_opts.h"
 
+#if defined(TRACERS_OCEAN_INDEP) && !defined(RUNTIME_NTM_OCEAN)
+/* TRACERS_OCEAN_INDEP enables the correct behaviors elsewhere */
+/* in the model, but here we want to avoid the hard-coded */
+/* specification of tracer names etc. if RUNTIME_NTM_OCEAN is set */
+#define TRACERS_OCEAN_INDEP_HARDCODED
+#endif
+
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       MODULE OCN_TRACER_COM
       SAVE
@@ -20,7 +27,7 @@
 !@dbparam to_per_mil For printout of tracer concentration in permil
 
 
-#ifdef TRACERS_OCEAN_INDEP
+#ifdef TRACERS_OCEAN_INDEP_HARDCODED
 C**** this defines tracer parameters that are local to ocean code
 
 
@@ -93,10 +100,18 @@ C**** a default tracer if nothing else is defined
       INTEGER, DIMENSION(ntm) :: itime_tr0 = 0
       INTEGER :: n_water = 0
 
-#else   /* not tracers_ocean_indep */
+#else   /* not TRACERS_OCEAN_INDEP_HARDCODED */
 
-C**** copies of data from the agcm, which has the responsibility of
-C**** initializing it
+C**** These arrays are allocated/intialized in one of two ways:
+C**** (1) by the AGCM, which copies its data into them
+C**** (2) if RUNTIME_NTM_OCEAN is defined, the allocation/initialization
+C****     of these arrays happens in alloc_ocn_tracer_com() using
+C****     information from the rundeck and/or other config files.
+C****     Set ocean_trname='name1 name2 ...' to instantiate
+C****     a given number of tracers, whose ICs will be read
+C****     from the file OCN_TRACER_CONFIG.  This approach is
+C****     still being tailored to handle all cases for which
+C****     it will prove useful.
       INTEGER :: ntm, n_water
       INTEGER, DIMENSION(:), ALLOCATABLE ::
      &     itime_tr0, ntrocn, to_per_mil
@@ -107,7 +122,7 @@ C**** initializing it
       CHARACTER(LEN=10), DIMENSION(:), ALLOCATABLE ::
      &     trname
 
-#endif  /* TRACERS_OCEAN_INDEP */
+#endif
       INTEGER :: n_age = 0, n_obio = 0
 
       real*8, allocatable :: expdec(:)
@@ -118,4 +133,109 @@ C**** initializing it
 #endif
 
       END MODULE OCN_TRACER_COM
+
+      subroutine alloc_ocn_tracer_com
+      USE DOMAIN_DECOMP_1D, only : am_i_root
+      use ocn_tracer_com
+      use Dictionary_mod, only : sync_param,is_set_param,get_param
+      ! TODO: it would be better long-term if tracer arrays were
+      ! owned by ocn_tracer_com.
+      USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
+     *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+     *       ,oc_tracer_mean
+      USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
+      USE OCEANR_DIM, only : J_0H,J_1H
+      USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
+#ifdef TRACERS_WATER
+      ! The ocean model should not have to know how many layers
+      ! the sea ice model uses - this dependence is unfriendly
+      ! to componentization and will be eliminated at some point,
+      ! if the array TRSIST is not eliminated first (as of 11/2201
+      ! TRSIST is inactive but still needs to be allocated).  -M.K.
+      USE STRAITS, only : TRSIST
+      USE SEAICE, only : LMI
+#endif
+      implicit none
+      character(len=128) :: trname_list
+      character(len=10) :: trname_(50)
+      integer :: i,ier
+      integer :: img, jmg, lmg
+      if (am_i_root()) then
+        img = im
+        jmg = jm
+        lmg = lmo
+      else
+        img = 1
+        jmg = 1
+        lmg = 1
+      end if
+#ifdef RUNTIME_NTM_OCEAN
+      if(is_set_param("ocean_trname")) then
+        trname_list=''
+        call get_param("ocean_trname",trname_list)
+        trname_list=adjustl(trname_list)
+        ntm=0
+        do while(len_trim(trname_list).gt.0)
+          i=index(trname_list,' ')
+          ntm = ntm + 1
+          trname_(ntm) = trname_list(1:i-1)
+          trname_list = adjustl(trname_list(i:128))
+        enddo
+        allocate(trname(ntm)); trname(:) = trname_(1:ntm)
+        ! RUNTIME_NTM_OCEAN is currently only being used for
+        ! a few simple tracers, so just set defaults for those.
+        allocate(trw0(ntm)); trw0(:) = 0.
+        allocate(to_per_mil(ntm)); to_per_mil = 0
+        allocate(t_qlimit(ntm)); t_qlimit=.true.
+      else
+        call stop_model('RUNTIME_NTM_OCEAN needs ocean_trname',255)
+      endif
+#endif
+#ifndef TRACERS_OCEAN_INDEP
+      allocate(
+     &     itime_tr0(ntm), ntrocn(ntm), to_per_mil(ntm),
+     &     t_qlimit(ntm), conc_from_fw(ntm),
+     &     trdecay(ntm), trw0(ntm)
+     &     )
+#endif
+      allocate(oc_tracer_mean(ntm)) 
+      oc_tracer_mean(:) = -999.
+
+      ALLOCATE(TRMST(LMO,NMST,NTM),
+     &         TXMST(LMO,NMST,NTM),
+     &         TZMST(LMO,NMST,NTM),
+     &         TRME(2,NMST,LMO,NTM),
+     &         TXME(2,NMST,LMO,NTM),
+     &         TYME(2,NMST,LMO,NTM),
+     &         TZME(2,NMST,LMO,NTM)
+     &        )
+      trmst = 0.
+      txmst = 0.
+      tzmst = 0.
+      trme = 0.
+      txme = 0.
+      tyme = 0.
+      tzme = 0.
+#ifdef TRACERS_WATER
+      ALLOCATE(TRSIST(NTM,LMI,NMST))
+      trsist = 0.
+#endif
+
+      ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      trmo = 0.
+      txmo = 0.
+      tymo = 0.
+      tzmo = 0.
+
+      ALLOCATE( TRMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TYMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TZMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+
+      return
+      end subroutine alloc_ocn_tracer_com
+
 #endif

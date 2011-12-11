@@ -7,12 +7,6 @@
 !@+    RESOLUTION DEPENDENT: This version for 72x46 - M, 9ky topography
 !@+    Fury+Hecla blocked.
 !@auth Gary Russell/Gavin Schmidt
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm_atm=>ntm
-#endif
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
       USE SEAICE, only : lmi
       USE OCEANRES, only : lmo
       IMPLICIT NONE
@@ -116,7 +110,7 @@ C****
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
-      REAL*8, DIMENSION(NTM_ATM,LMI,NMST) :: TRSIST
+      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
 #endif
 
       END MODULE STRAITS

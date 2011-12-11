@@ -117,7 +117,6 @@ c**** Tracer input/output
         integer ntx
         integer, allocatable, dimension(:) :: ntix
 #ifdef TRACERS_SPECIAL_O18
-        public :: frack
         real*8, allocatable, dimension(:) :: frack
 #endif
 #ifdef BIOGENIC_EMISSIONS

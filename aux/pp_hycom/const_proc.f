@@ -32,8 +32,11 @@ c    .   jdofm=(/30,60,90,120,150,180,210,240,270,300,330,360/)
      . ,flnmcoso='cososino387x360.8bin'
      . ,flnmo2a='ssto2a_2_1deg.8bin'
 c
-      integer, parameter :: indoi=252,indoj1=118,indoj2=133
-     .  ,idrk1=323,jdrk1=292,idrk2=342,jdrk2=299
+      integer, parameter :: indoi=252,indoj1=118,indoj2=133 ! Indo Throughflow
+     .  ,idrk1=323,jdrk1=292,idrk2=342,jdrk2=299            ! Drake Passage
+     .  ,iberi=138, jberi=189                               ! Bering Strait
+     .  ,ikuro1=197, ikuro2=205, jkuro=129                  ! Kuroshio
+     .  ,igulf1=191, igulf2=200, jgulf=281                  ! Gulf Stream
 c
       character(len=20) :: runid="Exxx"
       integer           :: ny1=1800, ny2=1800

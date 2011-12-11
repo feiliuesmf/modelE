@@ -339,8 +339,8 @@ c
       do 20 j=1,jdm
 c
       do 21 i=1,idm
-      ubavg(i,j,1)=ubavg(i,j,1)*100. * iu(i,j)		!  convert to cm/sec
-      vbavg(i,j,1)=vbavg(i,j,1)*100. * iv(i,j)		!  convert to cm/sec
+      ubavg(i,j)=ubavg(i,j)*100. * iu(i,j)		!  convert to cm/sec
+      vbavg(i,j)=vbavg(i,j)*100. * iv(i,j)		!  convert to cm/sec
       p(i,j,1)=0.
       if (ip(i,j).gt.0) then
         dpmixl(i,j,1)=dpmixl(i,j,1)/(g*rho)		!  convert to meters
@@ -363,8 +363,8 @@ c --- combine barotropic and baroclinic velocities
 c
       do 20 k=1,kdm
       do 20 i=1,idm
-      u(i,j,k)=u(i,j,k)*100./dz*iu(i,j) + ubavg(i,j,1)	!  convert to cm/sec
-      v(i,j,k)=v(i,j,k)*100./dz*iv(i,j) + vbavg(i,j,1)	!  convert to cm/sec
+      u(i,j,k)=u(i,j,k)*100./dz*iu(i,j) + ubavg(i,j)	!  convert to cm/sec
+      v(i,j,k)=v(i,j,k)*100./dz*iv(i,j) + vbavg(i,j)	!  convert to cm/sec
       uflx(i,j,k)=uflx(i,j,k)*1.e-6/(g*rho*dz**3)	!  convert to Sv*intvl
       vflx(i,j,k)=vflx(i,j,k)*1.e-6/(g*rho*dz**3)	!  convert to Sv*intvl
       if (ip(i,j).gt.0) then

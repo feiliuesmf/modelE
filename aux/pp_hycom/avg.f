@@ -15,28 +15,33 @@ c
      .    ,basinmask,flnmcoso,flnmo2a,runid,ny1,ny2,spcifh,julian
      .    ,idrk1,idrk2,jdrk1,jdrk2,indoi,indoj1,indoj2,rhodot,amon
      .    ,monlg,rho,monave_convert,solo_convert,cnvert,timav,mo1,mo2
+     .    ,iberi,jberi,ikuro1,ikuro2,jkuro,igulf1,igulf2,jgulf
       use hycom_arrays, only: srfhgt,dpmixl,covice,depths,scp2
      .    ,u,v,dp,p,temp,saln,th3d,tracer,uflxav,vflxav,diaflx
      .    ,uflx,vflx,ubavg,vbavg,alloc_hycom_arrays,latij
-     .    ,temav,salav,ubavg,vbavg,ubavav,vbavav
+     .    ,temav,salav,ubavg,vbavg,ubavav,vbavav,scuy,scvx
+     .    ,xlo,ylo,southfl,eastfl
       use hycom_dimen
 c
       implicit none
 c
       integer :: ntime
-      integer :: ny,num,m,k00,ia
+      integer :: ny,num,m,k00,ia,ja
       real*8 :: tsum,ssum,sstsum,ssssum,arean3
      . ,annsst,annsss,annssh,anntem,annsal,annht,thin,ssh0
      . ,anndh,anndf,anndb,db,trc
      . ,glbsal,glbtem,glbdep,sum1,sum2,sum3,area,avgbot,vol
 
-      real :: iceextn,iceexts,nino3,day0,day1,flxmax,x1,x2,thrufl,tinvrs
+      real :: iceextn,iceexts,nino3,day0,day1,flxmax,x1,x2,thrufl
+     .       ,tinvrs,fl_beri,kuromax,gulfmax
       real, allocatable :: pinit(:,:,:),pfinl(:,:,:),lat(:),flux(:,:,:)
      .       ,sunda(:),heatfl(:,:)
       integer, allocatable :: im(:,:)
 c
       real :: dpavav(kdm), heatot
       real, allocatable :: year(:), dpav(:,:)
+      real, allocatable :: fl_kuro(:), fl_gulf(:)
+
       character flnm*132,flnmout*30
 c
       integer mo,dcd,mon1,i70,i45,ieq,status
@@ -54,11 +59,13 @@ C
 c
       character(len=*), parameter :: FMT3=
      & '(a,         t10,a,     t22,a,     t34,a,      t46, a,      
-     &  t58,a,      t70,a,     t82,a,     t94,a,      t106,a)' 
+     &  t58,a,      t70,a,     t82,a,     t94,a,      t106,a,
+     &  t118,a,     t130,a,    t142,a)' 
 C
       character(len=*), parameter :: FMT4=
      & '(f7.2,sp,t10,es10.3,t22,es10.3,t34,es10.3, t46, es10.3,
-     &  t58,es10.3, t70,es10.3,t82,es10.3,t94,es10.3,t106,es10.3)'
+     &  t58,es10.3, t70,es10.3,t82,es10.3,t94,es10.3,t106,es10.3,
+     &  t118,es10.3,t130,es10.3,t142,es10.3)'
 
       character(len=*), parameter :: FMT5=
      & '(1x,a,t6,a,t16,a,t28,a,t40,a,t52,a)'
@@ -85,6 +92,7 @@ c
       call alloc_hycom_dimen
       allocate (lat(idm),pinit(idm,jdm,kdm+1),pfinl(idm,jdm,kdm+1)
      .    ,flux(idm,kdm,4),im(idm,jdm),heatfl(idm,4),sunda(kdm+1)
+     .    ,fl_kuro(idm),fl_gulf(idm)
      .    ,stat=status)
       if (status/=0) stop 'wrong allocate1'
 
@@ -161,13 +169,14 @@ c
 c
       write(302,fmt=FMT3) 
      & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Ocean Heat", 
-     & "Atl (45N)","Indonesian","Drake"
+     & "Atl (45N)","Indonesian","Drake","Bering","Gulf","Kuroshio"
       write(302,fmt=FMT3) 
      & "---- ","Surf_Temp","Surf_Saln","Glob_Temp",
      & "Glob_Saln","Srf_Hght","Content","Max Overt",
-     & "Throughfl","Passage"
+     & "Throughfl","Passage","Strait","Stream"," "
       write(302,fmt=FMT3) 
      & "Year","degC","PSU","degC","PSU","cm","*1.E6 J/m2","Sv","Sv","Sv"
+     & ,"Sv","Sv","Sv"
 C
       write(304,'(a)') "North Poleward Ocean Heat Transport" 
       write(304,fmt=FMT5) 
@@ -276,8 +285,8 @@ c --- calculate flux
 c
       do 13 j=1,jdm
       do 13 i=1,idm
-      ubavav(i,j)=ubavav(i,j)+ubavg(i,j,1)*mon1/julian
-      vbavav(i,j)=vbavav(i,j)+vbavg(i,j,1)*mon1/julian
+      ubavav(i,j)=ubavav(i,j)+ubavg(i,j)*mon1/julian
+      vbavav(i,j)=vbavav(i,j)+vbavg(i,j)*mon1/julian
       do 13 k=1,kdm
       uflxav(i,j,k)=uflxav(i,j,k)+uflx(i,j,k)		! uflx: Sv*intvl
  13   vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)		! vflx: Sv*intvl
@@ -311,12 +320,78 @@ c
 c     write(*,*) ' yr n=',n,' flxmax_i45 =',i45,flxmax,' at k=',k00
       x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
       x2=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
+      fl_beri=thrufl(iberi,jberi-1,iberi,jberi+1,'(Bering)')
 c
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- calculate Gulf Stream and Kuroshio transport
+c
+c --- convert ubavav,vbavav from cm/sec to Sv
+c$OMP PARALLEL DO PRIVATE(ja)
+      do j=1,jdm
+       ja=mod(j-2+jfull,jfull)+1
+       do i=2,idm
+        do k=2,kdm
+         uflxav(i,j,1)=uflxav(i,j,1)+uflxav(i,j,k)
+        end do
+        ubavav(i,j)=ubavav(i,j)*min(depths(i,j),depths(i-1,j))*scuy(i,j)
+     .   *1.e-8
+       end do
+c
+       do i=1,idm
+        do k=2,kdm
+         vflxav(i,j,1)=vflxav(i,j,1)+vflxav(i,j,k)
+        end do
+        vbavav(i,j)=vbavav(i,j)*min(depths(i,j),depths(i,ja ))*scvx(i,j)
+     .   *1.e-8
+       end do
+      end do
+c$OMP END PARALLEL DO
+      do k=1,2
+       call usmoo(uflxav)
+       call vsmoo(vflxav)
+      end do
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c
+      call coagflx(uflxav,vflxav,ylo,southfl,xlo,eastfl)
+c     call coagflx(ubavav,vbavav,ylo,southfl,xlo,eastfl)
+c
+      fl_kuro(:)=0.
+      do i=ikuro1,ikuro2
+      do j=jkuro,jdm
+       if (iv(i,j).gt.0) then
+!       print *,'southfl at i,j =',i,j,southfl(i,j)
+        fl_kuro(i)=-southfl(i,j)
+        if (southfl(i,j).lt.0.) exit
+       end if
+      end do
+      write(*,'(a,i3,a,f8.1)') 'i=',i,' kuroshio transport =',
+     .   -southfl(i,j)
+      end do
+      kuromax=maxval(fl_kuro)
+      print '(a,f8.1)','max. kuroshio transport:',kuromax
+
+      fl_gulf(:)=0.
+      do i=igulf1,igulf2
+      do j=jgulf,jdm
+       if (iv(i,j).gt.0) then
+!       print *,'southfl at i,j =',i,j,southfl(i,j)
+        fl_gulf(i)=-southfl(i,j)
+        if (southfl(i,j).lt.0.) exit
+       end if
+      end do
+      write(*,'(a,i3,a,f8.1)') 'i=',i,' gulf stream transport =',
+     .   -southfl(i,j)
+      end do
+      gulfmax=maxval(fl_gulf)
+      print '(a,f8.1)','max. gulfstrm transport:',gulfmax
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
       write(302,fmt=FMT4) year(n)-0.5 
      .   ,annsst/area,annsss/area,anntem/vol,annsal/vol
-     .   ,annssh/area,annht*1.e-6,flxmax,-x2,x1
+     .   ,annssh/area,annht*1.e-6,flxmax,-x2,x1,-fl_beri,gulfmax,kuromax
  151  continue
 c
+
       temav(:,:,:) =0.
       salav(:,:,:) =0.
       uflxav(:,:,:)=0.
@@ -343,8 +418,8 @@ c
       do 113 i=1,idm
       ia=max(1,i-1)
       do 113 j=1,jdm
-      ubavav(i,j)=ubavav(i,j)+ubavg(i,j,1)*mon1
-      vbavav(i,j)=vbavav(i,j)+vbavg(i,j,1)*mon1
+      ubavav(i,j)=ubavav(i,j)+ubavg(i,j)*mon1
+      vbavav(i,j)=vbavav(i,j)+vbavg(i,j)*mon1
       do 113 k=1,kdm
       temav(i,j,k)=temav(i,j,k)+temp(i,j,k)*mon1
       salav(i,j,k)=salav(i,j,k)+saln(i,j,k)*mon1

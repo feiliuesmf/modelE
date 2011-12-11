@@ -367,17 +367,17 @@ C we change that.)
       end subroutine get_aircraft_tracer
  
 
-      subroutine check_aircraft_sectors
+      subroutine check_aircraft_sectors(n_NOx)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
-      use tracer_com, only: n_NOx,nAircraft,num_tr_sectors3D,
+      use tracer_com, only: nAircraft,num_tr_sectors3D,
      & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
 
       IMPLICIT NONE
-
+      integer, intent(in) :: n_NOx
       integer :: i,j,ns,nsect,nn
       character*124 :: tr_sectors_are
       character*32 :: pname

@@ -26,7 +26,7 @@
       character(len=30) :: diminfo,varname
       character(len=1) :: str1
       character(len=3) :: str3
-      character(len=6) :: ifmt='(ix.x)'
+      character(len=6) :: ifmt(7)='(ix.x)'
       real*4, parameter :: undef=-1e30
       real*4 :: shnhgm(3)
       character(len=30) :: run_info
@@ -140,9 +140,9 @@ c
             kmod(n) = k
             k = k*dsizes(n)
             write(str1,'(i1)') int(1.+log10(real(dsizes(n))))
-            ifmt(3:3) = str1
-            ifmt(5:5) = str1
-            write(str3,ifmt) srt(n)
+            ifmt(n)(3:3) = str1
+            ifmt(n)(5:5) = str1
+            write(str3,ifmt(n)) srt(n)
             if(len_trim(diminfo).eq.0) then
               diminfo=trim(dnames(n))//'='//trim(str3)
             else
@@ -190,7 +190,7 @@ c
               if(mod(k,kmod(n)).eq.0) then
                 srt(n) = srt(n) + 1
                 if(srt(n).gt.dsizes(n)) srt(n)=1
-                write(str3,ifmt) srt(n)
+                write(str3,ifmt(n)) srt(n)
                 diminfo(p1(n):p2(n))=trim(str3)
               endif
             enddo

@@ -446,9 +446,9 @@ C**** TCONSRV
       INTEGER :: natmtrcons=0, nocntrcons=0
 #ifdef TRACERS_TOMAS
 !@var itcon_TOMAS Index array for microphysical processes diags
-      INTEGER, ALLOCATABLE, DIMENSION(7,ntmxcon) :: itcon_TOMAS
+      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_TOMAS
 !@var itcon_TOMAS Index array for subgrid coagulation diags
-      INTEGER, ALLOCATABLE, DIMENSION(ntmxcon) :: itcon_subcoag
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_subcoag
 #endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 

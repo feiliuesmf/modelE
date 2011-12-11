@@ -95,8 +95,10 @@ c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid
       USE SEAICE_COM, only : si_atm,si_ocn,sigrid
+#ifndef TRACERS_OCEAN_INDEP
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
-      USE TRACER_COM, only : ntm => NTM
+      USE TRACER_COM, only : ntm
+#endif
 #endif
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
       USE TRACER_COM, only : trname

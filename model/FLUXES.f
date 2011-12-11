@@ -182,6 +182,11 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
          integer :: natmtrcons
          real*8, dimension(:,:,:), pointer :: tconsrv
          integer, dimension(:,:), pointer :: nofmt
+
+#ifndef TRACERS_ON
+         integer :: ntm=0
+#endif
+
 #endif
 
       end type atmocn_xchng_vars

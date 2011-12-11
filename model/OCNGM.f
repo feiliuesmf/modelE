@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE GM_COM
 !@sum  GM_COM variables related to GM isopycnal and Redi fluxes
 !@auth Gavin Schmidt/Dan Collins
@@ -54,12 +56,18 @@
 
       REAL*8, PARAMETER :: eps=TINY(1.D0)
 
+#ifdef CONSTANT_MESO_LENSCALE
+!@dbparam meso_lenscale_const a fixed length scale (meters) to use in
+!@+       lieu of Rossby radius RD in AINV = AMU * RD**2 * BYTEADY
+      real*8 :: meso_lenscale_const
+#endif
+
       REAL*8, ALLOCATABLE, DIMENSION(:) ::
      *     BYDYP,BYDXP,BYDYV
 
 !@var VBAR specific volume (ref to mid point pressure)
 !@var dVBARdZ specific volume vertical difference (ref to lower point pressure)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: VBAR, dVBARdZ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: VBAR, dVBARdZ,G3D,S3D,P3D
 !@var RHOZ1K density gradient over top 1km
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RHOZ1K
 
@@ -131,6 +139,9 @@ c**** allocate arrays
 
         allocate( VBAR   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( DVBARDZ(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( G3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( S3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( P3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( RHOZ1K (IM,grid%j_strt_halo:grid%j_stop_halo) )
 
         allocate( RHOX   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
@@ -154,6 +165,7 @@ c**** allocate arrays
 !@+   for Redi and GM isopycnal skew fluxes
 !@auth Dan Collins/Gavin Schmidt
       USE GM_COM
+      USE Dictionary_mod
       IMPLICIT NONE
       INTEGER I,J,L,IM1
 
@@ -163,6 +175,9 @@ c**** allocate arrays
       if ( IFIRST.ne.0 ) then
         IFIRST = 0
         call ALLOC_GM_COM
+#ifdef CONSTANT_MESO_LENSCALE
+        call get_param( 'meso_lenscale_const', meso_lenscale_const )
+#endif
       endif
 
 c**** Extract domain decomposition info
@@ -1123,12 +1138,12 @@ C****
 
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
-     *     ,BYTEADY,DH0,DZSUMX,DZSUMY
+     *     ,BYTEADY,DH0,DZSUMX,DZSUMY,R1,R2,P12
       REAL*8, SAVE :: HUP
       INTEGER I,J,L,IM1,LAV,iu_ODIFF
       INTEGER, SAVE :: IFIRST = 1
       CHARACTER TITLE*80
-
+      Real*8,External   :: VOLGSP
       REAL*8, DIMENSION(IM,JM) ::  AINV_glob
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
@@ -1207,6 +1222,10 @@ C**** RHO(I,J,L)  Density=1/specific volume
       CALL HALO_UPDATE(grid,RHO (:,grid%j_strt_halo:grid%j_stop_halo,:),
      *                 FROM=SOUTH+NORTH)
 
+      CALL HALO_UPDATE(grid,G3D)
+      CALL HALO_UPDATE(grid,S3D)
+      CALL HALO_UPDATE(grid,P3D)
+
 C**** Calculate density gradients
 
       !initialize
@@ -1228,10 +1247,22 @@ C**** minus vertical gradient
      *             BYRHOZ(I,J,L-1)=1./RHOMZ(I,J,L-1)
             END IF
 C**** Calculate horizontal gradients
-            IF(LMV(I,J-1).ge.L) RHOY(I,J-1,L) =
-     *           (RHO(I,J,L) - RHO(I,J-1,L))*BYDYV(J-1)
-            IF(LMU(IM1,J).ge.L) RHOX(IM1,J,L) =
-     *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
+            IF(LMV(I,J-1).ge.L) THEN
+              p12 = .5d0*(p3d(i,j-1,l)+p3d(i,j,l))
+              r1 = 1d0/volgsp(g3d(i,j-1,l),s3d(i,j-1,l),p12)
+              r2 = 1d0/volgsp(g3d(i,j  ,l),s3d(i,j  ,l),p12)
+              RHOY(I,J-1,L) =
+C     *           (RHO(I,J,L) - RHO(I,J-1,L))*BYDYV(J-1)
+     *           (r2 - r1)*BYDYV(J-1)
+            ENDIF
+            IF(LMU(IM1,J).ge.L) THEN
+              p12 = .5d0*(p3d(im1,j,l)+p3d(i,j,l))
+              r1 = 1d0/volgsp(g3d(im1,j,l),s3d(im1,j,l),p12)
+              r2 = 1d0/volgsp(g3d(i  ,j,l),s3d(i  ,j,l),p12)
+              RHOX(IM1,J,L) =
+C     *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
+     *           (r2 - r1)*BYDXP(J)
+            ENDIF
   931       IM1 = I
           END DO
         END DO
@@ -1283,8 +1314,12 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
             IF (ARHOZ.gt.0) THEN
               AN = SQRT(GRAV * ARHOZ / ARHO)
+#ifdef CONSTANT_MESO_LENSCALE
+              RD = meso_lenscale_const
+#else
               RD = AN * HUP / CORI
               IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
+#endif
               BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
      *             *ARHO)
               AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
@@ -1324,7 +1359,11 @@ C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
+#ifdef CONSTANT_MESO_LENSCALE
+            RD = meso_lenscale_const
+#else
             RD = AN * HUP / CORI
+#endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
             AINV(1,JM) = AMU * RD**2 * BYTEADY ! was = AIN
           END IF
@@ -1363,7 +1402,11 @@ C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
+#ifdef CONSTANT_MESO_LENSCALE
+            RD = meso_lenscale_const
+#else
             RD = AN * HUP / CORI
+#endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
             AINV(1,1) = AMU * RD**2 * BYTEADY ! was = AIN
           END IF
@@ -1395,7 +1438,7 @@ C****
 !@sum VBAR_GM0 calculates specific volume and vertical gradients for GM
 !@auth Gary Russell/Gavin Schmidt
       Use CONSTANT, only: grav
-      Use GM_COM, only: vbar,dvbardz,rhoz1k,lup
+      Use GM_COM, only: vbar,dvbardz,rhoz1k,lup,g3d,s3d,p3d
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,DXYPO, MO, ZE,
      *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO, OPRESS, FOCEAN
       Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
@@ -1445,6 +1488,9 @@ C**** Calculate pressure by integrating from the top down
           Do L=1,LMOM(I,J)
             PM(L) = PE + MO(I,J,L)*GRAV*.5
             PE    = PE + MO(I,J,L)*GRAV
+            G3D(I,J,L) = GMD(L)
+            S3D(I,J,L) = SMD(L)
+            P3D(I,J,L) = PM(L)
           EndDo
 C**** Calculate potential specific volume (ref to mid-point pr)
           Do L=LMOM(I,J),1,-1
@@ -1470,12 +1516,18 @@ C**** Copy VBAR to all longitudes at poles
       If (QNP) Then
         Do L=1,LMOM(1,JM)
           VBAR(2:IM,JM,L) = VBAR(1,JM,L)
+          G3D(2:IM,JM,L) = G3D(1,JM,L)
+          S3D(2:IM,JM,L) = S3D(1,JM,L)
+          P3D(2:IM,JM,L) = P3D(1,JM,L)
           dVBARdZ(2:IM,JM,L) = dVBARdZ(1,JM,L)
         EndDo
       EndIf
       If (QSP) Then
         Do L=1,LMOM(1,1)
           VBAR(2:IM,1,L) = VBAR(1,1,L)
+          G3D(2:IM,1,L) = G3D(1,1,L)
+          S3D(2:IM,1,L) = S3D(1,1,L)
+          P3D(2:IM,1,L) = P3D(1,1,L)
           dVBARdZ(2:IM,1,L) = dVBARdZ(1,1,L)
         EndDo
       EndIf

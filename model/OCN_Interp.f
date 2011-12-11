@@ -709,7 +709,10 @@ C**** do poles
       USE OFLUXES, only : oRSI
 #endif
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only: ntm,conc_from_fw
+      USE OCN_TRACER_COM, only: ntm
+#ifdef TRACERS_WATER
+      USE OCN_TRACER_COM, only: conc_from_fw
+#endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM, only: nstep=>itime

@@ -1203,130 +1203,16 @@ C**** set defaults for some precip/wet-dep related diags
       select case (trname(n))
 
       case ('SF6','SF6_c','CFCn')
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Layer_1_source_of_'//trname(n)
-        lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
-        jls_ltop(k) = 1
-        jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
+        call SF6_setspec(k,n,trname(n))
       case ('CO2n')
-        k = k + 1
-        jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_Gas_Exchange_'//trname(n)
-        lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
+        call CO2n_setSpec(k,n,'CO2n')
       case ('Rn222')
-        k = k + 1
-        jls_decay(n) = k   ! special array for all radioactive sinks
-        sname_jls(k) = 'Decay_of_'//trname(n)
-        lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
-        jls_ltop(k) = lm
-        jls_power(k) = -26
-        units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
-        jwt_jls(k)=3
-
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Ground_Source_of_'//trname(n)
-        lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
-        jls_ltop(k) = 1
-        jls_power(k) = -10
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
+        call Rn222_setSpec(k,n,'Rn222')
 ! keep AIJ and AJL CO2 sources in same order !!
       case ('CO2')
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Fossil_fuel_source_'//trname(n)
-        lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'fertilization_sink_'//trname(n)
-        lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
-        lname_jls(k) = 'CO2 Northern forest regrowth sink'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'Land_Use_Modification_'//trname(n)
-        lname_jls(k) = 'CO2 from Land use modification (Houton)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
-        lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'Ocean_exchange_'//trname(n)
-        lname_jls(k) = 'CO2 Ocean exchange'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
+        call CO2_setSpec(k,n,'CO2')
       case ('N2O')
-#ifdef TRACERS_SPECIAL_Shindell
-        do kk=1,ntsurfsrc(n)
-          k = k + 1
-          jls_source(kk,n) = k
-          sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
-          lname_jls(k) = trname(n)//' source from '//trim(ssname(n,kk))
-          jls_ltop(k) = 1
-          jls_power(k) = -1
-          units_jls(k) = unit_string(jls_power(k),'kg/s')
-        end do
-        k = k + 1
-        jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'chemistry_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
-        jls_ltop(k) = LM
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(nOverwrite,n) = k
-        sname_jls(k) = 'overwrite_source_of'//trname(n)
-        lname_jls(k) =
-     &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
-        jls_ltop(k) = 1 ! really L=1 overwrite only
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
-#ifdef TRACERS_SPECIAL_Lerner
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trname(n)
-        lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Stratos_chem_change_'//trname(n)
-        lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
-        jls_ltop(k) = lm
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-#endif
-
+        call N2O_setSpec(k,n,'N2O')
       case ('CFC11')   !!! should start April 1
         k = k + 1
         jls_source(1,n) = k
@@ -2803,6 +2689,154 @@ c Oxidants
 #endif /* TRACERS_ON */
 
       return
+
+      contains
+
+      subroutine SF6_setSpec(k,n, name)
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: name
+      k = k + 1
+      jls_source(1,n) = k
+      sname_jls(k) = 'Layer_1_source_of_'//trname(n)
+      lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
+      jls_ltop(k) = 1
+      jls_power(k) = -3
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+      end subroutine SF6_setSpec
+
+      subroutine CO2n_setSpec(k,n,name)
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: name
+      k = k + 1
+      jls_isrc(1,n) = k
+      sname_jls(k) = 'Ocean_Gas_Exchange_'//trname(n)
+      lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
+      jls_ltop(k) = 1
+      jls_power(k) = 3
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+      end subroutine CO2n_setSpec
+
+      subroutine Rn222_setSpec(k,n,name)
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: name
+      k = k + 1
+      jls_decay(n) = k          ! special array for all radioactive sinks
+      sname_jls(k) = 'Decay_of_'//trname(n)
+      lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
+      jls_ltop(k) = lm
+      jls_power(k) = -26
+      units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
+      jwt_jls(k)=3
+      
+      k = k + 1
+      jls_source(1,n) = k
+      sname_jls(k) = 'Ground_Source_of_'//trname(n)
+      lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
+      jls_ltop(k) = 1
+      jls_power(k) = -10
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+      end subroutine Rn222_setSpec
+      
+      subroutine CO2_setSpec(k,n,name)
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: name
+        k = k + 1
+        jls_source(1,n) = k
+        sname_jls(k) = 'Fossil_fuel_source_'//trname(n)
+        lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'fertilization_sink_'//trname(n)
+        lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
+        lname_jls(k) = 'CO2 Northern forest regrowth sink'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(4,n) = k
+        sname_jls(k) = 'Land_Use_Modification_'//trname(n)
+        lname_jls(k) = 'CO2 from Land use modification (Houton)'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(5,n) = k
+        sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
+        lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(6,n) = k
+        sname_jls(k) = 'Ocean_exchange_'//trname(n)
+        lname_jls(k) = 'CO2 Ocean exchange'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
+      end subroutine CO2_setSpec
+
+      subroutine N2O_setSpec(k,n,name)
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      character(len=*), intent(in) :: name
+#ifdef TRACERS_SPECIAL_Shindell
+      do kk=1,ntsurfsrc(n)
+        k = k + 1
+        jls_source(kk,n) = k
+        sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
+        lname_jls(k) = trname(n)//' source from '//trim(ssname(n,kk))
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+      end do
+      k = k + 1
+      jls_3Dsource(nChemistry,n) = k
+      sname_jls(k) = 'chemistry_source_of'//trname(n)
+      lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+      jls_ltop(k) = LM
+      jls_power(k) = -1
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+      k = k + 1
+      jls_3Dsource(nOverwrite,n) = k
+      sname_jls(k) = 'overwrite_source_of'//trname(n)
+      lname_jls(k) =
+     &     'CHANGE OF '//trname(n)//' BY OVERWRITE'
+      jls_ltop(k) = 1           ! really L=1 overwrite only
+      jls_power(k) = -1
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
+#ifdef TRACERS_SPECIAL_Lerner
+      k = k + 1
+      jls_source(1,n) = k
+      sname_jls(k) = 'L1_sink_'//trname(n)
+      lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
+      jls_ltop(k) = 1
+      jls_power(k) = 0
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+      k = k + 1
+      jls_3Dsource(1,n) = k
+      sname_jls(k) = 'Stratos_chem_change_'//trname(n)
+      lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
+      jls_ltop(k) = lm
+      jls_power(k) = -1
+      units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
+      end subroutine N2O_setSpec
+
       end subroutine init_jls_diag
 
       subroutine init_ijts_diag
@@ -7404,10 +7438,6 @@ C**** Initialise pbl profile if necessary
       end if
       end do
 #endif /* TRACERS_ON */
-#ifdef TRACERS_OCEAN
-C**** Initialise ocean tracers if necessary
-      call tracer_ic_ocean(atmocn)
-#endif
 C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

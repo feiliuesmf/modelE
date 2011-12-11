@@ -1188,7 +1188,7 @@ C     OUTPUT DATA
      *     ,j_vtau,j_ghg
 #endif
 
-      USE ATM_COM, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
+      USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : snowe_com=>snowe,snoage,wearth_com=>wearth
@@ -1333,7 +1333,7 @@ C  GHG Effective forcing relative to 1850
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
      *     ,onoff_chem,LFRC,JTIME,n1,tmpS(8),tmpT(8),moddrf
-      REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
+      REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
      *     ,rsign_chem,tauex5,tauex6,tausct,taugcb,dcdnc
@@ -1693,11 +1693,10 @@ C**** Set Chlorophyll concentration
 #endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
-C**** kradia=1: instantaneous forcing - LS1_loc is not used
 C**** kradia>1: adjusted forcing, i.e. T adjusts in L=LS1_loc->LM+3
-      if(kradia>1) LS1_loc=LTROPO(I,J)+3-kradia ! favorite:kradia=3
+      if(kradia>1) LS1_loc=LS1_loc+2-kradia     ! favorite:kradia=3
       if(kradia>3) LS1_loc=1                    ! favorite:kradia=3
-      kdeliq=0   ! initialize mainly for l>lm
+      kdeliq=0   ! initialize mainly for L>LM
       if (kradia.gt.0) then     ! rad forcing model
         do l=1,lm
           tlm(l) = T(i,j,l)*pk(l,i,j)
@@ -1716,7 +1715,6 @@ C****
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
-        PIJ=PLIJ(L,I,J)
         if(q(i,j,l)<0) then
            WRITE(6,*)'In Radia: Time,I,J,L,Q<0',ITime,I,J,L,Q,'->0'
            Q(I,J,L)=0.
