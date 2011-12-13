@@ -183,6 +183,7 @@
       use RunTimeControls_mod, only: tracers_hetchem
       use RunTimeControls_mod, only: tracers_cosmo
       use RunTimeControls_mod, only: tracers_radon
+      use RunTimeControls_mod, only: tracers_minerals
       use RunTimeControls_mod, only: tracers_quarzhem
       use RunTimeControls_mod, only: htap_like_diags
       use RunTimeControls_mod, only: tracers_air
@@ -666,7 +667,7 @@ c$$$      n_H2O17 = H2O17_setSpec(numTr)
         n_sil2feld = sil2feld_setSpec(numTr) ! http://www.mindat.org/min-1624.html
         n_sil2calc = sil2calc_setSpec(numTr) ! http://www.webmineral.com/data/Calcite.shtml
         n_sil2hema = sil2hema_setSpec(numTr) ! http://www.webmineral.com/data/Hematite.shtml
-        n_sil2gyps - sil2gyps_setSpec(numTr) ! http://www.webmineral.com/data/Gypsum.shtml
+        n_sil2gyps = sil2gyps_setSpec(numTr) ! http://www.webmineral.com/data/Gypsum.shtml
         n_sil3quar = sil3quar_setSpec(numTr) ! http://www.webmineral.com/data/Quartz.shtml
         n_sil3feld = sil3feld_setSpec(numTr) ! http://www.mindat.org/min-1624.html
         n_sil3calc = sil3calc_setSpec(numTr) ! http://www.webmineral.com/data/Calcite.shtml
@@ -2127,8 +2128,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil1calc=n
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
+      call set_ntm_power(n, -9)
+      call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 1.47D-06)
 #endif
@@ -2143,13 +2144,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil1hema=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, DenHema) ! 5.3D3
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, DensityHematite)
->>>>>>> master
+      call set_trpdens(n, DensityHematite)
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 1.47D-06)
 #endif
@@ -2164,13 +2160,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil1gyps=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, 2.3D3)
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
->>>>>>> master
+      call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 1.47D-06)
 #endif
@@ -2185,9 +2176,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil2quar=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, DenQuarz) ! 2.62D3
+      call set_trpdens(n, DensityQuartz)
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 2.94D-06)
 #endif
@@ -2203,24 +2193,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       n = n + 1
       n_sil2feld=n
       call set_ntm_power(n, -9)
-      call set_trpdens(n, 2.65D3) ! assumed, varies strongly among types
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, DensityQuartz)
-#ifdef TRACERS_DRYDEP
-          call set_trradius(n, 2.94D-06)
-#endif
-          call set_fq_aer(n, 5.D-1)
-          call set_rc_washt(n, 5.D-1)
-          call set_tr_wd_type(n, nPART)
-          call set_tr_mm(n, 1.d+0)
-          call set_isdust(n, 1)
-
-      CASE('Sil2Feld')       ! http://webmineral.com/data/Plagioclase.shtml
-      n_sil2feld=n
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.68d3) ! average Plagioclase
->>>>>>> master
+      call set_trpdens(n, 2.68d3) ! average Plagioclase
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 2.94D-06)
 #endif
@@ -2235,13 +2208,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil2calc=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, 2.71D3)
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
->>>>>>> master
+      call set_trpdens(n, 2.71d3) ! measured; http://www.mindat.org/min-859.html
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 2.94D-06)
 #endif
@@ -2256,13 +2224,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil2hema=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, DenHema) ! 5.3D3
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, DensityHematite)
->>>>>>> master
+      call set_trpdens(n, DensityHematite)
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 2.94D-06)
 #endif
@@ -2277,13 +2240,8 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       integer, intent(inout) :: n
       n = n + 1
       n_sil2gyps=n
-<<<<<<< HEAD
       call set_ntm_power(n, -9)
-      call set_trpdens(n, 2.3D3)
-=======
-          call set_ntm_power(n, -9)
-          call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
->>>>>>> master
+      call set_trpdens(n, 2.312d3) ! measured; http://www.mindat.org/min-1784.html
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 2.94D-06)
 #endif
@@ -2315,7 +2273,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       n = n + 1
       n_sil3feld=n
       call set_ntm_power(n, -9)
-      call set_trpdens(n, 2.65D3) ! assumed, varies strongly among types
+      call set_trpdens(n, 2.68d3) ! average Plagioclase
 #ifdef TRACERS_DRYDEP
       call set_trradius(n, 5.88D-06)
 #endif
@@ -2342,7 +2300,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_isdust(n, 1)
       end function sil3calc_setSpec
 
-      integer function sil2hema_setSpec(n) result(n_sil2hema)
+      integer function sil3hema_setSpec(n) result(n_sil3hema)
       integer, intent(inout) :: n
       n = n + 1
       n_sil3hema=n
@@ -2356,7 +2314,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_tr_wd_type(n, nPART)
       call set_tr_mm(n, 1.d+0)
       call set_isdust(n, 1)
-      end function sil2hema_setSpec
+      end function sil3hema_setSpec
 
       integer function sil3gyps_setSpec(n) result(n_sil3gyps)
       integer, intent(inout) :: n
