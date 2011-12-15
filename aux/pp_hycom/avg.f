@@ -41,8 +41,7 @@ c
       real :: dpavav(kdm), heatot
       real, allocatable :: year(:), dpav(:,:)
       real, allocatable :: fl_kuro(:), fl_gulf(:)
-
-      character flnm*132,flnmout*30
+      character flnm*132,flnmout*80
 c
       integer mo,dcd,mon1,i70,i45,ieq,status
       logical :: lexist
@@ -138,22 +137,22 @@ c
       enddo
 c
       write(flnmout,'(5a)') 'mon_',trim(runid),'_',ayears,'.txt'
-      open(301,file=trim(path2)//flnmout, 
+      open(301,file=trim(path2)//trim(flnmout), 
      +     form='formatted',status='unknown')
       write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
       write(flnmout,'(5a)') 'ann_',trim(runid),'_',ayears,'.txt'
-      open(302,file=trim(path2)//flnmout,
+      open(302,file=trim(path2)//trim(flnmout),
      +     form='formatted',status='unknown')
       write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
       write(flnmout,'(5a)') 'avg_ov_',trim(runid),'_',ayears,'.txt'
-      open(303,file=trim(path2)//flnmout,
+      open(303,file=trim(path2)//trim(flnmout),
      +     form='formatted',status='unknown')
       write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
       write(flnmout,'(5a)') 'avg_hf_',trim(runid),'_',ayears,'.txt'
-      open(304,file=trim(path2)//flnmout,
+      open(304,file=trim(path2)//trim(flnmout),
      +     form='formatted',status='unknown')
       write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
