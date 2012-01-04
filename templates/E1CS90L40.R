@@ -29,7 +29,6 @@ MODELE                              ! Main and model overhead
 pario_fbsa
 regrid regrid_com
 ALLOC_DRV                           ! allocate global distributed arrays
-DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
@@ -54,7 +53,7 @@ DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs cs2ll_utils
 
 Components:
-MPI_Support shared dd2d
+MPI_Support shared dd2d CS_Support
 
 Data input files:
     ! start up from restart file of earlier run

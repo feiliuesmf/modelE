@@ -37,7 +37,7 @@ MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 dd2d_utils pario_nc pario_fbsa
 regrid regrid_com 
-ALLOC_DRV DOMAIN_DECOMPcs           ! domain decomposition, allocate global distributed arrays
+ALLOC_DRV			    ! allocate global distributed arrays
 ATMDYN_COM ATM_DUM
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
@@ -72,7 +72,7 @@ POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 
 Components:
-MPI_Support shared dd2d
+MPI_Support shared dd2d CS_Support
 
 Data input files:
 AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2
