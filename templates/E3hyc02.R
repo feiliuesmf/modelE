@@ -82,7 +82,7 @@ tsadts|$(R8)| advem|$(R8)|              ! T/S advection advecting t/s
 !!!!!!!!!!!!!!!!!!!!!! end  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2

@@ -43,7 +43,7 @@ DIAG_RES_C                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 ! AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7

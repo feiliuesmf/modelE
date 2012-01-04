@@ -33,7 +33,7 @@ QUS_DRV TQUS_DRV                    ! advection of Q/tracers
 #include "static_ocn_source_files"
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM dd2d
+Ent shared MPI_Support solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

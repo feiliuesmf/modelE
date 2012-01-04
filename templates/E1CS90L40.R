@@ -54,7 +54,7 @@ DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs cs2ll_utils
 
 Components:
-ESMF_Interface shared dd2d
+MPI_Support shared dd2d
 
 Data input files:
     ! start up from restart file of earlier run

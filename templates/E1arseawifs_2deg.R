@@ -94,7 +94,7 @@ obio_reflectance |$(R8)|
 !!!ar!!!obio_limits      |$(R8)|
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 !!! AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2

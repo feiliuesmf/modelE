@@ -1,1 +1,1 @@
-shared ESMF_Interface solvers giss_LSM
+shared MPI_Support solvers giss_LSM

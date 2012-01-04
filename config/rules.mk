@@ -223,9 +223,9 @@ endif
 endif
 
 # access new interfaces in sub-directory.
-ifdef ESMF_Interface
-  FFLAGS += -$(I)$(ESMF_Interface)
-  F90FLAGS += -$(I)$(ESMF_Interface)
+ifdef MPI_Support
+  FFLAGS += -$(I)$(MPI_Support)
+  F90FLAGS += -$(I)$(MPI_Support)
 endif
 CPPFLAGS += $(INCS)
 

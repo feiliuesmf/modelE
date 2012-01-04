@@ -53,7 +53,7 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT                                ! post-processing output
 
 Components:
-tracers ESMF_Interface shared
+tracers MPI_Support shared
 
 Data input files:
 AIC=1OCT1951.rsfE464jalTM23_noTrace

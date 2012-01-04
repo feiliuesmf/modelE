@@ -72,7 +72,7 @@ POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 
 Components:
-ESMF_Interface shared dd2d
+MPI_Support shared dd2d
 
 Data input files:
 AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2

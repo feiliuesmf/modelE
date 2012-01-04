@@ -62,7 +62,7 @@ POUT                                ! post-processing output
 SparseCommunicator_mod              ! sparse gather/scatter module
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2

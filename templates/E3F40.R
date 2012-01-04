@@ -49,7 +49,7 @@ DIAG_RES_F                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

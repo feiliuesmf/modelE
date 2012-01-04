@@ -70,7 +70,7 @@ OCN_TRACER_COM
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Components:
-tracers ESMF_Interface shared
+tracers MPI_Support shared
 
 Data input files:
 ! AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2

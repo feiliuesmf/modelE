@@ -40,7 +40,7 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=1JAN1951.rsfE001.frc ! just 3 label records + radia-record (use fcop1)

@@ -50,7 +50,7 @@ POUT                                ! post-processing output
 obio_ocalbedo|$(R8)|                  ! changes to ocean albedo due to chlorophyl
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
     ! start up from restart file of earlier run

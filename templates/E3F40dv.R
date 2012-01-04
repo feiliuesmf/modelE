@@ -54,7 +54,7 @@ FFT144
 POUT                                ! post-processing output
 
 Components:
-Ent shared ESMF_Interface solvers giss_LSM
+Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

@@ -51,7 +51,7 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2
