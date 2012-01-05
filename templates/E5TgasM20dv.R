@@ -65,7 +65,7 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
  
 Components:
-tracers ESMF_Interface shared giss_LSM Ent solvers
+tracers MPI_Support shared giss_LSM Ent solvers
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

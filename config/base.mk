@@ -12,8 +12,8 @@ sinclude $(MODELERC)
 #MOD_DIR = $(GISSCLIM_DIR)/mod
 #LIB_DIR = $(GISSCLIM_DIR)/lib
 
-#hack : make sure that ESMF_Interface is set
-#ESMF_Interface = .
+#hack : make sure that MPI_Support is set
+#MPI_Support = .
 
 # the name for main target:
 THIS := $(shell basename `pwd`)

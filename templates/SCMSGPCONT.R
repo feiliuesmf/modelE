@@ -55,7 +55,7 @@ SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
       FFT144                        ! utilities
 
 Components:
-ESMF_Interface shared dd2d
+MPI_Support shared dd2d
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

@@ -62,7 +62,7 @@ DIAG_RES_M                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
  
 Components:
-tracers ESMF_Interface shared
+tracers MPI_Support shared
 
 Data input files:
     ! the first group of files is specific to prescribed ocean runs

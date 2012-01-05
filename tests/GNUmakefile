@@ -15,12 +15,20 @@ EXTRA_FFLAGS += -$I$(SOURCE_DIR)/profiler
 EXTRA_FFLAGS += -$I$(SOURCE_DIR)/shared
 EXTRA_FFLAGS += -$I$(SOURCE_DIR)/tracers
 
-EXTRA_FFLAGS += -g -O0 -traceback
-EXTRA_FFLAGS += -fpp -O2
+MPI_FC=mpif90
+CSTRING = $(shell mpif90 --version)
+COMPILER = $(findstring ifort, $(CSTRING))
+
+ifeq ($(COMPILER),ifort)
+  FC =ifort
+  EXTRA_FFLAGS += -g -O0 -traceback -fpp -O2
+else
+  FC =gfortran
+  EXTRA_FFLAGS += -g -O0 
+endif
+
 EXTRA_FFLAGS += $(CPPFLAGS)
 
-MPI_FC=mpif90
-FC=ifort
 MPIRUN=mpirun
 PFUNIT_USE_MPI=YES
 PFUNIT_NPES=10

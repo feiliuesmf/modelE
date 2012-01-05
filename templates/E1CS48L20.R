@@ -55,7 +55,7 @@ DIAG_ZONALcs GCDIAGcs               ! grid-dependent code for lat-circle diags
                                     ! utilities
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
     ! start up from restart file of earlier run

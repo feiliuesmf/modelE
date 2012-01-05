@@ -29,7 +29,7 @@ IO_DRV                              ! i/o
 COSZ_2D                             ! solar zenith angle
 
 Components:
-shared ESMF_Interface solvers
+shared MPI_Support solvers
 dd2d
 
 Component Options:

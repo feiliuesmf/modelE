@@ -46,7 +46,7 @@ contains
     pair = KeyValuePair('aKey', GenericType([.true.,.false.,.true.]))
     call assertEqual(3, getNumValues(pair))
 
-    pair = KeyValuePair('aKey', GenericType(['hello', 'goodbye']))
+    pair = KeyValuePair('aKey', GenericType(['hello  ', 'goodbye']))
     call assertEqual(2, getNumValues(pair))
 
   end subroutine testGetNumValues

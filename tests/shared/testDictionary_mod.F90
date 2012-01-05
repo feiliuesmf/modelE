@@ -113,7 +113,7 @@ contains
     integer :: i
 
     call reset()
-    expected = ['hello ','goodbye']
+    expected = ['hello  ','goodbye']
     call set_param('testParam_StringList', expected, NUM_ELEMENTS)
     call get_param('testParam_StringList', found, NUM_ELEMENTS)
     do i = 1, NUM_ELEMENTS

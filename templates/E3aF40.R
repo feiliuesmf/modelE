@@ -49,7 +49,7 @@ DIAG_RES_F                          ! diagnostics (resolution dependent)
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=1JAN1956.rsfE6sF40 ! from model with climatol.ocean (in balance for YEARI=1979)

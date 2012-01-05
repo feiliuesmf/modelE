@@ -57,7 +57,7 @@ obio_diffmod     |$(R8)|
 !!!ar!!!obio_limits      |$(R8)|
 
 Components:
-tracers Ent shared ESMF_Interface solvers giss_LSM dd2d
+tracers Ent shared MPI_Support solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB

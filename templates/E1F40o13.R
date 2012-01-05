@@ -64,7 +64,7 @@ POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

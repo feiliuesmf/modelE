@@ -1,6 +1,5 @@
 GNOM_CS                             ! geometry
 IO_DRV                              ! I/O driver
-DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATM_DUM                             ! atmospheric utilities
 FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
 QUScubed                            ! cubed-sphere adaptation of QUS

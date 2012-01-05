@@ -48,7 +48,7 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 POUT                                ! post-processing output
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
     ! start up from restart file of earlier run

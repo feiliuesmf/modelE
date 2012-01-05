@@ -54,7 +54,7 @@ obio_ocalbedo|$(R8)|
 obio_reflectance|$(R8)|      ! chlorophyll effects
 
 Components:
-ESMF_Interface shared
+MPI_Support shared
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
