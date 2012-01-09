@@ -7424,8 +7424,9 @@ C**** Initialise pbl profile if necessary
           ELSE
             trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
           END IF
-#endif
+#else
             trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+#endif
         end do
         end do
         end do
