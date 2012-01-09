@@ -61,7 +61,7 @@ contains
 
     expectedValue = 321.1234567890123456789d+0
     string = toString(GenericType(expectedValue))
-    read(string,'(g16.4)') foundValue
+    read(string,'(g20.0)') foundValue
     call assertEqual(expectedValue, foundValue)
 
   end subroutine testToStringReal64
