@@ -165,7 +165,8 @@ sub launch {
 sub setModuleEnvironment {
     my $compiler = shift;
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require "$ENV{MODULESHOME}/init/perl";  
+    require "/home/modele/modelE/exec/perlreq";
+    #require "$ENV{MODULESHOME}/init/perl";  
     module (purge);
     if ($compiler eq intel) {
 	module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
