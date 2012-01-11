@@ -99,8 +99,8 @@ sub runConfiguration {
     
     my $MODELERC = $env->{MODELERC};
 
-    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
-    my $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart";
+    my $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart; rm $expName/run_status";
+    my $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart; rm $expName/run_status";
     my $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
 
     if ($configuration eq "MPI" or $configuration eq "OPENMP") {$continue1Day = "./$expName -np $npes ";}
