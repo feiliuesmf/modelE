@@ -28,11 +28,10 @@ watch_job()
    echo "Execute regressionTests.pl..."
    /usr/bin/perl regressionTests.pl > nohup.out 2>&1
    wait
-   cd $HOME/exec
-   jobID=`qsub diffreport.j`
+   jobID=`qsub $HOME/master/exec/diffreport.j`
    jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
    watch_job $jobID
 
-mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $HOME/exec/Report
+mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $HOME/master/exec/DiffReport
 
 echo "Done".
