@@ -65,7 +65,7 @@ $resolutions->{E4C90L40} = "CS"; # cubed sphere
 $resolutions->{E_AR5_CADI} = "2x2.5";
 
 # Save settings for diffreport
-saveForDiffreport();
+&saveForDiffreport($branch);
 
 my $numProcesses = {};
 
