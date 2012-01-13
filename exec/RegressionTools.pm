@@ -303,6 +303,8 @@ sub getGfortranEnvironment
 
 sub saveForDiffreport()
 {
+  my $branch = shift;
+
 # Save regTest.cfg in a format that is easily parsed by a bash script
    require 'regTest.cfg';
 
@@ -321,6 +323,7 @@ sub saveForDiffreport()
       $i++;
    }   
    print FH "LEVEL=$level\n";
+   print FH "BRANCH=$branch\n";
 
    close FH or die "Cannot close $file: $!"; 
 
