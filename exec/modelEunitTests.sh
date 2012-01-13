@@ -84,7 +84,7 @@ export PFUNIT=/discover/nobackup/modele/libs/pFUnitIntel
 export MODELERC=/discover/nobackup/modele/regression_scratch/intel/modelErc.intel
 
 cd /discover/nobackup/modele/regression_scratch
-git clone /discover/nobackup/modele/regression_scratch/modelE pFUnit
+git clone /discover/nobackup/modele/regression_scratch/master pFUnit
 
 cd /discover/nobackup/modele/regression_scratch/pFUnit/decks
 make rundeck RUN=unitTests RUNSRC=E4TcadF40

@@ -24,7 +24,7 @@ watch_job()
    done
 }
 
-   cd $HOME/modelE/exec
+   cd $HOME/master/exec
    echo "Execute regressionTests.pl..."
    /usr/bin/perl regressionTests.pl > nohup.out 2>&1
    wait
