@@ -8,7 +8,7 @@
 
 # This job script is executed by mainRegTests.sh after the regression tests
 # have been executed. Its main purppose is to compare the restart results
-# using diffreport and generates a Report file emailed to giss-modelE-regression 
+# using diffreport and generates a DiffReport file emailed to giss-modelE-regression 
 # Note:
 # This script is a temporary measure. It has a couple of "dependencies" and various
 # hardwired directory paths. Also, it would be highly desirable to make the
@@ -16,10 +16,10 @@
 # task takes several hours to complete. Running within this job takes ~30mins.
 
 cd $PBS_O_WORKDIR
-rm -f Report diffrep.o*
+rm -f DiffReport diffrep.o*
 
 # Dependency: I use /home/modele/exec/diffreport.x 
-diffReport=/home/modele/exec/diffreport.x
+diffDiffReport=/home/modele/exec/diffreport.x
 declare -a report
 declare -a DECKS
 declare -a COMPILERS
@@ -30,13 +30,16 @@ declare -a SCMdecks
 OIFS=$IFS
 IFS="="
 
-# Dependency: read rundecks file.
-cfg=/home/modele/modelE/exec/.regTest.cfg
+# Read configuration file...always stored in master/ directory
+cfg=/home/modele/master/exec/.regTest.cfg
 id=0
 ic=0
 while read line ; do
    set -- $line
    arr=($*)
+   if [[ "${arr[0]}" == "BRANCH" ]]; then
+      BRANCH=${arr[1]}
+   fi
    if [[ "${arr[0]}" == "LEVEL" ]]; then
       LEVEL=${arr[1]}
    fi
@@ -76,6 +79,7 @@ echo "HiResDecks: ${HiResDecks[@]}"
 echo "SCMdecks: ${SCMdecks[@]}"
 echo "COMPILERS: ${COMPILERS[*]}"
 echo "LEVEL is: $LEVEL"
+echo "BRANCH is: $BRANCH"
 
 # Also NPES used varies by rundeck depending on resolution noted above
 if [[ "$LEVEL" == "GENTLE" ]]; then
@@ -93,7 +97,7 @@ else
 fi
 
 # -------------------------------------------------------------------
-updReport()
+updDiffReport()
 # -------------------------------------------------------------------
 {
    local message=$1
@@ -112,9 +116,9 @@ checkStatus()
    local base2=${name2##*/}
    if [ $rc -ne 0 ]; then
       if [[ "$name2" =~ baseline ]]; then
-         updReport " --- WARNING: inconsistent results with BASELINE $base1"
+         updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
       else
-         updReport " --- WARNING: inconsistent results between $base1 and $base2"
+         updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
       fi
       export isReprod=NO
       return 1
@@ -128,7 +132,7 @@ fileExists()
 {
    local file=$1
    if [ ! -e "$file" ]; then
-      updReport " ERROR: $file does NOT exist"
+      updDiffReport " ERROR: $file does NOT exist"
       export isReprod=NO
       return 1
    fi
@@ -147,7 +151,7 @@ doDiff()
    if [ $? -eq 0 ]; then
       fileExists "$name2"
       if [ $? -eq 0 ]; then
-         $diffReport $name1 $name2 > foo
+         $diffDiffReport $name1 $name2 > foo
          wait
          foosize=`cat foo | wc -c`; rm -f foo
          # save file to BASELINE directory
@@ -170,7 +174,7 @@ upd()
   local deck_=$1
   local comp_=$2
   local which_=$3
-  updReport " Rundeck $deck_ with compiler $comp_ is $which_ reproducible" 
+  updDiffReport " Rundeck $deck_ with compiler $comp_ is $which_ reproducible" 
 }
 
 # -------------------------------------------------------------------
@@ -256,32 +260,30 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-touch $HOME/exec/Report
+touch $HOME/master/exec/DiffReport
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"
-   echo "${report[${i}]}" >> $HOME/exec/Report
+   echo "${report[${i}]}" >> $HOME/master/exec/DiffReport
 done
 
-cat $HOME/exec/Report | grep ERROR > /dev/null 2>&1
+cat $HOME/master/exec/DiffReport | grep ERROR > /dev/null 2>&1
 RC=$?
-# Create modeleE snapshot iff no ERRORs in Report
+# Create modeleE snapshot iff no ERRORs in DiffReport
 if [ $RC -eq 0 ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
 else 
    echo "Will create modelE snapshot"
    # Create modeleE snapshot
    if [ -d "$NOBACKUP/regression_scratch/modelE" ]; then
-      cd $NOBACKUP/regression_scratch/modelE
+      cd $NOBACKUP/regression_scratch/$BRANCH
       DST=/discover/nobackup/modele/modelE_baseline/snapshots/
       NAME=modelE.`date +%F`.zip
-      git archive -o $DST/$NAME HEAD
+      git archive -o $DST/$NAME $BRANCH
    else 
-      ls $NOBACKUP/regression_scratch/modelE
+      ls $NOBACKUP/regression_scratch/$BRANCH
       echo "Could not create modelE snapshot"
    fi
 fi
-
-#mail -s "discover results" ccruz@nccs.nasa.gov < $HOME/exec/Report
 
 exit 0
