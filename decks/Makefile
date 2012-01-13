@@ -188,7 +188,9 @@ auxdeep: aux
 
 clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
+ifneq ($(PFUNIT),)
 	$(MAKE) -C $(TESTS_DIR) distclean
+endif
 	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 
 exe: $(RUN)/$(RUN) gcm
