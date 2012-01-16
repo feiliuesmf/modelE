@@ -25,14 +25,17 @@ $extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
 $extraFlags{intel} = "";
 $extraFlags{gfortran} ="";
 
+# -----------------------------------------------------------------------------
 sub createTemporaryCopy 
 {
   my $referenceDir = shift;
   my $tempDir = shift;
   my $commandString = "git clone $referenceDir $tempDir";
+  print "createTemporaryCopy: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
 
+# -----------------------------------------------------------------------------
 # Build rundeck and compile
 sub compileRundeck 
 {
@@ -43,11 +46,6 @@ sub compileRundeck
   my $rundeck  = $env->{RUNDECK};
   my $branch   = $env->{BRANCH};
   my $configuration = $env -> {CONFIGURATION};
-
-  # C90 (cubed sphere) rundecks will not run serially
-  #if ($configuration eq "SERIAL" && $rundeck =~ m/C90/) {
-  #   return;
-  #}
 
   my $resultsDir = $env -> {RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
@@ -91,6 +89,7 @@ EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
 }
 
+# -----------------------------------------------------------------------------
 sub runConfiguration 
 {
   my $env = shift;
@@ -174,22 +173,24 @@ EOF
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
 }
 
-
+# -----------------------------------------------------------------------------
 sub writeModelErcFile 
 {
-    my $env = shift;
-    my $modelerc = $env->{MODELERC};
-    my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
-    $commandString .= "rm $modelerc\n";
-    
-    while (my ($var, $value) = each(%$env) ) 
-    {
-        $commandString .= "echo $var=$value >> $modelerc\n";
-    }
-    $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
-    return (CommandEntry -> new({COMMAND => $commandString}))
+  my $env = shift;
+  my $modelerc = $env->{MODELERC};
+  my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
+  $commandString .= "rm $modelerc\n";
+  
+  while (my ($var, $value) = each(%$env) ) 
+  {
+    $commandString .= "echo $var=$value >> $modelerc\n";
+  }
+  $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
+  print "writeModelErcFile: $commandString \n";
+  return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
+# -----------------------------------------------------------------------------
 sub gitCheckout 
 {
   my $env = shift;
@@ -207,6 +208,7 @@ EOF
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
+# -----------------------------------------------------------------------------
 sub getEnvironment 
 {
   my $compiler = shift;
@@ -222,6 +224,7 @@ sub getEnvironment
   }
 }
 
+# -----------------------------------------------------------------------------
 sub getIntelEnvironment
 {
   my $scratchDir = shift;
@@ -252,7 +255,7 @@ sub getIntelEnvironment
   }
   else 
   {
-    $env->{GITROOT}="/home/modele/modelE";
+    $env->{GITROOT}="/home/modele/master";
     $env->{BASELIBDIR5}="/usr/local/other/esmf510/Linux";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
@@ -261,6 +264,7 @@ sub getIntelEnvironment
   return $env;
 }
 
+# -----------------------------------------------------------------------------
 sub getGfortranEnvironment 
 {
   my $scratchDir = shift;
@@ -281,6 +285,7 @@ sub getGfortranEnvironment
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="openmpi";
+  $env->{MPIDIR}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6";
   $env->{COMPILER}="gfortran";
   if ($branch =~ m/AR5/) 
   {
@@ -291,7 +296,7 @@ sub getGfortranEnvironment
   }
   else 
   {
-    $env->{GITROOT}="/home/modele/modelE";
+    $env->{GITROOT}="/home/modele/master";
     $env->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
@@ -300,7 +305,7 @@ sub getGfortranEnvironment
   return $env;
 }
 
-
+# -----------------------------------------------------------------------------
 sub saveForDiffreport()
 {
   my $branch = shift;
@@ -329,6 +334,7 @@ sub saveForDiffreport()
 
 }
 
+# -----------------------------------------------------------------------------
 # Not using this sub anymore...but we may come back to it.
 sub checkConsistency {
     my $env = shift;
