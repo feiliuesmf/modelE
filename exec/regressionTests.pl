@@ -24,31 +24,34 @@ my $resultsDir = $ENV{NOBACKUP}."/regression_results";
 my $rundecks;
 my $branch;
 ($sec, $min, $hour, $day, $mon, $yrOffset, $dyOfWeek, $dayOfYr, $dyltSav) = localtime();
+print "DAY = $dyOfWeek\n";
+
 # This is a very restrictive condition...
-if ($dyOfWeek == 5) # On Saturday we test the AR5_branch
-{
-  $branch = "AR5_branch";
-  $rundecks = \@AR5decks;
-}
-elsif ($dyOfWeek < 5) # M-F we test the master branch
+if ($dyOfWeek >= 1 && $dyOfWeek <= 5) # M-F we test the master branch
 {
   $branch = "master";
+  `git pull /home/modele/$branch`;
   $rundecks = \@decks;
 }
-else
+elsif ($dyOfWeek == 6) # On Saturday we test the AR5_branch
 {
-  # off on Sunday
+  $branch = "AR5_branch";
+  `git pull /home/modele/$branch`;
+  $rundecks = \@AR5decks;
+}
+else # off on Sunday
+{
+  print "Nothing to do.\n";
   exit 0;
 }
-`git pull /home/modele/$branch`;
-print "branch = $branch\n";
+print "Test $branch branch\n";
 
 my $reference = "$scratchDir/$branch";
 
 my $env = {};
 $env->{BRANCH} = $branch;
-$env->{"intel"} = getEnvironment("intel", $scratchDir);
-$env->{"gfortran"} = getEnvironment("gfortran", $scratchDir);
+$env->{"intel"} = getEnvironment("intel", $scratchDir, $branch);
+$env->{"gfortran"} = getEnvironment("gfortran", $scratchDir, $branch);
 
 my $resolutions = {};
 # HEAD rundecks
@@ -108,6 +111,9 @@ foreach my $rundeck (@$rundecks)
 # Override anything else here
 $useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
 
+$ENV{PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/bin:".$ENV{PATH};
+$ENV{LD_LIBRARY_PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/lib:".$ENV{LD_LIBRARY_PATH};
+
 foreach my $rundeck (@$rundecks) 
 { 
   foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
@@ -133,6 +139,7 @@ foreach $compiler (@$compilers)
   }
 }
 
+print "Loop over all configurations...\n";
 foreach my $rundeck (@$rundecks) 
 { 
   foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
