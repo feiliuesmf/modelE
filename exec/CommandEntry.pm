@@ -142,7 +142,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
+module load other/comp/gcc-4.5
 EOF
     }
 
@@ -158,7 +158,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.6.1-RC-20110620 other/mpi/openmpi/1.4.4-gcc-4.6.1-RC-20110620
+module load other/comp/gcc-4.5 
 EOF
     }  
   }
@@ -204,9 +204,7 @@ sub setModuleEnvironment
     my $compiler = shift;
 
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require "/home/modele/modelE/exec/perlreq";
-    #require "$ENV{MODULESHOME}/init/perl";  
-    module (purge);
+    require "/home/modele/master/exec/perlreq";
 
     if ($self->{BRANCH} =~ m/AR5/) 
     {
@@ -216,7 +214,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.5", "other/mpi/openmpi/1.4.2-gcc-4.5");
+        module (load, "other/comp/gcc-4.5");
       } 
       else 
       {
@@ -231,7 +229,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-	module (load, "other/comp/gcc-4.6.1-RC-20110620", "other/mpi/openmpi/1.4.4-gcc-4.6.1-RC-20110620");
+        module (load, "other/comp/gcc-4.5");
       } 
       else 
       {
