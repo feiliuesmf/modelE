@@ -103,7 +103,8 @@ sub runConfiguration
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
 
-  print "results dir $resultsDir \n";
+  print "BRANCH: $branch \n";
+  print "resultsDir: $resultsDir \n";
 
   my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
   $flags =~ s/(\$npes)/$npes/eeg;
@@ -213,14 +214,15 @@ sub getEnvironment
 {
   my $compiler = shift;
   my $scratchDir = shift;
+  my $branch = shift;
 
   if ($compiler eq "intel") 
   {
-    return getIntelEnvironment($scratchDir);
+    return getIntelEnvironment($scratchDir, $branch);
   }
   else 
   {
-    return getGfortranEnvironment($scratchDir);
+    return getGfortranEnvironment($scratchDir, $branch);
   }
 }
 
@@ -228,7 +230,8 @@ sub getEnvironment
 sub getIntelEnvironment
 {
   my $scratchDir = shift;
-  my $branch    = $env->{BRANCH};
+  my $branch     = shift;
+  print "getIntelEnvironment: $branch \n";
 
   my $env = {};
 
@@ -246,16 +249,15 @@ sub getIntelEnvironment
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="intel";
   $env->{COMPILER}="intel";
+  $env->{GITROOT}="/home/modele/$branch";
   if ($branch =~ m/AR5/) 
   {
-    $env->{GITROOT}="/home/modele/AR5_branch";
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
     $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
   }
   else 
   {
-    $env->{GITROOT}="/home/modele/master";
     $env->{BASELIBDIR5}="/usr/local/other/esmf510/Linux";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
@@ -268,7 +270,8 @@ sub getIntelEnvironment
 sub getGfortranEnvironment 
 {
   my $scratchDir = shift;
-  my $branch    = $env->{BRANCH};
+  my $branch     = shift;
+  print "getGFortranvironment: $branch \n";
 
   my $env = {};
     
@@ -287,16 +290,15 @@ sub getGfortranEnvironment
   $env->{MPIDISTR}="openmpi";
   $env->{MPIDIR}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6";
   $env->{COMPILER}="gfortran";
+  $env->{GITROOT}="/home/modele/$branch";
   if ($branch =~ m/AR5/) 
   {
-    $env->{GITROOT}="/home/modele/AR5_branch";
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_gcc-4.5_openmpi-1.4.2/Linux";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
     $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
   }
   else 
   {
-    $env->{GITROOT}="/home/modele/master";
     $env->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
