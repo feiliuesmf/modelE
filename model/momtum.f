@@ -535,7 +535,7 @@ c
       if (itest.gt.0 .and. jtest.gt.0) then
       if (jtest.ge.J_0 .and. jtest.le.J_1) then 
       write (lp,100) nstep
-      do j=jtest-1,jtest+1
+      do j=max(J_0, jtest-1), min(J_1, jtest+1)
       jb = PERIODIC_INDEX(j+1, jj)
       do i=itest-1,itest+1
       if (iu(i,j).gt.0) then
@@ -734,7 +734,7 @@ c
       if (itest.gt.0 .and. jtest.gt.0) then
       if (jtest.ge.J_0 .and. jtest.le.J_1) then 
       write (lp,101) nstep
-      do j=jtest-1,jtest+1
+      do j=max(J_0, jtest-1), min(J_1, jtest+1)
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
       do i=itest-1,itest+1
