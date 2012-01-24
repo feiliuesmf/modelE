@@ -158,7 +158,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.5 
+module load other/comp/gcc-4.6-20110312
 EOF
     }  
   }
@@ -229,7 +229,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.5");
+        module (load, "other/comp/gcc-4.6-20110312");
       } 
       else 
       {
