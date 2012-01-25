@@ -137,12 +137,13 @@ if ( -e $runID ) {
 
 ## Also link to $CMRUN if different from $SAVEDISK (added by gavin)
 if ( $CMRUN ne $SAVEDISK ) {
-    if ( -e "$CMRUN/$runID" ) {
-	die "Can't create a link $CMRUN/$runID" if ! -l "$CMRUN/$runID";
+    if ( -l "$CMRUN/$runID" ) {                 # is a link
 	if (`ls -l $CMRUN/$runID` !~ /-> *$RunDir$/ ) {
 	    unlink "$CMRUN/$runID" or die "Can't rm old link $CMRUN/$runID";
-	    symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link";
+	    symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link $CMRUN/$runID";
 	}
+    } elsif ( -e "$CMRUN/$runID" ) {            # exists and is not a link
+	die "Can't create a link, a file/dir $CMRUN/$runID is on the way";
     } else {
         symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link from $RunDir to $CMRUN/$runID";
     }
