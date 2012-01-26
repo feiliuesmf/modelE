@@ -239,7 +239,6 @@ contains
 
     Call scatterReal8(grd_dum, AOUT, AVAR, shape(AVAR), 2)
     CALL broadcast(grd_dum, M   )
-    AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP)= AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 
     call checkReadStatus(rc, name, 'MREAD_PARALLEL_2D')
 
