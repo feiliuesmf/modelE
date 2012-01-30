@@ -201,6 +201,9 @@ c
      &     runpsi_loc,erunpsi_loc,srunpsi_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
+#ifdef STANDALONE_OCEAN
+      real*8, dimension(:,:), pointer :: sssobs_loc,rsiobs_loc
+#endif
 #ifdef TRACERS_OceanBiology
       real*8, dimension(:,:,:), pointer :: TRGASEX_loc
 #endif
@@ -278,6 +281,15 @@ c
       dmsi_loc => iceocn%dmsi
       dhsi_loc => iceocn%dhsi
       dssi_loc => iceocn%dssi
+
+#ifdef STANDALONE_OCEAN
+      ! arrays for salinity restoring
+      sssobs_loc => atmocn%sssobs  ! units:  psu/1000
+      rsiobs_loc => atmocn%rsiobs  ! sea ice fraction [0-1]
+      ! to get the restoring timescales (days) specified in the rundeck:
+      !call get_param("sss_restore_dt",sss_restore_dt) ! open water
+      !call get_param("sss_restore_dtice",sss_restore_dtice) ! under ice
+#endif
 
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
