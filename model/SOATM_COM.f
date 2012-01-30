@@ -74,10 +74,11 @@
 
 #ifdef STANDALONE_HYCOM
       real*8, dimension(:,:,:), allocatable, target :: aij_nodup
-      type(dist_grid) :: grid_nodup
+      type(dist_grid), target :: grid_nodup
 #else
       type(dist_grid), pointer :: grid_nodup
 #endif
+      type(dist_grid), pointer :: grid_ioptr
 
       real*8, dimension(:,:,:), pointer :: aij_ioptr
 
@@ -217,6 +218,7 @@ c     code, so make sure that the counter index is correct.
 c
       kaij = k
       allocate(aij(i_0h:i_1h,j_0h:j_1h,kaij))
+      aij = 0.
       allocate(scale_aij(kaij),denom_aij(kaij),ia_aij(kaij))
       allocate(sname_aij(kaij),units_aij(kaij),lname_aij(kaij))
       scale_aij = scale_aij_(1:kaij)
