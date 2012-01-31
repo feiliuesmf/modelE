@@ -47,6 +47,8 @@ Q10=CORE/H1/CNYF_2/q.nc
 U10=CORE/H1/CNYF_2/u.nc
 V10=CORE/H1/CNYF_2/v.nc
 RUNOFF=CORE/H1/runoff.nc
+SSS=CORE/H1/srfsal.nc
+RSI=CORE/H1/SICE_387x360x365.1975-1984avg.HadISST1.1.nc
 
 temp_ini=temp387x360x26dec_hv_z1.txt ! 3-d temperature as initial condition
 salt_ini=salt387x360x26dec_hv_z1.txt ! 3-d salinity as initial condition

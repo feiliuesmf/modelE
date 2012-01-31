@@ -7,9 +7,9 @@
       real*8, dimension(:,:), allocatable :: runoff
 
       real*8, dimension(:,:,:), allocatable ::
-     &     swdn0,lwdn0,prec0,srfsal0,rsi0,
-     &     swdn1,lwdn1,prec1,srfsal1,rsi1,
-     &     swdn2,lwdn2,prec2,srfsal2,rsi2
+     &     swdn0,lwdn0,prec0,srfsal0,rsi,
+     &     swdn1,lwdn1,prec1,srfsal1,
+     &     swdn2,lwdn2,prec2,srfsal2
 
       real*8, dimension(:,:,:), allocatable ::
      &     psl0,ts0,qs0,us0,vs0,
@@ -44,19 +44,17 @@
       allocate(lwdn0(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec0(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal0(i_0h:i_1h,j_0h:j_1h,12))
-      allocate(rsi0(i_0h:i_1h,j_0h:j_1h,12))
+      allocate(rsi(i_0h:i_1h,j_0h:j_1h,365))
 
       allocate(swdn1(i_0h:i_1h,j_0h:j_1h,365))
       allocate(lwdn1(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec1(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal1(i_0h:i_1h,j_0h:j_1h,12))
-      allocate(rsi1(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(swdn2(i_0h:i_1h,j_0h:j_1h,365))
       allocate(lwdn2(i_0h:i_1h,j_0h:j_1h,365))
       allocate(prec2(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal2(i_0h:i_1h,j_0h:j_1h,12))
-      allocate(rsi2(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(runoff(i_0h:i_1h,j_0h:j_1h))
 
@@ -120,16 +118,14 @@ c read SLP and 10-m u,v,t,q
       fid = par_open(grid,'V10','read')
       call read_dist_data(grid, fid, 'V_10', vs0)
       call par_close(grid,fid)
-#ifndef STANDALONE_HYCOM
 c read sea surface salinity
       fid = par_open(grid,'SSS','read')
       call read_dist_data(grid, fid, 'SALT', srfsal0)
       call par_close(grid,fid)
 c read sea ice fraction
       fid = par_open(grid,'RSI','read')
-      call read_dist_data(grid, fid, 'rsi', rsi0)
+      call read_dist_data(grid, fid, 'rsi', rsi)
       call par_close(grid,fid)
-#endif
 c
 c create parabolic coeffs for each time interval
 c
@@ -150,13 +146,6 @@ c
           srfsal0(i,j,:) = a12
           srfsal1(i,j,:) = b12
           srfsal2(i,j,:) = c12
-c
-          n = 12
-          f12 = rsi0(i,j,:)
-          call coeffs1d_pos(f12,a12,b12,c12,n)
-          rsi0(i,j,:) = a12
-          rsi1(i,j,:) = b12
-          rsi2(i,j,:) = c12
 c
           n = 365
           f365 = lwdn0(i,j,:)
@@ -289,8 +278,8 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
           fl_ = 0.
           fr_ = 0.
         endif
-        if(fm_(i-1).le.0.) fl_ = 0.
-        if(fm_(i+1).le.0.) fr_ = 0.
+        if(fm_(i-1).le.0.) fl_ = max(fl_,0.)
+        if(fm_(i+1).le.0.) fr_ = max(fr_,0.)
         c2(i) = (fr_+fl_-2.*fm(i))/(xl*xl+xr*xr-twoby3*(xr**3-xl**3)/dx)
         c1(i) = (fr_-fl_)/dx-c2(i)*(xr+xl)
         c0(i) = fl_-xl*(c1(i)+c2(i)*xl)
@@ -313,7 +302,7 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: evx,prx
-      real*8 :: oevg,oprg,ebyp,t,rsi,sssresfac,sssresfac_ice
+      real*8 :: oevg,oprg,ebyp,t,rsiloc,sssresfac,sssresfac_ice
       integer :: i,j,l,n,j6hr,itmod,itperyr,jmm
       integer :: i_0,i_1, j_0,j_1
       I_0 = grid%I_STRT
@@ -357,16 +346,16 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
         atmocn%sssobs(i,j) = .001d0*(
      &       srfsal0(i,j,jmm)+t*(srfsal1(i,j,jmm)+t*srfsal2(i,j,jmm))
      &       )
-        atmocn%rsiobs(i,j) = (
-     &       rsi0(i,j,jmm)+t*(rsi1(i,j,jmm)+t*rsi2(i,j,jmm)) )
         !atmocn%rsiobs(i,j) = si_ocn%rsi(i,j)
-        rsi = atmocn%rsiobs(i,j)
+        atmocn%rsiobs(i,j) = rsi(i,j,jday)
+        rsiloc = atmocn%rsiobs(i,j)
 c        if(rsi.gt.0.) then
 c          atmocn%sssresfac(i,j) = sssresfac_ice
 c        else
 c          atmocn%sssresfac(i,j) = sssresfac
 c        endif
-        atmocn%sssresfac(i,j) = rsi*sssresfac_ice+(1.-rsi)*sssresfac
+        atmocn%sssresfac(i,j) =
+     &       rsiloc*sssresfac_ice+(1.-rsiloc)*sssresfac
       enddo
       enddo
 
@@ -377,9 +366,9 @@ c scale prec,runoff so that global evap = P+R
         evx(i,j) = 0.
         if(atmocn%focean(i,j).eq.0.) cycle
         prx(i,j) = axyp(i,j)*(atmocn%prec(i,j)+atmocn%flowo(i,j))
-        rsi = si_ocn%rsi(i,j)
-        evx(i,j) = axyp(i,j)*((1.-rsi)*atmocn%evapor(i,j)
-     &                           +rsi *atmice%evapor(i,j))
+        rsiloc = si_ocn%rsi(i,j)
+        evx(i,j) = axyp(i,j)*((1.-rsiloc)*atmocn%evapor(i,j)
+     &                           +rsiloc *atmice%evapor(i,j))
       enddo
       enddo
       if(hasNorthPole(grid)) then
@@ -2227,13 +2216,13 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       use mdiag_com, only : monacc
       use domain_decomp_atm, only : grid
       use pario, only : defvar
-      use diag_com, only : grid_nodup,aij_ioptr
+      use diag_com, only : grid_ioptr,aij_ioptr
       implicit none
       integer fid   !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
       call defvar(grid,fid,idacc,'monacc(twelve)')
       call defvar(grid,fid,idacc,'idacc(nsampl)')
-      call defvar(grid_nodup,fid,aij_ioptr,'aij(im,dist_jm,kaij)',
+      call defvar(grid_ioptr,fid,aij_ioptr,'aij(im,dist_jm,kaij)',
      &     r4_on_disk=r4_on_disk)
       return
       end subroutine def_rsf_acc
@@ -2244,7 +2233,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       use domain_decomp_atm, only : grid
       use pario, only : write_data,read_data,
      &     write_dist_data,read_dist_data
-      use diag_com, only : grid_nodup,aij_ioptr
+      use diag_com, only : grid_ioptr,aij_ioptr
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -2252,11 +2241,11 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       case (iowrite,iowrite_single) ! output to restart or acc file
         call write_data(grid,fid,'monacc',monacc)
         call write_data(grid,fid,'idacc',idacc)
-        call write_dist_data(grid_nodup,fid,'aij',aij_ioptr)
+        call write_dist_data(grid_ioptr,fid,'aij',aij_ioptr)
       case (ioread)            ! input from restart or acc file
         call read_data(grid,fid,'monacc',monacc,bcast_all=.true.)
         call read_data(grid,fid,'idacc',idacc,bcast_all=.true.)
-        call read_dist_data(grid_nodup,fid,'aij',aij_ioptr)
+        call read_dist_data(grid_ioptr,fid,'aij',aij_ioptr)
       end select
       return
       end subroutine new_io_acc
@@ -2400,8 +2389,10 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 
       subroutine set_ioptrs_atmacc_default
       use diag_com
+      use domain_decomp_atm, only : grid
       implicit none
       aij_ioptr => aij
+      grid_ioptr => grid
       return
       end subroutine set_ioptrs_atmacc_default
 
@@ -2413,6 +2404,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 #else
       aij_ioptr => aij
 #endif
+      grid_ioptr => grid_nodup
       return
       end subroutine set_ioptrs_atmacc_extended
 
@@ -2751,7 +2743,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       END SUBROUTINE SURFACE
 
 #ifdef STANDALONE_HYCOM
-      ! subroutine restore_surface_salinity to be written
+      ! hycom is responsible for its own salinity restoring
 #else
       subroutine restore_surface_salinity!(atmocn)
       !use exchange_types, only : atmocn_xchng_vars

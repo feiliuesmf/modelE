@@ -33,8 +33,10 @@ C**** APPLY SURFACE/BASE FLUXES TO SEA/LAKE ICE
 #ifndef STANDALONE_OCEAN
          CALL CHECKT ('GRNDSI')
 #endif
+#ifndef STANDALONE_HYCOM
 C**** set total atmopsheric pressure anomaly in case needed by ocean
       CALL CALC_APRESS(atmice)
+#endif
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
       CALL OCEANS(atmocn,iceocn,igice)
 #ifndef STANDALONE_OCEAN
