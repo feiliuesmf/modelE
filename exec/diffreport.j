@@ -16,9 +16,14 @@
 # task takes several hours to complete. Running within this job takes ~30mins.
 
 cd $PBS_O_WORKDIR
-rm -f DiffReport diffrep.o*
+rm -f diffrep.o*
 
-diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
+if [ -z $MOCKMODELE ]; then
+  diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
+else
+  diffDiffReport=/usr/bin/cmp
+fi
+
 declare -a report
 declare -a DECKS
 declare -a COMPILERS
@@ -259,7 +264,7 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-touch $NOBACKUP/devel/master/exec/DiffReport
+rm -f $NOBACKUP/devel/master/exec/DiffReport
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"

@@ -28,10 +28,14 @@ watch_job()
    echo "Execute regressionTests.pl..."
    /usr/bin/perl regressionTests.pl > nohup.out 2>&1
    wait
-   jobID=`qsub $NOBACKUP/devel/master/exec/diffreport.j`
-   jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-   watch_job $jobID
+   if [ -z $MOCKMODELE ]; then
+     jobID=`qsub $NOBACKUP/devel/master/exec/diffreport.j`
+     jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+     watch_job $jobID
+     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $NOBACKUP/devel/master/exec/DiffReport
+   else
+     $NOBACKUP/devel/master/exec/diffreport.j
+     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $NOBACKUP/devel/master/exec/DiffReport
+   fi
 
-mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $NOBACKUP/devel/master/exec/DiffReport
-
-echo "Done".
+   echo "Done".
