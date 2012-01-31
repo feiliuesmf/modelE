@@ -131,13 +131,13 @@ sub runConfiguration
   my $run1dy;
   if ($rundeck =~ m/AR5/) 
   {
-    $run1hr = "make -f new.mk rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -f new.mk -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE_new $expName -np $npes -cold-restart; rm $expName/run_status";
-    $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make -f new.mk -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE_new $expName -np $npes -cold-restart; rm $expName/run_status";
+    $run1hr = "export MODELERC=$MODELERC; make -f new.mk rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -f new.mk -j setup RUN=$expName $flags; ../exec/runE_new $expName -np $npes -cold-restart; rm -f $expName/run_status";
+    $run1dy = "export MODELERC=$MODELERC; $installDir/exec/editRundeck.sh $expName 48 2 1; make -f new.mk -j setup RUN=$expName $flags; ../exec/runE_new $expName -np $npes -cold-restart; rm -f $expName/run_status";
   }
   else 
   {
-    $run1hr = "make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart; rm $expName/run_status";
-    $run1dy = "$installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; MODELERC=$MODELERC ../exec/runE $expName -np $npes -cold-restart; rm $expName/run_status";
+    $run1hr = "export MODELERC=$MODELERC; make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; ../exec/runE $expName -np $npes -cold-restart; rm -f $expName/run_status";
+    $run1dy = "export MODELERC=$MODELERC; $installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; ../exec/runE $expName -np $npes -cold-restart; rm -f $expName/run_status";
   }
   my $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
 
@@ -249,7 +249,7 @@ sub getIntelEnvironment
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="intel";
   $env->{COMPILER}="intel";
-  $env->{GITROOT}="/home/modele/$branch";
+  $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
   if ($branch =~ m/AR5/) 
   {
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
@@ -290,7 +290,7 @@ sub getGfortranEnvironment
   $env->{MPIDISTR}="openmpi";
   $env->{MPIDIR}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6";
   $env->{COMPILER}="gfortran";
-  $env->{GITROOT}="/home/modele/$branch";
+  $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
   if ($branch =~ m/AR5/) 
   {
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_gcc-4.5_openmpi-1.4.2/Linux";
@@ -334,94 +334,6 @@ sub saveForDiffreport()
 
    close FH or die "Cannot close $file: $!"; 
 
-}
-
-# -----------------------------------------------------------------------------
-# Not using this sub anymore...but we may come back to it.
-sub checkConsistency {
-    my $env = shift;
-    my $rundeck = shift;
-    my $useCases = shift;
-
-    my $results = {};
-    $results->{ARE_CONSISTENT} = 1; # True unless proved otherwise
-    $results->{ALL_COMPLETED} = 1; # True unless proved otherwise
-    $results->{NEW_SERIAL} = 0; 
-    $results->{MESSAGES} = "";
-    $results->{RESTART_CHECK} = 1; # True unless proved otherwise
-
-    $compiler = $env->{COMPILER};
-
-    my $compare = "/discover/nobackup/projects/giss/exec/diffreport";
-
-    foreach my $configuration (@{$useCases->{CONFIGURATIONS}}) {
-
-	my $tempDir="$scratchDir/$compiler/$rundeck.$configuration.$compiler";
-	    
-	@peList = (1);
-	if ($configuration eq "MPI" or $configuration eq "OPENMP") {
-	    @peList = @{$useCases->{NUM_MPI_PROCESSES}};
-	}
-
-	my $resultsDir = $env->{RESULTS_DIRECTORY} . "/$compiler";
-	    
-	foreach my $npes (@peList) {
-	    my $suffix;
-	    if    ($configuration eq "MPI")    {$suffix = ".np=$npes";}
-	    else {$suffix = "";}
-	    
-	    foreach my $duration (@{$useCases->{DURATIONS}}) {
-		
-		my $reference;
-		if    ($configuration eq "MPI" or $duration eq "restart")    {$reference = "$rundeck.SERIAL";}
-		else {$reference = "$env->{BASELINE_DIRECTORY}/$compiler/$rundeck.SERIAL";}
-	    
-		my $outfile = "$resultsDir/$rundeck.$configuration.$compiler.$duration$suffix";
-		print LOG "Looking for $outfile \n";
-		if (-e $outfile) {
-		    my $referenceOutput;
-		    if ($duration == "restart") {
-			$referenceOutput = "$reference.$compiler.1dy";
-		    }
-		    else {
-			$referenceOutput = "$reference.$compiler.$duration";
-		    }
-		    my $testOutput = "$rundeck.$configuration.$compiler.$duration$suffix";
-		    my $numLinesFound = `cd $resultsDir; $compare $referenceOutput $testOutput is_npes_reproducible | wc -l`;
-		    chomp($numLinesFound);
-		    print LOG "CHOMP:: reference: $reference \n";
-		    print LOG "CHOMP:: referenceOutput: $referenceOutput \n";
-		    print LOG "CHOMP:: testOutput: $testOutput \n";
-		    print LOG "CHOMP:: $numLinesFound \n";
-		    if ($numLinesFound > 0) {
-			if ($configuration eq "MPI") {
-			    $results->{MESSAGES} .= "   FAILURE - Inconsistent results for rundeck $rundeck, compiler $compiler, and duration $duration on $npes npes.\n";
-			    $results->{ARE_CONSISTENT} = 0; #failure
-			}
-			else {
-			    if ($duration eq "restart") {
-				$results->{MESSAGES} .= "   FAILURE - Serial restart is not consistent.\n";
-				$results->{RESTART_CHECK} = 0;
-			    }
-			    else {
-				$results->{MESSAGES} .= "   WARNING - Serial run of rundeck $rundeck using compiler $compiler is different than stored results for duration $duration. \n";
-				$results->{NEW_SERIAL} = 1; # change detected
-			    }
-			}
-		    }
-		}
-		else {
-		    print LOG " but it was not found \n";
-		    $results->{MESSAGES} .= "   FAILURE - expected output file does not exist: $outfile\n";
-		    $results->{ALL_COMPLETED} = 0; # failure
-		    $results->{ARE_CONSISTENT} = 0; # failure
-		    $results->{RESTART_CHECK} = 0; # failure
-		    last;
-		}
-	    }
-	}
-    }
-    return $results;
 }
 
 1;

@@ -18,8 +18,7 @@
 cd $PBS_O_WORKDIR
 rm -f DiffReport diffrep.o*
 
-# Dependency: I use /home/modele/exec/diffreport.x 
-diffDiffReport=/home/modele/exec/diffreport.x
+diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
 declare -a report
 declare -a DECKS
 declare -a COMPILERS
@@ -31,7 +30,7 @@ OIFS=$IFS
 IFS="="
 
 # Read configuration file...always stored in master/ directory
-cfg=/home/modele/master/exec/.regTest.cfg
+cfg=$NOBACKUP/devel/master/exec/.regTest.cfg
 id=0
 ic=0
 while read line ; do
@@ -186,8 +185,8 @@ for comp in "${COMPILERS[@]}"; do
 
   echo "--- COMPILER = $comp ---"
 
-  cd /discover/nobackup/modele/regression_results/$comp
-  baseline=/discover/nobackup/modele/modelE_baseline/$comp
+  cd $NOBACKUP/regression_results/$comp
+  baseline=$NOBACKUP/modelE_baseline/$comp
 
   for deck in "${LowResDecks[@]}"; do
 
@@ -260,24 +259,24 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-touch $HOME/master/exec/DiffReport
+touch $NOBACKUP/devel/master/exec/DiffReport
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"
-   echo "${report[${i}]}" >> $HOME/master/exec/DiffReport
+   echo "${report[${i}]}" >> $NOBACKUP/devel/master/exec/DiffReport
 done
 
-cat $HOME/master/exec/DiffReport | grep ERROR > /dev/null 2>&1
+cat $NOBACKUP/devel/master/exec/DiffReport | grep ERROR > /dev/null 2>&1
 RC=$?
-# Create modeleE snapshot iff no ERRORs in DiffReport
+# Create modelE snapshot iff no ERRORs in DiffReport
 if [ $RC -eq 0 ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
 else 
    echo "Will create modelE snapshot"
-   # Create modeleE snapshot
+   # Create modelE snapshot
    if [ -d "$NOBACKUP/regression_scratch/modelE" ]; then
       cd $NOBACKUP/regression_scratch/$BRANCH
-      DST=/discover/nobackup/modele/modelE_baseline/snapshots/
+      DST=$NOBACKUP/modelE_baseline/snapshots/
       NAME=modelE.`date +%F`.zip
       git archive -o $DST/$NAME $BRANCH
    else 

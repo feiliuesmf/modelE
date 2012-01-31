@@ -30,13 +30,15 @@ print "DAY = $dyOfWeek\n";
 if ($dyOfWeek >= 1 && $dyOfWeek <= 5) # M-F we test the master branch
 {
   $branch = "master";
-  `git pull /home/modele/$branch`;
+  $gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  `git pull $gitdir`;
   $rundecks = \@decks;
 }
 elsif ($dyOfWeek == 6) # On Saturday we test the AR5_branch
 {
   $branch = "AR5_branch";
-  `git pull /home/modele/$branch`;
+  $gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  `git pull $gitdir`;
   $rundecks = \@AR5decks;
 }
 else # off on Sunday

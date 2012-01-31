@@ -1,3 +1,4 @@
+
 #!/usr/bin/perl
 package CommandEntry;
 use Env;
@@ -204,7 +205,7 @@ sub setModuleEnvironment
     my $compiler = shift;
 
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require "/home/modele/master/exec/perlreq";
+    require $ENV{NOBACKUP}."/devel/master/exec/perlreq";
 
     if ($self->{BRANCH} =~ m/AR5/) 
     {
