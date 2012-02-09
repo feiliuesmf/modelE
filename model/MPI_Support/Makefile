@@ -4,9 +4,9 @@ SUPPORTED_OPTIONS =
 
 FSRCS = dd2d_utils.f DomainDecompLatLon.f
 
-ifeq ($(FVCUBED),YES)
+#ifeq ($(FVCUBED),YES)
  FSRCS +=pario_fbsa.f
-endif
+#endif
 
 F90SRCS+= MpiSupport_mod.F90 dist_grid_mod.F90 Halo_mod.F90
 F90SRCS+= GatherScatter_mod.F90 SpecialIO_mod.F90 GlobalSum_mod.F90

@@ -7,13 +7,11 @@ module SpecialIO_mod
   use dist_grid_mod
   use GatherScatter_mod
   use MpiSupport_mod
+  use pario_fbsa, only : BACKSPACE_PARALLEL,REWIND_PARALLEL,SKIP_PARALLEL
+  use pario_fbsa, only : DREAD_PARALLEL,DREAD8_PARALLEL,DWRITE8_PARALLEL
 
   implicit none
   private
-  public :: BACKSPACE_PARALLEL
-  public :: REWIND_PARALLEL
-  public :: SKIP_PARALLEL
-  public :: DREAD_PARALLEL,DREAD8_PARALLEL,DWRITE8_PARALLEL
   public :: MREAD_PARALLEL
   public :: READT_PARALLEL,WRITET_PARALLEL,READT_PARALLEL_COLUMN
   public :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
@@ -21,19 +19,6 @@ module SpecialIO_mod
   public :: WRITE_PARALLEL
   public :: WRITEI_PARALLEL
   public :: WRITEI8_PARALLEL
-  
-  interface DREAD_PARALLEL
-    module procedure DREAD_PARALLEL_2D
-    module procedure DREAD_PARALLEL_3D
-  end interface
-  
-  interface DREAD8_PARALLEL
-    module procedure DREAD8_PARALLEL_3D
-  end interface
-  
-  interface DWRITE8_PARALLEL
-    module procedure DWRITE8_PARALLEL_3D
-  end interface
   
   interface MREAD_PARALLEL
     module procedure MREAD_PARALLEL_2D
@@ -94,126 +79,6 @@ module SpecialIO_mod
 #endif
 contains
   
-  subroutine BACKSPACE_PARALLEL(IUNIT)
-    integer, intent(IN) :: IUNIT
-
-    if (AM_I_ROOT()) backspace IUNIT
-
-  end subroutine BACKSPACE_PARALLEL
-  
-  subroutine REWIND_PARALLEL(IUNIT)
-    integer, intent(IN) :: IUNIT
-
-    if (AM_I_ROOT()) rewind IUNIT
-    
-  end subroutine REWIND_PARALLEL
-  
-  subroutine SKIP_PARALLEL(IUNIT)
-    integer, intent(IN) :: IUNIT
-    
-    if (AM_I_ROOT()) read(IUNIT)
-    
-  end subroutine SKIP_PARALLEL
-  
-  subroutine DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR, &
-       &     recs_to_skip)
-!@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
-!@auth NCCS-ESMF Development Team
-    type (DIST_GRID),  intent(IN) :: grd_dum
-    integer,      intent(IN)  :: IUNIT     !@var  IUNIT file unit number
-    character*(*), intent(IN)  :: NAME      !@var  NAME  name of file being read
-    real*8,       intent(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
-    integer, intent(IN), optional :: recs_to_skip
-    real*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
-    real*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
-    
-    integer :: N                        !@var  N loop variable
-    integer :: IM,JM
-    integer :: rc
-    ! now local
-    
-    IM   = grd_dum%IM_WORLD
-    JM   = grd_dum%JM_WORLD
-    !      write(*,*) "DD dread parallel IM,JM",IM,JM
-    if (AM_I_ROOT()) then
-      if(present(recs_to_skip)) then
-        do n=1,recs_to_skip
-          read (IUNIT,IOSTAT=rc)
-        enddo
-      endif
-      read (IUNIT,IOSTAT=rc) AIN
-      !****  convert from real*4 to real*8
-      AOUT=AIN
-    endif
-    
-    call scatterReal8(grd_dum, AOUT, AVAR, shape(AVAR), 2)
-    call checkReadStatus(rc, name, 'DREAD_PARALLEL_2D')
-
-  END SUBROUTINE DREAD_PARALLEL_2D
-
-  SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR, &
-       &     recs_to_skip)
-!@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
-!@auth NCCS-ESMF Development Team
-    TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
-    INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-    CHARACTER*(*), INTENT(IN)  :: NAME        !@var  NAME  name of file being read
-    REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
-    INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
-    REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
-    REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
-    INTEGER :: N                        !@var  N loop variable
-    INTEGER :: IM,JM,NM
-    INTEGER :: rc
-    ! now local
-
-    IM   = grd_dum%IM_WORLD
-    JM   = grd_dum%JM_WORLD
-    NM   = size(AVAR,3)
-    !      write(*,*) "DD dread parallel IM,JM,NM",IM,JM,NM
-
-    If (AM_I_ROOT()) then
-      if(present(recs_to_skip)) then
-        do n=1,recs_to_skip
-          READ (IUNIT,IOSTAT=rc)
-        enddo
-      endif
-      READ (IUNIT,IOSTAT=rc) AIN
-      !****  convert from real*4 to real*8
-      AOUT=AIN
-    EndIf
-
-    Call scatterReal8(grd_dum, AOUT, AVAR, shape(AVAR), 2)
-    call checkReadStatus(rc, name, 'DREAD_PARALLEL_3D')
-
-  END SUBROUTINE DREAD_PARALLEL_3D
-
-  SUBROUTINE DREAD8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR, &
-       &     recs_to_skip)
-!@sum DREAD_PARALLEL  read an array real*8 avar(im,jm,:)
-!@auth NCCS-ESMF Development Team
-    TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
-    INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-    CHARACTER*(*), INTENT(IN)  :: NAME        !@var  NAME  name of file being read
-    REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var AVAR real*8 array
-    INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
-    REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
-    INTEGER :: N,rc
-
-    If (AM_I_ROOT()) then
-      if(present(recs_to_skip)) then
-        do n=1,recs_to_skip
-          READ (IUNIT,IOSTAT=rc)
-        enddo
-      endif
-      READ (IUNIT,IOSTAT=rc) AGLOB
-    EndIf
-
-    Call scatterReal8(grd_dum, AGLOB, AVAR, shape(AVAR), 2)
-    call checkReadStatus(rc, name, 'DREAD8_PARALLEL_3D')
-
-  END SUBROUTINE DREAD8_PARALLEL_3D
-
   SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,AVAR)
 !@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
@@ -498,28 +363,6 @@ contains
 
   END SUBROUTINE WRITEI8_PARALLEL_3D
 
-  SUBROUTINE DWRITE8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf)
-!@sum DWRITE8_PARALLEL  Writes real*8 (im,jm,:) arrays as real*8 on disk
-!@auth NCCS-ESMF Development Team
-    TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
-    INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-    CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being written
-    REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
-    REAL*8, dimension (:,:,:), allocatable :: buf_glob ! global array written to disk
-    INTEGER :: rc
-
-    if (am_i_root()) then
-      allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3)))
-    else
-      allocate(buf_glob(1,1,1))
-    end if
-
-    if (am_i_root()) write (iunit, IOSTAT=rc) buf_glob
-    call checkWriteStatus(rc, name, 'DWRITE8_PARALLEL_3D')
-    deallocate(buf_glob)
-
-  END SUBROUTINE DWRITE8_PARALLEL_3D
-  
   subroutine READ_PARALLEL_INTEGER_0 ( DATA, UNIT, FORMAT)
 
     integer, intent(out  )                       :: DATA

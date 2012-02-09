@@ -31,7 +31,8 @@
 !@+
       module pario_fbsa
       use filemanager, only : openunit,closeunit
-      use domain_decomp_1d, only : dist_grid,am_i_root,broadcast
+      use MpiSupport_mod, only : am_i_root
+      use dist_grid_mod, only : dist_grid,broadcast
       use dd2d_utils, only : unpack_data, pack_data
       private
 
