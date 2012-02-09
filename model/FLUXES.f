@@ -154,7 +154,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 #endif
 
 !@var eflow_gl global integral of eflowo
-         real*8 :: eflow_gl
+         real*8 :: eflow_gl=0.
          logical :: need_eflow_gl=.false.
 
 !@var modd5s,jm_budg,area_of_zone,conserv,nofm
@@ -542,6 +542,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       this % UOSURF = 0.
       this % VOSURF = 0.
       this % OGEOZA = 0.
+      this % MLHC = 0.
 
 #ifdef TRACERS_GASEXCH_ocean
       this % TRGASEX = 0.
