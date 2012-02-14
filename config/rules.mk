@@ -141,7 +141,7 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
 
@@ -173,10 +173,10 @@ endif
 
 ifeq ($(MPP),YES)  
   CPPFLAGS += -DUSE_MPP
-  FFLAGS += -I$(MPPDIR)/include
-  F90FLAGS += -I$(MPPDIR)/include
-  LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
-  #LIBS += -lfmpi -lmpi
+  # MPPDIR is the path of the GEOS5 installation
+  FFLAGS += -I$(MPPDIR)/include/GFDL_fms
+  F90FLAGS += -I$(MPPDIR)/include/GFDL_fms
+  LIBS += -L$(MPPDIR)/lib -lGFDL_fms
 endif
 
 ifeq ($(USE_ENT),YES)
@@ -215,7 +215,7 @@ ifeq ($(MACHINE),IRIX64)
 else
   NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
 endif
-  LIBS += $(subst ",,$(NETCDFLIB))
+  LIBS += $(subst "",,$(NETCDFLIB))
   NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
   FFLAGS += $(NETCDFINCLUDE)
   F90FLAGS += $(NETCDFINCLUDE)
