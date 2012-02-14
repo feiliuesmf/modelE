@@ -18,7 +18,7 @@ $extraFlags{E4F40} ="";
 $extraFlags{E1oM20} ="";
 $extraFlags{E_AR5_CADI} ="ESMF=YES";
 # Need to set CS variables in the configuration file:
-$extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/discover/nobackup/ccruz/devel/GEOSagcm.noHDF5 MPPDIR=/usr/local/other/MPP/intel11_impi32.noHDF5.e5 FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2";
+$extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/usr/local/other/Fortuna-2_5.noHDF5 MPPDIR=/usr/local/other/Fortuna-2_5.noHDF5/Linux FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2";
 
 $extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
 
@@ -258,7 +258,7 @@ sub getIntelEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf510/Linux";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel11_impi32";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
   }
@@ -299,7 +299,7 @@ sub getGfortranEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.5_openmpi-1.4.2";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
   }

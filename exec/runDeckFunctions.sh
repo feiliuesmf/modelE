@@ -53,7 +53,7 @@ OPTIONS
 
      -a | --endDate  : change the default end date (default: depends on rundeck)
      -o | --endHour  : change the default end hour (default: depends on rundeck)
-     -x | --check    : check repository against HEAD on simplex (default: YES)
+     -x | --check    : check repository against HEAD on simplex (default: NO)
      -i | --id       : override run ID (default: system generated random number)
 
      Additionally, on DISCOVER:
@@ -132,7 +132,9 @@ defaults()
 
 # Rundeck name
    rundeck="EM20"
-
+   if [ "$useFVCScore" == "YES" ]; then
+      rundeck="E4C90L40"
+   fi
 # module environment in .modelErc - default is to use Intel 11
    moduleSet="intel11"
    # used in .modelErc:
@@ -149,8 +151,8 @@ defaults()
 
 # Run serially - but may want to disable for hi-res rundecks. Anyway all
 # runs run in parallel with NPES=1
-   runSerial="YES"
-   clean="YES"
+   runSerial="NO"
+   clean="NO"
    verbose="YES"
    restartRegression="YES"
 
@@ -186,6 +188,7 @@ defaults()
    FVCORE_ROOT=
    FVCUBED_ROOT=
    MPPDIR=
+   FFTW_ROOT=
 
 }
 
@@ -194,7 +197,7 @@ initEnvironment()
 # -------------------------------------------------------------------
 {
 
-# tmpDir is eithr $NOBACKUP (DISCOVER), $HOME (not DISCOVER) or custom
+# tmpDir is either $NOBACKUP (DISCOVER), $HOME (not DISCOVER) or custom
 # Use random run id, unless specified in command line 
    if [ "$runID" == "" ]; then
       runID=$RANDOM.$$
@@ -328,7 +331,7 @@ gitClone()
    diagMessage " --- Cloning repositories..."
    if [ "$check" == "YES" ]; then
       if [[ "$node" =~ borg ]]; then
-         gitBaseRepository=/discover/nobackup/ccruz/devel/modelE.clones/modelE.git
+         gitBaseRepository=/discover/nobackup/ccruz/devel/modelE.clones/simplex
       else
          gitBaseRepository=$HOME/models/devel/modelE.clones
       fi
@@ -372,9 +375,9 @@ setModules()
     # NOTE: DEFAULT is intel11
     if [ "$moduleSet" == "intel11" ]; then
        module load comp/intel-11.1.072 mpi/impi-3.2.2.006
-       PNETCDFHOME=/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006
-       NETCDFHOME=/usr/local/other/netcdf/3.6.2_intel-11.0.083
-       ESMFHOME=/usr/local/other/esmf510/intel11.1.072_impi3.2.2.006/Linux
+       PNETCDFHOME=/discover/nobackup/mkelley5/pnetcdf-1.2.0
+       NETCDFHOME=/discover/nobackup/projects/gmao/share/dao_ops/Baselibs/v3.2.0_build3/Linux
+       ESMFHOME=/discover/nobackup/projects/gmao/share/dao_ops/Baselibs/v3.2.0_build3/Linux
     elif [ "$moduleSet" == "intel12" ]; then
        module load comp/intel-12.0.1.107 mpi/impi-3.2.2.006
        PNETCDFHOME=/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006
@@ -433,8 +436,9 @@ createRcFile()
       FVCORE=YES
       FVCUBED=YES
       # temporary
-      FVCUBED_ROOT=/discover/nobackup/ccruz/devel/Fortuna-2_4_BETA0
-      MPPDIR=/usr/local/other/MPP/intel11_impi32.noHDF5.e5   
+      FVCUBED_ROOT=/usr/local/other/Fortuna-2_5.noHDF5
+      MPPDIR=/usr/local/other/Fortuna-2_5.noHDF5/Linux
+      FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2
    fi
 
 cat << EOF > .modelErc
@@ -481,7 +485,7 @@ FVCUBED_ROOT=$FVCUBED_ROOT
 MPPDIR=$MPPDIR
 
 # other options
-FFTW_ROOT=/home/dgueyffi/fftw
+FFTW_ROOT=$FFTW_ROOT
 
 EOF
 
@@ -570,7 +574,7 @@ setTestLevel()
          npes=( 1 44 )
       elif [[ "$rundeck" =~ E4F40 || "$rundeck" =~ E4Tcad || "$rundeck" =~ E4arobio_g6c ]]; then
          npes=( 88 )
-      elif [[ "$rundeck" =~ E4arobio_H4c ]]; then
+      elif [[ "$rundeck" =~ E4arobio_h4c ]]; then
          npes=( 44 )
       elif [[ "$rundeck" =~ E4C90 ]]; then
          npes=( 6 84 )
