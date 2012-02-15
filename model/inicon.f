@@ -273,6 +273,7 @@ c
 c     call zebra(akpar,idm,idm,jdm)
  103  format (i7,2i4,a/(24x,i3,2f8.2,f8.2,2f8.1,f8.3))
 c
+      call prtmsk(ip,saln(1,1,1),util1,idm,ii1,jj,0.,1.,'sss_ini')
       return
       end
 c> Revision history:

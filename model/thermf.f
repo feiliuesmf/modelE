@@ -1,4 +1,5 @@
-      subroutine thermf(m,n,mm,nn,k1m,k1n)
+      subroutine thermf(m,n,mm,nn,k1m,k1n
+     .   ,sss_restore_dt,sss_restore_dtice)
 c
       USE SEAICE, only : fsss
 c
@@ -14,11 +15,11 @@ c
 c
       real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
      .     evap,evapw,evapi,exchng,target,old,
-     .     rmean,tmean,smean,vmean,boxvol,
+     .     rmean,tmean,smean,vmean,boxvol,fxbias,
      &     slfcol(J_0H:J_1H),watcol(J_0H:J_1H),empcol(J_0H:J_1H),
      &     rhocol(J_0H:J_1H),temcol(J_0H:J_1H),salcol(J_0H:J_1H),
      &     sf1col(J_0H:J_1H),sf2col(J_0H:J_1H),clpcol(J_0H:J_1H),
-     &     numcol(J_0H:J_1H)
+     &     numcol(J_0H:J_1H),fxbiasj(J_0H:J_1H)
       integer iprime,ktop
       real qsatur,totl,eptt,salrlx,sf1cum,sf2cum,bias,clpcum,numcum
       external qsatur
@@ -26,6 +27,10 @@ c
 ccc      data ktop/2/                        !  normally set to 3
 css   data salrlx/0.3215e-7/          !  1/(1 yr)
       data salrlx/0.6430e-8/          !  1/(5 yr)
+      real*8 :: sss_restore_dt,sss_restore_dtice
+      real :: piston
+      logical sss_relax
+      data sss_relax/.true./
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: weak salinity restoring via corrective surface flux
@@ -123,10 +128,12 @@ c --- clip neg.(outgoing) salt flux to prevent S < 0 in top layer
       end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) write (lp,100) nstep,i,j,
-cdiag.  '   taux      tauy      surflx      emnp       oice    ustar',
-cdiag. taux(i,j),tauy(i,j),surflx(i,j),oemnp(i,j),oice(i,j),ustar(i,j)
-c100    format(i9,2i5,a/18x,7es10.3/19x,a/18x,5es10.3)
+      if (abs(i-itest).le.2.and.abs(j-jtest).le.2) 
+     .  write (*,100) nstep,i,j,
+     .  '  surflx    salflx     salin     oemnp     osalt      oice',
+     .  surflx(i,j),salflx(i,j),saln(i,j,k1n),oemnp(i,j),osalt(i,j),
+     .  oice(i,j)
+100   format(i9,2i5,a/18x,6es10.3/(19x,a/18x,6es10.3))
 c
       watcol(j)=watcol(j)+surflx(i,j)*scp2(i,j)
       empcol(j)=empcol(j)+oemnp(i,j)*scp2(i,j)
@@ -160,7 +167,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         sf2col(j)=sf2col(j)+salflx(i,j)*scp2(i,j)
  83     continue
 c$OMP END PARALLEL DO
- 
 c --- optional, diagnostic use only:
         call GLOBALSUM(ogrid,sf2col,sf2cum, all=.true.)
         if( AM_I_ROOT() ) then
@@ -169,6 +175,30 @@ c --- optional, diagnostic use only:
           print '(a,i4,a,es11.3)','salt flux clipped at',nint(numcum),
      .      ' points => required global flux corr:',bias
         end if
+      end if
+
+      if (sss_relax) then
+c$OMP PARALLEL DO PRIVATE(piston,old,fxbias) SCHEDULE(STATIC,jchunk)
+c --- surface salinity restoration
+        do 84 j=J_0,J_1
+        fxbiasj(j)=0.
+        do 84 l=1,isp(j)
+        do 84 i=ifp(j,l),ilp(j,l)
+          piston=((1.-rsiobs(i,j))/sss_restore_dt     ! open water
+     .          +     rsiobs(i,j) /sss_restore_dtice) ! under ice
+     .          *12./86400.                           ! 12m depth scale
+          old=salflx(i,j)
+          fxbias=(sssobs(i,j)*1000.-saln(i,j,k1n))*piston/thref
+          salflx(i,j)=salflx(i,j)+fxbias
+          fxbiasj(j)=fxbiasj(j)+fxbias*scp2(i,j)
+          if( AM_I_ROOT() ) then
+            if (abs(i-itest).le.2 .and. abs(j-jtest).le.2) 
+     .   write (*,'(i9,2i5,a,2f7.2/19x,a,2es10.3,a,f6.2)') nstep,i,j,
+     . '  actual & reference salinity:',saln(i,j,k1n),sssobs(i,j)*1.e3,
+     . '  salflx before & after relax:',old,salflx(i,j)
+          end if
+ 84     continue
+c$OMP END PARALLEL DO
       end if
 
       if (nstep.eq.nstep0+1 .or. diagno) then

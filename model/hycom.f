@@ -120,6 +120,7 @@ c
      &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS, only : sssobs, rsiobs
       USE hycom_arrays_glob_renamer
 c
       USE KPRF_ARRAYS
@@ -130,6 +131,7 @@ c
 #endif
       use TimerPackage_mod
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+      USE Dictionary_mod, only : get_param
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       type(iceocn_xchng_vars) :: iceocn
@@ -144,6 +146,7 @@ c
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,eflow_gl
+      real*8 sss_restore_dt,sss_restore_dtice
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,nsub
@@ -198,12 +201,12 @@ c
      &     prec_loc,eprec_loc,evapor_loc,flowo_loc,gmelt_loc,
      &     melti_loc,emelti_loc,smelti_loc,
      &     runosi_loc,erunosi_loc,srunosi_loc,
-     &     runpsi_loc,erunpsi_loc,srunpsi_loc,
+     &     runpsi_loc,erunpsi_loc,srunpsi_loc,mlhc_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
-#ifdef STANDALONE_OCEAN
-      real*8, dimension(:,:), pointer :: sssobs_loc,rsiobs_loc
-#endif
+css#ifdef STANDALONE_OCEAN
+css      real*8, dimension(:,:), pointer :: sssobs_loc,rsiobs_loc
+css#endif
 #ifdef TRACERS_OceanBiology
       real*8, dimension(:,:,:), pointer :: TRGASEX_loc
 #endif
@@ -275,6 +278,7 @@ c
       ogeoza_loc => atmocn%ogeoza
       uosurf_loc => atmocn%uosurf
       vosurf_loc => atmocn%vosurf
+        mlhc_loc => atmocn%mlhc
 #ifdef TRACERS_GASEXCH_ocean
       gtracer_loc => atmocn%gtracer
 #endif
@@ -284,11 +288,11 @@ c
 
 #ifdef STANDALONE_OCEAN
       ! arrays for salinity restoring
-      sssobs_loc => atmocn%sssobs  ! units:  psu/1000
-      rsiobs_loc => atmocn%rsiobs  ! sea ice fraction [0-1]
+      sssobs => atmocn%sssobs  ! units:  psu/1000
+      rsiobs => atmocn%rsiobs  ! sea ice fraction [0-1]
       ! to get the restoring timescales (days) specified in the rundeck:
-      !call get_param("sss_restore_dt",sss_restore_dt) ! open water
-      !call get_param("sss_restore_dtice",sss_restore_dtice) ! under ice
+      call get_param("sss_restore_dt",sss_restore_dt) ! open water
+      call get_param("sss_restore_dtice",sss_restore_dtice) ! under ice
 #endif
 
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
@@ -605,12 +609,10 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
      . ,' (day '
      .,(int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1)
      .  *baclin/86400,')'
-
         end if   ! AM_I_ROOT
 
         nstep0=int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)
      .                                         -nstepi+3600/baclin
-
         nstep=nstep0
         time0=nstep0*baclin/86400
         tavini=time0
@@ -669,7 +671,6 @@ c     close(202)
 c
       nsaveo=0
       do 15 nsub=1,nstepi
-
       m=mod(nstep  ,2)+1
       n=mod(nstep+1,2)+1
       mm=(m-1)*kk
@@ -919,7 +920,8 @@ ccc      write (string,'(a12,i8)') 'diapfl, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      call thermf(m,n,mm,nn,k1m,k1n)
+      call thermf(m,n,mm,nn,k1m,k1n,
+     .  sss_restore_dt,sss_restore_dtice)
 c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
@@ -1358,7 +1360,7 @@ c      endif
       call ssto2a(osst_loc,atmocn%work1)
       call tempro2a(osst_loc,atmocn%work2)
       call ssto2a(osss_loc,sss_loc)
-css   call iceo2a(omlhc,mlhc)
+      call ssto2a(omlhc_loc,mlhc_loc)
       call ssto2a(oogeoza_loc,ogeoza_loc)
       call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
       call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
@@ -1457,6 +1459,7 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+      USE HYCOM_ARRAYS, only : sssobs, rsiobs
       implicit none 
 
 #ifdef TRACERS_OceanBiology
@@ -1501,6 +1504,8 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
+      call pack_data( ogrid,  sssobs, sssobs_glb )
+      call pack_data( ogrid,  rsiobs, rsiobs_glb )
 
       end subroutine gather_before_archive
 c------------------------------------------------------------------
