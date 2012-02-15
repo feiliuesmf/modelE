@@ -288,7 +288,7 @@ sub getGfortranEnvironment
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="openmpi";
-  $env->{MPIDIR}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6";
+  $env->{MPIDIR}="/usr/local/other/openMpi/1.4.2-gcc-4.5";
   $env->{COMPILER}="gfortran";
   $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
   if ($branch =~ m/AR5/) 
@@ -299,7 +299,7 @@ sub getGfortranEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.5_openmpi-1.4.2";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.5_openmpi142";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
   }
@@ -310,21 +310,33 @@ sub getGfortranEnvironment
 # -----------------------------------------------------------------------------
 sub saveForDiffreport()
 {
-  my $branch = shift;
-
+   my $branch = shift;
+   my @rundecks;
 # Save regTest.cfg in a format that is easily parsed by a bash script
    require 'regTest.cfg';
+
+   if ($branch =~ m/AR5/)
+   {
+     @rundecks = @AR5decks;
+   }
+   else
+   {
+     @rundecks = @decks;
+   }
+   my $rsize = scalar @rundecks;
+   my $csize = scalar @comps;
 
    my $file = ".regTest.cfg";
    open (FH, "> $file") or die "Can't open $file for write: $!";
    my $i = 0;
-   while($i <= $#decks)
+   while($i < $rsize)
    {
-      print FH "DECK=$decks[$i]\n";
+      print FH "DECK=$rundecks[$i]\n";
       $i++;
    }
    my $i = 0;
-   while($i <= $#comps)
+   print STDOUT "comps = $csize\n";
+   while($i < $csize)
    {
       print FH "COMPILER=$comps[$i]\n";
       $i++;

@@ -99,12 +99,14 @@ deckDiff()
 {
   local comp="$1"
   declare -a deckArray=("${!2}")
+  # if deckArray is empty then there is nothing to do:
+  if [ ${#deckArray[@]} -eq 0 ]; then return; fi
   local baseline=$NOBACKUP/modelE_baseline/$comp
 
   for deck in "${deckArray[@]}"; do
 
     echo "  --- DECK = $deck ---"
-    # Don't do serial comparisions of C() and AR5 rundecks
+    # Don't do serial comparisons of C90 and AR5 rundecks
     if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]]; then
       echo "    Skip SERIAL comparison"
     else
@@ -150,7 +152,7 @@ upd()
 # -------------------------------------------------------------------
 
 cd $PBS_O_WORKDIR
-rm -f DiffReport diffrep.o*
+rm -f diffrep.o*
 
 if [ -z $MOCKMODELE ]; then
   diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
@@ -163,6 +165,8 @@ declare -a DECKS
 declare -a COMPILERS
 declare -a LowResDecks
 declare -a HiResDecks
+declare -a CSDecks
+declare -a AR5Decks
 declare -a SCMdecks
 
 OIFS=$IFS
@@ -194,47 +198,62 @@ IFS=$OIFS
 
 echo "Total DECKs: ${id}"
 
+# Also NPES used varies by rundeck depending on resolution noted above
+if [[ "$LEVEL" == "GENTLE" ]]; then
+   LowResNpes=( 4 )
+   HiResNpes=( 8 )
+   CSNpes=( 6 )
+elif [[ "$LEVEL" == "AGGRESSIVE" ]]; then
+   LowResNpes=( 1 4 23 )
+   HiResNpes=( 1 45 )
+   CSNpes=( 48 )
+elif [[ "$LEVEL" == "INSANE" ]]; then
+   LowResNpes=( 1 4 23 44 )
+   HiResNpes=( 1 8 45 88 )
+   CSNpes=( 84 )
+else
+   LowResNpes=( 4 )
+   HiResNpes=( 8 )
+   CSNpes=( 6 )
+fi
+
 # Separate rundecks to test into 4x4.5, 2x2.5 and SCM
 ia=0
 ib=0
 ic=0
+ir=0
+is=0
 for deck in ${DECKS[@]}
 do
       if [[ "$deck" =~ EM20 || "$deck" =~ E1oM20 ]]; then
         LowResDecks[$ia]="$deck"
         ia=$(($ia+1))
-      elif [[ "$deck" =~ E4 ]]; then
+      elif [[ "$deck" =~ obio || "$deck" =~ cadF40  ]]; then
         HiResDecks[$ib]="$deck"
         ib=$(($ib+1))
-      else
-        SCMdecks[$ic]="$deck"
+      elif [[ "$deck" =~ C90  ]]; then
+        CSDecks[$ic]="$deck"
         ic=$(($ic+1))
+      elif [[ "$deck" =~ AR5  ]]; then
+        AR5Decks[$ir]="$deck"
+        ir=$(($ir+1))
+      else
+        SCMdecks[$is]="$deck"
+        is=$(($is+1))
       fi
 done
-
-# Also NPES used varies by rundeck depending on resolution noted above
-if [[ "$LEVEL" == "GENTLE" ]]; then
-   LowResNpes=( 4 )
-   HiResNpes=( 8 )
-elif [[ "$LEVEL" == "AGGRESSIVE" ]]; then
-   LowResNpes=( 1 4 23 )
-   HiResNpes=( 1 45 )
-elif [[ "$LEVEL" == "INSANE" ]]; then
-   LowResNpes=( 1 4 23 44 )
-   HiResNpes=( 1 8 45 88 )
-else
-   LowResNpes=( 4 )
-   HiResNpes=( 8 )
-fi
 
 echo "LowResDecks: ${LowResDecks[@]}"
 echo "HiResDecks: ${HiResDecks[@]}"
 echo "SCMdecks: ${SCMdecks[@]}"
+echo "CSDecks: ${CSDecks[@]}"
+echo "AR5Decks: ${AR5Decks[@]}"
 echo "COMPILERS: ${COMPILERS[*]}"
 echo "LEVEL is: $LEVEL"
 echo "BRANCH is: $BRANCH"
 echo "LowResNpes is: ${LowResNpes[@]}"
 echo "HiResNpes is: ${HiResNpes[@]}"
+echo "CSNpes is: ${CSNpes[@]}"
 
 for comp in "${COMPILERS[@]}"; do
 
@@ -244,11 +263,13 @@ for comp in "${COMPILERS[@]}"; do
 
   deckDiff $comp LowResDecks[@] LowResNpes[@]
   deckDiff $comp HiResDecks[@] HiResNpes[@]
+  deckDiff $comp CSDecks[@] CSNpes[@]
+  deckDiff $comp AR5Decks[@] HiResNpes[@]
   deckDiff $comp SCMdecks[@]
 
 done
 
-touch $NOBACKUP/devel/master/exec/DiffReport
+rm -f $NOBACKUP/devel/master/exec/DiffReport
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"

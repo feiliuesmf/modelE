@@ -113,9 +113,6 @@ foreach my $rundeck (@$rundecks)
 # Override anything else here
 $useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
 
-$ENV{PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/bin:".$ENV{PATH};
-$ENV{LD_LIBRARY_PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/lib:".$ENV{LD_LIBRARY_PATH};
-
 foreach my $rundeck (@$rundecks) 
 { 
   foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 

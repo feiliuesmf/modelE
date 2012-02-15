@@ -143,7 +143,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.5
+module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
 EOF
     }
 
@@ -159,7 +159,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.6-20110312
+module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
 EOF
     }  
   }
@@ -230,7 +230,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.6-20110312");
+        module (load, "other/comp/gcc-4.5", "other/mpi/openmpi/1.4.2-gcc-4.5");
       } 
       else 
       {
