@@ -288,7 +288,6 @@ sub getGfortranEnvironment
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="openmpi";
-  $env->{MPIDIR}="/usr/local/other/openMpi/1.4.2-gcc-4.5";
   $env->{COMPILER}="gfortran";
   $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
   if ($branch =~ m/AR5/) 
@@ -299,7 +298,7 @@ sub getGfortranEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.5_openmpi142";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc461_openmpi144";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
   }

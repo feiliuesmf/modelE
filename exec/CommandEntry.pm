@@ -112,7 +112,7 @@ sub runInBatch
 
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=8:proc=neha
+#PBS -l select=$nodes:ncpus=12:mpiprocs=12
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
 #PBS -N $jobname
@@ -121,9 +121,6 @@ sub runInBatch
 #PBS -V
 
 cd \$PBS_O_WORKDIR
-
-# Bhat mentioned that this was needed for openMPI. Is it? Need to test.
-export TMPDIR=/tmp
 
 . /usr/share/modules/init/bash
 module purge
@@ -143,7 +140,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
+module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
 EOF
     }
 
@@ -159,7 +156,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
+module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
 EOF
     }  
   }
@@ -215,7 +212,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.5");
+        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
       } 
       else 
       {
@@ -230,7 +227,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.5", "other/mpi/openmpi/1.4.2-gcc-4.5");
+        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
       } 
       else 
       {
