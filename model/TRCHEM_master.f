@@ -2151,13 +2151,26 @@ C**** Local parameters and variables and arguments:
       Ltop=LM
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       rkext(:)=0.d0 ! initialize over L
+      LAXb=0
+      LAXt=0
       if(rad_to_chem(2,1,I,J) /= 0.)call stop_model('kext prob 0',255)
       do L=2,Ltop
         if(rad_to_chem(2,L,I,J) /= 0..and.rad_to_chem(2,L-1,I,J) == 0.)
      &  LAXb=L
         if(rad_to_chem(2,L,I,J) == 0..and.rad_to_chem(2,L-1,I,J) /= 0.)
      &  LAXt=L-1
+        if(L==Ltop)then
+          if(LAXb > 0 .and. LAXt==0)then   
+            if(rad_to_chem(2,L,I,J) /= 0.)then
+              LAXt=L
+            else
+              call stop_model('LAXt failure.',13)     
+            end if 
+          end if
+        end if
       end do
+      if(LAXb < 0.or.LAXb > ltop.or.LAXt < 0.or.LAXt > ltop) 
+     &call stop_model('LAXb or LAXt problem in TRCHEM_master',13)
 
       do L=1,Ltop            !  >>> BEGIN ALTITUDE LOOP <<<
         byta=1.d0/ta(L)
@@ -2236,8 +2249,8 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
           enddo 
           CYCLE
         else  
-          if((pres(l) < 245.d0.and.pres(l) > 150.d0) .or. 
-     &    LAXb < 1.or.LAXb > ltop.or.LAXt < 1.or.LAXt > ltop)then 
+          if((pres(l) < 245.d0.and.pres(l) > 150.d0) .or.
+     &    LAXb==0 .or. LAXt==0)then 
             rkext(l)=0.d0
           else
             if(pres(l) <= 150..and.pres(l) > 31.60)then

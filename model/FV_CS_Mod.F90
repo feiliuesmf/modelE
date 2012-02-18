@@ -16,6 +16,10 @@ module FV_CS_Mod
   public :: accumulate_mass_fluxes
 
   logical, parameter :: hydrostatic = .true.
+  logical, parameter :: fv_debug = .false.
+! z_tracer=.false. is necessary to get correct mass flux exports.
+! Eventually, fix the FV code that is used when z_tracer=.true. 
+  logical, parameter :: z_tracer = .false.
 
   ! private data of convenience
   Integer :: rc ! return code from ESMF
@@ -136,9 +140,10 @@ module FV_CS_Mod
       Write(unit,*)'       dt: ',DT
       Write(unit,*)'   npes_x: ',mppnx
       Write(unit,*)'   npes_y: ',mppny
-      Write(unit,*)' fv_debug: ',.false.
-      Write(unit,*)' hydrostatic: ',.true.
+      Write(unit,*)' fv_debug: ',fv_debug
+      Write(unit,*)' hydrostatic: ',hydrostatic
       Write(unit,*)' Make_NH: ',.false.
+      Write(unit,*)' z_tracer: ',z_tracer
 
       Call Free_File(unit)
 
@@ -156,16 +161,11 @@ module FV_CS_Mod
 
     Type(FV_CORE), intent(inout) :: fv
     type (ESMF_clock), intent(inout) :: clock
-    logical :: z_tracer
 
     call ESMF_GridCompInitialize ( fv%gc, importState=fv%import, &
          & exportState=fv%export, clock=clock,                   &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
-
-! z_tracer=.false. is necessary to get correct mass flux exports.
-! Eventually, fix the FV code that is used when z_tracer=.true. 
-    z_tracer = .false.
 
 ! The FV dycore default compilation if real(4) and is controlled by the
 ! SINGLE_FV flag in FVdycoreCubed_GridComp/fvdycore/GNUmakefile.
@@ -314,7 +314,7 @@ module FV_CS_Mod
     Deallocate(PE)
     Deallocate(PKZ)
 
-!    if (.not. hydrostatic) then
+    if (.not. hydrostatic) then
        Allocate(W(I_0:I_1, J_0:J_1, LM))
        Allocate(DZ(I_0:I_1, J_0:J_1, LM))
        W = 0.d0
@@ -323,7 +323,7 @@ module FV_CS_Mod
        Call GEOS_VarWrite(unit, grid%ESMF_GRID, W(I_0:I_1,J_0:J_1,:))
        Deallocate(W)
        Deallocate(DZ)
-!    endif
+    endif
 
     Call Free_File(unit)
 

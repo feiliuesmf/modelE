@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 # Script to run modelE unit tests on Linux (DISCOVER)
 # It is invoked by a cron job
@@ -71,7 +71,7 @@ submitJob()
 #PBS -N modelEut
 #PBS -l select=1
 #PBS -l walltime=1:00:00
-#PBS -W group_list=a940a
+#PBS -W group_list=k3002
 #PBS -j oe
 #PBS -V
 

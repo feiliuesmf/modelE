@@ -53,7 +53,7 @@ OPTIONS
 
      -a | --endDate  : change the default end date (default: depends on rundeck)
      -o | --endHour  : change the default end hour (default: depends on rundeck)
-     -x | --check    : check repository against HEAD on simplex (default: YES)
+     -x | --check    : check repository against HEAD on simplex (default: NO)
      -i | --id       : override run ID (default: system generated random number)
 
      Additionally, on DISCOVER:
@@ -63,27 +63,26 @@ OPTIONS
                                         mpi/impi-3.2.2.006
                              intel12  : comp/intel-12.0.1.107 
                                         mpi/impi-3.2.2.006
-                             gcc46    : other/comp/gcc-4.6-20110312
-					and experimental openmpi 1.4.3
-                             gcc461   : experimental gcc4.6.1 
-					and experimental openmpi 1.4.3
+                             gcc46    : other/comp/gcc-4.6
+					other/mpi/openmpi/1.4.3-gcc-4.6
+                             gcc461   : other/comp/gcc-4.6.1-RC-20110620
+					other/mpi/openmpi/1.4.4-gcc-4.6.1-RC-20110620
                              ar5      : comp/intel-10.1.017 
 				        mpi/impi-3.2.2.006
-
 
 EXAMPLE
 
      runDeck.sh -h 
      runDeck.sh --gitrepo=$HOME/modelE --check=NO
-     runDeck.sh -g $HOME/modelE.test --modEnv=gcc46 --modelErc=$HOME/.modelErc.gcc46
+     runDeck.sh -g $HOME/modelE.test --modEnv=gcc461 --modelErc=$HOME/.modelErc.gcc461
 
      Note that when using short argument names the value of the argument is 
      specified after the argument name separated by a space whereas when using
      using long argument names one must use an equal sign to specify the 
      argument value. Thus the following are equivalent:
 
-     runDeck.sh --gitrepo=$tmpDir/modelE --branch=ar5 --clean=YES --modEnv=gcc45
-     runDeck.sh -g $NOBACKUP/modelE -b ar5 -c YES -m gcc45
+     runDeck.sh --gitrepo=$tmpDir/modelE --branch=ar5 --clean=YES --modEnv=gcc46
+     runDeck.sh -g $NOBACKUP/modelE -b ar5 -c YES -m gcc46
 
      One can also mix short and long argument names:
 
@@ -132,7 +131,9 @@ defaults()
 
 # Rundeck name
    rundeck="EM20"
-
+   if [ "$useFVCScore" == "YES" ]; then
+      rundeck="E4C90L40"
+   fi
 # module environment in .modelErc - default is to use Intel 11
    moduleSet="intel11"
    # used in .modelErc:
@@ -149,8 +150,8 @@ defaults()
 
 # Run serially - but may want to disable for hi-res rundecks. Anyway all
 # runs run in parallel with NPES=1
-   runSerial="YES"
-   clean="YES"
+   runSerial="NO"
+   clean="NO"
    verbose="YES"
    restartRegression="YES"
 
@@ -186,6 +187,7 @@ defaults()
    FVCORE_ROOT=
    FVCUBED_ROOT=
    MPPDIR=
+   FFTW_ROOT=
 
 }
 
@@ -194,7 +196,7 @@ initEnvironment()
 # -------------------------------------------------------------------
 {
 
-# tmpDir is eithr $NOBACKUP (DISCOVER), $HOME (not DISCOVER) or custom
+# tmpDir is either $NOBACKUP (DISCOVER), $HOME (not DISCOVER) or custom
 # Use random run id, unless specified in command line 
    if [ "$runID" == "" ]; then
       runID=$RANDOM.$$
@@ -328,7 +330,7 @@ gitClone()
    diagMessage " --- Cloning repositories..."
    if [ "$check" == "YES" ]; then
       if [[ "$node" =~ borg ]]; then
-         gitBaseRepository=/discover/nobackup/ccruz/devel/modelE.clones/modelE.git
+         gitBaseRepository=/discover/nobackup/ccruz/devel/modelE.clones/simplex
       else
          gitBaseRepository=$HOME/models/devel/modelE.clones
       fi
@@ -372,35 +374,29 @@ setModules()
     # NOTE: DEFAULT is intel11
     if [ "$moduleSet" == "intel11" ]; then
        module load comp/intel-11.1.072 mpi/impi-3.2.2.006
-       PNETCDFHOME=/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006
-       NETCDFHOME=/usr/local/other/netcdf/3.6.2_intel-11.0.083
-       ESMFHOME=/usr/local/other/esmf510/intel11.1.072_impi3.2.2.006/Linux
+       PNETCDFHOME=/discover/nobackup/mkelley5/pnetcdf-1.2.0
+       NETCDFHOME=/usr/local/other/netcdf/3.6.2_intel-11.1.038
+       ESMFHOME=/usr/local/other/esmf400rp1/intel11_impi32
     elif [ "$moduleSet" == "intel12" ]; then
        module load comp/intel-12.0.1.107 mpi/impi-3.2.2.006
        PNETCDFHOME=/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006
        NETCDFHOME=/usr/local/other/netcdf/3.6.2_intel-12.0.1.107
-       ESMFHOME=/usr/local/other/esmf5/intel12.0.1.107_impi3.2.2.006/Linux
+       ESMFHOME=/usr/local/other/esmf400rp1/intel12_impi32
     elif [ "$moduleSet" == "gcc46" ]; then
-       module load other/comp/gcc-4.6-20110312
+       module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
        PNETCDFHOME=/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2
-       NETCDFHOME=/usr/local/other/netcdf/3.6.2_gcc4.6
-       ESMFHOME=/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux
+       NETCDFHOME=/usr/local/other/netcdf/3.6.2_gcc4.5
+       ESMFHOME=/usr/local/other/esmf400rp1/gcc461_openmpi144
        COMPILER=gfortran
        MPIDISTR=openmpi
-       MPIDIR=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6
-       # need these two exports until this openmpi is a module
-       export LD_LIBRARY_PATH=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/lib:${LD_LIBRARY_PATH}
-       export PATH=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/bin:${PATH}
     elif [ "$moduleSet" == "gcc461" ]; then
-       module load other/comp/gcc-4.6.1-RC-20110620
+       module load other/comp/gcc-4.6.1-RC-20110620 other/mpi/openmpi/1.4.4-gcc-4.6.1-RC-20110620
        PNETCDFHOME=/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2
        NETCDFHOME=/usr/local/other/netcdf/3.6.2_gcc4.6
-       ESMFHOME=/usr/local/other/esmf5/gcc4.5_openmpi-1.4.2/Linux
+       ESMFHOME=/usr/local/other/esmf400rp1/gcc461_openmpi144
        COMPILER=gfortran
        MPIDISTR=openmpi
-       MPIDIR=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6.1
-       export LD_LIBRARY_PATH=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6.1/lib:${LD_LIBRARY_PATH}
-       export PATH=/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6.1/bin:${PATH}
+       MPIDIR=/usr/local/other/SLES11/openMpi/1.4.4/gcc-4.6.1-RC-20110620
     elif [ "$moduleSet" == "ar5" ]; then
        module load comp/intel-10.1.017 mpi/impi-3.2.2.006
        PNETCDFHOME=/discover/nobackup/mkelley5/pnetcdf-1.2.0
@@ -427,14 +423,15 @@ createRcFile()
 # FVCS core
    if [ "$useFVCScore" == "YES" ]; then
       if [ "$moduleSet" != "intel11" ]; then
-          diagMessage " --- FVCS core was not build with this $moduleSet."
+          diagMessage " --- FVCS core was not built with this $moduleSet."
           diagMessage " --- *** runDeck.sh will probably fail *** "
       fi
       FVCORE=YES
       FVCUBED=YES
       # temporary
-      FVCUBED_ROOT=/discover/nobackup/ccruz/devel/Fortuna-2_4_BETA0
-      MPPDIR=/usr/local/other/MPP/intel11_impi32.noHDF5.e5   
+      FVCUBED_ROOT=/usr/local/other/Fortuna-2_5.noHDF5
+      MPPDIR=/usr/local/other/Fortuna-2_5.noHDF5/Linux
+      FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2
    fi
 
 cat << EOF > .modelErc
@@ -481,7 +478,7 @@ FVCUBED_ROOT=$FVCUBED_ROOT
 MPPDIR=$MPPDIR
 
 # other options
-FFTW_ROOT=/home/dgueyffi/fftw
+FFTW_ROOT=$FFTW_ROOT
 
 EOF
 
@@ -536,49 +533,47 @@ setTestLevel()
 # cpus to use when running a particular rundeck. 
 
    if [[ "$level" =~ gentle ]]; then
-      # EM20 = 1,15
-      # E4F40, E4TcadF40, E4arobio_H4c, E4arobio_g6c = 1,4,30
       if [[ "$rundeck" =~ EM20 ]]; then
-         npes=( 1 15 )
-      elif [[ "$rundeck" =~ E4Tcad || "$rundeck" =~ E4arobio  ]]; then
-         npes=( 23 )
+         npes=( 1 8 )
+      elif [[ "$rundeck" =~ E4Tcad || "$rundeck" =~ arobio  ]]; then
+         npes=( 1 23 )
       elif [[ "$rundeck" =~ E4C90 ]]; then
          npes=( 6 )
+      elif [[ "$rundeck" =~ AR5 ]]; then
+         npes=( 23 )
       else 
          npes=( 1 6 )
       fi
    elif [[ "$level" =~ aggressive ]]; then
-      # EM20 = 1,4,23
-      # E4F40 = 1,4,45
-      # E4TcadF40, E4arobio_H4c, E4arobio_g6c = 1,4,30
       if [[ "$rundeck" =~ EM20 ]]; then
          npes=( 1 23 )
       elif [[ "$rundeck" =~ E4F40 ]]; then
          npes=( 1 45 )
-      elif [[ "$rundeck" =~ E4Tcad || "$rundeck" =~ E4arobio ]]; then
+      elif [[ "$rundeck" =~ E4Tcad || "$rundeck" =~ arobio ]]; then
          npes=( 45 )
       elif [[ "$rundeck" =~ E4C90 ]]; then
          npes=( 6 48 )
+      elif [[ "$rundeck" =~ AR5 ]]; then
+         npes=( 45 )
       else 
          npes=( 1 48)
       fi
    elif [[ "$level" =~ insane ]]; then
-      # EM20 = 1,44
-      # E4F40, E4TcadF40, E4arobio_g6c = 1,88
-      # E4arobio_H4c = 1,44
       if [[ "$rundeck" =~ EM20 ]]; then
          npes=( 1 44 )
-      elif [[ "$rundeck" =~ E4F40 || "$rundeck" =~ E4Tcad || "$rundeck" =~ E4arobio_g6c ]]; then
+      elif [[ "$rundeck" =~ E4F40 || "$rundeck" =~ E4Tcad || "$rundeck" =~ arobio_g6c ]]; then
          npes=( 88 )
-      elif [[ "$rundeck" =~ E4arobio_H4c ]]; then
+      elif [[ "$rundeck" =~ arobio_h4c ]]; then
          npes=( 44 )
       elif [[ "$rundeck" =~ E4C90 ]]; then
          npes=( 6 84 )
+      elif [[ "$rundeck" =~ AR5 ]]; then
+         npes=( 88 )
       else 
          npes=( 1 84)
       fi
    else
-      npes=( 1 2 )
+      npes=( 1 6 )
    fi
 }
 

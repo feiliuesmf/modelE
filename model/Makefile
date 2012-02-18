@@ -3,7 +3,7 @@
 .SUFFIXES:
 .PHONY: FORCE
 
-AVAILABLE_COMPONENTS = profiler MPI_Support Ent giss_LSM shared solvers dd2d tracers
+AVAILABLE_COMPONENTS = profiler MPI_Support Ent giss_LSM shared solvers dd2d tracers CS_Support
 
 export MOD_DIR := $(shell pwd)/mod
 export INCLUDE_DIR := $(shell pwd)/include

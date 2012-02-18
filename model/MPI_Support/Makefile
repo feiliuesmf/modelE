@@ -2,7 +2,10 @@
 
 SUPPORTED_OPTIONS =
 
-FSRCS = dd2d_utils.f DomainDecompLatLon.f
+FSRCS = dd2d_utils.f
+ifndef ($(FVCUBED),YES)
+ FSRCS += DomainDecompLatLon.f
+endif
 
 ifeq ($(FVCUBED),YES)
  FSRCS +=pario_fbsa.f

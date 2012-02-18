@@ -7554,8 +7554,9 @@ c Terpenes
 c units are mg Terpene/m2/month
       do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
 ! 10% of terpenes end up being SOA
+#ifdef TRACERS_TOMAS
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
-#ifndef TRACERS_TOMAS
+#else
 #ifdef TRACERS_AMP
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
      +                  *om2oc(n_M_OCC_OC)
@@ -7563,8 +7564,6 @@ c units are mg Terpene/m2/month
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
      +                  *om2oc(n_OCII)
 #endif
-#else
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
 #endif
       end do; end do; end do
 #endif
