@@ -30,7 +30,11 @@ css   data salrlx/0.3215e-7/          !  1/(1 yr)
       real*8 :: sss_restore_dt,sss_restore_dtice
       real :: piston
       logical sss_relax
-      data sss_relax/.true./
+#ifdef STANDALONE_OCEAN
+     data sss_relax/.true./
+#else
+     data sss_relax/.false./
+#endif
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional: weak salinity restoring via corrective surface flux
