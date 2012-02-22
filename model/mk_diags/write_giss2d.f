@@ -25,7 +25,7 @@
       character(len=30), dimension(7) :: dnames
       character(len=30) :: diminfo,varname
       character(len=1) :: str1
-      character(len=3) :: str3
+      character(len=6) :: str3
       character(len=6) :: ifmt(7)='(ix.x)'
       real*4, parameter :: undef=-1e30
       real*4 :: shnhgm(3)
