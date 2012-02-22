@@ -4628,7 +4628,7 @@ C****
 
 #ifdef STANDALONE_OCEAN
 ! surface salinity restoration
-      call restore_surface_salinity!(atmocn)
+      call restore_surface_salinity2!(atmocn)
 #endif
 
       endif ocean_processors_only
