@@ -1294,32 +1294,5 @@ function catch_sig()
     cleanexit $exit_status
 } 
 
-# -------------------------------------------------------------------
-tableStatus() 
-# -------------------------------------------------------------------
-{
-# Under construction
-   message " --- Test results"   
-   line="   0 1 3 6 8  "
-   line1=" +-----------+"
-   output[1]="0| .         |"
-   output[2]="1|   .       |"
-   output[3]="3|     .     |"
-   output[4]="6|       .   |"
-   output[5]="8|         . |"
 
-#tput bold   # Bold print.
-   echo -e "\033[1m"    # Bold. May not be portable?
-   echo -e "\t$line"
-   echo -e "\t$line1"
-   echo -e "\t${output[1]}"
-   echo -e "\t${output[2]}"
-   echo -e "\t${output[3]}"
-   echo -e "\t${output[4]}"
-   echo -e "\t${output[5]}"
-   echo -e "\t$line1"
-   echo -e "\n"
-#tput sgr0   # Reset terminal.
-   echo -e "\033[0m"    # Turn off bold.
-}
 

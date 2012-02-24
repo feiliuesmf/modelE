@@ -18,8 +18,8 @@ require 'regTest.cfg';
 my $compilers = \@comps;
 #my $level = \@levels;
 
-my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
-my $resultsDir = $ENV{NOBACKUP}."/regression_results";
+my $scratchDir = $ENV{REGSCRATCH}; #NOBACKUP}."/regression_scratch";
+my $resultsDir = $ENV{REGRESULTS}; #NOBACKUP}."/regression_results";
 
 my $rundecks;
 my $branch;
@@ -30,14 +30,16 @@ print "DAY = $dyOfWeek\n";
 if ($dyOfWeek >= 1 && $dyOfWeek <= 5) # M-F we test the master branch
 {
   $branch = "master";
-  $gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  $gitdir = $ENV{MODELROOT}.$branch;
   `git pull $gitdir`;
   $rundecks = \@decks;
 }
 elsif ($dyOfWeek == 6) # On Saturday we test the AR5_branch
 {
   $branch = "AR5_branch";
-  $gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  $gitdir = $ENV{MODELROOT}.$branch;
   `git pull $gitdir`;
   $rundecks = \@AR5decks;
 }

@@ -1,8 +1,7 @@
 #!/usr/local/bin/bash
 
 # This is the top level script to run modelE regression tests.
-# It is invoked by cron, Hudson, or user and runs the perl scripts under $TESTROOT/$MODELROOT/exec.
-# TODO: Define $MODELROOT referenced above. Still actually hardcoded to devel/master/
+# It is invoked by cron, Hudson, or user and runs the perl scripts under $MODELROOT/master/exec.
 
 # Set up working variables
 need_default(){
@@ -16,12 +15,35 @@ need_default(){
 }
 get_defaults()
 {
-   if  [ "$(need_default $TESTROOT)" == "true" ] ; then
-        export TESTROOT=$NOBACKUP
+   if  [ "$(need_default $MODELROOT)" == "true" ] ; then
+	export MODELROOT=$NOBACKUP/devel
    fi
 
-}
+   if  [ "$(need_default $REGWORK)" == "true" ] ; then
+	export REGWORK=$NOBACKUP
+   fi
 
+   export REGSCRATCH=$REGWORK/regression_scratch
+   # create if necessary
+   if [ ! -d "$REGSCRATCH" ]; then
+   	mkdir $REGSCRATCH
+   fi
+
+   export REGRESULTS=$REGWORK/regression_results
+   # create if necessary
+   if [ ! -d "$REGRESULTS" ]; then
+   	mkdir $REGRESULTS
+   fi
+
+   if  [ "$(need_default $MODELEBASELINE)" == "true" ] ; then
+	export MODELEBASELINE=$NOBACKUP/modelE_baseline
+   fi
+
+   if  [ "$(need_default $GCMSEARCHPATH)" == "true" ] ; then
+	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files
+   fi
+	
+}
 
 watch_job()
 {
@@ -51,18 +73,19 @@ watch_job()
    fi
 
    get_defaults
-   cd $TESTROOT/devel/master/exec
+   cd $MODELROOT/master/exec
    echo "Execute regressionTests.pl..."
    /usr/bin/perl regressionTests.pl > nohup.out 2>&1
    wait
    if [ -z $MOCKMODELE ]; then
-     jobID=`qsub $TESTROOT/devel/master/exec/diffreport.j`
+     jobID=`qsub $MODELROOT/master/exec/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $TESTROOT/devel/master/exec/DiffReport
+     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/master/exec/DiffReport
    else
-     $TESTROOT/devel/master/exec/diffreport.j
-     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $TESTROOT/devel/master/exec/DiffReport
+     # $MODELROOT/master/master/exec/diffreport.j
+     $MODELROOT/master/exec/diffreport.j
+     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $MODELROOT/master/exec/DiffReport
    fi
 
    echo "Done".

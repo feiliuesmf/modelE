@@ -1,5 +1,5 @@
-#!/bin/bash
-#PBS -l select=1
+#!/usr/local/bin/bash
+#PBS -l select=1:ncpus=12:mpiprocs=12
 #PBS -l walltime=2:00:00
 #PBS -W group_list=a940a
 #PBS -N diffrep
@@ -156,6 +156,12 @@ rm -f diffrep.o*
 
 if [ -z $MOCKMODELE ]; then
   diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
+  if [ ! -e $diffDiffReport ]; then
+     echo " *** WARNING ***"
+     echo "$diffDiffReport does not exist"
+     echo "Will use unix cmp but Diffreport may be inaccurate"
+     diffDiffReport=/usr/bin/cmp
+  fi
 else
   diffDiffReport=/usr/bin/cmp
 fi

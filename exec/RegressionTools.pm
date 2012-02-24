@@ -236,20 +236,20 @@ sub getIntelEnvironment
   my $env = {};
 
   $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
-  $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
+  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE}; # NOBACKUP}/modelE_baseline
+  $env->{RESULTS_DIRECTORY} =$ENV{REGRESULTS}    ; # NOBACKUP}."/regression_results"
   $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
   $env->{CMRUNDIR}="$scratchDir/cmrun";
   $env->{EXECDIR}="$scratchDir/exec";
   $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
+  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; #discover/nobackup/projects/giss/prod_input_files
   $env->{MP}="no";
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="intel";
   $env->{COMPILER}="intel";
-  $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
+  $env->{GITROOT}=$ENV{MODELROOT}."/$branch";
   if ($branch =~ m/AR5/) 
   {
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
@@ -276,20 +276,20 @@ sub getGfortranEnvironment
   my $env = {};
     
   $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}="$ENV{NOBACKUP}/modelE_baseline";
-  $env->{RESULTS_DIRECTORY} = $ENV{NOBACKUP}."/regression_results";
+  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE}; # NOBACKUP}/modelE_baseline"
+  $env->{RESULTS_DIRECTORY}=$ENV{REGRESULTS};      # NOBACKUP}."/regression_results"
   $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
   $env->{CMRUNDIR}="$scratchDir/cmrun";
   $env->{EXECDIR}="$scratchDir/exec";
   $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
+  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; #discover/nobackup/projects/giss/prod_input_files
   $env->{MP}="no";
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="openmpi";
   $env->{COMPILER}="gfortran";
-  $env->{GITROOT}=$ENV{NOBACKUP}."/devel/$branch";
+  $env->{GITROOT}=$ENV{MODELROOT}."/$branch"; # NOBACKUP}."/devel/$branch"
   if ($branch =~ m/AR5/) 
   {
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_gcc-4.5_openmpi-1.4.2/Linux";

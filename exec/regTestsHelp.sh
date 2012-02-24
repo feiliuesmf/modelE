@@ -17,7 +17,12 @@ echo -e ${BOLD}Environmental Variables:${RESET}
 cat <<pleHHelp2
 VARIABLE	EFFECT
 --------	------
-TESTROOT	Changes to a non-standard root context. Set to \$NOBACKUP by default.
+MODELROOT	Changes to a non-standard root context. Set to \$NOBACKUP/devel by default.
+REGWORK		Where to place working files from model run. REGSCRATCH will be appended with /regression_scratch.
+		REGRESULTS will be appended with /regression_results.
+MODELEBASELINE	Where baseline results are stored for comparison with extended run. 
+		Default is $NOBACKUP/modelE_baseline
+GCMSEARCHPATH	Data path. Default currently /discover/nobackup/projects/giss/prod_input_files.
 	
 pleHHelp2
 echo -e ${BOLD}Examples:${RESET}

@@ -97,7 +97,7 @@ sub runInBatch
     $queueString = "-q $queue\n";
   }
 
-  my $NODE_SIZE = 16;
+  my $NODE_SIZE = 12;
   my $nCPUS = $self -> {NUM_PROCS};
   my $nodes = 1 + int(($nCPUS-1)/$NODE_SIZE);
   my $ncpus = $nCPUS;
@@ -202,7 +202,7 @@ sub setModuleEnvironment
     my $compiler = shift;
 
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require $ENV{NOBACKUP}."/devel/master/exec/perlreq";
+    require $ENV{MODELROOT}."/master/exec/perlreq";
 
     if ($self->{BRANCH} =~ m/AR5/) 
     {
