@@ -31,9 +31,9 @@ css   data salrlx/0.3215e-7/          !  1/(1 yr)
       real :: piston
       logical sss_relax
 #ifdef STANDALONE_OCEAN
-     data sss_relax/.true./
+      data sss_relax/.true./
 #else
-     data sss_relax/.false./
+      data sss_relax/.false./
 #endif
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
