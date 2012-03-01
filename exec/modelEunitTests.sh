@@ -66,48 +66,81 @@ submitJob()
 # -------------------------------------------------------------------
 {
 
-    cat << EOF > $work_path/modelEut.j
+   compiler=$1
+   jobScript=$work_path/modelE.${compiler}.j
+   cat << EOF > $jobScript
 #!/bin/bash
 #PBS -N modelEut
 #PBS -l select=1
 #PBS -l walltime=1:00:00
-#PBS -W group_list=k3002
+#PBS -W group_list=a940a
 #PBS -j oe
 #PBS -V
 
 # set up the modeling environment
 . /usr/share/modules/init/bash
 module purge
-module load comp/intel-11.1.072 mpi/impi-3.2.2.006
+EOF
 
-export PFUNIT=/discover/nobackup/modele/libs/pFUnitIntel
-export MODELERC=/discover/nobackup/modele/regression_scratch/intel/modelErc.intel
+   if [ "$compiler" == "intel" ]; then
+
+   cat << EOF >> $jobScript
+module load comp/intel-11.1.072 mpi/impi-3.2.2.006
+EOF
+
+   else
+
+   cat << EOF >> $jobScript
+module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
+EOF
+
+   fi
+
+   cat << EOF >> $jobScript
+
+export PFUNIT=/discover/nobackup/modele/libs/pFUnit.${compiler}
+export MODELERC=/discover/nobackup/modele/regression_scratch/${compiler}/modelErc.${compiler}
 
 cd /discover/nobackup/modele/regression_scratch
-git clone /discover/nobackup/modele/regression_scratch/master pFUnit
+git clone /discover/nobackup/modele/regression_scratch/master unitTests.${compiler}
 
-cd /discover/nobackup/modele/regression_scratch/pFUnit/decks
+cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/decks
 make rundeck RUN=unitTests RUNSRC=E4TcadF40
 make -j gcm RUN=unitTests EXTRA_FFLAGS="-O0 -g -traceback" MPI=YES
-cd /discover/nobackup/modele/regression_scratch/pFUnit/tests
-make tests > $testLog 2>&1
+cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/tests
+EOF
+   if [ "$compiler" == "intel" ]; then
+
+   cat << EOF >> $jobScript
+make tests >> $testLog 2>&1
+EOF
+
+   else
+
+   cat << EOF >> $jobScript
+make tests F90_VENDOR=GFortran >> $testLog 2>&1
+EOF
+
+   fi
+
+   cat << EOF >> $jobScript
 wait
 tail -2 $testLog >> $toEmail
 EOF
 
-    jobID=`qsub $work_path/modelEut.j`
-    jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-    if [ -z "$jobID" ]; then
-       FAIL=YES
-       gatherForEmail "   +++There was a queue submission problem"
-       return
-    fi
+   jobID=`qsub $jobScript`
+   jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+   if [ -z "$jobID" ]; then
+      FAIL=YES
+      gatherForEmail "   +++There was a queue submission problem"
+      return
+   fi
 
-    watch_job $jobID jobRan
+   watch_job $jobID jobRan
 
-    if [ $jobRan -eq 0 ]; then
-       failScript "The PBS $jobID did not complete on time."
-    fi
+   if [ $jobRan -eq 0 ]; then
+      failScript "The PBS $jobID did not complete on time."
+   fi
 }
 
 # ---------------------
@@ -120,7 +153,8 @@ testLog=$work_path"/modelEut-tests.log"
 cd $work_path
 rm -f $toEmail $testLog 
 
-submitJob
+submitJob "intel"
+submitJob "gfortran"
 sendEmailReport
 
 exit 0
