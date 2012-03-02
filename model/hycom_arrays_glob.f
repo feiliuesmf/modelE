@@ -158,7 +158,6 @@ cddd      public msk
       public surflx
       public salflx
       public odmsi
-      public omlhc
       public dmfz
       public taux
       public tauy
@@ -295,7 +294,6 @@ c    .,covice(:,:)			! ice coverage (rel.units)
 c    .,temice(:,:)			! ice surf.temp.
 c    .,odhsi(:,:)			! heat borrowed from frozen
      .,odmsi(:,:)			! newly formed ice
-     .,omlhc(:,:)
      .,dmfz(:,:)			! ice mass due to freezing
 c
 !!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
@@ -475,7 +473,6 @@ c
       call unpack_data( ogrid,  surflx, surflx_loc )
       call unpack_data( ogrid,  salflx, salflx_loc )
       call unpack_data( ogrid,  odmsi, odmsi_loc )
-      call unpack_data( ogrid,  omlhc, omlhc_loc )
       call unpack_data( ogrid,  dmfz, dmfz_loc )
       call unpack_data( ogrid,  taux, taux_loc )
       call unpack_data( ogrid,  tauy, tauy_loc )
@@ -616,7 +613,6 @@ c
       call pack_data( ogrid,  surflx_loc, surflx )
       call pack_data( ogrid,  salflx_loc, salflx )
       call pack_data( ogrid,  odmsi_loc, odmsi )
-      call pack_data( ogrid,  omlhc_loc, omlhc )
       call pack_data( ogrid,  dmfz_loc, dmfz )
       call pack_data( ogrid,  taux_loc, taux )
       call pack_data( ogrid,  tauy_loc, tauy )
@@ -752,7 +748,6 @@ c    .,covice(idm,jdm)
 c    .,temice(idm,jdm) 
 c    .,odhsi(idm,jdm) 
      .,odmsi(idm,jdm) 
-     .,omlhc(idm,jdm) 
      .,dmfz(idm,jdm) ) 
 c 
       allocate( klist(idm,jdm) 
@@ -895,7 +890,6 @@ c
       surflx = 0
       salflx = 0
       odmsi = 0
-      omlhc = 0
       dmfz = 0
       taux = 0
       tauy = 0
@@ -1036,7 +1030,6 @@ c
       write(801,*) __FILE__,__LINE__,sum(surflx(:,:))
       write(801,*) __FILE__,__LINE__,sum(salflx(:,:))
       write(801,*) __FILE__,__LINE__,sum(odmsi(:,:))
-      write(801,*) __FILE__,__LINE__,sum(omlhc(:,:))
       write(801,*) __FILE__,__LINE__,sum(dmfz(:,:))
 c
       write(801,*) __FILE__,__LINE__,sum(klist(:,:))

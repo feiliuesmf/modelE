@@ -185,8 +185,9 @@ c
 c
       real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
-     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
+     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm),omlhc(idm,jdm)
      . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
+     . ,omlhc_loc(idm,J_0H:J_1H)
       real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
@@ -1346,7 +1347,7 @@ c
       usf_loc(i,j)=u_loc(i,j,k1n)+ubavg_loc(i,j,n)
  88   vsf_loc(i,j)=v_loc(i,j,k1n)+vbavg_loc(i,j,n)
 
-      call gather7hycom(usf_loc,vsf_loc,usf,vsf)
+      call gather7hycom(usf_loc,vsf_loc,omlhc_loc,usf,vsf,omlhc)
 
 c      if (AM_I_ROOT()) then ! global grid
 c
@@ -1566,8 +1567,6 @@ c------------------------------------------------------------------
      &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
-      USE HYCOM_ARRAYS_GLOB, only : omlhc
-      USE hycom_arrays_glob_renamer, only : omlhc_loc
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
@@ -1578,20 +1577,21 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  osss_loc,      osss    )
       call pack_data( ogrid,  osiav_loc,     osiav   )
       call pack_data( ogrid,  oogeoza_loc,   oogeoza )
-      call pack_data( ogrid,  omlhc_loc,     omlhc   )
 
       end subroutine gather6hycom
 c------------------------------------------------------------------
-      subroutine gather7hycom(usf_loc,vsf_loc,usf,vsf)
+      subroutine gather7hycom(usf_loc,vsf_loc,omlhc_loc,usf,vsf,omlhc)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real :: usf_loc(idm,J_0H:J_1H), vsf_loc(idm,J_0H:J_1H)
-      real :: usf(idm,jdm), vsf(idm,jdm)
+     .     ,omlhc_loc(idm,J_0H:J_1H)
+      real :: usf(idm,jdm), vsf(idm,jdm), omlhc(idm,jdm)
 
       call pack_data( ogrid,  usf_loc,      usf    )
       call pack_data( ogrid,  vsf_loc,      vsf    )
+      call pack_data( ogrid,omlhc_loc,    omlhc    )
 
       end subroutine gather7hycom
 c------------------------------------------------------------------
@@ -1947,9 +1947,6 @@ c
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, odmsi, arraysum )   ! sum(odmsi(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
-
-      call GLOBALSUM( ogrid, omlhc, arraysum )   ! sum(omlhc(:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dmfz, arraysum )   ! sum(dmfz(:,:))

@@ -90,7 +90,6 @@ c    .,covice_loc => covice
 c    .,temice_loc => temice 
 c    .,odhsi_loc => odhsi 
      .,odmsi_loc => odmsi 
-     .,omlhc_loc => omlhc 
      .,dmfz_loc => dmfz
 c 
      &,klist_loc => klist
@@ -238,7 +237,6 @@ c
       public surflx_loc
       public salflx_loc
       public odmsi_loc
-      public omlhc_loc
       public dmfz_loc
       public taux_loc
       public tauy_loc

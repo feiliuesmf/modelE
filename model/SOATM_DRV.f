@@ -2269,6 +2269,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call defvar(grid,fid,atmocn%ogeoza,'ogeoza'//ijstr)
       call defvar(grid,fid,atmocn%uosurf,'uosurf'//ijstr)
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
+      call defvar(grid,fid,atmocn%mlhc,    'mlhc'//ijstr)
       call defvar(grid,fid,atmocn%evapor,'oevapor'//ijstr)
       call defvar(grid,fid,atmice%evapor,'ievapor'//ijstr)
 #ifndef STANDALONE_HYCOM
@@ -2300,6 +2301,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
         call write_dist_data(grid, fid, 'ogeoza',atmocn%ogeoza)
         call write_dist_data(grid, fid, 'uosurf',atmocn%uosurf)
         call write_dist_data(grid, fid, 'vosurf',atmocn%vosurf)
+        call write_dist_data(grid, fid, 'mlhc',atmocn%mlhc)
         call write_dist_data(grid, fid, 'oevapor',atmocn%evapor)
         call write_dist_data(grid, fid, 'ievapor',atmice%evapor)
       case (ioread)             ! input from restart file
@@ -2309,6 +2311,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
         call read_dist_data(grid, fid, 'ogeoza',atmocn%ogeoza)
         call read_dist_data(grid, fid, 'uosurf',atmocn%uosurf)
         call read_dist_data(grid, fid, 'vosurf',atmocn%vosurf)
+        call read_dist_data(grid, fid, 'mlhc',atmocn%mlhc)
         call read_dist_data(grid, fid, 'oevapor',atmocn%evapor)
         call read_dist_data(grid, fid, 'ievapor',atmice%evapor)
       end select
