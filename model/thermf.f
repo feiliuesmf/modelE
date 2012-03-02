@@ -181,6 +181,7 @@ c --- optional, diagnostic use only:
         end if
       end if
 
+#ifdef STANDALONE_OCEAN
       if (sss_relax) then
 c$OMP PARALLEL DO PRIVATE(piston,old,fxbias) SCHEDULE(STATIC,jchunk)
 c --- surface salinity restoration
@@ -204,6 +205,7 @@ c --- surface salinity restoration
  84     continue
 c$OMP END PARALLEL DO
       end if
+#endif
 
       if (nstep.eq.nstep0+1 .or. diagno) then
 

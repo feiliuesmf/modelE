@@ -120,7 +120,9 @@ c
      &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
+#ifdef STANDALONE_OCEAN
       USE HYCOM_ARRAYS, only : sssobs, rsiobs
+#endif
       USE hycom_arrays_glob_renamer
 c
       USE KPRF_ARRAYS
@@ -1460,7 +1462,9 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+#ifdef STANDALONE_OCEAN
       USE HYCOM_ARRAYS, only : sssobs, rsiobs
+#endif
       implicit none 
 
 #ifdef TRACERS_OceanBiology
@@ -1505,9 +1509,10 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
+#ifdef STANDALONE_OCEAN
       call pack_data( ogrid,  sssobs, sssobs_glb )
       call pack_data( ogrid,  rsiobs, rsiobs_glb )
-
+#endif
       end subroutine gather_before_archive
 c------------------------------------------------------------------
       subroutine set_data_after_archiv
