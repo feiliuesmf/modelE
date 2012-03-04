@@ -171,8 +171,6 @@ cddd      public msk
       public diafor
       public klist
       public ijlist
-      public sssobs_glb
-      public rsiobs_glb
 #if (defined TRACERS_AGE_OCEAN) \
     || (defined TRACERS_OCEAN_WATER_MASSES) \
     || (defined TRACERS_ZEBRA)
@@ -334,8 +332,6 @@ c    .,oevap(:,:)                         !  evaportation
 c
      .,freshw(:,:)                        !  river & glacier runoff
      .,diafor(:,:)                        !  imposed diapycnal forcing
-     .,sssobs_glb(:,:)
-     .,rsiobs_glb(:,:)
 c
 
       contains
@@ -768,8 +764,6 @@ c    .,oevap(idm,jdm)
      .,osalt(idm,jdm)
 c 
      .,freshw(idm,jdm) 
-     .,sssobs_glb(idm,jdm) 
-     .,rsiobs_glb(idm,jdm) 
      .,diafor(idm,jdm) ) 
 c 
 

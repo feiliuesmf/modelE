@@ -32,6 +32,7 @@ css   data salrlx/0.3215e-7/          !  1/(1 yr)
       logical sss_relax
 #ifdef STANDALONE_OCEAN
       data sss_relax/.true./
+      real*8, dimension(:,:), pointer :: sssobs,rsiobs
 #else
       data sss_relax/.false./
 #endif
@@ -183,6 +184,8 @@ c --- optional, diagnostic use only:
 
 #ifdef STANDALONE_OCEAN
       if (sss_relax) then
+        sssobs => atmocn%sssobs  ! units:  psu/1000
+        rsiobs => atmocn%rsiobs  ! sea ice fraction [0-1]
 c$OMP PARALLEL DO PRIVATE(piston,old,fxbias) SCHEDULE(STATIC,jchunk)
 c --- surface salinity restoration
         do 84 j=J_0,J_1

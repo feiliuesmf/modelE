@@ -144,22 +144,6 @@ c
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'icecover(%)     ',0,real4
       write (lp,100)     'icecover(%)     ',0,no
-c --- add sssobs & rsiobs
-c     no=no+1
-c     call r8tor4(sssobs_glb,real4)
-c     if (smooth) call psmoo4(real4)
-c     do 61 j=1,jj
-c     do 61 l=1,isp(j)
-c     do 61 i=ifp(j,l),ilp(j,l)
-c     real4(i,j)=real4(i,j)*1000.		! psu unit
-c61   continue
-c     write (nop,rec=no) 'sssobs          ',0,real4
-c     write (lp,100)     'sssobs          ',0,no
-c     no=no+1
-c     call r8tor4(rsiobs_glb,real4)			! unit: 0:1
-c     if (smooth) call psmoo4(real4)
-c     write (nop,rec=no) 'rsiobs          ',0,real4
-c     write (lp,100)     'rsiobs          ',0,no
 c
       do 75 k=1,kk
       kn=k+nn

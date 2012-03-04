@@ -120,9 +120,6 @@ c
      &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
-#ifdef STANDALONE_OCEAN
-      USE HYCOM_ARRAYS, only : sssobs, rsiobs
-#endif
       USE hycom_arrays_glob_renamer
 c
       USE KPRF_ARRAYS
@@ -207,9 +204,6 @@ c
      &     runpsi_loc,erunpsi_loc,srunpsi_loc,mlhc_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
-css#ifdef STANDALONE_OCEAN
-css      real*8, dimension(:,:), pointer :: sssobs_loc,rsiobs_loc
-css#endif
 #ifdef TRACERS_OceanBiology
       real*8, dimension(:,:,:), pointer :: TRGASEX_loc
 #endif
@@ -291,8 +285,6 @@ c
 
 #ifdef STANDALONE_OCEAN
       ! arrays for salinity restoring
-      sssobs => atmocn%sssobs  ! units:  psu/1000
-      rsiobs => atmocn%rsiobs  ! sea ice fraction [0-1]
       ! to get the restoring timescales (days) specified in the rundeck:
       call get_param("sss_restore_dt",sss_restore_dt) ! open water
       call get_param("sss_restore_dtice",sss_restore_dtice) ! under ice
@@ -1462,9 +1454,6 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
-#ifdef STANDALONE_OCEAN
-      USE HYCOM_ARRAYS, only : sssobs, rsiobs
-#endif
       implicit none 
 
 #ifdef TRACERS_OceanBiology
@@ -1509,10 +1498,6 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
-#ifdef STANDALONE_OCEAN
-      call pack_data( ogrid,  sssobs, sssobs_glb )
-      call pack_data( ogrid,  rsiobs, rsiobs_glb )
-#endif
       end subroutine gather_before_archive
 c------------------------------------------------------------------
       subroutine set_data_after_archiv

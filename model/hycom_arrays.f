@@ -160,10 +160,6 @@ c
      .,freshw(:,:)                        !  river & glacier runoff
      .,diafor(:,:)                        !  imposed diapycnal forcing
 c
-#ifdef STANDALONE_OCEAN
-      real*8, dimension(:,:), pointer :: sssobs,rsiobs
-#endif
-
       contains
 
       subroutine alloc_hycom_arrays
