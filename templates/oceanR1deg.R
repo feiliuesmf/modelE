@@ -72,6 +72,7 @@ paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
 OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
 DTO=112.5
+!ocean_use_qus=1     ! Advection uses the quadratic upstream scheme
 
 Ndisk=960
 KCOPY=2          ! saving acc + rsf

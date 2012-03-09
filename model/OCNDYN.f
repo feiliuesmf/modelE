@@ -293,11 +293,14 @@
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,focean_loc,lmm
-     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo
-     *     ,s0m,sxmo,symo,szmo,uo,vo,uod,vod,dxypo,ogeoz
+     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,s0m,zmid,dzoe,bydzoe
+     *     ,uo,vo,uod,vod,dxypo,ogeoz
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+      USE OCEAN, only : use_qus,
+     *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
+     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
@@ -403,6 +406,14 @@ C**** Calculate ZE
       ZE(0) = 0d0
       DO L = 1,LMO
         ZE(L) = ZE(L-1) + dZO(L)
+        ZMID(L) = .5D0*(ZE(L)+ZE(L-1))
+      END DO
+
+C**** Calculate DZOE
+      DZOE(0) = 0d0
+      DO L = 1,LMO-1
+        DZOE(L) = .5*(DZO(L)+DZO(L+1))
+        BYDZOE(L) = 1D0/DZOE(L)
       END DO
 
 C**** Read in table function for specific volume
@@ -697,6 +708,26 @@ C**** restart file with different topography)
           END DO
         END DO
       end if
+
+!      if(istart.eq.2 .and. use_qus.eq.1) then
+!        allocate(zero3d(im,j_0h:j_1h,lmo))
+!        allocate(marr(im,j_0h:j_1h,lmo))
+!        do l=1,lmo
+!          do j=j_0,j_1
+!            do n=1,nbyzm(j,l)
+!              do i=i1yzm(n,j,l),i2yzm(n,j,l)
+!                MARR(I,J,L) = MO(I,J,L)*DXYPO(J)
+!              enddo
+!            enddo
+!          enddo
+!        enddo
+!        zero3d = 0d0
+!        gzmo = 0.; gzzmo = 0.
+!        szmo = 0.; szzmo = 0.
+!        call relax_zmoms(marr,g0m,zero3d,gzmo,gzzmo)
+!        call relax_zmoms(marr,s0m,zero3d,szmo,szzmo)
+!        deallocate(zero3d,marr)
+!      endif
 
 C**** Initialize straits arrays
       call init_STRAITS(iniOCEAN)
@@ -1390,6 +1421,20 @@ C****
       call defvar(grid,fid,sxmo,'sxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,symo,'symo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,szmo,'szmo(dist_imo,dist_jmo,lmo)')
+      if(use_qus==1) then
+      call defvar(grid,fid,gxxmo,'gxxmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gyymo,'gyymo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gzzmo,'gzzmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gxymo,'gxymo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gyzmo,'gyzmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gzxmo,'gzxmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,sxxmo,'sxxmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,syymo,'syymo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,szzmo,'szzmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,sxymo,'sxymo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,syzmo,'syzmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,szxmo,'szxmo(dist_imo,dist_jmo,lmo)')
+      endif
       call defvar(grid,fid,ogeoz,'ogeoz(dist_imo,dist_jmo)')
       call defvar(grid,fid,ogeoz_sv,'ogeoz_sv(dist_imo,dist_jmo)')
 c straits arrays
@@ -1416,6 +1461,20 @@ c tracer arrays
      &       'tymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tzmo(:,:,:,n),
      &       'tzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        if(use_qus==1) then
+        call defvar(grid,fid,txxmo(:,:,:,n),
+     &       'txxmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tyymo(:,:,:,n),
+     &       'tyymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tzzmo(:,:,:,n),
+     &       'tzzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,txymo(:,:,:,n),
+     &       'txymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tyzmo(:,:,:,n),
+     &       'tyzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        call defvar(grid,fid,tzxmo(:,:,:,n),
+     &       'tzxmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+        endif
       enddo
 c tracer arrays in straits
       call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntmo)')
@@ -1476,6 +1535,20 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'sxmo',sxmo)
         call write_dist_data(grid,fid,'symo',symo)
         call write_dist_data(grid,fid,'szmo',szmo)
+        if(use_qus==1) then
+        call write_dist_data(grid,fid,'gxxmo',gxxmo)
+        call write_dist_data(grid,fid,'gyymo',gyymo)
+        call write_dist_data(grid,fid,'gzzmo',gzzmo)
+        call write_dist_data(grid,fid,'gxymo',gxymo)
+        call write_dist_data(grid,fid,'gyzmo',gyzmo)
+        call write_dist_data(grid,fid,'gzxmo',gzxmo)
+        call write_dist_data(grid,fid,'sxxmo',sxxmo)
+        call write_dist_data(grid,fid,'syymo',syymo)
+        call write_dist_data(grid,fid,'szzmo',szzmo)
+        call write_dist_data(grid,fid,'sxymo',sxymo)
+        call write_dist_data(grid,fid,'syzmo',syzmo)
+        call write_dist_data(grid,fid,'szxmo',szxmo)
+        endif
         call write_dist_data(grid,fid,'ogeoz',ogeoz)
         call write_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
 c straits arrays
@@ -1502,6 +1575,20 @@ c tracer arrays
      &         tymo(:,:,:,n))
           call write_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
      &         tzmo(:,:,:,n))
+          if(use_qus==1) then
+          call write_dist_data(grid,fid,'txxmo_'//trim(trname(n)),
+     &           txxmo(:,:,:,n))
+          call write_dist_data(grid,fid,'tyymo_'//trim(trname(n)),
+     &           tyymo(:,:,:,n))
+          call write_dist_data(grid,fid,'tzzmo_'//trim(trname(n)),
+     &           tzzmo(:,:,:,n))
+          call write_dist_data(grid,fid,'txymo_'//trim(trname(n)),
+     &           txymo(:,:,:,n))
+          call write_dist_data(grid,fid,'tyzmo_'//trim(trname(n)),
+     &           tyzmo(:,:,:,n))
+          call write_dist_data(grid,fid,'tzxmo_'//trim(trname(n)),
+     &           tzxmo(:,:,:,n))
+          endif
         enddo
 c tracer arrays in straits
         call write_data(grid,fid,'trmst',trmst)
@@ -1537,6 +1624,20 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'sxmo',sxmo)
         call read_dist_data(grid,fid,'symo',symo)
         call read_dist_data(grid,fid,'szmo',szmo)
+        if(use_qus==1) then
+        call read_dist_data(grid,fid,'gxxmo',gxxmo)
+        call read_dist_data(grid,fid,'gyymo',gyymo)
+        call read_dist_data(grid,fid,'gzzmo',gzzmo)
+        call read_dist_data(grid,fid,'gxymo',gxymo)
+        call read_dist_data(grid,fid,'gyzmo',gyzmo)
+        call read_dist_data(grid,fid,'gzxmo',gzxmo)
+        call read_dist_data(grid,fid,'sxxmo',sxxmo)
+        call read_dist_data(grid,fid,'syymo',syymo)
+        call read_dist_data(grid,fid,'szzmo',szzmo)
+        call read_dist_data(grid,fid,'sxymo',sxymo)
+        call read_dist_data(grid,fid,'syzmo',syzmo)
+        call read_dist_data(grid,fid,'szxmo',szxmo)
+        endif
         call read_dist_data(grid,fid,'ogeoz',ogeoz)
         call read_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
 c straits arrays
@@ -1563,6 +1664,20 @@ c tracer arrays
      &         tymo(:,:,:,n))
           call read_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
      &         tzmo(:,:,:,n))
+          if(use_qus==1) then
+          call read_dist_data(grid,fid,'txxmo_'//trim(trname(n)),
+     &         txxmo(:,:,:,n))
+          call read_dist_data(grid,fid,'tyymo_'//trim(trname(n)),
+     &         tyymo(:,:,:,n))
+          call read_dist_data(grid,fid,'tzzmo_'//trim(trname(n)),
+     &         tzzmo(:,:,:,n))
+          call read_dist_data(grid,fid,'txymo_'//trim(trname(n)),
+     &         txymo(:,:,:,n))
+          call read_dist_data(grid,fid,'tyzmo_'//trim(trname(n)),
+     &         tyzmo(:,:,:,n))
+          call read_dist_data(grid,fid,'tzxmo_'//trim(trname(n)),
+     &         tzxmo(:,:,:,n))
+          endif
         enddo
 c tracer arrays in straits
         call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)

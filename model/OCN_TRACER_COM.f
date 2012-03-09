@@ -140,9 +140,11 @@ C****     it will prove useful.
       use Dictionary_mod, only : sync_param,is_set_param,get_param
       ! TODO: it would be better long-term if tracer arrays were
       ! owned by ocn_tracer_com.
-      USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
+      USE OCEAN, only : TRMO
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
      *       ,oc_tracer_mean
+      USE OCEAN, only : use_qus,
+     &     TXMO,TYMO,TZMO, TXXMO,TYYMO,TZZMO, TXYMO,TYZMO,TZXMO
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
       USE OCEANR_DIM, only : J_0H,J_1H
       USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
@@ -229,6 +231,16 @@ C****     it will prove useful.
       txmo = 0.
       tymo = 0.
       tzmo = 0.
+
+      if(use_qus==1) then
+      ALLOCATE( TXXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TYYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TZZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TXYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TYZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TZXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      txxmo=0.; tyymo=0.; tzzmo=0.; txymo=0.; tyzmo=0.; tzxmo=0.
+      endif
 
       ALLOCATE( TRMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
       ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
