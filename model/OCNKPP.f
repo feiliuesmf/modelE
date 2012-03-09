@@ -1670,16 +1670,18 @@ C**** Gradients of scalars
 C**** Implicitly apply interpolated KV to linear profile
 C**** Surface tracer + mass fluxes included (no solar flux)
 C**** Note that FL[GS] are upward fluxes.
-      DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
+      DTBYDZ2 = 6d0*DTBYDZ(1)**2*BYDTS
       DM = DELTAM*DTBYDZ(1)
-      GZML(1) = (GZML(1) + 3*(FLG(1) + DTS*DELTAE*DXYPO(J))) /
-     /          (1 + DTBYDZ2*AKVG(1))
-      SZML(1) = (SZML(1) + 3*(FLS(1) - DTS*DELTAS*DXYPO(J)*(1-DM) +
-     +                        DM*S0M1(I,J))) / (1 + DTBYDZ2*AKVS(1))
+      GZML(1) = (GZML(1)
+     &    +3*(FLG(1) + DTS*DELTAE*DXYPO(J))
+     &     )/ (1 + DTBYDZ2*(AKVG(1)+AKVG(1)))
+      SZML(1) = (SZML(1)
+     &    +3*(FLS(1) +(DM*S0M1(I,J)-DTS*DELTAS*DXYPO(J)*(1-DM)))
+     &     )/ (1 + DTBYDZ2*(AKVS(1)+AKVS(1)))
 #ifdef TRACERS_OCEAN
-      TZML(1,:) = (TZML(1,:) + 3*(FLT(1,:) -
-     +  DTS*DELTATR(:)*DXYPO(J)*(1-DM) + DM*TRMO1(:,I,J))) /
-     /  (1 + DTBYDZ2*AKVS(1))
+      TZML(1,:) = (TZML(1,:)
+     &    +3*(FLT(1,:)+(DM*TRMO1(:,I,J)-DTS*DELTATR(:)*DXYPO(J)*(1-DM)))
+     &     )/ (1 + DTBYDZ2*(AKVS(1)+AKVS(1)))
 #endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
@@ -1692,14 +1694,14 @@ C**** Note that FL[GS] are upward fluxes.
      *       FLT(L,:))) /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
 #endif
       END DO
-      DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
+      DTBYDZ2 = 6d0*DTBYDZ(LMIJ)**2*BYDTS
       GZML(LMIJ)=(GZML(LMIJ)+3d0*FLG(LMIJ-1))
-     *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
+     *     /(1d0+DTBYDZ2*(AKVG(LMIJ-1)+AKVG(LMIJ-1)))
       SZML(LMIJ)=(SZML(LMIJ)+3d0*FLS(LMIJ-1))
-     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+     *     /(1d0+DTBYDZ2*(AKVS(LMIJ-1)+AKVS(LMIJ-1)))
 #ifdef TRACERS_OCEAN
       TZML(LMIJ,:)=(TZML(LMIJ,:)+3d0*FLT(LMIJ-1,:))
-     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
+     *     /(1d0+DTBYDZ2*(AKVS(LMIJ-1)+AKVS(LMIJ-1)))
 #endif
 
 C**** Diagnostics for non-local transport and vertical diffusion
