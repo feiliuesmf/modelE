@@ -86,6 +86,7 @@ c
 
       call get_nlnk(local_arr,jd,nl,nk)
 
+#ifndef SERIAL_MODE
       if(nproc_comm.gt.1 .or. nt.gt.1) then
         call alloc_gs_wksp(grid,nl,nk,1+j2g-j1g,nt,am_i_gsroot)
 
@@ -126,6 +127,7 @@ c calculate gatherv/scatterv info
           endif
         endif
       endif
+#endif
         
 #ifdef _GATHER_
 c
@@ -172,6 +174,7 @@ c
       endif
 #endif
 
+#ifndef SERIAL_MODE
       if(nproc_comm.gt.1) then
         if(am_i_gsroot) then
           if(nl.gt.1) then
@@ -181,3 +184,4 @@ c
           endif
         endif
       endif
+#endif

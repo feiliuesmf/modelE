@@ -132,7 +132,6 @@ c see whether model E is running in serial mode
         logical :: am_i_globalroot ! am I the root for all processes
         integer :: ntiles ! number of tiles globally
 
-#ifndef SERIAL_MODE
         integer :: gid ! rank of my processor
         integer :: nproc ! number of processors
         integer :: nproc_tile ! number of processors on my tile
@@ -208,6 +207,7 @@ c special processors for a cubed sphere layout
         integer :: pe_send_ne ! PE for extra send to the NE
         integer :: pe_send_sw ! PE for extra send to the SW
 
+#ifndef SERIAL_MODE
 #endif /* not SERIAL_MODE */
 
 c
@@ -258,11 +258,13 @@ c
       include 'mpif.h'
 
 c public interfaces
-      public :: pack_data,unpack_data
       public :: pack_row,unpack_row
       public :: halo_update
       public :: globalsum
       public :: isInLocalSubdomain
+
+#endif /* not SERIAL_MODE */
+      public :: pack_data,unpack_data
 
 c
 c pack/unpack interfaces
@@ -287,6 +289,9 @@ c
         module procedure do_4D_unpack_multitile
         module procedure do_5D_unpack_multitile
       end interface unpack_data
+
+#ifndef SERIAL_MODE
+
       interface pack_row
         module procedure do_2D_pack_row
         module procedure do_3D_pack_row
@@ -317,6 +322,8 @@ c
         module procedure globalsum_2D_r8
       end interface globalsum
 
+#endif /* not SERIAL_MODE */
+
 c
 c get non-distributed dimensions
 c
@@ -341,8 +348,6 @@ c
      &    ,buf1d_tile_size=0
      &    ,bufij_tile_size=0
 
-
-#endif /* not SERIAL_MODE */
 
       contains
 
@@ -376,16 +381,16 @@ c
       grid%jsd = jsd
       grid%jed = jed
 
-#ifdef SERIAL_MODE
-      return
-      end subroutine init_dist_grid
 
-#else
 c      write(*,*) "init_dist_grid, is, ie, js, je"
 c      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
-
+#ifdef SERIAL_MODE
+      grid%gid =0
+      grid%nproc = 1
+#else
       call mpi_comm_rank(MPI_COMM_WORLD,grid%gid,ierr)
       call mpi_comm_size(MPI_COMM_WORLD,grid%nproc,ierr)
+#endif
       grid%nproc_tile = grid%nproc/grid%ntiles
       grid%tile = 1+grid%gid/grid%nproc_tile
 
@@ -401,18 +406,25 @@ c      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
 c
 c create communicators and define other necessary info
 c
+#ifndef SERIAL_MODE
       call mpi_comm_group(MPI_COMM_WORLD,group_world,ierr)
-      grid%am_i_globalroot = grid%gid.eq.0
       grid%comm_tile = MPI_COMM_WORLD
+      grid%am_i_rowroot = .true.
+      grid%comm_row = MPI_COMM_NULL
+      grid%comm_ew = MPI_COMM_NULL
+      grid%comm_ns = MPI_COMM_WORLD
+      grid%pe_send_ne=MPI_PROC_NULL
+      grid%pe_send_sw=MPI_PROC_NULL
+      grid%pe_diag_s=MPI_PROC_NULL
+      grid%pe_diag_r=MPI_PROC_NULL
+#endif
+
+      grid%am_i_globalroot = grid%gid.eq.0
       grid%rank_tile = grid%gid
       grid%am_i_tileroot = grid%am_i_globalroot
       grid%root_mytile = 0
       grid%rank_row = 0
-      grid%am_i_rowroot = .true.
-      grid%comm_row = MPI_COMM_NULL
 
-      grid%comm_ew = MPI_COMM_NULL
-      grid%comm_ns = MPI_COMM_WORLD
       grid%rank_ew = 0
       grid%rank_ns = grid%gid
       grid%nprocx = 1
@@ -460,11 +472,7 @@ c
       grid%j1nr=grid%je+1
       grid%j2nr=grid%je+1
 
-      grid%pe_send_ne=MPI_PROC_NULL
-      grid%pe_send_sw=MPI_PROC_NULL
-      grid%pe_diag_s=MPI_PROC_NULL
-      grid%pe_diag_r=MPI_PROC_NULL
-
+#ifndef SERIAL_MODE
       if(grid%ntiles.eq.6) then ! assume cubed sphere
         grid%nprocx = sqrt(dble(grid%nproc_tile))
         grid%nprocy = grid%nprocx
@@ -677,6 +685,8 @@ c tabulate bounds info for each processor
      &     grid%comm_tile,ierr)
       grid%maxnj = 1+maxval(grid%jer-grid%jsr)
 
+#endif /* not SERIAL_MODE */
+
 c tabulate counts and displacements for gather/scatter
       do iproc=1,grid%nproc_tile
         grid%cntsij(iproc) =
@@ -736,6 +746,7 @@ c
 #undef _SCATTER_
 
 
+#ifndef SERIAL_MODE
       subroutine halo_update_2D(grid,arr,jdim)
       real*8, dimension(:,:) :: arr
       include 'do_halo.inc'
@@ -761,41 +772,6 @@ c      call halo_update(grid,arr)
 c      iarr = arr
 c      return
 c      end subroutine halo_update_2D_int
-
-      subroutine alloc_gs_wksp(grid,nl,nk,nj,nt,am_i_gsroot)
-c allocates gather/scatter workspace
-      type(dist_grid) :: grid
-      integer :: nl,nk,nj,nt
-      integer :: lsize,tsize,nlk
-      logical :: am_i_gsroot
-
-      if(nl.eq.1) then
-        nlk = min(nk,nkmax)     ! gs3D does nkmax at a time
-      else
-        nlk = nl                ! gs4D does one k at a time
-      endif
-      lsize = nlk*(1+grid%ie-grid%is)*(1+grid%je-grid%js)
-      tsize = nlk*grid%npx*nj
-
-      if(lsize.gt.buf1d_local_size) then
-        if(allocated(buf1d_local)) deallocate(buf1d_local)
-        allocate(buf1d_local(lsize))
-        buf1d_local_size=lsize
-      endif
-      if(am_i_gsroot) then
-        if(tsize.gt.buf1d_tile_size) then
-          if(allocated(buf1d_tile)) deallocate(buf1d_tile)
-          allocate(buf1d_tile(tsize))
-          buf1d_tile_size=tsize
-        endif
-        if(nt.gt.1 .and. tsize.gt.bufij_tile_size) then
-          if(allocated(bufij_tile)) deallocate(bufij_tile)
-          allocate(bufij_tile(tsize))
-          bufij_tile_size=tsize
-        endif
-      endif
-      return
-      end subroutine alloc_gs_wksp
 
       subroutine globalsum_2D_r8(grid,arr,arrsum,all)
       type(dist_grid), intent(in) :: grid
@@ -861,84 +837,6 @@ c        endif
 c      endif
 c      return
 c      end subroutine globalsum_2D_r8
-
-      subroutine get_nlnk_2D(arr,jdim,nl,nk)
-      real*8 :: arr(:,:)
-      integer :: jdim
-      integer :: nl,nk
-      integer :: xdim
-      nl = 1
-      nk = 1
-c      do xdim=1,jdim-2
-c        nl = nl*size(arr,xdim)
-c      enddo
-      do xdim=jdim+1,2
-        nk = nk*size(arr,xdim)
-      enddo
-      return
-      end subroutine get_nlnk_2D
-      subroutine get_nlnk_3D(arr,jdim,nl,nk)
-      real*8 :: arr(:,:,:)
-      integer :: jdim
-      integer :: nl,nk
-      integer :: xdim
-      nl = 1
-      nk = 1
-      do xdim=1,jdim-2
-        nl = nl*size(arr,xdim)
-      enddo
-      do xdim=jdim+1,3
-        nk = nk*size(arr,xdim)
-      enddo
-      return
-      end subroutine get_nlnk_3D
-      subroutine get_nlnk_4D(arr,jdim,nl,nk)
-      real*8 :: arr(:,:,:,:)
-      integer :: jdim
-      integer :: nl,nk
-      integer :: xdim
-      nl = 1
-      nk = 1
-      do xdim=1,jdim-2
-        nl = nl*size(arr,xdim)
-      enddo
-      do xdim=jdim+1,4
-        nk = nk*size(arr,xdim)
-      enddo
-      return
-      end subroutine get_nlnk_4D
-      subroutine get_nlnk_5D(arr,jdim,nl,nk)
-      real*8 :: arr(:,:,:,:,:)
-      integer :: jdim
-      integer :: nl,nk
-      integer :: xdim
-      nl = 1
-      nk = 1
-      do xdim=1,jdim-2
-        nl = nl*size(arr,xdim)
-      enddo
-      do xdim=jdim+1,5
-        nk = nk*size(arr,xdim)
-      enddo
-      return
-      end subroutine get_nlnk_5D
-
-      subroutine swap_int(i1,i2)
-      integer :: i1,i2
-      integer :: itmp
-      itmp = i1
-      i1 = i2
-      i2 = itmp
-      return
-      end subroutine swap_int
-
-      function on_ullr(i,j,n)
-      implicit none
-      logical :: on_ullr
-      integer :: i,j,n
-      on_ullr = i+j.eq.n+1
-      return
-      end function on_ullr
 
       subroutine genlist2_even(nproc1d,istart,pelist)
       implicit none
@@ -1040,6 +938,120 @@ c on the diagonal
 
 #endif /* not SERIAL_MODE */
 
+      subroutine alloc_gs_wksp(grid,nl,nk,nj,nt,am_i_gsroot)
+c allocates gather/scatter workspace
+      type(dist_grid) :: grid
+      integer :: nl,nk,nj,nt
+      integer :: lsize,tsize,nlk
+      logical :: am_i_gsroot
+
+      if(nl.eq.1) then
+        nlk = min(nk,nkmax)     ! gs3D does nkmax at a time
+      else
+        nlk = nl                ! gs4D does one k at a time
+      endif
+      lsize = nlk*(1+grid%ie-grid%is)*(1+grid%je-grid%js)
+      tsize = nlk*grid%npx*nj
+
+      if(lsize.gt.buf1d_local_size) then
+        if(allocated(buf1d_local)) deallocate(buf1d_local)
+        allocate(buf1d_local(lsize))
+        buf1d_local_size=lsize
+      endif
+      if(am_i_gsroot) then
+        if(tsize.gt.buf1d_tile_size) then
+          if(allocated(buf1d_tile)) deallocate(buf1d_tile)
+          allocate(buf1d_tile(tsize))
+          buf1d_tile_size=tsize
+        endif
+        if(nt.gt.1 .and. tsize.gt.bufij_tile_size) then
+          if(allocated(bufij_tile)) deallocate(bufij_tile)
+          allocate(bufij_tile(tsize))
+          bufij_tile_size=tsize
+        endif
+      endif
+      return
+      end subroutine alloc_gs_wksp
+
+      subroutine get_nlnk_2D(arr,jdim,nl,nk)
+      real*8 :: arr(:,:)
+      integer :: jdim
+      integer :: nl,nk
+      integer :: xdim
+      nl = 1
+      nk = 1
+c      do xdim=1,jdim-2
+c        nl = nl*size(arr,xdim)
+c      enddo
+      do xdim=jdim+1,2
+        nk = nk*size(arr,xdim)
+      enddo
+      return
+      end subroutine get_nlnk_2D
+      subroutine get_nlnk_3D(arr,jdim,nl,nk)
+      real*8 :: arr(:,:,:)
+      integer :: jdim
+      integer :: nl,nk
+      integer :: xdim
+      nl = 1
+      nk = 1
+      do xdim=1,jdim-2
+        nl = nl*size(arr,xdim)
+      enddo
+      do xdim=jdim+1,3
+        nk = nk*size(arr,xdim)
+      enddo
+      return
+      end subroutine get_nlnk_3D
+      subroutine get_nlnk_4D(arr,jdim,nl,nk)
+      real*8 :: arr(:,:,:,:)
+      integer :: jdim
+      integer :: nl,nk
+      integer :: xdim
+      nl = 1
+      nk = 1
+      do xdim=1,jdim-2
+        nl = nl*size(arr,xdim)
+      enddo
+      do xdim=jdim+1,4
+        nk = nk*size(arr,xdim)
+      enddo
+      return
+      end subroutine get_nlnk_4D
+      subroutine get_nlnk_5D(arr,jdim,nl,nk)
+      real*8 :: arr(:,:,:,:,:)
+      integer :: jdim
+      integer :: nl,nk
+      integer :: xdim
+      nl = 1
+      nk = 1
+      do xdim=1,jdim-2
+        nl = nl*size(arr,xdim)
+      enddo
+      do xdim=jdim+1,5
+        nk = nk*size(arr,xdim)
+      enddo
+      return
+      end subroutine get_nlnk_5D
+
+      subroutine swap_int(i1,i2)
+      integer :: i1,i2
+      integer :: itmp
+      itmp = i1
+      i1 = i2
+      i2 = itmp
+      return
+      end subroutine swap_int
+
+      function on_ullr(i,j,n)
+      implicit none
+      logical :: on_ullr
+      integer :: i,j,n
+      on_ullr = i+j.eq.n+1
+      return
+      end function on_ullr
+
+
 ! ----------------------------------------------------------------------
       logical function isInLocalSubdomain(distGrid, i, j)
 ! ----------------------------------------------------------------------
@@ -1054,8 +1066,6 @@ c on the diagonal
       end function isInLocalSubdomain
 
       end module dd2d_utils
-
-#ifndef SERIAL_MODE
 
       subroutine gather4D(grid,local_arr,global_arr
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo
@@ -1087,6 +1097,7 @@ c
         return
       endif
 
+#ifndef SERIAL_MODE
       do k=1,nk
 c
 c first, collect into a buffer for this gather region with
@@ -1165,6 +1176,8 @@ c
 
       enddo                     ! k loop
       return
+#endif /* not SERIAL_MODE */
+
       end subroutine gather4D
 
       subroutine scatter4D(grid,local_arr,global_arr
@@ -1197,6 +1210,7 @@ c
         return
       endif
 
+#ifndef SERIAL_MODE
       do k=1,nk
 
 
@@ -1279,6 +1293,8 @@ c copy the the local receive buffer into the local array
       enddo                     ! k loop
 
       return
+#endif /* not SERIAL_MODE */
+
       end subroutine scatter4D
 
       subroutine gather3D(grid,local_arr,global_arr
@@ -1314,6 +1330,7 @@ c
         return
       endif
 
+#ifndef SERIAL_MODE
       allocate(cntsijk(nproc_comm),displsijk(nproc_comm))
 
       k1 = 1
@@ -1408,6 +1425,7 @@ c
       deallocate(cntsijk,displsijk)
 
       return
+#endif /* not SERIAL_MODE */
       end subroutine gather3D
 
       subroutine scatter3D(grid,local_arr,global_arr
@@ -1443,6 +1461,7 @@ c
         return
       endif
 
+#ifndef SERIAL_MODE
       allocate(cntsijk(nproc_comm),displsijk(nproc_comm))
 
       k1 = 1
@@ -1538,8 +1557,10 @@ c copy the the receive buffer into the local array
       deallocate(cntsijk,displsijk)
 
       return
+#endif /* not SERIAL_MODE */
       end subroutine scatter3D
 
+#ifndef SERIAL_MODE
       subroutine sendrecv4D(arr,nl,nk,i1,i2,j1,j2,
      &     i1p,i2p,j1p,j2p,iincp,jincp,i1r,i2r,j1r,j2r,
      &     mpi_comm,pe_send,pe_recv,

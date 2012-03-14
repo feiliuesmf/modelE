@@ -15,9 +15,9 @@ else
 FSRCS += pario_nc.f
 endif
 
-ifeq ($(FVCUBED),YES)
-FSRCS += DOMAIN_DECOMPcs.f
-endif
+#ifeq ($(FVCUBED),YES)
+#FSRCS += DOMAIN_DECOMPcs.f
+#endif
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..

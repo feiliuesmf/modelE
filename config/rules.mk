@@ -141,11 +141,30 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
+  # If using Fortuna2-5 w/HDF5
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore 
+  #LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore 
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
+  ifdef NETCDFHOME
+  ifeq ($(MACHINE),IRIX64)
+    NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
+  else
+    NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
+  endif
+  LIBS += $(subst "",,$(NETCDFLIB))
+  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
+  FFLAGS += $(NETCDFINCLUDE)
+  F90FLAGS += $(NETCDFINCLUDE)
+  INCS += $(NETCDFINCLUDE)
+  endif
 
 endif
+
+# If using Fortuna2-5 w/HDF5
+#ifeq ($(FVCUBED),YES)
+#  LIBS += -lhdf5_hl -lhdf5 -lz -lm -lmfhdf -ldf -lsz -ljpeg -lm  -lmfhdf -ldf  -lcurl -lrt -lm -lz -lm 
+#endif
 
 ifeq ($(FVCORE),YES)
   ifndef FVCORE_ROOT
@@ -173,10 +192,37 @@ endif
 
 ifeq ($(MPP),YES)  
   CPPFLAGS += -DUSE_MPP
+  # if using MPP installation on /usr/local
   FFLAGS += -I$(MPPDIR)/include
   F90FLAGS += -I$(MPPDIR)/include
   LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
+  # if using GFDL installation within GEOOS
+  #FFLAGS += -I$(MPPDIR)/include/GFDL_fms
+  #F90FLAGS += -I$(MPPDIR)/include/GFDL_fms
+  #LIBS += -L$(MPPDIR)/lib -lGFDL_fms
+
   #LIBS += -lfmpi -lmpi
+endif
+
+ifdef PNETCDFHOME
+  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
+  FFLAGS += -I$(PNETCDFHOME)/include
+  INCS += -I$(PNETCDFHOME)/include
+endif
+
+ifneq ($(CUBED_SPHERE),YES)
+ifdef NETCDFHOME
+  ifeq ($(MACHINE),IRIX64)
+    NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
+  else
+    NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
+  endif
+  LIBS += $(subst "",,$(NETCDFLIB))
+  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
+  FFLAGS += $(NETCDFINCLUDE)
+  F90FLAGS += $(NETCDFINCLUDE)
+  INCS += $(NETCDFINCLUDE)
+endif
 endif
 
 ifeq ($(USE_ENT),YES)
@@ -187,12 +233,6 @@ endif
 
 ifeq ($(ADIABATIC),YES)
   CPPFLAGS += -DADIABATIC
-endif
-
-ifdef PNETCDFHOME
-  LIBS += -L$(PNETCDFHOME)/lib -lpnetcdf
-  FFLAGS += -I$(PNETCDFHOME)/include
-  INCS += -I$(PNETCDFHOME)/include
 endif
 
 
@@ -208,19 +248,6 @@ endif
 #
 # Check for extra options specified in modelErc
 #
-
-ifdef NETCDFHOME
-ifeq ($(MACHINE),IRIX64)
-  NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
-else
-  NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
-endif
-  LIBS += $(subst ",,$(NETCDFLIB))
-  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
-  FFLAGS += $(NETCDFINCLUDE)
-  F90FLAGS += $(NETCDFINCLUDE)
-  INCS += $(NETCDFINCLUDE)
-endif
 
 # access new interfaces in sub-directory.
 ifdef MPI_Support
