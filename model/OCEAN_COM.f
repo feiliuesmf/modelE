@@ -45,7 +45,13 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 !@var G0M,GXMO,GYMO,GZMO pot. enthalpy of ocean (+moments) (J)
 !@var S0M,SXMO,SYMO,SZMO salinity of ocean (+moments) (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,UOD,VOD,
-     *     G0M,GXMO,GYMO,GZMO, S0M,SXMO,SYMO,SZMO
+     *     G0M,S0M
+
+      INTEGER :: USE_QUS=0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
+     *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
+     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
+
 C**** Global arrays needed for i/o, GM,straits,odiff ?
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
      *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
@@ -69,7 +75,8 @@ C**** ocean geometry (should this be in a separate module?)
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: SINVO,COSVO
-      REAL*8, DIMENSION(0:LMO) :: ZE
+      REAL*8, DIMENSION(0:LMO) :: ZE,DZOE,BYDZOE
+      REAL*8, DIMENSION(LMO) :: ZMID
       Real*8
      *  DXPGF(0:JM),! DXYV/dYPGF is north-south distance used in PGF
      *  DYPGF(JM), !  DXYP/dXPGF is east-west distance used in PGF
@@ -115,8 +122,11 @@ C**** ocean related parameters
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
 ! for i/o, straits, GM ?
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: 
-     *       TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO,TXMO,TYMO,TZMO
+     *     TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO
+
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) ::
+     *     TXMO,TYMO,TZMO, TXXMO,TYYMO,TZZMO, TXYMO,TYZMO,TZXMO
 #endif
      
       type (SparseCommunicator_type), save :: mySparseComm_type
@@ -412,13 +422,16 @@ C****
 
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
 
-      USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
-      USE OCEAN, only : UOD,VOD
-      USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
+      USE OCEAN, only : MO,G0M,S0M
+      USE OCEAN, only : UO,VO,UOD,VOD
+      USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV
       USE OCEAN, only :
      *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
+      USE OCEAN, only : use_qus,
+     *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
+     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
       USE OCEAN, only : nbyzmax,
      &     nbyzm,nbyzu,nbyzv,nbyzc,
@@ -428,6 +441,7 @@ C****
 
       USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
+      use Dictionary_mod, only : sync_param
       IMPLICIT NONE
 
       INTEGER :: IER
@@ -440,6 +454,8 @@ C*
 C****
  
       CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      call sync_param( "ocean_use_qus", use_qus )
 
 #ifdef TRACERS_OCEAN
       call alloc_ocn_tracer_com
@@ -458,6 +474,23 @@ C****
       ALLOCATE( SXMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SYMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+
+      if(use_qus==1) then
+      ALLOCATE( GXXMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GYYMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GZZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GXYMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GYZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GZXMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SXXMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SYYMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SZZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SXYMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SYZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SZXMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      gxxmo=0.; gyymo=0.; gzzmo=0.; gxymo=0.; gyzmo=0.; gzxmo=0.
+      sxxmo=0.; syymo=0.; szzmo=0.; sxymo=0.; syzmo=0.; szxmo=0.
+      endif
 
       if (am_i_root()) then
         img = im

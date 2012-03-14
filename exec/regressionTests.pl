@@ -6,23 +6,59 @@ use RegressionTools;
 open(LOG,">nightlyTests.log");
 # Make the LOG hot: <http://www.thinkingsecure.com/docs/tpj/issues/vol3_3/tpj0303-0002.html>
 {
-    my $ofh = select LOG;
-    $| = 1;
-    select $ofh;
+  my $ofh = select LOG;
+  $| = 1;
+  select $ofh;
 }
 
-# self update
-`/usr/local/other/git/1.7.3.4_GNU/libexec/git-core/git pull`;
+# Get rundecks, compiler, level settings from configuration file
+require 'regTest.cfg';
 
-my $scratchDir = $ENV{NOBACKUP}."/regression_scratch";
-my $resultsDir = $ENV{NOBACKUP}."/regression_results";
-my $reference = "$scratchDir/modelE";
+# get references to arrays:
+my $compilers = \@comps;
+#my $level = \@levels;
+
+my $scratchDir = $ENV{REGSCRATCH}; #NOBACKUP}."/regression_scratch";
+my $resultsDir = $ENV{REGRESULTS}; #NOBACKUP}."/regression_results";
+
+my $rundecks;
+my $branch;
+($sec, $min, $hour, $day, $mon, $yrOffset, $dyOfWeek, $dayOfYr, $dyltSav) = localtime();
+print "DAY = $dyOfWeek\n";
+
+# This is a very restrictive condition...
+if ($dyOfWeek >= 1 && $dyOfWeek <= 5) # M-F we test the master branch
+{
+  $branch = "master";
+  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  $gitdir = $ENV{MODELROOT}.$branch;
+  `git pull $gitdir`;
+  $rundecks = \@decks;
+}
+elsif ($dyOfWeek == 6) # On Saturday we test the AR5_branch
+{
+  $branch = "AR5_branch";
+  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
+  $gitdir = $ENV{MODELROOT}.$branch;
+  `git pull $gitdir`;
+  $rundecks = \@AR5decks;
+}
+else # off on Sunday
+{
+  print "Nothing to do.\n";
+  exit 0;
+}
+print "Test $branch branch\n";
+
+my $reference = "$scratchDir/$branch";
 
 my $env = {};
-$env->{"intel"} = getEnvironment("intel",$scratchDir);
-$env->{"gfortran"} = getEnvironment("gfortran",$scratchDir);
+$env->{BRANCH} = $branch;
+$env->{"intel"} = getEnvironment("intel", $scratchDir, $branch);
+$env->{"gfortran"} = getEnvironment("gfortran", $scratchDir, $branch);
 
 my $resolutions = {};
+# HEAD rundecks
 $resolutions->{EC12} = "8x10";
 $resolutions->{EM20} = "4x5";
 $resolutions->{E1oM20} = "4x5";
@@ -30,23 +66,23 @@ $resolutions->{E4F40} = "2x2.5";
 $resolutions->{E4TcadF40} = "2x2.5";
 $resolutions->{E4arobio_h4c} = "2x2.5";
 $resolutions->{E4arobio_g6c} = "2x2.5";
-$resolutions->{SCMSGPCONT} = "0"; #hack - serial only
+$resolutions->{SCMSGPCONT} = "0"; # single column model 
+$resolutions->{E4C90L40} = "CS"; # cubed sphere
+# AR5 rundecks
+$resolutions->{E_AR5_CADI} = "2x2.5";
 
-# Get rundecks, compiler, level settings from file
-require 'regTest.cfg';
 # Save settings for diffreport
-saveForDiffreport();
-
-# get references to arrays:
-my $rundecks = \@decks;
-my $compilers = \@comps;
-#my $level = \@levels;
+&saveForDiffreport($branch);
 
 my $numProcesses = {};
 
 $numProcesses->{"0"}->{GENTLE}     = [];
 $numProcesses->{"0"}->{AGGRESSIVE} = [];
 $numProcesses->{"0"}->{INSANE}     = [];
+
+$numProcesses->{"CS"}->{GENTLE}     = [6];
+$numProcesses->{"CS"}->{AGGRESSIVE} = [6,48];
+$numProcesses->{"CS"}->{INSANE}     = [6,84];
 
 $numProcesses->{"8x10"}->{GENTLE}     = [4];
 $numProcesses->{"8x10"}->{AGGRESSIVE} = [1,4,12];
@@ -61,113 +97,89 @@ $numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,45];
 $numProcesses->{"2x2.5"}->{INSANE}     = [1,8,45,88];
 
 my $useCases = {};
-foreach my $rundeck (@$rundecks) {
-    $useCases->{$rundeck}->{COMPILERS} = $compilers;
+foreach my $rundeck (@$rundecks) 
+{
+  $useCases->{$rundeck}->{COMPILERS} = $compilers;
+  if ($rundeck =~ m/C90/ || $rundeck =~ m/AR5/) 
+  {
+    $useCases->{$rundeck}->{CONFIGURATIONS} = ["MPI"];
+  }
+  else 
+  {
     $useCases->{$rundeck}->{CONFIGURATIONS} = ["SERIAL","MPI"];
-    $useCases->{$rundeck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$rundeck}}->{$level};
-    $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy","restart"];
+  }
+  $useCases->{$rundeck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$rundeck}}->{$level};
+  $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy","restart"];
 }
 
 # Override anything else here
 $useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
 
-# This should only be necessary if compiler==gfortran...until we make openmpi a module
-$ENV{PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/bin:".$ENV{PATH};
-$ENV{LD_LIBRARY_PATH}="/gpfsm/dnb32/ccruz/Baselibs/openmpi/1.4.3-gcc-4.6/lib:".$ENV{LD_LIBRARY_PATH};
+foreach my $rundeck (@$rundecks) 
+{ 
+  foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
+  {
+    $env->{$compiler}->{BRANCH} = $branch;
+  }
+}
 
+# Create a new command pool:
 my $pool = CommandPool->new();
-
 my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* *.o[0-9]* $resultsDir/*/*;"});
 my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
 $pool->add($clean);
 $pool->add($git);
 
-foreach $compiler (@$compilers) {
-    $pool->add(writeModelErcFile($env->{$compiler}, $git));
-    unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") {
-	mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!;
-    }
+foreach $compiler (@$compilers) 
+{
+  $pool->add(writeModelErcFile($env->{$compiler}, $git));
+  unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") 
+  {
+    mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!;
+  }
 }
 
-foreach my $rundeck (@$rundecks) { 
-    foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
-	$env->{$compiler}->{RUNDECK} = $rundeck;
-	foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) {
+print "Loop over all configurations...\n";
+foreach my $rundeck (@$rundecks) 
+{ 
+  foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
+  {
+    $env->{$compiler}->{RUNDECK} = $rundeck;
+    foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
+    {
+      $env->{$compiler}->{CONFIGURATION} = $configuration;
+      my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
 
-	    $env->{$compiler}->{CONFIGURATION} = $configuration;
-	    my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
+      my $copy  = createTemporaryCopy($reference, $tempDir);
+      $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
+      $pool->add($copy, $git);
 
-	    my $copy  = createTemporaryCopy($reference, $tempDir);
-	    $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
-	    $pool->add($copy, $git);
+      my $build = compileRundeck($env->{$compiler}, $tempDir);
 
-	    my $build = compileRundeck($env->{$compiler}, $tempDir);
-
-	    $pool->add($build, $copy);
+      $pool->add($build, $copy);
 	    
-	    my $previous = $build; # for dependencies
+      my $previous = $build; # for dependencies
 	    
-	    my @peList = (1);
-	    if ($configuration eq "MPI") {
-		@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
-	    }
-	    foreach my $npes (@peList) {
-		my $run = runConfiguration($env->{$compiler}, $tempDir, $npes);
-		$pool->add($run, $previous, $compiler);
-		$previous = $run;
-	    }
-	}
+      my @peList = (1);
+      if ($configuration eq "MPI") 
+      {
+	@peList = @{$useCases->{$rundeck}->{NUM_MPI_PROCESSES}};
+      }
+      foreach my $npes (@peList) 
+      {
+	my $run = runConfiguration($env->{$compiler}, $tempDir, $npes);
+	$pool->add($run, $previous, $compiler);
+	$previous = $run;
+      }
     }
+  }
 }
 
 print LOG "\n***************************\n";
 print LOG "Starting regression tests.\n";
 print LOG "***************************\n\n";
-
 $pool->run(*LOG, true);
-
-open(REPORT,">Report");
-
-print "Completed: $pool->{notCompleted} \n";
-if ($pool->{notCompleted}) {
-    print REPORT "***************************************\n";
-    print REPORT "Warning: time expired on driver script.\n";
-    print REPORT "***************************************\n";
-}
-
-# Skip this section. diffreport is done by ~/diffreport.j
-goto SKIP;
-
-foreach my $rundeck (@$rundecks) { 
-    foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) {
-
-	print LOG "Comparing resulst for rundek $rundeck and compiler $compiler.\n";
-	my $results = checkConsistency($env->{$compiler}, $rundeck, $useCases->{$rundeck});
-	print LOG "  ... done\n";
-
-	print REPORT $results->{MESSAGES};
-	print LOG "ALL_COMPLETED: $results->{ALL_COMPLETED} \n";
-	print LOG "ARE_CONSISTENT: $results->{ARE_CONSISTENT} \n";
-	print LOG "RESTART_CHECK: $results->{RESTART_CHECK} \n";
-
-	if ($results->{ALL_COMPLETED} && $results->{ARE_CONSISTENT} && $results->{RESTART_CHECK}) {
-	    print REPORT "Rundeck $rundeck with compiler $compiler is strongly reproducible.\n";
-	    if ($results->{NEW_SERIAL}) {
-		print REPORT "  ... However serial results for rundeck $rundeck have changed.  Assuming change is intentional.\n";
-                `cd $resultsDir/$compiler; cp $rundeck.SERIAL.$compiler.1* $env->{$compiler}->{BASELINE_DIRECTORY}/$compiler/.; `;
-	    }
-	}
-
-    }
-}
-
-SKIP:
-
-close REPORT;
-# Mail report to mailing list
-##`mail -s "discover results" giss-modelE-regression\@lists.nasa.gov < Report`;
-
 print LOG "Completed nightly regression tests.\n";
 close(LOG);
 

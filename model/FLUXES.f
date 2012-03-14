@@ -154,7 +154,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 #endif
 
 !@var eflow_gl global integral of eflowo
-         real*8 :: eflow_gl
+         real*8 :: eflow_gl=0.
          logical :: need_eflow_gl=.false.
 
 !@var modd5s,jm_budg,area_of_zone,conserv,nofm
@@ -291,6 +291,8 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
      &     ,UOSURF,VOSURF
 !@var OGEOZA ocean surface height geopotential (m^2/s^2)
      &     ,OGEOZA
+!@var MLHC ocean mixed layer heat capacity (J/m^2 C) 
+     &     ,MLHC
 !@var MLDLK mixed layer depth in lake (m)
 !@var DLAKE depth of lake (m)
 !@var GLAKE lake heat content (J/m2)
@@ -542,6 +544,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       this % UOSURF = 0.
       this % VOSURF = 0.
       this % OGEOZA = 0.
+      this % MLHC = 0.
 
 #ifdef TRACERS_GASEXCH_ocean
       this % TRGASEX = 0.
@@ -732,7 +735,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % UOSURF  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % VOSURF  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % OGEOZA  ( I_0H:I_1H , J_0H:J_1H ),
-!     &          this % MLHC    ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % MLHC    ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER)
 
        ALLOCATE( this % DMSI  (  2  , I_0H:I_1H , J_0H:J_1H ), 
@@ -1222,6 +1225,7 @@ C**** Ensure that no round off error effects land with ice and earth
       call defvar(grid,fid,atmocn%ogeoza,'ogeoza'//ijstr)
       call defvar(grid,fid,atmocn%uosurf,'uosurf'//ijstr)
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
+      call defvar(grid,fid,atmocn%mlhc,'mlhc'//ijstr)
       return
       end subroutine def_rsf_fluxes
 
@@ -1246,6 +1250,7 @@ C**** Ensure that no round off error effects land with ice and earth
         call write_dist_data(grid,fid,'ogeoza',atmocn%ogeoza)
         call write_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call write_dist_data(grid,fid,'vosurf',atmocn%vosurf)
+        call write_dist_data(grid,fid,'mlhc',atmocn%mlhc)
       case (ioread)             ! input from restart file
         !call read_dist_data(grid,fid,'gtemp',atmocn%gtemp)
         !call read_dist_data(grid,fid,'gtempr',atmocn%gtempr)
@@ -1255,6 +1260,7 @@ C**** Ensure that no round off error effects land with ice and earth
         call read_dist_data(grid,fid,'ogeoza',atmocn%ogeoza)
         call read_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call read_dist_data(grid,fid,'vosurf',atmocn%vosurf)
+        call read_dist_data(grid,fid,'mlhc',atmocn%mlhc)
       end select
       return
       end subroutine new_io_fluxes

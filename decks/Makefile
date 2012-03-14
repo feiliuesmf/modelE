@@ -9,6 +9,7 @@ SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 CONFIG_DIR = $(MODEL_E_ROOT)/config
+TESTS_DIR = $(MODEL_E_ROOT)/tests
 TEMPLATES_DIR = $(MODEL_E_ROOT)/templates
 HTMLDOC_DIR = $(DECKS_DIR)/$(RUN)_html
 export HTMLDOC_DIR
@@ -90,7 +91,12 @@ setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
 
 tests: 
-	$(MAKE) -C $(MODEL_DIR) unit_tests
+ifeq ($(PFUNIT),)
+	@echo '--- Need to set PFUNIT environment variable.    ---'
+	@echo '--- Then build gcm and finally build/run tests. ---'
+else
+	$(MAKE) -C $(TESTS_DIR) tests
+endif
 
 setup_nocomp:
 	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
@@ -182,6 +188,9 @@ auxdeep: aux
 
 clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
+ifneq ($(PFUNIT),)
+	$(MAKE) -C $(TESTS_DIR) distclean
+endif
 	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 
 exe: $(RUN)/$(RUN) gcm

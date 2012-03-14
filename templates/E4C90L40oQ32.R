@@ -42,6 +42,7 @@ Components:
 #include "E4_components"    /* without "Ent" */
 Ent
 dd2d
+CS_Support
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */

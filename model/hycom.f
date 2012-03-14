@@ -130,6 +130,7 @@ c
 #endif
       use TimerPackage_mod
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+      USE Dictionary_mod, only : get_param
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       type(iceocn_xchng_vars) :: iceocn
@@ -144,6 +145,7 @@ c
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,eflow_gl
+      real*8 sss_restore_dt,sss_restore_dtice
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,nsub
@@ -182,8 +184,9 @@ c
 c
       real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
-     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
+     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm),omlhc(idm,jdm)
      . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
+     . ,omlhc_loc(idm,J_0H:J_1H)
       real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
@@ -198,7 +201,7 @@ c
      &     prec_loc,eprec_loc,evapor_loc,flowo_loc,gmelt_loc,
      &     melti_loc,emelti_loc,smelti_loc,
      &     runosi_loc,erunosi_loc,srunosi_loc,
-     &     runpsi_loc,erunpsi_loc,srunpsi_loc,
+     &     runpsi_loc,erunpsi_loc,srunpsi_loc,mlhc_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
 #ifdef TRACERS_OceanBiology
@@ -272,12 +275,20 @@ c
       ogeoza_loc => atmocn%ogeoza
       uosurf_loc => atmocn%uosurf
       vosurf_loc => atmocn%vosurf
+        mlhc_loc => atmocn%mlhc
 #ifdef TRACERS_GASEXCH_ocean
       gtracer_loc => atmocn%gtracer
 #endif
       dmsi_loc => iceocn%dmsi
       dhsi_loc => iceocn%dhsi
       dssi_loc => iceocn%dssi
+
+#ifdef STANDALONE_OCEAN
+      ! arrays for salinity restoring
+      ! to get the restoring timescales (days) specified in the rundeck:
+      call get_param("sss_restore_dt",sss_restore_dt) ! open water
+      call get_param("sss_restore_dtice",sss_restore_dtice) ! under ice
+#endif
 
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
@@ -593,12 +604,10 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
      . ,' (day '
      .,(int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1)
      .  *baclin/86400,')'
-
         end if   ! AM_I_ROOT
 
         nstep0=int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)
      .                                         -nstepi+3600/baclin
-
         nstep=nstep0
         time0=nstep0*baclin/86400
         tavini=time0
@@ -657,7 +666,6 @@ c     close(202)
 c
       nsaveo=0
       do 15 nsub=1,nstepi
-
       m=mod(nstep  ,2)+1
       n=mod(nstep+1,2)+1
       mm=(m-1)*kk
@@ -907,7 +915,8 @@ ccc      write (string,'(a12,i8)') 'diapfl, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      call thermf(m,n,mm,nn,k1m,k1n)
+      call thermf(m,n,mm,nn,k1m,k1n,
+     .  sss_restore_dt,sss_restore_dtice)
 c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
@@ -1332,7 +1341,7 @@ c
       usf_loc(i,j)=u_loc(i,j,k1n)+ubavg_loc(i,j,n)
  88   vsf_loc(i,j)=v_loc(i,j,k1n)+vbavg_loc(i,j,n)
 
-      call gather7hycom(usf_loc,vsf_loc,usf,vsf)
+      call gather7hycom(usf_loc,vsf_loc,omlhc_loc,usf,vsf,omlhc)
 
 c      if (AM_I_ROOT()) then ! global grid
 c
@@ -1346,7 +1355,7 @@ c      endif
       call ssto2a(osst_loc,atmocn%work1)
       call tempro2a(osst_loc,atmocn%work2)
       call ssto2a(osss_loc,sss_loc)
-css   call iceo2a(omlhc,mlhc)
+      call ssto2a(omlhc_loc,mlhc_loc)
       call ssto2a(oogeoza_loc,ogeoza_loc)
       call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
       call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
@@ -1489,7 +1498,6 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
-
       end subroutine gather_before_archive
 c------------------------------------------------------------------
       subroutine set_data_after_archiv
@@ -1549,8 +1557,6 @@ c------------------------------------------------------------------
      &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
-      USE HYCOM_ARRAYS_GLOB, only : omlhc
-      USE hycom_arrays_glob_renamer, only : omlhc_loc
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
@@ -1561,20 +1567,21 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  osss_loc,      osss    )
       call pack_data( ogrid,  osiav_loc,     osiav   )
       call pack_data( ogrid,  oogeoza_loc,   oogeoza )
-      call pack_data( ogrid,  omlhc_loc,     omlhc   )
 
       end subroutine gather6hycom
 c------------------------------------------------------------------
-      subroutine gather7hycom(usf_loc,vsf_loc,usf,vsf)
+      subroutine gather7hycom(usf_loc,vsf_loc,omlhc_loc,usf,vsf,omlhc)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real :: usf_loc(idm,J_0H:J_1H), vsf_loc(idm,J_0H:J_1H)
-      real :: usf(idm,jdm), vsf(idm,jdm)
+     .     ,omlhc_loc(idm,J_0H:J_1H)
+      real :: usf(idm,jdm), vsf(idm,jdm), omlhc(idm,jdm)
 
       call pack_data( ogrid,  usf_loc,      usf    )
       call pack_data( ogrid,  vsf_loc,      vsf    )
+      call pack_data( ogrid,omlhc_loc,    omlhc    )
 
       end subroutine gather7hycom
 c------------------------------------------------------------------
@@ -1930,9 +1937,6 @@ c
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, odmsi, arraysum )   ! sum(odmsi(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
-
-      call GLOBALSUM( ogrid, omlhc, arraysum )   ! sum(omlhc(:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dmfz, arraysum )   ! sum(dmfz(:,:))

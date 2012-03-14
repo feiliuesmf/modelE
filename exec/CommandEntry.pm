@@ -1,8 +1,10 @@
+
 #!/usr/bin/perl
 package CommandEntry;
 use Env;
 
-sub new {
+sub new 
+{
   my $proto = shift;
   my ($args) = @_;
 
@@ -18,9 +20,11 @@ sub new {
   $self -> {STDERR_LOG_FILE} = "ERR";
   $self -> {COMPILER} = "";
   $self -> {RUNDECK} = "";
+  $self -> {BRANCH} = "";
 
   # override defaults with arguments
-  while ( my ($key, $value) = each(%$args) ) {
+  while ( my ($key, $value) = each(%$args) ) 
+  {
     $self -> {$key} = $value;
   }
 
@@ -28,68 +32,72 @@ sub new {
   return $self;
 }
 
-sub dependency {
+sub dependency 
+{
   my $self       = shift;
-
   return ($self -> {DEPENDENCY});
 }
 
-sub status {
+sub status 
+{
   my $self = shift;
   return ($self -> {STATUS});
 }
 
-sub isComplete {
+sub isComplete 
+{
   my $self       = shift;
-
   return ( $self -> {STATUS} eq COMPLETE );
 }
 
-sub isRunning {
+sub isRunning 
+{
   my $self       = shift;
-
   return ( $self -> {STATUS} eq RUNNING );
 }
 
-sub isPending {
+sub isPending 
+{
   my $self       = shift;
-
   return ( $self -> {STATUS} eq PENDING );
 }
 
-sub isReady {
-  my $self       = shift;
-  
-  my $pending = ($self -> isPending());
+sub isReady 
+{
+  my $self       = shift;  
+  my $pending    = ($self -> isPending());
   my $dependency = ($self -> dependency());
-
   if ($dependency eq "") { return $pending }
   else {return ($pending and ($self -> dependency() -> isComplete()) )};
 }
 
-sub setStatus {
-  my $self = shift;
+sub setStatus 
+{
+  my $self      = shift;
   my $newStatus = shift;
   $self -> {STATUS} = $newStatus;
 }
 
-sub setDependency {
+sub setDependency 
+{
   my $self = shift;
   my $newDependency = shift;
   $self -> {DEPENDENCY} = $newDependency;
 }
 
-sub runInBatch {
-  my $self = shift;
+sub runInBatch 
+{
+  my $self          = shift;
   my $commandString = shift;
-  my $queue = shift;
-  my $queueString = " ";
-  my $jobname  = $self->{RUNDECK};
-  if ($queue) {$queueString = "-q $queue\n";};
+  my $queue         = shift;
+  my $queueString   = " ";
 
-#  my $NODE_SIZE = 8;
-  my $NODE_SIZE = 16;
+  if ($queue) 
+  {
+    $queueString = "-q $queue\n";
+  }
 
+  my $NODE_SIZE = 12;
   my $nCPUS = $self -> {NUM_PROCS};
   my $nodes = 1 + int(($nCPUS-1)/$NODE_SIZE);
   my $ncpus = $nCPUS;
@@ -97,10 +105,14 @@ sub runInBatch {
 
   $walltime = "3:00:00\n";
 
-  print " runInBatch: COMPILER=$self->{COMPILER}, jobname=$jobname\n";
+  my $compiler = $self->{COMPILER};
+  my $branch   = $self->{BRANCH};
+  my $jobname  = $self->{RUNDECK};
+  print " runInBatch: COMPILER=$compiler, jobname=$jobname, BRANCH=$branch\n";
+
   my $script = <<EOF;
 #!/bin/bash
-#PBS -l select=$nodes:ncpus=8:proc=neha
+#PBS -l select=$nodes:ncpus=12:mpiprocs=12
 #PBS -l walltime=$walltime
 #PBS -W group_list=a940a
 #PBS -N $jobname
@@ -110,37 +122,57 @@ sub runInBatch {
 
 cd \$PBS_O_WORKDIR
 
-export TMPDIR=/tmp
-
 . /usr/share/modules/init/bash
 module purge
 
 EOF
 
-    if ($self->{COMPILER} eq intel) {
+  if ($branch =~ m/AR5/) 
+  {
+    if ($compiler eq intel) 
+    {
 
-  $script .= <<EOF;
-module load comp/intel-11.1.072  mpi/impi-3.2.2.006
+      $script .= <<EOF;
+module load comp/intel-10.1.017 mpi/impi-3.2.2.006
 EOF
 
-} else {
-  $script .= <<EOF;
-module load other/comp/gcc-4.6-20110312
+    } 
+    else 
+    {
+      $script .= <<EOF;
+module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
 EOF
+    }
 
-}
+  } 
+  else 
+  {
+    if ($compiler eq intel) 
+    {
+      $script .= <<EOF;
+module load comp/intel-11.1.072 mpi/impi-3.2.2.006
+EOF
+    } 
+    else 
+    {
+      $script .= <<EOF;
+module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
+EOF
+    }  
+  }
 
-$script .= <<EOF;
+  $script .= <<EOF;
 $commandString
 date
 env
 EOF
 
-`echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
+  `echo '$script' > pbstmp; qsub -V pbstmp; rm pbstmp`;
 
 }
 
-sub launch {
+sub launch 
+{
   my $self = shift;
   my $semaphore = shift;
   my $logFile = $self -> {STDOUT_LOG_FILE};
@@ -150,28 +182,57 @@ sub launch {
 
   my $mode = $self -> {QUEUE};
 
-  print " launch: COMPILER=$self->{COMPILER}\n";
+  # Bhat mentioned that this was needed for openMPI. Is it? Need to test.
   $ENV{TMPDIR}="/tmp";
+
   setModuleEnvironment($self->{COMPILER});
   $ENV{MODELERC}=$self->{MODELRC};
-  if ($self -> {QUEUE} eq LOCAL) {
+  if ($self -> {QUEUE} eq LOCAL) 
+  {
     `($commandString) &`; # run in background
   }
-  else {
+  else 
+  {
     $self -> runInBatch("$commandString", $self -> {QUEUE});
   }
 }
 
-sub setModuleEnvironment {
+sub setModuleEnvironment 
+{
     my $compiler = shift;
+
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require "$ENV{MODULESHOME}/init/perl";  
-    module (purge);
-    if ($compiler eq intel) {
+    require $ENV{MODELROOT}."/master/exec/perlreq";
+
+    if ($self->{BRANCH} =~ m/AR5/) 
+    {
+      if ($compiler eq intel) 
+      {
+        module (load, "comp/intel-10.1.017",  "mpi/impi-3.2.2.006");
+      } 
+      elsif ($compiler eq gfortran) 
+      {
+        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
+      } 
+      else 
+      {
+        # Nothing to do
+      }
+    } 
+    else 
+    {
+      if ($compiler eq intel) 
+      {
 	module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
-    } elsif ($compiler eq gfortran) {
-	module (load, "other/comp/gcc-4.6-20110312");
-    } else {
+      } 
+      elsif ($compiler eq gfortran) 
+      {
+        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
+      } 
+      else 
+      {
+        # Nothing to do
+      }
     }
 }
 

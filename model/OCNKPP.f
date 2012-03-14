@@ -1126,14 +1126,15 @@ C****
       Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
      *    HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
-
+      USE OCEAN, ONLY : GXXMO,GYYMO,GZZMO,GXYMO,SXXMO,SYYMO,SZZMO,SXYMO
+      USE OCEAN, ONLY : USE_QUS,NBYZM,I1YZM,I2YZM,DZO
 #ifdef TRACERS_OCEAN
       USE OCEAN, only : trmo,txmo,tymo,tzmo
+      USE OCEAN, only : txxmo,tyymo,tzzmo,txymo
       Use KPP_COM, Only: trmo1,txmo1,tymo1
       Use ODIAG, Only: toijl=>toijl_loc,toijl_wtfl
       USE OCN_TRACER_COM, only : t_qlimit, ntm
 #endif
-
       IMPLICIT NONE
 
       LOGICAL*4 QPOLE
@@ -1143,6 +1144,8 @@ C****
      &      ULD0(LMO,IM+2),ULD(LMO,IM+2),
      *      G0ML0(LMO),G0ML(LMO), GXML(LMO),GYML(LMO),GZML(LMO),
      *      S0ML0(LMO),S0ML(LMO), SXML(LMO),SYML(LMO),SZML(LMO),
+     *      GXXML(LMO),GYYML(LMO),GXYML(LMO),GZZML(LMO),
+     *      SXXML(LMO),SYYML(LMO),SXYML(LMO),SZZML(LMO),
      *      BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+2),RAMV(IM+2),
      *      BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
      *      AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
@@ -1162,26 +1165,44 @@ C**** KPP variables
      &     UKM,UKMD
       REAL*8
      *     OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO),OLtemp(LMO,3)
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     &     MA,KLEN,GSAVE3D,SSAVE3D
+      REAL*8, DIMENSION(0:LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     AKVG3D,AKVS3D,FLG3D,FLS3D
+      REAL*8, DIMENSION(LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     DZ3D
+#ifdef TRACERS_OCEAN
+      REAL*8 FLT3D(0:LMO,NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 TRSAVE3D(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,NTM)
+#endif
 
       LOGICAL, PARAMETER :: LDD = .FALSE.
-      INTEGER I,J,K,L,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
+      INTEGER I,J,K,L,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II,N,IB
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
-      integer :: j_1,j_0s,j_1s
+      integer :: j_0,j_1,j_0s,j_1s,j_0h
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+      logical ::
+     &     adjust_zslope_using_flux,
+     &     relax_subgrid_zprofile,
+     &     extra_slope_limitations,
+     &     mix_tripled_resolution
+
 #ifdef TRACERS_OCEAN
-      Real*8 TRML(LMO,NTM),TRML1(NTM), TXML(LMO,NTM),TYML(LMO,NTM),
-     *       TZML(LMO,NTM),
+      Real*8 TRML(LMO,NTM),TRML1(NTM),TZML(LMO,NTM),TZZML(LMO,NTM),
      *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
-      INTEGER NSIGT,N
+      REAL*8, DIMENSION(LMO) :: TXML,TYML,TXXML,TYYML,TXYML
+      INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
 
-      call get (grid, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s,
+      call get (grid, j_strt=j_0, j_stop=j_1,
+     &                j_strt_skp=j_0s, j_stop_skp=j_1s,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      call get(grid,j_strt_halo=j_0h)
 
 C**** initialise diagnostics saved over quarter boxes and longitude
       OLJ = 0.
@@ -1197,6 +1218,56 @@ C**** will be fixed during convection.
         UTD(:,:,L) = UOD(:,:,L)
         VTD(:,:,L) = VOD(:,:,L)
       END DO
+
+      if(use_qus==1) then
+        adjust_zslope_using_flux = .false.
+        relax_subgrid_zprofile = .false. !.true.
+        extra_slope_limitations = .false. ! not needed in QUS flux limiter
+        ! At some point, the full kpp scheme could operate using
+        ! the tripled vertical resolution.  For now, this option
+        ! only applies to the adjustment of the vertical moments.
+        mix_tripled_resolution = .not. relax_subgrid_zprofile
+      else
+        adjust_zslope_using_flux = .true.
+        relax_subgrid_zprofile = .false.
+        extra_slope_limitations = .true.
+        mix_tripled_resolution = .false.
+      endif
+
+      if(mix_tripled_resolution) then
+        ! save the state that is contemporaneous with the subgrid profiles
+        gsave3d = g0m
+        ssave3d = s0m
+#ifdef TRACERS_OCEAN
+        trsave3d = trmo
+#endif
+      endif
+
+      if(extra_slope_limitations) then
+        ! The vertical slopes are adjusted after the mixing and
+        ! are not used during mixing, so this section exists
+        ! merely to reproduce previous results.
+        do l=1,lmo
+        do j=j_0s,j_1s
+        do ib=1,nbyzm(j,l)
+        do i=i1yzm(ib,j,l),i2yzm(ib,j,l)
+          if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
+     *         SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
+#ifdef TRACERS_OCEAN
+          DO N = 1,NTM
+            if (t_qlimit(n)) then
+              if ( abs(TZMO(I,J,L,N)) > TRMO(I,J,L,N) )
+     *             TZMO(I,J,L,N) = sign(TRMO(I,J,L,N),TZMO(I,J,L,N))
+            end if
+C****
+          END DO
+#endif
+        enddo
+        enddo
+        enddo
+        enddo
+      endif ! extra_slope_limitations
+
 C****
 C**** Outside loop over J
 C**** Processes are checked and applied on every horizontal quarter box.
@@ -1240,8 +1311,6 @@ C****
       DTBYDZ(1)   = DTS/MO(1,JM,1)
       G0ML0(1)    = G0M(1,JM,1)
       S0ML0(1)    = S0M(1,JM,1)
-      GZML(1)     = GZMO(1,JM,1)
-      SZML(1)     = SZMO(1,JM,1)
       MMLT(1)     = MO1(1,JM)*DXYPO(JM)
       BYMMLT(1)   = 1d0/MMLT(1)
       S0ML(1)     = S0M1(1,JM)
@@ -1256,8 +1325,6 @@ C****
         BYDZ2(L-1)  = 2d0/(MO(1,JM,L-1)+MO(1,JM,L))
         G0ML0(L)    = G0M(1,JM,L)
         S0ML0(L)    = S0M(1,JM,L)
-        GZML(L)     = GZMO(1,JM,L)
-        SZML(L)     = SZMO(1,JM,L)
         MMLT(L)     = MML0(L)
         BYMMLT(L)   = BYMML0(L)
         S0ML(L)     = S0ML0(L)
@@ -1272,7 +1339,6 @@ C****
       TRML1(:)=TRMO1(:,1,JM)
       DO L = 1,LMIJ
         TRML(L,:) = TRMO(1,JM,L,:)
-        TZML(L,:) = TZMO(1,JM,L,:)
       END DO
 #endif
 C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
@@ -1368,13 +1434,7 @@ C**** Calculate surface mass flux and Solar forcing
       ULD0(1,4) = UTD(I,J  ,1)
 
       G0ML0(1) = G0M(I,J,1)
-      GXML(1)  = GXMO(I,J,1)
-      GYML(1)  = GYMO(I,J,1)
       S0ML0(1) = S0M(I,J,1)
-      SXML(1)  = SXMO(I,J,1)
-      SYML(1)  = SYMO(I,J,1)
-      GZML(1)  = GZMO(I,J,1)
-      SZML(1)  = SZMO(I,J,1)
       UL(1,1) = UO1(IM1,J)
       UL(1,2) = UO1(I  ,J)
       UL(1,3) = VO1(I,J-1)
@@ -1386,7 +1446,6 @@ C**** Calculate surface mass flux and Solar forcing
       ULD(1,4) = UOD1(I,J  )
 
       S0ML(1) = S0M1(I,J)
-      If (Abs(SZML(1)) > S0ML(1))  SZML(1) = Sign (S0ML(1),SZML(1))
       DO 250 L=2,LMIJ
       UL0(L,1) = UT(IM1,J,L)
       UL0(L,2) = UT(I  ,J,L)
@@ -1399,13 +1458,7 @@ C**** Calculate surface mass flux and Solar forcing
       ULD0(L,4) = UTD(I,J  ,L)
 
       G0ML0(L) = G0M(I,J,L)
-      GXML(L)  = GXMO(I,J,L)
-      GYML(L)  = GYMO(I,J,L)
       S0ML0(L) = S0M(I,J,L)
-      SXML(L)  = SXMO(I,J,L)
-      SYML(L)  = SYMO(I,J,L)
-      GZML(L)  = GZMO(I,J,L)
-      SZML(L)  = SZMO(I,J,L)
       UL(L,1) = UL0(L,1)
       UL(L,2) = UL0(L,2)
       UL(L,3) = UL0(L,3)
@@ -1417,7 +1470,6 @@ C**** Calculate surface mass flux and Solar forcing
       ULD(L,4) = ULD0(L,4)
 
       S0ML(L) = S0ML0(L)
-      If (Abs(SZML(L)) > S0ML(L))  SZML(L) = Sign (S0ML(L),SZML(L))
   250 CONTINUE
       G0ML(1) = G0M1(I,J,1)
       DO L=2,MIN(LSRPD,LMIJ)
@@ -1429,14 +1481,10 @@ C**** Calculate surface mass flux and Solar forcing
         TRML1(N) = TRMO1(N,I,J)
         DO L=1,LMIJ
           TRML(L,N) = TRMO(I,J,L,N)
-          TXML(L,N) = TXMO(I,J,L,N)
-          TYML(L,N) = TYMO(I,J,L,N)
-          TZML(L,N) = TZMO(I,J,L,N)
 C****
           if (t_qlimit(N)) then
             TRML(L,N) = Max (0d0,TRML(L,N))
-            If (Abs(TZML(L,N)) > TRML(L,N))
-     *              TZML(L,N) = Sign(TRML(L,N),TZML(L,N))  ;  end if
+          end if
         END DO
       END DO
 #endif
@@ -1576,6 +1624,7 @@ C****        ghat[sg] = kv * ghat * <w[sg]0>   (J,kg)
 C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
 C****                            ghat (s/m^2) => (s m^4/kg^2)
       DO L=1,LMIJ-1
+         klen(i,j,l) = akvs(l)
          R = 5d-1*(RHO(L)+RHO(L+1))
          R2 = R**2
          GHATM(L) = 0.          ! no non-local momentum transport
@@ -1592,7 +1641,13 @@ C**** GHAT terms must be zero for consistency with OSOURC
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
+         AKVG3D(L,I,J) = AKVG(L)
+         AKVS3D(L,I,J) = AKVS(L)
       END DO
+      AKVG3D(0,I,J) = AKVG3D(1,I,J)
+      AKVS3D(0,I,J) = AKVS3D(1,I,J)
+      AKVG3D(LMIJ,I,J) = AKVG3D(LMIJ-1,I,J)
+      AKVS3D(LMIJ,I,J) = AKVS3D(LMIJ-1,I,J)
 
 C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
@@ -1610,18 +1665,8 @@ C**** Salinity
      *              S0ML0(1),FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
-C**** G,S horizontal slopes are diffused like G,S; after iteration
+C**** D-grid velocities
       If (.not.QPOLE)  Then
-        GHATDUM(:) = 0.
-        Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GXML(1),FLDUM)
-        Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GYML(1),FLDUM)
-        Call OVDIFFS (SXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SXML(1),FLDUM)
-        Call OVDIFFS (SYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SYML(1),FLDUM)
-
         DO K=1,KMUV
           IF(LMUV(K).GT.1) THEN
             CALL OVDIFF(ULD(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
@@ -1634,12 +1679,6 @@ C**** G,S horizontal slopes are diffused like G,S; after iteration
 C**** Tracers are diffused after iteration and follow salinity
       GHATDUM(:) = 0.
       DO N=1,NTM
-        If (.not.QPOLE)  Then
-          Call OVDIFFS (TXML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
-     *         DTS,LMIJ,TXML(1,N),FLT(1,N))
-          Call OVDIFFS (TYML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
-     *         DTS,LMIJ,TYML(1,N),FLT(1,N))
-        EndIf
         if(t_qlimit(n)) then
           ! Modify GHATT to prevent negative tracer.  Method: apply
           ! a single multiplicative factor to the GHATT profile.
@@ -1666,41 +1705,22 @@ C**** Tracers are diffused after iteration and follow salinity
      *       DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
 #endif
-C**** Gradients of scalars
-C**** Implicitly apply interpolated KV to linear profile
-C**** Surface tracer + mass fluxes included (no solar flux)
-C**** Note that FL[GS] are upward fluxes.
-      DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
+
+C**** Save fluxes for adjustment of vertical gradients
       DM = DELTAM*DTBYDZ(1)
-      GZML(1) = (GZML(1) + 3*(FLG(1) + DTS*DELTAE*DXYPO(J))) /
-     /          (1 + DTBYDZ2*AKVG(1))
-      SZML(1) = (SZML(1) + 3*(FLS(1) - DTS*DELTAS*DXYPO(J)*(1-DM) +
-     +                        DM*S0M1(I,J))) / (1 + DTBYDZ2*AKVS(1))
+      FLG3D(1:LMIJ-1,I,J) = FLG(1:LMIJ-1)
+      FLG3D(LMIJ,I,J) = 0.
+      FLG3D(0,I,J) = DTS*DELTAE*DXYPO(J)
+      FLS3D(1:LMIJ-1,I,J) = FLS(1:LMIJ-1)
+      FLS3D(LMIJ,I,J) = 0.
+      FLS3D(0,I,J) = -DTS*DELTAS*DXYPO(J)*(1-DM) +DM*S0M1(I,J)
 #ifdef TRACERS_OCEAN
-      TZML(1,:) = (TZML(1,:) + 3*(FLT(1,:) -
-     +  DTS*DELTATR(:)*DXYPO(J)*(1-DM) + DM*TRMO1(:,I,J))) /
-     /  (1 + DTBYDZ2*AKVS(1))
+      FLT3D(1:LMIJ-1,:,I,J) = FLT(1:LMIJ-1,:)
+      FLT3D(LMIJ,:,I,J) = 0.
+      FLT3D(0,:,I,J) = -DTS*DELTATR(:)*DXYPO(J)*(1-DM) +DM*TRMO1(:,I,J)
 #endif
-      DO L=2,LMIJ-1
-        DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
-        GZML(L)=(GZML(L)+3d0*(FLG(L-1)+FLG(L)))
-     *       /(1d0+DTBYDZ2*(AKVG(L-1)+AKVG(L)))
-        SZML(L)=(SZML(L)+3d0*(FLS(L-1)+FLS(L)))
-     *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
-#ifdef TRACERS_OCEAN
-        TZML(L,:)=(TZML(L,:)+3d0*(FLT(L-1,:)+
-     *       FLT(L,:))) /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
-#endif
-      END DO
-      DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
-      GZML(LMIJ)=(GZML(LMIJ)+3d0*FLG(LMIJ-1))
-     *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
-      SZML(LMIJ)=(SZML(LMIJ)+3d0*FLS(LMIJ-1))
-     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
-#ifdef TRACERS_OCEAN
-      TZML(LMIJ,:)=(TZML(LMIJ,:)+3d0*FLT(LMIJ-1,:))
-     *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
-#endif
+
+      DZ3D(1:LMIJ,I,J) = MO(I,J,1:LMIJ)*BYRHO(1:LMIJ)
 
 C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
@@ -1787,60 +1807,16 @@ CCC      END IF
       END IF
 
   725 IF(QPOLE)  GO TO 750
-C****
-C**** Recreate main prognostic variables of potential enthalpy and
-C**** salt from those on the quarter boxes
-C****
       DO L=1,LMIJ
-      G0M(I,J,L) = G0ML(L)
-      GXMO(I,J,L) = GXML(L)
-      GYMO(I,J,L) = GYML(L)
-      GZMO(I,J,L) = GZML(L)
-      NSIGG = EXPONENT(G0M(I,J,L)) -2 - 42
-      CALL REDUCE_FIG(NSIGG,GXMO(I,J,L))
-      CALL REDUCE_FIG(NSIGG,GYMO(I,J,L))
-      S0M(I,J,L)  = S0ML(L)
-      SXMO(I,J,L) = SXML(L)
-      SYMO(I,J,L) = SYML(L)
-      SZMO(I,J,L) = SZML(L)
-      NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42 + 4
-      CALL REDUCE_FIG(NSIGS,SXMO(I,J,L))
-      CALL REDUCE_FIG(NSIGS,SYMO(I,J,L))
-C**** limit salinity gradients
-      TXY = abs(SXMO(I,J,L)) + abs(SYMO(I,J,L))
-      if ( TXY > S0M(I,J,L) ) then
-        SXMO(I,J,L)=SXMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
-        SYMO(I,J,L)=SYMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
-      end if
-      if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
-     *     SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
-C****
+        G0M(I,J,L) = G0ML(L)
+        S0M(I,J,L) = S0ML(L)
       END DO
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
-        DO L = 1,LMIJ
+      DO L = 1,LMIJ
         TRMO(I,J,L,N) = TRML(L,N)
-        TXMO(I,J,L,N) = TXML(L,N)
-        TYMO(I,J,L,N) = TYML(L,N)
-        TZMO(I,J,L,N) = TZML(L,N)
-        NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
-        CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
-        CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
-C****
-        if (t_qlimit(n)) then   ! limit gradients
-          TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
-          if ( TXY > TRMO(I,J,L,N) ) then
-            TXMO(I,J,L,N) = TXMO(I,J,L,N)
-     *           *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
-            TYMO(I,J,L,N) = TYMO(I,J,L,N)
-     *           *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
-          end if
-          if ( abs(TZMO(I,J,L,N)) > TRMO(I,J,L,N) )
-     *         TZMO(I,J,L,N) = sign(TRMO(I,J,L,N),TZMO(I,J,L,N)+0d0)
-        end if
-C****
-      END DO
-      END DO
+      ENDDO
+      ENDDO
 #endif
 C**** End of I loop
   730 IM1=I
@@ -1853,12 +1829,9 @@ C**** salt from the column arrays at the poles
 C****
   750 DO L=1,LMIJ
       G0M(1,JM,L)  = G0ML(L)
-      GZMO(1,JM,L) = GZML(L)
       S0M(1,JM,L)  = S0ML(L)
-      SZMO(1,JM,L) = SZML(L)
 #ifdef TRACERS_OCEAN
       TRMO(1,JM,L,:) = TRML(L,:)
-      TZMO(1,JM,L,:) = TZML(L,:)
 #endif
       END DO
 C**** End of outside J loop
@@ -1932,7 +1905,243 @@ c     END DO
       OL(:,L_TEMP) = OL(:,L_TEMP) + OLtemp(:,L_TEMP)
       OL(:,L_SALT) = OL(:,L_SALT) + OLtemp(:,L_SALT)
 
+
+      if(adjust_zslope_using_flux) then
+C**** Vertical Gradients of scalars
+C**** Implicitly apply interpolated KV to linear profile
+C**** Surface tracer + mass fluxes included (no solar flux)
+C**** Note that FL[GS] are upward fluxes.
+        do j=j_0,j_1
+        do ib=1,nbyzm(j,1)
+        do i=i1yzm(ib,j,1),i2yzm(ib,j,1)
+          lmij = lmm(i,j)
+          dtbydz(1:lmij) = dts/mo(i,j,1:lmij)
+          DO L=1,LMIJ
+            DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
+            GZMO(I,J,L)=(GZMO(I,J,L)+3d0*(FLG3D(L-1,I,J)+FLG3D(L,I,J)))
+     *           /(1d0+DTBYDZ2*(AKVG3D(L-1,I,J)+AKVG3D(L,I,J)))
+            SZMO(I,J,L)=(SZMO(I,J,L)+3d0*(FLS3D(L-1,I,J)+FLS3D(L,I,J)))
+     *           /(1d0+DTBYDZ2*(AKVS3D(L-1,I,J)+AKVS3D(L,I,J)))
+#ifdef TRACERS_OCEAN
+            TZMO(I,J,L,:)=(TZMO(I,J,L,:)
+     &           +3d0*(FLT3D(L-1,:,I,J)+FLT3D(L,:,I,J)))
+     &           /(1d0+DTBYDZ2*(AKVS3D(L-1,I,J)+AKVS3D(L,I,J)))
+#endif
+          END DO
+        enddo
+        enddo
+        enddo
+      elseif(relax_subgrid_zprofile) then
+        do j=j_0,j_1
+        do n=1,nbyzm(j,1)
+        do i=i1yzm(n,j,1),i2yzm(n,j,1)
+          l = lmm(i,j)
+          klen(i,j,l) = klen(i,j,l-1)
+        enddo
+        enddo
+        enddo
+        do l=lmo-1,2,-1
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l+1)
+        do i=i1yzm(n,j,l+1),i2yzm(n,j,l+1)
+          klen(i,j,l) = .5d0*(klen(i,j,l)+klen(i,j,l-1))
+        enddo
+        enddo
+        enddo
+        enddo
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          MA(I,J,L) = MO(I,J,L)*DXYPO(J)
+          !klen(i,j,l) = exp(-12.*klen(i,j,l)*dts/(dzo(l)*dzo(l)))
+          klen(i,j,l) = 1./(1.+12.*klen(i,j,l)*dts/(dzo(l)*dzo(l)))
+        enddo
+        enddo
+        enddo
+        enddo
+        call relax_zmoms(ma,g0m,klen,gzmo,gzzmo)
+        call relax_zmoms(ma,s0m,klen,szmo,szzmo)
+#ifdef TRACERS_OCEAN
+        do n=1,ntm
+          call relax_zmoms(ma,trmo(1,j_0h,1,n),
+     &         klen,tzmo(1,j_0h,1,n),tzzmo(1,j_0h,1,n))
+        enddo
+#endif
+      elseif(mix_tripled_resolution) then
+        do j=j_0,j_1
+        do ib=1,nbyzm(j,1)
+        do i=i1yzm(ib,j,1),i2yzm(ib,j,1)
+          lmij = lmm(i,j)
+          !akvg(1:lmij) = akvg3d(1:lmij,i,j)
+          akvg(1:lmij) = klen(i,j,1:lmij) ! m2/s units!!!!
+          mml(1:lmij) = mo(i,j,1:lmij)*dxypo(j)
+c
+          g0ml(1:lmij) = gsave3d(i,j,1:lmij)/mml(1:lmij)
+          gzml(1:lmij) = gzmo(i,j,1:lmij)/mml(1:lmij)
+          gzzml(1:lmij) = gzzmo(i,j,1:lmij)/mml(1:lmij)
+          call diffuse_moms(dz3d(1,i,j),akvg,g0ml,gzml,gzzml,lmij,dts)
+          gzmo(i,j,1:lmij) = gzml(1:lmij)*mml(1:lmij)
+          gzzmo(i,j,1:lmij) = gzzml(1:lmij)*mml(1:lmij)
+c
+          s0ml(1:lmij) = ssave3d(i,j,1:lmij)/mml(1:lmij)
+          szml(1:lmij) = szmo(i,j,1:lmij)/mml(1:lmij)
+          szzml(1:lmij) = szzmo(i,j,1:lmij)/mml(1:lmij)
+          call diffuse_moms(dz3d(1,i,j),akvg,s0ml,szml,szzml,lmij,dts)
+          szmo(i,j,1:lmij) = szml(1:lmij)*mml(1:lmij)
+          szzmo(i,j,1:lmij) = szzml(1:lmij)*mml(1:lmij)
+#ifdef TRACERS_OCEAN
+          do n=1,ntm
+            trml(1:lmij,1) = trsave3d(i,j,1:lmij,n)/mml(1:lmij)
+            tzml(1:lmij,1) = tzmo(i,j,1:lmij,n)/mml(1:lmij)
+            tzzml(1:lmij,1) = tzzmo(i,j,1:lmij,n)/mml(1:lmij)
+            call diffuse_moms(dz3d(1,i,j),akvg,trml,tzml,tzzml,lmij,dts)
+            tzmo(i,j,1:lmij,n) = tzml(1:lmij,1)*mml(1:lmij)
+            tzzmo(i,j,1:lmij,n) = tzzml(1:lmij,1)*mml(1:lmij)
+          enddo
+#endif
+        enddo
+        enddo
+        enddo
+      endif
+
+
 C****
+C**** Vertically mix horizontal gradients as though they were scalars
+C****
+      ghatdum = 0.
+      do j=j_0s,j_1s ! gradients always set to zero in polar boxes
+      do ib=1,nbyzm(j,1)
+      do i=i1yzm(ib,j,1),i2yzm(ib,j,1)
+        lmij = lmm(i,j)
+        dtbydz(1:lmij) = dts/mo(i,j,1:lmij)
+        bydz2(1:lmij-1)= 2d0/(mo(i,j,2:lmij)+mo(i,j,1:lmij-1))
+        akvg(1:lmij-1) = akvg3d(1:lmij-1,i,j)
+        akvg(lmij) = 0.
+        akvs(1:lmij-1) = akvs3d(1:lmij-1,i,j)
+        akvs(lmij) = 0.
+        gxml(1:lmij) = gxmo(i,j,1:lmij)
+        gyml(1:lmij) = gymo(i,j,1:lmij)
+        sxml(1:lmij) = sxmo(i,j,1:lmij)
+        syml(1:lmij) = symo(i,j,1:lmij)
+        Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GXML(1),FLDUM)
+        Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GYML(1),FLDUM)
+        Call OVDIFFS (SXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SXML(1),FLDUM)
+        Call OVDIFFS (SYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SYML(1),FLDUM)
+        gxmo(i,j,1:lmij) = gxml(1:lmij)
+        gymo(i,j,1:lmij) = gyml(1:lmij)
+        sxmo(i,j,1:lmij) = sxml(1:lmij)
+        symo(i,j,1:lmij) = syml(1:lmij)
+        if(use_qus==1) then
+        gxxml(1:lmij) = gxxmo(i,j,1:lmij)
+        gyyml(1:lmij) = gyymo(i,j,1:lmij)
+        gxyml(1:lmij) = gxymo(i,j,1:lmij)
+        sxxml(1:lmij) = sxxmo(i,j,1:lmij)
+        syyml(1:lmij) = syymo(i,j,1:lmij)
+        sxyml(1:lmij) = sxymo(i,j,1:lmij)
+        Call OVDIFFS (GXXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GXXML(1),FLDUM)
+        Call OVDIFFS (GYYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GYYML(1),FLDUM)
+        Call OVDIFFS (GXYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GXYML(1),FLDUM)
+        Call OVDIFFS (SXXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SXXML(1),FLDUM)
+        Call OVDIFFS (SYYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SYYML(1),FLDUM)
+        Call OVDIFFS (SXYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SXYML(1),FLDUM)
+        gxxmo(i,j,1:lmij) = gxxml(1:lmij)
+        gyymo(i,j,1:lmij) = gyyml(1:lmij)
+        gxymo(i,j,1:lmij) = gxyml(1:lmij)
+        sxxmo(i,j,1:lmij) = sxxml(1:lmij)
+        syymo(i,j,1:lmij) = syyml(1:lmij)
+        sxymo(i,j,1:lmij) = sxyml(1:lmij)
+        endif ! using qus
+#ifdef TRACERS_OCEAN
+        do n=1,ntm
+          txml(1:lmij) = txmo(i,j,1:lmij,n)
+          tyml(1:lmij) = tymo(i,j,1:lmij,n)
+          Call OVDIFFS ( TXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ, TXML(1),FLDUM)
+          Call OVDIFFS ( TYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ, TYML(1),FLDUM)
+          txmo(i,j,1:lmij,n) = txml(1:lmij)
+          tymo(i,j,1:lmij,n) = tyml(1:lmij)
+          if(use_qus==1) then
+          txxml(1:lmij) = txxmo(i,j,1:lmij,n)
+          tyyml(1:lmij) = tyymo(i,j,1:lmij,n)
+          txyml(1:lmij) = txymo(i,j,1:lmij,n)
+          Call OVDIFFS (TXXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ,TXXML(1),FLDUM)
+          Call OVDIFFS (TYYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ,TYYML(1),FLDUM)
+          Call OVDIFFS (TXYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ,TXYML(1),FLDUM)
+          txxmo(i,j,1:lmij,n) = txxml(1:lmij)
+          tyymo(i,j,1:lmij,n) = tyyml(1:lmij)
+          txymo(i,j,1:lmij,n) = txyml(1:lmij)
+          endif ! using qus
+        enddo
+#endif
+      enddo
+      enddo
+      enddo
+
+      if(extra_slope_limitations) then
+        do l=1,lmo
+        do j=j_0s,j_1s
+        do ib=1,nbyzm(j,l)
+        do i=i1yzm(ib,j,l),i2yzm(ib,j,l)
+C****
+C**** Recreate main prognostic variables of potential enthalpy and
+C**** salt from those on the quarter boxes
+C****
+          NSIGG = EXPONENT(G0M(I,J,L)) -2 - 42
+          CALL REDUCE_FIG(NSIGG,GXMO(I,J,L))
+          CALL REDUCE_FIG(NSIGG,GYMO(I,J,L))
+          NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42 + 4
+          CALL REDUCE_FIG(NSIGS,SXMO(I,J,L))
+          CALL REDUCE_FIG(NSIGS,SYMO(I,J,L))
+C**** limit salinity gradients
+          TXY = abs(SXMO(I,J,L)) + abs(SYMO(I,J,L))
+          if ( TXY > S0M(I,J,L) ) then
+            SXMO(I,J,L)=SXMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
+            SYMO(I,J,L)=SYMO(I,J,L)*(S0M(I,J,L)/(TXY + tiny(TXY)))
+          end if
+          if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
+     *         SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
+#ifdef TRACERS_OCEAN
+          DO N = 1,NTM
+            NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
+            CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
+            CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
+C****
+            if (t_qlimit(n)) then ! limit gradients
+              TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
+              if ( TXY > TRMO(I,J,L,N) ) then
+                TXMO(I,J,L,N) = TXMO(I,J,L,N)
+     *               *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
+                TYMO(I,J,L,N) = TYMO(I,J,L,N)
+     *               *( TRMO(I,J,L,N)/(TXY + tiny(TXY)) )
+              end if
+              if ( abs(TZMO(I,J,L,N)) > TRMO(I,J,L,N) )
+     *             TZMO(I,J,L,N) = sign(TRMO(I,J,L,N),TZMO(I,J,L,N)+0d0)
+            end if
+C****
+          END DO
+#endif
+        enddo
+        enddo
+        enddo
+        enddo
+      endif ! extra_slope_limitations
+C****
+
       RETURN
       END SUBROUTINE OCONV
 

@@ -9,10 +9,13 @@ C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : msurf,itime
       USE OCEANRES, only : NOCEAN
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
-     *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
+      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,s0m,
+     *    dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
      *    OBottom_drag,OCoastal_drag,uod,vod,lmu,lmv
+      USE OCEAN, only : use_qus,
+     *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
+     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
       USE OCEAN, only :
      &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
       USE OCEAN_DYN, only : mmi,smu,smv,smw
@@ -25,7 +28,8 @@ C****
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit,ntm
-      USE OCEAN, only : trmo,txmo,tymo,tzmo
+      USE OCEAN, only : trmo,
+     &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
      *               toijl_conc,toijl_tflx,toijl_gmfl
 #endif
@@ -42,6 +46,7 @@ c
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff
       real*8, parameter :: byno=1./nocean
+      real*8 :: dtdum
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
@@ -249,16 +254,36 @@ c
 c
 c long-timestep advection of potential enthalpy, salt, and tracers
 c
-      CALL OADVT2 (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
+      dtdum = DTOLF
+      if(use_qus==1) then
+        CALL OADVT3 (G0M,
+     &     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
+     &     DTDUM,.FALSE.,OIJL(1,J_0H,1,IJL_GFLX))
+        CALL OADVT3 (S0M,
+     &     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO,
+     &     DTDUM,.TRUE.,OIJL(1,J_0H,1,IJL_SFLX))
+      else
+        CALL OADVT2 (G0M,GXMO,GYMO,GZMO,DTDUM,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
-      CALL OADVT2 (S0M,SXMO,SYMO,SZMO,DTOLF,.TRUE.
+        CALL OADVT2 (S0M,SXMO,SYMO,SZMO,DTDUM,.TRUE.
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
+      endif
 #ifdef TRACERS_OCEAN
-      DO N=1,NTM
-        CALL OADVT2(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
-     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
+      if(use_qus==1) then
+        DO N=1,NTM
+          CALL OADVT3(TRMO(1,J_0H,1,N),
+     &       TXMO (1,J_0H,1,N),TYMO (1,J_0H,1,N),TZMO (1,J_0H,1,N),
+     &       TXXMO(1,J_0H,1,N),TYYMO(1,J_0H,1,N),TZZMO(1,J_0H,1,N),
+     &       TXYMO(1,J_0H,1,N),TYZMO(1,J_0H,1,N),TZXMO(1,J_0H,1,N),
+     &       dtdum,t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_TFLX,N))
+        ENDDO
+      else
+        DO N=1,NTM
+          CALL OADVT2(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
+     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),dtdum,t_qlimit(n)
      *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
-      END DO
+        ENDDO
+      endif
 #endif
         CALL CHECKO ('OADVT ')
 

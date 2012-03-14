@@ -30,7 +30,8 @@ module TracerBundle_mod
   type TracerBundle_type
     private
     type (Dictionary_type) :: defaultValues
-    character(len=MAX_LEN_KEY), allocatable :: mandatoryProperties(:)
+!TODO: Should change to allocatable when compilers work
+    character(len=MAX_LEN_KEY), pointer :: mandatoryProperties(:)
     type (Tracer_type), pointer :: tracers(:) => null()
   end type TracerBundle_type
 
@@ -625,7 +626,10 @@ contains
     end do
     deallocate(this%tracers)
     call clean(this%defaultValues)
-    deallocate(this%mandatoryProperties)
+!    if (size(this%mandatoryProperties)>0) then
+!       print *, 'SIZE = ',size(this%mandatoryProperties)
+       deallocate(this%mandatoryProperties)
+!    end if
   end subroutine cleanBundle
 
 end module TracerBundle_mod

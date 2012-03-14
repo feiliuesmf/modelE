@@ -141,9 +141,7 @@ ifeq ($(FVCUBED),YES)
   else
     SYSTEM_MOD_DIRS = $(FVINCSx)
   endif
-  # If using Fortuna2-5 w/HDF5
-  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore 
-  #LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore 
+  LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lMAPL_Base_stubs2 -lGEOS_Shared -lMAPL_cfio -lMAPL_Base -lGMAO_mpeu -lFVdycoreCubed_GridComp -lfvdycore
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
   ifdef NETCDFHOME
@@ -196,7 +194,8 @@ ifeq ($(MPP),YES)
   FFLAGS += -I$(MPPDIR)/include
   F90FLAGS += -I$(MPPDIR)/include
   LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
-  # if using GFDL installation within GEOOS
+  # MPPDIR is the path of the GEOS5 installation
+  # if using GFDL installation within GEOS5
   #FFLAGS += -I$(MPPDIR)/include/GFDL_fms
   #F90FLAGS += -I$(MPPDIR)/include/GFDL_fms
   #LIBS += -L$(MPPDIR)/lib -lGFDL_fms

@@ -6,7 +6,7 @@ c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
       USE MODEL_COM, only :
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
-     * ,xlabel,lrunid
+     * ,xlabel,lrunid,monthi,datei
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
@@ -36,6 +36,8 @@ c
       integer*4 irecl ! specific record lenth, machine dependent
       logical, parameter :: smooth = .false.     ! smooth fields before saving
       data unused/0./
+      integer, parameter :: 
+     . mon_date(13)=(/0,31,59,90,120,151,181,212,243,273,304,334,365/)
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       print *,'stamp',Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
@@ -45,7 +47,7 @@ c --- check if ogcm date matches agcm date
       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
         write(*,*) 'mismatching archive date in agcm/ogcm=',
      .     (itime+1.)/nday,time
-        stop 'mismatching archive date'
+        stop 'mismatching archive date'   
       else
         write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
       endif
@@ -66,7 +68,6 @@ c
                                            ! irecl=1 on COMPAQ, irecl=4 on SGI
       length=((irecl*idm*JDM+no+15)/no)*no
 c
-      write (lp,'(a/9x,a)') 'storing history data in',flnm
 c
       call findunit(nop)
       open (unit=nop,file=flnm,status='unknown',form='unformatted',
@@ -77,13 +78,15 @@ c
       jdm4=jdm
       kdm4=kdm
       nstep4=nstep
-      time4=time
+c --- time4: model integration time in day; time: starts as Judian Date 
+      time4 = time - mon_date(monthi) - datei + 1
       do k=1,kk
         theta4(k)=theta(k)
       end do
       write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
      .             jmon,'/',jdate,'/',jyear,' hr ',jhour+nhr
-      print *,' flnm(1:17)=',flnm(1:17)
+      write (lp,'(a/9x,2a,f7.1)') 'storing history data in',flnm(1:17)
+     .               ,' date=',time4
       write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
      .      ,unused,theta4,flnm(1:17)
 c

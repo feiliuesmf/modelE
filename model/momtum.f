@@ -116,7 +116,7 @@ c
       vbot=vbavg(i,j,n)+vbavg(i,jb ,n)+util2(i,j)/thkbop
       botvel=.25*sqrt(ubot*ubot+vbot*vbot)+cbar
       ustarb(i,j)=sqrt(drcoef)*botvel
- 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)		! units: 1/s
+ 804  drag(i,j)=min(drcoef*botvel/thkbot,1./delt1)		! units: 1/s
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
 c --- time-interpolate wind stress
@@ -532,28 +532,31 @@ c --- set baroclinic velocity to zero one point away from bering strait seam
       if (haveLatitude(ogrid, J=jpac)) u(ipacs,jpac,kn)=0.
       if (haveLatitude(ogrid, J=jatl)) u(iatln,jatl,kn)=0.
 c
-cdiag write (lp,100) nstep
-cdiag do jcyc=jtest-1,jtest+1
-cdiag j =mod(jcyc-1+jj,jj)+1
-cdiag jb=mod(jcyc     ,jj)+1
-cdiag do i=itest-1,itest+1
-cdiag if (iu(i,j).gt.0) then
-cdiag write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
-cdiag.  util4(i,j),u(i,j,kn),-delt1*gradx(i,j)*scuxi(i,j),
-cdiag.  -delt1*scuxi(i,j)*
-cdiag. .25*(utotm(i+1,j)**2+vtotm(i  ,j)**2+vtotm(i  ,jb )**2
-cdiag.     -utotm(i-1,j)**2-vtotm(i-1,j)**2-vtotm(i-1,jb )**2),
-cdiag.   delt1*(vflux(i  ,j)+vflux(i  ,jb )+vflux(i-1,j)+vflux(i-1,jb ))
-cdiag.        *(potvor(i,j)+potvor(i,jb ))*.125,
-cdiag.  -delt1*ubrhs(i,j),delt1*stress(i,j),
-cdiag.  -delt1*(uflux1(i,j)-uflux1(i-1,j)
-cdiag.         +uflux3(i,j)-uflux2(i,j))/
-cdiag.         (scu2(i,j)*max(dpu(i,j,km),onemm))
-cdiag end if
-cdiag end do
-cdiag end do
+      if (itest.gt.0 .and. jtest.gt.0) then
+      if (jtest.ge.J_0 .and. jtest.le.J_1) then 
+      write (lp,100) nstep
+      do j=max(J_0, jtest-1), min(J_1, jtest+1)
+      jb = PERIODIC_INDEX(j+1, jj)
+      do i=itest-1,itest+1
+      if (iu(i,j).gt.0) then
+      write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
+     .  util4(i,j),u(i,j,kn),-delt1*gradx(i,j)*scuxi(i,j),
+     .  -delt1*scuxi(i,j)*
+     . .25*(utotm(i+1,j)**2+vtotm(i  ,j)**2+vtotm(i  ,jb )**2
+     .     -utotm(i-1,j)**2-vtotm(i-1,j)**2-vtotm(i-1,jb )**2),
+     .   delt1*(vflux(i  ,j)+vflux(i  ,jb )+vflux(i-1,j)+vflux(i-1,jb ))
+     .        *(potvor(i,j)+potvor(i,jb ))*.125,
+     .  -delt1*ubrhs(i,j),delt1*stress(i,j),
+     .  -delt1*(uflux1(i,j)-uflux1(i-1,j)
+     .         +uflux3(i,j)-uflux2(i,j))/
+     .         (scu2(i,j)*max(dpu(i,j,km),onemm))
+      end if
+      end do
+      end do
  100  format(i9,8x,'uold    unew   gradp  nonlin   corio',
      .3x,'ubrhs  stress    fric')
+      end if
+      end if
 c
 c --- ----------
 c --- v equation
@@ -728,28 +731,32 @@ c
      .-(vflux1(i,j)-vflux1(i,ja )
      . +vflux3(i,j)-vflux2(i,j))/(scv2(i,j)*max(dpv(i,j,km),onemm)))
 c
-cdiag write (lp,101) nstep
-cdiag do jcyc=jtest-1,jtest+1
-cdiag j =mod(jcyc-1+jj,jj)+1
-cdiag ja=mod(jcyc-2+jj,jj)+1
-cdiag do i=itest-1,itest+1
-cdiag if (iv(i,j).gt.0) then
-cdiag write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
-cdiag.  util4(i,j),v(i,j,kn),-delt1*grady(i,j)*scvyi(i,j),
-cdiag.  -delt1*scvyi(i,j)*
-cdiag. .25*(vtotm(i,jb )**2+utotm(i,j  )**2+utotm(i+1,j  )**2
-cdiag.     -vtotm(i,ja )**2-utotm(i,ja )**2-utotm(i+1,ja )**2),
-cdiag.  -delt1*(uflux(i,j  )+uflux(i+1,j  )+uflux(i,ja )+uflux(i+1,ja ))
-cdiag.        *(potvor(i,j)+potvor(i+1,j))*.125,
-cdiag.  -delt1*vbrhs(i,j),delt1*stress(i,j),
-cdiag.  -delt1*(vflux1(i,j)-vflux1(i,ja )
-cdiag.         +vflux3(i,j)-vflux2(i,j))/
-cdiag.         (scv2(i,j)*max(dpv(i,j,km),onemm))
-cdiag end if
-cdiag end do
-cdiag end do
+      if (itest.gt.0 .and. jtest.gt.0) then
+      if (jtest.ge.J_0 .and. jtest.le.J_1) then 
+      write (lp,101) nstep
+      do j=max(J_0, jtest-1), min(J_1, jtest+1)
+      ja = PERIODIC_INDEX(j-1, jj)
+      jb = PERIODIC_INDEX(j+1, jj)
+      do i=itest-1,itest+1
+      if (iv(i,j).gt.0) then
+      write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
+     .  util4(i,j),v(i,j,kn),-delt1*grady(i,j)*scvyi(i,j),
+     .  -delt1*scvyi(i,j)*
+     . .25*(vtotm(i,jb )**2+utotm(i,j  )**2+utotm(i+1,j  )**2
+     .     -vtotm(i,ja )**2-utotm(i,ja )**2-utotm(i+1,ja )**2),
+     .  -delt1*(uflux(i,j  )+uflux(i+1,j  )+uflux(i,ja )+uflux(i+1,ja ))
+     .        *(potvor(i,j)+potvor(i+1,j))*.125,
+     .  -delt1*vbrhs(i,j),delt1*stress(i,j),
+     .  -delt1*(vflux1(i,j)-vflux1(i,ja )
+     .         +vflux3(i,j)-vflux2(i,j))/
+     .         (scv2(i,j)*max(dpv(i,j,km),onemm))
+      end if
+      end do
+      end do
  101  format(i9,8x,'vold    vnew   gradp  nonlin   corio',
      .3x,'vbrhs  stress    fric')
+      end if
+      end if
 c
  9    continue
 c

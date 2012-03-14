@@ -48,7 +48,7 @@ U10=CORE/R1/CNYF_2/u.nc
 V10=CORE/R1/CNYF_2/v.nc
 RUNOFF=CORE/R1/runoff.nc
 SSS=CORE/R1/srfsal.nc
-RSI=CORE/R1/SICE_288x180.1975-1984avg.HadISST1.1.nc
+RSI=CORE/R1/SICE_288x180x365.1975-1984avg.HadISST1.1.nc
 
 #include "dynamic_ocn_288x180_input_files_AR5"
 
@@ -72,6 +72,7 @@ paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
 OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
 DTO=112.5
+!ocean_use_qus=1     ! Advection uses the quadratic upstream scheme
 
 Ndisk=960
 KCOPY=2          ! saving acc + rsf
