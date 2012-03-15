@@ -93,6 +93,9 @@ c
         if(ndims.ne.2) cycle
         dids = -1
         status = nf_inq_vardimid(fid,varid,dids)
+        vname =''
+        status = nf_inq_varname(fid,varid,vname)
+        if(index(vname,'_hemis').gt.0) cycle
         if(single_pair_of_dims) then
           if(count(dids.eq.did1).ne.1) cycle
           if(count(dids.eq.did2).ne.1) cycle
@@ -123,7 +126,6 @@ c
           if(nf_get_att_text(fid,varid2,'giss_name',cy).ne.nf_noerr)
      &         cy = dimname2
         endif
-        status = nf_inq_varname(fid,varid,vname)
 
         lname = vname
         status = nf_get_att_text(fid,varid,'long_name',lname)
