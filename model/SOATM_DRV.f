@@ -23,6 +23,15 @@
 !@+       relaxation back to observations in the presence of sea ice
       real*8 :: sss_restore_dtice=30.
 
+!@dbparam interannual_forcing==1 if using interannual atmospheriric
+!@+       forcing files
+      integer :: interannual_forcing=0
+!@dbparam iaf_year_[start,end] first and last years of forcing history.
+!@var iaf_year current forcing year
+!@+        == jyear modulo 1+iaf_year_end-iaf_year_start
+      integer :: iaf_year_start=1948, iaf_year_end=2007
+      integer :: iaf_year_sv=-999, iaf_year
+
       end module core_data
 
       subroutine alloc_core_data
@@ -34,6 +43,11 @@
 
       call sync_param("sss_restore_dt",sss_restore_dt)
       call sync_param("sss_restore_dtice",sss_restore_dtice)
+      call sync_param("interannual_forcing",interannual_forcing)
+      if(interannual_forcing==1) then
+        call sync_param("iaf_year_start",iaf_year_start)
+        call sync_param("iaf_year_end",iaf_year_end)
+      endif
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -93,6 +107,35 @@ c read river discharge
       fid = par_open(grid,'RUNOFF','read')
       call read_dist_data(grid, fid, 'Foxx_o_roff', runoff)
       call par_close(grid,fid)
+c read sea surface salinity
+      fid = par_open(grid,'SSS','read')
+      call read_dist_data(grid, fid, 'SALT', srfsal0)
+      call par_close(grid,fid)
+c read sea ice fraction
+      fid = par_open(grid,'RSI','read')
+      call read_dist_data(grid, fid, 'rsi', rsi)
+      call par_close(grid,fid)
+c
+c create parabolic coeffs for each time interval
+c
+      do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          if(atmocn%focean(i,j).le.0.) cycle
+c
+          n = 12
+          f12 = srfsal0(i,j,:)
+          call coeffs1d_pos(f12,a12,b12,c12,n,n)
+          srfsal0(i,j,:) = a12
+          srfsal1(i,j,:) = b12
+          srfsal2(i,j,:) = c12
+c
+        enddo
+      enddo
+
+c
+c read normal-year files if appropriate
+c
+      if(interannual_forcing==0) then
 c read precip
       fid = par_open(grid,'PREC','read')
       call read_dist_data(grid, fid, 'PREC_RAW', prec0)
@@ -118,14 +161,6 @@ c read SLP and 10-m u,v,t,q
       fid = par_open(grid,'V10','read')
       call read_dist_data(grid, fid, 'V_10', vs0)
       call par_close(grid,fid)
-c read sea surface salinity
-      fid = par_open(grid,'SSS','read')
-      call read_dist_data(grid, fid, 'SALT', srfsal0)
-      call par_close(grid,fid)
-c read sea ice fraction
-      fid = par_open(grid,'RSI','read')
-      call read_dist_data(grid, fid, 'rsi', rsi)
-      call par_close(grid,fid)
 c
 c create parabolic coeffs for each time interval
 c
@@ -135,75 +170,205 @@ c
 c
           n = 12
           f12 = prec0(i,j,:)
-          call coeffs1d_pos(f12,a12,b12,c12,n)
+          call coeffs1d_pos(f12,a12,b12,c12,n,n)
           prec0(i,j,:) = a12
           prec1(i,j,:) = b12
           prec2(i,j,:) = c12
 c
-          n = 12
-          f12 = srfsal0(i,j,:)
-          call coeffs1d_pos(f12,a12,b12,c12,n)
-          srfsal0(i,j,:) = a12
-          srfsal1(i,j,:) = b12
-          srfsal2(i,j,:) = c12
-c
           n = 365
           f365 = lwdn0(i,j,:)
-          call coeffs1d_pos(f365,a365,b365,c365,n)
+          call coeffs1d_pos(f365,a365,b365,c365,n,n)
           lwdn0(i,j,:) = a365
           lwdn1(i,j,:) = b365
           lwdn2(i,j,:) = c365
 c
           n = 365
           f365 = swdn0(i,j,:)
-          call coeffs1d_pos(f365,a365,b365,c365,n)
+          call coeffs1d_pos(f365,a365,b365,c365,n,n)
           swdn0(i,j,:) = a365
           swdn1(i,j,:) = b365
           swdn2(i,j,:) = c365
 c
           n = 1460
           f1460 = psl0(i,j,:)
-          call coeffs1d_pos(f1460,a1460,b1460,c1460,n)
+          call coeffs1d_pos(f1460,a1460,b1460,c1460,n,n)
           psl0(i,j,:) = a1460
           psl1(i,j,:) = b1460
           psl2(i,j,:) = c1460
 c
           n = 1460
           f1460 = ts0(i,j,:)
-          call coeffs1d_pos(f1460,a1460,b1460,c1460,n)
+          call coeffs1d_pos(f1460,a1460,b1460,c1460,n,n)
           ts0(i,j,:) = a1460
           ts1(i,j,:) = b1460
           ts2(i,j,:) = c1460
 c
           n = 1460
           f1460 = qs0(i,j,:)
-          call coeffs1d_pos(f1460,a1460,b1460,c1460,n)
+          call coeffs1d_pos(f1460,a1460,b1460,c1460,n,n)
           qs0(i,j,:) = a1460
           qs1(i,j,:) = b1460
           qs2(i,j,:) = c1460
 c
           n = 1460
           f1460 = us0(i,j,:)
-          call coeffs1d(f1460,a1460,b1460,c1460,n)
+          call coeffs1d(f1460,a1460,b1460,c1460,n,n)
           us0(i,j,:) = a1460
           us1(i,j,:) = b1460
           us2(i,j,:) = c1460
 c
           n = 1460
           f1460 = vs0(i,j,:)
-          call coeffs1d(f1460,a1460,b1460,c1460,n)
+          call coeffs1d(f1460,a1460,b1460,c1460,n,n)
           vs0(i,j,:) = a1460
           vs1(i,j,:) = b1460
           vs2(i,j,:) = c1460
 c
         enddo
       enddo
+      endif ! not interannual forcing
       return
       end subroutine read_core_data
 
-      subroutine coeffs1d(fm,c0,c1,c2,n)
+      subroutine read_core_interannual_data
+c assumptions regarding input files:
+c   1. forcing history stored with separate files for each year
+c   2. files are padded with four extra timesteps (two at the
+c      beginning of the year, two at the end) to facilitate
+c      time interpolation.
+      use domain_decomp_atm, only : grid
+      use fluxes, only : atmocn
+      use core_data
+      use pario, only : par_open,par_close,read_dist_data
+      integer :: fid
+      integer :: i,j,n,n2
+      integer :: i_0h,i_1h,j_0h,j_1h
+      real*8, dimension(16) :: f16,a16,b16,c16
+      real*8, dimension(369) :: f369,a369,b369,c369
+      real*8, dimension(1464) :: f1464,a1464,b1464,c1464
+c
+      real*8, dimension(:,:,:), allocatable ::
+     &     swdn0_,lwdn0_,prec0_,psl0_,ts0_,qs0_,us0_,vs0_
+c
+      character(len=4) :: cyr
+
+c
+      write(cyr,'(i4)') iaf_year
+c
+      i_0h = grid%i_strt_halo
+      i_1h = grid%i_stop_halo
+      j_0h = grid%j_strt_halo
+      j_1h = grid%j_stop_halo
+
+      allocate(prec0_(i_0h:i_1h,j_0h:j_1h,16))
+      allocate(swdn0_(i_0h:i_1h,j_0h:j_1h,369))
+      allocate(lwdn0_(i_0h:i_1h,j_0h:j_1h,369))
+      allocate(psl0_(i_0h:i_1h,j_0h:j_1h,1464))
+      allocate(ts0_(i_0h:i_1h,j_0h:j_1h,1464))
+      allocate(qs0_(i_0h:i_1h,j_0h:j_1h,1464))
+      allocate(us0_(i_0h:i_1h,j_0h:j_1h,1464))
+      allocate(vs0_(i_0h:i_1h,j_0h:j_1h,1464))
+
+c read precip
+      fid = par_open(grid,'IAF/precip.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'PREC_RAW', prec0_)
+      call par_close(grid,fid)
+c read radiation
+      fid = par_open(grid,'IAF/rad.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'SWDN', swdn0_)
+      call read_dist_data(grid, fid, 'LWDN', lwdn0_)
+      call par_close(grid,fid)
+c read SLP and 10-m u,v,t,q
+      fid = par_open(grid,'IAF/slp.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'SLP', psl0_)
+      call par_close(grid,fid)
+      fid = par_open(grid,'IAF/t.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'T_10', ts0_)
+      call par_close(grid,fid)
+      fid = par_open(grid,'IAF/q.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'Q_10', qs0_)
+      call par_close(grid,fid)
+      fid = par_open(grid,'IAF/u.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'U_10', us0_)
+      call par_close(grid,fid)
+      fid = par_open(grid,'IAF/v.'//cyr//'.nc','read')
+      call read_dist_data(grid, fid, 'V_10', vs0_)
+      call par_close(grid,fid)
+
+c
+c create parabolic coeffs for each time interval
+c
+      do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          if(atmocn%focean(i,j).le.0.) cycle
+c
+          n = 16; n2 = 12
+          f16 = prec0_(i,j,:)
+          call coeffs1d_pos(f16,a16,b16,c16,n,n2)
+          prec0(i,j,:) = a16(3:14)
+          prec1(i,j,:) = b16(3:14)
+          prec2(i,j,:) = c16(3:14)
+c
+          n = 369; n2 = 365
+          f369 = lwdn0_(i,j,:)
+          call coeffs1d_pos(f369,a369,b369,c369,n,n2)
+          lwdn0(i,j,:) = a369(3:367)
+          lwdn1(i,j,:) = b369(3:367)
+          lwdn2(i,j,:) = c369(3:367)
+c
+          n = 369; n2 = 365
+          f369 = swdn0_(i,j,:)
+          call coeffs1d_pos(f369,a369,b369,c369,n,n2)
+          swdn0(i,j,:) = a369(3:367)
+          swdn1(i,j,:) = b369(3:367)
+          swdn2(i,j,:) = c369(3:367)
+c
+          n = 1464; n2 = 1460
+          f1464 = psl0_(i,j,:)
+          call coeffs1d_pos(f1464,a1464,b1464,c1464,n,n2)
+          psl0(i,j,:) = a1464(3:1462)
+          psl1(i,j,:) = b1464(3:1462)
+          psl2(i,j,:) = c1464(3:1462)
+c
+          n = 1464; n2 = 1460
+          f1464 = ts0_(i,j,:)
+          call coeffs1d(f1464,a1464,b1464,c1464,n,n2)
+          ts0(i,j,:) = a1464(3:1462)
+          ts1(i,j,:) = b1464(3:1462)
+          ts2(i,j,:) = c1464(3:1462)
+c
+          n = 1464; n2 = 1460
+          f1464 = qs0_(i,j,:)
+          call coeffs1d_pos(f1464,a1464,b1464,c1464,n,n2)
+          qs0(i,j,:) = a1464(3:1462)
+          qs1(i,j,:) = b1464(3:1462)
+          qs2(i,j,:) = c1464(3:1462)
+c
+          n = 1464; n2 = 1460
+          f1464 = us0_(i,j,:)
+          call coeffs1d(f1464,a1464,b1464,c1464,n,n2)
+          us0(i,j,:) = a1464(3:1462)
+          us1(i,j,:) = b1464(3:1462)
+          us2(i,j,:) = c1464(3:1462)
+c
+          n = 1464; n2 = 1460
+          f1464 = vs0_(i,j,:)
+          call coeffs1d(f1464,a1464,b1464,c1464,n,n2)
+          vs0(i,j,:) = a1464(3:1462)
+          vs1(i,j,:) = b1464(3:1462)
+          vs2(i,j,:) = c1464(3:1462)
+c
+        enddo
+      enddo
+
+      deallocate(swdn0_,lwdn0_,prec0_,psl0_,ts0_,qs0_,us0_,vs0_)
+
+      return
+      end subroutine read_core_interannual_data
+
+      subroutine coeffs1d(fm,c0,c1,c2,n,ndx)
       implicit none
-      integer :: n
+      integer :: n,ndx
       real*8, parameter :: twoby3=2d0/3d0
       real*8, parameter :: c712=7d0/12d0,c112=1d0/12d0
       real*8, dimension(n) :: fm,c0,c1,c2
@@ -214,9 +379,9 @@ c
       fm_(0) = fm(n)
       fm_(1:n) = fm(1:n)
       fm_(n+1:n+2) = fm(1:2)
-      dx = 1d0/real(n,kind=8)
-      xl = 0.
-      xr = 0.
+      dx = 1d0/real(ndx,kind=8)
+      xl = -dx*real((n-ndx)/2,kind=8)
+      xr = xl
       i = n
       fl = c712*(fm_(i)+fm_(i+1))-c112*(fm_(i-1)+fm_(i+2))
       do i=1,n
@@ -232,9 +397,9 @@ c
       return
       end subroutine coeffs1d
 
-      subroutine coeffs1d_pos(fm,c0,c1,c2,n)
+      subroutine coeffs1d_pos(fm,c0,c1,c2,n,ndx)
       implicit none
-      integer :: n
+      integer :: n,ndx
       real*8, parameter :: twoby3=2d0/3d0,by3=1d0/3d0
       real*8, parameter :: c712=7d0/12d0,c112=1d0/12d0
 c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
@@ -247,9 +412,9 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       fm_(0) = fm(n)
       fm_(1:n) = fm(1:n)
       fm_(n+1:n+2) = fm(1:2)
-      dx = 1d0/real(n,kind=8)
-      xl = 0.
-      xr = 0.
+      dx = 1d0/real(ndx,kind=8)
+      xl = -dx*real((n-ndx)/2,kind=8)
+      xr = xl
       i = n
       fl = c712*(fm_(i)+fm_(i+1))-c112*(fm_(i-1)+fm_(i+2))
       do i=1,n
@@ -292,7 +457,7 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
 
       subroutine get_ocean_forcings
       use constant, only : lhm,tf,sday
-      use model_com, only : dtsrc,jmon,jday,nday,itime
+      use model_com, only : dtsrc,jmon,jyear,jday,nday,itime
       use domain_decomp_atm, only : grid
       use geom, only : axyp
       use fluxes, only : atmocn,atmice
@@ -305,6 +470,20 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       real*8 :: oevg,oprg,ebyp,t,rsiloc,sssresfac,sssresfac_ice
       integer :: i,j,l,n,j6hr,itmod,itperyr,jmm
       integer :: i_0,i_1, j_0,j_1
+
+      if(interannual_forcing==1) then
+        if(jyear < iaf_year_start) then
+          write(6,*) 'please set model year >= iaf_year_start'
+          call stop_model('model year < iaf_year_start',255)
+        endif
+        iaf_year = iaf_year_start +
+     &       mod(jyear-iaf_year_start,1+iaf_year_end-iaf_year_start)
+        if(iaf_year.ne.iaf_year_sv) then
+          call read_core_interannual_data        
+          iaf_year_sv = iaf_year
+        endif
+      endif
+
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       J_0 = grid%J_STRT

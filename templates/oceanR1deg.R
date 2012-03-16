@@ -39,6 +39,7 @@ Data input files:
 AIC=CORE/empty_AIC
 GIC=GIC.288X180.DEC01.1.ext.nc
 
+IAF=CORE/R1/IAF
 PREC=CORE/R1/CNYF_2/precip.nc
 RAD=CORE/R1/CNYF_2/rad.nc
 SLP=CORE/R1/CNYF_2/slp.nc
@@ -73,6 +74,10 @@ OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
 OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
 DTO=112.5
 !ocean_use_qus=1     ! Advection uses the quadratic upstream scheme
+
+!interannual_forcing=1 ! atm. forcing history varies with year
+!iaf_year_start=1948   ! first year of forcing history
+!iaf_year_end=2007     ! last year of forcing history
 
 Ndisk=960
 KCOPY=2          ! saving acc + rsf
