@@ -2685,6 +2685,7 @@ C**** Zero out fluxes
       ps = atmocn%srfp(i,j)*100.
 
       ws = sqrt(us*us+vs*vs)
+      atmocn%wsavg(i,j) = ws
 
 C****
 C**** DETERMINE SURFACE CONDITIONS

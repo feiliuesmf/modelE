@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=64,KOIJL=33,KOL=6,KOLNST=8,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=70,KOIJL=33,KOL=6,KOLNST=8,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -58,11 +58,12 @@
        character(len=5)str3
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
-     .           ,ij_cocc,ij_doc,IJ_alk
+     .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
      .           ,ij_lim(4,5),ilim,ij_ndet
      .           ,ij_DICrhs1,ij_DICrhs2   
      .           ,ij_DICrhs3,ij_DICrhs4,ij_DICrhs5,ij_xchl   
+     .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
 #ifdef TRACERS_Alkalinity
      .           ,ij_fca
 #endif
@@ -1213,6 +1214,29 @@ c
       scale_oij(k) = 1
 
 #ifdef TRACERS_OceanBiology
+      k=k+1
+      IJ_solz=k
+      lname_oij(k)="Cos Solar Zenith Angle"
+      sname_oij(k)="oij_solz"
+      units_oij(k)="xxxx"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      k=k+1
+      IJ_sunz=k
+      lname_oij(k)="Solar Zenith Angle"
+      sname_oij(k)="oij_sunz"
+      units_oij(k)="degrees"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_dayl=k
+      lname_oij(k)="Daylight length"
+      sname_oij(k)="oij_dayl"
+      units_oij(k)="timesteps"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
       k=k+1
       IJ_Ed=k
       lname_oij(k)="Surface Ocean Direct Sunlight"

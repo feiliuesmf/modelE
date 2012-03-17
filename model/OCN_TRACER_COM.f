@@ -97,6 +97,7 @@ C**** a default tracer if nothing else is defined
 #endif
 
       LOGICAL, DIMENSION(ntm) :: t_qlimit=.true. 
+      LOGICAL, DIMENSION(ntm) :: need_ic=.false.
       INTEGER, DIMENSION(ntm) :: itime_tr0 = 0
       INTEGER :: n_water = 0
 
@@ -116,14 +117,16 @@ C****     it will prove useful.
       INTEGER, DIMENSION(:), ALLOCATABLE ::
      &     itime_tr0, ntrocn, to_per_mil
       LOGICAL, DIMENSION(:), ALLOCATABLE ::
-     &     t_qlimit, conc_from_fw
+     &     t_qlimit, conc_from_fw, need_ic
       REAL*8, DIMENSION(:), ALLOCATABLE ::
      &     trdecay, trw0
       CHARACTER(LEN=10), DIMENSION(:), ALLOCATABLE ::
      &     trname
 
 #endif
-      INTEGER :: n_age = 0, n_obio = 0
+      INTEGER :: n_age=0, n_obio=0, n_vent=0, n_wms1=0, n_wms2=0
+     .          ,n_wms3=0,n_dets,n_cfc,n_dic
+
 
       real*8, allocatable :: expdec(:)
 
@@ -161,7 +164,7 @@ C****     it will prove useful.
       character(len=128) :: trname_list
       character(len=10) :: trname_(50)
       integer :: i,ier
-      integer :: img, jmg, lmg
+      integer :: img, jmg, lmg, n
       if (am_i_root()) then
         img = im
         jmg = jm
@@ -187,8 +190,11 @@ C****     it will prove useful.
         ! RUNTIME_NTM_OCEAN is currently only being used for
         ! a few simple tracers, so just set defaults for those.
         allocate(trw0(ntm)); trw0(:) = 0.
+        allocate(trdecay(ntm)); trdecay(:) = 0.
         allocate(to_per_mil(ntm)); to_per_mil = 0
         allocate(t_qlimit(ntm)); t_qlimit=.true.
+        allocate(conc_from_fw(ntm)); conc_from_fw=.false.
+        allocate(need_ic(ntm)); need_ic=.false.
       else
         call stop_model('RUNTIME_NTM_OCEAN needs ocean_trname',255)
       endif
@@ -246,6 +252,20 @@ C****     it will prove useful.
       ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
       ALLOCATE( TYMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
       ALLOCATE( TZMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+
+      do n=1,ntm
+       if (trname(n).eq.'OceanAge') n_age = n
+       if (trname(n).eq.'Ventilatn') n_vent = n
+       if (trname(n).eq.'WatrMass1') n_wms1 = n
+       if (trname(n).eq.'WatrMass2') n_wms2 = n
+       if (trname(n).eq.'WatrMass3') n_wms3 = n
+       if (trname(n).eq.'DetSet') n_dets = n
+       if (trname(n).eq.'CFC') n_cfc = n
+       if (trname(n).eq.'DIConly') then
+                  n_dic = n
+                 need_ic(n_dic)=.true.
+       endif
+      enddo
 
       return
       end subroutine alloc_ocn_tracer_com

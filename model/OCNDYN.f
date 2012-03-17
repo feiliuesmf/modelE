@@ -321,7 +321,7 @@
 #endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean
-      Use OCN_TRACER_COM, Only: ntm
+      Use OCN_TRACER_COM, Only: ntm, need_ic
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -379,7 +379,9 @@ C**** define initial condition options for global mean
       call alloc_ofluxes(atmocn)
 
 #ifdef TRACERS_OceanBiology
+#ifdef TRACERS_GASEXCH_ocean_CO2
       call obio_exports_init()
+#endif
       call obio_forc_init()
 #endif
 
@@ -746,7 +748,11 @@ C***  Initialize ODIFF
       call init_ODIFF(grid)
 
 #ifdef TRACERS_OCEAN
+      do nt=1,ntm
+      if (need_ic(nt)) then
       call tracer_ic_ocean(atmocn)
+      endif
+      enddo
 #endif
 
 c-------------------------------------------------------------------
@@ -1483,7 +1489,7 @@ c tracer arrays in straits
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
 #endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+#ifdef TRACERS_OceanBiology
       call def_rsf_obio(fid)
 #endif
 #endif
@@ -1689,7 +1695,7 @@ c tracer arrays in straits
 #endif
       end select
 
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+#ifdef TRACERS_OceanBiology
       call new_io_obio(fid,iaction)
 #endif
 

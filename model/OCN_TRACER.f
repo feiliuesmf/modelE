@@ -69,7 +69,7 @@ C**** only TRACERS_WATER is true.
 
       do n=1,ntm
 
-        if (trname(n).eq.'Age') n_age=n
+        if (trname(n).eq.'OceanAge') n_age=n
 
         if (itime.eq.itime_tr0(n)) then
         select case (trname(n)(1:6))
