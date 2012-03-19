@@ -275,6 +275,11 @@ c
       type(atmocn_xchng_vars) :: atmocn
       type(atmice_xchng_vars) :: atmice
 
+#ifdef CONSTANT_OCEAN_ALBEDO
+!@dbparam const_ocean_albedo constant ocean albedo to use
+      real*8 :: ocean_albedo_const
+#endif
+
       end module fluxes
 
       subroutine alloc_fluxes
@@ -290,10 +295,15 @@ c
 #else
       use ocean, only : focean,dxypo,olon_dg,olat_dg,dlatm,sinic,cosic
 #endif
+      use dictionary_mod
       implicit none
       integer :: i_0h, i_1h, j_1h, j_0h
       integer :: i, j, i_0, i_1, j_1, j_0
       integer :: ier
+
+#ifdef CONSTANT_OCEAN_ALBEDO
+      call get_param( 'ocean_albedo_const', ocean_albedo_const )
+#endif
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo

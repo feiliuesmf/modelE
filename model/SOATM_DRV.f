@@ -2607,6 +2607,9 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
      &     grav,rhow
       USE MODEL_COM, only : dtsrc
       use fluxes, only : atmocn,atmice
+#ifdef CONSTANT_OCEAN_ALBEDO
+      use fluxes, only : ocean_albedo_const
+#endif
       use geom, only : axyp,lat2d
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : GET,GLOBALSUM,hasNorthPole
@@ -2714,6 +2717,12 @@ C****
      i     flag_dsws(i,j),
      o     OCNALB,SIALB
      &     )
+
+#if (defined CONSTANT_OCEAN_ALBEDO)
+      OCNALB = ocean_albedo_const
+#elif (defined CORE2_OCEAN_ALBEDO)
+      OCNALB = .069d0 - .011d0*cos(2d0*lat2d(i,j))
+#endif
 
       SRHEAT = atmocn%FSHORT(I,J)*atmocn%COSZ1(I,J)/
      &     (COSZ_DAY(I,J)+teeny)
