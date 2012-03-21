@@ -332,7 +332,7 @@ c
       type(iceocn_xchng_vars) :: dynsice
 c
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
-     *     ,iu_TOPO,II,JJ,flagij
+     *     ,iu_TOPO,II,JJ,flagij,nt
       REAL*4, DIMENSION(:,:,:), ALLOCATABLE:: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ

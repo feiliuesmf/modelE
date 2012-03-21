@@ -9,7 +9,7 @@ c-----------------------------------------------------------------------------
 
       public alloc_hycom_dim,init_hycom_grid
 
-      public ntrcr,ii,jj,kk,ii1
+      public ii,jj,kk,ii1
       public I_0,  I_1,  J_0,  J_1, I_0H, I_1H, J_0H, J_1H
       public aI_0, aI_1, aJ_0, aJ_1,aI_0H,aI_1H,aJ_0H,aJ_1H
       public ogrid
@@ -37,34 +37,43 @@ c-----------------------------------------------------------------------------
 #endif
       integer, public, parameter :: iio=idm,jjo=jdm
 
-#if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) \
-   || (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES) \
-   || (defined TRACERS_ZEBRA)
-
+#if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
+    || defined(TRACERS_OCEAN_WATER_MASSES) || defined(TRACERS_ZEBRA)
 #ifdef TRACERS_ZEBRA
-      integer, parameter :: ntrcr = 26
-#endif
+      integer, public, parameter :: ntrcr_zebra = 26
+#else
+      integer, public, parameter :: ntrcr_zebra = 0
 
-#if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) 
-      integer, parameter :: ntrcr = 1
 #endif
-
+#ifdef TRACERS_HYCOM_Ventilation
+      integer, public, parameter :: ntrcr_vent = 1
+#else
+      integer, public, parameter :: ntrcr_vent = 0
+#endif
+#ifdef TRACERS_AGE_OCEAN
+      integer, public, parameter :: ntrcr_age = 1
+#else
+      integer, public, parameter :: ntrcr_age = 0
+#endif
 #ifdef TRACERS_OCEAN_WATER_MASSES 
-      integer, parameter :: ntrcr = 2
+      integer, public, parameter :: ntrcr_wm = 2
+#else
+      integer, public, parameter :: ntrcr_wm = 0
+#endif
 #endif
 
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_Alkalinity
-      integer, parameter :: ntrcr = 16
+      integer, public, parameter :: ntrcr_obio = 16
 #else
-      integer, parameter :: ntrcr = 15
+      integer, public, parameter :: ntrcr_obio = 15
 #endif
+#else
+      integer, public, parameter :: ntrcr_obio = 0
 #endif  /*oceanbiology*/
 
-#else
-      !default
-      integer, parameter :: ntrcr = 1
-#endif   /*ventilatioin,age,water masses,ocean biology*/
+      integer, public ::  ntrcr = max(1,ntrcr_zebra + ntrcr_vent 
+     .                          + ntrcr_age + ntrcr_wm + ntrcr_obio)
 
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land
