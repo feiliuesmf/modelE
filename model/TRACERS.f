@@ -495,19 +495,17 @@ c
       END SUBROUTINE set_generic_tracer_diags
 
 
-      SUBROUTINE apply_tracer_2Dsource(dtstep)
+      SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE RESOLUTION, only : jm
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM, only : NTM
-     &     ,trm,trmom,ntsurfsrc,ntisurfsrc,trname
+      USE TRACER_COM, only : NTM,ntsurfsrc
 #ifdef TRACERS_TOMAS
      &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
 #endif
-      USE FLUXES, only : trsource,trflux1,trsrfflx
+      USE FLUXES, only : trsource,trflux1
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
@@ -516,7 +514,6 @@ c
       INTEGER n,ns,naij,najl,j,i
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO
      *     ,grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
-      REAL*8 ftr1
 
       INTEGER :: J_0, J_1, I_0, I_1
 #ifdef TRACERS_TOMAS
@@ -571,6 +568,35 @@ C**** diagnostics
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
+      end do
+      RETURN
+      END SUBROUTINE sum_prescribed_tracer_2Dsources
+
+      SUBROUTINE apply_tracer_2Dsource(dtstep)
+!@sum apply_tracer_2Dsource adds surface sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
+      USE GEOM, only : imaxj
+      USE QUSDEF, only : mz,mzz
+      USE TRACER_COM, only : NTM,trm,trmom
+      USE FLUXES, only : trflux1,trsrfflx
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: dtstep
+      INTEGER n,i,j
+      REAL*8 ftr1
+
+      INTEGER :: J_0, J_1, I_0, I_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      
+C**** This is tracer independent coding designed to work for all
+C**** surface sources.
+C**** Note that tracer flux is added to first layer either implicitly
+C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
+
+      do n=1,ntm
 
        do j=j_0,j_1
 C**** modify vertical moments (only from non-interactive sources)

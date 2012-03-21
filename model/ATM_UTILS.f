@@ -206,9 +206,9 @@ C****
 !@sum  CALC_AMPK calculate air mass and pressure arrays
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p
+      USE ATM_COM, only : p,srfp,srfpk,p1,am1,byam1
       USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
@@ -254,6 +254,10 @@ C**** Fill in polar boxes
             PEK  (L,I,J) = PEDNL (L)**KAPA
             BYAM (L,I,J) = 1./AM(L,I,J)
           END DO
+          P1(I,J) = PMID(1,I,J)
+          SRFPK(I,J) = PEK(1,I,J)
+          AM1(I,J) = AM(1,I,J)
+          BYAM1(I,J) = BYAM(1,I,J)
 
           IF (LMAX.ge.LM) THEN
             PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
@@ -262,6 +266,8 @@ C**** Fill in polar boxes
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
       END DO
+
+      SRFP = P+PTOP ! todo: remove these lines from from ATM_DRV
 
       RETURN
       END SUBROUTINE CALC_AMPK

@@ -180,6 +180,11 @@ c**** output
         LOGICAL :: qdust
 #endif
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+        integer :: moddd,ih,ihm
+#endif
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
         real*8 :: DMS_flux,ss1_flux,ss2_flux

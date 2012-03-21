@@ -6973,10 +6973,10 @@ c
 c
       k=k+1
       IDD_WS2=k
-      name_dd(k)='WS^2'
+      name_dd(k)='WS2'
       units_dd(k)='m^2/s^2'
       scale_dd(k)=1.
-      lname_dd(k)=' WS^2'
+      lname_dd(k)=' WS2'
 c
       k=k+1
       IDD_USTAR=k

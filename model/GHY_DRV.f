@@ -20,7 +20,7 @@ c******************   TRACERS             ******************************
       use sle001,ONLY : aevap
 #endif
       use tracer_com, only : NTM
-     *     ,itime_tr0,needtrs,trm,trmom,ntsurfsrc
+     *     ,itime_tr0,needtrs
      *     ,trname
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
@@ -49,11 +49,11 @@ c******************   TRACERS             ******************************
     (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : imDust
 #endif
-      use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv,
+      use trdiag_com, only : taijn=>taijn_loc,
      *   taijs=>taijs_loc,ijts_isrc,jls_isrc,
      *   itcon_surf
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,tij_soil,tij_snow,tre_acc
+     *     ,tij_soil,tij_snow,tre_acc
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd,ijts_Sdrydep
@@ -71,7 +71,7 @@ c******************   TRACERS             ******************************
      &     ,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
-      use fluxes, only : trsource,trsrfflx
+      use fluxes, only : trsrfflx,trflux1
 #ifdef TRACERS_WATER
      *     ,trunoe,trprec
 #endif
@@ -96,7 +96,6 @@ ccc extra stuff which was present in "earth" by default
       use ghy_com, only : ngm,nlsn
       use constant, only : rhow
 #endif
-      use atm_com, only : byam
       use geom, only : byaxyp
 
       implicit none
@@ -107,7 +106,6 @@ ccc extra stuff which was present in "earth" by default
       public ghy_tracers_set_cell
       public ghy_tracers_save_cell
 
-      real*8, allocatable :: totflux(:)
       integer, allocatable :: ntix(:)
       integer ntx
       integer, parameter :: itype=4
@@ -136,7 +134,6 @@ ccc extra stuff which was present in "earth" by default
 ! one time only allocations.
       if (ifirst) then
         ifirst = .false.
-        allocate(totflux(ntm))
         allocate(ntix(ntm))
       end if
 
@@ -210,12 +207,11 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-      USE constant,ONLY : By3,sday
+      USE constant,ONLY : sday
       USE model_com,ONLY : jday,jmon
-      USE clouds_com,ONLY : ddml,fss
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth,wfcs
-      use tracers_dust,only : nAerocomDust,d_dust,ers_data,hbaij,ricntd
+      use tracers_dust,only : nAerocomDust,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,mineralFractions
@@ -232,7 +228,7 @@ ccc extra stuff which was present in "earth" by default
       real*8, intent(in) :: qg,evap_max,ptype
       type (t_pbl_args), intent(inout) :: pbl_args
       real*8, intent(in) :: qm1
-      integer n,nx,nsrc
+      integer n,nx
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
 #endif
@@ -240,12 +236,6 @@ ccc extra stuff which was present in "earth" by default
 c**** pass indices of tracer arrays to PBL
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
       pbl_args%ntx = ntx
-C**** Set up tracers for PBL calculation if required
-      do nx=1,ntx
-        n = ntix(nx)
-C**** Calculate first layer tracer concentration
-        pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*byaxyp(i,j)
-      end do
 
 ccc tracers variables
 #ifdef TRACERS_WATER
@@ -272,67 +262,17 @@ ccc tracers variables
 #endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
-          ghy_tr%tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
+          ghy_tr%tr_surf(nx) = atmlnd%trm1(i,j,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
         else
           ghy_tr%tr_surf(nx) = 0.
         end if
       enddo
 #endif
 
-      do nx=1,ntx
-        n=ntix(nx)
-C**** set defaults
-        pbl_args%trsfac(nx)=0.
-        totflux(nx)=0.
-        pbl_args%trconstflx(nx)=0.
-#ifdef TRACERS_WATER
-C**** Set surface boundary conditions for tracers depending on whether
-C**** they are water or another type of tracer
-C**** The select is used to distinguish water from gases or particle
-! select removed because of OMP compiler bug
-!        select case (tr_wd_TYPE(n))
-!        case (nWATER)
-        if (tr_wd_TYPE(n) .eq. nWATER) then
-C**** no fractionation from ground (yet)
-C**** trsfac and trconstflx are multiplied by cq*ws and QG in PBL
-          pbl_args%trsfac(nx)=1.
-          pbl_args%trconstflx(nx)=atmlnd%gtracer(n,i,j)
-!        case (nGAS, nPART)
-        elseif (tr_wd_TYPE(n).eq.nGAS .or. tr_wd_TYPE(n).eq.nPART) then
-#endif
-C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
-C**** is a non-soluble tracer mixed in.)
-C**** Calculate trsfac (set to zero for const flux)
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) pbl_args%trsfac(nx) = 1.
-          !then multiplied by deposition velocity in PBL
-#endif
-C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-          do nsrc=1,ntsurfsrc(n)
-            totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
-          end do
-          pbl_args%trconstflx(nx)=totflux(nx)*byaxyp(i,j)   ! kg/m^2/s
-#ifdef TRACERS_WATER
-!        end select
-        end if
-#endif
-      end do
-
-#ifdef TRACERS_WATER
-c**** water tracers are also flux limited
-      do nx=1,ntx
-        n=ntix(nx)
-C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
-        pbl_args%tr_evap_max(nx) = evap_max * atmlnd%gtracer(n,i,j)
-#ifdef TRACERS_DRYDEP
-        if(dodrydep(n)) pbl_args%tr_evap_max(nx) = 1.d30
-#endif
-      end do
-#endif
-
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
+      ! todo: move (some of) this to subroutine dust_emission_prep
       pbl_args%snow=snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
@@ -343,19 +283,6 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       pbl_args%frsilt=frsilt(i,j)
       pbl_args%vtrsh=vtrsh(i,j)
       pbl_args%dryhr=dryhr(i,j)
-      pbl_args%hbaij=hbaij(i,j)
-      pbl_args%ricntd=ricntd(i,j)
-      pbl_args%pprec=pprec(i,j)
-      pbl_args%pevap=pevap(i,j,itype)
-c**** fractional area of moist convection * fraction of downdrafts
-c**** (=1/3), but only if downdrafts reach the lowest atmospheric
-c**** layer. Needed to constrain dust emission due to downdrafts. Also
-c**** used in PBL.f to calculate wspdf
-      IF (ddml(i,j) == 1) THEN
-        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
-      ELSE
-        pbl_args%mcfrac=0.D0
-      END IF
 c**** prescribed dust emission
       pbl_args%d_dust(1:nAerocomDust)=d_dust(i,j,1:nAerocomDust,jday)
      &     /Sday/axyp(i,j)/ptype
@@ -374,14 +301,14 @@ c**** prescribed dust emission
 #ifdef TRACERS_WATER
      &     ,ghy_tr
 #endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-     &     ,moddd,tmp
-#endif
      &     )
 !@sum tracers code to be called after the i,j cell is processed
       use model_com, only : itime,qcheck
       use fluxes, only : atmlnd,nisurf
       use pbl_drv, only : t_pbl_args
+#ifdef TRACERS_DRYDEP
+      use pblcom, only : drydflx,dep_vel,gs_vel
+#endif
       use ghy_com, only : tearth
       use somtq_com, only : mz
 #ifdef TRACERS_COSMO
@@ -407,14 +334,6 @@ c**** prescribed dust emission
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-      USE diag_com,ONLY : adiurn_dust,idd_grav,idd_turb,ijdd,ndiupt
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      USE tracers_dust,ONLY : hbaij,ricntd
-#endif
 !#ifdef TRACERS_TOMAS
 !      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
 !#endif
@@ -433,7 +352,7 @@ cddd#endif
 #endif
       integer n,nx
 #ifdef TRACERS_DRYDEP
-      real*8 tdryd,tdd,td1,rtsdt,rts
+      real*8 tdryd,tdd,td1,rtsdt,rts,depvel,gsvel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
@@ -441,11 +360,6 @@ cddd#endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
-#endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-      INTEGER,INTENT(IN) :: moddd
-      INTEGER :: kr
-      REAL*8 :: tmp(:)
 #endif
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
@@ -505,8 +419,6 @@ cddd     &     (arauto+asoilresp-agpp)/dtsurf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-      hbaij(i,j)=pbl_args%hbaij
-      ricntd(i,j)=pbl_args%ricntd
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -689,9 +601,11 @@ ccc accumulate tracer dry deposition
         if(dodrydep(n)) then
           rts=rhosrf*pbl_args%trs(nx)
           rtsdt=rts*dtsurf                             ! kg*s/m^3
-          tdryd=-rtsdt*(pbl_args%dep_vel(n)+pbl_args%gs_vel(n))          ! kg/m2
+          depvel = dep_vel(n,itype,i,j)
+          gsvel = gs_vel(n,itype,i,j)
+          tdryd=drydflx(n,itype,i,j)         ! kg/m2
           tdd = tdryd*axyp(i,j)*ptype                    ! kg
-          td1 = (trsrfflx(i,j,n)+totflux(nx))*dtsurf   ! kg
+          td1 = (trsrfflx(i,j,n)+trflux1(i,j,n))*dtsurf   ! kg
           if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
@@ -706,9 +620,9 @@ ccc accumulate tracer dry deposition
           atmlnd%trdrydep(n,i,j)=atmlnd%trdrydep(n,i,j) - tdryd
 ! diagnose turbulent and settling fluxes separately
           taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
-     &         ptype*rtsdt*pbl_args%dep_vel(n)
+     &         ptype*rtsdt*depvel
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
-     &         ptype*rtsdt* pbl_args%gs_vel(n)
+     &         ptype*rtsdt* gsvel
 #ifdef ACCMIP_LIKE_DIAGS
 ! estimate stomatal tracer flux:
           if(trname(n)=='Ox')
@@ -718,21 +632,21 @@ ccc accumulate tracer dry deposition
 #endif
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
-     *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
+     *         *depvel+ptype*rtsdt* gsvel
 #endif
 
           if (itcon_dd(n,1).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n),itcon_dd(n,1),n)
+     &     ptype*rtsdt*axyp(i,j)*depvel,itcon_dd(n,1),n)
           if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*pbl_args%gs_vel(n),itcon_dd(n,2),n)
+     &     ptype*rtsdt*axyp(i,j)*gsvel,itcon_dd(n,2),n)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c**** for subdaily diagnostics
           depo_turb_glob( i, j, itype, n ) = depo_turb_glob( i, j, itype
-     &         , n ) + ptype * rts * pbl_args%dep_vel( n ) / nisurf
+     &         , n ) + ptype * rts * depvel / nisurf
           depo_grav_glob( i, j, itype, n ) = depo_grav_glob( i, j, itype
-     &         , n ) + ptype * rts * pbl_args%gs_vel( n ) / nisurf
+     &         , n ) + ptype * rts * gsvel / nisurf
 #endif
 
         end if
@@ -762,44 +676,10 @@ c     &    aipp*axyp(i,j)*ptype*dtsurf
 
       end do
 
-C**** Save surface tracer concentration whether calculated or not
-      nx=0
-      do n=1,ntm
-        if (itime_tr0(n).le.itime) then
-          if (needtrs(n)) then
-            nx=nx+1
-            taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)+
-     &           pbl_args%trs(nx)*ptype
-            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)+
-     &           pbl_args%trs(nx)*ptype*rhosrf
-            trcsurf(i,j,n)=trcsurf(i,j,n)+pbl_args%trs(nx)*ptype
-     &                     *byNIsurf
-            trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)+pbl_args%trs(nx)
-     &                     *ptype*rhosrf*byNIsurf
-          else
-            taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
-     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *byaxyp(i,j),0d0)*ptype
-            taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
-     *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
-     *           *byaxyp(i,j),0d0)*ptype*rhosrf
-            trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
-     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
-            trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)+max((trm(i,j,1,n)
-     &           -trmom(mz,i,j,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
-     &           *rhosrf*byNIsurf
-          end if
-        end if
-      end do
-
 ccc not sure about the code below. hopefully that''s what is meant above
 #ifdef TRACERS_WATER
       do nx=1,ghy_tr%ntg
         n=ghy_tr%ntixw(nx)
-        taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
-     *       atmlnd%trevapor(n,i,j)*ptype
-        taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     *         atmlnd%gtracer(n,i,j)*ptype
         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n) + (
      &       fb*(sum( ghy_tr%tr_w(nx,1:ngm,1) ))+
      &       fv*(sum( ghy_tr%tr_w(nx,0:ngm,2) ))
@@ -808,8 +688,6 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( ghy_tr%tr_wsn(nx,1:nsn(1),1) ))+
      &       fv*(sum( ghy_tr%tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        if (tr_wd_TYPE(n).eq.nWATER .and. jls_isrc(1,n)>0) call
-     *      inc_tajls2(i,j,1,jls_isrc(1,n),atmlnd%trevapor(n,i,j)*ptype)
       TRE_acc(n,i,j)=TRE_acc(n,i,j)+atmlnd%trevapor(n,i,j)*ptype
       enddo
 #endif
@@ -845,35 +723,6 @@ c     ..........
       END DO
 #endif
 
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-c**** quantities accumulated hourly for diagDD
-      IF (adiurn_dust == 1) THEN
-        if ( moddd == 0 ) then
-          do kr=1,ndiupt
-            if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-              tmp(idd_turb)=0.D0
-              tmp(idd_grav)=0.D0
-              nx = 0
-              do n = 1,ntm
-                if (itime_tr0( n ) <= itime .and. needtrs( n )) then
-                  nx = nx + 1
-                  if (dodrydep( n )) then
-                    select case(trname( n ))
-                    case('Clay', 'Silt1', 'Silt2', 'Silt3')
-                      tmp( idd_turb ) = tmp( idd_turb ) + ptype * rhosrf
-     &                     * pbl_args%trs( nx ) * pbl_args%dep_vel( n )
-                      tmp( idd_grav ) = tmp( idd_grav ) + ptype * rhosrf
-     &                     * pbl_args%trs( nx ) * pbl_args%gs_vel( n )
-                    end select
-                  end if
-                end if
-              end do
-            end if
-          end do
-        end if
-      endif
-#endif
-
 #ifdef INTERACTIVE_WETLANDS_CH4
 C**** update running-average of ground temperature:
       call running_average(ra_temp,I,J,dble(nisurf),n__temp)
@@ -904,26 +753,7 @@ c***********************************************************************
 #ifndef USE_ENT
       use veg_drv, only : cosday,sinday
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-!      USE pbl_drv,ONLY : dust_flux,dust_flux2,z,km,gh,gm,zhat,lmonin,
-!     &     wsubtke,wsubwd,wsubwm,dust_event1,dust_event2,wtrsh
-#endif
 
-      use diag_com, only : idd_ts,idd_tg1,idd_qs
-     *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
-     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
-     *     ,idd_eds,idd_dbl,idd_ev
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
-#endif
-#ifdef TRACERS_DUST
-     *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
-     *     ,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
-     *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_emis
-     *     ,idd_emis2,idd_grav,idd_turb
-#endif
       implicit none
       private
       save
@@ -958,16 +788,6 @@ c***********************************************************************
 
       integer variable_lk
 
-      ! Indexes used for adiurn and hdiurn
-      INTEGER, PARAMETER :: n_idx = 22
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      INTEGER,PARAMETER :: n_idxd=6
-#else
-#ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idxd=16+6*npbl+4*(npbl-1)
-#endif
-#endif
-
       contains
 
       subroutine earth (ns,moddsf,moddd)
@@ -978,7 +798,6 @@ c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx,gasc,stbo
       use resolution, only : im,jm
-      use atm_com, only : t,p,q,u,v
       use model_com, only : dtsrc,jdate
      *     ,jday,jhour,nday,itime
      &     ,Jyear,Jmon,Jday,Jdate,Jhour
@@ -989,10 +808,10 @@ c****
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       use geom, only : imaxj,lat2d
-      use atm_com, only : pmid,pk,pek,pedn,am
-      use rad_com, only : trhr,fsf, cosz1,trsurf
+      use atm_com, only : pk
 #ifdef USE_ENT
-     &     ,FSRDIR, SRVISSURF,CO2X, CO2ppm
+      use rad_com, only :
+     &      FSRDIR, SRVISSURF,CO2X, CO2ppm
 #endif
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
@@ -1010,7 +829,7 @@ c****
 #ifndef USE_ENT
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
-      use fluxes, only : atmlnd,dth1,dq1,uflux1,vflux1,prec,eprec
+      use fluxes, only : atmlnd,prec,eprec
      *     ,runoe,erunoe,precss,nisurf
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
@@ -1028,8 +847,6 @@ c****
       use snow_drvm, only : snow_cover_same_as_rad
       use snow_model, only : i_earth,j_earth
 
-      use diag_com , only : HR_IN_DAY,HR_IN_MONTH,NDIUVAR
-     &     ,NDIUPT,adiurn_dust,ijdd
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
      &     ghy_tracers_save_cell, ghy_tracers_finish_step
@@ -1038,7 +855,6 @@ c****
       use tracer_com, only : NTM,trm
       use fluxes, only : trsrfflx
       use geom, only : axyp
-      use atm_com, only : am
       use pblcom, only : qabl,trabl
 #endif
 #ifdef USE_ENT
@@ -1077,12 +893,13 @@ c****
       integer i,j,itype,ibv
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
-     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
+     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps
      *     ,spring,q1,dlwdt,irrig,htirrig
       real*8 fb,fv
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
 
+      real*8, dimension(:,:), pointer :: trdn,srdn
 
       real*8 qsat
       integer jr
@@ -1115,16 +932,11 @@ c**** input/output for PBL
 #endif
       real*8 qg_sat,ts,qs
 
-      INTEGER :: idx(n_idx)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      INTEGER :: idxd(n_idxd)
-#endif
       INTEGER :: ii, ivar, kr
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
-      REAL*8 :: tmp(NDIUVAR)
+
 #ifdef USE_ENT
       real*8 Ca !@Ca concentration of CO2 at surface (mol/m3)
       real*8 vis_rad, direct_vis_rad, cos_zen_angle
@@ -1157,6 +969,9 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      trdn => atmlnd%flong
+      srdn => atmlnd%fshort
+
     ! dtsurf=dtsrc/nisurf
 
       spring=-1.
@@ -1184,29 +999,6 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 
-       idx =
-     &     (/ idd_ts,  idd_tg1, idd_qs,  idd_qg,  idd_swg,
-     &        idd_lwg, idd_sh,  idd_lh,  idd_hz0, idd_ug,
-     &        idd_vg,  idd_wg,  idd_us,  idd_vs,  idd_ws,
-     &        idd_cia, idd_cm,  idd_ch,  idd_cq,  idd_eds,
-     &        idd_dbl, idd_ev /)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      IF (adiurn_dust == 1) THEN
-        idxd=(/ idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
-#ifdef TRACERS_DUST
-     &      ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
-     &      ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl,
-     &       (idd_zpbl1+i-1,i=1,npbl), (idd_uabl1+i-1,i=1,npbl),
-     *       (idd_vabl1+i-1,i=1,npbl), (idd_uvabl1+i-1,i=1,npbl),
-     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),
-     *       (idd_zhat1+i-1,i=1,npbl-1), (idd_e1+i-1,i=1,npbl-1),
-     *       (idd_km1+i-1,i=1,npbl-1), (idd_ri1+i-1,i=1,npbl-1)
-#endif
-     &      /)
-      END IF
-#endif
-
 #ifdef USE_ENT
       !--- at the moment update vegetation every time step
       !hemi(:,max(JEQUATOR+1,J_0):J_1) = 1
@@ -1225,6 +1017,14 @@ c****
 !!     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 
       call alloc_pbl_args(pbl_args)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      pbl_args % moddd = moddd
+      pbl_args % ih = 1+jhour
+      pbl_args % ihm = pbl_args%ih+(jdate-1)*24
+#endif
+
       loop_j: do j=J_0,J_1
   !    hemi=1.
   !    if(j.le.jm/2) hemi=-1.
@@ -1235,25 +1035,24 @@ c**** conditions at the south/north pole
       loop_i: do i=I_0,imaxj(j)
 
       pbl_args%dtsurf=dtsrc/nisurf
-      pbl_args%hemi = sign(1d0,lat2d(i,j))
+      !pbl_args%hemi = sign(1d0,lat2d(i,j))
 c      pbl_args%pole= ( j.eq.1 .or. j.eq.jm )
 
 c****
 c**** determine surface conditions
 c****
       ptype=fearth(i,j)
-      pij=p(i,j)
-      ps=pedn(1,i,j)
-      psk=pek(1,i,j)
+      ps=atmlnd%srfp(i,j)
+      psk=atmlnd%srfpk(i,j)
       p1k=pk(1,i,j)
-      th1=t(i,j,1)
-      q1=q(i,j,1)
+      th1=atmlnd%temp1(i,j) !t(i,j,1)
+      q1=atmlnd%q1(i,j) !q(i,j,1)
       thv1=th1*(1.+q1*xdelt)
-      pbl_args%tkv=thv1*psk
+      !pbl_args%tkv=thv1*psk
   !    tkv=thv1*psk
 
       tfs=tf*ptype
-      ma1=am(1,i,j)
+      ma1=atmlnd%am1(i,j)
       !!!qm1=q1*ma1
 c     rhosrf=100.*ps/(rgas*tsv)
 c     rhosrf=100.*ps/(rgas*tkv)
@@ -1277,11 +1076,11 @@ c      prs=precss(i,j)/(dtsrc*rhow)
 ccc tracers variables
 
       tg1 = tsns_ij(i,j)
-      srheat=fsf(itype,i,j)*cosz1(i,j)
+      srheat=srdn(i,j)*atmlnd%cosz1(i,j)
 c****
 c**** boundary layer interaction
 c****
-      pbl_args%zs1=.5d-2*rgas*pbl_args%tkv*ma1/pmid(1,i,j)
+      !pbl_args%zs1=.5d-2*rgas*pbl_args%tkv*ma1/atmlnd%p1(i,j)
   !    zs1=.5d-2*rgas*tkv*ma1/pmid(1,i,j)
 
 c**** loop over ground time steps
@@ -1305,7 +1104,7 @@ c**** loop over ground time steps
       pbl_args%psurf=ps
   !    psurf=ps
 
-      pbl_args%trhr0 = TRHR(0,I,J)
+      pbl_args%trhr0 = TRDN(I,J)
   !    trhr0 = TRHR(0,I,J)
       pbl_args%tr4 = atmlnd%gtempr(I,J)**4
 
@@ -1342,7 +1141,7 @@ c**** call tracers stuff
 
       call get_canopy_temperaure(pbl_args%canopy_temperature, i, j)
 
-      call pbl(i,j,itype,ptype,pbl_args)
+      call pbl(i,j,itype,ptype,pbl_args,atmlnd)
 
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)
@@ -1356,7 +1155,7 @@ c**** calculate rhosrf*cdm*ws
       rhosrf=100.*ps/(rgas*pbl_args%tsv)
       rcdmws=cdm*pbl_args%ws*rhosrf
       rcdhws=cdh*pbl_args%ws*rhosrf
-      trheat=trhr(0,i,j)
+      trheat=trdn(i,j)
 c***********************************************************************
 c****
 c  define extra variables to be passed in surfc:
@@ -1404,9 +1203,9 @@ ccc stuff needed for dynamic vegetation
       end select
 
 !!      vis_rad        = SRVISSURF(i,j)
-      vis_rad        = SRVISSURF(i,j)*cosz1(i,j)*.82
+      vis_rad        = SRVISSURF(i,j)*atmlnd%cosz1(i,j)*.82
       direct_vis_rad = vis_rad * FSRDIR(i,j)
-      cos_zen_angle = cosz1(i,j)
+      cos_zen_angle = atmlnd%cosz1(i,j)
 !!!!      call ghinij (i,j)
       !call veg_set_cell(i,j)
 !i move the following part inside GHY
@@ -1581,14 +1380,15 @@ c**** wearth+aiearth are used in radiation only
       endif
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
-      uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
-      vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
+      atmlnd%uflux1(i,j)=atmlnd%uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
+      atmlnd%vflux1(i,j)=atmlnd%vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       atmlnd%evapor(i,j)=atmlnd%evapor(i,j)+aevap
       shdt=-ashg
+      evhdt=-alhg
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = pbl_args%dtsurf*(TRSURF(ITYPE,I,J)-STBO*(tearth(i,j)+TF)
-     *     **4)
+      dLWDT = pbl_args%dtsurf*
+     &     (atmlnd%TRUP_in_rad(I,J) - STBO*(tearth(i,j)+TF)**4)
 
 #ifdef SCM
 c     if SCM use sensible and latent heat fluxes provided by ARM
@@ -1614,12 +1414,17 @@ c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
       else
           dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
           dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+          atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
+          atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif
 #else
-      dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
-      dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+      atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+      atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
+      atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
+      atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
 #endif
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
+      atmlnd%qsavg(i,j)=qs
 c**** save runoff for addition to lake mass/energy resevoirs
       runoe (i,j)=runoe (i,j)+ aruns+ arunu
       erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
@@ -1627,38 +1432,14 @@ c****
       atmlnd%e0(i,j)=atmlnd%e0(i,j)+af0dt
       !e1(i,j,4)=e1(i,j,4)+af1dt
 
-      call ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
+      call ghy_diag(i,j,jr,kr,ns,moddsf
      &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt
      &     ,pbl_args, pbl_args%dtsurf
-     &     ,idx
 #ifdef TRACERS_DUST
      &     ,n,n1
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,idxd
-#endif
      &     )
 
-c      if ( moddd == 0 ) then
-c        do kr=1,ndiupt
-c          if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-c            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
-c#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-c    (defined TRACERS_QUARZHEM)
-c            ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
-c#endif
-c
-c#ifndef NO_HDIURN
-c            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
-c#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-c    (defined TRACERS_QUARZHEM)
-c            HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
-c#endif
-c#endif
-c          endif
-c        enddo
-c      endif
 
 c**** update tracers
 #ifdef TRACERS_ON
@@ -1670,17 +1451,16 @@ c**** update tracers
 #ifdef TRACERS_WATER
      &     ,ghy_tr
 #endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-     &     ,moddd,tmp
-#endif
      & )
 #endif
+
 
 #ifdef WATER_PROPORTIONAL
 c calculate fluxes of atmosphere-only water tracers.
 c assume 1-way until up/down fluxes of vapor are available
 c as a PBL diagnostic.
-      conc1(1:ntm) = trm(i,j,1,1:ntm)/(q1*axyp(i,j)*am(1,i,j)+1d-20)
+      conc1(1:ntm) = trm(i,j,1,1:ntm)/
+     &     (q1*axyp(i,j)*atmlnd%am1(i,j)+1d-20)
       do itr=1,ntm
         if(aevap.ge.0.) then
           trconcflx = atmlnd%gtracer(itr,i,j)
@@ -1728,43 +1508,25 @@ c***********************************************************************
 c***********************************************************************
 c***********************************************************************
 
-      subroutine ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
+      subroutine ghy_diag(i,j,jr,kr,ns,moddsf
      &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt, pbl_args, dtsurf
-     &     ,idx
 #ifdef TRACERS_DUST
      &     ,n,n1
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,idxd
-#endif
      &     )
 
-      use diag_com , only : itearth,aij=>aij_loc,adiurn=>adiurn_loc
-#ifndef NO_HDIURN
-     &     ,hdiurn=>hdiurn_loc
-#endif
+      use diag_com , only : itearth,aij=>aij_loc
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg, ij_psoil,ij_vsfr,ij_bsfr
-     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_rhs
-     *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
-     *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
-     *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
-     *     ,j_lwcorr,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_lai
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_beta, ij_rhs, ij_qs
+     *     ,j_erun,j_run,j_type
+     *     ,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_lai
      *     ,ij_soilresp,ij_soilCpoolsum,ij_gbetat,ij_gbetpen,ij_gevppen
      *     ,ij_gbsbet,ij_gbsevp,ij_gbst,ij_gvst,ij_gbvswt,ij_gconatm
      *     ,ij_gconcan,ij_gdcevp,ij_gwtbl,ij_gvswet,ij_gwcevp
-     *     ,ij_pblht,ijdd,idd_ts,idd_tg1,idd_qs
-     *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
-     *     ,idd_wg,idd_us,idd_vs,idd_ws,idd_cia,idd_cm,idd_ch,idd_cq
-     *     ,idd_eds,idd_dbl,idd_ev,tf_day1,tf_last,ndiupt
-     *     ,HR_IN_DAY,HR_IN_MONTH
+     *     ,tf_day1,tf_last
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
-     &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
-     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-#endif
+     &     ,ij_htsoil,ij_htsnow,ij_aintrcp
+     &     ,ij_evapsn,ij_irrW, ij_irrE
 #if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
      &     ,ij_crops,j_crops,CROPS_DIAG
 #endif
@@ -1775,7 +1537,7 @@ c***********************************************************************
 #ifdef TRACERS_DUST
      &     ,grav
 #endif
-      use fluxes, only : nisurf
+      use fluxes, only : atmlnd,nisurf
       use model_com, only : dtsrc,jdate,jday,jhour,nday,itime
 #ifdef SCM
       use SCMDIAG, only : EVPFLX,SHFLX
@@ -1784,7 +1546,6 @@ c***********************************************************************
 #endif
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
-      use rad_com, only : trhr,fsf, cosz1
       use sle001, only :
      &     tp
      &    ,fv,fb,atrg,ashg,alhg
@@ -1812,15 +1573,10 @@ c***********************************************************************
 #endif
 
       implicit none
-      integer, intent(in) :: i,j,ns,moddsf,moddd
+      integer, intent(in) :: i,j,ns,moddsf
       real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg,dlwdt
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
-      INTEGER, INTENT(IN) :: idx(:)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      INTEGER,INTENT(IN) :: idxd(:)
-#endif
 
       real*8 timez
       real*8 trhdt,tg1,shdt,ptype,srheat,srhdt
@@ -1830,7 +1586,6 @@ c***********************************************************************
 #ifdef TRACERS_DUST
       INTEGER :: n,n1
 #endif
-      REAL*8 :: tmp(:)
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti,qsrf,tsv,ps,elhx
@@ -1876,9 +1631,9 @@ ccc the following values are returned by PBL
       ptype=fearth(i,j)
       jr=jreg(i,j)
 
-      srheat=fsf(itype,i,j)*cosz1(i,j)
+      srheat=atmlnd%fshort(i,j)*atmlnd%cosz1(i,j)
       srhdt=srheat*dtsurf
-      trheat=trhr(0,i,j)
+      trheat=atmlnd%flong(i,j)
 
       !tg1=tbcs
       tg1=tsns
@@ -1933,9 +1688,11 @@ ccc accumulate total heat storage
      &         +fv*fr_snow(2)*sum(hsn(1:nsn(2),2)))*ptype
       endif
       trhdt=trheat*dtsurf-atrg
+      atmlnd%trheat(i,j) = atmlnd%trheat(i,j) + trhdt
 c           for radiation find composite values over earth
 c           for diagnostic purposes also compute gdeep 1 2 3
       !!!call retp2 (tg2av,wtr2av,ace2av)
+      atmlnd%gtemp2(i,j) = tg2av
       gdeep(i,j,1)=tg2av
       gdeep(i,j,2)=wtr2av
       gdeep(i,j,3)=ace2av
@@ -1972,18 +1729,8 @@ c      aij(i,j,ij_irrW_tot)=0.d0
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-      call inc_areg(i,j,jr,j_trhdt,trhdt*ptype)
-      call inc_areg(i,j,jr,j_shdt , shdt*ptype)
-      call inc_areg(i,j,jr,j_lwcorr,dlwdt*ptype)
-      call inc_areg(i,j,jr,j_evhdt,evhdt*ptype)
-      call inc_areg(i,j,jr,j_evap ,aevap*ptype)
       call inc_areg(i,j,jr,j_erun ,(aeruns+aerunu)*ptype)
       call inc_areg(i,j,jr,j_run  ,  (aruns+arunu)*ptype)
-      if ( moddsf == 0 ) then
-        call inc_areg(i,j,jr,j_tsrf,(ts-tf)*ptype)
-        call inc_areg(i,j,jr,j_tg1 , tg1   *ptype)
-        call inc_areg(i,j,jr,j_tg2 , tg2av *ptype)
-      end if
 #ifdef RJH_LM_CROPS
       call inc_areg(i,j,jr,j_crops,CROPS_DIAG(i,j)*ptype)
 #endif
@@ -2000,151 +1747,21 @@ c    &                  EVPFLX,SHFLX,ptype
 #endif
 
 c**** quantities accumulated for latitude-longitude maps in diagij
-      aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+(abetad/nisurf)*fv*ptype
-      IF (MODDSF.EQ.0) THEN
-        AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
-        AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
-     *       *PTYPE
-      END IF
-      aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
-      aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdt+trhdt+shdt+evhdt)*ptype
-      aij(i,j,ij_evap)=aij(i,j,ij_evap)+aevap*ptype
       if ( moddsf == 0 ) then
-        aij(i,j,ij_ws)=aij(i,j,ij_ws)+ws*ptype
-        aij(i,j,ij_ts)=aij(i,j,ij_ts)+(ts-tf)*ptype
-        aij(i,j,ij_us)=aij(i,j,ij_us)+us*ptype
-        aij(i,j,ij_vs)=aij(i,j,ij_vs)+vs*ptype
-        aij(i,j,ij_taus)=aij(i,j,ij_taus)+rcdmws*ws*ptype
-        aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us)*ptype !-uocean
-        aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs)*ptype !-vocean
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
         aij(i,j,ij_rhs)=aij(i,j,ij_rhs)+qsrf*ptype/qsat(tsv,elhx,ps)
-        aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
-        aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
-        if(DDMS(I,J).lt.0.)     ! ddms < 0 for down draft
-     *       AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+ptype
-        aij(i,j,ij_gusti)=aij(i,j,ij_gusti)+gusti*ptype
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+wsgcm*ptype
-        aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+wspdf*ptype
-        aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+pbl_args%wsubwd*ptype
-        aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+pbl_args%wsubtke*ptype
-        aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+pbl_args%wsubwm*ptype
-#endif
-
       endif
 
-c**** quantities accumulated hourly for diagDD
-      if ( moddd == 0 ) then
-        do kr=1,ndiupt
-          if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
-
-            tmp(idd_ts)=+ts*ptype
-            tmp(idd_tg1)=+(tg1+tf)*ptype
-            tmp(idd_qs)=+qs*ptype
-            tmp(idd_qg)=+qg*ptype
-            tmp(idd_swg)=+srhdt*ptype
-            tmp(idd_lwg)=+trhdt*ptype
-            tmp(idd_sh)=+shdt*ptype
-            tmp(idd_lh)=+evhdt*ptype
-            tmp(idd_hz0)=
-     *           +(srhdt+trhdt+shdt+evhdt)*ptype
-            tmp(idd_ug)=+ug*ptype
-            tmp(idd_vg)=+vg*ptype
-            tmp(idd_wg)=+wg*ptype
-            tmp(idd_us)=+us*ptype
-            tmp(idd_vs)=+vs*ptype
-            tmp(idd_ws)=+ws*ptype
-            tmp(idd_cia)=+psi*ptype
-            tmp(idd_cm)=+cdm*ptype
-            tmp(idd_ch)=+cdh*ptype
-            tmp(idd_cq)=+cdq*ptype
-            tmp(idd_eds)=+khs*ptype
-            tmp(idd_dbl)=+dbl*ptype
-            tmp(idd_ev)=+aevap*ptype
-            ADIURN(idx(:),kr,ih)=ADIURN(idx(:),kr,ih) + tmp(idx(:))
-#ifndef NO_HDIURN
-            HDIURN(idx(:),kr,ihm)=HDIURN(idx(:),kr,ihm)+tmp(idx(:))
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-            IF (adiurn_dust == 1) THEN
-              tmp(idd_wsgcm)=+wsgcm*ptype
-              tmp(idd_wspdf)=+wspdf*ptype
-              tmp(idd_wtke)=+pbl_args%wsubtke*ptype
-              tmp(idd_wd)=+pbl_args%wsubwd*ptype
-              tmp(idd_wm)=+pbl_args%wsubwm*ptype
-              tmp(idd_wtrsh)=+pbl_args%wtrsh*ptype
-#ifdef TRACERS_DUST
-              tmp(idd_emis)=0.D0
-              tmp(idd_emis2)=0.D0
-              DO n=1,Ntm_dust
-                n1=n_clay+n-1
-                tmp(idd_emis)=tmp(idd_emis)+pbl_args%dust_flux(n)*ptype
-                tmp(idd_emis2)=tmp(idd_emis2)
-     &               +pbl_args%dust_flux2(n)*ptype
-              END DO
-              tmp(idd_ws2)=+ws*ws*ptype
-              tmp(idd_ustar)=+pbl_args%ustar*ptype
-              tmp(idd_us3)=+ptype*pbl_args%ustar*pbl_args%ustar
-     &             *pbl_args%ustar
-              tmp(idd_stress)=+rcdmws*ws*ptype
-              tmp(idd_lmon)=+pbl_args%lmonin*ptype
-              tmp(idd_rifl)=
-     &             +ptype*grav*(ts-(tg1+tf))*pbl_args%zgs
-     &             /(ws*ws*(tg1+tf))
-
-              tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
-              tmp(idd_uabl1:idd_uabl1+npbl-1)=
-     *             ptype*uabl(1:npbl,itype,i,j)
-              tmp(idd_vabl1:idd_vabl1+npbl-1)=
-     *             ptype*vabl(1:npbl,itype,i,j)
-              tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
-     *             uabl(1:npbl,itype,i,j)*uabl(1:npbl,itype,i,j)+
-     *             vabl(1:npbl,itype,i,j)*vabl(1:npbl,itype,i,j))
-              tmp(idd_tabl1:idd_tabl1+npbl-1)=
-     *             ptype*tabl(1:npbl,itype,i,j)
-              tmp(idd_qabl1:idd_qabl1+npbl-1)=
-     *             ptype*qabl(1:npbl,itype,i,j)
-              tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
-     *             *pbl_args%zhat(1:npbl-1)
-              tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,itype,i,j)*ptype
-              tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
-              tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
-     *             /(pbl_args%gm(1:npbl-1)+1d-20)
-#endif
-              ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih) + tmp(idxd(:))
-#ifndef NO_HDIURN
-              HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
-#endif
-            END IF
-#endif
-          end if
-        end do
-      endif
 c**** quantities accumulated for surface type tables in diagj
-      call inc_aj(i,j,itearth,j_evap ,aevap*ptype)
-      call inc_aj(i,j,itearth,j_trhdt,trhdt*ptype)
-      call inc_aj(i,j,itearth,j_evhdt,evhdt*ptype)
-      call inc_aj(i,j,itearth,j_shdt , shdt*ptype)
-      call inc_aj(i,j,itearth,j_lwcorr, dlwdt*ptype)
       call inc_aj(i,j,itearth,j_erun ,(aeruns+aerunu)*ptype)
       call inc_aj(i,j,itearth,j_run  ,  (aruns+arunu)*ptype)
 #ifdef HEALY_LM_DIAGS
       call inc_aj(i,j,itearth,j_crops  ,  CROPS_DIAG(i,j)*ptype)
 #endif
-      if(moddsf.eq.0) then
-        call inc_aj(i,j,itearth,j_tsrf,(ts-tf)*ptype)
-        call inc_aj(i,j,itearth,j_tg1 ,    tg1*ptype)
-        call inc_aj(i,j,itearth,j_tg2 ,  tg2av*ptype)
-        call inc_aj(i,j,itearth,j_type,        ptype)
-      end if
 
       end subroutine ghy_diag
 
@@ -2397,7 +2014,6 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
      &     ,I_TARG,J_TARG
 #endif
-      use atm_com, only : pedn
       use fluxes, only : atmlnd,focean, flice
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -2534,7 +2150,7 @@ c**** to something more appropriate
           !if ( fearth(i,j) .le. 0.d0 ) cycle
           if ( focean(i,j) >= 1.d0 ) cycle
           if( evap_max_ij(i,j) < .9d0 ) cycle
-          qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
+          qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,atmlnd%srfp(i,j))
           fr_sat_ij(i,j) = 0.d0
           evap_max_ij(i,j) = 0.d0
         enddo
@@ -3972,8 +3588,8 @@ c****
      *     fearth
       !use veg_com, only : afb
       use diag_com, only : itearth,aij=>aij_loc
-     *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_evap,j_type
-     *     ,j_rsnow,ij_evap,ij_f0e,ij_evape,ij_gwtr,ij_tg1,ij_rsnw
+     *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow
+     *     ,j_rsnow,ij_f0e,ij_evape,ij_gwtr,ij_rsnw
      *     ,ij_rsit,ij_snow,ij_gice, ij_gwtr1,ij_zsnow
      *     ,ij_gbssnd,ij_gvssnd,ij_gbsw,ij_gvsw
       use fluxes, only : atmlnd,eprec
@@ -5078,7 +4694,6 @@ c**** Also reset snow fraction for albedo computation
       !use veg_com, only : afb
       use sle001, only : thm
       use LAKES_COM, only : flake, svflake
-      use atm_com, only : pedn
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
@@ -5132,7 +4747,7 @@ c**** Also reset snow fraction for albedo computation
 
           elhx=lhe
           if(tg1.lt.0.)  elhx=lhs
-          ps=pedn(1,i,j)
+          ps=atmlnd%srfp(i,j)
       ! ground humidity to be used on next time step
           qg_ij(i,j) = qsat(tg1+tf,elhx,ps) ! all saturated
       ! snow fraction same as in snow model

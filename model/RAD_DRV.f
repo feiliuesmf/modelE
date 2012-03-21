@@ -40,7 +40,7 @@ C****
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
      &     ,readt_parallel
-      USE FLUXES, only : atmocn
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
@@ -767,6 +767,9 @@ c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
 c      end if
 
       deallocate(atmocn%COSZ1); atmocn % COSZ1 => COSZ1
+      deallocate(atmice%COSZ1); atmice % COSZ1 => COSZ1
+      deallocate(atmgla%COSZ1); atmgla % COSZ1 => COSZ1
+      deallocate(atmlnd%COSZ1); atmlnd % COSZ1 => COSZ1
 #ifdef OBIO_RAD_coupling
       deallocate(atmocn%DIRVIS); atmocn % DIRVIS => DIRVIS
       deallocate(atmocn%DIFVIS); atmocn % DIFVIS => FSRDIF
@@ -3259,6 +3262,16 @@ C**** daily diagnostics
           HDIURN(IDD_ISW,KR,IHM)=HDIURN(IDD_ISW,KR,IHM)+S0*COSZ1(I,J)
 #endif
         ENDIF
+      ENDDO
+
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        DO IT=1,4
+          asflx(it)%flong(i,j) = trhr(0,i,j)
+          asflx(it)%fshort(i,j) = fsf(it,i,j)
+          asflx(it)%trup_in_rad(i,j) = trsurf(it,i,j)
+        ENDDO
+      ENDDO
       ENDDO
 
       call stopTimer('RADIA()')

@@ -20,6 +20,11 @@
 #ifdef TRACERS_ON
 !@var trabl boundary layer profile for tracers
       real*8, allocatable, dimension(:,:,:,:,:) :: trabl
+#ifdef TRACERS_DRYDEP
+!@var dep_vel dry deposition velocity for tracers.  todo: move to
+!@+   atm-surface coupling data structure and try to eliminate redundancies.
+      real*8, allocatable, dimension(:,:,:,:) :: dep_vel,gs_vel,drydflx
+#endif
 #endif
 
 !@var cmgs drag coefficient (dimensionless surface momentum flux)
@@ -43,7 +48,19 @@
 !@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
       REAL*8, allocatable, dimension(:,:) ::
      &     wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,tgvavg,qgavg
-     &    ,w2_l1,gustiwind
+     &    ,w2_l1,gustiwind,dblavg,rhoavg
+     &    ,ugeoavg,vgeoavg,wgeoavg,ciaavg,khsavg
+
+#ifdef TRACERS_ON
+      REAL*8, allocatable, dimension(:,:,:) :: travg,travg_byvol
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      real*8, allocatable, dimension(:,:) ::
+     &   wsgcm,wspdf,wsubwd,wsubtke,wsubwm
+#endif
+
       REAL*8, allocatable, dimension(:,:,:) :: ustar_pbl
 
 !@var [tuv]1_after_aturb first-layer temp/winds after ATURB completes
@@ -499,6 +516,13 @@ C****
 #ifdef TRACERS_ON
       ALLOCATE(    trabl(npbl,ntm,4,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
+#ifdef TRACERS_DRYDEP
+      ALLOCATE(
+     &     dep_vel(ntm,4,I_0H:I_1H,J_0H:J_1H),
+     &     gs_vel(ntm,4,I_0H:I_1H,J_0H:J_1H),
+     &     drydflx(ntm,4,I_0H:I_1H,J_0H:J_1H),
+     &         STAT=IER)
+#endif
 #endif
 
       ALLOCATE(    cmgs(4,I_0H:I_1H,J_0H:J_1H),
@@ -547,6 +571,42 @@ C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
 
       ALLOCATE( gustiwind(I_0H:I_1H,J_0H:J_1H),STAT=IER)
       gustiwind(:,J_0H:J_1H) = 0.
+
+      ALLOCATE( dblavg(I_0H:I_1H,J_0H:J_1H))
+      dblavg(:,:) = 0.
+
+      ALLOCATE( rhoavg(I_0H:I_1H,J_0H:J_1H))
+      rhoavg(:,:) = 0.
+
+      ALLOCATE(ugeoavg(I_0H:I_1H,J_0H:J_1H),
+     &         vgeoavg(I_0H:I_1H,J_0H:J_1H),
+     &         wgeoavg(I_0H:I_1H,J_0H:J_1H),
+     &         ciaavg(I_0H:I_1H,J_0H:J_1H),
+     &         khsavg(I_0H:I_1H,J_0H:J_1H))
+      ugeoavg(:,:) = 0.
+      vgeoavg(:,:) = 0.
+      wgeoavg(:,:) = 0.
+      ciaavg(:,:) = 0.
+      khsavg(:,:) = 0.
+
+#ifdef TRACERS_ON
+      ALLOCATE( travg(ntm,I_0H:I_1H,J_0H:J_1H),
+     &     travg_byvol(ntm,I_0H:I_1H,J_0H:J_1H))
+      travg = 0.; travg_byvol = 0.
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+
+      allocate(
+     &   wsgcm(I_0H:I_1H,J_0H:J_1H)
+     &  ,wspdf(I_0H:I_1H,J_0H:J_1H)
+     &  ,wsubwd(I_0H:I_1H,J_0H:J_1H)
+     &  ,wsubtke(I_0H:I_1H,J_0H:J_1H)
+     &  ,wsubwm(I_0H:I_1H,J_0H:J_1H)
+     &   )
+      wsgcm = 0.; wspdf = 0.; wsubwd = 0.; wsubtke = 0.; wsubwm = 0.
+
+#endif
+#endif
 
       ALLOCATE(t1_after_aturb(I_0H:I_1H,J_0H:J_1H),
      &         u1_after_aturb(I_0H:I_1H,J_0H:J_1H),

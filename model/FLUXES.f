@@ -1,16 +1,14 @@
 #include "rundeck_opts.h"
 
-
-	  !@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
-	  module itype_enum
-	  	integer, parameter :: ITYPE_MIN = 1
-	  	integer, parameter :: ITYPE_OCEAN = 1
-	  	integer, parameter :: ITYPE_OCEANICE = 2
-	  	integer, parameter :: ITYPE_LANDICE = 3
-	  	integer, parameter :: ITYPE_LAND = 4
-	  	integer, parameter :: ITYPE_MAX = 4
-	  end module itype_enum
-
+!@var  itype  1, ocean; 2, ocean ice; 3, land ice; 4, land
+      module itype_enum
+      integer, parameter :: ITYPE_MIN = 1
+      integer, parameter :: ITYPE_OCEAN = 1
+      integer, parameter :: ITYPE_OCEANICE = 2
+      integer, parameter :: ITYPE_LANDICE = 3
+      integer, parameter :: ITYPE_LAND = 4
+      integer, parameter :: ITYPE_MAX = 4
+      end module itype_enum
 
       MODULE EXCHANGE_TYPES ! todo: move to another file.
       use dist_grid_mod, only : dist_grid
@@ -36,13 +34,16 @@
          REAL*8, DIMENSION(:,:), POINTER ::
 !@var E0 net energy flux at surface (J/m^2)
 !@var SOLAR absorbed solar radiation (J/m^2)
-     &      E0,SOLAR
+!@var TRHEAT net LW flux accumulation (J/m^2)
+     &      E0,SOLAR,TRHEAT
 C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere (kg/m s)
 !@+   On atmospheric A grid (tracer point)
      &     ,DMUA, DMVA
 !@var EVAPOR evaporation (kg/m^2) 
-     &     ,PREC,EPREC,EVAPOR
+!@var SENSHT sensible heat flux accumulation (J/m^2)
+!@var LATHT latent heat flux accumulation (J/m^2)
+     &     ,PREC,EPREC,EVAPOR,SENSHT,LATHT
 !@var GTEMP temperature of surface (C)
 !@var GTEMP2 "ground" temperature of "second" layer (C)
 !@var GTEMPR radiative ground temperature over surface type (K)
@@ -52,15 +53,29 @@ C**** Momemtum stresses are calculated as if they were over whole box
      &     ,COSZ1,LAT
 !@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S) (over all types)
      &     ,WSAVG
-#ifdef STANDALONE_OCEAN
-!@var USAVG,VSAVG,TSAVG,QSAVG surface air wind components, temp, humidity
-     &     ,USAVG,VSAVG,TSAVG,QSAVG ! in coupled model, PBL still owns
+!@var USAVG,VSAVG,TSAVG,QSAVG reference-height surf. wind components, temp, humidity
+     &     ,USAVG,VSAVG,TSAVG,QSAVG
 !@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
      &     ,FLONG,FSHORT
-#endif
+     &     ,TRUP_in_rad ! LW emission by surface during rad. timestep.
 !@var SRFP actual surface pressure (hecto-Pascals)
      &     ,SRFP
+     &     ,SRFPK ! srfp**kapa
+     &     ,AM1   ! first-layer air mass (kg/m2)
+     &     ,BYAM1 ! 1/AM1
+     &     ,P1    ! center pressure of first layer (mb)
+     &     ,TEMP1 ! pot. temp. of first layer w.r.t. 1 mb
+     &     ,Q1    ! specific humidity of first layer
+     &     ,U1    ! a-grid EW wind of first layer
+     &     ,V1    ! a-grid NS wind of first layer
+     &     ,UFLUX1,VFLUX1 ! (temporary redundancy with dmua, dmva)
+     &     ,DTH1  ! (temporary) first layer pot. temp. increment
+     &     ,DQ1   ! (temporary) first layer humidity increment
 #ifdef TRACERS_ON
+         REAL*8, DIMENSION(:,:,:), POINTER ::
+     &      TRM1  ! first-layer tracer mass (kg).  Todo: kg/m2 instead.
+     &     ,TRFLUX1 ! non-interactive emissions (kg/s).  Todo: kg/s/m2 instead.
+     &     ,TRSRFFLX ! interactive emissions. (kg/s).
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
          REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
 #ifdef TRACERS_WATER
@@ -246,6 +261,14 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
       type, extends(atmsrf_xchng_vars) :: atmgla_xchng_vars
          !@var E1 net energy flux at layer 1
          REAL*8, DIMENSION(:,:), POINTER :: E1
+         !@var IMPLM,IMPLH implicit mass,energy flux at bottom of domain
+         REAL*8, DIMENSION(:,:), POINTER :: IMPLM,IMPLH
+         !@var SNOWLI,SNOWFR,SNOWDP snow mass, fraction, depth
+         !@+   TODO: move to atmsrf_xchng_vars and unify the names
+         !@+   for these in seaice/landice/land components.
+         !@+   TODO2: move runoff arrays to atm_xchng_vars, unify the
+         !@+   names among seaice/landice/land components.
+         REAL*8, DIMENSION(:,:), POINTER :: SNOWLI,SNOWFR,SNOWDP
       end type atmgla_xchng_vars
       ! -----------------------------------------------------
 
@@ -411,11 +434,14 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       J_1H = grd_dum%J_STOP_HALO
       ALLOCATE( this % E0      ( I_0H:I_1H , J_0H:J_1H ),
      &          this % EVAPOR  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SENSHT  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % LATHT  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % DMUA    ( I_0H:I_1H , J_0H:J_1H ),
      &          this % DMVA    ( I_0H:I_1H , J_0H:J_1H ),
      &          this % PREC    ( I_0H:I_1H , J_0H:J_1H ),
      &          this % EPREC   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SOLAR   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % TRHEAT  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % GTEMP   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % GTEMP2  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % GTEMPR  ( I_0H:I_1H , J_0H:J_1H ),
@@ -432,13 +458,14 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
      &          this % COSZ1   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WSAVG   ( I_0H:I_1H , J_0H:J_1H ),
-#ifdef STANDALONE_OCEAN
      &          this % USAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % VSAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % TSAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % QSAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % FLONG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % FSHORT  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % TRUP_in_rad  ( I_0H:I_1H , J_0H:J_1H ),
+#ifdef STANDALONE_OCEAN
      &          this % SRFP    ( I_0H:I_1H , J_0H:J_1H ),
 #endif
      &          this % WORK1   ( I_0H:I_1H , J_0H:J_1H ),
@@ -449,6 +476,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       this % GTEMP2 = 0.   ! initialize at 0 C
       this % GTEMPR = TF   ! initialize at 273 K
       this % EVAPOR = 0.
+      this % SENSHT = 0.
+      this % LATHT = 0.
 
 #ifdef TRACERS_ON
       this % GTRACER = 0.
@@ -464,12 +493,18 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       TYPE(atmsrf_xchng_vars) :: src,dest
       dest%e0     => src%e0
       dest%evapor => src%evapor
+      dest%sensht => src%sensht
+      dest%latht => src%latht
       dest%solar  => src%solar
+      dest%trheat  => src%trheat
       dest%dmua   => src%dmua
       dest%dmva   => src%dmva
       dest%gtempr => src%gtempr
       dest%gtemp  => src%gtemp
       dest%gtemp2 => src%gtemp2
+      dest%flong  => src%flong
+      dest%fshort => src%fshort
+      dest%trup_in_rad => src%trup_in_rad
 #ifdef TRACERS_ON
       dest%gtracer  => src%gtracer
 #endif
@@ -479,6 +514,26 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #ifdef TRACERS_DRYDEP
       dest%trdrydep => src%trdrydep
 #endif
+      dest%tsavg => src%tsavg
+      dest%qsavg => src%qsavg
+      dest%usavg => src%usavg
+      dest%vsavg => src%vsavg
+
+      dest%p1 => src%p1
+      dest%srfp => src%srfp
+      dest%srfpk => src%srfpk
+      dest%am1 => src%am1
+      dest%byam1 => src%byam1
+
+      dest%dth1    => src%dth1
+      dest%dq1     => src%dq1
+      dest%uflux1  => src%uflux1
+      dest%vflux1  => src%vflux1
+#ifdef TRACERS_ON
+      dest%trflux1  => src%trflux1
+      dest%trsrfflx => src%trsrfflx
+#endif
+
       return
       end subroutine setptr_atmsrf_loopable
 
@@ -667,7 +722,13 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
       ALLOCATE( this % E1 ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
+     &          this % IMPLM ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % IMPLH ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SNOWLI( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SNOWFR( I_0H:I_1H , J_0H:J_1H ),
+     &          this % SNOWDP( I_0H:I_1H , J_0H:J_1H ),
+     &     STAT = IER)
+
       return
       end subroutine alloc_atmgla_xchng_vars
 
@@ -812,13 +873,13 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 C**** currently saved - should be replaced by fluxed quantities
 !@var DTH1,DQ1 heat/water flux from atmos. summed over type (C, kg/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DTH1,DQ1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), target :: DTH1,DQ1
 
 !@var uflux1 surface turbulent u-flux (=-<uw>) 
 !@var vflux1 surface turbulent v-flux (=-<vw>)
 !@var tflux1 surface turbulent t-flux (=-<tw>)
 !@var qflux1 surface turbulent q-flux (=-<qw>)
-      real*8, allocatable, dimension(:,:) :: 
+      real*8, allocatable, dimension(:,:), target :: 
      &        uflux1,vflux1,tflux1,qflux1
 
 C**** The E/FLOWO, E/S/MELTI, E/GMELT arrays are used to flux quantities 
@@ -859,9 +920,9 @@ C**** fluxes associated with variable lake fractions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif
 !@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trsrfflx
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trsrfflx
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trflux1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trflux1
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
@@ -971,14 +1032,14 @@ C**** fluxes associated with variable lake fractions
       use tracer_com, only : ntm_gasexch
 #endif
 #endif
-      USE ATM_COM, only : srfp
+      USE ATM_COM, only : srfp,srfpk,am1,byam1,p1
       USE Dictionary_mod
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       INTEGER :: iu_TOPO
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
-      INTEGER :: IER
+      INTEGER :: IER,ITYPE
 
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
@@ -1170,6 +1231,10 @@ C**** Ensure that no round off error effects land with ice and earth
       deallocate(atmocn%trgmelt);  atmocn%trgmelt => trgmelt
 #endif
 #endif
+      atmocn%srfpk => srfpk
+      atmocn%p1 => p1
+      atmocn%am1 => am1
+      atmocn%byam1 => byam1
       atmocn%srfp => srfp
 
       call alloc_xchng_vars(grid,atmice)
@@ -1186,23 +1251,79 @@ C**** Ensure that no round off error effects land with ice and earth
 #ifdef TRACERS_WATER
       deallocate(atmice%trprec);  atmice%trprec => trprec
 #endif
+      atmice%srfpk => srfpk
+      atmice%p1 => p1
+      atmice%am1 => am1
+      atmice%byam1 => byam1
       atmice%srfp => srfp
 
       call alloc_xchng_vars(grid,atmgla)
       atmgla%grid => grd_dum
+      deallocate(atmgla%prec);  atmgla%prec => prec
+      deallocate(atmgla%eprec); atmgla%eprec => eprec
+#ifdef TRACERS_WATER
+      deallocate(atmgla%trprec);  atmgla%trprec => trprec
+#endif
       atmgla%srfp => srfp
+      atmgla%srfpk => srfpk
+      atmgla%p1 => p1
+      atmgla%am1 => am1
+      atmgla%byam1 => byam1
       atmgla%lat(:,:) = lat2d(:,:)
 
       call alloc_xchng_vars(grid,atmlnd)
       atmlnd%grid => grd_dum
       atmlnd%srfp => srfp
+      atmlnd%srfpk => srfpk
+      atmlnd%p1 => p1
+      atmlnd%am1 => am1
+      atmlnd%byam1 => byam1
       atmlnd%lat(:,:) = lat2d(:,:)
+
+! until the update of first-layer T/Q is refactored in a way
+! which allows roundoff differences, the dth1,dq1,uflux1,vflux1
+! pointers exist and all surf. types pointers point to the same arrays.
+      atmocn%dth1    => dth1
+      atmocn%dq1     => dq1
+      atmocn%uflux1  => uflux1
+      atmocn%vflux1  => vflux1
+
+      atmice%dth1    => dth1
+      atmice%dq1     => dq1
+      atmice%uflux1  => uflux1
+      atmice%vflux1  => vflux1
+
+      atmgla%dth1    => dth1
+      atmgla%dq1     => dq1
+      atmgla%uflux1  => uflux1
+      atmgla%vflux1  => vflux1
+
+      atmlnd%dth1    => dth1
+      atmlnd%dq1     => dq1
+      atmlnd%uflux1  => uflux1
+      atmlnd%vflux1  => vflux1
+
+#ifdef TRACERS_ON
+! for now, all surface types refer to the same array.
+      atmocn%trflux1  => trflux1
+      atmocn%trsrfflx => trsrfflx
+
+      atmice%trflux1  => trflux1
+      atmice%trsrfflx => trsrfflx
+
+      atmgla%trflux1  => trflux1
+      atmgla%trsrfflx => trsrfflx
+
+      atmlnd%trflux1  => trflux1
+      atmlnd%trsrfflx => trsrfflx
+#endif
 
 ! set pointers for looping over surface types
       call setptr_atmsrf_loopable(atmocn%atmsrf_xchng_vars,asflx(1))
       call setptr_atmsrf_loopable(atmice%atmsrf_xchng_vars,asflx(2))
       call setptr_atmsrf_loopable(atmgla%atmsrf_xchng_vars,asflx(3))
       call setptr_atmsrf_loopable(atmlnd%atmsrf_xchng_vars,asflx(4))
+
 
       END SUBROUTINE ALLOC_FLUXES
 

@@ -13,7 +13,7 @@
       public alloc_pbl_args, dealloc_pbl_args
       contains
 
-      SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args)
+      SUBROUTINE PBL(I,J,ITYPE,PTYPE,pbl_args,atm)
 !@sum  PBL calculate pbl profiles for each surface type
 !@+        Contains code common for all surfaces
 !@auth Greg. Hartke/Ye Cheng
@@ -21,16 +21,16 @@
 !@var TDN1 downdraft temperature in K, (i,j)
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
 
+      USE EXCHANGE_TYPES
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
-      USE ATM_COM, only : t,q,u,v
-      USE GEOM, only : sinlat2d
-      USE ATM_COM, only : pmid,pk,pedn,pek
+      USE ATM_COM, only : t,q,ua=>ualij,va=>valij
+      USE GEOM, only : sinlat2d,byaxyp
+      USE ATM_COM, only : pmid,pk
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-     &    ,ua=>ualij,va=>valij
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : ntm=>NTM,trdn1
+      USE TRACER_COM, only : ntm,trdn1
 #ifdef TRACERS_DRYDEP
      &    ,trradius,trpdens,tr_mm
 #endif
@@ -43,9 +43,6 @@
 
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
-      use QUSDEF, only : mz
-      use SOMTQ_COM, only : tmom
-
 
       IMPLICIT NONE
 
@@ -53,9 +50,8 @@
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
-
+      class (atmsrf_xchng_vars) :: atm
       REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
-      real*8, parameter :: S1byG1=.57735d0
       REAL*8 Ts
 
 #ifdef TRACERS_ON
@@ -65,7 +61,7 @@
 #endif
 #endif
 c
-      REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol
+      REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol,rhosrf
       REAL*8 qtop,utop,vtop,ufluxs,vfluxs,tfluxs,qfluxs,psitop,psisrf
       INTEGER LDC,L,k
 !@var uocean,vocean ocean/ice velocities for use in drag calulation
@@ -123,7 +119,36 @@ c      logical pole
 !@var  tr local tracer profile (passive scalars)
       real*8, dimension(npbl,pbl_args%ntx) :: tr
       real*8, dimension(ntm) :: trnradius,trndens,trnmm
+      real*8 :: rts,rtsdt
 #endif
+
+      !qtop=q(i,j,1)
+      qtop = atm%q1(i,j)
+      pbl_args%tkv = (atm%temp1(I,J)*(1.+qtop*xdelt))*atm%srfpk(i,j)
+      pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*atm%AM1(i,j)/atm%p1(i,j)
+      pbl_args%hemi = sign(1d0,atm%lat(i,j))
+
+      utop = atm%u1(i,j) !ua(1,i,j)
+      vtop = atm%v1(i,j) !va(1,i,j)
+
+#ifdef TRACERS_ON
+C**** Set up tracers for PBL calculation if required
+      do nx=1,pbl_args%ntx
+        n=pbl_args%ntix(nx)
+C**** Calculate first layer tracer concentration
+          pbl_args%trtop(nx)=
+     &         atm%trm1(i,j,n)*atm%byam1(i,j)*byaxyp(i,j)
+      end do
+      call tracer_lower_bc(i,j,itype,pbl_args,atm)
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) 
+      call dust_emission_prep(i,j,itype,pbl_args)
+#endif
+
+#endif
+
 
 ccc extract data needed in driver from the pbl_args structure
       zs1 = pbl_args%zs1
@@ -221,10 +246,7 @@ c     ELSE
 c     ENDIF
 
       coriol=sinlat2d(i,j)*omega2
-      qtop=q(i,j,1)
 
-      utop = ua(1,i,j)
-      vtop = va(1,i,j)
       ug   = ua(L,i,j)
       vg   = va(L,i,j)
 
@@ -299,7 +321,7 @@ c     ENDIF
       ! then tdns,qdns,tprime,qprime are not in use
 
       if (pbl_args%ddml_eq_1) then
-        pbl_args%tdns=TDN1(i,j)*pek(1,i,j)/pk(1,i,j)
+        pbl_args%tdns=TDN1(i,j)*atm%srfpk(i,j)/pk(1,i,j)
         pbl_args%qdns=QDN1(i,j)
 #ifdef TRACERS_ON
         do nx=1,pbl_args%ntx
@@ -314,8 +336,8 @@ c     ENDIF
 #endif
       endif
 
-      dtdt_gcm = (pbl_args%tkv - t1_after_aturb(i,j)*pek(1,i,j))/
-     &     pbl_args%dtsurf
+      dtdt_gcm = (pbl_args%tkv - t1_after_aturb(i,j)*
+     &     atm%srfpk(i,j))/pbl_args%dtsurf
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,u1_after_aturb(i,j),v1_after_aturb(i,j)
@@ -332,10 +354,26 @@ c     ENDIF
       tabl(:,itype,i,j)=tpbl(:)
       qabl(:,itype,i,j)=qpbl(:)
       eabl(1:npbl-1,itype,i,j)=epbl(1:npbl-1)
+      rhosrf=100.*pbl_args%psurf/(rgas*pbl_args%tsv)
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
-        trabl(:,pbl_args%ntix(nx),itype,i,j)=tr(:,nx)
+        n = pbl_args%ntix(nx)
+        trabl(:,n,itype,i,j)=tr(:,nx)
+        travg(n,i,j) = travg(n,i,j) + ptype*pbl_args%trs(nx)
+        travg_byvol(n,i,j) = travg_byvol(n,i,j) +
+     &       ptype*pbl_args%trs(nx)*rhosrf
       end do
+#ifdef TRACERS_DRYDEP
+      dep_vel(:,itype,i,j)=pbl_args%dep_vel(:)
+      gs_vel(:,itype,i,j)=pbl_args%gs_vel(:)
+      do nx=1,pbl_args%ntx
+        n = pbl_args%ntix(nx)
+        rts=rhosrf*pbl_args%trs(nx)
+        rtsdt=rts*pbl_args%dtsurf        ! kg*s/m^3
+        drydflx(n,itype,i,j)=-rtsdt*
+     &       (dep_vel(n,itype,i,j)+gs_vel(n,itype,i,j)) ! kg/m2
+      enddo
+#endif
 #endif
 
       cmgs(itype,i,j)=pbl_args%cm
@@ -361,6 +399,12 @@ C ******************************************************************
       USAVG(I,J)=USAVG(I,J)+pbl_args%US*PTYPE
       VSAVG(I,J)=VSAVG(I,J)+pbl_args%VS*PTYPE
       TAUAVG(I,J)=TAUAVG(I,J)+pbl_args%CM*pbl_args%WS*pbl_args%WS*PTYPE
+     &     *rhosrf
+
+      atm%tsavg(i,j) = ts
+      atm%qsavg(i,j) = pbl_args%qsrf
+      atm%usavg(i,j) = pbl_args%us
+      atm%vsavg(i,j) = pbl_args%vs
 
       uflux(I,J)=uflux(I,J)+ufluxs*PTYPE
       vflux(I,J)=vflux(I,J)+vfluxs*PTYPE
@@ -369,14 +413,350 @@ C ******************************************************************
 
       tgvAVG(I,J)=tgvAVG(I,J)+pbl_args%tgv*PTYPE
       qgAVG(I,J)=qgAVG(I,J)+pbl_args%qg_aver*PTYPE
+      gustiwind(i,j) = gustiwind(i,j) + pbl_args%gusti*PTYPE
+      dblavg(i,j) = dblavg(i,j) + dbl*PTYPE
+      rhoavg(i,j) = rhoavg(i,j) + rhosrf*PTYPE
       w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
+
+      ugeoavg(i,j) = ugeoavg(i,j) + ug*ptype
+      vgeoavg(i,j) = vgeoavg(i,j) + vg*ptype
+      wgeoavg(i,j) = wgeoavg(i,j) + pbl_args%wg*ptype
+      ciaavg(i,j)  =  ciaavg(i,j) + psi*ptype
+      khsavg(i,j)  =  khsavg(i,j) + pbl_args%khs*ptype
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      wsgcm(i,j) = wsgcm(i,j) +pbl_args%wsgcm*ptype
+      wspdf(i,j) = wspdf(i,j) +pbl_args%wspdf*ptype
+      wsubwd(i,j) = wsubwd(i,j) +pbl_args%wsubwd*ptype
+      wsubtke(i,j) = wsubtke(i,j) +pbl_args%wsubtke*ptype
+      wsubwm(i,j) = wsubwm(i,j) +pbl_args%wsubwm*ptype
+#endif
 
 ccc put drive output data to pbl_args structure
       pbl_args%psi = psi ! maybe also should be moved to ADVANC
                          ! or completely otside of PBL* ?
 
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      call PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args)
+#endif
+
+#ifdef TRACERS_ON
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) 
+      call save_dust_emission_vars(i,j,itype,pbl_args)
+#endif
+#endif
+
       RETURN
       END SUBROUTINE PBL
+
+#ifdef TRACERS_ON
+      subroutine tracer_lower_bc(i,j,itype,pbl_args,atm)
+      use exchange_types
+      use geom, only : byaxyp
+      USE TRACER_COM, only :
+     &     dodrydep,tr_wd_type,nWATER,nPART,nGAS
+      implicit none
+      integer, intent(in) :: i,j,itype  !@var itype surface type
+      type (t_pbl_args) :: pbl_args
+      class (atmsrf_xchng_vars) :: atm
+c
+      integer :: n,nx
+c
+
+c todo: try to merge the itype==4 and itype<4 cases
+      if(itype.le.3) then ! ice/water surfaces
+C 
+C**** Set up b.c. for tracer PBL calculation if required
+        do nx=1,pbl_args%ntx
+          n=pbl_args%ntix(nx)
+C**** set defaults
+          pbl_args%trsfac(nx)=0.
+          pbl_args%trconstflx(nx)=0.
+C**** Set surface boundary conditions for tracers depending on whether
+C**** they are water or another type of tracer
+#ifdef TRACERS_WATER
+          pbl_args%tr_evap_max(nx)=1.
+C**** This distinguishes water from gases or particle
+          if ( tr_wd_TYPE(n) == nWATER ) then
+c          trgrnd(nx)=atmgla%gtracer(n,i,j)
+C**** trsfac and trconstflx are multiplied by cq*ws and QG_SAT in PBL
+            pbl_args%trsfac(nx)=1.
+            pbl_args%trconstflx(nx)=atm%gtracer(n,i,j)
+
+          else if ( tr_wd_TYPE(n) == nGAS .or.
+     &           tr_wd_TYPE(n) == nPART ) then
+#endif
+C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
+C**** is a non-soluble tracer mixed in.)
+C**** Calculate trsfac (set to zero for const flux)
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              pbl_args%trsfac(nx)=1. !then multiplied by deposition velocity in PBL
+#ifdef TRACERS_WATER
+              pbl_args%tr_evap_max(nx)=1.d30
+c            trgrnd(nx)=0.
+#endif
+            end if
+#endif
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+C**** Now send kg/m^2/s to PBL, and divided by rho there.
+#ifndef SKIP_TRACER_SRCS
+            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n)*byaxyp(i,j) ! kg/m^2/s
+#endif /*SKIP_TRACER_SRCS*/
+
+#ifdef TRACERS_WATER
+          endif
+#endif
+
+#ifdef TRACERS_GASEXCH_ocean_CO2
+! transplanted from SURFACE.f:
+          IF (pbl_args%ocean) THEN ! OCEAN
+            !trgrnd(nx)=atm%gtracer(n,i,j)
+            pbl_args%trsfac(nx)=1.
+            pbl_args%trconstflx(nx)=atm%gtracer(n,i,j)
+          END IF
+        !need to redo this here because the previous line has changed trconstflx to zero.
+        !because we have no sources. is there a better way to do this?
+          !call stop_model('why 1/area in the following line?',255)
+          pbl_args%trconstflx(nx)=atm%gtracer(n,i,j) * byaxyp(i,j) !kg,co2/kg,air/m2
+#endif
+
+        end do
+      else
+c LAND SURFACE
+        do nx=1,pbl_args%ntx
+          n=pbl_args%ntix(nx)
+C**** set defaults
+          pbl_args%trsfac(nx)=0.
+          pbl_args%trconstflx(nx)=0.
+#ifdef TRACERS_WATER
+C**** Set surface boundary conditions for tracers depending on whether
+C**** they are water or another type of tracer
+C**** The select is used to distinguish water from gases or particle
+! select removed because of OMP compiler bug
+!        select case (tr_wd_TYPE(n))
+!        case (nWATER)
+          if (tr_wd_TYPE(n) .eq. nWATER) then
+C**** no fractionation from ground (yet)
+C**** trsfac and trconstflx are multiplied by cq*ws and QG in PBL
+            pbl_args%trsfac(nx)=1.
+            pbl_args%trconstflx(nx)=atm%gtracer(n,i,j)
+!        case (nGAS, nPART)
+          elseif(tr_wd_TYPE(n).eq.nGAS .or. tr_wd_TYPE(n).eq.nPART) then
+#endif
+C**** For non-water tracers (i.e. if TRACERS_WATER is not set, or there
+C**** is a non-soluble tracer mixed in.)
+C**** Calculate trsfac (set to zero for const flux)
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) pbl_args%trsfac(nx) = 1.
+          !then multiplied by deposition velocity in PBL
+#endif
+C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
+            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n)*byaxyp(i,j) ! kg/m^2/s
+#ifdef TRACERS_WATER
+!        end select
+          end if
+#endif
+        end do
+
+#ifdef TRACERS_WATER
+c**** water tracers are also flux limited
+        do nx=1,pbl_args%ntx
+          n=pbl_args%ntix(nx)
+C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
+          pbl_args%tr_evap_max(nx)=pbl_args%evap_max*atm%gtracer(n,i,j)
+#ifdef TRACERS_DRYDEP
+          if(dodrydep(n)) pbl_args%tr_evap_max(nx) = 1.d30
+#endif
+        end do
+#endif
+      endif ! itype check
+
+      return
+      end subroutine tracer_lower_bc
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) 
+      subroutine dust_emission_prep(i,j,itype,pbl_args)
+      use constant, only : by3
+      use fluxes, only : pprec,pevap
+      use tracers_dust, only : hbaij,ricntd
+      use clouds_com, only : ddml,fss
+      implicit none
+      integer, intent(in) :: i,j  !@var i,j grid point
+      integer, intent(in) :: itype  !@var itype surface type
+      type (t_pbl_args) :: pbl_args
+c
+      pbl_args%hbaij=hbaij(i,j)
+      pbl_args%ricntd=ricntd(i,j)
+      pbl_args%pprec=pprec(i,j)
+      pbl_args%pevap=pevap(i,j,itype)
+c**** fractional area of moist convection * fraction of downdrafts
+c**** (=1/3), but only if downdrafts reach the lowest atmospheric
+c**** layer. It's only needed to constrain dust emission due to
+c**** downdrafts for soil type earth, but it's needed here to calculate
+c**** wspdf in PBL.f for the other soil types.
+      IF (ddml(i,j) == 1) THEN
+        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
+      ELSE
+        pbl_args%mcfrac=0.D0
+      END IF
+      return
+      end subroutine dust_emission_prep
+
+      subroutine save_dust_emission_vars(i,j,itype,pbl_args)
+      use tracers_dust, only : hbaij,ricntd
+      implicit none
+      integer, intent(in) :: i,j  !@var i,j grid point
+      integer, intent(in) :: itype  !@var itype surface type
+      type (t_pbl_args) :: pbl_args
+      hbaij(i,j)=pbl_args%hbaij
+      ricntd(i,j)=pbl_args%ricntd
+      return
+      end subroutine save_dust_emission_vars
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args)
+      USE CONSTANT, only :  rgas,grav,deltx,teeny
+      USE TRACER_COM, only : ntm,dodrydep,trname,ntm_dust
+      use SOCPBL, only : npbl=>n
+      USE PBLCOM
+      USE DIAG_COM, only :
+     *      adiurn=>adiurn_loc,ndiupt,ndiuvar,ijdd,adiurn_dust
+#ifndef NO_HDIURN
+     *     ,hdiurn=>hdiurn_loc
+#endif
+     *     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
+#ifdef TRACERS_DUST
+     *     ,idd_emis,idd_emis2
+     *     ,idd_ws2,idd_ustar,idd_us3,idd_stress,idd_lmon
+     *     ,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
+     *     ,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,idd_grav,idd_turb
+#endif
+
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN) :: I,J  !@var I,J grid point
+      INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
+      REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
+      type (t_pbl_args) :: pbl_args
+
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+      INTEGER,PARAMETER :: n_idxd=6
+#else
+#ifdef TRACERS_DUST
+      INTEGER,PARAMETER :: n_idxd=16+6*npbl+4*(npbl-1)
+#endif
+#endif
+
+      REAL*8 ts,ws,rhosrf
+      integer nx,n
+      INTEGER :: kr,ii,idxd(n_idxd)
+      REAL*8 :: tmp(NDIUVAR)
+
+
+      IF (adiurn_dust == 1 .and. pbl_args%moddd==0) THEN
+C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
+        DO KR=1,NDIUPT
+          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
+            tmp(:) = 0.
+            idxd=(/ idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
+#ifdef TRACERS_DUST
+     &        ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
+     &        ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl,
+     &       (idd_zpbl1+i-1,i=1,npbl), (idd_uabl1+i-1,i=1,npbl),
+     *       (idd_vabl1+i-1,i=1,npbl), (idd_uvabl1+i-1,i=1,npbl),
+     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),
+     *       (idd_zhat1+i-1,i=1,npbl-1), (idd_e1+i-1,i=1,npbl-1),
+     *       (idd_km1+i-1,i=1,npbl-1), (idd_ri1+i-1,i=1,npbl-1)
+#endif
+     &      /)
+            rhosrf=100.*pbl_args%psurf/(rgas*pbl_args%tsv)
+            TS=pbl_args%TSV/(1.+pbl_args%QSRF*xdelt)
+            ws = pbl_args%ws
+            tmp(idd_wsgcm)=pbl_args%wsgcm*ptype
+            tmp(idd_wspdf)=pbl_args%wspdf*ptype
+            tmp(idd_wtke)=pbl_args%wsubtke*ptype
+            tmp(idd_wd)=pbl_args%wsubwd*ptype
+            tmp(idd_wm)=pbl_args%wsubwm*ptype
+            if(itype==4) then
+              tmp(idd_wtrsh)=pbl_args%wtrsh*ptype
+#ifdef TRACERS_DUST
+              tmp(idd_emis)=0.D0
+              tmp(idd_emis2)=0.D0
+              do n=1,Ntm_dust
+                tmp(idd_emis)=tmp(idd_emis)
+     &               +pbl_args%dust_flux(n)*ptype
+                tmp(idd_emis2)=tmp(idd_emis2)
+     &               +pbl_args%dust_flux2(n)*ptype
+              enddo
+#endif
+            endif
+#ifdef TRACERS_DUST
+            tmp(idd_turb)=0.D0
+            tmp(idd_grav)=0.D0
+#ifdef TRACERS_DRYDEP
+            do nx=1,pbl_args%ntx
+              n = pbl_args%ntix(nx)
+              if (dodrydep( n )) then
+                select case(trname( n ))
+                case('Clay', 'Silt1', 'Silt2', 'Silt3')
+                  tmp( idd_turb ) = tmp( idd_turb ) + ptype * rhosrf
+     &                 * pbl_args%trs(nx) * pbl_args%dep_vel(n)
+                  tmp( idd_grav ) = tmp( idd_grav ) + ptype * rhosrf
+     &                 * pbl_args%trs(nx) * pbl_args%gs_vel(n)
+                end select
+              end if
+            end do
+#endif
+            tmp(idd_ws2)=ws*ws*ptype
+            tmp(idd_ustar)=pbl_args%ustar*ptype
+            tmp(idd_us3)=ptype*pbl_args%ustar**3
+            tmp(idd_stress)=rhosrf*pbl_args%cm*(pbl_args%ws**2)*ptype
+            tmp(idd_lmon)=pbl_args%lmonin*ptype
+            tmp(idd_rifl)=
+     &           +ptype*grav*(ts-pbl_args%tg)*pbl_args%zgs/
+     &           (ws*ws*pbl_args%tg)
+            tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
+            tmp(idd_uabl1:idd_uabl1+npbl-1)=
+     *           ptype*uabl(1:npbl,itype,i,j)
+            tmp(idd_vabl1:idd_vabl1+npbl-1)=
+     *           ptype*vabl(1:npbl,itype,i,j)
+            tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
+     *           uabl(1:npbl,itype,i,j)*uabl(1:npbl,itype,i,j)+
+     *           vabl(1:npbl,itype,i,j)*vabl(1:npbl,itype,i,j))
+            tmp(idd_tabl1:idd_tabl1+npbl-1)=
+     *           ptype*tabl(1:npbl,itype,i,j)
+            tmp(idd_qabl1:idd_qabl1+npbl-1)=
+     *           ptype*qabl(1:npbl,itype,i,j)
+            tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
+     *           *pbl_args%zhat(1:npbl-1)
+            tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,itype,i,j)*ptype
+            tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
+            tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
+     *           /(pbl_args%gm(1:npbl-1)+1d-20)
+#endif
+            ADIURN(idxd(:),kr,pbl_args%ih)=
+     &      ADIURN(idxd(:),kr,pbl_args%ih)  +tmp(idxd(:))
+#ifndef NO_HDIURN
+            HDIURN(idxd(:),kr,pbl_args%ihm)=
+     &      HDIURN(idxd(:),kr,pbl_args%ihm) +tmp(idxd(:))
+#endif
+          END IF
+        END DO
+      END IF
+
+      RETURN
+      END SUBROUTINE PBL_adiurn_dust
+#endif
 
       end module PBL_DRV
       
@@ -504,7 +884,7 @@ C****
           wsavg(i,j) = sqrt(usavg(i,j)**2 + vsavg(i,j)**2)
 #endif
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
-          TAUAVG(I,J)=CDM*WSAVG(I,J)**2
+          TAUAVG(I,J)=1.*CDM*WSAVG(I,J)**2  ! air density = 1 kg/m3
 C**** Initialize surface friction velocity
           USTAR_pbl(:,I,J)=WSAVG(I,J)*SQRT(CDM)
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
@@ -705,7 +1085,15 @@ c ----------------------------------------------------------------------
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PBLCOM, only : ipbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
+     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1,gustiwind,dblavg
+     &     ,rhoavg,ugeoavg,vgeoavg,wgeoavg,ciaavg,khsavg
+#ifdef TRACERS_ON
+      USE PBLCOM, only : travg,travg_byvol
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE PBLCOM, only : wsgcm,wspdf,wsubwd,wsubtke,wsubwm
+#endif
+#endif
       IMPLICIT NONE
       integer i,j  !@var i,j loop variable
 
@@ -761,7 +1149,29 @@ C**** initialise some pbl common variables
           TAUAVG(I,J)=0.
           TGVAVG(I,J)=0.
           QGAVG(I,J)=0.
+          gustiwind(i,j)=0.
+          dblavg(i,j)=0.
+          rhoavg(i,j)=0.
           w2_l1(I,J)=0.
+
+          ugeoavg(i,j)=0.
+          vgeoavg(i,j)=0.
+          wgeoavg(i,j)=0.
+          ciaavg(i,j)=0.
+          khsavg(i,j)=0.
+
+#ifdef TRACERS_ON
+          travg(:,i,j) = 0.
+          travg_byvol(:,i,j) = 0.
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+           wsgcm(i,j) = 0.
+           wspdf(i,j) = 0.
+           wsubwd(i,j) = 0.
+           wsubtke(i,j) = 0.
+           wsubwm(i,j) = 0.
+#endif
+#endif
 
           uflux(I,J)=0.
           vflux(I,J)=0.

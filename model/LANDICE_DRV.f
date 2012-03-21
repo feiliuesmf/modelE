@@ -278,26 +278,25 @@ C****
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
 !@calls LANDICE:PRECLI
-      USE RESOLUTION, only : im,jm
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
      &     ,I_TARG,J_TARG
 #endif
       USE CONSTANT, only : tf
-      USE GEOM, only : imaxj,axyp,byaxyp
-      USE FLUXES, only : atmgla,runoli,prec,eprec,flice
+      USE GEOM, only : imaxj,axyp
+      USE FLUXES, only : atmgla,runoli,flice
 #ifdef TRACERS_WATER
-     *     ,trunoli,trprec
+     *     ,trunoli
 #endif
       USE LANDICE, only: ace1li,ace2li,precli,snmin
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm,trdwnimp
 #endif
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li
-     *     ,ij_runli,j_run,j_implh,j_implm,ij_imphli,ij_impmli,itlandi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
+
+      real*8, dimension(:,:), pointer :: prec,eprec
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPIJ
 #ifdef TRACERS_WATER
@@ -311,9 +310,10 @@ C****
       REAL*8, DIMENSION(NTM) :: TRUN0
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
+      real*8, dimension(:,:,:), pointer :: trprec
 #endif
 C**** Get useful grid parameters
-      INTEGER :: I, J, JR
+      INTEGER :: I, J
       INTEGER :: J_0, J_1, J_0H, J_1H ,I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
@@ -321,16 +321,23 @@ C**** Get useful grid parameters
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+       prec => atmgla%prec
+      eprec => atmgla%eprec
+#ifdef TRACERS_WATER
+      trprec => atmgla%trprec
+#endif
+
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
       DXYPIJ=AXYP(I,J)
       PLICE=FLICE(I,J)
       PRCP=PREC(I,J)
-      JR=JREG(I,J)
       RUNOLI(I,J)=0
 #ifdef TRACERS_WATER
       TRUNOLI(:,I,J)=0.
 #endif
+      atmgla%IMPLM(I,J)=0.
+      atmgla%IMPLH(I,J)=0.
       IF (PLICE.gt.0 .and. PRCP.gt.0) THEN
 
         ENRGP=EPREC(I,J)      ! energy of precipitation
@@ -342,7 +349,6 @@ C**** Get useful grid parameters
         TRSNOW(:)=TRSNOWLI(:,I,J)
         TRPRCP(:)=TRPREC(:,I,J)
 #endif
-        AIJ(I,J,IJ_F0LI)=AIJ(I,J,IJ_F0LI)+ENRGP*PLICE
 
         CALL PRECLI(SNOW,TG1,TG2,PRCP,ENRGP,
 #ifdef TRACERS_WATER
@@ -382,19 +388,13 @@ C**** accumulate implicit fluxes for setting ocean balance
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
-c       CALL INC_AJ(I,J,ITLANDI,J_TYPE,       PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_RUN ,  RUN0*PLICE)
-C       CALL INC_AJ(I,J,ITLANDI,J_ERUN, ERUN0*PLICE) ! (Tg=0)
-        CALL INC_AJ(I,J,ITLANDI,J_IMPLM, DIFS*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_IMPLH,ERUN2*PLICE)
-        CALL INC_AREG(I,J,JR,J_RUN ,  RUN0*PLICE)
-c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
-        CALL INC_AREG(I,J,JR,J_IMPLM, DIFS*PLICE)
-        CALL INC_AREG(I,J,JR,J_IMPLH,ERUN2*PLICE)
-        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +EDIFS*PLICE
-        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
-        AIJ(I,J,IJ_IMPMLI)=AIJ(I,J,IJ_IMPMLI)+ DIFS*PLICE
-        AIJ(I,J,IJ_IMPHLI)=AIJ(I,J,IJ_IMPHLI)+ERUN2*PLICE
+        atmgla%IMPLM(I,J)=DIFS
+        atmgla%IMPLH(I,J)=ERUN2
+        atmgla%E1(I,J)=EDIFS
+      ELSE
+        atmgla%IMPLM(I,J)=0.
+        atmgla%IMPLH(I,J)=0.
+        atmgla%E1(I,J)=0.
       END IF
       END DO
       END DO
@@ -407,36 +407,21 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@ver  2010/10/06
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf,sday,edpery
-      USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
      &     ,I_TARG,J_TARG
 #endif
-      USE GEOM, only : imaxj,axyp,byaxyp
-      USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp
-     *     ,eicbimp,accpda,accpdg,eaccpda,eaccpdg
-      USE SEAICE_COM, only : si_atm
+      USE GEOM, only : imaxj,axyp
+      USE LANDICE, only : lndice,ace1li,ace2li,snmin,micbimp,eicbimp
       USE SEAICE, only : rhos
-      USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li
-     *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run,ij_imphli,ij_impmli
-     *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
-     *     ,j_rvrd,j_ervr,ij_micb,ij_eicb,ij_zsnow,ij_fwoc,ij_li
-     &     ,itlandi,itocean,itoice
       USE LANDICE_COM, only : snowli,tlandi,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
-     *     ,ntm,trsnowli,trlndi,trdwnimp  !,tricbimp,traccpda,traccpdg
+     *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
-      USE FLUXES, only : atmgla,runoli,gmelt,egmelt
-     &     ,flice,focean
+      USE FLUXES, only : atmgla,runoli,flice
 #ifdef TRACERS_WATER
      *     ,trunoli
-#ifdef TRACERS_WATER  /* TNL: inserted */
-#ifdef TRACERS_OCEAN
-     *     ,trgmelt
-#endif   /* TNL: inserted */
-      USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr , tij_icb
-#endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE TimerPackage_mod, only: startTimer => start
@@ -457,7 +442,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@var TRDIFS implicit tracer flux at base of ice (kg/m^2)
       REAL*8, DIMENSION(NTM) :: TRDIFS
 #endif
-      INTEGER I,J,JR,N
+      INTEGER I,J,N
       INTEGER :: J_0,J_1, J_0H, J_1H ,I_0,I_1
 
       call startTimer('GROUND_LI()')
@@ -470,7 +455,6 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       DO I=I_0,IMAXJ(J)
       DXYPIJ=AXYP(I,J)
       PLICE=FLICE(I,J)
-      JR=JREG(I,J)
       RUNOLI(I,J)=0.
       IF (PLICE.gt.0) THEN
 
@@ -525,59 +509,17 @@ C**** accumulate implicit fluxes for setting ocean balance
         END IF
 #endif
 C**** ACCUMULATE DIAGNOSTICS
+        atmgla%IMPLM(I,J)=atmgla%IMPLM(I,J)+DIFS
+        atmgla%IMPLH(I,J)=atmgla%IMPLH(I,J)+EDIFS
+        atmgla%E1(I,J)=EDIFS+F1DT
         SCOVLI=0
-        IF (SNOWLI(I,J).GT.0.) SCOVLI=PLICE
-        CALL INC_AJ(I,J,ITLANDI,J_RSNOW,SCOVLI)
-        CALL INC_AREG(I,J,JR,J_RSNOW,SCOVLI)
-        AIJ(I,J,IJ_RSNW)=AIJ(I,J,IJ_RSNW)+SCOVLI
-        AIJ(I,J,IJ_SNOW)=AIJ(I,J,IJ_SNOW)+SNOW*PLICE
-        AIJ(I,J,IJ_RSIT)=AIJ(I,J,IJ_RSIT)+PLICE
-        AIJ(I,J,IJ_LI)  =AIJ(I,J,IJ_LI)  +PLICE
-        AIJ(I,J,IJ_ZSNOW)=AIJ(I,J,IJ_ZSNOW)+PLICE*SNOW/RHOS
+        IF (SNOWLI(I,J).GT.0.) SCOVLI=1.
+        atmgla%snowli(i,j) = snow
+        atmgla%snowfr(i,j) = scovli
+        atmgla%snowdp(i,j) = snow/rhos
 
-        CALL INC_AJ(I,J,ITLANDI,J_RUN,   RUN0*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_SNOW,  SNOW*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_ACE1,ACE1LI*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_ACE2,ACE2LI*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_IMPLH,EDIFS*PLICE)
-        CALL INC_AJ(I,J,ITLANDI,J_IMPLM, DIFS*PLICE)
-
-        CALL INC_AREG(I,J,JR,J_RUN  ,  RUN0*PLICE)
-        CALL INC_AREG(I,J,JR,J_SNOW ,  SNOW*PLICE)
-        CALL INC_AREG(I,J,JR,J_ACE1 ,ACE1LI*PLICE)
-        CALL INC_AREG(I,J,JR,J_ACE2 ,ACE2LI*PLICE)
-        CALL INC_AREG(I,J,JR,J_IMPLH, EDIFS*PLICE)
-        CALL INC_AREG(I,J,JR,J_IMPLM,  DIFS*PLICE)
-
-        AIJ(I,J,IJ_F1LI) =AIJ(I,J,IJ_F1LI) +(EDIFS+F1DT)*PLICE
-        AIJ(I,J,IJ_RUNLI)=AIJ(I,J,IJ_RUNLI)+RUN0 *PLICE
-        AIJ(I,J,IJ_IMPMLI)=AIJ(I,J,IJ_IMPMLI)+ DIFS*PLICE
-        AIJ(I,J,IJ_IMPHLI)=AIJ(I,J,IJ_IMPHLI)+EDIFS*PLICE
       END IF
 
-      CALL INC_AJ(I,J,ITOCEAN,J_RVRD,(1.-si_atm%RSI(I,J))* GMELT(I,J)
-     *     *FOCEAN(I,J))
-      CALL INC_AJ(I,J,ITOCEAN,J_ERVR,(1.-si_atm%RSI(I,J))*EGMELT(I,J)
-     *     *FOCEAN(I,J))
-      CALL INC_AJ(I,J,ITOICE,J_RVRD,
-     *     si_atm%RSI(I,J)* GMELT(I,J)*FOCEAN(I,J))
-      CALL INC_AJ(I,J,ITOICE,J_ERVR,
-     *     si_atm%RSI(I,J)*EGMELT(I,J)*FOCEAN(I,J))
-      AIJ(I,J,IJ_F0OC) = AIJ(I,J,IJ_F0OC)+EGMELT(I,J)*FOCEAN(I,J)
-      AIJ(I,J,IJ_FWOC) = AIJ(I,J,IJ_FWOC)+ GMELT(I,J)*FOCEAN(I,J)
-
-      CALL INC_AREG(I,J,JR,J_RVRD, GMELT(I,J)*FOCEAN(I,J))
-      CALL INC_AREG(I,J,JR,J_ERVR,EGMELT(I,J)*FOCEAN(I,J))
-      AIJ(I,J,IJ_MICB)=AIJ(I,J,IJ_MICB) +
-     &      GMELT(I,J)*FOCEAN(I,J)*AXYP(I,J)
-      AIJ(I,J,IJ_EICB)=AIJ(I,J,IJ_EICB) +
-     &     EGMELT(I,J)*FOCEAN(I,J)*AXYP(I,J)
-#ifdef TRACERS_WATER  /* TNL: inserted */
-#ifdef TRACERS_OCEAN
-      TAIJN(I,J,TIJ_ICB,:)=TAIJN(I,J,TIJ_ICB,:)+ TRGMELT(:,I,J)
-     *     *FOCEAN(I,J)
-#endif
-#endif  /* TNL: inserted */
 C****
       END DO
       END DO
