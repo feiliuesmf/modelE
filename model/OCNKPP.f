@@ -1347,7 +1347,7 @@ C****
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke
+     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
@@ -2029,8 +2029,8 @@ C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
-         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
 #ifdef OCN_GISSMIX
+         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
          OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
          OIJL(I,J,L,ijl_rrho)= OIJL(I,J,L,ijl_rrho) + rrho(L) ! density ratio
          OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.

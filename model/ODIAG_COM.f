@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=70,KOIJL=36,KOL=6,KOLNST=11,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=70,KOIJL=37,KOL=6,KOLNST=12,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -84,7 +84,7 @@
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke
+     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
 #endif
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -109,7 +109,7 @@
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
      *     ,LN_ICFL
 #ifdef OCN_GISSMIX
-     *     ,ln_ri,ln_rrho,ln_otke
+     *     ,ln_ri,ln_rrho,ln_otke,ln_kvs
 #endif
 !@var lname_olnst Long names for OLNST diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOLNST) :: LNAME_OLNST
@@ -886,6 +886,8 @@ c
 c
 #ifdef OCN_GISSMIX
       k=k+1
+      ln_kvs = k
+      k=k+1
       ln_ri = k
 c
       k=k+1
@@ -1074,6 +1076,15 @@ c
       lgrid_oijl(k) = 2
 c
 #ifdef OCN_GISSMIX
+      k=k+1
+      ijl_kvs = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvs'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. SALT DIFF.'
+      scale_oijl(k) = 1d4*byrho2
+      lgrid_oijl(k) = 2
+c
       k=k+1
       ijl_ri= k
       denom_oijl(k) = IJL_AREA

@@ -1752,7 +1752,7 @@ c
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISSMIX
-     &     ,ijl_ri,ijl_rrho,ijl_otke
+     &     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
 #endif
 #ifdef OCN_Mesoscales
      &     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -1830,6 +1830,7 @@ c
         oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
         oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
 #ifdef OCN_GISSMIX
+        oijl_out(i,j,l,ijl_kvs) = oijl(i,j,l,ijl_kvs)*dxypo(j)
         oijl_out(i,j,l,ijl_ri) = oijl(i,j,l,ijl_ri)*dxypo(j)
         oijl_out(i,j,l,ijl_rrho) = oijl(i,j,l,ijl_rrho)*dxypo(j)
         oijl_out(i,j,l,ijl_otke) = oijl(i,j,l,ijl_otke)*dxypo(j)
