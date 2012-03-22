@@ -83,7 +83,9 @@ C****
      *  HSIST(LMI,NMST), !  LMI layers of heat content in strait (J)
      *  SSIST(LMI,NMST), !  LMI layers of salt in strait (kg)
      *    USIFAC = .1d0  !  ratio of strait sea ice velocity to current
-
+#ifdef OCN_GISSMIX
+     *  ,OTKEST(LMO,NMST)!  turbulent kinetic energy in strait (m/s)^2
+#endif
 !@var QTYE workspace holding values of QTY at endpoints of straits
       Real*8 :: OPRESE(2,NMST)
       Real*8, Dimension(2,NMST,LMO) ::
@@ -126,4 +128,7 @@ C****
 !@param USIFAC ratio of strait sea ice velocity to current
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
 !@var TRSIST tracer amount in with strait (kg)
+#ifdef OCN_GISSMIX
+!@var OTKEST turbulent kinetic energy in strait (m/s)^2
+#endif
       EndModule STRAITS

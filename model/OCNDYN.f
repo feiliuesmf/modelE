@@ -324,6 +324,9 @@
       Use OCN_TRACER_COM, Only: ntm, need_ic
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+#ifdef OCN_GISSMIX
+      USE GISS_OTURB, only : gissmix_init
+#endif
       IMPLICIT NONE
 c
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -332,7 +335,7 @@ c
       type(iceocn_xchng_vars) :: dynsice
 c
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
-     *     ,iu_TOPO,II,JJ,flagij
+     *     ,iu_TOPO,II,JJ,flagij,nt
       REAL*4, DIMENSION(:,:,:), ALLOCATABLE:: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
@@ -743,6 +746,11 @@ C**** Initialize solar radiation penetration arrays
 
 C**** Initialize KPP mixing scheme
       call kmixinit(ZE)
+
+#ifdef OCN_GISSMIX
+C**** Initialize GISS mixing scheme
+      call gissmix_init(iniOCEAN)
+#endif
 
 C***  Initialize ODIFF
       call init_ODIFF(grid)
@@ -1503,6 +1511,10 @@ c tracer arrays in straits
       call defvar(grid, fid, arrdum, 'sliqo(dist_imo,dist_jmo)')
       deallocate(arrdum)
 
+#ifdef OCN_GISSMIX
+      call def_rsf_gissmix(fid)
+#endif
+
       return
       end subroutine def_rsf_ocean
 
@@ -1697,6 +1709,10 @@ c tracer arrays in straits
 
 #ifdef TRACERS_OceanBiology
       call new_io_obio(fid,iaction)
+#endif
+
+#ifdef OCN_GISSMIX
+      call new_io_gissmix(fid,iaction)
 #endif
 
       return
@@ -4128,11 +4144,18 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 
       Subroutine OBDRAG
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
-!@auth Gary Russell
+!@+    define OCN_GISSMIX and idrag=1 in GISS_OTURB module to include tidal
+!@+    enhancement of bottom drag
+!@auth Gary Russell and Armando Howard
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
       use domain_decomp_1d, only : get, halo_update, north, south
       USE OCEANR_DIM, only : grid=>ogrid
+#ifdef OCN_GISSMIX
+      USE GISS_OTURB, only : taubx,tauby, ! x,y components of velocity flux (m/s)^2
+     &                       rhobot       ! ocean bottom in-situ density (kg/m^3)
+     &                      ,idrag        ! idrag=1: no explicit tides; 0: otherwise
+#endif
 
       Implicit None
       REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
@@ -4141,6 +4164,11 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       REAL*8 WSQ
 
       INTEGER :: J_0, J_0S,J_1S  ; logical :: have_north_pole
+      REAL*8 bdragfac   !density times C_D (u^2 + u_t^2)^1/2 (kg/(m^2 s))
+#ifdef OCN_GISSMIX
+      REAL*8 taub       !velocity flux (m/s)^2
+      REAL*8 taubbyu    !velocity flux divided by velocity (m/s)
+#endif
 
       CALL GET(grid, J_STRT=J_0, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      *               have_north_pole=have_north_pole)
@@ -4150,6 +4178,11 @@ C****
       call halo_update (grid, mo, FROM=NORTH)
       call halo_update (grid, uo, FROM=NORTH)
       call halo_update (grid, vo, FROM=SOUTH)
+#ifdef OCN_GISSMIX
+      call halo_update (grid, taubx, FROM=NORTH)
+      call halo_update (grid, tauby, FROM=SOUTH)
+      call halo_update (grid, rhobot, FROM=NORTH)
+#endif
 C**** Save UO,VO into UT,VT which will be unchanged
       DO 10 L=1,LMO
         UT(:,:,L) = UO(:,:,L)
@@ -4166,8 +4199,24 @@ C**** Bottom drag in the interior
       WSQ = UT(I,J,L)*UT(I,J,L) + 1d-20 +
      *  .25*(VT(I,J  ,L)*VT(I,J  ,L) + VT(IP1,J  ,L)*VT(IP1,J  ,L)
      *     + VT(I,J-1,L)*VT(I,J-1,L) + VT(IP1,J-1,L)*VT(IP1,J-1,L))
-      UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
-     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+#ifndef OCN_GISSMIX
+        bdragfac=BDRAGX*SQRT(WSQ)
+#else
+        if(idrag.eq.0) then
+          bdragfac=BDRAGX*SQRT(WSQ)
+        else
+          taub = (taubx(i,j)*taubx(i,j) +
+     *      .25*(tauby(i,j)*tauby(i,j) +
+     &           tauby(ip1,j)*tauby(ip1,j)
+     *         + tauby(i,j-1)*tauby(i,j-1) +
+     &           tauby(ip1,j-1)*tauby(ip1,j-1)))
+     &      **0.5d0
+          taubbyu=taub/SQRT(WSQ)
+          bdragfac=0.5*(rhobot(i,j)+rhobot(ip1,j))*taubbyu
+        endif
+#endif
+        UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
+     *             (MO(I,J,L)+MO(IP1,J,L) + DTS*bdragfac*2d0)
   110 I=IP1
   120 CONTINUE
 C**** Bottom drag at the poles
@@ -4175,10 +4224,22 @@ C     IF(LMU(1,1 or JM) <= 0)  GO TO
       if (have_north_pole) then
         L=LMU(1,JM)
         WSQ = UT(IM,JM,L)**2 + UT(IVNP,JM,L)**2 + 1d-20
-        UO(IM,JM,L) = UO(IM,JM,L) * MO(1,JM,L) /
-     /                           (MO(1,JM,L) + DTS*BDRAGX*Sqrt(WSQ))
-        UO(IVNP,JM,L) = UO(IVNP,JM,L) * MO(1,JM,L) /
-     /                           (MO(1,JM,L) + DTS*BDRAGX*Sqrt(WSQ))
+#ifndef OCN_GISSMIX
+        bdragfac=BDRAGX*SQRT(WSQ)
+#else
+        if(idrag.eq.0) then
+          bdragfac=BDRAGX*SQRT(WSQ)
+        else
+          taub = SQRT(taubx(im,jm)*taubx(im,jm) +
+     &           tauby(ivnp,jm)*tauby(ivnp,jm))
+          taubbyu=taub/SQRT(WSQ)
+          bdragfac=rhobot(1,jm)*taubbyu
+        endif
+#endif
+          UO(IM,JM,L) = UO(IM,JM,L) * MO(1,JM,L) /
+     /                             (MO(1,JM,L) + DTS*bdragfac)
+          UO(IVNP,JM,L) = UO(IVNP,JM,L) * MO(1,JM,L) /
+     /                             (MO(1,JM,L) + DTS*bdragfac)
       end if
 C****
 C**** Reduce South-North ocean current
@@ -4193,8 +4254,23 @@ C**** Bottom drag away from north pole
       WSQ = VT(I,J,L)*VT(I,J,L) + 1d-20 +
      *  .25*(UT(IM1,J+1,L)*UT(IM1,J+1,L) + UT(I,J+1,L)*UT(I,J+1,L)
      *     + UT(IM1,J  ,L)*UT(IM1,J  ,L) + UT(I,J  ,L)*UT(I,J  ,L))
-      VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
-     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+#ifndef OCN_GISSMIX
+        bdragfac=BDRAGX*SQRT(WSQ)
+#else
+        if(idrag.eq.0) then
+          bdragfac=BDRAGX*SQRT(WSQ)
+        else
+          taub = SQRT(tauby(i,j)*tauby(i,j) +
+     *      .25*(taubx(im1,j+1)*taubx(im1,j+1) +
+     &           taubx(i,j+1)*taubx(i,j+1)
+     *         + taubx(im1,j)*taubx(im1,j) +
+     &           taubx(i,j)*taubx(i,j)))
+          taubbyu=taub/SQRT(WSQ)
+          bdragfac=0.5d0*(rhobot(i,j)+rhobot(i,j+1))*taubbyu
+        endif
+#endif
+        VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
+     *             (MO(I,J,L)+MO(I,J+1,L) + DTS*bdragfac*2d0)
   210 IM1=I
       GoTo 240
 C**** Bottom drag near north pole
@@ -4205,8 +4281,23 @@ C**** Bottom drag near north pole
       WSQ = VT(I,JM-1,L)*VT(I,JM-1,L) + 1d-20 +
      +   .5*(UT(IM,JM,L)*COSI(I) + UT(IVNP,JM,L)*SINI(I))**2 +
      +  .25*(UT(Im1,JM-1,L)*UT(Im1,JM-1,L) + UT(I,JM-1,L)*UT(I,JM-1,L))
-      VO(I,JM-1,L) = VO(I,JM-1,L) * (MO(I,JM-1,L)+MO(1,JM,L)) /
-     *              (MO(I,JM-1,L)+MO(1,JM,L) + DTS*BDRAGX*SQRT(WSQ)*2)
+#ifndef OCN_GISSMIX
+        bdragfac=BDRAGX*SQRT(WSQ)
+#else
+        if(idrag.eq.0) then
+          bdragfac=BDRAGX*SQRT(WSQ)
+        else
+          taub = SQRT(tauby(i,jm-1)*tauby(i,jm-1) +
+     +       .5*(taubx(im,jm)*cosi(i) +
+     &           taubx(ivnp,jm)*sini(i))**2 +
+     +      .25*(taubx(im1,jm-1)*taubx(im1,jm-1) +
+     &           taubx(i,jm-1)*taubx(i,jm-1)))
+          taubbyu=taub/SQRT(WSQ)
+          bdragfac=0.5d0*(rhobot(i,jm-1)+rhobot(1,jm))*taubbyu
+        endif
+#endif
+        VO(I,JM-1,L) = VO(I,JM-1,L) * (MO(I,JM-1,L)+MO(1,JM,L)) /
+     *              (MO(I,JM-1,L)+MO(1,JM,L) + DTS*bdragfac*2)
   230 Im1=I
   240 Continue
       RETURN

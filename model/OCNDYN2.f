@@ -396,9 +396,9 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 #endif
 
-#ifdef OCN_Mesoscales
-      CALL OCN_mesosc
-#endif
+C#ifdef OCN_Mesoscales
+C      CALL OCN_mesosc
+C#endif
       CALL TIMER (NOW,MSGSO)
 
 c-------------------------------------------------------------------
@@ -1967,17 +1967,29 @@ C**** Surface stress is applied to V component at the North Pole
 
       Subroutine OBDRAG2
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
-!@auth Gary Russell
-!@ver  2010/01/08
+!@+    define OCN_GISSMIX and idrag=1 in GISS_OTURB module to include tidal
+!@+    enhancement of bottom drag
+!@auth Gary Russell and Armando Howard
+!@ver  2010/01/08, 2012/03/16
       Use OCEAN, Only: IM,JM,LMO,IVNP,J1O, MO,UO,VO,UOD,VOD, LMU,LMV,
      *                 DTS, COSI=>COSIC,SINI=>SINIC
       Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, SOUTH,NORTH
       Use OCEANR_DIM,       Only: oGRID
+#ifdef OCN_GISSMIX
+      USE GISS_OTURB, only : taubx,tauby, ! x,y components of velocity flux (m/s)^2
+     &                       rhobot       ! ocean bottom in-situ density (kg/m^3)
+     &                      ,idrag        ! idrag=1: no explicit tides; 0: otherwise
+#endif
 
       Implicit None
-      REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
+      REAL*8, PARAMETER :: BDRAGX=1d0,  ! kg/m^3
+     &                     SDRAGX=1d-1
       Integer*4 I,IP1,J,L,J1,JN,JNP
       Real*8    WSQ
+      REAL*8 bdragfac   !density times C_D (u^2 + u_t^2)^1/2 (kg/(m^2 s))
+#ifdef OCN_GISSMIX
+      REAL*8 taubbyu    !magnitude of velocity flux divided by magnitude of velocity (m/s)
+#endif
 
 C**** Define decomposition band parameters
       J1 = oGRID%J_STRT
@@ -1985,6 +1997,9 @@ C**** Define decomposition band parameters
       JNP = JN  ;  If(JN==JM) JNP = JM-1
       
       Call HALO_UPDATE (oGRID, MO, From=NORTH)
+#ifdef OCN_GISSMIX
+      Call HALO_UPDATE (oGRID, rhobot, From=NORTH)
+#endif
 C****
 C**** Reduce ocean current at east edges of cells
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
@@ -1995,10 +2010,20 @@ C****
           IF(LMU(I,J) > 0) THEN
             L=LMU(I,J)
             WSQ = UO(I,J,L)**2 + VOD(I,J,L)**2 + 1d-20
+#ifndef OCN_GISSMIX
+            bdragfac=BDRAGX*SQRT(WSQ)
+#else
+            if(idrag.eq.0) then
+              bdragfac=BDRAGX*SQRT(WSQ)
+            else
+              taubbyu=SQRT((taubx(i,j)**2+tauby(i,j)**2)/WSQ)
+              bdragfac=0.5*(rhobot(i,j)+rhobot(ip1,j))*taubbyu
+            endif
+#endif
             UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
-     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*bdragfac*2d0)
             VOD(I,J,L) = VOD(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
-     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*bdragfac*2d0)
           ENDIF
           I=IP1
         ENDDO
@@ -2011,10 +2036,20 @@ C****
           IF(LMV(I,J) > 0) THEN
             L=LMV(I,J)   
             WSQ = VO(I,J,L)**2 + UOD(I,J,L)**2 + 1d-20
+#ifndef OCN_GISSMIX
+            bdragfac=BDRAGX*SQRT(WSQ)
+#else
+            if(idrag.eq.0) then
+              bdragfac=BDRAGX*SQRT(WSQ)
+            else
+              taubbyu=SQRT((taubx(i,j)**2+tauby(i,j)**2)/WSQ)
+              bdragfac=0.5*(rhobot(i,j)+rhobot(i,j+1))*taubbyu
+            endif
+#endif
             VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
-     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0) 
+     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*bdragfac*2d0)
             UOD(I,J,L) = UOD(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
-     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*bdragfac*2d0)
           ENDIF
         ENDDO
       ENDDO

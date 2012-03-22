@@ -204,6 +204,7 @@ c add variables for depth dependent mixing due to rough topography
 
       END MODULE KPPE
 
+
       SUBROUTINE KPPMIX(LDD   , ZE    ,
      $                  zgrid , hwide , kmtj  , Shsq   , dVsq  ,
      $                  ustar , Bo    , Bosol , alphaDT, betaDS,
@@ -815,6 +816,232 @@ c combine interior and boundary layer coefficients and nonlocal term
       return
       end subroutine kppmix
 
+
+      subroutine bldepth(
+      ! in:
+     &     ze,zgrid,byhwide,lmij,dVsq
+     &    ,ustar,Bo,Bosol,dbloc,Ritop
+      ! out:
+     &    ,rib,hbl,kbl,bf)
+!@sum bldepth calculates oceanic planetray boundary layer depth, hbl
+!@+     written  by: bill large,    june  6, 1994
+!@+     modified by: jan morzel,    june 30, 1994
+!@+                  bill large,  august 11, 1994
+!@+                  bill large, january 25, 1995 : "dVsq" and 1d code
+!@+     modified for GISS by Gavin Schmidt, march 1998
+!@+              for ModelE                 march 2001
+!@+     modified for GISS by Ye Cheng and Armando Howard, May 2011
+ 
+      USE KPPE, only : lmo,LSRPD,rdeltaz,nni,rdeltau,nnj,wmt,wst,vonk
+     &   ,Vtc,Ricr,fsr,dfsrdzb,dfsrdz,zmax,zmin,umin,conc1,epsl,epsilon
+      USE DOMAIN_DECOMP_1d, Only: AM_I_ROOT
+
+c input
+      real*8 ze(0:lmo)       !@var ze giss vertical layering (m)
+      real*8 zgrid(0:lmo+1)  !@var zgrid vertical grid (<= 0) (m)
+      real*8 byhwide(0:lmo+1)!@var byhwide 1/layer thicknesses (1/m)
+      integer lmij     !@var lmij number of vertical layers on this row
+      real*8 dVsq(lmo) !@var dVsq (velocity shear re sfc)^2 (m/s)^2
+      real*8 ustar     !@var ustar surface friction velocity (m/s)
+      real*8 Bo        !@var Bo surface turbulent buoy. forcing (m^2/s^3)
+      real*8 Bosol     !@var Bosol radiative buoyancy forcing (m^2/s^3)
+!@var dbloc local delta buoyancy across interfaces (m/s^2)
+      real*8 dbloc(lmo)
+!@var Ritop numerator of bulk Richardson Number (m/s)^2
+      real*8 Ritop(lmo)
+      INTENT (IN) ze,zgrid,byhwide,lmij,dVsq,ustar,Bo,Bosol
+     *           ,dbloc,Ritop
+c output
+      real*8 rib(lmo)     !@var rib bulk Richardson number
+      real*8 hbl        !@var hbl boundary layer depth (m)
+      integer kbl       !@var kbl index of first grid level below hbl
+      real*8 bf         !@var bfsfc surface buoyancy forcing (m^2/s^3)
+      INTENT (OUT) rib,hbl,kbl,bf
+c local
+      real*8 bfsfc      !@var bfsfc surface buoyancy forcing (m^2/s^3)
+      real*8 rib2(2)    !@var rib2 temperary bulk Richardson number
+      real*8 byhbl      !@var byhbl 1/boundary layer depth (1/m)
+      real*8 ws         !@var ws momentum velocity scale
+      real*8 wm         !@var wm scalar   velocity scale
+      real*8 caseA      !@var caseA = 1 in case A; =0 in case B
+      real*8 stable     !@var stable 1 in stable forcing; 0 in unstable
+      real*8 sigma      !@var sigma normalized depth (d / hbl)
+      integer lmax  !@var lmax minimum of LSRPD and lmij, used in swfrac
+      real*8 zehat      !@var zehat = zeta *  ustar**3
+      INTEGER ki,mr,ka,ku,kl,iz,izp1,ju,jup1,ksave,kt
+      REAL*8 zdiff,zfrac,fzfrac,wam,wbm,was,wbs,u3,bvsq
+     *     ,delhat,dvdzup,dvdzdn,viscp,diftp,visch,difsh,f1,bywm,byws
+     *     ,udiff,ufrac,vtsq
+
+      lmax = MIN(LSRPD,lmij)
+
+c     the oceanic planetray boundary layer depth, hbl, is determined as
+c     the shallowest depth where the bulk richardson number is
+c     equal to the critical value, Ricr.
+c     Bulk richardson numbers are evaluated by computing velocity and
+c     buoyancy differences between values at zgrid(kl) < 0 and surface
+c     reference values.
+c     in this configuration, the reference values are equal to the
+c     values in the surface layer.
+c     when using a very fine vertical grid, these values should be
+c     computed as the vertical average of velocity and buoyancy from
+c     the surface down to epsilon*zgrid(kl).
+c     When the bulk richardson number at k exceeds Ricr, hbl is
+c     linearly interpolated between grid levels zgrid(k) and zgrid(k-1).
+c     The water column and the surface forcing are diagnosed for
+c     stable/ustable forcing conditions, and where hbl is relative
+c     to grid points (caseA), so that conditional branches can be
+c     avoided in later subroutines.
+
+c find bulk Richardson number at every grid level until > Ricr
+c
+c note: the reference depth is -epsilon/2.*zgrid(k), but the reference
+c       u,v,t,s values are simply the surface layer values,
+c       and not the averaged values from 0 to 2*ref.depth,
+c       which is necessary for very fine grids(top layer < 2m thickness)
+c note: max values when Ricr never satisfied are
+c       kbl=lmij and hbl=-zgrid(lmij)
+
+c indices for array Rib2(k), the temperary bulk Richardson number.
+      ka = 1
+      ku = 2
+
+c initialize hbl and kbl to bottomed out values
+      Rib2(ka) = 0.0
+      kbl    = lmij
+      hbl    = -zgrid(kbl)
+
+      kl = 1
+      rib(1)=0.
+ 10   kl = kl + 1
+
+c compute bfsfc = sw fraction at hbf * zgrid
+c      call swfrac(zgrid(kl),ZE,kl,lmij,lmax,bfsfc)  ! inlined
+
+C**** Get actual k (since k is on staggered grid)
+      kt = kl + NINT(0.5d0 + SIGN(0.5d0,-(ZE(kl)+zgrid(kl))))
+
+C**** calculate fraction
+      if (kt.gt.lmax) then
+         bfsfc = 0.
+      else
+         if (kt.eq.lmax) then
+            bfsfc = FSR(kt) + (zgrid(kl)+ZE(kt-1))*dFSRdZB(kt)
+         else
+            bfsfc = FSR(kt) + (zgrid(kl)+ZE(kt-1))*dFSRdZ(kt)
+         end if
+      end if
+c     if( AM_I_ROOT() ) then
+c        write(301,'(2i4,9e14.4)') kl,kt,1. - bfsfc,Bo,Bosol
+c    &   ,Bo + Bosol * (1. - bfsfc)
+c     endif 
+
+c use caseA as temporary array
+         caseA  = -zgrid(kl)
+
+c compute bfsfc= Bo + radiative contribution down to hbf * hbl
+         bfsfc  = Bo + Bosol * (1. - bfsfc)
+         bf=bfsfc
+
+         stable = 0.5 + SIGN( 5d-1, bfsfc )
+         sigma  = stable * 1. + (1.-stable) * epsilon
+
+c compute velocity scales at sigma, for hbl= caseA = -zgrid(kl)
+c         call wscale(sigma, caseA, ustar, bfsfc,   wm, ws)
+c     compute turbulent velocity scales.
+c     use a 2D-lookup table for wm and ws as functions of ustar and
+c     zetahat (=vonk*sigma*hbl*bfsfc).
+c use lookup table for zehat < zmax only; otherwise use
+c stable formulae
+
+      zehat = vonk * sigma * caseA * bfsfc
+
+      if (zehat.le.zmax) then
+         zdiff  = zehat-zmin
+         iz = int( zdiff * rdeltaz )
+         iz = min( iz , nni )
+         iz = max( iz , 0  )
+         izp1=iz+1
+
+         udiff  = ustar-umin
+         ju = int( udiff * rdeltau)
+         ju = min( ju , nnj )
+         ju = max( ju , 0  )
+         jup1=ju+1
+
+         zfrac = zdiff*rdeltaz - float(iz)
+         ufrac = udiff*rdeltau - float(ju)
+
+         fzfrac= 1.-zfrac
+         wam   = (fzfrac)  * wmt(iz,jup1) + zfrac*wmt(izp1,jup1)
+         wbm   = (fzfrac)  * wmt(iz,ju  ) + zfrac*wmt(izp1,ju  )
+         wm = (1.-ufrac)* wbm          + ufrac*wam
+         if (ju == nnj .and. wm < wam) wm = wam
+
+         was   = (fzfrac)  * wst(iz,jup1) + zfrac*wst(izp1,jup1)
+         wbs   = (fzfrac)  * wst(iz,ju  ) + zfrac*wst(izp1,ju  )
+         ws = (1.-ufrac)* wbs          + ufrac*was
+         if (ju == nnj .and. ws < was) ws = was
+      else
+         u3    = ustar*ustar*ustar
+         wm = vonk * ustar * u3 / ( u3 + conc1*zehat )
+         ws = wm
+      endif
+
+c compute the turbulent shear contribution to Rib
+         bvsq =0.5*
+     $        ( dbloc(kl-1) * byhwide(kl) +
+     $          dbloc(kl  ) * byhwide(kl+1) )
+         Vtsq = - zgrid(kl) * ws * sqrt(abs(bvsq)) * Vtc
+
+c           compute bulk Richardson number at new level, dunder
+c           note: Ritop needs to be zero on land and ocean bottom
+c           points so that the following if statement gets triggered
+c           correctly. otherwise, hbl might get set to (big) negative
+c           values, that might exceed the limit for the "exp" function
+c           in "swfrac"
+
+         Rib2(ku) = Ritop(kl) / (dVsq(kl)+Vtsq+epsl)
+         rib(kl)=rib2(ku)
+
+c           linearly interpolate to find hbl where Rib = Ricr
+         if((kbl.eq.lmij).and.(Rib2(ku).gt.Ricr)) then
+            hbl = -zgrid(kl-1) + (zgrid(kl-1)-zgrid(kl)) *
+     $           (Ricr - Rib2(ka)) / (Rib2(ku)-Rib2(ka))
+            kbl = kl
+         else
+            ksave = ka
+            ka    = ku
+            ku    = ksave
+            if (kl.lt.lmij) go to 10
+         end if
+
+c find stability and buoyancy forcing for boundary layer
+c      call swfrac(-hbl,ZE,kbl-1,lmij,bfsfc,lmax)  ! inlined
+
+C**** Get actual k (since k is on staggered grid)
+      kt = kbl-1+ NINT(0.5d0 + SIGN(0.5d0,-(ZE(kbl-1)-hbl)))
+
+C**** calculate fraction
+      if (kt.gt.lmax) then
+         bfsfc = 0.
+      else
+         if (kt.eq.lmax) then
+            bfsfc = FSR(kt) + (ZE(kt-1)-hbl)*dFSRdZB(kt)
+         else
+            bfsfc = FSR(kt) + (ZE(kt-1)-hbl)*dFSRdZ(kt)
+         end if
+      end if
+
+      bfsfc  = Bo + Bosol * (1. - bfsfc)
+      stable = 0.5 + SIGN( 5d-1, bfsfc )
+      bfsfc  = bfsfc + stable * epsl !ensures bfsfc never=0
+      bf=bfsfc
+
+      return
+      end subroutine bldepth
+
+
       subroutine wscale(sigma, hbl, ustar, bfsfc, wm , ws)
 
 c     compute turbulent velocity scales.
@@ -1119,8 +1346,14 @@ C****
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+#ifdef OCN_GISSMIX
+     *     ,ijl_ri,ijl_rrho,ijl_otke
+#endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
+#ifdef OCN_GISSMIX
+      USE GISSMIX_COM, only : otke
+#endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
       Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
@@ -1176,7 +1409,11 @@ C**** KPP variables
       REAL*8 TRSAVE3D(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,NTM)
 #endif
 
-      LOGICAL, PARAMETER :: LDD = .FALSE.
+#ifdef OCN_GISSMIX
+      LOGICAL, PARAMETER :: LDD = .true.
+#else
+      LOGICAL, PARAMETER :: LDD = .false.
+#endif
       INTEGER I,J,K,L,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II,N,IB
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
@@ -1184,13 +1421,28 @@ C**** KPP variables
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
       integer :: j_0,j_1,j_0s,j_1s,j_0h
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
       logical ::
      &     adjust_zslope_using_flux,
      &     relax_subgrid_zprofile,
      &     extra_slope_limitations,
      &     mix_tripled_resolution
-
+#ifdef OCN_GISSMIX
+      REAL*8 bf          !@var bf surface buoyancy forcing
+      REAL*8 gawt0       !@var ga*wt0
+      REAL*8 gbws0       !@var gb*ws0
+      REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
+      REAL*8 u2b         !@var u2b velocity squared at zgrid(lmij)
+      REAL*8 uob         !@var uob bottom u-component of velocity at zgrid(lmij) (m/s)
+      REAL*8 vob         !@var vob bottom u-component of velocity at zgrid(lmij) (m/s)
+      REAL*8 rib(lmo)    !
+      REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
+      REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
+      REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
+      REAL*8 rrho(0:lmo+1)   !@var rrho salt to head density ratio
+      real*8 hbl1,bf1
+      REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
+      integer kbl1,strait
+#endif
 #ifdef TRACERS_OCEAN
       Real*8 TRML(LMO,NTM),TRML1(NTM),TZML(LMO,NTM),TZZML(LMO,NTM),
      *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
@@ -1615,9 +1867,44 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
         end do
       end if
 
+#ifndef OCN_GISSMIX
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+#else
+      call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
+     *     ,dbloc,Ritop
+     *     ,rib,HBL,KBL,bf)
+      gawt0=GRAV*BYRHO(1)**2*talpha(1)*BYSHC*(DELTAE-G(1)*DELTAM)
+      gbws0=GRAV*BYRHO(1)**2*sbeta(1)*(-DELTAS+S(1)*DELTAM)
+
+c-c     omfrac=(bf-Bo)/(Bosol+1d-20)
+c-c     wt0=-BYRHO(1)*(BYSHC*(DELTAE+omfrac*DELTASR)-
+c-c    *              (BYSHC*G(1))*DELTAM)
+c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
+c     uob=0.5d0*(uo(i,j,lmij-1)+uo(i,j,lmij))
+c     vob=0.5d0*(vo(i,j,lmij-1)+vo(i,j,lmij))
+      uob=uo(i,j,lmij)
+      vob=vo(i,j,lmij)
+      u2b=(uob*uob + vob*vob)
+
+      strait=0   ! not in strait area (for most of the oceans)
+      do l=1,lmij-1
+         e(l)=otke(l,i,j)
+      end do
+      call gissmix(
+      ! in:
+     &    lmij,ze,zgrid,dbloc,Shsq,talpha,sbeta
+     &   ,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
+     &   ,Coriol,ustar,bf,gawt0,gbws0,hbl,kbl,strait,i,j
+      ! inout:
+     &   ,e
+      ! out:
+     &   ,ri,rrho,akvm,akvg,akvs,wtnl,wsnl)
+      do l=1,lmij-1
+         otke(l,i,j)=e(l)
+      end do
+#endif
 
 C**** Calculate non-local transport terms for each scalar
 C****        ghat[sg] = kv * ghat * <w[sg]0>   (J,kg)
@@ -1628,15 +1915,31 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          R = 5d-1*(RHO(L)+RHO(L+1))
          R2 = R**2
          GHATM(L) = 0.          ! no non-local momentum transport
+#ifndef OCN_GISSMIX
 C**** GHAT terms must be zero for consistency with OSOURC
 ! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
 ! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
          GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
          GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
      *        *DXYPO(J)
+#else
+         GHATG(L)=RHO(L)*SHCGS(G(L),S(L))*wtnl(L)*DXYPO(J)
+         GHATS(L)=RHO(L)*wsnl(L)*DXYPO(J)
+         ! GHATG is nonlocal power due to heating in Watts into the gridbox, to get it
+         ! multiply the nonlocal temperature flux in K m/s, wtnl, by \rho C_p times cell area.
+         ! SHCGS is Specific Heat Capacity as a function of G and S (in SI *not* cgs units).
+         ! GHATS is nonlocal salt per unit time into the grid box, to get it
+         ! multiply the nonlocal salt mass fraction flux, wsnl, by \rho times cell area.
+#endif
+
 #ifdef TRACERS_OCEAN
+#ifndef OCN_GISSMIX
          GHATT(L,:)= AKVS(L)*GHAT(L)*(DELTATR(:)-
      *        TRML(1,:)*DELTAM*BYMML(1))*DXYPO(J)
+#else
+         GHATT(L,:)=GHATS(L)*(DELTATR(:)-TRML(1,:)*DELTAM*BYMML(1))
+     &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
+#endif
 #endif
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
@@ -1726,9 +2029,14 @@ C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
+         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
+#ifdef OCN_GISSMIX
+         OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
+         OIJL(I,J,L,ijl_rrho)= OIJL(I,J,L,ijl_rrho) + rrho(L) ! density ratio
+         OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.
+#endif
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
          OIJL(I,J,L,IJL_WSFL)= OIJL(I,J,L,IJL_WSFL) + FLS(L) ! salt flux
-c         OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
 c         OIJL(I,J,L,IJL_KVGG) = OIJL(I,J,L,IJL_KVGG) + AKVG(L)*GHATG(L)
 c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
 #ifdef TRACERS_OCEAN
@@ -2155,15 +2463,25 @@ C****
       USE OCEAN,only : lmo,dts,ze,sinpo
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
+#ifdef OCN_GISSMIX
+     *     ,otkest
+#endif
 #ifdef TRACERS_OCEAN
      *     ,trmst,txmst,tzmst
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
+#ifdef OCN_GISSMIX
+     &     ,ln_ri,ln_rrho,ln_otke
+      USE GISSMIX_COM, only : otke
+#endif
       IMPLICIT NONE
       REAL*8 MMLT,MML0
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
       REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS
+#ifdef OCN_GISSMIX
+     &     ,ri1,rrho
+#endif
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
 #ifdef TRACERS_OCEAN
       REAL*8 TRML(LMO,NTM,2),TZML(LMO,NTM,2),FLT(LMO,NTM)
@@ -2171,7 +2489,11 @@ C****
 #endif
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1,BYBETA=1d0/BETA
-      LOGICAL*4, PARAMETER :: LDD=.FALSE.
+#ifdef OCN_GISSMIX
+      LOGICAL, PARAMETER :: LDD = .true.
+#else
+      LOGICAL, PARAMETER :: LDD = .false.
+#endif
       REAL*8, SAVE :: zgrid(0:LMO+1),hwide(0:LMO+1),byhwide(0:LMO+1)
       REAL*8 Shsq(LMO),dVsq(LMO)
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
@@ -2182,6 +2504,14 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
+#ifdef OCN_GISSMIX
+      REAL*8 rib(lmo),bf
+      REAL*8, SAVE :: u2b,uob,vob,hbl1,gawt0,gbws0
+      INTEGER kbl1,strait
+      REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
+      REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
+      REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
+#endif
 
       IF (IFIRST.eq.1) THEN
         IFIRST=0
@@ -2316,10 +2646,39 @@ C**** betaDS  = mean sbeta  * delta(salt)     at interfaces  (kg/m3)
         end do
       end if
 
+#ifndef OCN_GISSMIX
 C**** Get diffusivities for the whole column
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+#else
+      call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
+     *     ,dbloc,Ritop
+     *     ,rib,HBL,KBL,bf)
+      bf=0.d0
+      gawt0=0.d0
+      gbws0=0.d0
+
+      uob=0.
+      vob=0.
+      u2b=0.
+      strait=1
+      do l=1,lmij-1
+         e(l)=otkest(l,n)
+      end do
+      call gissmix(
+      ! in:
+     &    lmij,ze,zgrid,dbloc,Shsq,talpha,sbeta
+     &   ,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
+     &   ,Coriol,ustar,bf,gawt0,gbws0,hbl,kbl,strait,0,0
+      ! inout:
+     &   ,e
+      ! out:
+     &   ,ri1,rrho,akvm,akvg,akvs,wtnl,wsnl)
+      do l=1,lmij-1
+         otkest(l,n)=e(l)
+      end do
+#endif
 
 C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
       DO L=1,LMIJ-1
@@ -2381,6 +2740,11 @@ C****
       DO L=1,LMIJ-1
         OLNST(L,N,LN_KVG) = OLNST(L,N,LN_KVG) + AKVG(L)
         OLNST(L,N,LN_KVM) = OLNST(L,N,LN_KVM) + AKVM(L)
+#ifdef OCN_GISSMIX
+        OLNST(L,N,ln_ri)  = OLNST(L,N,ln_ri)  + ri1(L)
+        OLNST(L,N,ln_rrho)= OLNST(L,N,ln_rrho)+ rrho(L)
+        OLNST(L,N,ln_otke)= OLNST(L,N,ln_otke)+ e(L)
+#endif
 C       OLNST(L,N,LN_KVS) = OLNST(L,N,LN_KVS) + AKVS(L)
         OLNST(L,N,LN_WGFL)= OLNST(L,N,LN_WGFL) + FLG(L)
         OLNST(L,N,LN_WSFL)= OLNST(L,N,LN_WSFL) + FLS(L)

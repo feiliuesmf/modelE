@@ -564,6 +564,9 @@ C**** Necessary initiallisation?
 
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
+#ifdef OCN_GISSMIX
+      call alloc_gissmix_com(ogrid)
+#endif
       call alloc_odiag(ogrid)
       !call alloc_afluxes
       !call ALLOC_OFLUXES(atmocn)
