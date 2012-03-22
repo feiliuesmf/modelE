@@ -117,6 +117,7 @@ c
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H,
      &                      aI_0, aI_1, aI_0H, aI_1H,
      &                       J_0,  J_1,  J_0H,  J_1H,
+     &     ntrcr_age,ntrcr_vent,ntrcr_wm,ntrcr_zebra,ntrcr_obio,
      &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS_GLOB
@@ -705,6 +706,9 @@ c     call findmx(ip,temp(1,1,k1n),idm,ii,jj,'sst')
 c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
+      if (AM_I_ROOT())
+     .write(*,'(a,6i3)') 'NTRCR = ',ntrcr,ntrcr_zebra,ntrcr_vent,
+     .                   ntrcr_age,ntrcr_wm,ntrcr_obio
 #if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
     || defined(TRACERS_OCEAN_WATER_MASSES) || defined(TRACERS_ZEBRA)
         do 12 j=J_0, J_1
@@ -712,7 +716,7 @@ c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
 #ifdef TRACERS_ZEBRA
            if (nstep.eq.1) then
-            do nt=1,ntrcr
+            do nt=1,ntrcr_zebra
             do k=1,kdm
                if (k.eq.nt) then
                    tracer_loc(i,j,k,nt)=1.   !release in all layers
@@ -726,30 +730,36 @@ c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #ifdef TRACERS_AGE_OCEAN
 !for consistency with Gary's ocean need to 
 !multiply here by trcfrq*baclin/(JDperY*SDAY) 
-           tracer_loc(i,j,1,1)=0.
+           nt = ntrcr_zebra + ntrcr_age
+           tracer_loc(i,j,1,nt)=0.
            do k=2,kdm
-           tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)
+           tracer_loc(i,j,k,nt)=tracer_loc(i,j,k,nt)
      .           + 1.*trcfrq*baclin/(JDperY*SDAY)
            enddo
 #endif
 #ifdef TRACERS_OCEAN_WATER_MASSES
-            tracer_loc(i,j,1,1)=0.; 
-            tracer_loc(i,j,1,2)=0.; 
-            !North Atlantic; 
-              if (i.ge.100.and.i.le.190) then
-              if (j.ge.250.and.j.le.360) then
-                tracer_loc(i,j,1,1)=1.; 
-              endif
-              endif
             !ACC            
-              if (i.ge.289.and.i.le.386) then
-              if (j.ge.1.and.j.le.360) then
-                      tracer_loc(i,j,1,2)=1.; 
+            nt=ntrcr_zebra+ntrcr_age+1
+            tracer_loc(i,j,1,nt)=0.; 
+!             if (i.ge.289.and.i.le.386) then
+!             if (j.ge.1.and.j.le.360) then
+              if (latij(i,j,3).le.-55.d0) then
+                tracer_loc(i,j,1,nt)=1.; 
+              endif
+            !North Atlantic; 
+            nt=ntrcr_zebra+ntrcr_age+2
+            tracer_loc(i,j,1,nt)=0.; 
+!             if (i.ge.100.and.i.le.190) then
+!             if (j.ge.250.and.j.le.360) then
+              if (latij(i,j,3).ge.40.d0) then
+              if (lonij(i,j,3).ge.-90.d0.and.lonij(i,j,3).le.60.d0) then
+                      tracer_loc(i,j,1,nt)=1.; 
               endif
               endif
 #endif
 #ifdef TRACERS_HYCOM_Ventilation
-        tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
+        nt=ntrcr_zebra+ntrcr_age+ntrcr_wm+ntrcr_vent
+        tracer_loc(i,j,1,nt)=1.              !  surface ventilation tracer
 #endif
  12     continue
 #endif

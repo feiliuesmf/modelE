@@ -1701,6 +1701,7 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
       use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,ijts_isrc,jls_isrc
       use pbl_drv, only : t_pbl_args
+      use trdiag_com, only : itcon_surf
 #ifdef TRACERS_TOMAS
       use tracer_com, only : xk,nbins
 #endif
