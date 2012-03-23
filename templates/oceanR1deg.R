@@ -7,6 +7,8 @@ Includes sea ice physics and transport
 Preprocessor Options
 #define NEW_IO
 #define STANDALONE_OCEAN
+!#define OCN_Mesoscales
+!#define OCN_GISSMIX
 End Preprocessor Options
 
 Object modules:

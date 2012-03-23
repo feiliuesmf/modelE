@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=70,KOIJL=33,KOL=6,KOLNST=8,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=70,KOIJL=37,KOL=6,KOLNST=12,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -83,6 +83,9 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
+#ifdef OCN_GISSMIX
+     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+#endif
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
@@ -105,6 +108,9 @@
 !@var LN_xxx Names for OLNST diagnostics
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
      *     ,LN_ICFL
+#ifdef OCN_GISSMIX
+     *     ,ln_ri,ln_rrho,ln_otke,ln_kvs
+#endif
 !@var lname_olnst Long names for OLNST diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOLNST) :: LNAME_OLNST
 !@var sname_olnst Short names for OLNST diagnostics
@@ -878,6 +884,19 @@ c
       k=k+1
       LN_KVG = k
 c
+#ifdef OCN_GISSMIX
+      k=k+1
+      ln_kvs = k
+      k=k+1
+      ln_ri = k
+c
+      k=k+1
+      ln_rrho = k
+c
+      k=k+1
+      ln_otke = k
+#endif
+c
       k=k+1
       LN_WGFL = k
 c
@@ -1056,6 +1075,44 @@ c
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
+#ifdef OCN_GISSMIX
+      k=k+1
+      ijl_kvs = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvs'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. SALT DIFF.'
+      scale_oijl(k) = 1d4*byrho2
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_ri= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'ri'
+      units_oijl(k) = '1'
+      lname_oijl(k) = 'Richardson Number'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_rrho= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'rrho'
+      units_oijl(k) = '1'
+      lname_oijl(k) = 'Salt to heat density ratio'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_otke= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'otke'
+      units_oijl(k) = '(m/s)^2'
+      lname_oijl(k) = 'Ocean turbulent kinetic energy'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+#endif
+c
       k=k+1
       IJL_WGFL = k
       denom_oijl(k) = IJL_AREA
@@ -1152,7 +1209,7 @@ c
       IJL_n2=k
       lname_oijl(k) = "Brunt Vaisala frequency sq"
       sname_oijl(k) = "n2"
-      units_oijl(k) = "1/sec"
+      units_oijl(k) = "1/s^2"
       scale_oijl(k) = 1
 c
       k=k+1
