@@ -814,7 +814,6 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_NH3 = NH3_setSpec(numTr) ! duplicate with nitrate
       n_NH4 = NH4_setSpec(numTr) ! duplicate with nitrate
 
-      n_ANUM(:) = TOMAS_setSpec(TOMAS_ANUM_setSpec, numTr, nbins)
 ! Koch SO4: 1700 kg/m3
 ! Koch BC : 1300 
 ! Koch OC : 1500
@@ -833,6 +832,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_AOCOB(:) = TOMAS_setSpec(TOMAS_AOCOB_setSpec, numTr, nbins)
       n_AOCIL(:) = TOMAS_setSpec(TOMAS_AOCOB_setSpec, numTr, nbins)
       n_ADUST(:) = TOMAS_setSpec(TOMAS_ADUST_setSpec, numTr, nbins)
+      n_ANUM(:) = TOMAS_setSpec(TOMAS_ANUM_setSpec, numTr, nbins)
       n_AH2O(:)  = TOMAS_setSpec(TOMAS_AH2O_setSpec,  numTr, nbins)
 #endif /* TRACERS_AMP */
 
