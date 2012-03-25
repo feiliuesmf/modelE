@@ -42,7 +42,7 @@
 
 !@var AINV Calculated Isopycnal thickness diffusion (m^2/s)
 !@var ARIV Calculated Redi diffusion (m^2/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     AINV,ARIV
 
 !@var ARAI Scaling for Redi diffusion terms to GM diffusion term (1)
@@ -154,8 +154,8 @@ c**** allocate arrays
         allocate( RHOMZ  (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( BYRHOZ (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
-        allocate( AINV (IM,grid%j_strt_halo:grid%j_stop_halo) )
-        allocate( ARIV (IM,grid%j_strt_halo:grid%j_stop_halo) )
+        allocate( AINV (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
+        allocate( ARIV (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
         allocate( BYDYP (grid%j_strt_halo:grid%j_stop_halo) )
         allocate( BYDXP (grid%j_strt_halo:grid%j_stop_halo) )
@@ -1051,16 +1051,16 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         AIY0(I,J,L) = 0.
         AIY2(I,J,L) = 0.
       ELSE
-        AIX0ST = AINV(I,J)
-        AIX2ST = AINV(I,J)
-        AIY0ST = AINV(I,J)
-        AIY2ST = AINV(I,J)
+        AIX0ST = AINV(I,J,L)
+        AIX2ST = AINV(I,J,L)
+        AIY0ST = AINV(I,J,L)
+        AIY2ST = AINV(I,J,L)
         SIX0 = RHOX(I  ,J,L) * BYRHOZ(I,J,L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (AINV(I,J).gt.0.) THEN ! limit slopes <ML
-          byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
+        IF (AINV(I,J,L).gt.0.) THEN ! limit slopes <ML
+          byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
           DSX2sq = DZV(I,J,L)**2 * byAIDT
           DSY0sq = DZV(I,J,L)**2 * byAIDT
@@ -1088,16 +1088,16 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
         AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
       ELSE
-        AIX1ST = AINV(I,J)
-        AIX3ST = AINV(I,J)
-        AIY1ST = AINV(I,J)
-        AIY3ST = AINV(I,J)
+        AIX1ST = AINV(I,J,L)
+        AIX3ST = AINV(I,J,L)
+        AIY1ST = AINV(I,J,L)
+        AIY3ST = AINV(I,J,L)
         SIX1 = RHOX(I  ,J,L) * BYRHOZ(I,J,L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (AINV(I,J).gt.0.) THEN ! limit slopes <ML
-          byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
+        IF (AINV(I,J,L).gt.0.) THEN ! limit slopes <ML
+          byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
           DSX3sq = DZV(I,J,L-1)**2 * byAIDT
           DSY1sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1131,6 +1131,16 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       S2Y1(I,J,L) = AIY1ST * SIY1 * SIY1 * BYDYP(J) * DYVO(J)
       S2Y2(I,J,L) = AIY2ST * SIY2 * SIY2 * BYDYP(J) * DYVO(J-1)
       S2Y3(I,J,L) = AIY3ST * SIY3 * SIY3 * BYDYP(J) * DYVO(J-1)
+#ifdef OCN_Mesoscales
+      AIX0(I,J,L) = AINV(I,J,L)
+      AIX2(I,J,L) = AINV(I,J,L)
+      AIY0(I,J,L) = AINV(I,J,L)
+      AIY2(I,J,L) = AINV(I,J,L)
+      AIX1(I,J,L) = AINV(I,J,L)
+      AIX3(I,J,L) = AINV(I,J,L)
+      AIY1(I,J,L) = AINV(I,J,L)
+      AIY3(I,J,L) = AINV(I,J,L)
+#endif
   800 IM1 = I
       END DO
       END DO
@@ -1148,6 +1158,8 @@ C****
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DH0,DZSUMX,DZSUMY,R1,R2,P12
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
+     *   kappam3d
       REAL*8, SAVE :: HUP
       INTEGER I,J,L,IM1,LAV,iu_ODIFF
       INTEGER, SAVE :: IFIRST = 1
@@ -1276,6 +1288,9 @@ C     *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
           END DO
         END DO
       END DO
+#ifdef OCN_Mesoscales 
+      CALL OCN_mesosc(kappam3d)
+#endif
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
       ARIV = 0.
@@ -1323,7 +1338,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
             IF (ARHOZ.gt.0) THEN
 #ifdef CONSTANT_MESO_DIFFUSIVITY
-              AINV(I,J) = meso_diffusivity_const
+              AINV(I,J,:) = meso_diffusivity_const
+#else
+#ifdef OCN_Mesoscales
+              AINV(I,J,:) = kappam3d(I,J,:)
 #else
               AN = SQRT(GRAV * ARHOZ / ARHO)
 #ifdef CONSTANT_MESO_LENSCALE
@@ -1334,14 +1352,15 @@ C**** so keep at zero, and let KPP do the work.
 #endif
               BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
      *             *ARHO)
-              AINV(I,J) = AMU * RD**2 * BYTEADY ! was = AIN
+              AINV(I,J,:) = AMU * RD**2 * BYTEADY ! was = AIN
+#endif
 #endif
             END IF
-            ARIV(I,J) = ARAI * AINV(I,J) ! was = ARI
+            ARIV(I,J,:) = ARAI * AINV(I,J,:) ! was = ARI
           END IF
           IM1=I
 C**** Set diagnostics
-          OIJ(I,J,IJ_GMSC) = OIJ(I,J,IJ_GMSC) + AINV(I,J) ! GM-scaling
+          OIJ(I,J,IJ_GMSC) = OIJ(I,J,IJ_GMSC) + AINV(I,J,1) ! GM-scaling
         END DO
       END DO
 C**** North pole
@@ -1371,7 +1390,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
 #ifdef CONSTANT_MESO_DIFFUSIVITY
-            AINV(1,JM) = meso_diffusivity_const
+            AINV(1,JM,:) = meso_diffusivity_const
+#else
+#ifdef OCN_Mesoscales
+            AINV(1,JM,:) = kappam3d(1,JM,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
@@ -1381,15 +1403,20 @@ C**** so keep at zero, and let KPP do the work.
             RD = AN * HUP / CORI
 #endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            AINV(1,JM) = AMU * RD**2 * BYTEADY ! was = AIN
+            AINV(1,JM,:) = AMU * RD**2 * BYTEADY ! was = AIN
+#endif
 #endif
           END IF
-          ARIV(1,JM) = ARAI * AINV(1,JM) ! was = ARI
+          ARIV(1,JM,:) = ARAI * AINV(1,JM,:) ! was = ARI
         END IF
-        AINV(2:IM,JM)=AINV(1,JM)
-        ARIV(2:IM,JM)=ARIV(1,JM)
+c       AINV(2:IM,JM)=AINV(1,JM)
+c       ARIV(2:IM,JM)=ARIV(1,JM)
+        DO L=1,LMO
+          AINV(2:IM,JM,L)=AINV(1,JM,L)
+          ARIV(2:IM,JM,L)=ARIV(1,JM,L)
+        ENDDO
 C**** Set diagnostics
-        OIJ(1,JM,IJ_GMSC) = OIJ(1,JM,IJ_GMSC) + AINV(1,JM) ! GM-scaling
+        OIJ(1,JM,IJ_GMSC) = OIJ(1,JM,IJ_GMSC) + AINV(1,JM,1) ! GM-scaling
       endif
 C**** South pole
       if ( HAVE_SOUTH_POLE ) then
@@ -1418,7 +1445,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
 #ifdef CONSTANT_MESO_DIFFUSIVITY
-            AINV(1,1) = meso_diffusivity_const
+            AINV(1,1,:) = meso_diffusivity_const
+#else
+#ifdef OCN_Mesoscales
+            AINV(1,1,:) = kappam3d(1,1,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
@@ -1428,15 +1458,20 @@ C**** so keep at zero, and let KPP do the work.
             RD = AN * HUP / CORI
 #endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            AINV(1,1) = AMU * RD**2 * BYTEADY ! was = AIN
+            AINV(1,1,:) = AMU * RD**2 * BYTEADY ! was = AIN
+#endif
 #endif
           END IF
-          ARIV(1,1) = ARAI * AINV(1,1) ! was = ARI
+          ARIV(1,1,:) = ARAI * AINV(1,1,:) ! was = ARI
         END IF
-        AINV(2:IM,1)=AINV(1,1)
-        ARIV(2:IM,1)=ARIV(1,1)
+c       AINV(2:IM,1)=AINV(1,1)
+c       ARIV(2:IM,1)=ARIV(1,1)
+        DO L=1,LMO
+          AINV(2:IM,1,L)=AINV(1,1,L)
+          ARIV(2:IM,1,L)=ARIV(1,1,L)
+        ENDDO
 C**** Set diagnostics
-        OIJ(1,1,IJ_GMSC) = OIJ(1,1,IJ_GMSC) + AINV(1,1) ! GM-scaling
+        OIJ(1,1,IJ_GMSC) = OIJ(1,1,IJ_GMSC) + AINV(1,1,1) ! GM-scaling
       endif
 C****
 c      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient

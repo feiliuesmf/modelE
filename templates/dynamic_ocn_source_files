@@ -8,3 +8,4 @@ OCNFUNTAB                              ! ocean function look up table
 SparseCommunicator_mod                 ! sparse gather/scatter module
 OCNQUS                     ! QUS advection scheme
 OCNGISSVM                  ! GISS vertical mixing scheme
+OCN_mesosc                          ! Mesoscales model

@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine OCN_mesosc
+      subroutine OCN_mesosc(kappam3d)
 
       USE MODEL_COM,  only : nstep=>itime,itimei
      .                    ,JMON,jhour,nday,jdate,jday
@@ -11,14 +11,17 @@
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS
       USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
-     .                      ,oLON_DG,oLAT_DG,uo,vo,sinpo
+     .                      ,oLON_DG,oLAT_DG,uo,vo,sinpo,im,dxpo,dypo
       USE KPP_COM,    only : kpl
 
       USE GM_COM, only: RHOX, RHOY
+#ifdef OCN_Mesoscales
       USE ODIAG, only: oij=>oij_loc,oijl=>oijl_loc
      .            ,ij_eke,ij_rd,ijl_ueddy,ijl_veddy,ijl_n2
+#endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+     ., HALO_UPDATE, NORTH, SOUTH
       use TimerPackage_mod
 
 
@@ -29,32 +32,49 @@
       integer i_0,i_1,j_0,j_1
 
       Real*8,External   :: VOLGSP,TEMGSP,TEMGS
+      Real*8,External   :: VOLGS
       real*8  g,s,pres
       real*8   p1d(kdm+1),dp1d(kdm),temp1d(kdm),saln1d(kdm)
       real*8   rho_water,amld_cgs,Rd
-      real*8   K0,Ustar(kdm),Ustar_star(kdm)
-      real*8   Vstar(kdm),Vstar_star(kdm)
+      real*8   K0,Ustar(kdm),Vstar(kdm)
       real*8   z_cm(kdm+1),dens_cgs(kdm)
      .        ,uvel_cgs(kdm),vvel_cgs(kdm)
      .        ,drhodz_cgs(kdm),coriol,n2(kdm)
      .        ,drhodx_cgs(kdm),drhody_cgs(kdm)
+      real*8  drhopdz_cgs(kdm),densulave_cgs(kdm)
+      REAL*8,ALLOCATABLE :: presi(:),densu(:),densl(:),temp3d(:,:,:)
+      REAL*8, DIMENSION(idm,ogrid%j_strt_halo:ogrid%j_stop_halo,kdm) ::
+     .   kappam3d
+      integer ip1,im1
 
       logical vrbos
 
-      real*8 map(288,180)
- 
+      kappam3d=0. 
 
       if (nstep.eq.0) return
+
 
       i_0=ogrid%I_STRT
       i_1=ogrid%I_STOP
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
 
+      CALL HALO_UPDATE(ogrid,
+     *                 RHOX(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
+     *                 FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,
+     *                 RHOY(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
+     *                 FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(ogrid,
+     *                 vo(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
+     *                 FROM=SOUTH+NORTH)
 
       do 1000 j=j_0,j_1
       do 1000 i=i_0,i_1
       IF(FOCEAN(I,J).gt.0.) THEN
+
+      im1=i-1
+      IF(i.eq.1) im1=idm
 
       vrbos=.false.
 c     vrbos=.true.
@@ -62,6 +82,24 @@ c     vrbos=.true.
 
 ! max depth cell
       ndepi=lmm(i,j)
+
+C-- TONY - 03/07/11
+C-- Calculate an interface pressure array
+      ALLOCATE(presi(0:lmm(i,j)),densu(lmm(i,j)),densl(lmm(i,j)))
+      presi(0) = 0.
+      DO k=1,lmm(i,j)
+        presi(k) = presi(k-1) + MO(i,j,k)*GRAV
+      ENDDO
+C-- Calculate a pot. density referenced to the upper and lower interfaces
+      DO k=1,lmm(i,j)
+        g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+        s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+        densu(k) = 1d0/VOLGSP(g,s,presi(k-1)) 
+        densl(k) = 1d0/VOLGSP(g,s,presi(k))
+c       densulave_cgs(k) = 0.5*(densu(k)+densl(k))*1.d-3
+c       densu(k) =1d0/volgs(g,s)
+      ENDDO
+C--
 
 !change units
        pres = oAPRESS(i,j)    !surface atm. pressure
@@ -78,6 +116,7 @@ c     vrbos=.true.
          pres=pres+MO(I,J,k)*GRAV*.5
       enddo
 
+C-- convert in CGS
       p1d(1)=0.
       do k=2,kdm+1
       p1d(k)=p1d(k-1)+dp1d(k-1)
@@ -87,7 +126,13 @@ c     vrbos=.true.
        dens_cgs(k) = MO(i,j,k)/max(1.d0,dp1d(k)) *1.d-3 
        uvel_cgs(k) = uo(i,j,k) * 100.d0
        vvel_cgs(k) = vo(i,j,k) * 100.d0
+       IF(uo(i,j,k).ne.0..AND.uo(im1,j,k).ne.0.)
+     *   uvel_cgs(k) = 0.5*(uo(i,j,k)+uo(im1,j,k)) * 100.d0
+       IF(vo(i,j,k).ne.0..AND.vo(i,j-1,k).ne.0.)
+     *   vvel_cgs(k) = 0.5*(vo(i,j,k)+vo(i,j-1,k)) * 100.d0
       enddo
+
+c     IF(j.eq.90) WRITE(*,*)'uvel:',i,uvel_cgs(1)
 
       z_cm(kdm+1) = p1d(kdm+1)*100.d0                !depth in cm
       coriol = 2d0*omega*sinpo(j)      !evaluated at tracer points
@@ -95,7 +140,8 @@ c     vrbos=.true.
       do k=1,kdm-1
          if (dens_cgs(k+1).ne.0.d0.and.dens_cgs(k).ne.0.d0) then
            drhodz_cgs(k) = (dens_cgs(k+1) - dens_cgs(k))          ! at (i,j,k+1/2)   interface
-     .                 /(max(1.d0,z_cm(k+1)+z_cm(k)))/2.
+c    .                 /(max(1.d0,z_cm(k+1)+z_cm(k)))/2.
+     .                 /(max(1.d0,z_cm(k+1)-z_cm(k)))
          elseif (dens_cgs(k+1).eq.0.d0.
      *       and.dens_cgs(k).ne.0.d0.
      *       and.dens_cgs(max(1,k-1)).ne.0.d0) then
@@ -107,16 +153,41 @@ c     vrbos=.true.
       do k=1,kdm
          drhodx_cgs(k)=rhox(i,j,k)*1.d-3/100.d0
          drhody_cgs(k)=rhoy(i,j,k)*1.d-3/100.d0
+         IF(rhox(i,j,k).ne.0..AND.rhox(im1,j,k).ne.0.)
+     *     drhodx_cgs(k)=0.5*(rhox(i,j,k)+rhox(im1,j,k))*1.d-3/100.d0
+         IF(rhoy(i,j,k).ne.0..AND.rhoy(i,j-1,k).ne.0.)
+     *     drhody_cgs(k)=0.5*(rhoy(i,j,k)+rhoy(i,j-1,k))*1.d-3/100.d0
       enddo
+C-- TONY - 03/07/11
+C-- Calculate a new drhodz using the potential densities
+      drhopdz_cgs = 1.d30
+      DO k=1,lmm(i,j)-1
+        drhopdz_cgs(k)=(1.d-3)*(densu(k+1)-densl(k))/(z_cm(k+1)-z_cm(k))
+      ENDDO
+      drhopdz_cgs(lmm(i,j)) = drhopdz_cgs(max(1,lmm(i,j)-1))
+C
 ! compute Brunt-Vaisala
       do k=1,kdm-1
-        if (drhodz_cgs(k).ne.1d30) then
-        n2(k) = GRAV* drhodz_cgs(k)*100.d0     !no minus sign here, because drhodz defined as rho(k+1)-rho(k)
-     .            /(max(1.d0,dens_cgs(k+1)+dens_cgs(k))/2.)   !at (i,j,k+1/2)   interface
+c       if (drhodz_cgs(k).ne.1d30) then
+c       n2(k) = GRAV* drhodz_cgs(k)*100.d0     !no minus sign here, because drhodz defined as rho(k+1)-rho(k)
+c    .            /(max(1.d0,dens_cgs(k+1)+dens_cgs(k))/2.)   !at (i,j,k+1/2)   interface
+C-- TONY - 03/07/11 - Updated n2 using the pot density instead of the in situ one
+        if (drhopdz_cgs(k+1).ne.1d30) then
+        n2(k) = GRAV*100.d0 * drhopdz_cgs(k)
+     *         /(max(1.d0,(1.d-3)*(densu(k+1)+densl(k)))/2.)
         else
         n2(k) = 1.d30
         endif
+        IF(k.eq.lmm(i,j)) THEN
+        IF(lmm(i,j).eq.2) THEN
+          n2(k)=n2(k-1)
+        ELSE
+          n2(k)=n2(k-1)+((n2(k-1)-n2(k-2))/(z_cm(k-1)-z_cm(k-2)))
+     *          *(z_cm(k)-z_cm(k-1))
+        ENDIF
+        ENDIF
       enddo
+      DEALLOCATE(presi,densu,densl)
 ! mixed layer depth
       amld_cgs = 0.d0
       do k=1,kpl(i,j)
@@ -128,111 +199,94 @@ c     vrbos=.true.
 
       call mesoscales1d(kdm,ndepi,z_cm,
      .      dens_cgs,uvel_cgs,vvel_cgs,
-     .      n2,drhodx_cgs,drhody_cgs,drhodz_cgs,coriol,amld_cgs
-     .     ,Rd,K0,Ustar,Vstar,Ustar_star,Vstar_star,i,j)
+     .      n2,drhodx_cgs,drhody_cgs,drhopdz_cgs,coriol,amld_cgs
+     .     ,Rd,K0,Ustar,Vstar,i,j,kappam3d(i,j,:))
 
-!     if (vrbos) then
-!     write(*,'(a,5i5,14e12.4)')'MESOSCALES1:',
-!    .   nstep,i,j,k,ndepi,z_cm(k),dens_cgs(k),uvel_cgs(k)
-!    .  ,vvel_cgs(k),n2(k),drhodx_cgs(k),drhody_cgs(k)
-!    .  ,drhodz_cgs(k),coriol,amld_cgs,Rd,K0,ustar(k),vstar(k)
-!     endif
-c     if (nstep.eq.1) then
-c     if (vrbos) then
-c     do k=1,kdm
-c     write(*,'(a,5i5,14e12.4)')'MESOSCALES:',
-c    .   nstep,i,j,k,ndepi,z_cm(k),dens_cgs(k),uvel_cgs(k)
-c    .  ,vvel_cgs(k),n2(k),drhodx_cgs(k),drhody_cgs(k)
-c    .  ,drhodz_cgs(k),coriol,amld_cgs,Rd,K0,ustar(k),vstar(k)
-c     enddo
-c     endif
-c     endif
+
+#ifdef OCN_Mesoscales
+      if (vrbos) then
+      write(*,'(a,i6)')'MESOSCALES:',nstep
+      endif
+
 
        OIJ(I,J,IJ_eke)  = OIJ(I,J,IJ_eke) + K0      ! eddy kinetic energy, ocean
        OIJ(I,J,IJ_rd )  = OIJ(I,J,IJ_rd ) + Rd      ! Rossby radius of deformation
+C
        DO k=1,kdm
           OIJL(I,J,k,IJL_n2   )= OIJL(I,J,k,IJL_n2   ) + n2(k)    ! brunt vaisala squared
           OIJL(I,J,k,IJL_ueddy)= OIJL(I,J,k,IJL_ueddy) + ustar(k) ! ustar, eddy induced velocity (Canuto)
           OIJL(I,J,k,IJL_veddy)= OIJL(I,J,k,IJL_veddy) + vstar(k) ! vstar, eddy induced velocity (Canuto)
        ENDDO
-
-c     map(i,j)=map(i,j)+K0
+#endif
 
       endif    !focean
 
  1000 continue
 
-c     IF(nstep.eq.47) THEN
-c     WRITE(*,*)'output K0 map'
-c     OPEN(1010,FILE='map-k0.dat')
-c     DO i=1,288
-c       DO j=1,180
-c         WRITE(1010,9050)i,j,map(i,j)
-c       ENDDO
-c     ENDDO
-c9050 FORMAT(2I4,1(1pe12.3))
-c     ENDIF
+C--   Convert kappam3d from CGS to MKS
+      kappam3d=kappam3d*1.d-4
+C--   Maximum of 15000m2/s
+      DO k=1,kdm
+       DO j=j_0,j_1
+         DO i=i_0,i_1
+           kappam3d(i,j,k)=min(kappam3d(i,j,k),15000.)
+         ENDDO
+       ENDDO
+      ENDDO
+C--
 
 
       end subroutine OCN_mesosc
 
       subroutine mesoscales1d(km,ndepi,z_cm,
      .      rhoi,UI,VI,n2,dxrho,dyrho,dzrho,f,ml
-     .     ,rdm,K02,Ustar,Vstar,Ustar_star,Vstar_star,igrid,jgrid) 
+     .     ,rdm,K02,Ustar,Vstar,
+     .     igrid,jgrid,KAPPAMZa) 
+
+        USE MODEL_COM,  only : nstep=>itime
 
         IMPLICIT NONE
 
-       real*8, parameter :: huge=1.d30
-        INTEGER k,km
-        INTEGER i0,j0,kmli,kmli5,kn2i
+        real*8, parameter :: a02=0.03
+        INTEGER k,km,kmli,igrid,jgrid,ndepi
         REAL*8 z_cm(km)
-C
-        integer igrid,jgrid
-        integer ndepi
-        REAL*8 Ustar(km),Ustar_star(km)
-        REAL*8 Vstar(km),Vstar_star(km)
-        REAL*8 KAPPAM
+        REAL*8 Ustar(km),Vstar(km)
+        REAL*8 KAPPAM,KAPPAMZa(km)
         REAL*8 SIGMAT,f,ml,yt,rd,rdm,pi
-        REAL*8 n2m,
-     *    rrho(km)
-        REAL*8,ALLOCATABLE :: LXsm(:),LYsm(:),DZLXsm(:),DZLYsm(:)
-        REAL*8 uve,vve,tem,sal
-c       PARAMETER(SIGMAT=0.72)
         PARAMETER(SIGMAT=1.)
-c       PARAMETER(SIGMAT=4.)
-        INTEGER kkpmax,kkpmaxp5,kkpmax2,kkpmax2p5,kQmax,kkpint,kdbmax,
-     *    kn2max,kkpmax2p
-        REAL*8 DZLXB1AVE,DZLYB1AVE,kpmax,zkpmax,kpmax2,Qmax,dbmax,n2max,
-     *    kpmax2p
+        INTEGER kkpmax2,kkpint,ktap,kkpint2,ktap2
+        REAL*8 DZLXB1AVE,DZLYB1AVE,kpmax2
         REAL*8 UI(km),VI(km)
         REAL*8 UB1AVE,VB1AVE,UL,VL
-        REAL*8 rhoi(km),dbmaptop,dbmapml,
-     *    dbmaphalf,map
-        REAL*8 frd,n2(km),n2a(km),lr
-        REAL*8 UD,VD,UD1(km),VD1(km)
-        REAL*8 K0,K02,Qmap,
-     *    PHIM,CK,K03,Cs
+        REAL*8 rhoi(km)
+        REAL*8 frd,n2(km),lr
+        REAL*8 K02,CK,K02A,K02D,CA,CD,INTGAMMAA,INTGAMMAD,INTGAMMA,
+     *    INTGAMMA1,INTEXP,CD1,INTGAMMAS
         REAL*8 dxrho(km),dyrho(km),dzrho(km)
-        REAL*8 DAML,DBML
         REAL*8, ALLOCATABLE :: n2t(:),n2t1(:),z(:),zm(:),b1(:),b1t(:),
      *   U(:),V(:),rho(:),n2tr(:),
      *   LX(:),LY(:),DZLX(:),DZLY(:),
      *   UINT(:),VINT(:),UT(:),VT(:),
-     *   M1X(:),M1Y(:),M2X(:),M2Y(:),
-     *   dxb(:),dyb(:),KP(:),KINT(:),db(:),
+     *   dxb(:),dyb(:),KP(:),KINT(:),
      *   zint(:),UREV(:),VREV(:),KPINT(:),
      *   b1rev(:),DZLXREV(:),DZLYREV(:),
      *   UTINT(:),VTINT(:),DZU(:),DZV(:),
-     *   F1X(:),F2X(:),F1Y(:),F2Y(:),KP2(:),KINT2(:),KP2INT(:),KP2p(:),
-     *   Q(:),QINT(:),OMEGA1(:),OMEGA2(:),KV(:),KVSTAR(:),sx(:),sy(:),
-     *   KP3(:),KP3INT(:),KINT3(:)
+     *   F1X(:),F2X(:),F1Y(:),F2Y(:),KP2(:),KINT2(:),KP2INT(:),
+     *   KAPPAMZ(:),GAMMA(:),n2sm(:),Tap(:),Adrag(:),DZU2(:)
         INTEGER im,kmi
-        REAL*8 Nm,factor
+        REAL*8 Nm
         REAL*8 zw(km),zwt(km),zt(km)
+        REAL*8 k02count
+        REAL*8, ALLOCATABLE :: ud(:),vd(:),MK(:)
 C
       pi=4.*atan(1.)
 C
-      if (ndepi.eq.0) goto 10
+c     if (ndepi.eq.0) WRITE(*,*)'DEBUG: ndepi,i,j:',ndepi,igrid,jgrid
+      if (ndepi.eq.0) then
+        K02=0.
+        KAPPAMZa=0.
+        goto 10
+      endif
 
       do k=1,km
          zw(k) = z_cm(k)
@@ -256,14 +310,11 @@ C
      * U(kmi),V(kmi),rho(kmi),n2tr(kmi),
      * LX(kmi),LY(kmi),DZLX(kmi),DZLY(kmi),
      * UINT(kmi),VINT(kmi),UT(kmi),VT(kmi),
-     * M1X(kmi),M1Y(kmi),M2X(kmi),M2Y(kmi),
-     * dxb(kmi),dyb(kmi),KP(kmi),db(kmi),
+     * dxb(kmi),dyb(kmi),KP(kmi),
      * zint(kmi),UREV(kmi),VREV(kmi),KPINT(kmi),
      * b1rev(kmi),DZLXREV(kmi),DZLYREV(kmi),
-     * UTINT(kmi),VTINT(kmi),DZU(kmi),DZV(kmi),KP3(kmi),KP3INT(kmi),
-     * F1X(kmi),F1Y(kmi),F2X(kmi),F2Y(kmi),KP2(kmi),KP2INT(kmi),
-     * QINT(kmi),OMEGA1(kmi),OMEGA2(kmi),KV(kmi),KVSTAR(kmi),
-     * sx(kmi),sy(kmi),KP2p(kmi))
+     * UTINT(kmi),VTINT(kmi),DZU(kmi),DZV(kmi),
+     * F1X(kmi),F1Y(kmi),F2X(kmi),F2Y(kmi),KP2(kmi),KP2INT(kmi))
 C-- M1: Calculate B1, frd and rd
       n2t(1)=n2(1)
 C     n2t(1)=max(n2t(1),1.d-8)
@@ -279,7 +330,8 @@ C
       z=-zw(1:kmi)
       zm=-z
 C     n2t=((7.d-3)**2)*exp(2.*z/100000.)
-      n2t1=n2t
+c     n2t1=n2t
+      n2t1=n2(:)
 C
 c     CALL baroclin1st(zm,n2t1,kmi,b1,im,Nm,frd)
       CALL baroclin1st(zm,n2(:),kmi,b1,im,Nm,frd,igrid,jgrid)
@@ -293,40 +345,32 @@ c     rdm=rd
       U=UI(1:kmi)
       V=VI(1:kmi)
       rho=rhoi(1:kmi)
-C-- Tony - 12/03/11 - Calulate the Rhines Scale and replace rd by lr between +/-30 degrees
-c     lr=dsqrt(dsqrt(U(1)**2+V(1)**2)/0.95d-13)
-c     IF(jgrid.ge.60.AND.jgrid.le.120) rd=lr
-      rdm=rd
-C--
-C
-C-- TONY - bug correction - 07/27/10
-c     LX=-dxrho(1:kmi)/(-n2tr*rho/981.)
-c     LY=-dyrho(1:kmi)/(-n2tr*rho/981.)
 c
       CALL d1sym(kmi,z,U,DZU)
       CALL d1sym(kmi,z,V,DZV)
 c
+      ALLOCATE(n2sm(kmi))
+      n2sm = n2(1:kmi)
+      DO k=1,50
+      CALL z121_mesosc(n2sm,kmi,kmi)
+      ENDDO
       do k=1,kmi
-         if (n2tr(k).ne.0.d0)then 
-                LX(k)=-(f/n2tr(k))*DZV(k)
-                LY(k)=+(f/n2tr(k))*DZU(k)
+c        if (n2tr(k).ne.0.d0)then 
+c               LX(k)=-(f/n2tr(k))*DZV(k)
+c               LY(k)=+(f/n2tr(k))*DZU(k)
+         if (n2sm(k).ne.0.d0)then
+                LX(k)=-(f/n2sm(k))*DZV(k)
+                LY(k)=+(f/n2sm(k))*DZU(k)
+c               LX(k)=-dxrho(k)/(-n2tr(k)*rho(k)/981.)
+c               LY(k)=-dyrho(k)/(-n2tr(k)*rho(k)/981.)
          else
                 LX(k)=0.d0
                 LY(k)=0.d0
          endif
+C-- TONY 03/08/11 -- limiter for isopycnal slopes
+c        LX(k)=min(1.d-3,LX(k))
+c        LY(k)=min(1.d-3,LY(k))
       enddo
-
-c     do k=1,kmi
-c        if (dzrho(k).ne.0.d0)then      !Natassa
-c               sx(k)=-dxrho(k)/dzrho(k)
-c               sy(k)=-dyrho(k)/dzrho(k)
-c        else
-c               sx=0.d0
-c               sy=0.d0
-c        endif
-c     enddo
-c     LX=sx
-c     LY=sy
 C
       UREV=0.
       VREV=0.
@@ -344,46 +388,24 @@ C
       CALL d1sym(kmi,z,LX,DZLX)
       CALL d1sym(kmi,z,LY,DZLY)
 
-c     if(i.eq.  1.and.j.eq.120) then
-c     do k=1,kmi
-c       write(*,'(a,i5,6e12.4)')'LX:',
-c    .          k,-dxrho(k),-n2tr(k),rho(k),LX(k),z(k)
-c    .           ,dzlx(k)
-c     enddo
-c     endif
-c     if(i.eq.  4.and.j.eq.120) then
-c     do k=1,kmi
-c       write(*,'(a,i5,6e12.4)')'LX:',
-c    .          k,-dxrho(k),-n2tr(k),rho(k),LX(k),z(k)
-c    .           ,dzlx(k)
-c     enddo
-c     endif
-
       DO k=1,kmi
         DZLXREV(k)=DZLX(kmi-k+1)
         DZLYREV(k)=DZLY(kmi-k+1)
       ENDDO
 
-c     if(i.eq.  1.and.j.eq.120)
-c    .          write(*,'(a,3e12.4,i5,e12.4)')'DZLXB1AVE:', 
-c    .          DZLXREV(1),zint(1),b1rev(1),kmi,DZLXB1AVE
-c     if(i.eq.  4.and.j.eq.120)
-c    .          write(*,'(a,3e12.4,i5,e12.4)')'DZLXB1AVE:', 
-c    .          DZLXREV(1),zint(1),b1rev(1),kmi,DZLXB1AVE
-
       CALL B1AVERAGE(DZLXREV,zint,b1rev,kmi,DZLXB1AVE,kmli+0)
       CALL B1AVERAGE(DZLYREV,zint,b1rev,kmi,DZLYB1AVE,kmli+0)
-C
+C--
 C-- Calculate UT and VT
       DO k=1,kmi
         CALL dqtfg(zint(k:kmi),UREV(k:kmi),UINT(k:kmi),kmi-k+1)
-        if (zint(k).ne.0.d0) then        !Natassa
-        UTINT(k)=-(1./zint(k))*UINT(kmi)
         CALL dqtfg(zint(k:kmi),VREV(k:kmi),VINT(k:kmi),kmi-k+1)
-        VTINT(k)=-(1./zint(k))*VINT(kmi)
+        if (zint(k).ne.0.d0) then
+          UTINT(k)=-(1./zint(k))*UINT(kmi)
+          VTINT(k)=-(1./zint(k))*VINT(kmi)
         else
-        UTINT(k)=0.d0
-        VTINT(k)=0.d0
+          UTINT(k)=0.d0
+          VTINT(k)=0.d0
         endif
       ENDDO
       UTINT(kmi)=0.
@@ -392,26 +414,26 @@ C-- Calculate UT and VT
         UT(k)=UTINT(kmi-k+1)
         VT(k)=VTINT(kmi-k+1)
       ENDDO
-C
+c
+C-- Calulate the Rhines Scale and replace rd by lr between +/-30 degrees
+      lr=dsqrt(dsqrt(UT(kmli)**2+VT(kmli)**2)/(2.*2.1*1.d-13))
+      rd=min(rd,lr)
+      IF(jgrid.ge.70.AND.jgrid.le.110.AND.rd.eq.0.) rd=lr
+      rdm=rd
+ 
 C-- Calculate F1
       if (rd.ne.0.d0) then                !Natassa
          F1X = DZLXB1AVE + (1.+1./SIGMAT)*(1./f)*(1./rd**2)*(-VB1AVE)
       else
-          F1X = 0.d0
+         F1X = 0.d0
       endif
-
-c     if(i.eq.  1.and.j.eq.120)write(*,'(a,5e12.4)')
-c    .     'f1x:',DZLXB1AVE,SIGMAT,f,rd,VB1AVE
-c     if(i.eq.  4.and.j.eq.120)
-c    .     write(*,'(a,5e12.4)')'f1x:',DZLXB1AVE,SIGMAT,f,rd,VB1AVE
 
       if (rd.ne.0.d0) then                !Natassa
           F1Y = DZLYB1AVE + (1.+1./SIGMAT)*(1./f)*(1./rd**2)*(+UB1AVE)
       else
           F1Y = 0.d0
       endif
-c     F1X=0.
-c     F1Y=0.
+
 C-- Calculate F2
       if (rd.ne.0.d0) then                !Natassa
       F2X = (1./f)*(1./rd**2)*((1./SIGMAT)*(+VT)+V)
@@ -420,19 +442,37 @@ C-- Calculate F2
       F2X = 0.d0
       F2Y = 0.d0
       endif
-c     F2X=0.
-c     F2Y=0.
+
 C-- Calculate DXB and DYB
       dxb=-981.*dxrho(1:kmi)/rho(1:kmi)
       dyb=-981.*dyrho(1:kmi)/rho(1:kmi)
+
+C-- Calculate Tapering function T(z)
+      ktap=1
+      ALLOCATE(Tap(kmi))
+      Tap=0.
+      DO k=1,kmi
+        IF(((LX(k)**2+LY(k)**2)*n2tr(k)).ne.0.)
+     *  Tap(k)=-z(k)*((F1X(k)+F2X(k))*dxb(k)+(F1Y(k)+F2Y(k))*dyb(k))
+     *      /((LX(k)**2+LY(k)**2)*n2tr(k))
+        IF(Tap(k).gt.1.) THEN
+          ktap=k
+          GO TO 116
+        ENDIF
+      ENDDO
+ 116  CONTINUE
+      DEALLOCATE(Tap)
+
+C-- Calculate GAMMA
+      ALLOCATE(GAMMA(kmi))
+      GAMMA=(a02+(dabs(b1))**2)/(1.+a02)
+
 C-- Calculate new K
-c     CK=3.95
-      CK=15.
-      KP2=z*((F1X+F2X)*dxb+(F1Y+F2Y)*dyb)
+      CK=27.
+      KP2=sqrt(GAMMA)*z*((F1X+F2X)*dxb+(F1Y+F2Y)*dyb)
 c     KP2=-z*((F1X+F2X)*sx+(F1Y+F2Y)*sy)*n2tr
       DO k=1,kmi
         KP2INT(k)=KP2(kmi-k+1)
-        QINT(k)=z(kmi-k+1)*n2tr(kmi-k+1)
       ENDDO
       kkpmax2=1
       kpmax2=0.
@@ -443,121 +483,164 @@ c     KP2=-z*((F1X+F2X)*sx+(F1Y+F2Y)*sy)*n2tr
         ENDIF
       ENDDO
 C
-      kkpint=max(1,kkpmax2)
+c     kkpint=max(1,kkpmax2)
 c     kkpint=max(1,kmli)
 c     kkpint=max(1,max(kmli,kkpmax2))
+      ktap2=max(ktap,kmli)
+      kkpint=max(1,ktap2)
 
+      K02D=0.
       ALLOCATE(KINT2(kkpint))
       CALL dqtfg(zint(kmi-(kkpint-1):kmi),KP2INT(kmi-(kkpint-1):kmi),
      *           KINT2,kkpint)
-C--- Calculate Q
-      ALLOCATE(Q(kmli+1))
-      CALL dqtfg(zint(max(kmi-kmli,1):kmi),QINT(max(kmi-kmli,1):kmi),
-     *           Q,kmli+1)
-      if (rd.ne.0d0.and.ml.ne.0d0) then       !Natassa
-      Q = (2.*CK/(ml*(f**2)*rd**2))*Q
+      if (rd.ne.0d0.and.z(kkpint).ne.0.d0) then
+        K02D=-(rd**2)*KINT2(kkpint)
       else
-      Q = 0.d0
+        K02D=0.d0
       endif
-      Qmap=Q(kmli+1)
-      if (rd.ne.0d0.and.z(kkpint).ne.0.d0) then       !Natassa
-        K02=-(CK/(1.+Q(kmli+1)))*(rd**2)*(1./-z(kkpint))
-     *         *KINT2(kkpint)
-      else
-        K02=0.d0
-      endif
+      DEALLOCATE(KINT2)
+      IF(K02D.lt.0.) K02D=0.
+      IF(ktap.eq.kmi.OR.kmli.eq.kmi) K02D=0.
 
-c     if (igrid.eq.10) write(*,*)jgrid,f
-c     if (igrid.eq.215.and.jgrid.eq.73) then
-c     write(*,*)'MESOSCALES:',igrid,jgrid,kmi,kmli,DZLXB1AVE,DZLYB1AVE,
-c    .  K02
-c     DO k=1,kmi
-c     write(*,'(a,3i5,17e12.4)')'MESOSCALES:',
-c    .   igrid,jgrid,k,z_cm(k),K02,LX(k),DZLX(k),LY(k),DZLY(k),
-c    .   dxrho(k),dyrho(k),n2tr(k),rho(k),b1(k),sx(k),sy(k),
-c    .   rd/1.d5,lr/1.d5,f,dsqrt(U(1)**2+V(1)**2)
-c     ENDDO
-c     endif
-c     if (igrid.eq.216.and.jgrid.eq.73) then
-c     write(*,*)
-c     write(*,*)'MESOSCALES:',igrid,jgrid,kmi,kmli,DZLXB1AVE,DZLYB1AVE,
-c    .  K02
-c     DO k=1,kmi
-c     write(*,'(a,3i5,17e12.4)')'MESOSCALES:',
-c    .   igrid,jgrid,k,z_cm(k),K02,LX(k),DZLX(k),LY(k),DZLY(k),
-c    .   dxrho(k),dyrho(k),n2tr(k),rho(k),b1(k),sx(k),sy(k),
-c    .   rd/1.d5,lr/1.d5,f,dsqrt(U(1)**2+V(1)**2)
-c     ENDDO
-c     endif
+      KAPPAMZa=0.
 
-      if (K02.lt.0d0)K02=0.d0     !Natassa
-      KAPPAM = rdm * sqrt(K02)
+C-- TONY -  1/20/2012 - additional term
+      K02A=0.
+      KP2=0.
+      KP2INT=0.
+      KP2=sqrt(GAMMA)*(LX**2+LY**2)*n2tr
+      DO k=1,kmi
+        KP2INT(k)=KP2(kmi-k+1)
+      ENDDO
+      kkpint=max(1,ktap)
+      kkpint2=max(1,kmi-kkpint)
+      IF(ktap.eq.1) kkpint2=max(1,kmi-kmli)
+      ALLOCATE(KINT2(kkpint2))
+      KINT2=0.
+      CALL dqtfg(zint(1:kkpint2),KP2INT(1:kkpint2),
+     *           KINT2,kkpint2)
+      IF(ktap.ne.kmi.and.kmi.ne.1)
+     *  K02A = (rd**2)*KINT2(kkpint2)
+      DEALLOCATE(KINT2)
+      IF(ktap.eq.kmi) K02A=0.
+      IF(K02D.eq.0.) K02A=0.
+      IF(K02A.lt.0.) K02A=0.
 
-c     if (i.eq.1.and.j.eq.120) then
-c     do k=1,kmli
-c     write(*,'(a,4i5,7e12.4)')'K02:',k,kkpint
-c    *     ,CK,Q(kmli+1),rdm,z(kkpint),KINT2(kkpint)
-c    *     ,K02,KAPPAM
-c     enddo
-c     endif
+C-- K02=K02/int(GAMMA**3/2) between -H and 0
+C--- CA=((3/2)*Ko)^3/2 with Ko=5/3 -> CA=3.95
+      CA=3.95
+C--- CD=((3/2)*Ko)^3/2 with Ko=6 -> CB=27
+      CD=27.
+ 
+      INTGAMMAA=0.
+      INTGAMMAD=0.
 
-      DO k=1,kmli
-        Ustar(k) =  KAPPAM * (F1X(k)+F2X(k))
-        Vstar(k) =  KAPPAM * (F1Y(k)+F2Y(k))
-        if ((dxb(k)**2+dyb(k)**2).ne.0.d0) then    !Natassa
-        factor = (Ustar(k) * dxb(k) 
-     *           +Vstar(k) * dyb(k))
-     *         / (dxb(k)**2+dyb(k)**2)
-        else
-        factor = 0.d0
-        endif
-        Ustar_star(k) = Ustar(k) 
-     *                    - factor * dxb(k)
-        Vstar_star(k) = Vstar(k) 
-     *                    - factor * dyb(k)
-
-c     if (i.eq.1.and.j.eq.120) then
-c     write(*,'(a,3i5,9e12.4)')'KAPPAM:',k,
-c    *        rdm,
-c    *        KAPPAM,F1X(k),F2X(k),Ustar(k),
-c    *        dxb(k),dyb(k),factor,Ustar_star(k)
-c     endif
-c     if (i.eq.  4.and.j.eq.120) then
-c     write(*,'(3i5,9e12.4)')k,
-c    *        rdm,
-c    *        KAPPAM,F1X(k),F2X(k),Ustar(k),
-c    *        dxb(k),dyb(k),factor,Ustar_star(k)
-c     endif
+      KP2=0.
+      KP2INT=0.
+      KP2=GAMMA**(3./2.)
+      DO k=1,kmi
+        KP2INT(k)=KP2(kmi-k+1)
       ENDDO
 
+      ALLOCATE(KINT2(kkpint2))
+      KINT2=0.
+      CALL dqtfg(zint(1:kkpint2),KP2INT(1:kkpint2),
+     *           KINT2,kkpint2)
+      INTGAMMAA=KINT2(kkpint2)
+      DEALLOCATE(KINT2)
 
-C-- MKE
-c     map=0.5*(U(1)**2+V(1)**2)
+      ALLOCATE(KINT2(kkpint))
+      KINT2=0.
+      CALL dqtfg(zint(kmi-(kkpint-1):kmi),KP2INT(kmi-(kkpint-1):kmi),
+     *           KINT2,kkpint)
+      INTGAMMAD=KINT2(kkpint)
+      DEALLOCATE(KINT2)
 
-      DEALLOCATE(KINT2,Q)
+      INTGAMMA=INTGAMMAA/CA+INTGAMMAD/CD
+      K02=0.
 
-C-- Calculate OMEGA1 and OMEGA2
-      OMEGA1=z*((F1X+F2X)*LX+(F1Y+F2Y)*LY)
+      INTGAMMA1=0.
+      KP2=0.
+      KP2INT=0.
+      KP2=GAMMA
+      DO k=1,kmi
+        KP2INT(k)=KP2(kmi-k+1)
+      ENDDO
+      ALLOCATE(KINT2(kmi))
+      KINT2=0.
+      CALL dqtfg(zint,KP2INT,KINT2,kmi)
+      INTGAMMA1=KINT2(kmi)
+      DEALLOCATE(KINT2)
 
-C-- Calculate KV and KVSTAR
-      KVSTAR=rd*dsqrt(K02)*OMEGA1 
+      INTEXP=0.
+      CD1=0.
+      KP2=0.
+      KP2INT=0.
+      KP2=GAMMA*exp(-((z+abs(z(kmi)))**2)/(2.*4000.**2))
+      DO k=1,kmi
+        KP2INT(k)=KP2(kmi-k+1)
+      ENDDO
+      ALLOCATE(KINT2(kkpint2))
+      KINT2=0.
+      CALL dqtfg(zint(1:kkpint2),KP2INT(1:kkpint2),
+     *           KINT2,kkpint2)
+      INTEXP=KINT2(kkpint2)
+      DEALLOCATE(KINT2)
+      CD1=INTEXP*sqrt(2./pi)*(abs(z(kmi)/4000.))
 
-C
+      IF(INTGAMMA1.ne.0.) INTGAMMAS=CD1*INTGAMMA/INTGAMMA1+INTGAMMAD/CD
+      IF(INTGAMMAS.ne.0.) K02=(K02A+K02D)/INTGAMMAS
+
+      IF(GAMMA(kmi).eq.1.) K02=0.
+
+      IF (K02.le.0d0) THEN
+        K02=0.d0
+        k02count=1.
+      ELSE
+        k02count=0.
+      ENDIF
+
+
+      Ustar=0.
+      Vstar=0.
+
+C---  Calculate udrift (ud,vd)
+C---- Calculate ud0,vd0
+      ALLOCATE(ud(kmi),vd(kmi))
+      ud=0.
+      vd=0.
+      ud = UB1AVE - 0.5 * f * (rd**2) * (-DZLYB1AVE)
+      vd = VB1AVE - 0.5 * f * (rd**2) * (+DZLXB1AVE)
+C-- Calculate factor M
+      ALLOCATE(MK(kmi))
+      MK=0.
+      IF(K02.ne.0.) MK=1./(1.+0.75*((U-ud)**2+(V-vd)**2)/K02)
+
+C-- Calculate KAPPAM(Z)
+      ALLOCATE(KAPPAMZ(kmi))
+c     KAPPAMZ=rd*dsqrt(K02*GAMMA)*MK
+      KAPPAMZ=rd*dsqrt(K02*GAMMA)
+      KAPPAMZa=0.
+      KAPPAMZa(1:kmi)=KAPPAMZ
+      DEALLOCATE(KAPPAMZ)
+
+c     rdm=k02count
+
+      DEALLOCATE(ud,vd,MK)
+      DEALLOCATE(GAMMA)
+      DEALLOCATE(n2sm)
       DEALLOCATE(n2t,n2t1,z,zm,b1,b1t,
      *  U,V,rho,n2tr,
      *  LX,LY,DZLX,DZLY,
-c    *  LXsm,LYsm,DZLXsm,DZLYsm,
      *  UINT,VINT,UT,VT,
-     *  M1X,M1Y,M2X,M2Y,
      *  dxb,dyb,KP,
-c    *  KINT,
-     *  db,
      *  zint,UREV,VREV,KPINT,
      *  b1rev,DZLXREV,DZLYREV,
-     *  UTINT,VTINT,DZU,DZV,sx,sy,KP3,KP3INT,KP2p,
-     *  F1X,F1Y,F2X,F2Y,KP2,KP2INT,QINT,OMEGA1,OMEGA2,KV,KVSTAR)
-C
+     *  UTINT,VTINT,DZU,DZV,
+     *  F1X,F1Y,F2X,F2Y,KP2,KP2INT)
+ 
  10   CONTINUE
+
  
       END  subroutine mesoscales1d
 
@@ -606,7 +689,19 @@ C       At top and bottom revert to ratio of differences with lone nearest neigh
            IF(i.EQ.1) THEN
               dyodx(i) = ((y(i+1)-y(i))/(x(i+1)-x(i)))
            ELSE IF(i.EQ.n) THEN
-              dyodx(i) = ((y(i)-y(i-1))/(x(i)-x(i-1)))
+c             dyodx(i) = ((y(i)-y(i-1))/(x(i)-x(i-1)))
+C-- TONY - 03/09/11 - updated the bottom calculation with a 3 points derivative
+              IF(n.eq.2) THEN
+                dyodx(i) = 0.
+              ELSE
+                dxm = x(i-1)-x(i-2)
+                dxp = x(i)-x(i-1)
+                dym = y(i-1)-y(i-2)
+                dyp = y(i)-y(i-1)
+                dyodxm = dym/dxm
+                dyodxp = dyp/dxp
+                dyodx(i) = (dxm*dyodxp + dxp*dyodxm)/(dxm+dxp)
+              ENDIF
            ELSE
               dxm = x(i)-x(i-1)
               dxp = x(i+1)-x(i)
@@ -761,3 +856,28 @@ C*****
     3 z(n)=sum2
     4 return
       end
+
+C*********
+      subroutine z121_mesosc (v0,kmtj,km)
+!@sum z121 Apply 121 smoothing in k to 2-d array V(k=1,km)
+!@+   top (0) value is used as a dummy
+!@+   bottom (km+1) value is set to input value from above.
+      IMPLICIT NONE
+      REAL*8, PARAMETER :: p5=5d-1, p25=2.5d-1
+      INTEGER, INTENT (IN) :: kmtj,km
+      REAL*8, INTENT (INOUT) :: V0(km)  ! 2-D array to be smoothed
+      REAL*8 V(0:km+1)
+      INTEGER K
+      REAL*8 tmp
+      V(1:km)=V0
+      V(0)      =  p25 * V(1)
+      V(kmtj+1) =        V(kmtj)
+
+      do k=1,kmtj
+         tmp      =  V(k)
+         V(k)   =  V(0)  + p5 * V(k) + p25 * V(k+1)
+         V(0)   =  p25 * tmp
+      end do
+      V0=V(1:km)
+      return
+      end subroutine z121_mesosc
