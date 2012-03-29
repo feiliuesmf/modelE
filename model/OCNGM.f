@@ -56,16 +56,20 @@
 
       REAL*8, PARAMETER :: eps=TINY(1.D0)
 
-#ifdef CONSTANT_MESO_DIFFUSIVITY
+#if (defined CONSTANT_MESO_DIFFUSIVITY)
 !@dbparam meso_diffusivity_const constant diffusivity (m2/s)
 !@+       for sensitivity studies
       real*8 :: meso_diffusivity_const
-#else
-#ifdef CONSTANT_MESO_LENSCALE
+#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
+!@dbparam meso_diffusivity_z0
+!@dbparam meso_diffusivity_zscale
+!@dbparam meso_diffusivity_deep
+      real*8 ::
+     & meso_diffusivity_z0,meso_diffusivity_zscale,meso_diffusivity_deep
+#elif (defined CONSTANT_MESO_LENSCALE)
 !@dbparam meso_lenscale_const a fixed length scale (meters) to use in
 !@+       lieu of Rossby radius RD in AINV = AMU * RD**2 * BYTEADY
       real*8 :: meso_lenscale_const
-#endif
 #endif
       REAL*8, ALLOCATABLE, DIMENSION(:) ::
      *     BYDYP,BYDXP,BYDYV
@@ -180,12 +184,14 @@ c**** allocate arrays
       if ( IFIRST.ne.0 ) then
         IFIRST = 0
         call ALLOC_GM_COM
-#ifdef CONSTANT_MESO_DIFFUSIVITY
-        call get_param('meso_diffusivity_const',meso_diffusivity_const)
-#else
-#ifdef CONSTANT_MESO_LENSCALE
-        call get_param( 'meso_lenscale_const', meso_lenscale_const )
-#endif
+#if (defined CONSTANT_MESO_DIFFUSIVITY)
+       call get_param('meso_diffusivity_const',meso_diffusivity_const)
+#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
+       call get_param('meso_diffusivity_z0',meso_diffusivity_z0)
+       call get_param('meso_diffusivity_zscale',meso_diffusivity_zscale)
+       call get_param('meso_diffusivity_deep',meso_diffusivity_deep)
+#elif (defined CONSTANT_MESO_LENSCALE)
+       call get_param( 'meso_lenscale_const', meso_lenscale_const )
 #endif
       endif
 
@@ -1182,9 +1188,22 @@ C****
       INTEGER :: J_1HR
       LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE 
       logical :: dothis
-
+      real*8 :: k1d(lmo)
       real*8 :: wtup,wtdn,rhomid,rhoy_,sly,krat,kmax
       integer :: n
+
+#if (defined CONSTANT_MESO_DIFFUSIVITY)
+#define USE_1D_DIFFUSIVITY
+      k1d(:) = meso_diffusivity_const
+#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
+#define USE_1D_DIFFUSIVITY
+      do l=1,lmo
+        k1d(l) = meso_diffusivity_z0*
+     &       exp(-(.5*(ze(l-1)+ze(l)))/meso_diffusivity_zscale)
+     &       + meso_diffusivity_deep
+      enddo
+
+#endif
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
@@ -1351,8 +1370,8 @@ C**** Calculate average density + gradients over [1,LUP]
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
             IF (ARHOZ.gt.0) THEN
-#ifdef CONSTANT_MESO_DIFFUSIVITY
-              AINV(I,J,:) = meso_diffusivity_const
+#ifdef USE_1D_DIFFUSIVITY
+              AINV(I,J,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
               AINV(I,J,:) = kappam3d(I,J,:)
@@ -1403,8 +1422,8 @@ C**** Calculate average density + gradients over [1,LUP]
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
-#ifdef CONSTANT_MESO_DIFFUSIVITY
-            AINV(1,JM,:) = meso_diffusivity_const
+#ifdef USE_1D_DIFFUSIVITY
+            AINV(1,JM,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
             AINV(1,JM,:) = kappam3d(1,JM,:)
@@ -1458,8 +1477,8 @@ C**** Calculate average density + gradients over [1,LUP]
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
-#ifdef CONSTANT_MESO_DIFFUSIVITY
-            AINV(1,1,:) = meso_diffusivity_const
+#ifdef USE_1D_DIFFUSIVITY
+            AINV(1,1,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
             AINV(1,1,:) = kappam3d(1,1,:)
