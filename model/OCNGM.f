@@ -1153,9 +1153,20 @@ C****
 !@auth Gavin Schmidt/Dan Collins
       USE GM_COM
       USE FILEMANAGER
+
+      use odiag, only : oijl=>oijl_loc,ijl_mfvb
+      use ocean, only : dzo,dxvo
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
+      use ocean, only : nbyzu,i1yzu,i2yzu,lmu
+      use ocean, only : nbyzv,i1yzv,i2yzv
+      use constant, only : rhows
+
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: RHO
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
+     &     RHO, KBYRHOZ
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,0:LMO) ::
+     &     PSIY
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DH0,DZSUMX,DZSUMY,R1,R2,P12
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
@@ -1171,6 +1182,9 @@ C****
       INTEGER :: J_1HR
       LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE 
       logical :: dothis
+
+      real*8 :: wtup,wtdn,rhomid,rhoy_,sly,krat,kmax
+      integer :: n
 
 c**** Extract domain decomposition info
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
@@ -1485,6 +1499,79 @@ c          call closeunit(iu_ODIFF)
 c        endif
 c        IFIRST = 0
 c      END IF
+
+c
+c Calculate bolus velocity diagnostics and store them in units of
+c accumulated mass flux (kg) for consistency with the diagnostics
+c for resolved velocities. For convenience, a constant reference
+c density is used to convert the eddy-induced streamfunction to
+c mass-flux units.  Local densities can be used if the O(1%) discrepancy
+c proves to be a confounding factor in analyses of this diagnostic.
+c
+c Since the bolus velocity does not appear explicitly in the skew-flux
+c form of GM, the attempt has not been made here to exactly reproduce
+c the effective interpolation stencil for the diffusivities and density
+c gradients used in ISOSLOPE4.  However, a future commit will attempt
+c to insert code into ISOSLOPE4 to store the diffusivities in effect
+c after modification by CFL criteria and ML exclusion (rather than
+c mimicking that logic here).
+c 
+c For now, only the north-south component is being calculated/stored.
+c
+      kbyrhoz = 0.
+      do l=1,lmo-1
+        wtup = dzo(l+1)/(dzo(l)+dzo(l+1))
+        wtdn = 1.-wtup
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l+1)
+        do i=i1yzm(n,j,l+1),i2yzm(n,j,l+1)
+          if(l.gt.kpl(i,j)) then ! GM excludes ML currently
+            ! interpolate K/(drho/dz) to layer edges
+            kbyrhoz(i,j,l) = (wtup*ainv(i,j,l)+wtdn*ainv(i,j,l+1))*
+     &           byrhoz(i,j,l)
+          endif
+        enddo
+        enddo
+        enddo
+      enddo
+      call halo_update(grid,kbyrhoz,from=north)
+      call halo_update(grid,byrhoz,from=north) ! needed?
+      psiy = 0.
+      rhomid = rhows ! for now
+      do l=1,lmo-1
+        kmax = ( .25*(dzo(l)+dzo(l+1))**2 )/dts
+        wtup = dzo(l+1)/(dzo(l)+dzo(l+1))
+        wtdn = 1.-wtup
+        do j=j_0s,j_1s
+        do n=1,nbyzv(j,l+1)
+        do i=i1yzv(n,j,l+1),i2yzv(n,j,l+1)
+          ! verticall interpolate rhoy to layer edges
+          rhoy_ = (wtup*rhoy(i,j,l)+wtdn*rhoy(i,j,l+1))
+          ! calculate y-slope
+          sly = rhoy_*(byrhoz(i,j,l)+byrhoz(i,j+1,l))*.5
+          ! streamfunc = K
+          psiy(i,j,l) = rhoy_ *(kbyrhoz(i,j,l)+kbyrhoz(i,j+1,l))*.5
+          ! mimic the "CFL tapering" in ISOSLOPE4: locally reduce
+          ! K so that the vertical component of Redi diffusion does
+          ! not violate CFL conditions for numerical stability
+          krat = psiy(i,j,l)*sly/kmax
+          if(krat .gt. 1d0) psiy(i,j,l) = psiy(i,j,l)/krat
+          psiy(i,j,l) = psiy(i,j,l)*rhomid
+        enddo
+        enddo
+        enddo
+      enddo
+      do l=1,lmo
+        do j=j_0s,j_1s
+        do n=1,nbyzv(j,l)
+        do i=i1yzv(n,j,l),i2yzv(n,j,l)
+          oijl(i,j,l,ijl_mfvb) = oijl(i,j,l,ijl_mfvb) +
+     &         (psiy(i,j,l)-psiy(i,j,l-1))*dxvo(j)*dts
+        enddo
+        enddo
+        enddo
+      enddo
+
 
       RETURN
 C****

@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=70,KOIJL=37,KOL=6,KOLNST=12,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=70,KOIJL=38,KOL=6,KOLNST=12,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -83,6 +83,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
 #ifdef OCN_GISSMIX
      *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
 #endif
@@ -156,12 +157,12 @@
      &     'Overtrn', 'GM flx ', 'Hor gyr'/)
 
 !@var KOJL,OJL (number of qtys having) zonal sums/means over basins
-      INTEGER, PARAMETER :: KOJL=4*NBAS
+      INTEGER, PARAMETER :: KOJL=5*NBAS
       REAL*8, DIMENSION(JM,LMO,NBAS,KOJL/NBAS) :: OJL
       REAL*8, DIMENSION(JM,LMO,KOJL) :: OJL_out
 
 !@var JL_xxx indices for qtys in OJL
-      INTEGER :: JL_M,JL_PT,JL_S,JL_SF
+      INTEGER :: JL_M,JL_PT,JL_S,JL_SF,JL_SFB
 
 !@var lname_ojl Long names for OJL diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOJL) :: LNAME_OJL
@@ -1015,6 +1016,35 @@ c
       scale_oijl(k) = (1d2/RHOWS)/dts
       lgrid_oijl(k) = 2
 c
+c will be activated when GM schemes other than skew-flux are activated
+c      k=k+1
+c      IJL_MFUB = k
+c      denom_oijl(k) = IJL_MOU
+c      sname_oijl(k) = 'ub'
+c      units_oijl(k) = 'cm/s'
+c      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
+c      scale_oijl(k) = 1d2/dts
+c      igrid_oijl(k) = 2
+c
+      k=k+1
+      IJL_MFVB = k
+      denom_oijl(k) = IJL_MOV
+      sname_oijl(k) = 'vb'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'NORTH-SOUTH BOLUS VELOCITY'
+      scale_oijl(k) = 1d2/dts
+      jgrid_oijl(k) = 2
+c
+c will be activated when GM schemes other than skew-flux are activated
+c      k=k+1
+c      IJL_MFWB = k
+c      denom_oijl(k) = IJL_AREA
+c      sname_oijl(k) = 'wb'
+c      units_oijl(k) = 'cm/s'
+c      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
+c      scale_oijl(k) = (1d2/RHOWS)/dts
+c      lgrid_oijl(k) = 2
+c
       k=k+1
       IJL_GFLX = k
       sname_oijl(k) = 'gflx_x'
@@ -1794,7 +1824,19 @@ c
         kk = kk + 1
         sname_ojl(kk) = 'sf_'//basin(n)(1:3)
         units_ojl(kk) = 'Sv'
-        lname_ojl(kk) = 'Stream Function, '//trim(basin(n))//' Basin'
+        lname_ojl(kk) = 'Total Stream Function, '//
+     &       trim(basin(n))//' Basin'
+        jgrid_ojl(kk) = 2
+        lgrid_ojl(kk) = 2
+      enddo
+c
+      k=k+1
+      JL_SFB = k
+      do n=1,nbas
+        kk = kk + 1
+        sname_ojl(kk) = 'sfb_'//basin(n)(1:3)
+        units_ojl(kk) = 'Sv'
+        lname_ojl(kk) = 'Bolus SF, '//trim(basin(n))//' Basin'
         jgrid_ojl(kk) = 2
         lgrid_ojl(kk) = 2
       enddo

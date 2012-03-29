@@ -1234,15 +1234,11 @@ C****
           IF (SUMB(K).eq.0) THEN
             SF(J,0:LMO,K) = UNDEF   ! UNDEF areas of no integral
           ELSE
-            L=0
-  620       L=L+1       ! UNDEF below bottom values
-            IF (L.LE.LMO) THEN
-              IF (SF(J,L,K).eq.0 .and. SF(J,L-1,K).eq.0) THEN
-                SF(J,L:LMO,K) = UNDEF
-              ELSE
-                GOTO 620
-              END IF
-            END IF
+            DO L=LMO,1,-1
+              IF(SF(J,L,K).eq.0d0 .and. SF(J,L-1,K).eq.0d0)
+     &             SF(J,L,K) = UNDEF
+              IF(SF(J,L-1,K).ne.0d0) EXIT
+            ENDDO
           END IF
         END DO
       END DO
@@ -1750,6 +1746,7 @@ c
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
+     &     ,ijl_mfub,ijl_mfvb,ijl_mfwb
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISSMIX
      &     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
@@ -1820,6 +1817,7 @@ c
           oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
         endif
         oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)
+cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
         oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)
         oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)
@@ -1849,6 +1847,7 @@ c
         do j=j_0s,j_1s
         do i=1,im
           oijl_out(i,j,l,ijl_mfu) = oijl(i,j,l,ijl_mfu)
+cnotyet          oijl_out(i,j,l,ijl_mfub) = oijl(i,j,l,ijl_mfub)
           oijl_out(i,j,l,ijl_gflx) = oijl(i,j,l,ijl_gflx)
           oijl_out(i,j,l,ijl_sflx) = oijl(i,j,l,ijl_sflx)
           oijl_out(i,j,l,ijl_ggmfl) = oijl(i,j,l,ijl_ggmfl)
@@ -1865,6 +1864,7 @@ c
         do j=max(2,j_0),j_1
         do i=1,im
           oijl_out(i,j,l,ijl_mfv) = oijl(i,j-1,l,ijl_mfv)
+          oijl_out(i,j,l,ijl_mfvb) = oijl(i,j-1,l,ijl_mfvb)
           oijl_out(i,j,l,ijl_mov) =
      &         .5*(oijl(i,j,l,ijl_mo)+oijl(i,j-1,l,ijl_mo))*dxvo(j-1)
           oijl_out(i,j,l,ijl_gflx+1) = oijl(i,j-1,l,ijl_gflx+1)
@@ -1931,13 +1931,15 @@ C****
 c
 c Calculate zonal sums for ocean basins
 c
+      use constant, only : undef
       use ocean, only : im,jm,lmo,imaxj,focean,dxypo
       USE OCEAN, only : dts
       USE STRAITS, only : nmst
       use odiag, only : oijl=>oijl_loc,kbasin
-     &     ,ijl_mo,ijl_g0m,ijl_s0m,ijl_mfu,ijl_mfv,ijl_gflx,ijl_sflx
+     &     ,ijl_mo,ijl_g0m,ijl_s0m,ijl_mfu,ijl_mfv,ijl_mfvb
+     &     ,ijl_gflx,ijl_sflx
      &     ,ijl_ggmfl,ijl_sgmfl
-     &     ,ojl,ojl_out,nbas,nqty,jl_m,jl_pt,jl_s,jl_sf
+     &     ,ojl,ojl_out,nbas,nqty,jl_m,jl_pt,jl_s,jl_sf,jl_sfb
      &     ,otj,otjcomp,otj_out
      &     ,olnst,ln_mflx,ln_gflx,ln_sflx
      &     ,sfm
@@ -2001,6 +2003,22 @@ C****
       if(am_i_root()) then
         ojl(1,:,:,jl_sf) = 0.
         ojl(2:jm,:,:,jl_sf) = sfm(1:jm-1,1:lmo,:)
+      endif
+
+C****
+C**** Zonally sum the bolus streamfunction and add it to
+C**** the resolved streamfunction
+C****
+      FAC   = -1d-9/DTS
+      FACST = 0.
+      CALL STRMJL (OIJL(1,j_0h,1,IJL_MFVB-1),FAC,
+     &     OLNST(1,1,LN_MFLX),FACST,SFM)
+      if(am_i_root()) then
+        ojl(1,:,:,jl_sfb) = 0.
+        ojl(2:jm,:,:,jl_sfb) = sfm(1:jm-1,1:lmo,:)
+        where( ojl(2:jm,:,:,jl_sf) .ne. undef )
+     &  ojl(2:jm,:,:,jl_sf ) = sfm(1:jm-1,1:lmo,:)
+     & +ojl(2:jm,:,:,jl_sf )
       endif
 
 c copy to j,l,n array
