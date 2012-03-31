@@ -45,6 +45,7 @@ OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
 OCEANR_DIM OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
+OCNQUS                     ! QUS advection scheme
 OFFT72E                 ! utilities
 SparseCommunicator_mod              ! sparse gather/scatter module
 
