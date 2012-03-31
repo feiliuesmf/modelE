@@ -60,6 +60,11 @@ c-----------------------------------------------------------------------------
 #else
       integer, public, parameter :: ntrcr_wm = 0
 #endif
+#else
+      integer, public, parameter :: ntrcr_zebra = 0
+      integer, public, parameter :: ntrcr_vent = 0
+      integer, public, parameter :: ntrcr_age = 0
+      integer, public, parameter :: ntrcr_wm = 0
 #endif
 
 #ifdef TRACERS_OceanBiology
