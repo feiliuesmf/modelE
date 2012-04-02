@@ -287,20 +287,22 @@ sub getGfortranEnvironment
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
-  $env->{MPIDISTR}="openmpi";
   $env->{COMPILER}="gfortran";
   $env->{GITROOT}=$ENV{MODELROOT}."/$branch"; # NOBACKUP}."/devel/$branch"
   if ($branch =~ m/AR5/) 
   {
+    $env->{MPIDISTR}="openmpi";
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_gcc-4.5_openmpi-1.4.2/Linux";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
     $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc461_openmpi144";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.5";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
+    $env->{MPIDISTR}="mvapich2";
+    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.4.1/gcc-4.6";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc45_mvapich2.141";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.6_mvapich2-1.6";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
   }
   $env->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
   return $env;
