@@ -140,7 +140,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
+module load other/comp/gcc-4.6 other/mpi/mvapich2-1.4.1/gcc-4.6
 EOF
     }
 
@@ -156,7 +156,7 @@ EOF
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.6 other/mpi/openmpi/1.4.3-gcc-4.6
+module load other/comp/gcc-4.6 other/mpi/mvapich2-1.4.1/gcc-4.6
 EOF
     }  
   }
@@ -212,7 +212,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
+        module (load, "other/comp/gcc-4.6", "other/mpi/mvapich2-1.4.1/gcc-4.6");
       } 
       else 
       {
@@ -227,7 +227,7 @@ sub setModuleEnvironment
       } 
       elsif ($compiler eq gfortran) 
       {
-        module (load, "other/comp/gcc-4.6", "other/mpi/openmpi/1.4.3-gcc-4.6");
+        module (load, "other/comp/gcc-4.6", "other/mpi/mvapich2-1.4.1/gcc-4.6");
       } 
       else 
       {
