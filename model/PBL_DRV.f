@@ -668,15 +668,16 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
         DO KR=1,NDIUPT
           IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
             tmp(:) = 0.
+            ii = i
             idxd=(/ idd_wsgcm,idd_wspdf,idd_wtke,idd_wd,idd_wm,idd_wtrsh
 #ifdef TRACERS_DUST
      &        ,idd_emis,   idd_emis2,  idd_turb,   idd_grav,   idd_ws2
      &        ,idd_ustar,  idd_us3,    idd_stress, idd_lmon,   idd_rifl,
-     &       (idd_zpbl1+i-1,i=1,npbl), (idd_uabl1+i-1,i=1,npbl),
-     *       (idd_vabl1+i-1,i=1,npbl), (idd_uvabl1+i-1,i=1,npbl),
-     *       (idd_tabl1+i-1,i=1,npbl), (idd_qabl1+i-1,i=1,npbl),
-     *       (idd_zhat1+i-1,i=1,npbl-1), (idd_e1+i-1,i=1,npbl-1),
-     *       (idd_km1+i-1,i=1,npbl-1), (idd_ri1+i-1,i=1,npbl-1)
+     &       (idd_zpbl1+ii-1,ii=1,npbl), (idd_uabl1+ii-1,ii=1,npbl),
+     *       (idd_vabl1+ii-1,ii=1,npbl), (idd_uvabl1+ii-1,ii=1,npbl),
+     *       (idd_tabl1+ii-1,ii=1,npbl), (idd_qabl1+ii-1,ii=1,npbl),
+     *       (idd_zhat1+ii-1,ii=1,npbl-1), (idd_e1+ii-1,ii=1,npbl-1),
+     *       (idd_km1+ii-1,ii=1,npbl-1), (idd_ri1+ii-1,ii=1,npbl-1)
 #endif
      &      /)
             rhosrf=100.*pbl_args%psurf/(rgas*pbl_args%tsv)
