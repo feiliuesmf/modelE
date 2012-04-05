@@ -24,31 +24,20 @@ my $resultsDir = $ENV{REGRESULTS}; #NOBACKUP}."/regression_results";
 my $rundecks;
 my $branch;
 ($sec, $min, $hour, $day, $mon, $yrOffset, $dyOfWeek, $dayOfYr, $dyltSav) = localtime();
-print "DAY = $dyOfWeek\n";
 
 # This is a very restrictive condition...
-if ($dyOfWeek >= 1 && $dyOfWeek <= 5) # M-F we test the master branch
-{
-  $branch = "master";
-  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
-  $gitdir = $ENV{MODELROOT}.$branch;
-  `git pull $gitdir`;
-  $rundecks = \@decks;
-}
-elsif ($dyOfWeek == 6) # On Saturday we test the AR5_branch
+# By default we test the master branch
+$branch = "master";
+$rundecks = \@decks;
+# But on Sunday we test the AR5_branch
+if ($dyOfWeek == 0) 
 {
   $branch = "AR5_branch";
-  #$gitdir = $ENV{NOBACKUP}."/devel/".$branch;
-  $gitdir = $ENV{MODELROOT}.$branch;
-  `git pull $gitdir`;
   $rundecks = \@AR5decks;
 }
-else # off on Sunday
-{
-  print "Nothing to do.\n";
-  exit 0;
-}
-print "Test $branch branch\n";
+$gitdir = $ENV{MODELROOT}."/".$branch;
+print "Test $branch branch on directory $gitdir\n";
+`git pull $gitdir`;
 
 my $reference = "$scratchDir/$branch";
 
