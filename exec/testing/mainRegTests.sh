@@ -73,19 +73,18 @@ watch_job()
    fi
 
    get_defaults
-   cd $MODELROOT/master/exec
+   cd $MODELROOT/master/exec/testing
    echo "Execute regressionTests.pl..."
    /usr/bin/perl regressionTests.pl > nohup.out 2>&1
    wait
    if [ -z $MOCKMODELE ]; then
-     jobID=`qsub $MODELROOT/master/exec/diffreport.j`
+     jobID=`qsub $MODELROOT/master/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/master/exec/DiffReport
+     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/master/exec/testing/DiffReport
    else
-     # $MODELROOT/master/master/exec/diffreport.j
-     $MODELROOT/master/exec/diffreport.j
-     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $MODELROOT/master/exec/DiffReport
+     $MODELROOT/master/exec/testing/diffreport.j
+     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $MODELROOT/master/exec/testing/DiffReport
    fi
 
    echo "Done".

@@ -155,7 +155,7 @@ cd $PBS_O_WORKDIR
 rm -f diffrep.o*
 
 if [ -z $MOCKMODELE ]; then
-  diffDiffReport=$NOBACKUP/devel/master/exec/diffreport.x
+  diffDiffReport=$NOBACKUP/devel/master/exec/testing/diffreport.x
   if [ ! -e $diffDiffReport ]; then
      echo " *** WARNING ***"
      echo "$diffDiffReport does not exist"
@@ -179,7 +179,7 @@ OIFS=$IFS
 IFS="="
 
 # Read configuration file...always stored in master/ directory
-cfg=$NOBACKUP/devel/master/exec/.regTest.cfg
+cfg=$NOBACKUP/devel/master/exec/testing/.regTest.cfg
 id=0
 ic=0
 while read line ; do
@@ -275,14 +275,14 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-rm -f $NOBACKUP/devel/master/exec/DiffReport
+rm -f $NOBACKUP/devel/master/exec/testing/DiffReport
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"
-   echo "${report[${i}]}" >> $NOBACKUP/devel/master/exec/DiffReport
+   echo "${report[${i}]}" >> $NOBACKUP/devel/master/exec/testing/DiffReport
 done
 
-cat $NOBACKUP/devel/master/exec/DiffReport | grep ERROR > /dev/null 2>&1
+cat $NOBACKUP/devel/master/exec/testing/DiffReport | grep ERROR > /dev/null 2>&1
 RC=$?
 # Create modelE snapshot iff no ERRORs in DiffReport (WARNINGs are OK)
 if [ $RC -eq 0 ]; then
