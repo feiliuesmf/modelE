@@ -592,14 +592,14 @@ C**** Calculate new tracer/salinity/enthalpy
         flux_z(I,J,L) =RFZT
       endif
 C**** Gradient fluxes in Z direction affected by diagonal terms
-      IF (L.gt.1) THEN
-        TZM(I,J,L) = (TZM(I,J,L) - 3.*(FZZ(I,J,L)+FZZ(I,J,L-1))*
-     *       MO(I,J,L)*DXYPO(J)*BYDH(I,J,L))/(1.+6.*DT4*(BZZ(I,J,L)
-     *       +BZZ(I,J,L-1))*BYDH(I,J,L)**2)
-      ELSE
-        TZM(I,J,L) = (TZM(I,J,L) - 3.*FZZ(I,J,L)*MO(I,J,L)*DXYPO(J)
-     *       *BYDH(I,J,L))/(1.+12.*DT4*BZZ(I,J,L)*BYDH(I,J,L)**2)
-      END IF
+c      IF (L.gt.1) THEN
+c        TZM(I,J,L) = (TZM(I,J,L) - 3.*(FZZ(I,J,L)+FZZ(I,J,L-1))*
+c     *       MO(I,J,L)*DXYPO(J)*BYDH(I,J,L))/(1.+6.*DT4*(BZZ(I,J,L)
+c     *       +BZZ(I,J,L-1))*BYDH(I,J,L)**2)
+c      ELSE
+c        TZM(I,J,L) = (TZM(I,J,L) - 3.*FZZ(I,J,L)*MO(I,J,L)*DXYPO(J)
+c     *       *BYDH(I,J,L))/(1.+12.*DT4*BZZ(I,J,L)*BYDH(I,J,L)**2)
+c      END IF
 
 C**** END of I and J loops
   610 IM1 = I
@@ -629,15 +629,15 @@ C****     Calculate new tracer/salinity/enthalpy
           flux_z(1,JM,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
-        IF (L.gt.1) THEN
-          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*(FZZ(1,JM,L)+FZZ(1,JM,L-1))*
-     *      MO(1,JM,L)*DXYPO(JM)*BYDH(1,JM,L))/(1.+6.*DT4*(BZZ(1,JM,L)
-     *      +BZZ(1,JM,L-1))*BYDH(1,JM,L)**2)
-        ELSE
-          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*FZZ(1,JM,L)*MO(1,JM,L)*
-     &      DXYPO(JM) *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*
-     &      BYDH(1,JM,L)**2)
-        END IF
+c        IF (L.gt.1) THEN
+c          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*(FZZ(1,JM,L)+FZZ(1,JM,L-1))*
+c     *      MO(1,JM,L)*DXYPO(JM)*BYDH(1,JM,L))/(1.+6.*DT4*(BZZ(1,JM,L)
+c     *      +BZZ(1,JM,L-1))*BYDH(1,JM,L)**2)
+c        ELSE
+c          TZM(1,JM,L) = (TZM(1,JM,L) - 3.*FZZ(1,JM,L)*MO(1,JM,L)*
+c     &      DXYPO(JM) *BYDH(1,JM,L))/(1.+12.*DT4*BZZ(1,JM,L)*
+c     &      BYDH(1,JM,L)**2)
+c        END IF
         END IF
       END IF   ! HAVE_NORTH_POLE
 
@@ -664,15 +664,15 @@ C****     Calculate new tracer/salinity/enthalpy
           flux_z(1,1,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
-        IF (L.gt.1) THEN
-          TZM(1,1,L) = (TZM(1,1,L) - 3.*(FZZ(1,1,L)+FZZ(1,1,L-1))*
-     *      MO(1,1,L)*DXYPO(1)*BYDH(1,1,L))/(1.+6.*DT4*(BZZ(1,1,L)
-     *      +BZZ(1,1,L-1))*BYDH(1,1,L)**2)
-        ELSE
-          TZM(1,1,L) = (TZM(1,1,L) - 3.*FZZ(1,1,L)*MO(1,1,L)*
-     &      DXYPO(1) *BYDH(1,1,L))/(1.+12.*DT4*BZZ(1,1,L)*
-     &      BYDH(1,1,L)**2)
-        END IF
+c        IF (L.gt.1) THEN
+c          TZM(1,1,L) = (TZM(1,1,L) - 3.*(FZZ(1,1,L)+FZZ(1,1,L-1))*
+c     *      MO(1,1,L)*DXYPO(1)*BYDH(1,1,L))/(1.+6.*DT4*(BZZ(1,1,L)
+c     *      +BZZ(1,1,L-1))*BYDH(1,1,L)**2)
+c        ELSE
+c          TZM(1,1,L) = (TZM(1,1,L) - 3.*FZZ(1,1,L)*MO(1,1,L)*
+c     &      DXYPO(1) *BYDH(1,1,L))/(1.+12.*DT4*BZZ(1,1,L)*
+c     &      BYDH(1,1,L)**2)
+c        END IF
         END IF
       END IF   ! HAVE_SOUTH_POLE
 
