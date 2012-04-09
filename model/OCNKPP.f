@@ -1473,7 +1473,7 @@ C**** will be fixed during convection.
 
       if(use_qus==1) then
         adjust_zslope_using_flux = .false.
-        relax_subgrid_zprofile = .false. !.true.
+        relax_subgrid_zprofile = .true.
         extra_slope_limitations = .false. ! not needed in QUS flux limiter
         ! At some point, the full kpp scheme could operate using
         ! the tripled vertical resolution.  For now, this option
