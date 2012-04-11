@@ -15,6 +15,11 @@
 # restart comparisons within the perl regression test scripts but somehow that
 # task takes several hours to complete. Running within this job takes ~30mins.
 
+# Exit codes
+FILE_ERR=69
+EXIT_ERR=1
+OK=0
+
 # -------------------------------------------------------------------
 updDiffReport()
 # -------------------------------------------------------------------
@@ -33,16 +38,20 @@ checkStatus()
    local name2=$3
    local base1=${name1##*/}
    local base2=${name2##*/}
-   if [ $rc -ne 0 ]; then
-      if [[ "$name2" =~ baseline ]]; then
-         updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
+   if [ $rc -ne $OK ]; then
+      if [ $rc -gt 1 ]; then
+         updDiffReport " --- ERROR: One or more missing files"
       else
-         updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
+         if [[ "$name2" =~ baseline ]]; then
+            updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
+         else
+            updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
+         fi
       fi
       export isReprod=NO
-      return 1
+      return $E_EXIT_ERR
    fi
-   return 0
+   return $OK
 }
 
 # -------------------------------------------------------------------
@@ -50,12 +59,13 @@ fileExists()
 # -------------------------------------------------------------------
 {
    local file=$1
+   #local file=${1##*/}
    if [ ! -e "$file" ]; then
-      updDiffReport " ERROR: $file does NOT exist"
+      updDiffReport " --- ERROR: $file does NOT exist"
       export isReprod=NO
-      return 1
+      return $FILE_ERR
    fi
-   return 0
+   return $OK
 }
 
 # -------------------------------------------------------------------
@@ -68,9 +78,11 @@ doDiff()
    local comp=$4
    export isReprod=YES
    fileExists "$name1"
-   if [ $? -eq 0 ]; then
+   return_val=$?
+   if [ "$return_val" -eq $OK ]; then
       fileExists "$name2"
-      if [ $? -eq 0 ]; then
+      return_val=$?
+      if [ "$return_val" -eq $OK ]; then
          $diffDiffReport $name1 $name2 > fileDiff
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
@@ -89,7 +101,7 @@ doDiff()
          return $?
       fi
    else
-      return 1
+      return $EXIT_ERR
    fi
 }
 
@@ -116,7 +128,7 @@ deckDiff()
       doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
       doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
     fi
-# compare MPI restart reproducibility
+# compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
     if [ ! -z $3 ]; then
       declare -a npeArray=("${!3}")
       for npe in "${npeArray[@]}"; do
@@ -128,10 +140,10 @@ deckDiff()
         doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
       done
     fi
-    if [ $? -eq 0 ]; then
-      upd "$deck" "$comp" "STRONGLY" 
+    if [ "$isReprod" == YES ]; then
+      upd "$deck" "$comp" "REPRODUCIBLE" 
     else
-      upd "$deck" "$comp" "NOT" 
+      upd "$deck" "$comp" "***NOT REPRODUCIBLE***" 
     fi
 
   done
@@ -144,7 +156,7 @@ upd()
   local deck_=$1
   local comp_=$2
   local which_=$3
-  updDiffReport " Rundeck $deck_ with compiler $comp_ is $which_ reproducible" 
+  updDiffReport " $deck_ [ $comp_ ] is $which_" 
 }
 
 # -------------------------------------------------------------------
@@ -283,9 +295,9 @@ for ((i=0; i < ${#report[@]}; i++)); do
 done
 
 cat $NOBACKUP/devel/master/exec/testing/DiffReport | grep ERROR > /dev/null 2>&1
-RC=$?
+rc=$?
 # Create modelE snapshot iff no ERRORs in DiffReport (WARNINGs are OK)
-if [ $RC -eq 0 ]; then
+if [ $rc -eq $OK ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
 else 
    echo "Will create modelE snapshot"
@@ -301,4 +313,4 @@ else
    fi
 fi
 
-exit 0
+exit $OK
