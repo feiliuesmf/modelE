@@ -271,19 +271,19 @@ c     ENDIF
        if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
          nAMP=n-ntmAMPi+1
         if(AMP_MODES_MAP(nAMP).gt.0) then
-         if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
+         if(DIAM(i,j,1,AMP_MODES_MAP(nAMP)).gt.0.) then
           if(AMP_NUMB_MAP(nAMP).eq. 0) then    ! Mass
-        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+        trnradius(n)=0.5*DIAM(i,j,1,AMP_MODES_MAP(nAMP))
           else                              ! Number
-        trnradius(n)=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+        trnradius(n)=0.5*DIAM(i,j,1,AMP_MODES_MAP(nAMP))
      +               *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
           endif
 
-           call AMPtrdens(i,j,l,n)
-           call AMPtrmass(i,j,l,n)
+           call AMPtrdens(i,j,1,n)
+           call AMPtrmass(i,j,1,n)
 
-          trndens(n) =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
-          trnmm(n)   =AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP))
+          trndens(n) =AMP_dens(i,j,1,AMP_MODES_MAP(nAMP))
+          trnmm(n)   =AMP_TR_MM(i,j,1,AMP_MODES_MAP(nAMP))
         endif   
         endif   
        endif 
