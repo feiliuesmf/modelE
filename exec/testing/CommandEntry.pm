@@ -1,4 +1,3 @@
-
 #!/usr/bin/perl
 package CommandEntry;
 use Env;
@@ -114,7 +113,7 @@ sub runInBatch
 #!/bin/bash
 #PBS -l select=$nodes:ncpus=12:mpiprocs=12
 #PBS -l walltime=$walltime
-#PBS -W group_list=a940a
+#PBS -W group_list=s1001
 #PBS -N $jobname
 #PBS -j oe
 #PBS $queueString
@@ -150,13 +149,13 @@ EOF
     if ($compiler eq intel) 
     {
       $script .= <<EOF;
-module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
+module load comp/intel-11.1.072 mpi/impi-3.2.2.006
 EOF
     } 
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
+module load other/comp/gcc-4.6 other/mpi/mvapich2-1.4.1/gcc-4.6
 EOF
     }  
   }
@@ -178,7 +177,7 @@ sub launch
   my $logFile = $self -> {STDOUT_LOG_FILE};
   my $logErr = $self -> {STDERR_LOG_FILE};
 
-  my $commandString   = "(" . $self -> {COMMAND} . ") 2>&1 >> $logFile; /usr/bin/touch $semaphore;";
+  my $commandString   = "(" . $self -> {COMMAND} . ") 2>&1 >> $logFile; chmod 664 $logFile; /usr/bin/touch $semaphore;";
 
   my $mode = $self -> {QUEUE};
 
@@ -202,7 +201,7 @@ sub setModuleEnvironment
     my $compiler = shift;
 
     print " setModuleEnvironment: COMPILER=$compiler\n";
-    require $ENV{MODELROOT}."/master/exec/perlreq";
+    require $ENV{MODELROOT}."/exec/testing/perlreq";
 
     if ($self->{BRANCH} =~ m/AR5/) 
     {
@@ -221,14 +220,14 @@ sub setModuleEnvironment
     } 
     else 
     {
-      if ($compiler eq intel) 
+      if ($compiler eq intel)
       {
-	module (load, "comp/intel-12.1.0.233",  "mpi/impi-3.2.2.006");
-      } 
-      elsif ($compiler eq gfortran) 
+        module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
+      }
+      elsif ($compiler eq gfortran)
       {
-        module (load, "other/comp/gcc-4.7-20120331", "other/mpi/mvapich2-1.8a2/gcc-4.7-20120331");
-      } 
+        module (load, "other/comp/gcc-4.6", "other/mpi/mvapich2-1.4.1/gcc-4.6");
+      }
       else 
       {
         # Nothing to do

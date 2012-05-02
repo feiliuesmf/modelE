@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 
 # This is the top level script to run modelE regression tests.
 # It is invoked by cron, Hudson, or user and runs the perl scripts under $MODELROOT/master/exec.
@@ -16,7 +16,7 @@ need_default(){
 get_defaults()
 {
    if  [ "$(need_default $MODELROOT)" == "true" ] ; then
-	export MODELROOT=$NOBACKUP/devel
+	export MODELROOT=$NOBACKUP/devel/modelE.clones/simplex
    fi
 
    if  [ "$(need_default $REGWORK)" == "true" ] ; then
@@ -49,7 +49,7 @@ watch_job()
 {
 # Monitor job
 # Input arguments: $1=job id
-   jobID=$1
+   local jobID=$1
 
    maxWait=3600
    seconds=0
@@ -66,25 +66,41 @@ watch_job()
    done
 }
 
+# MAIN PROGRAM
+
    # User may just want the help page
-   if [ "$1" = "--help" -o "$1" = "-h" -o ! -z "$1" ]
-   then
-        ./regTestsHelp.sh $0 $1; exit 0 ;
+   #if [ "$1" = "--help" -o "$1" = "-h" -o ! -z "$1" ]
+   #if [[ "$1" == "--help" || "$1" == "-h" ]]
+   #then
+   #     ./regTestsHelp.sh $0 $1; exit 0 ;
+   #fi
+
+   if [ $# -ne 1 ]; then
+      echo "Usage: `basename $0` {cfgFile}"
+      exit 65
    fi
+   export CFG_NAME=$1
+   cfgFile=$1.cfg
+   export CFG_FILE=$cfgFile
 
    get_defaults
-   cd $MODELROOT/master/exec/testing
-   echo "Execute regressionTests.pl..."
-   /usr/bin/perl regressionTests.pl > nohup.out 2>&1
+   echo "Execute regressionTests.pl with "$cfgFile
+   rm -f $1.out
+   /usr/bin/perl regressionTests.pl $CFG_FILE > $1.out 2>&1
+   # Not sure why I still need to do this:
+   chmod g+rw $1.out
+   chgrp s1001 $1.out LOG
+ 
    wait
    if [ -z $MOCKMODELE ]; then
-     jobID=`qsub $MODELROOT/master/exec/testing/diffreport.j`
+     jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/master/exec/testing/DiffReport
+#     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/exec/testing/DiffReport
+      cp ${CFG_NAME}.diff $WORKSPACE
    else
-     $MODELROOT/master/exec/testing/diffreport.j
-     mail -s "mock modelE results" meandrew@nccs.nasa.gov < $MODELROOT/master/exec/testing/DiffReport
+     $MODELROOT/exec/testing/diffreport.j 
+     mail -s "mock modelE results" ccruz@nccs.nasa.gov < $MODELROOT/exec/testing/${CFG_NAME}.diff
    fi
 
    echo "Done".

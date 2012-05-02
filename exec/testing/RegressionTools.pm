@@ -236,20 +236,20 @@ sub getIntelEnvironment
   my $env = {};
 
   $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE}; # NOBACKUP}/modelE_baseline
-  $env->{RESULTS_DIRECTORY} =$ENV{REGRESULTS}    ; # NOBACKUP}."/regression_results"
+  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE};
+  $env->{RESULTS_DIRECTORY} =$ENV{REGRESULTS}    ;
   $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
   $env->{CMRUNDIR}="$scratchDir/cmrun";
   $env->{EXECDIR}="$scratchDir/exec";
   $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; #discover/nobackup/projects/giss/prod_input_files
+  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; 
   $env->{MP}="no";
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{MPIDISTR}="intel";
   $env->{COMPILER}="intel";
-  $env->{GITROOT}=$ENV{MODELROOT}."/$branch";
+  $env->{GITROOT}=$ENV{MODELROOT};
   if ($branch =~ m/AR5/) 
   {
     $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
@@ -258,7 +258,7 @@ sub getIntelEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel12_impi32";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel11_impi32";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
   }
@@ -276,19 +276,19 @@ sub getGfortranEnvironment
   my $env = {};
     
   $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE}; # NOBACKUP}/modelE_baseline"
-  $env->{RESULTS_DIRECTORY}=$ENV{REGRESULTS};      # NOBACKUP}."/regression_results"
+  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE};
+  $env->{RESULTS_DIRECTORY}=$ENV{REGRESULTS};     
   $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
   $env->{CMRUNDIR}="$scratchDir/cmrun";
   $env->{EXECDIR}="$scratchDir/exec";
   $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; #discover/nobackup/projects/giss/prod_input_files
+  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH};
   $env->{MP}="no";
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
   $env->{COMPILER}="gfortran";
-  $env->{GITROOT}=$ENV{MODELROOT}."/$branch"; # NOBACKUP}."/devel/$branch"
+  $env->{GITROOT}=$ENV{MODELROOT}; 
   if ($branch =~ m/AR5/) 
   {
     $env->{MPIDISTR}="openmpi";
@@ -299,8 +299,8 @@ sub getGfortranEnvironment
   else 
   {
     $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.8a2/gcc-4.7-20120331";
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8";
+    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.4.1/gcc-4.6";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc45_mvapich2.141";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.6_mvapich2-1.6";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
   }
@@ -312,9 +312,13 @@ sub getGfortranEnvironment
 sub saveForDiffreport()
 {
    my $branch = shift;
+   my $cfgFile = shift;
    my @rundecks;
-# Save regTest.cfg in a format that is easily parsed by a bash script
-   require 'regTest.cfg';
+# Save configuration settings in a format that is easily parsed by a bash script
+   eval { require "$cfgFile"};
+   if ($@) {
+      print "Failed to load, because : $@"
+   }
 
    if ($branch =~ m/AR5/)
    {
@@ -327,7 +331,7 @@ sub saveForDiffreport()
    my $rsize = scalar @rundecks;
    my $csize = scalar @comps;
 
-   my $file = ".regTest.cfg";
+   my $file = $ENV{MODELROOT} . "/exec/testing/" . "." . "$cfgFile";
    open (FH, "> $file") or die "Can't open $file for write: $!";
    my $i = 0;
    while($i < $rsize)

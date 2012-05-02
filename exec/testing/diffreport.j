@@ -1,7 +1,7 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #PBS -l select=1:ncpus=12:mpiprocs=12
 #PBS -l walltime=2:00:00
-#PBS -W group_list=a940a
+#PBS -W group_list=s1001
 #PBS -N diffrep
 #PBS -j oe
 #PBS -V
@@ -39,14 +39,10 @@ checkStatus()
    local base1=${name1##*/}
    local base2=${name2##*/}
    if [ $rc -ne $OK ]; then
-      if [ $rc -gt 1 ]; then
-         updDiffReport " --- ERROR: One or more missing files"
+      if [[ "$name2" =~ baseline ]]; then
+         updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
       else
-         if [[ "$name2" =~ baseline ]]; then
-            updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
-         else
-            updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
-         fi
+         updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
       fi
       export isReprod=NO
       return $E_EXIT_ERR
@@ -113,7 +109,7 @@ deckDiff()
   declare -a deckArray=("${!2}")
   # if deckArray is empty then there is nothing to do:
   if [ ${#deckArray[@]} -eq 0 ]; then return; fi
-  local baseline=$NOBACKUP/modelE_baseline/$comp
+  local baseline=$MODELEBASELINE/$comp
 
   for deck in "${deckArray[@]}"; do
 
@@ -162,21 +158,7 @@ upd()
 # -------------------------------------------------------------------
 # MAIN
 # -------------------------------------------------------------------
-
-cd $PBS_O_WORKDIR
-rm -f diffrep.o*
-
-if [ -z $MOCKMODELE ]; then
-  diffDiffReport=$NOBACKUP/devel/master/exec/testing/diffreport.x
-  if [ ! -e $diffDiffReport ]; then
-     echo " *** WARNING ***"
-     echo "$diffDiffReport does not exist"
-     echo "Will use unix cmp but Diffreport may be inaccurate"
-     diffDiffReport=/usr/bin/cmp
-  fi
-else
-  diffDiffReport=/usr/bin/cmp
-fi
+umask 002
 
 declare -a report
 declare -a DECKS
@@ -187,13 +169,39 @@ declare -a CSDecks
 declare -a AR5Decks
 declare -a SCMdecks
 
+cd $PBS_O_WORKDIR
+rm -f diffrep.o*
+
+if [ -z $CFG_FILE ]; then
+   echo " *** ERROR ***"
+   echo "ENV variable CFG_FILE is not defined."
+   exit 1;
+fi
+if [ -z $MOCKMODELE ]; then
+  diffDiffReport=$MODELROOT/exec/testing/diffreport.x
+  if [ ! -e $diffDiffReport ]; then
+     echo " *** WARNING ***"
+     echo "$diffDiffReport does not exist"
+     echo "Will use unix cmp but DiffReport may be inaccurate"
+     diffDiffReport=/usr/bin/cmp
+  fi
+else
+  diffDiffReport=/usr/bin/cmp
+fi
+
 OIFS=$IFS
 IFS="="
 
-# Read configuration file...always stored in master/ directory
-cfg=$NOBACKUP/devel/master/exec/testing/.regTest.cfg
+cfg="$MODELROOT/exec/testing/."$CFG_FILE
+if [ ! -e $cfg ]; then
+   echo " *** ERROR ***"
+   echo "$cfg does not exist."
+   exit 1
+fi
+
 id=0
 ic=0
+# Read configuration file $cfg
 while read line ; do
    set -- $line
    arr=($*)
@@ -277,7 +285,7 @@ for comp in "${COMPILERS[@]}"; do
 
   echo "--- COMPILER = $comp ---"
 
-  cd $NOBACKUP/regression_results/$comp
+  cd $REGRESULTS/$comp
 
   deckDiff $comp LowResDecks[@] LowResNpes[@]
   deckDiff $comp HiResDecks[@] HiResNpes[@]
@@ -287,28 +295,42 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-rm -f $NOBACKUP/devel/master/exec/testing/DiffReport
+rm -f $MODELROOT/exec/testing/${CFG_NAME}.diff
 echo "Results:"
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"
-   echo "${report[${i}]}" >> $NOBACKUP/devel/master/exec/testing/DiffReport
+   echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
 done
 
-cat $NOBACKUP/devel/master/exec/testing/DiffReport | grep ERROR > /dev/null 2>&1
+if [ -z $WORKSPACE ]; then
+   echo " *** WARNING ***"
+   echo "WORKSPACE is not defined. HUDSON will report a failure."
+else
+   echo "Imported WORKSPACE = "$WORKSPACE
+   rm -f $WORKSPACE/.success
+   writeOK=1
+fi
+
+chmod go+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
+
+cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "NOT REPRODUCIBLE" > /dev/null
 rc=$?
-# Create modelE snapshot iff no ERRORs in DiffReport (WARNINGs are OK)
+# if we found a NOT REPRODUCIBLE result (rc=OK) then we exit
 if [ $rc -eq $OK ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
+   exit $EXIT_ERR
 else 
+# Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)
+   if [ $writeOK -eq 1 ]; then touch $WORKSPACE/.success; fi
    echo "Will create modelE snapshot"
    # Create modelE snapshot
-   if [ -d "$NOBACKUP/regression_scratch/$BRANCH" ]; then
-      cd $NOBACKUP/regression_scratch/$BRANCH
-      DST=$NOBACKUP/modelE_baseline/snapshots/
+   if [ -d "$REGSCRATCH/$BRANCH" ]; then
+      cd $REGSCRATCH/$BRANCH
+      DST=$MODELEBASELINE/snapshots/
       NAME=modelE.`date +%F`.zip
       git archive -o $DST/$NAME $BRANCH
    else 
-      ls $NOBACKUP/regression_scratch/$BRANCH
+      ls $REGSCRATCH/$BRANCH
       echo "Could not create modelE snapshot"
    fi
 fi

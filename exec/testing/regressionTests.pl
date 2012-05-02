@@ -3,7 +3,7 @@ use CommandPool;
 use CommandEntry;
 use RegressionTools;
 
-open(LOG,">nightlyTests.log");
+open(LOG,">nightlyTests.log", O_RDWR|O_CREAT, 0664);
 # Make the LOG hot: <http://www.thinkingsecure.com/docs/tpj/issues/vol3_3/tpj0303-0002.html>
 {
   my $ofh = select LOG;
@@ -11,30 +11,30 @@ open(LOG,">nightlyTests.log");
   select $ofh;
 }
 
+$cfgFile = $ARGV[0];
+print "Configuration file name: $cfgFile\n";
+
 # Get rundecks, compiler, level settings from configuration file
-require 'regTest.cfg';
+my $localCfgFile = $ENV{MODELROOT} . "/exec/testing/" . "$cfgFile";
+print "Local file name: $localCfgFile\n";
+eval { require "$localCfgFile"};
+if ($@) {
+    print "Failed to load, because : $@"
+}
 
 # get references to arrays:
 my $compilers = \@comps;
-#my $level = \@levels;
 
-my $scratchDir = $ENV{REGSCRATCH}; #NOBACKUP}."/regression_scratch";
-my $resultsDir = $ENV{REGRESULTS}; #NOBACKUP}."/regression_results";
+my $scratchDir = $ENV{REGSCRATCH}; 
+my $resultsDir = $ENV{REGRESULTS};
 
 my $rundecks;
 my $branch;
 ($sec, $min, $hour, $day, $mon, $yrOffset, $dyOfWeek, $dayOfYr, $dyltSav) = localtime();
 
-# By default we test the master branch...
-$branch = "master";
+$branch = $gitbranch;
 $rundecks = \@decks;
-# but on Sunday we test the AR5_branch
-if ($dyOfWeek == 0) 
-{
-  $branch = "AR5_branch";
-  $rundecks = \@AR5decks;
-}
-$gitdir = $ENV{MODELROOT}."/".$branch;
+$gitdir = $ENV{MODELROOT};
 print "Test $branch branch on directory $gitdir\n";
 `cd $gitdir; git pull; cd -`;
 
@@ -60,7 +60,7 @@ $resolutions->{E4C90L40} = "CS"; # cubed sphere
 $resolutions->{E_AR5_CADI} = "2x2.5";
 
 # Save settings for diffreport
-&saveForDiffreport($branch);
+&saveForDiffreport($branch, $cfgFile);
 
 my $numProcesses = {};
 
@@ -113,7 +113,8 @@ foreach my $rundeck (@$rundecks)
 
 # Create a new command pool:
 my $pool = CommandPool->new();
-my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* *.o[0-9]* $resultsDir/*/*;"});
+#my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* *.o[0-9]* $resultsDir/*/*;"});
+my $clean = CommandEntry->new({COMMAND => "ls $scratchDir/* $resultsDir/*;"});
 my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
 $pool->add($clean);
