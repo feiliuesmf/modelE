@@ -73,7 +73,7 @@ submitJob()
 #PBS -N modelEut
 #PBS -l select=1
 #PBS -l walltime=1:00:00
-#PBS -W group_list=a940a
+#PBS -W group_list=s1001
 #PBS -j oe
 #PBS -V
 
