@@ -1,10 +1,6 @@
-#package RegressionTools;
 use CommandEntry;
 use Env;
 
-my $HYCOM = "E1fzhyc";
-
-my $extraFlags;
 $extraFlags{SERIAL}   = "";
 $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
@@ -20,8 +16,6 @@ $extraFlags{E_AR5_CADI} ="ESMF=YES";
 # Need to set CS variables in the configuration file:
 $extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/usr/local/other/Fortuna-2_5.noHDF5 MPPDIR=/usr/local/other/Fortuna-2_5.noHDF5/Linux FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2";
 
-$extraFlags{$HYCOM} ="EXTRA_FFLAGS+=-DCHECK_OCEAN_HYCOM";
-
 $extraFlags{intel} = "";
 $extraFlags{gfortran} ="";
 
@@ -30,7 +24,8 @@ sub createTemporaryCopy
 {
   my $referenceDir = shift;
   my $tempDir = shift;
-  my $commandString = "git clone $referenceDir $tempDir";
+  my $branch = shift;
+  my $commandString = "git clone -b branch $referenceDir $tempDir";
   print "createTemporaryCopy: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
@@ -179,6 +174,7 @@ sub writeModelErcFile
 {
   my $env = shift;
   my $modelerc = $env->{MODELERC};
+  print "2) COMPILER: $env->{COMPILER}\n";
   my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
   $commandString .= "rm $modelerc\n";
   
@@ -197,160 +193,16 @@ sub gitCheckout
   my $env = shift;
 
   my $scratchDirectory = $env -> {SCRATCH_DIRECTORY};
-  my $gitroot          = $env -> {GITROOT};
+  my $gitroot          = $env -> {GIT_REPOSITORY};
   my $branch           = $env -> {BRANCH};
 
   my $commandString = <<EOF;
   pushd $scratchDirectory
-  git clone $gitroot $branch
+  git clone -b $branch $gitroot $branch
   popd
 EOF
   print "gitCheckout: $commandString\n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
-
-# -----------------------------------------------------------------------------
-sub getEnvironment 
-{
-  my $compiler = shift;
-  my $scratchDir = shift;
-  my $branch = shift;
-
-  if ($compiler eq "intel") 
-  {
-    return getIntelEnvironment($scratchDir, $branch);
-  }
-  else 
-  {
-    return getGfortranEnvironment($scratchDir, $branch);
-  }
-}
-
-# -----------------------------------------------------------------------------
-sub getIntelEnvironment
-{
-  my $scratchDir = shift;
-  my $branch     = shift;
-  print "getIntelEnvironment: $branch \n";
-
-  my $env = {};
-
-  $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE};
-  $env->{RESULTS_DIRECTORY} =$ENV{REGRESULTS}    ;
-  $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
-  $env->{CMRUNDIR}="$scratchDir/cmrun";
-  $env->{EXECDIR}="$scratchDir/exec";
-  $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH}; 
-  $env->{MP}="no";
-  $env->{OVERWRITE}="YES";
-  $env->{OUTPUT_TO_FILES}="YES";
-  $env->{VERBOSE_OUTPUT}="YES";
-  $env->{MPIDISTR}="intel";
-  $env->{COMPILER}="intel";
-  $env->{GITROOT}=$ENV{MODELROOT};
-  if ($branch =~ m/AR5/) 
-  {
-    $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
-    $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
-  }
-  else 
-  {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel11_impi32";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
-  }
-  $env->{MODELERC}="$scratchDir/intel/modelErc.intel";
-  return $env;
-}
-
-# -----------------------------------------------------------------------------
-sub getGfortranEnvironment 
-{
-  my $scratchDir = shift;
-  my $branch     = shift;
-  print "getGFortranvironment: $branch \n";
-
-  my $env = {};
-    
-  $env->{SCRATCH_DIRECTORY}=$scratchDir;
-  $env->{BASELINE_DIRECTORY}=$ENV{MODELEBASELINE};
-  $env->{RESULTS_DIRECTORY}=$ENV{REGRESULTS};     
-  $env->{DECKS_REPOSITORY}="$scratchDir/decks_repository";
-  $env->{CMRUNDIR}="$scratchDir/cmrun";
-  $env->{EXECDIR}="$scratchDir/exec";
-  $env->{SAVEDISK}="$scratchDir/savedisk";
-  $env->{GCMSEARCHPATH}=$ENV{GCMSEARCHPATH};
-  $env->{MP}="no";
-  $env->{OVERWRITE}="YES";
-  $env->{OUTPUT_TO_FILES}="YES";
-  $env->{VERBOSE_OUTPUT}="YES";
-  $env->{COMPILER}="gfortran";
-  $env->{GITROOT}=$ENV{MODELROOT}; 
-  if ($branch =~ m/AR5/) 
-  {
-    $env->{MPIDISTR}="openmpi";
-    $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_gcc-4.5_openmpi-1.4.2/Linux";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.5_openmpi-1.4.2";
-    $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
-  }
-  else 
-  {
-    $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.4.1/gcc-4.6";
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc45_mvapich2.141";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.6_mvapich2-1.6";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
-  }
-  $env->{MODELERC}="$scratchDir/gfortran/modelErc.gfortran";
-  return $env;
-}
-
-# -----------------------------------------------------------------------------
-sub saveForDiffreport()
-{
-   my $branch = shift;
-   my $cfgFile = shift;
-   my @rundecks;
-# Save configuration settings in a format that is easily parsed by a bash script
-   eval { require "$cfgFile"};
-   if ($@) {
-      print "Failed to load, because : $@"
-   }
-
-   if ($branch =~ m/AR5/)
-   {
-     @rundecks = @AR5decks;
-   }
-   else
-   {
-     @rundecks = @decks;
-   }
-   my $rsize = scalar @rundecks;
-   my $csize = scalar @comps;
-
-   my $file = $ENV{MODELROOT} . "/exec/testing/" . "." . "$cfgFile";
-   open (FH, "> $file") or die "Can't open $file for write: $!";
-   my $i = 0;
-   while($i < $rsize)
-   {
-      print FH "DECK=$rundecks[$i]\n";
-      $i++;
-   }
-   my $i = 0;
-   print STDOUT "comps = $csize\n";
-   while($i < $csize)
-   {
-      print FH "COMPILER=$comps[$i]\n";
-      $i++;
-   }   
-   print FH "LEVEL=$level\n";
-   print FH "BRANCH=$branch\n";
-
-   close FH or die "Cannot close $file: $!"; 
-
-}
-
 1;
+

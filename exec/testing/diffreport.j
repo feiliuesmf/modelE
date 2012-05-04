@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=12:mpiprocs=12
-#PBS -l walltime=2:00:00
+#PBS -l walltime=1:00:00
 #PBS -W group_list=s1001
 #PBS -N diffrep
 #PBS -j oe

@@ -16,7 +16,7 @@ need_default(){
 get_defaults()
 {
    if  [ "$(need_default $MODELROOT)" == "true" ] ; then
-	export MODELROOT=$NOBACKUP/devel/modelE.clones/simplex
+	export MODELROOT=$NOBACKUP/devel/modelE.clones/master
    fi
 
    if  [ "$(need_default $REGWORK)" == "true" ] ; then
@@ -69,11 +69,10 @@ watch_job()
 # MAIN PROGRAM
 
    # User may just want the help page
-   #if [ "$1" = "--help" -o "$1" = "-h" -o ! -z "$1" ]
-   #if [[ "$1" == "--help" || "$1" == "-h" ]]
-   #then
-   #     ./regTestsHelp.sh $0 $1; exit 0 ;
-   #fi
+   if [ "$1" = "--help" -o "$1" = "-h" ]
+   then
+        ./regTestsHelp.sh $0 $1; exit 0 ;
+   fi
 
    if [ $# -ne 1 ]; then
       echo "Usage: `basename $0` {cfgFile}"
@@ -96,11 +95,9 @@ watch_job()
      jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-#     mail -s "discover results" giss-modelE-regression@lists.nasa.gov < $MODELROOT/exec/testing/DiffReport
       cp ${CFG_NAME}.diff $WORKSPACE
    else
      $MODELROOT/exec/testing/diffreport.j 
-     mail -s "mock modelE results" ccruz@nccs.nasa.gov < $MODELROOT/exec/testing/${CFG_NAME}.diff
    fi
 
    echo "Done".

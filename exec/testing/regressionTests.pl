@@ -2,48 +2,49 @@ use Env;
 use CommandPool;
 use CommandEntry;
 use RegressionTools;
+use RegressionEnvs;
 
-open(LOG,">nightlyTests.log", O_RDWR|O_CREAT, 0664);
-# Make the LOG hot: <http://www.thinkingsecure.com/docs/tpj/issues/vol3_3/tpj0303-0002.html>
-{
-  my $ofh = select LOG;
-  $| = 1;
-  select $ofh;
+# This is the main modelE regression tests script. Its role is to setup the testing
+# environment for rundecks specified in the configuration file (required argument).
+
+$num_args = $#ARGV + 1;
+if ($num_args != 1) {
+  print "\nUsage: regressionTests.pl config_filename\n";
+  exit;
 }
 
 $cfgFile = $ARGV[0];
 print "Configuration file name: $cfgFile\n";
 
+# This is the LOG file.
+open(LOG,">modelETests.log", O_RDWR|O_CREAT, 0664); 
+
 # Get rundecks, compiler, level settings from configuration file
-my $localCfgFile = $ENV{MODELROOT} . "/exec/testing/" . "$cfgFile";
-print "Local file name: $localCfgFile\n";
-eval { require "$localCfgFile"};
+eval { require "$cfgFile"};
 if ($@) {
     print "Failed to load, because : $@"
 }
-
 # get references to arrays:
 my $compilers = \@comps;
+my $rundecks = \@decks;
+my $branch = $gitbranch;
 
-my $scratchDir = $ENV{REGSCRATCH}; 
-my $resultsDir = $ENV{REGRESULTS};
-
-my $rundecks;
-my $branch;
-($sec, $min, $hour, $day, $mon, $yrOffset, $dyOfWeek, $dayOfYr, $dyltSav) = localtime();
-
-$branch = $gitbranch;
-$rundecks = \@decks;
-$gitdir = $ENV{MODELROOT};
-print "Test $branch branch on directory $gitdir\n";
-`cd $gitdir; git pull; cd -`;
-
-my $reference = "$scratchDir/$branch";
-
+# get ENVironmental variables and initialize other settings for this run
 my $env = {};
+
 $env->{BRANCH} = $branch;
-$env->{"intel"} = getEnvironment("intel", $scratchDir, $branch);
-$env->{"gfortran"} = getEnvironment("gfortran", $scratchDir, $branch);
+$env = setupENVvariables($env);
+
+foreach $compiler (@$compilers) 
+{
+   $env->{$compiler} = getEnvironment($env, $compiler, $branch);
+}
+
+print "Update $env->{GIT_CLONE}...\n";
+`cd $env->{GIT_CLONE}; git pull; cd -`;
+
+# Save settings for diffreport
+&saveForDiffreport($env, $cfgFile);
 
 my $resolutions = {};
 # HEAD rundecks
@@ -58,9 +59,6 @@ $resolutions->{SCMSGPCONT} = "0"; # single column model
 $resolutions->{E4C90L40} = "CS"; # cubed sphere
 # AR5 rundecks
 $resolutions->{E_AR5_CADI} = "2x2.5";
-
-# Save settings for diffreport
-&saveForDiffreport($branch, $cfgFile);
 
 my $numProcesses = {};
 
@@ -113,23 +111,22 @@ foreach my $rundeck (@$rundecks)
 
 # Create a new command pool:
 my $pool = CommandPool->new();
-#my $clean = CommandEntry->new({COMMAND => "rm -rf $scratchDir/* *.o[0-9]* $resultsDir/*/*;"});
-my $clean = CommandEntry->new({COMMAND => "ls $scratchDir/* $resultsDir/*;"});
-my $git = CommandEntry->new(gitCheckout($env->{"intel"})); # Compiler is not important here
 
-$pool->add($clean);
+my $git = CommandEntry->new(gitCheckout($env)); # Compiler is not important here
 $pool->add($git);
 
 foreach $compiler (@$compilers) 
 {
-  $pool->add(writeModelErcFile($env->{$compiler}, $git));
+  $pool->add(writeModelErcFile($env->{$compiler}));
   unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") 
   {
-    mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!;
+    mkdir "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler" or die $!; 
   }
 }
 
 print "Loop over all configurations...\n";
+my $reference = "$env->{SCRATCH_DIRECTORY}" . "/$branch";
+
 foreach my $rundeck (@$rundecks) 
 { 
   foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
@@ -138,9 +135,9 @@ foreach my $rundeck (@$rundecks)
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
     {
       $env->{$compiler}->{CONFIGURATION} = $configuration;
-      my $tempDir="$scratchDir/$compiler/$rundeck.$configuration";
+      my $tempDir="$env->{SCRATCH_DIRECTORY}/$compiler/$rundeck.$configuration";
 
-      my $copy  = createTemporaryCopy($reference, $tempDir);
+      my $copy  = createTemporaryCopy($reference, $tempDir, $branch);
       $copy->{STDOUT_LOG_FILE} = "$env->{$compiler}->{RESULTS_DIRECTORY}/$compiler/$rundeck.$configuration.$compiler.buildlog";
       $pool->add($copy, $git);
 
@@ -169,6 +166,6 @@ print LOG "\n***************************\n";
 print LOG "Starting regression tests.\n";
 print LOG "***************************\n\n";
 $pool->run(*LOG, true);
-print LOG "Completed nightly regression tests.\n";
+print LOG "Completed modelE regression tests.\n";
 close(LOG);
 

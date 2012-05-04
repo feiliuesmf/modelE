@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 package CommandEntry;
 use Env;
+use Switch;
 
 sub new 
 {
@@ -102,11 +103,23 @@ sub runInBatch
   my $ncpus = $nCPUS;
   $ncpus = $NODE_SIZE if ($ncpus > $NODE_SIZE);
 
-  $walltime = "3:00:00\n";
 
   my $compiler = $self->{COMPILER};
   my $branch   = $self->{BRANCH};
   my $jobname  = $self->{RUNDECK};
+
+  switch ($jobname) 
+  {
+      case [ "EM20", "E1oM20", "E4F40", "SCMSGPCONT" ] 
+      { $walltime = "1:00:00\n" }
+      case [ "E4C90L40", "E_AR5_CADI" ] 
+      { $walltime = "2:00:00\n" }
+      case [ "E4TcadF40", "E4arobio_g6c", "E4arobio_h4c" ] 
+      { $walltime = "3:00:00\n" }
+      else
+      { $walltime = "8:00:00\n"; }
+  }
+
   print " runInBatch: COMPILER=$compiler, jobname=$jobname, BRANCH=$branch\n";
 
   my $script = <<EOF;
@@ -128,7 +141,7 @@ EOF
 
   if ($branch =~ m/AR5/) 
   {
-    if ($compiler eq intel) 
+    if ($compiler eq "intel") 
     {
 
       $script .= <<EOF;
@@ -146,7 +159,7 @@ EOF
   } 
   else 
   {
-    if ($compiler eq intel) 
+    if ($compiler eq "intel") 
     {
       $script .= <<EOF;
 module load comp/intel-11.1.072 mpi/impi-3.2.2.006
@@ -181,9 +194,6 @@ sub launch
 
   my $mode = $self -> {QUEUE};
 
-  # Bhat mentioned that this was needed for openMPI. Is it? Need to test.
-  $ENV{TMPDIR}="/tmp";
-
   setModuleEnvironment($self->{COMPILER});
   $ENV{MODELERC}=$self->{MODELRC};
   if ($self -> {QUEUE} eq LOCAL) 
@@ -205,11 +215,11 @@ sub setModuleEnvironment
 
     if ($self->{BRANCH} =~ m/AR5/) 
     {
-      if ($compiler eq intel) 
+      if ($compiler eq "intel") 
       {
         module (load, "comp/intel-10.1.017",  "mpi/impi-3.2.2.006");
       } 
-      elsif ($compiler eq gfortran) 
+      elsif ($compiler eq "gfortran") 
       {
         module (load, "other/comp/gcc-4.5", "other/mpi/openmpi/1.4.2-gcc-4.5");
       } 
@@ -220,11 +230,11 @@ sub setModuleEnvironment
     } 
     else 
     {
-      if ($compiler eq intel)
+      if ($compiler eq "intel")
       {
         module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
       }
-      elsif ($compiler eq gfortran)
+      elsif ($compiler eq "gfortran")
       {
         module (load, "other/comp/gcc-4.6", "other/mpi/mvapich2-1.4.1/gcc-4.6");
       }
