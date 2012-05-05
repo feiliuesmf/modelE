@@ -1,6 +1,7 @@
 use CommandEntry;
 use Env;
 
+my $extraFlags;
 $extraFlags{SERIAL}   = "";
 $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
@@ -25,7 +26,7 @@ sub createTemporaryCopy
   my $referenceDir = shift;
   my $tempDir = shift;
   my $branch = shift;
-  my $commandString = "git clone -b branch $referenceDir $tempDir";
+  my $commandString = "git clone -b $branch $referenceDir $tempDir";
   print "createTemporaryCopy: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
