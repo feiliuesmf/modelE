@@ -480,8 +480,8 @@ C**** CALCULATE EVAPORATION
       lim_dew=.false.
 
 
-      IF (DQ1X.GT.Q1+atmgla%DQ1(I,J)) THEN
-          DQ1X=(Q1+atmgla%DQ1(I,J))
+      IF (DQ1X.GT.Q1) THEN
+          DQ1X=Q1
           lim_dew=.true.
       ELSE
           GO TO 3720
@@ -552,9 +552,9 @@ cccccc for SCM use ARM provided fluxes for designated box
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
 #endif
-      atmgla%DTH1(I,J)=atmgla%DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K) ! +ve up
+      atmgla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1*P1K) ! +ve up
       atmgla%sensht(i,j) = atmgla%sensht(i,j)+SHDT
-      atmgla%DQ1(I,J) =atmgla%DQ1(I,J) -DQ1X*PTYPE
+      atmgla%DQ1(I,J) = -DQ1X
 #ifdef SCM
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
           write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
@@ -567,8 +567,8 @@ cccccc for SCM use ARM provided fluxes for designated box
       DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
       atmgla%DMUA(I,J) = atmgla%DMUA(I,J) + DMUA_IJ
       atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
-      atmgla%uflux1(i,j)=atmgla%uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)
-      atmgla%vflux1(i,j)=atmgla%vflux1(i,j)+PTYPE*RCDMWS*(VS-VOCEAN)
+      atmgla%uflux1(i,j) = RCDMWS*(US-UOCEAN)
+      atmgla%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
 
 C****
 

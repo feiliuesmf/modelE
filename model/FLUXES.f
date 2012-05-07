@@ -447,6 +447,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % GTEMPR  ( I_0H:I_1H , J_0H:J_1H ),
 #ifdef TRACERS_ON
      &          this % GTRACER ( NTM, I_0H:I_1H , J_0H:J_1H ),
+     &          this % TRSRFFLX( I_0H:I_1H , J_0H:J_1H, NTM ),
 #ifdef TRACERS_WATER
      &          this % TRPREC  ( NTM, I_0H:I_1H , J_0H:J_1H ),
      &          this % TREVAPOR( NTM, I_0H:I_1H , J_0H:J_1H ),
@@ -465,6 +466,12 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % FLONG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % FSHORT  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % TRUP_in_rad  ( I_0H:I_1H , J_0H:J_1H ),
+
+     &          this % dTH1  ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % dQ1   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % UFLUX1( I_0H:I_1H , J_0H:J_1H ),
+     &          this % VFLUX1( I_0H:I_1H , J_0H:J_1H ),
+
 #ifdef STANDALONE_OCEAN
      &          this % SRFP    ( I_0H:I_1H , J_0H:J_1H ),
 #endif
@@ -481,6 +488,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 #ifdef TRACERS_ON
       this % GTRACER = 0.
+      this % TRSRFFLX = 0.
 #ifdef TRACERS_DRYDEP
       this % TRDRYDEP = 0.
 #endif
@@ -1280,42 +1288,12 @@ C**** Ensure that no round off error effects land with ice and earth
       atmlnd%byam1 => byam1
       atmlnd%lat(:,:) = lat2d(:,:)
 
-! until the update of first-layer T/Q is refactored in a way
-! which allows roundoff differences, the dth1,dq1,uflux1,vflux1
-! pointers exist and all surf. types pointers point to the same arrays.
-      atmocn%dth1    => dth1
-      atmocn%dq1     => dq1
-      atmocn%uflux1  => uflux1
-      atmocn%vflux1  => vflux1
-
-      atmice%dth1    => dth1
-      atmice%dq1     => dq1
-      atmice%uflux1  => uflux1
-      atmice%vflux1  => vflux1
-
-      atmgla%dth1    => dth1
-      atmgla%dq1     => dq1
-      atmgla%uflux1  => uflux1
-      atmgla%vflux1  => vflux1
-
-      atmlnd%dth1    => dth1
-      atmlnd%dq1     => dq1
-      atmlnd%uflux1  => uflux1
-      atmlnd%vflux1  => vflux1
-
 #ifdef TRACERS_ON
 ! for now, all surface types refer to the same array.
       atmocn%trflux1  => trflux1
-      atmocn%trsrfflx => trsrfflx
-
       atmice%trflux1  => trflux1
-      atmice%trsrfflx => trsrfflx
-
       atmgla%trflux1  => trflux1
-      atmgla%trsrfflx => trsrfflx
-
       atmlnd%trflux1  => trflux1
-      atmlnd%trsrfflx => trsrfflx
 #endif
 
 ! set pointers for looping over surface types
