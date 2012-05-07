@@ -83,9 +83,6 @@ watch_job()
    export CFG_FILE=$cfgFile
 
    get_defaults
-   # Let's make sure we get the latest ...
-   git pull
-
    echo "Execute regressionTests.pl with "$cfgFile
    rm -f $1.out
    /usr/bin/perl regressionTests.pl $CFG_FILE > $1.out 2>&1
