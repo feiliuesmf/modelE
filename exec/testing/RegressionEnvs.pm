@@ -35,6 +35,12 @@ sub getIntelEnvironment
   else {
       $env->{BASELINE_DIRECTORY} = "/discover/nobackup/modele/modelE_baseline";
   }
+   if (defined $ENV{GCMSEARCHPATH}) {
+      $env->{GCMSEARCHPATH} = $ENV{GCMSEARCHPATH};
+   }
+   else {
+      $env->{GCMSEARCHPATH} = "/discover/nobackup/projects/giss/prod_input_files";
+   }
   $env->{RESULTS_DIRECTORY} = $env->{NOBACKUP} . "/regression_results";
   $env->{SCRATCH_DIRECTORY} = $env->{NOBACKUP} . "/regression_scratch";
   $env->{DECKS_REPOSITORY}=$env->{SCRATCH_DIRECTORY} . "/decks_repository";
@@ -80,6 +86,12 @@ sub getGfortranEnvironment
    }
    else {
       $env->{BASELINE_DIRECTORY} = "/discover/nobackup/modele/modelE_baseline";
+   }
+   if (defined $ENV{GCMSEARCHPATH}) {
+      $env->{GCMSEARCHPATH} = $ENV{GCMSEARCHPATH};
+   }
+   else {
+      $env->{GCMSEARCHPATH} = "/discover/nobackup/projects/giss/prod_input_files";
    }
    $env->{RESULTS_DIRECTORY} = $env->{NOBACKUP} . "/regression_results";
    $env->{SCRATCH_DIRECTORY} = $env->{NOBACKUP} . "/regression_scratch";
