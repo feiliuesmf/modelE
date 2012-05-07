@@ -411,6 +411,10 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
            trcsurf = 0.
            trcSurfByVol = 0.
          end if
+
+         do itype=1,4
+           asflx(itype)%trsrfflx = 0.
+         enddo
 #endif
 
       call loadbl
@@ -504,6 +508,17 @@ C**** For distributed implementation - ensure point is on local process.
           END IF
         END DO 
       END IF
+
+
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+      do itype=3,4
+        asflx(itype)%solar(i,j) = asflx(itype)%solar(i,j) +
+     &       DTsurf*FSF(ITYPE,I,J)*COSZ1(I,J)
+      enddo
+      enddo
+      enddo
+
 
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
@@ -778,8 +793,8 @@ C**** Limit evaporation if lake mass is at minimum
      *     MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
         DQ1X=(atmocn%EVAPOR(I,J)-EVAPLIM)*BYAM(1,I,J)
         lim_lake_evap=.true.
-      ELSEIF (DQ1X.GT.Q1+DQ1(I,J)) THEN
-        DQ1X=(Q1+DQ1(I,J))
+      ELSEIF (DQ1X.GT.Q1) THEN
+        DQ1X=Q1
         lim_dew=.true.
       ELSE
         GO TO 3720
@@ -875,9 +890,9 @@ cccccc for SCM use ARM provided fluxes for designated box
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
 #endif
-      DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K) ! +ve up
+      asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1*P1K) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
-      DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
+      asflx(itype)%DQ1(I,J) = -DQ1X
 #ifdef SCM
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
           write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
@@ -890,8 +905,8 @@ cccccc for SCM use ARM provided fluxes for designated box
       DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
       asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ
       asflx(itype)%DMVA(I,J) = asflx(itype)%DMVA(I,J) + DMVA_IJ
-      uflux1(i,j)=uflux1(i,j)+PTYPE*RCDMWS*(US-UOCEAN)
-      vflux1(i,j)=vflux1(i,j)+PTYPE*RCDMWS*(VS-VOCEAN)
+      asflx(itype)%uflux1(i,j) = RCDMWS*(US-UOCEAN)
+      asflx(itype)%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
 
 C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
@@ -914,15 +929,6 @@ C****
 !   separately from ground hydrology on i,j grid
 !      call step_dveg(dtsurf)
 
-      do j=j_0,j_1
-      do i=i_0,imaxj(j)
-      do itype=3,4
-        asflx(itype)%solar(i,j) = asflx(itype)%solar(i,j) +
-     &       DTsurf*FSF(ITYPE,I,J)*COSZ1(I,J)
-      enddo
-      enddo
-      enddo
-
 
 C****
 C**** LAND ICE
@@ -932,17 +938,27 @@ C****
       atmice%gtemp2(:,:) = tgrn2(2,:,:)
       atmgla%gtemp2(:,:) = tgrn2(3,:,:)
 
+C****
+C**** EARTH
+C****
+      CALL EARTH(NS,MODDSF,MODDD)
+      IF(NS==Nisurf) CALL GROUND_E ! diagnostic only - should be merged with EARTH
+
+      tgrnd(4,:,:) = atmlnd%gtemp(:,:) ! fill in for diags
+
 
 #ifdef TRACERS_DRYDEP
+
 C****
 C**** Calculate Tracer Dry Deposition (including gravitational settling)
 C****
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-      do itype=1,3  ! drydep for land still in LSM driver for now
-                    ! until we disentangle the flux limitations for
-                    ! the surface types (will change results slightly).
+
+      do itype=1,4
+
         ptype = ptypes(itype,i,j)
+
       do n=1,ntm
         if(dodrydep(n))then
           depvel = dep_vel(n,itype,i,j)
@@ -951,16 +967,17 @@ C****
           rtsdt = -tdryd/(depvel+gsvel+teeny)
           rts = rtsdt/dtsurf                             ! kg*s/m^3
           tdd = tdryd*axyp(i,j)*ptype                    ! kg
-          td1 = (trsrfflx(i,j,n)+trflux1(i,j,n))*dtsurf   ! kg
-          if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
+          td1 = (asflx(itype)%trsrfflx(i,j,n)+ptype*trflux1(i,j,n))*
+     &         dtsurf  ! kg
+          if (ptype*trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-            tdd= -max(trm(i,j,1,n)+td1,0d0)
+            tdd= -max(ptype*trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(axyp(i,j)*ptype)
-            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
-          else
-            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
+          asflx(itype)%trsrfflx(i,j,n)=
+     &         asflx(itype)%trsrfflx(i,j,n)+tdd/dtsurf
+
 ! trdrydep downward flux by surface type (kg/m^2)
           asflx(itype)%trdrydep(n,i,j)=
      &         asflx(itype)%trdrydep(n,i,j) - tdryd
@@ -996,13 +1013,34 @@ c**** for subdaily diagnostics
       enddo ! j
 #endif
 
-C****
-C**** EARTH
-C****
-      CALL EARTH(NS,MODDSF,MODDD)
-      IF(NS==Nisurf) CALL GROUND_E ! diagnostic only - should be merged with EARTH
 
-      tgrnd(4,:,:) = atmlnd%gtemp(:,:) ! fill in for diags
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        dth1(i,j) = 0.
+        dq1(i,j) = 0.
+        uflux1(i,j) = 0.
+        vflux1(i,j) = 0.
+        tsavg(i,j) = 0.
+        qsavg(i,j) = 0.
+#ifdef TRACERS_ON
+        trsrfflx(i,j,:) = 0.
+#endif
+        do itype=1,4
+          ptype = ptypes(itype,i,j)
+          if(ptype.le.0.) cycle
+          dth1(i,j) = dth1(i,j) + asflx(itype)%dth1(i,j)*ptype
+          dq1(i,j) = dq1(i,j) + asflx(itype)%dq1(i,j)*ptype
+          uflux1(i,j) = uflux1(i,j) + asflx(itype)%uflux1(i,j)*ptype
+          vflux1(i,j) = vflux1(i,j) + asflx(itype)%vflux1(i,j)*ptype
+          tsavg(i,j) = tsavg(i,j) + asflx(itype)%tsavg(i,j)*ptype
+          qsavg(i,j) = qsavg(i,j) + asflx(itype)%qsavg(i,j)*ptype
+#ifdef TRACERS_ON
+          trsrfflx(i,j,:) = trsrfflx(i,j,:) +
+     &         asflx(itype)%trsrfflx(i,j,:)!*ptype
+#endif
+        enddo
+      enddo
+      enddo
 
 
       do j=j_0,j_1
@@ -1622,7 +1660,7 @@ C****
       logical :: lim_lake_evap, lim_dew
 c
       real*8 ::
-     &     tev,tevap,tdp,tdt1
+     &     tev,tevap,tdp
 #ifdef TRACERS_SPECIAL_O18
      *     ,FRACVL,FRACVS,frac
 #endif
@@ -1674,19 +1712,17 @@ C**** tracer flux is set by source tracer concentration
         END IF
       END IF
       TDP = TEVAP*AXYP*ptype
-      TDT1 = trsrfflx*DTSURF
 #ifdef WATER_PROPORTIONAL
       if(lim_dew) then
 #else
-      IF (TRM1+TDT1+TDP.lt.0..and.tdp.lt.0) THEN
+      IF (TRM1*ptype+TDP.lt.0..and.tdp.lt.0) THEN
 #endif
 c        IF (QCHECK)
 c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
-        TEVAP = -(TRM1+TDT1)/(AXYP*ptype)
-        trsrfflx = - TRM1/DTSURF
-      ELSE
-        trsrfflx = trsrfflx + TDP/DTSURF
+        TEVAP = -TRM1/AXYP
+        TDP = -TRM1*ptype
       END IF
+      trsrfflx = TDP/DTSURF
       TREVAPOR = TREVAPOR + TEVAP
       return
       end subroutine water_tracer_evap
@@ -1697,7 +1733,7 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
     (defined TRACERS_TOMAS)
       subroutine collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
       use tracer_com, only : trname
-      use fluxes, only : trsrfflx
+      use fluxes, only : atmocn
       use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,ijts_isrc,jls_isrc
       use pbl_drv, only : t_pbl_args
@@ -1773,7 +1809,7 @@ C****
 #endif
         end select
 
-        trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+        atmocn%trsrfflx(i,j,n)=atmocn%trsrfflx(i,j,n)+
      &       trc_flux*axyp(i,j)*ptype
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
@@ -1838,7 +1874,7 @@ C****
      &     ptype,pocean,rsi,rhosrf,tgo,
      &     dtsurf,pbl_args)
       use constant, only : syr
-      use fluxes, only : focean,atmocn,trsrfflx,nisurf
+      use fluxes, only : focean,atmocn,nisurf
       use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,
      &     ijts_isrc,ijts_gasex,jls_isrc
@@ -1874,7 +1910,7 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CFC
           TRGASEX(n,I,J) = TRGASEX(n,I,J) +
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
-          trsrfflx(i,j,n) = trsrfflx(i,j,n)
+          atmocn%trsrfflx(i,j,n) = atmocn%trsrfflx(i,j,n)
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
      .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
@@ -1904,7 +1940,7 @@ C****
 
 ! trsrfflx is positive up 
 ! units are kg,CO2/s
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+          atmocn%trsrfflx(i,j,n)=atmocn%trsrfflx(i,j,n)
      .         - pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
      .         - pbl_args%alpha_gas * trgrnd )
      .         * 1.0d6/vol2mass(n) 
@@ -1927,7 +1963,7 @@ C****
      .           *ptype,
      .           pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd 
      .           * 1.0d6/vol2mass(n) * ptype,
-     .           trsrfflx(i,j,n),rhosrf,taijs(i,j,ijts_isrc(1,n))
+     .           atmocn%trsrfflx(i,j,n),rhosrf,taijs(i,j,ijts_isrc(1,n))
           endif
 #endif
         END DO

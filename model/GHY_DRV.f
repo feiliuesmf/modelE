@@ -71,7 +71,7 @@ c******************   TRACERS             ******************************
      &     ,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
-      use fluxes, only : trsrfflx,trflux1
+      use fluxes, only : trflux1
 #ifdef TRACERS_WATER
      *     ,trunoe,trprec
 #endif
@@ -402,7 +402,7 @@ c     of about a year)
       excess_C(i,j) = excess_C(i,j) - delta_C
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
-      trsrfflx(i,j,n)=trsrfflx(i,j,n) +
+      atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
      &     (arauto+asoilresp-agpp+delta_C)/dtsurf *axyp(i,j)*ptype
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
@@ -432,7 +432,7 @@ ccc accumulate tracer evaporation and runoff
      &       + ghy_tr%atr_evap(nx)
         trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
         atmlnd%gtracer(n,i,j) = ghy_tr%atr_g(nx)
-        trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+        atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
      &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
 #endif
@@ -498,7 +498,7 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=0
         end select
 
-        trsrfflx(i,j,n)=trsrfflx(i,j,n)+
+        atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
      &       trc_flux*axyp(i,j)*ptype
 #ifndef TRACERS_TOMAS
         if (ijts_isrc(1,n)>0) then
@@ -572,7 +572,7 @@ ccc dust emission from earth
 #endif
 #endif
 #endif
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
      &         +pbl_args%dust_flux(n1)*axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(nDustEmij,n))
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
@@ -595,67 +595,11 @@ ccc dust emission from earth
         END SELECT
 #endif
 
-#ifdef TRACERS_DRYDEP
-
-ccc accumulate tracer dry deposition
-        if(dodrydep(n)) then
-          rts=rhosrf*pbl_args%trs(nx)
-          rtsdt=rts*dtsurf                             ! kg*s/m^3
-          depvel = dep_vel(n,itype,i,j)
-          gsvel = gs_vel(n,itype,i,j)
-          tdryd=drydflx(n,itype,i,j)         ! kg/m2
-          tdd = tdryd*axyp(i,j)*ptype                    ! kg
-          td1 = (trsrfflx(i,j,n)+trflux1(i,j,n))*dtsurf   ! kg
-          if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
-            if (qcheck) write(99,*) "limiting tdryd earth",i,j,n,tdd
-     *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-            tdd= -max(trm(i,j,1,n)+td1,0d0)
-            tdryd= tdd/(axyp(i,j)*ptype)
-            trsrfflx(i,j,n)= - trm(i,j,1,n)/dtsurf
-          else
-            trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
-          end if
-
-! trdrydep downward flux by surface type (kg/m^2)
-          atmlnd%trdrydep(n,i,j)=atmlnd%trdrydep(n,i,j) - tdryd
-! diagnose turbulent and settling fluxes separately
-          taijn(i,j,tij_drydep,n)=taijn(i,j,tij_drydep,n) +
-     &         ptype*rtsdt*depvel
-          taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
-     &         ptype*rtsdt* gsvel
-#ifdef ACCMIP_LIKE_DIAGS
-! estimate stomatal tracer flux:
-          if(trname(n)=='Ox')
-     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
-     &         rtsdt*(pbl_args%stomatal_dep_vel)
-
-#endif
-#ifdef TRACERS_COSMO
-          if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
-     *         *depvel+ptype*rtsdt* gsvel
-#endif
-
-          if (itcon_dd(n,1).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*depvel,itcon_dd(n,1),n)
-          if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*gsvel,itcon_dd(n,2),n)
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-c**** for subdaily diagnostics
-          depo_turb_glob( i, j, itype, n ) = depo_turb_glob( i, j, itype
-     &         , n ) + ptype * rts * depvel / nisurf
-          depo_grav_glob( i, j, itype, n ) = depo_grav_glob( i, j, itype
-     &         , n ) + ptype * rts * gsvel / nisurf
-#endif
-
-        end if
-#endif
 #ifdef BIOGENIC_EMISSIONS
         select case (trname(n))
         case ('Isoprene')
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+pbl_args%emisop
-     &         *axyp(i,j)*ptype
+          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+     &         pbl_args%emisop*axyp(i,j)*ptype
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
      &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
         end select
@@ -664,14 +608,24 @@ c**** for subdaily diagnostics
         select case (trname(n))
         case ('Isoprene')
 C Flux in kg/m2/s - put back into /s
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)+aipp
-     &         *axyp(i,j)*ptype/dtsurf
+          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+     &         aipp*axyp(i,j)*ptype/dtsurf
 c          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
 c     &    aipp*axyp(i,j)*ptype*dtsurf
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
      &    aipp*axyp(i,j)*ptype
 
         end select
+#endif
+
+#ifdef TRACERS_DRYDEP
+#ifdef ACCMIP_LIKE_DIAGS
+! estimate stomatal tracer flux:
+        if(dodrydep(n) .and. trname(n)=='Ox')
+     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
+     &         rtsdt*(pbl_args%stomatal_dep_vel)
+
+#endif
 #endif
 
       end do
@@ -853,7 +807,6 @@ c****
 #endif
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : NTM,trm
-      use fluxes, only : trsrfflx
       use geom, only : axyp
       use pblcom, only : qabl,trabl
 #endif
@@ -1380,8 +1333,8 @@ c**** wearth+aiearth are used in radiation only
       endif
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
-      atmlnd%uflux1(i,j)=atmlnd%uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
-      atmlnd%vflux1(i,j)=atmlnd%vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
+      atmlnd%uflux1(i,j) = rcdmws*(pbl_args%us) !-uocean)
+      atmlnd%vflux1(i,j) = rcdmws*(pbl_args%vs) !-vocean)
 c**** accumulate surface fluxes and prognostic and diagnostic quantities
       atmlnd%evapor(i,j)=atmlnd%evapor(i,j)+aevap
       shdt=-ashg
@@ -1418,8 +1371,8 @@ c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
           atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif
 #else
-      atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
-      atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
+      atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1*p1k)
+      atmlnd%dq1(i,j) = aevap/ma1
       atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
       atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
 #endif
@@ -1469,8 +1422,8 @@ c as a PBL diagnostic.
         endif
         atmlnd%trevapor(itr,i,j) = atmlnd%trevapor(itr,i,j) +
      &       aevap*trconcflx
-        trsrfflx(i,j,itr)=trsrfflx(i,j,itr)+axyp(i,j)*ptype*
-     &       aevap*trconcflx/(pbl_args%dtsurf)
+        atmlnd%trsrfflx(i,j,itr)=atmlnd%trsrfflx(i,j,itr)+
+     &       axyp(i,j)*ptype*aevap*trconcflx/(pbl_args%dtsurf)
 c fill in pbl profile in case it is used to initialize
 c another surface type
         do lpbl=1,npbl
