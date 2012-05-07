@@ -148,7 +148,7 @@ sub setupENVvariables
       $env->{NOBACKUP}=$ENV{NOBACKUP};
    }
    if (defined $ENV{MOCKMODELE}) {
-       $env->{GIT_REPOSITORY} = $ENV{MODELROOT};
+       $env->{GIT_REPOSITORY} = "/discover/nobackup/ccruz/devel/modelE.mock.git";
    }
    else {
        $env->{GIT_REPOSITORY} = "simplex.giss.nasa.gov:/giss/gitrepo/modelE.git";
