@@ -152,20 +152,22 @@ c        MODULE PROCEDURE READT_PARALLEL_3D
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
 
       if (AM_I_ROOT()) then
-         deallocate (ain,aout)
+         deallocate (ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate (aout)
       return
       END SUBROUTINE DREAD_PARALLEL_2D
 
@@ -197,20 +199,22 @@ C****  convert from real*4 to real*8
         READ (IUNIT,IOSTAT=IERR) AIN
 C**** convert from real*4 to real*8
         AOUT=AIN
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
       
       if (AM_I_ROOT()) then
-         deallocate (ain,aout)
+         deallocate (ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate (aout)
       return
       END SUBROUTINE DREAD_PARALLEL_3D
 
@@ -237,20 +241,21 @@ C**** convert from real*4 to real*8
      &       AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
      &       grd_dum%ntiles)   )
         READ (IUNIT,IOSTAT=IERR) AGLOB
+      else
+        allocate( AGLOB(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aglob,avar)
       
       if (AM_I_ROOT()) then
-         deallocate (aglob)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
             call stop_model('DREAD8_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate (aglob)
       return
       END SUBROUTINE DREAD8_PARALLEL_3D
 
@@ -277,21 +282,23 @@ C**** convert from real*4 to real*8
          READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
       CALL broadcast(grd_dum, M   )
 
       if (AM_I_ROOT()) then
-         deallocate (ain,aout)
+         deallocate (ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate (aout)
       return
       END SUBROUTINE MREAD_PARALLEL_2D
 
@@ -318,21 +325,23 @@ C****  convert from real*4 to real*8
          READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
       CALL broadcast(grd_dum, M   )
 
       if (AM_I_ROOT()) then
-         deallocate(ain,aout)
+         deallocate(ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE MREAD_PARALLEL_3D
 
@@ -364,21 +373,23 @@ C****  convert from real*4 to real*8
          READ (IUNIT, IOSTAT=IERR) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
 
       if (AM_I_ROOT()) then
-         deallocate(ain,aout)
+         deallocate(ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
      &           TRIM(TITLE),' IOSTAT=',IERR
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE READT_PARALLEL_2D
 
@@ -410,21 +421,23 @@ C****  convert from real*4 to real*8
          READ (IUNIT, IOSTAT=IERR) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
 
       if (am_i_root()) then
-         deallocate(ain,aout)
+         deallocate(ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
      &           ',TRIM(TITLE),' IOSTAT=',IERR
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE READT_PARALLEL_3D
 
@@ -450,21 +463,22 @@ C****  convert from real*4 to real*8
             READ (IUNIT,IOSTAT=IERR)
          END DO
          READ (IUNIT, IOSTAT=IERR) TITLE, AOUT
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
 
       if (am_i_root()) then
-         deallocate(aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
      &           ',TRIM(TITLE),' IOSTAT=',IERR
             call stop_model('READT8_PARALLEL: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE READT8_PARALLEL_3D
 
@@ -496,21 +510,23 @@ C****  convert from real*4 to real*8
          READ (IUNIT, IOSTAT=IERR) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar,jdim=3)
 
       if (am_i_root()) then
-         deallocate(ain,aout)
+         deallocate(ain)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
      &           ',TRIM(TITLE),' IOSTAT=',IERR
             call stop_model('READT_PARALLEL_COLUMN: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE READT_PARALLEL_COLUMN_3D
 
@@ -536,21 +552,22 @@ C****  convert from real*4 to real*8
             READ (IUNIT,IOSTAT=IERR)
          END DO
          READ (IUNIT, IOSTAT=IERR) TITLE, AOUT
+      else
+        allocate( AOUT(1,1,1,1) )
       EndIf
 
       call unpack_data(grd_dum,aout,avar,jdim=3)
 
       if (am_i_root()) then
-         deallocate(aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
-            RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
      &           ',TRIM(TITLE),' IOSTAT=',IERR
             call stop_model('READT8_COLUMN: READ ERROR',255)
          EndIf
       end if
+      deallocate(aout)
       return
       END SUBROUTINE READT8_COLUMN_3D
 
@@ -569,20 +586,21 @@ C****  convert from real*4 to real*8
       if(am_i_root()) then
         allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3),
      &       grd_dum%ntiles))
+      else
+        allocate( buf_glob(1,1,1,1) )
       endif
       call pack_data(grd_dum,buf,buf_glob)
 
       If (AM_I_ROOT()) then
         WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
-        deallocate(buf_glob)
          If (IERR==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
             call stop_model('WRITEI8_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
+      deallocate(buf_glob)
 
       END SUBROUTINE WRITEI8_PARALLEL_3D
 
@@ -600,20 +618,21 @@ C****  convert from real*4 to real*8
       if(am_i_root()) then
         allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3),
      &       grd_dum%ntiles))
+      else
+        allocate( buf_glob(1,1,1,1) )
       endif
       call pack_data(grd_dum,buf,buf_glob)
 
       If (AM_I_ROOT()) then
         WRITE (IUNIT, IOSTAT=IERR) buf_glob
-        deallocate(buf_glob)
          If (IERR==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
-            RETURN
          Else
             WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
             call stop_model('DWRITE8_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
+      deallocate(buf_glob)
 
       END SUBROUTINE DWRITE8_PARALLEL_3D
 
@@ -632,20 +651,21 @@ C****  convert from real*4 to real*8
       if(am_i_root()) then
         allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
      &       grd_dum%ntiles))
+      else
+        allocate( buf_glob(1,1,1) )
       endif
       call pack_data(grd_dum,buf,buf_glob)
 
       If (AM_I_ROOT()) then
         WRITE (IUNIT, IOSTAT=rc) title, real(buf_glob,kind=4)
-        deallocate(buf_glob)
         If (rc==0) Then
           WRITE(6,*) "Wrote to file ",TRIM(NAME)
-          RETURN
         Else
           WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
           call stop_model('WRITET_PARALLEL: WRITE ERROR',255)
         EndIf
       end if
+      deallocate(buf_glob)
 
       END SUBROUTINE WRITET_PARALLEL_2D
 
@@ -664,20 +684,21 @@ C****  convert from real*4 to real*8
       if(am_i_root()) then
         allocate(buf_glob(size(buf,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD,
      &       grd_dum%ntiles))
+      else
+        allocate( buf_glob(1,1,1,1) )
       endif
       call pack_data(grd_dum,buf,buf_glob,jdim=3)
 
       If (AM_I_ROOT()) then
         WRITE (IUNIT, IOSTAT=rc) title, buf_glob
-        deallocate(buf_glob)
         If (rc==0) Then
           WRITE(6,*) "Wrote to file ",TRIM(NAME)
-          RETURN
         Else
           WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
           call stop_model('WRITET8_COLUMN: WRITE ERROR',255)
         EndIf
       end if
+      deallocate(buf_glob)
 
       END SUBROUTINE WRITET8_COLUMN_3D
 
