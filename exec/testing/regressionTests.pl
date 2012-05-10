@@ -113,7 +113,7 @@ my $pool = CommandPool->new();
 # If we are running ALL the tests at the same time we probably want to clean up 
 # the scratch space
 if ($cleanScratch eq 'YES') {
-  my $clean = CommandEntry->new({COMMAND => "rm -rf *.o[0-9]* LOG *.diff *.out $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
+  my $clean = CommandEntry->new({COMMAND => "rm -rf *.o[0-9]* *.diff $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
   $pool->add($clean);
 }
 my $git = CommandEntry->new(gitCheckout($env)); # Compiler is not important here
