@@ -6,41 +6,41 @@
 # Set up working variables
 need_default(){
    if [ -z "$1" ]; then
-        echo "true"
-        exit 0
+     echo "true"
+     exit 0
    else
-        echo "false"
-        exit 1
+     echo "false"
+     exit 1
    fi
 }
 get_defaults()
 {
    if  [ "$(need_default $MODELROOT)" == "true" ] ; then
-	export MODELROOT=$NOBACKUP/devel/modelE.clones/master
+     export MODELROOT=$NOBACKUP/devel/modelE.clones/master
    fi
 
    if  [ "$(need_default $REGWORK)" == "true" ] ; then
-	export REGWORK=$NOBACKUP
+     export REGWORK=$NOBACKUP
    fi
 
    export REGSCRATCH=$REGWORK/regression_scratch
    # create if necessary
    if [ ! -d "$REGSCRATCH" ]; then
-   	mkdir $REGSCRATCH
+     mkdir $REGSCRATCH
    fi
 
    export REGRESULTS=$REGWORK/regression_results
    # create if necessary
    if [ ! -d "$REGRESULTS" ]; then
-   	mkdir $REGRESULTS
+     mkdir $REGRESULTS
    fi
 
    if  [ "$(need_default $MODELEBASELINE)" == "true" ] ; then
-	export MODELEBASELINE=$NOBACKUP/modelE_baseline
+     export MODELEBASELINE=$NOBACKUP/modelE_baseline
    fi
 
    if  [ "$(need_default $GCMSEARCHPATH)" == "true" ] ; then
-	export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files
+     export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files
    fi
 	
 }
@@ -51,15 +51,16 @@ watch_job()
 # Input arguments: $1=job id
    local jobID=$1
 
-   maxWait=3600
+   # diffreport.j has a 2hr time limit
+   maxWait=7200
    seconds=0
    done=0
    while [ $seconds -lt $maxWait ];
      do
      qStatus=`qstat | grep $jobID | awk '{print $5}'`
      if [ -z "$qStatus" ]; then
-         done=1
-         break
+       done=1
+       break
      fi
      sleep 30
      let seconds=$seconds+30
@@ -71,12 +72,12 @@ watch_job()
    # User may just want the help page
    if [ "$1" = "--help" -o "$1" = "-h" ]
    then
-        ./regTestsHelp.sh $0 $1; exit 0 ;
+     ./regTestsHelp.sh $0 $1; exit 0 ;
    fi
 
    if [ $# -ne 1 ]; then
-      echo "Usage: `basename $0` {cfgFile}"
-      exit 65
+     echo "Usage: `basename $0` {cfgFile}"
+     exit 65
    fi
    export CFG_NAME=$1
    cfgFile=$1.cfg
@@ -95,7 +96,7 @@ watch_job()
      jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-      cp ${CFG_NAME}.diff $WORKSPACE
+     cp ${CFG_NAME}.diff $WORKSPACE
    else
      $MODELROOT/exec/testing/diffreport.j 
    fi

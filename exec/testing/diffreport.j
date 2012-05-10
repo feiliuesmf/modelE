@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=12:mpiprocs=12
-#PBS -l walltime=1:00:00
+#PBS -l walltime=2:00:00
 #PBS -W group_list=s1001
 #PBS -N diffrep
 #PBS -j oe
@@ -318,6 +318,7 @@ rc=$?
 # if we found a NOT REPRODUCIBLE result (rc=OK) then we exit
 if [ $rc -eq $OK ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
+   cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)

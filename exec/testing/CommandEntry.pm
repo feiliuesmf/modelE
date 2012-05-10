@@ -162,13 +162,13 @@ EOF
     if ($compiler eq "intel") 
     {
       $script .= <<EOF;
-module load comp/intel-11.1.072 mpi/impi-3.2.2.006
+module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
 EOF
     } 
     else 
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.6 other/mpi/mvapich2-1.4.1/gcc-4.6
+module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
 EOF
     }  
   }
@@ -230,13 +230,14 @@ sub setModuleEnvironment
     } 
     else 
     {
+
       if ($compiler eq "intel")
       {
-        module (load, "comp/intel-11.1.072",  "mpi/impi-3.2.2.006");
+        module (load, "comp/intel-12.1.0.233",  "mpi/impi-3.2.2.006");
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.6", "other/mpi/mvapich2-1.4.1/gcc-4.6");
+        module (load, "other/comp/gcc-4.7-20120331", "other/mpi/mvapich2-1.8a2/gcc-4.7-20120331");
       }
       else 
       {

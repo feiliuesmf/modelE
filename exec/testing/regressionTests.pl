@@ -24,10 +24,11 @@ eval { require "$cfgFile"};
 if ($@) {
     print "Failed to load, because : $@"
 }
-# get references to arrays:
+# get references to configuration file options:
 my $compilers = \@comps;
 my $rundecks = \@decks;
 my $branch = $gitbranch;
+my $cleanScratch = $doCleanScratch;
 
 # get ENVironmental variables and initialize other settings for this run
 my $env = {};
@@ -109,6 +110,12 @@ foreach my $rundeck (@$rundecks)
 # Create a new command pool:
 my $pool = CommandPool->new();
 
+# If we are running ALL the tests at the same time we probably want to clean up 
+# the scratch space
+if ($cleanScratch eq 'YES') {
+  my $clean = CommandEntry->new({COMMAND => "rm -rf *.o[0-9]* LOG *.diff *.out $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
+  $pool->add($clean);
+}
 my $git = CommandEntry->new(gitCheckout($env)); # Compiler is not important here
 $pool->add($git);
 

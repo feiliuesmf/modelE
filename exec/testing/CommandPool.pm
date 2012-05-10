@@ -43,7 +43,7 @@ sub add {
   my $self = shift;
   my $newCommand = shift;
 
-  print "New command: ".$newCommand->{COMMAND}. "\n";
+  #print "New command: ".$newCommand->{COMMAND}. "\n";
 
   my $n = ($self -> numCommands());
   $self -> {TABLE} -> [$n] = $newCommand;
@@ -89,7 +89,7 @@ sub resetAll {
 }
 
 my $MAX_CYCLES=5000;
-my $SLEEP=20;
+my $SLEEP=30;
 
 sub run {
   my $self       = shift;
@@ -99,8 +99,8 @@ sub run {
   my $counter = 0;
   my $somethingChanged = 0;
 
-  print "LOG is $LOG\n";
-  print "DEBUG is $DEBUG\n";
+  #print "LOG is $LOG\n";
+  #print "DEBUG is $DEBUG\n";
 
   for (;;) {
       ++$counter;

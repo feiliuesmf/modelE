@@ -27,7 +27,7 @@ sub createTemporaryCopy
   my $tempDir = shift;
   my $branch = shift;
   my $commandString = "git clone -b $branch $referenceDir $tempDir";
-  print "createTemporaryCopy: $commandString \n";
+  #print "createTemporaryCopy: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
 
@@ -81,7 +81,7 @@ EOF
   }
 
   my $binDir = $expName . "_bin";
-  print "compileRundeck: $commandString \n";
+  #print "compileRundeck: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
 }
 
@@ -99,8 +99,8 @@ sub runConfiguration
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
 
-  print "BRANCH: $branch \n";
-  print "resultsDir: $resultsDir \n";
+  #print "BRANCH: $branch \n";
+  #print "resultsDir: $resultsDir \n";
 
   my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
   $flags =~ s/(\$npes)/$npes/eeg;
@@ -166,7 +166,7 @@ sub runConfiguration
     exit 1;
   fi
 EOF
-  print "runConfiguration: $commandString \n";
+  #print "runConfiguration: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
 }
 
@@ -175,7 +175,7 @@ sub writeModelErcFile
 {
   my $env = shift;
   my $modelerc = $env->{MODELERC};
-  print "2) COMPILER: $env->{COMPILER}\n";
+  #print "2) COMPILER: $env->{COMPILER}\n";
   my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
   $commandString .= "rm $modelerc\n";
   
@@ -184,7 +184,7 @@ sub writeModelErcFile
     $commandString .= "echo $var=$value >> $modelerc\n";
   }
   $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
-  print "writeModelErcFile: $commandString \n";
+  #print "writeModelErcFile: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
@@ -202,7 +202,7 @@ sub gitCheckout
   git clone -b $branch $gitroot $branch
   popd
 EOF
-  print "gitCheckout: $commandString\n";
+  #print "gitCheckout: $commandString\n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 1;
