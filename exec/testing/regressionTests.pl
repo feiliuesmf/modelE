@@ -40,9 +40,6 @@ foreach $compiler (@$compilers)
    $env->{$compiler} = getEnvironment($env, $compiler, $branch);
 }
 
-print "Update $env->{GIT_CLONE}...\n";
-`cd $env->{GIT_CLONE}; git pull; cd -`;
-
 # Save settings for diffreport
 &saveForDiffreport($env, $cfgFile);
 
