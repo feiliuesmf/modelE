@@ -311,14 +311,13 @@ else
    writeOK=1
 fi
 
-chmod go+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
+chmod g+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
 
 cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "NOT REPRODUCIBLE" > /dev/null
 rc=$?
 # if we found a NOT REPRODUCIBLE result (rc=OK) then we exit
 if [ $rc -eq $OK ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
-   cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)
