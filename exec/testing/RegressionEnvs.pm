@@ -61,9 +61,9 @@ sub getIntelEnvironment
   }
   else 
   {
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel11_impi32";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-11.0.083";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel11.1.072_impi3.2.2.006";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel12_impi32";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-12.0.1.107";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006";
   }
   $env->{MODELERC}=$env->{SCRATCH_DIRECTORY} . "/intel/modelErc.intel";
   return $env;
@@ -114,8 +114,8 @@ sub getGfortranEnvironment
   else 
   {
     $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.4.1/gcc-4.6";
-    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc45_mvapich2.141";
+    $env->{MPIDIR}="/usr/local/other/SLES11/mvapich2/1.8a2/gcc-4.7-20120331";
+    $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_mvapich2-1.8";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc4.6_mvapich2-1.6";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
   }
