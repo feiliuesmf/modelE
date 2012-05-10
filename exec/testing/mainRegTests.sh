@@ -96,7 +96,6 @@ watch_job()
      jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
      watch_job $jobID
-     cp ${CFG_NAME}.diff $WORKSPACE
    else
      $MODELROOT/exec/testing/diffreport.j 
    fi
