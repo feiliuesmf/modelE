@@ -169,20 +169,21 @@ declare -a CSDecks
 declare -a AR5Decks
 declare -a SCMdecks
 
-cd $PBS_O_WORKDIR
-rm -f diffrep.o*
+cd $MODELROOT/exec/testing
 
 if [ -z $CFG_FILE ]; then
    echo " *** ERROR ***"
    echo "ENV variable CFG_FILE is not defined."
    exit 1;
+else
+   echo "CFG_FILE ENV: $CFG_FILE"
 fi
 if [ -z $MOCKMODELE ]; then
   diffDiffReport=$MODELROOT/exec/testing/diffreport.x
   if [ ! -e $diffDiffReport ]; then
      echo " *** WARNING ***"
      echo "$diffDiffReport does not exist"
-     echo "Will use unix cmp but DiffReport may be inaccurate"
+     echo "Will use unix cmp but DiffReport may report incorrect results"
      diffDiffReport=/usr/bin/cmp
   fi
 else
@@ -197,6 +198,8 @@ if [ ! -e $cfg ]; then
    echo " *** ERROR ***"
    echo "$cfg does not exist."
    exit 1
+else
+   echo "Confile file: $cfg"
 fi
 
 id=0
@@ -206,9 +209,11 @@ while read line ; do
    set -- $line
    arr=($*)
    if [[ "${arr[0]}" == "BRANCH" ]]; then
+      branch=${arr[1]}
       BRANCH=${arr[1]}
    fi
    if [[ "${arr[0]}" == "LEVEL" ]]; then
+      level=${arr[1]}
       LEVEL=${arr[1]}
    fi
    if [[ "${arr[0]}" == "COMPILER" ]]; then
@@ -297,6 +302,8 @@ done
 
 rm -f $MODELROOT/exec/testing/${CFG_NAME}.diff
 echo "Results:"
+echo "  ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+echo "-------------------------------------------" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
 for ((i=0; i < ${#report[@]}; i++)); do 
    echo "${report[${i}]}"
    echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
@@ -311,14 +318,14 @@ else
    writeOK=1
 fi
 
-chmod g+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
+#chmod g+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
+cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
 
 cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "NOT REPRODUCIBLE" > /dev/null
 rc=$?
 # if we found a NOT REPRODUCIBLE result (rc=OK) then we exit
 if [ $rc -eq $OK ]; then
    echo "Regression tests ERROR: Will NOT create modelE snapshot"
-   cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)
