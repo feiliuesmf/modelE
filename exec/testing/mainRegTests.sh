@@ -92,12 +92,8 @@ watch_job()
    chgrp s1001 $1.out LOG
  
    wait
-   if [ -z $MOCKMODELE ]; then
-     jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
-     jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-     watch_job $jobID
-   else
-     $MODELROOT/exec/testing/diffreport.j 
-   fi
+   jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
+   jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+   watch_job $jobID
 
    echo "Done".
