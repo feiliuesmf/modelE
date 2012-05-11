@@ -150,7 +150,7 @@ ifeq ($(FVCUBED),YES)
   else
     NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
   endif
-  LIBS += $(subst "",,$(NETCDFLIB))
+  LIBS += $(subst ",,$(NETCDFLIB))
   NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
   FFLAGS += $(NETCDFINCLUDE)
   F90FLAGS += $(NETCDFINCLUDE)
@@ -216,7 +216,7 @@ ifdef NETCDFHOME
   else
     NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
   endif
-  LIBS += $(subst "",,$(NETCDFLIB))
+  LIBS += $(subst ",,$(NETCDFLIB))
   NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
   FFLAGS += $(NETCDFINCLUDE)
   F90FLAGS += $(NETCDFINCLUDE)
