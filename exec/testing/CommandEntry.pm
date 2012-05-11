@@ -194,7 +194,7 @@ sub launch
 
   my $mode = $self -> {QUEUE};
 
-  setModuleEnvironment($self->{COMPILER});
+  #setModuleEnvironment($self->{COMPILER});
   $ENV{MODELERC}=$self->{MODELRC};
   if ($self -> {QUEUE} eq LOCAL) 
   {
