@@ -85,13 +85,13 @@ EOF
    if [ "$compiler" == "intel" ]; then
 
    cat << EOF >> $jobScript
-module load comp/intel-11.1.072 mpi/impi-3.2.2.006
+module load comp/intel-12.1.0.233 mpi/impi-4.0.3.008
 EOF
 
    else
 
    cat << EOF >> $jobScript
-module load other/comp/gcc-4.6 other/mpi/mvapich2-1.4.1/gcc-4.6
+module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
 EOF
 
    fi
@@ -106,9 +106,26 @@ git clone /discover/nobackup/modele/regression_scratch/master unitTests.${compil
 
 cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/decks
 make rundeck RUN=unitTests RUNSRC=E4TcadF40
+EOF
+
+   if [ "$compiler" == "intel" ]; then
+
+   cat << EOF >> $jobScript
 make -j gcm RUN=unitTests EXTRA_FFLAGS="-O0 -g -traceback" MPI=YES
+EOF
+
+   else
+
+   cat << EOF >> $jobScript
+make -j gcm RUN=unitTests EXTRA_FFLAGS="-O0 -g" MPI=YES
+EOF
+
+   fi
+
+   cat << EOF >> $jobScript
 cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/tests
 EOF
+
    if [ "$compiler" == "intel" ]; then
 
    cat << EOF >> $jobScript
@@ -123,11 +140,6 @@ EOF
 
    fi
 
-   cat << EOF >> $jobScript
-wait
-tail -2 $testLog >> $toEmail
-EOF
-
    jobID=`qsub $jobScript`
    jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
    if [ -z "$jobID" ]; then
@@ -141,6 +153,34 @@ EOF
    if [ $jobRan -eq 0 ]; then
       failScript "The PBS $jobID did not complete on time."
    fi
+
+   linesToShow=2
+   results=`grep 'run,.* failed' $testLog`
+   nbrOfFailed=`echo $results | sed 's/^[0-9]*\s*run, //g' | sed 's/\s*failed\s*.*$//g'`
+
+   anyError=`grep 'make: ***' $testLog`
+   if [ -n "$anyError" ]; then
+     errMsg="Failure building unit tests"
+     linesToShow=10
+   fi
+
+   echo "RESULTS [$compiler]:" >> $toEmail
+   echo ""  >> $toEmail
+   if [ -n "$anyError" ]; then
+
+     echo "$errMsg"  >> $toEmail
+     echo "SUMMARY:"  >> $toEmail
+     echo "..."  >> $toEmail
+     tail -$linesToShow $testLog >> $toEmail
+     echo ""  >> $toEmail
+
+   else
+
+     tail -$linesToShow $testLog >> $toEmail
+     echo ""  >> $toEmail
+
+  fi #anyError
+
 }
 
 # ---------------------
