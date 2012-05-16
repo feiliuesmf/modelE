@@ -7,7 +7,7 @@ C**** Command line options
       logical :: qcRestart=.false.
       logical :: coldRestart=.false.
       integer, parameter :: MAX_LEN_IFILE = 32
-      character(len=MAX_LEN_IFILE) :: iFile
+      character(len=MAX_LEN_IFILE) :: iFil
 
       call read_options(qcRestart, coldRestart, iFile )
       call GISS_modelE(qcRestart, coldRestart, iFile)
