@@ -16,7 +16,7 @@ contains
   real*8 function RANDU (x)
 !@sum   RANDU calculates a random number based on the seed IX
     real*8 :: x ! unused
-    integer, parameter :: MASK = x'ffffff00' ! to mimic ifort
+    integer, parameter :: MASK = int(z'ffffff00')
 
     ix = ix * A_LINEAR + 1
 
