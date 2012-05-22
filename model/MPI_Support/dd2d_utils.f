@@ -1077,8 +1077,6 @@ c      enddo
       implicit none
       include 'mpif.h'
       type(dist_grid) :: grid
-      real*8 local_arr(nl,i1:i2,j1:j2,nk)
-      real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
       logical :: am_i_gsroot
@@ -1087,6 +1085,8 @@ c      enddo
       integer, dimension(nproc_comm) :: cnts,displs
       integer, dimension(nt) :: cntsg,displsg
       real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      real*8 local_arr(nl,i1:i2,j1:j2,nk)
+      real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
 c
       integer :: i,j,l,k,m,n,n0,nsend,iproc
       integer :: ierr
@@ -1190,8 +1190,6 @@ c
       implicit none
       include 'mpif.h'
       type(dist_grid) :: grid
-      real*8 local_arr(nl,i1:i2,j1:j2,nk)
-      real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
       logical :: am_i_gsroot
@@ -1200,6 +1198,8 @@ c
       integer, dimension(nproc_comm) :: cnts,displs
       integer, dimension(nt) :: cntsg,displsg
       real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      real*8 local_arr(nl,i1:i2,j1:j2,nk)
+      real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
 c
       integer :: i,j,l,k,m,n,n0,nrecv,iproc
       integer :: ierr
@@ -1307,8 +1307,6 @@ c copy the the local receive buffer into the local array
       implicit none
       include 'mpif.h'
       type(dist_grid) :: grid
-      real*8 local_arr(i1:i2,j1:j2,nk)
-      real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
       logical :: am_i_gsroot
@@ -1318,6 +1316,8 @@ c copy the the local receive buffer into the local array
       integer, dimension(nproc_comm) :: cntsij,displsij
       integer, dimension(nt) :: cntsijg,displsijg
       real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      real*8 local_arr(i1:i2,j1:j2,nk)
+      real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
 c
       integer :: i,j,k,k1,k2,nk12,m,n,n0,nsend,iproc
       integer :: ierr
@@ -1438,8 +1438,6 @@ c
       implicit none
       include 'mpif.h'
       type(dist_grid) :: grid
-      real*8 local_arr(i1:i2,j1:j2,nk)
-      real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
       logical :: am_i_gsroot
@@ -1449,6 +1447,8 @@ c
       integer, dimension(nproc_comm) :: cntsij,displsij
       integer, dimension(nt) :: cntsijg,displsijg
       real*8 :: buf1d_local(1),buf1d_tile(1),bufij_tile(1)
+      real*8 local_arr(i1:i2,j1:j2,nk)
+      real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
 c
       integer :: i,j,l,k,k1,k2,nk12,m,n,n0,nrecv,iproc
       integer :: ierr
@@ -1568,7 +1568,6 @@ c copy the the receive buffer into the local array
      &     )
       implicit none
       include 'mpif.h'
-      real*8 arr(nl,i1:i2,j1:j2,nk)
       integer :: i1,i2,j1,j2,nl,nk,
      &     i1p,i2p,j1p,j2p,iincp,jincp,i1r,i2r,j1r,j2r,
      &     mpi_comm,pe_send,pe_recv
@@ -1576,6 +1575,7 @@ c copy the the receive buffer into the local array
 
       integer :: i,j,l,k,m,nsend
       integer :: mpi_status(MPI_STATUS_SIZE), ierr, send_tag, recv_tag
+      real*8 arr(nl,i1:i2,j1:j2,nk)
 
 c
 c pack the send buffer
