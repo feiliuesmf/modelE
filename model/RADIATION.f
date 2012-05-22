@@ -5286,7 +5286,11 @@ C**** Find correction factors XTU and XTD
         IF(L24 == L24up) THEN  ! update the current PratL24 segment
           sumPR=sumPR+Prat(L)
           NSUM=NSUM+1
+#ifdef COMPILER_NAG
+          Prat24(L24dn:L24up)=sumPR/DBLE(NSUM)
+#else
           Prat24(L24dn:L24up)=sumPR/DFLOAT(NSUM)
+#endif
         ELSE                   ! start next PratL24 segment
           sumPR=Prat(L)
           Prat24(L24up+1:L24)=sumPR
