@@ -11,6 +11,9 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
+#ifdef COMPILER_NAG
+      use f90_unix_proc
+#endif
       IMPLICIT NONE
 !@var fname name of file to be read or written
       character(len=*) :: fname
