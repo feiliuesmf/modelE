@@ -684,8 +684,7 @@ C****
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
-      USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
-     *     vsurf=>vsavg
+      USE FLUXES, only : atmsrf
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,byim
       USE STRAT, only : defrm,pk,pmid,ang_gwd,dfuseq
       USE TRIDIAG_MOD, only :  TRIDIAG
@@ -711,10 +710,15 @@ C****
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ANGM,DPT,DUANG
       INTEGER I,J,L,IP1,NDT,N,LMAX
-
       INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      REAL*8, DIMENSION(:,:), POINTER :: tsurf,qsurf,usurf,vsurf
+
+      tsurf=>atmsrf%tsavg
+      qsurf=>atmsrf%qsavg
+      usurf=>atmsrf%usavg
+      vsurf=>atmsrf%vsavg
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -892,7 +896,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE,
      *                          NORTH, SOUTH
-      USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
+      USE FLUXES, only : atmsrf
       IMPLICIT NONE
 !@var Vert. Diffusion coefficent
       REAL*8, INTENT(OUT),
@@ -909,6 +913,11 @@ C****
       INTEGER :: J_1, J_0
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      REAL*8, DIMENSION(:,:), POINTER :: usurf,vsurf
+
+      usurf=>atmsrf%usavg
+      vsurf=>atmsrf%vsavg
 
 C****
 C**** Extract useful local domain parameters from "grid"

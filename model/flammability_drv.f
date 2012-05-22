@@ -326,8 +326,7 @@
      & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,missing,
      & raP_acc
 
-      use pblcom, only: tsavg, qsavg
-      use fluxes, only: prec
+      use fluxes, only: prec,atmsrf
       use constant, only: sday, lhe
       use diag_com, only: ij_flam,aij=>aij_loc
 
@@ -336,6 +335,7 @@
       integer :: J_0S, J_1S, I_0H, I_1H, i, j
       logical :: have_south_pole, have_north_pole     
       real*8 :: qsat ! this is a function in UTILDBL.f
+      real*8 :: tsurf,qsurf
                               
       call get(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE = have_south_pole,
@@ -357,11 +357,14 @@
           raP_acc(i,j)=raP_acc(i,j)+ravg_prec(i,j)
 
           ! if the first period has elapsed, calculate the flammability
-          if(first_prec(i,j)==0)
-     &    call calc_flammability(tsavg(i,j),sday*ravg_prec(i,j)/dtsrc,
-     &    min(1.d0,qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)),
-     &    veg_density(i,j),flammability(i,j)) 
-
+          if(first_prec(i,j)==0) then
+            ! could use tsurf,qsurf over land (from atmlnd%)?
+            tsurf = atmsrf%tsavg(i,j)
+            qsurf = atmsrf%qsavg(i,j)
+            call calc_flammability(tsurf,sday*ravg_prec(i,j)/dtsrc,
+     &           min(1.d0,qsurf/qsat(tsurf,lhe,p(i,j)+ptop)),
+     &           veg_density(i,j),flammability(i,j)) 
+            endif
           ! update diagnostic
           aij(i,j,ij_flam)=aij(i,j,ij_flam)+flammability(i,j)
 

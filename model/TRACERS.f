@@ -578,7 +578,7 @@ C**** trflux1 is total flux into first layer
       USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,trm,trmom
-      USE FLUXES, only : trflux1,trsrfflx
+      USE FLUXES, only : trflux1,atmsrf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
@@ -608,7 +608,7 @@ c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
 c     *       *dtstep
 
 C**** Accumulate interactive sources as well
-        trflux1(:,j,n) = trflux1(:,j,n)+trsrfflx(:,j,n)
+        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
        end do
 
 C**** Technically speaking the vertical moments should be modified here
@@ -616,8 +616,9 @@ C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
         do j=J_0,J_1
           do i=i_0,imaxj(j)
-            if (trsrfflx(i,j,n).lt.0 .and. trm(i,j,1,n).gt.0) then
-              ftr1=min(1d0,-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n))
+            if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
+     &           trm(i,j,1,n).gt.0) then
+              ftr1=min(1d0,-atmsrf%trsrfflx(n,i,j)*dtstep/trm(i,j,1,n))
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
             end if
           end do

@@ -134,6 +134,10 @@ C**** module should own dynam variables used by other routines
 !@var BYAM1 1/AM1
 !@var P1 center pressure of first atmospheric layer (mb)
      &     ,AM1,BYAM1,P1
+!@var TEMP1 pot. temp. of first layer w.r.t. 1 mb (K)
+!@var SPHUM1 specific humidity of first layer
+!@var U1,V1 wind components of first layer (A-grid)
+     &     ,TEMP1,SPHUM1,U1,V1
 
       END MODULE ATM_COM
 
@@ -157,6 +161,7 @@ C**** module should own dynam variables used by other routines
      &     PUA,PVA,SDA,MB,MA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
      &     SRFP,SRFPK,P1,AM1,BYAM1,
+     &     TEMP1,SPHUM1,U1,V1,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
      &     TTROPO,
@@ -279,6 +284,10 @@ C**** Check polar uniformity
      $          AM1(I_0H:I_1H,J_0H:J_1H),
      $          BYAM1(I_0H:I_1H,J_0H:J_1H),
      $          P1(I_0H:I_1H,J_0H:J_1H),
+     $          TEMP1(I_0H:I_1H,J_0H:J_1H),
+     $          SPHUM1(I_0H:I_1H,J_0H:J_1H),
+     $          U1(I_0H:I_1H,J_0H:J_1H),
+     $          V1(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
 #ifdef etc_subdd

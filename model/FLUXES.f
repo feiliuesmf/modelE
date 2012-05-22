@@ -27,9 +27,22 @@
       end type simple_bounds_type
 
       type, extends(simple_bounds_type) :: atmsrf_xchng_vars
+
+!@var surf_name name of surface type
+         character(len=16) :: surf_name
+
 !@var grid a pointer to the grid object whose domain bounds were
 !@+   used to allocate an instance of this type
          type(dist_grid), pointer :: grid
+
+!@var xxx_exports memory spaces holding selected fields for
+!@+   bulk processing operations (averaging over surface types etc.)
+         real*8, dimension(:,:,:), pointer ::
+     &        srfflx_exports,srfstate_exports,pbl_exports
+#ifdef TRACERS_ON
+         real*8, dimension(:,:,:,:), pointer ::
+     &        trsrfflx_exports,trsrfstate_exports,trpbl_exports
+#endif
 
          REAL*8, DIMENSION(:,:), POINTER ::
 !@var E0 net energy flux at surface (J/m^2)
@@ -47,11 +60,12 @@ C**** Momemtum stresses are calculated as if they were over whole box
 !@var GTEMP temperature of surface (C)
 !@var GTEMP2 "ground" temperature of "second" layer (C)
 !@var GTEMPR radiative ground temperature over surface type (K)
-     &     ,GTEMP,GTEMP2,GTEMPR
+!@var GTEMPS skin temperature over surface type (C)
+     &     ,GTEMP,GTEMP2,GTEMPR,GTEMPS
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
 !@var LAT latitude of gridbox (radians)
      &     ,COSZ1,LAT
-!@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S) (over all types)
+!@var WSAVG  SURFACE WIND MAGNITUDE (M/S)
      &     ,WSAVG
 !@var USAVG,VSAVG,TSAVG,QSAVG reference-height surf. wind components, temp, humidity
      &     ,USAVG,VSAVG,TSAVG,QSAVG
@@ -75,7 +89,8 @@ C**** Momemtum stresses are calculated as if they were over whole box
          REAL*8, DIMENSION(:,:,:), POINTER ::
      &      TRM1  ! first-layer tracer mass (kg).  Todo: kg/m2 instead.
      &     ,TRFLUX1 ! non-interactive emissions (kg/s).  Todo: kg/s/m2 instead.
-     &     ,TRSRFFLX ! interactive emissions. (kg/s).
+!@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
+     &     ,TRSRFFLX
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
          REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
 #ifdef TRACERS_WATER
@@ -114,6 +129,67 @@ C**** Momemtum stresses are calculated as if they were over whole box
 
 #ifdef TRACERS_ON
          integer :: ntm=0
+#endif
+
+!@var uabl boundary layer profile for zonal wind
+!@var vabl boundary layer profile for meridional wind
+!@var tabl boundary layer profile for temperature
+!@var qabl boundary layer profile for humidity
+!@var eabl boundary layer profile for turbulent KE (calc. on sec. grid)
+      real*8, pointer, dimension(:,:,:) :: uabl,vabl,tabl,qabl,eabl
+#ifdef TRACERS_ON
+!@var trabl boundary layer profile for tracers
+      real*8, pointer, dimension(:,:,:,:) :: trabl
+#ifdef TRACERS_DRYDEP
+!@var dep_vel dry deposition velocity
+!@var gs_vel gravitational settling velocity
+!@var drydflx dry deposition flux
+      real*8, pointer, dimension(:,:,:) :: dep_vel,gs_vel,drydflx
+#endif
+#endif
+!@var cmgs drag coefficient (dimensionless surface momentum flux)
+!@var chgs Stanton number   (dimensionless surface heat flux)
+!@var cqgs Dalton number    (dimensionless surface moisture flux)
+      real*8, pointer, dimension(:,:) :: cmgs,chgs,cqgs
+!@var ipbl flag for whether pbl properties were found at last timestep
+      integer, pointer, dimension(:,:) :: ipbl
+!@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
+      REAL*8, pointer, dimension(:,:) :: ustar_pbl
+
+!@var WSAVG     SURFACE WIND MAGNITUDE (M/S)
+!@var TSAVG     SURFACE AIR TEMPERATURE (K)
+!@var QSAVG     SURFACE AIR SPECIFIC HUMIDITY (1)
+!@var USAVG     SURFACE U WIND
+!@var VSAVG     SURFACE V WIND
+!@var TAUAVG    SURFACE MOMENTUM TRANSFER (TAU)
+!@var TGVAVG    virtual temperature of the ground (K)
+!@var gustiwind wind gustiness (m/s)
+!@var dblavg    boundary layer height (m)
+!@var w2_l1     vertical component of t.k.e. at gcm layer 1
+!@var ciaavg    cross-isobar angle
+!@var khsavg    vertical diffusivity at "surface" height (m2/s)
+
+      real*8, pointer, dimension(:,:) ::
+     &     tauavg,tgvavg,qgavg
+     &    ,w2_l1,gustiwind,dblavg,rhoavg
+     &    ,ciaavg,khsavg
+
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
+!@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
+!@var wsubtke turbulent kinetic energy velocity scale [m/s]
+!@var wsubwd dry convective velocity scale [m/s]
+!@var wsubwm moist convective velocity scale [m/s]
+      real*8, pointer, dimension(:,:) ::
+     &   wsgcm,wspdf,wsubwd,wsubtke,wsubwm
+#endif
+
+#ifdef TRACERS_ON
+!@var travg near-surface tracer mixing ratio
+!@var travg_byvol near-surface tracer concentration (kg/m3)
+      REAL*8, pointer, dimension(:,:,:) :: travg,travg_byvol
 #endif
 
       end type atmsrf_xchng_vars
@@ -407,13 +483,15 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       end subroutine set_simple_bounds_type
 
       subroutine alloc_atmsrf_xchng_vars(grd_dum,this)
+      use bundle_maker
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmsrf_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: IER
+      INTEGER :: K, IER
 #ifdef TRACERS_ON
       integer :: ntm
 #endif
@@ -432,46 +510,20 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
-      ALLOCATE( this % E0      ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % EVAPOR  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % SENSHT  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % LATHT  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % DMUA    ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % DMVA    ( I_0H:I_1H , J_0H:J_1H ),
+
+      ALLOCATE(
      &          this % PREC    ( I_0H:I_1H , J_0H:J_1H ),
      &          this % EPREC   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % SOLAR   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % TRHEAT  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % GTEMP   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % GTEMP2  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % GTEMPR  ( I_0H:I_1H , J_0H:J_1H ),
 #ifdef TRACERS_ON
-     &          this % GTRACER ( NTM, I_0H:I_1H , J_0H:J_1H ),
-     &          this % TRSRFFLX( I_0H:I_1H , J_0H:J_1H, NTM ),
 #ifdef TRACERS_WATER
      &          this % TRPREC  ( NTM, I_0H:I_1H , J_0H:J_1H ),
-     &          this % TREVAPOR( NTM, I_0H:I_1H , J_0H:J_1H ),
-#endif
-#ifdef TRACERS_DRYDEP
-     &          this % TRDRYDEP( NTM, I_0H:I_1H , J_0H:J_1H ),
 #endif
 #endif
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
      &          this % COSZ1   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % WSAVG   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % USAVG   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % VSAVG   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % TSAVG   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % QSAVG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % FLONG   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % FSHORT  ( I_0H:I_1H , J_0H:J_1H ),
      &          this % TRUP_in_rad  ( I_0H:I_1H , J_0H:J_1H ),
-
-     &          this % dTH1  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % dQ1   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % UFLUX1( I_0H:I_1H , J_0H:J_1H ),
-     &          this % VFLUX1( I_0H:I_1H , J_0H:J_1H ),
-
 #ifdef STANDALONE_OCEAN
      &          this % SRFP    ( I_0H:I_1H , J_0H:J_1H ),
 #endif
@@ -479,26 +531,96 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &          this % WORK2   ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 
+      call make_bundle(this%srfflx_exports
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%evapor
+     &     ,this%sensht,this%latht,this%trheat,this%solar,this%e0
+     &     ,this%dmua,this%dmva
+     &     ,this%dTH1,this%dQ1,this%uflux1,this%vflux1
+     &     )
+
+      call make_bundle(this%srfstate_exports
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%gtemp,this%gtemp2,this%gtempr,this%gtemps
+     &     )
+
       this % GTEMP = 0.    ! initialize at 0 C
       this % GTEMP2 = 0.   ! initialize at 0 C
       this % GTEMPR = TF   ! initialize at 273 K
-      this % EVAPOR = 0.
-      this % SENSHT = 0.
-      this % LATHT = 0.
 
 #ifdef TRACERS_ON
-      this % GTRACER = 0.
-      this % TRSRFFLX = 0.
+      call make_bundle_lij(this%trsrfflx_exports
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%trsrfflx
+#ifdef TRACERS_WATER
+     &     ,this%trevapor
+#endif
 #ifdef TRACERS_DRYDEP
-      this % TRDRYDEP = 0.
+     &     ,this%trdrydep
 #endif
+     &     )
+
+      call make_bundle_lij(this%trsrfstate_exports
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%gtracer
+     &     )
+
 #endif
+
+      allocate(this % ipbl(i_0h:i_1h,j_0h:j_1h))
+      this % ipbl = 0
+
+      call make_bundle(this%pbl_exports
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%tsavg 
+     &     ,this%qsavg 
+     &     ,this%usavg 
+     &     ,this%vsavg 
+     &     ,this%wsavg 
+     &     ,this%tauavg 
+     &     ,this%tgvavg 
+     &     ,this%qgavg 
+     &     ,this%w2_l1 
+     &     ,this%gustiwind
+     &     ,this%dblavg
+     &     ,this%rhoavg
+     &     ,this%ciaavg
+     &     ,this%khsavg
+     &     ,this%cmgs
+     &     ,this%chgs
+     &     ,this%cqgs
+     &     ,this%ustar_pbl
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+     &     ,this%wsgcm
+     &     ,this%wspdf
+     &     ,this%wsubwd
+     &     ,this%wsubtke
+     &     ,this%wsubwm
+#endif
+     &     )
+
+#ifdef TRACERS_ON
+
+      call make_bundle_lij(this%trpbl_exports
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%travg,this%travg_byvol
+#ifdef TRACERS_DRYDEP
+     &     ,this%dep_vel
+     &     ,this%gs_vel
+     &     ,this%drydflx
+#endif
+     &     )
+
+#endif
+
       return
       end subroutine alloc_atmsrf_xchng_vars
 
       subroutine setptr_atmsrf_loopable(src,dest)
       IMPLICIT NONE
       TYPE(atmsrf_xchng_vars) :: src,dest
+      dest%surf_name = src%surf_name
       dest%e0     => src%e0
       dest%evapor => src%evapor
       dest%sensht => src%sensht
@@ -508,6 +630,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       dest%dmua   => src%dmua
       dest%dmva   => src%dmva
       dest%gtempr => src%gtempr
+      dest%gtemps => src%gtemps
       dest%gtemp  => src%gtemp
       dest%gtemp2 => src%gtemp2
       dest%flong  => src%flong
@@ -526,6 +649,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       dest%qsavg => src%qsavg
       dest%usavg => src%usavg
       dest%vsavg => src%vsavg
+      dest%wsavg => src%wsavg
 
       dest%p1 => src%p1
       dest%srfp => src%srfp
@@ -538,12 +662,153 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       dest%uflux1  => src%uflux1
       dest%vflux1  => src%vflux1
 #ifdef TRACERS_ON
+      dest%trm1  => src%trm1
       dest%trflux1  => src%trflux1
-      dest%trsrfflx => src%trsrfflx
+      dest%trsrfflx  => src%trsrfflx
+#endif
+
+      dest%pbl_exports => src%pbl_exports
+      dest%srfflx_exports => src%srfflx_exports
+      dest%srfstate_exports => src%srfstate_exports
+#ifdef TRACERS_ON
+      dest%trpbl_exports => src%trpbl_exports
+      dest%trsrfflx_exports => src%trsrfflx_exports
+      dest%trsrfstate_exports => src%trsrfstate_exports
+#endif
+
+      dest%ipbl => src%ipbl
+      dest%cmgs => src%cmgs
+      dest%chgs => src%chgs
+      dest%cqgs => src%cqgs
+      dest%ustar_pbl => src%ustar_pbl
+#ifdef TRACERS_ON
+#ifdef TRACERS_DRYDEP
+      dest%dep_vel => src%dep_vel
+      dest%gs_vel  => src%gs_vel
+      dest%drydflx => src%drydflx
+#endif
+#endif
+      return
+      end subroutine setptr_atmsrf_loopable
+
+      subroutine avg_patches_pbl_exports(grid,patches,avg,ptype)
+      use domain_decomp_1d, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(atmsrf_xchng_vars) :: patches(4),avg
+      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
+     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+c
+      integer :: i,j,k,l
+c
+      do l=1,size(avg%pbl_exports,3)
+        avg%pbl_exports(:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%pbl_exports(i,j,l) = avg%pbl_exports(i,j,l) +
+     &         patches(k)%pbl_exports(i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
+
+#ifdef TRACERS_ON
+      do l=1,size(avg%trpbl_exports,4)
+        avg%trpbl_exports(:,:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%trpbl_exports(:,i,j,l) = avg%trpbl_exports(:,i,j,l) +
+     &         patches(k)%trpbl_exports(:,i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
 #endif
 
       return
-      end subroutine setptr_atmsrf_loopable
+      end subroutine avg_patches_pbl_exports
+
+      subroutine avg_patches_srfflx_exports(grid,patches,avg,ptype)
+      use domain_decomp_1d, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(atmsrf_xchng_vars) :: patches(4),avg
+      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
+     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+c
+      integer :: i,j,k,l
+c
+      do l=1,size(avg%srfflx_exports,3)
+        avg%srfflx_exports(:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%srfflx_exports(i,j,l) = avg%srfflx_exports(i,j,l) +
+     &         patches(k)%srfflx_exports(i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
+
+#ifdef TRACERS_ON
+      do l=1,size(avg%trsrfflx_exports,4)
+        avg%trsrfflx_exports(:,:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%trsrfflx_exports(:,i,j,l) =
+     &    avg%trsrfflx_exports(:,i,j,l) +
+     &         patches(k)%trsrfflx_exports(:,i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
+#endif
+
+      return
+      end subroutine avg_patches_srfflx_exports
+
+      subroutine avg_patches_srfstate_exports(grid,patches,avg,ptype)
+      use domain_decomp_1d, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(atmsrf_xchng_vars) :: patches(4),avg
+      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
+     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+c
+      integer :: i,j,k,l
+c
+      do l=1,size(avg%srfstate_exports,3)
+        avg%srfstate_exports(:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%srfstate_exports(i,j,l) = avg%srfstate_exports(i,j,l) +
+     &         patches(k)%srfstate_exports(i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
+
+#ifdef TRACERS_ON
+      do l=1,size(avg%trsrfstate_exports,4)
+        avg%trsrfstate_exports(:,:,:,l) = 0.
+        do k=1,size(patches)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%trsrfstate_exports(:,i,j,l) =
+     &    avg%trsrfstate_exports(:,i,j,l) +
+     &         patches(k)%trsrfstate_exports(:,i,j,l)*ptype(k,i,j)
+        enddo
+        enddo
+        enddo
+      enddo
+#endif
+
+      return
+      end subroutine avg_patches_srfstate_exports
 
       subroutine alloc_atmocn_xchng_vars(grd_dum,this)
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
@@ -879,10 +1144,6 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 !@+   feed into drag calculation in surface (default = 0)
       INTEGER :: UOdrag = 0
 
-C**** currently saved - should be replaced by fluxed quantities
-!@var DTH1,DQ1 heat/water flux from atmos. summed over type (C, kg/kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), target :: DTH1,DQ1
-
 !@var uflux1 surface turbulent u-flux (=-<uw>) 
 !@var vflux1 surface turbulent v-flux (=-<vw>)
 !@var tflux1 surface turbulent t-flux (=-<tw>)
@@ -927,8 +1188,6 @@ C**** fluxes associated with variable lake fractions
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif
-!@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trsrfflx
 !@var TRFLUX1 total surface flux for each tracer (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trflux1
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
@@ -1002,6 +1261,10 @@ C**** fluxes associated with variable lake fractions
       type(atmgla_xchng_vars) :: atmgla ! glacial ice
       type(atmlnd_xchng_vars) :: atmlnd ! land surface
 
+!@var atmsrf a derived-type structure for quantities averaged over
+!@+   surface types.
+      type(atmsrf_xchng_vars) :: atmsrf
+
 !@var asflx an array for looping over atmocn,atmice,atmgla,atmlnd
       type(atmsrf_xchng_vars), dimension(4) :: asflx
 
@@ -1030,6 +1293,7 @@ C**** fluxes associated with variable lake fractions
       USE GEOM, only : dlatm,sinip,cosip
 #endif
 #ifdef TRACERS_ON
+      use tracer_com, only : trm1
       USE tracer_com,ONLY : Ntm=> NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
@@ -1040,7 +1304,7 @@ C**** fluxes associated with variable lake fractions
       use tracer_com, only : ntm_gasexch
 #endif
 #endif
-      USE ATM_COM, only : srfp,srfpk,am1,byam1,p1
+      USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
@@ -1121,8 +1385,6 @@ C**** Ensure that no round off error effects land with ice and earth
      &          RUNOE   ( I_0H:I_1H , J_0H:J_1H ), 
      &          ERUNOE  ( I_0H:I_1H , J_0H:J_1H ),
      &          RUNOLI  ( I_0H:I_1H , J_0H:J_1H ),
-     &          DTH1    ( I_0H:I_1H , J_0H:J_1H ),
-     &          DQ1     ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT=IER )
       ALLOCATE( uflux1  ( I_0H:I_1H , J_0H:J_1H ),
      &          vflux1  ( I_0H:I_1H , J_0H:J_1H ),
@@ -1157,8 +1419,8 @@ C**** Ensure that no round off error effects land with ice and earth
 #endif
 
       !(I,J,:) arrays
-      ALLOCATE( trsrfflx( I_0H:I_1H , J_0H:J_1H , NTM    ),
-     &          trflux1 ( I_0H:I_1H , J_0H:J_1H , NTM    ),
+      ALLOCATE(trm1    ( I_0H:I_1H , J_0H:J_1H , NTM    ),
+     &         trflux1 ( I_0H:I_1H , J_0H:J_1H , NTM    ),
      &   STAT = IER)
 
       !I-J-L-:-: array
@@ -1208,12 +1470,23 @@ C**** Ensure that no round off error effects land with ice and earth
 
 #endif
 
+      atmocn%surf_name = 'ocn'
+      atmice%surf_name = 'ice'
+      atmgla%surf_name = 'gla'
+      atmlnd%surf_name = 'lnd'
+
 #ifdef TRACERS_ON
+      atmsrf%ntm = ntm
       atmocn%ntm = ntm
       atmice%ntm = ntm
       atmgla%ntm = ntm
       atmlnd%ntm = ntm
 #endif
+
+      call alloc_xchng_vars(grd_dum,atmsrf)
+      atmsrf%TSAVG(:,:)=temperature_istart1
+
+
 #ifdef TRACERS_GASEXCH_ocean
       atmocn%ntm_gasexch = ntm_gasexch
 #endif
@@ -1239,11 +1512,6 @@ C**** Ensure that no round off error effects land with ice and earth
       deallocate(atmocn%trgmelt);  atmocn%trgmelt => trgmelt
 #endif
 #endif
-      atmocn%srfpk => srfpk
-      atmocn%p1 => p1
-      atmocn%am1 => am1
-      atmocn%byam1 => byam1
-      atmocn%srfp => srfp
 
       call alloc_xchng_vars(grid,atmice)
       atmice%grid => grd_dum
@@ -1259,33 +1527,18 @@ C**** Ensure that no round off error effects land with ice and earth
 #ifdef TRACERS_WATER
       deallocate(atmice%trprec);  atmice%trprec => trprec
 #endif
-      atmice%srfpk => srfpk
-      atmice%p1 => p1
-      atmice%am1 => am1
-      atmice%byam1 => byam1
-      atmice%srfp => srfp
 
       call alloc_xchng_vars(grid,atmgla)
       atmgla%grid => grd_dum
+      atmgla%lat(:,:) = lat2d(:,:)
       deallocate(atmgla%prec);  atmgla%prec => prec
       deallocate(atmgla%eprec); atmgla%eprec => eprec
 #ifdef TRACERS_WATER
       deallocate(atmgla%trprec);  atmgla%trprec => trprec
 #endif
-      atmgla%srfp => srfp
-      atmgla%srfpk => srfpk
-      atmgla%p1 => p1
-      atmgla%am1 => am1
-      atmgla%byam1 => byam1
-      atmgla%lat(:,:) = lat2d(:,:)
 
       call alloc_xchng_vars(grid,atmlnd)
       atmlnd%grid => grd_dum
-      atmlnd%srfp => srfp
-      atmlnd%srfpk => srfpk
-      atmlnd%p1 => p1
-      atmlnd%am1 => am1
-      atmlnd%byam1 => byam1
       atmlnd%lat(:,:) = lat2d(:,:)
 
 #ifdef TRACERS_ON
@@ -1296,6 +1549,13 @@ C**** Ensure that no round off error effects land with ice and earth
       atmlnd%trflux1  => trflux1
 #endif
 
+! set pointers to atm. quantities that are independent of surface type
+! (for now)
+      call set_pointers_to_atm_means(atmocn%atmsrf_xchng_vars)
+      call set_pointers_to_atm_means(atmice%atmsrf_xchng_vars)
+      call set_pointers_to_atm_means(atmgla%atmsrf_xchng_vars)
+      call set_pointers_to_atm_means(atmlnd%atmsrf_xchng_vars)
+
 ! set pointers for looping over surface types
       call setptr_atmsrf_loopable(atmocn%atmsrf_xchng_vars,asflx(1))
       call setptr_atmsrf_loopable(atmice%atmsrf_xchng_vars,asflx(2))
@@ -1304,6 +1564,30 @@ C**** Ensure that no round off error effects land with ice and earth
 
 
       END SUBROUTINE ALLOC_FLUXES
+
+      subroutine set_pointers_to_atm_means(this)
+      use atm_com, only : srfp,srfpk,p1,am1,byam1,temp1,sphum1,u1,v1
+      use exchange_types
+#ifdef TRACERS_ON
+      use tracer_com, only : trm1
+#endif
+      implicit none
+      type(atmsrf_xchng_vars) :: this
+
+      this%srfp => srfp
+      this%srfpk => srfpk
+      this%p1 => p1
+      this%am1 => am1
+      this%byam1 => byam1
+      this%temp1 => temp1
+      this%q1    => sphum1
+      this%u1    => u1
+      this%v1    => v1
+#ifdef TRACERS_ON
+      this%trm1 => trm1
+#endif
+      return
+      end subroutine set_pointers_to_atm_means
 
       subroutine def_rsf_fluxes(fid)
 !@sum  def_rsf_fluxes defines structure of coupler arrays in restart files
@@ -1315,6 +1599,9 @@ C**** Ensure that no round off error effects land with ice and earth
       implicit none
       integer fid   !@var fid file id
       character(len=17) :: ijstr
+      character(len=64) :: dimstr,vname
+      integer :: itype
+
       ijstr='(dist_im,dist_jm)'
       !call defvar(agrid,fid,atmocn%gtemp,'gtemp'//ijstr)
       !call defvar(agrid,fid,atmocn%gtempr,'gtempr'//ijstr)
@@ -1325,6 +1612,49 @@ C**** Ensure that no round off error effects land with ice and earth
       call defvar(grid,fid,atmocn%uosurf,'uosurf'//ijstr)
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
       call defvar(grid,fid,atmocn%mlhc,'mlhc'//ijstr)
+
+      do itype = 1,size(asflx)
+        dimstr='_'//trim(asflx(itype)%surf_name)// 
+     &       '(npbl,dist_im,dist_jm)'
+        vname = 'uabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%uabl,vname)
+        vname = 'vabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%vabl,vname)
+        vname = 'tabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%tabl,vname)
+        vname = 'qabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%qabl,vname)
+        vname = 'eabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%eabl,vname)
+        dimstr='_'//trim(asflx(itype)%surf_name)//ijstr
+        vname = 'cmgs'//dimstr
+        call defvar(grid,fid,asflx(itype)%cmgs,vname)
+        vname = 'chgs'//dimstr
+        call defvar(grid,fid,asflx(itype)%chgs,vname)
+        vname = 'cqgs'//dimstr
+        call defvar(grid,fid,asflx(itype)%cqgs,vname)
+        vname = 'ipbl'//dimstr
+        call defvar(grid,fid,asflx(itype)%ipbl,vname)
+        vname = 'ustar_pbl'//dimstr
+        call defvar(grid,fid,asflx(itype)%ustar_pbl,vname)
+#ifdef TRACERS_ON
+        dimstr='_'//trim(asflx(itype)%surf_name)// 
+     &       '(npbl,ntm,dist_im,dist_jm)'
+        vname = 'trabl'//dimstr
+        call defvar(grid,fid,asflx(itype)%trabl,vname)
+#endif
+      enddo
+
+      call defvar(grid,fid,atmsrf%tsavg,'tsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%qsavg,'qsavg(dist_im,dist_jm)')
+c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%usavg,'usavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%vsavg,'vsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%wsavg,'wsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%tauavg,'tauavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%tgvavg,'tgvavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%qgavg,'qgavg(dist_im,dist_jm)')
+
       return
       end subroutine def_rsf_fluxes
 
@@ -1339,6 +1669,10 @@ C**** Ensure that no round off error effects land with ice and earth
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      character(len=16) :: suffix
+      character(len=64) :: vname
+      integer :: itype
+
       select case (iaction)
       case (iowrite)            ! output to restart file
         !call write_dist_data(grid,fid,'gtemp',atmocn%gtemp)
@@ -1350,6 +1684,57 @@ C**** Ensure that no round off error effects land with ice and earth
         call write_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call write_dist_data(grid,fid,'vosurf',atmocn%vosurf)
         call write_dist_data(grid,fid,'mlhc',atmocn%mlhc)
+
+
+        do itype = 1,size(asflx)
+          suffix = '_'//asflx(itype)%surf_name
+          vname = 'uabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%uabl, jdim=3)
+          vname = 'vabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%vabl, jdim=3)
+          vname = 'tabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%tabl, jdim=3)
+          vname = 'qabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%qabl, jdim=3)
+          vname = 'eabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%eabl, jdim=3)
+          vname = 'cmgs'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%cmgs)
+          vname = 'chgs'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%chgs)
+          vname = 'cqgs'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%cqgs)
+          vname = 'ipbl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%ipbl)
+          vname = 'ustar_pbl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%ustar_pbl)
+#ifdef TRACERS_ON
+          vname = 'trabl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%trabl, jdim=4)
+#endif
+        enddo
+
+        call write_dist_data(grid,fid,'tsavg',atmsrf%tsavg)
+        call write_dist_data(grid,fid,'qsavg',atmsrf%qsavg)
+c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
+        call write_dist_data(grid,fid,'usavg',atmsrf%usavg)
+        call write_dist_data(grid,fid,'vsavg',atmsrf%vsavg)
+        call write_dist_data(grid,fid,'wsavg',atmsrf%wsavg)
+        call write_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
+        call write_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
+        call write_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+
       case (ioread)             ! input from restart file
         !call read_dist_data(grid,fid,'gtemp',atmocn%gtemp)
         !call read_dist_data(grid,fid,'gtempr',atmocn%gtempr)
@@ -1360,6 +1745,56 @@ C**** Ensure that no round off error effects land with ice and earth
         call read_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call read_dist_data(grid,fid,'vosurf',atmocn%vosurf)
         call read_dist_data(grid,fid,'mlhc',atmocn%mlhc)
+
+        do itype = 1,size(asflx)
+          suffix = '_'//asflx(itype)%surf_name
+          vname = 'uabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%uabl, jdim=3)
+          vname = 'vabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%vabl, jdim=3)
+          vname = 'tabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%tabl, jdim=3)
+          vname = 'qabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%qabl, jdim=3)
+          vname = 'eabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%eabl, jdim=3)
+          vname = 'cmgs'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%cmgs)
+          vname = 'chgs'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%chgs)
+          vname = 'cqgs'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%cqgs)
+          vname = 'ipbl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%ipbl)
+          vname = 'ustar_pbl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%ustar_pbl)
+#ifdef TRACERS_ON
+          vname = 'trabl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(itype)%trabl, jdim=4)
+#endif
+        enddo
+
+        call read_dist_data(grid,fid,'tsavg',atmsrf%tsavg)
+        call read_dist_data(grid,fid,'qsavg',atmsrf%qsavg)
+c        call read_dist_data(grid,fid,'dclev',atmsrf%dclev)
+        call read_dist_data(grid,fid,'usavg',atmsrf%usavg)
+        call read_dist_data(grid,fid,'vsavg',atmsrf%vsavg)
+        call read_dist_data(grid,fid,'wsavg',atmsrf%wsavg)
+        call read_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
+        call read_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
+        call read_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+
       end select
       return
       end subroutine new_io_fluxes

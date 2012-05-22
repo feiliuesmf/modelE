@@ -419,9 +419,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
 #endif
-      USE FLUXES, only : atmocn
+      USE FLUXES, only : atmocn,atmsrf
      &     ,flice,focean,fearth0,flake0,fland
-      USE PBLCOM, only : tsavg
       USE GHY_COM, only : fearth
       USE LAKES
       USE LAKES_COM
@@ -529,7 +528,7 @@ C**** This is just an estimate for the initiallisation
         DO J=J_0, J_1
           DO I=I_0, I_1
             IF (FLAKE(I,J).gt.0) THEN
-              TLAKE(I,J) = MAX(0d0,TSAVG(I,J)-TF)
+              TLAKE(I,J) = MAX(0d0,atmsrf%TSAVG(I,J)-TF)
               MWL(I,J)   = RHOW*HLAKE(I,J)*FLAKE(I,J)*AXYP(I,J)
               MLK1       = MINMLD*RHOW*FLAKE(I,J)*AXYP(I,J)
               GML(I,J)   = SHW*(MLK1*TLAKE(I,J)

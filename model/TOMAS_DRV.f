@@ -2392,7 +2392,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE ATM_COM,   only: pmid,pk, am   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)
-      USE FLUXES, only : trsource,trflux1, trsrfflx
+      USE FLUXES, only : trsource,trflux1
       USE TRDIAG_COM, only : taijs=>taijs_loc
 !      USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET

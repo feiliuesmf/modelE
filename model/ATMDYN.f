@@ -1127,7 +1127,7 @@ C****
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm=>NTM,trname,ITIME_TR0,trm,trmom
 #endif
-      USE PBLCOM, only : tsavg
+      USE FLUXES, only : atmsrf
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : GET, GLOBALSUM
       IMPLICIT NONE
@@ -1157,7 +1157,7 @@ C****
           POLD(I,J)=P(I,J)      ! Save old pressure
           PS=P(I,J)+PTOP
           ZS=ZATMO(I,J)*BYGRAV
-          X(I,J)=SLP(PS,TSAVG(I,J),ZS)
+          X(I,J)=SLP(PS,atmsrf%TSAVG(I,J),ZS)
           Y(I,J)=X(I,J)/PS
         END DO
       END DO

@@ -82,7 +82,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
-      USE FLUXES, only: tr3Dsource,trsource,trsrfflx,trflux1
+      USE FLUXES, only: tr3Dsource,trsource,trflux1
       USE ATM_COM,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           BYAM  1/Air mass (m^2/kg)

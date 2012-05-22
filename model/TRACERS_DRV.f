@@ -6479,7 +6479,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column, skip_parallel
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
-      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,atmsrf
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
@@ -6508,11 +6508,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
-      USE FLUXES, only : flice,focean
+      USE FLUXES, only : flice,focean,asflx
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
       USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
-      USE PBLCOM, only: npbl,trabl,qabl,tsavg
+      USE PBLCOM, only: npbl
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -6971,9 +6971,9 @@ c     tmominit = 0.
 #ifdef TRACERS_SPECIAL_O18
 c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
             if(trname(n).eq."H2O18") tracerTs=TRW0(n_H2O18)*(1.+1d-3*
-     *           ((tsavg(i,j)-(tf+tracerT0))*d18oT_slope))
+     *           ((atmsrf%tsavg(i,j)-(tf+tracerT0))*d18oT_slope))
             if(trname(n).eq."HDO") tracerTs=TRW0(n_HDO)*(1.+(1d-3*
-     *           (((tsavg(i,j)-(tf+tracerT0))*d18oT_slope)*8+1d1)))
+     *         (((atmsrf%tsavg(i,j)-(tf+tracerT0))*d18oT_slope)*8+1d1)))
 #endif
 C**** lakes
             if (flake(i,j).gt.0) then
@@ -7420,12 +7420,15 @@ C**** Initialise pbl profile if necessary
         do ipbl=1,npbl
 #ifdef TRACERS_WATER
           if(tr_wd_type(n).eq.nWATER)THEN
-            trabl(ipbl,n,it,:,j) = trinit*qabl(ipbl,it,:,j)
+            asflx(it)%trabl(ipbl,n,:,j) =
+     &           trinit*asflx(it)%qabl(ipbl,:,j)
           ELSE
-            trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+            asflx(it)%trabl(ipbl,n,:,j) =
+     &           trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
           END IF
 #else
-            trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+            asflx(it)%trabl(ipbl,n,:,j) =
+     &         trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
 #endif
         end do
         end do
@@ -8039,11 +8042,10 @@ C**** at the start of any day
       USE QUSDEF
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
-      USE FLUXES, only: trsource,fland,flice,focean
+      USE FLUXES, only: trsource,fland,flice,focean,atmsrf
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth
       USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
-      USE PBLCOM, only: tsavg
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
 #endif
@@ -8360,7 +8362,7 @@ C**** ground source
           do i=I_0,I_1
           if (rnsrc.eq.0) then !standard source
 C**** source from ice-free land
-            if(tsavg(i,j).lt.tf) then !composite surface air temperature
+            if(atmsrf%tsavg(i,j).lt.tf) then !composite surface air temperature
               trsource(i,j,1,n) = 1.0d-16*steppd*axyp(i,j)*fearth(i,j)
             else  ! 1 atom/cm^2/s
               trsource(i,j,1,n) = 3.2d-16*steppd*axyp(i,j)*fearth(i,j)

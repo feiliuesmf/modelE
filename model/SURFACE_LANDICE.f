@@ -72,7 +72,7 @@ C****
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
      *     ,dT2,DQ1X,EVHDT0,EVAP,F0DT,FTEVAP,PWATER
-     *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
+     *     ,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
      *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,F2
      *     ,FSRI(2),dlwdt,byNIsurf,TGO
@@ -91,7 +91,7 @@ c**** input/output for PBL
       ! (which is proportional to |u_air - u_ocean|, or  | u_air - u_seaice |)
       ! For land ice, the difference in magnitudes makes the correction negligible.
       ! Hence, we will have always uocean == vocean == 0
-      real*8 uocean, vocean
+c      real*8 uocean, vocean
 c      logical pole
 c
       logical :: lim_dew ! for tracer convenience
@@ -166,6 +166,7 @@ c and it's already zeroed out before outer loop
 
       call alloc_pbl_args(pbl_args)
 
+      ITYPE=3
 
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
@@ -214,7 +215,7 @@ C****
       ! kapa = (g-1)/g where g = 1.401 = c_p/c_v
       !     [or: kapa = (c_p - c_v) / c_p ]
       ! g (or srat) = c_p/c_v = ratio of specific heats at const. press. and vol. (=1.401)
-      PSK=atmgla%srfpk(i,j)
+      !PSK=atmgla%srfpk(i,j)
 
       ! PK = PMID**KAPA
       ! PMID  Pressure at mid point of box (mb)
@@ -264,9 +265,6 @@ C****
       MA1=atmgla%AM1(I,J)
 
 C****
-      DO ITYPE=ITYPE_LANDICE, ITYPE_LANDICE    ! no earth type
-  !    ipbl(itype,i,j)=0
-
 
       ! This is a good way to make sure you dont forget to do something
       ! before you run the model.
@@ -274,64 +272,32 @@ C****
 
 ! BEGIN ---------------------------------------------------------
       PTYPE=PLICE
-      IF (PTYPE.gt.0) THEN
           ! snow amount on land ice (kg/m^2)
-          SNOW=SNOWLI(I,J)
+      SNOW=SNOWLI(I,J)
           ! Temperature of top ice layer (C)
-          TG1=TGRND(3,I,J)
-          ! Temperature of second ice layer
-          TG2=atmgla%GTEMP2(I,J)
+      TG1=TGRND(3,I,J)
 
           ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
           ! (Needed for Stefan-Boltzmann Law)
           ! GTEMPR radiative ground temperature over surface type (K)
-          TR4=TGR4(3,I,J)
+      TR4=TGR4(3,I,J)
 
           ! SRHEAT = Solar Heating
           ! FSF = Solar Forcing over each type (W/m^2)
           ! FSF = net absorption (for cosZ = 1)
           ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
-          SRHEAT=SRDN(I,J)*atmgla%COSZ1(I,J)
-
-          ! Z1E = Thickness of top landice layer (.1m const)
-          ! ALAMI0 = Lambda coefficient for ice J/(m*degC*sec) = W/(m K) (2.11 const)
-          !     (Lambda is thermal conductivity)
-          ! Z1LIBYL = "Z1 Land Ice by Lambda" = Z1E / ALAMI0
-          ! SNOW = snow amount on land ice (kg/m^2)
-          !                                          +---- m -------+
-          !                   m     J/(m*degC*sec)   kg/m^2    kg/m^3   J/(m*degC*sec)
-          ! Z1BY6L = 1/6 * [(Z1E / ALAMI0)          + ((SNOW / RHOS)   /   ALAMS)]
-          ! Z1BY6L units = (m^2 * degC * sec) / J
-          ! Z1BY6L = "Z1 by 6 Lambda"
-          Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
-
-          ! TG2 = Temperature of second ice layer
-          CDTERM=TG2
-
-          ! Z2LI = Thickness of second layer of ice (2.9m)
-          ! Z2LI3L = "Z2LI by 3 Lambda" = 1/3 (Z2LI / ALAMI0)
-          ! Z2LI3L=Z2LI/(3.*ALAMI0)
-          ! 2 * Z1BY6L = "Z1 by 3 Lambda"
-          ! CDENOM = 3 Lambda(ice) / (Z1 + Z2 = 3m)
-          CDENOM=1./(2.*Z1BY6L+Z2LI3L)
-
-          ! HC1LI = heat capacity of first layer land ice (J/m^2)
-          ! SNOW = snow amount on land ice (kg/m^2)
-          ! SHI = heat capacity of pure ice (at 0 C) (2060 J/kg C)
-          ! SNOW*SHI = Heat capacity of snow layer (J/m^2)
-          HCG1=HC1LI+SNOW*SHI
+      SRHEAT=SRDN(I,J)*atmgla%COSZ1(I,J)
 
           ! LHS = latent heat of sublimation at 0 C (J/kg)
-          ELHX=LHS
+      ELHX=LHS
 
-          uocean = 0. ; vocean = 0. ! no land ice velocity
+c      uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
-          do nx=1,ntx
-            trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
-          end do
-          pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
+      do nx=1,ntx
+        trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
+      end do
+      pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
 #endif
-      END IF
 ! END ---------------------------------------------------------
 
 ! ----------------------------------------------------------
@@ -339,15 +305,9 @@ C****
 ! Bob should not have to touch this code, it is not LANDICE-specific.
 
 C****
-      IF (PTYPE.gt.0) THEN
 C****
 C**** BOUNDARY LAYER INTERACTION
 C****
-      SHDT=0.
-      EVHDT=0.
-      TRHDT=0.
-      F1DT=0.
-
       ! TG = Temperature of top ice layer (K)
       ! TF = freezing point of water at 1 atm (273.16 K)
       TG=TG1+TF
@@ -360,8 +320,8 @@ C****
 !      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       pbl_args%TG=TG   ! actual ground temperature
       pbl_args%TR4=TR4 ! radiative temperature K^4
-      pbl_args%ELHX=ELHX   ! relevant latent heat
-      pbl_args%QSOL=SRHEAT   ! solar heating
+      !pbl_args%ELHX=ELHX   ! relevant latent heat
+      !pbl_args%QSOL=SRHEAT   ! solar heating
       pbl_args%TGV=TG*(1.+QG_SAT*xdelt)  ! Virtual temperature of the ground
 
 C =====================================================================
@@ -376,16 +336,16 @@ C =====================================================================
       !pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/atmgla%p1(i,j) !PMID(1,I,J)
       ! TODO: qg_sat changes with height (this will come out automatically)
       pbl_args%qg_sat = qg_sat
-      pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
+      !pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
       !pbl_args%hemi = sign(1d0,atmgla%lat(i,j))
 c      pbl_args%pole = pole
-      pbl_args%evap_max = 1.
-      pbl_args%fr_sat = 1. ! entire surface is saturated
-      pbl_args%uocean = uocean
-      pbl_args%vocean = vocean
+c      pbl_args%evap_max = 1.
+c      pbl_args%fr_sat = 1. ! entire surface is saturated
+c      pbl_args%uocean = uocean
+c      pbl_args%vocean = vocean
       ! TODO: This will change with height
-      pbl_args%psurf = PS
-      pbl_args%trhr0 = TRDN(I,J)
+c      pbl_args%psurf = PS
+c      pbl_args%trhr0 = TRDN(I,J)
       pbl_args%ocean = .false.
       pbl_args%snow = SNOW
 
@@ -393,10 +353,6 @@ c      pbl_args%pole = pole
 ! PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
       CALL PBL(I,J,ITYPE,PTYPE,pbl_args,atmgla)
-
-c#ifdef TRACERS_ON
-c      trs(1:ntm) = pbl_args%trs(1:ntm)
-c#endif
 
       us = pbl_args%us
       vs = pbl_args%vs
@@ -442,7 +398,42 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
 ! Might need to change these if I decide to use layering, differnt
 ! variable names, etc.
 C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
-      if ( ITYPE == ITYPE_LANDICE ) then   ! true
+
+          ! Z1E = Thickness of top landice layer (.1m const)
+          ! ALAMI0 = Lambda coefficient for ice J/(m*degC*sec) = W/(m K) (2.11 const)
+          !     (Lambda is thermal conductivity)
+          ! Z1LIBYL = "Z1 Land Ice by Lambda" = Z1E / ALAMI0
+          ! SNOW = snow amount on land ice (kg/m^2)
+          !                                          +---- m -------+
+          !                   m     J/(m*degC*sec)   kg/m^2    kg/m^3   J/(m*degC*sec)
+          ! Z1BY6L = 1/6 * [(Z1E / ALAMI0)          + ((SNOW / RHOS)   /   ALAMS)]
+          ! Z1BY6L units = (m^2 * degC * sec) / J
+          ! Z1BY6L = "Z1 by 6 Lambda"
+      Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
+
+          ! Temperature of second ice layer
+      TG2=atmgla%GTEMP2(I,J)
+
+          ! TG2 = Temperature of second ice layer
+      CDTERM=TG2
+
+          ! Z2LI = Thickness of second layer of ice (2.9m)
+          ! Z2LI3L = "Z2LI by 3 Lambda" = 1/3 (Z2LI / ALAMI0)
+          ! Z2LI3L=Z2LI/(3.*ALAMI0)
+          ! 2 * Z1BY6L = "Z1 by 3 Lambda"
+          ! CDENOM = 3 Lambda(ice) / (Z1 + Z2 = 3m)
+      CDENOM=1./(2.*Z1BY6L+Z2LI3L)
+
+          ! HC1LI = heat capacity of first layer land ice (J/m^2)
+          ! SNOW = snow amount on land ice (kg/m^2)
+          ! SHI = heat capacity of pure ice (at 0 C) (2060 J/kg C)
+          ! SNOW*SHI = Heat capacity of snow layer (J/m^2)
+      HCG1=HC1LI+SNOW*SHI
+
+c      SHDT=0.
+c      EVHDT=0.
+c      TRHDT=0.
+c      F1DT=0.
 
         ! F0 = Energy flux between atmosphere and surface
         ! SRHEAT = Solar Heating
@@ -471,7 +462,7 @@ C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
         TRHDT=DTSURF*(TRHEAT+DTG*DTRDTG)
         F1DT=DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
-      endif
+
 ! END ------------------------------------------------------------
 
 C**** CALCULATE EVAPORATION
@@ -502,7 +493,7 @@ C**** CALCULATE EVAPORATION
      &         atmgla%TRM1(I,J,n), pbl_args%trs(nx),
      &         atmgla%gtracer(n,i,j), trgrnd2(nx),
      &         pbl_args%trprime(nx),
-     &         atmgla%trsrfflx(i,j,n), atmgla%trevapor(n,i,j)
+     &         atmgla%trsrfflx(n,i,j), atmgla%trevapor(n,i,j)
      &     )
         END IF
       END DO
@@ -563,17 +554,15 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-      DMUA_IJ=PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
-      DMVA_IJ=PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
+      DMUA_IJ=PTYPE*DTSURF*RCDMWS*US
+      DMVA_IJ=PTYPE*DTSURF*RCDMWS*VS
       atmgla%DMUA(I,J) = atmgla%DMUA(I,J) + DMUA_IJ
       atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
-      atmgla%uflux1(i,j) = RCDMWS*(US-UOCEAN)
-      atmgla%vflux1(i,j) = RCDMWS*(VS-VOCEAN)
+      atmgla%uflux1(i,j) = RCDMWS*US
+      atmgla%vflux1(i,j) = RCDMWS*VS
 
 C****
 
-      END IF
-      END DO  ! end of itype loop
       END DO  ! end of I loop
       END DO  ! end of J loop
 ! ============================================================

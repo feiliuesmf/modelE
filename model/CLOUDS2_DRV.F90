@@ -190,8 +190,7 @@ subroutine CONDSE
        isccp_lowcld,isccp_midcld,isccp_highcld,isccp_fq, &
        isccp_totcldarea,isccp_boxtau,isccp_boxptop
 #endif
-  use PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm &
-       ,w2gcm
+  use PBLCOM, only : dclev,egcm,w2gcm
   use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda, &
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
@@ -199,7 +198,7 @@ subroutine CONDSE
   use GHY_COM, only : snoage,fearth
   use LAKES_COM, only : flake
   use FLUXES, only : prec,eprec,precss,focean,fland,flice, &
-       atmocn,atmice,atmgla,atmlnd
+       atmocn,atmice,atmgla,atmlnd,atmsrf
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec 
 #else
@@ -508,12 +507,12 @@ subroutine CONDSE
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
         ROICE=si_atm%RSI(I,J)
-        TS=TSAVG(I,J)
-        QS=QSAVG(I,J)
-        US=USAVG(I,J)
-        VS=VSAVG(I,J)
-        TGV=TGVAVG(I,J)
-        QG=QGAVG(I,J)
+        TS=atmsrf%TSAVG(I,J)
+        QS=atmsrf%QSAVG(I,J)
+        US=atmsrf%USAVG(I,J)
+        VS=atmsrf%VSAVG(I,J)
+        TGV=atmsrf%TGVAVG(I,J)
+        QG=atmsrf%QGAVG(I,J)
         TSV=TS*(1+QS*DELTX)
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)

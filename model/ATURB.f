@@ -34,10 +34,10 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE FLUXES, only : trflux1
 #endif
       USE SOCPBL, only : b1,b123,prt,kappa,zgs,ustar_min
-      USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
+      USE PBLCOM, only : dclev
      *     ,e_3d=>egcm,w2_3d=>w2gcm !,t2_3d=>t2gcm
      &     ,t1_after_aturb,u1_after_aturb,v1_after_aturb
-      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
+      USE FLUXES, only : uflux1,vflux1,tflux1,qflux1,atmsrf
 
 
       IMPLICIT NONE
@@ -120,7 +120,7 @@ C****
         do i=I_0,imaxj(j)
           !@var tvsurf(i,j) surface virtual temperature
           !@var tsavg(i,j) composite surface air temperature (k)
-          tvsurf(i,j)=tsavg(i,j)*(1.d0+deltx*qsavg(i,j))
+          tvsurf(i,j)=atmsrf%tsavg(i,j)*(1.d0+deltx*atmsrf%qsavg(i,j))
           do l=1,lm
             ! t_3d_virtual is virtual potential temp. referenced at 1 mb
             t_3d_virtual(l,i,j)=t_3d(i,j,l)*(1.d0+deltx*q_3d(i,j,l))
@@ -212,8 +212,9 @@ cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
           vflx=vflux1(i,j)/rhoe(1)
           qflx=qflux1(i,j)/rhoe(1)
           ! tvflx is virtual, potential temp. flux referenced at 1 mb
-          tvflx=tflux1(i,j)*(1.d0+deltx*qsavg(i,j))/(rhoe(1)*pek(1,i,j))
-     &         +deltx*tsavg(i,j)/pek(1,i,j)*qflx
+          tvflx=tflux1(i,j)*(1.d0+deltx*atmsrf%qsavg(i,j))/
+     &         (rhoe(1)*pek(1,i,j))
+     &         +deltx*atmsrf%tsavg(i,j)/pek(1,i,j)*qflx
           ! redefine uflux1,vflux1 for later use
           uflux1(i,j)=uflx
           vflux1(i,j)=vflx

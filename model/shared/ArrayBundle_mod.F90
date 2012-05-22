@@ -1,8 +1,193 @@
+
+module bundle_maker
+  implicit none
+
+  private
+  public :: make_bundle,make_bundle_lij
+
+contains
+
+  subroutine make_bundle(arr,is,ie,js,je, &
+              ptr01,ptr02,ptr03,ptr04, &
+        ptr05,ptr06,ptr07,ptr08,ptr09, &
+        ptr10,ptr11,ptr12,ptr13,ptr14, &
+        ptr15,ptr16,ptr17,ptr18,ptr19, &
+        ptr20,ptr21,ptr22,ptr23,ptr24, &
+        ptr25,ptr26,ptr27,ptr28,ptr29  &
+       )
+    integer :: is,ie,js,je
+    real*8, pointer :: arr(:,:,:)
+    real*8, pointer, dimension(:,:), optional :: &
+                ptr01,ptr02,ptr03,ptr04, &
+          ptr05,ptr06,ptr07,ptr08,ptr09, &
+          ptr10,ptr11,ptr12,ptr13,ptr14, &
+          ptr15,ptr16,ptr17,ptr18,ptr19, &
+          ptr20,ptr21,ptr22,ptr23,ptr24, &
+          ptr25,ptr26,ptr27,ptr28,ptr29
+    integer :: k,n
+!
+! the size of the bundle is equal to the number of optional
+! arguments present
+!
+    n=0
+    if(present(ptr01)) n=n+1
+    if(present(ptr02)) n=n+1
+    if(present(ptr03)) n=n+1
+    if(present(ptr04)) n=n+1
+    if(present(ptr05)) n=n+1
+    if(present(ptr06)) n=n+1
+    if(present(ptr07)) n=n+1
+    if(present(ptr08)) n=n+1
+    if(present(ptr09)) n=n+1
+    if(present(ptr10)) n=n+1
+    if(present(ptr11)) n=n+1
+    if(present(ptr12)) n=n+1
+    if(present(ptr13)) n=n+1
+    if(present(ptr14)) n=n+1
+    if(present(ptr15)) n=n+1
+    if(present(ptr16)) n=n+1
+    if(present(ptr17)) n=n+1
+    if(present(ptr18)) n=n+1
+    if(present(ptr19)) n=n+1
+    if(present(ptr20)) n=n+1
+    if(present(ptr21)) n=n+1
+    if(present(ptr22)) n=n+1
+    if(present(ptr23)) n=n+1
+    if(present(ptr24)) n=n+1
+    if(present(ptr25)) n=n+1
+    if(present(ptr26)) n=n+1
+    if(present(ptr27)) n=n+1
+    if(present(ptr28)) n=n+1
+    if(present(ptr29)) n=n+1
+
+!
+! allocate the bundle
+!
+    allocate(arr(is:ie,js:je,n))
+    arr = 0.
+
+    if(n> 0) call set_ptr(arr(:,:, 1), ptr01 ,is,js)
+    if(n> 1) call set_ptr(arr(:,:, 2), ptr02 ,is,js)
+    if(n> 2) call set_ptr(arr(:,:, 3), ptr03 ,is,js)
+    if(n> 3) call set_ptr(arr(:,:, 4), ptr04 ,is,js)
+    if(n> 4) call set_ptr(arr(:,:, 5), ptr05 ,is,js)
+    if(n> 5) call set_ptr(arr(:,:, 6), ptr06 ,is,js)
+    if(n> 6) call set_ptr(arr(:,:, 7), ptr07 ,is,js)
+    if(n> 7) call set_ptr(arr(:,:, 8), ptr08 ,is,js)
+    if(n> 8) call set_ptr(arr(:,:, 9), ptr09 ,is,js)
+    if(n> 9) call set_ptr(arr(:,:,10), ptr10 ,is,js)
+    if(n>10) call set_ptr(arr(:,:,11), ptr11 ,is,js)
+    if(n>11) call set_ptr(arr(:,:,12), ptr12 ,is,js)
+    if(n>12) call set_ptr(arr(:,:,13), ptr13 ,is,js)
+    if(n>13) call set_ptr(arr(:,:,14), ptr14 ,is,js)
+    if(n>14) call set_ptr(arr(:,:,15), ptr15 ,is,js)
+    if(n>15) call set_ptr(arr(:,:,16), ptr16 ,is,js)
+    if(n>16) call set_ptr(arr(:,:,17), ptr17 ,is,js)
+    if(n>17) call set_ptr(arr(:,:,18), ptr18 ,is,js)
+    if(n>18) call set_ptr(arr(:,:,19), ptr19 ,is,js)
+    if(n>19) call set_ptr(arr(:,:,20), ptr20 ,is,js)
+    if(n>20) call set_ptr(arr(:,:,21), ptr21 ,is,js)
+    if(n>21) call set_ptr(arr(:,:,22), ptr22 ,is,js)
+    if(n>22) call set_ptr(arr(:,:,23), ptr23 ,is,js)
+    if(n>23) call set_ptr(arr(:,:,24), ptr24 ,is,js)
+    if(n>24) call set_ptr(arr(:,:,25), ptr25 ,is,js)
+    if(n>25) call set_ptr(arr(:,:,26), ptr26 ,is,js)
+    if(n>26) call set_ptr(arr(:,:,27), ptr27 ,is,js)
+    if(n>27) call set_ptr(arr(:,:,28), ptr28 ,is,js)
+    if(n>28) call set_ptr(arr(:,:,29), ptr29 ,is,js)
+    return
+  end subroutine make_bundle
+
+  subroutine make_bundle_lij(arr,l,is,ie,js,je, &
+              ptr01,ptr02,ptr03,ptr04, &
+        ptr05,ptr06,ptr07,ptr08,ptr09, &
+        ptr10,ptr11,ptr12,ptr13,ptr14, &
+        ptr15,ptr16,ptr17,ptr18,ptr19 &
+       )
+    integer :: l,is,ie,js,je
+    real*8, pointer :: arr(:,:,:,:)
+    real*8, pointer, dimension(:,:,:), optional :: &
+                ptr01,ptr02,ptr03,ptr04, &
+          ptr05,ptr06,ptr07,ptr08,ptr09, &
+          ptr10,ptr11,ptr12,ptr13,ptr14, &
+          ptr15,ptr16,ptr17,ptr18,ptr19
+    integer :: k,n
+!
+! the size of the bundle is equal to the number of optional
+! arguments present
+!
+    n=0
+    if(present(ptr01)) n=n+1
+    if(present(ptr02)) n=n+1
+    if(present(ptr03)) n=n+1
+    if(present(ptr04)) n=n+1
+    if(present(ptr05)) n=n+1
+    if(present(ptr06)) n=n+1
+    if(present(ptr07)) n=n+1
+    if(present(ptr08)) n=n+1
+    if(present(ptr09)) n=n+1
+    if(present(ptr10)) n=n+1
+    if(present(ptr11)) n=n+1
+    if(present(ptr12)) n=n+1
+    if(present(ptr13)) n=n+1
+    if(present(ptr14)) n=n+1
+    if(present(ptr15)) n=n+1
+    if(present(ptr16)) n=n+1
+    if(present(ptr17)) n=n+1
+    if(present(ptr18)) n=n+1
+    if(present(ptr19)) n=n+1
+
+!
+! allocate the bundle
+!
+    allocate(arr(l,is:ie,js:je,n))
+    arr = 0.
+
+    if(n> 0) call set_ptr_lij(arr(:,:,:, 1), ptr01 ,is,js)
+    if(n> 1) call set_ptr_lij(arr(:,:,:, 2), ptr02 ,is,js)
+    if(n> 2) call set_ptr_lij(arr(:,:,:, 3), ptr03 ,is,js)
+    if(n> 3) call set_ptr_lij(arr(:,:,:, 4), ptr04 ,is,js)
+    if(n> 4) call set_ptr_lij(arr(:,:,:, 5), ptr05 ,is,js)
+    if(n> 5) call set_ptr_lij(arr(:,:,:, 6), ptr06 ,is,js)
+    if(n> 6) call set_ptr_lij(arr(:,:,:, 7), ptr07 ,is,js)
+    if(n> 7) call set_ptr_lij(arr(:,:,:, 8), ptr08 ,is,js)
+    if(n> 8) call set_ptr_lij(arr(:,:,:, 9), ptr09 ,is,js)
+    if(n> 9) call set_ptr_lij(arr(:,:,:,10), ptr10 ,is,js)
+    if(n>10) call set_ptr_lij(arr(:,:,:,11), ptr11 ,is,js)
+    if(n>11) call set_ptr_lij(arr(:,:,:,12), ptr12 ,is,js)
+    if(n>12) call set_ptr_lij(arr(:,:,:,13), ptr13 ,is,js)
+    if(n>13) call set_ptr_lij(arr(:,:,:,14), ptr14 ,is,js)
+    if(n>14) call set_ptr_lij(arr(:,:,:,15), ptr15 ,is,js)
+    if(n>15) call set_ptr_lij(arr(:,:,:,16), ptr16 ,is,js)
+    if(n>16) call set_ptr_lij(arr(:,:,:,17), ptr17 ,is,js)
+    if(n>17) call set_ptr_lij(arr(:,:,:,18), ptr18 ,is,js)
+    if(n>18) call set_ptr_lij(arr(:,:,:,19), ptr19 ,is,js)
+
+    return
+  end subroutine make_bundle_lij
+
+  subroutine set_ptr(arr,ptr,is,js)
+    integer :: is,js
+    real*8, target :: arr(is:,js:)
+    real*8, pointer :: ptr(:,:)
+    ptr => arr
+    return
+  end subroutine set_ptr
+
+  subroutine set_ptr_lij(arr,ptr,is,js)
+    integer :: is,js
+    real*8, target :: arr(:,is:,js:)
+    real*8, pointer :: ptr(:,:,:)
+    ptr => arr
+    return
+  end subroutine set_ptr_lij
+
+end module bundle_maker
+
+module ArrayBundle_mod
 !@sum subroutines for packing/unpacking a selection of arrays
 !@+   to/from a single bundle
 !@auth I. Aleinov, D. Gueyffier
-
-module ArrayBundle_mod
   implicit none
   private
 

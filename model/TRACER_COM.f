@@ -759,6 +759,13 @@ C**** standard tracer and tracer moment arrays
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
 #endif
 
+! The following arrays are currently used in the calculation
+! of surface fluxes (via pointers in data structures for
+! atm-surface coupling).  More generally, the "layer 1"
+! choice could be replaced by the full boundary layer depth.
+! TRM1 is currently allocated by the FLUXES allocate routine.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), TARGET :: TRM1
+
 !@var daily_z: altitude of model levels (m), updated once per day
 !@+   and used for vertical distribution of 3D emissions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: daily_z

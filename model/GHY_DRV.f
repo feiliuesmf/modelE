@@ -306,9 +306,6 @@ c**** prescribed dust emission
       use model_com, only : itime,qcheck
       use fluxes, only : atmlnd,nisurf
       use pbl_drv, only : t_pbl_args
-#ifdef TRACERS_DRYDEP
-      use pblcom, only : drydflx,dep_vel,gs_vel
-#endif
       use ghy_com, only : tearth
       use somtq_com, only : mz
 #ifdef TRACERS_COSMO
@@ -402,7 +399,7 @@ c     of about a year)
       excess_C(i,j) = excess_C(i,j) - delta_C
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
-      atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+      atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &     (arauto+asoilresp-agpp+delta_C)/dtsurf *axyp(i,j)*ptype
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
@@ -432,7 +429,7 @@ ccc accumulate tracer evaporation and runoff
      &       + ghy_tr%atr_evap(nx)
         trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
         atmlnd%gtracer(n,i,j) = ghy_tr%atr_g(nx)
-        atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+        atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
 #endif
@@ -498,7 +495,7 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=0
         end select
 
-        atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+        atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &       trc_flux*axyp(i,j)*ptype
 #ifndef TRACERS_TOMAS
         if (ijts_isrc(1,n)>0) then
@@ -572,8 +569,8 @@ ccc dust emission from earth
 #endif
 #endif
 #endif
-          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
-     &         +pbl_args%dust_flux(n1)*axyp(i,j)*ptype
+          atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
+     &         pbl_args%dust_flux(n1)*axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(nDustEmij,n))
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
@@ -598,7 +595,7 @@ ccc dust emission from earth
 #ifdef BIOGENIC_EMISSIONS
         select case (trname(n))
         case ('Isoprene')
-          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+          atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &         pbl_args%emisop*axyp(i,j)*ptype
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
      &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
@@ -608,7 +605,7 @@ ccc dust emission from earth
         select case (trname(n))
         case ('Isoprene')
 C Flux in kg/m2/s - put back into /s
-          atmlnd%trsrfflx(i,j,n)=atmlnd%trsrfflx(i,j,n)+
+          atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &         aipp*axyp(i,j)*ptype/dtsurf
 c          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
 c     &    aipp*axyp(i,j)*ptype*dtsurf
@@ -1043,7 +1040,7 @@ c**** loop over ground time steps
       pbl_args%qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
       pbl_args%tg=tg
       pbl_args%elhx=elhx
-      pbl_args%qsol=srheat   ! solar heating
+      !pbl_args%qsol=srheat   ! solar heating
   !    qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
 
       qg = qg_ij(i,j)
@@ -1054,17 +1051,17 @@ c**** loop over ground time steps
       pbl_args%tgv=tg*(1.+qg*xdelt)
   !    tgv=tg*(1.+qg*xdelt)
 
-      pbl_args%psurf=ps
+  !    pbl_args%psurf=ps
   !    psurf=ps
 
-      pbl_args%trhr0 = TRDN(I,J)
+c      pbl_args%trhr0 = TRDN(I,J)
   !    trhr0 = TRHR(0,I,J)
       pbl_args%tr4 = atmlnd%gtempr(I,J)**4
 
       rhosrf0=100.*ps/(rgas*pbl_args%tgv) ! estimated surface density
 C**** Obviously there are no ocean currents for earth points, but
 C**** variables set for consistency with surfce
-      pbl_args%uocean=0 ; pbl_args%vocean=0
+  !    pbl_args%uocean=0 ; pbl_args%vocean=0
       pbl_args%ocean = .FALSE.
   !    uocean=0 ; vocean=0
 
@@ -1422,7 +1419,7 @@ c as a PBL diagnostic.
         endif
         atmlnd%trevapor(itr,i,j) = atmlnd%trevapor(itr,i,j) +
      &       aevap*trconcflx
-        atmlnd%trsrfflx(i,j,itr)=atmlnd%trsrfflx(i,j,itr)+
+        atmlnd%trsrfflx(itr,i,j)=atmlnd%trsrfflx(itr,i,j)+
      &       axyp(i,j)*ptype*aevap*trconcflx/(pbl_args%dtsurf)
 c fill in pbl profile in case it is used to initialize
 c another surface type
@@ -1482,9 +1479,6 @@ c***********************************************************************
      &     ,ij_evapsn,ij_irrW, ij_irrE
 #if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
      &     ,ij_crops,j_crops,CROPS_DIAG
-#endif
-#ifdef TRACERS_DUST
-      USE PBLCOM,ONLY : eabl,uabl,vabl,tabl,qabl
 #endif
       use constant, only : tf,lhe
 #ifdef TRACERS_DUST

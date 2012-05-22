@@ -32,7 +32,7 @@ C****
 #ifdef mjo_subdd
      *     ,undef
 #endif
-      USE ATM_COM, only : u,v,t,q,ualij,valij
+      USE ATM_COM, only : t,q,temp1,sphum1
       USE MODEL_COM, only : dtsrc,idacc,nday,itime,jhour,qcheck,jdate
 #ifdef mjo_subdd
      *     ,lm
@@ -60,20 +60,7 @@ C****
      *     ,nWATER,tr_wd_TYPE
 #endif
 #endif
-      USE PBLCOM, only : tsavg,qsavg,wsavg,usavg,vsavg,gustiwind,dblavg
-     &     ,rhoavg,tauavg,dclev,eabl,uabl,vabl,tabl,qabl
-     &     ,cmgs,chgs,cqgs
-     &     ,ugeoavg,vgeoavg,wgeoavg,ciaavg,khsavg,qgavg
-#ifdef TRACERS_ON
-      USE PBLCOM, only : travg,travg_byvol
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE PBLCOM, only : wsgcm,wspdf,wsubwd,wsubtke,wsubwm
-#endif
-#ifdef TRACERS_DRYDEP
-      USE PBLCOM, only : drydflx,dep_vel,gs_vel
-#endif
-#endif
+      USE PBLCOM, only : dclev,ugeo,vgeo,bldep
       USE SOCPBL, only : npbl=>n
       USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
@@ -120,14 +107,18 @@ C****
       USE LAKES_COM, only : mwl,gml,flake,icelak
       USE LAKES, only : minmld
       USE GHY_COM, only : FEARTH
-      USE FLUXES, only : dth1,dq1,runoe,erunoe,eprec
+      USE EXCHANGE_TYPES, only :
+     &     avg_patches_pbl_exports
+     &    ,avg_patches_srfflx_exports
+     &    ,avg_patches_srfstate_exports
+      USE FLUXES, only : runoe,erunoe,eprec
      *     ,nstype,uflux1,vflux1,tflux1,qflux1
      *     ,gmelt,egmelt,runoli
      *     ,UOdrag
      &     ,nisurf,fland,flice,focean
-     &     ,atmocn,atmice,atmgla,atmlnd,asflx
+     &     ,atmocn,atmice,atmgla,atmlnd,asflx,atmsrf
 #ifdef TRACERS_ON
-     *     ,trsrfflx,trflux1
+     *     ,trflux1
 #ifdef TRACERS_WATER
      *     ,trunoe
 #endif
@@ -207,19 +198,6 @@ C****
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) ::
      *     E1
-
-! The following arrays are currently used in the calculation
-! of surface fluxes (via pointers in data structures for
-! atm-surface coupling).  More generally, the "layer 1"
-! choice could be replaced by the full boundary layer depth.
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &     TARGET :: TEMP1,SPHUM1,U1,V1
-#ifdef TRACERS_ON
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTM),
-     &     TARGET :: TRM1
-#endif
 
       REAL*8, PARAMETER :: qmin=1.d-12
       REAL*8 QSAT,DQSATDT,TR4
@@ -343,19 +321,11 @@ C**** Zero out fluxes summed over type and surface time step
 
       ! itype == 1, ocean; 2, ocean ice; 3, land ice; 4, land
       do itype=ITYPE_MIN, ITYPE_MAX
-        asflx(itype)%solar(:,:) = 0.
-        asflx(itype)%trheat(:,:) = 0.
-        asflx(itype)%dmua(:,:) = 0.
-        asflx(itype)%dmva(:,:) = 0.
-        asflx(itype)%e0(:,:) = 0.
-        asflx(itype)%evapor(:,:) = 0.
-        asflx(itype)%sensht(:,:) = 0.
-        asflx(itype)%latht(:,:) = 0.
-#ifdef TRACERS_WATER
-        asflx(itype)%TREVAPOR(:,:,:) = 0.
-#endif
-#ifdef TRACERS_DRYDEP
-        asflx(itype)%TRDRYDEP(:,:,:) = 0.
+        ! solar,trheat,evapor,sensht,latht,e0,dmua,dmva
+        asflx(itype)%srfflx_exports(:,:,:) = 0.
+#ifdef TRACERS_ON
+        ! trdrydep,trevapor,trsrfflx
+        asflx(itype)%trsrfflx_exports(:,:,:,:) = 0.
 #endif
       enddo
 
@@ -404,16 +374,14 @@ C****
 #endif
 
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
-         DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
-         trsrfflx = 0.
          if(NS==1) then
            trcsurf = 0.
            trcSurfByVol = 0.
          end if
 
          do itype=1,4
-           asflx(itype)%trsrfflx = 0.
+           asflx(itype)%trsrfflx(:,:,:) = 0.
          enddo
 #endif
 
@@ -445,46 +413,11 @@ C****
 
       call recalc_agrid_uv
 
-      do j=j_0,j_1
-      do i=i_0,imaxj(j)
-        temp1(i,j) = t(i,j,1)
-        sphum1(i,j) = q(i,j,1)
-        u1(i,j) = ualij(1,i,j)
-        v1(i,j) = valij(1,i,j)
-      enddo
-      enddo
-      atmocn%temp1 => temp1
-      atmocn%q1    => sphum1
-      atmocn%u1    => u1
-      atmocn%v1    => v1
-      atmice%temp1 => temp1
-      atmice%q1    => sphum1
-      atmice%u1    => u1
-      atmice%v1    => v1
-      atmgla%temp1 => temp1
-      atmgla%q1    => sphum1
-      atmgla%u1    => u1
-      atmgla%v1    => v1
-      atmlnd%temp1 => temp1
-      atmlnd%q1    => sphum1
-      atmlnd%u1    => u1
-      atmlnd%v1    => v1
-#ifdef TRACERS_ON
-      do n=1,ntm
-      do j=j_0,j_1
-      do i=i_0,imaxj(j)
-        trm1(i,j,n) = trm(i,j,1,n)
-      enddo
-      enddo
-      enddo
-      atmocn%trm1 => trm1
-      atmice%trm1 => trm1
-      atmgla%trm1 => trm1
-      atmlnd%trm1 => trm1
-      do itype=1,4
-        asflx(itype)%trm1 => trm1
-      enddo
-#endif
+C**** Copy first-layer atm. conditions into the 2D arrays pointed to
+C**** by atm-surf. coupling data structures.
+      call get_atm_layer1
+
+      call get_dbl(temp1,sphum1)
 
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
       IF(MODDD.EQ.0) THEN
@@ -672,8 +605,8 @@ C****
       IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
       pbl_args%TG=TG   ! actual ground temperature
       pbl_args%TR4=TR4 ! radiative temperature K^4
-      pbl_args%ELHX=ELHX   ! relevant latent heat
-      pbl_args%QSOL=SRHEAT   ! solar heating
+      !pbl_args%ELHX=ELHX   ! relevant latent heat
+      !pbl_args%QSOL=SRHEAT   ! solar heating
       pbl_args%TGV=TG*(1.+QG_SAT*xdelt)
 
 C =====================================================================
@@ -681,15 +614,15 @@ C =====================================================================
       !pbl_args%TKV=THV1*PSK     ! TKV is referenced to the surface pressure
       !pbl_args%ZS1=.5d-2*RGAS*pbl_args%TKV*MA1/PMID(1,I,J)
       pbl_args%qg_sat = qg_sat
-      pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
+      !pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
       !pbl_args%hemi = sign(1d0,lat2d(i,j))
 c      pbl_args%pole = pole
-      pbl_args%evap_max = 1.
-      pbl_args%fr_sat = 1. ! entire surface is saturated
+c      pbl_args%evap_max = 1.
+c      pbl_args%fr_sat = 1. ! entire surface is saturated
       pbl_args%uocean = uocean
       pbl_args%vocean = vocean
-      pbl_args%psurf = PS
-      pbl_args%trhr0 = TRHR(0,I,J)
+c      pbl_args%psurf = PS
+c      pbl_args%trhr0 = TRHR(0,I,J)
       pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)
       pbl_args%snow = SNOW
 
@@ -815,7 +748,7 @@ C**** Limit evaporation if lake mass is at minimum
      &         asflx(itype)%TRM1(I,J,n), pbl_args%trs(nx),
      &         asflx(itype)%gtracer(n,i,j), trgrnd2(nx),
      &         pbl_args%trprime(nx),
-     &         asflx(itype)%trsrfflx(i,j,n),asflx(itype)%trevapor(n,i,j)
+     &         asflx(itype)%trsrfflx(n,i,j),asflx(itype)%trevapor(n,i,j)
      &     )
         END IF
       END DO
@@ -913,6 +846,8 @@ C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
 C****
 !!!      CASE (1)  ! ocean
       if ( ITYPE == 1 ) then
+        ! todo: use the (gtemps-gtemp) form outside this loop
+        ! after figuring why it doesn't always give the same result
         IF(MODDSF.EQ.0)
      &       AIJ(I,J,IJ_DSKIN)=AIJ(I,J,IJ_DSKIN)+pbl_args%dskin
       endif
@@ -961,13 +896,13 @@ C****
 
       do n=1,ntm
         if(dodrydep(n))then
-          depvel = dep_vel(n,itype,i,j)
-          gsvel = gs_vel(n,itype,i,j)
-          tdryd=drydflx(n,itype,i,j)         ! kg/m2
+          depvel = asflx(itype)%dep_vel(n,i,j)
+          gsvel = asflx(itype)%gs_vel(n,i,j)
+          tdryd=asflx(itype)%drydflx(n,i,j)         ! kg/m2
           rtsdt = -tdryd/(depvel+gsvel+teeny)
           rts = rtsdt/dtsurf                             ! kg*s/m^3
           tdd = tdryd*axyp(i,j)*ptype                    ! kg
-          td1 = (asflx(itype)%trsrfflx(i,j,n)+ptype*trflux1(i,j,n))*
+          td1 = (asflx(itype)%trsrfflx(n,i,j)+ptype*trflux1(i,j,n))*
      &         dtsurf  ! kg
           if (ptype*trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
@@ -975,8 +910,8 @@ C****
             tdd= -max(ptype*trm(i,j,1,n)+td1,0d0)
             tdryd=tdd/(axyp(i,j)*ptype)
           end if
-          asflx(itype)%trsrfflx(i,j,n)=
-     &         asflx(itype)%trsrfflx(i,j,n)+tdd/dtsurf
+          asflx(itype)%trsrfflx(n,i,j)=
+     &         asflx(itype)%trsrfflx(n,i,j)+tdd/dtsurf
 
 ! trdrydep downward flux by surface type (kg/m^2)
           asflx(itype)%trdrydep(n,i,j)=
@@ -1013,52 +948,48 @@ c**** for subdaily diagnostics
       enddo ! j
 #endif
 
+      atmice%gtemp(:,:) = tgrnd(2,:,:)
+      atmgla%gtemp(:,:) = tgrnd(3,:,:)
 
+      atmocn%gtemps(:,:) = tgrnd(1,:,:)
+      atmice%gtemps(:,:) = tgrnd(2,:,:)
+      atmgla%gtemps(:,:) = tgrnd(3,:,:)
+      atmlnd%gtemps(:,:) = tgrnd(4,:,:)
+
+C****
+C**** Create gridbox composite values
+C****
+      call avg_patches_pbl_exports(grid,asflx,atmsrf,ptypes)
+      call avg_patches_srfflx_exports(grid,asflx,atmsrf,ptypes)
+      call avg_patches_srfstate_exports(grid,asflx,atmsrf,ptypes)
+
+! trsrfflx was already multiplied by ptype, so we redo the
+! compositing over surface types.  This fix will disappear once
+! we remove ptype from trsrfflx to make it conform to the
+! usual pattern.
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-        dth1(i,j) = 0.
-        dq1(i,j) = 0.
-        uflux1(i,j) = 0.
-        vflux1(i,j) = 0.
-        tsavg(i,j) = 0.
-        qsavg(i,j) = 0.
 #ifdef TRACERS_ON
-        trsrfflx(i,j,:) = 0.
+        atmsrf%trsrfflx(:,i,j) = 0.
 #endif
         do itype=1,4
           ptype = ptypes(itype,i,j)
           if(ptype.le.0.) cycle
-          dth1(i,j) = dth1(i,j) + asflx(itype)%dth1(i,j)*ptype
-          dq1(i,j) = dq1(i,j) + asflx(itype)%dq1(i,j)*ptype
-          uflux1(i,j) = uflux1(i,j) + asflx(itype)%uflux1(i,j)*ptype
-          vflux1(i,j) = vflux1(i,j) + asflx(itype)%vflux1(i,j)*ptype
-          tsavg(i,j) = tsavg(i,j) + asflx(itype)%tsavg(i,j)*ptype
-          qsavg(i,j) = qsavg(i,j) + asflx(itype)%qsavg(i,j)*ptype
 #ifdef TRACERS_ON
-          trsrfflx(i,j,:) = trsrfflx(i,j,:) +
-     &         asflx(itype)%trsrfflx(i,j,:)!*ptype
+          atmsrf%trsrfflx(:,i,j) = atmsrf%trsrfflx(:,i,j) +
+     &         asflx(itype)%trsrfflx(:,i,j)!*ptype
 #endif
         enddo
       enddo
       enddo
 
-
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-        shdt = 0.
-        evhdt = 0.
-        srhdt = 0.
-        trhdt = 0.
-        evap = 0.
-        do itype=1,4
-          ptype = ptypes(itype,i,j)
-          if(ptype.le.0.) cycle
-          shdt = shdt + asflx(itype)%sensht(i,j)*ptype
-          evhdt = evhdt + asflx(itype)%latht(i,j)*ptype
-          srhdt = srhdt + asflx(itype)%solar(i,j)*ptype
-          trhdt = trhdt + asflx(itype)%trheat(i,j)*ptype
-          evap  = evap  + asflx(itype)%evapor(i,j)*ptype
-        enddo
+        srhdt = atmsrf%solar(i,j)
+        trhdt = atmsrf%trheat(i,j)
+        shdt = atmsrf%sensht(i,j)
+        evhdt = atmsrf%latht(i,j)
+        evap = atmsrf%evapor(i,j)
         if(moddsf.eq.0) then
           trhdt_sv2(i,j) = trhdt-trhdt_sv2(i,j)
         else
@@ -1086,9 +1017,11 @@ C****
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         FTEVAP=0
-        IF (DTH1(I,J)*T(I,J,1).lt.0) FTEVAP=-DTH1(I,J)/T(I,J,1)
+        IF (atmsrf%DTH1(I,J)*T(I,J,1).lt.0)
+     &       FTEVAP=-atmsrf%DTH1(I,J)/T(I,J,1)
         FQEVAP=0
-        IF (DQ1(I,J).lt.0.and.Q(I,J,1).gt.0) FQEVAP=-DQ1(I,J)/Q(I,J,1)
+        IF (atmsrf%DQ1(I,J).lt.0.and.Q(I,J,1).gt.0)
+     &       FQEVAP=-atmsrf%DQ1(I,J)/Q(I,J,1)
 ! Z-moments should be set from PBL
         TMOM(:,I,J,1) = TMOM(:,I,J,1)*(1.-FTEVAP)
         QMOM(:,I,J,1) = QMOM(:,I,J,1)*(1.-FQEVAP)
@@ -1099,7 +1032,7 @@ C****
           enddo
         endif
 #endif
-        IF ( Q(I,J,1)+DQ1(I,J) .LT. qmin ) THEN
+        IF ( Q(I,J,1)+atmsrf%DQ1(I,J) .LT. qmin ) THEN
           QMOM(:,I,J,1)=0.
 #ifdef WATER_PROPORTIONAL
           do n=1,ntm
@@ -1109,22 +1042,26 @@ C****
         ENDIF
 c****   retrieve fluxes
         P1K=PK(1,I,J)
-        tflux1(i,j)=-dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
-        qflux1(i,j)=-dq1(i,j)*AM(1,I,J)/(dtsurf)
+        uflux1(i,j)=atmsrf%uflux1(i,j)
+        vflux1(i,j)=atmsrf%vflux1(i,j)
+        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
+        qflux1(i,j)=-atmsrf%dq1(i,j)*AM(1,I,J)/(dtsurf)
 #if (defined mjo_subdd) || (defined etc_subdd)
 C**** SUBDD qsen_avg,qlat_avg for sensible/latent heat flux ***
         qlat_avg(i,j)=qlat_avg(i,j)+qflux1(i,j)
         qsen_avg(i,j)=qsen_avg(i,j)+tflux1(i,j)
 #endif
 C**** Diurnal cycle of temperature diagnostics
-        tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
-        if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
-        if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
+        tdiurn(i,j,5)=tdiurn(i,j,5)+(atmsrf%tsavg(i,j)-tf)
+        if(atmsrf%tsavg(i,j).gt.tdiurn(i,j,6))
+     &       tdiurn(i,j,6)=atmsrf%tsavg(i,j)
+        if(atmsrf%tsavg(i,j).lt.tdiurn(i,j,9))
+     &       tdiurn(i,j,9)=atmsrf%tsavg(i,j)
 C*** min/max tsurf
         aijmm(i,j,ij_tsurfmin) =
-     &       max( -(tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmin) )
+     &       max( -(atmsrf%tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmin) )
         aijmm(i,j,ij_tsurfmax) =
-     &       max(  (tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
+     &       max(  (atmsrf%tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
       END DO 
       END DO
 
@@ -1141,15 +1078,14 @@ C**** SUBDD E_acc for evaporation ***
       if(ns == nisurf) then
       do j=j_0,j_1
       do i=i_0,imaxj(j)
+        aij(i,j,ij_neth)=aij(i,j,ij_neth)+atmsrf%e0(i,j)
+        aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+atmsrf%sensht(i,j)
+        aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+
+     &         (atmsrf%solar(i,j)+atmsrf%trheat(i,j))
+
         do itype=1,4
           ptype = ptypes(itype,i,j)
           if(ptype.le.0.) cycle
-          aij(i,j,ij_neth)=aij(i,j,ij_neth)+
-     &         asflx(itype)%e0(i,j)*ptype
-          aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+
-     &         asflx(itype)%sensht(i,j)*ptype
-          aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+
-     &         (asflx(itype)%solar(i,j)+asflx(itype)%trheat(i,j))*ptype
 
 
 C****
@@ -1197,11 +1133,11 @@ C****
       if(moddsf.eq.0) then
         do j=j_0,j_1
         do i=i_0,imaxj(j)
+          aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+atmsrf%gtemps(i,j)
           do itype=1,4
             ptype = ptypes(itype,i,j)
             if(ptype.le.0.) cycle
-            tg1 = tgrnd(itype,i,j)
-            aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
+            tg1 = asflx(itype)%gtemps(i,j) !tgrnd(itype,i,j)
 C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE AND REGION
 C****
@@ -1242,20 +1178,20 @@ C****
             else
               elhx = lhs
             endif
-            qsrf = qabl(1,itype,i,j)
+            qsrf = asflx(itype)%qabl(1,i,j)
             aij(i,j,ij_qs)=aij(i,j,ij_qs)+qsrf*ptype
-            ts = tabl(1,itype,i,j)/(1.+qsrf*xdelt)
+            ts = asflx(itype)%tabl(1,i,j)/(1.+qsrf*xdelt)
             ps = pedn(1,i,j)
             aij(i,j,ij_rhs)=aij(i,j,ij_rhs)+qsrf*ptype/qsat(ts,elhx,ps)
           enddo
-          aij(i,j,ij_us)=aij(i,j,ij_us)+usavg(i,j)
-          aij(i,j,ij_vs)=aij(i,j,ij_vs)+vsavg(i,j)
-          aij(i,j,ij_ws)=aij(i,j,ij_ws)+wsavg(i,j)
-          aij(i,j,ij_ts)=aij(i,j,ij_ts)+(tsavg(i,j)-tf)
+          aij(i,j,ij_us)=aij(i,j,ij_us)+atmsrf%usavg(i,j)
+          aij(i,j,ij_vs)=aij(i,j,ij_vs)+atmsrf%vsavg(i,j)
+          aij(i,j,ij_ws)=aij(i,j,ij_ws)+atmsrf%wsavg(i,j)
+          aij(i,j,ij_ts)=aij(i,j,ij_ts)+(atmsrf%tsavg(i,j)-tf)
 
-          aij(i,j,ij_taus)=aij(i,j,ij_taus)+tauavg(i,j)
-          aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+uflux1(i,j)
-          aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+vflux1(i,j)
+          aij(i,j,ij_taus)=aij(i,j,ij_taus)+atmsrf%tauavg(i,j)
+          aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+atmsrf%uflux1(i,j)
+          aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+atmsrf%vflux1(i,j)
 
           if(DDMS(I,J).lt.0.) ! ddms < 0 for down draft
      &         AIJ(I,J,ij_mccon)=AIJ(I,J,ij_mccon)+1.
@@ -1266,9 +1202,9 @@ C****
           aij(i,j,ij_trsup)=aij(i,j,ij_trsup)+
      &         (trhr(0,i,j)-trhdt_sv2(i,j)/dtsurf)
 
-          aij(i,j,ij_gusti)=aij(i,j,ij_gusti)+gustiwind(i,j)
+          aij(i,j,ij_gusti)=aij(i,j,ij_gusti)+atmsrf%gustiwind(i,j)
 
-          aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dblavg(i,j)
+          aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+atmsrf%dblavg(i,j)
 
 #if (defined mjo_subdd) || (defined etc_subdd)
 C**** SUBDD qblht_acc for PBL height *** YH Chen ***
@@ -1277,11 +1213,11 @@ C**** SUBDD qblht_acc for PBL height *** YH Chen ***
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-          aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+wsgcm(i,j)
-          aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+wspdf(i,j)
-          aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+wsubwd(i,j)
-          aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+wsubtke(i,j)
-          aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+wsubwm(i,j)
+          aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+atmsrf%wsgcm(i,j)
+          aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
+          aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+atmsrf%wsubwd(i,j)
+          aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+atmsrf%wsubtke(i,j)
+          aij(i,j,ij_wmoist)=aij(i,j,ij_wmoist)+atmsrf%wsubwm(i,j)
 #endif
 
         enddo
@@ -1343,11 +1279,15 @@ C****
             CALL INC_AJ(I,J,ITOCEAN,J_ERVR,EGMELT(I,J)*ptype)
             END IF
           endif
+c          if(moddsf.eq.0) then
+c            aij(i,j,ij_dskin)=aij(i,j,ij_dskin)+
+c     &           (atmocn%gtemps(i,j)-atmocn%gtemp(i,j)) !pbl_args%dskin
+c          endif
         endif
         ! floating ice
         ptype = ptypes(2,i,j)
         if(ptype.gt.0.) then
-          tg1 = tgrnd(2,i,j)
+          tg1 = atmice%gtemps(i,j) !tgrnd(2,i,j)
           IF (TG1.GT.TDIURN(I,J,7)) TDIURN(I,J,7) = TG1
           if(ns == nisurf) then
             OA(I,J,9)=OA(I,J,9)+atmice%trheat(i,j)
@@ -1370,7 +1310,7 @@ C****
         ! land ice
         ptype = ptypes(3,i,j)
         if(ptype.gt.0.) then
-          tg1 = tgrnd(3,i,j)
+          tg1 = atmgla%gtemps(i,j) !tgrnd(3,i,j)
           IF (TG1.GT.TDIURN(I,J,8)) TDIURN(I,J,8) = TG1
           IF (MODDSF.eq.0) then
           AIJ(I,J,IJ_TSLI)=AIJ(I,J,IJ_TSLI)+(atmgla%TSAVG(I,J)-TF)*PTYPE
@@ -1405,39 +1345,39 @@ C**** Save surface tracer concentration whether calculated or not
       do n=1,ntm
         if (itime_tr0(n).le.itime) then
           if(.not. needtrs(n)) then
-            travg(n,i,j) = byam(1,i,j)*byaxyp(i,j)*
+            atmsrf%travg(n,i,j) = byam(1,i,j)*byaxyp(i,j)*
      &           max(trm(i,j,1,n)-trmom(mz,i,j,1,n),0d0)
-            travg_byvol(n,i,j) = travg(n,i,j)*rhoavg(i,j)
+            atmsrf%travg_byvol(n,i,j) =
+     &           atmsrf%travg(n,i,j)*atmsrf%rhoavg(i,j)
           endif
-          taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)+travg(n,i,j)
+          taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
+     &         +atmsrf%travg(n,i,j)
           taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
-     &         +travg_byvol(n,i,j)
-          trcsurf(i,j,n)=trcsurf(i,j,n)+travg(n,i,j)*byNIsurf
-          trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)+travg_byvol(n,i,j)
-     &         *byNIsurf
+     &         +atmsrf%travg_byvol(n,i,j)
+          trcsurf(i,j,n)=trcsurf(i,j,n)
+     &         +atmsrf%travg(n,i,j)*byNIsurf
+          trcSurfByVol(i,j,n)=trcSurfByVol(i,j,n)
+     &         +atmsrf%travg_byvol(n,i,j)*byNIsurf
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then
-            do itype=1,4
+
+            taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
+     &           atmsrf%trevapor(n,i,j)
+            if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     &           atmsrf%trevapor(n,i,j))
+
+            do itype=1,3
               ptype = ptypes(itype,i,j)
-              taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
-     &             asflx(itype)%trevapor(n,i,j)*ptype
 ! ==== DEBUGGING: Remove these lines to get exact match in regression tests
-              if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
-     &             asflx(itype)%trevapor(n,i,j)*ptype)
-              if(itype.lt.4) then
                 if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
      &        (i,j,1,jls_isrc(2,n),asflx(itype)%trevapor(n,i,j)*ptype)
-              endif
 ! ===== END DEBUGGING
             enddo
 c            if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
 c     &        (i,j,1,jls_isrc(2,n),asflx(1)%trevapor(n,i,j)*focean(i,j))
           end if
-          do itype=1,4
-            ptype = ptypes(itype,i,j)
-            taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
-     &           asflx(itype)%gtracer(n,i,j)*ptype
-          enddo
+          taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
+     &         atmsrf%gtracer(n,i,j)
 #endif
         end if
       end do ! tracer n
@@ -1484,26 +1424,25 @@ C**** For distributed implementation - ensure point is on local process.
             tmp(idd_ev) = evap_sv(i,j)
             tmp(idd_hz0) =
      &           srhdt_sv(i,j)+trhdt_sv(i,j)+shdt_sv(i,j)+evhdt_sv(i,j)
-            tmp(idd_ts) = tsavg(i,j)
-            tmp(idd_qs) = qsavg(i,j)
-            tmp(idd_qg) = qgavg(i,j)
-            tmp(idd_us) = usavg(i,j)
-            tmp(idd_vs) = vsavg(i,j)
-            tmp(idd_ws) = wsavg(i,j)
-            tmp(idd_dbl) = dblavg(i,j)
-            tmp(idd_ug) = ugeoavg(i,j)
-            tmp(idd_vg) = vgeoavg(i,j)
-            tmp(idd_wg) = wgeoavg(i,j)
-            tmp(idd_cia) = ciaavg(i,j)
-            tmp(idd_eds) = khsavg(i,j)
-            do itype=1,4
-              ptype = ptypes(itype,i,j)
-              if(ptype.le.0.) cycle
-              tmp(idd_tg1) = tmp(idd_tg1) + (tgrnd(itype,i,j)+tf)*ptype
-              tmp(idd_cm) = tmp(idd_cm) + cmgs(itype,i,j)*ptype
-              tmp(idd_ch) = tmp(idd_ch) + chgs(itype,i,j)*ptype
-              tmp(idd_cq) = tmp(idd_cq) + cqgs(itype,i,j)*ptype
-            enddo
+            tmp(idd_ts) = atmsrf%tsavg(i,j)
+            tmp(idd_qs) = atmsrf%qsavg(i,j)
+            tmp(idd_qg) = atmsrf%qgavg(i,j)
+            tmp(idd_us) = atmsrf%usavg(i,j)
+            tmp(idd_vs) = atmsrf%vsavg(i,j)
+            tmp(idd_ws) = atmsrf%wsavg(i,j)
+            tmp(idd_dbl) = bldep(i,j) !dblavg(i,j)
+            tmp(idd_ug) = ugeo(i,j)
+            tmp(idd_vg) = vgeo(i,j)
+            tmp(idd_wg) = sqrt(ugeo(i,j)**2+vgeo(i,j)**2)
+            tmp(idd_cia) = atmsrf%ciaavg(i,j)
+            tmp(idd_eds) = atmsrf%khsavg(i,j)
+
+            tmp(idd_cm) = atmsrf%cmgs(i,j)
+            tmp(idd_ch) = atmsrf%chgs(i,j)
+            tmp(idd_cq) = atmsrf%cqgs(i,j)
+
+            tmp(idd_tg1) = (atmsrf%gtemps(i,j)+tf)
+
             IF(DCLEV(I,J).GT.1.) THEN ! CHECK IF DRY CONV HAS HAPPENED
               tmp(idd_dcf)=1.
               tmp(idd_ldc)=DCLEV(I,J)
@@ -1638,6 +1577,40 @@ c calculate global integral of heat of river discharge
       RETURN
 C****
       END SUBROUTINE SURFACE
+
+      subroutine get_atm_layer1
+C**** Copies first-layer atm. conditions into the 2D arrays pointed
+C**** to by atm-surf. coupling data structures.
+      use domain_decomp_atm, only : grid, get
+      use atm_com, only : t,q,ualij,valij
+      use atm_com, only : temp1,sphum1,u1,v1
+      use geom, only : imaxj
+#ifdef TRACERS_ON
+      use tracer_com, only : ntm,trm,trm1
+#endif
+      implicit none
+      integer :: n,i,j,i_0,i_1,j_0,j_1
+c
+      call get(grid, i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
+c
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        temp1(i,j) = t(i,j,1)
+        sphum1(i,j) = q(i,j,1)
+        u1(i,j) = ualij(1,i,j)
+        v1(i,j) = valij(1,i,j)
+      enddo
+      enddo
+#ifdef TRACERS_ON
+      do n=1,ntm
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        trm1(i,j,n) = trm(i,j,1,n)
+      enddo
+      enddo
+      enddo
+#endif
+      end subroutine get_atm_layer1
 
 #ifdef TRACERS_WATER
       subroutine water_tracer_evap(
@@ -1809,7 +1782,7 @@ C****
 #endif
         end select
 
-        atmocn%trsrfflx(i,j,n)=atmocn%trsrfflx(i,j,n)+
+        atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)+
      &       trc_flux*axyp(i,j)*ptype
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
@@ -1910,7 +1883,7 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CFC
           TRGASEX(n,I,J) = TRGASEX(n,I,J) +
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
-          atmocn%trsrfflx(i,j,n) = atmocn%trsrfflx(i,j,n)
+          atmocn%trsrfflx(n,i,j) = atmocn%trsrfflx(n,i,j)
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
      .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
@@ -1940,7 +1913,7 @@ C****
 
 ! trsrfflx is positive up 
 ! units are kg,CO2/s
-          atmocn%trsrfflx(i,j,n)=atmocn%trsrfflx(i,j,n)
+          atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)
      .         - pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
      .         - pbl_args%alpha_gas * trgrnd )
      .         * 1.0d6/vol2mass(n) 
@@ -1963,7 +1936,7 @@ C****
      .           *ptype,
      .           pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd 
      .           * 1.0d6/vol2mass(n) * ptype,
-     .           atmocn%trsrfflx(i,j,n),rhosrf,taijs(i,j,ijts_isrc(1,n))
+     .           atmocn%trsrfflx(n,i,j),rhosrf,taijs(i,j,ijts_isrc(1,n))
           endif
 #endif
         END DO

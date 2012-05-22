@@ -1148,7 +1148,6 @@ C     OUTPUT DATA
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
-      USE PBLCOM, only : wsavg,tsavg
 #ifdef SCM
       USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
      *                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
@@ -1206,7 +1205,7 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : asflx,atmocn,atmice,atmgla,atmlnd
+      USE FLUXES, only : asflx,atmocn,atmice,atmgla,atmlnd,atmsrf
      &     ,flice,fland,focean
       USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM
@@ -1446,10 +1445,10 @@ c      CALL COSZT (ROT1,ROT2,COSZ1)
 C****   input data:          WARNINGS
 C****        1 - any changes here also go in later (look for 'iu_rad')
 C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
-     *     ,T,RQT,TsAvg                                ! LM+LM_REQ+1+
+     *     ,T,RQT,atmsrf%TsAvg                         ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
 !     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
-     *     ,wsoil,wsavg,snowi,snowli_com,snowe_com     ! 1+1+1+1+1+
+     *     ,wsoil,atmsrf%wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
 C****   output data: really needed only if kradia=2
@@ -2000,7 +1999,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TGOI=atmice%GTEMPR(I,J)
       TGLI=atmgla%GTEMPR(I,J)
       TGE =atmlnd%GTEMPR(I,J)
-      TSL=TSAVG(I,J)
+      TSL=atmsrf%TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=SNOWLI_COM(I,J)
       SNOWE=SNOWE_COM(I,J)                    ! snow depth (kg/m**2)
@@ -2058,7 +2057,7 @@ C****
         PVT(K)=VDATA(I,J,K)
       END DO
 #endif
-      WMAG=WSAVG(I,J)
+      WMAG=atmsrf%WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:
 C**** If no radiatively active tracers are defined, nothing changes.
@@ -2778,10 +2777,10 @@ c     IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
 c     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
-     &     ,T,RQT,TsAvg         ! LM+LM_REQ+1+
+     &     ,T,RQT,atmsrf%TsAvg   ! LM+LM_REQ+1+
      &     ,QR,P,CLDinfo,rsi,msi ! LM+1+3*LM+1+1+
 !     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
-     &     ,wsoil,wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
+     &     ,wsoil,atmsrf%wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo ! 3+1+.5+.5+
      &     ,fr_snow_rad_ij,mwl,flake ! 2+1+1
 C**** output data: really needed only if kradia=2

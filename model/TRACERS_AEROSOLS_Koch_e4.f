@@ -1635,7 +1635,7 @@ c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
 !@+auth Dorothy Koch
 c
       USE CONSTANT, only: pi,gasc
-      USE PBLCOM, only: tsavg
+      USE FLUXES, only: atmsrf
       USE GHY_COM, only: snoage
       USE AEROSOL_SOURCES, only: snosiz
       IMPLICIT none
@@ -1655,7 +1655,7 @@ c Find the age of snow, I assume the age does not
 c  vary within the gridbox so just take the max?
        age=DMAX1(snoage(1,i,j),snoage(2,i,j),snoage(3,i,j))
 c Use Temperature to check if melting or non-melting snow
-       IF (tsavg(i,j).le.273.15) then
+       IF (atmsrf%tsavg(i,j).le.273.15) then
 c Non-melting snow; distinguish between initial or
 c  secondary growth rate
         IF (age.lt.13.5) then
@@ -1667,7 +1667,7 @@ c initial growth
         ELSE
 c secondary growth
          r0=150.d0
-         ert = dexp(-E/(GASC*TSAVG(I,J)))
+         ert = dexp(-E/(GASC*atmsrf%TSAVG(I,J)))
          tfac = a*ert
          area = (TFAC/365.d0) * (AGE-12.5d0)
          radmm=dsqrt(area/pi)

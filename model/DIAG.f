@@ -140,11 +140,11 @@ C**** Some local constants
       USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,am
      &     ,ua=>ualij,va=>valij
       USE DYNAMICS, only : SD,wcp,sig,sige,dsig
-      USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
       USE DOMAIN_DECOMP_ATM, only : GET, GRID, HALO_UPDATE
       USE GETTIME_MOD
+      USE FLUXES, only : atmsrf
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -269,7 +269,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
 #ifdef SLP_FROM_T1
           TS_SLP=T(I,J,1)*PEK(1,I,J) ! todo: check if tmom(mz) helps
 #else
-          TS_SLP=TSAVG(I,J)
+          TS_SLP=atmsrf%TSAVG(I,J)
 #endif
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TS_SLP,ZS)-P1000
 C**** calculate pressure diags including water
@@ -1694,7 +1694,6 @@ c get_subdd
 #ifdef ttc_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
 #endif
-      USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
      *           ,svlat,svlhx
 #if (defined mjo_subdd) || (defined etc_subdd)
@@ -1720,7 +1719,7 @@ c get_subdd
      *     ,TTROPO
 #endif
       USE FLUXES, only : prec,tflux1,qflux1,uflux1,vflux1
-     *     ,focean,flice,atmocn,atmice,atmgla,atmlnd
+     *     ,focean,flice,atmocn,atmice,atmgla,atmlnd,atmsrf
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
      *     ,l1Ox_acc,l1NO2_acc,save_NO2column
@@ -1828,7 +1827,7 @@ C**** simple diags (one record per file)
           do i=I_0,imaxj(j)
             ps=(p(i,j)+ptop)
             zs=bygrav*zatmo(i,j)
-            datar8(i,j)=slp(ps,tsavg(i,j),zs)
+            datar8(i,j)=slp(ps,atmsrf%tsavg(i,j),zs)
             units_of_data = '10^2 Pa'
             long_name = 'Sea Level Pressure'
           end do
@@ -1844,15 +1843,15 @@ C**** accumulating/averaging mode ***
             units_of_data = '10^2 Pa'
             long_name = 'Surface Pressure'
         case ("SAT")            ! surf. air temp (C)
-          datar8=tsavg-tf
+          datar8=atmsrf%tsavg-tf
             units_of_data = 'C'
             long_name = 'Surface Air Temperature'
         case ("US")             ! surf. u wind (m/s)
-          datar8=usavg
+          datar8=atmsrf%usavg
             units_of_data = 'm/s'
             long_name = 'U Component of Surface Air Velocity'
         case ("VS")             ! surf. v wind (m/s)
-          datar8=vsavg
+          datar8=atmsrf%vsavg
             units_of_data = 'm/s'
             long_name = 'V Component of Surface Air Velocity'
         case ("SST")            ! sea surface temp (C)
@@ -1970,12 +1969,13 @@ C**** accumulating/averaging mode ***
           units_of_data = 'm liq. equiv.'
           long_name = 'Ground Level 1 + Canopy Ice'
         case ("QS")             ! surf spec humidity (kg/kg)
-          datar8=qsavg
+          datar8=atmsrf%qsavg
           units_of_data = 'kg/kg'
         case ("RS")             ! surf rel humidity
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              datar8(i,j)=qsavg(i,j)/qsat(tsavg(i,j),lhe,p(i,j)+ptop)
+              datar8(i,j)=atmsrf%qsavg(i,j)/
+     &             qsat(atmsrf%tsavg(i,j),lhe,p(i,j)+ptop)
      &             *100.d0
             enddo
           enddo

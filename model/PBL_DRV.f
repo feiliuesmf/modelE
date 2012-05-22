@@ -22,10 +22,9 @@
 !@var QDN1 downdraft humidity in kg/kg, (i,j)
 
       USE EXCHANGE_TYPES
-      USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
-      USE ATM_COM, only : t,q,ua=>ualij,va=>valij
+      USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny,lhe,lhs
       USE GEOM, only : sinlat2d,byaxyp
-      USE ATM_COM, only : pmid,pk
+      USE ATM_COM, only : pk
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
       USE CLOUDS_COM, only : DDMS,TDN1,QDN1,DDML
@@ -51,7 +50,6 @@
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
       class (atmsrf_xchng_vars) :: atm
-      REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
       REAL*8 Ts
 
 #ifdef TRACERS_ON
@@ -60,10 +58,11 @@
      *     ,nAMP
 #endif
 #endif
+
 c
-      REAL*8 ztop,zpbl,pl1,tl1,pl,tl,tbar,thbar,zpbl1,coriol,rhosrf
+      REAL*8 ztop,coriol,rhosrf
       REAL*8 qtop,utop,vtop,ufluxs,vfluxs,tfluxs,qfluxs,psitop,psisrf
-      INTEGER LDC,L,k
+      INTEGER k
 !@var uocean,vocean ocean/ice velocities for use in drag calulation
 !@var evap_max maximal evaporation from unsaturated soil
 !@var  fr_sat fraction of saturated soil
@@ -122,6 +121,9 @@ c      logical pole
       real*8 :: rts,rtsdt
 #endif
 
+      pbl_args%psurf = atm%srfp(i,j)
+      pbl_args%QSOL = atm%fshort(i,j)*atm%cosz1(i,j) ! solar heating
+
       !qtop=q(i,j,1)
       qtop = atm%q1(i,j)
       pbl_args%tkv = (atm%temp1(I,J)*(1.+qtop*xdelt))*atm%srfpk(i,j)
@@ -130,6 +132,24 @@ c      logical pole
 
       utop = atm%u1(i,j) !ua(1,i,j)
       vtop = atm%v1(i,j) !va(1,i,j)
+
+      if(itype < 4) then
+        pbl_args%evap_max = 1.
+        pbl_args%fr_sat = 1.    ! entire surface is saturated
+        pbl_args%qg_aver = pbl_args%qg_sat ! QG_AVER=QG_SAT
+        if(itype==1) then
+          pbl_args%elhx = lhe
+        else
+          pbl_args%elhx = lhs
+        endif
+      endif
+
+      if(itype > 2) then
+        pbl_args%uocean = 0.
+        pbl_args%vocean = 0.
+      endif
+
+      pbl_args%trhr0 = atm%flong(i,j)
 
 #ifdef TRACERS_ON
 C**** Set up tracers for PBL calculation if required
@@ -178,87 +198,21 @@ C        roughness lengths from Brutsaert for rough surfaces
       IF (pbl_args%TKV.EQ.pbl_args%TGV)
      &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
 
-      ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
-      ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
-      ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
-
-c       IF (TKV.GE.TGV) THEN
-c         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
-c         ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
-c         ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
-c         ! KNOW THE INDEX OF THE LAYER.
-c         ustar=ustar_pbl(itype,i,j)
-c         DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
-c         if (dbl.le.ztop) then
-c           dbl=ztop
-c           L=1
-c         else
-c           ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
-c           ! COMPUTE Ug and Vg THERE:
-c           zpbl=ztop
-c           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-c           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
-c           do l=2,ls1
-c             pl=pmid(l,i,j)        !pij*sig(l)+ptop
-c             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
-c             tbar=thbar(tl1,tl)
-c             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-c             if (zpbl.ge.dbl) exit
-c             pl1=pl
-c             tl1=tl
-c           end do
-c         endif
-
-c     ELSE
-        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
-        ! LDC IS THE LEVEL TO WHICH DRYCNV/ATURB MIXES.
-        ! FIND DBL FROM LDC.  IF BOUNDARY
-        ! LAYER HEIGHT IS LESS THAN DBL_MAX, ASSIGN LDC TO L, OTHERWISE
-        ! MUST FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
-
-        LDC=max(int(DCLEV(I,J)+.5d0),1)
-        IF (LDC.EQ.0) LDC=1
-        if (ldc.eq.1) then
-          dbl=ztop
-          l=1
-        else
-          zpbl=ztop
-          pl1=pmid(1,i,j)                             ! pij*sig(1)+ptop
-          tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
-          zpbl1=ztop
-          do l=2,ldc
-            pl=pmid(l,i,j)                            ! pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
-            tbar=thbar(tl1,tl)
-            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-            if (zpbl.ge.dbl_max) then
-              zpbl=zpbl1
-              exit
-            endif
-            pl1=pl
-            tl1=tl
-            zpbl1=zpbl
-          end do
-          l=min(l,ldc)
-          dbl=zpbl
-        endif
-
-c     ENDIF
+      dbl = bldep(i,j)
+      ug   = ugeo(i,j) !ua(L,i,j)
+      vg   = vgeo(i,j) !va(L,i,j)
 
       coriol=sinlat2d(i,j)*omega2
 
-      ug   = ua(L,i,j)
-      vg   = va(L,i,j)
-
-      upbl(:)=uabl(:,itype,i,j)
-      vpbl(:)=vabl(:,itype,i,j)
-      tpbl(:)=tabl(:,itype,i,j)
-      qpbl(:)=qabl(:,itype,i,j)
-      epbl(1:npbl-1)=eabl(1:npbl-1,itype,i,j)
+      upbl(:)=atm%uabl(:,i,j)
+      vpbl(:)=atm%vabl(:,i,j)
+      tpbl(:)=atm%tabl(:,i,j)
+      qpbl(:)=atm%qabl(:,i,j)
+      epbl(1:npbl-1)=atm%eabl(1:npbl-1,i,j)
 
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
-        tr(:,nx)=trabl(:,pbl_args%ntix(nx),itype,i,j)
+        tr(:,nx)=atm%trabl(:,pbl_args%ntix(nx),i,j)
       end do
 
       do n = 1,ntm
@@ -291,9 +245,9 @@ c     ENDIF
       enddo
 #endif
 
-      cm=cmgs(itype,i,j)
-      ch=chgs(itype,i,j)
-      cq=cqgs(itype,i,j)
+      cm=atm%cmgs(i,j)
+      ch=atm%chgs(i,j)
+      cq=atm%cqgs(i,j)
       dpdxr  = DPDX_BY_RHO(i,j)
       dpdyr  = DPDY_BY_RHO(i,j)
       dpdxr0 = DPDX_BY_RHO_0(i,j)
@@ -349,42 +303,41 @@ c     ENDIF
 #endif
      &     )
 
-      uabl(:,itype,i,j)=upbl(:)
-      vabl(:,itype,i,j)=vpbl(:)
-      tabl(:,itype,i,j)=tpbl(:)
-      qabl(:,itype,i,j)=qpbl(:)
-      eabl(1:npbl-1,itype,i,j)=epbl(1:npbl-1)
+      atm%uabl(:,i,j)=upbl(:)
+      atm%vabl(:,i,j)=vpbl(:)
+      atm%tabl(:,i,j)=tpbl(:)
+      atm%qabl(:,i,j)=qpbl(:)
+      atm%eabl(1:npbl-1,i,j)=epbl(1:npbl-1)
       rhosrf=100.*pbl_args%psurf/(rgas*pbl_args%tsv)
 #ifdef TRACERS_ON
       do nx=1,pbl_args%ntx
         n = pbl_args%ntix(nx)
-        trabl(:,n,itype,i,j)=tr(:,nx)
-        travg(n,i,j) = travg(n,i,j) + ptype*pbl_args%trs(nx)
-        travg_byvol(n,i,j) = travg_byvol(n,i,j) +
-     &       ptype*pbl_args%trs(nx)*rhosrf
+        atm%trabl(:,n,i,j)=tr(:,nx)
+        atm%travg(n,i,j) = pbl_args%trs(nx)
+        atm%travg_byvol(n,i,j) = pbl_args%trs(nx)*rhosrf
       end do
 #ifdef TRACERS_DRYDEP
-      dep_vel(:,itype,i,j)=pbl_args%dep_vel(:)
-      gs_vel(:,itype,i,j)=pbl_args%gs_vel(:)
+      atm%dep_vel(:,i,j)=pbl_args%dep_vel(:)
+      atm%gs_vel(:,i,j)=pbl_args%gs_vel(:)
       do nx=1,pbl_args%ntx
         n = pbl_args%ntix(nx)
         rts=rhosrf*pbl_args%trs(nx)
         rtsdt=rts*pbl_args%dtsurf        ! kg*s/m^3
-        drydflx(n,itype,i,j)=-rtsdt*
-     &       (dep_vel(n,itype,i,j)+gs_vel(n,itype,i,j)) ! kg/m2
+        atm%drydflx(n,i,j)=-rtsdt*
+     &       (atm%dep_vel(n,i,j)+atm%gs_vel(n,i,j)) ! kg/m2
       enddo
 #endif
 #endif
 
-      cmgs(itype,i,j)=pbl_args%cm
-      chgs(itype,i,j)=pbl_args%ch
-      cqgs(itype,i,j)=pbl_args%cq
-      ipbl(itype,i,j)=1  ! ipbl is used in subroutine init_pbl
+      atm%cmgs(i,j)=pbl_args%cm
+      atm%chgs(i,j)=pbl_args%ch
+      atm%cqgs(i,j)=pbl_args%cq
+      atm%ipbl(i,j)=1  ! ipbl is used in subroutine init_pbl
 
       psitop=atan2(vg,ug+teeny)
       psisrf=atan2(pbl_args%vs,pbl_args%us+teeny)
       psi   =psisrf-psitop
-      ustar_pbl(itype,i,j)=pbl_args%ustar
+      atm%ustar_pbl(i,j)=pbl_args%ustar
 C ******************************************************************
       TS=pbl_args%TSV/(1.+pbl_args%QSRF*xdelt)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
@@ -392,45 +345,30 @@ C ******************************************************************
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)
         if (ts.lt.50d0) call stop_model("PBL: Ts out of range",255)
       end if
-      WSAVG(I,J)=WSAVG(I,J)+pbl_args%WS*PTYPE
-      TSAVG(I,J)=TSAVG(I,J)+TS*PTYPE
-  !    if(itype.ne.4) QSAVG(I,J)=QSAVG(I,J)+QSRF*PTYPE
-      QSAVG(I,J)=QSAVG(I,J)+pbl_args%QSRF*PTYPE
-      USAVG(I,J)=USAVG(I,J)+pbl_args%US*PTYPE
-      VSAVG(I,J)=VSAVG(I,J)+pbl_args%VS*PTYPE
-      TAUAVG(I,J)=TAUAVG(I,J)+pbl_args%CM*pbl_args%WS*pbl_args%WS*PTYPE
-     &     *rhosrf
 
       atm%tsavg(i,j) = ts
       atm%qsavg(i,j) = pbl_args%qsrf
       atm%usavg(i,j) = pbl_args%us
       atm%vsavg(i,j) = pbl_args%vs
+      atm%wsavg(i,j) = pbl_args%ws
 
-      uflux(I,J)=uflux(I,J)+ufluxs*PTYPE
-      vflux(I,J)=vflux(I,J)+vfluxs*PTYPE
-      tflux(I,J)=tflux(I,J)+tfluxs*PTYPE
-      qflux(I,J)=qflux(I,J)+qfluxs*PTYPE
-
-      tgvAVG(I,J)=tgvAVG(I,J)+pbl_args%tgv*PTYPE
-      qgAVG(I,J)=qgAVG(I,J)+pbl_args%qg_aver*PTYPE
-      gustiwind(i,j) = gustiwind(i,j) + pbl_args%gusti*PTYPE
-      dblavg(i,j) = dblavg(i,j) + dbl*PTYPE
-      rhoavg(i,j) = rhoavg(i,j) + rhosrf*PTYPE
-      w2_l1(I,J)=w2_l1(I,J)+w2_1*PTYPE
-
-      ugeoavg(i,j) = ugeoavg(i,j) + ug*ptype
-      vgeoavg(i,j) = vgeoavg(i,j) + vg*ptype
-      wgeoavg(i,j) = wgeoavg(i,j) + pbl_args%wg*ptype
-      ciaavg(i,j)  =  ciaavg(i,j) + psi*ptype
-      khsavg(i,j)  =  khsavg(i,j) + pbl_args%khs*ptype
+      atm%TAUAVG(I,J) = pbl_args%CM*pbl_args%WS*pbl_args%WS*rhosrf
+      atm%tgvAVG(I,J) = pbl_args%tgv
+      atm%qgAVG(I,J) = pbl_args%qg_aver
+      atm%gustiwind(i,j) = pbl_args%gusti
+      atm%dblavg(i,j) = dbl
+      atm%rhoavg(i,j) = rhosrf
+      atm%w2_l1(I,J) = w2_1
+      atm%ciaavg(i,j)  =  psi
+      atm%khsavg(i,j)  =  pbl_args%khs
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      wsgcm(i,j) = wsgcm(i,j) +pbl_args%wsgcm*ptype
-      wspdf(i,j) = wspdf(i,j) +pbl_args%wspdf*ptype
-      wsubwd(i,j) = wsubwd(i,j) +pbl_args%wsubwd*ptype
-      wsubtke(i,j) = wsubtke(i,j) +pbl_args%wsubtke*ptype
-      wsubwm(i,j) = wsubwm(i,j) +pbl_args%wsubwm*ptype
+      atm%wsgcm(i,j) = pbl_args%wsgcm
+      atm%wspdf(i,j) = pbl_args%wspdf
+      atm%wsubwd(i,j) = pbl_args%wsubwd
+      atm%wsubtke(i,j) = pbl_args%wsubtke
+      atm%wsubwm(i,j) = pbl_args%wsubwm
 #endif
 
 ccc put drive output data to pbl_args structure
@@ -439,7 +377,7 @@ ccc put drive output data to pbl_args structure
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      call PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args)
+      call PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
 #endif
 
 #ifdef TRACERS_ON
@@ -624,7 +562,8 @@ c**** wspdf in PBL.f for the other soil types.
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args)
+      SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
+      use exchange_types
       USE CONSTANT, only :  rgas,grav,deltx,teeny
       USE TRACER_COM, only : ntm,dodrydep,trname,ntm_dust
       use SOCPBL, only : npbl=>n
@@ -648,6 +587,7 @@ c**** wspdf in PBL.f for the other soil types.
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
+      class (atmsrf_xchng_vars) :: atm
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER,PARAMETER :: n_idxd=6
@@ -728,19 +668,19 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
      &           (ws*ws*pbl_args%tg)
             tmp(idd_zpbl1:idd_zpbl1+npbl-1)=ptype*pbl_args%z(1:npbl)
             tmp(idd_uabl1:idd_uabl1+npbl-1)=
-     *           ptype*uabl(1:npbl,itype,i,j)
+     *           ptype*atm%uabl(1:npbl,i,j)
             tmp(idd_vabl1:idd_vabl1+npbl-1)=
-     *           ptype*vabl(1:npbl,itype,i,j)
+     *           ptype*atm%vabl(1:npbl,i,j)
             tmp(idd_uvabl1:idd_uvabl1+npbl-1)=ptype*sqrt(
-     *           uabl(1:npbl,itype,i,j)*uabl(1:npbl,itype,i,j)+
-     *           vabl(1:npbl,itype,i,j)*vabl(1:npbl,itype,i,j))
+     *           atm%uabl(1:npbl,i,j)*atm%uabl(1:npbl,i,j)+
+     *           atm%vabl(1:npbl,i,j)*atm%vabl(1:npbl,i,j))
             tmp(idd_tabl1:idd_tabl1+npbl-1)=
-     *           ptype*tabl(1:npbl,itype,i,j)
+     *           ptype*atm%tabl(1:npbl,i,j)
             tmp(idd_qabl1:idd_qabl1+npbl-1)=
-     *           ptype*qabl(1:npbl,itype,i,j)
+     *           ptype*atm%qabl(1:npbl,i,j)
             tmp(idd_zhat1:idd_zhat1+npbl-2)=ptype
      *           *pbl_args%zhat(1:npbl-1)
-            tmp(idd_e1:idd_e1+npbl-2)=eabl(1:npbl-1,itype,i,j)*ptype
+            tmp(idd_e1:idd_e1+npbl-2)=atm%eabl(1:npbl-1,i,j)*ptype
             tmp(idd_km1:idd_km1+npbl-2)=ptype*pbl_args%km(1:npbl-1)
             tmp(idd_ri1:idd_ri1+npbl-2)=ptype*pbl_args%gh(1:npbl-1)
      *           /(pbl_args%gm(1:npbl-1)+1d-20)
@@ -765,15 +705,15 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
       use resolution, only : lm
-      use pblcom, only : tsavg,tgvavg
+      use fluxes, only : atmsrf
       implicit none
       integer :: iu_NMC,tsurf_record
       call openunit("AIC",iu_NMC,.true.,.true.)
       tsurf_record = 1+4*lm +1  ! skip over psrf,u,v,t,q
-      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),TSAVG,
+      CALL READT_PARALLEL(grid,iu_NMC,NAMEUNIT(iu_NMC),atmsrf%TSAVG,
      &     tsurf_record)
       call closeunit(iu_NMC)
-      tgvavg(:,:) = tsavg(:,:) ! not used for init. set anyway.
+      atmsrf%tgvavg(:,:) = atmsrf%tsavg(:,:) ! not used for init. set anyway.
       return
       end subroutine read_pbl_tsurf_from_nmcfile
 
@@ -808,6 +748,7 @@ c -------------------------------------------------------------
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : si_atm
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,flice,fland
+     &     ,asflx,atmsrf
 #ifdef USE_ENT
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
@@ -850,7 +791,8 @@ C**** ignore ocean currents for initialisation.
       integer :: I_1H, I_0H, J_1H, J_0H
 
        character*80 :: titrrr
-       real*8 rrr(im,grid%J_STRT_HALO:grid%J_STOP_HALO)
+       real*8 rrr(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &            grid%J_STRT_HALO:grid%J_STOP_HALO)
 
 
 #ifdef TRACERS_ON
@@ -880,17 +822,20 @@ C****
         DO J=J_0,J_1
         DO I=I_0,I_1
 #ifndef SCM /* scm set these already */
-          usavg(i,j) = ua(1,i,j)
-          vsavg(i,j) = va(1,i,j)
-          wsavg(i,j) = sqrt(usavg(i,j)**2 + vsavg(i,j)**2)
+          atmsrf%usavg(i,j) = ua(1,i,j)
+          atmsrf%vsavg(i,j) = va(1,i,j)
+          atmsrf%wsavg(i,j) =
+     &         sqrt(atmsrf%usavg(i,j)**2 + atmsrf%vsavg(i,j)**2)
 #endif
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
-          TAUAVG(I,J)=1.*CDM*WSAVG(I,J)**2  ! air density = 1 kg/m3
+          atmsrf%TAUAVG(I,J)=1.*CDM*atmsrf%WSAVG(I,J)**2  ! air density = 1 kg/m3
 C**** Initialize surface friction velocity
-          USTAR_pbl(:,I,J)=WSAVG(I,J)*SQRT(CDM)
+          do itype=1,4!size(asflx)
+            asflx(itype)%USTAR_pbl(I,J)=atmsrf%WSAVG(I,J)*SQRT(CDM)
+          enddo
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
-          QSAVG(I,J)=Q(I,J,1)
-          QGAVG(I,J)=Q(I,J,1)
+          atmsrf%QSAVG(I,J)=Q(I,J,1)
+          atmsrf%QGAVG(I,J)=Q(I,J,1)
         ENDDO
         ENDDO
       endif
@@ -928,8 +873,6 @@ C**** fix roughness length for ocean ice that turned to land ice
 
       call ccoeff0
       call getztop(zgs,ztop)
-
-      deallocate(atmocn%wsavg); atmocn % wsavg => wsavg
 
       if(.not.inipbl) return
 
@@ -977,7 +920,7 @@ C**** fix roughness length for ocean ice that turned to land ice
             coriol=sinlat2d(i,j)*omega2
             tgrndv=tgvdat(i,j,itype)
             if (tgrndv.eq.0.) then
-              ipbl(itype,i,j)=0
+              asflx(itype)%ipbl(i,j)=0
               go to 200
             endif
             ilong=i
@@ -1014,23 +957,23 @@ C**** fix roughness length for ocean ice that turned to land ice
      3                 uocean,vocean,ilong,jlat,itype
      &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &                 ,upbl,vpbl,tpbl,qpbl,epbl,ug,vg)
-            cmgs(itype,i,j)=cm
-            chgs(itype,i,j)=ch
-            cqgs(itype,i,j)=cq
+            asflx(itype)%cmgs(i,j)=cm
+            asflx(itype)%chgs(i,j)=ch
+            asflx(itype)%cqgs(i,j)=cq
 
             do lpbl=1,npbl
-              uabl(lpbl,itype,i,j)=upbl(lpbl)
-              vabl(lpbl,itype,i,j)=vpbl(lpbl)
-              tabl(lpbl,itype,i,j)=tpbl(lpbl)
-              qabl(lpbl,itype,i,j)=qpbl(lpbl)
+              asflx(itype)%uabl(lpbl,i,j)=upbl(lpbl)
+              asflx(itype)%vabl(lpbl,i,j)=vpbl(lpbl)
+              asflx(itype)%tabl(lpbl,i,j)=tpbl(lpbl)
+              asflx(itype)%qabl(lpbl,i,j)=qpbl(lpbl)
             end do
 
             do lpbl=1,npbl-1
-              eabl(lpbl,itype,i,j)=epbl(lpbl)
+              asflx(itype)%eabl(lpbl,i,j)=epbl(lpbl)
             end do
 
-            ipbl(itype,i,j)=1
-            ustar_pbl(itype,i,j)=ustar
+            asflx(itype)%ipbl(i,j)=1
+            asflx(itype)%ustar_pbl(i,j)=ustar
 
  200      end do
         end do
@@ -1085,18 +1028,9 @@ c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE PBLCOM, only : ipbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
-     &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1,gustiwind,dblavg
-     &     ,rhoavg,ugeoavg,vgeoavg,wgeoavg,ciaavg,khsavg
-#ifdef TRACERS_ON
-      USE PBLCOM, only : travg,travg_byvol
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE PBLCOM, only : wsgcm,wspdf,wsubwd,wsubtke,wsubwm
-#endif
-#endif
+      USE FLUXES, only : asflx
       IMPLICIT NONE
-      integer i,j  !@var i,j loop variable
+      integer i,j,itype  !@var i,j,itype loop variable
 
       integer :: J_1, J_0, I_1, I_0
 C****
@@ -1111,76 +1045,41 @@ C****
 
 c ******* itype=1: Ocean
 
-          if (ipbl(1,i,j).eq.0) then
-            if (ipbl(2,i,j).eq.1) then
+          if (asflx(1)%ipbl(i,j).eq.0) then
+            if (asflx(2)%ipbl(i,j).eq.1) then
               call setbl(2,1,i,j)
-            elseif (ipbl(4,i,j).eq.1) then ! initialise from land
+            elseif (asflx(4)%ipbl(i,j).eq.1) then ! initialise from land
               call setbl(4,1,i,j)
             endif
           endif
 
 c ******* itype=2: Ocean ice
 
-          if (ipbl(2,i,j).eq.0) then
-            if (ipbl(1,i,j).eq.1) call setbl(1,2,i,j)
+          if (asflx(2)%ipbl(i,j).eq.0) then
+            if (asflx(1)%ipbl(i,j).eq.1) call setbl(1,2,i,j)
           endif
 
 c ******* itype=3: Land ice
 
-          if (ipbl(3,i,j).eq.0) then
-            if (ipbl(4,i,j).eq.1) call setbl(4,3,i,j)
+          if (asflx(3)%ipbl(i,j).eq.0) then
+            if (asflx(4)%ipbl(i,j).eq.1) call setbl(4,3,i,j)
           endif
 
 c ******* itype=4: Land
 
-          if (ipbl(4,i,j).eq.0) then
-            if (ipbl(3,i,j).eq.1) then
+          if (asflx(4)%ipbl(i,j).eq.0) then
+            if (asflx(3)%ipbl(i,j).eq.1) then
               call setbl(3,4,i,j)
-            elseif (ipbl(1,i,j).eq.1) then
+            elseif (asflx(1)%ipbl(i,j).eq.1) then
               call setbl(1,4,i,j)
             endif
           endif
 
 C**** initialise some pbl common variables
-          WSAVG(I,J)=0.
-          TSAVG(I,J)=0.
-          QSAVG(I,J)=0.
-          USAVG(I,J)=0.
-          VSAVG(I,J)=0.
-          TAUAVG(I,J)=0.
-          TGVAVG(I,J)=0.
-          QGAVG(I,J)=0.
-          gustiwind(i,j)=0.
-          dblavg(i,j)=0.
-          rhoavg(i,j)=0.
-          w2_l1(I,J)=0.
 
-          ugeoavg(i,j)=0.
-          vgeoavg(i,j)=0.
-          wgeoavg(i,j)=0.
-          ciaavg(i,j)=0.
-          khsavg(i,j)=0.
-
-#ifdef TRACERS_ON
-          travg(:,i,j) = 0.
-          travg_byvol(:,i,j) = 0.
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-           wsgcm(i,j) = 0.
-           wspdf(i,j) = 0.
-           wsubwd(i,j) = 0.
-           wsubtke(i,j) = 0.
-           wsubwm(i,j) = 0.
-#endif
-#endif
-
-          uflux(I,J)=0.
-          vflux(I,J)=0.
-          tflux(I,J)=0.
-          qflux(I,J)=0.
-
-          ipbl(:,i,j) = 0       ! - will be set to 1s when pbl is called
-
+          do itype=1,4
+            asflx(itype)%ipbl(i,j) = 0 ! - will be set to 1s when pbl is called
+          enddo
         end do
       end do
 
@@ -1190,34 +1089,24 @@ C**** initialise some pbl common variables
       subroutine setbl(itype_in,itype_out,i,j)
 !@sum setbl initiallise bl from another surface type for one grid box
 !@auth Ye Cheng
-      USE PBLCOM, only : npbl,uabl,vabl,tabl,qabl,eabl,cmgs,chgs,cqgs
-     *     ,ipbl,ustar_pbl
-#ifdef TRACERS_ON
-     *     ,trabl
-#endif
+      USE FLUXES, only : asflx
+      USE PBLCOM, only : npbl
       IMPLICIT NONE
       integer, INTENT(IN) :: itype_in,itype_out,i,j
       integer lpbl  !@var lpbl loop variable
 
-      do lpbl=1,npbl-1
-        uabl(lpbl,itype_out,i,j)=uabl(lpbl,itype_in,i,j)
-        vabl(lpbl,itype_out,i,j)=vabl(lpbl,itype_in,i,j)
-        tabl(lpbl,itype_out,i,j)=tabl(lpbl,itype_in,i,j)
-        qabl(lpbl,itype_out,i,j)=qabl(lpbl,itype_in,i,j)
-        eabl(lpbl,itype_out,i,j)=eabl(lpbl,itype_in,i,j)
-      end do
-      uabl(npbl,itype_out,i,j)=uabl(npbl,itype_in,i,j)
-      vabl(npbl,itype_out,i,j)=vabl(npbl,itype_in,i,j)
-      tabl(npbl,itype_out,i,j)=tabl(npbl,itype_in,i,j)
-      qabl(npbl,itype_out,i,j)=qabl(npbl,itype_in,i,j)
+      asflx(itype_out)%uabl(:,i,j)=asflx(itype_in)%uabl(:,i,j)
+      asflx(itype_out)%vabl(:,i,j)=asflx(itype_in)%vabl(:,i,j)
+      asflx(itype_out)%tabl(:,i,j)=asflx(itype_in)%tabl(:,i,j)
+      asflx(itype_out)%qabl(:,i,j)=asflx(itype_in)%qabl(:,i,j)
+      asflx(itype_out)%eabl(:,i,j)=asflx(itype_in)%eabl(:,i,j)
 #ifdef TRACERS_ON
-      trabl(:,:,itype_out,i,j)=trabl(:,:,itype_in,i,j)
+      asflx(itype_out)%trabl(:,:,i,j)=asflx(itype_in)%trabl(:,:,i,j)
 #endif
-      cmgs(itype_out,i,j)=cmgs(itype_in,i,j)
-      chgs(itype_out,i,j)=chgs(itype_in,i,j)
-      cqgs(itype_out,i,j)=cqgs(itype_in,i,j)
-      ustar_pbl(itype_out,i,j)=ustar_pbl(itype_in,i,j)
-
+      asflx(itype_out)%cmgs(i,j)=asflx(itype_in)%cmgs(i,j)
+      asflx(itype_out)%chgs(i,j)=asflx(itype_in)%chgs(i,j)
+      asflx(itype_out)%cqgs(i,j)=asflx(itype_in)%cqgs(i,j)
+      asflx(itype_out)%ustar_pbl(i,j)=asflx(itype_in)%ustar_pbl(i,j)
       return
       end subroutine setbl
 
@@ -1250,12 +1139,115 @@ C**** initialise some pbl common variables
       return
       end subroutine getztop
 
+      subroutine get_dbl(temp1,q1)
+      USE EXCHANGE_TYPES
+      USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
+      USE ATM_COM, only : t,q,ua=>ualij,va=>valij
+      USE ATM_COM, only : pmid,pk,am1,p1,srfpk
+      use SOCPBL, only : zgs
+      USE PBLCOM
+      use GEOM, only : imaxj
+      use PBL_DRV
+      use domain_decomp_atm, only : grid
+      implicit none
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: temp1,q1
+c
+      integer :: ldc
+      integer :: i,j,l
+      real*8 :: zpbl,zpbl1,tbar,tl,pl,tl1,pl1,dbl,ztop
+      REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
+      real*8 :: thbar ! function
+
+      do j=grid%j_strt,grid%j_stop
+      do i=grid%i_strt,imaxj(j)
+
+        ztop = zgs +
+     &       .5d-2*RGAS*((temp1(I,J)*(1.+q1(i,j)*xdelt))*
+     &       srfpk(i,j))*AM1(i,j)/p1(i,j)
+
+      ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
+      ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
+      ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
+
+c       IF (TKV.GE.TGV) THEN
+c         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
+c         ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
+c         ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
+c         ! KNOW THE INDEX OF THE LAYER.
+c         ustar=ustar_pbl(itype,i,j)
+c         DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
+c         if (dbl.le.ztop) then
+c           dbl=ztop
+c           L=1
+c         else
+c           ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
+c           ! COMPUTE Ug and Vg THERE:
+c           zpbl=ztop
+c           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
+c           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
+c           do l=2,ls1
+c             pl=pmid(l,i,j)        !pij*sig(l)+ptop
+c             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
+c             tbar=thbar(tl1,tl)
+c             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+c             if (zpbl.ge.dbl) exit
+c             pl1=pl
+c             tl1=tl
+c           end do
+c         endif
+
+c     ELSE
+        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
+        ! LDC IS THE LEVEL TO WHICH DRYCNV/ATURB MIXES.
+        ! FIND DBL FROM LDC.  IF BOUNDARY
+        ! LAYER HEIGHT IS LESS THAN DBL_MAX, ASSIGN LDC TO L, OTHERWISE
+        ! MUST FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
+
+        LDC=max(int(DCLEV(I,J)+.5d0),1)
+        IF (LDC.EQ.0) LDC=1
+        if (ldc.eq.1) then
+          dbl=ztop
+          l=1
+        else
+          zpbl=ztop
+          pl1=pmid(1,i,j)                             ! pij*sig(1)+ptop
+          tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
+          zpbl1=ztop
+          do l=2,ldc
+            pl=pmid(l,i,j)                            ! pij*sig(l)+ptop
+            tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
+            tbar=thbar(tl1,tl)
+            zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
+            if (zpbl.ge.dbl_max) then
+              zpbl=zpbl1
+              exit
+            endif
+            pl1=pl
+            tl1=tl
+            zpbl1=zpbl
+          end do
+          l=min(l,ldc)
+          dbl=zpbl
+        endif
+
+c     ENDIF
+
+      ugeo(i,j) = ua(L,i,j)
+      vgeo(i,j) = va(L,i,j)
+      bldep(i,j) = dbl
+
+      enddo
+      enddo
+      return
+      end subroutine get_dbl
+
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
-     *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
+      USE PBLCOM, only : dclev
+      USE FLUXES, only : atmsrf
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -1270,38 +1262,29 @@ C****
       njpol = grid%J_STRT_SKP-grid%J_STRT
 
 C**** Check for NaN/INF in boundary layer data
-      CALL CHECK3B(wsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'wsavg')
-      CALL CHECK3B(tsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'tsavg')
-      CALL CHECK3B(qsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'qsavg')
+      CALL CHECK3B(atmsrf%wsavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'wsavg')
+      CALL CHECK3B(atmsrf%tsavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'tsavg')
+      CALL CHECK3B(atmsrf%qsavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'qsavg')
       CALL CHECK3B(dclev(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
      &     SUBR,'dclev')
-      CALL CHECK3B(usavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'usavg')
-      CALL CHECK3B(vsavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'vsavg')
-      CALL CHECK3B(tauavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'tauavg')
-      CALL CHECK3C(ustar_pbl(:,I_0:I_1,J_0:J_1),4,I_0,I_1,J_0,J_1,NJPOL,
-     &     SUBR,'ustar')
+      CALL CHECK3B(atmsrf%usavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'usavg')
+      CALL CHECK3B(atmsrf%vsavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'vsavg')
+      CALL CHECK3B(atmsrf%tauavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'tauavg')
+c      CALL CHECK3C(ustar_pbl(:,I_0:I_1,J_0:J_1),4,I_0,I_1,J_0,J_1,NJPOL,
+c     &     SUBR,'ustar')
 
-      CALL CHECK3B(uflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'uflux')
-      CALL CHECK3B(vflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'vflux')
-      CALL CHECK3B(tflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'tflux')
-      CALL CHECK3B(qflux(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'qflux')
-
-      CALL CHECK3B(tgvavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'tgvavg')
-      CALL CHECK3B(qgavg(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'qgavg')
-      CALL CHECK3B(w2_l1(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
-     &     SUBR,'w2_l1')
+      CALL CHECK3B(atmsrf%tgvavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'tgvavg')
+      CALL CHECK3B(atmsrf%qgavg(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'qgavg')
+      CALL CHECK3B(atmsrf%w2_l1(I_0:I_1,J_0:J_1),
+     &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'w2_l1')
 
       END SUBROUTINE CHECKPBL
 
