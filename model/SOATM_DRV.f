@@ -2620,7 +2620,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       USE SURF_ALBEDO, ONLY : GET_SURF_ALBEDO
       USE DIAG_COM, only : aij,
      &     ij_roc,ij_rsi,ij_ocnsw,ij_sisw,ij_ocnalb,ij_sialb,ij_msi,
-     &     ij_ocheat,ij_sst,ij_sss,ij_foc
+     &     ij_ocheat,ij_sst,ij_sss,ij_foc,ij_taus,ij_tauus,ij_tauvs
       IMPLICIT NONE
 
       INTEGER I,J,ITYPE,ITER,HEMI
@@ -2634,7 +2634,7 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
      *     ,FSRI(2),zoice,zsnow,fmp,zmp,dalbsn,OCNALB,SIALB
       REAL*8 QSAT,DQSATDT,TR4
 
-      real*8 tg,qg,uocean,vocean,ts,tsv,qs,us,vs,ws
+      real*8 tg,qg,uocean,vocean,ts,tsv,qs,us,vs,ws,taux,tauy
 
 c
 c  subroutine ncar_ocean_fluxes (u_del, t, ts, q, qs, z, avail, &
@@ -2930,6 +2930,17 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       ENDDO   ! end of itype loop
       ENDDO   ! end of I loop
       ENDDO   ! end of J loop
+
+      do j=j_0,j_1
+      do i=i_0,atmocn%imaxj(j)
+        if(focean(i,j).le.0.) cycle
+        taux = (atmocn%dmua(i,j)+atmice%dmua(i,j))/dtsrc
+        tauy = (atmocn%dmva(i,j)+atmice%dmva(i,j))/dtsrc
+        aij(i,j,ij_tauus) = aij(i,j,ij_tauus) + taux
+        aij(i,j,ij_tauvs) = aij(i,j,ij_tauvs) + tauy
+        aij(i,j,ij_taus) = aij(i,j,ij_taus) + sqrt(taux**2 + tauy**2)
+      enddo
+      enddo
 
       RETURN
       END SUBROUTINE SURFACE

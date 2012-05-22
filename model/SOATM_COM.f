@@ -68,7 +68,7 @@
 
       integer :: ij_foc,ij_roc,ij_rsi,ij_ocnsw,ij_sisw,
      &     ij_ocnalb,ij_sialb,ij_msi,ij_ocheat,ij_sst,ij_sss,
-     &     ij_salres
+     &     ij_salres,ij_taus,ij_tauus,ij_tauvs
 
       type(cdl_type) :: cdl_ij_template,cdl_aij
 
@@ -215,6 +215,30 @@ c     code, so make sure that the counter index is correct.
       units_aij_(k)='mm/day' !'psu/year'
       ia_aij_(k)=ia_cpl
       scale_aij_(k)=sday/dtsrc !1d3*(365.*sday)/dtsrc
+c
+      k=k+1 !
+      IJ_TAUS = k
+      lname_aij_(k) = 'MAG OF MOMENTUM SURFACE DRAG'
+      units_aij_(k) = 'g/m*s^2'
+      sname_aij_(k) = 'tausmag'
+      scale_aij_(k) = 1000.
+      denom_aij_(k)=ij_foc
+c
+      k=k+1 !
+      IJ_TAUUS = k
+      lname_aij_(k) = 'U COMPON OF MOMENTUM SRF DRAG'
+      units_aij_(k) = 'g/m*s^2'
+      sname_aij_(k) = 'tauus'
+      scale_aij_(k) = 1000.
+      denom_aij_(k)=ij_foc
+c
+      k=k+1 !
+      IJ_TAUVS = k
+      lname_aij_(k) = 'V COMPON OF MOMENTUM SRF DRAG'
+      units_aij_(k) = 'g/m*s^2'
+      sname_aij_(k) = 'tauvs'
+      scale_aij_(k) = 1000.
+      denom_aij_(k)=ij_foc
 c
       kaij = k
       allocate(aij(i_0h:i_1h,j_0h:j_1h,kaij))
