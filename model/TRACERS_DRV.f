@@ -6479,7 +6479,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column, skip_parallel
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
-      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,atmsrf
+      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,atmsrf,asflx
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
@@ -6508,7 +6508,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE LAKES_COM, only : trlake,mwl,mldlk,flake
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
-      USE FLUXES, only : flice,focean,asflx
+      USE FLUXES, only : flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
       USE ATM_COM, only: am,byam  ! Air mass of each box (kg/m^2)
