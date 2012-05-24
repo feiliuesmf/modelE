@@ -1236,7 +1236,7 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
       REAL*8, PARAMETER :: PLBA09(10)=(/
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
-      real*8, dimension(:), pointer ::  plbaer
+      real*8, dimension(:), pointer ::  plbaer => null()
       real*8, dimension(:,:,:,:), pointer :: A6JDAY => null()
       ! workaround for xlf bug
 #ifdef COMPILER_XLF
