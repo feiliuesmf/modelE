@@ -343,6 +343,7 @@ c
       real*8, dimension(:), allocatable ::
      &     buf1d_local,buf1d_tile,bufij_tile
      &    ,bufsend,bufrecv
+      logical :: reallocateBufsend
       integer ::
      &     buf1d_local_size=0
      &    ,buf1d_tile_size=0
@@ -699,7 +700,12 @@ c allocate send/receive buffers for halo updates
 c assume a maximum halo width of 3, maximum nl*nk=1000
 c
       n = 3*(7+grid%ie-grid%is)*1000
-      if(.not.allocated(bufsend) .or. n.gt.size(bufsend)) then
+      reallocateBufsend = .false.
+      if (.not. allocated(bufsend)) then
+      else if (n.gt.size(bufsend)) then
+         reallocateBufsend = .true.
+      end if
+      if (reallocateBufsend) then
         if(allocated(bufsend)) deallocate(bufsend)
         if(allocated(bufrecv)) deallocate(bufrecv)
         allocate(bufsend(n),bufrecv(n))
