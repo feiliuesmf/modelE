@@ -127,6 +127,9 @@ c calculate gatherv/scatterv info
           endif
         endif
       endif
+#else
+      allocate(cntsij(1), displsij(1)) ! unused but passed to routine with fixed size arrays
+      allocate(buf1d_local(1), buf1d_tile(1), bufij_tile(1))
 #endif
         
 #ifdef _GATHER_
