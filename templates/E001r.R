@@ -149,7 +149,7 @@ Kradia=1            ! use Kradia=2 for adj. forcing run
  &INPUTZ
    YEARE=1951,MONTHE=12,DATEE=1,HOURE=0,  ! assumed start: 12/1/1950
    ISTART=8, YEARE=1950,MONTHE=12,DATEE=1,HOURE=6,IWRITE=1,JWRITE=1,ITWRITE=23,
- &END
+/
 
 It's important that DTsrc, NIrad, ItimeI are left as in the control
 run so the input data are available when they are needed ! That's

@@ -201,4 +201,4 @@ Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
- &END
+/

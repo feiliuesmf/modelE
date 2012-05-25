@@ -192,5 +192,5 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
    YEARI=1800,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=1800,MONTHE=2,DATEE=1,HOURE=0, KDIAG=13*0,
    ISTART=2,IRANDI=0,YEARE=1800,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
- &END
+/
 linkkpprfn_cmt

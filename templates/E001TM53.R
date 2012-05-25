@@ -190,4 +190,4 @@ nstrtc=28                    ! Number of layers for Prather stratosphere chemist
    YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,    KDIAG=13*0,
    YEARE=1950,MONTHE=2,
    ISTART=2,IRANDI=0, YEARE=1950,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
- &END
+/

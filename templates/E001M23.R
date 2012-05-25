@@ -178,7 +178,7 @@ o3_yr=-1880
    YEARI=1880,MONTHI=1,DATEI=1,HOURI=0,  !  from default: IYEAR1=YEARI
    YEARE=1890,MONTHE=1,DATEE=1,HOURE=0,    KDIAG=0,2,2,9*0,9,
    ISTART=8,IRANDI=0, YEARE=1880,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
- &END
+/
 
 ! Alternate simple ocean parameterizations  (all require a preliminary run with
 ! ========================================  specified ocean data, here: E001M23)

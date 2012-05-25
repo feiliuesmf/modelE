@@ -11,9 +11,6 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
-#ifdef COMPILER_NAG
-      use f90_unix_proc
-#endif
       IMPLICIT NONE
 !@var fname name of file to be read or written
       character(len=*) :: fname
@@ -116,10 +113,24 @@ c
       call par_close(grid,fid)
 
       if(iaction.eq.iowrite .and. am_i_root()) then
-        call system('mv checkpoint.nc '//trim(fname)//'.nc')
+        call execute_command_line
+     &    ('mv checkpoint.nc '//trim(fname)//'.nc')
       endif
 
       RETURN
+
+#ifndef F2008_SUPPORT
+      contains 
+
+      subroutine execute_command_line(cmd)
+#ifdef COMPILER_NAG
+      use F90_UNIX_PROC
+#endif
+        character(len=*), intent(in) :: cmd
+        call system(cmd)
+      end subroutine execute_command_line
+#endif
+
       END SUBROUTINE io_rsf
 
       subroutine find_later_rsf(kdisk)

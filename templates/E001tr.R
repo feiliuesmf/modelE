@@ -228,4 +228,4 @@ nstrtc=12                    ! Number of layers for Prather stratosphere chemist
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default)
    YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
- &END
+/
