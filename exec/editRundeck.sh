@@ -17,21 +17,13 @@ editRundeck()
   eof1='&&END_PARAMETERS'
   eof2='/'
 
-# this section may be omitted, once all old style rundecks are modified
-  a=$( grep ^' '${eof2} $deck )
-  if [[ $a = '' ]];then
-     eof2='&END'
-  fi
-
   a=$( grep -n ${eof1}     $deck | head -1 ) ; n1=${a%%:*}
-  a=$( grep -n ^' '${eof2} $deck | head -1 ) ; n2=${a%%:*}
+  a=$( grep -n ^${eof2} $deck | head -1 ) ; n2=${a%%:*}
 
   cp ${deck} templ
   head -$(( n1-1 )) templ                   > ${deck}
   echo "${ndisk_line}"                      >> ${deck}
   tail +${n1} templ | head -$(( n2 - n1 ))  >> ${deck}
-#  eline=$( tail +${n1} templ | head -$(( n2 - n1 )) | grep -i istart | tail -1 )
-#  echo  ' '${eline#*ISTART*,}               >> ${deck}
   echo "${end_hour_line}"                   >> ${deck}
   echo " ISTART=2, ${end_hour_line}"         >> ${deck}
   tail +${n2} templ                         >> ${deck}
