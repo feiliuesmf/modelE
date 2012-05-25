@@ -214,4 +214,4 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
    YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=1951,MONTHE=12,DATEE=1,HOURE=0, KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=1,HOURE=1,
- &END
+/

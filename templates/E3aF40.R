@@ -180,4 +180,4 @@ Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
    IYEAR1=1950, YEARI=1979,MONTHI=1,DATEI=1,HOURI=0,
                 YEARE=2001,MONTHE=1,DATEE=1,HOURE=0, KDIAG=12*0,9,
    ISTART=8,    YEARE=1979,MONTHE=1,DATEE=1,HOURE=1, IRANDI=0,
- &END
+/

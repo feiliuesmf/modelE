@@ -5143,7 +5143,7 @@ C     ----------------------------------------------------------
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
      *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
-     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PU2, U,UP,UGAS, FNU1
+     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PU2, U,UP,UGAS, FNU1, DSUM
      *     ,UAA,UAB,UBA,UBB, WPB, WTB,WTPU, XA,XB,XK,XUA,XUB
      *     ,WAA,WAB,WBA,WBB,WAAA,WAAB,WABA,WABB,WBAA,WBAB,WBBA,WBBB
       REAL*8 PRAT(LX),WT(LX)
@@ -5286,11 +5286,8 @@ C**** Find correction factors XTU and XTD
         IF(L24 == L24up) THEN  ! update the current PratL24 segment
           sumPR=sumPR+Prat(L)
           NSUM=NSUM+1
-#ifdef COMPILER_NAG
-          Prat24(L24dn:L24up)=sumPR/DBLE(NSUM)
-#else
-          Prat24(L24dn:L24up)=sumPR/DFLOAT(NSUM)
-#endif
+          DSUM=NSUM
+          Prat24(L24dn:L24up)=sumPR/DSUM
         ELSE                   ! start next PratL24 segment
           sumPR=Prat(L)
           Prat24(L24up+1:L24)=sumPR

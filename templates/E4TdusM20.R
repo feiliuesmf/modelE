@@ -291,4 +291,4 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
    YEARI=1999,MONTHI=12,DATEI=1,HOURI=0, IYEAR1=1875 ! or earlier
    YEARE=2005,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1999,MONTHE=12,DATEE=1,HOURE=1,
- &END
+/
