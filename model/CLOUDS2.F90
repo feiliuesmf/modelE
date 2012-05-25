@@ -1663,7 +1663,8 @@ contains
                 DDR(L)=DDRAFT
                 CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN      ! calculate before CDHDRT
                 CDHDRT=CDHDRT-CDHDRT*.5*ETADN+CDHEAT(L)    ! SLH*COND(L)
-                FDDP = .5*DDRAFT/MPLUME
+                FDDP = .5*DDRAFT ! split command as a workaround for NAG 5.3 on OS X
+                FDDP = FDDP / MPLUME
                 FDDL = .5*DDRAFT*BYAM(L)
                 MPLUME=FLEFT*MPLUME
                 SMDNL(L)=DDRAFT*SMIX

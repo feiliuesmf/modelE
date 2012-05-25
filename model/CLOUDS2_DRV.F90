@@ -280,13 +280,13 @@ subroutine CONDSE
 
   !**** parameters and variables for isccp diags
   real*8, parameter :: bywc = 1./2.56d0 , byic= 1./2.13d0
-  real*8 skt,conv(lm),qv(lm)
+  real*8 skt(1),conv(lm),qv(lm)
   real*8 pfull(lm),at(lm),cc(lm),dtau_s(lm),dtau_c(lm)
   real*8 dem_s(lm),dem_c(lm),phalf(lm+1)
-  real*8 fq_isccp(ntau,npres),ctp,tauopt
+  real*8 fq_isccp(ntau,npres),ctp(1),tauopt(1)
   real*8 boxtau(ncol),boxptop(ncol)
 
-  integer itau,itrop,nbox,sunlit,ipres
+  integer itau,itrop(1),nbox(1),sunlit(1),ipres
   !****
 
   !
@@ -1260,14 +1260,14 @@ subroutine CONDSE
           if(jerr.ne.0) jckerr = jckerr + 1
 
           !**** set ISCCP diagnostics
-          AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit
-          saveSCLDI(i,j)=sunlit
-          if (nbox.gt.0.and.sunlit.gt.0) then
-            AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp
-            AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt
+          AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit(1)
+          saveSCLDI(i,j)=sunlit(1)
+          if (nbox(1).gt.0.and.sunlit(1).gt.0) then
+            AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp(1)
+            AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt(1)
             AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
-            saveCTPI(i,j)=ctp    ! saving just the
-            saveTAUI(i,j)=tauopt ! current value for
+            saveCTPI(i,j)=ctp(1)    ! saving just the
+            saveTAUI(i,j)=tauopt(1) ! current value for
             saveTCLDI(i,j)=1.d0  ! instantaneous SUBDDiags
             !**** note LOW CLOUDS:       ipres=6,7
             !****      MID-LEVEL CLOUDS: ipres=4,5
@@ -1288,9 +1288,9 @@ subroutine CONDSE
         !     save isccp diagnostics for SCM
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          isccp_sunlit = sunlit
-          isccp_ctp = ctp
-          isccp_tauopt = tauopt
+          isccp_sunlit = sunlit(1)
+          isccp_ctp = ctp(1)
+          isccp_tauopt = tauopt(1)
           isccp_lowcld = sum(fq_isccp(2:ntau,6:7))
           isccp_midcld = sum(fq_isccp(2:ntau,4:5))
           isccp_highcld = sum(fq_isccp(2:ntau,1:3))

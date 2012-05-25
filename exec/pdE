@@ -47,7 +47,7 @@ cat <<EOF > Ipd
 
  &INPUTZ
  ISTART=-1,QDIAG=.true.,KDIAG=13*0,
- &END
+ /
 EOF
 fi
 
