@@ -34,7 +34,8 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 !@var ut2a unresolved bottom velocity squared (m/s)^2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ut2a
       integer, parameter :: idrag=1    !@var idrag 1: tides are not explicit
-      integer, parameter :: nonlocal=0 !@var nonlocal 1: non-local vertical mixing
+!@var nonlocal 0: local; 1: non-local; 2: non-local with counter-gradient terms
+      integer, parameter :: nonlocal=0
       END MODULE GISSMIX_COM
 
 
@@ -60,9 +61,9 @@ c     integer, parameter :: nt=162      !@var mt dim of rr in table
       integer, parameter :: nt=108      !@var mt dim of rr in table
       real*8, parameter :: kmin=1d-3    !@var kmin min of diffusivities, (m^2/s)
       real*8, parameter :: kmax=100.   !@var kmax max of diffusivities, (m^2/s)
-      real*8, parameter :: lrmax=1.    !@var lrmax max of length/l0
+      real*8, parameter :: lrmax=1.    !@var lrmax max of length/l2
       real*8, parameter :: osocb1=21.6,kappa=0.4
-      real*8, parameter :: gammam_bg=.46
+c     real*8, parameter :: gammam_bg=.46
       real*8, save ::
      &    ria(mt)       !@var ria ri 1d array of richardson #, for 2d tables
      &   ,rra(nt)       !@var rra rr 1d array of density ratio,for 2d tables
@@ -72,26 +73,28 @@ c     integer, parameter :: nt=162      !@var mt dim of rr in table
      &   ,ssa(mt,nt)    !@var ssa 2d table for ss=structure fuction for salinity
      &   ,rfa(mt,nt)    !@var rfa 2d table for rf=flux richardson #
      &   ,phim2a(mt,nt) !@var phim2a 2d table for phim2, used for bottom shear
-     &   ,lra(mt,nt)    !@var lra 2d table for length/(blackadar length)
-      real*8, save ::
-     &    gma1(mt)    !@var gma 1d table for gm=(tau*shear)^2
-     &   ,sma1(mt)    !@var sma 1d table for sm=structure fuction for momentum
-     &   ,sha1(mt)    !@var sha 1d table for sh=structure fuction for heat
-     &   ,ssa1(mt)    !@var ssa 1d table for ss=structure fuction for salinity
-     &   ,rfa1(mt)    !@var rfa 1d table for rf=flux richardson #
-      real*8, save ::
-     &    ribga(nt)     !@var ribg 1d array of backgound richardson number ri 
-     &   ,smbga(nt)     !@var smbga 1d table for background sm
-     &   ,shbga(nt)     !@var shbga 1d table for background sh
-     &   ,ssbga(nt)     !@var ssbga 1d table for background ss
-     &   ,rfbga(nt)     !@var rfbga 1d table for background rf
+     &   ,lr1a(mt)      !@var lr1a 1d table for length/(blackadar length)
+c    &   ,lra(mt,nt)    !@var lra 2d table for length/(blackadar length)
+c     real*8, save ::
+c    &    gma1(mt)    !@var gma 1d table for gm=(tau*shear)^2
+c    &   ,sma1(mt)    !@var sma 1d table for sm=structure fuction for momentum
+c    &   ,sha1(mt)    !@var sha 1d table for sh=structure fuction for heat
+c    &   ,ssa1(mt)    !@var ssa 1d table for ss=structure fuction for salinity
+c    &   ,rfa1(mt)    !@var rfa 1d table for rf=flux richardson #
+c     real*8, save ::
+c    &    ribga(nt)     !@var ribg 1d array of backgound richardson number ri 
+c    &   ,smbga(nt)     !@var smbga 1d table for background sm
+c    &   ,shbga(nt)     !@var shbga 1d table for background sh
+c    &   ,ssbga(nt)     !@var ssbga 1d table for background ss
+c    &   ,rfbga(nt)     !@var rfbga 1d table for background rf
+c    &   ,gammbga(nt)   !@var gammbga 1d table for background gamma_m
       real*8, save :: 
      &    rimin         !@var rimin min of richardson # ri
      &   ,rimax         !@var rimax max of richardson # ri
      &   ,rrmin         !@var rrmin min of density ratio rr
      &   ,rrmax         !@var rrmax max of density ratio rr
 
-      real*8, save :: rtwi_rr     ! Rrho, passed to fct in rtwi routine
+c     real*8, save :: rtwi_rr     ! Rrho, passed to fct in rtwi routine
       real*8, save ::  pi10,pi20,pi30,pi40,pi50
       real*8, save ::  p1,p2,p3,p4
       real*8, save ::  rf1,rf2
@@ -183,10 +186,12 @@ c     integer i_0,i_1,j_0,j_1
       rimax=ria(m) !  1.d4
       rrmin=rra(1) ! -0.99
       rrmax=rra(n) !  0.99
-c     write(67,'(a,1e14.4)') "rimin=",rimin
-c     write(67,'(a,1e14.4)') "rimax=",rimax
-c     write(67,'(a,1e14.4)') "rrmin=",rrmin
-c     write(67,'(a,1e14.4)') "rrmax=",rrmax
+c     if( AM_I_ROOT() ) then
+c        write(67,'(a,1e14.4)') "rimin=",rimin
+c        write(67,'(a,1e14.4)') "rimax=",rimax
+c        write(67,'(a,1e14.4)') "rrmin=",rrmin
+c        write(67,'(a,1e14.4)') "rrmax=",rrmax
+c     endif
       do k=1,n
          do j=1,m
             call gissdiffus(
@@ -195,80 +200,91 @@ c     write(67,'(a,1e14.4)') "rrmax=",rrmax
             ! Out:
      &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k),rfa(j,k))
             phim2a(j,k)=2./osocb1**2*gma(j,k)**.5d0/sma(j,k)
+c           if( AM_I_ROOT() ) then
+c              write(61,'(9e14.4)') ria(j),rra(k)
+c    &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k),rfa(j,k)
+c           endif
          end do ! loop j
       end do ! loop k
 
       ! 1d tables for gm,sm,sh,ss,rf (rf used in length scale formula)
 
-      do j=1,m
+      do j=m,1,-1
          call gissdiffus(
          ! In:
      &      ria(j),rrmin
          ! Out:
-     &     ,gma1(j),sma1(j),sha1(j),ssa1(j),rfa1(j))
+     &     ,gm1,sm1,sh1,ss1,rf1)
+         if(j.eq.m) rf2=rf1
+         tmp=min(max(1-rf1/rf2,1d-30),1.d0)
+         lr1a(j)=tmp**(4.*by3)
+c        if( AM_I_ROOT() ) then
+c           write(61,'(9e14.4)') ria(j),lr1a(j),rf2
+c        endif
       end do ! loop j
 
-      ! 2d table for length/(blackadar leng)
-
-      call gissdiffus(
-      ! In:
-     &   rimax,rrmin
-      ! Out:
-     &  ,gm1,sm1,sh1,ss1,rf1)
+c     ! 2d table for length/(blackadar leng)
+c     call gissdiffus(
+c     ! In:
+c    &   rimax,rrmin
+c     ! Out:
+c    &  ,gm1,sm1,sh1,ss1,rf1)
 c        if( AM_I_ROOT() ) then
 c           write(61,'(9e14.4)') rf1,rf2,rf1/rf2
 c        endif
-      do k=1,n
-         do j=1,m
-            if(rfa(j,k)/rf1.gt.1.) then
-              write(*,*) "rfa(j,k)/rf1.gt.1., stop"
-              write(*,*) rfa(j,k)/rf1
-              stop
-            endif
-            if(rfa(j,k).gt.0.) then
-               pow=4./3.
-            else
-               pow=.15
-            endif
-            tmp=1.-4./(3.*pow)*rfa(j,k)/rf1
-            lra(j,k)=tmp**pow
-            !lra(j,k)=min(tmp**pow,lrmax)
-c           write(60,'(9e13.4)')
-c    &          ria(j),rra(k),rfa(j,k),rfa(j,k)/rf1,lra(j,k)
-         end do ! loop j
-      end do ! loop k
-
-      ! make the 1-d tables for background sm,sh,ss
-
-      eps=1.d-6
-      iend=40
-      ! rtwi finds the root of ri=fct(ri)
-      do k=1,n
-         rr=rra(k)
-         ! to estimate rest
-         if(k.eq.1) then
-             rest=.4
-         else
-             rest=ri
-         endif
-         rtwi_rr=rr
-         ! in rtwi, rest is the input (estimate of ri), ri is the output
-         ! fct is the function ri=fct(ri) from which ri is solved
-         call rtwi(ri,val,fct,rest,eps,iend,ier)
-         ribga(k)=ri
-c        write(67,*) rr,ri,val,ier
-         ! make 1d table for sm,sh,ss of rr
-         call gissdiffus(
-         ! In:
-     &      ri,rr
-         ! Out:
-     &     ,gmbg,smbga(k),shbga(k),ssbga(k),rfbga(k))
+c     do j=1,m
 c        if( AM_I_ROOT() ) then
-c           write(66,'(9e14.4)')
-c    &      ri,rr,gmbg,smbga(k),shbga(k)/smbga(k),ssbga(k)/smbga(k)
-c    &     ,gammam_bg*shbga(k)/smbga(k),gammam_bg*ssbga(k)/smbga(k)
+c           write(61,'(9e14.4)') ria(j),rf1,rfa1(j)/rf1
 c        endif
-      end do
+c     end do
+
+c     do k=1,n
+c        do j=1,m
+c           if(rfa(j,k)/rf1.gt.1.) then
+c             write(*,*) "rfa(j,k)/rf1.gt.1., stop"
+c             write(*,*) rfa(j,k)/rf1
+c             stop
+c           endif
+c           if(rfa(j,k).gt.0.) then
+c              pow=4./3.
+c           else
+c              pow=.15
+c           endif
+c           tmp=1.-4./(3.*pow)*rfa(j,k)/rf1
+c           lra(j,k)=tmp**pow
+c           lra(j,k)=min(tmp**pow,lrmax)
+c        end do ! loop j
+c     end do ! loop k
+c     ! make the 1-d tables for background sm,sh,ss
+c     eps=1.d-6
+c     iend=40
+c     ! rtwi finds the root of ri=fct(ri)
+c     do k=1,n
+c        rr=rra(k)
+c        ! to estimate rest
+c        if(k.eq.1) then
+c            rest=.4
+c        else
+c            rest=ri
+c        endif
+c        rtwi_rr=rr
+c        ! in rtwi, rest is the input (estimate of ri), ri is the output
+c        ! fct is the function ri=fct(ri) from which ri is solved
+c        call rtwi(ri,val,fct,rest,eps,iend,ier)
+c        ribga(k)=ri
+c        ! make 1d table for sm,sh,ss of rr
+c        ribga(k)=0.4
+c        call gissdiffus(
+c        ! In:
+c    &      ribga(k),rra(k)
+c        ! Out:
+c    &     ,gmbg,smbga(k),shbga(k),ssbga(k),rfbga(k))
+c        gammbga(k)=.5*ribga(k)*gmbg*smbga(k)
+c        if( AM_I_ROOT() ) then
+c           write(62,'(9e14.4)') ribga(k),rra(k)
+c    &      ,gammbga(k),smbga(k),shbga(k)/smbga(k),ssbga(k)/smbga(k)
+c        endif
+c     end do
 
 C**** initialize exya, ut2a
       ! tidally induced diffusivities: C2010, (69), (75)-(77)
@@ -299,19 +315,19 @@ C**** initialize otke
       return
       end subroutine gissmix_init
 
-      real*8 function fct(ri)
-!@sum rtwi finds the root of ri=fct(ri)
-      implicit none
-      real*8 ri,rr,gm,sm,sh,ss,rf
-      rr=rtwi_rr
-      call gissdiffus(
-      ! In:
-     &    ri,rr
-      ! Out:
-     &   ,gm,sm,sh,ss,rf)
-      fct=2.*gammam_bg/(gm*sm)
-      return
-      end function fct
+c     real*8 function fct(ri)
+c!@sum rtwi finds the root of ri=fct(ri)
+c      implicit none
+c      real*8 ri,rr,gm,sm,sh,ss,rf
+c      rr=rtwi_rr
+c      call gissdiffus(
+c      ! In:
+c     &    ri,rr
+c      ! Out:
+c     &   ,gm,sm,sh,ss,rf)
+c      fct=2.*gammam_bg/(gm*sm)
+c      return
+c      end function fct
 
 
       subroutine gissdiffus(
@@ -425,7 +441,7 @@ C**** initialize otke
       real*8 aa1,aa2,aa3,aa4,aa5,aa6
       real*8 sgmt0
       real*8 a,b,b2,rrsy,rrs,rrm,rrm1,rrm2,rrm1s,rr2,rrss
-      real*8 Rrs2,bs2,Rrns
+      real*8 Rrs2,bs2,Rrns,tmp
       real*8 pi2_,pi1_,pi4_,b2su,rr2su,pi1_1,pi4_1,pi2_1,w
       integer test
 
@@ -448,7 +464,9 @@ C**** initialize otke
             a=5.
             b=2.
             rrsy = 2./(rr + 1/rr)
-            pi1 = pi10/(1. + ri/(1. + (a*rrsy**2)))
+            ! pi1 = pi10/(1. + ri/(1. + (a*rrsy**2)))
+            tmp=atan2(.5*rrsy**2*(1-rrsy**2),2*rrsy**2-1)/3.1415927
+            pi1 = pi10/(1.+ri**tmp*tmp)   !ok
             pi4 = pi1
             pi2=pi20*( 1-b*rrsy*(1-rrsy) )
          else ! rr < 0
@@ -572,65 +590,65 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       END SUBROUTINE locate
 
 
-      subroutine rtwi(x,val,fct,xst,eps,iend,ier)
-c     to solve general nonlinear equations of the form x=fct(x)
-c     by means of wegsteins iteration method
-c     prepare iteration
-
-      implicit none
-
-      real*8 x,val,fct,xst,eps
-      integer iend,ier
-      real*8 tol,a,b,d
-      integer i
-
-      ier=0
-      tol=xst
-      x=fct(tol)
-      a=x-xst
-      b=-a
-      tol=x
-      val=x-fct(tol)
-c     start iteration loop
-      do 6 i=1,iend
-      if(val) 1,7,1
-c     equation is not satisfied by x
- 1    b=b/val-1.
-      if(b) 2,8,2
-c     iteration is possible
- 2    a=a/b
-      x=x+a
-      b=val
-      tol=x
-      val=x-fct(tol)
-c     test on satisfactory accuracy
-      tol=eps
-      d=abs(x)
-      if(d-1.) 4,4,3
- 3    tol=tol*d
- 4    if(abs(a)-tol) 5,5,6
- 5    if(abs(val)-10.*tol) 7,7,6
- 6    continue
-c     end of iteration loop
-c     no convergence after iend iteration steps. error return.
-      ier=1
- 7    return
-c     error return in case of zero divisor
- 8    ier=2
-      return
-      end subroutine rtwi
+c      subroutine rtwi(x,val,fct,xst,eps,iend,ier)
+cc     to solve general nonlinear equations of the form x=fct(x)
+cc     by means of wegsteins iteration method
+cc     prepare iteration
+c
+c      implicit none
+c
+c      real*8 x,val,fct,xst,eps
+c      integer iend,ier
+c      real*8 tol,a,b,d
+c      integer i
+c
+c      ier=0
+c      tol=xst
+c      x=fct(tol)
+c      a=x-xst
+c      b=-a
+c      tol=x
+c      val=x-fct(tol)
+cc     start iteration loop
+c      do 6 i=1,iend
+c      if(val) 1,7,1
+cc     equation is not satisfied by x
+c 1    b=b/val-1.
+c      if(b) 2,8,2
+cc     iteration is possible
+c 2    a=a/b
+c      x=x+a
+c      b=val
+c      tol=x
+c      val=x-fct(tol)
+cc     test on satisfactory accuracy
+c      tol=eps
+c      d=abs(x)
+c      if(d-1.) 4,4,3
+c 3    tol=tol*d
+c 4    if(abs(a)-tol) 5,5,6
+c 5    if(abs(val)-10.*tol) 7,7,6
+c 6    continue
+cc     end of iteration loop
+cc     no convergence after iend iteration steps. error return.
+c      ier=1
+c 7    return
+cc     error return in case of zero divisor
+c 8    ier=2
+c      return
+c      end subroutine rtwi
 
       END MODULE GISS_OTURB
 
 
       subroutine gissmix( 
       ! in:
-     &    n,ze,zg,db,dv2,talpha,sbeta,adt,bds,to,s,rho,uob,vob,u2b
-     &   ,fc,ustar,bf,gawt0,gbws0,hbl,kbl,strait,ilon,jlat
+     &    n,ze,zg,db,dv2,adt,bds,to,s,rho,uob,vob,u2b
+     &   ,fc,ustar,bf,hbl,kbl,strait,ilon,jlat
       ! inout:
      &   ,e
       ! out:
-     &   ,ri,rr,km,kh,ks,wtnl,wsnl) 
+     &   ,ri,rr,km,kh,ks,buoynl) 
 
 !@sum giss turbulence model for ocean
 !@ref Canuto et al. 2004, GRL, 31, L16305 (C2004)
@@ -656,8 +674,6 @@ c     error return in case of zero divisor
       real*8 zg(0:lmo+1) !@var zg vertical grid depth (m), < 0
       real*8 db(lmo)     !@var db -grav/rho*d(rho) (m/s^2)
       real*8 dv2(lmo)    !@var dv2 vel. diff. squared btw layers (m/s)^2
-      real*8 talpha(lmo) !@var thermal contraction coefficient*rho
-      real*8 sbeta(lmo)  !@var haline contraction coefficient*rho
       real*8 adt(lmo)    !@var adt rho*alpha*DT (kg/m^3)
       real*8 bds(lmo)    !@var bds rho*beta*DS  (kg/m^3)
       real*8 to(lmo)     !@var to ocean potential tmperature (K)
@@ -669,13 +685,11 @@ c     error return in case of zero divisor
       real*8 fc          !@var fc Coriolis parameter=2*omega*sin(lat) (1/s)
       real*8 ustar       !@var ustar surface friction velocity (m/s)
       real*8 bf          !@var bf surface buoyancy forcing (m^2/s^3)
-      REAL*8 gawt0       !@var gawt0 heat part of surface buoyancy flux (m^2/s^3)
-      REAL*8 gbws0       !@var gbws0 salt part of surface buoyancy flux (m^2/s^3)
       real*8 hbl         !@var hbl pbl depth (m)
       integer kbl        !@var kbl first grid level below hbl
       integer strait,ilon,jlat
-      intent (in) n,ze,zg,db,dv2,talpha,sbeta,adt,bds,to,s,rho,uob,vob
-     &           ,u2b,fc,ustar,bf,gawt0,gbws0,hbl,kbl,strait,ilon,jlat
+      intent (in) n,ze,zg,db,dv2,adt,bds,to,s,rho
+     &  ,uob,vob,u2b,fc,ustar,bf,hbl,kbl,strait,ilon,jlat
 
       ! inout:
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
@@ -687,9 +701,8 @@ c     error return in case of zero divisor
       real*8 km(0:lmo+1) !@var km vertical momentun diffusivity (m**2/s)
       real*8 kh(0:lmo+1) !@var kh vertical heat diffusivity (m**2/s)
       real*8 ks(0:lmo+1) !@var ks vertical salinity diffusivity (m**2/s)
-      real*8 wtnl(lmo)   !@var wtnl non-local term of heat flux (m/s*K)
-      real*8 wsnl(lmo)   !@var wsnl non-local term of salinity flux (m/s)
-      intent (out) ri,rr,km,kh,ks,wtnl,wsnl
+      real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
+      intent (out) ri,rr,km,kh,ks,buoynl
 
       ! local:
 
@@ -699,12 +712,13 @@ c     error return in case of zero divisor
       real*8 bydz
 
       integer :: l
-      real*8 ril,rrl0,rrl
+      real*8 ril,rrl
       integer :: jlo,jhi,klo,khi
       real*8 :: a1,a2,b1,b2,c1,c2,c3,c4
 
-      real*8 gm,sm,sh,ss,kml,khl,ksl,rf,lr,l00,l0,lb,kz,byn
-      real*8 smbg,shbg,ssbg,kmbg,khbg,ksbg,zl
+      real*8 gm,sm,sh,ss,kml,khl,ksl,rf,lr,l0,lb,kz,byn
+      real*8 gammbg,smbg,shbg,ssbg,kmbg,khbg,ksbg,zl
+      real*8 omrr,x,p,qq,bygam,xx
 
       ! consts appeared in C2010, (65a)-(66), for background diffusivities
       !@var f30 2*omega*sin(30 degrees)=omega
@@ -730,16 +744,14 @@ c     error return in case of zero divisor
 
       integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
       integer, parameter :: num_smooth=1
-      real*8, parameter :: fourby3=4.*by3
-      real*8 bylenr ! rotation effect
+      real*8, parameter :: l0min=3.d0,l2min=.02d0
+c     real*8 bylenr ! rotation effect
 
       ! diffusivity variables
       real*8 wstar,wstar3,ustar1,ustar2,ustar3,bylmonin
-     &      ,zbyh,zeta,phi_m,eps,tau,ga,gb,gawt,gbws,gawtnl,gbwsnl
+     &      ,zbyh,zeta,phi_m,eps,tau
      &      ,ghmin,gh,tmp1,tmp2,dtdz,dsdz,wt,ws
-     &      ,ah,as,am,w2byk,l0b,l1,dtdzi,zilit,dsdzi,zilis
-
-      real*8, parameter :: l0min=1d-30
+     &      ,ah,as,am,w2byk,l1,l2,dtdzi,zili,buoy,krl
 
       !             grid levels                       interface levels
       !
@@ -764,46 +776,8 @@ c     error return in case of zero divisor
       ! which is only called from within the subroutine gissmix_init,
       ! the latter is called only once. the lookup uses bisection.
       !-----------------------------------------------------------------
- 
-
 
       ! have moved "call gissmix_init" to init_OCEAN in OCNDYN_ye.f
-
-      ustar1=max(ustar,3.5d-3)
-      ustar2=ustar1*ustar1
-      ustar3=ustar1*ustar2
-      if(bf.lt.0.) then
-         wstar3=-bf*hbl
-         wstar=wstar3**by3
-         if(nonlocal.eq.1) then
-            l=max(kbl,2)
-            if(gawt0.gt.0.) then
-               dtdzi=max((to(l-1)-to(l))/(zg(l-1)-zg(l)),1d-30)
-               ga=-talpha(l)/rho(l)*grav+1d-20
-               zilit=.2/(1.+7.*(gawt0/(hbl*hbl))**(2.*by3)
-     &               /(ga*dtdzi+1d-30))
-            else
-               zilit=0.
-            endif
-            if(gbws0.lt.0.) then
-               dsdzi=min((s(l-1)-s(l))/(zg(l-1)-zg(l)),-1d-30)
-               gb=sbeta(l)/rho(l)*grav+1d-20
-               zilis=.2/(1.+7.*(-gbws0/(hbl*hbl))**(2.*by3)
-     &               /(-gb*dsdzi+1d-30))
-            else
-               zilis=0.
-            endif
-         else
-            zilit=0.
-            zilis=0.
-         endif
-      else
-         wstar3=0.
-         wstar=0.
-      endif
-      l00=.17*hbl
-      l0=l00
-      bylmonin=kappa*bf/ustar3 !@var bylmonin 1/Lmonin
 
       do l=1,n-1
          bydz=1./(zg(l)-zg(l+1))
@@ -824,6 +798,28 @@ c     error return in case of zero divisor
       do mr = 1,num_smooth
          call z121(rr,n-1,lmo)
       end do
+
+      ustar1=max(ustar,3.5d-3)
+      ustar2=ustar1*ustar1
+      ustar3=ustar1*ustar2
+      if(bf.lt.0.) then
+         wstar3=-bf*hbl
+         wstar=wstar3**by3
+         if(nonlocal.eq.2) then
+            l=max(kbl,2)
+            zili=.2/(1.+7.*(-bf/(hbl*hbl))**(2.*by3)
+     &          /max(bv2(l),1d-30))
+c                 if( AM_I_ROOT() ) then
+c                    write(59,'(2i4,9e14.4)')
+c    &               kbl,l,zili,bf,bv2(l)
+c                 endif
+         endif
+      else
+         wstar3=0.
+         wstar=0.
+      endif
+      l0=.15*hbl
+      bylmonin=kappa*bf/ustar3 !@var bylmonin 1/Lmonin
 
       ! modify ri at the interface nearest to ocean bottom
       ! due to unresolved bottom shear, C2010, eqs,(73)-(77)
@@ -877,7 +873,6 @@ c     else
 c        bylenr=0.
 c     endif
 
-      l0b=l0
       do l=1,n-1
 
          ril=ri(l)
@@ -912,127 +907,96 @@ c     endif
             sh=ss
             ss=tmp
          endif
-c        rf=c1*rfa(jlo,klo)+c2*rfa(jhi,klo)
-c    &     +c3*rfa(jhi,khi)+c4*rfa(jlo,khi)
-c        lr=c1*lra(jlo,klo)+c2*lra(jhi,klo)
-c    &     +c3*lra(jhi,khi)+c4*lra(jlo,khi)
 
          ! length scale:
          zl=ze(l)
          zbyh=zl/hbl
          kz=kappa*zl
-         if(nonlocal.eq.0) then
-            rf=a1*rfa1(jlo)+b1*rfa1(jhi)
-            tmp=min(max(1-rf/rf1,1d-30),1.d0)
-            lr=tmp**(4./3.)
-            l0=l00*lr
-            if(zl.le.hbl) then         ! within obl
-               l1=l0
-            else
-               l1=l0min+max(l0-l0min,0.d0)*exp(1.-zbyh)
-            endif
-            len=l1*kz/(l1+kz)
-            tmp=(osocb1*len)**2*vs2(l)
-            e(l)=.5*tmp/(gm+1.d-20)
-            e(l)=min(max(e(l),emin),emax)
-            etau=.5*osocb1*sqrt(2.*e(l))*len
-            kml=etau*sm
-            khl=etau*sh
-            ksl=etau*ss
-            wtnl(l)=0.
-            wsnl(l)=0.
+c        lr=c1*lra(jlo,klo)+c2*lra(jhi,klo)
+c    &     +c3*lra(jhi,khi)+c4*lra(jlo,khi)
+         if(ril.ge.0.) then 
+            lr=a1*lr1a(jlo)+b1*lr1a(jhi)
          else
-            if(zl.le.hbl) then         ! within obl
-               if (bv2(l).gt.0.) then
-                  byn=1./(sqrt(bv2(l))+1d-30)
-                  qturb=.75*sqrt(e(l))
-                  lb=qturb*byn
-               else
-                  lb=1.d30
-               endif
-               l0b=l0*lb/(l0+lb)
-               len=l0b*kz/(l0b+kz)
-            else                     ! below obl
-               l1=l0min+max(l0b-l0min,0.d0)*exp(1.-zbyh)
-               len=l1*kz/(l1+kz)
+            lr=1.
+         endif
+c        if( AM_I_ROOT() ) then
+c           write(61,'(9e14.4)') ril,lr
+c        endif
+         if(zl.le.hbl) then         ! within obl
+            l1=l0
+         else
+            l1=l0min+max(l0-l0min,0.d0)*exp(1.-zbyh)
+         endif
+         l2=max(l1*lr,l2min)
+         len=l2*kz/(l2+kz)
+         tmp=(osocb1*len)**2*vs2(l)
+         e(l)=.5*tmp/(gm+1.d-20)
+         e(l)=min(max(e(l),emin),emax)
+         etau=.5*osocb1*sqrt(2.*e(l))*len
+         kml=etau*sm
+         khl=etau*sh
+         ksl=etau*ss
+         buoynl(l)=0.
+         if(nonlocal.ne.0.and.zl.le.hbl) then ! nonlocal, in obl
+            if (bv2(l).gt.0.) then
+               byn=1./(sqrt(bv2(l))+1d-30)
+               qturb=.75*sqrt(max(e(l),emin))
+               lb=qturb*byn
+            else
+               lb=1.d30
             endif
-            if(zl.le.hbl) then ! within obl
-               ! find e and update sm,sh,ss within obl
-               if(zeta.lt.0.) then
-                  phi_m=(1.-15.*zeta)**(-.25)
-               else
-                  phi_m=1.+4.7*zeta
-               endif
-               ! eps: modified Moeng and Sullivan 1994
-               eps=.4*wstar3/hbl+ustar3*(1.-zbyh)*phi_m/kz
-               e(l)=.5*(osocb1*len*eps)**(2.*by3)
-               e(l)=min(max(e(l),emin),emax)
-               tau=2.*e(l)/(eps+1d-20)
-               etau=e(l)*tau
-               ! Level 2.5 of OIII model, with R_rho=0
-               gm=tau*tau*vs2(l)
-               gh=tau*tau*bv2(l)
-               if(gh.lt.-10.) gh=-10.
-               ah=pi40/(1+p1*gh)
-               as=ah*(1+p2*gh)/(1+p3*gh)
-               am=(.8d0-p4*gh*ah)/(10.+pi40*gh+.02d0*gm)
-               w2byk=2./(3.+.4d0*gh*ah+.3d0*gm*am)
-               sh=ah*w2byk
-               ss=as*w2byk
-               sm=am*w2byk
-               kml=etau*sm
-               khl=etau*sh
-               ksl=etau*ss
-               if(bf.lt.0.) then ! find contergradient terms
-                  if(gawt0.gt.0.) then
-                     gawt=gawt0*(1.-(1.+zilit))*zbyh
-     &                    -ustar3/hbl*zbyh
-                     dtdz=(to(l)-to(l+1))/(zg(l)-zg(l+1))
-                     ga=-talpha(l)/rho(l)*grav+1d-20
-                     gawtnl=khl*ga*dtdz+gawt
-                     wtnl(l)=gawtnl/ga
-c                    if( AM_I_ROOT() ) then
-c                       write(61,'(i4,9e14.4)')
-c    &                    l,zilit,gawt,-khl*ga*dtdz,gawtnl
-c                    endif
-                  else
-                     wtnl(l)=0.
-                  endif
-                  if(gbws0.lt.0.) then
-                     gbws=gbws0*(1-(1.+zilis))*zbyh
-                     dsdz=(s(l)-s(l+1))/(zg(l)-zg(l+1))
-                     gb=sbeta(l)/rho(l)*grav+1d-20
-                     gbwsnl=ksl*gb*dsdz+gbws
-                     wsnl(l)=gbwsnl/gb
-c                    if( AM_I_ROOT() ) then
-c                       write(62,'(i4,9e14.4)') 
-c    &                    l,zilis,gbws,-ksl*gb*dsdz,gbwsnl
-c                    endif
-                  else
-                     wsnl(l)=0.
-                  endif
-               else
-                  wtnl(l)=0.
-                  wsnl(l)=0.
-               endif
-            else ! below obl
-               tmp=(osocb1*len)**2*vs2(l)
-               e(l)=.5*tmp/(gm+1.d-20)
-               e(l)=min(max(e(l),emin),emax)
-               etau=.5*osocb1*sqrt(2.*e(l))*len
-               kml=etau*sm
-               khl=etau*sh
-               ksl=etau*ss
-               wtnl(l)=0.
-               wsnl(l)=0.
-            endif ! in or below obl
-         endif ! local or nonlocal
+            l1=l1*lb/(l1+lb)
+            len=l1*kz/(l1+kz)
+            ! find e and update sm,sh,ss within obl
+            zeta=zl*bylmonin
+            if(zeta.lt.0.) then
+               phi_m=(1.-15.*zeta)**(-.25)
+            else
+               phi_m=1.+4.7*zeta
+            endif
+            ! eps: modified Moeng and Sullivan 1994
+            eps=.4*wstar3/hbl+ustar3*(1.-zbyh)*phi_m/kz
+            e(l)=.5*(osocb1*len*eps)**(2.*by3)
+            e(l)=min(max(e(l),emin),emax)
+            tau=2.*e(l)/(eps+1d-20)
+            etau=e(l)*tau
+            ! Level 2.5 of OIII model
+            rrl=-1.
+            gm=tau*tau*vs2(l)
+            omrr=1-rrl
+            !x=ril*gm/omrr ! x=gh
+            x=tau*tau*bv2(l)/omrr ! x=gh
+            !if(x.lt.-10.) x=-10. ! if rrl=0
+            if(x.lt.-5.) x=-5.  ! if rrl=-1
+            qq=pi10*(pi20*(1+rrl)-pi30*rrl)
+            p=pi40*(pi50-pi20*(1+rrl))
+            bygam=rrl/((pi40/pi10)*(1+qq*x)/(1+p*x))
+            ah=pi40/(1+p*x+pi20*pi40*x*(1-bygam))
+            as=ah/((pi40/pi10)*(1+qq*x)/(1+p*x))
+            xx=(1-bygam)*x*ah
+            am=(.8-(pi40-pi10+(pi10-.0066667)*(1-bygam))*x*ah)
+     &        /(10.+(pi40-pi10*rrl)*x+.02*gm)
+            w2byk=2./(3.+.4*xx+.3*gm*am)
+            sh=ah*w2byk
+            ss=as*w2byk
+            sm=am*w2byk
+            kml=max(etau*sm,kml)
+            khl=max(etau*sh,khl)
+            ksl=max(etau*ss,ksl)
+            if(nonlocal.eq.2.and.bf.lt.0.) then ! find cg terms
+               buoy=-bf*(1.-(1.+zili)*zbyh)
+     &              -ustar3/hbl*zbyh
+               krl=(khl-ksl*rrl)/omrr
+               buoynl(l)=buoy+krl*bv2(l)
+            endif
+         endif ! end nonlocal and in obl
 
          ! background and tidally induced diffusivities
 
          if(ril.gt.0.) then
             ! C2010, eqs.(65a)-(66); C2011, near end of Sec 4, p.203
-            bvbyf=sqrt(max(bv2(l),1d-8))/(afc+1.d-30) ! afc = abs(Coriol)
+            ! afc = abs(Coriol)
+            bvbyf=sqrt(max(bv2(l),1d-8))/(afc+1.d-30) 
             if(bvbyf.gt.1.) then
                ltn=acosh(bvbyf)*fbyden  ! dimensionless
                ltn=max(ltn,7.d-2)       ! limit described in C2004
@@ -1041,24 +1005,27 @@ c                    endif
             endif
             fac=epsbyn2*ltn      ! in m^2/s, Km=GAMMAm*fac
 
-            ! background diffusivities from 1d lookup tables
-            smbg=a2*smbga(klo)+b2*smbga(khi)
-            shbg=a2*shbga(klo)+b2*shbga(khi)
-            ssbg=a2*ssbga(klo)+b2*ssbga(khi)
-            ! symmetry of giss model: sh <-> ss if rr<->1/rr
-            if(flag.eq.1) then
-               tmp=shbg
-               shbg=ssbg
-               ssbg=tmp
-            endif
-c           !kmbg=.46d0*fac
-            kmbg=gammam_bg*fac
-c           khbg=by3*fac
-c           ksbg=khbg
-            tmp1=shbg/(smbg+1.d-30)
-            tmp2=ssbg/(smbg+1.d-30)
-            khbg=kmbg*tmp1
-            ksbg=kmbg*tmp2
+c           ! background diffusivities from 1d lookup tables
+c           gammbg=a2*gammbga(klo)+b2*gammbga(khi)
+c           smbg=a2*smbga(klo)+b2*smbga(khi)
+c           shbg=a2*shbga(klo)+b2*shbga(khi)
+c           ssbg=a2*ssbga(klo)+b2*ssbga(khi)
+c           ! symmetry of giss model: sh <-> ss if rr<->1/rr
+c           if(flag.eq.1) then
+c              tmp=shbg
+c              shbg=ssbg
+c              ssbg=tmp
+c           endif
+cc          !kmbg=.46d0*fac
+c           ! gammam_bg=.5*ribg*gmbg*smbg
+c           ! gammah_bg=.5*ribg*gmbg*shbg
+            kmbg=fac
+            khbg=by3*fac
+            ksbg=khbg
+c           tmp1=shbg/(smbg+1.d-30)
+c           tmp2=ssbg/(smbg+1.d-30)
+c           khbg=kmbg*tmp1
+c           ksbg=kmbg*tmp2
 
             ! tidally induced diffusivities, C2010, eqs.(69)-(71)
 
@@ -1066,12 +1033,11 @@ c           ksbg=khbg
             fz=(exp((-zg(l+1)-ze(n))*byzet)
      &         -exp((-zg(l)  -ze(n))*byzet))/(den*(zg(l)-zg(l+1)))
             epstd_byn2=q*exy*fz*2./(rho(l)+rho(l+1))/max(bv2(l),1d-8)
-            !kmtd=0.46d0*epstd_byn2
-            kmtd=gammam_bg*epstd_byn2
-c           khtd=by3*epstd_byn2
-c           kstd=khtd
-            khtd=kmtd*tmp1
-            kstd=kmtd*tmp2
+            kmtd=epstd_byn2
+            khtd=by3*epstd_byn2
+            kstd=khtd
+c           khtd=kmtd*tmp1
+c           kstd=kmtd*tmp2
          else
             kmbg=0.
             khbg=0.
@@ -1092,9 +1058,9 @@ c           kstd=khtd
       km(0)=0.; kh(0)=0.; ks(0)=0.
       km(1)=max(km(1),kmin);kh(1)=max(kh(1),kmin);ks(1)=max(ks(1),kmin)
       km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.
-      wtnl(n:lmo)=0.; wsnl(n:lmo)=0.
+      buoynl(n:lmo)=0.
       ri(0)=0.; rr(0)=0.
-      ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; e(n:lmo)=0.
+      ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; e(n:lmo)=emin
       
       return
       end subroutine gissmix

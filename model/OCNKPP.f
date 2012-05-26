@@ -1428,20 +1428,20 @@ C**** KPP variables
      &     mix_tripled_resolution
 #ifdef OCN_GISSMIX
       REAL*8 bf          !@var bf surface buoyancy forcing
-      REAL*8 gawt0       !@var ga*wt0
-      REAL*8 gbws0       !@var gb*ws0
-      REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
+c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 u2b         !@var u2b velocity squared at zgrid(lmij)
       REAL*8 uob         !@var uob bottom u-component of velocity at zgrid(lmij) (m/s)
       REAL*8 vob         !@var vob bottom u-component of velocity at zgrid(lmij) (m/s)
       REAL*8 rib(lmo)    !
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
+      real*8 ga          !@var ga grav*alpha
+      real*8 gb          !@var gb grav*beta
+      real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
-      REAL*8 rrho(0:lmo+1)   !@var rrho salt to head density ratio
-      real*8 hbl1,bf1
+      REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
-      integer kbl1,strait
+      integer strait
 #endif
 #ifdef TRACERS_OCEAN
       Real*8 TRML(LMO,NTM),TRML1(NTM),TZML(LMO,NTM),TZZML(LMO,NTM),
@@ -1834,7 +1834,7 @@ C**** numerator of bulk richardson number on grid levels
            Ritop(L) = (zgrid(1)-zgrid(L)) * dbsfc(L)
          END IF
       END DO
-      talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! >0
+      talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
       sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
 
 C**** surface wind turbulent friction speed (m/s) = sqrt( |tau_0|/rho )
@@ -1858,7 +1858,7 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
         TO(1)     =    TEMGSP(G(1),S(1),PO(1))
         do L=2,LMIJ
           TO(L)     =   TEMGSP(G(L),S(L),PO(L))
-          talpha(L)= ALPHAGSP(G(L),S(L),PO(L)) ! >0
+          talpha(L)= ALPHAGSP(G(L),S(L),PO(L)) ! <0
           sbeta(L) =  BETAGSP(G(L),S(L),PO(L))
           alphaDT(L-1) = - 5d-1 * (talpha(L-1) + talpha(L))
      $         * (TO(L-1) - TO(L))
@@ -1875,15 +1875,14 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
      *     ,rib,HBL,KBL,bf)
-      gawt0=GRAV*BYRHO(1)**2*talpha(1)*BYSHC*(DELTAE-G(1)*DELTAM)
-      gbws0=GRAV*BYRHO(1)**2*sbeta(1)*(-DELTAS+S(1)*DELTAM)
-
+c     gawt0=GRAV*BYRHO(1)**2*talpha(1)*BYSHC*DELTAE
+c     gbws0=-GRAV*BYRHO(1)**2*sbeta(1)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
+cc    gawt0=GRAV*BYRHO(1)**2*talpha(1)*BYSHC*(DELTAE-G(1)*DELTAM)
+cc    gbws0=GRAV*BYRHO(1)**2*sbeta(1)*(-DELTAS+S(1)*DELTAM)
 c-c     omfrac=(bf-Bo)/(Bosol+1d-20)
 c-c     wt0=-BYRHO(1)*(BYSHC*(DELTAE+omfrac*DELTASR)-
 c-c    *              (BYSHC*G(1))*DELTAM)
 c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
-c     uob=0.5d0*(uo(i,j,lmij-1)+uo(i,j,lmij))
-c     vob=0.5d0*(vo(i,j,lmij-1)+vo(i,j,lmij))
       uob=uo(i,j,lmij)
       vob=vo(i,j,lmij)
       u2b=(uob*uob + vob*vob)
@@ -1892,15 +1891,15 @@ c     vob=0.5d0*(vo(i,j,lmij-1)+vo(i,j,lmij))
       do l=1,lmij-1
          e(l)=otke(l,i,j)
       end do
+
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,talpha,sbeta
-     &   ,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,gawt0,gbws0,hbl,kbl,strait,i,j
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
+     &   ,Coriol,ustar,bf,hbl,kbl,strait,i,j
       ! inout:
      &   ,e
       ! out:
-     &   ,ri,rrho,akvm,akvg,akvs,wtnl,wsnl)
+     &   ,ri,rrho,akvm,akvg,akvs,buoynl)
       do l=1,lmij-1
          otke(l,i,j)=e(l)
       end do
@@ -1922,15 +1921,42 @@ C**** GHAT terms must be zero for consistency with OSOURC
          GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
          GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
      *        *DXYPO(J)
+c        buoynl=ga*wtnl-gb*wsnl
+c        wtnl=GHATG(L)/(-RHO(L)*SHCGS(G(L),S(L))*DXYPO(J))
+c        wtnl=AKVG(L)*GHAT(L)*DELTAE/(-RHO(L)*SHCGS(G(L),S(L)))
+c        wsnl=GHATS(L)/(-RHO(L)*DXYPO(J))
+c        wsnl= AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
+c    &        /(-RHO(L))
+c        buoynl=ga*AKVG(L)*GHAT(L)*DELTAE/(-RHO(L)*SHCGS(G(L),S(L)))
+c    &         -gb*AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
+c    &            /(-RHO(L))
+c        buoynl=-GHAT(L)/RHO(L)
+c    &         *( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
+c    &           -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) )
 #else
-         GHATG(L)=RHO(L)*SHCGS(G(L),S(L))*wtnl(L)*DXYPO(J)
-         GHATS(L)=RHO(L)*wsnl(L)*DXYPO(J)
+         ga=-talpha(l)/R*grav
+         gb= sbeta(l)/R*grav
+         ! wtnl=.5*buoynl(l)/ga
+         ! wsnl=-.5*buoynl(l)/gb
+         GHATG(L)=-R*SHCGS(G(L),S(L))*.5*buoynl(l)/ga*DXYPO(J)
+         GHATS(L)= R*.5*buoynl(l)/gb*DXYPO(J)
+c        GHAT(L)=-buoynl(l)*RHO(L)
+c    &      /( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
+c    &        -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) + 1d-30)
+         ! GHATG(L)=-RHO(L)*SHCGS(G(L),S(L))*wtnl(L)*DXYPO(J)
+         ! GHATS(L)=-RHO(L)*wsnl(L)*DXYPO(J)
          ! GHATG is nonlocal power due to heating in Watts into the gridbox, to get it
          ! multiply the nonlocal temperature flux in K m/s, wtnl, by \rho C_p times cell area.
          ! SHCGS is Specific Heat Capacity as a function of G and S (in SI *not* cgs units).
          ! GHATS is nonlocal salt per unit time into the grid box, to get it
          ! multiply the nonlocal salt mass fraction flux, wsnl, by \rho times cell area.
 #endif
+C**** GHAT terms must be zero for consistency with OSOURC
+! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
+! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
+         GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
+         GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
+     *        *DXYPO(J)
 
 #ifdef TRACERS_OCEAN
 #ifndef OCN_GISSMIX
@@ -2506,11 +2532,14 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
 #ifdef OCN_GISSMIX
       REAL*8 rib(lmo),bf
-      REAL*8, SAVE :: u2b,uob,vob,hbl1,gawt0,gbws0
-      INTEGER kbl1,strait
+      REAL*8, SAVE :: u2b,uob,vob
+      INTEGER strait
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
+      real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
+      real*8 ga          !@var ga grav*alphaT
+      real*8 gb          !@var gb grav*alphaS
 #endif
 
       IF (IFIRST.eq.1) THEN
@@ -2633,11 +2662,11 @@ C**** betaDS  = mean sbeta  * delta(salt)     at interfaces  (kg/m3)
 
       if (LDD) then
         TO(1)      =    TEMGSP(G(1),S(1),PO(1))
-        talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! >0
+        talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
         sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
         do L=2,LMIJ
           TO(L)      =    TEMGSP(G(L),S(L),PO(L))
-          talpha(L) =  ALPHAGSP(G(L),S(L),PO(L)) ! >0
+          talpha(L) =  ALPHAGSP(G(L),S(L),PO(L)) ! <0
           sbeta(L)  =   BETAGSP(G(L),S(L),PO(L))
           alphaDT(L-1) = - 5d-1 * (talpha(L-1) + talpha(L))
      $         * (TO(L-1) - TO(L))
@@ -2656,9 +2685,6 @@ C**** Get diffusivities for the whole column
      *     ,dbloc,Ritop
      *     ,rib,HBL,KBL,bf)
       bf=0.d0
-      gawt0=0.d0
-      gbws0=0.d0
-
       uob=0.
       vob=0.
       u2b=0.
@@ -2666,15 +2692,15 @@ C**** Get diffusivities for the whole column
       do l=1,lmij-1
          e(l)=otkest(l,n)
       end do
+
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,talpha,sbeta
-     &   ,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,gawt0,gbws0,hbl,kbl,strait,0,0
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
+     &   ,Coriol,ustar,bf,hbl,kbl,strait,0,0
       ! inout:
      &   ,e
       ! out:
-     &   ,ri1,rrho,akvm,akvg,akvs,wtnl,wsnl)
+     &   ,ri1,rrho,akvm,akvg,akvs,buoynl)
       do l=1,lmij-1
          otkest(l,n)=e(l)
       end do
