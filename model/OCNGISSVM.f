@@ -461,7 +461,7 @@ c      end function fct
          pi4=pi40
       else ! ri >= 0
          if(rr.gt.0.) then
-            a=5.
+c           a=5.
             b=2.
             rrsy = 2./(rr + 1/rr)
             ! pi1 = pi10/(1. + ri/(1. + (a*rrsy**2)))
@@ -704,23 +704,29 @@ c      end subroutine rtwi
       real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       intent (out) ri,rr,km,kh,ks,buoynl
 
-      ! local:
-
+      integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
+      integer, parameter :: num_smooth=1
+      real*8, parameter :: l0min=3.d0,l2min=.02d0
+      integer iter, mr
+c     real*8 bylenr ! rotation effect
       real*8 vs2(0:lmo+1)!@var vs2 velocity shear squared (1/s**2)
       real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
       real*8 len         !@var len turbulence length scale (m)
-      real*8 bydz
 
-      integer :: l
-      real*8 ril,rrl
-      integer :: jlo,jhi,klo,khi
-      real*8 :: a1,a2,b1,b2,c1,c2,c3,c4
+      integer l,jlo,jhi,klo,khi
+      real*8 a1,a2,b1,b2,c1,c2,c3,c4
+      real*8 ril,rrl,gm,sm,sh,ss,kml,khl,ksl,lr,etau
+      real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp,tmp1,tmp2
 
-      real*8 gm,sm,sh,ss,kml,khl,ksl,rf,lr,l0,lb,kz,byn
-      real*8 gammbg,smbg,shbg,ssbg,kmbg,khbg,ksbg,zl
-      real*8 omrr,x,p,qq,bygam,xx
+      ! for nonlocal diffusivities
+      real*8, parameter :: ghmin=-5.
+      real*8 wstar,wstar3,ustar1,ustar2,ustar3,bylmonin
+     &      ,zeta,phi_m,eps,tau,lb,byn,qturb
+     &      ,ah,as,am,gh,w2byk,zili,buoy,krl
+     &      ,omrr,x,pp,qq,bygam,xx
 
-      ! consts appeared in C2010, (65a)-(66), for background diffusivities
+      ! for background diffusivities
+      ! consts appeared in C2010, (65a)-(66)
       !@var f30 2*omega*sin(30 degrees)=omega
       real*8, parameter :: bv0=5.24d-3    ! (1/s), below (65b)
      &   ,cd=3.d-3                        !@var cd dry drag coeff.
@@ -730,28 +736,15 @@ c      end subroutine rtwi
      &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
      &   ,q=.3d0
      &   ,byzet=1./250.d0                   ! (1/m)
-
       real*8 fbyden,afc,ltn
-      real*8 tmp,qturb,etau
       real*8 bvbyf,fac
+c     real*8 gammbg,smbg,shbg,ssbg
+      real*8 kmbg,khbg,ksbg
 
-      ! tidally-induced diffusivities, exy from table in GISS_OTURB
+      ! for tidally-induced diffusivities, exy from table in GISS_OTURB
       real*8 exy,den,fz,epstd_byn2,kmtd,khtd,kstd
-
-      ! unresolved bottom shear, ut2 from table in GISS_OTURB
+      ! for unresolved bottom shear, ut2 from table in GISS_OTURB
       real*8 ut2,ustarb2,phim2,zb,unr20
-      integer iter, mr
-
-      integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
-      integer, parameter :: num_smooth=1
-      real*8, parameter :: l0min=3.d0,l2min=.02d0
-c     real*8 bylenr ! rotation effect
-
-      ! diffusivity variables
-      real*8 wstar,wstar3,ustar1,ustar2,ustar3,bylmonin
-     &      ,zbyh,zeta,phi_m,eps,tau
-     &      ,ghmin,gh,tmp1,tmp2,dtdz,dsdz,wt,ws
-     &      ,ah,as,am,w2byk,l1,l2,dtdzi,zili,buoy,krl
 
       !             grid levels                       interface levels
       !
@@ -798,28 +791,26 @@ c     real*8 bylenr ! rotation effect
       do mr = 1,num_smooth
          call z121(rr,n-1,lmo)
       end do
-
-      ustar1=max(ustar,3.5d-3)
-      ustar2=ustar1*ustar1
-      ustar3=ustar1*ustar2
-      if(bf.lt.0.) then
-         wstar3=-bf*hbl
-         wstar=wstar3**by3
-         if(nonlocal.eq.2) then
-            l=max(kbl,2)
-            zili=.2/(1.+7.*(-bf/(hbl*hbl))**(2.*by3)
-     &          /max(bv2(l),1d-30))
-c                 if( AM_I_ROOT() ) then
-c                    write(59,'(2i4,9e14.4)')
-c    &               kbl,l,zili,bf,bv2(l)
-c                 endif
-         endif
-      else
-         wstar3=0.
-         wstar=0.
-      endif
       l0=.15*hbl
-      bylmonin=kappa*bf/ustar3 !@var bylmonin 1/Lmonin
+
+      if(nonlocal.ne.0) then ! nonlocal
+         ustar1=max(ustar,3.5d-3)
+         ustar2=ustar1*ustar1
+         ustar3=ustar1*ustar2
+         bylmonin=kappa*bf/ustar3 !@var bylmonin 1/Lmonin
+         if(bf.lt.0.) then
+            wstar3=-bf*hbl
+            wstar=wstar3**by3
+            if(nonlocal.eq.2) then
+               l=max(kbl,2)
+               zili=.2/(1.+7.*(-bf/(hbl*hbl))**(2.*by3)
+     &             /max(bv2(l),1d-30))
+            endif
+         else
+            wstar3=0.
+            wstar=0.
+         endif
+      endif
 
       ! modify ri at the interface nearest to ocean bottom
       ! due to unresolved bottom shear, C2010, eqs,(73)-(77)
@@ -919,9 +910,6 @@ c    &     +c3*lra(jhi,khi)+c4*lra(jlo,khi)
          else
             lr=1.
          endif
-c        if( AM_I_ROOT() ) then
-c           write(61,'(9e14.4)') ril,lr
-c        endif
          if(zl.le.hbl) then         ! within obl
             l1=l0
          else
@@ -967,12 +955,12 @@ c        endif
             !x=ril*gm/omrr ! x=gh
             x=tau*tau*bv2(l)/omrr ! x=gh
             !if(x.lt.-10.) x=-10. ! if rrl=0
-            if(x.lt.-5.) x=-5.  ! if rrl=-1
+            if(x.lt.ghmin) x=ghmin  ! if rrl=-1
             qq=pi10*(pi20*(1+rrl)-pi30*rrl)
-            p=pi40*(pi50-pi20*(1+rrl))
-            bygam=rrl/((pi40/pi10)*(1+qq*x)/(1+p*x))
-            ah=pi40/(1+p*x+pi20*pi40*x*(1-bygam))
-            as=ah/((pi40/pi10)*(1+qq*x)/(1+p*x))
+            pp=pi40*(pi50-pi20*(1+rrl))
+            bygam=rrl/((pi40/pi10)*(1+qq*x)/(1+pp*x))
+            ah=pi40/(1+pp*x+pi20*pi40*x*(1-bygam))
+            as=ah/((pi40/pi10)*(1+qq*x)/(1+pp*x))
             xx=(1-bygam)*x*ah
             am=(.8-(pi40-pi10+(pi10-.0066667)*(1-bygam))*x*ah)
      &        /(10.+(pi40-pi10*rrl)*x+.02*gm)
