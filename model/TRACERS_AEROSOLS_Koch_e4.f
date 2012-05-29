@@ -49,8 +49,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      *   oh,dho2,perj,tno3,o3_offline  !im,jm,lm
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
      *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
-      integer, save :: JmonthCache = -1
-      real*8, save, allocatable, dimension(:,:,:) :: 
+      integer :: JmonthCache = -1
+      real*8, allocatable, dimension(:,:,:) :: 
      &     ohrCache, dho2rCache, perjrCache, tno3rCache
       
       real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz

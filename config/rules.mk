@@ -266,8 +266,10 @@ ifdef INCLUDE_DIR
 endif
 
 # add path to MPI includes
+ifeq ($(MPI),YES)
 ifdef MPIDIR
   CPPFLAGS += -I$(MPIDIR)/include
+endif
 endif
 
 ifeq ($(COMPARE_MODULES_HACK),NO)

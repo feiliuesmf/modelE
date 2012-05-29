@@ -45,7 +45,7 @@ real*8, allocatable, dimension(:)     :: molec2ug
 ! due to convection Isoprene and Terpenes have a local maximum in the
 ! upper layers. This is unlikely to be the case in the real atmosphere,
 ! thus chemical (but not partitioning) production is disabled above level 7
-integer, parameter :: LM_soa=floor(float(LM)/3.)
+integer, parameter :: LM_soa=floor(real(LM)/3.)
 
 !
 ! soa semivolatile products in aerosol phase

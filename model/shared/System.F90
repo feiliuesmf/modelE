@@ -121,3 +121,13 @@ subroutine nextarg( arg, opt )
   return
 end subroutine nextarg
 
+#ifndef F2008_SUPPORT
+subroutine execute_command_line(cmd)
+#ifdef COMPILER_NAG
+  use F90_UNIX_PROC
+#endif
+  character(len=*), intent(in) :: cmd
+  call system(cmd)
+end subroutine execute_command_line
+#endif
+

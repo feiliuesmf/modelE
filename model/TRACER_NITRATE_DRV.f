@@ -180,11 +180,11 @@ c avol [m3/gb] mass of air pro m3
       CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,AUNIT1)
 
 
-      GHNO3 = MAX(YO(1, 9) * MW_GHNO3,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      GNH3  = MAX(YO(1,10) * MW_GNH3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      AH2O  = MAX(YO(1,12)           ,TINYNUMER)  ! already in [ugH2O/m^3]
-      ANH4  = MAX(YO(1,19) * MW_ANH4 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      ANO3  = MAX(YO(1,20) * MW_ANO3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      GHNO3 = MAX(real(YO(1, 9) * MW_GHNO3,8),TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      GNH3  = MAX(real(YO(1,10) * MW_GNH3,8) ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      AH2O  = MAX(real(YO(1,12),8)           ,TINYNUMER)  ! already in [ugH2O/m^3]
+      ANH4  = MAX(real(YO(1,19) * MW_ANH4,8) ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      ANO3  = MAX(real(YO(1,20) * MW_ANO3,8) ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
       ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
       ASO4  = MAX( ASO4, TINYNUMER )              ! 
 !     RHD   = YO(1,36)                            ! [0-1]
@@ -330,7 +330,6 @@ c avol [m3/gb] mass of air pro m3
       REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
       REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
       REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05  ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
-      REAL(8), PARAMETER :: TINYNUMER = 1.0d-30
 
       REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
 

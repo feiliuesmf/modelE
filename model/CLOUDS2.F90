@@ -4614,7 +4614,7 @@ contains
         FPRT=FPR
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT(N)+THLAW(N)
 
-        TM(L,N) = max(0., TM(L,N) &
+        TM(L,N) = max(0.D0, TM(L,N) &
              + DTERT(N) - DTWRT - DTQWT(N) - THLAW(N) - THWASH(N) )
 
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT(N)) &

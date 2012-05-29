@@ -118,19 +118,6 @@ c
       endif
 
       RETURN
-
-#ifndef F2008_SUPPORT
-      contains 
-
-      subroutine execute_command_line(cmd)
-#ifdef COMPILER_NAG
-      use F90_UNIX_PROC
-#endif
-        character(len=*), intent(in) :: cmd
-        call system(cmd)
-      end subroutine execute_command_line
-#endif
-
       END SUBROUTINE io_rsf
 
       subroutine find_later_rsf(kdisk)
