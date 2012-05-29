@@ -1361,6 +1361,10 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, ONLY : GXXMO,GYYMO,GZZMO,GXYMO,SXXMO,SYYMO,SZZMO,SXYMO
       USE OCEAN, ONLY : USE_QUS,NBYZM,I1YZM,I2YZM,DZO
+#ifdef ENHANCED_DEEP_MIXING
+      USE OCEANRES, only : fkph
+      USE CONSTANT, only : pi
+#endif
 #ifdef TRACERS_OCEAN
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       USE OCEAN, only : txxmo,tyymo,tzzmo,txymo
@@ -1419,6 +1423,10 @@ C**** KPP variables
      *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
+#ifdef ENHANCED_DEEP_MIXING
+!@var kvextra an array prescribing background diffusivity as a function of depth
+      REAL*8, DIMENSION(LMO) :: KVEXTRA
+#endif
       integer :: j_0,j_1,j_0s,j_1s,j_0h
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       logical ::
@@ -1519,6 +1527,19 @@ C****
         enddo
         enddo
       endif ! extra_slope_limitations
+
+#ifdef ENHANCED_DEEP_MIXING
+      do l=1,lmo-1
+        ! option 1: B-L profile
+        kvextra(l) = .75d-5 +
+     &     (1.325d-4-.75d-5)*(atan((ze(l)-2000d0)/200d0)/pi + 0.5d0)
+        ! all options: subtract default background value
+        kvextra(l) = kvextra(l) - fkph*1d-4
+#ifdef OCN_GISSMIX
+        Untested.  Subtract something other than fkph.
+#endif
+      enddo
+#endif
 
 C****
 C**** Outside loop over J
@@ -1910,6 +1931,10 @@ C****        ghat[sg] = kv * ghat * <w[sg]0>   (J,kg)
 C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
 C****                            ghat (s/m^2) => (s m^4/kg^2)
       DO L=1,LMIJ-1
+#ifdef ENHANCED_DEEP_MIXING
+         akvg(l) = akvg(l) + kvextra(l)
+         akvs(l) = akvs(l) + kvextra(l)
+#endif
          klen(i,j,l) = akvs(l)
          R = 5d-1*(RHO(L)+RHO(L+1))
          R2 = R**2
