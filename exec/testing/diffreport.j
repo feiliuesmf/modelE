@@ -21,12 +21,21 @@ EXIT_ERR=1
 OK=0
 
 # -------------------------------------------------------------------
-updDiffReport()
+updReport()
 # -------------------------------------------------------------------
 {
    local message=$1
    line=`echo -e $message"\n"`
    report=( "${report[@]}" "$line" )
+}
+
+# -------------------------------------------------------------------
+updDeckReport()
+# -------------------------------------------------------------------
+{
+   local message=$1
+   line=`echo -e $message`
+   deckReport=( "${deckReport[@]}" "$line" )
 }
 
 # -------------------------------------------------------------------
@@ -40,11 +49,12 @@ checkStatus()
    local base2=${name2##*/}
    if [ $rc -ne $OK ]; then
       if [[ "$name2" =~ baseline ]]; then
-         updDiffReport " --- WARNING: inconsistent results with BASELINE $base1"
+         updReport " --- WARNING: inconsistent results with BASELINE $base1"
+	 export isChanged=YES
       else
-         updDiffReport " --- WARNING: inconsistent results between $base1 and $base2"
+         updReport " --- WARNING: inconsistent results between $base1 and $base2"
+	 export isReprod=NO
       fi
-      export isReprod=NO
       return $E_EXIT_ERR
    fi
    return $OK
@@ -55,10 +65,9 @@ fileExists()
 # -------------------------------------------------------------------
 {
    local file=$1
-   #local file=${1##*/}
    if [ ! -e "$file" ]; then
-      updDiffReport " --- ERROR: $file does NOT exist"
-      export isReprod=NO
+      updReport " --- ERROR: $file does NOT exist"
+      export compileErr=YES
       return $FILE_ERR
    fi
    return $OK
@@ -72,6 +81,8 @@ doDiff()
    local name2=$2
    local deck=$3
    local comp=$4
+   export compileErr=NO
+   export isChanged=NO
    export isReprod=YES
    fileExists "$name1"
    return_val=$?
@@ -79,7 +90,7 @@ doDiff()
       fileExists "$name2"
       return_val=$?
       if [ "$return_val" -eq $OK ]; then
-         $diffDiffReport $name1 $name2 > fileDiff
+         $diffExec $name1 $name2 > fileDiff
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
          # save file to BASELINE directory
@@ -111,8 +122,10 @@ deckDiff()
   if [ ${#deckArray[@]} -eq 0 ]; then return; fi
   local baseline=$MODELEBASELINE/$comp
 
+  report=( "${report[@]}" "--------------------------------------" )
   for deck in "${deckArray[@]}"; do
 
+    report=( "${report[@]}" "$deck [$comp] errors:" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
     if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]]; then
@@ -136,23 +149,20 @@ deckDiff()
         doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
       done
     fi
-    if [ "$isReprod" == YES ]; then
-      upd "$deck" "$comp" "REPRODUCIBLE" 
+    if [ "$compileErr" == YES ]; then
+      updDeckReport "$deck [$comp] COMPILE OR RUNTIME ERROR"
     else
-      upd "$deck" "$comp" "***NOT REPRODUCIBLE***" 
+      if [ "$isReprod" == YES ]; then
+         updDeckReport "$deck [$comp] is REPRODUCIBLE"
+         if [ "$isChanged" == YES ]; then
+            updDeckReport "$deck [$comp] BASELINE HAS CHANGED"
+         fi
+      else
+         updDeckReport "$deck [$comp] is NOT REPRODUCIBLE"
+      fi
     fi
-
   done
-}
 
-# -------------------------------------------------------------------
-upd()
-# -------------------------------------------------------------------
-{
-  local deck_=$1
-  local comp_=$2
-  local which_=$3
-  updDiffReport " $deck_ [ $comp_ ] is $which_" 
 }
 
 # -------------------------------------------------------------------
@@ -160,6 +170,7 @@ upd()
 # -------------------------------------------------------------------
 umask 002
 
+declare -a deckReport
 declare -a report
 declare -a DECKS
 declare -a COMPILERS
@@ -179,15 +190,15 @@ else
    echo "CFG_FILE ENV: $CFG_FILE"
 fi
 if [ -z $MOCKMODELE ]; then
-  diffDiffReport=$MODELROOT/exec/testing/diffreport.x
-  if [ ! -e $diffDiffReport ]; then
+  diffExec=$MODELROOT/exec/testing/diffreport.x
+  if [ ! -e $diffExec ]; then
      echo " *** WARNING ***"
-     echo "$diffDiffReport does not exist"
-     echo "Will use unix cmp but DiffReport may report incorrect results"
-     diffDiffReport=/usr/bin/cmp
+     echo "$diffExec does not exist"
+     echo "Will use unix cmp but may report incorrect results"
+     diffExec=/usr/bin/cmp
   fi
 else
-  diffDiffReport=/usr/bin/cmp
+  diffExec=/usr/bin/cmp
 fi
 
 OIFS=$IFS
@@ -304,10 +315,21 @@ rm -f $MODELROOT/exec/testing/${CFG_NAME}.diff
 echo "Results:"
 echo "  ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
 echo "-------------------------------------------" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
-for ((i=0; i < ${#report[@]}; i++)); do 
-   echo "${report[${i}]}"
-   echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+
+len=${#deckReport[*]}
+i=0
+while [ $i -lt $len ]; do
+   echo "${deckReport[${i}]}"
+   echo "${deckReport[$i]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+   let i++
 done
+
+if [ "$compileErr" == YES ]; then
+   for ((i=0; i < ${#report[@]}; i++)); do 
+      echo "${report[${i}]}"
+      echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+   done
+fi
 
 if [ -z $WORKSPACE ]; then
    echo " *** WARNING ***"
@@ -322,10 +344,12 @@ fi
 cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
 
 cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "NOT REPRODUCIBLE" > /dev/null
-rc=$?
-# if we found a NOT REPRODUCIBLE result (rc=OK) then we exit
-if [ $rc -eq $OK ]; then
-   echo "Regression tests ERROR: Will NOT create modelE snapshot"
+rc1=$?
+cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "RUNTIME ERROR" > /dev/null
+rc2=$?
+# if we found errors then we exit
+if [ $rc1 -ne 0 || $rc2 -ne 0 ]; then
+   echo "Regression tests ERRORS: Will NOT create modelE snapshot"
    exit $EXIT_ERR
 else 
 # Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)
