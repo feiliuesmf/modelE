@@ -286,7 +286,7 @@ subroutine CONDSE
   real*8 fq_isccp(ntau,npres),ctp(1),tauopt(1)
   real*8 boxtau(ncol),boxptop(ncol)
 
-  integer itau,itrop(1),nbox(1),sunlit(1),ipres
+  integer itau,itrop(1),nbox(1),sunlit,ipres
   !****
 
   !
@@ -1253,16 +1253,16 @@ subroutine CONDSE
           sunlit=0
           if (cosz1(i,j).gt.0) sunlit=1
 
-          call ISCCP_CLOUD_TYPES(sunlit,pfull,phalf,qv, &
+          call ISCCP_CLOUD_TYPES([sunlit],pfull,phalf,qv, &
                cc,conv,dtau_s,dtau_c,skt, &
                at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt, &
                boxtau,boxptop,nbox,jerr)
           if(jerr.ne.0) jckerr = jckerr + 1
 
           !**** set ISCCP diagnostics
-          AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit(1)
-          saveSCLDI(i,j)=sunlit(1)
-          if (nbox(1).gt.0.and.sunlit(1).gt.0) then
+          AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit
+          saveSCLDI(i,j)=sunlit
+          if (nbox(1).gt.0.and.sunlit.gt.0) then
             AIJ(I,J,IJ_CTPI) = AIJ(I,J,IJ_CTPI) + ctp(1)
             AIJ(I,J,IJ_TAUI) = AIJ(I,J,IJ_TAUI) + tauopt(1)
             AIJ(I,J,IJ_TCLDI)= AIJ(I,J,IJ_TCLDI)+ 1.
@@ -1288,7 +1288,7 @@ subroutine CONDSE
         !     save isccp diagnostics for SCM
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          isccp_sunlit = sunlit(1)
+          isccp_sunlit = sunlit
           isccp_ctp = ctp(1)
           isccp_tauopt = tauopt(1)
           isccp_lowcld = sum(fq_isccp(2:ntau,6:7))

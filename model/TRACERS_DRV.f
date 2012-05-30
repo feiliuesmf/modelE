@@ -10246,7 +10246,7 @@ c      fq(gases_list) = 0.D0
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       if(      LHX.EQ.LHE ! if not frozen
      &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN 
-        bb_tmp = max(b_beta_DT,0.) ! necessary check?
+        bb_tmp = max(b_beta_DT,0.d0) ! necessary check?
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
         ssfac0 = WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
@@ -10312,7 +10312,7 @@ c
 c aerosols
 c
       if(FCLOUD.GE.1.D-16 .and. prec.gt.0.) then
-        bb_tmp = max(b_beta_DT,0.) ! necessary check?
+        bb_tmp = max(b_beta_DT,0.d0) ! necessary check?
         do iaero=1,aero_count
           n = aero_list(iaero)
           fq(n) = bb_tmp*(1d0-exp(-prec*rc_washt(n)))

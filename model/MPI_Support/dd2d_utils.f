@@ -254,7 +254,6 @@ c
       end type dist_grid
 
 #ifndef SERIAL_MODE
-
       include 'mpif.h'
 
 c public interfaces
@@ -345,9 +344,9 @@ c
      &    ,bufsend,bufrecv
       logical :: reallocateBufsend
       integer ::
-     &     buf1d_local_size=0
-     &    ,buf1d_tile_size=0
-     &    ,bufij_tile_size=0
+     &     buf1d_local_size=-1
+     &    ,buf1d_tile_size=-1
+     &    ,bufij_tile_size=-1
 
 
       contains
@@ -702,12 +701,13 @@ c
       n = 3*(7+grid%ie-grid%is)*1000
       reallocateBufsend = .false.
       if (.not. allocated(bufsend)) then
+         reallocateBufsend = .true.
       else if (n.gt.size(bufsend)) then
          reallocateBufsend = .true.
+         deallocate(bufsend)
+         deallocate(bufrecv)
       end if
       if (reallocateBufsend) then
-        if(allocated(bufsend)) deallocate(bufsend)
-        if(allocated(bufrecv)) deallocate(bufrecv)
         allocate(bufsend(n),bufrecv(n))
       endif
 
@@ -1081,7 +1081,9 @@ c      enddo
      &     )
       use dd2d_utils, only : dist_grid
       implicit none
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       type(dist_grid) :: grid
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
@@ -1194,7 +1196,9 @@ c
      &     )
       use dd2d_utils, only : dist_grid
       implicit none
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       type(dist_grid) :: grid
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
@@ -1311,7 +1315,9 @@ c copy the the local receive buffer into the local array
      &     )
       use dd2d_utils, only : dist_grid
       implicit none
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       type(dist_grid) :: grid
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
@@ -1442,7 +1448,9 @@ c
      &     )
       use dd2d_utils, only : dist_grid
       implicit none
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       type(dist_grid) :: grid
       integer :: i1,i2,j1,j2,nl,nk,nt
       integer :: i1g,i2g,j1g,j2g
@@ -1573,7 +1581,9 @@ c copy the the receive buffer into the local array
      &     bufsend,bufrecv
      &     )
       implicit none
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       integer :: i1,i2,j1,j2,nl,nk,
      &     i1p,i2p,j1p,j2p,iincp,jincp,i1r,i2r,j1r,j2r,
      &     mpi_comm,pe_send,pe_recv
