@@ -18,6 +18,7 @@
 #ifdef OCN_Mesoscales
       USE ODIAG, only: oij=>oij_loc,oijl=>oijl_loc
      .            ,ij_eke,ij_rd,ijl_ueddy,ijl_veddy,ijl_n2
+      USE OCEAN,      only : auvel,avvel
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
@@ -45,9 +46,11 @@
       REAL*8,ALLOCATABLE :: presi(:),densu(:),densl(:),temp3d(:,:,:)
       REAL*8, DIMENSION(idm,ogrid%j_strt_halo:ogrid%j_stop_halo,kdm) ::
      .   kappam3d
+      REAL*8 wta
       integer ip1,im1
 
       logical vrbos
+
 
       kappam3d=0. 
 
@@ -197,7 +200,17 @@ C-- TONY - 03/07/11 - Updated n2 using the pot density instead of the in situ on
       enddo
       if (amld_cgs.gt.p1d(ndepi)*100.d0) amld_cgs=p1d(ndepi)*100.d0
 
-      call mesoscales1d(kdm,ndepi,z_cm,
+#ifdef OCN_Mesoscales
+C-- time-averaging of u,v
+      wta=exp(-1./240.)
+      auvel(i,j,:) = wta*auvel(i,j,:) + (1.-wta)*uvel_cgs(:)
+      avvel(i,j,:) = wta*avvel(i,j,:) + (1.-wta)*vvel_cgs(:)
+
+      uvel_cgs=auvel(i,j,:)
+      vvel_cgs=avvel(i,j,:)
+#endif
+
+      call mesoscales1d(kdm,ndepi,
      .      dens_cgs,uvel_cgs,vvel_cgs,
      .      n2,drhodx_cgs,drhody_cgs,drhopdz_cgs,coriol,amld_cgs
      .     ,Rd,K0,Ustar,Vstar,i,j,kappam3d(i,j,:))
@@ -205,7 +218,7 @@ C-- TONY - 03/07/11 - Updated n2 using the pot density instead of the in situ on
 
 #ifdef OCN_Mesoscales
       if (vrbos) then
-      write(*,'(a,i6)')'MESOSCALES:',nstep
+      write(*,'(a,2i6)')'MESOSCALES:',nstep
       endif
 
 
@@ -225,11 +238,13 @@ C
 
 C--   Convert kappam3d from CGS to MKS
       kappam3d=kappam3d*1.d-4
-C--   Maximum of 15000m2/s
+C--   Maximum of 15000 m2/s
+C--   Minimum value of 1 m2/s
       DO k=1,kdm
        DO j=j_0,j_1
          DO i=i_0,i_1
            kappam3d(i,j,k)=min(kappam3d(i,j,k),15000.)
+           kappam3d(i,j,k)=max(kappam3d(i,j,k),1.)
          ENDDO
        ENDDO
       ENDDO
@@ -238,18 +253,20 @@ C--
 
       end subroutine OCN_mesosc
 
-      subroutine mesoscales1d(km,ndepi,z_cm,
+      subroutine mesoscales1d(km,ndepi,
      .      rhoi,UI,VI,n2,dxrho,dyrho,dzrho,f,ml
      .     ,rdm,K02,Ustar,Vstar,
      .     igrid,jgrid,KAPPAMZa) 
 
         USE MODEL_COM,  only : nstep=>itime
+        USE ODIAG, only : zoc
+        USE OCEAN_DYN, Only : DH
 
         IMPLICIT NONE
 
         real*8, parameter :: a02=0.03
         INTEGER k,km,kmli,igrid,jgrid,ndepi
-        REAL*8 z_cm(km)
+        REAL*8 z_cm(km),zma(km),zh(km)
         REAL*8 Ustar(km),Vstar(km)
         REAL*8 KAPPAM,KAPPAMZa(km)
         REAL*8 SIGMAT,f,ml,yt,rd,rdm,pi
@@ -278,10 +295,19 @@ C--
         REAL*8 zw(km),zwt(km),zt(km)
         REAL*8 k02count
         REAL*8, ALLOCATABLE :: ud(:),vd(:),MK(:)
-C
+ 
       pi=4.*atan(1.)
-C
-c     if (ndepi.eq.0) WRITE(*,*)'DEBUG: ndepi,i,j:',ndepi,igrid,jgrid
+
+      zh(1)=DH(igrid,jgrid,1)/2.
+      zma(1)=DH(igrid,jgrid,1)
+      DO k=2,km-1
+        zh(k)=zma(k-1)+DH(igrid,jgrid,k)/2.
+        zma(k)=zma(k-1)+DH(igrid,jgrid,k)
+      ENDDO
+      zh(km)=zoc(km)
+
+      z_cm=zh*100.
+
       if (ndepi.eq.0) then
         K02=0.
         KAPPAMZa=0.
@@ -301,7 +327,7 @@ c     if (ndepi.eq.0) WRITE(*,*)'DEBUG: ndepi,i,j:',ndepi,igrid,jgrid
 
       kmli=km+1   !outside bounds
       DO k=1,kmi-1
-        IF(zwt(k).le.ml.and.ml.lt.zwt(k+1)) kmli=k+1
+        IF(zw(k).le.ml.and.ml.lt.zw(k+1)) kmli=k+1
       ENDDO
 C
       kmli=min(kmli,kmi)
@@ -474,20 +500,23 @@ c     KP2=-z*((F1X+F2X)*sx+(F1Y+F2Y)*sy)*n2tr
       DO k=1,kmi
         KP2INT(k)=KP2(kmi-k+1)
       ENDDO
-      kkpmax2=1
-      kpmax2=0.
-      DO k=1,kmi
-        IF(dabs(KP2(k)).gt.kpmax2) THEN
-          kpmax2=dabs(KP2(k))
-          kkpmax2=k
-        ENDIF
-      ENDDO
+c     kkpmax2=1
+c     kpmax2=0.
+c     DO k=1,kmi
+c       IF(dabs(KP2(k)).gt.kpmax2) THEN
+c         kpmax2=dabs(KP2(k))
+c         kkpmax2=k
+c       ENDIF
+c     ENDDO
 C
 c     kkpint=max(1,kkpmax2)
 c     kkpint=max(1,kmli)
 c     kkpint=max(1,max(kmli,kkpmax2))
-      ktap2=max(ktap,kmli)
-      kkpint=max(1,ktap2)
+
+c     ktap2=max(ktap,kmli)
+c     kkpint=max(1,ktap2)
+      kkpint=max(1,ktap)
+c     IF(ktap.le.kmli) kkpint=1
 
       K02D=0.
       ALLOCATE(KINT2(kkpint))
@@ -499,8 +528,9 @@ c     kkpint=max(1,max(kmli,kkpmax2))
         K02D=0.d0
       endif
       DEALLOCATE(KINT2)
+
       IF(K02D.lt.0.) K02D=0.
-      IF(ktap.eq.kmi.OR.kmli.eq.kmi) K02D=0.
+c     IF(ktap.eq.kmi.OR.kmli.eq.kmi) K02D=0.
 
       KAPPAMZa=0.
 
@@ -522,15 +552,16 @@ C-- TONY -  1/20/2012 - additional term
       IF(ktap.ne.kmi.and.kmi.ne.1)
      *  K02A = (rd**2)*KINT2(kkpint2)
       DEALLOCATE(KINT2)
+
       IF(ktap.eq.kmi) K02A=0.
-      IF(K02D.eq.0.) K02A=0.
+c     IF(K02D.eq.0.) K02A=0.
       IF(K02A.lt.0.) K02A=0.
 
 C-- K02=K02/int(GAMMA**3/2) between -H and 0
-C--- CA=((3/2)*Ko)^3/2 with Ko=5/3 -> CA=3.95
-      CA=3.95
-C--- CD=((3/2)*Ko)^3/2 with Ko=6 -> CB=27
-      CD=27.
+C--- CA=((3/2)*Ko)^3/2 with Ko=4-> CA=14.7
+      CA=14.7
+C--- CD=((3/2)*Ko)^3/2 with Ko=4 -> CD=14.7
+      CD=14.7
  
       INTGAMMAA=0.
       INTGAMMAD=0.
@@ -555,6 +586,9 @@ C--- CD=((3/2)*Ko)^3/2 with Ko=6 -> CB=27
      *           KINT2,kkpint)
       INTGAMMAD=KINT2(kkpint)
       DEALLOCATE(KINT2)
+
+c?    IF(K02A.EQ.0.) INTGAMMAA=0.
+c?    IF(K02D.EQ.0.) INTGAMMAD=0.
 
       INTGAMMA=INTGAMMAA/CA+INTGAMMAD/CD
       K02=0.
@@ -593,17 +627,14 @@ C--- CD=((3/2)*Ko)^3/2 with Ko=6 -> CB=27
 
       IF(GAMMA(kmi).eq.1.) K02=0.
 
-      IF (K02.le.0d0) THEN
-        K02=0.d0
+      IF (K02.le.0.) THEN
+c       K02=0.d0
+        K02=1.
         k02count=1.
       ELSE
         k02count=0.
       ENDIF
-
-
-      Ustar=0.
-      Vstar=0.
-
+ 
 C---  Calculate udrift (ud,vd)
 C---- Calculate ud0,vd0
       ALLOCATE(ud(kmi),vd(kmi))
@@ -614,15 +645,23 @@ C---- Calculate ud0,vd0
 C-- Calculate factor M
       ALLOCATE(MK(kmi))
       MK=0.
-      IF(K02.ne.0.) MK=1./(1.+0.75*((U-ud)**2+(V-vd)**2)/K02)
+c     IF(K02.ne.0.) MK=1./(1.+0.75*((U-ud)**2+(V-vd)**2)/K02)
+      DO k=1,kmi
+      IF(K02*GAMMA(k).ne.0.)
+     *MK(k)=1./(1.+0.5*((U(k)-ud(k))**2+(V(k)-vd(k))**2)/(K02*GAMMA(k)))
+      ENDDO
 
 C-- Calculate KAPPAM(Z)
       ALLOCATE(KAPPAMZ(kmi))
-c     KAPPAMZ=rd*dsqrt(K02*GAMMA)*MK
-      KAPPAMZ=rd*dsqrt(K02*GAMMA)
+      KAPPAMZ=rd*dsqrt(K02*GAMMA)*MK
+c     KAPPAMZ=rd*dsqrt(K02*GAMMA)
       KAPPAMZa=0.
       KAPPAMZa(1:kmi)=KAPPAMZ
       DEALLOCATE(KAPPAMZ)
+
+      Ustar=0.
+      Vstar=0.
+c     Ustar(1:kmi)=KAPPAMZa
 
 c     rdm=k02count
 

@@ -47,6 +47,10 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,UOD,VOD,
      *     G0M,S0M
 
+#ifdef OCN_Mesoscales
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: auvel,avvel
+#endif
+
       INTEGER :: USE_QUS=0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -424,6 +428,9 @@ C****
 
       USE OCEAN, only : MO,G0M,S0M
       USE OCEAN, only : UO,VO,UOD,VOD
+#ifdef OCN_Mesoscales
+      USE OCEAN, only : auvel,avvel
+#endif
       USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV
       USE OCEAN, only :
      *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
@@ -491,6 +498,12 @@ C****
       gxxmo=0.; gyymo=0.; gzzmo=0.; gxymo=0.; gyzmo=0.; gzxmo=0.
       sxxmo=0.; syymo=0.; szzmo=0.; sxymo=0.; syzmo=0.; szxmo=0.
       endif
+
+#ifdef OCN_Mesoscales
+      ALLOCATE(   auvel(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   avvel(IM,J_0H:J_1H,LMO), STAT = IER)
+      auvel=0.; avvel=0.
+#endif
 
       if (am_i_root()) then
         img = im

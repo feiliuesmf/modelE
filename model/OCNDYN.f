@@ -298,6 +298,9 @@
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+#ifdef OCN_Mesoscales
+     *     ,auvel,avvel
+#endif
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
@@ -1435,6 +1438,10 @@ C****
       call defvar(grid,fid,sxmo,'sxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,symo,'symo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,szmo,'szmo(dist_imo,dist_jmo,lmo)')
+#ifdef OCN_Mesoscales
+      call defvar(grid,fid,auvel,'auvel(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,avvel,'avvel(dist_imo,dist_jmo,lmo)')
+#endif
       if(use_qus==1) then
       call defvar(grid,fid,gxxmo,'gxxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,gyymo,'gyymo(dist_imo,dist_jmo,lmo)')
@@ -1553,6 +1560,10 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'sxmo',sxmo)
         call write_dist_data(grid,fid,'symo',symo)
         call write_dist_data(grid,fid,'szmo',szmo)
+#ifdef OCN_Mesoscales
+        call write_dist_data(grid,fid,'auvel',auvel)
+        call write_dist_data(grid,fid,'avvel',avvel)
+#endif
         if(use_qus==1) then
         call write_dist_data(grid,fid,'gxxmo',gxxmo)
         call write_dist_data(grid,fid,'gyymo',gyymo)
@@ -1642,6 +1653,10 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'sxmo',sxmo)
         call read_dist_data(grid,fid,'symo',symo)
         call read_dist_data(grid,fid,'szmo',szmo)
+#ifdef OCN_Mesoscales
+        call read_dist_data(grid,fid,'auvel',auvel)
+        call read_dist_data(grid,fid,'avvel',avvel)
+#endif
         if(use_qus==1) then
         call read_dist_data(grid,fid,'gxxmo',gxxmo)
         call read_dist_data(grid,fid,'gyymo',gyymo)
