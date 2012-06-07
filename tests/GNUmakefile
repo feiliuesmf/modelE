@@ -3,17 +3,15 @@ EXTERNAL_CPP=NO
 CONFIG_DIR=../config
 #sinclude $(CONFIG_DIR)/rules.mk
 
-PFUNIT_TEST_DIRECTORIES =./profiler ./shared ./tracers
+COMPONENTS := profiler shared tracers MPI_Support
 
-SOURCE_DIR = ../model
+PFUNIT_TEST_DIRECTORIES = $(foreach ITEM,$(COMPONENTS), ./$(ITEM))
 
-PFUNIT_LFLAGS+= -L$(SOURCE_DIR)/profiler -lprofiler
-PFUNIT_LFLAGS+= -L$(SOURCE_DIR)/shared -lshared
-PFUNIT_LFLAGS+= -L$(SOURCE_DIR)/tracers -ltracers
+SOURCE_DIR := ../model
 
-EXTRA_FFLAGS += -$I$(SOURCE_DIR)/profiler
-EXTRA_FFLAGS += -$I$(SOURCE_DIR)/shared
-EXTRA_FFLAGS += -$I$(SOURCE_DIR)/tracers
+PFUNIT_LFLAGS += $(foreach ITEM,$(COMPONENTS), -L$(SOURCE_DIR)/$(ITEM) -l$(ITEM))
+
+EXTRA_FFLAGS += $(foreach ITEM,$(COMPONENTS), -I$(SOURCE_DIR)/$(ITEM))
 
 MPI_FC=mpif90
 CSTRING = $(shell mpif90 --version)
@@ -46,7 +44,9 @@ ifdef PFUNIT
   include $(PFUNIT)/include/pFUnit.makefile
 endif
 
-$(PFUNIT_TEST_EXECUTABLE) : ../model/profiler/libprofiler.a ../model/shared/libshared.a ../model/tracers/libtracers.a
+EXECS = $(foreach ITEM,$(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
+
+$(PFUNIT_TEST_EXECUTABLE) : $(EXECS)
 
 %.o : %.F90
 	$(FC) -c $(EXTRA_FFLAGS) $($(PFUNIT_FFLAGS_VARIABLE)) $<
