@@ -743,7 +743,7 @@ m4_loop(`
       integer :: np              !@var np number of patches in the cell
       integer :: nc(MAX_PATCHES) !@var nc number of cohorts in the patch
       integer :: dc, ndbuf, nn
-      real*8 :: dummy(1)
+      real*8 :: dummy(0)
 
       ! return "-1" for not associated cells
       if ( .not. associated(entcell%entcell) ) then
