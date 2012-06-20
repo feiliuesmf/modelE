@@ -2007,11 +2007,11 @@ c$$$          do k=1,nbins
 c$$$            if(NS.LE.3)THEN
 c$$$              ndistinit(k)=trsource(i,j,NS,IDTNUMD+K-1)*dtstep
 c$$$            elseif(NS.eq.4)then
-c$$$              ndistinit(k)=trsrfflx(i,j,IDTNA+K-1)
+c$$$              ndistinit(k)=trsrfflx(i,j,IDTNA+K-1)*gridarea
 c$$$     &             /sqrt(xk(k)*xk(k+1))*dtstep
 c$$$
 c$$$            elseif(ns.eq.5)then
-c$$$             ndistinit(k)=trsrfflx(i,j,IDTDUST+K-1)
+c$$$             ndistinit(k)=trsrfflx(i,j,IDTDUST+K-1)*gridarea
 c$$$     &             /sqrt(xk(k)*xk(k+1))*dtstep
 c$$$            endif
 c$$$            tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k)
@@ -2113,7 +2113,7 @@ c$$$
 c$$$          N_subgridcg(i,j,l,k)=(ndist2(k)-ndist0(k))- !this is emission after subgrid
 c$$$     &         tot_ndistinit(k) ! emission before subgrid
 c$$$          
-c$$$          trflux1(i,j,tracnum)=(ndist2(k)-ndist0(k))/dtstep !kg/sec
+c$$$          trflux1(i,j,tracnum)=(ndist2(k)-ndist0(k))/dtstep/gridarea !kg/m2/sec
 c$$$          
 c$$$!debug 
 c$$$!         if(N_subgridcg(i,j,l,k).ne.0)
@@ -2148,7 +2148,7 @@ c$$$
 c$$$            if(c.eq.2.or.c.eq.7)then
 c$$$
 c$$$              M_subgridcg(i,j,l,k,c)=(mdist2(k,c)-mdist0(k,c))-
-c$$$     &             trsrfflx(i,j,tracnum)*dtstep  !seasalt and dust
+c$$$     &             trsrfflx(i,j,tracnum)*dtstep*gridarea  !seasalt and dust
 c$$$
 c$$$            else
 c$$$
@@ -2164,7 +2164,7 @@ c$$$
 c$$$!     2-D emission: trflux1 should have only emission! 
 c$$$!     (mdist0 and ndist0 are background concentration) 
 c$$$            
-c$$$            trflux1(i,j,tracnum)=(mdist2(k,c)-mdist0(k,c))/dtstep 
+c$$$            trflux1(i,j,tracnum)=(mdist2(k,c)-mdist0(k,c))/dtstep/gridarea 
 c$$$            
 c$$$          ENDIF
 c$$$          
@@ -2380,7 +2380,7 @@ C     No moments updated here because aerosol emission are positive!
 
 C-----INCLUDE FILES--------------------------------------------------
       use resolution, only     : lm
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,axyp
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
      &     IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
@@ -2523,7 +2523,7 @@ C-----CODE-----------------------------------------------------------
      &         tot_ndistinit(k) ! emission before subgrid
           
           trflux1(i,j,tracnum)=trflux1(i,j,tracnum)+
-     &         N_subgridcg(i,j,l,k,1)/dtstep !kg/sec
+     &         N_subgridcg(i,j,l,k,1)/dtstep/axyp(i,j) !kg/m2/sec
           
           do c=1,icomp-idiag
             
@@ -2544,7 +2544,7 @@ C-----CODE-----------------------------------------------------------
               
             endif
             trflux1(i,j,tracnum)=trflux1(i,j,tracnum)+
-     &          M_subgridcg(i,j,l,k,c,1)/dtstep 
+     &          M_subgridcg(i,j,l,k,c,1)/dtstep/axyp(i,j)
             
           enddo !c
         enddo ! k

@@ -210,7 +210,7 @@ cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
           do nx=1,nta
             n=ntix(nx)
 C**** minus sign needed for ATURB conventions
-            trflx(nx)=-trflux1(i,j,n)*byaxyp(i,j)/rhoe(1)
+            trflx(nx)=-trflux1(i,j,n)/rhoe(1)
           end do
 #endif
 

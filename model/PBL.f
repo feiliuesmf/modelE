@@ -277,7 +277,7 @@ CCC      real*8 :: bgrid
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
-     &     ,tr,ptype,trnradius,trndens,trnmm
+     &     ,tr,trnradius,trndens,trnmm
 #endif
      &     )
 !@sum  advanc  time steps the solutions for the boundary layer variables
@@ -416,7 +416,6 @@ c  internals:
       real*8, dimension(n-1), intent(inout) :: e
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
-      real*8, intent(in) :: ptype
       real*8, dimension(NTM), intent(in) :: trnradius,trndens,trnmm
       real*8, dimension(n,NTM), intent(inout) :: tr
 #endif
@@ -746,7 +745,7 @@ C**** for all dry deposited tracers
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-      CALL dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
+      CALL dust_emission_constraints(itype,wsgcm,pbl_args)
 #endif
 
 #ifdef WATER_PROPORTIONAL
@@ -912,7 +911,7 @@ ccc dust emission from earth
      &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          CALL local_dust_emission(pbl_args%ntix(itr),ptype,wsgcm,
+          CALL local_dust_emission(pbl_args%ntix(itr),wsgcm,
      &       pbl_args,dsrcflx,dsrcflx2)
           trcnst=dsrcflx*byrho
           pbl_args%dust_flux(n1)=dsrcflx
@@ -924,7 +923,7 @@ ccc dust emission from earth
         SELECT CASE (trname(pbl_args%ntix(itr)))
         CASE ('M_DD1_DU')
           DO n1=1,2
-            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+            CALL local_dust_emission(n1,wsgcm,pbl_args,dsrcflx,
      &           dsrcflx2)
             trcnst=dsrcflx*byrho
             pbl_args%dust_flux(n1)=dsrcflx
@@ -932,7 +931,7 @@ ccc dust emission from earth
           END DO
         CASE ('M_DD2_DU')
           DO n1=3,4
-            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+            CALL local_dust_emission(n1,wsgcm,pbl_args,dsrcflx,
      &           dsrcflx2)
             trcnst=dsrcflx*byrho
             pbl_args%dust_flux(n1)=dsrcflx
@@ -940,7 +939,7 @@ ccc dust emission from earth
           END DO
         CASE ('M_DDD_DU')
           DO n1=1,4
-            CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,dsrcflx,
+            CALL local_dust_emission(n1,wsgcm,pbl_args,dsrcflx,
      &           dsrcflx2)
             trcnst=dsrcflx*byrho
             pbl_args%dust_flux(n1)=dsrcflx
@@ -956,7 +955,7 @@ ccc dust emission from earth
           du_bin=du_bin+1
           if(du_bin.eq.1)then
              n1=1
-                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+                CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx,dsrcflx2)
                 tot_dust=dsrcflx
                 pbl_args%dust_flux(n1)=dsrcflx
@@ -966,7 +965,7 @@ ccc dust emission from earth
 
           if(du_bin.eq.11)then
              n1=2             !silt1
-                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+                CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx, dsrcflx2)
                 tot_dust=dsrcflx
                 trcnst=tot_dust*byrho
@@ -974,7 +973,7 @@ ccc dust emission from earth
                 pbl_args%dust_flux2(n1)=dsrcflx2
           elseif(du_bin.eq.12)then
              n1=3               !silt2
-                CALL local_dust_emission(n1,ptype,wsgcm,pbl_args,
+                CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx, dsrcflx2)
                 tot_dust=dsrcflx
                 trcnst=tot_dust*byrho

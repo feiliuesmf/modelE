@@ -741,7 +741,7 @@ C**** Limit evaporation if lake mass is at minimum
         N=NTIX(NX)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
           call water_tracer_evap(
-     &         itype, i,j, n, ptype, axyp(i,j),
+     &         itype, i,j, n,
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         lim_lake_evap, flake(i,j), tevaplim(nx), ! arguments for lakes only
      &         lim_dew, dtsurf,
@@ -813,7 +813,7 @@ C**** final fluxes
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
            DTH1(I,J)=DTH1(I,J)
-     &              +ash*DTSURF*ptype/(SHA*MA1*P1K)
+     &              +ash*DTSURF*ptype/(SHA*MA1)
            DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
            EVPFLX = EVPFLX + ALH*ptype
@@ -823,7 +823,7 @@ cccccc for SCM use ARM provided fluxes for designated box
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
 #endif
-      asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1*P1K) ! +ve up
+      asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
       asflx(itype)%DQ1(I,J) = -DQ1X
 #ifdef SCM
@@ -893,6 +893,7 @@ C****
       do itype=1,4
 
         ptype = ptypes(itype,i,j)
+        if(ptype.le.0.) cycle
 
       do n=1,ntm
         if(dodrydep(n))then
@@ -901,14 +902,14 @@ C****
           tdryd=asflx(itype)%drydflx(n,i,j)         ! kg/m2
           rtsdt = -tdryd/(depvel+gsvel+teeny)
           rts = rtsdt/dtsurf                             ! kg*s/m^3
-          tdd = tdryd*axyp(i,j)*ptype                    ! kg
-          td1 = (asflx(itype)%trsrfflx(n,i,j)+ptype*trflux1(i,j,n))*
-     &         dtsurf  ! kg
-          if (ptype*trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
+          tdd = tdryd                                    ! kg/m2
+          td1 = (asflx(itype)%trsrfflx(n,i,j)
+     &         +trflux1(i,j,n))*dtsurf                   ! kg/m2
+          if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-            tdd= -max(ptype*trm(i,j,1,n)+td1,0d0)
-            tdryd=tdd/(axyp(i,j)*ptype)
+            tdd= -max(trm(i,j,1,n)+td1,0d0)*byaxyp(i,j)
+            tdryd=tdd
           end if
           asflx(itype)%trsrfflx(n,i,j)=
      &         asflx(itype)%trsrfflx(n,i,j)+tdd/dtsurf
@@ -934,10 +935,10 @@ C****
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 c**** for subdaily diagnostics
-          depo_turb_glob( i, j, itype, n ) = depo_turb_glob( i, j, itype
-     &         , n ) + ptype * rts * depvel / nisurf
-          depo_grav_glob( i, j, itype, n ) = depo_grav_glob( i, j, itype
-     &         , n ) + ptype * rts * gsvel / nisurf
+          depo_turb_glob( i, j, n ) = depo_turb_glob( i, j, n )
+     &         + ptype * rts * depvel / nisurf
+          depo_grav_glob( i, j, n ) = depo_grav_glob( i, j, n )
+     &         + ptype * rts * gsvel / nisurf
 #endif
 
         end if
@@ -962,26 +963,6 @@ C****
       call avg_patches_pbl_exports(grid,asflx,atmsrf,ptypes)
       call avg_patches_srfflx_exports(grid,asflx,atmsrf,ptypes)
       call avg_patches_srfstate_exports(grid,asflx,atmsrf,ptypes)
-
-! trsrfflx was already multiplied by ptype, so we redo the
-! compositing over surface types.  This fix will disappear once
-! we remove ptype from trsrfflx to make it conform to the
-! usual pattern.
-      do j=j_0,j_1
-      do i=i_0,imaxj(j)
-#ifdef TRACERS_ON
-        atmsrf%trsrfflx(:,i,j) = 0.
-#endif
-        do itype=1,4
-          ptype = ptypes(itype,i,j)
-          if(ptype.le.0.) cycle
-#ifdef TRACERS_ON
-          atmsrf%trsrfflx(:,i,j) = atmsrf%trsrfflx(:,i,j) +
-     &         asflx(itype)%trsrfflx(:,i,j)!*ptype
-#endif
-        enddo
-      enddo
-      enddo
 
       do j=j_0,j_1
       do i=i_0,imaxj(j)
@@ -1018,7 +999,7 @@ C****
       DO I=I_0,IMAXJ(J)
         FTEVAP=0
         IF (atmsrf%DTH1(I,J)*T(I,J,1).lt.0)
-     &       FTEVAP=-atmsrf%DTH1(I,J)/T(I,J,1)
+     &       FTEVAP=-atmsrf%DTH1(I,J)/(T(I,J,1)*PK(1,I,J))
         FQEVAP=0
         IF (atmsrf%DQ1(I,J).lt.0.and.Q(I,J,1).gt.0)
      &       FQEVAP=-atmsrf%DQ1(I,J)/Q(I,J,1)
@@ -1041,10 +1022,9 @@ C****
 #endif
         ENDIF
 c****   retrieve fluxes
-        P1K=PK(1,I,J)
         uflux1(i,j)=atmsrf%uflux1(i,j)
         vflux1(i,j)=atmsrf%vflux1(i,j)
-        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)*P1K/(dtsurf)
+        tflux1(i,j)=-atmsrf%dth1(i,j)*AM(1,I,J)/(dtsurf)
         qflux1(i,j)=-atmsrf%dq1(i,j)*AM(1,I,J)/(dtsurf)
 #if (defined mjo_subdd) || (defined etc_subdd)
 C**** SUBDD qsen_avg,qlat_avg for sensible/latent heat flux ***
@@ -1584,7 +1564,7 @@ C**** to by atm-surf. coupling data structures.
       use domain_decomp_atm, only : grid, get
       use atm_com, only : t,q,ualij,valij
       use atm_com, only : temp1,sphum1,u1,v1
-      use geom, only : imaxj
+      use geom, only : imaxj,byaxyp
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,trm,trm1
 #endif
@@ -1605,7 +1585,7 @@ c
       do n=1,ntm
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-        trm1(i,j,n) = trm(i,j,1,n)
+        trm1(i,j,n) = trm(i,j,1,n)*byaxyp(i,j)
       enddo
       enddo
       enddo
@@ -1614,7 +1594,7 @@ c
 
 #ifdef TRACERS_WATER
       subroutine water_tracer_evap(
-     &     itype, i,j, n, ptype, axyp,
+     &     itype, i,j, n,
      &     tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &     lim_lake_evap, flake, tevaplim,
      &     lim_dew, dtsurf,
@@ -1625,7 +1605,7 @@ c
       use landice, only : snmin
       implicit none
       integer :: itype,i,j,n
-      real*8 :: ptype, axyp,
+      real*8 ::
      &     tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &     dtsurf, flake,
      &     trm1, trs, trgrnd, trgrnd2, trprime,
@@ -1684,16 +1664,16 @@ C**** tracer flux is set by source tracer concentration
 #endif
         END IF
       END IF
-      TDP = TEVAP*AXYP*ptype
+      TDP = TEVAP
 #ifdef WATER_PROPORTIONAL
       if(lim_dew) then
 #else
-      IF (TRM1*ptype+TDP.lt.0..and.tdp.lt.0) THEN
+      IF (TRM1+TDP.lt.0..and.tdp.lt.0) THEN
 #endif
 c        IF (QCHECK)
 c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
-        TEVAP = -TRM1/AXYP
-        TDP = -TRM1*ptype
+        TEVAP = -TRM1
+        TDP = -TRM1
       END IF
       trsrfflx = TDP/DTSURF
       TREVAPOR = TREVAPOR + TEVAP
@@ -1782,8 +1762,7 @@ C****
 #endif
         end select
 
-        atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)+
-     &       trc_flux*axyp(i,j)*ptype
+        atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)+trc_flux
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &       trc_flux*axyp(i,j)*ptype*dtsurf
@@ -1885,7 +1864,6 @@ C****
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
           atmocn%trsrfflx(n,i,j) = atmocn%trsrfflx(n,i,j)
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
-     .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
      .               * axyp(i,j)*ptype*dtsurf
@@ -1917,9 +1895,7 @@ C****
      .         - pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
      .         - pbl_args%alpha_gas * trgrnd )
      .         * 1.0d6/vol2mass(n) 
-     .         * tr_mm(n)*1.0d-3       
-     .         * ptype
-     .         * axyp(i,j)      !units kg,co2/s
+     .         * tr_mm(n)*1.0d-3        !units kg,co2/m2/s
 
 !units are kg,co2
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))-

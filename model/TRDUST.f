@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE dust_emission_constraints(itype,ptype,wsgcm,pbl_args)
+      SUBROUTINE dust_emission_constraints(itype,wsgcm,pbl_args)
 !@sum  local constrainsts for dust tracer emission valid for all dust bins
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
@@ -14,7 +14,7 @@
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: itype
-      REAL*8,INTENT(IN) :: ptype,wsgcm
+      REAL*8,INTENT(IN) :: wsgcm
 
       type(t_pbl_args),INTENT(INOUT) :: pbl_args
 
@@ -62,7 +62,7 @@ c     less/equal than Zero for a succeeding number of hours greater/equal
 c     than threshold dryhr to permit dust emission
 
       hbaijold=hbaij
-      hbaij=hbaijold+pprec*ptype/nisurf-pevap
+      hbaij=hbaijold+pprec/nisurf-pevap
       hbaijd=hbaij-hbaijold
       IF (itype == 4 .AND. hbaijd <= 0.D0) THEN
         ricntd=ricntd+Dtsrc/3600./nisurf
@@ -293,7 +293,7 @@ c**** output
       RETURN
       END SUBROUTINE dust_emission_constraints
 
-      SUBROUTINE local_dust_emission(n,ptype,wsgcm,pbl_args,dsrcflx,
+      SUBROUTINE local_dust_emission(n,wsgcm,pbl_args,dsrcflx,
      &     dsrcflx2)
 !@sum  selects routine for calculating local dust source flux
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
@@ -313,7 +313,7 @@ c**** output
       IMPLICIT NONE
 
       INTEGER,INTENT(IN) :: n
-      REAL*8,INTENT(IN) :: ptype,wsgcm
+      REAL*8,INTENT(IN) :: wsgcm
       TYPE(t_pbl_args),INTENT(IN) :: pbl_args
 
       REAL*8,INTENT(OUT) :: dsrcflx,dsrcflx2

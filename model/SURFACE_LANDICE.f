@@ -27,8 +27,7 @@ C****
      &     ,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE GEOM, only : axyp,imaxj
-      USE ATM_COM, only : pk ! will disappear from here when dth1 acc. is refactored
+      USE GEOM, only : imaxj
 #ifdef TRACERS_ON
       USE TRACER_COM, only : NTM,itime_tr0,needtrs
 #ifdef TRACERS_WATER
@@ -67,7 +66,7 @@ C****
 ! ================ VARIABLE DECLARATIONS ======================
       INTEGER I,J,K,ITYPE,IH,IHM
       REAL*8 PLICE
-      REAL*8 PS,P1K
+      REAL*8 PS
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
      *     ,CM,CH,CQ,EVHEAT,F0,F1,DSHDTG,DQGDTG
      *     ,DEVDTG,DTRDTG,DF0DTG,DFDTG,DTG,dSNdTG
@@ -216,11 +215,6 @@ C****
       !     [or: kapa = (c_p - c_v) / c_p ]
       ! g (or srat) = c_p/c_v = ratio of specific heats at const. press. and vol. (=1.401)
       !PSK=atmgla%srfpk(i,j)
-
-      ! PK = PMID**KAPA
-      ! PMID  Pressure at mid point of box (mb)
-      ! kapa = ideal gas law exponent for dry air (.2862)
-      P1K=PK(1,I,J)
 
       ! Q = specific humidity (kg water vapor/kg air)
       !     (This is the same as mixing ratio)
@@ -486,7 +480,7 @@ C**** CALCULATE EVAPORATION
         N=NTIX(NX)
         if (tr_wd_TYPE(n).eq.nWATER) THEN
           call water_tracer_evap(
-     &         3, i,j, n, ptype, axyp(i,j),
+     &         3, i,j, n,
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         .false., 0d0, 0d0, ! arguments for lakes only
      &         lim_dew, dtsurf,
@@ -533,7 +527,7 @@ C**** final fluxes
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
            DTH1(I,J)=DTH1(I,J)
-     &              +ash*DTSURF*ptype/(SHA*MA1*P1K)
+     &              +ash*DTSURF*ptype/(SHA*MA1)
            DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
            EVPFLX = EVPFLX + ALH*ptype
@@ -543,7 +537,7 @@ cccccc for SCM use ARM provided fluxes for designated box
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
 #endif
-      atmgla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1*P1K) ! +ve up
+      atmgla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       atmgla%sensht(i,j) = atmgla%sensht(i,j)+SHDT
       atmgla%DQ1(I,J) = -DQ1X
 #ifdef SCM
@@ -554,10 +548,10 @@ cccccc for SCM use ARM provided fluxes for designated box
       endif
       endif
 #endif
-      DMUA_IJ=PTYPE*DTSURF*RCDMWS*US
-      DMVA_IJ=PTYPE*DTSURF*RCDMWS*VS
-      atmgla%DMUA(I,J) = atmgla%DMUA(I,J) + DMUA_IJ
-      atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
+!unused      DMUA_IJ=PTYPE*DTSURF*RCDMWS*US
+!unused      DMVA_IJ=PTYPE*DTSURF*RCDMWS*VS
+!unused      atmgla%DMUA(I,J) = atmgla%DMUA(I,J) + DMUA_IJ
+!unused      atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
       atmgla%uflux1(i,j) = RCDMWS*US
       atmgla%vflux1(i,j) = RCDMWS*VS
 

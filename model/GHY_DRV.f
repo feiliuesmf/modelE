@@ -79,9 +79,6 @@ c******************   TRACERS             ******************************
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
      &     ,prec,pprec,pevap,dust_flux_glob
-#ifdef TRACERS_DRYDEP
-     &     ,depo_turb_glob,depo_grav_glob
-#endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP) 
      &     ,dust_flux2_glob
@@ -262,7 +259,7 @@ ccc tracers variables
 #endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
-          ghy_tr%tr_surf(nx) = atmlnd%trm1(i,j,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
+          ghy_tr%tr_surf(nx) = atmlnd%trm1(i,j,n)*rhow/qm1 ! kg/m^3
         else
           ghy_tr%tr_surf(nx) = 0.
         end if
@@ -400,7 +397,7 @@ c     of about a year)
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
       atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &     (arauto+asoilresp-agpp+delta_C)/dtsurf *axyp(i,j)*ptype
+     &     (arauto+asoilresp-agpp+delta_C)/dtsurf
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
 #endif
@@ -419,7 +416,7 @@ cddd     &     (arauto+asoilresp-agpp)/dtsurf
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
-      pevap(i,j,itype)=aevap
+      pevap(i,j)=aevap
 #endif
 #ifdef TRACERS_WATER
 ccc accumulate tracer evaporation and runoff
@@ -430,7 +427,7 @@ ccc accumulate tracer evaporation and runoff
         trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
         atmlnd%gtracer(n,i,j) = ghy_tr%atr_g(nx)
         atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
+     &       ghy_tr%atr_evap(nx)/dtsurf
       enddo
 #endif
 #ifdef TRACERS_TOMAS
@@ -495,8 +492,7 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=0
         end select
 
-        atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &       trc_flux*axyp(i,j)*ptype
+        atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+trc_flux
 #ifndef TRACERS_TOMAS
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
@@ -570,7 +566,7 @@ ccc dust emission from earth
 #endif
 #endif
           atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &         pbl_args%dust_flux(n1)*axyp(i,j)*ptype
+     &         pbl_args%dust_flux(n1)
           taijs(i,j,ijts_isrc(nDustEmij,n))
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
@@ -596,7 +592,7 @@ ccc dust emission from earth
         select case (trname(n))
         case ('Isoprene')
           atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &         pbl_args%emisop*axyp(i,j)*ptype
+     &         pbl_args%emisop
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
      &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
         end select
@@ -605,8 +601,7 @@ ccc dust emission from earth
         select case (trname(n))
         case ('Isoprene')
 C Flux in kg/m2/s - put back into /s
-          atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
-     &         aipp*axyp(i,j)*ptype/dtsurf
+          atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+aipp/dtsurf
 c          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
 c     &    aipp*axyp(i,j)*ptype*dtsurf
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
@@ -759,7 +754,6 @@ c****
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       use geom, only : imaxj,lat2d
-      use atm_com, only : pk
 #ifdef USE_ENT
       use rad_com, only :
      &      FSRDIR, SRVISSURF,CO2X, CO2ppm
@@ -843,7 +837,7 @@ c****
       integer i,j,itype,ibv
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
-     *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps
+     *     ,rhosrf,ma1,tfs,th1,thv1,psk,ps
      *     ,spring,q1,dlwdt,irrig,htirrig
       real*8 fb,fv
 !@var rhosrf0 estimated surface air density
@@ -994,7 +988,6 @@ c****
       ptype=fearth(i,j)
       ps=atmlnd%srfp(i,j)
       psk=atmlnd%srfpk(i,j)
-      p1k=pk(1,i,j)
       th1=atmlnd%temp1(i,j) !t(i,j,1)
       q1=atmlnd%q1(i,j) !q(i,j,1)
       thv1=th1*(1.+q1*xdelt)
@@ -1346,7 +1339,7 @@ c        values
       if (i.eq.I_TARG.and.j.eq.J_TARG) then
           if (SCM_SURFACE_FLAG.eq.1) then
              dth1(i,j)=dth1(i,j)
-     &             +ash*pbl_args%dtsurf*ptype/(sha*ma1*p1k)
+     &             +ash*pbl_args%dtsurf*ptype/(sha*ma1)
              dq1(i,j) =dq1(i,j)
      &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
              EVPFLX = EVPFLX + ALH*ptype
@@ -1356,19 +1349,19 @@ c        values
  981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
      &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
           elseif (SCM_SURFACE_FLAG.eq.2) then
-             dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+             dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
              dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
 c            write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
 c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
           endif
       else
-          dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+          dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
           dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
           atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
           atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif
 #else
-      atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1*p1k)
+      atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1)
       atmlnd%dq1(i,j) = aevap/ma1
       atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
       atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
@@ -1420,7 +1413,7 @@ c as a PBL diagnostic.
         atmlnd%trevapor(itr,i,j) = atmlnd%trevapor(itr,i,j) +
      &       aevap*trconcflx
         atmlnd%trsrfflx(itr,i,j)=atmlnd%trsrfflx(itr,i,j)+
-     &       axyp(i,j)*ptype*aevap*trconcflx/(pbl_args%dtsurf)
+     &       aevap*trconcflx/(pbl_args%dtsurf)
 c fill in pbl profile in case it is used to initialize
 c another surface type
         do lpbl=1,npbl

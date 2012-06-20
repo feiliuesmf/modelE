@@ -83,13 +83,13 @@ C**** Momemtum stresses are calculated as if they were over whole box
      &     ,U1    ! a-grid EW wind of first layer
      &     ,V1    ! a-grid NS wind of first layer
      &     ,UFLUX1,VFLUX1 ! (temporary redundancy with dmua, dmva)
-     &     ,DTH1  ! (temporary) first layer pot. temp. increment
+     &     ,DTH1  ! (temporary) first layer temp. increment
      &     ,DQ1   ! (temporary) first layer humidity increment
 #ifdef TRACERS_ON
          REAL*8, DIMENSION(:,:,:), POINTER ::
-     &      TRM1  ! first-layer tracer mass (kg).  Todo: kg/m2 instead.
-     &     ,TRFLUX1 ! non-interactive emissions (kg/s).  Todo: kg/s/m2 instead.
-!@var TRSRFFLX interactive surface sources/sinks for tracers (kg/s)
+     &      TRM1  ! first-layer tracer mass (kg/m2).  Todo: conc. instead?
+     &     ,TRFLUX1 ! non-interactive emissions (kg/m2/s)
+!@var TRSRFFLX interactive surface sources/sinks for tracers (kg/m2/s)
      &     ,TRSRFFLX
 !@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
          REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
@@ -1188,7 +1188,7 @@ C**** fluxes associated with variable lake fractions
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif
-!@var TRFLUX1 total surface flux for each tracer (kg/s)
+!@var TRFLUX1 total surface flux for each tracer (kg/m2/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trflux1
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
 #ifndef SKIP_TRACER_SRCS
@@ -1228,8 +1228,8 @@ C**** fluxes associated with variable lake fractions
     (defined TRACERS_TOMAS)
 !@var pprec precipitation at previous time step [kg/m^2]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
-!@var pevap evaporation at previous time step [kg/m^2]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: pevap
+!@var pevap evaporation at previous time step (land only) [kg/m^2]
+      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pevap
 !@var dust_flux_glob global array of dust emission flux [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux_glob
 #endif
@@ -1243,10 +1243,10 @@ C**** fluxes associated with variable lake fractions
 #ifdef TRACERS_DRYDEP
 !@var depo_turb_glob global array of flux due to dry turb. dep. of tracers
 !@+   [kg/m^2/s]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: depo_turb_glob
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: depo_turb_glob
 !@var depo_grav_glob global array of flux due to gravit. settling of tracers
 !@+   [kg/m^2/s]
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: depo_grav_glob
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: depo_grav_glob
 #endif
 #endif
 
@@ -1454,12 +1454,12 @@ C**** Ensure that no round off error effects land with ice and earth
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
-      ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H,NSTYPE),STAT = IER)
+      ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H),STAT = IER)
       ALLOCATE(dust_flux_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #ifdef TRACERS_DRYDEP
-      ALLOCATE(depo_turb_glob(I_0H:I_1H,J_0H:J_1H,Nstype,Ntm)
+      ALLOCATE(depo_turb_glob(I_0H:I_1H,J_0H:J_1H,Ntm)
      &     ,STAT = IER)
-      ALLOCATE(depo_grav_glob(I_0H:I_1H,J_0H:J_1H,Nstype,Ntm)
+      ALLOCATE(depo_grav_glob(I_0H:I_1H,J_0H:J_1H,Ntm)
      &     ,STAT = IER)
 #endif
 #endif

@@ -189,23 +189,37 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
        ENDDO
 
        if (L.eq.1) then     
-!      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
+!      Emis Mass [ug/m3/s] <-- trflux1[kg/m2/s]
 #ifdef TRACERS_AMP_M4
       EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSS_SS)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
 #else
       EMIS_MASS(1) =  MAX(trflux1(i,j,n_M_AKK_SU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSA_SS)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(7) =  MAX(trflux1(i,j,n_M_SSC_SS)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
       EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
+     &        *axyp(i,j)
 #endif
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]

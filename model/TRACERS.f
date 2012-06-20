@@ -498,7 +498,7 @@ c
       SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,byaxyp
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,ntsurfsrc
 #ifdef TRACERS_TOMAS
@@ -566,7 +566,7 @@ C**** diagnostics
           if (itcon_surf(ns,n).gt.0)
      *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
-          trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
+          trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
         end do
       end do
       RETURN
@@ -575,7 +575,7 @@ C**** trflux1 is total flux into first layer
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE GEOM, only : imaxj
+      USE GEOM, only : imaxj,axyp
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,trm,trmom
       USE FLUXES, only : trflux1,atmsrf
@@ -603,9 +603,9 @@ C**** modify vertical moments (only from non-interactive sources)
 c this is disabled until vertical moments are also modified
 c during the vertical transport between layer 1 and the others
 c        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
-c     *       *dtstep
+c     *       *dtstep*axyp(:,j)
 c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
-c     *       *dtstep
+c     *       *dtstep*axyp(:,j)
 
 C**** Accumulate interactive sources as well
         trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
@@ -618,7 +618,8 @@ C**** moments for dew.
           do i=i_0,imaxj(j)
             if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
      &           trm(i,j,1,n).gt.0) then
-              ftr1=min(1d0,-atmsrf%trsrfflx(n,i,j)*dtstep/trm(i,j,1,n))
+              ftr1=min(1d0,
+     &           -atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep/trm(i,j,1,n))
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
             end if
           end do
@@ -1348,7 +1349,7 @@ C**** check whether air mass is conserved
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-      USE fluxes,ONLY : nstype,pprec,pevap
+      USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
 #endif
@@ -1396,7 +1397,7 @@ C**** check whether air mass is conserved
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
-      REAL*8,DIMENSION(Im,Jm,Nstype) :: pevap_glob
+      REAL*8,DIMENSION(Im,Jm) :: pevap_glob
 #endif
       real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc_glob
      &     ,trcSurfByVol_acc_glob
@@ -2059,7 +2060,7 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,hbaij,'hbaij(dist_im,dist_jm)')
       call defvar(grid,fid,ricntd,'ricntd(dist_im,dist_jm)')
       call defvar(grid,fid,pprec,'pprec(dist_im,dist_jm)')
-      call defvar(grid,fid,pevap,'pevap(dist_im,dist_jm,nstype)')
+      call defvar(grid,fid,pevap,'pevap(dist_im,dist_jm)')
       call def_rsf_trdust(fid)
 #endif
 

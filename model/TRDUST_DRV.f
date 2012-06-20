@@ -899,10 +899,10 @@ c accSubddDust
         if (dodrydep(n1)) then
           dustDiagSubdd_acc%dustDepoTurb(:,:,n)
      &         =dustDiagSubdd_acc%dustDepoTurb(:,:,n)
-     &         +sum(depo_turb_glob(:,:,:,n1),dim=3)
+     &         +depo_turb_glob(:,:,n1)
           dustDiagSubdd_acc%dustDepoGrav(:,:,n)
      &         =dustDiagSubdd_acc%dustDepoGrav(:,:,n)
-     &         +sum(depo_grav_glob(:,:,:,n1),dim=3)
+     &         +depo_grav_glob(:,:,n1)
         end if
 #endif
 #ifdef TRACERS_WATER

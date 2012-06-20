@@ -23,7 +23,7 @@
 
       USE EXCHANGE_TYPES
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny,lhe,lhs
-      USE GEOM, only : sinlat2d,byaxyp
+      USE GEOM, only : sinlat2d
       USE ATM_COM, only : pk
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       USE CLOUDS_COM, only : ddm1
@@ -157,7 +157,7 @@ C**** Set up tracers for PBL calculation if required
         n=pbl_args%ntix(nx)
 C**** Calculate first layer tracer concentration
           pbl_args%trtop(nx)=
-     &         atm%trm1(i,j,n)*atm%byam1(i,j)*byaxyp(i,j)
+     &         atm%trm1(i,j,n)*atm%byam1(i,j)
       end do
       call tracer_lower_bc(i,j,itype,pbl_args,atm)
 
@@ -299,7 +299,7 @@ C        roughness lengths from Brutsaert for rough surfaces
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
-     &     ,tr,ptype,trnradius,trndens,trnmm
+     &     ,tr,trnradius,trndens,trnmm
 #endif
      &     )
 
@@ -443,7 +443,7 @@ c            trgrnd(nx)=0.
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifndef SKIP_TRACER_SRCS
-            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n)*byaxyp(i,j) ! kg/m^2/s
+            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n) ! kg/m^2/s
 #endif /*SKIP_TRACER_SRCS*/
 
 #ifdef TRACERS_WATER
@@ -494,7 +494,7 @@ C**** Calculate trsfac (set to zero for const flux)
           !then multiplied by deposition velocity in PBL
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n)*byaxyp(i,j) ! kg/m^2/s
+            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n) ! kg/m^2/s
 #ifdef TRACERS_WATER
 !        end select
           end if
@@ -534,7 +534,7 @@ c
       pbl_args%hbaij=hbaij(i,j)
       pbl_args%ricntd=ricntd(i,j)
       pbl_args%pprec=pprec(i,j)
-      pbl_args%pevap=pevap(i,j,itype)
+      pbl_args%pevap=pevap(i,j)
 c**** fractional area of moist convection * fraction of downdrafts
 c**** (=1/3), but only if downdrafts reach the lowest atmospheric
 c**** layer. It's only needed to constrain dust emission due to

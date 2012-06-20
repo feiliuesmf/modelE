@@ -377,7 +377,7 @@ C***
      *                      ,I_TARG,J_TARG
 #endif
       USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : u,v,t,q,byam,am
+      USE ATM_COM, only : u,v,t,q,byam,am,pk
       USE DOMAIN_DECOMP_ATM, only : grid, get
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
@@ -414,7 +414,7 @@ C****
 
       do j=j_0,j_1
         do i=i_0,imaxj(j)
-          t(i,j,1) = t(i,j,1) + dth1(i,j)
+          t(i,j,1) = t(i,j,1) + dth1(i,j)/pk(1,i,j)
           q(i,j,1) = q(i,j,1) + dq1(i,j)
         end do
       end do
@@ -423,7 +423,7 @@ C****
       do n=1,ntm
         do j=j_0,j_1
           do i=i_0,imaxj(j)
-            trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
+            trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt*axyp(i,j)
             trmin=0.d0
 #ifdef TRACERS_WATER
             IF(tr_wd_TYPE(n).eq.nWATER) trmin = 
