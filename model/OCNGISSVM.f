@@ -462,7 +462,7 @@ c      end function fct
       else ! ri >= 0
          if(rr.gt.0.) then
 c           a=5.
-            b=2.
+            b=2.*ri/(.1+ri)
             rrsy = 2./(rr + 1/rr)
             ! pi1 = pi10/(1. + ri/(1. + (a*rrsy**2)))
             tmp=atan2(.5*rrsy**2*(1-rrsy**2),2*rrsy**2-1)/3.1415927
@@ -705,8 +705,8 @@ c      end subroutine rtwi
       intent (out) ri,rr,km,kh,ks,buoynl
 
       integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
-      integer, parameter :: num_smooth=1
-      real*8, parameter :: l0min=3.d0,l2min=.02d0
+c     integer, parameter :: num_smooth=1
+      real*8, parameter :: l0min=3.d0,l2min=.05d0
       integer iter, mr
 c     real*8 bylenr ! rotation effect
       real*8 vs2(0:lmo+1)!@var vs2 velocity shear squared (1/s**2)
@@ -734,8 +734,8 @@ c     real*8 bylenr ! rotation effect
      &   ,bv0byf30=bv0/f30                ! (1), (65b)
      &   ,byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
      &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
-     &   ,q=.3d0
-     &   ,byzet=1./250.d0                   ! (1/m)
+     &   ,q=.7d0
+     &   ,byzet=1./500.d0                   ! (1/m)
       real*8 fbyden,afc,ltn
       real*8 bvbyf,fac
 c     real*8 gammbg,smbg,shbg,ssbg
@@ -777,20 +777,20 @@ c     real*8 gammbg,smbg,shbg,ssbg
          bv2(l)=db(l)*bydz ! N^2
          vs2(l)=dv2(l)*bydz*bydz
       end do
-      do mr = 1,num_smooth
-         call z121(bv2,n-1,lmo)
-         call z121(vs2,n-1,lmo)
-      end do
+c     do mr = 1,num_smooth
+c        call z121(bv2,n-1,lmo)
+c        call z121(vs2,n-1,lmo)
+c     end do
       do l=1,n-1
          ! ri(l)=db(l)*(zg(l)-zg(l+1))/(dv2(l)+1d-30)
          ri(l)=bv2(l)/(vs2(l)+1d-30)
          rr(l)=bds(l)/(adt(l)+1d-30)
       end do
 
-      ! vertically smooth Ri and Rr num_smooth times
-      do mr = 1,num_smooth
-         call z121(rr,n-1,lmo)
-      end do
+      ! vertically smooth Rr num_smooth times
+c     do mr = 1,num_smooth
+c        call z121(rr,n-1,lmo)
+c     end do
       l0=.15*hbl
 
       if(nonlocal.ne.0) then ! nonlocal
@@ -905,11 +905,12 @@ c     endif
          kz=kappa*zl
 c        lr=c1*lra(jlo,klo)+c2*lra(jhi,klo)
 c    &     +c3*lra(jhi,khi)+c4*lra(jlo,khi)
-         if(ril.ge.0.) then 
-            lr=a1*lr1a(jlo)+b1*lr1a(jhi)
-         else
-            lr=1.
-         endif
+c        if(ril.ge.0.) then 
+c           lr=a1*lr1a(jlo)+b1*lr1a(jhi)
+c        else
+c           lr=1.
+c        endif
+         lr=1./(1.+max(ril,0.d0))
          if(zl.le.hbl) then         ! within obl
             l1=l0
          else
