@@ -3,6 +3,7 @@
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
+      use ModelClock_mod
       IMPLICIT NONE
       SAVE
 
@@ -40,6 +41,7 @@ C**** (Simplified) Calendar Related Terms
 !@nlparam IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)
       INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
+      type (ModelClock), public :: modelEClock
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
 !@var JDAY,JMON,JDATE,JYEAR,JHOUR current Julian day,month,day,year,hour
       INTEGER :: Itime,JDAY,JMON,JDATE,JYEAR,JHOUR
@@ -106,7 +108,7 @@ C**** (Simplified) Calendar Related Terms
         integer :: iTime
       end type ModelE_Clock_type
       
-      type (ModelE_Clock_type) ::modelEclock
+      type (ModelE_Clock_type) ::oldModelEclock
 
       contains
 

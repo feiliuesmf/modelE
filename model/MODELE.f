@@ -82,6 +82,7 @@ C**** Command line options
       use SystemTimers_mod
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
+      use Month_mod, only: LEN_MONTH_ABBREVIATION
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -170,7 +171,7 @@ C****
         END IF
       end if
 
-      if (isBeginningOfDay(modelEclock)) then
+      if (isBeginningOfDay(oldModelEclock)) then
         call startNewDay()
       end if
 
@@ -203,7 +204,7 @@ C****
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
 
-      if (isBeginningOfDay(modelEclock)) THEN ! NEW DAY
+      if (isBeginningOfDay(oldModelEclock)) THEN ! NEW DAY
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         call startTimer('Daily')
         call dailyUpdates
@@ -237,7 +238,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C**** (after the end of a diagn. accumulation period)
-      if (isBeginningAccumPeriod(modelEclock)) then
+      if (isBeginningAccumPeriod(oldModelEclock)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
