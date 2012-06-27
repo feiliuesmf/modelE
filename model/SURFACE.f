@@ -33,7 +33,8 @@ C****
      *     ,undef
 #endif
       USE ATM_COM, only : t,q,temp1,sphum1
-      USE MODEL_COM, only : dtsrc,idacc,nday,itime,jhour,qcheck,jdate
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : dtsrc,idacc,nday,itime,qcheck
 #ifdef mjo_subdd
      *     ,lm
 #endif
@@ -270,8 +271,8 @@ C****
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
       byNIsurf=1.d0/real(NIsurf)
-      IH=JHOUR+1
-      IHM = IH+(JDATE-1)*24
+      IH=modelEclock%hour()+1
+      IHM = IH+(modelEclock%date()-1)*24
 
       CALL PRECIP_SI(si_atm,icelak,atmice)
       CALL PRECIP_LI

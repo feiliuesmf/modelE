@@ -1,30 +1,35 @@
-module JulianCalendar_mod
-!@sum Specifies the parameters for the Julian calendar used in modelE.
-!@auth T. Clune
-  implicit none
-
-
 ! During the transition period, this module will continue to support the legacy
 ! names for constants which tend towards the terse end of the spectrum.  
 
+module JulianCalendar_mod
+!@sum Specifies the parameters for the Julian calendar used in modelE.
+!@auth T. Clune
+  use Calendar_mod
+  use Month_mod
+  use TimeConstants_mod, only: INT_SECONDS_PER_DAY
+  use BaseTime_mod
+  implicit none
+  private 
+
+  public :: JulianCalendar
+  public :: makeJulianCalendar
+  
+  type, extends(Calendar) :: JulianCalendar
+  contains
+    procedure :: getDayOfYear
+    procedure :: getYear
+    procedure :: getMonth
+    procedure :: getDate
+    procedure :: getAbbreviation
+    procedure :: convertToTime
+  end type JulianCalendar
 
   !         Legacy :  New
-  public :: SDAY,     SECONDS_PER_DAY
-  public :: SYR,      SECONDS_PER_YEAR
-  public ::           SECONDS_PER_HOUR
-  public :: HRDAY,    HOURS_PER_DAY
-
-  public :: JDPERY,   DAYS_PER_YEAR
-  public :: JMPERY,   MONTHS_PER_YEAR
   public :: JDendOfM, LAST_JULIAN_DAY_IN_MONTH
   public :: JDmidOfM, MID_JULIAN_DAY_IN_MONTH
 
-  public :: AMONTH
-
   ! Not entirely clear if these constants belong here, since they actually
   ! should vary for other planets and/or eras (e.g. paleo has shorter day)
-  public :: EDPERD,   EARTH_DAYS_PER_DAY
-  public :: EDPERY,   EARTH_DAYS_PER_YEAR
 
   public :: Month_type, JULIAN_MONTHS
   public :: JANUARY,   FEBRUARY, MARCH,    APRIL
@@ -36,16 +41,8 @@ module JulianCalendar_mod
   integer, parameter :: DAYS_PER_YEAR = 365, JDPERY = DAYS_PER_YEAR
 !@var MONTHS_PER_YEAR (JMperY)  number of months per year
   integer, parameter :: MONTHS_PER_YEAR = 12, JMPERY = MONTHS_PER_YEAR
-
-  real*8, parameter :: SECONDS_PER_DAY = 86400.,   SDAY = SECONDS_PER_DAY
-  real*8, parameter :: EARTH_DAYS_PER_DAY = 1.,    EDPERD = EARTH_DAYS_PER_DAY
-  real*8, parameter :: EARTH_DAYS_PER_YEAR = 365., EDPERY = EARTH_DAYS_PER_YEAR
-  real*8, parameter :: SECONDS_PER_YEAR = SECONDS_PER_DAY * DAYS_PER_YEAR
-  real*8, parameter :: SYR = SECONDS_PER_YEAR
-
-  real*8, parameter :: SECONDS_PER_HOUR = 3600.
-  real*8, parameter :: HOURS_PER_DAY = SECONDS_PER_DAY / SECONDS_PER_HOUR
-  real*8, parameter :: HRDAY = HOURS_PER_DAY
+!@var INT_SECONDS_PER_YEAR (JMperY)  number of seconds per year (long integer to be safe for arithmetic)
+  integer*8, parameter :: INT_SECONDS_PER_YEAR = DAYS_PER_YEAR * INT_SECONDS_PER_DAY
 
 
 !@var LAST_JULIAN_DAY_IN_MONTH (JDendOfM, ) last Julian day in month
@@ -60,45 +57,120 @@ module JulianCalendar_mod
   integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) = MID_JULIAN_DAY_IN_MONTH
 
   ! Months
-  type Month_type
-    character(len=4) :: shortName
-    character(len=20) :: longName
-    integer :: numDays
-    integer :: lastJulianDay
-    integer :: middleJulianDay
-  end type Month_type
-
   type (Month_type), parameter :: JANUARY   = Month_type('JAN ', 'January   ', 31,  31,  16)
   type (Month_type), parameter :: FEBRUARY  = Month_type('FEB ', 'February  ', 28,  59,  45)
   type (Month_type), parameter :: MARCH     = Month_type('MAR ', 'March     ', 31,  90,  75)
   type (Month_type), parameter :: APRIL     = Month_type('APR ', 'April     ', 30, 120,  106)
   type (Month_type), parameter :: MAY       = Month_type('MAY ', 'May       ', 31, 151,  136)
-  type (Month_type), parameter :: JUNE      = Month_type('JUNE', 'June      ', 30, 181,  167)
-  type (Month_type), parameter :: JULY      = Month_type('JULY', 'July      ', 31, 212,  197)
+  type (Month_type), parameter :: JUNE      = Month_type('JUN ', 'June      ', 30, 181,  167)
+  type (Month_type), parameter :: JULY      = Month_type('JUL ', 'July      ', 31, 212,  197)
   type (Month_type), parameter :: AUGUST    = Month_type('AUG ', 'August    ', 31, 243,  228)
   type (Month_type), parameter :: SEPTEMBER = Month_type('SEP ', 'September ', 30, 273,  259)
   type (Month_type), parameter :: OCTOBER   = Month_type('OCT ', 'October   ', 31, 304,  289)
   type (Month_type), parameter :: NOVEMBER  = Month_type('NOV ', 'November  ', 30, 334,  320)
   type (Month_type), parameter :: DECEMBER  = Month_type('DEC ', 'December  ', 31, 365,  350)
 
-  type (Month_type), parameter :: JULIAN_MONTHS(MONTHS_PER_YEAR) = (/ &
+  type (Month_type), parameter :: JULIAN_MONTHS(MONTHS_PER_YEAR) = [ &
        & JANUARY,  FEBRUARY, MARCH,     &
        & APRIL,    MAY,      JUNE,      &
        & JULY,     AUGUST,   SEPTEMBER, &
        & OCTOBER,  NOVEMBER, DECEMBER   &
-       & /)
+       & ]
 
 !@var AMONTH(0:12)  (3-4 letter) names for all months
 ! AMONTH(0) = 'IC' (i.e. initial conditions) only used early in a
 ! model run.  Should find a way to eliminate it.
-#ifdef COMPILER_PGI
-  ! hack to work around PGI internal error
-  character*4, parameter :: AMONTH(0:12) = (/ 'IC  ','JAN ','FEB ','MAR ', &
-   'APR ','MAY ','JUN ','JUL ','AUG ','SEP ','OCT ','NOV ','DEC '/)
-#else
-  character*4, parameter :: AMONTH(0:12) = (/ 'IC  ', JULIAN_MONTHS%shortName /)
-#endif
+  character(len=LEN_MONTH_ABBREVIATION), parameter :: AMONTH(0:12) = [ 'IC  ', JULIAN_MONTHS%abbreviation ]
 
+  integer, parameter :: BASE_YEAR = 1 ! there was no year "0"
+  type (JulianCalendar), save, target :: singletonJulianCalendar
 
+contains
+
+  ! Returns the singleton instance of the Julian calendar.
+  ! It does not make sense to have multiple Julian calendars.
+  function makeJulianCalendar() result(ptr)
+    class (Calendar), pointer :: ptr
+    ptr => singletonJulianCalendar
+  end function makeJulianCalendar
+
+  integer function getYear(this, t)
+    use Time_mod
+    class (JulianCalendar), intent(in) :: this
+    class (Time), intent(in) :: t
+
+    integer*8 :: tSeconds
+
+    tSeconds = t%get()
+    getYear = BASE_YEAR + (tSeconds / INT_SECONDS_PER_YEAR)
+
+  end function getYear
+
+  integer function getDayOfYear(this, t)
+    use Time_mod, only: Time
+    class (JulianCalendar), intent(in) :: this
+    class (Time), intent(in) :: t
+    
+    integer*8 :: tSecondsInYear
+
+    tSecondsInYear = t%get() - INT_SECONDS_PER_YEAR * (this%getYear(t) - BASE_YEAR)
+    getDayOfYear = 1 + (tSecondsInYear / INT_SECONDS_PER_DAY)
+
+  end function getDayOfYear
+
+  integer function getMonth(this, t) result(month)
+    use Time_mod
+    class (JulianCalendar), intent(in) :: this
+    class (Time), intent(in) :: t
+    
+    integer :: day
+
+    day = this%getDayOfYear(t)
+    month = 1
+    do while (day > LAST_JULIAN_DAY_IN_MONTH(month))
+      month = month + 1
+    end do
+
+  end function getMonth
+
+  function getAbbreviation(this, t) result(abbrev)
+    use Month_mod, only: LEN_MONTH_ABBREVIATION
+    use Time_mod
+    character(len=LEN_MONTH_ABBREVIATION) :: abbrev
+    class (JulianCalendar), intent(in) :: this
+    class (Time), intent(in) :: t
+
+    integer :: month
+
+    month = this%getMonth(t)
+    abbrev = JULIAN_MONTHS(month)%abbreviation
+
+  end function getAbbreviation
+
+  integer function getDate(this, t) result(date)
+    use Time_mod
+    class (JulianCalendar), intent(in) :: this
+    class (Time), intent(in) :: t
+
+    date = this%getDayOfYear(t) - LAST_JULIAN_DAY_IN_MONTH(this%getMonth(t)-1)
+  end function getDate
+
+  function convertToTime(this, year, month, date, hour) result(t)
+    use BaseTime_mod
+    use Time_mod
+    use TimeConstants_mod, only: INT_SECONDS_PER_HOUR, INT_HOURS_PER_DAY, INT_DAYS_PER_YEAR
+    class (JulianCalendar), intent(in) :: this
+    integer, intent(in) :: year, month, date, hour
+    type (BaseTime) :: t
+
+    integer*8 :: numYears, numDays, numHours, numSeconds
+
+    numYears = year - BASE_YEAR
+    numDays = numYears * INT_DAYS_PER_YEAR + LAST_JULIAN_DAY_IN_MONTH(month-1) + (date-1)
+    numHours = numDays * INT_HOURS_PER_DAY + hour
+    numSeconds = numHours * INT_SECONDS_PER_HOUR
+    call t%set(numSeconds)
+
+  end function convertToTime
 
 end module JulianCalendar_mod

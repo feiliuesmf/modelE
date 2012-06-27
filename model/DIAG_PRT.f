@@ -68,7 +68,7 @@ C****
       real*8 val,undef
       integer ibar,n
       character*1 mark
-
+      
       if (val .eq. undef) then
         mark=' '
       else
@@ -199,8 +199,9 @@ C**** 41 MAX. TOTAL NORTH. TRANS. OF ANGULAR MOMENTUM
 C**** 42 LATITUDE CORRESPONDING TO 41
 C****
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : JHOUR,JHOUR0,
-     &     JDATE,JDATE0,JMON,JMON0,AMON,AMON0,JYEAR,JYEAR0,
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : JHOUR0,
+     &     JDATE0,JMON0,AMON,AMON0,JYEAR0,
      &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday
       USE GEOM, only : DLAT,DXYP,LAT_DG
       USE ATM_COM, only : pmidl00
@@ -442,8 +443,13 @@ C****
 C****
 !      ENTRY DIAGKN
       subroutine DIAGKN
+      use model_com, only: modelEclock
 C**** PRINTS THE TABLE OF KEY NUMBERS
 C****
+      integer :: year, month, hour, date
+
+      call modelEclock%getDate(year=year, month=month, hour=hour,
+     *     date=date)
       DAYS=(Itime-Itime0)/FLOAT(nday)
       KEYNR(1,KEYCT)=JMON0
       IF (Itime.eq.ItimeI+1) KEYNR(1,KEYCT)=0
@@ -452,7 +458,7 @@ C****
       ENDIF
       WRITE(6,901) XLABEL
       WRITE(6,910) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *  YEAR,AMON,DATE,HOUR,ITIME,DAYS
       WRITE(6,902)
       DO 810 K=1,KEYCT
       IF (KEYNR(1,K).EQ.1) WRITE (6,905)
@@ -638,9 +644,9 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE MODEL_COM, only : 
-     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : idacc,jhour0,jdate0,amon,amon0,
+     &     jyear0,itime,itime0,nday,xlabel,lrunid
       USE DIAG_COM, only : aj=>aj_out,areg=>areg_out,
      &     ntype_out,ntype,nreg,kaj,terrain,
      &     QDIAG,kdiag,namreg,ia_j,iden_j,iden_reg,
@@ -671,7 +677,9 @@ C**** Arrays needed for full output
 
       CHARACTER*200    :: fmt903
       CHARACTER*200    :: fmt918
+      integer :: year, hour, date
 
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       fmt903 = "('0',131('-')/20X,'G      NH     SH   ',24I4)"
       fmt918 = "('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))"
@@ -713,7 +721,7 @@ C****
         if(.not.Qbp(M)) cycle
         WRITE (6,901) XLABEL
         WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
-     *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *       YEAR,AMON,DATE,HOUR,ITIME,DAYS
 #if (defined COMPILER_PGI)
         write(6,*) "skipping some info due to PGI bugs :-("
 #else
@@ -778,7 +786,7 @@ C****
       WRITE (6,901) XLABEL
       WRITE (6,902) '   (REGIONS)    ',
      *        JYEAR0,AMON0,JDATE0,JHOUR0,
-     *        JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *        YEAR,AMON,DATE,HOUR,ITIME,DAYS
 #if (defined COMPILER_PGI)
       write(6,*) "skipping some info due to PGI bugs :-("
 #else
@@ -1828,8 +1836,9 @@ C****
      *  ARQX,SCALER,SCALJR,SCALLR)
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
+     &     JDATE0,JMON0,AMON0,AMON,JYEAR0,XLABEL
       USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ
@@ -1876,6 +1885,10 @@ C****
 
       optional :: ARQX,SCALER,SCALJR,SCALLR
 
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
+
       if ( present(ARQX) ) goto 777
 
       if(sname.eq.'skip') return
@@ -1895,7 +1908,7 @@ C****
    10 LINECT=LINECT+KMAX+7
       IF (LINECT.LE.60) GO TO 20
       WRITE (6,907)
-     *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+     *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       LINECT=KMAX+8
    20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
@@ -2007,7 +2020,7 @@ C form title string
       LINECT=LINECT+KMAX+10
       IF (LINECT.LE.60) GO TO 230
       WRITE (6,907)
-     *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+     *  XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       LINECT=KMAX+11
   230 CONTINUE
 C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
@@ -2070,8 +2083,9 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
       USE DOMAIN_DECOMP_ATM, only : GRID
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
+     &     JDATE0,AMON,AMON0,JYEAR0,XLABEL
       USE DYNAMICS, only : DSIG,SIGE
       USE GEOM, only :
      &     LAT_DG,WTJ
@@ -2114,6 +2128,10 @@ C****
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
       optional :: ARQX,SCALER,SCALJR,SCALLR
 
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
+
       if ( present(ARQX) ) goto 777
 
       if(sname.eq.'skip') return
@@ -2132,7 +2150,7 @@ C**** PRODUCE A LATITUDE BY LAYER TABLE OF THE ARRAY A
 C****
    10 LINECT=LINECT+LMAX+7
       IF (LINECT.LE.60) GO TO 20
-      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       LINECT=LMAX+8
    20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
@@ -2229,7 +2247,7 @@ C form title string
   205    XJL(J,L) = -1.D30
       LINECT=LINECT+LMAX+10
       IF (LINECT.LE.60) GO TO 200
-      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       LINECT=LMAX+11
   200 CONTINUE
 C**** PRODUCE UPPER STRATOSPHERE NUMBERS FIRST
@@ -2274,8 +2292,9 @@ c              FLAT(J)=FLAT(J)*PRTFAC
       subroutine print_generic_jl(jl_index,sjl_index,vsumfac)
       use constant, only : teeny
       use atm_com, only : lm_req
+      use model_com, only: modelEclock
       use model_com, only : idacc,
-     &     jdate,jdate0,amon0,amon,jyear,jyear0,xlabel
+     &     jdate0,amon0,amon,jyear0,xlabel
       use dynamics, only : dsig
       use geom, only : lat_dg,dxyp
       use mdiag_com, only : acc_period
@@ -2307,6 +2326,10 @@ c      real*8, dimension(:,:), allocatable :: anum,aden,xjl
       character(len=sname_strlen) :: sname
       character(len=64) :: title
       character(len=4) :: vsword
+
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
 
       if(present(vsumfac)) then
         vsfac = vsumfac
@@ -2428,7 +2451,7 @@ c
       linect = linect + lmax + 7
       if(linect.gt.60) then
         WRITE(6,907) XLABEL(1:105)
-     &       ,JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+     &       ,JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
         linect = lmax+8
       endif
 
@@ -2712,7 +2735,8 @@ C**** INITIALIZE CERTAIN QUANTITIES
       SUBROUTINE ILMAP (sname,lname,unit,PL,AX,SCALEL,LMAX,JWT
      *     ,ISHIFT)
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : jdate,jdate0,amon,amon0,jyear
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : jdate0,amon,amon0
      *     ,jyear0,xlabel
       use dynamics, only : dsig,sige
       USE GEOM, only : dlon,lon_dg
@@ -2737,13 +2761,17 @@ C**** INITIALIZE CERTAIN QUANTITIES
       INTEGER, DIMENSION(IM) :: MLON
       INTEGER, INTENT(IN) :: JWT,ISHIFT
       INTEGER :: I,L,LMAX
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
+
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
 C****
 !@var ISHIFT: When=2, print longitude indices off center (U-grid)
       LINECT=LINECT+LMAX+7
       IF (LINECT.GT.60) THEN
-        WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+        WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
         LINECT=LMAX+8
       END IF
       SDSIG=1.-SIGE(LMAX+1)
@@ -2796,8 +2824,9 @@ C****
 C****
 C**** THIS ENTRY PRINTS THE TABLES
 C****
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
+     &     IDACC,JDATE0,AMON,AMON0,JYEAR0,XLABEL,lrunid
       USE DIAG_COM, only : im,qdiag,ia_12hr,ia_inst,
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
       USE MDIAG_COM, only : acc_period,
@@ -2835,6 +2864,10 @@ C****
      &     M,MMAXP1,N,NMAX,NS,NUA,NX
       INTEGER :: ic
 
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
+
       NMAX=NWAV_DAG
       IDACC9=IDACC(ia_12hr)
       IF (IDACC9.LE.MMAX) RETURN
@@ -2867,7 +2900,7 @@ C**** OUTPUT WAVE POWER AT THE EQUATOR
 C****
       MMAXP1=MMAX+1
       DO 400 KPAGE=1,2
-      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       DO 390 KTABLE=1,3
       KQ=3*(KPAGE-1)+KTABLE
       TITLE(KQ)=TRIM(LNAME(KQ))//" ("//TRIM(UNITS(KQ))//") "
@@ -2916,7 +2949,7 @@ C****
 C**** OUTPUT WAVE POWER AT 50 DEG NORTH
 C****
       DO 500 KPAGE=3,4
-      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       DO 490 KTABLE=1,3
       KQ=3*(KPAGE-1)+KTABLE
       TITLE(KQ)=TRIM(LNAME(KQ))//" ("//TRIM(UNITS(KQ))//") "
@@ -3057,8 +3090,9 @@ C**FREQUENCY BAND AVERAGE
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
       USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
      *     ,teeny
+      use model_com, only: modelEclock
       USE MODEL_COM, only : DTsrc,IDACC,
-     &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
+     &     JHOUR0,JDATE0,AMON,AMON0,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID
       USE DIAG_COM
       USE BDIJ
@@ -3076,6 +3110,9 @@ C**FREQUENCY BAND AVERAGE
       real*8 :: gm,nh,sh, off, byiacc, scalek, an2Zan1
 !@var  isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg
+      integer :: year
+
+      year = modelEclock%year()
 
       isumz = 2 ; isumg = 2  !  default: in most cases MEANS are needed
       if (k.eq.ij_dsev) isumz = 1
@@ -3209,8 +3246,9 @@ c**** find hemispheric and global means
 !@auth Gary Russell,Reto Ruedy
       USE CONSTANT, only : sha,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
+     &     JHOUR0,JDATE0,AMON,AMON0,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,idacc
       USE DYNAMICS, only : ido_gwdrag
       USE RAD_COM, only : cloud_rad_forc, aer_rad_forc
@@ -3246,7 +3284,9 @@ c**** find hemispheric and global means
       REAL*8 ::
      &     DAYS,ZNDE16,DPTI,PVTI,gm,
      &     DE4TI,BYDPK,SZNDEG
+      integer :: year, hour, date
 
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID)
@@ -3421,7 +3461,7 @@ C**** Print out 6-map pages
 c**** print header lines
           WRITE (6,901) XLABEL
           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *      JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *      YEAR,AMON,DATE,HOUR,ITIME,DAYS
         end if
         kcolmn = 1 + mod(n-1,3)
         if (kcolmn .eq. 1) line=' '
@@ -3577,9 +3617,10 @@ c**** last line: legend (there is a little more space in col 1 and 2)
       SUBROUTINE IJMAP (title,smap,smapj,jgrid)
 C**** Print out full-page digital maps
       USE CONSTANT, only :  undef
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     NDAY,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,Itime,Itime0,XLABEL,lrunid
+     &     NDAY,JHOUR0,JDATE0,AMON,AMON0,
+     &     JYEAR0,Itime,Itime0,XLABEL,lrunid
       USE GEOM, only :
      &     LAT_DG,LON_DG
       use diag_com, only : im,jm,inc=>inci,wt_ij,iw_land
@@ -3594,12 +3635,15 @@ C**** Print out full-page digital maps
       REAL*8, DIMENSION(JM) :: SMAPJ
       REAL*8 :: DAYS
       INTEGER :: I,J,jgrid
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
 C**** WRITE HEADER LINES
       DAYS=(Itime-Itime0)/FLOAT(nday)
       WRITE(6,901)XLABEL
       WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *  YEAR,AMON,DATE,HOUR,ITIME,DAYS
       WRITE(6,900) TITLE(1:48)
       DO I=1,IM
         WRITE(LINE(I),'(I3)') I
@@ -3722,9 +3766,10 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only : GRID
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
+     &     idacc,jhour0,jdate0,amon,amon0,
+     &     jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only :
      &     areag,WTJ
       USE DIAG_COM, only :  fim,jeq,qdiag,
@@ -3748,6 +3793,9 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
       REAL*8 :: aglob,ahem,days
 C**** Arrays needed for full output and pdE
       CHARACTER*38, DIMENSION(KCON) :: TITLEO
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)
@@ -3801,7 +3849,7 @@ C**** LOOP OVER HEMISPHERES
       DO JHEMI=2,1,-1
         WRITE (6,901) XLABEL
         WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *       YEAR,AMON,DATE,HOUR,ITIME,DAYS
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
 
@@ -3846,9 +3894,10 @@ C****
 !@sum  DIAG5P PRINTS THE SPECTRAL ANALYSIS TABLES
 !@auth Gary Russell
       USE CONSTANT, only : grav,rgas,teeny
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,
-     &     AMON,AMON0,JYEAR,JYEAR0,XLABEL
+     &     IDACC,JHOUR0,JDATE0,
+     &     AMON,AMON0,JYEAR0,XLABEL
       USE GEOM, only : DXYV
       USE DIAG_COM, only : im,jm,lm,istrat,fim,jeq,
      &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,klayer
@@ -3882,6 +3931,9 @@ C****
      &     M,MAPE,MTPE,N,NM,NM1, LATF,LATL
 
       REAL*8 :: FACTOR,FNM
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       NM=1+IM/2
       IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
@@ -3948,7 +4000,7 @@ C****
       DO 690 KPAGE=LATF,LATL   ! one for each lat.zone SH/NH/EQ/45N
 C**** WRITE HEADINGS
       WRITE (6,901) XLABEL
-      WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,JHOUR,
+      WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,YEAR,AMON,DATE,
      *  IUNITJ,IUNITW
       DO 670 KROW=1,2+ISTRAT !one for each level (trp/lstr/mstr/ustr)
       IF (JM.GE.25.AND.KROW.EQ.2) WRITE (6,901)
@@ -4010,8 +4062,9 @@ C****
       SUBROUTINE DIAGDD
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
+     &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID,NDAY
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,ndiupt,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
      *     ,denom_dd,ia_12hr
@@ -4025,6 +4078,10 @@ C****
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_DAY+1,NDIUVAR) :: FHOUR
       CHARACTER :: CPOUT*2
+      integer :: year, date
+
+      call modelEclock%getDate(year=year, date=date)
+
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
@@ -4058,7 +4115,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       END IF
 C**** LOOP OVER EACH BLOCK OF DIAGS
       DO KR=KR1,KR2
-        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
         WRITE (6,903) NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
 C**** KP packs the quantities for postprocessing (skipping unused)
         KP = 0
@@ -4115,8 +4172,9 @@ C****
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
 #ifndef NO_HDIURN
-      USE MODEL_COM, only :   JDendOfM,JMON,NDAY,
-     &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
+      use model_com, only: modelEclock
+      USE MODEL_COM, only :   JDendOfM,NDAY,
+     &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
      *     ,name_dd,denom_dd,ia_12hr,NDIUPT
@@ -4129,12 +4187,16 @@ C****
       CHARACTER*16, DIMENSION(NDIUVAR) :: UNITSO,LNAMEO,SNAMEO
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR) :: FHOUR
       CHARACTER :: CPOUT*2
+      integer :: year, month, date
+
+      call modelEclock%getDate(year=year, month=month, date=date)
+
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
-      jdayofM = JDendOfM(jmon)-JDendOfM(jmon-1)
+      jdayofM = JDendOfM(month)-JDendOfM(month-1)
       IREGF=1
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
       IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)
@@ -4163,7 +4225,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       END IF
 C**** LOOP OVER EACH BLOCK OF DIAGS
       DO KR=KR1,KR2
-        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+        WRITE (6,901) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
         WRITE (6,903)NAMDD(KR),IJDD(1,KR),IJDD(2,KR),(I,I=1,HR_IN_DAY)
 C**** KP packs the quantities for postprocessing (skipping unused)
         KP = 0
@@ -4215,9 +4277,10 @@ C****
 !@auth G. Russell
       USE CONSTANT, only :
      &     grav,rgas,bygrav
+      use model_com, only: modelEclock
       USE MODEL_COM, only :
-     &     IDACC,JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,
-     &     JYEAR,JYEAR0,NDAY,Itime0,XLABEL
+     &     IDACC,JHOUR0,JDATE0,AMON,AMON0,
+     &     JYEAR0,NDAY,Itime0,XLABEL
       USE DIAG_COM, only : im,jm,lm,fim,istrat,
      &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a,nda4
       IMPLICIT NONE
@@ -4231,6 +4294,9 @@ C****
       INTEGER ::
      &     I,IDACC5,ItimeX,IDAYX,IDAYXM,K,K0,KS,KN,KSPHER
       REAL*8 :: TOFDYX
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       IDACC5=IDACC(ia_d4a)
       IF (IDACC5.LE.0) RETURN
@@ -4255,14 +4321,14 @@ C****
         IF (K0.eq.1) THEN
           FAC(1) = 1.
           FAC(2) = 10.  ! a factor of 10 for LOW STRAT
-          WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
-     *         ,JHOUR
+          WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,YEAR,AMON,DATE
+     *         ,HOUR
           WRITE (6,903)
         ELSE
           FAC(1) = 10.  ! 10 goes from 10^18 to 10^17
           FAC(2) = 100. ! another factor of 10 for HIGH STRAT
-          WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE
-     *         ,JHOUR
+          WRITE (6,906) JYEAR0,AMON0,JDATE0,JHOUR0,YEAR,AMON,DATE
+     *         ,HOUR
           WRITE (6,907)
         END IF
         SUME(:)=0.

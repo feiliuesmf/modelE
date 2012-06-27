@@ -205,7 +205,7 @@ ccc extra stuff which was present in "earth" by default
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       USE constant,ONLY : sday
-      USE model_com,ONLY : jday,jmon
+      USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth,wfcs
       use tracers_dust,only : nAerocomDust,d_dust,ers_data
@@ -226,6 +226,8 @@ ccc extra stuff which was present in "earth" by default
       type (t_pbl_args), intent(inout) :: pbl_args
       real*8, intent(in) :: qm1
       integer n,nx
+      integer :: month, dayOfYear
+
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
 #endif
@@ -270,18 +272,20 @@ ccc tracers variables
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       ! todo: move (some of) this to subroutine dust_emission_prep
+      call modelEclock%getDate(month=month, dayOfYear=dayOfYear)
       pbl_args%snow=snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
       pbl_args%wfcs=wfcs(i,j)
-      pbl_args%ers_data=ers_data(i,j,jmon)
+      pbl_args%ers_data=ers_data(i,j,month)
       pbl_args%dustSourceFunction = dustSourceFunction(i,j)
       pbl_args%frclay=frclay(i,j)
       pbl_args%frsilt=frsilt(i,j)
       pbl_args%vtrsh=vtrsh(i,j)
       pbl_args%dryhr=dryhr(i,j)
 c**** prescribed dust emission
-      pbl_args%d_dust(1:nAerocomDust)=d_dust(i,j,1:nAerocomDust,jday)
+      pbl_args%d_dust(1:nAerocomDust)=
+     &     d_dust(i,j,1:nAerocomDust,dayOfYear)
      &     /Sday/axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -744,9 +748,8 @@ c****
       use constant, only : grav,rgas,lhe,lhs
      *     ,sha,tf,rhow,deltx,gasc,stbo
       use resolution, only : im,jm
-      use model_com, only : dtsrc,jdate
-     *     ,jday,jhour,nday,itime
-     &     ,Jyear,Jmon,Jday,Jdate,Jhour
+      use model_com, only : modelEclock
+      use model_com, only : dtsrc,nday,itime
 #ifdef SCM
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt,
      &                    ATSKIN,NSTEPSCM, I_TARG,J_TARG
@@ -903,6 +906,9 @@ C****   define local grid
       logical :: end_of_day_flag
 
       integer, save :: counter=0
+      integer :: dayOfYear
+
+      dayOfYear = modelEclock%dayOfYear()
 
       counter = counter + 1
 
@@ -919,7 +925,7 @@ C****
     ! dtsurf=dtsrc/nisurf
 
       spring=-1.
-      if((jday.ge.32).and.(jday.le.212)) spring=1.
+      if((dayOfYear.ge.32).and.(dayOfYear.le.212)) spring=1.
 
       IF (MOD(Itime,NDAY).eq.0) THEN
         end_of_day_flag = .true.
@@ -965,8 +971,8 @@ c****
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       pbl_args % moddd = moddd
-      pbl_args % ih = 1+jhour
-      pbl_args % ihm = pbl_args%ih+(jdate-1)*24
+      pbl_args % ih = 1+modelEclock%hour()
+      pbl_args % ihm = pbl_args%ih+(modelEclock%date()-1)*24
 #endif
 
       loop_j: do j=J_0,J_1
@@ -1478,7 +1484,8 @@ c***********************************************************************
      &     ,grav
 #endif
       use fluxes, only : atmlnd,nisurf
-      use model_com, only : dtsrc,jdate,jday,jhour,nday,itime
+      use model_com, only : modelEclock
+      use model_com, only : dtsrc,nday,itime
 #ifdef SCM
       use SCMDIAG, only : EVPFLX,SHFLX
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
@@ -1534,6 +1541,9 @@ ccc the following values are returned by PBL
      &     ,wsgcm,wspdf
 #endif
       real*8, external :: qsat
+      integer :: dayOfYear
+
+      dayOfYear = modelEclock%dayOfYear()
 
       us = pbl_args%us
       vs = pbl_args%vs
@@ -1553,14 +1563,14 @@ ccc the following values are returned by PBL
       wspdf=pbl_args%wspdf
 #endif
 
-      timez=jday+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
-      if(jday.le.31) timez=timez+365.
+      timez=dayOfYear+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
+      if(dayOfYear.le.31) timez=timez+365.
 
-      ih=1+jhour
-      ihm = ih+(jdate-1)*24
+      ih=1+modelEclock%hour()
+      ihm = ih+(modelEclock%date()-1)*24
 
       spring=-1.
-      if((jday.ge.32).and.(jday.le.212)) spring=1.
+      if((dayOfYear.ge.32).and.(dayOfYear.le.212)) spring=1.
 
       if(lat2d(i,j).lt.0.)  then
          warmer=-spring
@@ -1912,7 +1922,8 @@ c**** check whether ground hydrology data exist at this point.
 
       subroutine init_veg( istart, redogh )
       use constant, only : twopi,edpery
-      use model_com, only : itime,nday,jyear
+      use model_com, only : modelEclock
+      use model_com, only : itime,nday
       use fluxes, only : focean
 #ifdef USE_ENT
       use ent_drv, only : init_module_ent
@@ -1926,16 +1937,17 @@ c**** check whether ground hydrology data exist at this point.
 #ifndef USE_ENT
       type (t_vegcell) vegcell
 #endif
-      integer jday
+      integer year, dayOfYear
 
 c**** cosday, sinday should be defined (reset once a day in daily_earth)
-      jday=1+mod(itime/nday,365)
+      dayOfYear=1+mod(itime/nday,365)
 
 #ifdef USE_ENT
-      CALL init_module_ent(istart.le.2, Jday, Jyear, FOCEAN)
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      CALL init_module_ent(istart.le.2, dayOfYear, year, FOCEAN)
 #else
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+      cosday=cos(twopi/edpery*dayOfYear)
+      sinday=sin(twopi/edpery*dayOfYear)
       call init_vegetation(redogh,istart)
 #endif
 
@@ -3277,7 +3289,8 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 !@auth original development team
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
-      use model_com, only : nday,jday,jyear
+      use model_com, only : modelEclock
+      use model_com, only : nday
       use fluxes, only : nisurf,focean,atmlnd
 #ifndef USE_ENT
       use veg_com, only : vdata                 !nyk
@@ -3327,6 +3340,9 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 C**** define local grid
       integer I_0, I_1, J_0, J_1
       real*8 ws11,ws12
+      integer :: year, dayOfYear
+
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -3357,25 +3373,25 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
  !       hemi(:,J_0:JEQUATOR) = -1
  !       call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
  !     endif
+
       if (end_of_day )
      &     call update_vegetation_data( entcells,
-     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
-
+     &     im, jm, I_0, I_1, J_0, J_1, dayOfYear, year )
       !if(cond_scheme.eq.2) call updsur (0,jday)
       ! we don''t use cond_scheme==1 any more, so call it always
-      call updsur (0,jday)
+      call updsur (0,dayOfYear)
 c****
 #else
-      if(crops_yr.eq.0) call updveg(jyear,.true.)
+      if(crops_yr.eq.0) call updveg(year,.true.)
 c**** find leaf-area index & water field capacity for ground layer 1
-      if(cond_scheme.eq.2) call updsur (0,jday) ! Update vegn albedos
+      if(cond_scheme.eq.2) call updsur (0,dayOfYear) ! Update vegn albedos
 #endif
       call set_roughness_length
 
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
 #ifndef USE_ENT
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
+      cosday=cos(twopi/edpery*dayOfYear)
+      sinday=sin(twopi/edpery*dayOfYear)
 #endif
       atmlnd%bare_soil_wetness(:,:) = 0.d0 ! make sure that it is initialized
       do j=J_0,J_1

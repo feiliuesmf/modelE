@@ -1242,8 +1242,9 @@ C****
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: get,grid,am_i_root
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : itime,itime0,nday,iyear1,jyear
-     &     ,jmon,jday,jdate,jhour,dtsrc,xlabel,jdpery,JDendOfM,lrunid
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : itime,itime0,nday,iyear1
+     &     ,dtsrc,xlabel,jdpery,JDendOfM,lrunid
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -4321,16 +4322,20 @@ c time_subdd
       real(kind=8) function time_subdd(q24,rec)
 !@sum time_subdd calculates value of time coordinate 'time' for subdd output
 !@auth Jan Perlwitz
+      use model_com, only: modelEclock
 
       implicit none
 
       integer,intent(in) :: rec
       logical,intent(in) :: q24
+      integer :: year, month, dayOfYear
 
+      call modelEclock%getDate(year=year, month=month, 
+     &       dayOfYear=dayOfYear)
       if (q24) then
-        time_subdd = real((jyear - iyear1)*jdpery + jday - 1,kind=8)
+        time_subdd = real((year - iyear1)*jdpery + dayOfYear - 1,kind=8)
       else
-        time_subdd = real((jyear - iyear1)*jdpery + JDendOfM(jmon - 1)
+        time_subdd = real((year - iyear1)*jdpery + JDendOfM(month - 1)
      &       ,kind=8)*24. + (rec - 1)*nsubdd*dtsrc/3600.
       end if
 
@@ -4535,8 +4540,8 @@ c write_time_coord_subdd
      &     ,calendarstring)
 !@sum write_time_coord_subdd writes time coordinates to subdd output files
 !@auth Jan Perlwitz
-
-      use model_com, only: itime,jdate,jhour,jmon,jyear
+      use model_com, only: modelEclock
+      use model_com, only: itime
       use pario, only: write_data
       use domain_decomp_atm, only: grid
 
@@ -4545,12 +4550,15 @@ c write_time_coord_subdd
       integer,intent(in) :: fid,rec
       real(kind=8),intent(in) :: time
       logical,intent(in) :: q24,qinst
+      integer year, month, hour, date
 
       character(len=*),intent(out) :: calendarstring
 
+      call modelEclock%getDate(year=year, month=month, hour=hour, 
+     *     date=date) 
       call write_data(grid,fid,'itime',itime+1,record=rec)
       call write_data(grid,fid,'time',time,record=rec)
-      call get_calendarstring(qinst,q24,jyear,jmon,jdate,jhour,itime
+      call get_calendarstring(qinst,q24,year,month,date,hour,itime
      &     ,calendarstring)
       call write_data(grid,fid,'calendar',calendarstring,record=rec)
 
@@ -5032,7 +5040,7 @@ c write physical variable
 !@+   for diurnal cycle diagnostics
 !@auth Reha Cakmur/Jan Perlwitz
       USE RESOLUTION, only : ptop
-      USE MODEL_COM, only : jdate,jhour
+      USE MODEL_COM, only : modelEclock
       USE ATM_COM, only : u,v,t,p,q
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,get,globalsum,grid
@@ -5091,8 +5099,8 @@ C****
       END IF
 #endif
 
-      ih=jhour+1
-      ihm=ih+(jdate-1)*24
+      ih=modelEclock%hour()+1
+      ihm=ih+(modelEclock%date()-1)*24
       do j=j_0,j_1
       do i=I_0,imaxj(j)
       psk=pek(1,i,j)
@@ -5207,8 +5215,9 @@ c**** find MSU channel 2,3,4 temperatures
       USE CONSTANT, only : sday,kapa,undef
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : lm
-      USE MODEL_COM, only : Itime,ItimeI,Itime0,jhour
-     *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : Itime,ItimeI,Itime0
+     *     ,amon,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
      *     ,nmonav,ItimeE,lrunid
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
@@ -5255,7 +5264,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : itoice,itlkice,itocean,itlake
       IMPLICIT NONE
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
-     *     ,jday0,jday,moff,kb,l850,l300,l50
+     *     ,jday0,moff,kb,l850,l300,l50
       REAL*8 PLE_tmp
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
@@ -5284,7 +5293,11 @@ c a parallelized i/o routine that understands it
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     area_part
       CHARACTER aDATE*14
+      integer year, month, dayOfYear, hour, date
 
+      call modelEclock%getDate(year=year, month=month, 
+     *     dayOfYear=dayOfYear, date=date,
+     *     hour=hour)
       atmocn%aij => aij_loc
       atmice%aij => aij_loc
       atmgla%aij => aij_loc
@@ -5637,7 +5650,7 @@ c**** Initialize acc-array names, units, idacc-indices
 
 C**** Ensure that diagnostics are reset at the beginning of the run
       IF (Itime.le.ItimeI) THEN
-        call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
+        call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour
      *       ,amon)
         CALL reset_ADIAG(0)
 C**** Initiallise ice freeze diagnostics at beginning of run
@@ -5647,10 +5660,10 @@ C**** Initiallise ice freeze diagnostics at beginning of run
             TSFREZ(I,J,TF_LAST)=365.
             IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
               IF (si_atm%rsi(I,J).gt.0) then
-                TSFREZ(I,J,TF_LKON) = JDAY-1
-                TSFREZ(I,J,TF_LKOFF) = JDAY
+                TSFREZ(I,J,TF_LKON) = dayOfYear-1
+                TSFREZ(I,J,TF_LKOFF) = dayOfYear
               ELSE
-                TSFREZ(I,J,TF_LKON) = JDAY
+                TSFREZ(I,J,TF_LKON) = dayOfYear
                 TSFREZ(I,J,TF_LKOFF) = undef
               END IF
             ELSE
@@ -5809,8 +5822,9 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE FILEMANAGER
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : jday,JDendOfM,aMON
-     &     ,JMperY,Jmon,Jmon0,Jyear,Jyear0,NMONAV
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : JDendOfM,aMON
+     &     ,JMperY,Jmon0,Jyear0,NMONAV
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
@@ -5832,27 +5846,30 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       integer :: months
       INTEGER I,J
       INTEGER :: J_0, J_1, I_0,I_1
+      integer year, month, dayOfYear
 
+      call modelEclock%getDate(year=year, month=month, 
+     &     dayOfYear=dayOfYear)
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
-      IF (JDAY.EQ.32) THEN
+      IF (dayOfYear.EQ.32) THEN
         DO J=J_0,J_1
         DO I=I_0,I_1
           if(lat2d(i,j).gt.0.) then
-            TSFREZ(I,J,TF_DAY1)=JDAY
+            TSFREZ(I,J,TF_DAY1)=dayOfYear
           else
-            TSFREZ(I,J,TF_LAST)=JDAY
+            TSFREZ(I,J,TF_LAST)=dayOfYear
           endif
         ENDDO
         ENDDO
-      ELSEIF (JDAY.EQ.213) THEN
+      ELSEIF (dayOfYear.EQ.213) THEN
         DO J=J_0,J_1
         DO I=I_0,I_1
           if(lat2d(i,j).lt.0.) then
-            TSFREZ(I,J,TF_DAY1)=JDAY
+            TSFREZ(I,J,TF_DAY1)=dayOfYear
           endif
         ENDDO
         ENDDO
@@ -5864,13 +5881,14 @@ C**** The AIJ diagnostics are set once a year (zero otherwise)
         DO I=I_0,IMAXJ(J)
           if(lat2d(i,j).lt.0.) then
 C**** initialize/save South. Hemi. on Feb 28
-            IF (JDAY.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
+            IF (dayOfYear.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
+     *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
      *             +1
               IF (si_atm%rsi(I,J).gt.0) THEN
-                TSFREZ(I,J,TF_LKON) = JDAY-1
+                TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
               END IF
@@ -5879,13 +5897,14 @@ C**** initialize/save South. Hemi. on Feb 28
 C**** initiallise/save North. Hemi. on Aug 31
 C**** Note that for continuity across the new year, the julian days
 C**** are counted from Sep 1 (NH only).
-            IF (JDAY.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
+            IF (dayOfYear.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
+     *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,365)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,365)
      *             +1
               IF (si_atm%rsi(I,J).gt.0) THEN
-                TSFREZ(I,J,TF_LKON) = JDAY-1
+                TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
                 TSFREZ(I,J,TF_LKOFF) = undef
               END IF
@@ -5894,8 +5913,8 @@ C**** are counted from Sep 1 (NH only).
 C**** set ice on/off days
           IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) THEN
             IF (si_atm%rsi(I,J).eq.0.and.TSFREZ(I,J,TF_LKOFF).eq.undef)
-     *           TSFREZ(I,J,TF_LKON)=JDAY
-            IF (si_atm%rsi(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=JDAY
+     *           TSFREZ(I,J,TF_LKON)=dayOfYear
+            IF (si_atm%rsi(I,J).gt.0) TSFREZ(I,J,TF_LKOFF)=dayOfYear
           END IF
         END DO
       END DO
@@ -5926,17 +5945,16 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       ttausv_count=0.d0
 #endif
 
-
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
       if ( newmonth ) then
-        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),Jyear
+        write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),year
         if (Kradia.ne.0 .and. Kradia<10) then
           if (Kradia.gt.0) aDATE(4:7)='    '
           call closeunit( iu_RAD )
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+        months=(year-Jyear0)*JMperY + month-JMON0
         if ( months.ge.NMONAV ) then
           call reset_ADIAG(0)
           if (Kvflxo.ne.0) then

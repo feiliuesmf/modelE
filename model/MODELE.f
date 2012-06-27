@@ -65,7 +65,13 @@ C**** Command line options
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
-      USE MODEL_COM
+      USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk
+     &     , Jyear0, JMperY, JMON0, Iyear1, ItimeE, Itime0
+     &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
+     &     , iowrite_single, isBeginningAccumPeriod
+     &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
+     &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
+     &     , JDendOfM
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
@@ -82,6 +88,7 @@ C**** Command line options
       use SystemTimers_mod
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
+      use Month_mod, only: LEN_MONTH_ABBREVIATION
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -105,6 +112,8 @@ C**** Command line options
 
       integer :: iu_IFILE
       real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -143,10 +152,12 @@ C**** Set run_status to "run in progress"
         START= START-TIMING(M)
       END DO
 
+      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
-     *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
+     *   'Year', year, aMon, date, ', Hr', hour,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
 
          CALL TIMER (NOW,MELSE)
@@ -170,7 +181,7 @@ C****
         END IF
       end if
 
-      if (isBeginningOfDay(modelEclock)) then
+      if (modelEclock%isBeginningOfDay()) then
         call startNewDay()
       end if
 
@@ -200,11 +211,12 @@ C**** also drives "surface" components that are on the atm grid)
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
+      call modelEclock%nextTick()
+      call modelEclock%getDate(year, month, day, date, hour, amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
-      Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
 
-      if (isBeginningOfDay(modelEclock)) THEN ! NEW DAY
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
+        months=(year-Jyear0)*JMperY + month-JMON0
         call startTimer('Daily')
         call dailyUpdates
         call TIMER (NOW,MELSE)
@@ -237,12 +249,12 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C**** (after the end of a diagn. accumulation period)
-      if (isBeginningAccumPeriod(modelEclock)) then
+      if (isBeginningAccumPeriod(modelEClock)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
         acc_period=aDATE(1:12)
-        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
+        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),year
         call print_diags(0)
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -334,8 +346,8 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
 
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
-     *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
-     *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *  '0Restart file written on fort.',KDISK,'Year',year,
+     *     aMON, date,', Hr',hour,'  Internal clock time:',ITIME
       end if
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
@@ -378,9 +390,14 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       end subroutine initializeModelE
 
       subroutine startNewDay()
+      use model_com, only: modelEclock
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      newmonth = (JDAY == 1+JDendOfM(Jmon-1))
+      integer :: month, day
+
+      month = modelEclock%month()
+      day = modelEclock%dayOfYear()
+      newmonth = (day == 1+JDendOfM(month-1))
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
@@ -393,11 +410,16 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 !@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
 !@+ write restart information alternately onto 2 disk files
       use MODEL_COM, only: rsf_file_name,kdisk,irand
-      use MODEL_COM, only: Jyear, aMon, Jdate, Jhour, itime
+      use MODEL_COM, only: itime
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
       
+      integer :: hour, date
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+      call modelEclock%getDate(hour=hour, date=date, amn=amon)
+
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
@@ -407,7 +429,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       if (AM_I_ROOT())
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
-     *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *     year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
       kdisk=3-kdisk
 
       end subroutine checkpointModelE
@@ -570,8 +592,8 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,jyear,jmon,jday,jdate,jhour
-     *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
+     *     ,idacc,modelEclock
+     *     ,aMONTH,jdendofm,jdpery,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
@@ -584,6 +606,13 @@ C****
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
 #endif
 #endif
+
+      use ModelClock_mod, only: ModelClock, newModelClock
+      use Time_mod, only: Time, newTime
+      use Calendar_mod, only: Calendar
+      use JulianCalendar_mod, only: makeJulianCalendar
+      use Month_mod, only: LEN_MONTH_ABBREVIATION
+
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
@@ -622,6 +651,11 @@ C****    List of parameters that are disregarded at restarts
       integer istart_fixup
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
+
+      type (Time) :: modelETimeI
+      class (Calendar), pointer :: pCalendar
+      integer :: hour, month, day, date, year
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -852,8 +886,14 @@ C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
 
 C**** Set julian date information
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
+
+      pCalendar => makeJulianCalendar()
+      modelETimeI = newTime(pCalendar)
+      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
+      call modelEtimeI%setByDate(year, month, date, hour)
+      modelEclock = newModelClock(modelEtimeI,itime,Nday)
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 

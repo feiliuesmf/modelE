@@ -3,6 +3,7 @@
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
+      use ModelClock_mod
       IMPLICIT NONE
       SAVE
 
@@ -40,9 +41,10 @@ C**** (Simplified) Calendar Related Terms
 !@nlparam IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)
       INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
+      type (ModelClock), public :: modelEClock
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
 !@var JDAY,JMON,JDATE,JYEAR,JHOUR current Julian day,month,day,year,hour
-      INTEGER :: Itime,JDAY,JMON,JDATE,JYEAR,JHOUR
+      INTEGER :: Itime
 !@var ItimeI,ItimeE   time at start,end of run
 !@var Itime0          time at start of current accumulation period
 !@var JMON0,JDATE0,JYEAR0,JHOUR0 date-info about Itime0 (beg.of acc.per)
@@ -106,24 +108,21 @@ C**** (Simplified) Calendar Related Terms
         integer :: iTime
       end type ModelE_Clock_type
       
-      type (ModelE_Clock_type) ::modelEclock
-
       contains
 
-      logical function isBeginningOfDay(clock)
-      type (ModelE_Clock_type) :: clock ! fake OO for now
-
-      isBeginningOfDay = mod(Itime, NDAY) == 0
-      end function isBeginningOfDay
-
+!TODO move to ModelClock class
       logical function isBeginningAccumPeriod(clock)
-      type (ModelE_Clock_type) :: clock ! fake OO for now
+      type (ModelClock) :: clock
       integer :: months
 
-      months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      integer :: month, day, year
+      month = clock%month()
+      day = clock%dayOfYear()
+      year = clock%year()
+      months=(year-Jyear0)*JMperY + month - JMON0
       isBeginningAccumPeriod = 
-     &     isBeginningOfDay(clock) .and. 
-     &     months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)
+     &     clock%isBeginningOfDay() .and. 
+     &     months.ge.NMONAV .and. day.eq.1+JDendOfM(month-1)
 
       end function isBeginningAccumPeriod
 
@@ -367,15 +366,19 @@ C****
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
 !@calls getdte
-      USE MODEL_COM, only :
-     *      itime,iyear1,nday,jyear,jmon,jday,jdate,jhour,aMON
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : itime,iyear1,nday,aMON
+      use ModelClock_mod
       IMPLICIT NONE
-      LOGICAL, INTENT(IN) :: end_of_day
+      LOGICAL, INTENT(IN) :: end_of_day   !!!!! NOT USED ?????
+      integer :: year, month, day, hour, date
 
+      call modelEclock%getDate(year=year, month=month, dayOfYear=day, 
+     *     hour=hour, date=date)
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-      call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      call getdte(Itime,Nday,iyear1,year,month,day,date,hour,amon)
 
       RETURN
       END SUBROUTINE DAILY_cal

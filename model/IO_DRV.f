@@ -159,19 +159,22 @@ c
 !@sum  def_acc_meta defines metadata in acc files
 !@auth M. Kelley
 !@ver  beta
-      USE MODEL_COM, only :
-     &     jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,itime,itime0,nday
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : jhour0,jdate0,amon,amon0,
+     &     jyear0,itime,itime0,nday
       use domain_decomp_atm, only : grid
       use pario, only : write_attr
       implicit none
       integer :: fid         !@var fid file id
       character(len=100) :: fromto
       real*8 :: days
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       days=(itime-itime0)/float(nday)
       write(fromto,902) jyear0,amon0,jdate0,jhour0,
-     &     jyear,amon,jdate,jhour,itime,days
+     &     year,amon,date,hour,itime,days
       call write_attr(grid,fid,'global','fromto',fromto)
 
 c idacc(5) is not additive
@@ -316,9 +319,11 @@ c write a text version of the date to a restart/acc file
       character(len=2) :: cmo,cday
       character(len=4) :: cyr
       character(len=5) :: chr
-      write(cmo,'(i2.2)') jmon
-      write(cday,'(i2.2)') jdate
-      write(cyr,'(i4.4)') jyear
+      integer :: month
+
+      write(cmo,'(i2.2)') modelEclock%month()
+      write(cday,'(i2.2)') modelEclock%date()
+      write(cyr,'(i4.4)') modelEclock%year()
 !      write(chr,'(f4.1)') real(jhour)
       write(chr,'(f5.2)') (real(mod(itime,nday))/real(nday))*24.
       caldate=cmo//'/'//cday//'/'//cyr//' hr '//chr

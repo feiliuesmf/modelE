@@ -408,7 +408,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE FILEMANAGER
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : dtsrc,jday
+      USE MODEL_COM, only : dtsrc
       USE ATM_COM, only : zatmo
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
@@ -1404,8 +1404,9 @@ C****
 
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
-     *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,amon
+     *     ,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
      $     AM_I_ROOT, get, sumxpe
       USE GEOM, only : byaxyp
@@ -1427,14 +1428,16 @@ C****
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
       integer :: I_0, I_1, J_0, J_1
+      integer :: year, hour, date
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
       DAYS=(Itime-Itime0)/REAL(nday,kind=8)
-      WRITE(out_line,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,
-     *      JHOUR,ITIME,DAYS
+      call modelEclock%getDate(year=year, hour=hour, date=date)
+      WRITE(out_line,900) JYEAR0,AMON0,JDATE0,JHOUR0,YEAR,AMON,DATE,
+     *      HOUR,ITIME,DAYS
       IF (AM_I_ROOT()) CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
 C**** convert kg/(source time step) to km^3/mon
       SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)

@@ -36,7 +36,7 @@ C****
       USE CONSTANT, only : grav,bysha,twopi
       USE RESOLUTION, only : jm,lm
       USE ATM_COM, only : t,pk,kradia,lm_req
-      USE MODEL_COM, only : dtsrc,jyear,iyear1
+      USE MODEL_COM, only : dtsrc,iyear1,modelEclock
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
      &     ,readt_parallel
@@ -201,7 +201,7 @@ C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
       case(1) ! use parameters for model_year-orb_par_year_bp
-        pyear = JYEAR-orb_par_year_bp ! bp=before present model year
+        pyear = modelEclock%year()-orb_par_year_bp ! bp=before present model year
         call orbpar(pyear,eccn, obliq, omegt)
         if (am_i_root()) then
           write(6,*) 'Variable orbital parameters, updated each year'
@@ -796,8 +796,8 @@ c      end if
       USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,GET,REWIND_PARALLEL
      *     ,READT_PARALLEL
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : jday,jyear,jmon,JDendOfM
-     *     ,JDmidOfM, jdate
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : JDendOfM,JDmidOfM
       USE GEOM, only : imaxj
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
@@ -824,6 +824,10 @@ c      end if
 
       INTEGER :: J_0,J_1, I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      integer :: year, month, dayOfYear, date
+
+      call modelEclock%getDate(year=year, month=month, 
+     &     dayOfYear=dayOfYear, date=date)
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -835,24 +839,24 @@ C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
 !     (does nothing except at a restart or the beginning of a new year)
       if (albsn_yr.eq.0) then
-        call updBCd (JYEAR)
+        call updBCd (year)
       else
         call updBCd (albsn_yr)
       end if
 
 !     Hack: 2 specific volc. eruption scenarios for 2000-2100 period
       if(volc_yr.eq.-2010) then              ! repeat some old volcanos
-         KYEARV=JYEAR
-         if(JYEAR.GT.2010) KYEARV=JYEAR-100  ! go back 100 years
+         KYEARV=YEAR
+         if(YEAR.GT.2010) KYEARV=YEAR-100  ! go back 100 years
       end if
       if(volc_yr.eq.-2000) then
-         KYEARV=JYEAR
-         if(JYEAR.GT.2000) KYEARV=JYEAR-50   ! go back 50 years til 2050
-         if(JYEAR.GT.2050) KYEARV=JYEAR-150  ! then go back 150 years
+         KYEARV=YEAR
+         if(YEAR.GT.2000) KYEARV=YEAR-50   ! go back 50 years til 2050
+         if(YEAR.GT.2050) KYEARV=YEAR-150  ! then go back 150 years
       end if
 
-      JDAYR=JDAY
-      JYEARR=JYEAR
+      JDAYR=dayOfYear
+      JYEARR=YEAR
       CALL RCOMPT
 !     FULGAS(2:) is set only in the first call to RCOMPT unless ghg_yr=0
 !     Optional scaling of the observed value only in case it was (re)set
@@ -883,10 +887,10 @@ C**** Define CO2 (ppm) for rest of model
 
 #ifdef CHL_from_SeaWIFs
 C**** Read in Seawifs files here
-      IF (JMON.NE.IMON0) THEN
+      IF (month.NE.IMON0) THEN
       IF (IMON0==0) THEN
 C**** READ IN LAST MONTH'S END-OF-MONTH DATA
-        LSTMON=JMON-1
+        LSTMON=month-1
         if (lstmon.eq.0) lstmon = 12
         CALL READT_PARALLEL
      *       (grid,iu_CHL,NAMEUNIT(iu_CHL),TEMP_LOCAL,LSTMON)
@@ -896,8 +900,8 @@ C**** COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         ECHL0=ECHL1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
-      IMON0=JMON
-      if (jmon.eq.1) CALL REWIND_PARALLEL( iu_CHL )
+      IMON0=month
+      if (month.eq.1) CALL REWIND_PARALLEL( iu_CHL )
       CALL READT_PARALLEL
      *     (grid,iu_CHL,NAMEUNIT(iu_CHL),TEMP_LOCAL,1)
       ACHL  = TEMP_LOCAL(:,:,1)
@@ -912,7 +916,7 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       END DO
       END IF
 C**** Calculate CHL for current day
-      TIME=(JDATE-.5)/(JDendOFM(JMON)-JDendOFM(JMON-1))-.5 ! -.5<TIME<.5
+      TIME=(DATE-.5)/(JDendOFM(month)-JDendOFM(month-1))-.5 ! -.5<TIME<.5
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
@@ -939,7 +943,7 @@ C**** REPLICATE VALUES AT POLE
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
 !@calls constant:orbit
-      USE MODEL_COM, only : jyear,jday
+      use model_com, only: modelEclock
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,SUNSET,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
      *     variable_orb_par,orb_par_year_bp
@@ -948,6 +952,9 @@ C**** REPLICATE VALUES AT POLE
       IMPLICIT NONE
       REAL*8 :: SUNLON,SUNLAT,LAM,EDPY,VEDAY,PYEAR
       LOGICAL, INTENT(IN) :: end_of_day
+      integer :: year, dayOfYear
+
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
@@ -955,17 +962,17 @@ C**** This is for noon (GMT) for new day.
 C**** The orbital calculation will need to vary depending on the kind
 C**** of calendar adopted (i.e. a generic 365 day year, or a transient
 C**** calendar including leap years etc.).  For transient calendars the
-C**** JDAY passed to orbit needs to be adjusted to represent the number
+C**** dayOfYear passed to orbit needs to be adjusted to represent the number
 C**** of days from Jan 1 2000AD.
 c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
-c      JDAY => JDAY + 365 * (JYEAR-2000) + appropriate number of leaps
+c      dayOfYear => dayOfYear + 365 * (YEAR-2000) + appropriate number of leaps
 C**** Default calculation (no leap, VE=Mar 21 hr 0)
 c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
       EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
 C**** Update orbital parameters at start of year
-      if (variable_orb_par == 1.and.JDAY == 1) then
-        pyear = JYEAR - orb_par_year_bp ! bp=before present model year
+      if (variable_orb_par == 1.and.dayOfYear == 1) then
+        pyear = YEAR - orb_par_year_bp ! bp=before present model year
         call orbpar(pyear, eccn, obliq, omegt)
         if (am_I_root()) then
           write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
@@ -977,7 +984,7 @@ C**** Update orbital parameters at start of year
         end if
       end if
 
-      CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
+      CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(dayOfYear,KIND=8)-.5
      *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
       call daily_cosz(sind,cosd,cosz_day,sunset)
 
@@ -990,7 +997,8 @@ C**** Update orbital parameters at start of year
 !@calls constant:orbit
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : q
-      USE MODEL_COM, only : itime,jyear,jmon
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : itime
       USE GEOM, only : axyp,imaxj,lat2d
       USE ATM_COM, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
@@ -1011,6 +1019,10 @@ C**** Update orbital parameters at start of year
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      integer :: year, month
+
+      call modelEclock%getDate(year=year, month=month)
+
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -1022,7 +1034,7 @@ c**** Extract domain decomposition info
 C**** Tasks to be done at end of day only
       if (H2ObyCH4.gt.0) then
 C****   Add obs. H2O generated by CH4(*H2ObyCH4) using a 2 year lag
-        iy = jyear - 2 - ghgyr1 + 1
+        iy = year - 2 - ghgyr1 + 1
         if (ghg_yr.gt.0) iy = ghg_yr - 2 - ghgyr1 + 1
         if (iy.lt.1) iy=1
         if (iy.gt.ghgyr2-ghgyr1+1) iy=ghgyr2-ghgyr1+1
@@ -1034,9 +1046,9 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
         do j=J_0,J_1
         do i=I_0,imaxj(j)
 #ifdef CUBED_SPHERE
-          call lat_interp_qma(lat2d(i,j),l,jmon,xdH2O)
+          call lat_interp_qma(lat2d(i,j),l,month,xdH2O)
 #else
-          xdH2O = dH2O(j,l,jmon)
+          xdH2O = dH2O(j,l,month)
 #endif
           q(i,j,l)=q(i,j,l)+xCH4*xdH2O*byAM(l,i,j)
 #ifdef TRACERS_WATER
@@ -1390,6 +1402,10 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,POND_MELT
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
+      integer :: year, dayOfYear, hour, date
+
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear, 
+     *     hour=hour, date=date)
 
       RSI => SI_ATM%RSI
       MSI => SI_ATM%MSI
@@ -1482,8 +1498,8 @@ C****
 C**** Calculate mean cosine of zenith angle for the full radiation step
       ROT2=ROT1+TWOPI*NRAD*DTsrc/SDAY
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
-      JDAYR=JDAY
-      JYEARR=JYEAR
+      JDAYR=dayOfYear
+      JYEARR=YEAR
 
       S0=S0X*S00WM2*RATLS0/RSDIST
 
@@ -1849,7 +1865,7 @@ C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
                IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                ADIURN(IDX(:),KR,IH)=ADIURN(IDX(:),KR,IH)+TMP(IDX(:))
 #ifndef NO_HDIURN
-               IHM = IHM+(JDATE-1)*HR_IN_DAY
+               IHM = IHM+(DATE-1)*HR_IN_DAY
                IF(IHM.LE.HR_IN_MONTH) THEN
                  HDIURN(IDX(:),KR,IHM)=HDIURN(IDX(:),KR,IHM)+TMP(IDX(:))
                ENDIF
@@ -2817,7 +2833,7 @@ C****
                 IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                 ADIURN(IDXB(:),KR,IH)=ADIURN(IDXB(:),KR,IH)+TMP(IDXB(:))
 #ifndef NO_HDIURN
-                IHM = IHM+(JDATE-1)*HR_IN_DAY
+                IHM = IHM+(DATE-1)*HR_IN_DAY
                 IF(IHM.LE.HR_IN_MONTH) THEN
                   HDIURN(IDXB(:),KR,IHM)=HDIURN(IDXB(:),KR,IHM)+
      &                 TMP(IDXB(:))
@@ -3249,8 +3265,8 @@ C****
       END DO
 
 C**** daily diagnostics
-      IH=1+JHOUR
-      IHM = IH+(JDATE-1)*24
+      IH=1+modelEclock%hour()
+      IHM = IH+(modelEclock%date()-1)*24
       DO KR=1,NDIUPT
         I = IJDD(1,KR)
         J = IJDD(2,KR)
