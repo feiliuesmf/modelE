@@ -106,6 +106,8 @@ C**** Command line options
 
       integer :: iu_IFILE
       real*8 :: tloopbegin, tloopend
+      integer :: hour, month, day, date, year
+c$$$      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -201,6 +203,8 @@ C**** also drives "surface" components that are on the atm grid)
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
+      call modelEclock%nextTick()
+      call modelEclock%getDate(year, month, day, date, hour, amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
       Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
 
@@ -571,7 +575,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,jyear,jmon,jday,jdate,jhour
+     *     ,idacc,jyear,jmon,jday,jdate,jhour,modelEclock
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -585,6 +589,13 @@ C****
       USE RESOLUTION, only : LM ! atm reference for init_tracer hack
 #endif
 #endif
+
+      use ModelClock_mod, only: ModelClock, newModelClock
+      use Time_mod, only: Time, newTime
+      use Calendar_mod, only: Calendar
+      use JulianCalendar_mod, only: makeJulianCalendar
+      use Month_mod, only: LEN_MONTH_ABBREVIATION
+
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
       integer, intent(out) :: istart
@@ -623,6 +634,11 @@ C****    List of parameters that are disregarded at restarts
       integer istart_fixup
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
+
+      type (Time) :: modelETimeI
+      class (Calendar), pointer :: pCalendar
+      integer :: hour, month, day, date, year
+c$$$      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -855,6 +871,12 @@ C**** Get the rest of parameters from DB or put defaults to DB
 C**** Set julian date information
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
+
+      pCalendar => makeJulianCalendar()
+      modelETimeI = newTime(pCalendar)
+      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
+      call modelEtimeI%setByDate(year, month, date, hour)
+      modelEclock = newModelClock(modelEtimeI,itime,Nday)
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
