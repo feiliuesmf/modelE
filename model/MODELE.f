@@ -211,7 +211,7 @@ C****
       Jhour=hour
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
-        months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+        months=(year-Jyear0)*JMperY + month-JMON0
         call startTimer('Daily')
         call dailyUpdates
         call TIMER (NOW,MELSE)
@@ -388,11 +388,11 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       use model_com, only: modelEclock
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      integer :: jmon, jday
+      integer :: month, day
 
-      jmon = modelEclock%month()
-      jday = modelEclock%dayOfYear()
-      newmonth = (JDAY == 1+JDendOfM(Jmon-1))
+      month = modelEclock%month()
+      day = modelEclock%dayOfYear()
+      newmonth = (day == 1+JDendOfM(month-1))
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
@@ -587,7 +587,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,jyear,jmon,jday,modelEclock
+     *     ,idacc,modelEclock
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -881,7 +881,7 @@ C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
 
 C**** Set julian date information
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,date,hour,amon)
+      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
       pCalendar => makeJulianCalendar()
