@@ -65,7 +65,13 @@ C**** Command line options
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
-      USE MODEL_COM
+      USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk
+     &     , Jyear0, JMperY, JMON0, Iyear1, ItimeE, Itime0
+     &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
+     &     , iowrite_single, isBeginningAccumPeriod
+     &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
+     &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
+     &     , JDendOfM, jhour
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
@@ -107,7 +113,7 @@ C**** Command line options
       integer :: iu_IFILE
       real*8 :: tloopbegin, tloopend
       integer :: hour, month, day, date, year
-c$$$      character(len=LEN_MONTH_ABBREVIATION) :: amon
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -207,8 +213,8 @@ C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
       call modelEclock%getDate(year, month, day, date, hour, amon)
+      jhour = hour
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
-      Jhour=hour
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
         months=(year-Jyear0)*JMperY + month-JMON0
@@ -249,7 +255,7 @@ C**** (after the end of a diagn. accumulation period)
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
         acc_period=aDATE(1:12)
-        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),JYEAR
+        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),year
         call print_diags(0)
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -588,7 +594,7 @@ C****
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,idacc,modelEclock
-     *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
+     *     ,aMONTH,jdendofm,jdpery,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
@@ -650,7 +656,7 @@ C****    List of parameters that are disregarded at restarts
       type (Time) :: modelETimeI
       class (Calendar), pointer :: pCalendar
       integer :: hour, month, day, date, year
-c$$$      character(len=LEN_MONTH_ABBREVIATION) :: amon
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
