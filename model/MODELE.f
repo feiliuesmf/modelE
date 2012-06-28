@@ -146,6 +146,8 @@ C**** Set run_status to "run in progress"
         START= START-TIMING(M)
       END DO
 
+      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
@@ -173,7 +175,7 @@ C****
         END IF
       end if
 
-      if (isBeginningOfDay(oldModelEclock)) then
+      if (modelEclock%isBeginningOfDay()) then
         call startNewDay()
       end if
 
@@ -206,9 +208,9 @@ C****
       call modelEclock%nextTick()
       call modelEclock%getDate(year, month, day, date, hour, amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
-      Jhour=MOD(Itime*24/NDAY,24)         ! Hour (0-23)
+      Jhour=hour
 
-      if (isBeginningOfDay(oldModelEclock)) THEN ! NEW DAY
+      if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
         call startTimer('Daily')
         call dailyUpdates
@@ -242,7 +244,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C**** (after the end of a diagn. accumulation period)
-      if (isBeginningAccumPeriod(oldModelEclock)) then
+      if (isBeginningAccumPeriod(modelEClock)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)

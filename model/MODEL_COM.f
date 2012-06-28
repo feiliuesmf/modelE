@@ -108,24 +108,21 @@ C**** (Simplified) Calendar Related Terms
         integer :: iTime
       end type ModelE_Clock_type
       
-      type (ModelE_Clock_type) ::oldModelEclock
-
       contains
 
-      logical function isBeginningOfDay(clock)
-      type (ModelE_Clock_type) :: clock ! fake OO for now
-
-      isBeginningOfDay = mod(Itime, NDAY) == 0
-      end function isBeginningOfDay
-
+!TODO move to ModelClock class
       logical function isBeginningAccumPeriod(clock)
-      type (ModelE_Clock_type) :: clock ! fake OO for now
+      type (ModelClock) :: clock
       integer :: months
 
-      months=(Jyear-Jyear0)*JMperY + JMON-JMON0
+      integer :: month, day, year
+      month = clock%month()
+      day = clock%dayOfYear()
+      year = clock%year()
+      months=(year-Jyear0)*JMperY + month - JMON0
       isBeginningAccumPeriod = 
-     &     isBeginningOfDay(clock) .and. 
-     &     months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)
+     &     clock%isBeginningOfDay() .and. 
+     &     months.ge.NMONAV .and. day.eq.1+JDendOfM(month-1)
 
       end function isBeginningAccumPeriod
 
