@@ -341,8 +341,8 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
 
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
-     *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
-     *     aMON,JDATE,', Hr',hour,'  Internal clock time:',ITIME
+     *  '0Restart file written on fort.',KDISK,'Year',year,
+     *     aMON, date,', Hr',hour,'  Internal clock time:',ITIME
       end if
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
@@ -385,8 +385,13 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       end subroutine initializeModelE
 
       subroutine startNewDay()
+      use model_com, only: modelEclock
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
+      integer :: jmon, jday
+
+      jmon = modelEclock%month()
+      jday = modelEclock%dayOfYear()
       newmonth = (JDAY == 1+JDendOfM(Jmon-1))
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
@@ -582,7 +587,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,jyear,jmon,jday,jdate,modelEclock
+     *     ,idacc,jyear,jmon,jday,modelEclock
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -876,7 +881,7 @@ C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
 
 C**** Set julian date information
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,hour,amon)
+      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,date,hour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
       pCalendar => makeJulianCalendar()
