@@ -151,7 +151,7 @@ C**** Set run_status to "run in progress"
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
      *   '0NASA/GISS Climate Model (re)started',
-     *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
+     *   'Year', year, aMon, date, ', Hr', hour,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
 
          CALL TIMER (NOW,MELSE)
@@ -342,7 +342,7 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
-     *     aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *     aMON,JDATE,', Hr',hour,'  Internal clock time:',ITIME
       end if
 
 C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
@@ -400,11 +400,16 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 !@sum Every Ndisk Time Steps (DTsrc), starting with the first one,
 !@+ write restart information alternately onto 2 disk files
       use MODEL_COM, only: rsf_file_name,kdisk,irand
-      use MODEL_COM, only: Jyear, aMon, Jdate, Jhour, itime
+      use MODEL_COM, only: itime
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
       
+      integer :: hour, date
+      character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+      call modelEclock%getDate(hour=hour, date=date, amn=amon)
+
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )
       call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
@@ -414,7 +419,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       if (AM_I_ROOT())
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
-     *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
+     *     year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
       kdisk=3-kdisk
 
       end subroutine checkpointModelE
@@ -577,7 +582,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,jyear,jmon,jday,jdate,jhour,modelEclock
+     *     ,idacc,jyear,jmon,jday,jdate,modelEclock
      *     ,aMONTH,jdendofm,jdpery,aMON,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -871,7 +876,7 @@ C**** Get the rest of parameters from DB or put defaults to DB
       call init_Model
 
 C**** Set julian date information
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,hour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
       pCalendar => makeJulianCalendar()
