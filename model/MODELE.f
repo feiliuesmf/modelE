@@ -71,7 +71,7 @@ C**** Command line options
      &     , iowrite_single, isBeginningAccumPeriod
      &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
      &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
-     &     , JDendOfM, jhour
+     &     , JDendOfM
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
@@ -213,7 +213,6 @@ C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
       call modelEclock%getDate(year, month, day, date, hour, amon)
-      jhour = hour
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY

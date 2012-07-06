@@ -2913,7 +2913,7 @@ c Switch the sign convention back to "positive downward".
       USE GEOM, only: RAPVS, RAPVN
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only: JDAY
+      USE MODEL_COM, only: modelEclock
       USE DYNAMICS, only : sig,dsig,sige
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : GET
@@ -3077,7 +3077,7 @@ c Switch the sign convention back to "positive downward".
          Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
                                                        !!!100.0_r8 arises from the units of P and rho.
       end do
-      Eps = Bt(J,JDAY) / Eps
+      Eps = Bt(J,modelEclock%dayOfYear()) / Eps
       !...Calculating source spectra (function of azimuth, horizontal wave number)
       do IAZ = 1, N_Az
          Ugw_S = ue(IZ0(J))

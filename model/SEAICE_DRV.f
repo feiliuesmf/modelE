@@ -538,7 +538,7 @@ C**** replicate ice values at the poles
 !@ver  2010/11/12
 !@calls SEAICE:SEA_ICE
       USE CONSTANT, only : grav,rhows,rhow,sday
-      USE MODEL_COM, only : dtsrc,jhour,jday
+      USE MODEL_COM, only : dtsrc
       USE EXCHANGE_TYPES, only :
      &     atmice_xchng_vars,iceocn_xchng_vars,atmocn_xchng_vars
       USE SEAICE_COM, only : icestate

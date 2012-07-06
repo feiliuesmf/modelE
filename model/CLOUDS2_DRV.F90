@@ -9,7 +9,8 @@ subroutine CONDSE
   use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
   use ATM_COM, only : p,u,v,t,q,wm
-  use MODEL_COM, only : JHOUR,DTsrc,jdate,itime,jyear,jmon
+  use MODEL_COM, only : modelEclock
+  use MODEL_COM, only : DTsrc,itime
   use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
   use QUSDEF, only : nmom
@@ -407,8 +408,8 @@ subroutine CONDSE
   TMC=T
   QMC=Q
   FSS=1.
-  IH=JHOUR+1
-  IHM = IH+(JDATE-1)*24
+  IH=modelEclock%hour()+1
+  IHM = IH+(modelEclock%date()-1)*24
 #ifdef TRACERS_ON
   !**** Find the ntx active tracers ntix(1->ntx)
   nx = 0

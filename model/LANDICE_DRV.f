@@ -698,7 +698,7 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@ver  2010/10/13
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : dtsrc,jday,jyear
+      USE MODEL_COM, only : dtsrc, modelEclock
      *     ,itime,itimei,nday,JDperY
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -769,7 +769,7 @@ C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
-      If (JDAY==1)  Then  !  Jan 1 only, EndIf at 500
+      If (modelEclock%dayOfYear()==1)  Then  !  Jan 1 only, EndIf at 500
 
 C**** Calculate mass/energy/tracer accumulation for the past year
         do j=j_0,j_1; do i=i_0,i_1
@@ -848,7 +848,8 @@ C*** prevent iceberg sucking
 
 C**** adjust hemispheric mean glacial melt amounts (only on root processor)
       if (AM_I_ROOT()) THEN
-          write(6,*) "Adjusting glacial melt: ", jday,jyear
+          write(6,*) "Adjusting glacial melt: ", modelEclock%dayOfYear()
+     *        ,modelEclock%year()
           write(6,*) "Mass (before): ",accpda,accpdg,mdwnimp_SH
      *         ,mdwnimp_NH
           write(6,*) "Temp (before): ",(eaccpda/accpda+lhm)/shi

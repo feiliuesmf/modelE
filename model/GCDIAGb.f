@@ -1240,7 +1240,7 @@ C****
       USE CONSTANT, only : lhe,omega,sha,tf,teeny, radius
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : idacc,jdate,mdyn,mdiag, Jhour
+      USE MODEL_COM, only : idacc,mdyn,mdiag
       USE ATM_COM, only : u,v,t,p,q,wm
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ

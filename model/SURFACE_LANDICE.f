@@ -20,7 +20,8 @@ C****
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,grav
-      USE MODEL_COM, only : dtsrc,nday,itime,jhour,qcheck,jdate
+      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : dtsrc,nday,itime,qcheck
 #ifdef SCM
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
@@ -126,8 +127,8 @@ C****
 
       DTSURF=DTsrc/NIsurf
       byNIsurf=1.d0/real(NIsurf)
-      IH=JHOUR+1
-      IHM = IH+(JDATE-1)*24
+      IH=modelEclock%hour()+1
+      IHM = IH+(modelEclock%date()-1)*24
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
       SNOW = 0.
@@ -184,8 +185,8 @@ C**** Set up tracers for PBL calculation if required
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       pbl_args % moddd = moddd
-      pbl_args % ih = 1+jhour
-      pbl_args % ihm = pbl_args%ih+(jdate-1)*24
+      pbl_args % ih = 1+modelEclock%hour()
+      pbl_args % ihm = pbl_args%ih+(modelEclock%date()-1)*24
 #endif
 
 C****
