@@ -71,7 +71,8 @@ c******************************************************************
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : jhour,jday,itime,nday,jyear,iyear1
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : itime,nday,iyear1
       USE NUDGE_COM
       USE Dictionary_mod
       IMPLICIT NONE
@@ -129,7 +130,8 @@ c******************************************************************
 !@ver
       USE DOMAIN_DECOMP_1D, only: am_i_root
       USE RESOLUTION, only: im,jm,lm
-      USE MODEL_COM, only: jhour,jday,itime,nday,jyear,iyear1
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime,nday,iyear1
       USE NUDGE_COM
       IMPLICIT NONE
       include 'netcdf.inc'

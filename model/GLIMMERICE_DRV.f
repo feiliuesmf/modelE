@@ -756,7 +756,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@ver  2010/10/13
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : dtsrc,jday,jyear
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : dtsrc,
      *     ,itime,itimei,nday,JDperY
       USE GEOM, only : axyp,imaxj,lat2d
       USE GLIMMERICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh

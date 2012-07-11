@@ -4,7 +4,7 @@ module hybrid_mpi_omp_coupler
   USE SEAICE, only:     fsss   ! scalar
   USE SEAICE, only:     tfrez  ! procedure
 
-  USE MODEL_COM, only: dtsrc,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
+  USE MODEL_COM, only: dtsrc,itime,iyear1,nday,jdendofm,aMON,modelEclock
 
   USE GEOM, only: dxyp
   USE CONSTANT,  only: lhm,shi,shw

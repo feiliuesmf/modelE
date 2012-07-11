@@ -299,7 +299,7 @@ C****
 !@calls ODFFUS
       USE FILEMANAGER
       USE CONSTANT, only : sday,tf
-      USE MODEL_COM, only : jmon,jday,jdate
+      USE MODEL_COM, only : modelEclock
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
       USE SEAICE_COM, only : si_ocn

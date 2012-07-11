@@ -246,7 +246,7 @@ cc      end do
 C**** This is called at the beginning of each month
 C**** Prather strat chem
       USE RESOLUTION, only: jm,lm
-      USE MODEL_COM, only: jmon
+      USE MODEL_COM, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
@@ -295,7 +295,7 @@ C---- CTM layers LM down
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
       USE RESOLUTION, only: im,jm,lm
-      USE MODEL_COM, only: jyear,nday,jday,itime,dtsrc
+      USE MODEL_COM, only: nday,itime,dtsrc,modelEclock
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
      *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
@@ -538,7 +538,7 @@ c   Troposphere is forced by Harvard tables
 c-----------------------------------------------------------------------
 c
       USE RESOLUTION, only: jm
-      USE MODEL_COM, only: jmon,itime,dtsrc
+      USE MODEL_COM, only: modelEclock,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj,axyp
@@ -595,7 +595,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE LINOZ_CHEM_COM, only: O3_DepVel
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: jmon,itime,dtsrc
+      USE MODEL_COM, only: modelEclock,itime,dtsrc
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM
       USE CONSTANT, only : grav,rgas
@@ -771,7 +771,7 @@ c-----------------------------------------------------------------------
 c-------- monthly fixup of chemistry PARAM'S
 c
       USE RESOLUTION, only: jm,lm
-      USE MODEL_COM, only: jmon
+      USE MODEL_COM, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
@@ -940,7 +940,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,JDperY,jday
+      USE MODEL_COM, only: itime,JDperY,modelEclock
       USE FLUXES, only: focean,fearth0,flake0
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
@@ -1068,7 +1068,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,jday,JDperY
+      USE MODEL_COM, only: itime,JDperY,modelEclock
       USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname

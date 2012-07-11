@@ -44,7 +44,7 @@
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
       use fluxes, only : focean
-      use model_com, only : jyear
+      use model_com, only : modelEclock
       use ghy_com, only : fearth
 
       implicit none

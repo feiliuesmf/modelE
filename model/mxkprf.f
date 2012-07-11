@@ -595,7 +595,7 @@ c --- quadratic interpolation implemented here by 3-pt collocation,
 c --- which is slightly different to the Danabasoglu/Large approach.
 c -------------------------------------------------------------
 c
-      USE MODEL_COM, only: jmon
+      USE MODEL_COM, only: modelEclock
       USE HYCOM_DIM, only: jj, kk, kdm
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
@@ -1998,7 +1998,7 @@ c --- sm and sh depends only on the richardson number
 c --- In salinity model case level 2 means S_M,S_H,S_C depend only on Ria,Ri_d
 c-----------------------------------------------------------------------------
 c
-      USE MODEL_COM, only: jmon
+      USE MODEL_COM, only: modelEclock
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS

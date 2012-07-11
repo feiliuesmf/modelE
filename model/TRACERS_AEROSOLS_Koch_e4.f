@@ -157,7 +157,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       use resolution, only: im,jm,lm
-      use model_com, only: jday
+      use model_com, only: modelEclock
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
       use domain_decomp_atm, only: grid, get, write_parallel
@@ -200,7 +200,7 @@ c
      & tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))     
       call closeunit(mon_units(k))
       
-      jdlast = jday
+      jdlast = modelEclock%dayOfYear()
 
       if(levo3 /= LM) then ! might be ok, but you should check
         write(out_line,*)
@@ -234,7 +234,8 @@ c
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
       use resolution, only: im,jm
-      USE MODEL_COM, only: jday,idofm=>JDmidOfM
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
      &     REWIND_PARALLEL,write_parallel
@@ -255,7 +256,7 @@ c
 C
       if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1                ! imon=January
-        if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        if (modelEclock%dayOfYear() <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
           do L=1,Ldim*11
             CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
           end do
@@ -264,9 +265,10 @@ C
             tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
           END DO
           CALL REWIND_PARALLEL( iu )
-        else              ! JDAY is in Jan 16 to Dec 16, get first month
+        else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
-          if (jday > idofm(imon) .AND. imon <= 12) go to 120
+          if (modelEclock%dayOfYear() > idofm(imon) .AND. 
+     &         imon <= 12) go to 120
           do L=1,Ldim*(imon-2)
             CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
           end do
@@ -277,17 +279,17 @@ C
           if (imon == 13)  CALL REWIND_PARALLEL( iu )
         end if
       else                         ! Do we need to read in second month?
-        if (jday /= jdlast+1) then ! Check that data is read in daily
-          if (jday /= 1 .OR. jdlast /= 365) then
+        if (modelEclock%dayOfYear() /= jdlast+1) then ! Check that data is read in daily
+          if (modelEclock%dayOfYear() /= 1 .OR. jdlast /= 365) then
             write(out_line,*)'Bad day values in read_monthly_3Dsources'
-     &      //': JDAY,JDLAST=',JDAY,JDLAST
+     &      //': JDAY,JDLAST=',modelEclock%dayOfYear(),JDLAST
             call write_parallel(trim(out_line),crit=.true.)
             call stop_model('Bad values in read_monthly_3Dsources',255)
           end if
           imon=imon-12             ! New year
           go to 130
         end if
-        if (jday <= idofm(imon)) go to 130
+        if (modelEclock%dayOfYear() <= idofm(imon)) go to 130
         imon=imon+1                ! read in new month of data
         if (imon == 13) then
           CALL REWIND_PARALLEL( iu  )
@@ -303,15 +305,17 @@ C
       END DO
  130  continue
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-modelEclock%dayOfYear())
+     &     / (idofm(imon)-idofm(imon-1))
       data1(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+     &     tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
       return
       end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
       use resolution, only: im,jm,lm
-      USE MODEL_COM, only : jdate,JDendOFM,jmon
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -341,10 +345,10 @@ c ----------------------------------------------------------------
         allocate( IN2(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
       endif
-      if (step_rea.ne.jmon) then 
-        step_rea = JMON
+      if (step_rea.ne.modelEclock%month()) then 
+        step_rea = modelEclock%month()
         if ( am_i_root() ) then
-          print*,'READING HNO3 OFFLINE ',jmon, step_rea
+          print*,'READING HNO3 OFFLINE ',modelEclock%month(), step_rea
         endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -382,7 +386,8 @@ c -----------------------------------------------------------------
 
       endif
 C-----------------------------------------------------------------
-      tau=(jdate-.5)/(JDendOFM(jmon)-JDendOFM(jmon-1))
+      tau = (modelEclock%date()-.5)/(JDendOFM(modelEclock%month()) - 
+     &     JDendOFM(modelEclock%month()-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
          enddo
@@ -393,7 +398,8 @@ c -----------------------------------------------------------------
 
       SUBROUTINE READ_OFFSS(OUT)
       use resolution, only: im,jm,lm
-      USE MODEL_COM, only : jdate,jmon,JDendOFM
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -423,10 +429,10 @@ c ----------------------------------------------------------------
         allocate( IN2_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
       endif
-      if (step_rea_ss.ne.jmon) then 
-        step_rea_ss = JMON
+      if (step_rea_ss.ne.modelEclock%month()) then 
+        step_rea_ss = modelEclock%month()
         if ( am_i_root() ) then
-          print*,'READING SEAS OFFLINE ',jmon, step_rea_ss
+          print*,'READING SEAS OFFLINE ',modelEclock%month(),step_rea_ss
         endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -466,7 +472,8 @@ c -----------------------------------------------------------------
       endif
 
 C-----------------------------------------------------------------------
-      tau=(jdate-.5)/(JDendOFM(jmon)-JDendOFM(jmon-1))
+      tau = (modelEclock%date()-.5)/(JDendOFM(modelEclock%month())
+     *     - JDendOFM(modelEclock%month()-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1_ss(:,:,l)+tau*IN2_ss(:,:,l)  
          enddo
@@ -486,7 +493,7 @@ c want kg DMS/m2/s
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
       use resolution, only: lm
-      USE MODEL_COM, only: jmon,jday,jyear
+      use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
@@ -511,7 +518,7 @@ c       if (lm.lt.40) then
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
-        erate=akw*DMSinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
+        erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0 !*tr_mm(nt)
      *       /sday
 c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
 c       else
@@ -532,8 +539,9 @@ c       endif ! lm
         endif !itype
         else !AEROCOM run, prescribed flux
 c if after Feb 28 skip the leapyear day
-         jread=jday
-         if (jday.gt.59) jread=jday+1
+         jread=modelEclock%dayOfYear()
+         if (modelEclock%dayOfYear().gt.59) 
+     *        jread=modelEclock%dayOfYear()+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/sday/axyp(i,j)*tr_mm(n_DMS)/32.d0
@@ -550,7 +558,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
       USE TRACER_COM, only: OFFLINE_DMS_SS,OFFLINE_SS
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
-      USE MODEL_COM, only: jday
+      use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                          ,OC_SS_enrich_fact
@@ -602,8 +610,9 @@ c     units are kg salt/m2/s
         endif
       else
 c if after Feb 28 skip the leapyear day
-        jread=jday
-        if (jday.gt.59) jread=jday+1
+        jread=modelEclock%dayOfYear()
+        if (modelEclock%dayOfYear().gt.59) 
+     &       jread=modelEclock%dayOfYear()+1
         if (ibin.eq.1) then
           ss=SS1_AER(i,j,jread)/(sday*axyp(i,j))
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -639,7 +648,8 @@ c if after Feb 28 skip the leapyear day
       USE RESOLUTION, only : ls1
       use resolution, only: im,jm,lm
       use atm_com, only : t,q
-      USE MODEL_COM, only: jmon,dtsrc,jday,jmon
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: dtsrc
       USE ATM_COM, only: pmid,am,pk,LTROPO,byam
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
@@ -757,12 +767,12 @@ c Set h2o2_s =0 and use on-line h2o2 from chemistry
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-        newMonth = jMonthCache /= Jmon
+        newMonth = jMonthCache /= modelEclock%month()
         if (newMonth) then
-          jMonthCache = Jmon
+          jMonthCache = modelEclock%month()
           call openunit('AER_CHEM',iuc,.true.)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohrCache,
-     &         recs_to_skip=5*(jmon-1)+1)    ! 5 recs/month + ichemi for this month
+     &         recs_to_skip=5*(modelEclock%month()-1)+1)    ! 5 recs/month + ichemi for this month
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2rCache)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjrCache)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3rCache)
@@ -774,7 +784,7 @@ c      if (ifirst) then
         tno3r = tno3rCache
         if (im.eq.72) then
         call openunit('AER_OH_STRAT',iuc2,.true.)
-        nrecs_skip=lm*(jmon-1) ! skip all the preceding months
+        nrecs_skip=lm*(modelEclock%month()-1) ! skip all the preceding months
         do ll=1,lm
           call DREAD_PARALLEL(grid,iuc2,nameunit(iuc2),ohsr_in,
      &       recs_to_skip=nrecs_skip)
@@ -1693,7 +1703,8 @@ c melting snow
 ! taken from TRACERS_SPECIAL_Shindell, in case we
 !  we run aerosols independent of gases
       use resolution, only: im,jm
-      USE MODEL_COM, only: jday,jyear,idofm=>JDmidOfM
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
@@ -1713,7 +1724,9 @@ c melting snow
       integer :: kstep=10 !<< please note this hard-code
 
       integer :: J_0, J_1
+      integer :: year, dayOfYear
 
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
 C No doubt this code can be combined/compressed, but I am going to
@@ -1723,7 +1736,7 @@ C do the transient and non-transient cases separately for the moment:
       if(.not.trans_emis) then
 C
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (dayOfYear <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         write(6,*) 'Not using this first record:'
         call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
         do L=1,Ldim
@@ -1731,8 +1744,8 @@ C
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         call rewind_parallel(iu)
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+      else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
+        do while(dayOfYear > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         if(imon/=2)then ! avoids advancing records at start of file
@@ -1750,7 +1763,7 @@ C
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
       data1(:,J_0:J_1,:) =
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
       write(out_line,*) '3D source monthly factor=',frac
@@ -1760,15 +1773,15 @@ c**** Interpolate two months of data to current day
       else
         ipos=1
         alpha=0.d0 ! before start year, use start year value
-        if(jyear>yr2.or.(jyear==yr2.and.jday>=183))then
+        if(year>yr2.or.(year==yr2.and.dayOfYear>=183))then
           alpha=1.d0 ! after end year, use end year value
           ipos=(yr2-yr1)/kstep
         endif
         do k=yr1,yr2-kstep,kstep
-          if(jyear>k .or. (jyear==k.and.jday>=183)) then
-            if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
+          if(year>k .or. (year==k.and.dayOfYear>=183)) then
+            if(year<k+kstep .or. (year==k+kstep.and.dayOfYear<183))then
               ipos=1+(k-yr1)/kstep ! (integer artithmatic)
-              alpha=real(jyear-k)/real(kstep)
+              alpha=real(year-k)/real(kstep)
               exit
             endif
           endif
@@ -1777,7 +1790,7 @@ c**** Interpolate two months of data to current day
 ! read the two necessary months from the first decade:
 !
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (dayOfYear <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
@@ -1787,7 +1800,7 @@ c**** Interpolate two months of data to current day
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
       else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+        do while(dayOfYear > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
@@ -1809,14 +1822,14 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
       sfc_a(:,J_0:J_1,:) =
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
       call rewind_parallel( iu )
 
       ipos=ipos+1
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (dayOfYear <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
         write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
@@ -1825,8 +1838,8 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+      else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
+        do while(dayOfYear > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         write(6,*) 'Not using this first record:'
@@ -1846,7 +1859,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
       sfc_b(:,J_0:J_1,:) =
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
 

@@ -20,8 +20,8 @@ c
       USE RESOLUTION, only  : ptop,psf,ls1
       USE RESOLUTION, only  : IM,JM
       USE ATM_COM, only     : T,Q
-      USE MODEL_COM, only   : JDAY,JYEAR,
-     &                        JHOUR, itime, itimeI, itime0
+      use model_com, only: modelEclock
+      use model_com, only: itime, itimeI, itime0
       USE TRACER_COM, only  : COUPLED_CHEM
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
      &                        bygrav,lhe,undef
@@ -217,6 +217,9 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_TOMAS
       integer :: k
 #endif
+      integer :: hour
+      call modelEclock%getDate(hour=hour)
+
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
@@ -230,8 +233,8 @@ C**** Local parameters and variables and arguments:
 ! Um... Does use of Jhour here assume starting the model at midnight?
       istep = NINT(real(IM)/24.) ! number of boxes per hour
       ! ih1030/1330 are westmost I index that hour (careful: int arith.)
-      ih1030 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
-      ih1330 = istep*(13-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
+      ih1030 = istep*(10-hour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
+      ih1330 = istep*(13-hour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
       if(ih1030 < 0) ih1030 = IM+ih1030  
       if(ih1330 < 0) ih1330 = IM+ih1330  
       if(ih1030 > IM) ih1030 = ih1030-IM
@@ -270,7 +273,7 @@ C--------special section for ghg runs ---------
               enddo
             enddo 
             if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
-            else; write(ghg_name,'(I4)')jyear; endif
+            else; write(ghg_name,'(I4)')modelEclock%year(); endif
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu,.true.,.false.)
             do m=1,5
@@ -2059,7 +2062,7 @@ C Make sure nighttime chemistry changes are not too big:
 !
       use resolution, only : ls1
       use resolution, only : lm
-      use model_com, only: jday,jhour
+      use model_com, only: modelEclock
       use atm_com, only: pmid
       use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
@@ -2076,8 +2079,9 @@ C Make sure nighttime chemistry changes are not too big:
       integer, intent(in) :: i,j
       integer :: L
 
-      dec=radian*23.455d0*COS( ((jday-173)*twopi)/365.d0 )
-      lha=twopi*real(jhour)/24.d0
+      dec=radian*23.455d0*
+     & COS( ((modelEclock%dayOfYear()-173)*twopi)/365.d0 )
+      lha=twopi*real(modelEclock%hour())/24.d0
 
       CC=COS(lat2d(I,J))*COS(dec)
       SS=SIN(lat2d(I,J))*SIN(dec)

@@ -6483,7 +6483,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
-      USE MODEL_COM, only: itime,jday,dtsrc,jyear,itimeI
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: pmidl00
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
@@ -6753,7 +6754,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
                end do   ; end do   ; end do
              else
                if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') jyear; endif
+               else; write(ghg_name,'(I4)') modelEclock%year(); endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,3
@@ -6852,7 +6853,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
                end select
              else
                if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') jyear; endif
+               else; write(ghg_name,'(I4)') modelEclock%year(); endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,4
@@ -7287,7 +7288,7 @@ c**** earth
              end do   ; end do   ; end do
            else
              if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-             else; write(ghg_name,'(I4)') jyear; endif
+             else; write(ghg_name,'(I4)') modelEclock%year(); endif
              ghg_file='GHG_IC_'//ghg_name
              call openunit(ghg_file,iu_data,.true.,.true.)
              do m=1,5
@@ -7590,7 +7591,8 @@ c **** reads in files for dust/mineral tracers
 C**** Note this routine must always exist (but can be a dummy routine)
       USE RESOLUTION, only : lm
       USE ATM_COM, only : p,t
-      USE MODEL_COM, only:jmon,jday,itime,jyear
+      use model_com, only: modelEclock
+      USE MODEL_COM, only:itime
       USE FLUXES, only : fearth0,focean,flake0
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
@@ -7675,7 +7677,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
 
 #endif
-C****
+      integer :: year, month, dayOfYear
+
+      call modelEclock%getDate(year=year, month=month, 
+     *     dayOfYear=dayOfYear)
+CC****
 C**** Extract useful local domain parameters from "grid"
 C****
       xyear=0
@@ -7709,7 +7715,7 @@ C**** Initialize tables for Prather StratChem tracers
       end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month
-      IF (JMON.NE.last_month) THEN
+      IF (modelEclock%month().NE.last_month) THEN
         do n=1,NTM
           if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
      *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
@@ -7723,7 +7729,7 @@ C**** Prather StratChem tracers and linoz tables change each month
             exit
           end if
         end do
-        last_month = JMON
+        last_month = modelEclock%month()
       END IF
 
 C**** Tracer specific call for CO2
@@ -7755,7 +7761,7 @@ C**** Tracer specific call for CH4
       end if
 
       if (variable_phi .eq. 2) then
-         if ((jday .eq. 1) .or. (.not. end_of_day)) then
+         if ((dayOfYear .eq. 1) .or. (.not. end_of_day)) then
             call update_annual_phi
             print*, "called update_annual_phi"
          end if
@@ -7778,12 +7784,12 @@ C**** Allow overriding of transient emissions date:
       if(trans_emis_overr_yr > 0)then
         xyear=trans_emis_overr_yr
       else
-        xyear=jyear
+        xyear=year
       endif
 !!    if(trans_emis_overr_day > 0)then
 !!      xday=trans_emis_overr_day
 !!    else
-        xday=jday
+        xday=dayOfYear
 !!    endif
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
@@ -7843,7 +7849,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
               if(aer_int_yr > 0) then
                 xyear=aer_int_yr
               else
-                xyear=jyear
+                xyear=year
               endif
             end if
 #else
@@ -7852,7 +7858,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
               if(aer_int_yr > 0) then
                 xyear=aer_int_yr
               else
-                xyear=jyear
+                xyear=year
               endif
 #endif
 #endif
@@ -8034,7 +8040,8 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE RESOLUTION, only : pmtop,psf
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,jmon,nday
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,nday
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
      *   ,globalmax
 
@@ -8381,7 +8388,7 @@ c   emission from 1 at 30N to 0.2 at 70N and 0.2 north of 70N
           else if (rnsrc.eq.2) then !Schery and Wasiolek
 #ifdef TRACERS_RADON
 c Schery source
-          trsource(i,j,1,n)=rn_src(i,j,jmon)
+          trsource(i,j,1,n)=rn_src(i,j,month)
 #endif
           endif
           if (rnsrc.le.1) then
@@ -8540,7 +8547,7 @@ C****
 
 #ifdef TRACERS_AEROSOLS_OCEAN
       case ('OCocean')
-        call read_seawifs_chla(jmon) ! CHECK this has to be called once per month, not every timestep
+        call read_seawifs_chla(month) ! CHECK this has to be called once per month, not every timestep
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
 #ifndef TRACERS_AEROSOLS_SOA
@@ -8548,7 +8555,7 @@ C****
         case ('SOAgas')
 !OCT_src is kg/month? or kg/sec?? 
         do j=J_0,J_1; do i=I_0,I_1
-           trsource(i,j,ntsurfsrc(n),n)=OCT_src(i,j,jmon)*
+           trsource(i,j,ntsurfsrc(n),n)=OCT_src(i,j,month)*
      &          om2oc(n_AOCOB(1))
          end do; enddo
 #endif
@@ -8604,7 +8611,7 @@ C****
         select case (trname(n))
         case ('OCII', 'M_OCC_OC')
           sfc_src(:,J_0:J_1,src_index,ntsurfsrc(n))=
-     &      OCT_src(:,J_0:J_1,jmon)/axyp(:,J_0:J_1)/src_fact
+     &      OCT_src(:,J_0:J_1,month)/axyp(:,J_0:J_1)/src_fact
         end select
 #endif  /* TRACERS_AEROSOLS_SOA */
 
@@ -8785,7 +8792,8 @@ c latlon grid
       USE TRACER_COM
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear,itimeI
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: am,byam ! Air mass of each box (kg/m^2)
       use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
@@ -8877,6 +8885,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
 c      real*8 number  !for TOMAS debug only
 #endif
+      integer :: year, dayOfYear
+
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -9155,12 +9166,12 @@ C**** Allow overriding of transient emissions date:
       if(trans_emis_overr_yr > 0)then
         xyear=trans_emis_overr_yr
       else
-        xyear=jyear
+        xyear=year
       endif
 !!    if(trans_emis_overr_day > 0)then
 !!      xday=trans_emis_overr_day
 !!    else
-        xday=jday
+        xday=dayOfYear
 !!    endif
 #ifdef SHINDELL_STRAT_EXTRA
       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0

@@ -10,8 +10,6 @@
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
       USE RESOLUTION, only : lm
-      USE MODEL_COM, only :
-     $                      jday         ! time in ITU
       USE ATM_COM, only :
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
@@ -263,8 +261,6 @@ c radii interpolation
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
       USE RESOLUTION, only : lm
-      USE MODEL_COM, only :
-     $                      jday         ! time in ITU
       USE ATM_COM, only :
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure

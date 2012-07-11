@@ -457,7 +457,7 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
 
       subroutine get_ocean_forcings
       use constant, only : lhm,tf,sday
-      use model_com, only : dtsrc,jmon,jyear,jday,nday,itime
+      use model_com, only : dtsrc,nday,itime,modelEclock
       use domain_decomp_atm, only : grid
       use geom, only : axyp
       use fluxes, only : atmocn,atmice
@@ -472,12 +472,12 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       integer :: i_0,i_1, j_0,j_1
 
       if(interannual_forcing==1) then
-        if(jyear < iaf_year_start) then
+        if(modelEclock%year() < iaf_year_start) then
           write(6,*) 'please set model year >= iaf_year_start'
           call stop_model('model year < iaf_year_start',255)
         endif
         iaf_year = iaf_year_start +
-     &       mod(jyear-iaf_year_start,1+iaf_year_end-iaf_year_start)
+     &       mod(modelEclock%year()-iaf_year_start,1+iaf_year_end-iaf_year_start)
         if(iaf_year.ne.iaf_year_sv) then
           call read_core_interannual_data        
           iaf_year_sv = iaf_year
@@ -2135,7 +2135,7 @@ C****
 
       SUBROUTINE init_RAD
       USE Dictionary_mod
-      USE MODEL_COM, only : dtsrc,jyear,iyear1
+      USE MODEL_COM, only : dtsrc,iyear1,modelEclock
       USE DOMAIN_DECOMP_1D, only : write_parallel, am_i_root
       USE RAD_COM, only : s0x,s0_yr,s0_day
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -2160,7 +2160,7 @@ C**** Set orbital parameters appropriately
 C**** Set orbital parameters appropriately
       if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
         ! 0 BP is defined as 1950CE
-        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
+        pyear = 1950.+modelEclock%YEAR()-IYEAR1-calc_orb_par_year
         write(out_line,*)
      *  "   Calculating Orbital Params for year : ",
      *  pyear,"     (CE);"
@@ -2297,7 +2297,7 @@ c
 !@ver  1.0
       USE MODEL_COM, only :
      *      itime,itimei,iyear1,nday,jdpery,jdendofm
-     *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH
+     *     ,aMON,aMONTH
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,DUSK,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
      *     calc_orb_par_year

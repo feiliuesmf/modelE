@@ -18,7 +18,7 @@ C**** ocean diagnostic programs from Gary. All diagnostics are on the
 C**** ocean grid.
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear
+     *     ,amon0,amon,modelEclock
       USE OCEAN, only : im,jm,lmo,dts,imaxj,lmm,ze
       USE DIAG_COM, only : qdiag,zoc_pout=>zoc,zoc1_pout=>zoc1
       USE MDIAG_COM, only : acc_period
@@ -118,7 +118,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : undef,teeny,rhows
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear
+     *     ,amon0,amon,modelEclock
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water,n_obio
 #endif
@@ -942,7 +942,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear
+     *     ,amon0,amon,modelEclock
       USE OCEAN, only : im,jm,lmo,dxypo,imaxj,ze
       USE DIAG_COM, only : qdiag
       USE MDIAG_COM, only :
@@ -1052,7 +1052,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
-     *     ,amon0,jdate,amon,jyear
+     *     ,amon0,amon,modelEclock
       USE OCEAN, only : im,jm,lmo,dts,ze
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
       USE ODIAG

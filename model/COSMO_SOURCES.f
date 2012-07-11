@@ -178,7 +178,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
 
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only: axyp
-      USE MODEL_COM, only : jyear
+      use model_com, only: modelEclock
       USE CONSTANT, only : avog
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, only : GRID, get
@@ -231,7 +231,7 @@ c        print*, "phi_record (1) = ", phi_record(1)
       end do
       call closeunit(iuc)  
 
-      phi_yr = jyear + 0.5
+      phi_yr = modelEclock%year() + 0.5
       print*, "phi_yr = ", phi_yr
       do i = 1,nyrs
          if (phi_yr .eq. year(i)) then
@@ -314,7 +314,8 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
 !@auth C Field
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only: axyp
-      USE MODEL_COM, only : jday, jmon, itime
+      use model_com, only: modelEclock
+      USE MODEL_COM, only : itime
       USE CONSTANT, only : avog
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, only : GRID, get
@@ -339,6 +340,9 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       real :: slope_2(npress), slope_3(npress), slope_4(npress) 
       integer :: iuc, i, j, k, l, m, n, iphi, ipc
       INTEGER :: J_1, J_0, I_0, I_1
+      integer :: year, month, day, hour, date
+
+      call modelEclock%getDate(month=month, dayOfYear=day)
 
       CALL GET(grid,J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT

@@ -347,9 +347,10 @@ C**** No need to save current value
 !      It is NOT parallelized.
 
       USE CONSTANT, only: teeny, twopi
+      use model_com, only: modelEclock
       USE MODEL_COM, only:
-     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,nday,itime,itime0,xlabel,lrunid
+     &     idacc,jhour0,jdate0,amon,amon0,
+     &     jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only: areag 
       USE TRACER_COM, only: NTM,itime_tr0
       USE TRDIAG_COM, only:
@@ -377,7 +378,9 @@ C**** Arrays needed for full output and pdE
       CHARACTER(len=lname_strlen), DIMENSION(KTCON) :: LNAMEO
       CHARACTER(len=sname_strlen), DIMENSION(KTCON) :: SNAMEO
       CHARACTER(len=units_strlen), DIMENSION(KTCON) :: UNITSO
+      integer :: year, hour, date
 
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
@@ -454,10 +457,10 @@ C**** LOOP OVER HEMISPHERES
         WRITE (6,'(''0'',A)') XLABEL
         if (n.le.natmtrcons) then
            WRITE (6,901) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *          JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *          YEAR,AMON,DATE,HOUR,ITIME,DAYS
         else
            WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *          JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+     *          YEAR,AMON,DATE,HOUR,ITIME,DAYS
         end if
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
@@ -1047,7 +1050,8 @@ C****
       USE CONSTANT, only : undef
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
       USE RESOLUTION, only : jm,lm
-      USE MODEL_COM, only: jdate,jdate0,amon,amon0,jyear,jyear0,xlabel
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: jdate0,amon,amon0,jyear0,xlabel
       USE DYNAMICS, only : dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DIAG_COM, only: qdiag,inc=>incj,linect,jmby2,lm_req
@@ -1085,6 +1089,9 @@ C****
       REAL*8, DIMENSION(JM+3,LM+1) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
+      integer :: year, date
+
+      call modelEclock%getDate(year=year,date=date)
 
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
@@ -1094,7 +1101,7 @@ C**** WRITE XLABEL ON THE TOP OF EACH OUTPUT PAGE
 C****
       LINECT = LINECT+LMAX+7
       IF(LINECT.LE.60) GO TO 20
-      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
+      WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,DATE,AMON,YEAR
       LINECT = LMAX+8
    20 CONTINUE
       WRITE (6,901) TITLE,(DASH,J=JG,JM,INC)
@@ -1203,8 +1210,9 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: jhour0,jdate0,amon,amon0
+     *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
 
@@ -1253,6 +1261,9 @@ C****
       CHARACTER*133 LINE(53)
       INTEGER ::  I,J,K,kx,kd,L,N,nd,kcolmn,nlines,jgrid,n1,n2
       REAL*8 :: DAYS,gm
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.1) return
 
@@ -1511,7 +1522,7 @@ C**** Print out 6-map pages
 c**** print header lines
           write (6,'("1",a)') xlabel
           write (6,902) jyear0,amon0,jdate0,jhour0,
-     *      jyear,amon,jdate,jhour,itime,days
+     *      year,amon,date,hour,itime,days
         end if
         kcolmn = 1 + mod(n-1,3)
         if (kcolmn .eq. 1) line=' '
@@ -1570,8 +1581,9 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only: jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: jhour0,jdate0,amon,amon0
+     *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
@@ -1625,6 +1637,9 @@ C****
       CHARACTER*133 LINE(53)
       INTEGER ::  kx,N,kcolmn,nlines,jgrid,n1,n2,nn
       REAL*8 :: DAYS,gm
+      integer :: year, hour, date
+
+      call modelEclock%getDate(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.1) return
 
@@ -1783,7 +1798,7 @@ C**** Print out 6-map pages
 c**** print header lines
           write (6,'("1",a)') xlabel
           write (6,902) jyear0,amon0,jdate0,jhour0,
-     *      jyear,amon,jdate,jhour,itime,days
+     *      year,amon,date,hour,itime,days
         end if
         kcolmn = 1 + mod(n-1,3)
         if (kcolmn .eq. 1) line=' '

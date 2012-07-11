@@ -6,7 +6,7 @@
       USE AERO_CONFIG, ONLY: NMODES
       USE AERO_PARAM,  ONLY: NEMIS_SPCS
       USE RESOLUTION,   ONLY: LM
-      USE MODEL_COM,   ONLY: jhour, jdate
+      USE MODEL_COM,   ONLY: modelEclock
       IMPLICIT NONE
       SAVE
 

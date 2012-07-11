@@ -994,7 +994,8 @@ C**** GLOBAL parameters and variables:
       use domain_decomp_atm, only : grid, get, am_i_root
       use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
       use resolution, only : im,jm
-      use model_com, only: JDmidOfM,JMperY,jday,jmon
+      use model_com, only: modelEclock
+      use model_com, only: JDmidOfM,JMperY
       implicit none
 
 C**** Local parameters and variables and arguments
@@ -1025,24 +1026,28 @@ C**** Local parameters and variables and arguments
 ! to interpolate. If in 2nd half of month, use jmon and jmon+1.
 ! Determine the number of days between current mid-months:
 
-      if(jday < startday(jmon))then
+      if(modelEclock%dayOfYear() < startday(modelEclock%month()))then
         offset=-1
       else
         offset=0
       endif
-      itd = startday(jmon+1+offset) - startday(jmon+offset)
+      itd = startday(modelEclock%month()+1+offset) - 
+     *     startday(modelEclock%month()+offset)
 
 ! If about to reach middle of next month, or this is first 
 ! timestep upon (re)start, read the files:
 
-      if (jday == startday(jmon) .or. isave==0) then
+      if (modelEclock%dayOfYear() == startday(modelEclock%month()) .or. 
+     *     isave==0) then
         isave=1
         call readlai(offset)
       endif
 
 ! interpolate to current day:
 
-      beta = real(jday-startday(jmon+offset),kind=8) / real(itd,kind=8)
+      beta = real(modelEclock%dayOfYear() -
+     *     startday(modelEclock%month()+offset),kind=8) 
+     *     / real(itd,kind=8)
       alpha = 1.d0 - beta
       do j=J_0,J_1 ; do i=I_0,I_1 ; do k=1,ijreg(i,j)
         xylai(i,j,k)=alpha*xlai(i,j,k)+beta*xlai2(i,j,k)
@@ -1070,7 +1075,8 @@ C**** GLOBAL parameters and variables:
      &                         ,xolai_loc,xolai2_loc,iland
 #endif
       use resolution, only : im,jm
-      use model_com, only: jmon,JMperY
+      use model_com, only: modelEclock
+      use model_com, only: JMperY
       use filemanager, only: openunit,closeunit
 
       implicit none
@@ -1105,7 +1111,7 @@ C**** Local parameters and variables and arguments
 ! (Greg Faluvegi altering to include offset):
 
 ! read first month's LAI's:
-      fbin='LAI'//cmonth(jmon+offset)//"BIN"
+      fbin='LAI'//cmonth(modelEclock%month()+offset)//"BIN"
 c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
@@ -1118,7 +1124,7 @@ c      write(6,*) fbin
       call closeunit(iunit)
 
 ! read second month's LAI's:
-      fbin='LAI'//cmonth(jmon+offset+1)//"BIN"
+      fbin='LAI'//cmonth(modelEclock%month()+offset+1)//"BIN"
 c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
@@ -1136,8 +1142,9 @@ c      write(6,*) fbin
 ! read first month's LAI's:      
       if ( am_i_root() ) then      
         xlai_glob(:,:,:)= 0.d0 ! just in case, initialize
-        call openunit('LAI'//cmonth(jmon+offset),iunit,.false.,.true.)
-        write(6,*)'Reading LAI'//cmonth(jmon+offset)
+        call openunit('LAI'//cmonth(modelEclock%month()+offset),
+     &       iunit,.false.,.true.)
+        write(6,*)'Reading LAI'//cmonth(modelEclock%month()+offset)
         do 
           read(iunit,"(3I3,20F5.1)",end=20) i,j,index,
      &    (xlai_glob(i,j,k),k=1,index)
@@ -1150,8 +1157,9 @@ c      write(6,*) fbin
 ! read second month's LAI's:      
       if ( am_i_root() ) then 
         xlai2_glob(:,:,:)=0.d0 ! just in case, initialize
-        call openunit('LAI'//cmonth(jmon+offset+1),iunit,.false.,.true.)
-        write(6,*)'Reading LAI'//cmonth(jmon+offset+1)
+        call openunit('LAI'//cmonth(modelEclock%month()+offset+1),
+     &       iunit,.false.,.true.)
+        write(6,*)'Reading LAI'//cmonth(modelEclock%month()+offset+1)
         do
           read(iunit,"(3I3,20F5.1)",end=40) i,j,index,
      &    (xlai2_glob(i,j,k),k=1,index)

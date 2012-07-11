@@ -432,7 +432,7 @@ C we change that.)
 !@auth Drew Shindell / Greg Faluvegi
       USE RESOLUTION, only : ptop,psf
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only: jyear,jday
+      use model_com, only: modelEclock
       USE DYNAMICS, only : sig
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
@@ -483,7 +483,8 @@ C     Interpolation in the vertical.
   
       call openunit(trim(fn),mon_units(nc),mon_bins(nc))
       call read_monthly_3Dsources(Lsulf,mon_units(nc),
-     &   src(:,:,:,nc),trans_emis,0,0,jyear,jday)
+     &   src(:,:,:,nc),trans_emis,0,0,modelEclock%year(),
+     &   modelEclock%dayOfYear())
       call closeunit(mon_units(nc))
 C====
 C====   Place field onto model levels
@@ -1013,7 +1014,7 @@ C
 !@+ the CH4 source to be used later in subroutine alter_wetlands_source.
 !@auth Greg Faluvegi based on Jean Lerner
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only: jday
+      use model_com, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
@@ -1118,7 +1119,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi
       USE RESOLUTION, only : im,jm
       USE FLUXES, only : fland
-      USE MODEL_COM, only: itime,jday
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &   broadcast, write_parallel
 #ifdef CUBED_SPHERE
@@ -1376,7 +1378,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only: jday,idofm=>JDmidOfM
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: idofm=>JDmidOfM
 
       implicit none
 
@@ -1392,11 +1395,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
       imon=1
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (modelEclock%dayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         call readt_parallel(grid,iu,nameunit(iu),tlca,12)
         call rewind_parallel( iu )
       else            ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+        do while(modelEclock%dayOfYear() > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
@@ -1407,7 +1410,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-modelEclock%dayOfYear()) / 
+     & (idofm(imon)-idofm(imon-1))
       data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
 

@@ -65,7 +65,7 @@
 !@sum  sets imon, irr_month_0, and irr_month_1 depending on jday and
 !@sum  jyear (cyclical case does not need jyear).
       USE CONSTANT, only : rhow,teeny,shw,sday
-      use model_com, only : jday,Itime,jmon,JDmidOfM,itimei,JMperY,jyear
+      use model_com, only : Itime,JDmidOfM,itimei,JMperY,modelEclock
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, am_i_root
      &                          ,READT_PARALLEL,REWIND_PARALLEL
      &                          ,READ_PARALLEL, MREAD_PARALLEL

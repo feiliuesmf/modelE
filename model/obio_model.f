@@ -76,7 +76,7 @@
 #endif
 #endif
 
-      USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
+      USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,jdendofm,jyear,aMON,dtsrc
      . ,xlabel,lrunid
       USE CONSTANT, only: sday

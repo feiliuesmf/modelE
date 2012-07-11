@@ -5215,11 +5215,10 @@ c**** find MSU channel 2,3,4 temperatures
       USE CONSTANT, only : sday,kapa,undef
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : lm
-      USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : Itime,ItimeI,Itime0
      *     ,amon,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
-     *     ,nmonav,ItimeE,lrunid
+     *     ,nmonav,ItimeE,lrunid,modelEclock
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
       USE DYNAMICS, only : nfiltr
@@ -5822,9 +5821,8 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE FILEMANAGER
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : JDendOfM,aMON
-     &     ,JMperY,Jmon0,Jyear0,NMONAV
+     &     ,JMperY,Jmon0,Jyear0,NMONAV,modelEclock
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d

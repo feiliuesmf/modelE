@@ -43,7 +43,6 @@ C**** (Simplified) Calendar Related Terms
 
       type (ModelClock), public :: modelEClock
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
-!@var JDAY,JMON,JDATE,JYEAR,JHOUR current Julian day,month,day,year,hour
       INTEGER :: Itime
 !@var ItimeI,ItimeE   time at start,end of run
 !@var Itime0          time at start of current accumulation period

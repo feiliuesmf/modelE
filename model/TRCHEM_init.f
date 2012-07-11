@@ -824,7 +824,7 @@ C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: NWWW,FL,FLX,DUMMY,rad_FL
      & ,SF2_fact,SF3_fact,bin4_1991,bin4_1988,bin5_1988
-      USE MODEL_COM, only: JYEAR,JDAY,JMON
+      use model_com, only: modelEclock
       USE RAD_COM, only: s0_yr
       USE RADPAR, only: icycs0,icycs0f
 
@@ -840,11 +840,11 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
       logical :: found1988, found1991
  
       ! only for start of years and restarts:
-      if(.not. end_of_day .or. JDAY == 1) then
+      if(.not. end_of_day .or. modelEclock%dayOfYear() == 1) then
 
         ! set year we are looking for based on rad code s0_yr:
         if(s0_yr==0)then 
-          wantYear=jyear
+          wantYear=modelEclock%year()
         else
           wantYear=s0_yr
         end if

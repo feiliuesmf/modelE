@@ -56,7 +56,7 @@ module hybrid_mpi_omp_renamer
 
   USE MODEL_COM, only: focean_loc => focean
 
-  USE MODEL_COM, only: dtsrc,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
+  USE MODEL_COM, only: dtsrc,itime,iyear1,nday,jdendofm,aMON,modelEclock
 
   USE GEOM, only : dxyp
   USE CONSTANT,  only: lhm,shi,shw
