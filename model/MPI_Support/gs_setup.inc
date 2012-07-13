@@ -85,11 +85,14 @@ c
       endif
 
       call get_nlnk(local_arr,jd,nl,nk)
-
 #ifndef SERIAL_MODE
       if(nproc_comm.gt.1 .or. nt.gt.1) then
         call alloc_gs_wksp(grid,nl,nk,1+j2g-j1g,nt,am_i_gsroot)
+      else
+        call alloc_gs_wksp_default()
+      end if
 
+      if(nproc_comm.gt.1 .or. nt.gt.1) then
 c calculate gatherv/scatterv info
         if(nt.gt.1) then
           cntsijg(:) = grid%npx*grid%npy
@@ -129,6 +132,7 @@ c calculate gatherv/scatterv info
       endif
 #else
       allocate(cntsij(1), displsij(1)) ! unused but passed to routine with fixed size arrays
+      call alloc_gs_wksp_default()
 #endif
         
 #ifdef _GATHER_

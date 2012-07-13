@@ -3572,7 +3572,7 @@ contains
       qrArray(4)=piby6*row*qrArray(3)**3        ! mean rain mass [kg]
       qrArray(5)=1000.0e-06                     ! assumed rain conc [No/m^3]
       !      write(ou,*) 'k,   prebar(k)   vrain(k)    mrain(k)    nrain(k)'
-      vrain=min(qrArray(1)*qrArray(3)**qrArray(2),9.2)  ! [m/s]
+      vrain=min(qrArray(1)*qrArray(3)**qrArray(2),9.2d0)  ! [m/s]
       !      write(6,*)"VRAIN",vrain,l
       mrain=100.d0*prebar(L)/vrain             ! [kq/m^3]
       nrain=mrain/qrArray(4)                ! [No/m^3]

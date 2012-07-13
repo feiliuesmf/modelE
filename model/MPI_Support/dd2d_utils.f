@@ -944,6 +944,15 @@ c on the diagonal
 
 #endif /* not SERIAL_MODE */
 
+      subroutine alloc_gs_wksp_default()
+! Although these 3 arrays are not really used in a serial build, they
+! are still passed to external libraries and/or interfaces in which they
+! the corresponding dummy argument is assumed size.
+      if (.not. allocated(buf1d_local)) allocate(buf1d_local(1))
+      if (.not. allocated(buf1d_tile)) allocate(buf1d_tile(1))
+      if (.not. allocated(bufij_tile)) allocate(bufij_tile(1))
+      end subroutine alloc_gs_wksp_default
+
       subroutine alloc_gs_wksp(grid,nl,nk,nj,nt,am_i_gsroot)
 c allocates gather/scatter workspace
       type(dist_grid) :: grid
@@ -958,7 +967,6 @@ c allocates gather/scatter workspace
       endif
       lsize = nlk*(1+grid%ie-grid%is)*(1+grid%je-grid%js)
       tsize = nlk*grid%npx*nj
-
       if(lsize.gt.buf1d_local_size) then
         if(allocated(buf1d_local)) deallocate(buf1d_local)
         allocate(buf1d_local(lsize))

@@ -120,8 +120,9 @@ contains
     hour = this%currentTime%getHour()
   end function hour
 
-  character(len=LEN_MONTH_ABBREVIATION) function abbrev(this)
+  function abbrev(this)
     use Month_mod, only: LEN_MONTH_ABBREVIATION
+    character(len=LEN_MONTH_ABBREVIATION) abbrev
     class (ModelClock), intent(in) :: this
 
     abbrev = this%currentTime%getAbbreviation()

@@ -7,7 +7,8 @@ module RANDOM
   integer, save :: IX            !@var IX     random number seed
 
   ! Parameters used for generating sequences of random numbers
-  integer, parameter :: A_linear = 69069 ! Based on ifort ran() routine
+  integer, parameter :: LONG = selected_int_kind(12)
+  integer(kind=LONG), parameter :: A_linear = 69069 ! Based on ifort ran() routine
   integer, parameter :: MAX_BITS = 32
   real*4, parameter :: SCALE = 1./real(2_8**MAX_BITS,4)
 

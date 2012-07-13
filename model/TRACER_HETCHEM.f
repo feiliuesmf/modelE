@@ -21,11 +21,12 @@
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
-      real                  :: erf
+
       integer, parameter    :: ndtr = 8  ! # dust bins
       REAL*8, 
      * DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -271,11 +272,11 @@ c radii interpolation
       USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
-      real                   :: erf
       integer, parameter     :: ndtr = 8  ! # dust bins
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      *                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::

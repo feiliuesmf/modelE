@@ -1700,22 +1700,6 @@ C
 
 
 
-C======================================================================C
-C *** REAL FUNCTION ERF
-C *** THIS SUBROUTINE CALCULATES THE ERROR FUNCTION
-C
-C *** OBTAINED FROM NUMERICAL RECIPIES
-C
-C======================================================================C
-      REAL FUNCTION ERF(X)
-      IF(X.LT.0.)THEN
-        ERF=-GAMMP(.5,X**2)
-      ELSE
-        ERF=GAMMP(.5,X**2)
-      ENDIF
-      RETURN
-      END
-
 C
 C======================================================================C
       FUNCTION GAMMLN(XX)
@@ -1738,82 +1722,6 @@ C======================================================================C
       END
 
 
-C
-C======================================================================C
-      FUNCTION GAMMP(A,X)
-C
-C======================================================================C
-      IF(X.LT.0..OR.A.LE.0.)PAUSE
-      IF(X.LT.A+1.)THEN
-        CALL GSER(GAMSER,A,X,GLN)
-        GAMMP=GAMSER
-      ELSE
-        CALL GCF(GAMMCF,A,X,GLN)
-        GAMMP=1.-GAMMCF
-      ENDIF
-      RETURN
-      END
-
-
-C
-C======================================================================C
-      SUBROUTINE GCF(GAMMCF,A,X,GLN)
-C
-C======================================================================C
-      PARAMETER (ITMAX=100,EPS=3.E-7)
-      GLN=GAMMLN(A)
-      GOLD=0.
-      A0=1.
-      A1=X
-      B0=0.
-      B1=1.
-      FAC=1.
-      DO 11 N=1,ITMAX
-        AN=FLOAT(N)
-        ANA=AN-A
-        A0=(A1+A0*ANA)*FAC
-        B0=(B1+B0*ANA)*FAC
-        ANF=AN*FAC
-        A1=X*A0+ANF*A1
-        B1=X*B0+ANF*B1
-        IF(A1.NE.0.)THEN
-          FAC=1./A1
-          G=B1*FAC
-          IF(ABS((G-GOLD)/G).LT.EPS)GO TO 1
-          GOLD=G
-        ENDIF
-11    CONTINUE
-      PAUSE 'A TOO LARGE, ITMAX TOO SMALL'
-1     GAMMCF=EXP(-X+A*LOG(X)-GLN)*G
-      RETURN
-      END
-
-
-C
-C======================================================================C
-      SUBROUTINE GSER(GAMSER,A,X,GLN)
-C
-C======================================================================C
-      PARAMETER (ITMAX=100,EPS=3.E-7)
-      GLN=GAMMLN(A)
-      IF(X.LE.0.)THEN
-        IF(X.LT.0.)PAUSE
-        GAMSER=0.
-        RETURN
-      ENDIF
-      AP=A
-      SUM=1./A
-      DEL=SUM
-      DO 11 N=1,ITMAX
-        AP=AP+1.
-        DEL=DEL*X/AP
-        SUM=SUM+DEL
-        IF(ABS(DEL).LT.ABS(SUM)*EPS)GO TO 1
-11    CONTINUE
-      PAUSE 'A TOO LARGE, ITMAX TOO SMALL'
-1     GAMSER=SUM*EXP(-X+A*LOG(X)-GLN)
-      RETURN
-      END
       
 C======================================================================C
 C      MATHEMATICAL ROUTINES

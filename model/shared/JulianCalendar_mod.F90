@@ -136,7 +136,10 @@ contains
   function getAbbreviation(this, t) result(abbrev)
     use Month_mod, only: LEN_MONTH_ABBREVIATION
     use Time_mod
-    character(len=LEN_MONTH_ABBREVIATION) :: abbrev
+    
+!!$$    character(len=LEN_MONTH_ABBREVIATION) :: abbrev
+    !TODO workaround for NAG - needs literal here
+    character(len=4) :: abbrev
     class (JulianCalendar), intent(in) :: this
     class (Time), intent(in) :: t
 

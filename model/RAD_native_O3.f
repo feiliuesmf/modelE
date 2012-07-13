@@ -215,7 +215,7 @@ C**** Define December
 
         do J=J_0,J_1 ; do L=1,NLO3 ; do I=I_0,I_1     
           O3YEAR(I,J,L,0)=
-     &    max(0., WTI*O3ICMA(I,J,L,12)+WTJ*O3JCMA(I,J,L,12) )
+     &    max(0.d0, WTI*O3ICMA(I,J,L,12)+WTJ*O3JCMA(I,J,L,12) )
         enddo; enddo; enddo
 
         IYRDEC=JYEARX   ! Set flag to indicate December data is current
@@ -243,7 +243,7 @@ C         Interpolate prior December from the decadal files - start-up
 
           do J=J_0,J_1 ; do L=1,NLO3 ; do I=I_0,I_1     
             O3YEAR(I,J,L,0)=
-     &      max(0., WTI*O3ICMA(I,J,L,12)+WTJ*O3JCMA(I,J,L,12) )
+     &      max(0.d0, WTI*O3ICMA(I,J,L,12)+WTJ*O3JCMA(I,J,L,12) )
           enddo; enddo; enddo
 
           IYRDEC=JYEARX  ! Set flag to indicate December data is current
@@ -261,7 +261,7 @@ C            -----------------------------------------------
 
       do M=1,12 ; do J=J_0,J_1 ; do L=1,NLO3 ; do I=I_0,I_1 
         O3YEAR(I,J,L,M)=
-     &  max(0., WTI*O3ICMA(I,J,L,M)+WTJ*O3JCMA(I,J,L,M) )
+     &  max(0.d0, WTI*O3ICMA(I,J,L,M)+WTJ*O3JCMA(I,J,L,M) )
       enddo ; enddo ; enddo ; enddo
 
       if(JYEARX.ne.IYRDEC) then               ! cyclical start-up case
