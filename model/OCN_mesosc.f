@@ -2,10 +2,8 @@
 
       subroutine OCN_mesosc(kappam3d)
 
-      USE MODEL_COM,  only : nstep=>itime,itimei
-     .                    ,JMON,jhour,nday,jdate,jday
-     . ,iyear1,jdendofm,jyear,aMON,dtsrc
-     . ,xlabel,lrunid
+      USE MODEL_COM,  only : nstep=>itime,itimei,nday
+     . ,iyear1,jdendofm,aMON,dtsrc,xlabel,lrunid
       USE CONSTANT,   only : grav,omega,sday
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
@@ -50,8 +48,7 @@
       integer ip1,im1
 
       logical vrbos
-
-
+c
       kappam3d=0. 
 
       if (nstep.eq.0) return

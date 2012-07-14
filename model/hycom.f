@@ -104,7 +104,7 @@ c
       USE SEAICE, only : fsss,tfrez,Ei ! number, functions - ok
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
-     *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
+     *  ,itime,iyear1,nday,jdendofm,modelEclock,aMON
 #ifdef TRACERS_AGE_OCEAN    
      .  ,JDperY
       USE CONSTANT, only : sday
@@ -182,6 +182,7 @@ c
       real*4 ocnbio_time,ocnbio_total_time,ocnbio_avg_time
 #endif
       integer after,before,rate,bfogcm
+      integer :: year, month, dayOfYear, date, hour
 c
       real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
@@ -232,7 +233,11 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       ! move to global atm grid
       call start('hycom')
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+c
+      call modelEclock%getDate(year=year, month=month, date=date,
+     .  hour=hour, dayOfYear=dayOfYear)
+
+      call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
 
       rsi_loc => iceocn%rsi
       focean_loc => atmocn%focean
@@ -294,7 +299,7 @@ c
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
 c
-      if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
+      if (mod(hour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
         do 28 ja=aJ_0,aJ_1
         do 28 ia=aI_0,aI_1
           ataux_loc(ia,ja)=0.
@@ -403,7 +408,7 @@ c --- dmua on A-grid, admui on C-grid
 
               if (ia == itest .and. ja == jtest) then
                 write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
-     .          itime,jhour,ia,ja,TRGASEX_loc(nt,ia,ja),
+     .          itime,hour,ia,ja,TRGASEX_loc(nt,ia,ja),
      .                       atracflx_loc(ia,ja,nt)
               end if
             enddo
@@ -430,7 +435,7 @@ c --- dmua on A-grid, admui on C-grid
 c
       nsavea=nsavea+1
 
-      if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
+      if (mod(hour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
 
       if (nsavea*24/nday.ne.nhr) then
         write(*,'(a,4i4,i8)')
@@ -575,20 +580,20 @@ c
       watcum=0.
       empcum=0.
 c
-      if (jyear-iyear1.le.20) then
+      if (year-iyear1.le.20) then
         if (AM_I_ROOT())
      .  write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
-     .   /'' iyear1/jyear='',2i5)')
+     .   /'' iyear1/year='',2i5)')
 CTNL .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday  ! crashes
      .  int((nstep0+nstepi-1)/(3600*24)*baclin),itime/nday  ! if nstep0 too big
 CTNL . ,int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear ! crashes
-     . ,int((nstep0+nstepi-1)/3600*baclin),itime*24/nday,iyear1,jyear
+     . ,int((nstep0+nstepi-1)/3600*baclin),itime*24/nday,iyear1,year
       else
         if (AM_I_ROOT())
      .  write (lp,'(''starting date in ogcm/agcm '',2i12
-     .   /'' iyear1/jyear='',2i5)') 
+     .   /'' iyear1/year='',2i5)') 
      .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
-     . ,iyear1,jyear,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
+     . ,iyear1,year,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
       endif
 c
 c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
@@ -601,13 +606,13 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
         write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step'
      &       ,nstep0
      . ,' changed to: '
-     . ,int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1
+     . ,int((itime*24/nday+(iyear1-year)*8760)*3600/baclin)-nstepi+1
      . ,' (day '
-     .,(int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1)
+     .,(int((itime*24/nday+(iyear1-year)*8760)*3600/baclin)-nstepi+1)
      .  *baclin/86400,')'
         end if   ! AM_I_ROOT
 
-        nstep0=int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)
+        nstep0=int((itime*24/nday+(iyear1-year)*8760)*3600/baclin)
      .                                         -nstepi+3600/baclin
         nstep=nstep0
         time0=nstep0*baclin/86400
@@ -677,8 +682,8 @@ c
       time=time0+(nstep-nstep0)*baclin/86400.
 c
       diagno=.false.
-      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.23.and.nsub.eq.nstepi) 
-     .                                    diagno=.true. ! end of month
+      if (JDendOfM(month) .eq. dayOfYear .and.hour .eq. 23 .and 
+     .  .nsub .eq. nstepi)  diagno = .true. ! end of month
 c
       if (nstep.eq.1) then
 c

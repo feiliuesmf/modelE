@@ -5,9 +5,8 @@
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
-      USE MODEL_COM, only :
-     *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
-     * ,xlabel,lrunid
+      USE MODEL_COM, only : modelEclock,
+     *  itime,iyear1,nday,jdendofm,aMON,xlabel,lrunid
 
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref,baclin
@@ -39,9 +38,12 @@ c
 c
       integer no,nop,nt
       character flnm*40,intvl*3,title*80
+      integer :: year, month, dayOfYear, date, hour
 c
-     
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      call modelEclock%getDate(year=year, month=month, date=date,
+     .  hour=hour, dayOfYear=dayOfYear)
+
+      call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.obio',xlabel(1:lrunid)
@@ -50,19 +52,19 @@ c --- check if ogcm date matches agcm date
 !    .     (itime+1.)/nday,time
 !       stop 'obio_archyb: mismatching archive date'
       else
-        write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.obio',xlabel(1:lrunid)
+        write(flnm,'(a3,i4.4,2a)') amon,year,'.obio',xlabel(1:lrunid)
       endif
 c
-      if (jdate.lt.100) then
-        write (intvl,'(i3.3)') jdate
+      if (date.lt.100) then
+        write (intvl,'(i3.3)') date
       else
-        stop 'jdate >100'
+        stop 'date >100'
       endif
 c
       nop=12
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 
-      factor=baclin/(jdate*86400.)
+      factor=baclin/(date*86400.)
 c
       open (unit=nop,file=flnm,status='unknown',
      .      form='unformatted')

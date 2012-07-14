@@ -77,7 +77,7 @@
 #endif
 
       USE MODEL_COM, only: modelEclock
-     . ,itime,iyear1,jdendofm,jyear,aMON,dtsrc
+     . ,itime,iyear1,jdendofm,aMON,dtsrc
      . ,xlabel,lrunid
       USE CONSTANT, only: sday
 
@@ -139,19 +139,24 @@
       character jstring*3
 
       logical vrbos,noon,errcon
+      integer :: year, month, dayOfYear, date, hour
 
       if(.not.dobio) return
 
       call start(' obio_model')
 !--------------------------------------------------------
       diagno_bio=.false.
+c
+      call modelEclock%getDate(year=year, month=month, date=date,
+     .  hour=hour, dayOfYear=dayOfYear)
+
 #ifdef OBIO_ON_GARYocean
-      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12) then
+      if (JDendOfM(month).eq.dayOfYear.and.hour.eq.12) then
           if (mod(nstep,2).eq.0)
      .    diagno_bio=.true. ! end of month,mid-day
       endif
 #else
-      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12) then
+      if (JDendOfM(month).eq.dayOfYear.and.hour.eq.12) then
           if (mod(nstep,2).eq.0)     !two timesteps per hour
      .    diagno_bio=.true. ! end of month,mid-day
       endif
@@ -248,8 +253,8 @@
 
 !--------------------------------------------------------
 
-       day_of_month=jdate
-       hour_of_day =jhour
+       day_of_month=date
+       hour_of_day =hour
 
        !if (time.kmod(nstep,24*30).eq.0) then
        !   day_of_month=1
@@ -265,15 +270,15 @@
  
       if (AM_I_ROOT()) then
        write(*,'(a,i15,1x,f9.3,2x,3i5)')
-     .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
-     .    nstep,time,day_of_month,hour_of_day,jday
+     .    'BIO: nstep,time,day_of_month,hour_of_day,dayOfYear=',
+     .    nstep,time,day_of_month,hour_of_day,dayOfYear
       endif
 
          ihr0 = int(hour_of_day/2)
 
       if (diagno_bio) then
 #ifdef OBIO_ON_GARYocean
-        write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
+        write(string,'(a3,i4.4,2a)') amon,year,'.',xlabel(1:lrunid)
 #endif
       endif  !diagno_bio
 
@@ -524,7 +529,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
 
        !atmospheric deposition iron 
-       atmFe_ij=atmFe(i,j,JMON)
+       atmFe_ij=atmFe(i,j,month)
 #ifdef zero_ironflux
         atmFe_ij=0.d0
 #endif

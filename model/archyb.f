@@ -4,9 +4,8 @@
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
-      USE MODEL_COM, only :
-     *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
-     * ,xlabel,lrunid,monthi,datei
+      USE MODEL_COM, only : modelEclock,
+     *  itime,iyear1,nday,jdendofm,aMON,xlabel,lrunid,monthi,datei
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
@@ -38,9 +37,13 @@ c
       data unused/0./
       integer, parameter :: 
      . mon_date(13)=(/0,31,59,90,120,151,181,212,243,273,304,334,365/)
+      integer :: year, month, dayOfYear, date, hour
 c
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
-      print *,'stamp',Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
+      call modelEclock%getDate(year=year, month=month, date=date,
+     .  hour=hour, dayOfYear=dayOfYear)
+      call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
+      print *,'stamp',Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,
+     .  amon
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
@@ -49,7 +52,7 @@ c --- check if ogcm date matches agcm date
      .     (itime+1.)/nday,time
         stop 'mismatching archive date'   
       else
-        write(flnm,'(a3,i4.4,2a)') amon,Jyear,'.out',xlabel(1:lrunid)
+        write(flnm,'(a3,i4.4,2a)') amon,year,'.out',xlabel(1:lrunid)
       endif
 c
 c     write (lp,*) 'shown below: sea surface height'
@@ -57,10 +60,10 @@ c     call zebra(srfhgt,idm,ii1,jj)
       write (lp,*) 'shown below: sea surface temperature'
       call zebra(temp(1,1,1+nn),idm,ii1,jj)
 c
-      if (jdate.le.9999) then
-        write (intvl,'(i4.4)') jdate
+      if (date.le.9999) then
+        write (intvl,'(i4.4)') date
       else
-        stop ' wrong jdate > 9999'
+        stop ' wrong date > 9999'
       endif
 c
       no=4096 
@@ -84,7 +87,7 @@ c --- time4: model integration time in day; time: starts as Judian Date
         theta4(k)=theta(k)
       end do
       write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
-     .             jmon,'/',jdate,'/',jyear,' hr ',jhour+nhr
+     .             month,'/',date,'/',year,' hr ',hour+nhr
       write (lp,'(a/9x,2a,f7.1)') 'storing history data in',flnm(1:17)
      .               ,' date=',time4
       write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
@@ -209,7 +212,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- output time-averaged fields
 c
-      factor=baclin/(jdate*86400.)
+      factor=baclin/(date*86400.)
 c
       do 55 j=1,jj
       do 55 l=1,isp(j)

@@ -19,7 +19,7 @@
       use hycom_scalars, only : nstep,onem
       use hycom_atm, only : ocnatm
 #endif
-      USE MODEL_COM, only: JMON
+      USE MODEL_COM, only: modelEclock
       USE obio_incom, only: mgchltouMC,solFe
       USE obio_forc, only: atmFe
       USE obio_com,   only: carb_old,obio_deltath,iron_old,p1d
@@ -63,7 +63,7 @@
       sumFlux=0.   ! no surface flux
 #endif
       !see obio_ptend notes on whether to include ice effect
-      ironFlux= areaIntegration(atmFe(:,:,JMON))
+      ironFlux= areaIntegration(atmFe(:,:,modelEclock%month()))
 #ifdef zero_ironflux
       ironFlux=0.d0
 #endif
