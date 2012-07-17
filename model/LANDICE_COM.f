@@ -19,10 +19,20 @@
 
       IMPLICIT NONE
       SAVE
+
+!@param nhc number of height classes (static for now)
+      integer, parameter :: nhc=1
+!@fhc fraction of landice area in each height class (static for testing purposes)
+      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
+
+      !integer, parameter :: nhc=2
+      !real*8, dimension(nhc), parameter :: fhc=(/1d0,0d0/)
+      !real*8, dimension(nhc), parameter :: fhc=(/.5d0,.5d0/)
+
 !@var SNOWLI snow amount on land ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWLI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWLI
 !@var TLANDI temperature of each land ice layer (C)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLANDI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TLANDI
 !@var MDWNIMP downward implicit ice amount accumulator (kg)
 !@var EDWNIMP downward implicit energy amount accumulator (J)
 !@var FSHGLM = fraction of SH GMELT water; Sum[FSHGLM(:,:)] = 1
@@ -32,9 +42,9 @@
 
 #ifdef TRACERS_WATER
 !@var TRSNOWLI tracer amount in land ice snow (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRSNOWLI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWLI
 !@var TRLNDI tracer amount in land ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRLNDI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRLNDI
 !@var TDWNIMP downward implicit tracer amount accumulator (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRDWNIMP
 #endif
@@ -52,7 +62,7 @@
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
-      Use LANDICE_COM, Only: SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
+      Use LANDICE_COM, Only: NHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
      *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
@@ -73,16 +83,16 @@
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE( SNOWLI(I_0H:I_1H,J_0H:J_1H),
-     *          TLANDI(2,I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE( SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          TLANDI(2,I_0H:I_1H,J_0H:J_1H,NHC),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          EDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          FSHGLM(I_0H:I_1H,J_0H:J_1H),
      *          FNHGLM(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #ifdef TRACERS_WATER
-      ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H),
-     *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H,NHC),
+     *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H,NHC),
      *          TRDWNIMP(NTM,I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #ifdef TRACERS_OCEAN
@@ -94,145 +104,145 @@
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
 
-      SUBROUTINE io_landice(kunit,iaction,ioerr)
-!@sum  io_landice reads and writes landice variables to file
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, broadcast,
-     *     BACKSPACE_PARALLEL
-      USE LANDICE_COM
-      USE LANDICE
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "GLAIC03"
-!@var SNOWLI_GLOB dummy global array used for esmf i/o
-      REAL*8, DIMENSION(IM,JM) :: SNOWLI_GLOB
-!@var TLANDI_GLOB dummy global array used for esmf i/o
-      REAL*8, DIMENSION(2,IM,JM) :: TLANDI_GLOB
-      REAL*8, DIMENSION(IM,JM) :: MDWNIMP_GLOB, EDWNIMP_GLOB
-      INTEGER :: J_0H,J_1H
-#ifdef TRACERS_WATER
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRGLAC02"
-!@var TRSNOWLI_GLOB  dummy global arrays used for i/o
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWLI_GLOB
-!@var TRLNDI_GLOB  dummy global arrays used for i/o
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRLNDI_GLOB
-      REAL*8, DIMENSION(NTM,IM,JM) :: TRDWNIMP_GLOB
-      write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a7,i3,a)')'R8 dim(',NTM,',im,jm):TRSNOWLI,TRLNDI,TRDWN'
-#ifdef TRACERS_OCEAN
-     *     //',TRACC,TRIMP*2'
-#endif
-#endif
-
-      MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm),MDWN,EDWN'
-     *     //',MACC,EACC,IMP*8'
-
-      SELECT CASE (IACTION)
-
-      CASE (:IOWRITE)            ! output to standard restart file
-C**** Gather into global arrays
-        CALL PACK_DATA(grid,SNOWLI,SNOWLI_GLOB)
-        CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB)
-        CALL PACK_COLUMN( grid,MDWNIMP,MDWNIMP_GLOB)
-        CALL PACK_COLUMN( grid,EDWNIMP,EDWNIMP_GLOB)
-        IF (AM_I_ROOT())
-     &       WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
-     *       ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA,EACCPDG
-     *       ,MICBIMP,EICBIMP
-#ifdef TRACERS_WATER
-C**** Gather into global arrays
-          CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )
-          CALL PACK_COLUMN( grid,TRLNDI,  TRLNDI_GLOB  )
-          CALL PACK_COLUMN( grid,TRDWNIMP,TRDWNIMP_GLOB )
-        IF (AM_I_ROOT())
-     &         WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI_GLOB
-     *         ,TRLNDI_GLOB,TRDWNIMP_GLOB
-#ifdef TRACERS_OCEAN
-     *         ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
-#endif
-#endif
-
-      CASE (IOREAD:)            ! input from restart file
-        if ( AM_I_ROOT() ) then
-          READ (kunit,err=10) HEADER
-          CALL BACKSPACE_PARALLEL(kunit)
-          IF (HEADER(1:LHEAD).EQ.MODULE_HEADER(1:LHEAD)) THEN
-            READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
-     *           ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA
-     *           ,EACCPDG,MICBIMP,EICBIMP
-          ELSEIF (HEADER(1:LHEAD).EQ."GLAIC01" .or. HEADER(1:LHEAD).EQ
-     *           ."GLAIC02") THEN
-            READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
-            MDWNIMP_GLOB=0 ; EDWNIMP_GLOB=0
-            ACCPDA=0 ; ACCPDG=0 ; EACCPDA=0 ; EACCPDG=0
-            MICBIMP(:) = 0  ;  EICBIMP(:) = 0
-          ELSE
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-        end if
-C****** Get useful ESMF parameters
-        CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-C****** Load data into distributed arrays
-        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI)
-        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI)
-        CALL UNPACK_COLUMN( GRID, MDWNIMP_GLOB, MDWNIMP)
-        CALL UNPACK_COLUMN( GRID, EDWNIMP_GLOB, EDWNIMP)
-        call broadcast(grid,  ACCPDA)
-        call broadcast(grid,  ACCPDG)
-        call broadcast(grid, EACCPDA)
-        call broadcast(grid, EACCPDG)
-        call broadcast(grid, MICBIMP)
-        call broadcast(grid, EICBIMP)
-
-#ifdef TRACERS_WATER
-        SELECT CASE (IACTION)
-        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) TRHEADER
-            CALL BACKSPACE_PARALLEL(kunit)
-            IF (TRHEADER(1:LHEAD).EQ.TRMODULE_HEADER(1:LHEAD)) THEN
-              READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
-     *             ,TRDWNIMP_GLOB
-#ifdef TRACERS_OCEAN
-     *             ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
-#endif
-            ELSEIF (TRHEADER(1:LHEAD).EQ."TRGLAC01") THEN
-              READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
-            ELSE
-              PRINT*,"Discrepancy in module version ",TRHEADER
-     *             ,TRMODULE_HEADER
-              GO TO 10
-            END IF
-          end if                !..am_i_root
-C********* Load data into distributed arrays
-          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI)
-          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI)
-          CALL UNPACK_COLUMN(GRID, TRDWNIMP_GLOB, TRDWNIMP)
-#ifdef TRACERS_OCEAN
-          call broadcast(grid, TRACCPDA)
-          call broadcast(grid, TRACCPDG)
-c          call broadcast(grid, TRICBIMP)
-#endif
-        END SELECT
-#endif
-
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_landice
+c      SUBROUTINE io_landice(kunit,iaction,ioerr)
+c!@sum  io_landice reads and writes landice variables to file
+c!@auth Gavin Schmidt
+c      USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
+c      USE DOMAIN_DECOMP_ATM, only : grid
+c      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+c      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
+c      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, broadcast,
+c     *     BACKSPACE_PARALLEL
+c      USE LANDICE_COM
+c      USE LANDICE
+c      IMPLICIT NONE
+c
+c      INTEGER kunit   !@var kunit unit number of read/write
+c      INTEGER iaction !@var iaction flag for reading or writing to file
+c!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+c      INTEGER, INTENT(INOUT) :: IOERR
+c!@var HEADER Character string label for individual records
+c      CHARACTER*80 :: HEADER, MODULE_HEADER = "GLAIC03"
+c!@var SNOWLI_GLOB dummy global array used for esmf i/o
+c      REAL*8, DIMENSION(IM,JM) :: SNOWLI_GLOB
+c!@var TLANDI_GLOB dummy global array used for esmf i/o
+c      REAL*8, DIMENSION(2,IM,JM) :: TLANDI_GLOB
+c      REAL*8, DIMENSION(IM,JM) :: MDWNIMP_GLOB, EDWNIMP_GLOB
+c      INTEGER :: J_0H,J_1H
+c#ifdef TRACERS_WATER
+c!@var TRHEADER Character string label for individual records
+c      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRGLAC02"
+c!@var TRSNOWLI_GLOB  dummy global arrays used for i/o
+c      REAL*8, DIMENSION(NTM,IM,JM) :: TRSNOWLI_GLOB
+c!@var TRLNDI_GLOB  dummy global arrays used for i/o
+c      REAL*8, DIMENSION(NTM,IM,JM) :: TRLNDI_GLOB
+c      REAL*8, DIMENSION(NTM,IM,JM) :: TRDWNIMP_GLOB
+c      write (TRMODULE_HEADER(lhead+1:80)
+c     *     ,'(a7,i3,a)')'R8 dim(',NTM,',im,jm):TRSNOWLI,TRLNDI,TRDWN'
+c#ifdef TRACERS_OCEAN
+c     *     //',TRACC,TRIMP*2'
+c#endif
+c#endif
+c
+c      MODULE_HEADER(lhead+1:80) = 'R8 SNOW(im,jm),T(2,im,jm),MDWN,EDWN'
+c     *     //',MACC,EACC,IMP*8'
+c
+c      SELECT CASE (IACTION)
+c
+c      CASE (:IOWRITE)            ! output to standard restart file
+cC**** Gather into global arrays
+c        CALL PACK_DATA(grid,SNOWLI,SNOWLI_GLOB)
+c        CALL PACK_COLUMN( grid,TLANDI,TLANDI_GLOB)
+c        CALL PACK_COLUMN( grid,MDWNIMP,MDWNIMP_GLOB)
+c        CALL PACK_COLUMN( grid,EDWNIMP,EDWNIMP_GLOB)
+c        IF (AM_I_ROOT())
+c     &       WRITE (kunit,err=10) MODULE_HEADER,SNOWLI_GLOB,TLANDI_GLOB
+c     *       ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA,EACCPDG
+c     *       ,MICBIMP,EICBIMP
+c#ifdef TRACERS_WATER
+cC**** Gather into global arrays
+c          CALL PACK_COLUMN( grid,TRSNOWLI,TRSNOWLI_GLOB )
+c          CALL PACK_COLUMN( grid,TRLNDI,  TRLNDI_GLOB  )
+c          CALL PACK_COLUMN( grid,TRDWNIMP,TRDWNIMP_GLOB )
+c        IF (AM_I_ROOT())
+c     &         WRITE (kunit,err=10) TRMODULE_HEADER,TRSNOWLI_GLOB
+c     *         ,TRLNDI_GLOB,TRDWNIMP_GLOB
+c#ifdef TRACERS_OCEAN
+c     *         ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
+c#endif
+c#endif
+c
+c      CASE (IOREAD:)            ! input from restart file
+c        if ( AM_I_ROOT() ) then
+c          READ (kunit,err=10) HEADER
+c          CALL BACKSPACE_PARALLEL(kunit)
+c          IF (HEADER(1:LHEAD).EQ.MODULE_HEADER(1:LHEAD)) THEN
+c            READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
+c     *           ,MDWNIMP_GLOB,EDWNIMP_GLOB,ACCPDA,ACCPDG,EACCPDA
+c     *           ,EACCPDG,MICBIMP,EICBIMP
+c          ELSEIF (HEADER(1:LHEAD).EQ."GLAIC01" .or. HEADER(1:LHEAD).EQ
+c     *           ."GLAIC02") THEN
+c            READ (kunit,err=10) HEADER,SNOWLI_GLOB,TLANDI_GLOB
+c            MDWNIMP_GLOB=0 ; EDWNIMP_GLOB=0
+c            ACCPDA=0 ; ACCPDG=0 ; EACCPDA=0 ; EACCPDG=0
+c            MICBIMP(:) = 0  ;  EICBIMP(:) = 0
+c          ELSE
+c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c            GO TO 10
+c          END IF
+c        end if
+cC****** Get useful ESMF parameters
+c        CALL GET( GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+cC****** Load data into distributed arrays
+c        CALL UNPACK_DATA( GRID, SNOWLI_GLOB, SNOWLI)
+c        CALL UNPACK_COLUMN( GRID, TLANDI_GLOB, TLANDI)
+c        CALL UNPACK_COLUMN( GRID, MDWNIMP_GLOB, MDWNIMP)
+c        CALL UNPACK_COLUMN( GRID, EDWNIMP_GLOB, EDWNIMP)
+c        call broadcast(grid,  ACCPDA)
+c        call broadcast(grid,  ACCPDG)
+c        call broadcast(grid, EACCPDA)
+c        call broadcast(grid, EACCPDG)
+c        call broadcast(grid, MICBIMP)
+c        call broadcast(grid, EICBIMP)
+c
+c#ifdef TRACERS_WATER
+c        SELECT CASE (IACTION)
+c        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! from reruns/restarts
+c          if ( AM_I_ROOT() ) then
+c            READ (kunit,err=10) TRHEADER
+c            CALL BACKSPACE_PARALLEL(kunit)
+c            IF (TRHEADER(1:LHEAD).EQ.TRMODULE_HEADER(1:LHEAD)) THEN
+c              READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
+c     *             ,TRDWNIMP_GLOB
+c#ifdef TRACERS_OCEAN
+c     *             ,TRACCPDA,TRACCPDG  !  ,TRICBIMP
+c#endif
+c            ELSEIF (TRHEADER(1:LHEAD).EQ."TRGLAC01") THEN
+c              READ (kunit,err=10) TRHEADER,TRSNOWLI_GLOB,TRLNDI_GLOB
+c            ELSE
+c              PRINT*,"Discrepancy in module version ",TRHEADER
+c     *             ,TRMODULE_HEADER
+c              GO TO 10
+c            END IF
+c          end if                !..am_i_root
+cC********* Load data into distributed arrays
+c          CALL UNPACK_COLUMN(GRID, TRSNOWLI_GLOB, TRSNOWLI)
+c          CALL UNPACK_COLUMN(GRID, TRLNDI_GLOB,   TRLNDI)
+c          CALL UNPACK_COLUMN(GRID, TRDWNIMP_GLOB, TRDWNIMP)
+c#ifdef TRACERS_OCEAN
+c          call broadcast(grid, TRACCPDA)
+c          call broadcast(grid, TRACCPDG)
+cc          call broadcast(grid, TRICBIMP)
+c#endif
+c        END SELECT
+c#endif
+c
+c      END SELECT
+c
+c      RETURN
+c 10   IOERR=1
+c      RETURN
+c      END SUBROUTINE io_landice
 
 
 #ifdef NEW_IO
@@ -260,8 +270,8 @@ c          call broadcast(grid, TRICBIMP)
       use conserv_diags
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm)')
-      call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm)')
+      call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm,nhc)')
       call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
       call defvar(grid,fid,edwnimp,'edwnimp(dist_im,dist_jm)')
       call defvar(grid,fid,accpda,'accpda')
@@ -272,8 +282,8 @@ c          call broadcast(grid, TRICBIMP)
       call defvar(grid,fid,eicbimp,'eicbimp(two)')
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsnowli,
-     &     'trsnowli(ntm,dist_im,dist_jm)')
-      call defvar(grid,fid,trlndi,'trlndi(ntm,dist_im,dist_jm)')
+     &     'trsnowli(ntm,dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,trlndi,'trlndi(ntm,dist_im,dist_jm,nhc)')
       call defvar(grid,fid,trdwnimp,
      &     'trdwnimp(ntm,dist_im,dist_jm)')
 #ifdef TRACERS_OCEAN

@@ -40,7 +40,6 @@ C****
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
      &     ,readt_parallel
-      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
@@ -766,17 +765,6 @@ c        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
 c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
 c      end if
 
-      deallocate(atmocn%COSZ1); atmocn % COSZ1 => COSZ1
-      deallocate(atmice%COSZ1); atmice % COSZ1 => COSZ1
-      deallocate(atmgla%COSZ1); atmgla % COSZ1 => COSZ1
-      deallocate(atmlnd%COSZ1); atmlnd % COSZ1 => COSZ1
-#ifdef OBIO_RAD_coupling
-      deallocate(atmocn%DIRVIS); atmocn % DIRVIS => DIRVIS
-      deallocate(atmocn%DIFVIS); atmocn % DIFVIS => FSRDIF
-      deallocate(atmocn%DIRNIR); atmocn % DIRNIR => DIRNIR
-      deallocate(atmocn%DIFNIR); atmocn % DIFNIR => DIFNIR
-#endif
-
       RETURN
       END SUBROUTINE init_RAD
 
@@ -1215,9 +1203,8 @@ C     OUTPUT DATA
 #else
       USE VEG_COM, only : vdata
 #endif
-      USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : asflx,atmocn,atmice,atmgla,atmlnd,atmsrf
+      USE FLUXES, only : asflx4,atmocn,atmice,atmgla,atmlnd,atmsrf
      &     ,flice,fland,focean
       USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
       USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM
@@ -1464,7 +1451,7 @@ C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,atmsrf%TsAvg                         ! LM+LM_REQ+1+
      *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
 !     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
-     *     ,wsoil,atmsrf%wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
+     *     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,snowe_com ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
      *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
 C****   output data: really needed only if kradia=2
@@ -1690,10 +1677,10 @@ C**** DETERMINE FRACTIONS FOR SURFACE TYPES AND COLUMN PRESSURE
 C**** CHECK SURFACE TEMPERATURES
       DO IT=1,4
         IF(ptype4(IT) > 0.) then
-          IF(asflx(it)%GTEMPR(I,J).LT.124..OR.
-     &       asflx(it)%GTEMPR(I,J).GT.370.) then
+          IF(asflx4(it)%GTEMPR(I,J).LT.124..OR.
+     &       asflx4(it)%GTEMPR(I,J).GT.370.) then
             WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
-     *         ,asflx(it)%GTEMPR(I,J)
+     *         ,asflx4(it)%GTEMPR(I,J)
 CCC         STOP 'In Radia: Grnd Temp out of range'
 c           ICKERR=ICKERR+1
           END IF
@@ -1892,8 +1879,8 @@ C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
         IF(TLm(L).LT.124..OR.TLm(L).GT.370.) THEN
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
           WRITE(6,*) 'GTEMPR:',
-     &         asflx(1)%GTEMPR(I,J),asflx(2)%GTEMPR(I,J),
-     &         asflx(3)%GTEMPR(I,J),asflx(4)%GTEMPR(I,J)
+     &         asflx4(1)%GTEMPR(I,J),asflx4(2)%GTEMPR(I,J),
+     &         asflx4(3)%GTEMPR(I,J),asflx4(4)%GTEMPR(I,J)
 CCC       STOP 'In Radia: Temperature out of range'
 c         ICKERR=ICKERR+1
         END IF
@@ -2017,7 +2004,7 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TGE =atmlnd%GTEMPR(I,J)
       TSL=atmsrf%TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
-      SNOWLI=SNOWLI_COM(I,J)
+      SNOWLI=atmgla%SNOW(I,J)
       SNOWE=SNOWE_COM(I,J)                    ! snow depth (kg/m**2)
       snow_frac(:) = fr_snow_rad_ij(:,i,j)    ! snow cover (1)
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
@@ -2796,7 +2783,7 @@ C**** save all input data to disk if kradia<0
      &     ,T,RQT,atmsrf%TsAvg   ! LM+LM_REQ+1+
      &     ,QR,P,CLDinfo,rsi,msi ! LM+1+3*LM+1+1+
 !     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
-     &     ,wsoil,atmsrf%wsavg,snowi,snowli_com,snowe_com ! 1+1+1+1+1+
+     &     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,snowe_com ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo ! 3+1+.5+.5+
      &     ,fr_snow_rad_ij,mwl,flake ! 2+1+1
 C**** output data: really needed only if kradia=2
@@ -3277,16 +3264,6 @@ C**** daily diagnostics
           HDIURN(IDD_ISW,KR,IHM)=HDIURN(IDD_ISW,KR,IHM)+S0*COSZ1(I,J)
 #endif
         ENDIF
-      ENDDO
-
-      DO J=J_0,J_1
-      DO I=I_0,IMAXJ(J)
-        DO IT=1,4
-          asflx(it)%flong(i,j) = trhr(0,i,j)
-          asflx(it)%fshort(i,j) = fsf(it,i,j)
-          asflx(it)%trup_in_rad(i,j) = trsurf(it,i,j)
-        ENDDO
-      ENDDO
       ENDDO
 
       call stopTimer('RADIA()')

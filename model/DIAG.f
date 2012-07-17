@@ -1729,7 +1729,6 @@ c get_subdd
       USE LIGHTNING, only : saveC2gLightning,saveLightning
 #endif
       USE SEAICE_COM, only : si_atm
-      USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srhr,srdn,salb,cfrac,cosz1
@@ -2121,7 +2120,7 @@ c          datar8=sday*prec/dtsrc
               PEARTH=FEARTH(I,J)
               PLANDI=FLICE(I,J)
               datar8(i,j)=1d3*(snowi(I,J)*POICE
-     &             +SNOWLI(I,J)*PLANDI
+     &             +atmgla%SNOW(I,J)*PLANDI
      &             +SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
@@ -2136,7 +2135,7 @@ c          datar8=sday*prec/dtsrc
               PEARTH=FEARTH(I,J)
               if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
-              if(SNOWLI(I,J) > 0.)datar8(i,j)=datar8(i,j)+PLANDI
+              if(atmgla%SNOW(I,J) > 0.)datar8(i,j)=datar8(i,j)+PLANDI
               datar8(i,j)=min(1.d0,datar8(i,j))
             end do
           end do

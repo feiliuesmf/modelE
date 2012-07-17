@@ -208,12 +208,13 @@ C****
       USE CONSTANT, only : bygrav,kapa
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p,srfp,srfpk,p1,am1,byam1
+      USE ATM_COM, only : p
       USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
       USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE
+      USE FLUXES, only : atmsrf,asflx4
       IMPLICIT NONE
 
-      INTEGER :: I,J,L  !@var I,J,L  loop variables
+      INTEGER :: I,J,L,IT  !@var I,J,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
       REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LMAX+1) :: PEDNL
@@ -254,10 +255,10 @@ C**** Fill in polar boxes
             PEK  (L,I,J) = PEDNL (L)**KAPA
             BYAM (L,I,J) = 1./AM(L,I,J)
           END DO
-          P1(I,J) = PMID(1,I,J)
-          SRFPK(I,J) = PEK(1,I,J)
-          AM1(I,J) = AM(1,I,J)
-          BYAM1(I,J) = BYAM(1,I,J)
+          atmsrf%P1(I,J) = PMID(1,I,J)
+          atmsrf%SRFPK(I,J) = PEK(1,I,J)
+          atmsrf%AM1(I,J) = AM(1,I,J)
+          atmsrf%BYAM1(I,J) = BYAM(1,I,J)
 
           IF (LMAX.ge.LM) THEN
             PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
@@ -267,8 +268,10 @@ C**** Fill in polar boxes
         END DO
       END DO
 
-      SRFP = P+PTOP ! todo: remove these lines from from ATM_DRV
-
+      atmsrf%SRFP = P+PTOP
+      do it=1,4
+        asflx4(it)%SRFP = atmsrf%SRFP
+      enddo
       RETURN
       END SUBROUTINE CALC_AMPK
 

@@ -505,7 +505,7 @@ c
      &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
 #endif
-      USE FLUXES, only : trsource,trflux1
+      USE FLUXES, only : trsource,trflux1,atmsrf
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
@@ -568,6 +568,7 @@ C**** diagnostics
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
         end do
+        atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)
       end do
       RETURN
       END SUBROUTINE sum_prescribed_tracer_2Dsources
@@ -602,13 +603,15 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
 C**** modify vertical moments (only from non-interactive sources)
 c this is disabled until vertical moments are also modified
 c during the vertical transport between layer 1 and the others
-c        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
+c        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux_prescr(:,j,n)
 c     *       *dtstep*axyp(:,j)
-c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
+c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux_prescr(:,j,n)
 c     *       *dtstep*axyp(:,j)
 
-C**** Accumulate interactive sources as well
-        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
+C**** Add prescribed and interactive sources
+c        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
+        trflux1(:,j,n) =
+     &        atmsrf%trflux_prescr(n,:,j)+atmsrf%trsrfflx(n,:,j)
        end do
 
 C**** Technically speaking the vertical moments should be modified here
@@ -846,8 +849,8 @@ C**** ...lake tracers
 C**** ...land surface tracers
           tr_w_ij(n,:,:,:,:) = expdec(n)*tr_w_ij(n,:,:,:,:)
           tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
-          trsnowli(n,:,:) = expdec(n)*trsnowli(n,:,:)
-          trlndi(n,:,:)   = expdec(n)*trlndi(n,:,:)
+          trsnowli(n,:,:,:) = expdec(n)*trsnowli(n,:,:,:)
+          trlndi(n,:,:,:)   = expdec(n)*trlndi(n,:,:,:)
 #endif
 C**** atmospheric diagnostics
           najl = jls_decay(n)

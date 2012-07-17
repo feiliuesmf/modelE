@@ -390,9 +390,9 @@ c
       atmice%dlatm = atmocn%dlatm     ! needed?
       atmice%sini(:) = atmocn%sini(:) ! needed?
       atmice%cosi(:) = atmocn%cosi(:) ! needed?
-      deallocate(atmice%prec);  atmice%prec => atmocn%prec
-      deallocate(atmice%eprec); atmice%eprec => atmocn%eprec
-      deallocate(atmice%srfp);  atmice%srfp => atmocn%srfp
+      atmice%prec => atmocn%prec
+      atmice%eprec => atmocn%eprec
+      atmice%srfp => atmocn%srfp
 
       atmocn%modd5s = -999 ! ocean should not compute conserv diags
 

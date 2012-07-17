@@ -5,7 +5,7 @@
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
-      USE ATM_COM, only : p,srfp,wm
+      USE ATM_COM, only : p,wm
       USE ATM_COM, only : pua,pva,sd_clouds,ptold,ps,kea
       USE DYNAMICS, only : nstep,nidyn,nfiltr,mfiltr,dt,conv
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -167,8 +167,6 @@ C**** Scale WM mixing ratios to conserve liquid water
 #endif
 #endif
 
-      SRFP = P+PTOP
-
       call stopTimer('Atm. Dynamics')
 
 C****
@@ -242,12 +240,143 @@ C**** RADIATION, SOLAR AND THERMAL
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
-#endif
 #ifdef TRACERS_TOMAS
       CALL aeroupdate
 #endif
+
+C****
+C**** Add up the non-interactive tracer surface sources.
+C****
+      call sum_prescribed_tracer_2Dsources(dtsrc)
+#endif
+
+      call atm_phase1_exports
+
       return
       end subroutine atm_phase1
+
+      subroutine atm_phase1_exports
+! Copies fields calculated by the atmosphere into the data structures
+! seen by physics of the surface components (ocean, ice, land).
+! Some fields are already type-classified (e.g. radiative fluxes).
+! A per-type breakdown will soon be applied to other fields as
+! appropriate (e.g. fields which vary with height will have
+! different values over the ocean and the other portions of a gridbox).
+! Some fields have already been stored in atmsrf%xxx and are not
+! referenced here in Step 1.  For temporary convenience,
+! fields depending on surface pressure are being copied into the
+! per-surface-type structures by CALC_AMPK because subroutine FILTER
+! is currently being called after the main surface physics, but
+! before special "daily" surface coding which sometimes requires
+! surface pressure - once FILTER is absorbed into DYNAM this hack
+! can be eliminated.
+      use fluxes, only : atmsrf,asflx4,prec,eprec
+#ifdef TRACERS_ON
+#ifdef TRACERS_WATER
+      use fluxes, only : trprec
+#endif
+#endif
+      use rad_com, only : trhr,fsf,trsurf,cosz1
+#ifdef OBIO_RAD_coupling
+      use fluxes, only : atmocn
+      use rad_com, only : dirvis,fsrdif,dirnir,difnir
+#endif
+      implicit none
+      integer :: it
+
+      ! Step 1: copy fields not already stored in atmsrf%xxx
+      atmsrf%prec = prec
+      atmsrf%eprec = eprec
+#ifdef TRACERS_WATER
+      atmsrf%trprec = trprec
+#endif
+      atmsrf%cosz1 = cosz1
+      atmsrf%flong = trhr(0,:,:)
+
+
+      ! Copy from gridbox-mean data structure to per-type structures
+      do it=1,4
+        asflx4(it)%atm_exports_phase1 = atmsrf%atm_exports_phase1
+#ifdef TRACERS_WATER
+        asflx4(it)%tratm_exports_phase1 = atmsrf%tratm_exports_phase1
+#endif
+      enddo
+
+      ! fields already available per type
+      do it=1,4
+        asflx4(it)%fshort = fsf(it,:,:)
+        asflx4(it)%trup_in_rad = trsurf(it,:,:)
+      enddo
+
+
+      ! miscellaneous fields only defined for some types
+#ifdef OBIO_RAD_coupling
+      atmocn % DIRVIS = DIRVIS
+      atmocn % DIFVIS = FSRDIF
+      atmocn % DIRNIR = DIRNIR
+      atmocn % DIFNIR = DIFNIR
+#endif
+
+      return
+      end subroutine atm_phase1_exports
+
+      subroutine atm_exports_phasesrf
+! Copies fields calculated by the atmosphere into the data structures
+! seen by the physics of the surface components (ocean, ice, land).
+! Per-component exports will be introduced as appropriate (e.g. fields
+! which vary with height will have different values over the ocean and
+! the other portions of a gridbox).
+      use fluxes, only : atmsrf,asflx4
+      implicit none
+
+      integer :: it
+
+      call get_atm_layer1
+
+      do it=1,4
+        asflx4(it)%atm_exports_phasesrf = atmsrf%atm_exports_phasesrf
+#ifdef TRACERS_ON
+        asflx4(it)%tratm_exports_phasesrf =
+     &       atmsrf%tratm_exports_phasesrf
+#endif
+      enddo
+
+      return
+      end subroutine atm_exports_phasesrf
+
+      subroutine get_atm_layer1
+C**** Copies first-layer atm. conditions into the 2D arrays
+C**** in the atm-surf. coupling data structure.
+      use fluxes, only : atmsrf
+      use domain_decomp_atm, only : grid, get
+      use atm_com, only : t,q,ualij,valij
+      use geom, only : imaxj,byaxyp
+#ifdef TRACERS_ON
+      use tracer_com, only : ntm,trm
+#endif
+      implicit none
+      integer :: n,i,j,i_0,i_1,j_0,j_1
+c
+      call get(grid, i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
+c
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        atmsrf%temp1(i,j) = t(i,j,1)
+        atmsrf%q1(i,j) = q(i,j,1)
+        atmsrf%u1(i,j) = ualij(1,i,j)
+        atmsrf%v1(i,j) = valij(1,i,j)
+      enddo
+      enddo
+#ifdef TRACERS_ON
+      do n=1,ntm
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        atmsrf%trm1(n,i,j) = trm(i,j,1,n)*byaxyp(i,j)
+      enddo
+      enddo
+      enddo
+#endif
+      end subroutine get_atm_layer1
 
       subroutine atm_phase2
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
@@ -263,7 +392,7 @@ C**** Calculate non-interactive tracer surface sources and sinks
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : FILTER
-      USE ATM_COM, only : SRFP,P
+      USE ATM_COM, only : P
       USE RESOLUTION, only : PTOP
 #endif
 #ifdef SCM
@@ -309,7 +438,6 @@ C**** SEA LEVEL PRESSURE FILTER
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER
-           SRFP = P+PTOP
            CALL CHECKT ('FILTER')
            CALL TIMER (NOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
@@ -517,6 +645,8 @@ C****
       CALL daily_orbit(.false.)             ! not end_of_day
       CALL daily_ch4ox(.false.)             ! not end_of_day
       CALL daily_RAD(.false.)
+
+      call atm_phase1_exports
 
 C**** Initialize lake variables (including river directions)
       if(istart.eq.2) call read_agrice_ic

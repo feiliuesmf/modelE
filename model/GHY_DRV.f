@@ -73,7 +73,7 @@ c******************   TRACERS             ******************************
 #endif
       use fluxes, only : trflux1
 #ifdef TRACERS_WATER
-     *     ,trunoe,trprec
+     *     ,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
@@ -261,7 +261,7 @@ ccc tracers variables
 #endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
-          ghy_tr%tr_surf(nx) = atmlnd%trm1(i,j,n)*rhow/qm1 ! kg/m^3
+          ghy_tr%tr_surf(nx) = atmlnd%trm1(n,i,j)*rhow/qm1 ! kg/m^3
         else
           ghy_tr%tr_surf(nx) = 0.
         end if
@@ -428,7 +428,7 @@ ccc accumulate tracer evaporation and runoff
         n=ghy_tr%ntixw(nx)
         atmlnd%trevapor(n,i,j) = atmlnd%trevapor(n,i,j)
      &       + ghy_tr%atr_evap(nx)
-        trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
+        atmlnd%truno(n,i,j) = atmlnd%truno(n,i,j) +ghy_tr%atr_rnff(nx)
         atmlnd%gtracer(n,i,j) = ghy_tr%atr_g(nx)
         atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &       ghy_tr%atr_evap(nx)/dtsurf
@@ -778,7 +778,7 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
       use fluxes, only : atmlnd,prec,eprec
-     *     ,runoe,erunoe,precss,nisurf
+     *     ,precss,nisurf
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     snowe,tearth,tsns_ij,wearth,aiearth,
@@ -1026,6 +1026,7 @@ ccc tracers variables
 
       tg1 = tsns_ij(i,j)
       srheat=srdn(i,j)*atmlnd%cosz1(i,j)
+      atmlnd%solar(i,j) = atmlnd%solar(i,j) + pbl_args%dtsurf*srheat
 c****
 c**** boundary layer interaction
 c****
@@ -1298,6 +1299,16 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
 c**** snowe used in RADIATION
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+      atmlnd%snow(i,j) = snowe(i,j)
+      atmlnd%snowfr(i,j) =
+     *       ( fb*fr_snow_rad_ij(1,i,j)
+     *       + fv*fr_snow_rad_ij(2,i,j) )
+      atmlnd%snowdp(i,j) =
+     &       ( fb*fr_snow_ij(1,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
+     &       + fv*fr_snow_ij(2,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
+
 cddd      if (i==23 .and. j==10) then
 cddd        write(755,*) "counter", counter
 cddd        write(755,*) "snowe(i,j)", snowe(i,j)
@@ -1373,10 +1384,10 @@ c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
       atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
 #endif
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
-      atmlnd%qsavg(i,j)=qs
+
 c**** save runoff for addition to lake mass/energy resevoirs
-      runoe (i,j)=runoe (i,j)+ aruns+ arunu
-      erunoe(i,j)=erunoe(i,j)+aeruns+aerunu
+      atmlnd%runo (i,j)= atmlnd%runo (i,j)+ aruns+ arunu
+      atmlnd%eruno(i,j)= atmlnd%eruno(i,j)+aeruns+aerunu
 c****
       atmlnd%e0(i,j)=atmlnd%e0(i,j)+af0dt
       !e1(i,j,4)=e1(i,j,4)+af1dt
@@ -1466,7 +1477,7 @@ c***********************************************************************
 
       use diag_com , only : itearth,aij=>aij_loc
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg, ij_psoil,ij_vsfr,ij_bsfr
-     *     ,ij_rune, ij_arunu, ij_pevap, ij_beta, ij_rhs, ij_qs
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_beta
      *     ,j_erun,j_run,j_type
      *     ,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_lai
      *     ,ij_soilresp,ij_soilCpoolsum,ij_gbetat,ij_gbetpen,ij_gevppen
@@ -1698,13 +1709,10 @@ c    &                  EVPFLX,SHFLX,ptype
 
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+(abetad/nisurf)*fv*ptype
-      if ( moddsf == 0 ) then
-        aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
-        aij(i,j,ij_rhs)=aij(i,j,ij_rhs)+qsrf*ptype/qsat(tsv,elhx,ps)
+c      if ( moddsf == 0 ) then
 chyd       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)
 chyd      *  +   (40.6*psoil+.72*(2.*(tss-tfs)-(qsatss-qss)*lhe/sha))
-
-      endif
+c      endif
 
 c**** quantities accumulated for surface type tables in diagj
       call inc_aj(i,j,itearth,j_erun ,(aeruns+aerunu)*ptype)
@@ -2229,6 +2237,16 @@ c**** set gtemp array
       do j=J_0,J_1
         do i=I_0,I_1
           if (fearth(i,j).gt.0) then
+            call get_fb_fv( fb, fv, i, j )
+            atmlnd%snow(i,j)=snowe(i,j)
+            atmlnd%snowfr(i,j) =
+     *           ( fb*fr_snow_rad_ij(1,i,j)
+     *           + fv*fr_snow_rad_ij(2,i,j) )
+            atmlnd%snowdp(i,j) =
+     &       ( fb*fr_snow_ij(1,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
+     &       + fv*fr_snow_ij(2,i,j)
+     &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
             atmlnd%gtemp(i,j)=tsns_ij(i,j)
             atmlnd%gtempr(i,j) =tearth(i,j)+tf
 #ifdef SCM
@@ -3537,22 +3555,21 @@ c****
       subroutine ground_e
 !@sum  ground_e driver for applying surface fluxes to land fraction
 !@auth original development team
-      use geom, only : imaxj,axyp
+      use geom, only : imaxj
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-      use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
-     *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
-     *     fearth
+      use ghy_com, only : tearth,wearth,aiearth,w_ij
+     *     ,snowbv,gdeep,fearth
       !use veg_com, only : afb
       use diag_com, only : itearth,aij=>aij_loc
-     *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow
-     *     ,j_rsnow,ij_f0e,ij_evape,ij_gwtr,ij_rsnw
-     *     ,ij_rsit,ij_snow,ij_gice, ij_gwtr1,ij_zsnow
+     *     ,jreg,j_wtr1,j_ace1,j_wtr2,j_ace2
+     *     ,ij_f0e,ij_evape,ij_gwtr
+     *     ,ij_gice, ij_gwtr1
      *     ,ij_gbssnd,ij_gvssnd,ij_gbsw,ij_gvsw
       use fluxes, only : atmlnd,eprec
       implicit none
 
       real*8 snow,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
-     *     ,pearth,enrgp,scove,fb,fv
+     *     ,pearth,enrgp,fb,fv
       integer i,j,jr,k
 
 C**** define local grid
@@ -3572,7 +3589,7 @@ C****
       jr=jreg(i,j)
       if (pearth.gt.0) then
 
-        snow=snowe(i,j)
+        snow=atmlnd%snow(i,j)!snowe(i,j)
         !tg1 = tearth(i,j)
         wtr1= wearth(i,j)
         ace1=aiearth(i,j)
@@ -3591,23 +3608,17 @@ c        scove = pearth *
 c     *       ( afb(i,j)*fr_snow_ij(1,i,j)
 c     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
 c**** the following computes the snow cover as it is used in RAD_DRV.f
-        scove = pearth *
-     *       ( fb*fr_snow_rad_ij(1,i,j)
-     *       + fv*fr_snow_rad_ij(2,i,j) )
+c        scove = pearth * atmlnd%snowfr(i,j)
+c     *       ( fb*fr_snow_rad_ij(1,i,j)
+c     *       + fv*fr_snow_rad_ij(2,i,j) )
 
         !if (snowe(i,j).gt.0.) scove=pearth
-        call inc_aj(i,j,itearth,j_rsnow,scove)
-        call inc_areg(i,j,jr,j_rsnow,scove)
-        aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
-        aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
-        aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
 
         call inc_aj(i,j,itearth,j_wtr1,wtr1*pearth)
         call inc_aj(i,j,itearth,j_ace1,ace1*pearth)
         call inc_aj(i,j,itearth,j_wtr2,wtr2*pearth)
         call inc_aj(i,j,itearth,j_ace2,ace2*pearth)
-        call inc_aj(i,j,itearth,j_snow,snow*pearth)
-        call inc_areg(i,j,jr,j_snow,snow*pearth)
+
         call inc_areg(i,j,jr,j_wtr1,wtr1*pearth)
         call inc_areg(i,j,jr,j_ace1,ace1*pearth)
         call inc_areg(i,j,jr,j_wtr2,wtr2*pearth)
@@ -3631,11 +3642,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         aij(i,j,ij_gbssnd)=aij(i,j,ij_gbssnd)+snowbv(1,i,j)*pearth*fb
         aij(i,j,ij_gvssnd)=aij(i,j,ij_gvssnd)+snowbv(2,i,j)*pearth*fv
-        aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
-     &       ( fb*fr_snow_ij(1,i,j)
-     &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
-     &       + fv*fr_snow_ij(2,i,j)
-     &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
+
       end if
 c****
       end do
@@ -3992,7 +3999,7 @@ ccc of the 'surface' to check water conservation
       use geom, only : imaxj
       use resolution, only : im,jm
       use DOMAIN_DECOMP_ATM, only : GRID, GET
-      use fluxes, only : atmlnd,prec,runoe
+      use fluxes, only : atmlnd,prec
       use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
      *     ,fearth
       !use veg_com, only : afb
@@ -4052,7 +4059,7 @@ ccc just checking ...
           !fv = 1.d0 - fb
           call get_fb_fv( fb, fv, i, j )
           error_water = ( total_water(i,j) - old_total_water(i,j) )*rhow
-     &         - prec(i,j) + atmlnd%evapor(i,j) + runoe(i,j)
+     &         - prec(i,j) + atmlnd%evapor(i,j) + atmlnd%runo(i,j)
 
           !print *, 'err H2O: ', i, j, error_water
 
@@ -4711,6 +4718,9 @@ c**** Also reset snow fraction for albedo computation
 
 c**** snowe used in RADIATION
           snowe(i,j) = 1000.*0.d0
+          atmlnd%snow(i,j) = 0.!snowe(i,j)
+          atmlnd%snowfr(i,j) = 0d0
+          atmlnd%snowdp(i,j) = 0d0
 c**** tearth used only internaly in GHY_DRV
           tearth(i,j) = sqrt(sqrt(fb*(tpb+tf)**4 + fv*(tpv+tf)**4)) - tf
           tsns_ij(i,j) = tg1

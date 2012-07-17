@@ -6479,7 +6479,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column, skip_parallel
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef TRACERS_ON
-      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,atmsrf,asflx
+      USE FLUXES, only : atmocn,atmice,atmglas,atmlnd,atmsrf,asflx
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
@@ -6579,7 +6579,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
-      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
+      INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt,ipatch
       CHARACTER*80 title
       CHARACTER*300 out_line
       REAL*8 CFC11ic,conv
@@ -6688,8 +6688,8 @@ C**** set some defaults for water tracers
      &       'atm. grid - please move the si_ocn references',255)
       endif
       si_ocn%trsi(n,:,:,J_0:J_1)=0.
-      trlndi(n,:,J_0:J_1)=0.
-      trsnowli(n,:,J_0:J_1)=0.
+      trlndi(n,:,J_0:J_1,:)=0.
+      trsnowli(n,:,J_0:J_1,:)=0.
       tr_w_ij(n,:,:,:,J_0:J_1)=0.
       tr_wsn_ij(n,:,:,:,J_0:J_1)=0.
 #endif
@@ -6999,13 +6999,17 @@ c**** ice
             end if
 c**** landice
             if (flice(i,j).gt.0) then
-              trlndi(n,i,j)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
-              trsnowli(n,i,j)=trli0(n)*snowli(i,j)
-              atmgla%gtracer(n,i,j)=trli0(n)
+              trlndi(n,i,j,:)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
+              trsnowli(n,i,j,:)=trli0(n)*snowli(i,j,:)
+              do ipatch=1,ubound(atmglas,1)
+                atmglas(ipatch)%gtracer(n,i,j)=trli0(n)
+              enddo
             else
-              trlndi(n,i,j)=0.
-              trsnowli(n,i,j)=0.
-              atmgla%gtracer(n,i,j)=0.
+              trlndi(n,i,j,:)=0.
+              trsnowli(n,i,j,:)=0.
+              do ipatch=1,ubound(atmglas,1)
+                atmglas(ipatch)%gtracer(n,i,j)=0.
+              enddo
             end if
 c**** earth
             !!!if (fearth(i,j).gt.0) then
@@ -7416,19 +7420,19 @@ c**** earth
 
 C**** Initialise pbl profile if necessary
       if (needtrs(n)) then
-        do it=1,4
+        do ipatch=1,size(asflx)
         do j=J_0,J_1
         do ipbl=1,npbl
 #ifdef TRACERS_WATER
           if(tr_wd_type(n).eq.nWATER)THEN
-            asflx(it)%trabl(ipbl,n,:,j) =
-     &           trinit*asflx(it)%qabl(ipbl,:,j)
+            asflx(ipatch)%trabl(ipbl,n,:,j) =
+     &           trinit*asflx(ipatch)%qabl(ipbl,:,j)
           ELSE
-            asflx(it)%trabl(ipbl,n,:,j) =
+            asflx(ipatch)%trabl(ipbl,n,:,j) =
      &           trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
           END IF
 #else
-            asflx(it)%trabl(ipbl,n,:,j) =
+            asflx(ipatch)%trabl(ipbl,n,:,j) =
      &         trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
 #endif
         end do

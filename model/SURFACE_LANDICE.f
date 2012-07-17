@@ -8,9 +8,7 @@ C****
 
 
 
-      SUBROUTINE SURFACE_LANDICE (ns,moddsf,moddd,TGRND,TGRN2,TGR4,e1)
-!      integer, intent(in) :: ns,moddsf,moddd
-! TGRND...e1 are passed in from SURFACE.f (it's a local variable there)
+      SUBROUTINE SURFACE_LANDICE (do_init,moddd,dtsurf,atmgla,ihc)
 
 !@sum SURFACE calculates the surface fluxes which include
 !@+   sensible heat, evaporation, thermal radiation, and momentum
@@ -21,7 +19,7 @@ C****
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,grav
       USE MODEL_COM, only : modelEclock
-      USE MODEL_COM, only : dtsrc,nday,itime,qcheck
+      USE MODEL_COM, only : itime
 #ifdef SCM
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
@@ -44,8 +42,7 @@ C****
      *     ,trlndi
 #endif
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
-      USE FLUXES, only : nstype,nisurf,flice,atmgla
-
+      USE EXCHANGE_TYPES
       USE Timer_mod, only: Timer_type
       USE TimerList_mod, only: startTimer => start
       USE TimerList_mod, only: stopTimer => stop
@@ -53,17 +50,10 @@ C****
 
       IMPLICIT NONE
 ! ================ Parameter Declarations =====================
-      integer, intent(in) :: ns,moddsf,moddd
-      REAL*8, intent(inout), DIMENSION(
-     *       NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &       GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *     TGRND,TGRN2,TGR4
-
-    !@var E1 net energy flux at layer 1 (from FLUXES.f)
-      REAL*8, intent(inout), DIMENSION(
-     &       GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &       GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSTYPE) :: E1
-
+      logical, intent(in) :: do_init
+      integer, intent(in) :: moddd,ihc
+      real*8, intent(in) :: dtsurf
+      type(atmgla_xchng_vars) :: atmgla
 ! ================ VARIABLE DECLARATIONS ======================
       INTEGER I,J,K,ITYPE,IH,IHM
       REAL*8 PLICE
@@ -75,7 +65,7 @@ C****
      *     ,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
      *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,F2
-     *     ,FSRI(2),dlwdt,byNIsurf,TGO
+     *     ,FSRI(2),dlwdt,TGO
 
       REAL*8 MA1
       REAL*8, PARAMETER :: qmin=1.d-12
@@ -84,8 +74,7 @@ C****
       REAL*8 DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,dtsurf,qsrf,us,vs,ws,ws0,
-     &     dmua_ij,dmva_ij
+      real*8 qg_sat,qsrf,us,vs,ws,ws0
 
       ! This is for making a correction to the surface wind stress
       ! (which is proportional to |u_air - u_ocean|, or  | u_air - u_seaice |)
@@ -105,7 +94,7 @@ C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       LOGICAL :: debug
 
-      real*8, dimension(:,:), pointer :: trdn,srdn
+      real*8, dimension(:,:), pointer :: trdn,srdn,e1,tgrnd,tgr4
 
       type (Timer_type), pointer :: aTimer
 ! ======================= MAIN BODY ======================================
@@ -124,30 +113,26 @@ C****
 
       trdn => atmgla%flong
       srdn => atmgla%fshort
+      e1 => atmgla%e1
+      tgrnd => atmgla%tgrnd
+      tgr4 => atmgla%tgr4
 
-      DTSURF=DTsrc/NIsurf
-      byNIsurf=1.d0/real(NIsurf)
+! inits before looping over surface timesteps.
+      if(do_init) then
+        do j=j_0,j_1
+        do i=i_0,i_1
+          e1(i,j) = 0.
+          tgrnd(i,j) = atmgla%gtemp(i,j)
+          tgr4(i,j) = atmgla%gtempr(i,j)**4
+        enddo
+        enddo
+      endif
+
       IH=modelEclock%hour()+1
       IHM = IH+(modelEclock%date()-1)*24
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
       SNOW = 0.
-
-!! /============================================================\
-!! THIS CODE NEEDS to go in SURFACE_LANDICE.f!!!!
-!C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
-!! Because we're doing landice, just initialize TGRND(3,...)
-!      DO J=J_0,J_1
-!      DO I=I_0,I_1
-!!        TGRND(2,I,J)=atmice%GTEMP(I,J)
-!        TGRND(3,I,J)=atmgla%GTEMP(I,J)
-!!        TGRN2(2,I,J)=atmice%GTEMP2(I,J)
-!        TGRN2(3,I,J)=atmgla%GTEMP2(I,J)
-!!        TGR4(2,I,J)=atmice%GTEMPR(I,J)**4
-!        TGR4(3,I,J)=atmgla%GTEMPR(I,J)**4
-!      END DO 
-!      END DO 
-
 
 C**** Zero out fluxes summed over type and surface time step
 c ---- Don't need this section, it's asflx is a global variable
@@ -185,8 +170,8 @@ C**** Set up tracers for PBL calculation if required
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       pbl_args % moddd = moddd
-      pbl_args % ih = 1+modelEclock%hour()
-      pbl_args % ihm = pbl_args%ih+(modelEclock%date()-1)*24
+      pbl_args % ih = ih
+      pbl_args % ihm = ihm
 #endif
 
 C****
@@ -197,7 +182,7 @@ C****
 
 	  ! Model may expect that some things are zero
       ! call stop_model('Please double-check that model might expect some things to be defined for some boxes, even if there is no ice in that box.', -17)
-      PLICE=FLICE(I,J)
+      PLICE=atmgla%ftype(I,J)
       PTYPE = PLICE
       IF (PTYPE <= 0) CYCLE
 
@@ -268,14 +253,14 @@ C****
 ! BEGIN ---------------------------------------------------------
       PTYPE=PLICE
           ! snow amount on land ice (kg/m^2)
-      SNOW=SNOWLI(I,J)
+      SNOW=SNOWLI(I,J,IHC)
           ! Temperature of top ice layer (C)
-      TG1=TGRND(3,I,J)
+      TG1=TGRND(I,J)
 
           ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
           ! (Needed for Stefan-Boltzmann Law)
           ! GTEMPR radiative ground temperature over surface type (K)
-      TR4=TGR4(3,I,J)
+      TR4=TGR4(I,J)
 
           ! SRHEAT = Solar Heating
           ! FSF = Solar Forcing over each type (W/m^2)
@@ -289,7 +274,7 @@ C****
 c      uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
       do nx=1,ntx
-        trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
+        trgrnd2(nx)=TRLNDI(ntix(nx),I,J,IHC)/(ACE1LI+ACE2LI)
       end do
       pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
 #endif
@@ -485,7 +470,7 @@ C**** CALCULATE EVAPORATION
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         .false., 0d0, 0d0, ! arguments for lakes only
      &         lim_dew, dtsurf,
-     &         atmgla%TRM1(I,J,n), pbl_args%trs(nx),
+     &         atmgla%TRM1(n,I,J), pbl_args%trs(nx),
      &         atmgla%gtracer(n,i,j), trgrnd2(nx),
      &         pbl_args%trprime(nx),
      &         atmgla%trsrfflx(n,i,j), atmgla%trevapor(n,i,j)
@@ -499,6 +484,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
       atmgla%latht(i,j) = atmgla%latht(i,j) + evhdt
       atmgla%trheat(i,j) = atmgla%trheat(i,j) + trhdt
+      atmgla%solar(i,j) = atmgla%solar(i,j) + dtsurf*srheat
 
       ! atmgla%e0 = net energy flux at surface (J/m^2)
       atmgla%E0(I,J)=atmgla%E0(I,J)+F0DT
@@ -506,7 +492,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       ! atmgla%e1 <= e1 (set below in SURFACE.f)
       ! E1 = net energy flux at layer 1
       ! (I believe this means between the top 10cm layer and the 2.9m layer below it)
-      E1(I,J,ITYPE)=E1(I,J,ITYPE)+F1DT
+      E1(I,J)=E1(I,J)+F1DT
 
       atmgla%EVAPOR(I,J)=atmgla%EVAPOR(I,J)+EVAP
 #ifdef SCM
@@ -519,8 +505,8 @@ c    *                   EVPFLX,SHFLX,ptype
           endif
       endif
 #endif
-      TGRND(ITYPE,I,J)=TG1  ! includes skin effects
-      TGR4(ITYPE,I,J) =TR4
+      TGRND(I,J)=TG1  ! includes skin effects
+      TGR4(I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(atmgla%TRUP_in_rad(I,J)-TRDN(I,J))+TRHDT
 C**** final fluxes
@@ -565,9 +551,56 @@ C****
 
       call dealloc_pbl_args(pbl_args)
 
+      atmgla%gtemp(:,:) = tgrnd(:,:)
+      atmgla%gtemps(:,:) = tgrnd(:,:)
+
       call stopTimer('SURFACE_LANDICE()')
 
       RETURN
 C****
       END SUBROUTINE SURFACE_LANDICE
 
+      subroutine patchify_landice_inputs(phase)
+! create patch-specific values of inputs to the land ice model from
+! grid-mean values and patch-specific physical parameters (elevation etc.)
+! This initial version is simply copying grid-mean values into all patches.
+      use fluxes, only : atmglas,atmgla
+     &     ,after_atm_phase1,during_srfflx
+      use domain_decomp_atm, only : grid
+      implicit none
+!@var phase indicates from which point this routine was called
+      integer, intent(in) :: phase
+c
+      integer :: ipatch
+      integer :: i,j,i_0,i_1,j_0,j_1
+
+      if(ubound(atmglas,1)==1) return ! only one patch. nothing to do
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+      if(phase==after_atm_phase1) then
+        ! quantities that are not updated during surface sub-timesteps
+        do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
+          atmglas(ipatch)%atm_exports_phase1 =
+     &         atmgla%atm_exports_phase1
+#ifdef TRACERS_WATER
+          atmglas(ipatch)%tratm_exports_phase1 =
+     &         atmgla%tratm_exports_phase1
+#endif
+        enddo
+
+      elseif(phase==during_srfflx) then
+        ! quantities that are updated during surface sub-timesteps
+        do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
+          atmglas(ipatch)%atm_exports_phasesrf =
+     &         atmgla%atm_exports_phasesrf
+#ifdef TRACERS_ON
+          atmglas(ipatch)%tratm_exports_phasesrf =
+     &         atmgla%tratm_exports_phasesrf
+#endif
+        enddo
+      endif
+      return
+      end subroutine patchify_landice_inputs

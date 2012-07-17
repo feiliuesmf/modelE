@@ -51,6 +51,7 @@
       type (t_pbl_args) :: pbl_args
       class (atmsrf_xchng_vars) :: atm
       REAL*8 Ts
+      real*8 :: qsat ! external
 
 #ifdef TRACERS_ON
       integer nx,n
@@ -157,7 +158,7 @@ C**** Set up tracers for PBL calculation if required
         n=pbl_args%ntix(nx)
 C**** Calculate first layer tracer concentration
           pbl_args%trtop(nx)=
-     &         atm%trm1(i,j,n)*atm%byam1(i,j)
+     &         atm%trm1(n,i,j)*atm%byam1(i,j)
       end do
       call tracer_lower_bc(i,j,itype,pbl_args,atm)
 
@@ -351,6 +352,9 @@ C ******************************************************************
       atm%usavg(i,j) = pbl_args%us
       atm%vsavg(i,j) = pbl_args%vs
       atm%wsavg(i,j) = pbl_args%ws
+      atm%rsavg(i,j) = atm%qsavg(i,j)/
+     &     qsat(ts,pbl_args%elhx,atm%srfp(i,j))
+
 
       atm%TAUAVG(I,J) = pbl_args%CM*pbl_args%WS*pbl_args%WS*rhosrf
       atm%tgvAVG(I,J) = pbl_args%tgv
@@ -443,7 +447,7 @@ c            trgrnd(nx)=0.
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
 C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifndef SKIP_TRACER_SRCS
-            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n) ! kg/m^2/s
+            pbl_args%trconstflx(nx)=atm%trflux_prescr(n,i,j) ! kg/m^2/s
 #endif /*SKIP_TRACER_SRCS*/
 
 #ifdef TRACERS_WATER
@@ -494,7 +498,7 @@ C**** Calculate trsfac (set to zero for const flux)
           !then multiplied by deposition velocity in PBL
 #endif
 C**** Calculate trconstflx (m/s * conc) (could be dependent on itype)
-            pbl_args%trconstflx(nx)=atm%trflux1(i,j,n) ! kg/m^2/s
+            pbl_args%trconstflx(nx)=atm%trflux_prescr(n,i,j) ! kg/m^2/s
 #ifdef TRACERS_WATER
 !        end select
           end if
@@ -771,7 +775,7 @@ C**** ignore ocean currents for initialisation.
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,4) ::
      *                                                      tgvdat
 
-      integer :: itype  !@var itype surface type
+      integer :: ipatch,itype4  !@var itype surface type
       integer i,j,k,lpbl !@var i,j,k loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,
      *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
@@ -830,8 +834,8 @@ C****
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
           atmsrf%TAUAVG(I,J)=1.*CDM*atmsrf%WSAVG(I,J)**2  ! air density = 1 kg/m3
 C**** Initialize surface friction velocity
-          do itype=1,4!size(asflx)
-            asflx(itype)%USTAR_pbl(I,J)=atmsrf%WSAVG(I,J)*SQRT(CDM)
+          do ipatch=1,size(asflx)
+            asflx(ipatch)%USTAR_pbl(I,J)=atmsrf%WSAVG(I,J)*SQRT(CDM)
           enddo
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
           atmsrf%QSAVG(I,J)=Q(I,J,1)
@@ -907,8 +911,9 @@ C**** fix roughness length for ocean ice that turned to land ice
       end do
       end do
 
-      do itype=1,4
-        if ((itype.eq.1).or.(itype.eq.4)) then
+      do ipatch=1,size(asflx)
+        itype4 = asflx(ipatch)%itype4
+        if ((itype4.eq.1).or.(itype4.eq.4)) then
           elhx=lhe
         else
           elhx=lhs
@@ -918,9 +923,9 @@ C**** fix roughness length for ocean ice that turned to land ice
           jlat=j
           do i=I_0,imaxj(j)
             coriol=sinlat2d(i,j)*omega2
-            tgrndv=tgvdat(i,j,itype)
+            tgrndv=tgvdat(i,j,itype4)
             if (tgrndv.eq.0.) then
-              asflx(itype)%ipbl(i,j)=0
+              asflx(ipatch)%ipbl(i,j)=0
               go to 200
             endif
             ilong=i
@@ -938,9 +943,9 @@ C**** fix roughness length for ocean ice that turned to land ice
             v1_after_aturb(i,j) = vtop
 
             zgrnd=.1d0 ! formal initialization
-            if (itype.gt.2) zgrnd=roughl(i,j) !         30./(10.**roughl(i,j))
+            if (itype4.gt.2) zgrnd=roughl(i,j) !         30./(10.**roughl(i,j))
 
-            if (itype.gt.2) rrr(i,j) = zgrnd
+            if (itype4.gt.2) rrr(i,j) = zgrnd
 
             dpdxr  = DPDX_BY_RHO(i,j)
             dpdyr  = DPDY_BY_RHO(i,j)
@@ -954,26 +959,26 @@ C**** fix roughness length for ocean ice that turned to land ice
 #endif
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
-     3                 uocean,vocean,ilong,jlat,itype
+     3                 uocean,vocean,ilong,jlat,itype4
      &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &                 ,upbl,vpbl,tpbl,qpbl,epbl,ug,vg)
-            asflx(itype)%cmgs(i,j)=cm
-            asflx(itype)%chgs(i,j)=ch
-            asflx(itype)%cqgs(i,j)=cq
+            asflx(ipatch)%cmgs(i,j)=cm
+            asflx(ipatch)%chgs(i,j)=ch
+            asflx(ipatch)%cqgs(i,j)=cq
 
             do lpbl=1,npbl
-              asflx(itype)%uabl(lpbl,i,j)=upbl(lpbl)
-              asflx(itype)%vabl(lpbl,i,j)=vpbl(lpbl)
-              asflx(itype)%tabl(lpbl,i,j)=tpbl(lpbl)
-              asflx(itype)%qabl(lpbl,i,j)=qpbl(lpbl)
+              asflx(ipatch)%uabl(lpbl,i,j)=upbl(lpbl)
+              asflx(ipatch)%vabl(lpbl,i,j)=vpbl(lpbl)
+              asflx(ipatch)%tabl(lpbl,i,j)=tpbl(lpbl)
+              asflx(ipatch)%qabl(lpbl,i,j)=qpbl(lpbl)
             end do
 
             do lpbl=1,npbl-1
-              asflx(itype)%eabl(lpbl,i,j)=epbl(lpbl)
+              asflx(ipatch)%eabl(lpbl,i,j)=epbl(lpbl)
             end do
 
-            asflx(itype)%ipbl(i,j)=1
-            asflx(itype)%ustar_pbl(i,j)=ustar
+            asflx(ipatch)%ipbl(i,j)=1
+            asflx(ipatch)%ustar_pbl(i,j)=ustar
 
  200      end do
         end do
@@ -1025,12 +1030,14 @@ c  melting because pland and plice are fixed. The source code to do
 c  this is retained and deleted in the update deck in the event this
 c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
+      USE EXCHANGE_TYPES
       USE MODEL_COM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE FLUXES, only : asflx
+      USE FLUXES, only : asflx,atmocns,atmices,atmglas,atmlnds
       IMPLICIT NONE
-      integer i,j,itype  !@var i,j,itype loop variable
+      integer i,j,ip  !@var i,j,ip loop variable
+      type(atmsrf_xchng_vars), pointer :: ain,aout
 
       integer :: J_1, J_0, I_1, I_0
 C****
@@ -1040,45 +1047,75 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+! NOTE ON SUBDIVISIONS OF SURFACE TYPES:
+! when initializing profiles for a newly existent surface type,
+! values are taken from the _first_ instance of the preexisting
+! "donor" surface type (index 1).  This follows the coding before
+! the introduction of subdivisions of surface types.  If an instance
+! of the surface type already exists in the gridbox, new instances
+! of that type could be initialized from it.
+
       do j=J_0,J_1
         do i=I_0,imaxj(j)
 
 c ******* itype=1: Ocean
 
-          if (asflx(1)%ipbl(i,j).eq.0) then
-            if (asflx(2)%ipbl(i,j).eq.1) then
-              call setbl(2,1,i,j)
-            elseif (asflx(4)%ipbl(i,j).eq.1) then ! initialise from land
-              call setbl(4,1,i,j)
+          do ip=1,ubound(atmocns,1)
+            aout => atmocns(ip)%atmsrf_xchng_vars
+            if (aout%ipbl(i,j).eq.0) then
+              if (atmices(1)%ipbl(i,j).eq.1) then
+                ain => atmices(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              elseif (atmlnds(1)%ipbl(i,j).eq.1) then ! initialise from land
+                ain => atmlnds(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              endif
             endif
-          endif
+          enddo
 
 c ******* itype=2: Ocean ice
 
-          if (asflx(2)%ipbl(i,j).eq.0) then
-            if (asflx(1)%ipbl(i,j).eq.1) call setbl(1,2,i,j)
-          endif
+          do ip=1,ubound(atmices,1)
+            aout => atmices(ip)%atmsrf_xchng_vars
+            if (aout%ipbl(i,j).eq.0) then
+              if (atmocns(1)%ipbl(i,j).eq.1) then
+                ain => atmocns(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              endif
+            endif
+          enddo
 
 c ******* itype=3: Land ice
 
-          if (asflx(3)%ipbl(i,j).eq.0) then
-            if (asflx(4)%ipbl(i,j).eq.1) call setbl(4,3,i,j)
-          endif
+          do ip=1,ubound(atmglas,1)
+            aout => atmglas(ip)%atmsrf_xchng_vars
+            if (aout%ipbl(i,j).eq.0) then
+              if (atmlnds(1)%ipbl(i,j).eq.1) then
+                ain => atmlnds(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              endif
+            endif
+          enddo
 
 c ******* itype=4: Land
 
-          if (asflx(4)%ipbl(i,j).eq.0) then
-            if (asflx(3)%ipbl(i,j).eq.1) then
-              call setbl(3,4,i,j)
-            elseif (asflx(1)%ipbl(i,j).eq.1) then
-              call setbl(1,4,i,j)
+          do ip=1,ubound(atmlnds,1)
+            aout => atmlnds(ip)%atmsrf_xchng_vars
+            if (aout%ipbl(i,j).eq.0) then
+              if (atmglas(1)%ipbl(i,j).eq.1) then
+                ain => atmglas(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              elseif (atmocns(1)%ipbl(i,j).eq.1) then
+                ain => atmocns(1)%atmsrf_xchng_vars
+                call setbl(ain,aout,i,j)
+              endif
             endif
-          endif
+          enddo
 
 C**** initialise some pbl common variables
 
-          do itype=1,4
-            asflx(itype)%ipbl(i,j) = 0 ! - will be set to 1s when pbl is called
+          do ip=1,size(asflx)
+            asflx(ip)%ipbl(i,j) = 0 ! - will be set to 1s when pbl is called
           enddo
         end do
       end do
@@ -1086,27 +1123,27 @@ C**** initialise some pbl common variables
       return
       end subroutine loadbl
 
-      subroutine setbl(itype_in,itype_out,i,j)
+      subroutine setbl(ain,aout,i,j)
 !@sum setbl initiallise bl from another surface type for one grid box
 !@auth Ye Cheng
-      USE FLUXES, only : asflx
+      USE EXCHANGE_TYPES
       USE PBLCOM, only : npbl
       IMPLICIT NONE
-      integer, INTENT(IN) :: itype_in,itype_out,i,j
+      type (atmsrf_xchng_vars) :: ain,aout
+      integer, INTENT(IN) :: i,j
       integer lpbl  !@var lpbl loop variable
-
-      asflx(itype_out)%uabl(:,i,j)=asflx(itype_in)%uabl(:,i,j)
-      asflx(itype_out)%vabl(:,i,j)=asflx(itype_in)%vabl(:,i,j)
-      asflx(itype_out)%tabl(:,i,j)=asflx(itype_in)%tabl(:,i,j)
-      asflx(itype_out)%qabl(:,i,j)=asflx(itype_in)%qabl(:,i,j)
-      asflx(itype_out)%eabl(:,i,j)=asflx(itype_in)%eabl(:,i,j)
+      aout%uabl(:,i,j)=ain%uabl(:,i,j)
+      aout%vabl(:,i,j)=ain%vabl(:,i,j)
+      aout%tabl(:,i,j)=ain%tabl(:,i,j)
+      aout%qabl(:,i,j)=ain%qabl(:,i,j)
+      aout%eabl(:,i,j)=ain%eabl(:,i,j)
 #ifdef TRACERS_ON
-      asflx(itype_out)%trabl(:,:,i,j)=asflx(itype_in)%trabl(:,:,i,j)
+      aout%trabl(:,:,i,j)=ain%trabl(:,:,i,j)
 #endif
-      asflx(itype_out)%cmgs(i,j)=asflx(itype_in)%cmgs(i,j)
-      asflx(itype_out)%chgs(i,j)=asflx(itype_in)%chgs(i,j)
-      asflx(itype_out)%cqgs(i,j)=asflx(itype_in)%cqgs(i,j)
-      asflx(itype_out)%ustar_pbl(i,j)=asflx(itype_in)%ustar_pbl(i,j)
+      aout%cmgs(i,j)=ain%cmgs(i,j)
+      aout%chgs(i,j)=ain%chgs(i,j)
+      aout%cqgs(i,j)=ain%cqgs(i,j)
+      aout%ustar_pbl(i,j)=ain%ustar_pbl(i,j)
       return
       end subroutine setbl
 
@@ -1139,20 +1176,17 @@ C**** initialise some pbl common variables
       return
       end subroutine getztop
 
-      subroutine get_dbl(temp1,q1)
-      USE EXCHANGE_TYPES
+      subroutine get_dbl
+      USE FLUXES, only : atmsrf
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE ATM_COM, only : t,q,ua=>ualij,va=>valij
-      USE ATM_COM, only : pmid,pk,am1,p1,srfpk
+      USE ATM_COM, only : pmid,pk
       use SOCPBL, only : zgs
       USE PBLCOM
       use GEOM, only : imaxj
       use PBL_DRV
       use domain_decomp_atm, only : grid
       implicit none
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo) :: temp1,q1
-c
       integer :: ldc
       integer :: i,j,l
       real*8 :: zpbl,zpbl1,tbar,tl,pl,tl1,pl1,dbl,ztop
@@ -1163,8 +1197,8 @@ c
       do i=grid%i_strt,imaxj(j)
 
         ztop = zgs +
-     &       .5d-2*RGAS*((temp1(I,J)*(1.+q1(i,j)*xdelt))*
-     &       srfpk(i,j))*AM1(i,j)/p1(i,j)
+     &       .5d-2*RGAS*((atmsrf%temp1(I,J)*(1.+atmsrf%q1(i,j)*xdelt))*
+     &       atmsrf%srfpk(i,j))*atmsrf%AM1(i,j)/atmsrf%p1(i,j)
 
       ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
       ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.

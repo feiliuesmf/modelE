@@ -122,23 +122,6 @@ C**** module should own dynam variables used by other routines
 !@var WSAVE vertical velocity (m/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WSAVE
 
-! The following arrays are currently used in the calculation
-! of surface fluxes (via pointers in data structures for
-! atm-surface coupling).  More generally, the "layer 1"
-! choice could be replaced by the full boundary layer depth.
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), TARGET   ::
-!@var SRFP actual surface pressure (hecto-Pascals)
-!@var SRFPK SRFP**kapa
-     &     SRFP,SRFPK
-!@var AM1 mass of lowest atmospheric layer (kg/m2)
-!@var BYAM1 1/AM1
-!@var P1 center pressure of first atmospheric layer (mb)
-     &     ,AM1,BYAM1,P1
-!@var TEMP1 pot. temp. of first layer w.r.t. 1 mb (K)
-!@var SPHUM1 specific humidity of first layer
-!@var U1,V1 wind components of first layer (A-grid)
-     &     ,TEMP1,SPHUM1,U1,V1
-
       END MODULE ATM_COM
 
       SUBROUTINE ALLOC_ATM_COM(grid)
@@ -160,8 +143,6 @@ C**** module should own dynam variables used by other routines
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     PUA,PVA,SDA,MB,MA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     SRFP,SRFPK,P1,AM1,BYAM1,
-     &     TEMP1,SPHUM1,U1,V1,
      &     SQRTP,PTROPO,LTROPO,PS,PTOLD,
 #ifdef etc_subdd
      &     TTROPO,
@@ -279,15 +260,6 @@ C**** Check polar uniformity
 
       ! I-J arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
-     $          SRFP(I_0H:I_1H,J_0H:J_1H),
-     $          SRFPK(I_0H:I_1H,J_0H:J_1H),
-     $          AM1(I_0H:I_1H,J_0H:J_1H),
-     $          BYAM1(I_0H:I_1H,J_0H:J_1H),
-     $          P1(I_0H:I_1H,J_0H:J_1H),
-     $          TEMP1(I_0H:I_1H,J_0H:J_1H),
-     $          SPHUM1(I_0H:I_1H,J_0H:J_1H),
-     $          U1(I_0H:I_1H,J_0H:J_1H),
-     $          V1(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
 #ifdef etc_subdd

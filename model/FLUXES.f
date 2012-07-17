@@ -31,20 +31,25 @@
 !@var surf_name name of surface type
          character(len=16) :: surf_name
 
+!@var itype4 which of the 4 main surface types this instance is
+         integer :: itype4=0
+
 !@var grid a pointer to the grid object whose domain bounds were
 !@+   used to allocate an instance of this type
          type(dist_grid), pointer :: grid
 
-!@var xxx_exports memory spaces holding selected fields for
-!@+   bulk processing operations (averaging over surface types etc.)
-         real*8, dimension(:,:,:), pointer ::
-     &        srfflx_exports,srfstate_exports,pbl_exports
-#ifdef TRACERS_ON
-         real*8, dimension(:,:,:,:), pointer ::
-     &        trsrfflx_exports,trsrfstate_exports,trpbl_exports
-#endif
+!@var xxx_exports are memory spaces holding selected fields for
+!@+   en-masse operations (averaging over surface types,
+!@+   pointer management, etc.)
 
-         REAL*8, DIMENSION(:,:), POINTER ::
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var srfflx_exports contains the flux fields declared below
+!@+   that are calculated during SURFACE
+         real*8, dimension(:,:,:), pointer ::
+     &        srfflx_exports=>null()
+         real*8, dimension(:,:), pointer ::
 !@var E0 net energy flux at surface (J/m^2)
 !@var SOLAR absorbed solar radiation (J/m^2)
 !@var TRHEAT net LW flux accumulation (J/m^2)
@@ -56,58 +61,216 @@ C**** Momemtum stresses are calculated as if they were over whole box
 !@var EVAPOR evaporation (kg/m^2) 
 !@var SENSHT sensible heat flux accumulation (J/m^2)
 !@var LATHT latent heat flux accumulation (J/m^2)
-     &     ,PREC,EPREC,EVAPOR,SENSHT,LATHT
+     &     ,EVAPOR,SENSHT,LATHT
+     &     ,UFLUX1,VFLUX1 ! (temporary redundancy with dmua, dmva)
+     &     ,DTH1  ! (temporary) first layer temp. increment
+     &     ,DQ1   ! (temporary) first layer humidity increment
+!@+   TODO: have sea ice code refer to these
+!@var RUNO runoff (kg/m^2)
+!@var ERUNO energy of runoff (J/m^2)
+     &     ,RUNO, ERUNO
+
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var srfstate_exports contains the fields declared below
+!@+   which characterize the state of a surface component
+!@+   for flux calculations and diagnostics
+         real*8, dimension(:,:,:), pointer ::
+     &        srfstate_exports=>null()
+         real*8, dimension(:,:), pointer ::
 !@var GTEMP temperature of surface (C)
 !@var GTEMP2 "ground" temperature of "second" layer (C)
 !@var GTEMPR radiative ground temperature over surface type (K)
 !@var GTEMPS skin temperature over surface type (C)
-     &     ,GTEMP,GTEMP2,GTEMPR,GTEMPS
-!@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
-!@var LAT latitude of gridbox (radians)
-     &     ,COSZ1,LAT
+!@var SNOW,SNOWFR,SNOWDP snow mass, fraction, depth
+     &      GTEMP,GTEMP2,GTEMPR,GTEMPS
+     &     ,SNOW,SNOWFR,SNOWDP
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var pbl_exports contains the fields declared below
+!@+   which are calculated by the PBL scheme and are
+!@+   needed for flux calculations and diagnostics
+         real*8, dimension(:,:,:), pointer ::
+     &        pbl_exports=>null()
+         real*8, dimension(:,:), pointer ::
 !@var WSAVG  SURFACE WIND MAGNITUDE (M/S)
-     &     ,WSAVG
+     &      WSAVG
 !@var USAVG,VSAVG,TSAVG,QSAVG reference-height surf. wind components, temp, humidity
-     &     ,USAVG,VSAVG,TSAVG,QSAVG
-!@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
-     &     ,FLONG,FSHORT
-     &     ,TRUP_in_rad ! LW emission by surface during rad. timestep.
-!@var SRFP actual surface pressure (hecto-Pascals)
-     &     ,SRFP
+     &     ,USAVG,VSAVG,TSAVG,QSAVG,RSAVG
+!@var cmgs drag coefficient (dimensionless surface momentum flux)
+!@var chgs Stanton number   (dimensionless surface heat flux)
+!@var cqgs Dalton number    (dimensionless surface moisture flux)
+     &     ,cmgs,chgs,cqgs
+!@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
+     &     ,ustar_pbl
+!@var WSAVG     SURFACE WIND MAGNITUDE (M/S)
+!@var TSAVG     SURFACE AIR TEMPERATURE (K)
+!@var QSAVG     SURFACE AIR SPECIFIC HUMIDITY (1)
+!@var RSAVG     SURFACE AIR RELATIVE HUMIDITY (1)
+!@var USAVG     SURFACE U WIND
+!@var VSAVG     SURFACE V WIND
+!@var TAUAVG    SURFACE MOMENTUM TRANSFER (TAU)
+!@var TGVAVG    virtual temperature of the ground (K)
+!@var gustiwind wind gustiness (m/s)
+!@var dblavg    boundary layer height (m)
+!@var w2_l1     vertical component of t.k.e. at gcm layer 1
+!@var ciaavg    cross-isobar angle
+!@var khsavg    vertical diffusivity at "surface" height (m2/s)
+     &     ,tauavg,tgvavg,qgavg
+     &     ,w2_l1,gustiwind,dblavg,rhoavg
+     &     ,ciaavg,khsavg
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
+!@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
+!@var wsubtke turbulent kinetic energy velocity scale [m/s]
+!@var wsubwd dry convective velocity scale [m/s]
+!@var wsubwm moist convective velocity scale [m/s]
+     &     ,wsgcm,wspdf,wsubwd,wsubtke,wsubwm
+#endif
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var atm_exports_phase1 contains the fields declared below
+!@+   which are calculated by the atmospheric model before
+!@+   the flux calcuations in SURFACE, and which do not vary
+!@+   during the sub-timesteps in SURFACE
+!@+   (see atm_exports_phasesrf below).
+         real*8, dimension(:,:,:), pointer ::
+     &        atm_exports_phase1=>null()
+         real*8, dimension(:,:), pointer ::
+     &      SRFP  ! SRFP actual surface pressure (hecto-Pascals)
      &     ,SRFPK ! srfp**kapa
      &     ,AM1   ! first-layer air mass (kg/m2)
      &     ,BYAM1 ! 1/AM1
      &     ,P1    ! center pressure of first layer (mb)
-     &     ,TEMP1 ! pot. temp. of first layer w.r.t. 1 mb
-     &     ,Q1    ! specific humidity of first layer
-     &     ,U1    ! a-grid EW wind of first layer
-     &     ,V1    ! a-grid NS wind of first layer
-     &     ,UFLUX1,VFLUX1 ! (temporary redundancy with dmua, dmva)
-     &     ,DTH1  ! (temporary) first layer temp. increment
-     &     ,DQ1   ! (temporary) first layer humidity increment
+!@var PREC precipitation (kg/m^2)
+!@var EPREC energy of preciptiation (J/m^2)
+     &     ,PREC,EPREC
+!@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
+     &     ,COSZ1
+!@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
+     &     ,FLONG,FSHORT
+     &     ,TRUP_in_rad ! LW emission by surface during rad. timestep.
+
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var atm_exports_phasesrf contains the atmospheric fields declared below
+!@+   which are available before the flux calcuations in SURFACE, but which
+!@+   are updated during the sub-timesteps in SURFACE.
+         real*8, dimension(:,:,:), pointer ::
+     &        atm_exports_phasesrf=>null()
+         real*8, dimension(:,:), pointer ::
+!@var TEMP1 pot. temp. of first layer w.r.t. 1 mb (K)
+!@var Q1 specific humidity of first layer
+!@var U1,V1 wind components of first layer (A-grid)
+     &      TEMP1
+     &     ,Q1
+     &     ,U1,V1
+! The "layer 1" arrays TEMP1,Q1,U1,V1,P1,AM1 will be redefined
+! to correspond to the full boundary layer depth.
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
 #ifdef TRACERS_ON
-         REAL*8, DIMENSION(:,:,:), POINTER ::
-     &      TRM1  ! first-layer tracer mass (kg/m2).  Todo: conc. instead?
-     &     ,TRFLUX1 ! non-interactive emissions (kg/m2/s)
+
+!@var trsrfflx_exports contains the tracer flux fields declared below
+!@+   that are calculated during SURFACE
+         real*8, dimension(:,:,:,:), pointer ::
+     &        trsrfflx_exports=>null()
+         real*8, dimension(:,:,:), pointer ::
 !@var TRSRFFLX interactive surface sources/sinks for tracers (kg/m2/s)
-     &     ,TRSRFFLX
-!@var GTRACER ground concentration of tracer on atmospheric grid (kg/kg)
-         REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
+     &      TRSRFFLX
 #ifdef TRACERS_WATER
-         REAL*8, DIMENSION(:,:,:), POINTER ::
-!@var TRPREC tracers in precip (kg/m^2)
-     &      TRPREC
-!@var TREVAPOR tracer evaporation over each type (kg/m^2) 
-     &     ,TREVAPOR
+!@var TREVAPOR tracer evaporation  (kg/m^2) 
+!@var TRUNO tracer runoff (kg/m^2)
+     &     ,TREVAPOR,TRUNO
 #endif
 #ifdef TRACERS_DRYDEP
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
-         REAL*8, DIMENSION(:,:,:), POINTER :: TRDRYDEP
+     &     ,TRDRYDEP
 #endif
+
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var trsrfstate_exports contains the tracer fields declared below
+!@+   which characterize the state of a surface component
+!@+   for flux calculations and diagnostics
+         real*8, dimension(:,:,:,:), pointer ::
+     &        trsrfstate_exports=>null()
+         real*8, dimension(:,:,:), pointer ::
+!@var GTRACER ground concentration of tracer (kg/kg)
+     &        GTRACER
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var trpbl_exports contains the tracer fields declared below
+!@+   which are calculated by the PBL scheme and are
+!@+   needed for flux calculations and diagnostics
+         real*8, dimension(:,:,:,:), pointer ::
+     &        trpbl_exports=>null()
+         real*8, dimension(:,:,:), pointer ::
+!@var travg near-surface tracer mixing ratio
+!@var travg_byvol near-surface tracer concentration (kg/m3)
+     &        travg,travg_byvol
+#ifdef TRACERS_DRYDEP
+!@var dep_vel dry deposition velocity
+!@var gs_vel gravitational settling velocity
+!@var drydflx dry deposition flux
+     &       ,dep_vel,gs_vel,drydflx
 #endif
-!@var WORK1,WORK2 temporary workspace
+
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var tratm_exports_phase1 contains the fields declared below
+!@+   which are calculated by the atmospheric model before
+!@+   the flux calcuations in SURFACE, and which do not
+!@+   vary during the sub-timesteps in SURFACE (see
+!+    tratm_exports_phasesrf below).
+         real*8, dimension(:,:,:,:), pointer ::
+     &        tratm_exports_phase1=>null()
+         real*8, dimension(:,:,:), pointer ::
+     &      TRFLUX_prescr ! prescribed, non-interactive emissions (kg/m2/s)
+#ifdef TRACERS_WATER
+!@var TRPREC tracers in precip (kg/m^2)
+     &     ,TRPREC
+#endif
+
+!----------------------------------------------------------------
+!----------------------------------------------------------------
+
+!@var tratm_exports_phasesrf contains the atmospheric fields declared below
+!@+   which are available before the flux calcuations in SURFACE, but which
+!@+   are updated during the sub-timesteps in SURFACE.
+         real*8, dimension(:,:,:,:), pointer ::
+     &        tratm_exports_phasesrf=>null()
+         real*8, dimension(:,:,:), pointer ::
+     &      TRM1  ! first-layer tracer mass (kg/m2).  Todo: conc. instead?
+! See note above on "layer 1" arrays.
+
+#endif /* TRACERS_ON */
+
          REAL*8, DIMENSION(:,:), POINTER ::
-     &      WORK1,WORK2
+!@var ftype fraction of the gridcell occupied by this patch
+     &      FTYPE
+     &     ,FTYPE_REL
+!@var LAT latitude of gridbox (radians)
+     &     ,LAT
+!@var WORK1,WORK2 temporary workspace
+     &     ,WORK1,WORK2
 
 !@var AIJ a pointer to modelE diag accumulation arrays
          REAL*8, DIMENSION(:,:,:), POINTER :: AIJ
@@ -131,6 +294,14 @@ C**** Momemtum stresses are calculated as if they were over whole box
          integer :: ntm=0
 #endif
 
+
+!@var ipbl flag for whether pbl properties were found at last timestep
+      integer, pointer, dimension(:,:) :: ipbl
+
+! The following fields are not fundamental to atmosphere-surface interaction,
+! as they are specific to a particular PBL scheme employing semi-prognostic
+! subgrid profiles.  However, it is currently convenient to declare them here
+! but let them be allocated by the PBL scheme.
 !@var uabl boundary layer profile for zonal wind
 !@var vabl boundary layer profile for meridional wind
 !@var tabl boundary layer profile for temperature
@@ -140,56 +311,6 @@ C**** Momemtum stresses are calculated as if they were over whole box
 #ifdef TRACERS_ON
 !@var trabl boundary layer profile for tracers
       real*8, pointer, dimension(:,:,:,:) :: trabl
-#ifdef TRACERS_DRYDEP
-!@var dep_vel dry deposition velocity
-!@var gs_vel gravitational settling velocity
-!@var drydflx dry deposition flux
-      real*8, pointer, dimension(:,:,:) :: dep_vel,gs_vel,drydflx
-#endif
-#endif
-!@var cmgs drag coefficient (dimensionless surface momentum flux)
-!@var chgs Stanton number   (dimensionless surface heat flux)
-!@var cqgs Dalton number    (dimensionless surface moisture flux)
-      real*8, pointer, dimension(:,:) :: cmgs,chgs,cqgs
-!@var ipbl flag for whether pbl properties were found at last timestep
-      integer, pointer, dimension(:,:) :: ipbl
-!@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
-      REAL*8, pointer, dimension(:,:) :: ustar_pbl
-
-!@var WSAVG     SURFACE WIND MAGNITUDE (M/S)
-!@var TSAVG     SURFACE AIR TEMPERATURE (K)
-!@var QSAVG     SURFACE AIR SPECIFIC HUMIDITY (1)
-!@var USAVG     SURFACE U WIND
-!@var VSAVG     SURFACE V WIND
-!@var TAUAVG    SURFACE MOMENTUM TRANSFER (TAU)
-!@var TGVAVG    virtual temperature of the ground (K)
-!@var gustiwind wind gustiness (m/s)
-!@var dblavg    boundary layer height (m)
-!@var w2_l1     vertical component of t.k.e. at gcm layer 1
-!@var ciaavg    cross-isobar angle
-!@var khsavg    vertical diffusivity at "surface" height (m2/s)
-
-      real*8, pointer, dimension(:,:) ::
-     &     tauavg,tgvavg,qgavg
-     &    ,w2_l1,gustiwind,dblavg,rhoavg
-     &    ,ciaavg,khsavg
-
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-!@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
-!@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
-!@var wsubtke turbulent kinetic energy velocity scale [m/s]
-!@var wsubwd dry convective velocity scale [m/s]
-!@var wsubwm moist convective velocity scale [m/s]
-      real*8, pointer, dimension(:,:) ::
-     &   wsgcm,wspdf,wsubwd,wsubtke,wsubwm
-#endif
-
-#ifdef TRACERS_ON
-!@var travg near-surface tracer mixing ratio
-!@var travg_byvol near-surface tracer concentration (kg/m3)
-      REAL*8, pointer, dimension(:,:,:) :: travg,travg_byvol
 #endif
 
       end type atmsrf_xchng_vars
@@ -202,6 +323,8 @@ C**** Momemtum stresses are calculated as if they were over whole box
      &     ,FLOWO, EFLOWO
 !@var GMELT,EGMELT mass,energy from glacial melt into ocean (kg/m^2, J/m^2)
      &     ,GMELT, EGMELT
+! While not inherently atmospheric, FLOWO/GMELT et al. are here because river
+! discharge and icebergs are currently calculated on the atmospheric grid.
 !@var UOSURF, VOSURF ocean surface velocity (cell center) (m/s)
 !@+   components defined along true N/S and E/W directions
 !@+   At the NP, U points from 90E to 90W, V from IDL to GM
@@ -335,16 +458,33 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
       ! -----------------------------------------------------
       ! For coupling of atmosphere with glacial ice.
       type, extends(atmsrf_xchng_vars) :: atmgla_xchng_vars
+
+
+!@var xxx_exports_gla memory spaces holding selected landice-specific fields
+!@+   for bulk processing operations (averaging over patches etc.)
+         real*8, dimension(:,:,:), pointer ::
+     &        srfflx_exports_gla!,srfstate_exports_gla
+#ifdef TRACERS_ON
+         real*8, dimension(:,:,:,:), pointer ::
+     &        trsrfflx_exports_gla!,trsrfstate_exports_gla
+#endif
+
          !@var E1 net energy flux at layer 1
-         REAL*8, DIMENSION(:,:), POINTER :: E1
+         REAL*8, DIMENSION(:,:), POINTER ::
+     &     E1
+     &    ,TGRND,TGR4  ! temporary temps for surface flux calcs
          !@var IMPLM,IMPLH implicit mass,energy flux at bottom of domain
          REAL*8, DIMENSION(:,:), POINTER :: IMPLM,IMPLH
+#ifdef TRACERS_WATER
+!@var IMPLT implicit tracer flux at bottom of domain
+         REAL*8, DIMENSION(:,:,:), POINTER :: IMPLT
+#endif
+
          !@var SNOWLI,SNOWFR,SNOWDP snow mass, fraction, depth
          !@+   TODO: move to atmsrf_xchng_vars and unify the names
          !@+   for these in seaice/landice/land components.
-         !@+   TODO2: move runoff arrays to atm_xchng_vars, unify the
-         !@+   names among seaice/landice/land components.
-         REAL*8, DIMENSION(:,:), POINTER :: SNOWLI,SNOWFR,SNOWDP
+c         REAL*8, DIMENSION(:,:), POINTER :: SNOWLI,SNOWFR,SNOWDP
+
       end type atmgla_xchng_vars
       ! -----------------------------------------------------
 
@@ -482,19 +622,31 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       return
       end subroutine set_simple_bounds_type
 
-      subroutine alloc_atmsrf_xchng_vars(grd_dum,this)
-      use bundle_maker
+      subroutine alloc_atmsrf_xchng_vars(grd_dum,this,that)
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmsrf_xchng_vars) :: THIS
+      TYPE(atmsrf_xchng_vars), optional :: THAT
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: K, IER
 #ifdef TRACERS_ON
       integer :: ntm
 #endif
+
+      if(present(that)) then ! only using this routine to set pointers
+
+        ! qtys that are not in any bundle
+        that%itype4 = this%itype4
+        that%surf_name = this%surf_name
+        that%ftype  => this%ftype
+        that%ipbl => this%ipbl
+
+        call alloc_atmsrf_xchng_bundles(grd_dum,this,that,.true.)
+
+      else
 
 #ifdef TRACERS_ON
       ntm = this%ntm
@@ -512,75 +664,156 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       J_1H = grd_dum%J_STOP_HALO
 
       ALLOCATE(
-     &          this % PREC    ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % EPREC   ( I_0H:I_1H , J_0H:J_1H ),
-#ifdef TRACERS_ON
-#ifdef TRACERS_WATER
-     &          this % TRPREC  ( NTM, I_0H:I_1H , J_0H:J_1H ),
-#endif
-#endif
+     &          this % FTYPE   ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % FTYPE_REL( I_0H:I_1H , J_0H:J_1H ),
+
      &          this % LAT     ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % COSZ1   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % FLONG   ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % FSHORT  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % TRUP_in_rad  ( I_0H:I_1H , J_0H:J_1H ),
-#ifdef STANDALONE_OCEAN
-     &          this % SRFP    ( I_0H:I_1H , J_0H:J_1H ),
-#endif
+
      &          this % WORK1   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % WORK2   ( I_0H:I_1H , J_0H:J_1H ),
+
      &   STAT = IER)
 
-      call make_bundle(this%srfflx_exports
+      this % ftype = 0.
+
+      allocate(this % ipbl(i_0h:i_1h,j_0h:j_1h))
+      this % ipbl = 0
+
+      call alloc_atmsrf_xchng_bundles(grd_dum,this,this,.false.)
+
+! are the inits to zero necessary if make_bundle is doing them?
+      this % runo(:,:) = 0.
+      this % eruno(:,:) = 0.
+      this % GTEMP = 0.    ! initialize at 0 C
+      this % GTEMP2 = 0.   ! initialize at 0 C
+      this % GTEMPR = TF   ! initialize at 273 K
+      this % snow = 0.
+      this % snowfr = 0.
+      this % snowdp = 0.
+#ifdef TRACERS_WATER
+      this % truno(:,:,:) = 0.
+#endif
+
+      endif
+
+      return
+      end subroutine alloc_atmsrf_xchng_vars
+
+      subroutine alloc_atmsrf_xchng_bundles(grd_dum,this_mem,this,
+     &     ptrs_only)
+      use bundle_maker
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grd_dum
+      TYPE(atmsrf_xchng_vars) :: THIS_MEM,THIS
+      logical :: ptrs_only
+      INTEGER :: I_0H, I_1H, J_1H, J_0H
+#ifdef TRACERS_ON
+      integer :: ntm
+#endif
+
+#ifdef TRACERS_ON
+      ntm = this%ntm
+#endif
+
+      I_0H = grd_dum%I_STRT_HALO
+      I_1H = grd_dum%I_STOP_HALO
+      J_0H = grd_dum%J_STRT_HALO
+      J_1H = grd_dum%J_STOP_HALO
+
+      call make_bundle(this_mem%atm_exports_phase1
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%srfp,this%srfpk,this%p1,this%am1,this%byam1
+     &     ,this%prec,this%eprec
+     &     ,this%cosz1,this%flong,this%fshort,this%trup_in_rad
+     &     )
+      if(ptrs_only)
+     &     this%atm_exports_phase1 => this_mem%atm_exports_phase1
+
+#ifdef TRACERS_ON
+      call make_bundle_lij(this_mem%tratm_exports_phase1
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%trflux_prescr
+#ifdef TRACERS_WATER
+     &     ,this%trprec
+#endif
+     &     )
+      if(ptrs_only)
+     &     this%tratm_exports_phase1 => this_mem%tratm_exports_phase1
+#endif
+
+      call make_bundle(this_mem%atm_exports_phasesrf
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%temp1,this%q1,this%u1,this%v1
+     &     )
+      if(ptrs_only)
+     &     this%atm_exports_phasesrf => this_mem%atm_exports_phasesrf
+
+
+#ifdef TRACERS_ON
+      call make_bundle_lij(this_mem%tratm_exports_phasesrf
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%trm1
+     &     )
+      if(ptrs_only)
+     &    this%tratm_exports_phasesrf => this_mem%tratm_exports_phasesrf
+#endif
+
+      call make_bundle(this_mem%srfflx_exports
      &     ,i_0h,i_1h,j_0h,j_1h
      &     ,this%evapor
      &     ,this%sensht,this%latht,this%trheat,this%solar,this%e0
      &     ,this%dmua,this%dmva
      &     ,this%dTH1,this%dQ1,this%uflux1,this%vflux1
+     &     ,this%runo,this%eruno
      &     )
+      if(ptrs_only)
+     &     this%srfflx_exports => this_mem%srfflx_exports
 
-      call make_bundle(this%srfstate_exports
+      call make_bundle(this_mem%srfstate_exports
      &     ,i_0h,i_1h,j_0h,j_1h
      &     ,this%gtemp,this%gtemp2,this%gtempr,this%gtemps
+     &     ,this%snow,this%snowfr,this%snowdp
      &     )
-
-      this % GTEMP = 0.    ! initialize at 0 C
-      this % GTEMP2 = 0.   ! initialize at 0 C
-      this % GTEMPR = TF   ! initialize at 273 K
+      if(ptrs_only)
+     &     this%srfstate_exports => this_mem%srfstate_exports
 
 #ifdef TRACERS_ON
-      call make_bundle_lij(this%trsrfflx_exports
+      call make_bundle_lij(this_mem%trsrfflx_exports
      &     ,ntm,i_0h,i_1h,j_0h,j_1h
      &     ,this%trsrfflx
 #ifdef TRACERS_WATER
      &     ,this%trevapor
+     &     ,this%truno
 #endif
 #ifdef TRACERS_DRYDEP
      &     ,this%trdrydep
 #endif
      &     )
+      if(ptrs_only)
+     &     this%trsrfflx_exports => this_mem%trsrfflx_exports
 
-      call make_bundle_lij(this%trsrfstate_exports
+      call make_bundle_lij(this_mem%trsrfstate_exports
      &     ,ntm,i_0h,i_1h,j_0h,j_1h
      &     ,this%gtracer
      &     )
-
+      if(ptrs_only)
+     &     this%trsrfstate_exports => this_mem%trsrfstate_exports
 #endif
 
-      allocate(this % ipbl(i_0h:i_1h,j_0h:j_1h))
-      this % ipbl = 0
-
-      call make_bundle(this%pbl_exports
+      call make_bundle(this_mem%pbl_exports
      &     ,i_0h,i_1h,j_0h,j_1h
-     &     ,this%tsavg 
-     &     ,this%qsavg 
-     &     ,this%usavg 
-     &     ,this%vsavg 
-     &     ,this%wsavg 
-     &     ,this%tauavg 
-     &     ,this%tgvavg 
-     &     ,this%qgavg 
-     &     ,this%w2_l1 
+     &     ,this%tsavg
+     &     ,this%qsavg
+     &     ,this%rsavg
+     &     ,this%usavg
+     &     ,this%vsavg
+     &     ,this%wsavg
+     &     ,this%tauavg
+     &     ,this%tgvavg
+     &     ,this%qgavg
+     &     ,this%w2_l1
      &     ,this%gustiwind
      &     ,this%dblavg
      &     ,this%rhoavg
@@ -599,10 +832,12 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%wsubwm
 #endif
      &     )
+      if(ptrs_only)
+     &     this%pbl_exports => this_mem%pbl_exports
 
 #ifdef TRACERS_ON
 
-      call make_bundle_lij(this%trpbl_exports
+      call make_bundle_lij(this_mem%trpbl_exports
      &     ,ntm,i_0h,i_1h,j_0h,j_1h
      &     ,this%travg,this%travg_byvol
 #ifdef TRACERS_DRYDEP
@@ -611,103 +846,60 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%drydflx
 #endif
      &     )
-
+      if(ptrs_only)
+     &     this%trpbl_exports => this_mem%trpbl_exports
 #endif
 
       return
-      end subroutine alloc_atmsrf_xchng_vars
+      end subroutine alloc_atmsrf_xchng_bundles
 
-      subroutine setptr_atmsrf_loopable(src,dest)
-      IMPLICIT NONE
-      TYPE(atmsrf_xchng_vars) :: src,dest
-      dest%surf_name = src%surf_name
-      dest%e0     => src%e0
-      dest%evapor => src%evapor
-      dest%sensht => src%sensht
-      dest%latht => src%latht
-      dest%solar  => src%solar
-      dest%trheat  => src%trheat
-      dest%dmua   => src%dmua
-      dest%dmva   => src%dmva
-      dest%gtempr => src%gtempr
-      dest%gtemps => src%gtemps
-      dest%gtemp  => src%gtemp
-      dest%gtemp2 => src%gtemp2
-      dest%flong  => src%flong
-      dest%fshort => src%fshort
-      dest%trup_in_rad => src%trup_in_rad
-#ifdef TRACERS_ON
-      dest%gtracer  => src%gtracer
-#endif
-#ifdef TRACERS_WATER
-      dest%trevapor => src%trevapor
-#endif
-#ifdef TRACERS_DRYDEP
-      dest%trdrydep => src%trdrydep
-#endif
-      dest%tsavg => src%tsavg
-      dest%qsavg => src%qsavg
-      dest%usavg => src%usavg
-      dest%vsavg => src%vsavg
-      dest%wsavg => src%wsavg
-
-      dest%p1 => src%p1
-      dest%srfp => src%srfp
-      dest%srfpk => src%srfpk
-      dest%am1 => src%am1
-      dest%byam1 => src%byam1
-
-      dest%dth1    => src%dth1
-      dest%dq1     => src%dq1
-      dest%uflux1  => src%uflux1
-      dest%vflux1  => src%vflux1
-#ifdef TRACERS_ON
-      dest%trm1  => src%trm1
-      dest%trflux1  => src%trflux1
-      dest%trsrfflx  => src%trsrfflx
-#endif
-
-      dest%pbl_exports => src%pbl_exports
-      dest%srfflx_exports => src%srfflx_exports
-      dest%srfstate_exports => src%srfstate_exports
-#ifdef TRACERS_ON
-      dest%trpbl_exports => src%trpbl_exports
-      dest%trsrfflx_exports => src%trsrfflx_exports
-      dest%trsrfstate_exports => src%trsrfstate_exports
-#endif
-
-      dest%ipbl => src%ipbl
-      dest%cmgs => src%cmgs
-      dest%chgs => src%chgs
-      dest%cqgs => src%cqgs
-      dest%ustar_pbl => src%ustar_pbl
-#ifdef TRACERS_ON
-#ifdef TRACERS_DRYDEP
-      dest%dep_vel => src%dep_vel
-      dest%gs_vel  => src%gs_vel
-      dest%drydflx => src%drydflx
-#endif
-#endif
-      return
-      end subroutine setptr_atmsrf_loopable
-
-      subroutine avg_patches_pbl_exports(grid,patches,avg,ptype)
+      subroutine avg_patches_pbl_exports(grid,patches,avg,rel)
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      type(atmsrf_xchng_vars) :: patches(4),avg
-      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
-     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+      class(atmsrf_xchng_vars) :: patches(:),avg
+      logical, intent(in), optional :: rel
 c
-      integer :: i,j,k,l
+      integer :: i,j,k,l,np
+      real*8, dimension(:,:,:), allocatable :: ftype
+      logical :: rel_
 c
+
+      np = size(patches)
+      if(np == 1) return
+
+      allocate(
+     &     ftype(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,np))
+
+      rel_ = .false.
+      if(present(rel)) then
+        rel_ = rel
+      endif
+      if(rel_) then
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+        enddo
+        enddo
+        enddo
+      else
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype(i,j)
+        enddo
+        enddo
+        enddo
+      endif
+
       do l=1,size(avg%pbl_exports,3)
         avg%pbl_exports(:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%pbl_exports(i,j,l) = avg%pbl_exports(i,j,l) +
-     &         patches(k)%pbl_exports(i,j,l)*ptype(k,i,j)
+     &         patches(k)%pbl_exports(i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
@@ -716,37 +908,70 @@ c
 #ifdef TRACERS_ON
       do l=1,size(avg%trpbl_exports,4)
         avg%trpbl_exports(:,:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%trpbl_exports(:,i,j,l) = avg%trpbl_exports(:,i,j,l) +
-     &         patches(k)%trpbl_exports(:,i,j,l)*ptype(k,i,j)
+     &         patches(k)%trpbl_exports(:,i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
       enddo
 #endif
 
+      deallocate(ftype)
+
       return
       end subroutine avg_patches_pbl_exports
 
-      subroutine avg_patches_srfflx_exports(grid,patches,avg,ptype)
+      subroutine avg_patches_srfflx_exports(grid,patches,avg,rel)
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      type(atmsrf_xchng_vars) :: patches(4),avg
-      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
-     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+      class(atmsrf_xchng_vars) :: patches(:),avg
+      logical, intent(in), optional :: rel
 c
-      integer :: i,j,k,l
+      integer :: i,j,k,l,np
+      real*8, dimension(:,:,:), allocatable :: ftype
+      logical :: rel_
 c
+
+      np = size(patches)
+      if(np == 1) return
+
+      allocate(
+     &     ftype(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,np))
+
+      rel_ = .false.
+      if(present(rel)) then
+        rel_ = rel
+      endif
+
+      if(rel_) then
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+        enddo
+        enddo
+        enddo
+      else
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype(i,j)
+        enddo
+        enddo
+        enddo
+      endif
+
       do l=1,size(avg%srfflx_exports,3)
         avg%srfflx_exports(:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%srfflx_exports(i,j,l) = avg%srfflx_exports(i,j,l) +
-     &         patches(k)%srfflx_exports(i,j,l)*ptype(k,i,j)
+     &         patches(k)%srfflx_exports(i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
@@ -755,38 +980,144 @@ c
 #ifdef TRACERS_ON
       do l=1,size(avg%trsrfflx_exports,4)
         avg%trsrfflx_exports(:,:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%trsrfflx_exports(:,i,j,l) =
      &    avg%trsrfflx_exports(:,i,j,l) +
-     &         patches(k)%trsrfflx_exports(:,i,j,l)*ptype(k,i,j)
+     &         patches(k)%trsrfflx_exports(:,i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
       enddo
 #endif
 
+      deallocate(ftype)
+
       return
       end subroutine avg_patches_srfflx_exports
 
-      subroutine avg_patches_srfstate_exports(grid,patches,avg,ptype)
+      subroutine avg_patches_srfflx_exports_gla(grid,patches,avg,rel)
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      type(atmsrf_xchng_vars) :: patches(4),avg
-      real*8, dimension(4,grid%i_strt_halo:grid%i_stop_halo
-     &                   ,grid%j_strt_halo:grid%j_stop_halo) :: ptype
+      type(atmgla_xchng_vars) :: patches(:),avg
+      logical, intent(in), optional :: rel
 c
-      integer :: i,j,k,l
+      integer :: i,j,k,l,np
+      real*8, dimension(:,:,:), allocatable :: ftype
+      logical :: rel_
 c
+
+      np = size(patches)
+      if(np == 1) return
+
+      allocate(
+     &     ftype(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,np))
+
+      rel_ = .false.
+      if(present(rel)) then
+        rel_ = rel
+      endif
+
+      if(rel_) then
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+        enddo
+        enddo
+        enddo
+      else
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype(i,j)
+        enddo
+        enddo
+        enddo
+      endif
+
+      do l=1,size(avg%srfflx_exports_gla,3)
+        avg%srfflx_exports_gla(:,:,l) = 0.
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%srfflx_exports_gla(i,j,l) =
+     &    avg%srfflx_exports_gla(i,j,l) +
+     &         patches(k)%srfflx_exports_gla(i,j,l)*ftype(i,j,k)
+        enddo
+        enddo
+        enddo
+      enddo
+
+#ifdef TRACERS_ON
+      do l=1,size(avg%trsrfflx_exports_gla,4)
+        avg%trsrfflx_exports_gla(:,:,:,l) = 0.
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          avg%trsrfflx_exports_gla(:,i,j,l) =
+     &    avg%trsrfflx_exports_gla(:,i,j,l) +
+     &         patches(k)%trsrfflx_exports_gla(:,i,j,l)*ftype(i,j,k)
+        enddo
+        enddo
+        enddo
+      enddo
+#endif
+
+      deallocate(ftype)
+
+      return
+      end subroutine avg_patches_srfflx_exports_gla
+
+      subroutine avg_patches_srfstate_exports(grid,patches,avg,rel)
+      use domain_decomp_1d, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      class(atmsrf_xchng_vars) :: patches(:),avg
+      logical, intent(in), optional :: rel
+c
+      integer :: i,j,k,l,np
+      real*8, dimension(:,:,:), allocatable :: ftype
+      logical :: rel_
+c
+      np = size(patches)
+      if(np == 1) return
+
+      allocate(
+     &     ftype(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,np))
+
+      rel_ = .false.
+      if(present(rel)) then
+        rel_ = rel
+      endif
+
+      if(rel_) then
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype_rel(i,j)
+        enddo
+        enddo
+        enddo
+      else
+        do k=1,np
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          ftype(i,j,k) = patches(k)%ftype(i,j)
+        enddo
+        enddo
+        enddo
+      endif
+
       do l=1,size(avg%srfstate_exports,3)
         avg%srfstate_exports(:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%srfstate_exports(i,j,l) = avg%srfstate_exports(i,j,l) +
-     &         patches(k)%srfstate_exports(i,j,l)*ptype(k,i,j)
+     &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
@@ -795,17 +1126,19 @@ c
 #ifdef TRACERS_ON
       do l=1,size(avg%trsrfstate_exports,4)
         avg%trsrfstate_exports(:,:,:,l) = 0.
-        do k=1,size(patches)
+        do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%trsrfstate_exports(:,i,j,l) =
      &    avg%trsrfstate_exports(:,i,j,l) +
-     &         patches(k)%trsrfstate_exports(:,i,j,l)*ptype(k,i,j)
+     &         patches(k)%trsrfstate_exports(:,i,j,l)*ftype(i,j,k)
         enddo
         enddo
         enddo
       enddo
 #endif
+
+      deallocate(ftype)
 
       return
       end subroutine avg_patches_srfstate_exports
@@ -823,6 +1156,8 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       integer :: ntm_gasexch
 #endif
+
+      this%itype4 = 1
 
 #ifdef TRACERS_ON
       ntm = this%ntm
@@ -912,6 +1247,8 @@ c
       integer :: ntm
 #endif
 
+      this%itype4 = 2
+
 #ifdef TRACERS_WATER
       ntm = this%ntm
 #endif
@@ -982,25 +1319,44 @@ c
       end subroutine alloc_atmice_xchng_vars
 
       subroutine alloc_atmgla_xchng_vars(grd_dum,this)
+      use bundle_maker
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(atmgla_xchng_vars) :: THIS
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
+#ifdef TRACERS_ON
+      integer :: ntm
+#endif
+
+#ifdef TRACERS_ON
+      ntm = this%ntm
+#endif
+
+      this%itype4 = 3
 
       call alloc_atmsrf_xchng_vars(grd_dum,this%atmsrf_xchng_vars)
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
-      ALLOCATE( this % E1 ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % IMPLM ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % IMPLH ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % SNOWLI( I_0H:I_1H , J_0H:J_1H ),
-     &          this % SNOWFR( I_0H:I_1H , J_0H:J_1H ),
-     &          this % SNOWDP( I_0H:I_1H , J_0H:J_1H ),
+
+      ALLOCATE( this % TGRND ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % TGR4  ( I_0H:I_1H , J_0H:J_1H ),
      &     STAT = IER)
+
+      call make_bundle(this%srfflx_exports_gla
+     &     ,i_0h,i_1h,j_0h,j_1h
+     &     ,this%e1,this%implm,this%implh
+     &     )
+
+#ifdef TRACERS_WATER
+      call make_bundle_lij(this%trsrfflx_exports_gla
+     &     ,ntm,i_0h,i_1h,j_0h,j_1h
+     &     ,this%implt
+     &     )
+#endif
 
       return
       end subroutine alloc_atmgla_xchng_vars
@@ -1013,13 +1369,15 @@ c
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER
 
+      this%itype4 = 4
+
       call alloc_atmsrf_xchng_vars(grd_dum,this%atmsrf_xchng_vars)
       I_0H = grd_dum%I_STRT_HALO
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
       ALLOCATE( this % bare_soil_wetness ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
+     &     STAT = IER)
       return
       end subroutine alloc_atmlnd_xchng_vars
 
@@ -1117,6 +1475,7 @@ c
      *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
 #endif
+      USE LANDICE_COM, only : nhc
       IMPLICIT NONE
 
 !@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
@@ -1129,16 +1488,8 @@ c
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FEARTH0
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
-
-!@var RUNOE run off from earth (kg/m^2)
-!@var ERUNOE energy of run off from earth (J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNOE, ERUNOE
-
-!@var RUNOLI run off from land ice (kg/m^2) (Energy always=0)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNOLI
-
 !@param NSTYPE number of surface types for radiation purposes
-      INTEGER, PARAMETER :: NSTYPE=4
+      !INTEGER, PARAMETER :: NSTYPE=4
 
 !@dbparam UOdrag parameter that decides whether ocean.ice velocities
 !@+   feed into drag calculation in surface (default = 0)
@@ -1148,17 +1499,13 @@ c
 !@var vflux1 surface turbulent v-flux (=-<vw>)
 !@var tflux1 surface turbulent t-flux (=-<tw>)
 !@var qflux1 surface turbulent q-flux (=-<qw>)
-      real*8, allocatable, dimension(:,:), target :: 
+      real*8, allocatable, dimension(:,:) :: 
      &        uflux1,vflux1,tflux1,qflux1
 
 C**** The E/FLOWO, E/S/MELTI, E/GMELT arrays are used to flux quantities 
 C**** to the ocean that are not tied to the open water/ice covered 
 C**** fractions. This is done separately for river flow, complete
 C**** sea ice melt and iceberg/glacial melt.
-!@var FLOWO,EFLOWO mass, energy from rivers into ocean (kg/m^2, J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FLOWO,EFLOWO
-!@var GMELT,EGMELT mass,energy from glacial melt into ocean (kg/m^2,J/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: GMELT,EGMELT
 
 !@var PREC precipitation (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
@@ -1189,7 +1536,7 @@ C**** fluxes associated with variable lake fractions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif
 !@var TRFLUX1 total surface flux for each tracer (kg/m2/s)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), target :: trflux1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trflux1
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
@@ -1198,22 +1545,11 @@ C**** fluxes associated with variable lake fractions
 #ifdef TRACERS_WATER
 !@var TRPREC tracers in precip (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: TRPREC
-!@var TRUNOE tracer runoff from earth (kg/m^2)
-!@var TRUNOLI tracer runoff from land ice (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: 
-     &        TRUNOE, TRUNOLI
-
-!@var TRFLOWO tracer in river runoff into ocean (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRFLOWO
 
 C**** fluxes associated with variable lake fractions
 !@var DTRL tracers associate with DMWLDF (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DTRL
 
-#ifdef TRACERS_OCEAN
-!@var TRGMELT tracer from glacial melt into ocean (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRGMELT
-#endif
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1252,31 +1588,86 @@ C**** fluxes associated with variable lake fractions
 
 #endif
 
-!@var atmocn,atmic,atmgla,atmlnd derived-type strucures containing
-!@+   variables (or pointers thereto) needed for atmospheric
-!@+   interactions with water, floating ice, glacial ice, and the
-!@+   land surface.
-      type(atmocn_xchng_vars) :: atmocn ! ocean and lakes
-      type(atmice_xchng_vars) :: atmice ! ocean and lakes
-      type(atmgla_xchng_vars) :: atmgla ! glacial ice
-      type(atmlnd_xchng_vars) :: atmlnd ! land surface
+!@param after_atm_phase1, during_srfflx flags to pass to
+!@+     routines in SURFACE indicating the calling point
+      integer, parameter ::
+     &     after_atm_phase1=0, during_srfflx=1
 
-!@var atmsrf a derived-type structure for quantities averaged over
-!@+   surface types.
+!@var atm{ocn,ice,gla,lnd}s derived-type strucures containing
+!@+   variables needed for atmospheric interactions with
+!@+   water, floating ice, glacial ice, and the land surface.
+      type(atmocn_xchng_vars) :: atmocns(1) ! ocean and lakes
+      type(atmice_xchng_vars) :: atmices(1) ! ocean and lakes
+      type(atmgla_xchng_vars) :: atmglas(1-min(nhc,2)/2:nhc) ! glacial ice
+      type(atmlnd_xchng_vars) :: atmlnds(1) ! land surface
+
+!@var atm{ocn,ice,gla,lnd} pointers to the index of atm{ocn,ice,gla,lnd}s
+!@+   containing the average over patches (index = either 0 or 1, see notes below)
+      type(atmocn_xchng_vars), pointer :: atmocn ! ocean and lakes
+      type(atmice_xchng_vars), pointer :: atmice ! ocean and lakes
+      type(atmgla_xchng_vars), pointer :: atmgla ! glacial ice
+      type(atmlnd_xchng_vars), pointer :: atmlnd ! land surface
+
+      target :: atmocns,atmices,atmglas,atmlnds
+
+!@var atmsrf contains atm-surf interaction quantities averaged over
+!@+   all surface types.
       type(atmsrf_xchng_vars) :: atmsrf
 
-!@var asflx an array for looping over atmocn,atmice,atmgla,atmlnd
-      type(atmsrf_xchng_vars), dimension(4) :: asflx
+!@var asflx4 an array for looping over atmocn,atmice,atmgla,atmlnd
+      type(atmsrf_xchng_vars), dimension(4) :: asflx4
 
-      TARGET :: 
-     &      FOCEAN, PREC, EPREC
-     &     ,FLOWO, EFLOWO, GMELT, EGMELT
-#ifdef TRACERS_WATER
-      TARGET :: TRPREC,TRFLOWO
-#ifdef TRACERS_OCEAN
-      TARGET :: TRGMELT
-#endif
-#endif
+!@var asflx an array for looping over atmocns,atmices,atmglas,atmlnds
+      integer, parameter :: nptchs=
+     &      ubound(atmocns,1)
+     &     +ubound(atmices,1)
+     &     +ubound(atmglas,1)
+     &     +ubound(atmlnds,1)
+      type(atmsrf_xchng_vars), dimension(nptchs) :: asflx
+c      type(atmsrf_xchng_vars), dimension(:), allocatable :: asflx
+
+!@param p[12]xxx lower and upper bounds for a given surface type in
+!@+     the asflx array
+      integer, parameter ::
+     &     p1ocn = 1,
+     &     p2ocn = p1ocn+ubound(atmocns,1)-1,
+     &     p1ice = 1+p2ocn,
+     &     p2ice = p1ice+ubound(atmices,1)-1,
+     &     p1gla = 1+p2ice,
+     &     p2gla = p1gla+ubound(atmglas,1)-1,
+     &     p1lnd = 1+p2gla,
+     &     p2lnd = p1lnd+ubound(atmlnds,1)-1
+
+! Notes on atmxxxs, asflx arrays:
+!
+! Currently statically sized - will eventually become allocatable
+! when the number of possible patches per type becomes dynamic.
+!
+! If a surface type xxx has only one patch, the lower bound of
+! the array atmxxxs is equal to 1, and atmxxx => atmxxxs(1)
+! If a surface type has multiple patches, the lower bound of
+! the array atmxxxs is set to 0, with the index 0 reserved for the
+! average over patches of that type (atmxxx => atmxxxs(0))
+!
+! Positions 1-4 of the array asflx4 point to the same elements of atmxxxs
+! as atmocn,atmice,atmgla,atmlnd respectively.
+!
+! asflx(p1ocn:p2ocn) => atmocns(1:)
+! asflx(p1ice:p2ice) => atmices(1:)
+! asflx(p1gla:p2gla) => atmglas(1:)
+! asflx(p1lnd:p2lnd) => atmlnds(1:)
+!
+! When all surface types have multiple patches:
+!
+! asflx4(1,2,3,4), atm{ocn,ice,gla,lnd}  => atm{ocn,ice,gla,lnd}s(0)
+!
+! When each surface type has only one patch:
+!
+! asflx4(1,2,3,4), atm{ocn,ice,gla,lnd}  => atm{ocn,ice,gla,lnd}s(1)
+!
+! For asflx and asflx4, the "point to" operation for a given index
+! happens via a call to alloc_xchng_vars which sets all the pointers
+! individually.  This implementation will likely be improved.
 
       END MODULE FLUXES
 
@@ -1284,7 +1675,7 @@ C**** fluxes associated with variable lake fractions
 !@sum   Initializes FLUXES''s arrays
 !@auth  Rosalinda de Fainchtein
       USE FILEMANAGER
-      USE EXCHANGE_TYPES, only : alloc_xchng_vars,setptr_atmsrf_loopable
+      USE EXCHANGE_TYPES, only : alloc_xchng_vars
       USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,READT_PARALLEL,
      &     HALO_UPDATE,HASSOUTHPOLE,HASNORTHPOLE
       USE FLUXES
@@ -1293,7 +1684,6 @@ C**** fluxes associated with variable lake fractions
       USE GEOM, only : dlatm,sinip,cosip
 #endif
 #ifdef TRACERS_ON
-      use tracer_com, only : trm1
       USE tracer_com,ONLY : Ntm=> NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
@@ -1311,7 +1701,8 @@ C**** fluxes associated with variable lake fractions
       INTEGER :: iu_TOPO
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
-      INTEGER :: IER,ITYPE
+      INTEGER :: IER,K
+      character(len=2) :: c2
 
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
@@ -1381,19 +1772,10 @@ C**** Ensure that no round off error effects land with ice and earth
       End If
 
       !I-J arrays
-      ALLOCATE(
-     &          RUNOE   ( I_0H:I_1H , J_0H:J_1H ), 
-     &          ERUNOE  ( I_0H:I_1H , J_0H:J_1H ),
-     &          RUNOLI  ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT=IER )
       ALLOCATE( uflux1  ( I_0H:I_1H , J_0H:J_1H ),
      &          vflux1  ( I_0H:I_1H , J_0H:J_1H ),
      &          tflux1  ( I_0H:I_1H , J_0H:J_1H ),
      &          qflux1  ( I_0H:I_1H , J_0H:J_1H ),
-     &          FLOWO   ( I_0H:I_1H , J_0H:J_1H ),
-     &          EFLOWO  ( I_0H:I_1H , J_0H:J_1H ),
-     &          GMELT   ( I_0H:I_1H , J_0H:J_1H ),
-     &          EGMELT  ( I_0H:I_1H , J_0H:J_1H ),
      &          PREC    ( I_0H:I_1H , J_0H:J_1H ),
      &          EPREC   ( I_0H:I_1H , J_0H:J_1H ),
      &          PRECSS  ( I_0H:I_1H , J_0H:J_1H ),
@@ -1419,8 +1801,7 @@ C**** Ensure that no round off error effects land with ice and earth
 #endif
 
       !(I,J,:) arrays
-      ALLOCATE(trm1    ( I_0H:I_1H , J_0H:J_1H , NTM    ),
-     &         trflux1 ( I_0H:I_1H , J_0H:J_1H , NTM    ),
+      ALLOCATE(trflux1 ( I_0H:I_1H , J_0H:J_1H , NTM    ),
      &   STAT = IER)
 
       !I-J-L-:-: array
@@ -1433,15 +1814,8 @@ C**** Ensure that no round off error effects land with ice and earth
                                                     !(:)-(:)-I-J arrays
        !:-I-J arrays
        ALLOCATE( TRPREC  ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           TRUNOE  ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           TRUNOLI ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &           TRFLOWO ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &           DTRL    ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
-#ifdef TRACERS_OCEAN
-       ALLOCATE( TRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
-#endif
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1470,124 +1844,102 @@ C**** Ensure that no round off error effects land with ice and earth
 
 #endif
 
-      atmocn%surf_name = 'ocn'
-      atmice%surf_name = 'ice'
-      atmgla%surf_name = 'gla'
-      atmlnd%surf_name = 'lnd'
-
+      atmsrf%surf_name = 'srf'
 #ifdef TRACERS_ON
       atmsrf%ntm = ntm
-      atmocn%ntm = ntm
-      atmice%ntm = ntm
-      atmgla%ntm = ntm
-      atmlnd%ntm = ntm
 #endif
-
       call alloc_xchng_vars(grd_dum,atmsrf)
       atmsrf%TSAVG(:,:)=temperature_istart1
 
-
-#ifdef TRACERS_GASEXCH_ocean
-      atmocn%ntm_gasexch = ntm_gasexch
-#endif
-      call alloc_xchng_vars(grd_dum,atmocn)
-      atmocn%grid => grd_dum
-      atmocn%focean(:,:) = focean(:,:)
-      atmocn%lat(:,:) = lat2d(:,:)
-#ifndef CUBED_SPHERE
-      atmocn%dlatm = dlatm
-      atmocn%sini(:) = sinip(:)
-      atmocn%cosi(:) = cosip(:)
-#endif
-      deallocate(atmocn%prec);  atmocn%prec => prec
-      deallocate(atmocn%eprec); atmocn%eprec => eprec
-      deallocate(atmocn%flowo);  atmocn%flowo => flowo
-      deallocate(atmocn%eflowo); atmocn%eflowo => eflowo
-      deallocate(atmocn%gmelt);  atmocn%gmelt => gmelt
-      deallocate(atmocn%egmelt); atmocn%egmelt => egmelt
-#ifdef TRACERS_WATER
-      deallocate(atmocn%trprec);  atmocn%trprec => trprec
-      deallocate(atmocn%trflowo);  atmocn%trflowo => trflowo
-#ifdef TRACERS_OCEAN
-      deallocate(atmocn%trgmelt);  atmocn%trgmelt => trgmelt
-#endif
-#endif
-
-      call alloc_xchng_vars(grid,atmice)
-      atmice%grid => grd_dum
-      atmice%focean(:,:) = focean(:,:)
-      atmice%lat(:,:) = lat2d(:,:)
-#ifndef CUBED_SPHERE
-      atmice%dlatm = dlatm
-      atmice%sini(:) = sinip(:)
-      atmice%cosi(:) = cosip(:)
-#endif
-      deallocate(atmice%prec);  atmice%prec => prec
-      deallocate(atmice%eprec); atmice%eprec => eprec
-#ifdef TRACERS_WATER
-      deallocate(atmice%trprec);  atmice%trprec => trprec
-#endif
-
-      call alloc_xchng_vars(grid,atmgla)
-      atmgla%grid => grd_dum
-      atmgla%lat(:,:) = lat2d(:,:)
-      deallocate(atmgla%prec);  atmgla%prec => prec
-      deallocate(atmgla%eprec); atmgla%eprec => eprec
-#ifdef TRACERS_WATER
-      deallocate(atmgla%trprec);  atmgla%trprec => trprec
-#endif
-
-      call alloc_xchng_vars(grid,atmlnd)
-      atmlnd%grid => grd_dum
-      atmlnd%lat(:,:) = lat2d(:,:)
-
+      do k=lbound(atmocns,1),ubound(atmocns,1)
+        write(c2,'(i2.2)') k
+        atmocns(k)%surf_name = 'ocn'//c2
 #ifdef TRACERS_ON
-! for now, all surface types refer to the same array.
-      atmocn%trflux1  => trflux1
-      atmice%trflux1  => trflux1
-      atmgla%trflux1  => trflux1
-      atmlnd%trflux1  => trflux1
+        atmocns(k)%ntm = ntm
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+        atmocns(k)%ntm_gasexch = ntm_gasexch
+#endif
+        call alloc_xchng_vars(grid,atmocns(k))
+        atmocns(k)%grid => grd_dum
+        atmocns(k)%lat(:,:) = lat2d(:,:)
+        atmocns(k)%focean(:,:) = focean(:,:)
+#ifndef CUBED_SPHERE
+        atmocns(k)%dlatm = dlatm
+        atmocns(k)%sini(:) = sinip(:)
+        atmocns(k)%cosi(:) = cosip(:)
+#endif
+      enddo
 
-! set pointers to atm. quantities that are independent of surface type
-! (for now)
-      call set_pointers_to_atm_means(atmocn%atmsrf_xchng_vars)
-      call set_pointers_to_atm_means(atmice%atmsrf_xchng_vars)
-      call set_pointers_to_atm_means(atmgla%atmsrf_xchng_vars)
-      call set_pointers_to_atm_means(atmlnd%atmsrf_xchng_vars)
+      do k=lbound(atmices,1),ubound(atmices,1)
+        write(c2,'(i2.2)') k
+        atmices(k)%surf_name = 'ice'//c2
+#ifdef TRACERS_ON
+        atmices(k)%ntm = ntm
+#endif
+        call alloc_xchng_vars(grid,atmices(k))
+        atmices(k)%grid => grd_dum
+        atmices(k)%lat(:,:) = lat2d(:,:)
+        atmices(k)%focean(:,:) = focean(:,:)
+#ifndef CUBED_SPHERE
+        atmices(k)%dlatm = dlatm
+        atmices(k)%sini(:) = sinip(:)
+        atmices(k)%cosi(:) = cosip(:)
+#endif
+      enddo
 
-! set pointers for looping over surface types
-      call setptr_atmsrf_loopable(atmocn%atmsrf_xchng_vars,asflx(1))
-      call setptr_atmsrf_loopable(atmice%atmsrf_xchng_vars,asflx(2))
-      call setptr_atmsrf_loopable(atmgla%atmsrf_xchng_vars,asflx(3))
-      call setptr_atmsrf_loopable(atmlnd%atmsrf_xchng_vars,asflx(4))
+      do k=lbound(atmglas,1),ubound(atmglas,1)
+        write(c2,'(i2.2)') k
+        atmglas(k)%surf_name = 'gla'//c2
+#ifdef TRACERS_ON
+        atmglas(k)%ntm = ntm
+#endif
+        call alloc_xchng_vars(grid,atmglas(k))
+        atmglas(k)%grid => grd_dum
+        atmglas(k)%lat(:,:) = lat2d(:,:)
+      enddo
 
+      do k=lbound(atmlnds,1),ubound(atmlnds,1)
+        write(c2,'(i2.2)') k
+        atmlnds(k)%surf_name = 'lnd'//c2
+#ifdef TRACERS_ON
+        atmlnds(k)%ntm = ntm
+#endif
+        call alloc_xchng_vars(grid,atmlnds(k))
+        atmlnds(k)%grid => grd_dum
+        atmlnds(k)%lat(:,:) = lat2d(:,:)
+      enddo
+
+! set pointers for composite surface types and individual surface patches
+
+      atmocn => atmocns(lbound(atmocns,1))
+      atmice => atmices(lbound(atmices,1))
+      atmgla => atmglas(lbound(atmglas,1))
+      atmlnd => atmlnds(lbound(atmlnds,1))
+
+      call alloc_xchng_vars(grid,atmocn%atmsrf_xchng_vars,asflx4(1))
+      call alloc_xchng_vars(grid,atmice%atmsrf_xchng_vars,asflx4(2))
+      call alloc_xchng_vars(grid,atmgla%atmsrf_xchng_vars,asflx4(3))
+      call alloc_xchng_vars(grid,atmlnd%atmsrf_xchng_vars,asflx4(4))
+
+      do k=p1ocn,p2ocn
+        call alloc_xchng_vars(grid,
+     &       atmocns(1+k-p1ocn)%atmsrf_xchng_vars,asflx(k))
+      enddo
+      do k=p1ice,p2ice
+        call alloc_xchng_vars(grid,
+     &       atmices(1+k-p1ice)%atmsrf_xchng_vars,asflx(k))
+      enddo
+      do k=p1gla,p2gla
+        call alloc_xchng_vars(grid,
+     &       atmglas(1+k-p1gla)%atmsrf_xchng_vars,asflx(k))
+      enddo
+      do k=p1lnd,p2lnd
+        call alloc_xchng_vars(grid,
+     &       atmlnds(1+k-p1lnd)%atmsrf_xchng_vars,asflx(k))
+      enddo
 
       END SUBROUTINE ALLOC_FLUXES
-
-      subroutine set_pointers_to_atm_means(this)
-      use atm_com, only : srfp,srfpk,p1,am1,byam1,temp1,sphum1,u1,v1
-      use exchange_types
-#ifdef TRACERS_ON
-      use tracer_com, only : trm1
-#endif
-      implicit none
-      type(atmsrf_xchng_vars) :: this
-
-      this%srfp => srfp
-      this%srfpk => srfpk
-      this%p1 => p1
-      this%am1 => am1
-      this%byam1 => byam1
-      this%temp1 => temp1
-      this%q1    => sphum1
-      this%u1    => u1
-      this%v1    => v1
-#ifdef TRACERS_ON
-      this%trm1 => trm1
-#endif
-      return
-      end subroutine set_pointers_to_atm_means
 
       subroutine def_rsf_fluxes(fid)
 !@sum  def_rsf_fluxes defines structure of coupler arrays in restart files
@@ -1600,7 +1952,7 @@ C**** Ensure that no round off error effects land with ice and earth
       integer fid   !@var fid file id
       character(len=17) :: ijstr
       character(len=64) :: dimstr,vname
-      integer :: itype
+      integer :: ipatch
 
       ijstr='(dist_im,dist_jm)'
       !call defvar(agrid,fid,atmocn%gtemp,'gtemp'//ijstr)
@@ -1613,35 +1965,35 @@ C**** Ensure that no round off error effects land with ice and earth
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
       call defvar(grid,fid,atmocn%mlhc,'mlhc'//ijstr)
 
-      do itype = 1,size(asflx)
-        dimstr='_'//trim(asflx(itype)%surf_name)// 
+      do ipatch = 1,size(asflx)
+        dimstr='_'//trim(asflx(ipatch)%surf_name)// 
      &       '(npbl,dist_im,dist_jm)'
         vname = 'uabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%uabl,vname)
+        call defvar(grid,fid,asflx(ipatch)%uabl,vname)
         vname = 'vabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%vabl,vname)
+        call defvar(grid,fid,asflx(ipatch)%vabl,vname)
         vname = 'tabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%tabl,vname)
+        call defvar(grid,fid,asflx(ipatch)%tabl,vname)
         vname = 'qabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%qabl,vname)
+        call defvar(grid,fid,asflx(ipatch)%qabl,vname)
         vname = 'eabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%eabl,vname)
-        dimstr='_'//trim(asflx(itype)%surf_name)//ijstr
+        call defvar(grid,fid,asflx(ipatch)%eabl,vname)
+        dimstr='_'//trim(asflx(ipatch)%surf_name)//ijstr
         vname = 'cmgs'//dimstr
-        call defvar(grid,fid,asflx(itype)%cmgs,vname)
+        call defvar(grid,fid,asflx(ipatch)%cmgs,vname)
         vname = 'chgs'//dimstr
-        call defvar(grid,fid,asflx(itype)%chgs,vname)
+        call defvar(grid,fid,asflx(ipatch)%chgs,vname)
         vname = 'cqgs'//dimstr
-        call defvar(grid,fid,asflx(itype)%cqgs,vname)
+        call defvar(grid,fid,asflx(ipatch)%cqgs,vname)
         vname = 'ipbl'//dimstr
-        call defvar(grid,fid,asflx(itype)%ipbl,vname)
+        call defvar(grid,fid,asflx(ipatch)%ipbl,vname)
         vname = 'ustar_pbl'//dimstr
-        call defvar(grid,fid,asflx(itype)%ustar_pbl,vname)
+        call defvar(grid,fid,asflx(ipatch)%ustar_pbl,vname)
 #ifdef TRACERS_ON
-        dimstr='_'//trim(asflx(itype)%surf_name)// 
+        dimstr='_'//trim(asflx(ipatch)%surf_name)// 
      &       '(npbl,ntm,dist_im,dist_jm)'
         vname = 'trabl'//dimstr
-        call defvar(grid,fid,asflx(itype)%trabl,vname)
+        call defvar(grid,fid,asflx(ipatch)%trabl,vname)
 #endif
       enddo
 
@@ -1671,7 +2023,7 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
       integer iaction !@var iaction flag for reading or writing to file
       character(len=16) :: suffix
       character(len=64) :: vname
-      integer :: itype
+      integer :: ipatch
 
       select case (iaction)
       case (iowrite)            ! output to restart file
@@ -1686,42 +2038,42 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
         call write_dist_data(grid,fid,'mlhc',atmocn%mlhc)
 
 
-        do itype = 1,size(asflx)
-          suffix = '_'//asflx(itype)%surf_name
+        do ipatch = 1,size(asflx)
+          suffix = '_'//asflx(ipatch)%surf_name
           vname = 'uabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%uabl, jdim=3)
+     &         asflx(ipatch)%uabl, jdim=3)
           vname = 'vabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%vabl, jdim=3)
+     &         asflx(ipatch)%vabl, jdim=3)
           vname = 'tabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%tabl, jdim=3)
+     &         asflx(ipatch)%tabl, jdim=3)
           vname = 'qabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%qabl, jdim=3)
+     &         asflx(ipatch)%qabl, jdim=3)
           vname = 'eabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%eabl, jdim=3)
+     &         asflx(ipatch)%eabl, jdim=3)
           vname = 'cmgs'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%cmgs)
+     &         asflx(ipatch)%cmgs)
           vname = 'chgs'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%chgs)
+     &         asflx(ipatch)%chgs)
           vname = 'cqgs'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%cqgs)
+     &         asflx(ipatch)%cqgs)
           vname = 'ipbl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%ipbl)
+     &         asflx(ipatch)%ipbl)
           vname = 'ustar_pbl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%ustar_pbl)
+     &         asflx(ipatch)%ustar_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%trabl, jdim=4)
+     &         asflx(ipatch)%trabl, jdim=4)
 #endif
         enddo
 
@@ -1746,42 +2098,42 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call read_dist_data(grid,fid,'vosurf',atmocn%vosurf)
         call read_dist_data(grid,fid,'mlhc',atmocn%mlhc)
 
-        do itype = 1,size(asflx)
-          suffix = '_'//asflx(itype)%surf_name
+        do ipatch = 1,size(asflx)
+          suffix = '_'//asflx(ipatch)%surf_name
           vname = 'uabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%uabl, jdim=3)
+     &         asflx(ipatch)%uabl, jdim=3)
           vname = 'vabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%vabl, jdim=3)
+     &         asflx(ipatch)%vabl, jdim=3)
           vname = 'tabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%tabl, jdim=3)
+     &         asflx(ipatch)%tabl, jdim=3)
           vname = 'qabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%qabl, jdim=3)
+     &         asflx(ipatch)%qabl, jdim=3)
           vname = 'eabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%eabl, jdim=3)
+     &         asflx(ipatch)%eabl, jdim=3)
           vname = 'cmgs'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%cmgs)
+     &         asflx(ipatch)%cmgs)
           vname = 'chgs'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%chgs)
+     &         asflx(ipatch)%chgs)
           vname = 'cqgs'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%cqgs)
+     &         asflx(ipatch)%cqgs)
           vname = 'ipbl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%ipbl)
+     &         asflx(ipatch)%ipbl)
           vname = 'ustar_pbl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%ustar_pbl)
+     &         asflx(ipatch)%ustar_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
-     &         asflx(itype)%trabl, jdim=4)
+     &         asflx(ipatch)%trabl, jdim=4)
 #endif
         enddo
 

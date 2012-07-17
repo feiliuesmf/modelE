@@ -913,7 +913,7 @@ C****
      *     jreg,j_rvrd,j_ervr,ij_fwoc,ij_ervro,ij_mrvro, ij_rvrflo
      &     ,itlake,itlkice,itocean,itoice
       USE GHY_COM, only : fearth
-      USE FLUXES, only : atmocn,flowo,eflowo,focean,fland
+      USE FLUXES, only : atmocn,focean,fland
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake
@@ -925,7 +925,6 @@ C****
 #endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr, tij_rvro
-      USE FLUXES, only : trflowo
       Use LAKES_COM, Only: NTM,TRLAKE
 #endif
 
@@ -951,9 +950,9 @@ C****
      * :: TRFLOW
 #endif
 
-      REAL*8, DIMENSION(:,:), POINTER :: RSI,GTEMP,GTEMPR
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,GTEMP,GTEMPR,FLOWO,EFLOWO
 #ifdef TRACERS_WATER
-      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
+      REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER,TRFLOWO
 #endif
 
 C**** MWL (kg) = Lake water in cell, defined even when FLAKE = 0
@@ -1008,10 +1007,14 @@ C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
+      FLOWO => ATMOCN%FLOWO
+      EFLOWO => ATMOCN%EFLOWO
+
       FLOW = 0. ; EFLOW = 0.
       FLOWO = 0. ; EFLOWO = 0.
 
 #ifdef TRACERS_WATER
+      TRFLOWO => ATMOCN%TRFLOWO
       TRFLOW = 0.
       TRFLOWO = 0.
 #endif
@@ -2084,9 +2087,9 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
-      USE FLUXES, only : atmocn,runoli,prec,eprec,flice
+      USE FLUXES, only : atmocn,atmgla,prec,eprec,flice
 #ifdef TRACERS_WATER
-     *     ,trunoli,trprec
+     *     ,trprec
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_run,aij=>aij_loc,ij_lk
      &     ,itlake,itlkice
@@ -2135,7 +2138,8 @@ C****
         ENRGP=EPREC(I,J)        ! energy of precipitation
 
 C**** calculate fluxes over whole box
-        RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) + PLICE* RUNOLI(I,J)
+        RUN0 =POLAKE*PRCP  + PLKICE* RUNPSI(I,J) +
+     &       PLICE*atmgla%RUNO(I,J)
         ERUN0=POLAKE*ENRGP ! PLKICE*ERUNPSI(I,J) + PLICE*ERUNOLI(I,J) =0
 
 C**** simelt is given as kg/area
@@ -2148,7 +2152,7 @@ C**** simelt is given as kg/area
         GML(I,J) = GML(I,J) + ERUN0*AXYP(I,J)
 #ifdef TRACERS_WATER
         TRUN0(:) = POLAKE*TRPREC(:,I,J)
-     *       + PLKICE*TRUNPSI(:,I,J) + PLICE *TRUNOLI(:,I,J)
+     *       + PLKICE*TRUNPSI(:,I,J) + PLICE *atmgla%TRUNO(:,I,J)
         IF(FLAKE(I,J).gt.0) TRUN0(:)=TRUN0(:)+TRMELTI(:,I,J)
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J) + TRUN0(:)*AXYP(I,J)
 #endif
@@ -2189,15 +2193,17 @@ C**** simelt is given as kg/area
           GTRACER(:,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
 #endif
-          CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J)*(1.-RSI(I,J)))
-          CALL INC_AJ(I,J,ITLKICE,J_RUN,-PLICE*RUNOLI(I,J)   *RSI(I,J))
+          CALL INC_AJ(I,J,ITLAKE,J_RUN,
+     &         -PLICE*atmgla%RUNO(I,J)*(1.-RSI(I,J)))
+          CALL INC_AJ(I,J,ITLKICE,J_RUN,
+     &         -PLICE*atmgla%RUNO(I,J)   *RSI(I,J))
         ELSE
           TLAKE(I,J)=GML(I,J)/(MWL(I,J)*SHW+teeny)
           DLAKE(I,J)=0.
           GLAKE(I,J)=0.
 C**** accounting fix to ensure runoff with no lakes is counted
 C**** no regional diagnostics required
-          CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*RUNOLI(I,J))
+          CALL INC_AJ(I,J,ITLAKE,J_RUN,-PLICE*atmgla%RUNO(I,J))
         END IF
 
 C**** save area diag
@@ -2353,12 +2359,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
 
       USE GEOM, only : imaxj,axyp
-      USE FLUXES, only : atmocn,
-     *     runoli, runoe, erunoe
-     &     ,flice,fland
-#ifdef TRACERS_WATER
-     *     ,trunoli,trunoe
-#endif
+      USE FLUXES, only : atmocn,atmgla,atmlnd,flice,fland
       USE SEAICE_COM, only : lakeice=>si_atm
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
      *     ,aij=>aij_loc,ij_mwl,ij_gml,itlake,itlkice,itearth
@@ -2440,9 +2441,9 @@ C**** Add land ice and surface runoff to lake variables
       IF (FLAND(I,J).gt.0) THEN
         PLICE =FLICE(I,J)
         PEARTH=FEARTH(I,J)
-        RUNLI=RUNOLI(I,J)
-        RUNE =RUNOE(I,J)
-        ERUNE=ERUNOE(I,J)
+        RUNLI=atmgla%RUNO(I,J)
+        RUNE =atmlnd%RUNO(I,J)
+        ERUNE=atmlnd%ERUNO(I,J)
 C**** calculate flux over whole box
         RUN0 =RUNLI*PLICE + RUNE*PEARTH
         ERUN0=             ERUNE*PEARTH
@@ -2450,7 +2451,8 @@ C**** calculate flux over whole box
         GML(I,J) = GML(I,J) +ERUN0*AXYP(I,J)
 #ifdef TRACERS_WATER
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
-     *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*AXYP(I,J)
+     *      (atmgla%TRUNO(:,I,J)*PLICE
+     *      +atmlnd%TRUNO(:,I,J)*PEARTH)*AXYP(I,J)
 #endif
 
         AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)

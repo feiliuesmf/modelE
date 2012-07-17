@@ -267,11 +267,6 @@ C**** Local variables initialised in init_RAD
       real*8 :: lat_dh2o(jm_dh2o)
 #endif
 
-      TARGET :: COSZ1
-#ifdef OBIO_RAD_coupling
-      TARGET :: DIRVIS,FSRDIF,DIRNIR,DIFNIR
-#endif
-
       END MODULE RAD_COM
 
       SUBROUTINE ALLOC_RAD_COM(grid)

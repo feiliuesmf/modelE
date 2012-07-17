@@ -371,12 +371,12 @@ c      END SUBROUTINE io_bldat
       USE CONSTANT, only : by3
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
-      USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,asflx
+      USE FLUXES, only : atmocns,atmices,atmglas,atmlnds,asflx
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: I_1H, I_0H, J_1H, J_0H, L
-      INTEGER :: IER
+      INTEGER :: I_1H, I_0H, J_1H, J_0H
+      INTEGER :: IER, IP3, K, L
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -403,10 +403,24 @@ C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1
      &         bldep(I_0H:I_1H,J_0H:J_1H)
      &     )
 
-      call alloc_atmsrf_pbl_vars(grid,atmocn%atmsrf_xchng_vars,asflx(1))
-      call alloc_atmsrf_pbl_vars(grid,atmice%atmsrf_xchng_vars,asflx(2))
-      call alloc_atmsrf_pbl_vars(grid,atmgla%atmsrf_xchng_vars,asflx(3))
-      call alloc_atmsrf_pbl_vars(grid,atmlnd%atmsrf_xchng_vars,asflx(4))
+      ip3 = 0
+      do k=1,size(asflx)
+        select case(asflx(k)%itype4)
+        case (1)
+          call alloc_atmsrf_pbl_vars(grid,
+     &         atmocns(1)%atmsrf_xchng_vars,asflx(k))
+        case (2)
+          call alloc_atmsrf_pbl_vars(grid,
+     &         atmices(1)%atmsrf_xchng_vars,asflx(k))
+        case (3)
+          ip3 = ip3 + 1
+          call alloc_atmsrf_pbl_vars(grid,
+     &         atmglas(ip3)%atmsrf_xchng_vars,asflx(k))
+        case (4)
+          call alloc_atmsrf_pbl_vars(grid,
+     &         atmlnds(1)%atmsrf_xchng_vars,asflx(k))
+        end select
+      enddo
 
       ALLOCATE(t1_after_aturb(I_0H:I_1H,J_0H:J_1H),
      &         u1_after_aturb(I_0H:I_1H,J_0H:J_1H),

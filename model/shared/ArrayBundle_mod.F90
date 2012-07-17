@@ -63,8 +63,10 @@ contains
 !
 ! allocate the bundle
 !
-    allocate(arr(is:ie,js:je,n))
-    arr = 0.
+    if(.not. associated(arr)) then
+      allocate(arr(is:ie,js:je,n))
+      arr = 0.
+    endif
 
     if(n> 0) call set_ptr(arr(:,:, 1), ptr01 ,is,js)
     if(n> 1) call set_ptr(arr(:,:, 2), ptr02 ,is,js)
@@ -140,8 +142,10 @@ contains
 !
 ! allocate the bundle
 !
-    allocate(arr(l,is:ie,js:je,n))
-    arr = 0.
+    if(.not. associated(arr)) then
+      allocate(arr(l,is:ie,js:je,n))
+      arr = 0.
+    endif
 
     if(n> 0) call set_ptr_lij(arr(:,:,:, 1), ptr01 ,is,js)
     if(n> 1) call set_ptr_lij(arr(:,:,:, 2), ptr02 ,is,js)
