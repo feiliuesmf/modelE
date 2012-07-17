@@ -778,7 +778,7 @@ C**** Tracer calls are dealt with separately
 !@+    uses OJ_BUDG mapping from ocean sub-domain to budget grid
 !@auth Gary Russell/Gavin Schmidt/Denis Gueyffier
       USE OCEAN, only : oJ_BUDG, oWTBUDG, oJ_0B, oJ_1B,imaxj
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : oGRID
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
@@ -797,7 +797,7 @@ C**** Tracer calls are dealt with separately
       INTEGER :: I,J,NM,NI
       INTEGER :: J_0,J_1
 
-      CALL GET(ogrid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
@@ -2111,7 +2111,7 @@ c
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-      USE DOMAIN_DECOMP_1D, only : dist_grid,get,am_i_root
+      USE DOMAIN_DECOMP_1D, only : dist_grid,getDomainBounds,am_i_root
       USE ODIAG
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -2127,7 +2127,7 @@ c
      &     SCALE_TOIJL(KTOIJLx), SNAME_TOIJL(KTOIJLx))
 #endif
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
@@ -2240,7 +2240,8 @@ c
 !@sum Precomputes area weights for zonal means on budget grid
 !auth M. Kelley
       USE OCEAN, only : im,jm, owtbudg, imaxj, dxypo, oJ_BUDG
-      USE DOMAIN_DECOMP_1D, only :GET, hasSouthpole, hasNorthPole
+      USE DOMAIN_DECOMP_1D, only :getDomainBounds, hasSouthpole, 
+     &     hasNorthPole
       USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
       integer, intent(in) :: jm_budg
@@ -2248,7 +2249,7 @@ c
 c
       INTEGER :: I,J,J_0,J_1
       
-      CALL GET(ogrid, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(ogrid, J_STRT=J_0,J_STOP=J_1)
 
 c Note that when ocean quantities are to be averaged into "budget"
 c zones whose latitudinal boundaries do not coincide with those of
@@ -2273,7 +2274,7 @@ c compensate for polar loops in conserv_ODIAG not going from 1 to im
 !@sum set mapping from ocean domain to budget grid 
 !@auth Gavin Schmidt/Denis Gueyffier
       USE OCEAN, only : oJ_BUDG,oJ_0B,oJ_1B,oLAT2D_DG,IMO=>IM
-      USE DOMAIN_DECOMP_1D, only :GET
+      USE DOMAIN_DECOMP_1D, only :getDomainBounds
       USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
       integer, intent(in) :: jm_budg
@@ -2281,7 +2282,7 @@ c compensate for polar loops in conserv_ODIAG not going from 1 to im
       INTEGER :: I,J,J_0,J_1,J_0H,J_1H
  
 C**** define atmospheric grid
-      CALL GET(ogrid,
+      call getDomainBounds(ogrid,
      &     J_STRT=J_0,J_STOP=J_1,
      &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 

@@ -90,7 +90,7 @@ C**** Ice dynamics diagnostics
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
 
-      USE DOMAIN_DECOMP_1D, only : GET,DIST_GRID,am_I_root
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,DIST_GRID,am_I_root
       !USE ICEDYN_COM, only : grid_MIC
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : ICIJ,igice
@@ -115,8 +115,9 @@ C**** Ice dynamics diagnostics
 
 C**** Allocate arrays defined on the ice rheology grid
 
-      CALL GET(grid_icdyn, I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
-     &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
+      call getDomainBounds(grid_icdyn, 
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       igice%grid => grid_icdyn
 
@@ -142,7 +143,8 @@ c      end if
 C**** Allocate ice advection arrays defined on the atmospheric grid
       !grid_MIC=grid_atm
 
-      CALL GET(grid_atm, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
+      call getDomainBounds(grid_atm, 
+     &     I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
      &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
@@ -260,7 +262,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 !      write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
 !     *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 !
-!      CALL GET(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+!      call getDomainBounds(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 !
 !      if(am_I_root()) then
 !        allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
@@ -480,8 +482,8 @@ c temporarily empty.
       USE MODEL_COM, only : dts=>dtsrc
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
-      USE DOMAIN_DECOMP_1D, only : GET, ICE_HALO=>HALO_UPDATE,
-     &     NORTH, SOUTH, hasSouthPole, hasNorthPole
+      USE DOMAIN_DECOMP_1D, only : ICE_HALO=>HALO_UPDATE,
+     &     NORTH, SOUTH, hasSouthPole, hasNorthPole, getDomainBounds
       USE ICEDYN, only : dxyn,dxys,bydxyp,dxyv,dxp,dyv
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
@@ -553,15 +555,18 @@ C****
       DMVI => IGICE%DMVI
 
 C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
-      CALL GET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
-     &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
-     &                   , J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
-      call GET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
-      call GET(atmice%grid    , I_STRT=aI_0        , I_STOP=aI_1     
-     &                   , J_STRT=aJ_0        , J_STOP=aJ_1     )
-      call GET(atmice%grid    , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H     
-     &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
-      call GET(atmice%grid    , J_STRT_SKP=aJ_0S   , J_STOP_SKP=aJ_1S)
+      call getDomainBounds(grid_ICDYN, J_STRT=iJ_0, J_STOP=iJ_1,
+     &     J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S,
+     &     J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
+      call getDomainBounds(grid_ICDYN, J_STRT_STGR=iJ_0STG, 
+     &     J_STOP_STGR=iJ_1STG)
+      call getDomainBounds(atmice%grid, I_STRT=aI_0, I_STOP=aI_1,     
+     &     J_STRT=aJ_0, J_STOP=aJ_1)
+      call getDomainBounds(atmice%grid, 
+     &     I_STRT_HALO=aI_0H, I_STOP_HALO=aI_1H,    
+     &     J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
+      call getDomainBounds(atmice%grid, 
+     &     J_STRT_SKP=aJ_0S, J_STOP_SKP=aJ_1S)
       aIM = atmice%grid%im_world
       aJM = atmice%grid%jm_world
 
@@ -1017,7 +1022,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
       USE MODEL_COM, only :  kocean,dts=>dtsrc
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN, 
@@ -1068,9 +1073,9 @@ C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 C**** Get grid parameters
       IM = si_ocn%grid%IM_WORLD
       JM = si_ocn%grid%JM_WORLD
-      CALL GET(si_ocn%grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(si_ocn%grid, J_STRT=J_0,    J_STOP=J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
-     &               J_STRT_HALO=J_0H,   J_STOP_HALO =J_1H ,
+     &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H ,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -1725,7 +1730,7 @@ c      iA=aA
 !@auth Gavin Schmidt
       USE MODEL_COM, only : dtsrc
       USE MDIAG_COM, only : ia_src=>ia_cpl
-      USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,ICE_HALO=>HALO_UPDATE
       USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
      &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
@@ -1814,7 +1819,7 @@ C**** The ice dynamics land mask is that of the atmosphere
 
       bydts = 1./dtsrc
 
-      CALL GET( grid_NXY,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds( grid_NXY,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                   J_STRT     =J_0,  J_STOP =J_1,
      &                   J_STOP_SKP =J_1S                   )
 
@@ -2094,7 +2099,7 @@ c
 !@sum calculate atmos. A grid winds from B grid
 !@auth Gavin Schmidt, Denis Gueyffier
 !@auth M. Kelley
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : ll2csint_lij
@@ -2144,7 +2149,7 @@ c**** We assume that ice grid and latlon atm grid have same resolution
       jm = atmice%grid%jm_world
       call band_pack(pack_i2a, uice, atmice%usi) ! fills halos
       call band_pack(pack_i2a, vice, atmice%vsi) ! fills halos
-      CALL GET(atmice%grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
+      call getDomainBounds(atmice%grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
       do j=J_0S,J_1S
          im1 = IM
          do i=1,IM

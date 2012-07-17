@@ -43,7 +43,7 @@ C****
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
      &     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
@@ -185,7 +185,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,        J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0,        J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1000,7 +1000,7 @@ C****
       ! the contents of this routine will be merged with other
       ! landice diag bits once the "precip" entry point to landice
       ! physics is merged with the others.
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DIAG_COM, only : aij=>aij_loc
      &     ,itlandi,jreg,ij_runli,j_run,ij_f1li
       USE FLUXES, only : flice,atmgla
@@ -1008,7 +1008,8 @@ C****
       implicit none
       INTEGER :: JR,I,J,I_0,I_1,J_0,J_1
       REAL*8 :: PLICE
-      CALL GET(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      CALL getDomainBounds(grid, I_STRT=I_0,I_STOP=I_1,
+     &  J_STRT=J_0,J_STOP=J_1)
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         JR=JREG(I,J)
@@ -1075,7 +1076,7 @@ C**** Accumulate 3D subdaily quantities
 
       subroutine surface_diag0(moddd,ih,ihm)
       USE ATM_COM, only : t,q,pek,pedn
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DIAG_COM, ONLY : idd_spr,idd_pt5,idd_q5
      &     ,ndiuvar,ndiupt,ijdd,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
@@ -1083,7 +1084,7 @@ C**** Accumulate 3D subdaily quantities
 #endif
       implicit none
       integer, intent(in) :: ih,ihm
-      integer, intent(in) :: moddd
+      logical, intent(in) :: moddd
 
 C**** some shorthand indices and arrays for diurn diags
       INTEGER, PARAMETER :: n_idx1 = 11
@@ -1095,7 +1096,7 @@ C**** some shorthand indices and arrays for diurn diags
 C**** Initialise constant indices
       idx1 = (/ IDD_SPR, (IDD_PT5+ii-1,ii=1,5), (IDD_Q5+ii-1,ii=1,5) /)
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1126,7 +1127,7 @@ C**** For distributed implementation - ensure point is on local process.
       subroutine surface_diag1(dtsurf,moddsf,trhdt_sv2)
       USE CONSTANT, only : tf,bygrav,rhows
       USE MODEL_COM, only : dtsrc,itime
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj,byaxyp
       USE SOMTQ_COM, only : mz
       USE ATM_COM, only : byam
@@ -1180,7 +1181,7 @@ C**** For distributed implementation - ensure point is on local process.
 
       implicit none
       real*8, intent(in) :: dtsurf
-      integer, intent(in) :: moddsf
+      logical, intent(in) :: moddsf
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: trhdt_sv2
 
@@ -1200,7 +1201,7 @@ C**** For distributed implementation - ensure point is on local process.
       SSI => SI_ATM%SSI
       SSS => atmocn%SSS
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1414,7 +1415,7 @@ c     &        (i,j,1,jls_isrc(2,n),asflx4(1)%trevapor(n,i,j)*focean(i,j))
 
       subroutine surface_diag1a
       USE MODEL_COM, only : dtsrc
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj,byaxyp
       USE RAD_COM, only : trhr,trsurf
 #ifdef TRACERS_ON
@@ -1456,7 +1457,7 @@ c     &        (i,j,1,jls_isrc(2,n),asflx4(1)%trevapor(n,i,j)*focean(i,j))
       real*8 :: evap,shdt,evhdt,trhdt,dlwdt
 
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1606,7 +1607,7 @@ C****
       USE CONSTANT, only : tf
       USE FLUXES, only : atmsrf
       USE PBLCOM, only : dclev,ugeo,vgeo,bldep
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DIAG_COM, ONLY :
      &      ndiuvar,ndiupt,ijdd,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
@@ -1618,7 +1619,7 @@ C****
      *     ,idd_swg,idd_lwg,idd_lh,idd_sh,idd_ev,idd_hz0,idd_dcf,idd_ldc
       implicit none
       integer, intent(in) :: ih,ihm
-      integer, intent(in) :: moddd
+      logical, intent(in) :: moddd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) ::
      &     srhdt_sv,trhdt_sv,evhdt_sv,shdt_sv,evap_sv
@@ -1639,7 +1640,7 @@ C**** Initialise constant indices
      &     /)
 
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1715,7 +1716,7 @@ C**** For distributed implementation - ensure point is on local process.
       end subroutine surface_diag2
 
       subroutine surface_diag3
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : axyp,imaxj
       USE DIAG_COM, only : jreg,itlandi,itearth,aij=>aij_loc
      &     ,IJ_RUNLI,J_RUN,J_ACE1,J_ACE2,J_IMPLH,J_IMPLM,IJ_IMPMLI
@@ -1732,7 +1733,7 @@ C**** For distributed implementation - ensure point is on local process.
       integer :: i,j, j_0, j_1, i_0,i_1
       real*8 :: plice,pearth
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

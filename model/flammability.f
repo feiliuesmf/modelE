@@ -124,7 +124,7 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony, Igor A.
 !@ver 2.0
 
-      use domain_decomp_atm,only: grid, get
+      use domain_decomp_atm,only: grid, getDomainBounds
       use flammability_com, only: mfcc,flammability,first_prec,missing
       use tracer_com, only: sfc_src,emisPerFireByVegType
       use model_com, only: nday,DTsrc
@@ -154,7 +154,7 @@
       real*8 :: pvt0(n_covertypes)
 #endif
 
-      call get(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &              I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
       do j=J_0S,J_1S

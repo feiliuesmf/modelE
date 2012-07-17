@@ -26,7 +26,7 @@
       use hycom_arrays, only: dpinit
       use hycom_dim_glob, only: numTracers => ntrcr
 #endif
-      use domain_decomp_1d, only: get, am_i_root
+      use domain_decomp_1d, only: getDomainBounds, am_i_root
 
       character(len=*), intent(in) :: operation
       character(len=*), intent(in) :: phase
@@ -39,7 +39,7 @@
       integer :: iTracer
       character(len=50) :: name
 
-      call get(ogrid, j_strt = j_0, j_stop = j_1,
+      call getDomainBounds(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo=j_0h, j_stop_halo = j_1h)
 
       if (.not. init) then
@@ -88,7 +88,7 @@
 !@+   locations of min and max differences in an array from the
 !@+   previous call.
 !@auth T. Clune <Thomas.L.Clune@nasa.gov>
-      use domain_decomp_1d, only: am_i_root, get
+      use domain_decomp_1d, only: am_i_root, getDomainBounds
 
 c
 c --- this routine compares 'array' with an earlier version of 'array'
@@ -139,7 +139,7 @@ c
       real*8 :: diff
       integer :: j_0, j_1
 
-      call get(ogrid, j_strt=j_0, j_stop=j_1)
+      call getDomainBounds(ogrid, j_strt=j_0, j_stop=j_1)
 
       valMax=-1.e33
       valMin=+1.e33

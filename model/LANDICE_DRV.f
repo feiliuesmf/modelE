@@ -44,7 +44,8 @@
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
      *     ,icon_MICB,icon_HICB
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM, READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds, 
+     &     GLOBALSUM, READT_PARALLEL
      &     ,AM_I_ROOT
       USE EXCHANGE_TYPES, only : avg_patches_srfstate_exports
       IMPLICIT NONE
@@ -63,7 +64,7 @@
       CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
       CHARACTER*72 :: TITLE
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -302,7 +303,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,ntm
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
@@ -328,7 +329,7 @@ C**** Get useful grid parameters
       INTEGER :: I, J
       INTEGER :: J_0, J_1, J_0H, J_1H ,I_0,I_1
 
-      CALL GET(GRID,J_STRT=J_0      , J_STOP=J_1      ,
+      call getDomainBounds(GRID,J_STRT=J_0      , J_STOP=J_1      ,
      &              J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -435,7 +436,7 @@ C**** ACCUMULATE DIAGNOSTICS
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       USE EXCHANGE_TYPES
@@ -461,7 +462,7 @@ C**** ACCUMULATE DIAGNOSTICS
       INTEGER :: J_0,J_1, J_0H, J_1H ,I_0,I_1
 
       call startTimer('GROUND_LI()')
-      CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1
+      call getDomainBounds(GRID,J_STRT=J_0      ,J_STOP=J_1
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -548,7 +549,7 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : fhc,snowli
       USE LANDICE, only : lndice,ace1li,ace2li
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 !@var ICE total land ice snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -557,7 +558,7 @@ C****
       INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -584,7 +585,7 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : nhc,fhc,snowli,tlandi
       USE LANDICE, only : ace1li,ace2li
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 !@var EICE total land ice energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -594,7 +595,7 @@ C****
       LOGICAl :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
       REAL*8 :: EICEIJ(NHC)
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -622,7 +623,7 @@ C****
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, MDWNIMP
       Use LANDICE,           Only: MICBIMP
-      Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
+      Use DOMAIN_DECOMP_ATM, Only: GRID,getDomainBounds, GLOBALSUM
       Implicit None
 !@var MICB implicit mass of iceberg (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -633,7 +634,7 @@ C****
       INTEGER :: J_0,J_1 ,I_0,I_1
       Logical :: QSP,QNP
 
-      Call GET (GRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID, J_STRT=J_0, J_STOP=J_1,
      &          HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -669,7 +670,7 @@ C**** array MICB(I,J) acording to FSHGLM and FNHGLM
       Use GEOM,              Only: LAT2D,AXYP
       Use LANDICE_COM,       Only: FSHGLM,FNHGLM, EDWNIMP
       Use LANDICE,           Only: EICBIMP
-      Use DOMAIN_DECOMP_ATM, Only: GRID,GET, GLOBALSUM
+      Use DOMAIN_DECOMP_ATM, Only: GRID,getDomainBounds, GLOBALSUM
       Implicit None
 !@var EICB impicit iceberg energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -680,7 +681,7 @@ C**** array MICB(I,J) acording to FSHGLM and FNHGLM
       INTEGER :: J_0,J_1 ,I_0,I_1
       Logical :: QSP,QNP
 
-      Call GET (GRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID, J_STRT=J_0, J_STOP=J_1,
      &          HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -733,7 +734,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 #endif
       USE FLUXES, only : atmocn,flice,focean
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
+     &     GLOBALSUM, AM_I_ROOT
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation
@@ -748,7 +750,7 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
       INTEGER :: J_0,J_1,I_0,I_1,I,J,ITM
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -962,7 +964,7 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : qcheck
       USE FLUXES, only : flice
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, getDomainBounds, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM, trname
@@ -981,7 +983,7 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       integer :: imax,jmax
       real*8 relerr,errmax
 #endif
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      *               J_STRT_HALO=J_0H,J_STOP_HALO=J_1H,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT

@@ -32,7 +32,7 @@
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use fluxes, only : focean, FLICE
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
       real*8, intent(in) :: focean1(:,:)
@@ -50,7 +50,7 @@
 
       iniENT = iniENT_in
 
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               I_STRT     =I_0,    I_STOP     =I_1)
 
 !!! hack

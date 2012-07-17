@@ -23,7 +23,7 @@
       USE obio_incom, only: mgchltouMC,solFe
       USE obio_forc, only: atmFe
       USE obio_com,   only: carb_old,obio_deltath,iron_old,p1d
-      use domain_decomp_1d, only: am_i_root, globalsum, get
+      use domain_decomp_1d, only: am_i_root, globalsum, getDomainBounds
 
       implicit none
 
@@ -38,7 +38,7 @@
       real*8, allocatable :: summ(:)
       real*8 :: sumFlux(1)
 
-      call get(ogrid, j_strt = j_0, j_stop = j_1,
+      call getDomainBounds(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
 
       sumo  =  getTotalOceanVolume()

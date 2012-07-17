@@ -19,8 +19,8 @@ C****
       USE OCEAN, only :
      &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT, halo_update,
-     &     south,north, hasSouthPole, hasNorthPole
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, AM_I_ROOT, 
+     &     halo_update, south,north, hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx, ijl_sflx, ijl_mfw2,
@@ -50,7 +50,7 @@ c
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &     J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
@@ -1256,7 +1256,7 @@ C****
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
 
 !      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1271,9 +1271,9 @@ C****
       REAL*8, INTENT(IN) :: DT
 
       logical :: HAVE_NORTH_POLE  ! ,HAVE_SOUTH_POLE
-         call get (grid, J_STRT_HALO=J_0H)
-         call get (grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-C        call get (grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+         call getDomainBounds(grid, J_STRT_HALO=J_0H)
+         call getDomainBounds(grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+C        call getDomainBounds(grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
 C****
 C**** Load mass after advection from mass before advection
@@ -1705,7 +1705,7 @@ C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm
       USE OCEAN, only : nbyzm,i1yzm,i2yzm
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1729,7 +1729,7 @@ c flow out of the bottom and top edges simultaneously.
 
       INTEGER :: J_0,J_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       if(qlimit) then
         rzlim = 1d0
@@ -1815,7 +1815,7 @@ c flow out of the bottom and top edges simultaneously.
 c simplest upstream scheme, for vertical direction
       USE OCEAN, only : im,jm,lmo
       USE OCEAN, only :  nbyzmax
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
@@ -1873,7 +1873,8 @@ c
      *     , IVNP, UO,VO, UOD,VOD, MO,DXYSO,DXYNO,DXYVO
      *     , LMU,LMV, COSIC,SINIC
 
-      USE DOMAIN_DECOMP_1D, only : get, halo_update, north,south
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, halo_update, north,
+     *     south
 
       USE OCEANR_DIM, only : ogrid
 
@@ -1892,7 +1893,7 @@ C****         DMVI     V momentum downward from sea ice (kg/m*s)
 
       integer :: J_0, J_1, J_0S, J_1S  ; logical :: have_north_pole
 
-      call get (ogrid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1,
      *                 J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      *                 have_north_pole=have_north_pole)
 

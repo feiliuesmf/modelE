@@ -55,7 +55,7 @@
 !
 !c**** Extract domain decomposition info
 !      INTEGER :: J_0, J_1, J_0H
-!      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
+!      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
 !
 !C***  Get the data from the atmospheric grid to the ocean grid
 !      call AG2OG_oceans
@@ -310,7 +310,7 @@
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
-      USE DOMAIN_DECOMP_1D, only : get,halo_update
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,halo_update
       use DOMAIN_DECOMP_1D, only: hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, only : remap_a2o,remap_o2a
@@ -350,7 +350,7 @@ c
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
      *      ,J_STRT_HALO  = J_0H, J_STOP_HALO  = J_1H
      *      ,HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -835,7 +835,7 @@ C****
 
       subroutine init_odiff(grid)
       use OCEAN, only: BYDXYV, BYDXYPJM, UYPB, UYPA, FSLIP
-      USE DOMAIN_DECOMP_1D, ONLY : dist_grid, GET, AM_I_ROOT,
+      USE DOMAIN_DECOMP_1D, ONLY : dist_grid,GETDomainBounds,AM_I_ROOT,
      &     HALO_UPDATE, NORTH, SOUTH
       USE OCEAN, only: KHP,KHV,TANP,TANV,BYDXV,BYDXP,BYDYV,
      *     BYDYP,UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
@@ -858,7 +858,7 @@ C****
      *      DUDX,DUDY,DVDX,DVDY
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1419,7 +1419,7 @@ C****
       Use OCN_TRACER_COM, Only : ntm,trname
 #endif
       use pario, only : defvar
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -1509,7 +1509,7 @@ c tracer arrays in straits
 #endif
 #endif
 
-      call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+      call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &               j_strt_halo=j_0h,j_stop_halo=j_1h)
       allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
       call defvar(grid, fid, arrdum, 'wliqo(dist_imo,dist_jmo)')
@@ -1538,7 +1538,7 @@ c tracer arrays in straits
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : ntm,trname
 #endif
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -1627,7 +1627,7 @@ c tracer arrays in straits
         call write_data(grid,fid,'trsist',trsist)
 #endif
 #endif
-        call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+        call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
         allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
         if(grid%have_domain) call conserv_OMS(arrdum)
@@ -1894,8 +1894,7 @@ C****
       USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
-!      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1908,7 +1907,8 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc, njpol
       INTEGER :: J_0STG,J_1STG
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, 
+     *   J_STRT=J_0, J_STOP=J_1,
      *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       J_0STG = grid%J_STRT_STGR
       J_1STG = grid%J_STOP_STGR
@@ -2068,14 +2068,14 @@ C****
       Use OCEAN,            Only: IMO=>IM,JMO=>JM,oXYP,LMM,MO,imaxj
       Use STRAITS,          Only: NMST,IST,JST,LMST,MMST
       Use OCEANR_DIM,       Only: oGRID
-      USE DOMAIN_DECOMP_1D, Only: GET
+      USE DOMAIN_DECOMP_1D, Only: GETDomainBounds
       Implicit None
 !@var aOMASS zonal ocean mass per whole latitude band area (kg/m^2)
       Real*8    :: OMASS(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -2107,7 +2107,7 @@ C****
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, S0M, imaxj
       Use STRAITS,       Only: NMST,IST,JST,LMST, S0MST
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
       Use OCEANR_DIM,    only: oGRID
       Implicit None
 !@var OSALT zonal ocean salt per whole latitude band area (kg/m^2)
@@ -2115,7 +2115,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -2148,7 +2148,7 @@ C****
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM,LMM, oXYP,G0M, imaxj
       Use STRAITS,       Only: NMST,IST,JST,LMST, G0MST
-      USE DOMAIN_DECOMP_1D, only :  GET
+      USE DOMAIN_DECOMP_1D, only :  GETDomainBounds
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOCEANE zonal ocean potential enthalpy per band area (J/m^2)
@@ -2156,7 +2156,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -2189,7 +2189,7 @@ C****
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
      *     , oXYP, MO,UO,VO, LMOM=>LMM
-      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds, SOUTH, HALO_UPDATE
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var OKE zonal ocean kinetic energy (J/m^2)
@@ -2197,7 +2197,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,L,Ip1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
       Call HALO_UPDATE (oGRID, VO, From=South)
@@ -2256,7 +2256,7 @@ C****
      *     , oDXYP=>DXYPO, LMOM=>LMM,LMOU=>LMU, MO,UO
      *     , oCOSQ=>COSQ, oCOSM=>COSM
 
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
       Real*8    :: OAM(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
@@ -2264,7 +2264,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,L,Ip1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -3260,8 +3260,7 @@ C****
       USE OCEAN, only : im,jm,lmo
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
 
-!      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -3276,9 +3275,9 @@ C****
       REAL*8, INTENT(IN) :: DT
 
       logical :: HAVE_NORTH_POLE  ! ,HAVE_SOUTH_POLE
-         call get (grid, J_STRT_HALO=J_0H)
-         call get (grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-C        call get (grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+         call getDomainBounds(grid, J_STRT_HALO=J_0H)
+         call getDomainBounds(grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+C        call getDomainBounds(grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
 C****
 C**** Load mass after advection from mass before advection
@@ -3528,7 +3527,7 @@ c****   rx,ry,rz (kg) = 1st moments of tracer mass
 c****     mo     (kg) = ocean mass
 c****
 !      use DOMAIN_DECOMP_1D, only : grid, get, halo_update
-      use DOMAIN_DECOMP_1D, only : get, halo_update
+      use DOMAIN_DECOMP_1D, only : getDomainBounds, halo_update
       USE OCEANR_DIM, only : grid=>ogrid
 
       use DOMAIN_DECOMP_1D, only : halo_update_column
@@ -3549,7 +3548,7 @@ c****
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0,
+      call getDomainBounds(grid, J_STRT = J_0,
      &               J_STOP = J_1, J_STOP_SKP=J_1S,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
@@ -3674,7 +3673,7 @@ c--------------------------------------------------------------
       use ocean, only: im,jm,lmo,lmm,focean
 
 !      USE DOMAIN_DECOMP_1D, only: grid, GET
-      USE DOMAIN_DECOMP_1D, only: GET
+      USE DOMAIN_DECOMP_1D, only: GETDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH
@@ -3703,7 +3702,7 @@ c--------------------------------------------------------------
 
       ierr=0
 
-      CALL GET(grid, J_STRT = J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP=J_1,
      & J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
@@ -3985,7 +3984,7 @@ C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
 
 !      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -4002,7 +4001,7 @@ C****
 
       INTEGER :: J_0,J_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 C****
 C**** Loop over latitudes and longitudes
@@ -4164,7 +4163,8 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 !@auth Gary Russell and Armando Howard
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
-      use domain_decomp_1d, only : get, halo_update, north, south
+      use domain_decomp_1d, only : getDomainBounds, halo_update, 
+     *                             north, south
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef OCN_GISSMIX
       USE GISS_OTURB, only : taubx,tauby, ! x,y components of velocity flux (m/s)^2
@@ -4185,8 +4185,9 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       REAL*8 taubbyu    !velocity flux divided by velocity (m/s)
 #endif
 
-      CALL GET(grid, J_STRT=J_0, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     *               have_north_pole=have_north_pole)
+      call getDomainBounds(grid, J_STRT=J_0, 
+     *     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *     have_north_pole=have_north_pole)
 C****
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
 C****
@@ -4330,7 +4331,7 @@ C****
       Use OCN_TRACER_COM, Only: ntm
 #endif
 !      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -4339,7 +4340,7 @@ C****
 
       integer :: J_0S, J_1S
 
-      call get (grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
 
       REDUCE = 1d0 - DTS/(SDAY*2d1)
@@ -4386,7 +4387,7 @@ C**** Reduce South-North gradient of tracers
      *     , IVNP, UO,VO, MO,DXYSO,DXYNO,DXYVO
      *     , LMU,LMV, COSIC,SINIC
 
-      USE DOMAIN_DECOMP_1D, only : get, halo_update, north
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, halo_update, north
 
       USE OCEANR_DIM, only : ogrid
 
@@ -4405,7 +4406,7 @@ C****         DMVI     V momentum downward from sea ice (kg/m*s)
 
       integer :: J_0, J_1, J_0S, J_1S  ; logical :: have_north_pole
 
-      call get (ogrid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1,
      *                 J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      *                 have_north_pole=have_north_pole)
 
@@ -4458,7 +4459,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE CONSTANT, only : grav
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
      *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
       USE SEAICE, only : Ei,FSSS
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oE0, oEVAPOR
@@ -4503,7 +4504,7 @@ C**** Surface stress is applied to V component at the North Pole
       integer ::  J_1, J_0
       logical :: have_south_pole, have_north_pole
 
-      call get (ogrid, J_STOP=J_1, J_STRT=J_0,
+      call getDomainBounds(ogrid, J_STOP=J_1, J_STRT=J_0,
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 
@@ -4803,7 +4804,7 @@ C****
      *     , trmo
       USE OCN_TRACER_COM, only : trw0
 #endif
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : oGRID
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
@@ -4818,7 +4819,7 @@ c
       INTEGER I,J
       integer :: J_0, J_1
 
-      call get (ogrid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
       if(ogrid%have_domain) CALL KVINIT
@@ -4885,7 +4886,7 @@ C****
      *  lmu,lmv,dxpo,dypo,dxvo,dyvo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
-      USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, broadcast
       USE MODEL_COM, only: nstep=>itime
@@ -4915,7 +4916,7 @@ C**** Local variables
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -5347,7 +5348,7 @@ C****
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMM, IMAXJ,DXYPO
      *     , MO, G0M, ZE, FOCEAN
       USE OFLUXES, only : oGMELT, oEGMELT
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : maxgl
       USE ODIAG, only : oij=>oij_loc, ij_eicb, ij_micb
@@ -5365,7 +5366,7 @@ C****
       integer :: j_0,j_1
 
       if(.not. ogrid%have_domain) return
-      call get (ogrid, J_STRT=j_0, J_STOP=j_1)
+      call getDomainBounds(ogrid, J_STRT=j_0, J_STOP=j_1)
 
       DO L=1,MAXGL
 C**** divide over depth and scale for time step
@@ -5403,7 +5404,7 @@ C****
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
 
-      use DOMAIN_DECOMP_1D, only: GLOBALSUM, get, AM_I_ROOT,
+      use DOMAIN_DECOMP_1D, only: GLOBALSUM, getDomainBounds, AM_I_ROOT,
      *     broadcast
       USE OCEANR_DIM, only : ogrid
 
@@ -5415,7 +5416,7 @@ C****
       REAL*8 mean_S,frac_inc,T_ORIG,T_NEW,temgsp,shcgs,pres,g,s
       INTEGER I,J,L,N,J_0,J_1
 
-      CALL GET(ogrid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(ogrid, J_STRT = J_0, J_STOP = J_1)
 
       call conserv_OSL(OSALT)
       call conserv_OMS(OMASS)
@@ -5563,13 +5564,14 @@ C****
       USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEANRES, only : NORDER, by4tonv, by4tonu
-      use domain_decomp_1d, only : get,halo_update,north,south
+      use domain_decomp_1d, only : getDomainBounds,halo_update,north,
+     &                             south
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) :: x,y
       integer i,j,l,n,j_0,j_1,j_0p,j_1p
       logical :: have_north_pole
 
-      call get(grid, j_strt = j_0, j_stop = j_1,
+      call getDomainBounds(grid, j_strt = j_0, j_stop = j_1,
      &         have_north_pole = have_north_pole)
 
       j_0p = max(2,j_0)

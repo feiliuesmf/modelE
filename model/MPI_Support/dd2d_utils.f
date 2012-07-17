@@ -221,6 +221,8 @@ c
 #ifdef USE_ESMF
         TYPE (ESMF_Grid) :: ESMF_GRID
 #endif
+        INTEGER :: NPES_WORLD
+        INTEGER :: RANK
         INTEGER :: NPES_USED
          ! Parameters for Global domain
         INTEGER :: IM_WORLD     ! Number of Longitudes
@@ -347,6 +349,7 @@ c
      &     buf1d_local_size=-1
      &    ,buf1d_tile_size=-1
      &    ,bufij_tile_size=-1
+      integer :: communicator_
 
 
       contains
@@ -355,8 +358,9 @@ c
      &     npx,npy,ntiles,
      &     is,ie,js,je,
      &     isd,ied,jsd,jed,
-     &     grid)
+     &     communicator, grid)
       integer, intent(in) :: npx,npy,ntiles,is,ie,js,je,isd,ied,jsd,jed
+      integer, intent(in) :: communicator
       type(dist_grid) :: grid
       integer :: i,itile,ierr,iproc,n,ihem,ihem_sv,modrank,midp1
      &     ,group_world,group_mytile,group_intertile
@@ -380,7 +384,7 @@ c
       grid%ied = ied
       grid%jsd = jsd
       grid%jed = jed
-
+      communicator_ = communicator
 
 c      write(*,*) "init_dist_grid, is, ie, js, je"
 c      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
@@ -388,8 +392,8 @@ c      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
       grid%gid =0
       grid%nproc = 1
 #else
-      call mpi_comm_rank(MPI_COMM_WORLD,grid%gid,ierr)
-      call mpi_comm_size(MPI_COMM_WORLD,grid%nproc,ierr)
+      call mpi_comm_rank(COMMUNICATOR,grid%gid,ierr)
+      call mpi_comm_size(COMMUNICATOR,grid%nproc,ierr)
 #endif
       grid%nproc_tile = grid%nproc/grid%ntiles
       grid%tile = 1+grid%gid/grid%nproc_tile
@@ -407,12 +411,12 @@ c
 c create communicators and define other necessary info
 c
 #ifndef SERIAL_MODE
-      call mpi_comm_group(MPI_COMM_WORLD,group_world,ierr)
-      grid%comm_tile = MPI_COMM_WORLD
+      call mpi_comm_group(COMMUNICATOR,group_world,ierr)
+      grid%comm_tile = COMMUNICATOR
       grid%am_i_rowroot = .true.
       grid%comm_row = MPI_COMM_NULL
       grid%comm_ew = MPI_COMM_NULL
-      grid%comm_ns = MPI_COMM_WORLD
+      grid%comm_ns = COMMUNICATOR
       grid%pe_send_ne=MPI_PROC_NULL
       grid%pe_send_sw=MPI_PROC_NULL
       grid%pe_diag_s=MPI_PROC_NULL
@@ -484,7 +488,7 @@ c create intra-tile communicators
           enddo
           call mpi_group_incl(group_world,grid%nproc_tile,proclist,
      &         group_mytile,ierr)
-          call mpi_comm_create(MPI_COMM_WORLD,group_mytile,
+          call mpi_comm_create(COMMUNICATOR,group_mytile,
      &         tile_comms(itile),ierr)
           if(itile.eq.grid%tile) then
             grid%root_mytile = proclist(1)
@@ -503,7 +507,7 @@ c
           enddo
           call mpi_group_incl(group_world,grid%nprocx,proclist,
      &         group_row,ierr)
-          call mpi_comm_create(MPI_COMM_WORLD,group_row,
+          call mpi_comm_create(COMMUNICATOR,group_row,
      &         row_comm,ierr)
           if(any(proclist(1:grid%nprocx).eq.grid%gid)) then
             grid%comm_row = row_comm
@@ -524,7 +528,7 @@ c
           nproc_comm = count(proclist.ge.0)
           call mpi_group_incl(group_world,nproc_comm,proclist,
      &         group_halo,ierr)
-          call mpi_comm_create(MPI_COMM_WORLD,group_halo,
+          call mpi_comm_create(COMMUNICATOR,group_halo,
      &         halo_comm,ierr)
           if(any(proclist(1:nproc_comm).eq.grid%gid)) then
             grid%comm_ew = halo_comm
@@ -569,7 +573,7 @@ c
           nproc_comm = count(proclist.ge.0)
           call mpi_group_incl(group_world,nproc_comm,proclist,
      &         group_halo,ierr)
-          call mpi_comm_create(MPI_COMM_WORLD,group_halo,
+          call mpi_comm_create(COMMUNICATOR,group_halo,
      &         halo_comm,ierr)
           if(any(proclist(1:nproc_comm).eq.grid%gid)) then
             grid%comm_ns = halo_comm
@@ -670,7 +674,7 @@ c create communicator among roots of each tile
         enddo
         call mpi_group_incl(group_world,grid%ntiles,tile_root_procs,
      &       group_intertile,ierr)
-        call mpi_comm_create(MPI_COMM_WORLD,group_intertile,
+        call mpi_comm_create(COMMUNICATOR,group_intertile,
      &       grid%comm_intertile,ierr)
       endif
 
@@ -805,7 +809,7 @@ c      end subroutine halo_update_2D_int
       if(present(all)) then
         if(all) then
           call mpi_bcast(arrsum,1,MPI_DOUBLE_PRECISION,0,
-     &         MPI_COMM_WORLD,ierr)
+     &         COMMUNICATOR_,ierr)
         endif
       endif
       return

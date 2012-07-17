@@ -13,7 +13,7 @@ c
       USE Dictionary_mod, only : get_param, is_set_param
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
-      USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
+      USE DOMAIN_DECOMP_ATM,only: GRID,getDomainBounds,AM_I_ROOT,
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
@@ -218,9 +218,11 @@ C**** Local parameters and variables and arguments:
       integer :: k
 #endif
       integer :: hour
+
       call modelEclock%getDate(hour=hour)
 
-      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
+      call getDomainBounds(grid, 
+     &               J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,

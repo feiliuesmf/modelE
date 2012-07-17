@@ -7,7 +7,7 @@
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE MODEL_COM, only: Itime, ItimeI
-      USE DOMAIN_DECOMP_ATM, only : GET,grid
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, grid
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &    ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,nr2,nr3,nmm,nhet,
@@ -24,7 +24,7 @@ C**** Local parameters and variables and arguments:
       integer :: iu_data,i,l,j
       integer :: J_0,J_1,J_0S,J_1S,J_1H,J_0H,I_0,I_1
          
-      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
+      call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)

@@ -117,7 +117,7 @@ C*********************************************************************
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &     IREG_loc,IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND,nvegtype
 #ifdef BIN_OLSON
@@ -134,7 +134,7 @@ C*********************************************************************
       if(init)return
       init=.true.
     
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
  
@@ -830,7 +830,7 @@ C--   read polynomial coefficients for drydep:
 C
 C**** GLOBAL parameters and variables:  
 C
-      use domain_decomp_atm, only : grid, get, AM_I_ROOT,
+      use domain_decomp_atm, only : grid, getDomainBounds, AM_I_ROOT,
      & write_parallel,readt_parallel
 #ifndef BIN_OLSON
      &     ,UNPACK_DATA
@@ -874,7 +874,7 @@ C
       INTEGER, DIMENSION(NWAT) :: IWATER
       integer :: J_0, J_1, J_1H, J_0H, I_0, I_1
       
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                 J_STRT     =J_0 , J_STOP     =J_1 )
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
@@ -991,7 +991,7 @@ C******************** END MODIN SECTION **************************
 !@auth HARVARD CTM
 !@calls READLAI
 C**** GLOBAL parameters and variables:  
-      use domain_decomp_atm, only : grid, get, am_i_root
+      use domain_decomp_atm, only : grid, getDomainBounds, am_i_root
       use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
       use resolution, only : im,jm
       use model_com, only: modelEclock
@@ -1066,7 +1066,8 @@ C**** Local parameters and variables and arguments
 !@calls openunit
 
 C**** GLOBAL parameters and variables:  
-      use domain_decomp_atm, only : grid,get,am_i_root,readt_parallel
+      use domain_decomp_atm, only : grid,getDomainBounds,
+     &     getDomainBounds,am_i_root,readt_parallel
 #ifndef BIN_OLSON
      &     ,UNPACK_DATA
 #endif

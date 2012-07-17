@@ -8,7 +8,7 @@
       USE RESOLUTION, only : im,jm
       USE STATIC_OCEAN, only : tocean,focean
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -19,8 +19,8 @@
 C****
 C**** Extrack useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,  J_STRT_HALO = J_0H,
-     *     J_STOP_HALO = J_1H) 
+      call getDomainBounds(grid, 
+     *     J_STRT=J_0, J_STOP=J_1, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H) 
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       I_0H = grid%I_STRT_HALO
@@ -53,7 +53,7 @@ C**** Check for reasonable values for ocean variables
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE STATIC_OCEAN
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA
       USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
       IMPLICIT NONE
@@ -70,7 +70,7 @@ C**** Check for reasonable values for ocean variables
 
       MODULE_HEADER(lhead+1:80) = 'R8 Tocn(3,im,jm),MixLD(im,jm)'
 
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1)
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
@@ -175,7 +175,7 @@ c
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o,focean
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
 !@var OCEANE ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -187,7 +187,7 @@ c
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &          HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT

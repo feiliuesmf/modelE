@@ -188,7 +188,7 @@ C endif
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
 #else
       USE hycom_dim_glob 
@@ -273,7 +273,7 @@ c**** Extract domain decomposition info
       USE obio_com, only : gcmax,nstep0
      &     ,tracer=>tracer_loc,pCO2,pp2tot_day
       use pario, only : defvar
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -304,7 +304,7 @@ c**** Extract domain decomposition info
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0
      &     ,tracer=>tracer_loc,pCO2,pp2tot_day
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file

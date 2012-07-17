@@ -64,7 +64,7 @@ C**** Some local constants
       END MODULE DIAG_LOC
 
       SUBROUTINE ALLOC_DIAG_LOC(grid)
-      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
       USE RESOLUTION, only : lm
       USE DIAG_LOC, only  : W,TX
@@ -79,7 +79,7 @@ C**** Some local constants
       End If
       init = .true.
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = GRID%I_STRT_HALO
       I_1H = GRID%I_STOP_HALO
 
@@ -142,7 +142,7 @@ C**** Some local constants
       USE DYNAMICS, only : SD,wcp,sig,sige,dsig
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID, HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID, HALO_UPDATE
       USE GETTIME_MOD
       USE FLUXES, only : atmsrf
       IMPLICIT NONE
@@ -183,7 +183,7 @@ C**** Some local constants
 
       CALL GETTIME(BEGIN)
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -798,7 +798,7 @@ C**** ACCUMULATE TIME USED IN DIAGA
 c increment ajl(jl_dtdyn) by -t before dynamics.
 c ajl(jl_dtdyn) will be incremented by +t after the dynamics, giving
 c the tendency.
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       USE GEOM, only: imaxj
       USE ATM_COM, only: pk, pdsig
       USE RESOLUTION, only : LM
@@ -809,7 +809,7 @@ c the tendency.
       integer :: I_0, I_1, J_0, J_1
       integer :: I, J, L
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -977,7 +977,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE GEOM, only : j_budg, j_0b, j_1b, imaxj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -992,7 +992,7 @@ C****
       INTEGER :: I,J,NM,NI
       INTEGER :: I_0,I_1,J_0,J_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -1037,7 +1037,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE ATM_COM, only : p
       USE GEOM, only : imaxj
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RMASS
@@ -1045,7 +1045,7 @@ C****
       INTEGER :: J_0,J_1 ,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,    J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
@@ -1075,7 +1075,7 @@ C****
       USE ATM_COM, only : t,p,zatmo
       USE GEOM, only : imaxj
       USE ATM_COM, only : pk,pdsig
-      USE DOMAIN_DECOMP_ATM, only : GET,GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds,GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TPE
@@ -1083,7 +1083,7 @@ C****
       INTEGER :: J_0,J_1,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
@@ -1115,7 +1115,7 @@ C****
       USE ATM_COM, only : wm,q
       USE GEOM, only : imaxj
       USE ATM_COM, only : pdsig
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
 
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1124,7 +1124,7 @@ C****
       INTEGER :: J_0,J_1,I_0,I_1
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
@@ -1158,7 +1158,7 @@ C****
       USE GEOM, only : imaxj
       USE ATM_COM, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
       REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1168,7 +1168,7 @@ C****
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
       REAL*8 EL!,W
 
-      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
@@ -1240,7 +1240,7 @@ C****
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
-      use domain_decomp_atm, only: get,grid,am_i_root
+      use domain_decomp_atm, only: getDomainBounds,grid,am_i_root
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : itime,itime0,nday,iyear1
@@ -1373,7 +1373,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       character*14, intent(in) :: adate
       integer :: i,j,k,l,kunit,i_0h,i_1h,j_0h,j_1h
 
-      call get(grid,i_strt_halo=i_0h,i_stop_halo=i_1h,j_strt_halo=j_0h
+      call getDomainBounds(grid,
+     &     i_strt_halo=i_0h,i_stop_halo=i_1h,j_strt_halo=j_0h
      &     ,j_stop_halo=j_1h)
 
       adate_sv = adate
@@ -1602,7 +1603,8 @@ c accSubdd
 
       integer :: i_0,i_1,j_0,j_1,i,j,n
 
-      call get(grid,i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
+      call getDomainBounds(grid,
+     &     i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
 
 #ifdef TRACERS_ON
       do n=1,NTM
@@ -1799,7 +1801,7 @@ c get_subdd
 
       DAY_OF_MONTH = (1+ITIME-ITIME0)/NDAY
 
-      CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0, J_STOP=J_1,
      &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=have_south_pole,
      &               HAVE_NORTH_POLE=have_north_pole)
@@ -3948,7 +3950,7 @@ c****
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
 
-      CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0, J_STOP=J_1,
      &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=have_south_pole,
      &               HAVE_NORTH_POLE=have_north_pole)
@@ -4194,7 +4196,7 @@ C**** large-scale conden(L),deep conv(E),shallow conv(S) at fixed pressure level
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : get,writei_parallel,
+      use domain_decomp_1d, only : getDomainBounds,writei_parallel,
      &     hasSouthPole, hasNorthPole
 
       implicit none
@@ -5042,7 +5044,8 @@ c write physical variable
       USE MODEL_COM, only : modelEclock
       USE ATM_COM, only : u,v,t,p,q
       USE CONSTANT, only : bygrav
-      USE domain_decomp_atm, ONLY : am_i_root,get,globalsum,grid
+      USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
+      USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
       USE ATM_COM, only : phi,wsave,pek,byam
       USE DYNAMICS, only : sig
@@ -5078,7 +5081,7 @@ C****   define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL get(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -5255,7 +5258,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_LOC
       USE Dictionary_mod
       USE FILEMANAGER
-      USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
+      USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
       USE SUBDAILY, only : init_subdd
@@ -5318,7 +5321,7 @@ c a parallelized i/o routine that understands it
 
       MODD5K=1000
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -5833,7 +5836,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DIAG_COM, only : kvflxo,iu_VFLXO
       USE SUBDAILY, only : reset_subdd
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,am_i_root
 #ifdef TRACERS_ON
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
@@ -5847,7 +5850,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
 
       call modelEclock%getDate(year=year, month=month, 
      &     dayOfYear=dayOfYear)
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -6087,14 +6090,14 @@ C****
       USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE DIAG_COM, only :
      &     ftype,itocean,itoice,itlandi,itearth,itlake,itlkice
       IMPLICIT NONE
       INTEGER I,J
       INTEGER :: J_0,J_1,I_0,I_1
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
       DO J=J_0,J_1
@@ -6584,14 +6587,14 @@ C****
       USE SEAICE_COM, only : si_atm
       USE FLUXES, only : atmice,focean
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds
       IMPLICIT NONE
       INTEGER I,J
       integer :: I_0, I_1, J_0, J_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

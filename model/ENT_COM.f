@@ -45,14 +45,15 @@
 
       subroutine copy_array_to_ent_state( array )
 !@sum get ent state from a simple k-IJ array
-      use domain_decomp_atm, only : grid, get
+      use domain_decomp_atm, only : grid, getDomainBounds
       real*8, dimension(ENT_IO_MAXBUF,
      &     grid%i_strt_halo:grid%i_stop_halo,
      &     grid%j_strt_halo:grid%j_stop_halo) ::  array
       !---
       integer i, j, J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, 
+     &     J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -68,7 +69,7 @@
 
       subroutine copy_ent_state_to_array( array )
 !@sum store ent state in a simple k-IJ array
-      use domain_decomp_atm, only : grid, get
+      use domain_decomp_atm, only : grid, getDomainBounds
       real*8, intent(out), dimension(ENT_IO_MAXBUF,
      &     grid%i_strt_halo:grid%i_stop_halo,
      &     grid%j_strt_halo:grid%j_stop_halo) ::  array
@@ -76,7 +77,8 @@
       real*8, pointer :: cell_buf(:)
       integer i, j, J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, 
+     &     J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
       nullify( cell_buf )
 
@@ -99,7 +101,7 @@
       subroutine ent_read_state_plain( kunit, retcode )
 !@sum read ent state from the file
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : am_i_root, get
+      use domain_decomp_1d, only : am_i_root, getDomainBounds
       use domain_decomp_1d, only : UNPACK_COLUMN, broadcast
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
@@ -110,7 +112,7 @@
       integer i, j, J_0H, J_1H, I_0H, I_1H 
 
       retcode = 0
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       allocate( buf     (ENT_IO_MAXBUF, I_0H:I_1H, J_0H:J_1H) )
@@ -142,7 +144,7 @@
       subroutine ent_write_state_plain( kunit )
 !@sum write ent state to the file
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : am_i_root, get
+      use domain_decomp_1d, only : am_i_root, getDomainBounds
       use domain_decomp_1d, only : PACK_COLUMN
       !use ent_com, only : entcells
       integer, intent(in) :: kunit
@@ -150,7 +152,7 @@
       real*8, allocatable ::  buf(:,:,:), buf_glob(:,:,:)
       integer i, j, J_0H, J_1H, I_0H, I_1H 
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       allocate( buf     (ENT_IO_MAXBUF, I_0H:I_1H, J_0H:J_1H) )
@@ -180,7 +182,7 @@
       subroutine ent_read_state( kunit )
 !@sum read ent state from the file
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : am_i_root, get
+      use domain_decomp_1d, only : am_i_root, getDomainBounds
       use domain_decomp_1d, only : send_to_j, recv_from_j
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
@@ -192,7 +194,7 @@
 
       nullify(buffer)
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       !call openunit('ent_state',iu_entstate,.true.,.true.)
       do j=1,jm
@@ -237,7 +239,7 @@
       subroutine ent_write_state( kunit )
 !@sum write ent state to the file
       use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : am_i_root, get
+      use domain_decomp_1d, only : am_i_root, getDomainBounds
       use domain_decomp_1d, only : send_to_j, recv_from_j
       !use ent_com, only : entcells
       integer, intent(in) :: kunit
@@ -249,7 +251,7 @@
 
       nullify(buffer)
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       !ic = size(entcells,1)
       !jc = size(entcells,2)
@@ -385,7 +387,7 @@
 !@auth NCCS (Goddard) Development Team
       USE ENT_MOD
       USE ENT_COM
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -395,7 +397,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

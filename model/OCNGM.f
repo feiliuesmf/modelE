@@ -11,8 +11,8 @@
       USE OCEAN_DYN, only  : dh  ! ,vbar
       USE ODIAG, only : oij=>oij_loc,ij_gmsc 
 
-      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
-     *                          PACK_DATA, AM_I_ROOT,
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, HALO_UPDATE, NORTH,
+     *                          SOUTH, PACK_DATA, AM_I_ROOT,
      *                          UNPACK_DATA, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
@@ -196,7 +196,7 @@ c**** allocate arrays
       endif
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
@@ -374,7 +374,7 @@ C****
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
@@ -524,7 +524,7 @@ C****
       SUBROUTINE computeFluxes(DT4, flux_x, flux_y, flux_z, TXM, TYM,
      &                         TZM, FXX, FXZ, FYY, FYZ, FZZ, FZX, FZY)
 !@sum  computes GM fluxes for tracer quantities
-      USE GM_COM, ONLY: grid,GET,IM,JM,LMO,LMM,LMU,LMV,
+      USE GM_COM, ONLY: grid,GETDomainBounds,IM,JM,LMO,LMM,LMU,LMV,
      &                  DXYPO,MO, kpl,
      &                  BXX, BYY, BZZ, BYDH, ARAI, BYDXP, BYDYP
       IMPLICIT NONE
@@ -542,7 +542,7 @@ C****
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -702,7 +702,7 @@ c        END IF
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
-      CALL GET(grid,
+      call getDomainBounds(grid,
      &     J_STRT=J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -836,7 +836,7 @@ c
 
       SUBROUTINE addFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
 !@sum applies GM fluxes to tracer quantities
-      USE GM_COM, only: grid, GET, IM, JM, LMO,DXYPO,MO,
+      USE GM_COM, only: grid, GETDomainBounds, IM, JM, LMO,DXYPO,MO,
      &                        LMM, LMU, LMV, KPL
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -852,7 +852,7 @@ c
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -1024,7 +1024,7 @@ C****
       LOGICAL :: dothis
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
@@ -1206,7 +1206,7 @@ C****
 #endif
 
 c**** Extract domain decomposition info
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,

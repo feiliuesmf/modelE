@@ -27,7 +27,7 @@ c
 
       if(itime.ne.itimei) return
 
-      call get(grid, j_strt_skp = j_0s, j_stop_skp = j_1s,
+      call getDomainBounds(grid, j_strt_skp = j_0s, j_stop_skp = j_1s,
      &     j_strt = j_0, j_stop = j_1)
 
       fid = par_open(grid,'OCN_TRACER_IC','read')
@@ -78,7 +78,7 @@ c
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
@@ -122,7 +122,7 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** at each time step set surface tracer conc=1
 C**** this is mass*age (kg*year)
@@ -166,7 +166,7 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** at each time step set surface tracer conc=1
 C**** this is mass*age (kg*year)
@@ -256,7 +256,7 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 !---------------------------------------------------------------
 ! ---  detrital settling
@@ -352,7 +352,7 @@ c**** Extract domain decomposition info
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 !     ! initialization :-)
 !     if (itime.eq.itimei) then 

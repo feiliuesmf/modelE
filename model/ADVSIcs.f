@@ -12,7 +12,8 @@ c NOTE: CURRENTLY ASSUMING THAT THERE IS NO TRANSPORT OF ICE TO/FROM
 c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE CONSTANT, only : byshi,lhm,grav
       USE MODEL_COM, only : kocean,dts=>dtsrc
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, 
+     &     HALO_UPDATE
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
       USE ICEDYN_COM, only : foa,byfoa
@@ -85,7 +86,8 @@ C****
 
 C**** Get grid parameters
       IM = grid%im_world
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, 
+     *     I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
       focean => atmice%focean
       rsi => si_ocn%rsi

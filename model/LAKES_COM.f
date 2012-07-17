@@ -67,7 +67,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-      USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: DIST_GRID, getDomainBounds
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
      &     ,HLAKE,DLAKE,GLAKE,icelak
 #ifdef TRACERS_WATER

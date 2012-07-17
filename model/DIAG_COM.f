@@ -1025,7 +1025,7 @@ c instances of arrays
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,getDomainBounds,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
       USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
@@ -1081,7 +1081,7 @@ c instances of arrays
       End If
       init = .true.
 
-      CALL GET( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+      call getDomainBounds( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -1277,7 +1277,8 @@ c allocate master copies of budget- and JK-arrays on root
       USE MDIAG_COM, only : monacc
       USE DIAG_COM
       USE DOMAIN_DECOMP_ATM, Only : grid
-      USE DOMAIN_DECOMP_1D, Only : GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
+      USE DOMAIN_DECOMP_1D, Only : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, Only : broadcast
@@ -1333,7 +1334,7 @@ c allocate master copies of budget- and JK-arrays on root
 
       INTEGER :: J_0, J_1
 
-      CALL GET( grid, J_STRT=J_0, J_STOP=J_1  )
+      call getDomainBounds( grid, J_STRT=J_0, J_STOP=J_1  )
 
       if(kradia.gt.0) then
         write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
@@ -1715,15 +1716,15 @@ C**** Routines associated with the budget grid
 !@auth Gavin Schmidt
       USE GEOM, only : j_budg,j_0b,j_1b,lat2d_dg
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_ATM, only :GRID,GET
+      USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
       INTEGER :: IER
 
 C**** define atmospheric grid
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1, J_STRT_HALO=J_0H,
-     *     J_STOP_HALO=J_1H  )
+      call getDomainBounds(grid,J_STRT=J_0,J_STOP=J_1,J_STRT_HALO=J_0H,
+     *     J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO ; I_1H = grid%I_STOP_HALO
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
@@ -1752,13 +1753,13 @@ C**** define limits on budget indices for each processor
       USE DIAG_COM, only : im,fim
 #endif
       USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,lat_budg,dxyp_budg
-      USE DOMAIN_DECOMP_ATM, only :GRID,GET
+      USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       INTEGER :: IER
       real*8 :: dlat_budg,fjeq_budg
 
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
       ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
@@ -1798,12 +1799,12 @@ C**** box in lat/lon case.
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
-      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,broadcast
+      USE DOMAIN_DECOMP_ATM, only :grid,getDomainBounds,sumxpe,broadcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment
 
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
       dxyp_budg_loc(:)=0.0

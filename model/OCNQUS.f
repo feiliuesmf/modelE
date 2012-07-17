@@ -18,7 +18,7 @@ C****
       USE OCEAN, only : im,jm,lmo
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
 
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -34,9 +34,9 @@ C****
       REAL*8, INTENT(IN) :: DT
 
       logical :: HAVE_NORTH_POLE  ! ,HAVE_SOUTH_POLE
-         call get (grid, J_STRT_HALO=J_0H)
-         call get (grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-C        call get (grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
+         call getDomainBounds(grid, J_STRT_HALO=J_0H)
+         call getDomainBounds(grid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+C        call getDomainBounds(grid, HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 
 C****
 C**** Load mass after advection from mass before advection
@@ -810,7 +810,7 @@ C****
       USE CONSTANT, only : by3,by12
       USE OCEAN, only : im,jm,lmo,lmm
       USE OCEAN, only : nbyzm,i1yzm,i2yzm
-      use domain_decomp_1d, only : get,halo_update
+      use domain_decomp_1d, only : getDomainBounds,halo_update
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
@@ -830,8 +830,8 @@ c
 
       INTEGER :: J_0,J_1,J_0S,J_1S
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       do j=j_0,j_1
         do n=1,nbyzm(j,1)
@@ -1512,7 +1512,7 @@ C****
       USE CONSTANT, only : by3,by12
       USE OCEAN, only : im,jm,lmo,lmm
       USE OCEAN, only : nbyzm,i1yzm,i2yzm
-      use domain_decomp_1d, only : get,halo_update
+      use domain_decomp_1d, only : getDomainBounds,halo_update
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
@@ -1530,8 +1530,8 @@ c
 
       INTEGER :: J_0,J_1,J_0S,J_1S
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       do j=j_0,j_1
         do n=1,nbyzm(j,1)

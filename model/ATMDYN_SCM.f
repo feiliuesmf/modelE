@@ -201,7 +201,7 @@ c     want to fill SD (IDUM,JDUM)  check out
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -382,7 +382,7 @@ c     dummy of subroutine
       INTEGER :: J_0STG,J_1STG
       REAL*8 :: PSJ,PSIJ
 
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+      call getDomainBounds(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
 C****
 C**** KINETIC ENERGY ON B GRID
@@ -459,7 +459,7 @@ C****
       integer :: J_0S,J_1S
       logical :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      call get(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
 !     polar boxes
@@ -889,7 +889,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       INTEGER :: I,IM1,J
       INTEGER :: J_0S,J_1S
       REAL*8 :: XIM1J,XIJ
-      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       call halo_update(grid,x,from=north)
       if(hasSouthPole(grid)) then
         X(:,1) = SUM(X(:,2))*BYIM*(DXYP(1)/DXYV(2))

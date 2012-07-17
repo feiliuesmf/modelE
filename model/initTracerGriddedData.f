@@ -3,7 +3,7 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,
+      USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
      &     write_parallel,readt8_parallel
       USE CONSTANT, only: mair,mwat,sday,pi
 #ifdef TRACERS_AEROSOLS_SOA
@@ -202,7 +202,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

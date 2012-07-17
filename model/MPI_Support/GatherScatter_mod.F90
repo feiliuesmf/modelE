@@ -188,7 +188,7 @@ contains
     call getCountsAndDisplacements(AI(:,2:2), rcounts, displs)
     deallocate(AI)
 
-    scount = rcounts(my_pet)
+    scount = rcounts(rank)
     offset = baseSize*getOffset(shp, scount, dist_idx)
 
     if (all) then
@@ -238,7 +238,7 @@ contains
     call getCountsAndDisplacements(AI(:,2:2), scounts, displs)
     deallocate(AI)
 
-    rcount = scounts(my_pet)
+    rcount = scounts(rank)
     offset = baseSize*getOffset(shp, rcount, dist_idx)
 
     Call MPI_ScatterV(arr_glob(1), scounts, displs, globalType, &
@@ -517,7 +517,7 @@ contains
       
     integer :: j_0, j_1
       
-    call get(grid, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
     arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
     
   end subroutine localCopyReal8
@@ -530,7 +530,7 @@ contains
       
     integer :: j_0, j_1
       
-    call get(grid, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
     arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
     
   end subroutine localCopyInteger
@@ -543,7 +543,7 @@ contains
       
     integer :: j_0, j_1
       
-    call get(grid, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
     arr_loc(:,j_0:j_1,:) = arr_glob(:,j_0:j_1,:)
     
   end subroutine localCopyLogical

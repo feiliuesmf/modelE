@@ -91,7 +91,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-      USE DOMAIN_DECOMP_ATM,only: GRID, GET, am_i_root
+      USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds, am_i_root
 #ifndef NO_HDIURN
 c for the hourly diagnostic
 #ifdef CLD_AER_CDNC 
@@ -127,7 +127,7 @@ c for the hourly diagnostic
       REAL*8 :: HD_NUMB(nmodes) 
 #endif
 
-      CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+      call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -580,7 +580,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Susanne Bauer
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use resolution, only     : im,lm
       use amp_aerosol
       use aero_config, only   : nmodes
@@ -594,7 +594,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       if(init)return
       init=.true.
     
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
 

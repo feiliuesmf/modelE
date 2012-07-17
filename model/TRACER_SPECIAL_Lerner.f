@@ -24,7 +24,7 @@ C**** These variables are used by both ozone and strat chem routines
       subroutine set_prather_constants
       USE RESOLUTION, only: jm,lm ! ,psfmpt,sige,ptop
       USE ATM_COM, only: pednl00
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE CH4_SOURCES
       USE Dictionary_mod
       implicit none
@@ -39,9 +39,9 @@ C**** These variables are used by both ozone and strat chem routines
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,  J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,  J_STOP     =J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      CALL GET(grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+      call getDomainBounds(grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       call sync_param("NSTRTC",NSTRTC)
 C**** ESMF: This array is read in only
@@ -159,7 +159,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE CONSTANT, only: by3
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM
@@ -178,7 +178,7 @@ cc      USE TRDIAG_COM, only : jls_3Dsource
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -247,7 +247,7 @@ C**** This is called at the beginning of each month
 C**** Prather strat chem
       USE RESOLUTION, only: jm,lm
       USE MODEL_COM, only: modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
@@ -267,7 +267,7 @@ C---assume given MONTH = month #, NTM=# tracers, JM=#lats, etc.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       DO 800 N=1,n_MPtable_max
         DO 700 J=J_0,J_1
@@ -296,7 +296,7 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: nday,itime,dtsrc,modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT, 
      *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
       USE GEOM, only: imaxj,byim
@@ -322,10 +322,10 @@ C---- CTM layers LM down
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -539,7 +539,7 @@ c-----------------------------------------------------------------------
 c
       USE RESOLUTION, only: jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj,axyp
       USE ATM_COM, only: t,pmid,pk,pdsig
@@ -555,7 +555,7 @@ c
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -592,7 +592,7 @@ C****
 C**** Deposition from layer 1
 C**** Deposition Velocity is in cm/sec.  Convert to kg
 C****
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE LINOZ_CHEM_COM, only: O3_DepVel
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
@@ -609,7 +609,7 @@ C****
       real*8 dz ! = -dP/rhoG; rho=PRT; Deposition velocity
 
 C**** Extract useful local domain parameters from "grid"
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -672,7 +672,7 @@ cXXXXX DSOL NOT USED XXXXX
       USE CONSTANT, only : avog
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: itime,dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE ATM_COM, only: t,pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,axyp
       USE TRACER_COM
@@ -692,7 +692,7 @@ cXXXXX DSOL NOT USED XXXXX
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -772,7 +772,7 @@ c-------- monthly fixup of chemistry PARAM'S
 c
       USE RESOLUTION, only: jm,lm
       USE MODEL_COM, only: modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
      *    tlt0m,tltzm,tltzzm,lz_linoz,lz_lx,ps
@@ -785,7 +785,7 @@ c
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 c-------- TLPARM(25,18,12,N) defined for -----------------------------
 c lz_linoz  25 layers from 58 km to 10 km by 2 km intervals
@@ -942,7 +942,8 @@ C**** Monthly sources are interpolated each day
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: itime,JDperY,modelEclock
       USE FLUXES, only: focean,fearth0,flake0
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, readt_parallel, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
+     *  readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
       USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
@@ -980,7 +981,7 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       adj_wet = 0
       do J=J_0,J_1
@@ -999,7 +1000,7 @@ C**** Annual sources are in KG C/M2/Y
 C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
-         CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+         call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
          I_0H=GRID%I_STRT_HALO
          I_1H=GRID%I_STOP_HALO
          Allocate(tlca(i_0H:i_1H,j_0H:j_1H,nmons))
@@ -1069,7 +1070,7 @@ C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: itime,JDperY,modelEclock
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
@@ -1098,7 +1099,7 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
       integer :: J_0, J_1, J_0H, J_1H, I_0H, I_1H
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (itime.lt.itime_tr0(nt)) return
 C****
@@ -1158,7 +1159,7 @@ C**** 2/2/2: generalized code for modelE
 C****
       USE RESOLUTION, ONLY: im,jm,lm
       USE RESOLUTION, ONLY: ls1,psf,ptop
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE DYNAMICS, only: sige
       USE ATM_COM, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
@@ -1180,7 +1181,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -1537,7 +1538,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE RESOLUTION, ONLY: im,jm,lm
       USE RESOLUTION, ONLY: ls1,psf,ptop
       USE MODEL_COM, ONLY: amonth,jmon0
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT
       USE DYNAMICS, only: sige
       USE ATM_COM, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
@@ -1557,7 +1558,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 C****
 C**** Read in GAS concentrations from Wofsy
@@ -1678,7 +1679,7 @@ c     call closeunit(iu)
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
       USE CH4_SOURCES
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: J_1H, J_0H, I_1H, I_0H
@@ -1686,7 +1687,7 @@ c     call closeunit(iu)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
 
@@ -1712,7 +1713,7 @@ C**** ESMF: This array is read in only
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE LINOZ_CHEM_COM
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -1722,7 +1723,7 @@ C**** ESMF: This array is read in only
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = GRID%I_STRT_HALO
       I_1H = GRID%I_STOP_HALO
 

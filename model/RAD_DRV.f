@@ -38,8 +38,8 @@ C****
       USE ATM_COM, only : t,pk,kradia,lm_req
       USE MODEL_COM, only : dtsrc,iyear1,modelEclock
       USE ATM_COM, only : pednl00
-      USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
-     &     ,readt_parallel
+      USE DOMAIN_DECOMP_ATM, only : grid, write_parallel, am_i_root
+     &     ,readt_parallel, getDomainBounds
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
@@ -186,7 +186,8 @@ C**** sync radiation parameters from input
       call sync_param( "save3dAOD", save3dAOD)
       REFdry = REFdry*ref_mult
 
-      CALL GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
       if(istart==2) then ! replace with cold vs warm start logic
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
@@ -781,8 +782,8 @@ c      end if
 !@calls RADPAR:RCOMPT
       USE CONSTANT, only : by12
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,GET,REWIND_PARALLEL
-     *     ,READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,REWIND_PARALLEL
+     *     ,READT_PARALLEL, getDomainBounds
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
       USE MODEL_COM, only : JDendOfM,JDmidOfM
@@ -817,7 +818,7 @@ c      end if
       call modelEclock%getDate(year=year, month=month, 
      &     dayOfYear=dayOfYear, date=date)
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -996,7 +997,7 @@ C**** Update orbital parameters at start of year
      *     ,ntm=>NTM
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, am_I_root
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
       IMPLICIT NONE
       REAL*8 :: xCH4,xdH2O
       INTEGER i,j,l,iy,it
@@ -1011,7 +1012,7 @@ c**** Extract domain decomposition info
 
       call modelEclock%getDate(year=year, month=month)
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -1206,8 +1207,8 @@ C     OUTPUT DATA
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : asflx4,atmocn,atmice,atmgla,atmlnd,atmsrf
      &     ,flice,fland,focean
-      USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
-      USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, ONLY: grid, write_parallel
+      USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM, getDomainBounds
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
@@ -1410,7 +1411,7 @@ C****
 #else
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
 #endif
-      Call GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+      call getDomainBounds(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -3485,7 +3486,7 @@ C**** for extrapolations, only use half the slope
       subroutine getqma (iu,dglat,plb,dh2o,lm,jm)
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
-      use domain_decomp_atm, only : grid,get,write_parallel
+      use domain_decomp_atm, only : grid,getDomainBounds,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
       integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
@@ -3496,7 +3497,7 @@ C**** for extrapolations, only use half the slope
       real*4 pdn,pup,w1,w2,dh,fracl
       integer :: j_0,j_1
       character(len=300) :: out_line
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 C**** read headers/latitudes
       read(iu,'(a)') title

@@ -47,8 +47,8 @@ c arrays for upwind halos
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only :
-     &     get, HALO_UPDATE,HALO_UPDATE_COLUMN, NORTH,SOUTH,
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,
+     &     HALO_UPDATE,HALO_UPDATE_COLUMN, NORTH,SOUTH,
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
@@ -74,7 +74,7 @@ c arrays for upwind halos
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -279,9 +279,8 @@ c
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
       USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM, HALO_UPDATE
-     &     ,globalmax
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, HALO_UPDATE, globalmax
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
       USE QUSCOM, ONLY : IM,JM,LM
       USE QUSDEF, only : nmom
@@ -307,7 +306,7 @@ c
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -916,7 +915,7 @@ c      ierr=0
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE TRACER_ADV
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -926,7 +925,7 @@ c      ierr=0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE(NSTEPX(J_0H:J_1H,LM))
 
@@ -962,7 +961,7 @@ C****
 !@sum  AADVQX advection driver for x-direction
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -981,7 +980,7 @@ C****
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0 , J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0 , J_STOP=J_1,
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 
       do j=jmin,jmax
@@ -1219,8 +1218,8 @@ c****
       subroutine aadvqy(rm,rmom,mass,mv  ,sbf,sbm,sfbm,sbfv)
 !@sum  AADVQY advection driver for y-direction
 !@auth Maxwell Kelley
-      USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column,get
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
+      use DOMAIN_DECOMP_1D, only : halo_update, halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
       use QUSCOM, only : im,jm,byim
@@ -1244,7 +1243,7 @@ c****
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H,J_0S,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STRT_SKP = J_0S,
+      call getDomainBounds(grid, J_STRT = J_0, J_STRT_SKP = J_0S,
      &               J_STOP = J_1, J_STOP_SKP = J_1S,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
@@ -1496,7 +1495,7 @@ c update north polar cap
 !@sum  AADVQZ advection driver for z-direction
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
@@ -1519,7 +1518,7 @@ c update north polar cap
 c**** Get useful local parameters for domain decomposition
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: J_0, J_1
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1,
+      call getDomainBounds( grid, J_STRT=J_0 , J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -1674,7 +1673,7 @@ c
 !@sum  AADVQX2 version of AADVQX without flux limiter
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -1693,7 +1692,7 @@ c
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0 , J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0 , J_STOP=J_1,
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 
       do j=jmin,jmax
@@ -1837,7 +1836,7 @@ c****
 !@sum  AADVQY2 version of AADVQY without flux limiter
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : get
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
@@ -1860,7 +1859,7 @@ c****
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H,J_0S,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STRT_SKP = J_0S,
+      call getDomainBounds(grid, J_STRT = J_0, J_STRT_SKP = J_0S,
      &               J_STOP = J_1, J_STOP_SKP = J_1S,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
@@ -2045,7 +2044,7 @@ c update north polar cap
 !@sum  AADVQZ2 version of AADVQZ without flux limiter
 !@auth Maxwell Kelley
       USE DOMAIN_DECOMP_ATM, only : grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
       use QUSCOM, only : im,jm
       USE GEOM, only : imaxj
@@ -2067,7 +2066,7 @@ c update north polar cap
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1,
+      call getDomainBounds( grid, J_STRT=J_0 , J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 

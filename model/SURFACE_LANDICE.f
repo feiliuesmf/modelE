@@ -25,7 +25,7 @@ C****
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
      &     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj
 #ifdef TRACERS_ON
       USE TRACER_COM, only : NTM,itime_tr0,needtrs
@@ -102,7 +102,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,        J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

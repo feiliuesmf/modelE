@@ -23,7 +23,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
       USE ATM_COM, only : pk,pdsig,plij,pek,byam,am
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
-      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm=>NTM,itime_tr0,trm,t_qlimit  !,trmom
@@ -100,7 +100,7 @@ c vars for velocity diffusion
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,

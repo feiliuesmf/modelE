@@ -63,7 +63,8 @@
       End If
       init = .true.
 
-      CALL GET(grid_icdyn, I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
+      call getDomainBounds(grid_icdyn, 
+     &     I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
      &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
 
       ALLOCATE(DMUI( I_0H:I_1H , J_0H:J_1H ),
@@ -106,7 +107,7 @@ c      ENTRY alloc_icedyn_com
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
       USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
-      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
       USE SEAICE_COM, only : rsi
@@ -120,7 +121,7 @@ c      ENTRY alloc_icedyn_com
 
       IF (KOCEAN.eq.1) THEN
 
-        CALL GET (grid, J_STRT=J_0,   J_STOP=J_1 )
+        call getDomainBounds(grid, J_STRT=J_0,   J_STOP=J_1 )
         I_0 = GRID%I_STRT
         I_1 = GRID%I_STOP
         DO J=J_0,J_1

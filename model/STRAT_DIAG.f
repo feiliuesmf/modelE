@@ -29,8 +29,8 @@ C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
       USE RESOLUTION, only : lm
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, SOUTH, NORTH,
-     &     HALO_UPDATEj
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE, SOUTH,
+     &     NORTH, HALO_UPDATEj
 #ifdef CUBED_SPHERE
       USE RESOLUTION, only : ls1,psfmpt
       USE GCDIAG, only : grid,im=>imlon,jm=>jmlat,byim,jl_dpb,
@@ -106,7 +106,7 @@ c#define DUD(j,k)  XEP(j,k,21)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
@@ -115,7 +115,7 @@ C****
 
 
 #ifdef CUBED_SPHERE
-      CALL GET(grid_cs,
+      call getDomainBounds(grid_cs,
      &     I_STRT=I_0cs,I_STOP=I_1cs,
      &     J_STRT=J_0cs,J_STOP=J_1cs,
      &     I_STRT_HALO=I_0Hcs,I_STOP_HALO=I_1Hcs,
@@ -584,7 +584,7 @@ C****
       subroutine EPFLXI(U)
 C****     U - Zonal wind (corners) (m s-1)
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE RESOLUTION, only : im,jm,lm
       USE  DIAG_COM, only : agc=>agc_loc,KAGC
       REAL*8, INTENT(INOUT), 
@@ -592,7 +592,7 @@ C****     U - Zonal wind (corners) (m s-1)
      *                                                        U
 
       integer :: j_0h
-      call get(grid, j_strt_halo=j_0h)
+      call getDomainBounds(grid, j_strt_halo=j_0h)
       call avgvi (u,agc(j_0h,1,KAGC))
       return
 C****
@@ -880,7 +880,7 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
       USE GEOM, only : imaxj
       USE DIAG_COM, only : BYIM
 #endif
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
 
 !@var X input 3-D array
@@ -897,7 +897,7 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       DO L=1,LM
         DO J=J_0,J_1
@@ -928,7 +928,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DIAG_COM, only : BYIM
 #endif
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
 
 !@var X input 3-D array
@@ -945,7 +945,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+      call getDomainBounds(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
       DO L=1,LM
         DO J=J_0STG,J_1STG
           XXI=0.

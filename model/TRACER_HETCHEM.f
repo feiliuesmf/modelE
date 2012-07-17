@@ -20,7 +20,7 @@
       USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
@@ -80,7 +80,7 @@ C**** functions
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -271,7 +271,7 @@ c radii interpolation
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
@@ -325,7 +325,7 @@ C**** functions
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 

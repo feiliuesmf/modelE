@@ -1688,7 +1688,7 @@ c*
       USE OCN_TRACER_COM, only: ntm
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
 
       USE OFLUXES, only : ocnice
@@ -1716,7 +1716,7 @@ c*
       aJ_0H = ice%J_0H
       aJ_1H = ice%J_1H
 
-      CALL GET(ogrid, J_STRT=oJ_0, J_STOP=oJ_1,
+      call getDomainBounds(ogrid, J_STRT=oJ_0, J_STOP=oJ_1,
      &               J_STRT_HALO=oJ_0H, J_STOP_HALO=oJ_1H)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)

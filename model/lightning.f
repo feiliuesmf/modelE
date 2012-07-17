@@ -46,7 +46,7 @@
       subroutine alloc_lightning(grid)
 !@SUM  alllocate lightning arrays for current grid
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use LIGHTNING, only : saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
       use LIGHTNING, only     : RNOx_lgt
@@ -56,7 +56,7 @@
       type (dist_grid), intent(in) :: grid
       integer :: J_1H, J_0H, I_0H, I_1H
 
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                 I_STRT_HALO=I_0H, I_STOP_HALO=I_1H )
  
 #ifdef TRACERS_SPECIAL_Shindell
@@ -198,7 +198,7 @@
       use constant, only   : bygrav
       use resolution, only  : LM
       use atm_com, only    : ltropo, phi
-      use domain_decomp_atm, only : GRID, GET
+      use domain_decomp_atm, only : GRID, getDomainBounds
 #ifdef ACCMIP_LIKE_DIAGS
       use trdiag_com, only : taijls=>taijls_loc,ijlt_NOxLgt
 #endif

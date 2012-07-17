@@ -405,7 +405,7 @@ ccc was not sure where to dump these routines ... IA
 
       contains
       subroutine declare_conserv_diags( grid, fid, name_dims )
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use pario, only : defvar
       implicit none
       type (dist_grid), intent(in) :: grid
@@ -414,7 +414,7 @@ ccc was not sure where to dump these routines ... IA
       integer :: i_0h, i_1h, j_0h, j_1h
       integer :: ier
       real*8, allocatable :: buf(:,:)
-      call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
+      call getDomainBounds( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
      &     i_strt_halo=i_0h, i_stop_halo=i_1h )
       allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
       call defvar(grid, fid, buf, trim(name_dims))     
@@ -422,7 +422,7 @@ ccc was not sure where to dump these routines ... IA
       end subroutine declare_conserv_diags
 
       subroutine dump_conserv_diags( grid, fid, name, conserv )
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use pario, only : write_dist_data
       implicit none
       type (dist_grid), intent(in) :: grid
@@ -432,7 +432,7 @@ ccc was not sure where to dump these routines ... IA
       integer :: i_0h, i_1h, j_0h, j_1h
       integer :: ier
       real*8, allocatable :: buf(:,:)
-      call get( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
+      call getDomainBounds( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
      &     i_strt_halo=i_0h, i_stop_halo=i_1h )
       allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
       call conserv(buf)

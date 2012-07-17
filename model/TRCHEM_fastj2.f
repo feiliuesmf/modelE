@@ -16,7 +16,7 @@ c  D. Shindell, Aug. 2002
 
 C**** GLOBAL parameters and variables:
 
-      USE DOMAIN_DECOMP_ATM,only : GRID,GET
+      USE DOMAIN_DECOMP_ATM,only : GRID,getDomainBounds
       USE RESOLUTION, only   : LM
       USE CONSTANT, only     : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
@@ -34,7 +34,7 @@ C**** Local parameters and variables and arguments:
       INTEGER             :: J_0, J_1 
 
 
-      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1)
+      call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
       jay = (NSLAT >= J_0 .and. NSLAT <= J_1) 
       

@@ -80,7 +80,7 @@ module FV_LatLon_Mod
     Call WRITE_PARALLEL( ak, unit)
     Call WRITE_PARALLEL( bk, unit)
 
-    Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+    call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
     ! 4) 3D fields velocities
     Allocate(U_d(I_0:I_1, J_0:J_1, LM))
@@ -147,8 +147,10 @@ module FV_LatLon_Mod
       Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
-      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
-            & i_strt_halo=i_0h, i_stop_halo=i_1h, j_strt_halo=j_0h, j_stop_halo=j_1h)
+      call getDomainBounds(grid, &
+    &      i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+    &      i_strt_halo=i_0h, i_stop_halo=i_1h, &
+    &      j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
       PKZ = -99999
@@ -272,7 +274,7 @@ module FV_LatLon_Mod
     Integer :: i,j,k
     Integer :: i_0, i_1, j_0, j_1
 
-    Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
 
     ! First compute updated values for modelE.  Then capture the
     ! new state in fv % *_old for computing tendencies.
@@ -330,7 +332,7 @@ module FV_LatLon_Mod
     Integer :: i,j,k,ip1
     integer :: I_0, I_1, j_0stgr, j_1stgr,J_0h,J_1h,J_0,J_1
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT_STGR=j_0stgr, J_STOP_STGR=j_1stgr, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, &
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT_STGR=j_0stgr, J_STOP_STGR=j_1stgr, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H, &
          & J_STRT=J_0, J_STOP=J_1)
     Allocate(Ua_halo(IM,J_0h:J_1h,LM), Va_halo(IM,J_0h:J_1h,LM))
 
@@ -376,7 +378,7 @@ module FV_LatLon_Mod
     Integer :: j_0, j_1, j_0s, j_1s
     Logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-    Call Get(grid, j_strt=j_0, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s, &
+    call getDomainBounds(grid, j_strt=j_0, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s, &
          & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
     If (HAVE_SOUTH_POLE) Then
@@ -466,7 +468,7 @@ module FV_LatLon_Mod
     integer :: I_0, I_1, j_0, j_1, j_0s, j_1s, j_0h, j_1h
     logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, J_STRT_SKP=J_0s, J_STOP_SKP=J_1S, &
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, J_STRT_SKP=J_0s, J_STOP_SKP=J_1S, &
          & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
          & J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
@@ -565,9 +567,12 @@ module FV_LatLon_Mod
 
     DTfac = DT
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
-         & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
-         & HAVE_NORTH_POLE = HAVE_NORTH_POLE, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
+    call getDomainBounds(grid, &
+    &    i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+    &    J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
+    &    J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
+    &    HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
+    &    HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
     ! Horizontal and Vertical mass fluxes
     !---------------

@@ -239,13 +239,14 @@ C**** read atmospheric initial conditions file
       use atm_com, only : u,v,t,p,q
 ! move this back to atm_com.f after moving these arrays to atm_com
       use atm_com, only : pk,pmid,pedn,ualij,valij
-      use domain_decomp_atm, only : get,grid,readt_parallel
+      use domain_decomp_atm, only : getDomainBounds,grid,readt_parallel
       use filemanager
       implicit none
       integer :: I,J,L,iu_AIC,I_0,I_1,J_0,J_1
       logical :: have_south_pole,have_north_pole
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &               J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
@@ -314,13 +315,14 @@ C**** Perturb tropospheric temperatures by at most 1 degree C
       use resolution, only : ls1,lm
       use atm_com, only : t,pk
       use random
-      use domain_decomp_atm, only : grid,get
+      use domain_decomp_atm, only : grid,getDomainBounds
       implicit none
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: tijl,x
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1)
 
       CALL CALC_AMPK(LM)
       DO L=1,LS1-1
@@ -399,7 +401,8 @@ C****
       USE ATM_COM, only : p
       USE MODEL_COM, only : itime,itimei
       USE GEOM, only : areag,axyp
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, GLOBALSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM, AM_I_ROOT
 c      USE ATMDYN, only : CALC_AMPK
       IMPLICIT NONE
       REAL*8 :: DELTAP,PBAR,SMASS
@@ -413,7 +416,7 @@ c**** Extract domain decomposition info
 
 #ifndef SCM
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT

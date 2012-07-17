@@ -132,7 +132,7 @@ contains
     numRecvSouth = size(rBufS)
     numRecvNorth = size(rBufN)
 
-    call getNeighbors(my_pet, npes_world, pe_south, pe_north, .false.)
+    call getNeighbors(rank, npes_world, pe_south, pe_north, .false.)
 
     tag = 1 + mod(tag - 1, NUM_TAGS)
     call MPI_sendrecv(sBufS, numSendSouth, MPI_DOUBLE_PRECISION, &

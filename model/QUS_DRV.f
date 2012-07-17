@@ -32,7 +32,7 @@ cc    REAL*8, DIMENSION(:,:), ALLOCATABLE :: FMOM_L
       SUBROUTINE init_QUS(grd_dum,IM_GCM,JM_GCM,LM_GCM)
 !@sum  init_QUS sets gcm-specific advection parameters/workspace
 !@auth Maxwell Kelley
-      USE DOMAIN_DECOMP_1D, only : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID, getDomainBounds
       use QUSCOM
       USE Dictionary_mod
       INTEGER, INTENT(IN) :: IM_GCM,JM_GCM,LM_GCM
@@ -42,7 +42,7 @@ C****
 C**** Extract local domain parameters from "grd_dum"
 C****
       INTEGER J_0,J_1,J_0H,J_1H
-      CALL GET(grd_dum, J_STRT=J_0,       J_STOP=J_1,
+      call getDomainBounds(grd_dum, J_STRT=J_0,       J_STOP=J_1,
      &                  J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 C**** SET RESOLUTION
@@ -83,8 +83,8 @@ c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
 c****     ma (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only: get,HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM, MFLX
       IMPLICIT NONE
@@ -109,7 +109,7 @@ c****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -219,7 +219,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
@@ -237,7 +237,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0 , J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0 , J_STOP=J_1,
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 c**** loop over layers and latitudes
       ICKERR=0
@@ -338,7 +338,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only : get, halo_update
+      use DOMAIN_DECOMP_1D, only : getDomainBounds, halo_update
       use DOMAIN_DECOMP_1D, only : halo_update_column
       use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
@@ -363,7 +363,7 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0,
+      call getDomainBounds(grid, J_STRT = J_0,
      &               J_STOP = J_1,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
@@ -493,7 +493,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -508,7 +508,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       integer :: i,j,l,ierr,nerr,ICKERR,ns,nstep
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
+      call getDomainBounds( grid, J_STRT=J_0 , J_STOP=J_1 )
 c**** loop over latitudes and longitudes
       ICKERR=0
       do j=J_0,J_1

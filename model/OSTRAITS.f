@@ -339,7 +339,8 @@ C****
 #ifdef OCN_GISSMIX
      *                   ,otkest
 #endif
-      use domain_decomp_1d, only: am_i_root, get, getMpiCommunicator
+      use domain_decomp_1d, only: am_i_root, getDomainBounds, 
+     *                            getMpiCommunicator
       USE OCEANR_DIM, only : grid=>ogrid
       Use SparseCommunicator_mod
 #ifdef OCN_GISSMIX
@@ -368,7 +369,8 @@ c The two ends of each strait must be adjacent in the list of points!
         points(2,2*n  ) = jst(n,2)
       enddo
 
-      CALL GET(grid, J_STRT_HALO = locLB(2), J_STOP_HALO = locUB(2))
+      call getDomainBounds(grid, J_STRT_HALO = locLB(2), 
+     &     J_STOP_HALO = locUB(2))
 
       locLB(1)=1; locUB(1)=grid%IM_WORLD;
       !locLB(2)=jmin; locUB(2)=jmax;

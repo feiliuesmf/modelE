@@ -67,7 +67,7 @@ C     *     ,CRSI,KRSI
 !@sum  OSTRUC restructures the ocean temperature profile as ML
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE FLUXES, only : atmice
       USE GEOM, only : imaxj
       IMPLICIT NONE
@@ -89,7 +89,7 @@ C**** FWSIM     Fresh water sea ice amount (KG/M**2)
 C****
 C**** RESTRUCTURE OCEAN LAYERS
 C****
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -131,7 +131,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       SUBROUTINE OCLIM(end_of_day)
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID,GET,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID,getDomainBounds,AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only :
      &     READ_PARALLEL,REWIND_PARALLEL,BACKSPACE_PARALLEL,
      &     MREAD_PARALLEL,READT_PARALLEL
@@ -187,7 +187,7 @@ C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       call modelEclock%getDate(year=year, month=month, date=date,
      &     dayOfYear=dayOfYear)
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -723,11 +723,11 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &                          DM,AOST,EOST1,EOST0,BOST,COST,FOCEAN,
      &                          ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
       USE STATIC_OCEAN, only  : KRSI
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
       INTEGER :: I_0H,I_1H,J_0H,J_1H,IER
 
-      CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      call getDomainBounds(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -768,7 +768,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@auth Original Development Team
       USE FILEMANAGER
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_I_root,
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_I_root,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
@@ -810,7 +810,7 @@ c
      &            grid%j_strt_halo:grid%j_stop_halo)
       integer :: i_0,i_1, j_0,j_1
 
-      call get(grid,j_strt=j_0,j_stop=j_1)
+      call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -947,7 +947,7 @@ C**** surface tilt term.
       USE FLUXES, only : atmice
       USE STATIC_OCEAN, only : focean,tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
@@ -957,7 +957,7 @@ C**** surface tilt term.
       REAL*8, DIMENSION(:,:), POINTER :: FWSIM
       INTEGER :: J_0,J_1, I_0,I_1
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1022,7 +1022,7 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : si_ocn
       USE STATIC_OCEAN, only : focean,tocean,z1o
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
@@ -1037,7 +1037,7 @@ c
      &     RUNPSI,ERUNPSI,SRUNPSI,MELTI,EMELTI,SMELTI,GTEMP,GTEMPR,
      &     FWSIM
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1144,7 +1144,7 @@ C****
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
      &     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang,
      &     focean
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
@@ -1171,7 +1171,7 @@ C**** output from OSOURC
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, I_0,I_1
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1303,7 +1303,7 @@ C****
       USE FLUXES, only : atmocn,atmice
       USE DIAG_COM, only : oa,J_IMPLM,J_IMPLH,jreg,aij=>aij_loc
      *     ,itocean,itoice
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
       INTEGER I,J,JR,N
       REAL*8 RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
@@ -1318,7 +1318,7 @@ C****
       INTEGER :: J_0,J_1, I_0,I_1
       INTEGER :: IJ_FWIO,J_IMELT,J_HMELT,J_SMELT
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

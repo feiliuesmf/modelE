@@ -94,7 +94,8 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, get, write_parallel
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
+      use domain_decomp_atm, only : write_parallel
       USE Dictionary_mod, only : get_param, is_set_param
       use resolution, only : lm
       use model_com, only : DTsrc
@@ -112,7 +113,7 @@
       if(init)return
       init=.true.
     
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -168,7 +169,7 @@ C**** linearly in time (at 1% increase per year)
       USE TRACER_COM, only: trname,trm,n_GLT,vol2mass,itime_tr0
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
-      USE DOMAIN_DECOMP_ATM, ONLY : GET, grid, write_parallel
+      USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds,grid,write_parallel
       
       IMPLICIT NONE
       
@@ -181,7 +182,7 @@ C**** linearly in time (at 1% increase per year)
       REAL*8 bydtsrc, by_s_in_yr, new_mr, new_mass
       integer i,j
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -211,7 +212,7 @@ C we change that.)
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
       USE RESOLUTION, only : im,jm,lm
       use model_com, only: itime,JDperY
-      use domain_decomp_atm, only: GRID, GET, write_parallel
+      use domain_decomp_atm, only: GRID, getDomainBounds, write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
@@ -319,8 +320,8 @@ C we change that.)
           call stop_model("mon_tracers(k) not defined",255)
         endif
         if (itime < itime_tr0(mon_tracers(k))) cycle
-        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-        CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
 ! Monthly sources are interpolated to the current day
 ! Units are KG(N)/m2/s, so no conversion is necessary:
@@ -434,7 +435,7 @@ C we change that.)
       USE RESOLUTION, only : im,jm,lm
       use model_com, only: modelEclock
       USE DYNAMICS, only : sig
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
  
@@ -464,8 +465,8 @@ C we change that.)
       logical :: trans_emis=.false.
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
-      call GET(grid, J_STRT=J_0, J_STOP=J_1)
-      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -507,7 +508,7 @@ C====
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
      &     ,REWIND_PARALLEL
      &     ,write_parallel,backspace_parallel,am_i_root
       implicit none
@@ -526,8 +527,8 @@ C====
      
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)     
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)     
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)     
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)     
 
 C No doubt this code can be combined/compressed, but I am going to
 C do the transient and non-transient cases separately for the moment:
@@ -691,7 +692,8 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : DTsrc
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds,
+     *     write_parallel,am_i_root
       USE GEOM, only       : axyp,lat2d_dg
       USE ATM_COM, only   : am
       USE CONSTANT, only: mair
@@ -711,8 +713,8 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       INTEGER I, J, L, icall
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       bydtsrc=1.d0/DTsrc
 C     First, the troposphere:
@@ -1015,7 +1017,8 @@ C
 !@auth Greg Faluvegi based on Jean Lerner
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, am_i_root, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
+     &     am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
       USE TRACER_SOURCES, only: nday_ncep,by_nday_ncep,first_ncep,
@@ -1037,8 +1040,8 @@ C
 
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (fix_CH4_chemistry == 1) return ! don't bother if no CH4 chem
 
@@ -1119,9 +1122,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi
       USE RESOLUTION, only : im,jm
       USE FLUXES, only : fland
-      use model_com, only: modelEclock
-      USE MODEL_COM, only: itime
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET,
+      USE MODEL_COM, only: itime, modelEclock
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds,
      &   broadcast, write_parallel
 #ifdef CUBED_SPHERE
       USE DD2D_UTILS, only : 
@@ -1152,7 +1154,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 #endif
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1, J_0S,J_1S
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -1375,7 +1377,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi, Jean Lerner and others
 
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
+     & AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
@@ -1391,8 +1394,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       imon=1
       if (modelEclock%dayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec

@@ -73,7 +73,7 @@ c
 c      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
 c     *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
 c
-c      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+c      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
 c     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 c      I_0H = grid%I_STRT_HALO
 c      I_1H = grid%I_STOP_HALO
@@ -222,7 +222,7 @@ c
 c      MODULE_HEADER(lhead+1:80) = 'R8 dim(ijm):ws,ts,qs,'//
 c     *  'LvlDC,us,vs,tau,u*(4,.),ke;w2(lijm),tgv,qg'
 c
-c      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+c      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 c
 c      SELECT CASE (IACTION)
 c      CASE (:IOWRITE)            ! output to standard restart file
@@ -370,7 +370,7 @@ c      END SUBROUTINE io_bldat
       USE RESOLUTION, only : lm
       USE CONSTANT, only : by3
       USE PBLCOM
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       USE FLUXES, only : atmocns,atmices,atmglas,atmlnds,asflx
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -381,7 +381,7 @@ c      END SUBROUTINE io_bldat
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -440,13 +440,13 @@ C**** initialize egcm to be used in ATURB.f
       subroutine alloc_atmsrf_pbl_vars(grid,this,dest)
       use pblcom
       use exchange_types, only : atmsrf_xchng_vars
-      use domain_decomp_1d, only : dist_grid,get
+      use domain_decomp_1d, only : dist_grid, getDomainBounds
       implicit none
       type (dist_grid), intent(in) :: grid
       type(atmsrf_xchng_vars) :: this,dest
       integer :: i_0h, i_1h, j_1h, j_0h
 
-      call get(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+      call getDomainBounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
 

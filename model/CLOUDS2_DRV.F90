@@ -9,9 +9,8 @@ subroutine CONDSE
   use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
   use ATM_COM, only : p,u,v,t,q,wm
-  use MODEL_COM, only : modelEclock
-  use MODEL_COM, only : DTsrc,itime
-  use DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
+  use DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,AM_I_ROOT
+  use MODEL_COM, only : DTsrc,itime,modelEclock
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
   use QUSDEF, only : nmom
   use SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
@@ -352,7 +351,7 @@ subroutine CONDSE
 
 
   !**** define local grid
-  call GET(grid, J_STRT=J_0,         J_STOP=J_1, &
+  call getDomainBounds(grid, J_STRT=J_0,         J_STOP=J_1, &
        J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S, &
        J_STRT_HALO=J_0H,    J_STOP_HALO=J_1H, &
        HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
@@ -2052,7 +2051,7 @@ subroutine qmom_topo_adjustments
   use atm_com, only : pua,pva,pk,pmid
   use qusdef, only : mx,mxx,my,myy
   use somtq_com, only : tmom,qmom
-  use domain_decomp_atm, only : grid,get,halo_update
+  use domain_decomp_atm, only : grid,getDomainBounds,halo_update
 #ifdef TRACERS_WATER
   use tracer_com, only: trm,trmom,ntm=>NTM,tr_wd_type,nwater
 #endif
@@ -2075,7 +2074,7 @@ subroutine qmom_topo_adjustments
   logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
   !**** define local grid
-  call GET(grid, J_STRT=J_0,         J_STOP=J_1, &
+  call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, &
        J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S, &
        HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
        HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )

@@ -820,7 +820,7 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, broadcast, GET
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, broadcast, getDomainBounds
       USE TRACER_COM, only: NTM
       USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
      *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
@@ -852,7 +852,7 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
 
       INTEGER :: J_0H, J_1H, I_0H, I_1H
 
-      CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
+      call getDomainBounds( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
 
@@ -1270,7 +1270,7 @@ C*** Unpack read global data into local distributed arrays
       SUBROUTINE ALLOC_TRDIAG_COM
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM
-      USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, AM_I_ROOT, GRID
       use diag_zonal, only : get_alloc_bounds
       use fluxes, only : atmocn
       implicit none
@@ -1279,7 +1279,7 @@ C*** Unpack read global data into local distributed arrays
       integer :: j_0budg,j_1budg
       integer :: img, jmg
       
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
 

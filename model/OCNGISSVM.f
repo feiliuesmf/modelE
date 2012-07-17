@@ -1073,7 +1073,7 @@ c           kstd=kmtd*tmp2
       INTEGER :: J_1H, J_0H, L
       INTEGER :: IER
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       !ALLOCATE( otke(LSRPD,IM,J_0H:J_1H) , STAT = IER)
       ALLOCATE( otke(lmo,IM,J_0H:J_1H) , STAT = IER)
       ALLOCATE( rhobot(IM,J_0H:J_1H) , STAT = IER)

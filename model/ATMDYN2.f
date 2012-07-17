@@ -25,7 +25,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
@@ -200,7 +200,7 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -354,7 +354,7 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       INTEGER :: n_exception, n_exception_all
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
@@ -405,7 +405,7 @@ C****
 !@auth Original development team
       use constant, only : radius,pi,twopi,omega2
       USE model_com, only : im,jm,lm,ls1,psfmpt,byim,dsig
-      USE DOMAIN_DECOMP_1D, only : GRID,GET
+      USE DOMAIN_DECOMP_1D, only : GRID,getDomainBounds
       USE GEOM, only : dlon,dlat,dxyv,dxyn,dxys,ravpn,ravps
      &     ,sini=>sinu,cosi=>cosu,coslatv,sinlatv,lonv,latv
       USE DYNAMICS, only : pu,pv,sd,spa
@@ -449,7 +449,7 @@ c from pgf:
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -890,7 +890,7 @@ c**** Extract domain decomposition info
 
 c      if ( present(X) ) goto 1000
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
@@ -925,7 +925,7 @@ c      If (Present(jrange)) Then
         j0 = jrange(1)
         j1 = jrange(2)
 c      Else
-c        CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+c        call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 c        j0=J_0S
 c        j1=J_1S
 c      End If
@@ -963,7 +963,7 @@ c**** Extract domain decomposition info
       real*8 getTotalEnergy ! external for now
       real*8, dimension(im) :: rhosrf,pgfx
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
 C**** Initialise total energy (J/m^2)
@@ -1042,7 +1042,7 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       real*8, dimension(im) :: yjm1,yj
       logical :: have_south_pole,have_north_pole
 
-      call get(grid, j_strt_stgr = j_0stg, j_stop_stgr = j_1stg,
+      call getDomainBounds(grid, j_strt_stgr = j_0stg, j_stop_stgr = j_1stg,
      &         have_south_pole = have_south_pole,
      &         have_north_pole = have_north_pole)
 
@@ -1135,7 +1135,7 @@ C**********************************************************************
       REAL*8 angm,dpt,D2V,D2U,by4ton
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
@@ -1228,7 +1228,7 @@ c      USE DYNAMICS, only : COS_LIMIT
       integer :: ipole,j,jcut,jinc,jp
       integer :: j_0s, j_1s, hemi
 
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+      call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       if(im.gt.144) then
         cos_limit=.23d0 ! necessary?
@@ -1271,7 +1271,7 @@ c      USE DYNAMICS, only : COS_LIMIT
         cos_limit=.15d0
       endif
 
-      CALL GET(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+      call getDomainBounds(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
       do j = J_0STG, J_1STG
         If(coslatv(j) .gt. cos_limit) Cycle
@@ -1366,7 +1366,7 @@ c****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1519,7 +1519,7 @@ c****
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0 , J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0 , J_STOP=J_1,
      &             J_STRT_SKP=J_0S,J_STOP_SKP=J_1S )
 
       do j=jmin,jmax
@@ -1730,7 +1730,7 @@ c****
 c****Get relevant local distributed parameters
       INTEGER J_0,J_1,J_0H,J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0,
+      call getDomainBounds(grid, J_STRT = J_0,
      &               J_STOP = J_1,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
@@ -1936,7 +1936,7 @@ c****
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
+      call getDomainBounds( grid, J_STRT=J_0 , J_STOP=J_1 )
 
 c-----------------------------------------------------------
       ! calculate tracer mass flux f
@@ -2039,7 +2039,7 @@ c****
       integer :: j,l
 c**** Extract domain decomposition info
       INTEGER :: J_0H, J_1H
-      CALL GET(grid, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      call getDomainBounds(grid, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
       DO L=1,LM
         IF(L.LT.LS1) THEN
@@ -2065,14 +2065,14 @@ c
       use dynamics, only : pua,pva
       use qusdef, only : mx,mxx,my,myy
       use somtq_com, only : tmom
-      use domain_decomp_atm, only : grid,get,halo_update
+      use domain_decomp_atm, only : grid,getDomainBounds,halo_update
       implicit none
       integer :: i,j,l
       real*8 :: zthresh,te1,te2,te1_sv,te2_sv
       INTEGER :: J_0S,J_1S
 
 C**** define local grid
-      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       call halo_update(grid,t)    ! already haloed ?
       call halo_update(grid,pva)  ! already haloed ?

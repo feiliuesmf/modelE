@@ -38,7 +38,7 @@
       USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
-      USE DOMAIN_DECOMP_ATM,only: GRID, GET
+      USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
 
       IMPLICIT NONE
 
@@ -116,7 +116,7 @@
 
       REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
 
-      CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+      call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -248,7 +248,7 @@ c avol [m3/gb] mass of air pro m3
       USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
-      USE DOMAIN_DECOMP_ATM,only: GRID, GET
+      USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
 
       IMPLICIT NONE
 
@@ -333,7 +333,7 @@ c avol [m3/gb] mass of air pro m3
 
       REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
 
-      CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+      call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

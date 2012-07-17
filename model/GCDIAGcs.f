@@ -591,7 +591,8 @@ c empty for now
       use atm_com, only : t,p,q,phi,sda,ualij,valij
       use dynamics, only : pit,sige
       use diag_loc, only : tx
-      use domain_decomp_atm, only : get, grid_cs=>grid, am_i_root,
+      use domain_decomp_atm, only : getDomainBounds, 
+     &     grid_cs=>grid, am_i_root,
      &     sumxpe, halo_update
       implicit none
       real*8, dimension(imlonh+1,nspher) :: ke,ke_part

@@ -19,7 +19,7 @@
       subroutine alloc_RAD_native_O3(grid)
 !@SUM  alllocate RAD_native_O3 arrays for current grid
 !@auth Greg Faluvegi
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use RADPAR, only : NLO3
       use RAD_native_O3
       implicit none
@@ -27,7 +27,7 @@
       type (dist_grid), intent(in) :: grid
       integer :: J_1H, J_0H, I_0H, I_1H
 
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                 I_STRT_HALO=I_0H, I_STOP_HALO=I_1H )
 
       allocate(           O3YEAR(I_0H:I_1H,J_0H:J_1H,NLO3,0:12) )
@@ -49,7 +49,8 @@
 !@auth G. Faluvegi (directly from A. Lacis/R. Ruedy)
 
       use filemanager, only : openunit,closeunit,nameunit
-      use domain_decomp_atm, only: grid, get, am_i_root, readt_parallel
+      use domain_decomp_atm, only: grid, am_i_root, readt_parallel
+      use domain_decomp_atm, only: getDomainBounds
       use Dictionary_mod
       use RADPAR, only: O3yr_max,plb0,plbO3,S00WM2,RATLS0,NLO3
       use RAD_native_O3
@@ -85,7 +86,7 @@
 
       INTEGER :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
+      call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1)
 
 C**** Deal with out-of-range years (incl. starts before 1850)

@@ -16,12 +16,13 @@ c calculate column sum of kinetic energy on the A grid, using A-grid winds.
       USE CONSTANT, only : mb2kg
       USE RESOLUTION, only : lm
       USE ATM_COM, only : ua=>ualij,va=>valij,pdsig
-      USE DOMAIN_DECOMP_ATM, only : GRID,get
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KE
       integer :: i,j,l,I_0,I_1,J_0,J_1
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
       call recalc_agrid_uv
       do j=j_0,j_1
       do i=i_0,i_1
@@ -38,13 +39,14 @@ c calculate column sum of kinetic energy on the A grid, using A-grid winds.
       SUBROUTINE calc_kea_3d(kea)
 c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
       USE RESOLUTION, only : lm
-      USE DOMAIN_DECOMP_ATM, only :  GRID,get
+      USE DOMAIN_DECOMP_ATM, only :  GRID,getDomainBounds
       USE ATM_COM, only : ua=>ualij,va=>valij
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
       integer :: i,j,l,I_0,I_1,J_0,J_1
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
       call recalc_agrid_uv
       do j=j_0,j_1
       do i=i_0,i_1
@@ -65,13 +67,14 @@ c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
 !@auth M. Kelley
       USE RESOLUTION, only : lm
       USE ATM_COM, only : u,v,ua=>ualij,va=>valij
-      USE DOMAIN_DECOMP_ATM, only : grid,get
+      USE DOMAIN_DECOMP_ATM, only : grid,getDomainBounds
       use FV_StateMod, only : INTERP_DGRID_TO_AGRID
       implicit none
       real*8, dimension(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,
      &     lm) :: ua_tmp,va_tmp,ud_tmp,vd_tmp
       integer :: i,j,l,I_0,I_1,J_0,J_1
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &      I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
       do l=1,lm
         do j=j_0,j_1
         do i=i_0,i_1
@@ -108,7 +111,7 @@ c
 c
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v ! u,v are u_d and v_d
-      USE DOMAIN_DECOMP_ATM, only : get,grid,halo_update
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds,grid,halo_update
       implicit none
       integer :: k
       real*8, dimension(k,lm,
@@ -120,7 +123,8 @@ c and are not set here
       integer :: i,j,l,i_0,i_1,j_0,j_1
       if(k.ne.2) call stop_model('replicate_uv_to_agrid: bad k',255)
 c
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 c for now, using symmetric scalar halo_update plus trivial edge adjustments.
 c in future, this could be done better using a vector version, but see
 c the discussion below in avg_replicated_duv_to_vgrid()
@@ -166,7 +170,7 @@ c     ---------
 c
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v ! u,v are u_d and v_d
-      USE DOMAIN_DECOMP_ATM, only : get,grid,halo_update
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds,grid,halo_update
       implicit none
       integer :: k
       real*8, dimension(k,lm,grid%i_strt_halo:grid%i_stop_halo,
@@ -175,7 +179,8 @@ c dusp,dvsp,dunp,dvnp are only for compatibility with the latlon configuration
 c and are not used here.
       real*8, dimension(im,lm) :: dusp,dvsp,dunp,dvnp
       integer :: i,j,l,i_0,i_1,j_0,j_1
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 c for now, using symmetric scalar halo_update plus trivial edge adjustments.
 c the storage pattern in du,dv prevents use of a vector halo_update here.
       call halo_update(grid, du, jdim=4)
@@ -215,7 +220,7 @@ c          |           |           |
 c          |           |           |
 c           --uv1d(n)-- -uv1d(n+2)- 
 c
-      USE DOMAIN_DECOMP_ATM, only : grid,get
+      USE DOMAIN_DECOMP_ATM, only : grid,getDomainBounds
       use FV_StateMod, only : INTERP_AGRID_TO_DGRID
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -224,7 +229,8 @@ c
      &                  (1+grid%j_stop-grid%j_strt)*2) :: uv1d
       real*8, dimension(:,:), allocatable :: u_d,v_d
       integer :: i,j,n,I_0,I_1,J_0,J_1
-      call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 c allocate u_d, v_d with the extra row/column for interp routine
       allocate(u_d(i_0:i_1,j_0:j_1+1),v_d(i_0:i_1+1,j_0:j_1))
       call interp_agrid_to_dgrid(
@@ -338,7 +344,7 @@ c u is associated with odd n, v with even n
       USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
      &     ,ang_sdrag,Wc_Jdrag,wmax,vsdragl,dsig
       USE ATM_COM, only : u,v,p,t,pk,pdsig,pedn,ualij,valij
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, HALO_UPDATE
       IMPLICIT NONE
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
@@ -355,7 +361,7 @@ C**** regime (but not above P_CSDRAG)
       real*8 xjud,xmid
 
       integer :: i_0, i_1, j_0, j_1
-      call get(grid, i_strt = i_0, i_stop = i_1,
+      call getDomainBounds(grid, i_strt = i_0, i_stop = i_1,
      &               j_strt = j_0, j_stop = j_1)
 
 c
@@ -432,7 +438,7 @@ c
 
       SUBROUTINE GWDRAG
       USE CONSTANT, only : omega,grav,sha,kapa,rgas,radius
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       USE RESOLUTION, only : lm
       USE MODEL_COM, only : dtsrc
       USE ATM_COM, only : ualij,valij,pk,p,t,u,v,zatmo
@@ -477,7 +483,8 @@ C
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
 
       BYDTIME = 1./DTsrc
       DTIME = DTsrc
@@ -873,7 +880,7 @@ c Outputs are placed in arrays wcp,wcpsig in the DYNAMICS module.
       use RESOLUTION, only: im,lm
       use RESOLUTION, only: ls1,ptop
       USE ATM_COM, only : pednl00
-      use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
+      use DOMAIN_DECOMP_ATM, only: grid, getDomainBounds, halo_update
       USE DYNAMICS, only : wcp,wcpsig,sige,dsig
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,

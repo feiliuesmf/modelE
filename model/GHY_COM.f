@@ -151,7 +151,7 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE GHY_COM
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -161,7 +161,7 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -274,9 +274,9 @@ C**** Initialize to zero
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHY_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN, GET
+      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -397,8 +397,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@sum  io_soils reads and writes soil arrays to file
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, ONLY: GET, PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY: PACK_BLOCK, UNPACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_COLUMN
 #ifdef TRACERS_WATER
@@ -432,7 +432,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #endif
 
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -557,7 +557,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@auth Gavin Schmidt
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, get
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : PACK_BLOCK  , PACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_BLOCK, UNPACK_COLUMN
       USE GHY_COM
@@ -587,7 +587,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       write (MODULE_HEADER(lhead+1:80),'(a29,I1,a)') 'I dim(2,ijm):'//
      *  'Nsn, R8 dim(',NLSN,',2,ijm):dz,w,ht, Fsn(2,ijm)'
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 

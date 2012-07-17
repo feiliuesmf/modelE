@@ -11,7 +11,7 @@ C
       USE RESOLUTION, only      : ls1
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
-      USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
+      USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
       USE ATM_COM, only         : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
@@ -120,7 +120,7 @@ C**** Local parameters and variables and arguments:
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
      & diffCH3O2,tempAcet,prodCH3O2,dQMsum
 
-      CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1)
+      call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
       jay = (J >= J_0 .and. J <= J_1) 
      

@@ -755,7 +755,7 @@ c****
      &                    ATSKIN,NSTEPSCM, I_TARG,J_TARG
       use SCMDIAG, only : EVPFLX,SHFLX
 #endif
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use geom, only : imaxj,lat2d
 #ifdef USE_ENT
       use rad_com, only :
@@ -915,7 +915,7 @@ C****   define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1734,7 +1734,7 @@ c***********************************************************************
 !@var fract_snow snow cover fraction (0-1)
 !@var snow_water snow water equivalent (m)
 !@var top_dev standard deviation of the surface elevation
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use constant, only : teeny
       real*8, intent(out) :: fract_snow
       real*8, intent(in) :: snow_water, top_dev
@@ -1768,7 +1768,7 @@ ccc                               currently using only topography part
 c**** modifications needed for split of bare soils into 2 types
       use filemanager, only : openunit, closeunit, nameunit
       use Dictionary_mod, only : sync_param, get_param
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
       use fluxes, only : focean
 #ifdef SCM
@@ -1809,7 +1809,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -1965,7 +1965,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
       subroutine init_land_surface(redogh,inisnow,inilake,istart)
       !use veg_drv, only : spgsn
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use Dictionary_mod, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
@@ -2013,7 +2013,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 #endif
       integer I_0, I_1, J_0, J_1, i, j, ibv
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1 )
 
       call sync_param( "reset_canopy_ic", reset_canopy_ic )
@@ -2711,7 +2711,7 @@ ccc (to make the data compatible with snow model)
 
       subroutine reset_gh_to_defaults( reset_prognostic )
       !use model_com, only: vdata
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use ghy_com
 #ifndef USE_ENT
       use veg_drv, only : reset_veg_to_defaults
@@ -2725,7 +2725,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -3135,7 +3135,7 @@ cddd      end subroutine retp2
      &     ,tr_w_ij,tr_wsn_ij
       USE TRACER_COM, only : NTM, trname, t_qlimit
 #endif
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
@@ -3153,7 +3153,8 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     *     J_STRT=J_0, J_STOP=J_1)
       njpol = grid%J_STRT_SKP-grid%J_STRT
 
 c**** check for nan/inf in earth data
@@ -3326,7 +3327,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use vegetation, only: crops_yr,cond_scheme !nyk
 #endif
       use surf_albedo, only: albvnh, updsur  !nyk
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       !use sle001, only : fb,fv,ws
       use sle001, only : get_soil_properties
 #ifdef USE_ENT
@@ -3363,7 +3364,7 @@ C**** define local grid
       call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 
 C**** Extract useful local domain parameters from "grid"
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -3556,7 +3557,7 @@ c****
 !@sum  ground_e driver for applying surface fluxes to land fraction
 !@auth original development team
       use geom, only : imaxj
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use ghy_com, only : tearth,wearth,aiearth,w_ij
      *     ,snowbv,gdeep,fearth
       !use veg_com, only : afb
@@ -3578,7 +3579,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0      , J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0      , J_STOP=J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -3652,7 +3653,7 @@ c****
 
 
       subroutine set_roughness_length
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use Dictionary_mod, only : sync_param, get_param
       use PBLCOM, only : roughl
       use fluxes, only : focean, flice
@@ -3689,7 +3690,7 @@ c****
       titrrr = "roughness length over land"
       rrr = 0.
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1 )
 
       call sync_param( "roughl_lice", roughl_lice )
@@ -3764,7 +3765,7 @@ c**** hack to reset roughl for non-standard land ice fractions
       use ghy_com, only : ngm
       use ent_com, only : entcells, excess_C
       use ent_mod, only : ent_get_exports
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
       integer, intent(in) :: flag
       real*8, pointer, dimension(:,:), save :: cell_C_old => null()
@@ -3774,7 +3775,7 @@ c**** hack to reset roughl for non-standard land ice fractions
       integer :: J_0, J_1 ,I_0,I_1
       integer :: counter = 0
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &     I_STRT=I_0, I_STOP=I_1)
 
       if (.not. associated(cell_C_old))
@@ -3826,7 +3827,7 @@ cddd      counter = counter + 1
       !use veg_com, only : afb
       use LAKES_COM, only : flake
       use LANDICE_COM,only : MDWNIMP
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
 !@var waterg ground water (kg/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -3843,7 +3844,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -3885,7 +3886,7 @@ c****
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
       !use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO),
@@ -3905,7 +3906,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -3947,7 +3948,7 @@ c****
      *     ,fearth
       !use veg_com, only : afb
       use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
 !@var heatg ground heat (J/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -3963,7 +3964,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -3998,7 +3999,7 @@ ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
       use resolution, only : im,jm
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use fluxes, only : atmlnd,prec
       use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
      *     ,fearth
@@ -4019,7 +4020,7 @@ C**** define local grid
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -4081,7 +4082,7 @@ ccc just checking ...
       use fluxes, only : focean
       use sle001, only : thm
       use fluxes, only : DMWLDF
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
 
       implicit none
 cddd      integer, intent(in) :: jday
@@ -4093,7 +4094,8 @@ cddd      integer, intent(in) :: jday
 cddd      real*8 :: cosday,sinday,alai
       real*8 :: fb,fv
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1)
 
 cddd      cosday=cos(twopi/edpery*jday)
 cddd      sinday=sin(twopi/edpery*jday)
@@ -4168,7 +4170,7 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
 #endif
       use sle001, only : thm
       use fluxes, only : focean,DMWLDF
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
 
       implicit none
 cddd      integer, intent(in) :: jday
@@ -4185,7 +4187,8 @@ cddd      integer, intent(in) :: jday
       real*8 wsoil_tot
 #endif
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1)
 
 
 cddd      cosday=cos(twopi/edpery*jday)
@@ -4377,7 +4380,7 @@ cddd      sinday=sin(twopi/edpery*jday)
      &     ,DTRL
 #endif
       use GEOM, only : BYAXYP
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use soil_drv, only : snow_cover ! conserv_wtg_1
       use snow_drvm, only : snow_cover_same_as_rad
 
@@ -4405,7 +4408,8 @@ c     &     w_before_j, w_after_j
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     fearth_old
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1)
 
 
       fearth_old = fearth + (flake - svflake)
@@ -4657,7 +4661,7 @@ c**** Also reset snow fraction for albedo computation
       !use veg_com, only : afb
       use sle001, only : thm
       use LAKES_COM, only : flake, svflake
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
 
       implicit none
       !---
@@ -4673,7 +4677,8 @@ c**** Also reset snow fraction for albedo computation
       real*8 wsoil_tot
 #endif
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1)
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -4780,7 +4785,7 @@ c**** wearth+aiearth are used in radiation only
       use GEOM, only : AXYP
       Use DIAG_COM, Only: ITEARTH,AIJ=>AIJ_LOC, J_IMPLM,J_IMPLH,
      *                    IJ_IMPMGR,IJ_IMPHGR, JREG
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
 
       implicit none
       !! integer, intent(in) :: jday
@@ -4790,8 +4795,9 @@ c**** wearth+aiearth are used in radiation only
       real*8 dw,dh   ! ,tot0
       integer ibv,nsn,JR
 
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1
-     &        ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, 
+     &     J_STRT=J_0, J_STOP=J_1,
+     &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
       do j=J_0,J_1
         do i=I_0,I_1

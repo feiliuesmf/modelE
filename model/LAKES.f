@@ -377,7 +377,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Raul Garza-Robles
-      USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: DIST_GRID, getDomainBounds
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
      *     KD911,IFL911,JFL911
       IMPLICIT NONE
@@ -414,7 +414,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
-      USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds,HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
@@ -465,7 +466,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       GTRACER => ATMOCN%GTRACER
 #endif
 
-      CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_HALO= J_0H, J_STOP_HALO= J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -905,7 +906,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc,itime
       USE ATM_COM, only : zatmo
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,getDomainBounds
       use domain_decomp_1d, only: hasSouthPole, hasNorthPole
 
       USE GEOM, only : axyp,byaxyp,imaxj
@@ -996,7 +997,7 @@ C****                    - FLAKEu*AXYPu*(MWLd-MWLSILLd)] /
 C****                     (FLAKEu*AXYPu + FLAKEd*AXYPd)
 
       call startTimer('RIVERF()')
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       have_south_pole=hasSouthPole(grid)
@@ -1411,7 +1412,7 @@ C****
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,amon
      *     ,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
-     $     AM_I_ROOT, get, sumxpe
+     $     AM_I_ROOT, getDomainBounds, sumxpe
       USE GEOM, only : byaxyp
       USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
@@ -1433,7 +1434,7 @@ C****
       integer :: I_0, I_1, J_0, J_1
       integer :: year, hour, date
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1528,7 +1529,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : qcheck
       USE FLUXES, only : focean
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
@@ -1544,7 +1545,7 @@ C****
       integer :: imax,jmax
       real*8 relerr,errmax
 #endif
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      *               J_STRT_HALO=J_0H,J_STOP_HALO=J_1H,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
@@ -1697,7 +1698,7 @@ C****
       USE DIAG_COM, only : j_run,j_erun,jreg,j_implm
      *                    ,J_IMPLH, AIJ=>AIJ_LOC,itlkice,itlake,
      *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
-      USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       use CubicEquation_mod, only : cubicroot
       IMPLICIT NONE
       integer i,j,J_0,J_1,I_0,I_1,jr,itm
@@ -1732,7 +1733,7 @@ C****
       GTRACER => ATMOCN%GTRACER
 #endif
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -2079,7 +2080,7 @@ C****
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : lakeice=>si_atm
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake,dlake,glake
@@ -2121,7 +2122,7 @@ C****
       TRMELTI => ICELAK%TRMELTI
 #endif
 
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -2221,7 +2222,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhow,shw,teeny
       USE RESOLUTION, only : im,jm
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj,axyp
       USE DIAG_COM, only : itearth,jreg,aij=>aij_loc,ij_mwlir
      *     ,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
@@ -2250,7 +2251,7 @@ C**** grid box variables
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
 
       call startTimer('PRECIP_LK()')
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -2356,7 +2357,7 @@ C****
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
 
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : atmocn,atmgla,atmlnd,flice,fland
@@ -2424,7 +2425,7 @@ C**** output from LKSOURC
 #endif
 
       call startTimer('GROUND_LK()')
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -2619,7 +2620,7 @@ C****
 #endif
       USE SEAICE, only : xsi,ace1i,rhoi
       USE SEAICE_COM, only : lakeice=>si_atm
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=4
@@ -2644,7 +2645,7 @@ C****
 
       IF (.NOT.QCHECK) RETURN
 
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1)
 
       DO N=1,NDIAG
         I=IDIAG(N)
@@ -2685,7 +2686,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE RESOLUTION, only : im,jm
       USE FLUXES, only : fland
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : mwl,flake
       IMPLICIT NONE
@@ -2695,7 +2696,7 @@ C****
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
@@ -2725,7 +2726,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE ATM_COM, only : zatmo
       USE FLUXES, only : fland
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE
@@ -2735,7 +2736,7 @@ C****
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -2763,14 +2764,14 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       subroutine diag_river_prep
       use constant, only : rhow,sday
       use model_com, only : dtsrc,jdpery,jmpery
-      use domain_decomp_atm, only : grid,get,sumxpe
+      use domain_decomp_atm, only : grid,getDomainBounds,sumxpe
       use diag_com, only : aij=>aij_loc,ij_mrvr
       use lakes_com, only : irvrmth,jrvrmth,nrvrmx,nrvr,rvrout
       implicit none
       real*8 rvrout_loc(nrvrmx), scalervr
       integer inm,i,j
       integer :: i_0, i_1, j_0, j_1
-      call get(grid, j_strt=j_0, j_stop=j_1)
+      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
       i_0 = grid%i_strt
       i_1 = grid%i_stop
 c**** convert kg/(source time step) to km^3/mon
@@ -2800,8 +2801,7 @@ c**** sum over processors to compose the global table
       USE LAKES_COM, only : icelak
       USE FLUXES, only : flake0,atmice
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : sinlat2d
       USE DIAG_COM, only : npts,conpt0,icon_LMSI,icon_LHSI
       IMPLICIT NONE
@@ -2812,7 +2812,7 @@ c**** sum over processors to compose the global table
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -2863,7 +2863,7 @@ C**** Set conservation diagnostics for Lake ice mass and energy
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : lakeice=>si_atm
       USE LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 !@var ICE total lake snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -2873,7 +2873,7 @@ C**** Set conservation diagnostics for Lake ice mass and energy
 c**** Extract useful domain information from grid
       INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -2898,7 +2898,7 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : lakeice=>si_atm
       USE LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 !@var EICE total lake snow and ice energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -2908,7 +2908,7 @@ C****
 c**** Extract useful domain information from grid
       INTEGER J_0, J_1, I_0,I_1
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(GRID, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(GRID, J_STRT     =J_0,    J_STOP     =J_1,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE    ,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
       I_0 = grid%I_STRT
@@ -2938,7 +2938,7 @@ C****
       USE LAKES_COM, only : flake
       USE FLUXES
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -2956,7 +2956,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

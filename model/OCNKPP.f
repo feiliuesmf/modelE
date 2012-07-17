@@ -1301,14 +1301,14 @@ C**** Is this still necessary now that fluxes are saved?
      *     ,trmo1,txmo1,tymo1
 #endif
 !      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
       INTEGER I,J
       integer :: j_0,j_1
 
-      call get (grid, j_strt=j_0, j_stop=j_1)
+      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
 C**** Save surface values
       DO J=J_0,J_1
          DO I=1,IM
@@ -1356,8 +1356,8 @@ C****
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
       USE SW2OCEAN, only : fsr,lsrpd
-      Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
-     *    HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
+      Use DOMAIN_DECOMP_1d, Only: GETDomainBounds, HALO_UPDATE, NORTH,
+     *    SOUTH, HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, ONLY : GXXMO,GYYMO,GZZMO,GXYMO,SXXMO,SYYMO,SZZMO,SXYMO
       USE OCEAN, ONLY : USE_QUS,NBYZM,I1YZM,I2YZM,DZO
@@ -1459,10 +1459,10 @@ c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
 
-      call get (grid, j_strt=j_0, j_stop=j_1,
+      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &                j_strt_skp=j_0s, j_stop_skp=j_1s,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      call get(grid,j_strt_halo=j_0h)
+      call getDomainBounds(grid,j_strt_halo=j_0h)
 
 C**** initialise diagnostics saved over quarter boxes and longitude
       OLJ = 0.
@@ -2954,7 +2954,7 @@ C****
 !@+    run-time
 !@auth Reto Ruedy
 
-      USE DOMAIN_DECOMP_1D, only : dist_grid,get
+      USE DOMAIN_DECOMP_1D, only : dist_grid,getDomainBounds
 !      USE OCEANR_DIM
 
       USE KPP_COM
@@ -2965,7 +2965,7 @@ C****
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE(  KPL(IM,J_0H:J_1H)    , STAT = IER)
 

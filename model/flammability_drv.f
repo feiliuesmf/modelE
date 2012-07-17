@@ -50,7 +50,7 @@
 !@SUM  alllocates arrays whose sizes need to be determined
 !@+    at run-time
 !@auth Greg Faluvegi
-      use domain_decomp_atm, only: dist_grid, get
+      use domain_decomp_atm, only: dist_grid, getDomainBounds
       use dictionary_mod, only : get_param, is_set_param
       use model_com, only: dtsrc
       use flammability_com, only: flammability,veg_density,
@@ -63,7 +63,7 @@
       type (dist_grid), intent(in) :: grid
       integer :: ier, J_1H, J_0H, I_1H, I_0H
 
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
 
@@ -101,7 +101,8 @@
       use dictionary_mod, only: sync_param
       use flammability_com, only: flammability, veg_density, first_prec
      & ,missing,allowFlammabilityReinit
-      use domain_decomp_atm,only: grid, get, am_i_root, readt_parallel
+      use domain_decomp_atm,only: grid, getDomainBounds, 
+     & am_i_root, readt_parallel
       use filemanager, only: openunit, closeunit, nameunit
 
       implicit none
@@ -109,8 +110,8 @@
 
       integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n
 
-      call get(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
-      call get(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
+      call getDomainBounds(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      call getDomainBounds(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
       call openunit('VEG_DENSE',iu_data,.true.,.true.)
       call readt_parallel(grid,iu_data,nameunit(iu_data),veg_density,1)
@@ -154,7 +155,7 @@
 
       INTEGER :: J_0, J_1, J_1H, J_0H
 
-      CALL GET(grid, J_STRT=J_0,     J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,     J_STOP=J_1,
      &         J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
       if(am_i_root()) allocate(
@@ -321,7 +322,7 @@
       use model_com, only: dtsrc
       use resolution, only : jm,ptop
       use atm_com, only : p
-      use domain_decomp_atm,only: grid, get
+      use domain_decomp_atm,only: grid, getDomainBounds
       use flammability_com, only: flammability,veg_density,ravg_prec,
      & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,missing,
      & raP_acc
@@ -337,10 +338,10 @@
       real*8 :: qsat ! this is a function in UTILDBL.f
       real*8 :: tsurf,qsurf
                               
-      call get(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE = have_south_pole,
      &               HAVE_NORTH_POLE = have_north_pole)
-      call get(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
+      call getDomainBounds(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
       if(have_north_pole)flammability(I_0H:I_1H,JM)=missing
       if(have_south_pole)flammability(I_0H:I_1H,1) =missing

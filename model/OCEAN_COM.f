@@ -324,12 +324,12 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       end subroutine scatter_straits_from_global
 
       subroutine alloc_odiff(grid)
-      use DOMAIN_DECOMP_1D, only: dist_grid, get
+      use DOMAIN_DECOMP_1D, only: dist_grid, getDomainBounds
       type (dist_grid) :: grid
 
       integer :: J_0H, J_1H
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       allocate( BYDXYV(grid%j_strt_halo:grid%j_stop_halo) )
       allocate( KHP   (grid%j_strt_halo:grid%j_stop_halo) )
       allocate( KHV   (grid%j_strt_halo:grid%j_stop_halo) )
@@ -421,7 +421,7 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Rodger Abel
-      USE DOMAIN_DECOMP_1D, only : get, am_i_root
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, am_i_root
       USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
@@ -460,7 +460,7 @@ C*
       call init_oceanr_grid  
 C****
  
-      CALL GET(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(ogrid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       call sync_param( "ocean_use_qus", use_qus )
 

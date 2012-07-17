@@ -622,7 +622,7 @@ C**************  Not Latitude-Dependant ****************************
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use resolution, only     : im,lm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
@@ -641,7 +641,7 @@ C**************  Not Latitude-Dependant ****************************
       if(init)return
       init=.true.
     
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
  

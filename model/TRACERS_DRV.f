@@ -6486,7 +6486,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: pmidl00
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: NTM,
      *     trm,trmom,itime_tr0,trname,needtrs,
@@ -6660,7 +6660,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -7599,7 +7599,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:itime
       USE FLUXES, only : fearth0,focean,flake0
       USE SOMTQ_COM, only : tmom,mz
-      USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds,
+     & write_parallel, am_i_root
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
@@ -7690,7 +7691,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       xyear=0
       xday=0
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -8046,9 +8047,8 @@ C**** at the start of any day
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,nday
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
-     *   ,globalmax
-
+      USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
+     *   ,globalmax, getDomainBounds
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
@@ -8142,7 +8142,8 @@ c      real*8 :: nlight, max_COSZ1, fact0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
+     &     I_STRT=I_0, I_STOP=I_1)
 
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
@@ -8725,7 +8726,7 @@ C****
       subroutine get_latlon_mask(lon_w,lon_e,lat_s,lat_n,latlon_mask)
 !@sum Set mask array to 1 for all cells overlapping a lat-lon rectangle
 !@auth Kelley
-      use domain_decomp_atm, only : get,grid
+      use domain_decomp_atm, only : getDomainBounds,grid
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg
 #else
@@ -8739,7 +8740,8 @@ C****
       integer :: i,j, i_0,i_1,j_0,j_1
       integer :: ie,iw,js,jn
 
-      CALL GET(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1,
+     &     J_STRT=J_0, J_STOP=J_1)
 
       latlon_mask(:,:) = 0d0
 
@@ -8792,7 +8794,8 @@ c latlon grid
 !@+   is used, all diagnostics and moments are updated automatically.
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
+     & write_parallel,AM_I_ROOT
       USE TRACER_COM
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
@@ -8897,7 +8900,7 @@ C**** Extract useful local domain parameters from "grid"
 C****
       xyear=0
       xday=0
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -10483,7 +10486,7 @@ C**** no fractionation for ice evap
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only: t
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel
       USE ATM_COM, only: pmid,am,pk,LTROPO
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
@@ -10504,7 +10507,7 @@ C Greg: certain things now done outside the loops for speed:
       integer maxl
 #endif
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -10650,7 +10653,7 @@ C-----CODE--------------------------------------------------------------
 C****
 C**** Extract useful local domain parameters from "grid"
 C**** 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
       do l=1,lm; do j=J_0,J_1; do i=I_0,imaxj(j)
          if (TRM(i,j,l,pn) .ge. 1.e-10) then

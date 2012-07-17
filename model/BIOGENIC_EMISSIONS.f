@@ -19,7 +19,7 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds
       use biogenic_emis, only:  baseisop,nvegtype
 
       IMPLICIT NONE
@@ -27,7 +27,7 @@
       type (dist_grid), intent(in) :: grid
       integer :: J_1H, J_0H, I_1H, I_0H
 
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
       allocate( baseisop(I_0H:I_1H,J_0H:J_1H,nvegtype) )
@@ -147,7 +147,7 @@
       use tracers_drydep, only : ijreg,ijland
       use constant, only   : avog
       use geom, only : axyp,imaxj
-      use domain_decomp_atm, only : get, grid
+      use domain_decomp_atm, only : getDomainBounds, grid
 
       implicit none
 
@@ -169,7 +169,7 @@
 
       real*8 :: factor                       
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               I_STRT=I_0, I_STOP=I_1)
 
       if(nvegtype /= 74) call stop_model('nvegtype problem',255)

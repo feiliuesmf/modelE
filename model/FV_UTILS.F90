@@ -166,13 +166,13 @@ contains
     USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
     Use DYNAMICS, only : SIG, SIGE
     use atm_com, only : P
-    use domain_decomp_atm, only: grid, get
+    use domain_decomp_atm, only: grid, getDomainBounds
 
     REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
 
     INTEGER :: L, i_0, i_1, j_0, j_1
 
-    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM+1
 
@@ -190,7 +190,7 @@ contains
   function DeltPressure_GISS() Result(dP)
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: dP(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
     REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
@@ -208,14 +208,14 @@ contains
   function DeltPressure_DryTemp_GISS() Result(dPT)
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: dPT(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
     REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
     REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
     T_dry = DryTemp_GISS()
     PE = EdgePressure_GISS()
@@ -229,13 +229,13 @@ contains
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
     REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
     REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     PKZ = PKZ_GISS()
     T_dry = PKZ * T(I_0:I_1,J_0:J_1,:)
@@ -246,13 +246,13 @@ contains
     USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
     USE DYNAMICS, only : SIG
     Use ATM_COM, only : P
-    use domain_decomp_atm, only: grid, get
+    use domain_decomp_atm, only: grid, getDomainBounds
 
     REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: L
     INTEGER :: I_0, I_1, J_0,J_1
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM
 
@@ -270,14 +270,14 @@ contains
 !-------------------------------------------------------------------------------
 ! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
     Use Resolution, only : LM
-    Use Domain_decomp_atm, only : grid, get
+    Use Domain_decomp_atm, only : grid, getDomainBounds
     Real*8, intent(in), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_orig, V_orig
     Real*4, intent(out), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_d, V_d
 
     Integer :: i,j,k
     integer :: I_0, I_1, j_0, j_1
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do k = 1, LM
        Do j = j_0,j_1
@@ -372,7 +372,7 @@ contains
     USE CONSTANT, only : rgas,bykapa,bykapap1,bykapap2
     USE DYNAMICS, only: DSIG, SIG, SIGE
     USE RESOLUTION, only: IM, JM, LM, LS1, PTOP, PSFMPT
-    USE DOMAIN_DECOMP_ATM, Only: grid, Get
+    USE DOMAIN_DECOMP_ATM, Only: grid, getDomainBounds
     implicit none
 
     real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
@@ -392,7 +392,7 @@ contains
     INTEGER :: I_0, I_1, J_0, J_1
     LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
          & HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
          & HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
@@ -611,7 +611,7 @@ contains
     USE ATM_COM, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU, PV, SD
     Use ATM_COM, only: U, V, T, P, Q
-    USE DOMAIN_DECOMP_ATM, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
     USE GEOM
     
     Type (FV_CORE) :: fv
@@ -622,7 +622,7 @@ contains
     Integer :: i,j,k
     Integer :: i_0, i_1, j_0, j_1
 
-    Call Get(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, i_strt=i_0, i_stop=i_1, j_strt=j_0, j_stop=j_1)
 
     ! First compute updated values for modelE.  Then capture the
     ! new state in fv%*_old for computing tendencies.
@@ -668,14 +668,14 @@ contains
     USE ATM_COM, only:  Q     ! Secific Humidity
     USE ATM_COM, only:  ZATMO ! Geopotential Height?
     USE ATM_COM, Only : U, V, T
-    Use Domain_decomp_atm, Only: grid, Get
+    Use Domain_decomp_atm, Only: grid, getDomainBounds
     Type (FV_CORE) :: fv
 
     Integer :: nq
 
     Integer :: I_0, I_1, j_0, j_1
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! 1) Link/copy modelE data to import state
     fv%phis=ZATMO(I_0:I_1,j_0:j_1)
@@ -746,14 +746,14 @@ contains
     !---------------------------------------------------------------------------
     subroutine SaveArr(iunit, arr)
     !---------------------------------------------------------------------------
-      use domain_decomp_atm, only: grid, dwrite8_parallel, get
+      use domain_decomp_atm, only: grid, dwrite8_parallel, getDomainBounds
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
       integer :: I_0,  I_1,  J_0,  J_1
       integer :: I_0H, I_1H, J_0H, J_1H
 
-      Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=J_0, j_stop=J_1, &
+      call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=J_0, j_stop=J_1, &
            & i_strt_halo = I_0H, i_stop_halo = I_1H, &
            & j_strt_halo = J_0H, j_stop_halo = J_1H)
       allocate(padArr(I_0H:I_1H,J_0H:J_1H, size(arr,3)))

@@ -1,4 +1,3 @@
-
 #include "rundeck_opts.h"
 #ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
@@ -45,11 +44,12 @@ MODULE dist_grid_mod
    SAVE
    PRIVATE ! Except for
 
-!@var DIST_GRID derived type to provide ESMF decomposition info
-!@+   public components are used to minimize overhead for accessing
+!@var DIST_GRID derived type to provide domain decomposition information
+!@+   Public components are used to minimize overhead for accessing
 !@+   routine components
    PUBLIC :: DIST_GRID
    public :: setMpiCommunicator
+   public :: setCommunicator
 !@var INIT_APP set some parameters and initialize ESMF
    PUBLIC :: INIT_APP
    PUBLIC :: INIT_GRID
@@ -63,7 +63,7 @@ MODULE dist_grid_mod
 !@var SUMXPE sum an array over processors without reducing its rank
    PUBLIC :: SUMXPE
 !@var GET - extracts bounds information from DIST_GRID object
-   PUBLIC :: GET
+   PUBLIC :: getDomainBounds
    PUBLIC :: HERE
    PUBLIC :: LOG_PARALLEL
   
@@ -191,26 +191,16 @@ MODULE dist_grid_mod
    public :: haveLatitude
    public :: isinLocalSubdomain
 
-! Remaining variables are private to the module.
-
+   public :: rank, npes_world
+   INTEGER :: communicator
 !@var NPES_WORLD number of total processes
    INTEGER :: NPES_WORLD
-!@var NP_LON number of azimuthal processes.
-   INTEGER :: NP_LON
-!@var NP_LAT number of meridional     processes.
-   INTEGER :: NP_LAT
-!@var MY_PET index of _this_ PET (analagous to MPI rank)
-   INTEGER :: my_pet
-!@var RANK_LON index of _this_ process in azimuthal set.
-   INTEGER :: RANK_LON
-!@var RANK_LAT_RANK index of _this_ process in meridional set.
-   INTEGER :: RANK_LAT
+!@var RANK index of _this_ PET (analagous to MPI rank)
+   INTEGER :: rank
 
    INTEGER, PUBLIC :: CHECKSUM_UNIT
 
-   ! temporary public during refactoring
    public :: isPeriodic
-   public :: my_pet, npes_world
    public :: am_i_root
    ! Direction bits
    public :: NORTH, SOUTH
@@ -254,9 +244,7 @@ MODULE dist_grid_mod
 #endif
 
    integer, parameter :: maxStrLen = 40
-   integer, parameter :: kindR8 = Selected_Real_Kind(15)
    public :: maxStrLen
-   public :: kindR8
 
  CONTAINS
 
@@ -268,26 +256,23 @@ MODULE dist_grid_mod
      USE FILEMANAGER, ONLY : openunit
      integer :: rc
 
-     my_pet = 0        ! default my_pet = root PE for serial run
+     rank = 0        ! default rank = root PE for serial run
      NPES_WORLD = 1    ! default NPES = 1 for serial run
 #ifdef USE_ESMF
      Call ESMF_Initialize(vm=modelE_vm, rc=rc)
-     Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES_WORLD, &
+     Call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
     &     rc=rc)
 #else
 #ifdef USE_MPI
    call MPI_INIT(rc)
-   call MPI_COMM_SIZE(MPI_COMM_WORLD, NPES_WORLD, rc)
-   call MPI_COMM_RANK(MPI_COMM_WORLD, my_pet, rc)
+   call setCommunicator(MPI_COMM_WORLD)
+   call MPI_COMM_SIZE(COMMUNICATOR, NPES_WORLD, rc)
+   call MPI_COMM_RANK(COMMUNICATOR, rank, rc)
 #endif
 #endif
-     if (my_pet == 0) write(*,*)'Num MPI Processes: ', NPES_WORLD
-     NP_LON   = 1
-     RANK_LON = 0
-     NP_LAT   = NPES_WORLD
-     RANK_LAT = my_pet
+     if (rank == 0) write(*,*)'Num MPI Processes: ', NPES_WORLD
 #ifdef DEBUG_DECOMP
-     CHECKSUM_UNIT = my_pet
+     CHECKSUM_UNIT = rank
      CALL openunit('debug_decomp',CHECKSUM_UNIT)
 #endif
      return
@@ -308,14 +293,6 @@ MODULE dist_grid_mod
      LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP
      INTEGER, OPTIONAL, INTENT(IN) :: npes_max
      LOGICAL, OPTIONAL, INTENT(IN) :: excess_on_pe0
-     integer, parameter :: numDims=2
-     integer, dimension(numDims) :: grid_size
-     integer             :: rc
-     real(kindR8), dimension(numDims) :: range_min,range_max
-     INTEGER :: J_EQUATOR
-     INTEGER :: width_
-     INTEGER :: NTILES
-     INTEGER :: AIbounds(4)
 #ifdef USE_ESMF
      TYPE(ESMF_VM), Pointer :: vm_
 #endif
@@ -323,47 +300,45 @@ MODULE dist_grid_mod
      Type (AxisIndex), Pointer :: AI(:,:)
      integer, allocatable   :: IMS(:), JMS(:)
 #endif
-     INTEGER :: p, pindex
+     INTEGER :: p, rc, ierr
      integer :: npes_used
      integer, dimension(:), allocatable :: pelist
-     integer :: group_world, group_used, ierr
+     INTEGER :: J_EQUATOR
+     INTEGER :: width_
+     INTEGER :: AIbounds(4)
+     integer :: group_world, group_used
      integer :: newCommunicator     
-     logical :: useCubedSphere
-
-#ifdef CUBED_SPHERE
-     useCubedSphere = .true.
-#else
-     useCubedSphere = .false.
-#endif
-
-     if (useCubedSphere) then
-        grid_size = (/IM, JM*6/)
-     else
-        grid_size = (/IM, JM/)
-     end if
-
-     range_min(1)=0.;   range_min(2)=-90.
-     range_max(1)=360.; range_max(2)=90.
-
-     distGrid%npes_used = 1
 
      distGrid%IM_WORLD      = IM
      distGrid%JM_WORLD      = JM
 
 #ifdef USE_MPI
+     call MPI_COMM_SIZE(COMMUNICATOR, distGrid%NPES_WORLD, rc)
+     call MPI_COMM_RANK(COMMUNICATOR, distGrid%rank, rc)
+! repeated assignment is needed for MPI unit tests
+     NPES_WORLD = distGrid%NPES_WORLD
+     rank = distGrid%rank
      Allocate(distGrid%dj_map(0:npes_world-1))
     ! Distribute the horizontal dimensions
     !-------------------------------------
-     allocate(ims(0:0), jms(0:npes_world-1))
-     distGrid%npes_used = min(npes_world, jm-2) ! jm-2 is latlon-specific
+     allocate(ims(0:0), jms(0:distGrid%npes_world-1))
+     distGrid%npes_used = min(distGrid%npes_world, jm-2) ! jm-2 is latlon-specific
      if (present(npes_max))distGrid% npes_used = min(npes_max, distGrid%npes_used)
-     jms(0:distGrid%npes_used-1) = getLatitudeDistribution(jm, distGrid%npes_used)
-     if(distGrid%npes_used<npes_world) jms(distGrid%npes_used:npes_world-1) = 0
+     jms(0:distGrid%npes_used-1) = getLatitudeDistribution(distGrid)
+     if(distGrid%npes_used<distGrid%npes_world) jms(distGrid%npes_used:distGrid%npes_world-1) = 0
      ims(0) = im
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
 #endif
-#else
+
+#else  ! SERIAL CASE
+
+! repeated assignment is needed for MPI unit tests
+     rank = 0        ! default rank = root PE for serial run
+     NPES_WORLD = 1    ! default NPES = 1 for serial run
+     distGrid%rank = 0
+     distGrid%npes_world = 1
+     distGrid%npes_used = 1
      AIbounds(1) = 1
      AIbounds(2) = IM
      AIbounds(3) = 1
@@ -372,7 +347,8 @@ MODULE dist_grid_mod
         AIbounds(3) = J_SCM
         AIbounds(4) = J_SCM
      end if
-#endif
+
+#endif !USE_MPI
 
 #ifdef USE_ESMF
      vm_ => modelE_vm
@@ -398,12 +374,12 @@ MODULE dist_grid_mod
      distGrid%I_STOP        = AIbounds(2)
      distGrid%I_STRT_HALO   = MAX( 1, AIbounds(1)-width_)
      distGrid%I_STOP_HALO   = MIN(IM, AIbounds(2)+width_)
-     distGrid%ni_loc = (RANK_LAT+1)*IM/distGrid%NPES_used - RANK_LAT*IM/distGrid%NPES_used
+     distGrid%ni_loc = (distGrid%RANK+1)*IM/distGrid%NPES_used - distGrid%RANK*IM/distGrid%NPES_used
      
      distGrid%j_strt        = AIbounds(3)
      distGrid%J_STOP        = AIbounds(4)
 #ifdef USE_MPI
-     call MPI_Barrier(MPI_COMM_WORLD, ierr)
+     call MPI_Barrier(COMMUNICATOR, ierr)
 #endif
      distGrid%HAVE_DOMAIN   = AIbounds(3) <= JM
 
@@ -414,21 +390,21 @@ MODULE dist_grid_mod
      distGrid%J_STRT_HALO   = AIbounds(3) - width_
      distGrid%J_STOP_HALO   = AIbounds(4) + width_
      distGrid%private%numProcesses = distGrid%npes_used
-     distGrid%private%numAllProcesses = npes_world
+     distGrid%private%numAllProcesses = distGrid%npes_world
      distGrid%private%mpi_tag = 10  ! initial value
 
 ! Create a new MPI communicator including all the PEs with a nonzero
 ! domain size.  Even when NPES_USED == NPES_WORLD, this is convenient for
 ! avoiding collisions of MPI tag sequences.
 
-     call mpi_comm_group(MPI_COMM_WORLD,group_world,ierr)
+     call mpi_comm_group(COMMUNICATOR,group_world,ierr)
      allocate(pelist(0:distGrid%npes_used-1))
      do p=0,distGrid%npes_used-1
         pelist(p) = p
      enddo
      call mpi_group_incl(group_world,distGrid%npes_used,pelist,group_used,ierr)
      deallocate(pelist)
-     call mpi_comm_create(MPI_COMM_WORLD,group_used, newCommunicator, ierr)
+     call mpi_comm_create(COMMUNICATOR,group_used, newCommunicator, ierr)
      if(.not. distGrid%HAVE_DOMAIN) newCommunicator = MPI_COMM_NULL
      call setMpiCommunicator(distGrid, newCommunicator)
 #else
@@ -453,7 +429,9 @@ MODULE dist_grid_mod
     &     distGrid%I_STRT,distGrid%I_STOP, &
     &     distGrid%j_strt,distGrid%J_STOP, &
     &     distGrid%I_STRT_HALO,distGrid%I_STOP_HALO, &
-    &     distGrid%J_STRT_HALO,distGrid%J_STOP_HALO,distGrid)
+    &     distGrid%J_STRT_HALO,distGrid%J_STOP_HALO, &
+    &     COMMUNICATOR, &
+    &     distGrid)
 #endif
 
      if (present(J_SCM)) then
@@ -478,16 +456,16 @@ MODULE dist_grid_mod
      distGrid%private%lookup_pet(:) = 0
 
 #ifdef USE_MPI
-     ALLOCATE(AI(0:npes_world-1,3))
+     ALLOCATE(AI(0:distGrid%npes_world-1,3))
      call getAxisIndex(distGrid, AI)
 
-     Do p = 1, npes_world
+     Do p = 1, distGrid%npes_world
        distGrid%private%lookup_pet( AI(p-1,2)%min : AI(p-1,2)%max ) = p-1
      end do
-     Do p = 0, npes_world-1
+     Do p = 0, distGrid%npes_world-1
        distGrid%dj_map(p) = AI(p,2)%max - AI(p,2)%min + 1
      end do
-     distGrid%dj=distGrid%dj_map(my_pet)
+     distGrid%dj=distGrid%dj_map(distGrid%rank)
      
      deallocate(AI)
 #endif
@@ -495,12 +473,11 @@ MODULE dist_grid_mod
    contains
 
 ! ----------------------------------------------------------------------
-     function getLatitudeDistribution(jm, numProcesses) result(latsPerProcess)
+     function getLatitudeDistribution(grid) result(latsPerProcess)
 ! ----------------------------------------------------------------------
-! Contstraint: assumes jm >=4.
-       integer, intent(in) :: jm
-       integer :: numProcesses
-       integer :: latsPerProcess(0:numProcesses-1)
+     TYPE (DIST_GRID), INTENT(IN) :: grid
+! Constraint: assumes grid%JM_WORLD >=4.
+       integer :: latsPerProcess(0:grid%npes_used-1)
        
        integer :: excess, npes_used, p
        integer :: localAdjustment
@@ -510,26 +487,26 @@ MODULE dist_grid_mod
        ! Set minimum requirements per processor
        ! Currently this is 1 lat/proc away from poles
        ! and 2 lat/proc at poles
-       select case (npes_world)
+       select case (grid%npes_world)
        case (1)
-          latsPerProcess = jm
+          latsPerProcess = grid%JM_WORLD
           return
        case (2)
-          latsPerProcess(0) = jm/2
-          latsPerProcess(1) = jm - (jm/2)
+          latsPerProcess(0) = grid%JM_WORLD/2
+          latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
           return
        case (3:)
-          npes_used = min(numProcesses, jm-2)
+          npes_used = min(grid%npes_used, grid%JM_WORLD-2)
           
           ! 1st cut - round down
-          latsPerProcess(0:numProcesses-1) = JM/npes_used  ! round down
+          latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
           
           ! Fix at poles
           latsPerProcess(0) = max(2, latsPerProcess(0))
-          latsPerProcess(numProcesses-1) = max(2, latsPerProcess(numProcesses-1))
+          latsPerProcess(grid%npes_used-1) = max(2, latsPerProcess(grid%npes_used-1))
           
           ! redistribute excess
-          excess = JM - sum(latsPerProcess(0:numProcesses-1))
+          excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))
           if(present(excess_on_pe0)) then
              if(excess_on_pe0) then
                 latsPerProcess(0) = latsPerProcess(0) + excess
@@ -537,8 +514,8 @@ MODULE dist_grid_mod
              endif
           endif
           ! redistribute any remaining excess among interior processors
-          do p = 1, numProcesses - 2
-             localAdjustment = (p+1)*excess/(numProcesses-2) - (p*excess)/(numProcesses-2)
+          do p = 1, grid%npes_used - 2
+             localAdjustment = (p+1)*excess/(grid%npes_used-2) - (p*excess)/(grid%npes_used-2)
              latsPerProcess(p) = latsPerProcess(p) + localAdjustment
           end do
        end select
@@ -557,7 +534,7 @@ MODULE dist_grid_mod
    END SUBROUTINE DESTROY_GRID
 
 ! ----------------------------------------------------------------------
-   SUBROUTINE GET(distGrid, I_STRT, I_STOP, &
+   SUBROUTINE getDomainBounds(distGrid, I_STRT, I_STOP, &
   &                        I_STRT_HALO, I_STOP_HALO, &
   &                        J_STRT, J_STOP, J_STRT_HALO, J_STOP_HALO, &
   &                        J_STRT_SKP, J_STOP_SKP, &
@@ -596,7 +573,7 @@ MODULE dist_grid_mod
      IF (PRESENT(HAVE_NORTH_POLE)) &
     &             HAVE_NORTH_POLE= distGrid%private%hasNorthPole
 
-   END SUBROUTINE GET
+   END SUBROUTINE getDomainBounds
 
 
 ! ----------------------------------------------------------------------
@@ -631,13 +608,13 @@ MODULE dist_grid_mod
      integer :: AIbounds(4)
      type(AxisIndex), dimension(:,:), pointer :: AI
 
-     allocate(AI(0:NPES_WORLD-1,3))
+     allocate(AI(0:grid%NPES_WORLD-1,3))
      call getESMFAxisIndex(grid, AI)
 
-     AIbounds(1) = AI(my_pet,1)%min
-     AIbounds(2) = AI(my_pet,1)%max
-     AIbounds(3) = AI(my_pet,2)%min
-     AIbounds(4) = AI(my_pet,2)%max
+     AIbounds(1) = AI(grid%rank,1)%min
+     AIbounds(2) = AI(grid%rank,1)%max
+     AIbounds(3) = AI(grid%rank,2)%min
+     AIbounds(4) = AI(grid%rank,2)%max
 
      deallocate(AI)
 
@@ -719,7 +696,7 @@ MODULE dist_grid_mod
      endif
      call closeUnit(iunit)
      
-     call MPI_Barrier(mpi_comm_world, rc)
+     call MPI_Barrier(communicator, rc)
      call ESMF_ConfigLoadFile(config, config_file, rc=rc)
      
    end function load_cap_config
@@ -735,13 +712,13 @@ MODULE dist_grid_mod
      integer :: AIbounds(4)
      type(AxisIndex), dimension(:,:), pointer :: AI
 
-     allocate(AI(0:npes_world-1,3))
+     allocate(AI(0:grid%npes_world-1,3))
      call getMPIAxisIndex(grid, AI)
 
-     AIbounds(1) = AI(my_pet,1)%min
-     AIbounds(2) = AI(my_pet,1)%max
-     AIbounds(3) = AI(my_pet,2)%min
-     AIbounds(4) = AI(my_pet,2)%max
+     AIbounds(1) = AI(grid%rank,1)%min
+     AIbounds(2) = AI(grid%rank,1)%max
+     AIbounds(3) = AI(grid%rank,2)%min
+     AIbounds(4) = AI(grid%rank,2)%max
 
      deallocate(AI)
 
@@ -757,31 +734,32 @@ MODULE dist_grid_mod
      integer :: p, npes_end
      integer, allocatable   :: jms(:)
 
-     allocate(jms(0:npes_world-1))
+     allocate(jms(0:grid%npes_world-1))
 
-     jms(0:grid%npes_used-1) = getLatDist(grid%jm_world, grid%npes_used)
-     if(grid%npes_used<npes_world) jms(grid%npes_used:npes_world-1) = 0
+     jms(0:grid%npes_used-1) = getLatDist(grid)
+     if(grid%npes_used<grid%npes_world) jms(grid%npes_used:grid%npes_world-1) = 0
 
-     AI = computeAxisIndex(grid%im_world, jms)
+     AI = computeAxisIndex(grid, jms)
 
      npes_end = size(AI,1)
-     AI(npes_world:npes_end-1,2)%min = AI(npes_world-1,2)%max + 1
-     AI(npes_world:npes_end-1,2)%max = AI(npes_world-1,2)%max
+     AI(grid%npes_world:npes_end-1,2)%min = AI(grid%npes_world-1,2)%max + 1
+     AI(grid%npes_world:npes_end-1,2)%max = AI(grid%npes_world-1,2)%max
 
      deallocate(jms)
 
    end subroutine getMPIAxisIndex
 
 ! ----------------------------------------------------------------------
-   function computeAxisIndex(imGlob, jmsGlob) result(thisAI)
+   function computeAxisIndex(grid, jmsGlob) result(thisAI)
 ! ----------------------------------------------------------------------
-     integer, intent(in) :: imGlob, jmsGlob(0:)
-     type (axisIndex) :: thisAI(0:npes_world-1,3)
+     type (DIST_Grid), intent(in) :: grid
+     integer, intent(in) :: jmsGlob(0:)
+     type (axisIndex) :: thisAI(0:grid%npes_world-1,3)
      integer :: p 
      
-     do p = 0, npes_world - 1
+     do p = 0, grid%npes_world - 1
         thisAI(p,1)%min = 1
-        thisAI(p,1)%max = imGlob
+        thisAI(p,1)%max = grid%IM_WORLD
         if (p==0) then
            thisAI(p,2)%min = 1
            thisAI(p,2)%max = jmsGlob(p)
@@ -794,12 +772,11 @@ MODULE dist_grid_mod
    end function computeAxisIndex
 
 ! ----------------------------------------------------------------------
-   function getLatDist(jm, numProcesses) result(latsPerProcess)
+   function getLatDist(grid) result(latsPerProcess)
 ! ----------------------------------------------------------------------
-     ! Contstraint: assumes jm >=4.
-     integer, intent(in) :: jm
-     integer, intent(in) :: numProcesses
-     integer :: latsPerProcess(0:numProcesses-1)
+     type (DIST_Grid), intent(in) :: grid
+     ! Contstraint: assumes grid%jm >=4.
+     integer :: latsPerProcess(0:grid%npes_used-1)
      
      integer :: excess, npes_used, p
      integer :: localAdjustment
@@ -809,29 +786,29 @@ MODULE dist_grid_mod
      ! Set minimum requirements per processor
      ! Currently this is 1 lat/proc away from poles
      ! and 2 lat/proc at poles
-     select case (npes_world)
+     select case (grid%npes_world)
      case (1)
-        latsPerProcess = jm
+        latsPerProcess = grid%JM_WORLD
         return
      case (2)
-        latsPerProcess(0) = jm/2
-        latsPerProcess(1) = jm - (jm/2)
+        latsPerProcess(0) = grid%JM_WORLD/2
+        latsPerProcess(1) = grid%JM_WORLD - (grid%JM_WORLD/2)
         return
      case (3:)
-        npes_used = min(numProcesses, jm-2)
+        npes_used = min(grid%npes_used, grid%JM_WORLD-2)
         
         ! 1st cut - round down
-        latsPerProcess(0:numProcesses-1) = JM/npes_used  ! round down
+        latsPerProcess(0:grid%npes_used-1) = GRID%JM_WORLD/npes_used  ! round down
         
         ! Fix at poles
         latsPerProcess(0) = max(2, latsPerProcess(0))
-        latsPerProcess(numProcesses-1) = max(2, latsPerProcess(numProcesses-1))
+        latsPerProcess(grid%npes_used-1) = max(2, latsPerProcess(grid%npes_used-1))
         
         ! redistribute excess
-        excess = JM - sum(latsPerProcess(0:numProcesses-1))
+        excess = GRID%JM_WORLD - sum(latsPerProcess(0:grid%npes_used-1))
         ! redistribute any remaining excess among interior processors
-        do p = 1, numProcesses - 2
-           localAdjustment = (p+1)*excess/(numProcesses-2) - (p*excess)/(numProcesses-2)
+        do p = 1, grid%npes_used - 2
+           localAdjustment = (p+1)*excess/(grid%npes_used-2) - (p*excess)/(grid%npes_used-2)
            latsPerProcess(p) = latsPerProcess(p) + localAdjustment
         end do
      end select
@@ -875,14 +852,14 @@ MODULE dist_grid_mod
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
         if(am_i_root()) then
           arr_master = arr_master + arr_tmp
         endif
         deallocate(arr_tmp)
       else
         call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
       endif
 #else
       if(increment_) then
@@ -899,7 +876,7 @@ MODULE dist_grid_mod
          allocate(arr_tmp(arr_size))
          call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &        MPI_COMM_WORLD, ierr)
+    &        COMMUNICATOR, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -934,14 +911,14 @@ MODULE dist_grid_mod
       if(increment_) then
         if(am_i_root()) allocate(arr_tmp(arr_size))
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_INTEGER, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
         if(am_i_root()) then
           arr_master = arr_master + arr_tmp
           deallocate(arr_tmp)
         endif
       else
         call MPI_Reduce(arr,arr_master,arr_size,MPI_INTEGER, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
       endif
 #else
       if(increment_) then
@@ -958,7 +935,7 @@ MODULE dist_grid_mod
          allocate(arr_tmp(arr_size))
          call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_INTEGER,MPI_SUM,root, &
-    &        MPI_COMM_WORLD, ierr)
+    &        COMMUNICATOR, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -998,7 +975,7 @@ MODULE dist_grid_mod
             end if
             call MPI_Reduce(arr,arr_tmp,arr_size, &
     &           MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &           MPI_COMM_WORLD, ierr)
+    &           COMMUNICATOR, ierr)
             if(am_i_root()) then
               arr_master = arr_master + reshape(arr_tmp,shape(arr))
             endif
@@ -1006,7 +983,7 @@ MODULE dist_grid_mod
          else
             call MPI_Reduce(arr,arr_master,arr_size, &
     &           MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &           MPI_COMM_WORLD, ierr)
+    &           COMMUNICATOR, ierr)
          endif
 #else 
          if(increment_) then
@@ -1023,7 +1000,7 @@ MODULE dist_grid_mod
          allocate(arr_tmp(arr_size))
          call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &        MPI_COMM_WORLD, ierr)
+    &        COMMUNICATOR, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1062,14 +1039,14 @@ MODULE dist_grid_mod
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
         if(am_i_root()) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
       else
         call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
       endif
 #else
       if(increment_) then
@@ -1086,7 +1063,7 @@ MODULE dist_grid_mod
          allocate(arr_tmp(arr_size))
          call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &        MPI_COMM_WORLD, ierr)
+    &        COMMUNICATOR, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1125,14 +1102,14 @@ MODULE dist_grid_mod
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
         if(am_i_root()) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
       else
         call MPI_Reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION, &
-    &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+    &       MPI_SUM,root,COMMUNICATOR, ierr)
       endif
 #else
       if(increment_) then
@@ -1149,7 +1126,7 @@ MODULE dist_grid_mod
          allocate(arr_tmp(arr_size))
          call MPI_Reduce(arr,arr_tmp,arr_size, &
     &        MPI_DOUBLE_PRECISION,MPI_SUM,root, &
-    &        MPI_COMM_WORLD, ierr)
+    &        COMMUNICATOR, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1172,7 +1149,7 @@ MODULE dist_grid_mod
         integer, intent(OUT)          :: NX0, NY0
 
         NX0 = 0
-        NY0 = my_pet
+        NY0 = grid%rank
 
       end subroutine gridRootPELocation
 
@@ -1197,14 +1174,14 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
        ALLOCATE(lines(npes_world))
        Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER, &
-    &      MPI_COMM_WORLD, ierr)
+    &      COMMUNICATOR, ierr)
        If (Any(lines /= line)) &
     &      call stop_model('HERE: synchronization error -severe.',255)
        Deallocate(lines)
 #endif
 #endif
 #ifdef USE_MPI
-      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      CALL MPI_BARRIER(COMMUNICATOR, ierr)
 #endif
       END SUBROUTINE HERE
 
@@ -1334,7 +1311,7 @@ MODULE dist_grid_mod
       INTEGER, INTENT(IN) :: band_j0,band_j1
       TYPE (BAND_PACK_TYPE), intent(OUT) :: bandpack
 #ifdef USE_MPI
-      integer, dimension(0:npes_world-1) :: &
+      integer, dimension(0:grd_src%npes_world-1) :: &
     &     j0_have,j1_have,j0_requested,j1_requested
       integer :: p, ierr, im,jm, j0send,j1send,j0recv,j1recv,npes
 
@@ -1425,14 +1402,19 @@ MODULE dist_grid_mod
 !@+   J range requested during the call to
 !@+   init_band_pack_type that initialized bandpack
 ! ----------------------------------------------------------------------
-      IMPLICIT NONE
+      IMPLICIT NONE 
       TYPE (BAND_PACK_TYPE),  INTENT(IN) :: bandpack
       REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:)
 #ifdef USE_MPI
-      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
-      integer :: ierr
-      integer :: im,npes
+      integer, allocatable, dimension(:) :: scnts,sdspl, rcnts,rdspl
+      integer :: ierr 
+      integer :: im,npes,npes_world
+      call mpi_comm_size(bandpack%mpi_comm,npes_world,ierr)
+      allocate(scnts(0:npes_world-1))
+      allocate(sdspl(0:npes_world-1))
+      allocate(rcnts(0:npes_world-1))
+      allocate(rdspl(0:npes_world-1))
       npes = bandpack%npes_comm
       im = size(arr,1)
       scnts(0:npes-1) = im*bandpack%scnts
@@ -1442,6 +1424,7 @@ MODULE dist_grid_mod
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision, &
     &                   arr_band, rcnts, rdspl, mpi_double_precision, &
     &                   bandpack%mpi_comm, ierr)
+      deallocate(scnts,sdspl,rcnts,rdspl)
 #else
       arr_band(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP) = &
     &     arr(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP)
@@ -1462,10 +1445,15 @@ MODULE dist_grid_mod
       REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:,:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:,:)
 #ifdef USE_MPI
-      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
+      integer, allocatable, dimension(:) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr,im,lm,i,j,l,n,p
       real*8, dimension(:), allocatable :: bufsend,bufrecv
-      integer :: npes
+      integer :: npes,npes_world
+      call mpi_comm_size(bandpack%mpi_comm,npes_world,ierr)
+      allocate(scnts(0:npes_world-1))
+      allocate(sdspl(0:npes_world-1))
+      allocate(rcnts(0:npes_world-1))
+      allocate(rdspl(0:npes_world-1))
       npes = bandpack%npes_comm
       im = size(arr,1)
       lm = size(arr,3)
@@ -1500,6 +1488,7 @@ MODULE dist_grid_mod
         enddo
       enddo
       deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
 #else
       arr_band(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP,:) = &
     &     arr(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP,:)
@@ -1520,9 +1509,14 @@ MODULE dist_grid_mod
       REAL*8, INTENT(IN) :: ARR(:,:,bandpack%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,:,bandpack%jband_strt:)
 #ifdef USE_MPI
-      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
+      integer, allocatable, dimension(:) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr,im,lm
-      integer :: npes
+      integer :: npes,npes_world
+      call mpi_comm_size(bandpack%mpi_comm,npes_world,ierr)
+      allocate(scnts(0:npes_world-1))
+      allocate(sdspl(0:npes_world-1))
+      allocate(rcnts(0:npes_world-1))
+      allocate(rdspl(0:npes_world-1))
       npes = bandpack%npes_comm
       im = size(arr,2)
       lm = size(arr,1)
@@ -1533,6 +1527,7 @@ MODULE dist_grid_mod
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision, &
     &                   arr_band, rcnts, rdspl, mpi_double_precision, &
     &                   bandpack%mpi_comm, ierr)
+      deallocate(scnts,sdspl,rcnts,rdspl)
 #else
       arr_band(:,:,bandpack%JBAND_STRT:bandpack%JBAND_STOP) = &
     &     arr(:,:,bandpack%JBAND_STRT:bandpack%JBAND_STOP)
@@ -1641,7 +1636,7 @@ MODULE dist_grid_mod
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_INTEGER,root, &
-    &     MPI_COMM_WORLD, ierr)
+    &     COMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ibroadcast_0D_world
 
@@ -1706,8 +1701,8 @@ MODULE dist_grid_mod
       REAL*8 :: x_out(:,:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
-      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
+      INTEGER, DIMENSION(0:grid%NPES_WORLD-1) :: I0, J0, I1, J1
+      INTEGER, DIMENSION(0:GRID%NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
@@ -1715,7 +1710,6 @@ MODULE dist_grid_mod
       INTEGER :: I,J, II,JJ,nk,k
       INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
-      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
 
       reverse_=.false.
@@ -1735,7 +1729,7 @@ MODULE dist_grid_mod
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes_world-1,3))
+      ALLOCATE(AI(0:grid%npes_world-1,3))
       call getAxisIndex(grid, AI)
 
       DO p = 0, npes - 1
@@ -1744,8 +1738,8 @@ MODULE dist_grid_mod
       END DO
       DEALLOCATE(AI)
 
-      ni_loc = I1(my_pet) - I0(my_pet) + 1
-      nj_loc = J1(my_pet) - J0(my_pet) + 1
+      ni_loc = I1(grid%rank) - I0(grid%rank) + 1
+      nj_loc = J1(grid%rank) - J0(grid%rank) + 1
 
       nk = SIZE(X_IN,3)
 
@@ -1765,7 +1759,7 @@ MODULE dist_grid_mod
                END DO
             END DO
          ELSE
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   sbuf(icnt) = X_in(i,j,k)
@@ -1795,7 +1789,7 @@ MODULE dist_grid_mod
       DO p = 0, npes - 1
         Do k = 1, nk
          If (reverse_) Then
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   X_in(i,j,k) = sbuf(icnt)
@@ -1826,8 +1820,8 @@ MODULE dist_grid_mod
       REAL*8 :: x_out(:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
-      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
+      INTEGER, DIMENSION(0:grid%NPES_WORLD-1) :: I0, J0, I1, J1
+      INTEGER, DIMENSION(0:GRID%NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
@@ -1835,7 +1829,6 @@ MODULE dist_grid_mod
       INTEGER :: I,J, II,JJ
       INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
-      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
 
       reverse_=.false.
@@ -1855,7 +1848,7 @@ MODULE dist_grid_mod
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes_world-1,3))
+      ALLOCATE(AI(0:grid%npes_world-1,3))
       call getAxisIndex(grid, AI)
 
       DO p = 0, npes - 1
@@ -1864,8 +1857,8 @@ MODULE dist_grid_mod
       END DO
       DEALLOCATE(AI)
 
-      ni_loc = I1(my_pet) - I0(my_pet) + 1
-      nj_loc = J1(my_pet) - J0(my_pet) + 1
+      ni_loc = I1(grid%rank) - I0(grid%rank) + 1
+      nj_loc = J1(grid%rank) - J0(grid%rank) + 1
 
 
       ALLOCATE(rbuf(grid%JM_WORLD * ni_loc ))
@@ -1883,7 +1876,7 @@ MODULE dist_grid_mod
                END DO
             END DO
          ELSE
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   sbuf(icnt) = X_in(i,j)
@@ -1911,7 +1904,7 @@ MODULE dist_grid_mod
       icnt = 0
       DO p = 0, npes - 1
          If (reverse_) Then
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   X_in(i,j) = sbuf(icnt)
@@ -1941,8 +1934,8 @@ MODULE dist_grid_mod
       REAL*8 :: x_tr(:,:,:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
-      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
+      INTEGER, DIMENSION(0:grid%NPES_WORLD-1) :: I0, J0, I1, J1
+      INTEGER, DIMENSION(0:GRID%NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       REAL*8, ALLOCATABLE :: sbuf(:,:), rbuf(:,:)
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
@@ -1950,7 +1943,6 @@ MODULE dist_grid_mod
       INTEGER :: I,J, II,JJ,k
       INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
-      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       INTEGER :: n, nk
       LOGICAL :: reverse_
 
@@ -1971,7 +1963,7 @@ MODULE dist_grid_mod
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes_world-1,3))
+      ALLOCATE(AI(0:grid%npes_world-1,3))
       call getAxisIndex(grid, AI)
 
       DO p = 0, npes - 1
@@ -1980,8 +1972,8 @@ MODULE dist_grid_mod
       END DO
       DEALLOCATE(AI)
 
-      ni_loc = I1(my_pet) - I0(my_pet) + 1
-      nj_loc = J1(my_pet) - J0(my_pet) + 1
+      ni_loc = I1(grid%rank) - I0(grid%rank) + 1
+      nj_loc = J1(grid%rank) - J0(grid%rank) + 1
 
       n  = SIZE(X, 1)
       nk = SIZE(X,4)
@@ -2002,7 +1994,7 @@ MODULE dist_grid_mod
                END DO
             END DO
          ELSE
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   sbuf(:,icnt) = X(:,i,j,k)
@@ -2032,7 +2024,7 @@ MODULE dist_grid_mod
       DO p = 0, npes - 1
         Do k = 1, nk
          If (reverse_) Then
-            DO j = J0(my_pet), J1(my_pet)
+            DO j = J0(grid%rank), J1(grid%rank)
                DO i = I0(p), I1(p)
                   icnt = icnt + 1
                   X(:,i,j,k) = sbuf(:,icnt)
@@ -2088,7 +2080,7 @@ MODULE dist_grid_mod
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION, &
-    &     distGrid%private%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
+    &     distGrid%private%lookup_pet(j_dest), tag, COMMUNICATOR, ierr)
 #endif
       end subroutine SEND_TO_J_1D
 
@@ -2102,7 +2094,7 @@ MODULE dist_grid_mod
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, 1, MPI_INTEGER, &
-    &     distGrid%private%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
+    &     distGrid%private%lookup_pet(j_dest), tag, COMMUNICATOR, ierr)
 #endif
       end subroutine ISEND_TO_J_0D
 
@@ -2116,7 +2108,7 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION, &
-    &     distGrid%private%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
+    &     distGrid%private%lookup_pet(j_src), tag, COMMUNICATOR, status, ierr)
 #endif
       end subroutine RECV_FROM_J_1D
 
@@ -2130,7 +2122,7 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER, &
-    &     distGrid%private%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
+    &     distGrid%private%lookup_pet(j_src), tag, COMMUNICATOR, status, ierr)
 #endif
       end subroutine IRECV_FROM_J_0D
 
@@ -2153,7 +2145,16 @@ MODULE dist_grid_mod
         this%private%MPI_COMM = comm
       end subroutine setMpiCommunicator
 
+! ----------------------------------------------------------------------
+      subroutine setCommunicator(comm)
+! ----------------------------------------------------------------------
+        integer, intent(in) :: comm
+        communicator = comm
+      end subroutine setCommunicator
+
+! ----------------------------------------------------------------------
       integer function getMpiCommunicator(this) result(comm)
+! ----------------------------------------------------------------------
         type (dist_grid), intent(in) :: this
         comm = this%private%mpi_comm
       end function getMpiCommunicator
@@ -2224,7 +2225,7 @@ MODULE dist_grid_mod
         integer, save :: logUnit = UNINITIALIZED
 
         if (logUnit == UNINITIALIZED) then
-          write(logFileName,'(a,i4.4)') 'debug.', my_pet
+          write(logFileName,'(a,i4.4)') 'debug.', rank
           call openUnit(logFileName, logUnit, qbin=.false., qold=.false.)
         end if
 

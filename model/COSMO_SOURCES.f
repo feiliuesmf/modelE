@@ -2,7 +2,7 @@
       MODULE COSMO_SOURCES
 
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
 
       SAVE
 !@var be7_ and be10_src_3d Source functions for 7Be & 10Be (kg tracer)/( (kg air)/m^2 s )
@@ -21,12 +21,12 @@
      $     BE7W_acc, BE7D_acc, variable_phi
       USE Dictionary_mod, only : sync_param
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       INTEGER :: J_1H, J_0H, I_0H, I_1H
 
       call sync_param("variable_phi",variable_phi)
 
-      CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
       
@@ -57,7 +57,7 @@
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds 
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer, parameter :: layers=23
@@ -68,7 +68,7 @@ C**** constants used in file to make numbers neater
       real*8 :: be7_src_param=1 
       INTEGER :: J_1, J_0, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -108,7 +108,7 @@ C**** multiply by air mass to put in the right units
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer, parameter :: layers=23
@@ -120,8 +120,8 @@ C**** constants used in file to make numbers neater
       real*8 :: be7_src_param=1 
       INTEGER :: J_1, J_0, I_0,I_1
 
-!      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+!      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -181,7 +181,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       use model_com, only: modelEclock
       USE CONSTANT, only : avog
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE COSMO_SOURCES, only : be7_src_3d, be10_src_3d
      
       IMPLICIT NONE
@@ -198,7 +198,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       real*8, allocatable, dimension(:,:) :: ibe_10, ibe_7
       integer :: iuc, i, j, k, l, n, J_1, J_0
  
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       ALLOCATE(ibe_10 (J_0:J_1, 1:lm))
       ALLOCATE(ibe_7 (J_0:J_1, 1:lm))
       
@@ -318,7 +318,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       USE MODEL_COM, only : itime
       USE CONSTANT, only : avog
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE COSMO_SOURCES, only : be7_src_3d
 
       IMPLICIT NONE
@@ -344,7 +344,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
 
       call modelEclock%getDate(month=month, dayOfYear=day)
 
-      CALL GET(grid,J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid,J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 

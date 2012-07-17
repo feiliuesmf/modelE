@@ -29,8 +29,8 @@
       USE RESOLUTION, only : im,jm,lm
       USE DIAG_COM, only : modd5k
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH,SOUTH,GET
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude, getDomainBounds
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv,dsig
@@ -67,7 +67,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO=J_0H,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,

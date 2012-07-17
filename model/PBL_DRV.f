@@ -745,8 +745,8 @@ c -------------------------------------------------------------
      &     ,xdelt, maxNTM
       USE GHY_COM, only : fearth
       USE PBLCOM
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
-      USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID, READT_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL, getDomainBounds
       USE ATM_COM, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
@@ -810,7 +810,7 @@ C**** ignore ocean currents for initialisation.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
 
       I_0 = grid%I_STRT
@@ -1033,7 +1033,7 @@ c ----------------------------------------------------------------------
       USE EXCHANGE_TYPES
       USE MODEL_COM
       USE GEOM, only : imaxj
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE FLUXES, only : asflx,atmocns,atmices,atmglas,atmlnds
       IMPLICIT NONE
       integer i,j,ip  !@var i,j,ip loop variable
@@ -1043,7 +1043,7 @@ c ----------------------------------------------------------------------
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1279,7 +1279,7 @@ c     ENDIF
       SUBROUTINE CHECKPBL(SUBR)
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE PBLCOM, only : dclev
       USE FLUXES, only : atmsrf
       IMPLICIT NONE
@@ -1291,7 +1291,7 @@ c     ENDIF
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1,
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1,
      *               J_STRT=J_0, J_STOP=J_1)
       njpol = grid%J_STRT_SKP-grid%J_STRT
 

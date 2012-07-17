@@ -254,7 +254,7 @@ C**** Thus it is only initiallised here for case ii).
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE ODEEP_COM, only : dz,rtgo,lmom
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 !@var OCEANE ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -266,7 +266,7 @@ C**** Thus it is only initiallised here for case ii).
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &          HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &          HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -306,7 +306,7 @@ C****
       USE DIAG_COM, only : aj,j_ftherm,itocean,itoice
       USE FLUXES, only : atmocn,focean
       USE STATIC_OCEAN, only : z12o,tocean
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
       REAL*8, PARAMETER :: PERDAY=1./365d0
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
@@ -318,7 +318,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -428,7 +428,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
       USE FLUXES, only : focean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -439,7 +439,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -535,12 +535,12 @@ C****
 
       SUBROUTINE ALLOC_ODEEP(grid)
       USE ODEEP_COM, only  : lmom,TG3M,RTGO,sTG3,dTG3
-      USE DOMAIN_DECOMP_ATM, only : DIST_GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : DIST_GRID,getDomainBounds
       IMPLICIT NONE
       INTEGER :: J_0H,J_1H,IER,I_0H,I_1H
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      CALL GET(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+      call getDomainBounds(GRID,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 

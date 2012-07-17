@@ -39,7 +39,7 @@
 !@sum reads vegetation arrays and rundeck parameters
       use filemanager
       use Dictionary_mod
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
@@ -68,7 +68,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -129,7 +129,8 @@ c**** check whether ground hydrology data exist at this point.
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
       use Dictionary_mod
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : GRID
+      use DOMAIN_DECOMP_ATM, only : getDomainBounds, READT_PARALLEL
       use fluxes, only : focean
       use geom, only : lat2d
       use veg_com !, only : vdata,Cint,Qfol
@@ -232,7 +233,7 @@ c****
 C****
 C**** Extract parameters from "grid" in case we entered here
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -369,7 +370,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine reset_veg_to_defaults( reset_prognostic )
       use veg_com, only: vdata
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -380,7 +381,7 @@ c**** calculate root fraction afr averaged over vegetation types
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -573,7 +574,7 @@ c shc(0,2) is the heat capacity of the canopy
 !@auth R. Ruedy
       USE FILEMANAGER
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
      &     ,backspace_parallel
       use veg_com, only : vdata
       USE GEOM, only : imaxj
@@ -591,7 +592,7 @@ c shc(0,2) is the heat capacity of the canopy
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO =J_0H,   J_STOP_HALO =J_1H )
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -636,7 +637,7 @@ c**** Modify the vegetation fractions
 
 
       subroutine get_vdata(vdata)
-      use DOMAIN_DECOMP_ATM, only : GRID, GET!, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use filemanager
       !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
@@ -659,7 +660,7 @@ c**** Modify the vegetation fractions
       integer :: i, j, k, iu_veg
       real*8 :: s
 
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -708,7 +709,7 @@ c**** zero-out vdata(11) until it is properly read in
       subroutine get_cropdata(year, cropdata)
       !* This version reads in crop distribution from prescr data set.
       !* And calculates crop fraction for given year.
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, broadcast
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: year
@@ -723,7 +724,7 @@ c**** zero-out vdata(11) until it is properly read in
       character*80 title
       INTEGER :: J_1H, J_0H, I_1H, I_0H
 
-      CALL GET(grid,
+      call getDomainBounds(grid,
      &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
@@ -763,7 +764,7 @@ c**** zero-out vdata(11) until it is properly read in
 
       subroutine get_soil_C_total(ncasa, soil_C_total)
       use FILEMANAGER, only : openunit,closeunit,nameunit
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       integer, intent(in) :: ncasa
       real*8,intent(out) ::

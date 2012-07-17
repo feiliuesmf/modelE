@@ -487,7 +487,7 @@ C****
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE STRAT
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -497,7 +497,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       ALLOCATE(    DEFRM(I_0H:I_1H,J_0H:J_1H),
@@ -523,8 +523,8 @@ C**** accumulated in the routines contained herein
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : pednl00,pmidl00
       USE DYNAMICS, only : do_gwdrag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, READT_PARALLEL,
-     &     AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, READT_PARALLEL,
+     &     getDomainBounds, AM_I_ROOT
       USE GEOM, only : areag
 #ifdef CUBED_SPHERE
       USE STRAT, only : EK_globavg,dfm_type
@@ -550,7 +550,7 @@ C**** accumulated in the routines contained herein
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               I_STRT     =I_0,    I_STOP     =I_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
@@ -679,9 +679,8 @@ C****
       USE RESOLUTION, only : ptop,ls1
       USE RESOLUTION, only : im,jm,lm
       USE DYNAMICS, only : mrch
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE,
-     *                          NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
       USE FLUXES, only : atmsrf
@@ -723,7 +722,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -894,7 +893,7 @@ C****
 !@auth Bob Suozzo/Jean Lerner
       USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE FLUXES, only : atmsrf
       IMPLICIT NONE
@@ -922,7 +921,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -986,7 +985,7 @@ C****
       USE ATM_COM, only : zatmo
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, ONLY : getDomainBounds, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE_COLUMN, am_i_root
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
@@ -1038,7 +1037,7 @@ C
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1343,7 +1342,7 @@ C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE RESOLUTION, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE,
      *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
      *     haveLatitude
       USE DYNAMICS, only : pu,pv
@@ -1368,7 +1367,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,

@@ -327,7 +327,7 @@ contains
 !-------------------------------------------------------------------------------
   Subroutine allocateTendencyStorage(fv, istart)
 !-------------------------------------------------------------------------------
-    Use Domain_decomp_atm, only: GRID, GET, AM_I_ROOT
+    Use Domain_decomp_atm, only: GRID, getDomainBounds, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
     USE MODEL_COM, only: DTsrc
     USE ATM_COM, only: U, V, T
@@ -348,7 +348,7 @@ contains
       real*8,allocatable :: U_d(:,:,:)
       real*8,allocatable :: V_d(:,:,:)
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, &
+    call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, &
          & J_STRT=J_0, J_STOP=J_1, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
     ! 1) Link/copy modelE data to import state
@@ -425,7 +425,7 @@ contains
   contains
 
     subroutine readArr(iunit, arr)
-      use domain_decomp_atm, only: grid, dread8_parallel, get
+      use domain_decomp_atm, only: grid, dread8_parallel, getDomainBounds
       integer, intent(in) :: iunit
       real*8, intent(out) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
@@ -433,7 +433,7 @@ contains
       integer :: i_0h, i_1h
       integer :: j_0h, j_1h
 
-      Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+      call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
            & i_strt_halo = i_0h, i_stop_halo = i_1h, &
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
 
@@ -455,7 +455,7 @@ contains
 !-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM
     USE ATM_COM, Only: U, V, T
-    USE DOMAIN_DECOMP_ATM, only: grid, get
+    USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
     USE DYNAMICS, only: DUT, DVT
 
     Implicit None
@@ -463,7 +463,7 @@ contains
 
     Integer :: I_0, I_1, J_0, J_1
     Integer :: J_0h, J_1h
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! U, V
     DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), &

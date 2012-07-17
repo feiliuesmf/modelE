@@ -94,7 +94,7 @@ contains
     integer :: JSTRT, JSTOP
     ! now local
     
-    call get(grd_dum, J_STRT=j_0, J_STOP=j_1)
+    call getDomainBounds(grd_dum, J_STRT=j_0, J_STOP=j_1)
     i_0  = grd_dum%i_strt
     i_1  = grd_dum%i_stop
     IM   = grd_dum%IM_WORLD
@@ -182,7 +182,7 @@ contains
 
     ! now local
 
-    call get(grd_dum, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grd_dum, j_strt=j_0, j_stop=j_1)
     allocate(zon(j_0:j_1))
     i_0  = grd_dum%i_strt
     i_1  = grd_dum%i_stop
@@ -445,7 +445,7 @@ contains
       if (iremain > 0 .and. iremain > p)  dik_map(p)= dik_map(p)+1
     end do
     
-    dik=dik_map(my_pet)
+    dik=dik_map(rank)
     
     allocate(tsum(dik))
     allocate(send_buf(maxval(dik_map) *(grd_dum%dj)*npes))

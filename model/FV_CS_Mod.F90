@@ -220,7 +220,7 @@ module FV_CS_Mod
 !-------------------------------------------------------------------------------
   Subroutine createInternalRestart(fv, istart, cf, clock)
 !-------------------------------------------------------------------------------
-    USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
+    USE DOMAIN_DECOMP_ATM, ONLY: GRID, getDomainBounds, AM_I_ROOT
     Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
     USE RESOLUTION, only: IM, JM, LM, LS1, PMTOP, Ptop, PSFMPT
     Use DYNAMICS, only: sige, sig
@@ -283,7 +283,7 @@ module FV_CS_Mod
     Call WRITE_PARALLEL(ak, unit)
     Call WRITE_PARALLEL(bk, unit)
 
-    Call GET(grid, i_strt=I_0, i_stop=I_1, &
+    call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, &
                    j_strt=j_0, j_stop=j_1, &
                    j_strt_halo=j_0h, j_stop_halo=j_1h)
 
@@ -345,7 +345,7 @@ module FV_CS_Mod
     !------------------------------------------------------------------
     Subroutine ComputePressureLevels(unit,grid,T_virt,P,sig,sige,ptop,kapa,PE,PKZ)
     !------------------------------------------------------------------
-      USE DOMAIN_DECOMP_ATM, only: dist_grid, get
+      USE DOMAIN_DECOMP_ATM, only: dist_grid, getDomainBounds
       USE RESOLUTION, only: IM, LM
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
@@ -361,8 +361,10 @@ module FV_CS_Mod
       Real(kind=prec), Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
-      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
-            & i_strt_halo=i_0h, i_stop_halo=i_1h, j_strt_halo=j_0h, j_stop_halo=j_1h)
+      call getDomainBounds(grid, &
+     &     i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+     &     i_strt_halo=i_0h, i_stop_halo=i_1h, &
+     &     j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
       PKZ = -99999
@@ -445,7 +447,7 @@ module FV_CS_Mod
     USE ATM_COM, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     Use MODEL_COM, only: DT=>DTsrc
-    USE DOMAIN_DECOMP_ATM, only: get, grid
+    USE DOMAIN_DECOMP_ATM, only: getDomainBounds, grid
     Use Constant, only: grav
     implicit none
     type (FV_core) :: fv
@@ -457,7 +459,7 @@ module FV_CS_Mod
 
     DTfac = DT
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
+    call getDomainBounds(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! Horizontal and Vertical mass fluxes
     !---------------

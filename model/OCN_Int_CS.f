@@ -585,7 +585,7 @@ c*
      &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
 C***  Interpolate aA_glob from ocean grid to atmospheric grid 
-      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
+      call getDomainBounds(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
 
       if (CopyPole .and. HAVE_NORTH_POLE) 
      &     oWEIGHT(2:oIM,oJM) = oWEIGHT(1,oJM)
@@ -635,7 +635,7 @@ c*
 
       missing=0.
 
-      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      call getDomainBounds(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       ALLOCATE(aA_glob(NT,aIM,aJM,6),
      &     aArea(aIM,aJM,6),aFtemp(aIM,aJM,6),
@@ -730,7 +730,7 @@ c*
      &     aA_glob(aIM,aJM,6)
      &        )
 
-      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
+      call getDomainBounds(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
 
       if (CopyPole .and. HAVE_NORTH_POLE) 
      &     oWEIGHT(2:oIM,oJM) = oWEIGHT(1,oJM)
@@ -782,7 +782,7 @@ c*
 
       logical :: HAVE_NORTH_POLE
 
-      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
+      call getDomainBounds(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
 
       missing=0.
 
@@ -862,7 +862,7 @@ C***  Scatter global array aA_glob to the atm grid
      &     aArea(oIM,oJM,6)
      &     )
       
-      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE,
+      call getDomainBounds(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE) 
 
 !!!   U velocity for the 1st ocean layer.

@@ -47,7 +47,7 @@
       USE RESOLUTION, only : im,jm
       USE FLUXES, only : focean
       USE MODEL_COM, only : kocean,dtsrc
-      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
       USE EXCHANGE_TYPES, only : atmice_xchng_vars,iceocn_xchng_vars
@@ -69,7 +69,7 @@ c
 
       IF (KOCEAN.eq.1) THEN
 
-        CALL GET (grid, J_STRT=J_0,   J_STOP=J_1 )
+        call getDomainBounds(grid, J_STRT=J_0,   J_STOP=J_1 )
         I_0 = GRID%I_STRT
         I_1 = GRID%I_STOP
         DO J=J_0,J_1

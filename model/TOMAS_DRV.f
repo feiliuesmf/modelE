@@ -108,7 +108,7 @@ C     the GCM.
 
       SUBROUTINE TOMAS_DRV 
 
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, write_parallel
      &     ,am_i_root
       USE TOMAS_AEROSOL 
       USE TRACER_COM
@@ -164,7 +164,7 @@ C-----CODE-----------------------------------------------------------
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1573,8 +1573,8 @@ C     at 273 K and sea salt at 273 K.
       SUBROUTINE aeroupdate
 
 
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,
-     &     am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel,
+     &     am_i_root, getDomainBounds
       USE TOMAS_AEROSOL 
       USE GEOM, only: imaxj
       USE TRACER_COM, only : IDTSO4, IDTNA, IDTOCIL,IDTH2O,NBINS
@@ -1611,7 +1611,7 @@ C-----CODE-----------------------------------------------------------
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -2204,7 +2204,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE FLUXES, only : tr3dsource
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       IMPLICIT NONE
 
 
@@ -2224,7 +2224,7 @@ C-----PASSED VARIABLE DECLARATIONS-----------------------------------
 
 C-----CODE-----------------------------------------------------------
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -2395,7 +2395,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE FLUXES, only : trsource,trflux1
       USE TRDIAG_COM, only : taijs=>taijs_loc
 !      USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       IMPLICIT NONE
 
 
@@ -2414,7 +2414,7 @@ C-----PASSED VARIABLE DECLARATIONS-----------------------------------
 
 C-----CODE-----------------------------------------------------------
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -2705,7 +2705,7 @@ C     determine the mass added to each bin coagulation
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Yunha Lee
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, getDomainBounds 
       use resolution, only     : lm
       use TOMAS_aerosol
 
@@ -2718,7 +2718,7 @@ C     determine the mass added to each bin coagulation
       if(init)return
       init=.true.
     
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
 

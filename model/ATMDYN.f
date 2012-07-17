@@ -96,7 +96,7 @@ c     endif
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
      &     ,MODD5K,NDA5K,NDAA
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -119,7 +119,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -300,7 +300,7 @@ c apply north-south filter to U and V once per physics timestep
       Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
       use RESOLUTION, only: IM, LM
       USE DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only: halo_update, SOUTH, get
+      use DOMAIN_DECOMP_1D, only: halo_update, SOUTH, getDomainBounds
       use DIAG_COM, only: AIJ => AIJ_loc, IJ_FGZU, IJ_FGZV
 
       real*8, intent(inout) :: PHI(:,grid%J_STRT_HALO:,:)
@@ -313,7 +313,7 @@ c apply north-south filter to U and V once per physics timestep
       integer :: J_0STG, J_1STG
       integer :: I, IP1, L, J
 
-      call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
+      call getDomainBounds(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
      &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
@@ -341,8 +341,8 @@ c apply north-south filter to U and V once per physics timestep
       subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS(
      &    PUA, PVA, dt)
       use CONSTANT,      only: BY3
-      USE DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only: get, halo_update, SOUTH
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      use DOMAIN_DECOMP_1D, only: halo_update, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       use DIAG_COM, only: AIJ => AIJ_loc,
      &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
@@ -359,7 +359,7 @@ c apply north-south filter to U and V once per physics timestep
 
       dtlf = 2.*dt
 
-      call get(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
+      call getDomainBounds(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
      &               J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
@@ -404,7 +404,7 @@ c apply north-south filter to U and V once per physics timestep
       USE DYNAMICS, only : pit,sd,conv,pu,pv,spa,do_polefix
      &     ,dsig,bydsig,sige
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -426,7 +426,7 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -715,7 +715,7 @@ C**** COMPUTE SD, SIGMA DOT                                             -------
       USE GEOM, only : bydxyp,imaxj
       USE DYNAMICS, only : pit,mrch
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -730,7 +730,8 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       INTEGER :: n_exception, n_exception_all
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
+      call getDomainBounds(grid, 
+     &               J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE )
 
@@ -800,7 +801,7 @@ C****
      &     ,dsig,sige,sig,bydsig
 c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -822,7 +823,7 @@ c      USE DIAG, only : diagcd
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -1023,7 +1024,7 @@ C
       !USE DYNAMICS, only : xAVRX
 C**** THIS VERSION OF AVRX DOES SO BY TRUNCATING THE FOURIER SERIES.
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE MOMENTS, only : moment_enq_order
       USE constant, only : byrt2
       IMPLICIT NONE
@@ -1045,7 +1046,7 @@ c**** Extract domain decomposition info
 
       if ( present(X) ) goto 1000
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_HALO = J_0H, J_STOP_HALO = J_1H,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 C
@@ -1087,7 +1088,7 @@ C****
         j0 = jrange(1)
         j1 = jrange(2)
       Else
-        CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+        call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
         j0=J_0S
         j1=J_1S
       End If
@@ -1129,7 +1130,7 @@ C****
 #endif
       USE FLUXES, only : atmsrf
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1143,7 +1144,7 @@ c**** Extract domain decomposition info
       REAL*8 initialTotalEnergy, finalTotalEnergy
       real*8 getTotalEnergy ! external for now
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
@@ -1253,8 +1254,8 @@ C
 !@sum  fltry2 noise reduction filter for a velocity-type field
 !@sum  at secondary latitudes
       use resolution, only : im,jm,lm
-      USE DOMAIN_DECOMP_ATM, only: grid
-      use domain_decomp_1d, only : get,halo_update,north,south
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      use domain_decomp_1d, only : halo_update,north,south
       implicit none
       integer, parameter :: nshap=8
       real*8, parameter :: by4ton=1./(4.**nshap)
@@ -1269,9 +1270,9 @@ C
 c      real*8 :: by4ton
 c      by4ton=1./(4.**nshap)
 
-      call get(grid, j_strt_stgr = j_0stg, j_stop_stgr = j_1stg,
-     &         have_south_pole = have_south_pole,
-     &         have_north_pole = have_north_pole)
+      call getDomainBounds(grid, j_strt_stgr=j_0stg, j_stop_stgr=j_1stg,
+     &         have_south_pole=have_south_pole,
+     &         have_north_pole=have_north_pole)
 
 
       yvby4ton = min(strength,1d0)*by4ton*((-1)**(nshap))
@@ -1340,7 +1341,7 @@ C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
 C**** THE SMALLEST SCALES.
 C**********************************************************************
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
@@ -1362,7 +1363,7 @@ c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       INTEGER :: II
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1452,7 +1453,7 @@ C**** Call diagnostics only for even time step
       subroutine isotropslp(slp,coscut)
       use RESOLUTION, only : im,jm
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       use GEOM, only : cosp,dxp
       use DYNAMICS, only : dt
       implicit none
@@ -1462,7 +1463,7 @@ C**** Call diagnostics only for even time step
       integer :: ipole,j,jcut,jinc,jp
       integer :: j_0s, j_1s, hemi
 
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+      call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       Do j = j_0s, j_1s
         If (far_from_pole(j, cosp, coscut)) Cycle
@@ -1479,7 +1480,7 @@ C**** Call diagnostics only for even time step
       USE RESOLUTION, only : im,jm,lm
       use DYNAMICS, only : dt
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE GEOM, only : cosv,dxv,cosi=>cosiv,sini=>siniv
       implicit none
       real*8, parameter :: klo=1d3,khi=1d7
@@ -1491,7 +1492,7 @@ C**** Call diagnostics only for even time step
       integer :: i,j,l,hemi,jp,jinc,jcut,ipole
       Integer :: J_0STG, J_1STG
 
-      CALL GET(grid, J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
+      call getDomainBounds(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
       do l=1,lm
         do j = J_0STG, J_1STG
@@ -1595,7 +1596,7 @@ c convert xy velocities back to polar coordinates
 !@auth Original development team
       USE RESOLUTION, only :im,jm
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       IMPLICIT NONE
 !@var NORDER order of shapiro filter (must be even)
       INTEGER, INTENT(IN) :: NORDER
@@ -1606,7 +1607,7 @@ c convert xy velocities back to polar coordinates
       INTEGER I,J,N   !@var I,J,N  loop variables
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 
       by4toN=1./4.**NORDER
@@ -1643,7 +1644,7 @@ c**** Extract domain decomposition info
      *     ,lpsdrag,ang_sdrag,Wc_Jdrag,wmax,vsdragl
 c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       IMPLICIT NONE
@@ -1667,7 +1668,7 @@ C**** regime (but not above P_CSDRAG)
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1765,8 +1766,8 @@ C**** (technically we should use U,V from before but this is ok)
       use resolution, only : im,jm,lm
       use atm_com, only : p
       use geom, only : cosv,dxyn,dxys,fim
-      USE DOMAIN_DECOMP_ATM, only: grid
-      use domain_decomp_1d, only : get, south, halo_update
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      use domain_decomp_1d, only : south, halo_update
       use domain_decomp_1d, only : globalsum
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
@@ -1778,7 +1779,7 @@ C**** (technically we should use U,V from before but this is ok)
       integer :: j_0stg, j_1stg, j_0, j_1
       logical :: have_south_pole, have_north_pole
 
-      call get(grid, j_strt=j_0, j_stop=j_1,
+      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &               j_strt_stgr=j_0stg, j_stop_stgr=j_1stg,
      &               have_south_pole=have_south_pole,
      &               have_north_pole=have_north_pole)
@@ -1810,7 +1811,7 @@ c      call halo_update(grid, p, from=south) ! already done
       USE DYNAMICS, only : dsig
       USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, SOUTH, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : CHECKSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U
@@ -1821,7 +1822,7 @@ c      call halo_update(grid, p, from=south) ! already done
       INTEGER :: J_0S, J_1S, J_0STG, J_1STG, J_0, J_1, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1,
      *               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
@@ -1867,13 +1868,13 @@ C****
       USE ATM_COM, only : u
       USE GEOM, only : byaxyp
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
       INTEGER :: I,J
       INTEGER :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1)
 
 C****
@@ -1905,8 +1906,8 @@ C****
       USE ATM_COM, only : p,u,v
       USE DYNAMICS, only : dsig
       USE GEOM, only : dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH
       IMPLICIT NONE
 
@@ -1915,7 +1916,7 @@ C****
       INTEGER :: J_0STG,J_1STG, J_0, J_1, I_0, I_1
       REAL*8 :: PSJ,PSIJ
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1,
      *               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
@@ -1991,8 +1992,8 @@ c      USE GEOM, only : ravps,ravpn
 !@auth Ye Cheng
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,ua=>ualij,va=>valij
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : get,NORTH, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, only : NORTH, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : halo_update
       USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
       implicit none
@@ -2004,7 +2005,7 @@ c      USE GEOM, only : ravps,ravpn
       integer :: J_0S,J_1S
       logical :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
 
-      call get(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
+      call getDomainBounds(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
 !     polar boxes
@@ -2426,7 +2427,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       USE RESOLUTION, only : im,jm
       USE GEOM, only : rapvs,rapvn,dxyp,dxyv
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, NORTH,
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE, NORTH,
      &     hasSouthPole, hasNorthPole
       USE GEOM, only : byim
       IMPLICIT NONE
@@ -2434,7 +2435,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       INTEGER :: I,IM1,J
       INTEGER :: J_0S,J_1S
       REAL*8 :: XIM1J,XIJ
-      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       call halo_update(grid,x,from=north)
       if(hasSouthPole(grid)) then
         X(:,1) = SUM(X(:,2))*BYIM*(DXYP(1)/DXYV(2))
@@ -2470,8 +2471,8 @@ c      contains
       USE GEOM, only : cosv, ravpn,ravps,bydxyp,fim,byim
       USE DIAG_COM, only : consrv=>consrv_loc
       USE DYNAMICS, only : PIT
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
-      USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
+      USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE, DIST_GRID
+      USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, getDomainBounds
       USE GETTIME_MOD
       IMPLICIT NONE
 C****
@@ -2512,7 +2513,7 @@ C****
 
       CALL GETTIME(BEGIN)
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO=J_0H,
@@ -2603,8 +2604,8 @@ c      end module DIAG
       USE DYNAMICS, only : dsig
       USE DIAG_COM, only : speca,nspher,klayer,imh,fim,jeq
       USE ATMDYN, only : FCUVA,FCUVB
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET,GLOBALSUM, WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
+      USE DOMAIN_DECOMP_1D, only : GLOBALSUM, WRITE_PARALLEL
       USE GETTIME_MOD
       IMPLICIT NONE
 
@@ -2623,7 +2624,7 @@ c      end module DIAG
       INTEGER :: J,J45N,KUV,KSPHER,L,MKE,N,NM
       INTEGER :: J_0STG,J_1STG
 
-      CALL GET(GRID,J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
+      call getDomainBounds(GRID,J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
 
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
@@ -2694,7 +2695,7 @@ C****
       USE DIAG_COM, only : ia_d5f,imh
       USE ATMDYN, only : FCUVA,FCUVB
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE GETTIME_MOD
       IMPLICIT NONE
 
@@ -2704,7 +2705,7 @@ C****
       INTEGER :: J_0STG, J_1STG
       REAL*8 BEGIN
 
-      CALL GET(GRID, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+      call getDomainBounds(GRID, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
       CALL GETTIME(BEGIN)
       IDACC(ia_d5f)=IDACC(ia_d5f)+1
       DO L=1,LM
@@ -2731,15 +2732,15 @@ C****
       USE ATM_COM, only: ps,mb,ma,sda
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, halo_update, south, north
+      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds 
+      USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
       REAL*8 byncyc,byma
       INTEGER I,J,L   !@var I,J,L loop variables
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
 
@@ -2916,7 +2917,7 @@ c Switch the sign convention back to "positive downward".
       USE MODEL_COM, only: modelEclock
       USE DYNAMICS, only : sig,dsig,sige
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : GET
+      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
@@ -2959,7 +2960,7 @@ c Switch the sign convention back to "positive downward".
       !
       integer :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      call GET(grid, J_STRT = J_0, J_STOP = J_1,             !&
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,             !&
      &         J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,   !&
      &         J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,     !&
      &         J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,     !&

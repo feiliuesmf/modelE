@@ -7,7 +7,7 @@
       USE CONSTANT, only : lhe,sha,deltx
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,q,t,pk,pdsig,plij,pedn
-      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : halo_update, checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column, checksum_column
       USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
@@ -54,7 +54,7 @@ C
       INTEGER ::  J_1STG, J_0STG
       LOGICAL ::  HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
@@ -378,7 +378,7 @@ C***
 #endif
       USE RESOLUTION, only : im,jm
       USE ATM_COM, only : u,v,t,q,byam,am,pk
-      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
       USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
@@ -404,7 +404,7 @@ C***
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,

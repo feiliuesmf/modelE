@@ -57,7 +57,7 @@
 !@auth T. Clune
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
-      use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
+      use DOMAIN_DECOMP_ATM, only: grid, getDomainBounds, halo_update
 
       implicit none
 
@@ -65,7 +65,7 @@
       integer :: j0h, j1h, j0, j1, j0s, j1s
       integer :: i,j
 
-      call get(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h,
+      call getDomainBounds(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h,
      &     J_STRT=j0, J_STOP=j1,
      &     I_STRT_HALO=i0h, I_STOP_HALO=i1h, 
      &     I_STRT=i0,I_STOP=i1, 

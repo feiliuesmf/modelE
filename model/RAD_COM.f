@@ -275,7 +275,7 @@ C**** Local variables initialised in init_RAD
 !@auth Rodger Abel
 
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP_ATM, ONLY : GET
+      USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds
       USE RESOLUTION, ONLY : IM, JM, LM
       USE ATM_COM, ONLY : LM_REQ
 #ifdef TRACERS_ON
@@ -315,7 +315,7 @@ C**** Local variables initialised in init_RAD
       INTEGER :: I_0H, I_1H, J_0H, J_1H
       INTEGER :: IER
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -415,8 +415,8 @@ C**** Local variables initialised in init_RAD
 #endif
       USE RAD_COM
       USE Dictionary_mod
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID
-      USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+      USE DOMAIN_DECOMP_1D, ONLY : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_COLUMN, PACK_COLUMN
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_BLOCK , PACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA  , PACK_DATA
@@ -470,7 +470,7 @@ C**** Local variables initialised in init_RAD
       INTEGER :: J_0,J_1
       integer :: img, jmg, lmg
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       if(am_i_root()) then
          img = IM

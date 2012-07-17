@@ -234,7 +234,7 @@ c the order of the moments in dir is: x,y,z,xx,yy,zz,xy,yz,zx
 c--------------------------------------------------------------
       use QUSDEF, only : nmom,prather_limits
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH, GET
+      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH, getDomainBounds
       USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only: CHECKSUM
       implicit none
@@ -291,7 +291,7 @@ c--------------------------------------------------------------
       myz = dir(8)
       mzx = dir(9)
 
-      CALL GET(grid, J_STRT = J_0, J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP=J_1,
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
 

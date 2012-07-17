@@ -154,7 +154,7 @@ C**** Geometry inherited from geomb
       SUBROUTINE FORM
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
@@ -165,8 +165,8 @@ C**** Geometry inherited from geomb
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+      call getDomainBounds(grid_ICDYN, J_STRT=J_0, J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S )
 
 C****
 C**** Set up non linear water drag
@@ -295,7 +295,7 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
       SUBROUTINE PLAST
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
      &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
@@ -311,8 +311,8 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+      call getDomainBounds(grid_ICDYN, J_STRT=J_0, J_STOP=J_1,
+     &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S )
 
 
 C EVALUATE STRAIN RATES
@@ -390,7 +390,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       SUBROUTINE RELAX
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT,
      &     hasSouthPole, hasNorthPole
@@ -420,7 +420,7 @@ C**** Replaces NYPOLE in loops.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid_ICDYN, J_STRT=J_0,    J_STOP=J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
@@ -883,7 +883,7 @@ C NOW THE SECOND HALF
 
 
       Subroutine GEOMICDYN
-      use DOMAIN_DECOMP_1D, only : GET,
+      use DOMAIN_DECOMP_1D, only : getDomainBounds,
      &     hasSouthPole, hasNorthPole
       USE CONSTANT, only : OMEGA,RADIUS,PI,TWOPI,SDAY,radian
       IMPLICIT NONE
@@ -897,7 +897,7 @@ C NOW THE SECOND HALF
 C****
 C**** Extract useful local domain parameters from ice dynamics grid
 C****
-      CALL GET(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
+      call getDomainBounds(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
      &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S)
 
 C**** 
@@ -1111,7 +1111,8 @@ c store b-grid lons/lats for interpolations
       end subroutine GEOMICDYN
 
       Subroutine ICDYN_MASKS
-      use DOMAIN_DECOMP_1D, only : GET,NORTH,SOUTH,HALO_UPDATE
+      use DOMAIN_DECOMP_1D, only : getDomainBounds
+      use DOMAIN_DECOMP_1D, only : NORTH,SOUTH,HALO_UPDATE
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0S,J_1S
       INTEGER :: I,J,K
@@ -1119,7 +1120,7 @@ c store b-grid lons/lats for interpolations
 C****
 C**** Extract useful local domain parameters from ice dynamics grid
 C****
-      CALL GET(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
+      call getDomainBounds(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
      &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
 C**** sin/cos ice-ocean turning angle
@@ -1202,7 +1203,7 @@ c set cyclic conditions on eastern and western boundary
 !@sum  vpicedyn is the entry point into the viscous-plastic ice
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH,GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,am_i_root
       USE MODEL_COM, only : itime,qcheck
       USE ICEDYN, only : form,relax,uice,vice,uicec,vicec
@@ -1222,7 +1223,7 @@ c set cyclic conditions on eastern and western boundary
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
       rms=0. ; rms0=0. ; debug=.false.
@@ -1332,7 +1333,7 @@ C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
       !USE RESOLUTION, only : im,jm
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,getDomainBounds
       USE DOMAIN_DECOMP_1D, ONLY : INIT_GRID
       USE ICEDYN, ONLY : FOCEAN
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
@@ -1396,7 +1397,7 @@ c***     the two boundary ghost cells in the longitudinal direction have been re
       CALL INIT_GRID(grid_NXY,NX1,NY1,1,npes_max=JMICDYN/3)
       CALL INIT_GRID(grid_ICDYN,IMICDYN,JMICDYN,1,npes_max=JMICDYN/3)
 
-      CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
+      call getDomainBounds(grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 
       ALLOCATE( FOCEAN(NX1-2,J_0H:J_1H),

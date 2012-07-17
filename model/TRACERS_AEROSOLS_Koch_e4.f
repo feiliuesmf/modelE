@@ -74,7 +74,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
-      use domain_decomp_atm, only: dist_grid, get
+      use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
@@ -109,7 +109,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       if(init)return
       init=.true.
 
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -160,7 +160,7 @@ C
       use model_com, only: modelEclock
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
-      use domain_decomp_atm, only: grid, get, write_parallel
+      use domain_decomp_atm, only: grid, getDomainBounds, write_parallel
 C     
       implicit none
 
@@ -183,10 +183,10 @@ c
       save jdlast,mon_units,imon,ifirst,tlca,tlcb
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       if (ifirst) then
-        call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+        call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
         I_0H = grid%I_STRT_HALO
         I_1H = grid%I_STOP_HALO
 
@@ -237,7 +237,7 @@ c
       use model_com, only: modelEclock
       USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL,
      &     REWIND_PARALLEL,write_parallel
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
@@ -252,7 +252,7 @@ c
 
       integer :: J_0, J_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 C
       if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1                ! imon=January
@@ -642,9 +642,9 @@ c if after Feb 28 skip the leapyear day
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,jls_OHcon
 #endif
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
       USE RESOLUTION, only : ls1
       use resolution, only: im,jm,lm
       use atm_com, only : t,q
@@ -704,7 +704,7 @@ c Aerosol chemistry
       integer k
 #endif
 
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
      * J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
@@ -1178,7 +1178,7 @@ c     endif
       use constant, only : pi
       use resolution, only: im,jm,lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET
+      USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
       real*8, parameter ::
@@ -1188,7 +1188,8 @@ c     endif
 c      real*8, DIMENSION(JM) :: tczen
 c      integer, DIMENSION(JM) :: nradn
 
-      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, 
+     &     I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
 
 c      nradn(:)=0
 c      tczen(:)=0.d0
@@ -1706,7 +1707,7 @@ c melting snow
       use model_com, only: modelEclock
       USE MODEL_COM, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
      &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
@@ -1727,7 +1728,7 @@ c melting snow
       integer :: year, dayOfYear
 
       call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 C No doubt this code can be combined/compressed, but I am going to
 C do the transient and non-transient cases separately for the moment:
@@ -1895,8 +1896,8 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       integer :: iu, imon
       integer :: j,i,j_0,j_1,i_0,i_1
 
-      call get(grid, j_strt=j_0, j_stop=j_1)
-      call get(grid, i_strt=i_0, i_stop=i_1)
+      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
+      call getDomainBounds(grid, i_strt=i_0, i_stop=i_1)
 
 ! read chla SeaWiFS data
       call openunit('SeaWiFS_chla',iu,.true.,.true.)

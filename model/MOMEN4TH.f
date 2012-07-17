@@ -70,7 +70,7 @@ cgsfc      REAL*8, ALLOCATABLE:: FLUXU2(:,:,:), FLUXV2(:,:,:)
       INTEGER, SAVE :: ALLOCATED = 1
       INTEGER, SAVE :: iunit_hang
 
-      Call GET(grid, J_STRT=J_0, J_STOP=J_1, 
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
      &         J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &         J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,      
      &         J_STRT_STGR=J_0SG, J_STOP_STGR=J_1SG)

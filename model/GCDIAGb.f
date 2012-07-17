@@ -1255,7 +1255,7 @@ C****
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
      &     ,ldna,lupa
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,CHECKSUM,HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : SUMXPE, broadcast, AM_I_ROOT
@@ -1306,7 +1306,7 @@ c local vars for transplanted DIAGA calculations
 
       CALL GETTIME(BEGIN)
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+      call getDomainBounds(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO=J_0H,
@@ -2340,7 +2340,8 @@ C****
       USE ATM_COM, only : sqrtp,pk
       USE DYNAMICS, only : sig,dsig
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : GET,HALO_UPDATE, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
       USE DOMAIN_DECOMP_1D, only : SUMXPE, broadcast
       USE PRECISION_MOD
@@ -2381,7 +2382,7 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       return
 #endif
 
-      CALL GET(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
+      call getDomainBounds(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -2686,7 +2687,7 @@ C****
      &     ,ia_12hr,imh,jeq
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : GET,SUMXPE,AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,SUMXPE,AM_I_ROOT
       IMPLICIT NONE
 
       REAL*8, DIMENSION(0:IMH) :: AN,BN
@@ -2707,7 +2708,7 @@ C****
       return
 #endif
 
-      CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
 
       IDACC9=IDACC(ia_12hr)+1
       IDACC(ia_12hr)=IDACC9

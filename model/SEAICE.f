@@ -1,3 +1,4 @@
+
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_ON
@@ -2286,7 +2287,7 @@ C**** albedo calculations
       CONTAINS
 
       subroutine alloc_icestate_type(grd_dum,state,domain)
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       TYPE(icestate) :: state
@@ -2296,7 +2297,7 @@ C**** albedo calculations
       INTEGER :: IER
       INTEGER :: NTM
 
-      CALL GET(grd_dum,
+      call getDomainBounds(grd_dum,
      &     I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
@@ -2454,7 +2455,7 @@ C**** albedo calculations
 !          END IF
 !        end if
 !
-!        CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+!        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 !
 !         CALL UNPACK_DATA( grid, RSI_GLOB,       RSI )
 !         CALL UNPACK_DATA( grid, SNOWI_GLOB,     SNOWI )
@@ -2506,7 +2507,7 @@ C**** albedo calculations
 !@ver  beta
       use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : defvar
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid file id
       integer :: i_0h,i_1h, j_0h,j_1h
@@ -2529,7 +2530,7 @@ C**** albedo calculations
       call defvar(grid,fid,iceocn%dmsi,'dmsi(two,dist_im,dist_jm)')
       call defvar(grid,fid,iceocn%dssi,'dssi(two,dist_im,dist_jm)')
 
-      call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+      call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &               j_strt_halo=j_0h,j_stop_halo=j_1h)
       allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
       call defvar(grid, fid, arrdum, 'wseai(dist_im,dist_jm)' )
@@ -2547,7 +2548,7 @@ C**** albedo calculations
       use model_com, only : ioread,iowrite
       use seaice_com, only : grid=>sigrid,si_ocn,iceocn
       use pario, only : write_dist_data,read_dist_data
-      use domain_decomp_1d, only : get
+      use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid      !@var fid unit number of read/write
       integer iaction  !@var iaction flag for reading or writing to file
@@ -2571,7 +2572,7 @@ C**** albedo calculations
         call write_dist_data(grid, fid, 'dmsi', iceocn%dmsi, jdim=3)
         call write_dist_data(grid, fid, 'dssi', iceocn%dssi, jdim=3)
 
-        call get(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
+        call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
         allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
         call conserv_OMSI(arrdum)

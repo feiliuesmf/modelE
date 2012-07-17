@@ -26,12 +26,12 @@ c
       contains
 
       subroutine init_oceanr_grid
-      USE DOMAIN_DECOMP_1D, only : init_grid, get
+      USE DOMAIN_DECOMP_1D, only : init_grid, getDomainBounds
  
 !      TYPE(DIST_GRID) :: ogrid   ! ocean (Russell) grid
 
       call init_grid( ogrid, imo, jmo, lmo )
-      call get(ogrid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(ogrid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H ,
      &               I_STRT     =I_0,    I_STOP     =I_1,
      &               I_STRT_HALO=I_0H,   I_STOP_HALO=I_1H,

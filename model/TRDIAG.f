@@ -632,7 +632,8 @@ c
      &     ,to_per_mil
 #endif
       use constant, only : teeny
-      use domain_decomp_atm, only : grid,get,am_i_root,sumxpe
+      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : getDomainBounds,am_i_root,sumxpe
       use geom, only : byaxyp,axyp,lat2d,areag
       use cdl_mod
       implicit none
@@ -645,7 +646,7 @@ c
       character(len=sname_strlen), dimension(ktaij_) :: dname_taij
 
       logical :: have_south_pole, have_north_pole
-      call get(grid, have_south_pole = have_south_pole,
+      call getDomainBounds(grid, have_south_pole = have_south_pole,
      &               have_north_pole = have_north_pole)
 
       i_0h = grid%i_strt_halo
@@ -1024,7 +1025,7 @@ c
      &     ,to_per_mil
 #endif
       use constant, only : teeny
-      use domain_decomp_atm, only : grid,get,am_i_root
+      use domain_decomp_atm, only : grid,getDomainBounds,am_i_root
       use geom, only : byaxyp
       use cdl_mod
       implicit none
@@ -1036,7 +1037,7 @@ c
       character(len=16) :: zstr,hstr,tstr
 
       logical :: have_south_pole, have_north_pole
-      call get(grid, have_south_pole = have_south_pole,
+      call getDomainBounds(grid, have_south_pole = have_south_pole,
      &               have_north_pole = have_north_pole)
 
       i_0h = grid%i_strt_halo

@@ -12,7 +12,7 @@
       use resolution, only: im,jm,lm
       use Dictionary_mod, only : sync_param
       use domain_decomp_atm, only: am_i_root,grid,dread_parallel
-     &     ,broadcast,write_parallel,get
+     &     ,broadcast,write_parallel,getDomainBounds
       use model_com, only: ioread,iowrite,irsfic,irsficno
      &     ,irerun,JDperY,JMperY,itime
       use fluxes, only: dust_flux_glob
@@ -135,7 +135,8 @@ c**** temporary array to read in data
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
+     &     I_STRT=I_0, I_STOP=I_1)
 
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
@@ -948,7 +949,7 @@ c read_minfr_claquin1999_netcdf
       real(kind=8), dimension( grid%i_strt:grid%i_stop,
      &                 grid%j_strt:grid%j_stop ) :: work ! no halo
 
-      call get( grid, j_strt=j_0, j_stop=j_1, i_strt=i_0, i_stop=i_1 )
+      call getDomainBounds( grid, j_strt=j_0, j_stop=j_1, i_strt=i_0, i_stop=i_1 )
 
       call write_parallel( 'Read from file MINFR', unit=6 )
 

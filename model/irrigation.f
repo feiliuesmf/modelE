@@ -32,7 +32,7 @@
       subroutine init_irrigate()
       use filemanager, only : openunit
       use Dictionary_mod, only : sync_param
-      USE DOMAIN_DECOMP_ATM, ONLY : grid, get
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds
       implicit none
 
       integer :: I_0,I_1,J_0,J_1
@@ -51,7 +51,7 @@
 
       call openunit("IRRIG",iu_irrigate,.true.,.true.)
       call sync_param("irrig_cycl",irrig_cycl)
-      call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
 !**** Compute irrigation rate
       call irrigate_flux(.false.)
@@ -66,7 +66,7 @@
 !@sum  jyear (cyclical case does not need jyear).
       USE CONSTANT, only : rhow,teeny,shw,sday
       use model_com, only : Itime,JDmidOfM,itimei,JMperY,modelEclock
-      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, am_i_root
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, am_i_root
      &                          ,READT_PARALLEL,REWIND_PARALLEL
      &                          ,READ_PARALLEL, MREAD_PARALLEL
      &                          ,BACKSPACE_PARALLEL
@@ -88,7 +88,7 @@
       integer :: I_0,I_1,J_0,J_1
       real*8 :: FRAC
 
-      call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
 
       if (irrig_cycl == 0) then
 !**** Non-cyclical case: data vary from year to year

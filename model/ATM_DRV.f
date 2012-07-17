@@ -348,7 +348,7 @@ C****
 C**** Copies first-layer atm. conditions into the 2D arrays
 C**** in the atm-surf. coupling data structure.
       use fluxes, only : atmsrf
-      use domain_decomp_atm, only : grid, get
+      use domain_decomp_atm, only : grid, getDomainBounds
       use atm_com, only : t,q,ualij,valij
       use geom, only : imaxj,byaxyp
 #ifdef TRACERS_ON
@@ -357,7 +357,8 @@ C**** in the atm-surf. coupling data structure.
       implicit none
       integer :: n,i,j,i_0,i_1,j_0,j_1
 c
-      call get(grid, i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1)
+      call getDomainBounds(grid, i_strt=i_0,i_stop=i_1,
+     &  j_strt=j_0,j_stop=j_1)
 c
       do j=j_0,j_1
       do i=i_0,imaxj(j)
@@ -520,7 +521,7 @@ C****
 #endif
 #endif
       USE SOIL_DRV, only: init_LSM,daily_earth
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : init_ATMDYN
 #endif
@@ -552,7 +553,7 @@ c     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       INTEGER :: J_0, J_1
 
 #ifdef USE_ESMF
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       write(6,*) 'mpi-zone',J_0,' - ',J_1
 #endif
 
@@ -981,7 +982,7 @@ C**** CORRECTED.
       USE ATM_COM, only : wmice
 #endif
       USE MODEL_COM
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
       USE soil_drv, only : checke
       IMPLICIT NONE
       INTEGER I,J,L
@@ -990,7 +991,7 @@ C**** CORRECTED.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1, I_0H,I_1H, njpol
       INTEGER :: I_0STG,I_1STG,J_0STG,J_1STG
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

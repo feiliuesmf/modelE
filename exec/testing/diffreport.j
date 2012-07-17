@@ -49,12 +49,15 @@ checkStatus()
    local base2=${name2##*/}
    if [ $rc -ne $OK ]; then
       if [[ "$name2" =~ baseline ]]; then
-         updReport " --- WARNING: inconsistent results with BASELINE $base1"
+         echo " --- WARNING: $base1 BASELINE has CHANGED"
+         updReport " --- WARNING: $base1 BASELINE has CHANGED"
 	 export isChanged=YES
       else
-         updReport " --- WARNING: inconsistent results between $base1 and $base2"
+         echo " --- ERROR: $base1 and $base2 DIFFER"
+         updReport " --- ERROR: $base1 and $base2 DIFFER"
 	 export isReprod=NO
       fi
+      export printReport=YES
       return $E_EXIT_ERR
    fi
    return $OK
@@ -68,6 +71,7 @@ fileExists()
    if [ ! -e "$file" ]; then
       updReport " --- ERROR: $file does NOT exist"
       export compileErr=YES
+      export printReport=YES
       return $FILE_ERR
    fi
    return $OK
@@ -81,9 +85,6 @@ doDiff()
    local name2=$2
    local deck=$3
    local comp=$4
-   export compileErr=NO
-   export isChanged=NO
-   export isReprod=YES
    fileExists "$name1"
    return_val=$?
    if [ "$return_val" -eq $OK ]; then
@@ -93,7 +94,6 @@ doDiff()
          $diffExec $name1 $name2 > fileDiff
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
-         echo " checkStatus $diffSize $name1 $name2"
          # save file to BASELINE directory
          if [[ "$name2" =~ baseline ]]; then
            if [ $diffSize -eq 0 ]; then
@@ -124,7 +124,9 @@ deckDiff()
   local baseline=$MODELEBASELINE/$comp
 
   for deck in "${deckArray[@]}"; do
-
+    export compileErr=NO
+    export isChanged=NO
+    export isReprod=YES
     report=( "${report[@]}" "$deck [$comp] :" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
@@ -150,15 +152,15 @@ deckDiff()
       done
     fi
     if [ "$compileErr" == YES ]; then
-      updDeckReport "$deck [$comp] ***COMPILE_RUNTIME_ERROR***"
+      updDeckReport "$deck $comp ***COMPILE_RUNTIME_ERROR***"
     else
       if [ "$isReprod" == YES ]; then
-         updDeckReport "$deck [$comp] IS_REPRODUCIBLE"
+         updDeckReport "$deck $comp IS_reproducible"
          if [ "$isChanged" == YES ]; then
-            updDeckReport "$deck [$comp] BASELINE_CHANGED"
+            updDeckReport "$deck $comp CHANGED_baseline"
          fi
       else
-         updDeckReport "$deck [$comp] ***NOT_REPRODUCIBLE***"
+         updDeckReport "$deck $comp NOT_reproducible"
       fi
     fi
   done
@@ -180,6 +182,8 @@ declare -a CSDecks
 declare -a AR5Decks
 declare -a SCMdecks
 
+export printReport=NO
+
 cd $MODELROOT/exec/testing
 
 if [ -z $CFG_FILE ]; then
@@ -189,13 +193,28 @@ if [ -z $CFG_FILE ]; then
 else
    echo "CFG_FILE ENV: $CFG_FILE"
 fi
+
 if [ -z $MOCKMODELE ]; then
+  compiler=$(cat $MODELERC | grep COMPILER= | awk -F"=" '{print $2}')
+  if [ "$compiler" == "intel" ]; then
+     FC=ifort
+  else
+     FC=gfortran
+  fi
+  netcdf=$(cat $MODELERC | grep "/netcdf/" | awk -F"=" '{print $2}')
+  INC=$netcdf/include
+  LIB=$netcdf/lib
+
+  misnc=$MODELROOT/model/mk_diags/miscnc.f
+  diffr=$MODELROOT/model/mk_diags/diffreport.f
   diffExec=$MODELROOT/exec/testing/diffreport.x
+  
+  echo $FC -O3 -I$INC $misnc $diffr -o $diffExec -L$LIB -lnetcdf
+  $FC -O3 -I$INC $misnc $diffr -o $diffExec -L$LIB -lnetcdf
   if [ ! -e $diffExec ]; then
      echo " *** WARNING ***"
-     echo "$diffExec does not exist"
-     echo "Will use unix cmp but may report incorrect results"
-     diffExec=/usr/bin/cmp
+     echo "$diffExec does not exist. Will use GISS installation"
+     diffExec=/discover/nobackup/projects/giss/exec/diffreport
   fi
 else
   diffExec=/usr/bin/cmp
@@ -210,7 +229,7 @@ if [ ! -e $cfg ]; then
    echo "$cfg does not exist."
    exit 1
 else
-   echo "Confile file: $cfg"
+   echo "Config file: $cfg"
 fi
 
 id=0
@@ -315,18 +334,22 @@ for comp in "${COMPILERS[@]}"; do
 done
 
 rm -f $MODELROOT/exec/testing/${CFG_NAME}.diff
+echo "ModelE test results, branch=$branch" 
+echo "--------------------------------------------------------------------------"
 echo "ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
 echo "--------------------------------------------------------------------------" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
 
 len=${#deckReport[*]}
 i=0
 while [ $i -lt $len ]; do
+   echo "${deckReport[$i]}" 
    echo "${deckReport[$i]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
    let i++
 done
 
-if [ "$compileErr" == YES ]; then
+if [ "$printReport" == "YES" ]; then
    for ((i=0; i < ${#report[@]}; i++)); do 
+      echo "${report[${i}]}" 
       echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
    done
 fi
@@ -342,13 +365,16 @@ fi
 
 #chmod g+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
 cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
+# Archive full difference reports
+cp $MODELROOT/exec/testing/${CFG_NAME}.diff $MODELEBASELINE/reports/${CFG_NAME}.diff.`date +%F`
 
-cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "NOT_REPRODUCIBLE" > /dev/null
+# Check for errors in report
+cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
 rc1=$?
-cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep "RUNTIME_ERROR" > /dev/null
+cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep -i "ERROR" > /dev/null
 rc2=$?
-# if we found errors then we exit
-if [ $rc1 -ne 0 ] || [ $rc2 -ne 0 ]; then
+# if we found errors, (0 return code!) then we exit
+if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
    echo "Regression tests ERRORS: Will NOT create modelE snapshot"
    exit $EXIT_ERR
 else 

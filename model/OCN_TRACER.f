@@ -33,8 +33,8 @@
      *     ,trsist
 #endif
       USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only : get, haveLatitude, GLOBALSUM,
-     *     broadcast
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds, haveLatitude,
+     *     broadcast, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : gather_ocean
@@ -54,8 +54,9 @@ c
 
       real*8 :: OTRACJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
-      CALL GET(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S, J_STRT = J_0,
-     *     J_STOP = J_1, J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+      call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
+     *     J_STRT = J_0, J_STOP = J_1, 
+     *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
 #ifdef TRACERS_SPECIAL_O18
       if (is_set_param('water_tracer_ic')) then
@@ -396,7 +397,7 @@ C****
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -406,7 +407,7 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
@@ -436,7 +437,7 @@ C****
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
       USE OCEAN, only : IMO=>IM, oJ_BUDG, oJ_0B, oJ_1B
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
       USE OCEANR_DIM, only : oGRID
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
@@ -455,7 +456,7 @@ c
       INTEGER :: nm,ni
       INTEGER :: I, J, J_0, J_1, I_0, I_1
 
-      CALL GET(ogrid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1)
       I_0 = oGRID%I_STRT
       I_1 = oGRID%I_STOP
 C****
@@ -499,7 +500,7 @@ C**** Save current value in TCONSRV(NI)
 !@auth Gavin Schmidt
       USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, imaxj,trmo
       USE STRAITS, only : nmst,jst,ist,lmst,trmst
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
       USE OCEANR_DIM, only : ogrid
 
       IMPLICIT NONE
@@ -511,7 +512,7 @@ C**** Save current value in TCONSRV(NI)
       INTEGER :: J_0, J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(ogrid, J_STRT=J_0,    J_STOP=J_1,
+      call getDomainBounds(ogrid, J_STRT=J_0,    J_STOP=J_1,
      &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       DO J=J_0,J_1

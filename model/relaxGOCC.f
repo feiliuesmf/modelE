@@ -40,10 +40,10 @@ c********************************
 C****
 C**** Extract local domain parameters from "grid"
 C****
-      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
-      CALL GET(grid_ICDYN, I_STRT     =I_0,    I_STOP     =I_1,
+      call getDomainBounds(grid_ICDYN, I_STRT     =I_0,    I_STOP     =I_1,
      &               I_STRT_HALO=I_0H,   I_STOP_HALO=I_1H,
      &               I_STRT_SKP =I_0S,   I_STOP_SKP =I_1S )
 

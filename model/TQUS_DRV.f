@@ -33,7 +33,7 @@ c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
 
       USE QUSCOM, ONLY : MFLX,nmom
       USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
@@ -55,7 +55,7 @@ c****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -155,8 +155,8 @@ c****
 C**** The MA array space is temporarily put to use in this section
       USE ATM_COM, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
       USE DOMAIN_DECOMP_ATM, only: grid 
-      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, HALO_UPDATE
       USE QUSCOM, ONLY : IM,JM,LM,BYIM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
@@ -171,7 +171,7 @@ C**** The MA array space is temporarily put to use in this section
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -390,7 +390,7 @@ c****   mass (kg) = fluid mass
 c****
       use QUSDEF
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds, GLOBALSUM
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
@@ -414,7 +414,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -475,7 +475,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds, GLOBALSUM
       use DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : TRANSP, TRANSPOSE_COLUMN
       use CONSTANT, only : teeny
@@ -518,7 +518,7 @@ c****Get relevant local distributed parameters
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1, 
+      call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1, 
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT_SKP=J_0S,  J_STOP_SKP=J_1S,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -663,7 +663,7 @@ c****
       use CONSTANT, only : teeny
       use GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GETDomainBounds
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -689,7 +689,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -744,7 +744,7 @@ c****
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE ATM_COM, ONLY: mu=>pua
       IMPLICIT NONE
@@ -761,7 +761,7 @@ c****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -825,8 +825,8 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX, SOUTH
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE ATM_COM, ONLY: mv=>pva
       IMPLICIT NONE
@@ -844,7 +844,7 @@ C
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -929,7 +929,7 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE ATM_COM, ONLY: mw=>sda
       IMPLICIT NONE
@@ -948,7 +948,7 @@ C
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1009,7 +1009,7 @@ C
 !@+    run time
 !@auth NCCS (Goddard) Development Team
       USE TRACER_ADV
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GETDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -1019,7 +1019,7 @@ C
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       ALLOCATE(  NSTEPX1(J_0H:J_1H,LM,NCMAX),
      *           NSTEPX2(J_0H:J_1H,LM,NCMAX),

@@ -11,7 +11,7 @@
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
       USE CONSTANT, only : rgas
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only: itime
       USE ATM_COM, only: wm,t
@@ -39,7 +39,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -115,7 +115,7 @@ C**** Zonal mean cloud water concentration
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
@@ -128,7 +128,7 @@ C**** Zonal mean cloud water concentration
       INTEGER :: nm,ni
       INTEGER :: I, J, I_0, I_1, J_0, J_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 C****
@@ -170,7 +170,7 @@ C**** Save current value in TCONSRV(NI)
       subroutine consrv_tr(nt,total)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use resolution, only : ls1
       use resolution, only : lm,jm,im
       use geom, only : imaxj
@@ -191,7 +191,7 @@ C**** Save current value in TCONSRV(NI)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = GRID%I_STRT
@@ -225,7 +225,7 @@ C****
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
       USE GEOM, only : j_budg
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: im,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
       IMPLICIT NONE
@@ -244,7 +244,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+      call getDomainBounds(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
@@ -277,7 +277,7 @@ C**** No need to save current value
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: jm,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
@@ -297,7 +297,7 @@ C**** No need to save current value
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+      call getDomainBounds(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
      &               J_STRT = J_0, J_STOP = J_1)
       I_0 = GRID%I_STRT
@@ -560,7 +560,7 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : jm,lm
       USE MODEL_COM, only: itime,idacc,xlabel,lrunid
@@ -1048,7 +1048,7 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE
 C****
       USE CONSTANT, only : undef
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE RESOLUTION, only : jm,lm
       use model_com, only: modelEclock
       USE MODEL_COM, only: jdate0,amon,amon0,jyear0,xlabel

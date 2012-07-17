@@ -508,7 +508,7 @@ c
       USE FLUXES, only : trsource,trflux1,atmsrf
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
@@ -519,7 +519,7 @@ c
 #ifdef TRACERS_TOMAS
       INTEGER tomas_ntsurf !same as ntsurfsrc
 #endif
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       
@@ -580,7 +580,7 @@ C**** trflux1 is total flux into first layer
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,trm,trmom
       USE FLUXES, only : trflux1,atmsrf
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,i,j
@@ -588,7 +588,7 @@ C**** trflux1 is total flux into first layer
 
       INTEGER :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       
@@ -650,7 +650,7 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -666,7 +666,7 @@ C****
       integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
       real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -795,7 +795,7 @@ C****
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
       real*8, dimension(ntm) :: expdec
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -804,7 +804,7 @@ C****
       integer n,najl,j,l,i
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -898,7 +898,7 @@ C****
       USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
       real*8 :: stokevdt,press,fgrfluxd,qsat,vgs,tr_radius,tr_dens,temp
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -927,7 +927,7 @@ C****
       external aerodens
 #endif
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
@@ -1155,7 +1155,7 @@ C****
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
       USE RESOLUTION, only: im,jm
       use model_com, only: modelEclock
@@ -1169,8 +1169,8 @@ C****
 
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
@@ -1223,7 +1223,7 @@ c**** Interpolate two months of data to current day
       USE ATM_COM, only : am
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID, getDomainBounds, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
@@ -1232,7 +1232,7 @@ c**** Interpolate two months of data to current day
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       INTEGER :: J_0, J_1, nj, I_0,I_1
-      CALL GET(GRID, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(GRID, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       nj = J_1 - J_0 + 1
@@ -1340,7 +1340,7 @@ C**** check whether air mass is conserved
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &     ,UNPACK_COLUMN, broadcast, get
+     &     ,UNPACK_COLUMN, broadcast, getDomainBounds
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1423,7 +1423,7 @@ C**** check whether air mass is conserved
       INTEGER :: J_0, J_1, J_1H, J_0H, I_0, I_1
       INTEGER :: img, jmg
 
-      CALL GET(grid,I_STRT=I_0,I_STOP=I_1, 
+      call getDomainBounds(grid,I_STRT=I_0,I_STOP=I_1, 
      &              J_STRT=J_0,J_STOP=J_1, 
      &         J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
@@ -2351,8 +2351,8 @@ c daily_z is currently only needed for CS
       use TRACER_COM, only : ntsurfsrcmax,trname,
      & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
      & tr_sect_name, sect_name
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel,
-     &                             am_i_root
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
+     &                             am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use Dictionary_mod, only : sync_param
       Use OldTracer_mod, only: set_ntsurfsrc
@@ -2451,7 +2451,7 @@ c daily_z is currently only needed for CS
 !@auth Jean Lerner/Greg Faluvegi
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: itime
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET,
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds,
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
       USE TRACER_COM,only:itime_tr0,trname,sfc_src,NTM,
@@ -2477,9 +2477,9 @@ c daily_z is currently only needed for CS
       
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
-      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       if (itime < itime_tr0(n)) return
       if (nsrc <= 0) return
@@ -2581,7 +2581,7 @@ c daily_z is currently only needed for CS
 !@auth Greg Faluvegi
      
       use TRACER_COM, only : trname,nameT
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
 
       implicit none
@@ -2721,8 +2721,9 @@ c daily_z is currently only needed for CS
 !@auth Greg Faluvegi, Jean Lerner and others
 
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
-     & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,AM_I_ROOT,write_parallel,
+     &     READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL,
+     &     getDomainBounds
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: idofm=>JDmidOfM
       USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
@@ -2743,8 +2744,8 @@ c daily_z is currently only needed for CS
 
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
 ! -------------- non-transient emissions ----------------------------!
       if(ty_start(n,ns)==ty_end(n,ns))then
@@ -2865,7 +2866,8 @@ c****   Interpolate two months of data to current day
       use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
      & n_max_reg,alter_sources,ef_REG_IJ,
      & ef_fact,num_regions,num_sectors,sect_name
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,writet_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only:AM_I_ROOT,writet_parallel
       USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use Dictionary_mod, only : sync_param
@@ -2878,7 +2880,7 @@ c****   Interpolate two months of data to current day
       character*124 :: sectors_are,regions_are
 
       INTEGER J_0, J_1, I_0, I_1
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
