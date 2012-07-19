@@ -1,21 +1,33 @@
-COMPILER=intel
-EXTERNAL_CPP=NO
-CONFIG_DIR=../config
-#sinclude $(CONFIG_DIR)/rules.mk
+COMPILER = intel
+EXTERNAL_CPP = NO
+CONFIG_DIR = ../config
+SOURCE_DIR = ../model
+DECKS_DIR = ../decks
 
-COMPONENTS := profiler shared tracers MPI_Support
+# List of all testable modelE components
 
-PFUNIT_TEST_DIRECTORIES = $(foreach ITEM,$(COMPONENTS), ./$(ITEM))
+include $(DECKS_DIR)/components
 
-SOURCE_DIR := ../model
+INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
+LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
 
-PFUNIT_LFLAGS += $(foreach ITEM,$(COMPONENTS), -L$(SOURCE_DIR)/$(ITEM) -l$(ITEM))
+# Determine modelE components to be tested based on library availability
 
-EXTRA_FFLAGS += $(foreach ITEM,$(COMPONENTS), -I$(SOURCE_DIR)/$(ITEM))
+LIBSAVAIL := $(wildcard $(LIBS))
+PFUNIT_LFLAGS += $(foreach ITEM, $(LIBSAVAIL), $(ITEM))
+PFUNIT_TEST_DIRECTORIES := $(foreach ITEM, $(COMPONENTS), ./$(ITEM))
+
+INCSAVAIL = $(wildcard $(INCS))
+EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM))
+
+# Defaults
 
 MPI_FC=mpif90
 CSTRING = $(shell mpif90 --version)
 COMPILER = $(findstring ifort, $(CSTRING))
+MPIRUN=mpirun
+PFUNIT_NPES=10
+PFUNIT_USE_MPI=YES
 
 ifeq ($(COMPILER),ifort)
   FC =ifort
@@ -27,9 +39,7 @@ endif
 
 EXTRA_FFLAGS += $(CPPFLAGS)
 
-MPIRUN=mpirun
-PFUNIT_USE_MPI=YES
-PFUNIT_NPES=10
+# Targets:
 
 clean: 
 	make pfunitdistclean
@@ -39,14 +49,13 @@ distclean:
 	make clean
 	$(RM) *.a *.x 
 
-
 ifdef PFUNIT
   include $(PFUNIT)/include/pFUnit.makefile
 endif
 
-EXECS = $(foreach ITEM,$(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
+$(PFUNIT_TEST_EXECUTABLE) : $(LIBSAVAIL)
 
-$(PFUNIT_TEST_EXECUTABLE) : $(EXECS)
+# Rules
 
 %.o : %.F90
 	$(FC) -c $(EXTRA_FFLAGS) $($(PFUNIT_FFLAGS_VARIABLE)) $<

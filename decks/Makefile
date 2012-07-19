@@ -90,13 +90,16 @@ gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend check_vars
 setup: gcm
 	$(MAKE) setup_script RUN=$(RUN)
 
-tests: 
+tests: getComponents
 ifeq ($(PFUNIT),)
 	@echo '--- Need to set PFUNIT environment variable.    ---'
 	@echo '--- Then build gcm and finally build/run tests. ---'
 else
-	$(MAKE) -C $(TESTS_DIR) tests
+	$(MAKE) -C $(TESTS_DIR) tests RUN=$(RUN)
 endif
+
+getComponents:
+	$(shell $(SCRIPTS_DIR)/testing/getComponents.sh $(RUN).R >&2)
 
 setup_nocomp:
 	@[ -d $(BIN_DIR) ] || mkdir $(BIN_DIR)
