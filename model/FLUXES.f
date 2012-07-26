@@ -1618,25 +1618,26 @@ C**** fluxes associated with variable lake fractions
       type(atmsrf_xchng_vars), dimension(4) :: asflx4
 
 !@var asflx an array for looping over atmocns,atmices,atmglas,atmlnds
-      integer, parameter :: nptchs=
-     &      ubound(atmocns,1)
-     &     +ubound(atmices,1)
-     &     +ubound(atmglas,1)
-     &     +ubound(atmlnds,1)
-      type(atmsrf_xchng_vars), dimension(nptchs) :: asflx
-c      type(atmsrf_xchng_vars), dimension(:), allocatable :: asflx
+      integer :: !, parameter ::
+     &     nptchs
+!     &     =ubound(atmocns,1)
+!     &     +ubound(atmices,1)
+!     &     +ubound(atmglas,1)
+!     &     +ubound(atmlnds,1)
+!      type(atmsrf_xchng_vars), dimension(nptchs) :: asflx
+      type(atmsrf_xchng_vars), dimension(:), allocatable :: asflx
 
 !@param p[12]xxx lower and upper bounds for a given surface type in
 !@+     the asflx array
-      integer, parameter ::
-     &     p1ocn = 1,
-     &     p2ocn = p1ocn+ubound(atmocns,1)-1,
-     &     p1ice = 1+p2ocn,
-     &     p2ice = p1ice+ubound(atmices,1)-1,
-     &     p1gla = 1+p2ice,
-     &     p2gla = p1gla+ubound(atmglas,1)-1,
-     &     p1lnd = 1+p2gla,
-     &     p2lnd = p1lnd+ubound(atmlnds,1)-1
+      integer :: !, parameter ::
+     &     p1ocn != 1
+     &    ,p2ocn != p1ocn+ubound(atmocns,1)-1
+     &    ,p1ice != 1+p2ocn
+     &    ,p2ice != p1ice+ubound(atmices,1)-1
+     &    ,p1gla != 1+p2ice
+     &    ,p2gla != p1gla+ubound(atmglas,1)-1
+     &    ,p1lnd != 1+p2gla
+     &    ,p2lnd != p1lnd+ubound(atmlnds,1)-1
 
 ! Notes on atmxxxs, asflx arrays:
 !
@@ -1911,6 +1912,22 @@ C**** Ensure that no round off error effects land with ice and earth
       enddo
 
 ! set pointers for composite surface types and individual surface patches
+
+      nptchs =
+     &      ubound(atmocns,1)
+     &     +ubound(atmices,1)
+     &     +ubound(atmglas,1)
+     &     +ubound(atmlnds,1)
+      allocate(asflx(nptchs))
+
+      p1ocn = 1
+      p2ocn = p1ocn+ubound(atmocns,1)-1
+      p1ice = 1+p2ocn
+      p2ice = p1ice+ubound(atmices,1)-1
+      p1gla = 1+p2ice
+      p2gla = p1gla+ubound(atmglas,1)-1
+      p1lnd = 1+p2gla
+      p2lnd = p1lnd+ubound(atmlnds,1)-1
 
       atmocn => atmocns(lbound(atmocns,1))
       atmice => atmices(lbound(atmices,1))
