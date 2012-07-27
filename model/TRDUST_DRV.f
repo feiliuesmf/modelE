@@ -347,13 +347,14 @@ c**** set parameters depending on the preferred sources chosen
               OptModelVers='02/20/2010, 23:30 EST'
             else
 #ifdef NUDGE_ON
-              fracClayPDFscheme = 0.038017106D0
-              fracSiltPDFscheme = 0.029505731D0
+              fracClayPDFscheme = 0.053818764d0
+              fracSiltPDFscheme = 0.063865154d0
+              OptModelVers='AR 5 branch, 10/18/2011, 10:00 AM EDT'
 #else
               fracClayPDFscheme = 0.091387274D0
               fracSiltPDFscheme = 0.15582714D0
-#endif
               OptModelVers='02/20/2010, 23:30 EST'
+#endif
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
