@@ -1084,7 +1084,7 @@ C**** Accumulate 3D subdaily quantities
 #endif
       implicit none
       integer, intent(in) :: ih,ihm
-      logical, intent(in) :: moddd
+      integer, intent(in) :: moddd
 
 C**** some shorthand indices and arrays for diurn diags
       INTEGER, PARAMETER :: n_idx1 = 11
@@ -1181,7 +1181,7 @@ C**** For distributed implementation - ensure point is on local process.
 
       implicit none
       real*8, intent(in) :: dtsurf
-      logical, intent(in) :: moddsf
+      integer, intent(in) :: moddsf
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: trhdt_sv2
 
@@ -1619,7 +1619,7 @@ C****
      *     ,idd_swg,idd_lwg,idd_lh,idd_sh,idd_ev,idd_hz0,idd_dcf,idd_ldc
       implicit none
       integer, intent(in) :: ih,ihm
-      logical, intent(in) :: moddd
+      integer, intent(in) :: moddd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) ::
      &     srhdt_sv,trhdt_sv,evhdt_sv,shdt_sv,evap_sv
