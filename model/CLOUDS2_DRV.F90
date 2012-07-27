@@ -1,4 +1,9 @@
 #include "rundeck_opts.h"
+! Adding this empty module allows intel 12.1.5.339 to compile with the 
+! debugging flag.  Weird problem.  The module should be deleted when
+! Intel has a fix.
+module IntelWorkaround3
+end module IntelWorkaround3
 
 subroutine CONDSE
 !@sum   CONDSE driver for moist convection AND large-scale condensation
