@@ -7,10 +7,10 @@
 !@+    sphere atmosphere that runs the GSFC FVcubed dynamical core.
 
 c get grid-independent procedures from domain_decomp_1d
-      use domain_decomp_1d, only : get, am_i_root, sumxpe,
+      use domain_decomp_1d, only : am_i_root, sumxpe,
      &     read_parallel,write_parallel,broadcast,
      &     load_cap_config,globalmax, setMpiCommunicator,
-     &     hasSouthPole, hasNorthPole
+     &     hasSouthPole, hasNorthPole, getDomainBounds
 
 c get dist_grid, halo_update, globalsum, etc. from the dd2d_utils module
       use dd2d_utils, only : dist_grid,init_dist_grid
@@ -135,7 +135,8 @@ c
      &     grd_dum%I_STRT,grd_dum%I_STOP,
      &     grd_dum%J_STRT,grd_dum%J_STOP,
      &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
-     &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum)
+     &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,
+     &     MPI_COMM_WORLD, grd_dum)
 
       grd_dum%have_domain = .true.
       grd_dum%mpi_comm = MPI_COMM_WORLD
