@@ -254,14 +254,15 @@ MODULE dist_grid_mod
    subroutine init_app
 ! ----------------------------------------------------------------------
      USE FILEMANAGER, ONLY : openunit
-     integer :: rc
+     integer :: rc, comm
 
      rank = 0        ! default rank = root PE for serial run
      NPES_WORLD = 1    ! default NPES = 1 for serial run
 #ifdef USE_ESMF
-     Call ESMF_Initialize(vm=modelE_vm, rc=rc)
-     Call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
-    &     rc=rc)
+   call ESMF_Initialize(vm=modelE_vm, rc=rc)
+   call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
+    &     mpiCommunicator=comm, rc=rc)
+   call setCommunicator(comm)
 #else
 #ifdef USE_MPI
    call MPI_INIT(rc)
