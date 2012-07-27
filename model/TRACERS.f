@@ -14,7 +14,7 @@
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param
-      USE CONSTANT, only: mair,sday
+      USE CONSTANT, only: mair
       USE MODEL_COM, only: dtsrc
       USE FLUXES, only : nisurf,atmice
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
@@ -1156,6 +1156,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: jday,idofm=>JDmidOfM
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, INT_MONTHS_PER_YEAR
       implicit none
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -1175,18 +1176,19 @@ C****
           CALL REWIND_PARALLEL( iu )
         else            ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
-          if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
+          if (jday.gt.idofm(imon) .AND. imon.le.INT_MONTHS_PER_YEAR)
+     &        go to 120
           CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,imon-1)
           if (imon.eq.13)  CALL REWIND_PARALLEL( iu )
         end if
       else              ! Do we need to read in second month?
         if (jday.ne.jdlast+1) then ! Check that data is read in daily
-          if (jday.ne.1 .OR. jdlast.ne.365) then
+          if (jday.ne.1 .OR. jdlast.ne.INT_DAYS_PER_YEAR) then
             if (AM_I_ROOT()) write(6,*)
      *      'Incorrect values in Tracer Source:JDAY,JDLAST=',JDAY,JDLAST
             call stop_model('stopped in TRACERS.f',255)
           end if
-          imon=imon-12  ! New year
+          imon=imon-INT_MONTHS_PER_YEAR  ! New year
           go to 130
         end if
         if (jday.le.idofm(imon)) go to 130
@@ -2444,6 +2446,7 @@ c daily_z is currently only needed for CS
 !@auth Jean Lerner/Greg Faluvegi
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: itime
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only: GRID, GET,
      &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
@@ -2534,8 +2537,8 @@ c daily_z is currently only needed for CS
               if(xyear>k .or. (xyear==k.and.xday>=183)) then
                 if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
                   ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) / 
-     &                  (365.d0*real(kstep))
+                  alpha=(DAYS_PER_YEAR*(0.5+real(xyear-1-k))+xday) / 
+     &                  (DAYS_PER_YEAR*real(kstep))
                   kx=k
                   exit
                 endif
@@ -2718,6 +2721,7 @@ c daily_z is currently only needed for CS
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: idofm=>JDmidOfM
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
 
       implicit none
@@ -2746,7 +2750,7 @@ c daily_z is currently only needed for CS
           call readt_parallel(grid,iu,nameunit(iu),tlca,12)
           call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
         else            ! xDAY is in Jan 16 to Dec 16, get first month
-          do while(xday > idofm(imon) .AND. imon <= 12)
+          do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
             imon=imon+1
           enddo
           call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
@@ -2790,14 +2794,15 @@ c****   Interpolate two months of data to current day
 !
         imon=1
         if (xday <= 16)  then ! xDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),tlca,(ipos-1)*12+12)
+         call readt_parallel(grid,iu,nameunit(iu),tlca,
+     &                       (ipos-1)*INT_MONTHS_PER_YEAR+12)
          do nn=1,12; call backspace_parallel(iu); enddo
         else            ! xDAY is in Jan 16 to Dec 16, get first month
-         do while(xday > idofm(imon) .AND. imon <= 12)
+         do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
            imon=imon+1
          enddo
-         call  readt_parallel
-     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*12+imon-1)
+         call readt_parallel (grid,iu,nameunit(iu),tlca,
+     &                        (ipos-1)*INT_MONTHS_PER_YEAR+imon-1)
          if (imon == 13)then
            do nn=1,12; call backspace_parallel(iu); enddo               
          endif
@@ -2812,14 +2817,15 @@ c****   Interpolate two months of data to current day
         ipos=ipos+1
         imon=1
         if (xday <= 16)  then ! xDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),tlca,(ipos-1)*12+12)
+         call readt_parallel(grid,iu,nameunit(iu),tlca,
+     &                       (ipos-1)*INT_MONTHS_PER_YEAR+12)
          do nn=1,12; call backspace_parallel(iu); enddo
         else            ! xDAY is in Jan 16 to Dec 16, get first month
-         do while(xday > idofm(imon) .AND. imon <= 12)
+         do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
            imon=imon+1
          enddo
          call readt_parallel
-     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*12+imon-1)
+     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*INT_MONTHS_PER_YEAR+imon-1)
          if (imon == 13)then
            do nn=1,12; call backspace_parallel(iu); enddo
          endif

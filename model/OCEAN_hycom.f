@@ -912,6 +912,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
       USE HYCOM_DIM, only : grid=>ogrid
@@ -975,7 +976,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
         call read_data(grid,fid,'time',time0,bcast_all=.true.)
-        nstep0=time0*86400./baclin+.0001
+        nstep0=time0*SECONDS_PER_DAY/baclin+.0001
         write(*,'(a,i9,f9.0)')
      &       'chk ocean read at nstep/day=',nstep0,time0
         nstep=nstep0

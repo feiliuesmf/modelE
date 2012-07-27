@@ -10,6 +10,7 @@
       use ent_types
       use ent_const
       use ent_pfts
+      use TimeConstants_mod, only: SECONDS_PER_DAY, SECONDS_PER_MINUTE
  
       implicit none
 !      public veg_init
@@ -139,9 +140,9 @@
       ncd = ecp%ncd
       ld =  ecp%ld
 
-      zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
-      zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
-      zweight90=exp(-1.d0/(90.d0*86400.d0/dtsec)) 
+      zweight=exp(-1.d0/(10.d0*SECONDS_PER_DAY/dtsec))  !for 10-day running avg
+      zweight30=exp(-1.d0/(30.d0*SECONDS_PER_DAY/dtsec)) !for 30-day running avg
+      zweight90=exp(-1.d0/(90.d0*SECONDS_PER_DAY/dtsec)) 
 
       !10-day running average of Soil Temperature
       soiltemp_10d=zweight*soiltemp_10d+(1.0d0-zweight)*soiltemp
@@ -172,7 +173,7 @@
       
       !Photoperiod (Day length) in minute
       if ( coszen .gt. 0.d0 ) then
-         ld = ld + dtsec/60.d0
+         ld = ld + dtsec/SECONDS_PER_MINUTE
       end if
 
       pp => ecp%oldest 
@@ -568,7 +569,7 @@
          C_hw_old = C_hw
          Cactive_old =Cactive
          
-         call litter_turnover_cohort(SDAY,
+         call litter_turnover_cohort(SECONDS_PER_DAY,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,
      &        loss_leaf,resp_growth1)
@@ -647,7 +648,7 @@
          !phenology + turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
 
-         call litter_growth_cohort(SDAY,dCrepro,
+         call litter_growth_cohort(SECONDS_PER_DAY,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth2)
 
@@ -1016,10 +1017,13 @@ c$$$      end subroutine senesce_cpools
 
       !* NLIVE POOLS *! 
       facclim = frost_hardiness(cop%Sacclim)
-      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-!      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-      turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
-      turnoverdtwood = (1.d0-exp(-annK(pft,WOOD)*SDAY))  !Sapwood not hardwood
+      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*
+     &                 SECONDS_PER_DAY              !s^-1 * s/day = day^-1
+!      turnoverdtleaf = facclim*annK(pft,LEAF)*
+!     &                 SECONDS_PER_DAY              !s^-1 * s/day = day^-1
+      turnoverdtfroot = facclim*annK(pft,FROOT)*SECONDS_PER_DAY
+      !Sapwood not hardwood
+      turnoverdtwood = (1.d0-exp(-annK(pft,WOOD)*SECONDS_PER_DAY))  
 
       !* Turnover draws down C_lab. *!
       !* Calculate adjustment factor if loss amount is too large for C_lab.
@@ -1445,10 +1449,12 @@ c$$$      end subroutine senesce_cpools
 
       !* NLIVE POOLS *! 
       facclim = frost_hardiness(cop%Sacclim)
-      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-!      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-      turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
-      turnoverdtwood = (1.d0-exp(-annK(pft,WOOD)*SDAY))  !Sapwood not hardwood
+      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*
+     &                 SECONDS_PER_DAY              !s^-1 * s/day = day^-1
+!      turnoverdtleaf = facclim*annK(pft,LEAF)*SECONDS_PER_DAY 
+      turnoverdtfroot = facclim*annK(pft,FROOT)*SECONDS_PER_DAY
+      !Sapwood not hardwood
+      turnoverdtwood = (1.d0-exp(-annK(pft,WOOD)*SECONDS_PER_DAY))  
 
       !* Turnover draws down C_lab. *!
       !* Calculate adjustment factor if loss amount is too large for C_lab.
@@ -1729,9 +1735,10 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
 
        do i=1,N_CASA_LAYERS  !do this over all CASA layers -PK
         !* NLIVE POOLS *! 
-        turnoverdtleaf = annK(pft,LEAF)*SDAY
-        turnoverdtfroot = annK(pft,FROOT)*SDAY
-        turnoverdtwood = 1.d0-exp(-annK(pft,WOOD)*SDAY) !Sapwood not hardwood
+        turnoverdtleaf = annK(pft,LEAF)*SECONDS_PER_DAY
+        turnoverdtfroot = annK(pft,FROOT)*SECONDS_PER_DAY
+        !Sapwood not hardwood
+        turnoverdtwood = 1.d0-exp(-annK(pft,WOOD)*SECONDS_PER_DAY) 
 
         !* UPDATE C_LAB: Turnover should draw down C_lab. *!
         ! Check that amount not too large 

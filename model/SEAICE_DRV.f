@@ -349,7 +349,7 @@ C****
 !@sum  MELT_SI driver for lateral melt of sea ice
 !@auth Gary Russell/Gavin Schmidt
 !@calls SEAICE:SIMELT
-      USE CONSTANT, only : sday,TF
+      USE CONSTANT, only : TF
       USE MODEL_COM, only : kocean,dtsrc
       USE SEAICE, only : lmi,simelt,tfrez,xsi,Ti,ace1i,debug
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars,
@@ -537,7 +537,8 @@ C**** replicate ice values at the poles
 !@auth Gary Russell/Gavin Schmidt
 !@ver  2010/11/12
 !@calls SEAICE:SEA_ICE
-      USE CONSTANT, only : grav,rhows,rhow,sday
+      USE CONSTANT, only : grav,rhows,rhow
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only : dtsrc
       USE EXCHANGE_TYPES, only :
      &     atmice_xchng_vars,iceocn_xchng_vars,atmocn_xchng_vars
@@ -770,9 +771,9 @@ C**** pond_melt accumulation
 
 C**** decay is slow if there is some melting, faster otherwise
         if (MELT12.gt.0) then   ! 30 day decay
-          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(30.*sday))
+          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(30.*SECONDS_PER_DAY))
         else                    ! 10 day decay
-          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(10.*sday))
+          pond_melt(i,j)=pond_melt(i,j)*(1.-dtsrc/(10.*SECONDS_PER_DAY))
         end if
 
 C**** saftey valve to ensure that melt ponds eventually disappear (Ti<-10)

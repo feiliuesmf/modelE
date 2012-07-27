@@ -20,7 +20,9 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
-
+      use TimeConstants_mod, only: SECONDS_PER_HOUR, DAYS_PER_YEAR,
+     &                             HOURS_PER_DAY
+      
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -282,7 +284,7 @@ c Update DIC for sea-air flux of CO2
       k = 1
       do nt=1,ntm
       term = tracflx1d(nt)           ! mol/m2/s
-     .     * 3600.D0                 ! mol/m2/hr
+     .     * SECONDS_PER_HOUR        ! mol/m2/hr
      .     /dp1d(k)                  ! mol/m3/hr
      .     * 1000.D0                 !units of uM/hr (=mili-mol/m3/hr)
                                      !do not mulitply by pnoice here, 
@@ -328,7 +330,7 @@ c Update DIC for sea-air flux of CO2
       xco2 = atmCO2*1013.D0/stdslp
       deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
       flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-      flxmolm3h = flxmolm3*3600.D0          !units of mol/m3/hr
+      flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr
       term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
@@ -338,8 +340,8 @@ c Update DIC for sea-air flux of CO2
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)  ! air-sea co2 flux
-     .            *3600.D0                                   ! mol/m2/hr
-     .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
+     .            *SECONDS_PER_HOUR                             ! mol/m2/hr
+     .            *44.d0*HOURS_PER_DAY*DAYS_PER_YEAR            ! grC/m2/yr
       if (vrbos) then
             write(*,'(a,3i5,11e12.4)')'obio_carbon, fluxdiag:',
      .      nstep,i,j,dp1d(k),Ts,saln1d(k),scco2arg,wssq,rkwco2,

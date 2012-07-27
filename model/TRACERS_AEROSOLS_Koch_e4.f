@@ -234,6 +234,7 @@ c
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
       use resolution, only: im,jm
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
       USE MODEL_COM, only: jday,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
@@ -266,7 +267,7 @@ C
           CALL REWIND_PARALLEL( iu )
         else              ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
-          if (jday > idofm(imon) .AND. imon <= 12) go to 120
+          if (jday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR) go to 120
           do L=1,Ldim*(imon-2)
             CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
           end do
@@ -278,13 +279,13 @@ C
         end if
       else                         ! Do we need to read in second month?
         if (jday /= jdlast+1) then ! Check that data is read in daily
-          if (jday /= 1 .OR. jdlast /= 365) then
+          if (jday /= 1 .OR. jdlast /= INT_DAYS_PER_YEAR) then
             write(out_line,*)'Bad day values in read_monthly_3Dsources'
      &      //': JDAY,JDLAST=',JDAY,JDLAST
             call write_parallel(trim(out_line),crit=.true.)
             call stop_model('Bad values in read_monthly_3Dsources',255)
           end if
-          imon=imon-12             ! New year
+          imon=imon-INT_MONTHS_PER_YEAR             ! New year
           go to 130
         end if
         if (jday <= idofm(imon)) go to 130
@@ -482,7 +483,7 @@ c Monthly DMS ocean concentration sources are read in and combined
 c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
       use resolution, only: lm
@@ -512,7 +513,7 @@ c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
-     *       /sday
+     *       /SECONDS_PER_DAY
 c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
 c       else
 c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
@@ -536,7 +537,8 @@ c if after Feb 28 skip the leapyear day
          if (jday.gt.59) jread=jday+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
-         erate=DMS_AER(i,j,jread)/sday/axyp(i,j)*tr_mm(n_DMS)/32.d0
+         erate=DMS_AER(i,j,jread)/SECONDS_PER_DAY/axyp(i,j)*
+     &         tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
 c
@@ -548,7 +550,7 @@ c
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
       USE TRACER_COM, only: OFFLINE_DMS_SS,OFFLINE_SS
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE GEOM, only: axyp
       USE MODEL_COM, only: jday
       USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
@@ -605,7 +607,7 @@ c if after Feb 28 skip the leapyear day
         jread=jday
         if (jday.gt.59) jread=jday+1
         if (ibin.eq.1) then
-          ss=SS1_AER(i,j,jread)/(sday*axyp(i,j))
+          ss=SS1_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
 #ifdef TRACERS_AEROSOLS_OCEAN
           if (trim(tr).eq.'OCocean') then
             ss=ss*OC_SS_enrich_fact(i,j)
@@ -614,7 +616,7 @@ c if after Feb 28 skip the leapyear day
           endif
 #endif  /* TRACERS_AEROSOLS_OCEAN */
         else 
-          ss=SS2_AER(i,j,jread)/(sday*axyp(i,j))
+          ss=SS2_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
         endif
       endif
       return
@@ -648,7 +650,8 @@ c if after Feb 28 skip the leapyear day
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
-       USE CONSTANT, only : mair, sday
+      USE CONSTANT, only : mair
+      use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
 #endif
@@ -825,8 +828,10 @@ c     endif
 #endif
 #endif
       dtt=dtsrc
-      bciage=(1.d0-exp(-dtsrc/(2.7d0*sday)))/dtsrc !efold time of 2.7 days
-      ociage=(1.d0-exp(-dtsrc/(1.6d0*sday)))/dtsrc !efold time of 1.6 days
+      !efold time of 2.7 days
+      bciage=(1.d0-exp(-dtsrc/(2.7d0*SECONDS_PER_DAY)))/dtsrc 
+      !efold time of 1.6 days
+      ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,lm
       do 21 j=j_0,j_1
@@ -967,7 +972,8 @@ c SO2 production from DMS
 #ifdef TRACERS_TOMAS 
 ! EC/OC aging 
         case ('AECIL_01')
-           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day 
 
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
@@ -983,7 +989,8 @@ c SO2 production from DMS
            ENDDO
            
         case ('AOCIL_01')
-           TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
      &             =trm(i,j,l,n_AOCOB(K))*
@@ -1636,6 +1643,7 @@ c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
 c
       USE CONSTANT, only: pi,gasc
       USE FLUXES, only: atmsrf
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       USE GHY_COM, only: snoage
       USE AEROSOL_SOURCES, only: snosiz
       IMPLICIT none
@@ -1669,7 +1677,7 @@ c secondary growth
          r0=150.d0
          ert = dexp(-E/(GASC*atmsrf%TSAVG(I,J)))
          tfac = a*ert
-         area = (TFAC/365.d0) * (AGE-12.5d0)
+         area = (TFAC/DAYS_PER_YEAR) * (AGE-12.5d0)
          radmm=dsqrt(area/pi)
          delrad = radmm*1000.d0
          rads=delrad + r0
@@ -1694,6 +1702,7 @@ c melting snow
 !  we run aerosols independent of gases
       use resolution, only: im,jm
       USE MODEL_COM, only: jday,jyear,idofm=>JDmidOfM
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
      &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
@@ -1732,7 +1741,7 @@ C
         enddo
         call rewind_parallel(iu)
       else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+        do while(jday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
           imon=imon+1
         enddo
         if(imon/=2)then ! avoids advancing records at start of file
@@ -1787,7 +1796,7 @@ c**** Interpolate two months of data to current day
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
       else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+        do while(jday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
           imon=imon+1
         enddo
         if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
@@ -1826,7 +1835,7 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
       else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+        do while(jday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
           imon=imon+1
         enddo
         write(6,*) 'Not using this first record:'

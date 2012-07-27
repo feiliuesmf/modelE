@@ -6,7 +6,7 @@
      .                    ,JMON,jhour,nday,jdate,jday
      . ,iyear1,jdendofm,jyear,aMON,dtsrc
      . ,xlabel,lrunid
-      USE CONSTANT,   only : grav,omega,sday
+      USE CONSTANT,   only : grav,omega
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS

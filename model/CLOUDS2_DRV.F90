@@ -5,7 +5,9 @@ subroutine CONDSE
 !@auth  M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@calls CLOUDS:MSTCNV,CLOUDS:LSCOND
   use CONSTANT, only : bygrav,lhm,rgas,grav,tf,lhe,lhs,sha,deltx &
-       ,teeny,sday,undef,bysha
+       ,teeny,undef,bysha
+  use TimeConstants_mod, only: SECONDS_PER_DAY, INT_HOURS_PER_DAY, &
+                               SECONDS_PER_HOUR
   use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
   use ATM_COM, only : p,u,v,t,q,wm
@@ -409,7 +411,7 @@ subroutine CONDSE
   QMC=Q
   FSS=1.
   IH=modelEclock%hour()+1
-  IHM = IH+(modelEclock%date()-1)*24
+  IHM = IH+(modelEclock%date()-1)*INT_HOURS_PER_DAY
 #ifdef TRACERS_ON
   !**** Find the ntx active tracers ntix(1->ntx)
   nx = 0
@@ -1359,14 +1361,14 @@ subroutine CONDSE
 #ifdef SCM
         !**** save total precip for time step (in mm/hr) for SCM
         if (I.eq.I_TARG .and. J.eq.J_TARG) then
-          PRCSS = PRECSS(I,J)*(3600./DTsrc)
-          PRCMC = (PREC(I,J)-PRECSS(I,J))*(3600./DTsrc)
+          PRCSS = PRECSS(I,J)*(SECONDS_PER_HOUR/DTsrc)
+          PRCMC = (PREC(I,J)-PRECSS(I,J))*(SECONDS_PER_HOUR/DTsrc)
         endif
 #endif
 
 #ifdef INTERACTIVE_WETLANDS_CH4
         !**** update running-average of precipitation (in mm/day):
-        call running_average(prcp*sday*byDTsrc,I,J,1.d0,n__prec)
+        call running_average(prcp*SECONDS_PER_DAY*byDTsrc,I,J,1.d0,n__prec)
 #endif
 
         do L=1,LM

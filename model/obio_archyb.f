@@ -8,7 +8,8 @@ c
       USE MODEL_COM, only :
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
      * ,xlabel,lrunid
-
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref,baclin
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
@@ -62,7 +63,7 @@ c
       nop=12
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 
-      factor=baclin/(jdate*86400.)
+      factor=baclin/(jdate*SECONDS_PER_DAY)
 c
       open (unit=nop,file=flnm,status='unknown',
      .      form='unformatted')

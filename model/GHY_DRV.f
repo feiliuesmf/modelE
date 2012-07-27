@@ -204,7 +204,7 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-      USE constant,ONLY : sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth,wfcs
@@ -286,7 +286,7 @@ ccc tracers variables
 c**** prescribed dust emission
       pbl_args%d_dust(1:nAerocomDust)=
      &     d_dust(i,j,1:nAerocomDust,dayOfYear)
-     &     /Sday/axyp(i,j)/ptype
+     &     /SECONDS_PER_DAY/axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%mineralFractions(:)=mineralFractions(i,j,:)
@@ -319,7 +319,7 @@ c**** prescribed dust emission
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
       use ent_com, only : excess_C
-      use constant, only : syr
+      use TimeConstants_mod, only: SECONDS_PER_YEAR
 #endif
 #ifdef BIOGENIC_EMISSIONS
       use trdiag_com,ONLY : ijs_isoprene
@@ -396,7 +396,7 @@ ccc tracers
       n = 1
 c     redistribute excess_C in the atmosphere (assume the time scale
 c     of about a year)
-      delta_C = excess_C(i,j)/syr*dtsurf
+      delta_C = excess_C(i,j)/SECONDS_PER_YEAR*dtsurf
       excess_C(i,j) = excess_C(i,j) - delta_C
 cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
@@ -1486,6 +1486,7 @@ c***********************************************************************
       use fluxes, only : atmlnd,nisurf
       use model_com, only : modelEclock
       use model_com, only : dtsrc,nday,itime
+      use TimeConstants_mod, only: DAYS_PER_YEAR, INT_HOURS_PER_DAY
 #ifdef SCM
       use SCMDIAG, only : EVPFLX,SHFLX
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
@@ -1564,10 +1565,10 @@ ccc the following values are returned by PBL
 #endif
 
       timez=dayOfYear+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
-      if(dayOfYear.le.31) timez=timez+365.
+      if(dayOfYear.le.31) timez=timez+DAYS_PER_YEAR
 
       ih=1+modelEclock%hour()
-      ihm = ih+(modelEclock%date()-1)*24
+      ihm = ih+(modelEclock%date()-1)*INT_HOURS_PER_DAY
 
       spring=-1.
       if((dayOfYear.ge.32).and.(dayOfYear.le.212)) spring=1.
@@ -1921,7 +1922,8 @@ c**** check whether ground hydrology data exist at this point.
 
 
       subroutine init_veg( istart, redogh )
-      use constant, only : twopi,edpery
+      use constant, only : twopi
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use model_com, only : modelEclock
       use model_com, only : itime,nday
       use fluxes, only : focean
@@ -1940,14 +1942,14 @@ c**** check whether ground hydrology data exist at this point.
       integer year, dayOfYear
 
 c**** cosday, sinday should be defined (reset once a day in daily_earth)
-      dayOfYear=1+mod(itime/nday,365)
+      dayOfYear=1+mod(itime/nday,int(EARTH_DAYS_PER_YEAR))
 
 #ifdef USE_ENT
       call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
       CALL init_module_ent(istart.le.2, dayOfYear, year, FOCEAN)
 #else
-      cosday=cos(twopi/edpery*dayOfYear)
-      sinday=sin(twopi/edpery*dayOfYear)
+      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
+      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
       call init_vegetation(redogh,istart)
 #endif
 
@@ -3288,7 +3290,8 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 !@sum  daily_earth performs daily tasks for earth related functions
 !@auth original development team
 !@calls RDLAI
-      use constant, only : rhow,twopi,edpery,tf
+      use constant, only : rhow,twopi,tf
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use model_com, only : modelEclock
       use model_com, only : nday
       use fluxes, only : nisurf,focean,atmlnd
@@ -3390,8 +3393,8 @@ c**** find leaf-area index & water field capacity for ground layer 1
 
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
 #ifndef USE_ENT
-      cosday=cos(twopi/edpery*dayOfYear)
-      sinday=sin(twopi/edpery*dayOfYear)
+      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
+      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
 #endif
       atmlnd%bare_soil_wetness(:,:) = 0.d0 ! make sure that it is initialized
       do j=J_0,J_1
@@ -3466,8 +3469,8 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
      $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
 
             !Calculate dlmass(i,j) increment from last jday
-            !cosdaym1=cos(twopi/edpery*(jday-1))
-            !sindaym1=sin(twopi/edpery*(jday-1))
+            !cosdaym1=cos(twopi/EARTH_DAYS_PER_YEAR*(jday-1))
+            !sindaym1=sin(twopi/EARTH_DAYS_PER_YEAR*(jday-1))
             !aleafmasslast=almass(1,i,j)+cosdaym1*almass(2,i,j)+
 !     $      !     sindaym1*almass(3,i,j)
             !accumulate dlmass
@@ -4067,7 +4070,8 @@ ccc just checking ...
 
 
       subroutine compute_water_deficit
-      use constant, only : twopi,edpery,rhow
+      use constant, only : twopi,rhow
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
      &     ,w_ij,fearth
       !use veg_com, only : ala !,afb
@@ -4088,8 +4092,8 @@ cddd      real*8 :: cosday,sinday,alai
 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
-cddd      cosday=cos(twopi/edpery*jday)
-cddd      sinday=sin(twopi/edpery*jday)
+cddd      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*jday)
+cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
 
       DMWLDF(:,:) = 0.d0
 
@@ -4145,7 +4149,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
       subroutine init_underwater_soil
 
 !!!! UNFINISHED
-      use constant, only : twopi,edpery,rhow,shw_kg=>shw
+      use constant, only : twopi,rhow,shw_kg=>shw
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use ghy_com, only : ngm,imt,LS_NFRAC,dz_ij,q_ij
      &     ,w_ij,ht_ij,fearth,shc_soil_texture
 #ifdef TRACERS_WATER
@@ -4181,8 +4186,8 @@ cddd      integer, intent(in) :: jday
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
 
-cddd      cosday=cos(twopi/edpery*jday)
-cddd      sinday=sin(twopi/edpery*jday)
+cddd      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*jday)
+cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -4354,7 +4359,8 @@ cddd      sinday=sin(twopi/edpery*jday)
       subroutine update_land_fractions !(jday)
 
 !!!! UNFINISHED
-      use constant, only : twopi,edpery,rhow,shw_kg=>shw
+      use constant, only : twopi,rhow,shw_kg=>shw
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth
      &     ,fr_snow_rad_ij,snowbv,top_dev_ij

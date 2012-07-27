@@ -11,7 +11,8 @@
       SUBROUTINE init_LI(istart)
 !@sum  init_ice initialises landice arrays
 !@auth Original Development Team
-      USE CONSTANT, only : edpery,sday,lhm,tf
+      USE CONSTANT, only : lhm,tf
+      use TimeConstants_mod, only: SECONDS_PER_DAY,EARTH_DAYS_PER_YEAR
       USE FILEMANAGER
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
@@ -218,7 +219,7 @@ c        TRICBIMP=0.
 
 C**** Set GMELT (kg per source time step)
 C****   from total hemispere ACCPDA (kg per year)
-      DTSRCzY = DTSRC / (SDAY*EDperY)
+      DTSRCzY = DTSRC / (SECONDS_PER_DAY*EARTH_DAYS_PER_YEAR)
 #ifndef SCM
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
@@ -406,7 +407,7 @@ C**** ACCUMULATE DIAGNOSTICS
 !@auth Original Development team
 !@ver  2010/10/06
 !@calls LANDICE:LNDICE
-      USE CONSTANT, only : tf,sday,edpery
+      USE CONSTANT, only : tf
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
@@ -696,10 +697,11 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@sum  daily_ice does daily landice things
 !@auth Gavin Schmidt
 !@ver  2010/10/13
-      USE CONSTANT, only : edpery,sday,lhm,shi
+      USE CONSTANT, only : lhm,shi
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : dtsrc, modelEclock
-     *     ,itime,itimei,nday,JDperY
+      USE MODEL_COM, only : dtsrc, modelEclock, itime, itimei, nday
+      use TimeConstants_mod, only: SECONDS_PER_DAY, EARTH_DAYS_PER_YEAR,
+     &                             INT_DAYS_PER_YEAR
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
@@ -755,12 +757,12 @@ C**** hemispheric masking (why isn't this in GEOM?)
       enddo; enddo
 
 C**** Subtract daily ice berg mass that is added to ocean in DAILY_OC
-      MICBIMP(:) = MICBIMP(:) - (/  ACCPDA,  ACCPDG /) / EDPERY
-      EICBIMP(:) = EICBIMP(:) - (/ EACCPDA, EACCPDG /) / EDPERY
+      MICBIMP(:) = MICBIMP(:)-(/  ACCPDA,  ACCPDG /)/EARTH_DAYS_PER_YEAR
+      EICBIMP(:) = EICBIMP(:)-(/ EACCPDA, EACCPDG /)/EARTH_DAYS_PER_YEAR
 c#ifdef TRACERS_WATER
 C     DO N=1,NTM
 C       TRICBIMP(N,:) = TRCIBIMP(N,:) -
-C    -                  (/ TRACCPDA(:), TRACCPDG(:) /) / EDPERY
+C    -                  (/ TRACCPDA(:), TRACCPDG(:) /) / EARTH_DAYS_PER_YEAR
 C     END DO
 c#endif
 
@@ -807,7 +809,8 @@ C    +                      (/ TRDWNIMP_SH(:), TRDWNIMP_NH(:) /)
 #endif
 
 ! only adjust after at least one full year
-        If (ITIME >= ITIMEI+JDperY*NDAY .and. GLMELT_ON==1)  Then
+        if (ITIME >= ITIMEI+INT_DAYS_PER_YEAR*NDAY .and. GLMELT_ON==1)  
+     &      then
                                                         !  EndIf at 400
 C*** prevent iceberg sucking
           if(mdwnimp_NH.lt.0) then
@@ -899,7 +902,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
 
 C**** Set GMELT (kg of ice per source time step
 C****   from total hemisphere ACCPDA or ACCPDG (kg per year)
-      DTSRCzY = DTSRC / (SDAY*EDperY)
+      DTSRCzY = DTSRC / (SECONDS_PER_DAY*EARTH_DAYS_PER_YEAR)
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           If (LAT2D(I,J) < 0)  Then  !  SH

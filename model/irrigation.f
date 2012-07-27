@@ -64,8 +64,10 @@
 !@sum  Calculates daily irrigation from monthly irrigation data.  Routine
 !@sum  sets imon, irr_month_0, and irr_month_1 depending on jday and
 !@sum  jyear (cyclical case does not need jyear).
-      USE CONSTANT, only : rhow,teeny,shw,sday
-      use model_com, only : jday,Itime,jmon,JDmidOfM,itimei,JMperY,jyear
+      USE CONSTANT, only : rhow,teeny,shw
+      use model_com, only : jday,Itime,jmon,JDmidOfM,itimei,jyear
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR,
+     &                             INT_MONTHS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, ONLY : grid, get, am_i_root
      &                          ,READT_PARALLEL,REWIND_PARALLEL
      &                          ,READ_PARALLEL, MREAD_PARALLEL
@@ -126,7 +128,7 @@
          else
 
            if (jday /= jdlast+1) then !have a new year: reset imon 13->1
-             imon=imon-12
+             imon=imon-INT_MONTHS_PER_YEAR
              go to 330
            end if
 
@@ -160,20 +162,21 @@
              CALL REWIND_PARALLEL( iu_irrigate )
            else            ! JDAY is in Jan 16 to Dec 16, get first month
   620        IMON=IMON+1
-             IF (JDAY > JDmidOFM(IMON) .and. IMON <= 12) GO TO 620
+             IF(JDAY > JDmidOFM(IMON) .and. IMON <= INT_MONTHS_PER_YEAR)
+     &          GO TO 620
              CALL READT_PARALLEL
      &       (grid,iu_irrigate,NAMEUNIT(iu_irrigate),irr_month_0,IMON-1)
              if (IMON == 13)  CALL REWIND_PARALLEL( iu_irrigate )
            endif
          ELSE                      ! Do we need to read in second month?
            IF (JDAY /= JDLAST+1) THEN ! Check that data is read in daily
-             IF (JDAY /= 1 .or. JDLAST /= 365) THEN
-            WRITE (6,*) 'Incorrect values in irrigate,JDAY,JDLAST=',JDAY
+             IF (JDAY /= 1 .or. JDLAST /= INT_DAYS_PER_YEAR) THEN
+             WRITE(6,*) 'Incorrect values in irrigate,JDAY,JDLAST=',JDAY
      &           ,JDLAST
                call stop_model(
      &           'ERROR READING IN SETTING IRRIGATION CLIMATOLOGY',255)
              END IF
-             IMON=IMON-12          ! New year
+             IMON=IMON-INT_MONTHS_PER_YEAR        ! New year
              GO TO 630
            END IF
            IF (JDAY <= JDmidOFM(IMON)) GO TO 630
@@ -203,7 +206,7 @@
            endif
 C**** diagnostic
            if (endofday) aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
-     &          irrig_water_pot(i,j)*sday*1000.d0
+     &          irrig_water_pot(i,j)*SECONDS_PER_DAY*1000.d0
 
          enddo
       enddo

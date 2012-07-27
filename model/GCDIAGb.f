@@ -52,7 +52,8 @@
 
 
       subroutine gc_defs
-      use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,sha
+      use CONSTANT, only : twopi,rgas,lhe,bygrav,sha
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : qcheck,dtsrc
       use DYNAMICS, only : dt,do_gwdrag
       use GCDIAG
@@ -448,7 +449,7 @@ c
       lname_gc(k) = 'DTEMP/DT BY MEAN ADVECTION (CP)'
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
-      scale_gc(k) = SDAY
+      scale_gc(k) = SECONDS_PER_DAY
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -466,7 +467,7 @@ c
       lname_gc(k) = 'DTEMP/DT BY TRANSFORMED ADVECTION (CP)'
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
-      scale_gc(k) = SDAY
+      scale_gc(k) = SECONDS_PER_DAY
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -513,7 +514,7 @@ c
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
       jgrid_gc(k) = 1
-      scale_gc(k) = SDAY
+      scale_gc(k) = SECONDS_PER_DAY
 c
       k=k+1
       jk_eddvtpt = k
@@ -668,7 +669,7 @@ c
       sname_gc(k) = 'dtempdt_eddy_conv'
       lname_gc(k) = 'DTEMP/DT BY EDDY CONVERGENCE (CP)'
       units_gc(k) = 'K/DAY'
-      scale_gc(k) = SDAY
+      scale_gc(k) = SECONDS_PER_DAY
       pow_gc(k) = -1
       denom_gc(k) = jk_dpa
       k = k + 1

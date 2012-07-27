@@ -79,7 +79,7 @@
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
      . ,itime,iyear1,jdendofm,jyear,aMON,dtsrc
      . ,xlabel,lrunid
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: HOURS_PER_DAY
 
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -1031,8 +1031,8 @@ cdiag     endif
        if (p1d(kdm+1).gt.200.) then    !if total depth > 200m
           do nt=1,nchl
           do k=1,kdm
-              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)  !mg,C/m2/hr
-     .                                       * 24.d0        !->mg,C/m2/day
+              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)     !mg,C/m2/hr
+     &                                       * HOURS_PER_DAY   !->mg,C/m2/day
           enddo
           enddo
        endif

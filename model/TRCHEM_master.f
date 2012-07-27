@@ -22,6 +22,7 @@ c
       USE ATM_COM, only     : T,Q
       USE MODEL_COM, only   : JDAY,JYEAR,
      &                        JHOUR, itime, itimeI, itime0
+      use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : COUPLED_CHEM
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
      &                        bygrav,lhe,undef
@@ -228,7 +229,7 @@ C**** Local parameters and variables and arguments:
 
 ! calculate what longitudes to accumulate for 10:30am/1:30pm NO2 diags:
 ! Um... Does use of Jhour here assume starting the model at midnight?
-      istep = NINT(real(IM)/24.) ! number of boxes per hour
+      istep = NINT(real(IM)/HOURS_PER_DAY) ! number of boxes per hour
       ! ih1030/1330 are westmost I index that hour (careful: int arith.)
       ih1030 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
       ih1330 = istep*(13-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
@@ -2063,6 +2064,7 @@ C Make sure nighttime chemistry changes are not too big:
       use atm_com, only: pmid
       use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
+      use TimeConstants_mod, only: HOURS_PER_DAY, DAYS_PER_YEAR
 
 !@var dec declination angle of the earth
 !@var lha local hour angle
@@ -2076,8 +2078,8 @@ C Make sure nighttime chemistry changes are not too big:
       integer, intent(in) :: i,j
       integer :: L
 
-      dec=radian*23.455d0*COS( ((jday-173)*twopi)/365.d0 )
-      lha=twopi*real(jhour)/24.d0
+      dec=radian*23.455d0*COS( ((jday-173)*twopi)/DAYS_PER_YEAR )
+      lha=twopi*real(jhour)/HOURS_PER_DAY
 
       CC=COS(lat2d(I,J))*COS(dec)
       SS=SIN(lat2d(I,J))*SIN(dec)

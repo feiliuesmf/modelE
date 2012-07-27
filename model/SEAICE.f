@@ -7,8 +7,8 @@
 !@sum  SEAICE contains all the sea ice related subroutines
 !@auth Original Development Team
 !@cont PREC_SI,SEA_ICE,ADDICE,SIMELT
-      USE CONSTANT, only : lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,sday
-     *     ,rhows
+      USE CONSTANT, only: lhm,rhoi,byrhoi,rhow,shi,shw,byshi,bylhm,rhows
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       IMPLICIT NONE
       SAVE
 #ifdef TRACERS_WATER
@@ -1049,7 +1049,8 @@ C****
       INTEGER L
 !@var dtssi decay time scale for sea ice salinity (days)
 !@var bydtssi decay constant for sea ice salinity (1/s)
-      REAL*8, parameter :: dtssi=30.d0, bydtssi=1./(dtssi*sday)
+      REAL*8, parameter :: dtssi = 30.d0
+      REAL*8, parameter :: bydtssi = 1./(dtssi*SECONDS_PER_DAY)
       REAL*8 :: rate,brine_frac
 
       DSSI = 0. ; DMSI = 0. ; DHSI = 0.

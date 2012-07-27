@@ -75,7 +75,7 @@
 
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
-      real*8,parameter :: sday = 86400.d0! sec per day (s)
+!      real*8,parameter :: sday = 86400.d0 ! sec per day - Now set in TimeConstants
       real*8,parameter :: SECPY = 31536000.d0  ! sec per year (s)
 
       !************************************************************************

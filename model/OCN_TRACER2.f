@@ -62,8 +62,8 @@ c
       SUBROUTINE OCN_TR_AGE(DTS)
 !@sum OCN_TR_AGE age tracers in ocean
 !@auth Gavin Schmidt/Natassa Romanou
-      USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,JDperY
+      USE MODEL_COM, only : itime
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE OCN_TRACER_COM, only : n_age
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
@@ -83,7 +83,7 @@ c**** Extract domain decomposition info
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
 C**** age=1/(JDperY*24*3600) in years
-      age_inc=dts/(JDperY*SDAY)
+      age_inc=dts/(INT_DAYS_PER_YEAR*SECONDS_PER_DAY)
       DO L=1,LMO
         DO J=J_0,J_1
           DO I=1,IMAXJ(J)
@@ -106,8 +106,7 @@ C****
       SUBROUTINE OCN_TR_VENT(DTS)
 !@sum OCN_VENT tracer in ocean
 !@auth Natassa Romanou
-      USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,JDperY
+      USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_vent
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
@@ -149,8 +148,7 @@ C****
       SUBROUTINE OCN_TR_WaterMass(DTS)
 !@sum OCN_WaterMass tracer in ocean
 !@auth Natassa Romanou
-      USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,JDperY
+      USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_wms1,n_wms2,n_wms3
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo, oLON_DG,oLAT_DG,ZOE=>ZE
@@ -238,8 +236,9 @@ C****
        subroutine OCN_TR_DetrSettl(DTS)
 !@sum OCN_TR_DetrSettl in ocean
 !@auth Natassa Romanou
-      USE CONSTANT, only : sday,grav
+      USE CONSTANT, only : grav
       USE MODEL_COM, only : itime,itimei
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       USE OCN_TRACER_COM, only : n_dets
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo,g0m,s0m,dxypo
@@ -282,7 +281,7 @@ c**** Extract domain decomposition info
 !     enddo
 
 ! convert to m/s
-      wsdet = wsdet/3600.d0
+      wsdet = wsdet/SECONDS_PER_HOUR
 
       ! initialization :-)
       if (itime.eq.itimei) then 
@@ -337,8 +336,7 @@ c**** Extract domain decomposition info
 !@sum OCN_DIC tracer in ocean
 ! dic preindustrial in the ocean + gas exchange
 !@auth Natassa Romanou
-      USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,JDperY,itime,itimei
+      USE MODEL_COM, only : itime,itime,itimei
       USE OCN_TRACER_COM, only : n_vent
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo

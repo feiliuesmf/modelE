@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
 
       module core_data
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       implicit none
       save
 
@@ -18,7 +19,7 @@
 
 !@dbparam sss_restore_dt timescale (days) for surf salinity
 !@+       relaxation back to observations
-      real*8 :: sss_restore_dt=2.*365.
+      real*8 :: sss_restore_dt=2.*DAYS_PER_YEAR
 !@dbparam sss_restore_dtice timescale (days) for surf salinity
 !@+       relaxation back to observations in the presence of sea ice
       real*8 :: sss_restore_dtice=30.
@@ -36,6 +37,7 @@
 
       subroutine alloc_core_data
       use domain_decomp_atm, only : grid
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       use core_data
       use Dictionary_mod, only : sync_param
       implicit none
@@ -54,41 +56,41 @@
       j_0h = grid%j_strt_halo
       j_1h = grid%j_stop_halo
 
-      allocate(swdn0(i_0h:i_1h,j_0h:j_1h,365))
-      allocate(lwdn0(i_0h:i_1h,j_0h:j_1h,365))
+      allocate(swdn0(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
+      allocate(lwdn0(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
       allocate(prec0(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal0(i_0h:i_1h,j_0h:j_1h,12))
-      allocate(rsi(i_0h:i_1h,j_0h:j_1h,365))
+      allocate(rsi(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
 
-      allocate(swdn1(i_0h:i_1h,j_0h:j_1h,365))
-      allocate(lwdn1(i_0h:i_1h,j_0h:j_1h,365))
+      allocate(swdn1(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
+      allocate(lwdn1(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
       allocate(prec1(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal1(i_0h:i_1h,j_0h:j_1h,12))
 
-      allocate(swdn2(i_0h:i_1h,j_0h:j_1h,365))
-      allocate(lwdn2(i_0h:i_1h,j_0h:j_1h,365))
+      allocate(swdn2(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
+      allocate(lwdn2(i_0h:i_1h,j_0h:j_1h,INT_DAYS_PER_YEAR))
       allocate(prec2(i_0h:i_1h,j_0h:j_1h,12))
       allocate(srfsal2(i_0h:i_1h,j_0h:j_1h,12))
 
       allocate(runoff(i_0h:i_1h,j_0h:j_1h))
 
-      allocate(psl0(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(ts0(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(qs0(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(us0(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(vs0(i_0h:i_1h,j_0h:j_1h,4*365))
+      allocate(psl0(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(ts0(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(qs0(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(us0(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(vs0(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
 
-      allocate(psl1(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(ts1(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(qs1(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(us1(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(vs1(i_0h:i_1h,j_0h:j_1h,4*365))
+      allocate(psl1(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(ts1(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(qs1(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(us1(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(vs1(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
 
-      allocate(psl2(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(ts2(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(qs2(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(us2(i_0h:i_1h,j_0h:j_1h,4*365))
-      allocate(vs2(i_0h:i_1h,j_0h:j_1h,4*365))
+      allocate(psl2(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(ts2(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(qs2(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(us2(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
+      allocate(vs2(i_0h:i_1h,j_0h:j_1h,4*INT_DAYS_PER_YEAR))
 
       return
       end subroutine alloc_core_data
@@ -456,7 +458,8 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       end subroutine coeffs1d_pos
 
       subroutine get_ocean_forcings
-      use constant, only : lhm,tf,sday
+      use constant, only : lhm,tf
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       use model_com, only : dtsrc,jmon,jyear,jday,nday,itime
       use domain_decomp_atm, only : grid
       use geom, only : axyp
@@ -488,9 +491,9 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       I_1 = grid%I_STOP
       J_0 = grid%J_STRT
       J_1 = grid%J_STOP
-      sssresfac     = exp(-dtsrc/(sss_restore_dt   *sday))
-      sssresfac_ice = exp(-dtsrc/(sss_restore_dtice*sday))
-      itperyr = nday*365
+      sssresfac     = exp(-dtsrc/(sss_restore_dt   *SECONDS_PER_DAY))
+      sssresfac_ice = exp(-dtsrc/(sss_restore_dtice*SECONDS_PER_DAY))
+      itperyr = nday*INT_DAYS_PER_YEAR
       itmod = mod(itime,itperyr)
       j6hr = 1+itmod*4/nday
       t = (real(itmod,kind=8)+.5d0)/real(itperyr,kind=8)
@@ -2117,7 +2120,8 @@ C****
       SUBROUTINE CALC_ZENITH_ANGLE
 !@sum calculate zenith angle for current time step
 !@auth Gavin Schmidt (from RADIA)
-      USE CONSTANT, only : twopi,sday
+      USE CONSTANT, only : twopi
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only : itime,nday,dtsrc
       !USE RAD_COM, only : cosz1
       USE RAD_COSZ0, only : coszt
@@ -2128,7 +2132,7 @@ C****
 
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-      ROT2=ROT1+TWOPI*DTsrc/SDAY
+      ROT2=ROT1+TWOPI*DTsrc/SECONDS_PER_DAY
       CALL COSZT (ROT1,ROT2,atmocn%COSZ1)
 
       END SUBROUTINE CALC_ZENITH_ANGLE
@@ -2296,7 +2300,7 @@ c
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only :
-     *      itime,itimei,iyear1,nday,jdpery,jdendofm
+     *      itime,itimei,iyear1,nday,jdendofm
      *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,DUSK,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,

@@ -563,7 +563,7 @@ C**** TCONSRV
      *     ,INST_SC,CHNG_SC, itr,CONPTs)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE DYNAMICS, only : nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
@@ -654,7 +654,7 @@ C****
             SCALE_TCON(NM,itr) = CHNG_SC/(NFILTR*DTSRC)
             IA_TCON(NM,itr) = ia_filt
           CASE (10)
-            SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
+            SCALE_TCON(NM,itr) = CHNG_SC*2./SECONDS_PER_DAY
             IA_TCON(NM,itr) = ia_12hr
           CASE (13:)   ! special tracer sources
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
@@ -690,7 +690,7 @@ C****
      &     INST_SC,CHNG_SC, itr0)
 !@sum  SET_TCONO assigns ocean conservation diagnostic array indices
 !@auth Gavin Schmidt
-      USE CONSTANT, only: sday
+      TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
@@ -779,7 +779,7 @@ c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC
             IA_TCON(NM,itr) = ia_d5s
           CASE (10)
-            SCALE_TCON(NM,itr) = CHNG_SC*2./SDAY
+            SCALE_TCON(NM,itr) = CHNG_SC*2./SECONDS_PER_DAY
             IA_TCON(NM,itr) = ia_12hr
           CASE (13:)   ! special tracer sources
             SCALE_TCON(NM,itr) = CHNG_SC/DTSRC

@@ -66,7 +66,7 @@ C**** Command line options
       USE Dictionary_mod
       Use Parser_mod
       USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk
-     &     , Jyear0, JMperY, JMON0, Iyear1, ItimeE, Itime0
+     &     , Jyear0, JMON0, Iyear1, ItimeE, Itime0
      &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
      &     , iowrite_single, isBeginningAccumPeriod
      &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
@@ -83,6 +83,8 @@ C**** Command line options
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
+      use TimeConstants_mod, only: SECONDS_PER_MINUTE, 
+     &                             INT_MONTHS_PER_YEAR
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
@@ -216,7 +218,7 @@ C****
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
-        months=(year-Jyear0)*JMperY + month-JMON0
+        months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
         call startTimer('Daily')
         call dailyUpdates
         call TIMER (NOW,MELSE)
@@ -262,7 +264,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           monacc = 0
           do k=JMON0,JMON0+NMONAV-1
             m = k
-            if(m.gt.12) m = m-12
+            if(m.gt.INT_MONTHS_PER_YEAR) m = m - INT_MONTHS_PER_YEAR
             monacc(m) = 1
           end do
           filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
@@ -288,7 +290,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
             PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
           END DO
           TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
-          TOTALT=TOTALT/60.     ! seconds -> minutes
+          TOTALT=TOTALT/SECONDS_PER_MINUTE     ! seconds -> minutes
           DTIME = NDAY*TOTALT/(Itime-Itime0) ! minutes/day
           WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *         '0TIME',DTIME,'(MINUTES) ',
@@ -462,6 +464,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       subroutine reportProfile(elapsedTimeInSeconds)
       use TimerPackage_mod
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      use TimeConstants_mod, only: INT_MINUTES_PER_DAY
 
 #ifdef USE_MPI
       include 'mpif.h'
@@ -470,8 +473,6 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       character(len=MAX_RECORD_LENGTH), pointer :: lines(:)
       integer :: i
 
-      integer, parameter :: SECONDS_PER_MINUTE = 60
-      integer, parameter :: MINUTES_PER_DAY = 24*60
       type (ProfileReport_type) :: report
       type (ReportColumn_type) :: column
       real*8 :: totalTime
@@ -488,13 +489,13 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 
       column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds,
+      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds,
      &     'min/day')
       call addColumn(report, column)
 
       column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth=11)
       call setPrecision(column, 5)
-      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds,
+      call setScale(column, INT_MINUTES_PER_DAY/elapsedTimeInSeconds,
      &     'min/day')
       call addColumn(report, column)
 
@@ -587,13 +588,12 @@ C****
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE Dictionary_mod
-      USE CONSTANT, only : sday,hrday
       USE MODEL_COM, only :
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,idacc,modelEclock
-     *     ,aMONTH,jdendofm,jdpery,aMON0
+     *     ,aMONTH,jdendofm,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
@@ -607,6 +607,8 @@ C****
 #endif
 #endif
 
+      use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
+     &                              INT_DAYS_PER_YEAR
       use ModelClock_mod, only: ModelClock, newModelClock
       use Time_mod, only: Time, newTime
       use Calendar_mod, only: Calendar
@@ -625,8 +627,6 @@ C****
 !@var iu_AIC,iu_IFILE unit numbers for input files
       INTEGER iu_AIC,iu_IFILE
       INTEGER I,J,L,K,LID1,LID2,NOFF,ioerr
-!@param INTHRDAY number of hours in a day in integer form
-      INTEGER, PARAMETER :: INTHRDAY=INT(HRDAY)
 !@nlparam IHRI,TIMEE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
@@ -727,7 +727,7 @@ C****
 C**** Set quantities that are derived from the namelist parameters
 C****
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc later if necessary
-      NDAY = 2*NINT(.5*SDAY/DTsrc)
+      NDAY = 2*NINT(.5*SECONDS_PER_DAY/DTsrc)
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
       IF (YearI.lt.0) then
@@ -736,9 +736,9 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
         call stop_model('INPUT: yearI not provided',255)
       END IF
       IF (Iyear1.lt.0) Iyear1 = yearI
-      IhrI = HourI +
-     +  INTHRDAY*(dateI-1 + JDendofM(monthI-1) + JDperY*(yearI-Iyear1))
-      ITimeI = IhrI*NDAY/INTHRDAY ! internal clock counts DTsrc-steps
+      IhrI = HourI + INT_HOURS_PER_DAY*(dateI-1 + JDendofM(monthI-1) +
+     &       INT_DAYS_PER_YEAR*(yearI-Iyear1))
+      ITimeI = IhrI*NDAY/INT_HOURS_PER_DAY ! internal clock counts DTsrc-steps
       Itime=ItimeI
       IF (IhrI.lt.0) then
         IF (AM_I_ROOT())
@@ -765,9 +765,11 @@ C****
         call io_rsf("AIC",IhrX,irsfic,ioerr)
 
 C**** Check consistency of starting time
-        IF( (MOD(IHRI-IHRX,8760).ne.0) ) THEN
+        IF( (MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR).ne.0) ) 
+     &  THEN
          WRITE (6,*) ' Difference in hours between ',
-     *       'Starting date and Data date:',MOD(IHRI-IHRX,8760)
+     &       'Starting date and Data date:',
+     &       MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
          WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
          call stop_model('INPUT: start date inconsistent with data',255)
         ENDIF
@@ -854,19 +856,23 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      if(timee.lt.0) timee=houre*nday/INTHRDAY
-      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*JDperY +
-     *  JDendofM(monthE-1)+dateE-1 )*INTHRDAY )*NDAY/INTHRDAY + TIMEE
+      if(timee.lt.0) timee=houre*nday/INT_HOURS_PER_DAY
+      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*INT_DAYS_PER_YEAR + 
+     &              JDendofM(monthE-1) + dateE-1) * INT_HOURS_PER_DAY) *
+     &              NDAY/INT_HOURS_PER_DAY + TIMEE
 C**** Alternate (old) way of specifying end time
-      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INTHRDAY
+      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INT_HOURS_PER_DAY
 
 C**** Check consistency of DTsrc with NDAY
-      if (is_set_param("DTsrc") .and. nint(sday/DTsrc).ne.NDAY) then
-        if (AM_I_ROOT())
-     *        write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',SDAY/NDAY
+      if (is_set_param("DTsrc") .and. nint(SECONDS_PER_DAY/DTsrc)
+     &    .ne. NDAY) then
+        if (AM_I_ROOT()) then
+          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
+     &               SECONDS_PER_DAY/NDAY
+        end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrc = SDAY/NDAY
+      DTsrc = SECONDS_PER_DAY/NDAY
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
 C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12

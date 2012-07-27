@@ -77,6 +77,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 !@sum Variables for Prather's Stratospheric chemistry loss model
       USE RESOLUTION, only: jm,lm
       USE TRACER_COM, only: ntm
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
 !@var n_MPtable_max:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
       integer, parameter :: n_MPtable_max=3
@@ -87,7 +88,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 !@param lz_schem Number of heights in stratchem tables
       integer, parameter :: lz_schem=20,lz_sx=lz_schem+7
 !@var tscparm: Contains mean loss prequency in grid box
-      real*4 tscparm(lz_schem,18,12,n_MPtable_max)
+      real*4 tscparm(lz_schem,18,INT_MONTHS_PER_YEAR,n_MPtable_max)
 !@var TLtrm,TLtzm,TLtzzm: loss freq and moments of loss freq from tables
       real*8, ALLOCATABLE, DIMENSION (:,:,:) :: tltrm,tltzm,tltzzm
 !@var PS Used in STRT2M
@@ -99,6 +100,7 @@ C**** Prather stratospheric chemistry
       USE FILEMANAGER, only: openunit,closeunit
       USE PRATHER_CHEM_COM, only: set_prather_constants
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
 !     nsc = n_MPtable(n)
       integer nsc,j,k,m,iu
@@ -113,7 +115,7 @@ C**** Prather stratospheric chemistry
       call openunit(filein,iu,.false.,.true.)
       read (iu,'(a)')   titlch
       if (AM_I_ROOT()) write(6,'(1x,a)') titlch
-      do m=1,12
+      do m=1,INT_MONTHS_PER_YEAR
         do j=1,18
           read(iu,'(20x,6e10.3/(8e10.3))')
      *          (tscparm(k,j,m,nsc),k=lz_schem,1,-1)
@@ -296,6 +298,8 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: jyear,nday,jday,itime,dtsrc
+      use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY, 
+     &                             DAYS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
      *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
@@ -353,12 +357,12 @@ C**** Read chemical loss rate dataset (5-day frequency)
         IF (AM_I_ROOT()) THEN
           read(FRQfile) title
           read (title,'(f10.0)') taux
-          tauy = nint(taux)+(jyear-1950)*8760.
-          IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
+          tauy = nint(taux)+(jyear-1950)*HOURS_PER_DAY*DAYS_PER_YEAR
+          IF ((itime*Dtsrc/SECONDS_PER_HOUR)+60.gt.tauy+120.) go to 510
           backspace(FRQfile)
         END IF
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
-        IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
+        IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
           write(6,*)'PROBLEM MATCHING itime on FRQ file',taux,tauy,jyear
           call stop_model(
      &       'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
@@ -370,7 +374,7 @@ C**** FOR END OF YEAR, USE FIRST RECORD
         IF (AM_I_ROOT()) rewind FRQfile
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         taux = 0.d0   ! we know this
-        tauy = nint(taux)+(jyear-1950)*8760.
+        tauy = nint(taux)+(jyear-1950)*HOURS_PER_DAY*DAYS_PER_YEAR
         IF (AM_I_ROOT()) rewind FRQfile  ! start over
   518   continue
 
@@ -421,6 +425,7 @@ C     n_O3=tracer number for linoz O3
       USE CONSTANT, only: mair
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: dtsrc
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only: pednl00
       USE TRACER_COM, only: ntm,tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
@@ -429,7 +434,7 @@ C     n_O3=tracer number for linoz O3
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
 C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
-      real*8 TLPARM(lz_linoz,18,12,nctable)
+      real*8 TLPARM(lz_linoz,18,INT_MONTHS_PER_YEAR,nctable)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
       real*8 dsol
 !@var PS,F Used in STRT2M
@@ -447,6 +452,7 @@ C**** Harvard troposphere production and loss rates, deposition vel
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
@@ -468,7 +474,7 @@ C**** Needed for linoz chemistry
       do n=1,nctable
         read (iu,'(a)')   titlch
         if (AM_I_ROOT()) write(6,'(1x,a)') titlch
-        do m=1,12
+        do m=1,INT_MONTHS_PER_YEAR
           do j=1,18
             read(iu,'(20x,6e10.3/(8e10.3))')
      *           (tlparm(k,j,m,n),k=lz_linoz,1,-1)
@@ -938,9 +944,9 @@ C****
 C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE CONSTANT, only: sday
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,JDperY,jday
+      USE MODEL_COM, only: itime,jday
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE FLUXES, only: focean,fearth0,flake0
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
@@ -1011,16 +1017,20 @@ C****
           call readt_parallel (grid,
      &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
 !ref      call readt          (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
+          src(:,:,k) = src(:,:,k)*adj(k)/
+     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
         end do
         call closeunit(ann_units)
         ! 3 miscellaneous sources
           k = k+1
-          src(:,:,k) = focean(:,:)*adj(k)/(sday*JDperY)
+          src(:,:,k) = focean(:,:)*adj(k)/
+     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
           k = k+1
-          src(:,:,k) =  flake0(:,:)*adj(k)/(sday*JDperY)
+          src(:,:,k) = flake0(:,:)*adj(k)/
+     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
           k = k+1
-          src(:,:,k) = fearth0(:,:)*adj(k)/(sday*JDperY)
+          src(:,:,k) = fearth0(:,:)*adj(k)/
+     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
 
       call openunit(mon_files,mon_units,mon_bins)
       endif
@@ -1066,9 +1076,9 @@ C****
 C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
-      USE CONSTANT, only: sday
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,jday,JDperY
+      USE MODEL_COM, only: itime,jday
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
@@ -1121,7 +1131,8 @@ C****
           call readt_parallel (grid,
      &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
 !ref      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/(sday*JDperY)
+          src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/
+     &                       (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
         end do
         call closeunit(ann_units)
 

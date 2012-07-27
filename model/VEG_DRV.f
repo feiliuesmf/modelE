@@ -128,6 +128,7 @@ c**** check whether ground hydrology data exist at this point.
       subroutine upd_gh
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       use Dictionary_mod
       use DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
       use fluxes, only : focean
@@ -288,7 +289,7 @@ c**** calculate lai, cs coefficicents
           cwc_sum = 0.d0
           do iv=1,11
             if ( iv==9 .or. iv==10 ) cycle
-            phase=twopi*laday(iv)/365.
+            phase=twopi*laday(iv)/DAYS_PER_YEAR
             if(lat2d(i,j).lt.0.) phase=phase+twopi/2.
             fv=vdata(i,j,iv+1)
             sfv=sfv+fv

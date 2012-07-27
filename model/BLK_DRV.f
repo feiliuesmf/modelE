@@ -3911,6 +3911,7 @@ C Include file: blk_add_sedimentation.f
 C========================================================================
       LOGICAL FUNCTION hugh_make_drop_sedimentation(dtmic,mx0) 
      *  RESULT (la)
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       IMPLICIT NONE
         real*8,             INTENT (in)       :: dtmic
         integer, intent(in)                   :: mx0
@@ -4014,7 +4015,7 @@ c
 c bottom of model
 	  k = 1
 	  precrt = precrt+faloutmc(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
 c
         enddo time_splitting
 c
@@ -4128,10 +4129,10 @@ c get precipitation and snowfall rate at the surface (mm/hour)
 c bottom of model
 	  k = 1
 	  precrt = precrt+faloutmi(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
 c
 	  snowrt = snowrt+faloutmi(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
 c
         enddo time_splitting
         la=.NOT.lcheck
@@ -4240,7 +4241,7 @@ c get precipitation and snowfall rate at the surface (mm/hour)
 c bottom of model
 	  k = 1
 	  precrt = precrt+faloutmr(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
 c
         enddo time_splitting
         la=.NOT.lcheck
@@ -4340,9 +4341,9 @@ c get precipitation and snowfall rate at the surface (mm/hour)
 c bottom of model
 	  k = 1
 	  precrt = precrt+faloutms(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
 	  snowrt = snowrt+faloutms(k)
-     1                /g/10./nstep*10.*3600.
+     1                /g/10./nstep*10.*SECONDS_PER_HOUR
         enddo time_splitting
         la=.NOT.lcheck
       END FUNCTION hugh_make_snow_sedimentation

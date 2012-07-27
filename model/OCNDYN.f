@@ -1063,7 +1063,7 @@ c find the start/end of each interval
       SUBROUTINE daily_OCEAN(end_of_day,atmocn)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-      USE CONSTANT, only : sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1073,7 +1073,7 @@ C**** Only do this at end of the day
       IF (end_of_day) THEN
 
 C**** Add glacial melt from Antarctica and Greenland
-        CALL GLMELT(SDAY)
+        CALL GLMELT(SECONDS_PER_DAY)
 
 c uncomment following call to activate tracers at arbitrary times
 c#ifdef TRACERS_OCEAN
@@ -4323,7 +4323,7 @@ C****
 !@sum OCOAST reduces the horizontal perpendicular gradients of tracers
 !@sum in coastline ocean grid boxes
 !@auth Gary Russell
-      USE CONSTANT, only : sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE OCEAN, only : im,jm,dts,lmm,gxmo,gymo,sxmo,symo
 #ifdef TRACERS_OCEAN
      *     ,txmo,tymo
@@ -4342,7 +4342,7 @@ C****
       call get (grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
 
-      REDUCE = 1d0 - DTS/(SDAY*2d1)
+      REDUCE = 1d0 - DTS/(SECONDS_PER_DAY*2d1)
 C**** Reduce West-East gradient of tracers
       IM1=IM-1
       I=IM

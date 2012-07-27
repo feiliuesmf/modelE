@@ -9,7 +9,6 @@
     (defined TRACERS_TOMAS)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
-      USE model_com,ONLY : JMperY,JDperY
       use tracer_com, only: trname, ntm_dust
 
       IMPLICIT NONE
@@ -257,9 +256,9 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 
       USE domain_decomp_atm, ONLY : dist_grid
       USE resolution,ONLY : Lm
-      USE model_com,ONLY : JMperY,JDperY
       USE tracer_com,ONLY : Ntm_dust
       use tracers_dust
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_DAYS_PER_YEAR
 
       IMPLICIT NONE
 
@@ -283,12 +282,12 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     dryhr(i_0h:i_1h,j_0h:j_1h),frclay(i_0h:i_1h,j_0h:j_1h),
      &     frsilt(i_0h:i_1h,j_0h:j_1h),vtrsh(i_0h:i_1h,j_0h:j_1h),
      &     dustSourceFunction(i_0h:i_1h,j_0h:j_1h),
-     &     ers_data(i_0h:i_1h,j_0h:j_1h,JMperY),
+     &     ers_data(i_0h:i_1h,j_0h:j_1h,INT_MONTHS_PER_YEAR),
      &     wsubtke_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwm_com(i_0h:i_1h,j_0h:j_1h),
      &     prelay(i_0h:i_1h,j_0h:j_1h,LM),
-     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,JDperY),
+     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,INT_DAYS_PER_YEAR),
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     minfr(i_0h:i_1h,j_0h:j_1h,Mtrac),
      &     mineralFractions( i_0h:i_1h, j_0h:j_1h, ntm_dust ),

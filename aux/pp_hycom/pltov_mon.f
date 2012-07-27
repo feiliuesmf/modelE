@@ -13,6 +13,7 @@ c
      .    ,ubavg,vbavg,ubavav,vbavav
       use hycom_dimen
       use const_proc
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       implicit none
 c
       real :: day0,day1,flxmax,x1,x2,thrufl,tinvrs
@@ -126,8 +127,8 @@ c --- read archive data
       vbavav(i,j)=vbavg(i,j,1)
  13   continue
 c
-      uflx=uflx/(mon1*86400.)  ! Sv
-      vflx=vflx/(mon1*86400.)  ! Sv
+      uflx=uflx/(mon1*SECONDS_PER_DAY)  ! Sv
+      vflx=vflx/(mon1*SECONDS_PER_DAY)  ! Sv
 c
       flux(:,:,:)=0.
       heatfl(:,:)=0.

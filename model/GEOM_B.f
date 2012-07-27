@@ -3,7 +3,7 @@
 !@sum  GEOM contains spherical geometric variables and arrays
 !@auth Original development team
 !@cont GEOM_B
-      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian,AREAG
+      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,radian,AREAG
       USE RESOLUTION, only : IM,JM,LM
       IMPLICIT NONE
       PRIVATE
@@ -115,7 +115,6 @@ C**** some B-grid conservation quantities
 !@auth Original development team (modifications by G. Schmidt)
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
-      REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF

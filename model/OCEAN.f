@@ -13,9 +13,8 @@
       USE FILEMANAGER, only : NAMEUNIT
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : modelEclock
-      USE MODEL_COM, only :
-     *      Iyear1,Itime,jmpery,JDendOfM,JDmidOfM
-     *     ,ItimeI,kocean
+      USE MODEL_COM, only : Iyear1,Itime,JDendOfM,JDmidOfM,ItimeI,kocean
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE SEAICE, only : xsi,ace1i,z1i,ac2oim,z2oim,ssi0,tfrez,fleadoc
      *     ,lmi, Ei
       IMPLICIT NONE
@@ -135,6 +134,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
       USE DOMAIN_DECOMP_ATM, only :
      &     READ_PARALLEL,REWIND_PARALLEL,BACKSPACE_PARALLEL,
      &     MREAD_PARALLEL,READT_PARALLEL
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
 #ifdef SCM
 c     for SCM cases using provided surface temps - do not overwrite 
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
@@ -240,7 +240,7 @@ C**** READ IN OBSERVED OCEAN DATA
 C****   READ IN LAST MONTH'S END-OF-MONTH DATA
         if (ocn_cycl.ge.1 .and. ocn_cycl.le.2) then
           LSTMON=month-1
-          if (lstmon.eq.0) lstmon = 12
+          if (lstmon.eq.0) lstmon = INT_MONTHS_PER_YEAR
           CALL READT_PARALLEL
      *           (grid,iu_SICE,NAMEUNIT(iu_SICE),TEMP_LOCAL,LSTMON)
           ERSI0 = TEMP_LOCAL(:,:,2)
@@ -249,7 +249,7 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
      *           (grid,iu_OSST,NAMEUNIT(iu_OSST),TEMP_LOCAL,LSTMON)
             EOST0 = TEMP_LOCAL(:,:,2)
           else ! if (ocn_cycl.eq.2) then
-            LSTMON=month-1+(year-IYEAR1)*JMperY
+            LSTMON=month-1+(year-IYEAR1)*INT_MONTHS_PER_YEAR
   290       call READ_PARALLEL(M, iu_OSST)
             if (m.lt.lstmon) go to 290
             CALL BACKSPACE_PARALLEL( iu_OSST )
@@ -265,7 +265,7 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
         else   !  if (ocn_cycl==0.or.ocn_cycl>2) then
           YEAR_OCN=year
           if(ocn_cycl>2) YEAR_OCN=ocn_cycl
-          LSTMON=month-1+(YEAR_OCN-IYEAR1)*JMperY
+          LSTMON=month-1+(YEAR_OCN-IYEAR1)*INT_MONTHS_PER_YEAR
   300     call READ_PARALLEL(M, iu_OSST)
           if (m.lt.lstmon) go to 300
           CALL BACKSPACE_PARALLEL( iu_OSST )
@@ -315,7 +315,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           EOST1 = TEMP_LOCAL(:,:,2)
           IF (AM_I_ROOT())
      *    WRITE(6,*) 'Read in OSST ocean data for month',month,M
-          IF(month.NE.MOD(M-1,12)+1)
+          IF(month.NE.MOD(M-1,INT_MONTHS_PER_YEAR)+1)
      &       call stop_model('Error: OSST ocean data',255)
         end if
       else   !  if (ocn_cycl==0 .or. ocn_cyc>2) then
@@ -329,10 +329,10 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         ERSI1 = TEMP_LOCAL(:,:,2)
         IF (AM_I_ROOT())
      *  WRITE(6,*) 'Read in SICE ocean data for month',month,M,M1
-        IF(M.NE.M1.OR.month.NE.MOD(M-1,12)+1)
+        IF(M.NE.M1.OR.month.NE.MOD(M-1,INT_MONTHS_PER_YEAR)+1)
      &       call stop_model('Error: SICE ocean data',255)
-        if(ocn_cycl>2 .and. month==12) then
-          do m=12,0,-1
+        if(ocn_cycl>2 .and. month==INT_MONTHS_PER_YEAR) then
+          do m=INT_MONTHS_PER_YEAR,0,-1
             CALL BACKSPACE_PARALLEL( iu_OSST )
             CALL BACKSPACE_PARALLEL( iu_SICE )
           end do
@@ -546,14 +546,14 @@ C**** Read in climatological ocean mixed layer depths efficiently
         END IF
       ELSE                      ! Do we need to read in second month?
         IF (DAYOFYEAR.NE.JDLAST+1) THEN ! Check that data is read in daily
-          IF (DAYOFYEAR.NE.1 .or. JDLAST.NE.365) THEN
+          IF (DAYOFYEAR.NE.1 .or. JDLAST.NE.INT_DAYS_PER_YEAR) THEN
             WRITE (6,*) 'Incorrect values in OCLIM: DAYOFYEAR,JDLAST='
      *            ,DAYOFYEAR
      *           ,JDLAST
             call stop_model(
      &           'ERROR READING IN SETTING OCEAN CLIMATOLOGY',255)
           END IF
-          IMON=IMON-12          ! New year
+          IMON=IMON-INT_MONTHS_PER_YEAR          ! New year
           GO TO 530
         END IF
         IF (DAYOFYEAR.LE.JDmidOFM(IMON)) GO TO 530
@@ -772,8 +772,8 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE MODEL_COM, only : kocean
-     *     ,iyear1,ioreadnt,ioread,jmpery
+      USE MODEL_COM, only : kocean,iyear1,ioreadnt,ioread
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
 
@@ -887,7 +887,7 @@ C****   Set up unit number of observed mixed layer depth data
 
 C****   find and limit ocean ann max mix layer depths
         z12o = 0.
-        do m=1,jmpery
+        do m=1,INT_MONTHS_PER_YEAR
           CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),z1ox,1)
           do j=j_0,j_1
           do i=i_0,i_1
@@ -940,7 +940,8 @@ C**** surface tilt term.
       SUBROUTINE daily_OCEAN(end_of_day,atmocn)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module
 !@auth Original Development Team
-      USE CONSTANT, only : twopi,edpery,shw,rhows,tf
+      USE CONSTANT, only : twopi,shw,rhows,tf
+      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       USE MODEL_COM, only : kocean, modelEclock
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_toc2,ij_tgo2
@@ -968,7 +969,7 @@ C**** update ocean related climatologies
 
 C**** Set fourier coefficients for heat transport calculations
       IF (KOCEAN.ge.1) THEN
-        ANGLE=TWOPI*modelEclock%dayOfYear()/EDPERY
+        ANGLE=TWOPI*modelEclock%dayOfYear()/EARTH_DAYS_PER_YEAR
         SINANG=SIN(ANGLE)
         SN2ANG=SIN(2*ANGLE)
         SN3ANG=SIN(3*ANGLE)

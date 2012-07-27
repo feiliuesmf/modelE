@@ -1402,11 +1402,13 @@ C****
 !@sum  (now parallel)
 !@auth Gavin Schmidt
 
-      USE CONSTANT, only : rhow,sday,teeny,undef
+      USE CONSTANT, only : rhow,teeny,undef
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,amon
-     *     ,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
+     *     ,itime,dtsrc,idacc,itime0,nday
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, SECONDS_PER_DAY,
+     &                             INT_MONTHS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
      $     AM_I_ROOT, get, sumxpe
       USE GEOM, only : byaxyp
@@ -1440,7 +1442,8 @@ C****
      *      HOUR,ITIME,DAYS
       IF (AM_I_ROOT()) CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
 C**** convert kg/(source time step) to km^3/mon
-      SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)
+      SCALERVR = 1d-9*SECONDS_PER_DAY*INT_DAYS_PER_YEAR/
+     &          (INT_MONTHS_PER_YEAR*RHOW*DTSRC)
 
       RVROUT(:)=0
 #ifdef TRACERS_WATER
@@ -2759,8 +2762,10 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       END SUBROUTINE conserv_LKE
 
       subroutine diag_river_prep
-      use constant, only : rhow,sday
-      use model_com, only : dtsrc,jdpery,jmpery
+      use constant, only : rhow
+      use model_com, only : dtsrc
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_MONTHS_PER_YEAR,
+     &                             INT_DAYS_PER_YEAR
       use domain_decomp_atm, only : grid,get,sumxpe
       use diag_com, only : aij=>aij_loc,ij_mrvr
       use lakes_com, only : irvrmth,jrvrmth,nrvrmx,nrvr,rvrout
@@ -2772,7 +2777,8 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       i_0 = grid%i_strt
       i_1 = grid%i_stop
 c**** convert kg/(source time step) to km^3/mon
-      scalervr = 1d-9*sday*jdpery/(jmpery*rhow*dtsrc)
+      scalervr = 1d-9*SECONDS_PER_DAY*INT_DAYS_PER_YEAR/
+     &          (INT_MONTHS_PER_YEAR*rhow*dtsrc)
 c**** fill in the river discharges in the local domain
       rvrout_loc(:)=0
       do j=j_0,j_1

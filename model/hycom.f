@@ -105,9 +105,11 @@ c
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
-#ifdef TRACERS_AGE_OCEAN    
-     .  ,JDperY
-      USE CONSTANT, only : sday
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY, SECONDS_PER_HOUR,
+     &      INT_DAYS_PER_YEAR, INT_SECONDS_PER_HOUR, INT_SECONDS_PER_DAY,
+     &      DAYS_PER_YEAR
+#ifdef TRACERS_AGE_OCEAN 
+      use TimeConstants_mod, only: SECONDS_PER_DAY
 #endif
 #if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
       !USE obio_dim
@@ -137,6 +139,8 @@ c
       type(iceocn_xchng_vars) :: iceocn
       type(iceocn_xchng_vars) :: dynsice
 c
+      integer, parameter :: INT_HOURS_PER_YEAR = INT_HOURS_PER_DAY *
+     &                                           INT_DAYS_PER_YEAR
       integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
@@ -294,7 +298,8 @@ c
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
 cdiag.        ,Jday,Jdate,Jhour,amon
 c
-      if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
+      if (mod(jhour,nhr).eq.0 .and. 
+     &    mod(itime,nday/INT_HOURS_PER_DAY).eq.0) then
         do 28 ja=aJ_0,aJ_1
         do 28 ia=aI_0,aI_1
           ataux_loc(ia,ja)=0.
@@ -332,7 +337,7 @@ c --- accumulate agcm fields over nhr
 ! wind and ice stresses will be combined after regridding,
       admui_loc = 0. ! so set atm-grid instance of ice stress to zero
       admvi_loc = 0.
-      call do_dynsi_accum(dtsrc,3600.*real(nhr))
+      call do_dynsi_accum(dtsrc,SECONDS_PER_HOUR*real(nhr))
 #else
 #ifdef STANDALONE_HYCOM
       admui_loc = 0.
@@ -363,43 +368,43 @@ c --- accumulate
      .+flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja)/
      .     focean_loc(ia,ja)    !ocn/ice
      .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref       ! ice
-     .                                /(3600.*real(nhr))
+     .  /(SECONDS_PER_HOUR*real(nhr))
       aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                              ! J/m2 => W/m2
      . +((e0_loc(ia,ja)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))            ! ocean water
      . +     egmelt_loc(ia,ja)+emelti_loc(ia,ja)
      .     /focean_loc(ia,ja)                                            ! ocn or ice
      . + eflow_gl/area
      . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))          ! ice
-     .                                 /(3600.*real(nhr))
+     . /(SECONDS_PER_HOUR*real(nhr))
       asalt_loc(ia,ja)=asalt_loc(ia,ja)                                  ! kg/m2/sec salt
-     .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)           !
-     .   +smelti_loc(ia,ja)/(focean_loc(ia,ja)))             !
-     .                             /(3600.*real(nhr))
+     .   +((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)
+     .   +smelti_loc(ia,ja)/(focean_loc(ia,ja)))
+     .   /(SECONDS_PER_HOUR*real(nhr))
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
-     .                                  dtsrc/(real(nhr)*3600.)
+     .                             dtsrc/(real(nhr)*SECONDS_PER_HOUR)
 c --- dmua on A-grid, admui on C-grid
       ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja)
      .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
-     .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
+     .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
       atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja)
      .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
-     .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
+     .               /(SECONDS_PER_HOUR*real(nhr))                       ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
      . sqrt(sqrt((dmua_loc(ia,ja)
      .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
      .          +(dmva_loc(ia,ja)
      .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
-     .                               /dtsrc*thref))                      ! sqrt(T/r)=>m/s
-     .                               *dtsrc/(real(nhr)*3600.)
+     .          /dtsrc*thref))                                           ! sqrt(T/r)=>m/s
+     .          *dtsrc/(real(nhr)*SECONDS_PER_HOUR)
       aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(atmocn%solar(ia,ja)*
-     .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
-     .                         +iceocn%solar(ia,ja)*    rsi_loc(ia,ja))
-     .                                 /(3600.*real(nhr))
+     .                         (1.-rsi_loc(ia,ja))                       !J/m*m=>W/m*m
+     .                         +iceocn%solar(ia,ja)*rsi_loc(ia,ja))
+     .                         /(SECONDS_PER_HOUR*real(nhr))
 #ifdef TRACERS_GASEXCH_ocean
             do nt=1,atmocn%ntm_gasexch
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
      .             + TRGASEX_loc(nt,ia,ja) ! in mol/m2/s
-     .             * dtsrc/(real(nhr)*3600.)
+     .             * dtsrc/(real(nhr)*SECONDS_PER_HOUR)
 
               if (ia == itest .and. ja == jtest) then
                 write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
@@ -410,19 +415,19 @@ c --- dmua on A-grid, admui on C-grid
 #endif
 #ifdef TRACERS_OceanBiology
             asolz_loc(ia,ja)=asolz_loc(ia,ja) !
-     .           +COSZ1_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             awind_loc(ia,ja)=awind_loc(ia,ja) !
-     .           +wsavg_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
 #endif
 #ifdef OBIO_RAD_coupling
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
-     .           +DIRVIS_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +DIRVIS_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
-     .           +DIFVIS_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +DIFVIS_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
-     .           +DIRNIR_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +DIRNIR_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
-     .           +DIFNIR_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
+     .           +DIFNIR_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
 #endif
 
  29   continue
@@ -430,12 +435,13 @@ c --- dmua on A-grid, admui on C-grid
 c
       nsavea=nsavea+1
 
-      if (mod(jhour,nhr).gt.0.or.mod(itime,nday/24).eq.0) goto 9666
+      if (mod(jhour,nhr).gt.0 .or.
+     &    mod(itime,nday/INT_HOURS_PER_DAY).eq.0) goto 9666
 
-      if (nsavea*24/nday.ne.nhr) then
+      if (nsavea*INT_HOURS_PER_DAY/nday.ne.nhr) then
         write(*,'(a,4i4,i8)')
      .  'nonmatching b.c. accumulation periods: agcm/ogcm:',
-     .  nsavea*24/nday,nhr,nsavea,nday,itime
+     .  nsavea*INT_HOURS_PER_DAY/nday,nhr,nsavea,nday,itime
         stop 'agcm/ogcm accumulating periods differ'
       end if
       nsavea=0
@@ -538,7 +544,7 @@ c
       lstep=baclin/batrop
       lstep=2*((lstep+1)/2)
       dlt=baclin/lstep
-      nstepi=real(nhr)*3600./baclin + .0001
+      nstepi=real(nhr)*SECONDS_PER_HOUR/baclin + .0001
 
       if (AM_I_ROOT()) then
 c
@@ -577,47 +583,55 @@ c
 c
       if (jyear-iyear1.le.20) then
         if (AM_I_ROOT())
-     .  write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
-     .   /'' iyear1/jyear='',2i5)')
-CTNL .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday  ! crashes
-     .  int((nstep0+nstepi-1)/(3600*24)*baclin),itime/nday  ! if nstep0 too big
-CTNL . ,int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear ! crashes
-     . ,int((nstep0+nstepi-1)/3600*baclin),itime*24/nday,iyear1,jyear
+     &   write (lp,'(''starting date in ogcm/agcm '',2i5,'' hr '',2i12
+     &   /'' iyear1/jyear='',2i5)')
+         ! crashes if nstep0 too big
+CTNL .   int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
+     &   int((nstep0+nstepi-1)/(INT_SECONDS_PER_HOUR*INT_HOURS_PER_DAY)
+     &   *baclin),itime/nday,
+CTNL .   int((nstep0+nstepi-1)*baclin)/3600,itime*24/nday,iyear1,jyear ! crashes
+     &   int((nstep0+nstepi-1)/INT_SECONDS_PER_HOUR*baclin),
+     &   itime*INT_HOURS_PER_DAY/nday,iyear1,jyear
       else
         if (AM_I_ROOT())
-     .  write (lp,'(''starting date in ogcm/agcm '',2i12
-     .   /'' iyear1/jyear='',2i5)') 
-     .  int((nstep0+nstepi-1)*baclin)/(3600*24),itime/nday
-     . ,iyear1,jyear,(nstep0+nstepi-1)*baclin/3600.,itime*24/nday
+     &   write (lp,'(''starting date in ogcm/agcm '',2i12
+     &    /'' iyear1/jyear='',2i5)') 
+     &    int((nstep0+nstepi-1)*baclin)/
+     &    (INT_SECONDS_PER_HOUR*INT_HOURS_PER_DAY),itime/nday,
+     &    iyear1,jyear,(nstep0+nstepi-1)*baclin/SECONDS_PER_HOUR,
+     &    itime*INT_HOURS_PER_DAY/nday
       endif
 c
 c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
-      if(abs(int((nstep0+nstepi-1)*baclin/3600)-itime*24/nday).gt.0)
-     .                                                        then
+      if(abs(int((nstep0+nstepi-1)*baclin/SECONDS_PER_HOUR)-
+     &   itime*INT_HOURS_PER_DAY/nday).gt.0)  then
         if (AM_I_ROOT()) then
-        write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found '
-     . ,int((nstep0+nstepi-1)*baclin/3600),itime*24/nday
-     . ,(nstep0+nstepi-1)*baclin/3600.-itime*24/nday
-        write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step'
-     &       ,nstep0
-     . ,' changed to: '
-     . ,int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1
-     . ,' (day '
-     .,(int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)-nstepi+1)
-     .  *baclin/86400,')'
+          write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found ',
+     &     int((nstep0+nstepi-1)*baclin/INT_SECONDS_PER_HOUR),
+     &     itime*INT_HOURS_PER_DAY/nday,
+     &     (nstep0+nstepi-1)*baclin/INT_SECONDS_PER_HOUR.-itime*
+     &     INT_HOURS_PER_DAY/nday
+          write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step',
+     &     nstep0, ' changed to: ',
+     &     int((itime*INT_HOURS_PER_DAY/nday+(iyear1-jyear)*
+     &     INT_HOURS_PER_YEAR)*INT_SECONDS_PER_HOUR/baclin)-nstepi+1,
+     &     ' (day ',(int((itime*INT_HOURS_PER_DAY/nday+(iyear1-jyear)*
+     &     INT_HOURS_PER_YEAR)*INT_SECONDS_PER_HOUR/baclin)-nstepi+1)*
+     &     baclin/INT_SECONDS_PER_DAY,')'
         end if   ! AM_I_ROOT
 
-        nstep0=int((itime*24/nday+(iyear1-jyear)*8760)*3600/baclin)
-     .                                         -nstepi+3600/baclin
+        nstep0=int((itime*INT_HOURS_PER_DAY/nday+(iyear1-jyear)*
+     &   INT_HOURS_PER_YEAR)*INT_SECONDS_PER_HOUR/baclin)-nstepi+
+     &   INT_SECONDS_PER_HOUR/baclin
         nstep=nstep0
-        time0=nstep0*baclin/86400
+        time0=nstep0*baclin/INT_SECONDS_PER_DAY
         tavini=time0
 c
 ! dpini is used to compute thkchg which is used only for printing
-      if (haveLatitude(ogrid, J=jtest)) then
-        do 19 k=1,kk
- 19     dpini(k)=dp_loc(itest,jtest,k)+dp_loc(itest,jtest,k+kk)
-      end if
+        if (haveLatitude(ogrid, J=jtest)) then
+          do 19 k=1,kk
+ 19         dpini(k)=dp_loc(itest,jtest,k)+dp_loc(itest,jtest,k+kk)
+        end if
 c
       else
         write (lp,'(/(a,i9))') 'chk model starts at steps',nstep
@@ -674,7 +688,7 @@ c
       k1m=1+mm
       k1n=1+nn
       nstep=nstep+1
-      time=time0+(nstep-nstep0)*baclin/86400.
+      time=time0+(nstep-nstep0)*baclin/SECONDS_PER_DAY
 c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.23.and.nsub.eq.nstepi) 
@@ -729,12 +743,12 @@ c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
 #endif
 #ifdef TRACERS_AGE_OCEAN
 !for consistency with Gary's ocean need to 
-!multiply here by trcfrq*baclin/(JDperY*SDAY) 
+!multiply here by trcfrq*baclin/(INT_DAYS_PER_YEAR*SECONDS_PER_DAY) 
            nt = ntrcr_zebra + ntrcr_age
            tracer_loc(i,j,1,nt)=0.
            do k=2,kdm
            tracer_loc(i,j,k,nt)=tracer_loc(i,j,k,nt)
-     .           + 1.*trcfrq*baclin/(JDperY*SDAY)
+     .           + 1.*trcfrq*baclin/(INT_DAYS_PER_YEAR*SECONDS_PER_DAY)
            enddo
 #endif
 #ifdef TRACERS_OCEAN_WATER_MASSES
@@ -911,8 +925,8 @@ c     before = after
           !call obio_listDifferences('diapfl', 'before')
 #endif
       if ((iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) .and.
-     .                          nstep*baclin.ge.12.*3600) 
-     .      call diapfl(m,n,mm,nn,k1m,k1n)
+     .    nstep*baclin.ge.12.*INT_SECONDS_PER_HOUR) 
+     .    call diapfl(m,n,mm,nn,k1m,k1n)
 #ifdef TRACERS_GASEXCH_ocean_CO2
           !call obio_listDifferences('diapfl', 'after')
 #endif
@@ -1203,7 +1217,8 @@ c
       if (.not.diagno) go to 23
 c
       if (AM_I_ROOT())
-     .  write (lp,100) nstep,int((time+.001)/365.),mod(time+.001,365.)
+     .  write (lp,100) nstep,int((time+.001)/DAYS_PER_YEAR),
+     &                 mod(time+.001,DAYS_PER_YEAR)
  100  format (' ocn time step',i9,4x,'y e a r',i6,4x,'d a y',f9.2)
 c
 c --- output to history file
@@ -1291,15 +1306,15 @@ c --- accumulate fields for agcm
       do 201 j=J_0,J_1
       do 201 l=1,isp_loc(j)
       do 201 i=ifp_loc(j,l),ilp_loc(j,l)
-      osst_loc(i,j)=osst_loc(i,j)+temp_loc(i,j,k1n)*baclin/(3600.*
-     &                        real(nhr))
-      osss_loc(i,j)=osss_loc(i,j)+saln_loc(i,j,k1n)*baclin/(3600.*
-     &                        real(nhr))
-      osiav_loc(i,j)=osiav_loc(i,j)+odmsi_loc(i,j)*baclin*dtsrc/(3600.*
-     &                        real(nhr)) !kg/m2=>kg*.5*hr/m2
+      osst_loc(i,j)=osst_loc(i,j)+temp_loc(i,j,k1n)*baclin/
+     &              (SECONDS_PER_HOUR*real(nhr))
+      osss_loc(i,j)=osss_loc(i,j)+saln_loc(i,j,k1n)*baclin/
+     &              (SECONDS_PER_HOUR*real(nhr))
+      osiav_loc(i,j)=osiav_loc(i,j)+odmsi_loc(i,j)*baclin*dtsrc/
+     &               (SECONDS_PER_HOUR*real(nhr))          !kg/m2=>kg*.5*hr/m2
       omlhc_loc(i,j)=spcifh*max(dp_loc(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
       oogeoza_loc(i,j)=(montg_loc(i,j,1)+thref*pbavg_loc(i,j,m))*
-     &                        g/(thref*onem) ! m^2/s^2
+     &                 g/(thref*onem)                               ! m^2/s^2
 
  201  continue
 
@@ -1314,14 +1329,14 @@ c --- accumulate fields for agcm
             do nt=1,atmocn%ntm_gasexch
               otrac_loc(i,j,nt)=otrac_loc(i,j,nt)  
      .             +tracer_loc(i,j,1,nt)
-     .             *baclin/(3600.*real(nhr))
+     .             *baclin/(SECONDS_PER_HOUR*real(nhr))
             enddo
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
             do nt=1,atmocn%ntm_gasexch
               otrac_loc(i,j,nt)= otrac_loc(i,j,nt)
      .             + ocnatm%pCO2(i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
-     .             * baclin/(3600.*real(nhr))
+     .             * baclin/(SECONDS_PER_HOUR*real(nhr))
             enddo
 #endif
       enddo
@@ -1336,9 +1351,9 @@ c
 
  15   continue
 
-      if (nsaveo*baclin.ne.nhr*3600) then
-            print *, ' ogcm saved over hr=',nsaveo*baclin/3600.
-            stop ' stop: ogcm saved over hr'
+      if (nsaveo*baclin.ne.nhr*INT_SECONDS_PER_HOUR) then
+        print *, ' ogcm saved over hr=',nsaveo*baclin/SECONDS_PER_HOUR
+        stop ' stop: ogcm saved over hr'
       end if
       nsaveo=0
 

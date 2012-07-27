@@ -2847,7 +2847,7 @@ c Switch the sign convention back to "positive downward".
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      USE MODEL_COM, only: JDPERY
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE RESOLUTION, only: IM, JM
       implicit none
       save
@@ -2870,7 +2870,7 @@ c Switch the sign convention back to "positive downward".
       !@+   flag = 0 for B2 ( peak flux at ci = 0 )
             integer, parameter :: flag = 0
       !@var Bt: sum of |momentum flux| for all +/-c (kg/m/s^2)
-            real(r8) :: Bt(JM,JDPERY)
+            real(r8) :: Bt(JM,INT_DAYS_PER_YEAR)
       !@var N_Kh: number of horizontal wavenumbers
             integer, parameter :: N_Kh = 1
       !@var Bm: amplitude for the spectrum (m^2/s^2) ~ u'w'
@@ -3142,7 +3142,7 @@ c Switch the sign convention back to "positive downward".
       USE RESOLUTION, only: JM, LM, PLbot
       USE CONSTANT, only : pi, twopi
       USE GEOM, only: LAT_DG
-      USE MODEL_COM, only: JDPERY
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE UNRDRAG_COM, only: Z4var, Bt
       USE UNRDRAG_COM, only: r8, N_C, C_inf, dc, C, IZ0, N_Kh, Wavelenth
       USE UNRDRAG_COM, only: Kh, Ah1, Ah2, N_Az, aLn2, L_min
@@ -3159,8 +3159,8 @@ c Switch the sign convention back to "positive downward".
 
       Bt_Smax = 6.0_r8 * 0.001_r8
       Bt_Nmax = 0.5_r8 * 0.001_r8
-      do IT = 1, JDPERY
-         x = cos ( twopi * real(IT - 16, r8) / real(JDPERY, r8) )
+      do IT = 1, INT_DAYS_PER_YEAR
+         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
          do J = 1, JM
             if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
                Bt(J,IT) = -Bt_Smax *
@@ -3175,8 +3175,8 @@ c Switch the sign convention back to "positive downward".
       end do
 
       Bt_Tmax = 0.5_r8 * 0.001_r8
-      do IT = 1, JDPERY
-         x = cos ( twopi * real(IT - 16, r8) / real(JDPERY, r8) )
+      do IT = 1, INT_DAYS_PER_YEAR
+         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
          Phi = -10.0_r8 * x
          do J = 1, JM
             Bt(J,IT) = Bt(J,IT) + Bt_Tmax *

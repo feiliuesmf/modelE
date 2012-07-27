@@ -22,6 +22,7 @@ c
      .    ,temav,salav,ubavg,vbavg,ubavav,vbavav,scuy,scvx
      .    ,xlo,ylo,southfl,eastfl
       use hycom_dimen
+      use TimeConstants_mod, only: SECONDS_PER_DAY, DAYS_PER_YEAR
 c
       implicit none
 c
@@ -291,8 +292,8 @@ c
  13   vflxav(i,j,k)=vflxav(i,j,k)+vflx(i,j,k)		! vflx: Sv*intvl
 c
  152  continue
-      uflxav(:,:,:)=uflxav(:,:,:)/(365.*86400.)		! => annual in Sv
-      vflxav(:,:,:)=vflxav(:,:,:)/(365.*86400.)		! => annual in Sv
+      uflxav(:,:,:)=uflxav(:,:,:)/(SECONDS_PER_DAY*DAYS_PER_YEAR) ! => annual in Sv
+      vflxav(:,:,:)=vflxav(:,:,:)/(SECONDS_PER_DAY*DAYS_PER_YEAR) ! => annual in Sv
 c
       flux(:,:,:)=0.
       do 181 j=1,jdm
@@ -436,11 +437,11 @@ c
 c
  154  continue
  153  continue   ! ny=ny1,ny2
-      uflx(:,:,:)=uflxav(:,:,:)/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
-      vflx(:,:,:)=vflxav(:,:,:)/((ny2-ny1+1)*julian*86400.)  ! => mean of ny1~ny2 in Sv
+      uflx(:,:,:)=uflxav(:,:,:)/((ny2-ny1+1)*julian*SECONDS_PER_DAY) ! => mean of ny1~ny2 in Sv
+      vflx(:,:,:)=vflxav(:,:,:)/((ny2-ny1+1)*julian*SECONDS_PER_DAY) ! => mean of ny1~ny2 in Sv
       ubavav(:,:)=ubavav(:,:)/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
       vbavav(:,:)=vbavav(:,:)/((ny2-ny1+1)*julian)       ! => mean of ny1~ny2
-      heatfl(:,:)=heatfl(:,:)/((ny2-ny1+1)*julian*86400) ! => mean of ny1~ny2
+      heatfl(:,:)=heatfl(:,:)/((ny2-ny1+1)*julian*SECONDS_PER_DAY) ! => mean of ny1~ny2
 c
       flux(:,:,:)=0.
 c --- global domain
@@ -507,7 +508,7 @@ c --- subtract out portion due to indonesian throughflow
  39   flux(i,k,3)=flux(i,k,3)-sunda(k)                !  Pacific
 c
       if (rhodot) then
-        tinvrs=1./((ny2-ny1+1.)*365.*86400.)
+        tinvrs=1./((ny2-ny1+1.)*SECONDS_PER_DAY*DAYS_PER_YEAR)
 c
 c --- determine final pressure field (needed for finding rho-dot)
         pfinl(:,:,:)=p(:,:,:)
@@ -570,7 +571,7 @@ c
        i=index(flnm,month(n))
        if (i.gt.0) then
         read(flnm(i+3:i+6),'(f4.0)') year
-        year=year+endmon(n)/365.
+        year=year+endmon(n)/DAYS_PER_YEAR
         exit
        end if
       end do
