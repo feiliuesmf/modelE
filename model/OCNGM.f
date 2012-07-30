@@ -46,9 +46,12 @@
      *     AINV,ARIV
 
 !@var ARAI Scaling for Redi diffusion terms to GM diffusion term (1)
-      REAL*8, PARAMETER :: ARAI = 1d0
+      !REAL*8, PARAMETER :: ARAI = 1d0
+!@var RGMI ratio of GM (thickness) diffusivity to isoneutral (Redi) diffusivity
+      REAL*8 :: RGMI
 !@var QCROSS true if cross terms should be calculated
-      LOGICAL, PARAMETER :: QCROSS = .NOT. (ARAI.eq.1d0) ! i.e..FALSE.
+      !LOGICAL, PARAMETER :: QCROSS = .NOT. (ARAI.eq.1d0) ! i.e..FALSE.
+      LOGICAL :: QCROSS
 !@var AMU = Visbeck scheme scaling parameter (1)
       REAL*8, PARAMETER :: AMU = 0.13d0
 !@var SLIM = Upper limit of isopycnal slopes (stability parameter)
@@ -169,13 +172,15 @@ c**** allocate arrays
 
       END MODULE GM_COM
 
-      SUBROUTINE GMKDIF
+      SUBROUTINE GMKDIF(RGMI_in)
 !@sum GMKDIF calculates density gradients and tracer operators
 !@+   for Redi and GM isopycnal skew fluxes
 !@auth Dan Collins/Gavin Schmidt
       USE GM_COM
       USE Dictionary_mod
       IMPLICIT NONE
+      REAL*8, INTENT(IN) :: RGMI_in
+
       INTEGER I,J,L,IM1
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
@@ -194,6 +199,9 @@ c**** allocate arrays
        call get_param( 'meso_lenscale_const', meso_lenscale_const )
 #endif
       endif
+
+      RGMI = RGMI_in
+      QCROSS = .NOT. (RGMI.eq.1d0)
 
 c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
@@ -428,7 +436,8 @@ C**** Skip for L+1 greater than LMM(IM1,J)
 C**** Skip for L+1 greater than LMM(I,J)
         IF(LMM(I,J).gt.L) FXZ(IM1,J,L) =  FXZ(IM1,J,L) +
      *       DT4 * CEXZ(IM1,J,L) * TR(I,J,L+1)
-        FXZ(IM1,J,L) =  FXZ(IM1,J,L)*(1d0-ARAI)
+        !FXZ(IM1,J,L) =  FXZ(IM1,J,L)*(1d0-ARAI)
+        FXZ(IM1,J,L) =  -FXZ(IM1,J,L)*(RGMI-1d0)
       END IF
   510 CONTINUE
 C**** END of FX
@@ -452,7 +461,8 @@ C**** Skip for L+1 greater than LMM(I,J)
 C**** Skip for L+1 greater than LMM(I,J+1)
         IF(LMM(I,J+1).gt.L) FYZ(I,J,L) =  FYZ(I,J,L) +
      *       DT4 * CEYZ(I,J,L) * TR(I,J+1,L+1)
-        FYZ(I,J,L) =  FYZ(I,J,L) *(1d0-ARAI)
+        !FYZ(I,J,L) =  FYZ(I,J,L) *(1d0-ARAI)
+        FYZ(I,J,L) =  -FYZ(I,J,L) *(RGMI-1d0)
       END IF
   520 CONTINUE
 C**** END of FY
@@ -526,7 +536,7 @@ C****
 !@sum  computes GM fluxes for tracer quantities
       USE GM_COM, ONLY: grid,GETDomainBounds,IM,JM,LMO,LMM,LMU,LMV,
      &                  DXYPO,MO, kpl,
-     &                  BXX, BYY, BZZ, BYDH, ARAI, BYDXP, BYDYP
+     &                  BXX, BYY, BZZ, BYDH, RGMI, BYDXP, BYDYP
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT4
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -587,7 +597,8 @@ C**** Loop for Fluxes in Z-direction
 C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
      *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
-        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+        !RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+        RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+RGMI))*MOFZ
 
         flux_z(I,J,L) =RFZT
       endif
@@ -625,7 +636,8 @@ C****   Loop for Fluxes in Z-direction
 C****     Calculate new tracer/salinity/enthalpy
           MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
      *           (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
-          RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
+          !RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
+          RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+RGMI))*MOFZ
           flux_z(1,JM,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
@@ -660,7 +672,8 @@ C****   Loop for Fluxes in Z-direction
 C****     Calculate new tracer/salinity/enthalpy
           MOFZ =((MO(1,1,L+1)*BYDH(1,1,L+1)) +
      *           (MO(1,1,L  )*BYDH(1,1,L  ))) * DXYPO(1) *0.5
-          RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+ARAI))*MOFZ
+          !RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+ARAI))*MOFZ
+          RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+RGMI))*MOFZ
           flux_z(1,1,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
@@ -1057,15 +1070,15 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         AIY0(I,J,L) = 0.
         AIY2(I,J,L) = 0.
       ELSE
-        AIX0ST = AINV(I,J,L)
-        AIX2ST = AINV(I,J,L)
-        AIY0ST = AINV(I,J,L)
-        AIY2ST = AINV(I,J,L)
+        AIX0ST = ARIV(I,J,L)
+        AIX2ST = ARIV(I,J,L)
+        AIY0ST = ARIV(I,J,L)
+        AIY2ST = ARIV(I,J,L)
         SIX0 = RHOX(I  ,J,L) * BYRHOZ(I,J,L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (AINV(I,J,L).gt.0.) THEN ! limit slopes <ML
+        IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
           DSX2sq = DZV(I,J,L)**2 * byAIDT
@@ -1094,15 +1107,15 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
         AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
       ELSE
-        AIX1ST = AINV(I,J,L)
-        AIX3ST = AINV(I,J,L)
-        AIY1ST = AINV(I,J,L)
-        AIY3ST = AINV(I,J,L)
+        AIX1ST = ARIV(I,J,L)
+        AIX3ST = ARIV(I,J,L)
+        AIY1ST = ARIV(I,J,L)
+        AIY3ST = ARIV(I,J,L)
         SIX1 = RHOX(I  ,J,L) * BYRHOZ(I,J,L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (AINV(I,J,L).gt.0.) THEN ! limit slopes <ML
+        IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
           DSX3sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1138,14 +1151,14 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       S2Y2(I,J,L) = AIY2ST * SIY2 * SIY2 * BYDYP(J) * DYVO(J-1)
       S2Y3(I,J,L) = AIY3ST * SIY3 * SIY3 * BYDYP(J) * DYVO(J-1)
 #ifdef OCN_Mesoscales
-      AIX0(I,J,L) = AINV(I,J,L)
-      AIX2(I,J,L) = AINV(I,J,L)
-      AIY0(I,J,L) = AINV(I,J,L)
-      AIY2(I,J,L) = AINV(I,J,L)
-      AIX1(I,J,L) = AINV(I,J,L)
-      AIX3(I,J,L) = AINV(I,J,L)
-      AIY1(I,J,L) = AINV(I,J,L)
-      AIY3(I,J,L) = AINV(I,J,L)
+      AIX0(I,J,L) = ARIV(I,J,L)
+      AIX2(I,J,L) = ARIV(I,J,L)
+      AIY0(I,J,L) = ARIV(I,J,L)
+      AIY2(I,J,L) = ARIV(I,J,L)
+      AIX1(I,J,L) = ARIV(I,J,L)
+      AIX3(I,J,L) = ARIV(I,J,L)
+      AIY1(I,J,L) = ARIV(I,J,L)
+      AIY3(I,J,L) = ARIV(I,J,L)
 #endif
   800 IM1 = I
       END DO
@@ -1371,10 +1384,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
             IF (ARHOZ.gt.0) THEN
 #ifdef USE_1D_DIFFUSIVITY
-              AINV(I,J,:) = k1d(:)
+              ARIV(I,J,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
-              AINV(I,J,:) = kappam3d(I,J,:)
+              ARIV(I,J,:) = kappam3d(I,J,:)
 #else
               AN = SQRT(GRAV * ARHOZ / ARHO)
 #ifdef CONSTANT_MESO_LENSCALE
@@ -1385,11 +1398,12 @@ C**** so keep at zero, and let KPP do the work.
 #endif
               BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
      *             *ARHO)
-              AINV(I,J,:) = AMU * RD**2 * BYTEADY ! was = AIN
+              ARIV(I,J,:) = AMU * RD**2 * BYTEADY ! was = AIN
 #endif
 #endif
             END IF
-            ARIV(I,J,:) = ARAI * AINV(I,J,:) ! was = ARI
+            !ARIV(I,J,:) = ARAI * AINV(I,J,:) ! was = ARI
+            AINV(I,J,:) = RGMI * ARIV(I,J,:)
           END IF
           IM1=I
 C**** Set diagnostics
@@ -1423,10 +1437,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
 #ifdef USE_1D_DIFFUSIVITY
-            AINV(1,JM,:) = k1d(:)
+            ARIV(1,JM,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
-            AINV(1,JM,:) = kappam3d(1,JM,:)
+            ARIV(1,JM,:) = kappam3d(1,JM,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
@@ -1436,11 +1450,12 @@ C**** so keep at zero, and let KPP do the work.
             RD = AN * HUP / CORI
 #endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            AINV(1,JM,:) = AMU * RD**2 * BYTEADY ! was = AIN
+            ARIV(1,JM,:) = AMU * RD**2 * BYTEADY ! was = AIN
 #endif
 #endif
           END IF
-          ARIV(1,JM,:) = ARAI * AINV(1,JM,:) ! was = ARI
+          !ARIV(1,JM,:) = ARAI * AINV(1,JM,:) ! was = ARI
+          AINV(1,JM,:) = RGMI * ARIV(1,JM,:)
         END IF
 c       AINV(2:IM,JM)=AINV(1,JM)
 c       ARIV(2:IM,JM)=ARIV(1,JM)
@@ -1478,10 +1493,10 @@ C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
           IF (ARHOZ.gt.0) THEN
 #ifdef USE_1D_DIFFUSIVITY
-            AINV(1,1,:) = k1d(:)
+            ARIV(1,1,:) = k1d(:)
 #else
 #ifdef OCN_Mesoscales
-            AINV(1,1,:) = kappam3d(1,1,:)
+            ARIV(1,1,:) = kappam3d(1,1,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)
             CORI = ABS(2d0*OMEGA*SINPO(JM))
@@ -1491,11 +1506,12 @@ C**** so keep at zero, and let KPP do the work.
             RD = AN * HUP / CORI
 #endif
             BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            AINV(1,1,:) = AMU * RD**2 * BYTEADY ! was = AIN
+            ARIV(1,1,:) = AMU * RD**2 * BYTEADY ! was = AIN
 #endif
 #endif
           END IF
-          ARIV(1,1,:) = ARAI * AINV(1,1,:) ! was = ARI
+          !ARIV(1,1,:) = ARAI * AINV(1,1,:) ! was = ARI
+          AINV(1,1,:) = RGMI * ARIV(1,1,:)
         END IF
 c       AINV(2:IM,1)=AINV(1,1)
 c       ARIV(2:IM,1)=ARIV(1,1)
