@@ -1,3 +1,4 @@
+
       program avg
 c
 c<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -16,6 +17,7 @@ c
      .    ,idrk1,idrk2,jdrk1,jdrk2,indoi,indoj1,indoj2,rhodot,amon
      .    ,monlg,rho,monave_convert,solo_convert,cnvert,timav,mo1,mo2
      .    ,iberi,jberi,ikuro1,ikuro2,jkuro,igulf1,igulf2,jgulf
+     .    ,g                                                                 
       use hycom_arrays, only: srfhgt,dpmixl,covice,depths,scp2
      .    ,u,v,dp,p,temp,saln,th3d,tracer,uflxav,vflxav,diaflx
      .    ,uflx,vflx,ubavg,vbavg,alloc_hycom_arrays,latij
@@ -28,7 +30,7 @@ c
       integer :: ntime
       integer :: ny,num,m,k00,ia,ja
       real*8 :: tsum,ssum,sstsum,ssssum,arean3
-     . ,annsst,annsss,annssh,anntem,annsal,annht,thin,ssh0
+     . ,annsst,annsss,annssh,anntem,annsal,annhc,annhc_top,thin,ssh0
      . ,anndh,anndf,anndb,db,trc
      . ,glbsal,glbtem,glbdep,sum1,sum2,sum3,area,avgbot,vol
 
@@ -39,6 +41,13 @@ c
       integer, allocatable :: im(:,:)
 c
       real :: dpavav(kdm), heatot
+      real*8 :: ztop       ! Depth in m interested top layer ( from surface till 700m )
+      real*8 :: hc_top      ! Heat content upper  ztop meters
+      real*8 :: zdepth      ! Depth in m from surface to current layer (k)
+      real*8 :: zdepth_previous ! Depth in m from surface to previous layer (k-1)
+      real*8 :: factor1, factor2
+      logical :: is_zdepth_shallow_ztop ! is depth of the current layer less than ztop
+
       real, allocatable :: year(:), dpav(:,:)
       real, allocatable :: fl_kuro(:), fl_gulf(:)
       character flnm*132,flnmout*80
@@ -50,21 +59,23 @@ c
 
       character(len=*), parameter :: FMT1=
      & '(a,         t10,a,     t24,a,     t38,a,      t52, a,      
-     &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a)' 
+     &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a,
+     &  t136,a)' 
 C
       character(len=*), parameter :: FMT2=
      & '(f7.2,sp,t10,es12.5,t24,es12.5,t38,es12.5, t52, es12.5,
-     &  t66,es12.5, t80,es12.5,t94,es12.5,t108,es12.5,t122,es12.5)'
+     &  t66,es12.5, t80,es12.5,t94,es12.5,t108,es12.5,t122,es12.5,
+     &  t136,es12.5)'
 c
       character(len=*), parameter :: FMT3=
-     & '(a,         t10,a,     t22,a,     t34,a,      t46, a,      
-     &  t58,a,      t70,a,     t82,a,     t94,a,      t106,a,
-     &  t118,a,     t130,a,    t142,a)' 
+     & '(a,         t10,a,     t24,a,     t38,a,      t52, a,      
+     &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a,
+     &  t136,a,     t150,a,    t164,a,    t178,a)' 
 C
       character(len=*), parameter :: FMT4=
-     & '(f7.2,sp,t10,es10.3,t22,es10.3,t34,es10.3, t46, es10.3,
-     &  t58,es10.3, t70,es10.3,t82,es10.3,t94,es10.3,t106,es10.3,
-     &  t118,es10.3,t130,es10.3,t142,es10.3)'
+     & '(f7.2,sp,t10,es12.5,t24,es12.5,t38,es12.5, t52, es12.5,
+     &  t66,es12.5, t80,es12.5,t94,es12.5,t108,es12.5,t122,es12.5,
+     &  t136,es12.5,t150,es12.5,t164,es12.5,t178,es12.5)'
 
       character(len=*), parameter :: FMT5=
      & '(1x,a,t6,a,t16,a,t28,a,t40,a,t52,a)'
@@ -83,6 +94,9 @@ c
       write(*,'(3a,i4,a,i4)')
      .   'processing RunId=',trim(runid),' from yr ',ny1,' to ',ny2
       write(*,'(a,i2)') 'number of tracers =',ntrcr
+
+      ztop = 10000.
+      ztop = 700.
 
       ntime=(ny2-ny1+1)*12
       allocate(  year(ntime),dpav(ntime,kdm) )
@@ -157,30 +171,32 @@ c
       write(*,'(a,/,a)') 'Open file for writing:',trim(flnmout) 
 
       write(301,fmt=FMT1) 
-     & "Time  ","NINO3","Ice Extent","Ice Extent","Ocean Heat",
-     & "Sea Surface","Sea Surface", "Global Ocean","Global Ocean"
+     & "Time  ","NINO3","Ice_Extent","Ice_Extent","Ocean_Heat",
+     & "Sea_Surface","Sea_Surface", "Global_Ocean","Global_Ocean",
+     & "Top_Ocn_Heat"
       write(301,fmt=FMT1) 
      & "---- ","Index","Arctic","Antarctic","Content",
-     & "Temperature","Salinity","Temperature","Salinity"
+     & "Temperature","Salinity","Temperature","Salinity","Content"
       write(301,fmt=FMT1) 
-     & "Year","    ","Mln.Sq.km","Mln.Sq.km","*1.E6 J/m2",
-     & "degC","PSU","degC","PSU"
+     & "Year","None","Mln.Sq.km","Mln.Sq.km","Joule(s)",
+     & "degC","PSU","degC","PSU","Joule(s)"
 c
       write(302,fmt=FMT3) 
-     & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Ocean Heat", 
-     & "Atl (45N)","Indonesian","Drake","Bering","Gulf","Kuroshio"
+     & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Ocean_Heat", 
+     & "Atl_(45N)","Indonesian","Drake","Bering","Gulf","Kuroshio",
+     & "Top_Ocn_Heat"
       write(302,fmt=FMT3) 
      & "---- ","Surf_Temp","Surf_Saln","Glob_Temp",
-     & "Glob_Saln","Srf_Hght","Content","Max Overt",
-     & "Throughfl","Passage","Strait","Stream"," "
+     & "Glob_Saln","Srf_Hght","Content","Max_Overt",
+     & "Throughfl","Passage","Strait","Stream","Current","Content"
       write(302,fmt=FMT3) 
-     & "Year","degC","PSU","degC","PSU","cm","*1.E6 J/m2","Sv","Sv","Sv"
-     & ,"Sv","Sv","Sv"
+     & "Year","degC","PSU","degC","PSU","cm","Joule(s)","Sv","Sv","Sv"
+     & ,"Sv","Sv","Sv","Joule(s)"
 C
       write(304,'(a)') "North Poleward Ocean Heat Transport" 
       write(304,fmt=FMT5) 
      & "Num","Latitude","Atlantic","Indian","Pacifiq","Global"
-      write(304,fmt=FMT5) " ","degr(N)","pWatts","pWatts",
+      write(304,fmt=FMT5) "N","degr(N)","pWatts","pWatts",
      &  "pWatts","pWatts"
 
       n=0
@@ -192,7 +208,8 @@ C
       anntem=0.
       annsal=0.
       annssh=0.
-      annht =0.
+      annhc =0.             ! Annual heat content
+      annhc_top =0.         ! Annual heat content of top ocean layer
       ubavav(:,:)=0.
       vbavav(:,:)=0.
       uflxav(:,:,:)=0.
@@ -229,16 +246,24 @@ c
       sstsum =0.
       ssssum =0.
       tsum   =0.
+      hc_top =0.
       ssum   =0.
       trc    =0.
       nino3  =0.
       arean3 =0.
       vol=0.
       if (idm.ne.387.and.jdm.ne.360) stop 'reset nino3 domain'
+      factor1=1./(g*rho)
+      factor1=1.          ! in archive already included
       do 5 j=1,jdm
-      do 5 k=1,kdm
       do 5 l=1,isp(j)
       do 5 i=ifp(j,l),ilp(j,l)
+
+      zdepth=0.0
+      zdepth_previous=0  ! depth of previous layer( k-1 )
+      is_zdepth_shallow_ztop=.true.
+
+      do 5 k=1,kdm
       if (k.eq.1) then
         if (i.lt.equat) then
           iceextn=iceextn+covice(i,j)*scp2(i,j)
@@ -256,17 +281,31 @@ c --- nino3 index averaged in 5deg S, 5deg N, 150 W - 90 W
           arean3=arean3+scp2(i,j)
         endif
       endif  ! k=1
+
+      zdepth=zdepth + dp(i,j,k)*factor1 ! Current depth (in m) from surface to k layer
+      if ( ztop >= zdepth  ) then
+        hc_top = hc_top + temp(i,j,k)*dp(i,j,k)*scp2(i,j)
+      else 
+         if( is_zdepth_shallow_ztop ) then
+           hc_top = hc_top+temp(i,j,k)*(ztop-zdepth_previous)*scp2(i,j)
+           is_zdepth_shallow_ztop=.false.
+         end if
+       end if
 c 
       tsum=tsum+temp(i,j,k)*dp(i,j,k)*scp2(i,j)
       ssum=ssum+saln(i,j,k)*dp(i,j,k)*scp2(i,j)
       trc=trc+tracer(i,j,k,1)*dp(i,j,k)*scp2(i,j)
       vol=vol+dp(i,j,k)*scp2(i,j)
+      zdepth_previous=zdepth    !  Depth of bottom for previous layer 
  5    continue
 c
-      heatot=spcifh*rho*tsum/area
+      !heatot=spcifh*rho*tsum/area
+      heatot=spcifh*rho*tsum
+      !hc_top = spcifh*rho*hc_top/area
+      hc_top = spcifh*rho*hc_top
       write(301,fmt=FMT2)
-     . year(n),nino3/arean3,iceextn*1.e-12,iceexts*1.e-12,heatot*1.e-6
-     . ,sstsum/area,ssssum/area,tsum/vol,ssum/vol
+     . year(n),nino3/arean3,iceextn*1.e-12,iceexts*1.e-12,heatot
+     . ,sstsum/area,ssssum/area,tsum/vol,ssum/vol,hc_top
 c
 c --- save annual field
       mon1=monlg(mod(n-1,12)+1)
@@ -275,7 +314,8 @@ c --- save annual field
       annssh=annssh+  ssh0*mon1/julian
       anntem=anntem  +tsum*mon1/julian
       annsal=annsal  +ssum*mon1/julian
-      annht=annht  +heatot*mon1/julian
+      annhc=annhc  +heatot*mon1/julian
+      annhc_top=annhc_top  +hc_top*mon1/julian
 c
 c --- calculate flux
       timav=.true.
@@ -387,7 +427,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
       write(302,fmt=FMT4) year(n)-0.5 
      .   ,annsst/area,annsss/area,anntem/vol,annsal/vol
-     .   ,annssh/area,annht*1.e-6,flxmax,-x2,x1,-fl_beri,gulfmax,kuromax
+     .   ,annssh/area,annhc,flxmax,-x2,x1,-fl_beri,gulfmax,kuromax
+     .   ,annhc_top
  151  continue
 c
 
