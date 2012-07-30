@@ -884,15 +884,11 @@ C**** Non-Polar boxes
         IF(LMU(IM1,J).ge.L) THEN
           TRM(I  ,J,L) = TRM(I  ,J,L) + flux_x(I,J,L)
           TRM(IM1,J,L) = TRM(IM1,J,L) - flux_x(I,J,L)
-C**** Save Diagnostic, GIJL(1) = flux_x(I,J,L)
-          GIJL(I,J,L,1) = GIJL(I,J,L,1) + flux_x(I,J,L)
         END IF
 
         IF(LMV(I,J-1).ge.L) THEN
           TRM(I,J  ,L) = TRM(I,J  ,L) + flux_y(I,J,L)
           TRM(I,J-1,L) = TRM(I,J-1,L) - flux_y(I,J,L)
-C**** Save Diagnostic, GIJL(2) = flux_y(I,J,L)
-          GIJL(I,J,L,2) = GIJL(I,J,L,2) + flux_y(I,J,L)
         END IF
 
 C**** END of I and J loops
@@ -913,8 +909,6 @@ C****       Add and Subtract horizontal Y fluxes
         END DO
 C**** adjust polar box
         TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
-C**** Save Diagnostic, GIJL(2) = STRNP
-        GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
       END IF
 
       IF(HAVE_SOUTH_POLE) THEN
@@ -930,8 +924,6 @@ C****       Add and Subtract horizontal Y fluxes
         END DO
 C**** adjust polar box
         TRM(1,1,L)=TRM(1,1,L) + STRSP/IM
-C**** Save Diagnostic, GIJL(2) = STRSP
-        GIJL(1,1,L,2) = GIJL(1,1,L,2) + STRSP
       END IF
  622  END DO    !L loop
 
@@ -975,8 +967,6 @@ C**** Add and Subtract vertical flux. Note +ve upward flux
         TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
         TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
 
-C**** Save Diagnostic, GIJL(3) = RFZT
-        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
       END IF
 
 C**** END of I and J loops
@@ -995,8 +985,6 @@ C**** Calculate new tracer/salinity/enthalpy
 C**** Add and Subtract vertical flux. Note +ve upward flux
           TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
           TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
-C**** Save Diagnostic, GIJL(3) = RFZT
-          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
         END IF
  720    CONTINUE
       END IF     ! HAVE_NORTH_POLE
@@ -1012,12 +1000,33 @@ C**** Calculate new tracer/salinity/enthalpy
 C**** Add and Subtract vertical flux. Note +ve upward flux
           TRM(1,1,L  ) = TRM(1,1,L  ) + RFZT
           TRM(1,1,L+1) = TRM(1,1,L+1) - RFZT
-C**** Save Diagnostic, GIJL(3) = RFZT
-          GIJL(1,1,L,3) = GIJL(1,1,L,3) + RFZT
         END IF
  730    CONTINUE
       END IF     ! HAVE_SOUTH_POLE
       END DO
+
+c
+c Save flux diagnostics.
+c Shift x/y indices by 1 for consistency with ocean dynamics
+c conventions.
+c
+      do l=1,lmo
+        do j=j_0,j_1
+          do i=1,im-1
+            gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(i+1,j,l)
+          enddo
+          i=im
+            gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(  1,j,l)
+          do i=1,im
+            gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
+          enddo
+        enddo
+        do j=j_0,min(j_1,jm-1)
+          do i=1,im
+            gijl(i,j,l,2) = gijl(i,j,l,2) + flux_y(i,j+1,l)
+          enddo
+        enddo
+      enddo
 
       RETURN
       END SUBROUTINE addFluxes
