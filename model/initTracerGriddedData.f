@@ -5,7 +5,7 @@
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
      &     write_parallel,readt8_parallel
-      USE CONSTANT, only: mair,mwat,sday,pi
+      USE CONSTANT, only: mair,mwat,pi
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */

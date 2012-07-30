@@ -14,7 +14,8 @@
       use domain_decomp_atm, only: am_i_root,grid,dread_parallel
      &     ,broadcast,write_parallel,getDomainBounds
       use model_com, only: ioread,iowrite,irsfic,irsficno
-     &     ,irerun,JDperY,JMperY,itime
+     &     ,irerun,itime
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
       use fluxes, only: dust_flux_glob
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -196,7 +197,7 @@ c will call read_dist_data for cubed sphere compatibility
         countd(2)=1+(j_1-j_0)
         countd(3)=1
 
-        DO k=1,JDperY
+        DO k=1,INT_DAYS_PER_YEAR
 
           IF (k > 59) THEN
             startd(3)=k+1
@@ -253,7 +254,7 @@ c**** Probability density function scheme for dust emission
 
 c**** Read input: ERS data
         CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
-        DO k=1,JMperY
+        DO k=1,INT_MONTHS_PER_YEAR
           CALL dread_parallel(grid,io_data,nameunit(io_data),
      &         ers_data(:,:,k))
         END DO

@@ -291,14 +291,15 @@ C****         MUST  Mass flow through strait (kg/s)
 C****         WIST  Width of strait (m)
 C****         DIST  Length of strait (m)
 C****
-      USE CONSTANT, only : sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE OCEAN, only : lmo,dts
       USE STRAITS, only : nmst,lmst,must,mmst,wist,dist,sxmst,gxmst
 #ifdef TRACERS_OCEAN
       Use STRAITS, Only: TXMST
 #endif
       IMPLICIT NONE
-      REAL*8, PARAMETER :: BDRAGX=1, SDRAGX=1d-1, REDUCE=1./(SDAY*20.)
+      REAL*8, PARAMETER :: BDRAGX=1, SDRAGX=1d-1 
+      REAL*8, PARAMETER :: REDUCE=1./(SECONDS_PER_DAY*20.)
       INTEGER N,L
 
       DO N=1,NMST

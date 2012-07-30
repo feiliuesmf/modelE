@@ -114,6 +114,7 @@ C**** CMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 36 by JM.  If JM = 24 and KDSN > 0, the
 C**** output indicates the continents for the medium resolution.
 C****
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY, INT_DAYS_PER_YEAR
       PARAMETER (IM=36)
       REAL*4 A(36,1),WEIGHT(36,1)
       CHARACTER*80 TITLE,TITLEI
@@ -166,9 +167,9 @@ C****
 C****
 C**** WRITE TITLE AND LONGITUDES AT TOP OF PAGE
 C****
-  300 JYEAR = IHOUR/(24*365)
-      JDAY  = IHOUR/24-365*JYEAR
-      JHOUR = IHOUR-24*(365*JYEAR+JDAY)
+  300 JYEAR = IHOUR/(INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
+      JDAY  = IHOUR/INT_HOURS_PER_DAY-INT_DAYS_PER_YEAR*JYEAR
+      JHOUR = IHOUR-INT_HOURS_PER_DAY*(INT_DAYS_PER_YEAR*JYEAR+JDAY)
       JYEAR = JYEAR+1958
       IF(TITLE(2:2).NE.'&')  WRITE (6,930) IHOUR,TITLE,JYEAR,JDAY,JHOUR
       WRITE (6,931) (LON,LON=-180,150,30),(I,I=1,IM)
@@ -298,6 +299,7 @@ C**** MMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 72 by JM.  If JM = 46 and KDSN > 0, the
 C**** output indicates the continents for the 4x5 resolution.
 C****
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY, INT_DAYS_PER_YEAR
       PARAMETER (IM=72)
       REAL*4 A(IM,1),WEIGHT(IM,1)
       CHARACTER*80 TITLE,TITLEI
@@ -345,9 +347,9 @@ C****
 C**** Determine date from IHOUR
 C****
   200 IF(KDSN.LT.0)  GO TO 700
-      JYEAR = IHOUR/(24*365)
-      JDAY  = IHOUR/24-365*JYEAR
-      JHOUR = IHOUR-24*(365*JYEAR+JDAY)
+      JYEAR = IHOUR/(INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
+      JDAY  = IHOUR/INT_HOURS_PER_DAY-INT_DAYS_PER_YEAR*JYEAR
+      JHOUR = IHOUR-INT_HOURS_PER_DAY*(INT_DAYS_PER_YEAR*JYEAR+JDAY)
       JYEAR = JYEAR+1958
       DO 230 J=1,JM
       WT(J)  = 0.
@@ -498,6 +500,7 @@ C**** FMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 144 by JM.  If JM = 90 and KDSN > 0, the
 C**** output indicates the continents for the new fine resolution.
 C****
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY, INT_DAYS_PER_YEAR
       PARAMETER (IM=144)
       REAL*4 A(IM,1),WEIGHT(IM,1)
       CHARACTER*80 TITLE,TITLEI
@@ -543,9 +546,9 @@ C****
 C**** Determine date from IHOUR
 C****
   200 IF(KDSN.LT.0)  GO TO 700
-      JYEAR = IHOUR/(24*365)
-      JDAY  = IHOUR/24-365*JYEAR
-      JHOUR = IHOUR-24*(365*JYEAR+JDAY)
+      JYEAR = IHOUR/(INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
+      JDAY  = IHOUR/INT_HOURS_PER_DAY-INT_DAYS_PER_YEAR*JYEAR
+      JHOUR = IHOUR-INT_HOURS_PER_DAY*(INT_DAYS_PER_YEAR*JYEAR+JDAY)
       JYEAR = JYEAR+1958
       DO 230 J=1,JM
       WT(J)  = 0.
@@ -692,6 +695,7 @@ C**** WMAP1 prints on the line printer the contents of the array A
 C**** which is dimensioned 12 by JM.  If JM = 24 and KDSN > 0, the
 C**** output indicates the continents for the wonder resolution.
 C****
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY, INT_DAYS_PER_YEAR
       PARAMETER (IM=12)
       REAL*4 A(12,1),WEIGHT(12,1)
       CHARACTER*80 TITLE,TITLEI
@@ -732,9 +736,9 @@ C****
 C**** Read in PLAND from disk if JM = 24 and KDSN > 0
 C****
   200 IF(KDSN.LT.0)  GO TO 700
-      JYEAR = IHOUR/(24*365)
-      JDAY  = IHOUR/24-365*JYEAR
-      JHOUR = IHOUR-24*(365*JYEAR+JDAY)
+      JYEAR = IHOUR/(INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
+      JDAY  = IHOUR/INT_HOURS_PER_DAY-INT_DAYS_PER_YEAR*JYEAR
+      JHOUR = IHOUR-INT_HOURS_PER_DAY*(INT_DAYS_PER_YEAR*JYEAR+JDAY)
       JYEAR = JYEAR+1958
       IF(KDSN.EQ.KDLAST)  GO TO 300
       KDLAST=KDSN

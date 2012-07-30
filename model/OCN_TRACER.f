@@ -391,8 +391,8 @@ C****
       SUBROUTINE OCN_TR_AGE(DTS)
 !@sum OCN_TR_AGE age tracers in ocean
 !@auth Gavin Schmidt/Natassa Romanou
-      USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,JDperY
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
+      USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_age
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
@@ -411,8 +411,8 @@ c**** Extract domain decomposition info
 
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
-C**** age=1/(JDperY*24*3600) in years
-      age_inc=dts/(JDperY*SDAY)
+C**** age=1/(INT_DAYS_PER_YEAR*24*3600) in years
+      age_inc=dts/(INT_DAYS_PER_YEAR*SECONDS_PER_DAY)
       DO L=1,LMO
         DO J=J_0,J_1
           DO I=1,IMAXJ(J)

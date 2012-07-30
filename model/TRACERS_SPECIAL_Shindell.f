@@ -99,6 +99,7 @@
       USE Dictionary_mod, only : get_param, is_set_param
       use resolution, only : lm
       use model_com, only : DTsrc
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       use tracer_com, only : NTM
       use tracer_sources
       use fluxes, only : NIsurf
@@ -127,7 +128,7 @@
       NIsurf_LOCAL = NIsurf
       if(is_set_param("NIsurf"))call get_param("NIsurf",NIsurf_LOCAL)
 
-      maxHR_ch4=24*NIsurf_LOCAL*NINT(3600./DTsrc_LOCAL)
+      maxHR_ch4=24*NIsurf_LOCAL*NINT(SECONDS_PER_HOUR/DTsrc_LOCAL)
 #endif
  
       allocate(airtracer(I_0H:I_1H,J_0H:J_1H,LM))
@@ -187,7 +188,8 @@ C**** linearly in time (at 1% increase per year)
       I_1 = grid%I_STOP
 
       bydtsrc=1.d0/DTsrc
-      by_s_in_yr = 1.d0/(365.d0*24.d0*60.d0*60.d0)
+      !by_s_in_yr = 1.d0/(365.d0*24.d0*60.d0*60.d0)
+      by_s_in_yr = 1.d0/SECONDS_PER_YEAR
 
 C initial source is an overwriting of GLTic pppv, then add
 C 1% every year, linearly in time. (note: vol2mass should
@@ -780,6 +782,8 @@ c     mixing ratios to 1.79 (observed):
 !@auth Greg Faluvegi, based on the Harvard CTM routine SCALERAD
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: nday,Itime,DTsrc 
+      use TimeConstants_mod, only: SECONDS_PER_HOUR, SECONDS_PER_DAY,
+     &                             INT_DAYS_PER_YEAR
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
@@ -808,9 +812,9 @@ c     mixing ratios to 1.79 (observed):
       if (j == JM .and. hasNorthPole(grid))
      &     vlat=  90. - 0.5*REAL(DY)
       vlon = -lon2d_dg(i,j) ! i=1 in lon2d_dg is -180 + dlon/2
-      TIMEC = (mod(itime,365*nday) + nday + 0.5)*DTsrc  
-      P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
-      FACT = (TIMEC/86400. - 81.1875)*ANG1
+      TIMEC = (mod(itime,INT_DAYS_PER_YEAR*nday) + nday + 0.5)*DTsrc  
+      P1 = 15.*(TIMEC/SECONDS_PER_HOUR - VLON/15. - 12.)
+      FACT = (TIMEC/SECONDS_PER_DAY - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
       P3 = VLAT
       temp = (SIN(P3*radian)*SIN(P2*radian)) +
@@ -940,6 +944,7 @@ C
 C**** Global variables:
 c
       USE MODEL_COM, only: DTsrc
+      use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY
       USE TRACER_SOURCES, only: iH=>iHch4,iD=>iDch4,i0=>i0ch4,
      & first_mod,HRA=>HRA_ch4,DRA=>DRA_ch4,PRS=>PRS_ch4,
      & nday_ch4,by_nday_ch4,nra_ch4,maxHR_ch4,avg_model
@@ -964,7 +969,7 @@ C
         write(6,*) 'IJM iH maxHR_ch4=',I,J,m,iH(I,J,m),maxHR_ch4
         call stop_model('iH or maxHR_ch4 problem',255)
       endif
-      nmax=NINT(24.d0*nicall*3600.d0/DTsrc)
+      nmax=NINT(HOURS_PER_DAY*nicall*SECONDS_PER_HOUR/DTsrc)
       bynmax=1.d0/real(nmax)
       by_nday_ch4(:)=1.d0/real(nday_ch4(:))
       iH(I,J,m) = iH(I,J,m) + 1

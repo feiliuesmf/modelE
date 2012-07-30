@@ -298,8 +298,9 @@ C****
 !@auth Gary Russell/G. Schmidt
 !@calls ODFFUS
       USE FILEMANAGER
-      USE CONSTANT, only : sday,tf
       USE MODEL_COM, only : modelEclock
+      USE CONSTANT, only : tf
+      use TimeConstants_mod, only: SECONDS_PER_DAY, DAYS_PER_YEAR
       USE GEOM, only : imaxj
       USE ODEEP_COM, only : tg3m,rtgo,stg3,dtg3,edo,dz,dzo,bydzo,lmom
       USE SEAICE_COM, only : si_ocn
@@ -308,7 +309,7 @@ C****
       USE STATIC_OCEAN, only : z12o,tocean
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       IMPLICIT NONE
-      REAL*8, PARAMETER :: PERDAY=1./365d0
+      REAL*8, PARAMETER :: PERDAY=1./DAYS_PER_YEAR
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
       REAL*8, PARAMETER :: ALPHA=.5d0
       REAL*8 :: ADTG3
@@ -357,7 +358,8 @@ C****
 C**** Set first layer thickness
             DZ(1)=Z12O(I,J)
 
-            CALL ODFFUS (SDAY,ALPHA,EDO(I,J),DZ,BYDZO,RTGO(1,I,J),LMOM)
+            CALL ODFFUS (SECONDS_PER_DAY,ALPHA,EDO(I,J),DZ,BYDZO,
+     &                   RTGO(1,I,J),LMOM)
 
             DO L=1,3
               TOCEAN(L,I,J)=TOCEAN(L,I,J)+(RTGO(1,I,J)-ADTG3)

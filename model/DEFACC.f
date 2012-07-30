@@ -50,8 +50,9 @@ c#endif
 !@sum j_defs definitions for j_xx zonal budget diagnostics
 !@+   diags are printed out in the order they are defined
 !@auth G. Schmidt/M. Kelley
-      use CONSTANT, only : grav,sday,shw,rgas,omega,bygrav,gamd
+      use CONSTANT, only : grav,shw,rgas,omega,bygrav,gamd
      &     ,radian,radius
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RESOLUTION, only : ls1
       use MODEL_COM, only : dtsrc,kocean,qcheck
       use DYNAMICS, only : sige
@@ -467,7 +468,7 @@ c
       lname_j(k) = 'SUPER SATURATION PRECIPITATION'
       units_j(k) = 'mm/day'
       stitle_j(k)= '1SS PRECIP(MM/D)'
-      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
+      scale_j(k) = 100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -478,7 +479,7 @@ c
       lname_j(k) = 'MOIST CONVECTIVE PRECIPITATION'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' MC PRECIP(MM/D)'
-      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
+      scale_j(k) = 100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -489,7 +490,7 @@ c
       lname_j(k) = 'PRECIPITATION'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' PRECIP (MM/DAY)'
-      scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
+      scale_j(k) = 100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -500,7 +501,7 @@ c
       lname_j(k) = 'EVAPORATION'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' EVAPOR (MM/DAY)'
-      scale_j(k) = SDAY/DTSRC
+      scale_j(k) = SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -511,7 +512,7 @@ c
       lname_j(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' IRR ADD(MM/DAY)'
-      scale_j(k) = 1000.d0 * SDAY
+      scale_j(k) = 1000.d0 * SECONDS_PER_DAY
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -533,7 +534,7 @@ c
       lname_j(k) = 'WATER RUNOFF AT GROUND SURFACE'
       units_j(k) = 'mm/day'
       stitle_j(k)= '0WATER RUNOFF'
-      scale_j(k) = SDAY/DTSRC
+      scale_j(k) = SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -544,7 +545,7 @@ c
       lname_j(k) = 'RIVER DISCHARGE'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' RVR DISCH(MM/D)'
-      scale_j(k) = SDAY/DTSRC
+      scale_j(k) = SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -555,7 +556,7 @@ c
       lname_j(k) = 'NET ICE MELTING/FORMATION'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' ICE MELT/FORM  '
-      scale_j(k) = SDAY/DTSRC
+      scale_j(k) = SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -570,7 +571,7 @@ C**** qflux runs. Over land, it is always used for landice changes.
      *     'DOWNWARD IMPLICIT FRESHWATER FLUX AT ICE BASE/OCN ML'
       units_j(k) = 'mm/day'
       stitle_j(k)= ' DWN IMPL WT FLX'
-      scale_j(k) = SDAY/DTSRC
+      scale_j(k) = SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -592,7 +593,7 @@ c
       lname_j(k) = 'SALT IN ICE MELT/FORMATION'
       units_j(k) = '10^-3 kg/m^2/day'
       stitle_j(k)= '0SALT MELT (x1K)'
-      scale_j(k) = 1000.*SDAY/DTSRC
+      scale_j(k) = 1000.*SECONDS_PER_DAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -920,7 +921,7 @@ c
       lname_j(k) = 'ENERGY DIFFUSION INTO THE THERMOCLINE'
       units_j(k) = 'W/m^2'
       stitle_j(k)= ' HT INTO THRMOCL'
-      scale_j(k) = 2d3*SHW/SDAY
+      scale_j(k) = 2d3*SHW/SECONDS_PER_DAY
       ia_j(k) = ia_12hr
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
@@ -1102,6 +1103,7 @@ c
       subroutine ij_defs
       use constant
       use MODEL_COM
+      use TimeConstants_mod, only : SECONDS_PER_DAY
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use fluxes, only : nisurf,atmice
@@ -1246,7 +1248,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'prec'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
@@ -1255,7 +1257,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'pr_lndice'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       denom_ij(k) = IJ_LI
 c
       k=k+1 !
@@ -1264,7 +1266,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'pr_grnd'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1 !
@@ -1273,7 +1275,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'pr_oocn'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       denom_ij(k) = IJ_POPWAT
 c
       k=k+1 !
@@ -1282,7 +1284,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'pr_oice'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       denom_ij(k) = IJ_RSOI
 c
       k=k+1 !
@@ -1291,7 +1293,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'prec_mc'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
@@ -1300,7 +1302,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
@@ -2210,7 +2212,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'runoff_soil'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_m1_3
       denom_ij(k) = IJ_PSOIL
 c
@@ -2220,7 +2222,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'snow_melt'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_m1_3
       denom_ij(k) = IJ_PSOIL
 c
@@ -2230,7 +2232,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'runoff_lndice'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_m1_3
       denom_ij(k) = IJ_LI
 c
@@ -2470,7 +2472,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'runoff_ugrnd'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_m1_3
       denom_ij(k) = IJ_PSOIL
 c
@@ -2520,7 +2522,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'prec_int_canopy'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_m1_3
       denom_ij(k) = IJ_VSFR
 c
@@ -2679,7 +2681,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_ocn'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
 c     iw built-in
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_POPWAT
@@ -2690,7 +2692,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_oice'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
 c     iw built-in
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_RSOI
@@ -2701,7 +2703,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_lndice'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
 c     iw built-in
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_LI
@@ -2712,7 +2714,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'evap_land'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
 c     iw built-in
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_PSOIL
@@ -2811,7 +2813,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'snowfall'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
 c
       k=k+1 !
@@ -2913,7 +2915,7 @@ c
       UNITS_IJ(K) = 'kg/s*m^2'
       NAME_IJ(K)  = 'mlktogr'
       IA_IJ(K)    = IA_12HR
-      SCALE_IJ(K) = 2 / SDAY
+      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
 c
       K = K+1
       IJ_HLKtoGR  = K
@@ -2921,7 +2923,7 @@ c
       UNITS_IJ(K) = 'W/m^2'
       NAME_IJ(K)  = 'hlktogr'
       IA_IJ(K)    = IA_12HR
-      SCALE_IJ(K) = 2 / SDAY
+      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
 c
       k=k+1 !
       IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
@@ -2938,7 +2940,7 @@ c
       units_ij(k) = 'mm/day'
       name_ij(k) = 'pot_evap'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_26_150
       denom_ij(k) = IJ_PSOIL
 c
@@ -3366,7 +3368,7 @@ c
       lname_ij(k) = 'PENMAN POTENTIAL EVAPORATION'
       units_ij(k) = 'mm/day'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_26_150
       denom_ij(k) = IJ_PSOIL
 c
@@ -3431,7 +3433,7 @@ c
       lname_ij(k) = 'BARE SOIL EVAPORATION'
       units_ij(k) = 'mm/day'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_BSFR
 c
@@ -3441,7 +3443,7 @@ c
       lname_ij(k) = 'DRY CANOPY EVAPORATION'
       units_ij(k) = 'mm/day'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_VSFR
 c
@@ -3451,7 +3453,7 @@ c
       lname_ij(k) = 'WET CANOPY EVAPORATION'
       units_ij(k) = 'mm/day'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_VSFR
 c
@@ -3461,7 +3463,7 @@ c
       lname_ij(k) = 'LAND SNOW EVAPORATION'
       units_ij(k) = 'mm/day'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_PSOIL
 c
@@ -3472,7 +3474,7 @@ c
       units_ij(k) = 'mm/d'
       name_ij(k) = 'irrig_w_tot'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0 ! per total grid area; =IJ_PSOIL for per earth
 c
@@ -3482,7 +3484,7 @@ c
       units_ij(k) = 'mm/d'
       name_ij(k) = 'irrig_w'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0
 c
@@ -3512,7 +3514,7 @@ c
       units_ij(k) = 'mm/d'
       name_ij(k) = 'irrig_gw'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1000.d0*SDAY
+      scale_ij(k) = 1000.d0*SECONDS_PER_DAY
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0
 c
@@ -3565,7 +3567,7 @@ c
       name_ij(k) = 'gpp'
       !Scale for mg/m2/day
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
       denom_ij(k) = IJ_PSOIL
 c     iw  built-in
 C NADINE
@@ -3577,7 +3579,7 @@ C NADINE
       name_ij(k) = 'ipp'
       !Scale for mg/m2/day
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
 c      iw_ij(k) = iw_soil     !Weight over land
 c     iw  built-in
 c
@@ -3587,7 +3589,7 @@ c
       units_ij(k) = 'g[C]/m2/day'
       name_ij(k) = 'rauto'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1 ! nyk 1/10/08
@@ -3605,7 +3607,7 @@ c
       units_ij(k) = 'g[C]/m2/day'
       name_ij(k) = 'soilresp'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/m2/s to g/m2/d
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/m2/s to g/m2/d
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1 !PK 1/11/08
@@ -4916,8 +4918,9 @@ c
       end subroutine ij_defs
 
       subroutine jl_defs
-      use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
+      use CONSTANT, only : grav,twopi,sha,rgas,bygrav,radius,lhe
      &     ,bymrat
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc,qcheck
       use DYNAMICS, only : nidyn,do_gwdrag
       use DIAG_COM
@@ -4985,7 +4988,7 @@ c
       lname_jl(k) = 'SOLAR RADIATION HEATING RATE' !'SRHR'
       units_jl(k) = 'K/DAY' !'W/m^2'
       pow_jl(k) = -2
-      scale_jl(k) = 1.D-2*GRAV*SDAY/SHA
+      scale_jl(k) = 1.D-2*GRAV*SECONDS_PER_DAY/SHA
       ia_jl(k) = ia_rad
 c
       k=k+1
@@ -4995,7 +4998,7 @@ c
       lname_jl(k) = 'THERMAL RADIATION COOLING RATE' !'TRHR'
       units_jl(k) = 'K/DAY' !'W/m^2'
       pow_jl(k) = -2
-      scale_jl(k) = -1.D-2*GRAV*SDAY/SHA
+      scale_jl(k) = -1.D-2*GRAV*SECONDS_PER_DAY/SHA
       ia_jl(k) = ia_rad
 c
       k = k + 1
@@ -5033,7 +5036,7 @@ c
       lname_jl(k) = 'DTEMP/DT BY DYNAMICS'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
-      scale_jl(k) = SDAY*NIDYN/(2*dtsrc) ! 1/dt_lf(days)
+      scale_jl(k) = SECONDS_PER_DAY*NIDYN/(2*dtsrc) ! 1/dt_lf(days)
       ia_jl(k) = ia_dga
 c
       k=k+1
@@ -5066,7 +5069,7 @@ c
       lname_jl(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
-      scale_jl(k) = SDAY/(FIM*DTsrc)
+      scale_jl(k) = SECONDS_PER_DAY/(FIM*DTsrc)
       ia_jl(k) = ia_src
 c
       k=k+1
@@ -5691,7 +5694,8 @@ c        call get_zstr(lgrid_jl(k),zstr)
       end subroutine jl_defs
 
       subroutine sjl_defs
-      use CONSTANT, only : grav,sday,sha,bygrav
+      use CONSTANT, only : grav,sha,bygrav
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : qcheck
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -5724,14 +5728,14 @@ c
       name_sjl(k) = 'srad_heat' !'ASJL03'
       lname_sjl(k) = 'SOLAR RADIATION HEATING RATE' !'SRHR'
       units_sjl(k) = '10**-2 K/DAY' !'W/m^2'
-      scale_sjl(k) = 100.D-2*GRAV*SDAY/SHA
+      scale_sjl(k) = 100.D-2*GRAV*SECONDS_PER_DAY/SHA
       ia_sjl(k) = ia_rad
 c
       k=k+1
       name_sjl(k) = 'trad_cool' !'ASJL04'
       lname_sjl(k) = 'THERMAL RADIATION COOLING RATE' !'TRHR'
       units_sjl(k) = '10**-2 K/DAY' !'W/m^2'
-      scale_sjl(k) = -100.D-2*GRAV*SDAY/SHA
+      scale_sjl(k) = -100.D-2*GRAV*SECONDS_PER_DAY/SHA
       ia_sjl(k) = ia_rad
 c
       k=k+1
@@ -5753,6 +5757,7 @@ c
 
       subroutine ijl_defs
       use CONSTANT, only : bygrav,sha,rgas
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -5902,7 +5907,7 @@ CC    3D drying and latent heating profiles
       name_ijl(k) = 'LLH'
       lname_ijl(k) = 'Heating by Large Scale Condensation'
       units_ijl(k) = 'C/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5911,7 +5916,7 @@ c
       name_ijl(k) = 'CTLH'
       lname_ijl(k) = 'Heating by Moist Convection'
       units_ijl(k) = 'C/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5920,7 +5925,7 @@ c
       name_ijl(k) = 'CDLH'
       lname_ijl(k) = 'Heating by Deep Convection'
       units_ijl(k) = 'C/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5929,7 +5934,7 @@ c
       name_ijl(k) = 'CSLH'
       lname_ijl(k) = 'Heating by Shallow Convection'
       units_ijl(k) = 'C/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
       denom_ijl(k) = IJL_DP
 c
@@ -5938,7 +5943,7 @@ c
       name_ijl(k) = 'LSCDRY'
       lname_ijl(k) = 'Drying by Large Scale Condensation (Q2)'
       units_ijl(k) = 'kg/kg/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
 c      
       k=k+1
@@ -5946,7 +5951,7 @@ c
       name_ijl(k) = 'TMCDRY'
       lname_ijl(k) = 'Drying by Moist Convection (Q2)'
       units_ijl(k) = 'kg/kg/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
 c      
       k=k+1
@@ -5954,7 +5959,7 @@ c
       name_ijl(k) = 'DMCDRY'
       lname_ijl(k) = 'Drying by Deep Convection (Q2)'
       units_ijl(k) = 'kg/kg/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
 c
       k=k+1
@@ -5962,7 +5967,7 @@ c
       name_ijl(k) = 'SMCDRY'
       lname_ijl(k) = 'Drying by Shallow Convection (Q2)'
       units_ijl(k) = 'kg/kg/d'
-      scale_ijl(k) = 86400./DTsrc
+      scale_ijl(k) = SECONDS_PER_DAY/DTsrc
       ia_ijl(k) = ia_src
 
       endif ! lh_diags==1
@@ -6320,7 +6325,8 @@ c
       subroutine diurn_defs
 !@sum  diurn_defs definitions for diurnal diagnostic accumulated arrays
 !@auth G. Schmidt
-      use CONSTANT, only : sha,rgas,twopi,sday,grav
+      use CONSTANT, only : sha,rgas,twopi,grav
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc,qcheck
       use FLUXES, only : nisurf
       use DIAG_COM
@@ -6593,14 +6599,14 @@ c
       IDD_PR=k
       name_dd(k)='PREC'
       units_dd(k)='0.01 mm/day'
-      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      scale_dd(k)=100.*100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       lname_dd(k)=' PRC*100'  ! check scale
 c
       k=k+1
       IDD_EV=k
       name_dd(k)='EVAP'
       units_dd(k)='0.01 mm/day'
-      scale_dd(k)=100.*SDAY*NISURF/DTsrc
+      scale_dd(k)=100.*SECONDS_PER_DAY*NISURF/DTsrc
       lname_dd(k)=' EVP*100'
 c
       k=k+1
@@ -6644,14 +6650,14 @@ c
       IDD_SSP=k
       name_dd(k)='SSPREC'
       units_dd(k)='0.01 mm/day'
-      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      scale_dd(k)=100.*100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       lname_dd(k)=' SSP*100'
 c
       k=k+1
       IDD_MCP=k
       name_dd(k)='MCPREC'
       units_dd(k)='0.01 mm/day'
-      scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
+      scale_dd(k)=100.*100.*SECONDS_PER_DAY/(DTsrc*GRAV)
       lname_dd(k)=' MCP*100'
 
 c

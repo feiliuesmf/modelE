@@ -13,6 +13,7 @@ module CLOUDS
        ,mb2kg
   use RESOLUTION, only : lm
   use MODEL_COM, only : dtsrc,itime
+  use TimeConstants_mod, only: SECONDS_PER_HOUR
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
   use RESOLUTION, only : ptop,psf,ls1
@@ -952,7 +953,7 @@ contains
 
       !**** STABILIZATION IS ASSUMED TO OCCUROVER 1 HOUR, SO ONLY APPLY A FRACTION
       !**** OF THE REQUIRED MASS FLUX IN ONE PHYSICS TIMESTEP
-      FMP2=FMP2*min(1d0,DTsrc/(TADJ*3600.d0))
+      FMP2=FMP2*min(1d0,DTsrc/(TADJ*SECONDS_PER_HOUR))
       WMAX=50.
       !****
       CLOUD_TYPES:  do IC=1,ITYPE

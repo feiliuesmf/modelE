@@ -6,6 +6,7 @@ c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
       USE MODEL_COM, only : modelEclock,
      *  itime,iyear1,nday,jdendofm,aMON,xlabel,lrunid,monthi,datei
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
@@ -212,7 +213,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- output time-averaged fields
 c
-      factor=baclin/(date*86400.)
+      factor=baclin/(date*SECONDS_PER_DAY)
 c
       do 55 j=1,jj
       do 55 l=1,isp(j)

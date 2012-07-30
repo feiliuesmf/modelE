@@ -12,8 +12,9 @@ C****
       SUBROUTINE CALC_ZENITH_ANGLE
 !@sum calculate zenith angle for current time step
 !@auth Gavin Schmidt (from RADIA)
-      USE CONSTANT, only : twopi,sday
+      USE CONSTANT, only : twopi
       USE MODEL_COM, only : itime,nday,dtsrc
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RAD_COM, only : cosz1
       USE RAD_COSZ0, only : coszt
       IMPLICIT NONE
@@ -22,7 +23,7 @@ C****
 
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-      ROT2=ROT1+TWOPI*DTsrc/SDAY
+      ROT2=ROT1+TWOPI*DTsrc/SECONDS_PER_DAY
       CALL COSZT (ROT1,ROT2,COSZ1)
 
       END SUBROUTINE CALC_ZENITH_ANGLE
@@ -1075,12 +1076,13 @@ C**** Add water to relevant tracers as well
 !@sum  RADIA adds the radiation heating to the temperatures
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
-      USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
+      USE CONSTANT, only : lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : kradia,lm_req,p,t,q,iu_rad,req_fac_d
       USE MODEL_COM
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE ATM_COM, only : byaml00
       USE GEOM, only : imaxj, axyp, areag, byaxyp
      &     ,lat2d,lon2d
@@ -1437,14 +1439,14 @@ C**** limit optical cloud depth from below: taulim
 C**** Calculate mean cosine of zenith angle for the current physics step
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-c      ROT2=ROT1+TWOPI*DTsrc/SDAY
+c      ROT2=ROT1+TWOPI*DTsrc/SECONDS_PER_DAY
 c      CALL COSZT (ROT1,ROT2,COSZ1)
       CALL CALC_ZENITH_ANGLE   ! moved to main loop
 
       if (kradia.gt.0) then    ! read in all rad. input data (frc.runs)
         iend = 1
         it = itime-1           ! make sure, at least 1 record is read
-        do while (mod(itime-it,NDAY*JDPERY).ne.0)
+        do while (mod(itime-it,NDAY*INT_DAYS_PER_YEAR).ne.0)
           read(iu_rad,end=10,err=10) it
 C****   input data:          WARNINGS
 C****        1 - any changes here also go in later (look for 'iu_rad')
@@ -1484,7 +1486,7 @@ C****
 C**** Interface with radiation routines, done only every NRAD time steps
 C****
 C**** Calculate mean cosine of zenith angle for the full radiation step
-      ROT2=ROT1+TWOPI*NRAD*DTsrc/SDAY
+      ROT2=ROT1+TWOPI*NRAD*DTsrc/SECONDS_PER_DAY
       CALL COSZS (ROT1,ROT2,COSZ2,COSZA)
       JDAYR=dayOfYear
       JYEARR=YEAR
@@ -3362,6 +3364,7 @@ C**** Same for upward thermal
       use rad_com, only : dH2O,jma=>jm_dh2o,lat_dh2o
       use resolution, only : lm
       use constant, only : radian
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       implicit none
       integer, parameter:: lma=24
       integer m,iu,j,l,ll,ldn(lm),lup(lm)
@@ -3438,7 +3441,7 @@ C**** Interpolate (extrapolate) vertically
                 pdn = pup
               end do
             end if
-            dh2o(j,l,m) = 1.d-6*dh/1.74d0/365. !->(kg/m^2/ppm_CH4/day)
+            dh2o(j,l,m) = 1.d-6*dh/1.74d0/DAYS_PER_YEAR !->(kg/m^2/ppm_CH4/day)
           end do
         end do
       end do
@@ -3487,6 +3490,7 @@ C**** for extrapolations, only use half the slope
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
       use domain_decomp_atm, only : grid,getDomainBounds,write_parallel
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       implicit none
       integer, parameter:: jma=18,lma=24
       integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
@@ -3576,7 +3580,7 @@ C**** for extrapolations, only use half the slope
                 pdn = pup
               end do
             end if
-            dh2o(j,l,m) = 1.d-6*dh/1.74d0/365. !->(kg/m^2/ppm_CH4/day)
+            dh2o(j,l,m) = 1.d-6*dh/1.74d0/DAYS_PER_YEAR !->(kg/m^2/ppm_CH4/day)
           end do
         end do
       end do

@@ -4,7 +4,7 @@
 !     @auth J. Lerner
 !     @calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      USE CONSTANT, only: mair,mwat,sday,pi
+      USE CONSTANT, only: mair,mwat,pi
 #ifdef TRACERS_AEROSOLS_SOA
      &     ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */

@@ -12,6 +12,7 @@ c
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, GLOBALSUM,
      &     AM_I_ROOT
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       implicit none
 c
 c --- ---------------------
@@ -51,7 +52,7 @@ c
 c
 css   real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
 css   real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
-      real,parameter :: slak=2./86400.	! intfc nudging time scale: 12 hrs
+      real,parameter :: slak=2./SECONDS_PER_DAY	! intfc nudging time scale: 12 hrs
 c --- linear taper functions (latitude and depth-dependent) for slak
       real tapr,wgtf,slakf
       tapr(q)=1.+9.*max(0.,1.-.02e-4*q)			! q = pressure (Pa)

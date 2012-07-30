@@ -85,7 +85,8 @@
       end module diag_com
 
       subroutine alloc_adiag
-      use constant, only : rhoi,sday
+      use constant, only : rhoi
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : init_grid
       use mdiag_com
@@ -214,7 +215,7 @@ c     code, so make sure that the counter index is correct.
       sname_aij_(k)='salres'
       units_aij_(k)='mm/day' !'psu/year'
       ia_aij_(k)=ia_cpl
-      scale_aij_(k)=sday/dtsrc !1d3*(365.*sday)/dtsrc
+      scale_aij_(k)=SECONDS_PER_DAY/dtsrc !1d3*(365.*sday)/dtsrc
 c
       k=k+1 !
       IJ_TAUS = k

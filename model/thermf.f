@@ -9,6 +9,7 @@ c --- hycom version 0.9
      &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum,delt1,itest,jtest
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, GLOBALSUM
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       implicit none
 c
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
@@ -194,7 +195,7 @@ c --- surface salinity restoration
         do 84 i=ifp(j,l),ilp(j,l)
           piston=((1.-rsiobs(i,j))/sss_restore_dt     ! open water
      .          +     rsiobs(i,j) /sss_restore_dtice) ! under ice
-     .          *12./86400.                           ! 12m depth scale
+     .          *12./SECONDS_PER_DAY                  ! 12m depth scale
           old=salflx(i,j)
           fxbias=(sssobs(i,j)*1000.-saln(i,j,k1n))*piston/thref
           salflx(i,j)=salflx(i,j)+fxbias
@@ -220,17 +221,18 @@ c
       write (lp,'(i9,''energy residual (w/m^2)'',f9.2)') nstep,
      .  watcum/(area*(nstep-nstep0))
       write (lp,'(9x,''resulting temp drift (deg/century):'',f9.3)')
-     .  watcum*thref/(spcifh*avgbot*area*(nstep-nstep0)) *36500.*86400.
+     .  watcum*thref/(spcifh*avgbot*area*(nstep-nstep0)) *
+     &  36500.*SECONDS_PER_DAY
       write (lp,'(i9,''e - p residual (mm/year)'',f9.2)') nstep,
-     .  empcum/(area*(nstep-nstep0))*86400.*365000.
+     .  empcum/(area*(nstep-nstep0))*SECONDS_PER_DAY*365000.
       write (lp,'(9x,''saln drift resulting from e-p (psu/century):''
      .                                                     ,f9.3)')
-     .  -empcum*35./(avgbot*area*(nstep-nstep0)) *36500.*86400.
+     .  -empcum*35./(avgbot*area*(nstep-nstep0)) *36500.*SECONDS_PER_DAY
 css   write (lp,'(i9,''salt residual (T/year)'',3f9.2)') nstep,
-css  .  slfcum*365.*86400.*g/onem
+css  .  slfcum*365.*SECONDS_PER_DAY*g/onem
       write (lp,'(7x,''saln drift resulting from salfl (psu/century):''
      .                                                     ,f9.3)')
-     .  slfcum*36500.*86400.*g/(avgbot*area*onem)
+     .  slfcum*36500.*SECONDS_PER_DAY*g/(avgbot*area*onem)
       write (lp,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
      .    rmean/area,tmean/area,smean/area
       end if ! AM_I_ROOT

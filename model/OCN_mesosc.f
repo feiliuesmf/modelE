@@ -4,7 +4,7 @@
 
       USE MODEL_COM,  only : nstep=>itime,itimei,nday
      . ,iyear1,jdendofm,aMON,dtsrc,xlabel,lrunid
-      USE CONSTANT,   only : grav,omega,sday
+      USE CONSTANT,   only : grav,omega
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS

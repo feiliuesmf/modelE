@@ -996,6 +996,7 @@ C**** GLOBAL parameters and variables:
       use resolution, only : im,jm
       use model_com, only: modelEclock
       use model_com, only: JDmidOfM,JMperY
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
 
 C**** Local parameters and variables and arguments
@@ -1009,7 +1010,7 @@ C**** Local parameters and variables and arguments
 !@+   of month yet.
 !@var alpha interpolation coefficient
 !@var beta interpolation coefficient
-      integer, dimension(0:JMperY+1) :: startday
+      integer, dimension(0:INT_MONTHS_PER_YEAR+1) :: startday
       integer :: k,i,j,offset,itd
       real*8 :: alpha, beta
       integer, save :: isave=0
@@ -1020,7 +1021,8 @@ C**** Local parameters and variables and arguments
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
      
-      startday(0:JMperY+1)=jdMIDofM(0:JMperY+1)-1
+      startday(0:INT_MONTHS_PER_YEAR+1)=jdMIDofM(0:INT_MONTHS_PER_YEAR
+     &                                             +1)-1
     
 ! If in the 1st half of month, use jmon-1 and jmon months
 ! to interpolate. If in 2nd half of month, use jmon and jmon+1.
@@ -1078,6 +1080,7 @@ C**** GLOBAL parameters and variables:
       use resolution, only : im,jm
       use model_com, only: modelEclock
       use model_com, only: JMperY
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use filemanager, only: openunit,closeunit
 
       implicit none
@@ -1091,8 +1094,9 @@ C**** Local parameters and variables and arguments
 !@var IUNIT unuit number of current file being read
 !@var number of types read from file for each i,j point
       integer, intent(in) :: offset
-      character*2, parameter, dimension(0:JMperY+1) :: cmonth =
-     &(/'12','01','02','03','04','05','06','07','08','09','10',
+      character*2, parameter, dimension(0:INT_MONTHS_PER_YEAR+1) :: 
+     & cmonth =
+     & (/'12','01','02','03','04','05','06','07','08','09','10',
      &  '11','12','01'/)
       integer :: i,j,k,iunit,index
 #ifndef BIN_OLSON

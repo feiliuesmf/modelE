@@ -1156,7 +1156,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 !@sum init_jls_diag Initialise zonal mean/height tracer diags
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE TRACER_COM
       USE DIAG_COM
@@ -1424,7 +1424,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY/DTsrc
+        scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_isrc(2,n) = k
@@ -1432,7 +1432,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY/DTsrc
+        scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_prec(1,n)=k
@@ -1440,7 +1440,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY/DTsrc
+        scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_prec(2,n)=k
@@ -1448,7 +1448,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY/DTsrc
+        scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
 
 C**** special one unique to HTO
@@ -2662,14 +2662,14 @@ c Oxidants
       lname_jls(k)='No. dust events'
       sname_jls(k)='no_dust_ev1'
       jls_ltop(k)=1
-      scale_jls(k)=Sday/Dtsrc
+      scale_jls(k)=SECONDS_PER_DAY/Dtsrc
       units_jls(k)='1/d'
       k = k + 1
       jls_spec(nDustEv2jl)=k
       lname_jls(k)='No. dust events above threshold wind'
       sname_jls(k)='no_dust_ev2'
       jls_ltop(k)=1
-      scale_jls(k)=Sday/Dtsrc
+      scale_jls(k)=SECONDS_PER_DAY/Dtsrc
       units_jls(k)='1/d'
       k = k + 1
       jls_spec(nDustWthjl)=k
@@ -2843,7 +2843,7 @@ c Oxidants
 !@sum init_ijts_diag Initialise lat/lon tracer diags
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      USE CONSTANT, only: sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE TRACER_COM
       USE DIAG_COM
@@ -5456,7 +5456,7 @@ c SW forcing from albedo change
       lname_ijts(k)='No. dust events'
       sname_ijts(k)='no_dust_ev1'
       ia_ijts(k)=ia_src
-      scale_ijts(k)=Sday/Dtsrc
+      scale_ijts(k)=SECONDS_PER_DAY/Dtsrc
       units_ijts(k)='1/d'
       ijts_HasArea(k) = .false.
       k = k + 1
@@ -5464,7 +5464,7 @@ c SW forcing from albedo change
       lname_ijts(k)='No. dust events above threshold wind'
       sname_ijts(k)='no_dust_ev2'
       ia_ijts(k)=ia_src
-      scale_ijts(k)=Sday/Dtsrc
+      scale_ijts(k)=SECONDS_PER_DAY/Dtsrc
       units_ijts(k)='1/d'
       ijts_HasArea(k) = .false.
       k = k + 1
@@ -6481,6 +6481,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_ON
       USE FLUXES, only : atmocn,atmice,atmglas,atmlnd,atmsrf,asflx
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,wm
       use model_com, only: modelEclock
@@ -7541,7 +7542,7 @@ c NOTE: the input file specifies integrals over its gridboxes.
           do ll=1,lmax ! add source between surf and max height
             so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
      &          +(amref(ll)/amsum)*
-     &           volc_emiss(ilon,jlat)/(sday*30.4d0)/12.d0
+     &           volc_emiss(ilon,jlat)/(SECONDS_PER_DAY*30.4d0)/12.d0
           enddo
         enddo
       enddo
@@ -8056,7 +8057,9 @@ C**** at the start of any day
       USE FLUXES, only: trsource,fland,flice,focean,atmsrf
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth
-      USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
+      USE CONSTANT, only: tf,bygrav,mair,pi,teeny
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
+     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
 #endif
@@ -8171,11 +8174,11 @@ C**** SF6_c source is constant, same as first year SF6, but always
 C**** CFCn source increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
-        steppy = 1./(sday*JDperY)
+        steppy = 1./(SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
         if (trname(n).eq.'SF6' .or. trname(n).eq.'CFCn' .or.
      *      trname(n).eq.'SF6_c') then
 C         Make sure index KY=1 in year that tracer turns on
-          ky = 1 + (itime-itime_tr0(n))/(nday*JDperY)
+          ky = 1 + (itime-itime_tr0(n))/(nday*INT_DAYS_PER_YEAR)
           if (trname(n).eq.'SF6_c') ky = 1
           base = (0.3d-12)*vol2mass(n) !pptm
           x = base*ky
@@ -8318,22 +8321,25 @@ C**** Source over Australia and New Zealand
         trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
         !weight trsource by ocmip_cfc global average
-        !number of steps/year=JDperY*sday/dtsrc=365*86400/1800=17520
-        i_ocmip=(itime-itime_tr0(n))/JDperY/int(sday/dtsrc)+1
-        if (mod(itime,JDperY*int(sday/dtsrc)) .eq. 0.)
-     .     write(6,'(a,2i5)'),
-     .             'TRACERS_DRV, new year: itime, i_ocmip=',
-     .             itime,i_ocmip
+        !number of steps/year=INT_DAYS_PER_YEAR*SECONDS_PER_DAY/dtsrc
+        !                    =365*86400/1800 =17520
+        i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
+     &          int(SECONDS_PER_DAY/dtsrc)+1
+        if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
+     &      .eq. 0.) then
+          write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
+     &                       itime,i_ocmip
+        endif
         do j=J_0,J_1 ! TNL
           do i=1,72
 
 cdiag     write(6,'(a,2i5,2e12.4,i5,4e12.4)')'TRACERS_DRV '
 cdiag.         ,i,j,trsource(i,j,1,n),ocmip_cfc(i_ocmip,n),
-cdiag.          JDperY,hrday,dtsrc,3600,trsource_glbavg(n)
+cdiag.          JDperY,HOURS_PER_DAY,dtsrc,3600,trsource_glbavg(n)
 
-             trsource(i,j,1,n) = trsource(i,j,1,n)
-     .        * (ocmip_cfc(i_ocmip,n)/(JDperY*sday/dtsrc))
-     .        / trsource_glbavg(n)
+             trsource(i,j,1,n) = trsource(i,j,1,n)* 
+     &         (ocmip_cfc(i_ocmip,n)/(INT_DAYS_PER_YEAR*
+     &         SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
           enddo
         enddo
 
@@ -8369,7 +8375,7 @@ C****
       case ('Rn222')
         trsource(:,J_0:J_1,:,n)=0
 C**** ground source
-        steppd = 1./sday
+        steppd = 1./SECONDS_PER_DAY
         do j=J_0,J_1
           do i=I_0,I_1
           if (rnsrc.eq.0) then !standard source
@@ -8447,7 +8453,8 @@ C**** The tracer is reset to specific values in layer 1 only if
 C****   this results in a sink
 C****
       case ('14CO2')
-      tmon = (itime-itime_tr0(n))*jmpery/(nday*jdpery)
+      tmon = (itime-itime_tr0(n))*INT_MONTHS_PER_YEAR/
+     &       (nday*INT_DAYS_PER_YEAR)
       trsource(:,J_0:J_1,1,n) = 0.
       do j=J_0,J_1
       do i=I_0,I_1

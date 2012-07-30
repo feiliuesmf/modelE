@@ -3088,7 +3088,7 @@ C**FREQUENCY BAND AVERAGE
       subroutine IJ_MAPk (k,smap,smapj,gm,igrid,jgrid,irange,
      &     name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
-      USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
+      USE CONSTANT, only : grav,rgas,twopi,sha,kapa,bygrav,tf,undef
      *     ,teeny
       use model_com, only: modelEclock
       USE MODEL_COM, only : DTsrc,IDACC,
@@ -4063,6 +4063,7 @@ C****
 !@sum  DIAGDD prints out diurnal cycle diagnostics
 !@auth G. Russell
       use model_com, only: modelEclock
+      use TimeConstants_mod, only: HOURS_PER_DAY
       USE MODEL_COM, only :
      &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID,NDAY
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,ndiupt,
@@ -4085,7 +4086,7 @@ C****
 C****
       NDAYS=IDACC(ia_12hr)/2
       IF (NDAYS.LE.0) RETURN
-      BYIDAC=24./(NDAY*NDAYS)
+      BYIDAC=HOURS_PER_DAY/(NDAY*NDAYS)
 C****
       IREGF=1
       IREGL=NDIUPT-KDIAG(6)       ! kd6=KDIAG(6)>0: skip last kd6 points
@@ -4173,6 +4174,7 @@ C****
 !@auth J. Lerner
 #ifndef NO_HDIURN
       use model_com, only: modelEclock
+      use TimeConstants_mod, only: HOURS_PER_DAY
       USE MODEL_COM, only :   JDendOfM,NDAY,
      &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,hr_in_month
@@ -4236,7 +4238,8 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           IF(DENOM_DD(KQ).EQ.0) THEN
 C**** NORMAL QUANTITIES
             DO IH=1,HR_IN_MONTH
-              XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)*(24./NDAY)
+              XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)*
+     &                  (HOURS_PER_DAY/NDAY)
             END DO
           ELSE
 C**** RATIO OF TWO QUANTITIES
@@ -4278,6 +4281,7 @@ C****
       USE CONSTANT, only :
      &     grav,rgas,bygrav
       use model_com, only: modelEclock
+      use TimeConstants_mod, only: HOURS_PER_DAY
       USE MODEL_COM, only :
      &     IDACC,JHOUR0,JDATE0,AMON,AMON0,
      &     JYEAR0,NDAY,Itime0,XLABEL
@@ -4336,7 +4340,7 @@ C****
           ItimeX=Itime0+I*NDA4-1
           IDAYX=1+ItimeX/NDAY
           IDAYXM=MOD(IDAYX,100000)
-          TOFDYX=MOD(ItimeX,NDAY)*24./NDAY
+          TOFDYX=MOD(ItimeX,NDAY)*HOURS_PER_DAY/NDAY
           DO KSPHER=1,2
             DO K=1,NED
               KS=K+(KSPHER-1)*NED

@@ -27,7 +27,8 @@ C****
 !!    use model_com, only : ioread
       use model_com, only : im,jm,lm
       USE PARAM
-      USE CONSTANT, only : twopi,sday,rhows
+      USE CONSTANT, only : twopi,rhows
+      use TimeConstants_mod, only: SECONDS_PER_DAY, DAYS_PER_YEAR
       USE MODEL_COM, only: lm,iowrite_mon,irerun
       USE TIMINGS, only : ntimeacc,timing,timestr
       USE STATIC_OCEAN
@@ -182,7 +183,7 @@ C****
           last_day = month_day(month)
           do kday = 1,last_day
             jday = jday + 1
-            ARG  = JDAY*TWOPI/365.
+            ARG  = JDAY*TWOPI/DAYS_PER_YEAR
             DO K=1,4
               COSDAY(K) = DCOS(K*ARG)
               SINDAY(K) = DSIN(K*ARG)
@@ -245,7 +246,7 @@ C*
           call closeunit(iu_VFLX)
         end do
       END DO
-      SYEARS = SDAY*365.*years
+      SYEARS = SECONDS_PER_DAY*DAYS_PER_YEAR*years
 C****
 C**** SCALE AV TO W/M**2 , AE TO J/M**2 TO CALCULATE SPECTRAL COEFF
 C****
@@ -255,15 +256,15 @@ C****
         DO K=1,4
           AV(I,J,K,:) = AV(I,J,K,:)*2./SYEARS
           BV(I,J,K,:) = BV(I,J,K,:)*2./SYEARS
-          AE(I,J,K) = AE(I,J,K)*2./(365.*years)
-          BE(I,J,K) = BE(I,J,K)*2./(365.*years)
+          AE(I,J,K) = AE(I,J,K)*2./(DAYS_PER_YEAR*years)
+          BE(I,J,K) = BE(I,J,K)*2./(DAYS_PER_YEAR*years)
         END DO
       END DO
       END DO
 C****
 C**** Calculate the ocean transports spectral coefficients
 C****
-      OMEG = TWOPI/(SDAY*365.)
+      OMEG = TWOPI/(SECONDS_PER_DAY*DAYS_PER_YEAR)
       DO J=1,JM
       DO I=1,IMAXJ(J)
         IF(FOCEAN(I,J).LE.0.)  CYCLE
@@ -280,7 +281,8 @@ C**** Compute phase and amplitude of ocean transports
         IF(FOCEAN(I,J).LE.0.) CYCLE
         AMPOT(I,J,:) = SQRT(AOT(I,J,1,:)*AOT(I,J,1,:)+
      *       BOT(I,J,1,:)*BOT(I,J,1,:))
-        PHAOT(I,J,:) = ATAN2(BOT(I,J,1,:),AOT(I,J,1,:))*365./TWOPI
+        PHAOT(I,J,:) = ATAN2(BOT(I,J,1,:),AOT(I,J,1,:))*
+     &                 DAYS_PER_YEAR/TWOPI
         COTS(I,J,:)  = COT(I,J,:)
       END DO
       END DO

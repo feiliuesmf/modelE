@@ -885,7 +885,7 @@ C NOW THE SECOND HALF
       Subroutine GEOMICDYN
       use DOMAIN_DECOMP_1D, only : getDomainBounds,
      &     hasSouthPole, hasNorthPole
-      USE CONSTANT, only : OMEGA,RADIUS,PI,TWOPI,SDAY,radian
+      USE CONSTANT, only : OMEGA,RADIUS,PI,TWOPI,radian
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0S,J_1S
       INTEGER :: I,J!,K

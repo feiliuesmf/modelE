@@ -7,6 +7,8 @@
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
      .                   ,rhs,cexp,kzc
+      use TimeConstants_mod, only: HOURS_PER_DAY, DAYS_PER_YEAR,
+     &                             SECONDS_PER_HOUR
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
       USE OCEAN, only: dxypo
@@ -104,7 +106,7 @@
           !and convert to distance (m/timestep)
           do k=1,kmax
              obio_ws(k,nt)=min(obio_ws(k,nt),p1d(kmax+1)-p1d(k))
-     .                    * baclin/3600.d0
+     .                    * baclin/SECONDS_PER_HOUR
           enddo
 
 
@@ -177,7 +179,7 @@ cdiag      endif
           !and convert to distance
           do k=1,kmax
              wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
-     .                  *baclin/3600.d0
+     .                  *baclin/SECONDS_PER_HOUR
           enddo
 !need to change that (?) and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
@@ -229,7 +231,7 @@ cdiag      endif
      .        + obio_P(k,nt)*obio_ws(k,nt-nnut)   
      .        * mgchltouMC              
      .        * 12.d0              
-     .        * 24.d0 * 365.d0         
+     .        * HOURS_PER_DAY * DAYS_PER_YEAR         
      .        * 1.d-15            !mgm3 -> PgC/yr               
 #ifdef OBIO_ON_GARYocean
      .        * dxypo(j)                      
@@ -243,7 +245,7 @@ cdiag      endif
         nt= 1            !only the for carbon detritus
         cexp = cexp 
      .        + det(k,nt)*wsdet(k,nt)
-     .        * 24.d0 * 365.d0
+     .        * HOURS_PER_DAY * DAYS_PER_YEAR
      .        * 1.d-15                 !ugC/l -> PgC/yr
 #ifdef OBIO_ON_GARYocean
      .        * dxypo(j) 

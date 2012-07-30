@@ -53,6 +53,7 @@
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use dictionary_mod, only : get_param, is_set_param
       use model_com, only: dtsrc
+      use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
@@ -76,7 +77,7 @@
 
       DTsrc_LOCAL = DTsrc
       if(is_set_param("DTsrc"))call get_param("DTsrc",DTsrc_LOCAL)
-      maxHR_prec = NINT(24.d0*1.d0*3600.d0/DTsrc_LOCAL)
+      maxHR_prec = NINT(HOURS_PER_DAY*1.d0*SECONDS_PER_HOUR/DTsrc_LOCAL)
 
       allocate( flammability(I_0H:I_1H,J_0H:J_1H) )
       allocate( veg_density (I_0H:I_1H,J_0H:J_1H) )
@@ -328,7 +329,8 @@
      & raP_acc
 
       use fluxes, only: prec,atmsrf
-      use constant, only: sday, lhe
+      use constant, only: lhe
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use diag_com, only: ij_flam,aij=>aij_loc
 
       implicit none
@@ -362,7 +364,7 @@
             ! could use tsurf,qsurf over land (from atmlnd%)?
             tsurf = atmsrf%tsavg(i,j)
             qsurf = atmsrf%qsavg(i,j)
-            call calc_flammability(tsurf,sday*ravg_prec(i,j)/dtsrc,
+            call calc_flammability(tsurf,SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc,
      &           min(1.d0,qsurf/qsat(tsurf,lhe,p(i,j)+ptop)),
      &           veg_density(i,j),flammability(i,j)) 
             endif

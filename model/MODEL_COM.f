@@ -10,6 +10,7 @@
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
       use ModelClock_mod
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_DAYS_PER_YEAR
       IMPLICIT NONE
       SAVE
 
@@ -30,10 +31,10 @@ C**** (Simplified) Calendar Related Terms
 !@param JDperY,JMperY    number of days,months per year
 !@var   JDendOfM(0:12)   last Julian day in month
 !@var   JDmidOfM(0:13)   middle Julian day in month
-      integer, PARAMETER :: JDPERY = 365, JMPERY = 12
-      integer :: JDendOfM(0:JMPERY) = (
+      !integer, PARAMETER :: JDPERY = 365, JMPERY = 12  !Obsolete
+      integer :: JDendOfM(0:INT_MONTHS_PER_YEAR) = (
      *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      integer :: JDmidOfM(0:JMPERY+1) = (
+      integer :: JDmidOfM(0:INT_MONTHS_PER_YEAR+1) = (
      *     /-15,16,45,75,106,136,167,197,228,259,289,320,350,381/)
 
 !@var AMON,AMONTH(0:12)  (3-4 letter) names for current,all months
@@ -124,7 +125,7 @@ C**** (Simplified) Calendar Related Terms
       month = clock%month()
       day = clock%dayOfYear()
       year = clock%year()
-      months=(year-Jyear0)*JMperY + month - JMON0
+      months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
       isBeginningAccumPeriod = 
      &     clock%isBeginningOfDay() .and. 
      &     months.ge.NMONAV .and. day.eq.1+JDendOfM(month-1)
@@ -171,6 +172,7 @@ C**** Accumulating_period information
 !@+   the name will reflect that fact ONLY for 2 or 3-month periods
 !@auth Reto A. Ruedy
       USE MODEL_COM, only : AMONTH
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
 !@var JMON1,JYR1 month,year of beginning of period 1
       INTEGER JMON1,JYR1
@@ -194,12 +196,12 @@ C**** Accumulating_period information
       aDATE(1:3)=AMONTH(JMON1)        ! letters 1-3 of month IF months=1
       yr1=JYR1
       JMONL=JMON1+months-1
-      if(JMONL.GT.12) then
+      if(JMONL.GT.INT_MONTHS_PER_YEAR) then
          yr1=yr1+1
-         JMONL=JMONL-12
+         JMONL=JMONL-INT_MONTHS_PER_YEAR
       end if
       if (moff.gt.0.and.months.le.3) then  ! earliest month is NOT month
-        JMONL = 1 + mod(10+jmon1,12)       ! 1 of the 2-3 month period
+        JMONL = 1 + mod(10+jmon1,INT_MONTHS_PER_YEAR)  ! 1 of the 2-3 month pd
         yr1=JYR1
         if (jmon1.gt.1) yr1=yr1+1
       end if
@@ -207,8 +209,8 @@ C**** Accumulating_period information
       write(aDATE(4:7),'(i4.4)') yr1
       if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
 
-      if(months.gt.12) aDATE(1:1)='x'                ! should not happen
-      if(months.le.1 .or. months.gt.12) return
+      if(months.gt.INT_MONTHS_PER_YEAR) aDATE(1:1)='x'       ! should not happen
+      if(months.le.1 .or. months.gt.INT_MONTHS_PER_YEAR) return
 
 !**** 1<months<13: adjust characters 1-3 of aDATE (=beg) if necessary:
 !**** beg=F?L where F/L=letter 1 of First/Last month for 2-11 mo.periods
@@ -223,16 +225,20 @@ C**** Accumulating_period information
       if (months.eq.3) then
         JMONM = JMONL-1
         if (moff.eq.1) jmonm = jmon1+1
-        if (jmonm.gt.12) jmonm = jmonm-12
-        if (jmonm.le.0 ) jmonm = jmonm+12
+        if (jmonm.gt.INT_MONTHS_PER_YEAR) then
+          jmonm = jmonm - INT_MONTHS_PER_YEAR
+        end if  
+        if (jmonm.le.0 ) jmonm = jmonm + INT_MONTHS_PER_YEAR
         aDATE(2:2)=AMONTH(JMONM)(1:1)
         return
       end if
       if (moff.gt.0) then  ! can't tell non-consec. from consec. periods
         jmon1 = jmon1-moff
-        if (jmon1.le.0) jmon1 = jmon1+12
+        if (jmon1.le.0) jmon1 = jmon1 + INT_MONTHS_PER_YEAR
         JMONL=JMON1+months-1
-        if (jmonl.gt.12) jmonl = jmonl-12
+        if (jmonl.gt.INT_MONTHS_PER_YEAR) then
+          jmonl = jmonl - INT_MONTHS_PER_YEAR
+        end if
         aDATE(1:1)=AMONTH(JMON1)(1:1)
         aDATE(3:3)=AMONTH(JMONL)(1:1)
       end if
@@ -247,7 +253,7 @@ C**** Accumulating_period information
          IF (JMON1.eq. 1) aDATE(1:3)='J7L'     ! Jan-Jul J7J->J7L
          IF (JMON1.eq. 7) aDATE(1:3)='L7J'     ! Jul-Jan J7J->L7J
       END IF
-      IF (months.eq.12) THEN
+      IF (months.eq.INT_MONTHS_PER_YEAR) THEN
 C****    beg=ANn where the period ends with month n if n<10 (except 4)
          aDATE(1:3)='ANN'                      ! regular annual mean
          IF (JMONL.le. 9) WRITE(aDATE(3:3),'(I1)') JMONL
@@ -347,21 +353,21 @@ C****
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
-      USE CONSTANT, only : hrday
-      USE MODEL_COM, only : JDperY,JDendOfM,amonth
+      use TimeConstants_mod, only : HOURS_PER_DAY, INT_DAYS_PER_YEAR
+      USE MODEL_COM, only : JDendOfM,amonth
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: It,Nday,Iyr0
       INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
       CHARACTER*4, INTENT(OUT) :: amn
 
-      Jyr=Iyr0+It/(Nday*JDperY)
-      Jd=1+It/Nday-(Jyr-Iyr0)*JDperY
+      Jyr=Iyr0+It/(Nday*INT_DAYS_PER_YEAR)
+      Jd=1+It/Nday-(Jyr-Iyr0)*INT_DAYS_PER_YEAR
       Jmn=1
       do while (Jd.GT.JDendOfM(Jmn))
         Jmn=Jmn+1
       end do
       Jdate=Jd-JDendOfM(Jmn-1)
-      Jhour=mod(It*hrday/Nday,hrday)
+      Jhour=mod(It*HOURS_PER_DAY/Nday,HOURS_PER_DAY)
       amn=amonth(Jmn)
 
       return
@@ -393,7 +399,7 @@ C****
 !-------------------------------------------------------------------------------
       subroutine init_esmf_clock_for_modelE(interval, clock)
 !-------------------------------------------------------------------------------
-      use constant, only : hrday
+      use TimeConstants_mod, only : HOURS_PER_DAY, MINUTES_PER_HOUR
       use MODEL_COM, only : itimei,itimee,nday,iyear1
       use ESMF_mod
       implicit none
@@ -412,9 +418,11 @@ C****
       CHARACTER*4 :: cmon
 
       call getdte(itimei,nday,iyear1,YEARI,MONTHI,jday,DATEI,HOURI,cmon)
-      MINTI = nint(mod( mod(Itimei*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTI = nint(mod( mod(Itimei*HOURS_PER_DAY/Nday,HOURS_PER_DAY) *  
+     &        MINUTES_PER_HOUR, MINUTES_PER_HOUR))
       call getdte(itimee,nday,iyear1,YEARE,MONTHE,jday,DATEE,HOURE,cmon)
-      MINTE = nint(mod( mod(Itimee*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTE = nint(mod( mod(Itimee*HOURS_PER_DAY/Nday,HOURS_PER_DAY) *  
+     &        MINUTES_PER_HOUR, MINUTES_PER_HOUR))
 
     ! initialize calendar to be Gregorian type
       gregorianCalendar = ESMF_calendarcreate("GregorianCalendar",

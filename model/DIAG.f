@@ -1244,7 +1244,8 @@ C****
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : itime,itime0,nday,iyear1
-     &     ,dtsrc,xlabel,jdpery,JDendOfM,lrunid
+     &     ,dtsrc,xlabel,JDendOfM,lrunid
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -1688,8 +1689,9 @@ c get_subdd
 !@+
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
-      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,sday,tf,mair,sha
+      USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,tf,mair,sha
      *     ,lhe,rhow,undef,stbo,bysha
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RESOLUTION, only : ptop
       USE RESOLUTION, only : lm
       USE ATM_COM, only : p,zatmo,u,v,t,q
@@ -1984,15 +1986,17 @@ C**** accumulating/averaging mode ***
           units_of_data = '%'
           long_name = 'Surface Relative Humidity'
         case ("PREC")           ! precip (mm/day)
-c          datar8=sday*prec/dtsrc
-          datar8=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+c          datar8=SECONDS_PER_DAY*prec/dtsrc
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*P_acc/(Nsubdd*dtsrc) 
           P_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Precipitation'
           qinstant = .false.
 #ifdef CALCULATE_FLAMMABILITY
         case ("RAPR")   !running avg precip (mm/day)
-          datar8=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*raP_acc/(Nsubdd*dtsrc) 
           raP_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Running Average of Precipitation'
@@ -2036,7 +2040,7 @@ c          datar8=sday*prec/dtsrc
 #endif /* TRACERS_SPECIAL_Shindell */
 
         case ("MCP")       ! moist conv precip (mm/day)
-          datar8=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Moist Convective Precipitation'
@@ -2050,7 +2054,7 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef mjo_subdd
         case ("EVP")           ! evaporation (mm/day)
-          datar8=sday*E_acc/(Nsubdd*dtsrc)
+          datar8=SECONDS_PER_DAY*E_acc/(Nsubdd*dtsrc)
           E_acc=0.
           units_of_data = 'mm/day'
           long_name = 'Evaporation'
@@ -2085,32 +2089,38 @@ c          datar8=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_WATER
         case ("TRP1")
-          datar8=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRP_acc(1,:,:)/(Nsubdd*dtsrc) 
           TRP_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE1")
-          datar8=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
           TRE_acc(1,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP2")
-          datar8=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRP_acc(2,:,:)/(Nsubdd*dtsrc) 
           TRP_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE2")
-          datar8=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
           TRE_acc(2,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRP3")
-          datar8=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRP_acc(3,:,:)/(Nsubdd*dtsrc) 
           TRP_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
         case ("TRE3")
-          datar8=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
+          ! accum over Nsubdd steps
+          datar8=SECONDS_PER_DAY*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) 
           TRE_acc(3,:,:)=0.
           units_of_data = 'kg/(s m^2)'
           qinstant = .false.
@@ -2683,22 +2693,22 @@ C**** get pressure level
                 units_of_data = 'percent'
             long_name = 'stratiform cld at '//trim(PMNAME(kp))//' hPa'
               case ("H")
-                datar8=sday*tlh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*tlh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'TMCLH at '//trim(PMNAME(kp))//' hPa'
                 qinstant = .false.
               case ("L")
-                datar8=sday*llh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*llh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'LLH at '//trim(PMNAME(kp))//' hPa'
                 qinstant = .false.
               case ("E")
-                datar8=sday*dlh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*dlh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'DLH at '//trim(PMNAME(kp))//' hPa'
                 qinstant = .false.
               case ("S")
-                datar8=sday*slh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*slh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'SLH at '//trim(PMNAME(kp))//' hPa'
                 qinstant = .false.
@@ -2856,22 +2866,22 @@ C**** get pressure level
                 units_of_data = 'percent'
                 long_name = 'stratiform cld '
               case ("H")
-                datar8=sday*tlh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*tlh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'TMCLH '
                 qinstant = .false.
               case ("L")
-                datar8=sday*llh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*llh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'LLH '
                 qinstant = .false.
               case ("E")
-                datar8=sday*dlh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*dlh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'DLH '
                 qinstant = .false.
               case ("S")
-                datar8=sday*slh_inst(kp,:,:)/(Nsubdd*dtsrc)
+                datar8=SECONDS_PER_DAY*slh_inst(kp,:,:)/(Nsubdd*dtsrc)
                 units_of_data = 'K/day'
                 long_name = 'SLH '
                 qinstant = .false.
@@ -3339,62 +3349,62 @@ C**** accumulating/averaging mode ***
               long_name = 'Cloud ice water content'
               qinstant = .false.
             case ("TLH")
-              datar8(:,:)=sday*TLH3D(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*TLH3D(l,:,:)/(Nsubdd*dtsrc)
               TLH3D(l,:,:)=0.
               units_of_data = 'K/day'
               long_name = 'Total Heating by moist. conv.'
               qinstant = .false.
             case ("SLH")
-              datar8(:,:)=sday*SLH3D(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*SLH3D(l,:,:)/(Nsubdd*dtsrc)
               SLH3D(l,:,:)=0.
               units_of_data = 'K/day'
               long_name = 'Heating by shallow convection'
               qinstant = .false.
             case ("DLH")
-              datar8(:,:)=sday*DLH3D(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*DLH3D(l,:,:)/(Nsubdd*dtsrc)
               DLH3D(l,:,:)=0.
               units_of_data = 'K/day'
               long_name = 'Heating by deep convection'
               qinstant = .false.
             case ("LLH")
-              datar8(:,:)=sday*LLH3D(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*LLH3D(l,:,:)/(Nsubdd*dtsrc)
               LLH3D(l,:,:)=0.
               units_of_data = 'K/day'
               long_name = 'Heating by large-scale conden.'
               qinstant = .false.
             case ("TDRY")
-              datar8(:,:)=sday*TMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*TMCDRY(l,:,:)/(Nsubdd*dtsrc)
               TMCDRY(l,:,:)=0.
               units_of_data = 'kg/kg/day'
               long_name = 'Total drying by moist. conv.'
               qinstant = .false.
             case ("SDRY")
-              datar8(:,:)=sday*SMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*SMCDRY(l,:,:)/(Nsubdd*dtsrc)
               SMCDRY(l,:,:)=0.
               units_of_data = 'kg/kg/day'
               long_name = 'Drying by shallow convection'
               qinstant = .false.
             case ("DDRY")
-              datar8(:,:)=sday*DMCDRY(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*DMCDRY(l,:,:)/(Nsubdd*dtsrc)
               DMCDRY(l,:,:)=0.
               units_of_data = 'kg/kg/day'
               long_name = 'Drying by deep convection'
               qinstant = .false.
             case ("LDRY")
-              datar8(:,:)=sday*LSCDRY(l,:,:)/(Nsubdd*dtsrc)
+              datar8(:,:)=SECONDS_PER_DAY*LSCDRY(l,:,:)/(Nsubdd*dtsrc)
               LSCDRY(l,:,:)=0.
               units_of_data = 'kg/kg/day'
               long_name = 'Drying by large-scale conden.'
               qinstant = .false.
             case ("SWH")
-              datar8(:,:)=sday*SWHR(:,:,l)/SWHR_cnt
+              datar8(:,:)=SECONDS_PER_DAY*SWHR(:,:,l)/SWHR_cnt
               SWHR(:,:,l)=0.
               IF (l.eq.LmaxSUBDD) SWHR_cnt=0.
               units_of_data = 'K/day'
               long_name = 'Shortwave Radiative Heating Rate'
               qinstant = .false.
             case ("LWH")
-              datar8(:,:)=sday*LWHR(:,:,l)/LWHR_cnt
+              datar8(:,:)=SECONDS_PER_DAY*LWHR(:,:,l)/LWHR_cnt
               LWHR(:,:,l)=0.
               IF (l.eq.LmaxSUBDD) LWHR_cnt=0.
               units_of_data = 'K/day'
@@ -3458,7 +3468,7 @@ C**** accumulating/averaging mode ***
               long_name = 'Moist Convective Cloud Optical Depth'
             case ("RADHEAT")
               datar8=(SRHR(L,:,:)*COSZ1(:,:)+TRHR(L,:,:))*
-     &             SDAY*bysha*byam(l,:,:)
+     &             SECONDS_PER_DAY*bysha*byam(l,:,:)
               units_of_data = 'K/day'
               long_name = 'Radiative Heating Rate'
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
@@ -4334,9 +4344,9 @@ c time_subdd
       call modelEclock%getDate(year=year, month=month, 
      &       dayOfYear=dayOfYear)
       if (q24) then
-        time_subdd = real((year - iyear1)*jdpery + dayOfYear - 1,kind=8)
+        time_subdd = real((year - iyear1)*INT_DAYS_PER_YEAR + dayOfYear - 1,kind=8)
       else
-        time_subdd = real((year - iyear1)*jdpery + JDendOfM(month - 1)
+        time_subdd = real((year - iyear1)*INT_DAYS_PER_YEAR + JDendOfM(month - 1)
      &       ,kind=8)*24. + (rec - 1)*nsubdd*dtsrc/3600.
       end if
 
@@ -5214,9 +5224,11 @@ c**** find MSU channel 2,3,4 temperatures
       SUBROUTINE init_DIAG
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
-      USE CONSTANT, only : sday,kapa,undef
+      USE CONSTANT, only : kapa,undef
+      use TimeConstants_mod, only: SECONDS_PER_DAY, DAYS_PER_YEAR
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : lm
+      USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : Itime,ItimeI,Itime0
      *     ,amon,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
@@ -5526,12 +5538,12 @@ C**** NCON=1:25 are special cases: Angular momentum and kinetic energy
       SCALE_CON(1)              = 1d-9
       SCALE_CON((/2,3,4,5,6,7,8,9/))= 1d-2/DTSRC
       SCALE_CON(10)              = 1d-2/(NFILTR*DTSRC)
-      SCALE_CON(11)             = 2d-2/SDAY
+      SCALE_CON(11)             = 2d-2/SECONDS_PER_DAY
       SCALE_CON((/12,25/))      = 1.
       SCALE_CON(13)             = 1d-3
       SCALE_CON((/14,15,16,17,18,19,20,21,22/)) = 1d3/DTSRC
       SCALE_CON(23)             = 1d3/(NFILTR*DTSRC)
-      SCALE_CON(24)             = 2d3/SDAY
+      SCALE_CON(24)             = 2d3/SECONDS_PER_DAY
       TITLE_CON(1:25) = (/
      *  ' INSTANTANE AM (10**9 J*S/M^2)  ',
      *  '     DELTA AM BY ADVECTION      ',
@@ -5657,8 +5669,8 @@ C**** Ensure that diagnostics are reset at the beginning of the run
 C**** Initiallise ice freeze diagnostics at beginning of run
         DO J=J_0,J_1
           DO I=I_0,IMAXJ(J)
-            TSFREZ(I,J,TF_DAY1)=365.
-            TSFREZ(I,J,TF_LAST)=365.
+            TSFREZ(I,J,TF_DAY1)=DAYS_PER_YEAR
+            TSFREZ(I,J,TF_LAST)=DAYS_PER_YEAR
             IF (FOCEAN(I,J)+FLAKE(I,J).gt.0) then
               IF (si_atm%rsi(I,J).gt.0) then
                 TSFREZ(I,J,TF_LKON) = dayOfYear-1
@@ -5825,6 +5837,8 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : JDendOfM,aMON
      &     ,JMperY,Jmon0,Jyear0,NMONAV,modelEclock
+      use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR, 
+     &                             INT_MONTHS_PER_YEAR
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
@@ -5884,9 +5898,10 @@ C**** initialize/save South. Hemi. on Feb 28
             IF (dayOfYear.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
-              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
-              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,365)
-     *             +1
+              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,
+     &                              INT_DAYS_PER_YEAR)
+              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,
+     &                              INT_DAYS_PER_YEAR)+1
               IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
@@ -5900,9 +5915,10 @@ C**** are counted from Sep 1 (NH only).
             IF (dayOfYear.eq.243 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) 
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
-              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,365)
-              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,365)
-     *             +1
+              AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,
+     &                              INT_DAYS_PER_YEAR)
+              AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,
+     &                              INT_DAYS_PER_YEAR)+1
               IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
@@ -5932,8 +5948,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             TDIURN(I,J,8)=-1000.
             TDIURN(I,J,9)= 1000.
             IF (FEARTH(I,J).LE.0.) THEN
-               TSFREZ(I,J,TF_DAY1)=365.
-               TSFREZ(I,J,TF_LAST)=365.
+               TSFREZ(I,J,TF_DAY1)=DAYS_PER_YEAR
+               TSFREZ(I,J,TF_LAST)=DAYS_PER_YEAR
             END IF
 #ifdef TRACERS_ON
             ttausv_sum(I,J,:)=0.d0
@@ -5954,7 +5970,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(year-Jyear0)*JMperY + month-JMON0
+        months=(year-Jyear0)*INT_DAYS_PER_YEAR + month-JMON0
         if ( months.ge.NMONAV ) then
           call reset_ADIAG(0)
           if (Kvflxo.ne.0) then
@@ -5973,7 +5989,7 @@ C**** reset sub-daily diag files
      *     ,CHNG_SC,ICON)
 !@sum  SET_CON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
-      USE CONSTANT, only : sday
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE DYNAMICS, only : nfiltr
       USE MODEL_COM, only : dtsrc
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
@@ -6051,7 +6067,7 @@ C****
             SCALE_CON(NM) = CHNG_SC/(NFILTR*DTSRC)
             IA_CON(NM) = ia_filt
           CASE (9)
-            SCALE_CON(NM) = CHNG_SC*2./SDAY
+            SCALE_CON(NM) = CHNG_SC*2./SECONDS_PER_DAY
             IA_CON(NM) = ia_12hr
           END SELECT
         ELSE
