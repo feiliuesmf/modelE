@@ -106,11 +106,8 @@ c
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,modelEclock,aMON
       use TimeConstants_mod, only: INT_HOURS_PER_DAY, SECONDS_PER_HOUR,
-     &      INT_DAYS_PER_YEAR, INT_SECONDS_PER_HOUR, INT_SECONDS_PER_DAY,
-     &      DAYS_PER_YEAR
-#ifdef TRACERS_AGE_OCEAN 
-      use TimeConstants_mod, only: SECONDS_PER_DAY
-#endif
+     &      INT_DAYS_PER_YEAR, INT_SECONDS_PER_HOUR, INT_SECONDS_PER_DAY
+     &      ,SECONDS_PER_DAY, DAYS_PER_YEAR
 #if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
       !USE obio_dim
       !USE obio_com, only: dobio
@@ -614,7 +611,7 @@ c     if(abs((nstep0+nstepi-1)*baclin/3600.-itime*24./nday).gt.1.e-5)
           write (lp,'(a,f16.8,i10,f16.8)')'mismatch date found ',
      &     int((nstep0+nstepi-1)*baclin/INT_SECONDS_PER_HOUR),
      &     itime*INT_HOURS_PER_DAY/nday,
-     &     (nstep0+nstepi-1)*baclin/INT_SECONDS_PER_HOUR.-itime*
+     &     (nstep0+nstepi-1)*baclin/INT_SECONDS_PER_HOUR-itime*
      &     INT_HOURS_PER_DAY/nday
           write (lp,'(/(a,i9,a,i9,a,f7.1,a))')'chk model start step',
      &     nstep0, ' changed to: ',

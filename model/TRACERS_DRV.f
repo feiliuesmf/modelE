@@ -8047,7 +8047,7 @@ C**** at the start of any day
       USE RESOLUTION, only : pmtop,psf
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: itime,JDperY,jmpery,dtsrc,nday
+      USE MODEL_COM, only: itime,dtsrc,nday
       USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
      *   ,globalmax, getDomainBounds
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d

@@ -1756,8 +1756,8 @@ C
         enddo
         call rewind_parallel(iu)
       else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(dayOfYear > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
+        do while(dayOfYear > idofm(imon) .AND. 
+     *    imon <= INT_MONTHS_PER_YEAR)
           imon=imon+1
         enddo
         if(imon/=2)then ! avoids advancing records at start of file

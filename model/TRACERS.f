@@ -1160,7 +1160,8 @@ C****
       USE RESOLUTION, only: im,jm
       use model_com, only: modelEclock
       USE MODEL_COM, only: idofm=>JDmidOfM
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, INT_MONTHS_PER_YEAR
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, 
+     &  INT_MONTHS_PER_YEAR
       implicit none
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -1171,7 +1172,6 @@ C****
       integer :: J_0, J_1, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
@@ -2455,8 +2455,8 @@ c daily_z is currently only needed for CS
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: itime
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds,
-      use TimeConstants_mod, only: DAYS_PER_YEAR
      &     readt_parallel, write_parallel
+      use TimeConstants_mod, only: DAYS_PER_YEAR
       USE FILEMANAGER, only: openunit,closeunit, nameunit
       USE TRACER_COM,only:itime_tr0,trname,sfc_src,NTM,
      &     ntsurfsrcmax,

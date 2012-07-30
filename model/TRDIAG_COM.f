@@ -690,7 +690,7 @@ C****
      &     INST_SC,CHNG_SC, itr0)
 !@sum  SET_TCONO assigns ocean conservation diagnostic array indices
 !@auth Gavin Schmidt
-      TimeConstants_mod, only: SECONDS_PER_DAY
+      USE TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon

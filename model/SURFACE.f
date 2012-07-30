@@ -35,22 +35,10 @@ C****
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows,grav
-<<<<<<< HEAD
       USE ATM_COM, only : t,q
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : dtsrc,idacc,nday,itime,qcheck
-=======
-#ifdef mjo_subdd
-     *     ,undef
-#endif
-      USE ATM_COM, only : t,q,temp1,sphum1
-      USE MODEL_COM, only : modelEclock
       use TimeConstants_mod, only: INT_HOURS_PER_DAY
-      USE MODEL_COM, only : dtsrc,idacc,nday,itime,qcheck
-#ifdef mjo_subdd
-     *     ,lm
-#endif
->>>>>>> c7b1d6ad61aad646655e2a4010f4e5167a6357a0
 #ifdef SCM
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
@@ -210,14 +198,7 @@ C****
       DTSURF=DTsrc/NIsurf
       byNIsurf=1.d0/real(NIsurf)
       IH=modelEclock%hour()+1
-<<<<<<< HEAD
-      IHM = IH+(modelEclock%date()-1)*24
-=======
       IHM = IH+(modelEclock%date()-1)*INT_HOURS_PER_DAY
-
-      CALL PRECIP_SI(si_atm,icelak,atmice)
-      CALL PRECIP_LI
->>>>>>> c7b1d6ad61aad646655e2a4010f4e5167a6357a0
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)

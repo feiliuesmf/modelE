@@ -4025,6 +4025,7 @@ C
 C==============================================================================
       LOGICAL FUNCTION hugh_make_crys_sedimentation(dtmic,mx0) 
      *  RESULT (la)
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       IMPLICIT NONE
         real*8,             INTENT (in)       :: dtmic
         integer, intent(in)                   :: mx0
@@ -4141,6 +4142,7 @@ C
 C==============================================================================
       LOGICAL FUNCTION hugh_make_rain_sedimentation(dtmic,mx0) 
      *  RESULT (la)
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       IMPLICIT NONE
         real*8,             INTENT (in)       :: dtmic
         integer, intent(in)                   :: mx0
@@ -4250,6 +4252,7 @@ C
 C==============================================================================
       LOGICAL FUNCTION hugh_make_snow_sedimentation(dtmic,mx0) 
      *  RESULT (la)
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
       IMPLICIT NONE
         real*8,             INTENT (in)       :: dtmic
         integer, intent(in)                   :: mx0

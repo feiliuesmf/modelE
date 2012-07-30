@@ -5835,8 +5835,8 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE FILEMANAGER
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : JDendOfM,aMON
-     &     ,JMperY,Jmon0,Jyear0,NMONAV,modelEclock
+      USE MODEL_COM, only : JDendOfM,aMON,Jmon0,Jyear0,NMONAV,
+     &                      modelEclock
       use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR, 
      &                             INT_MONTHS_PER_YEAR
       USE ATM_COM, only : kradia,iu_rad

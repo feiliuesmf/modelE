@@ -213,7 +213,7 @@ C we change that.)
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
       USE RESOLUTION, only : im,jm,lm
-      use model_com, only: itime,JDperY
+      use model_com, only: itime
       use domain_decomp_atm, only: GRID, getDomainBounds, write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit

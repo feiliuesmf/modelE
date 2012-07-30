@@ -995,7 +995,7 @@ C**** GLOBAL parameters and variables:
       use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
       use resolution, only : im,jm
       use model_com, only: modelEclock
-      use model_com, only: JDmidOfM,JMperY
+      use model_com, only: JDmidOfM
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
 
@@ -1079,7 +1079,6 @@ C**** GLOBAL parameters and variables:
 #endif
       use resolution, only : im,jm
       use model_com, only: modelEclock
-      use model_com, only: JMperY
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use filemanager, only: openunit,closeunit
 

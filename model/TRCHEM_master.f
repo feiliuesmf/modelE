@@ -2083,7 +2083,6 @@ C Make sure nighttime chemistry changes are not too big:
       integer, intent(in) :: i,j
       integer :: L
 
-      dec=radian*23.455d0*
       dec=radian*23.455d0*COS( ((modelEclock%dayOfYear()-173)*twopi)
      * /DAYS_PER_YEAR )
       lha=twopi*real(modelEclock%hour())/HOURS_PER_DAY
