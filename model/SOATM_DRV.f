@@ -470,14 +470,18 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       real*8 :: oevg,oprg,ebyp,t,rsiloc,sssresfac,sssresfac_ice
       integer :: i,j,l,n,j6hr,itmod,itperyr,jmm
       integer :: i_0,i_1, j_0,j_1
+      integer :: jyear,jday
+
+      jyear = modelEclock%year()
+      jday  = modelEclock%dayOfYear()
 
       if(interannual_forcing==1) then
-        if(modelEclock%year() < iaf_year_start) then
+        if(jyear < iaf_year_start) then
           write(6,*) 'please set model year >= iaf_year_start'
           call stop_model('model year < iaf_year_start',255)
         endif
         iaf_year = iaf_year_start +
-     &       mod(modelEclock%year()-iaf_year_start,1+iaf_year_end-iaf_year_start)
+     &       mod(jyear-iaf_year_start,1+iaf_year_end-iaf_year_start)
         if(iaf_year.ne.iaf_year_sv) then
           call read_core_interannual_data        
           iaf_year_sv = iaf_year
@@ -1629,11 +1633,12 @@ C**** does not produce exactly the same as the default values.
 
       SUBROUTINE ALLOC_RAD_COM
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, ONLY : GET
+      USE DOMAIN_DECOMP_1D, ONLY : getDomainBounds
       USE RAD_COM, ONLY : COSZ_day, DUSK !,COSZ1
       IMPLICIT NONE
       INTEGER :: I_0H, I_1H, J_0H, J_1H
-      call getDomainBounds(grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
+      call getDomainBounds(grid,
+     &               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       ALLOCATE(
 !     &     COSZ1(I_0H:I_1H, J_0H:J_1H),
@@ -2147,6 +2152,7 @@ C****
       IMPLICIT NONE
       integer :: iu
       REAL*8 pyear
+      integer :: jyear
 
       character(len=300) :: out_line
       character*6 :: skip
@@ -2157,10 +2163,12 @@ C**** sync radiation parameters from input
       call sync_param( "S0_day", S0_day )
 
 C**** Set orbital parameters appropriately
-C**** Set orbital parameters appropriately
+
+      jyear = modelEclock%year()
+
       if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
         ! 0 BP is defined as 1950CE
-        pyear = 1950.+modelEclock%YEAR()-IYEAR1-calc_orb_par_year
+        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
         write(out_line,*)
      *  "   Calculating Orbital Params for year : ",
      *  pyear,"     (CE);"
@@ -2295,9 +2303,7 @@ c
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only :
-     *      itime,itimei,iyear1,nday,jdpery,jdendofm
-     *     ,aMON,aMONTH
+      USE MODEL_COM, only : iyear1,modelEclock
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,DUSK,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
      *     calc_orb_par_year
@@ -2308,12 +2314,12 @@ c
       INTEGER i,j,l,iy,it
       character(len=300) :: out_line
       LOGICAL, INTENT(IN) :: end_of_day
+      integer :: jday,jyear
+
+      jyear = modelEclock%year()
+      jday  = modelEclock%dayOfYear()
 
 C**** Tasks to be done at end of day and at each start or restart
-C****
-C**** CALCULATE THE DAILY CALENDAR
-C****
-      call getdte(Itime,Nday,iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
@@ -2612,7 +2618,8 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
 #endif
       use geom, only : axyp,lat2d
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : GET,GLOBALSUM,hasNorthPole
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds,
+     &     GLOBALSUM,hasNorthPole
       USE SEAICE, only : xsi,ace1i,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami,rhos
       USE SEAICE_COM, only : si_ocn
@@ -2954,7 +2961,7 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       use diag_com, only : aij,ij_salres
       use ocean, only : imo=>im,jmo=>jm,imaxj
      &     ,mo,s0m,focean,dxypo
-      use domain_decomp_1d, only : get,globalsum,am_i_root
+      use domain_decomp_1d, only : getDomainBounds,globalsum,am_i_root
       use oceanr_dim, only : ogrid
       implicit none
       !type(atmocn_xchng_vars) :: atmocn
@@ -3020,7 +3027,7 @@ c
       use diag_com, only : aij,ij_salres
       use ocean, only : imo=>im,jmo=>jm,imaxj,lmm
      &     ,mo,s0m,focean,dxypo
-      use domain_decomp_1d, only : get,globalsum,am_i_root
+      use domain_decomp_1d, only : getDomainBounds,globalsum,am_i_root
       use oceanr_dim, only : ogrid
       implicit none
       !type(atmocn_xchng_vars) :: atmocn
