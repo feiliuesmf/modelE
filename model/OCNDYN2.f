@@ -378,7 +378,7 @@ c      CALL OABFILy ! binomial filter
 c      CALL CHECKO ('ODIFF0')
 
 C**** Apply GM + Redi tracer fluxes
-      CALL GMKDIF
+      CALL GMKDIF(1d0)
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 #ifdef TRACERS_OCEAN
