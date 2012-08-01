@@ -115,7 +115,10 @@ C**** set GTEMP array for landice
         END DO
       END DO
       END DO ! ihc
-      call avg_patches_srfstate_exports(grid,atmglas,atmgla,rel=.true.)
+      call avg_patches_srfstate_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &     rel=.true.)
 
 C**** Calculate (fixed) iceberg melt terms from Antarctica and Greenland
       call sync_param("glmelt_on",glmelt_on)

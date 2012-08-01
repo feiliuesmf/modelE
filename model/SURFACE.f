@@ -236,7 +236,10 @@ c are folded into their respective top-level drivers in a "single-entry-point"
 c design (as already exists for the land surface).
 c There is a transfer of precip-induced runoff from land ice to lakes,
 c and the lakes need the aggregate over patches.
-      call avg_patches_srfflx_exports(grid,atmglas,atmgla,rel=.true.)
+      call avg_patches_srfflx_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &     rel=.true.)
       call avg_patches_srfflx_exports_gla(grid,atmglas,atmgla,
      &     rel=.true.)
       call surface_diag_post_precip_li
@@ -899,10 +902,16 @@ c happen to be sampled within this loop over surface sub-timesteps,
 c in surface_diag1()
       if(moddsf==0) then
         ! just to get tsavg.
-        call avg_patches_pbl_exports(grid,atmglas,atmgla,rel=.true.)
+        call avg_patches_pbl_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &       atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &       rel=.true.)
       endif
       ! to get gtemp
-      call avg_patches_srfstate_exports(grid,atmglas,atmgla,rel=.true.)
+      call avg_patches_srfstate_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &     rel=.true.)
 
       call surface_diag1(dtsurf,moddsf,trhdt_sv2)
 
@@ -952,10 +961,16 @@ C**** APPLY SURFACE FLUXES TO LAND ICE
       enddo
 
 c create composite values for land ice for diagnostics
-      call avg_patches_srfflx_exports(grid,atmglas,atmgla,rel=.true.)
+      call avg_patches_srfflx_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &     rel=.true.)
       call avg_patches_srfflx_exports_gla(grid,atmglas,atmgla,
      &     rel=.true.)
-      call avg_patches_srfstate_exports(grid,atmglas,atmgla,rel=.true.)
+      call avg_patches_srfstate_exports(grid,
+c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
+     &     atmglas(:)%atmsrf_xchng_vars,atmgla%atmsrf_xchng_vars,
+     &     rel=.true.)
 
 c create grid-composite values
       call avg_patches_srfstate_exports(grid,asflx,atmsrf)

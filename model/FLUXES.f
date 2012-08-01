@@ -857,7 +857,9 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      class(atmsrf_xchng_vars) :: patches(:),avg
+c gfortran prob. if passed as class() args
+c      class(atmsrf_xchng_vars) :: patches(:),avg
+      type(atmsrf_xchng_vars) :: patches(:),avg
       logical, intent(in), optional :: rel
 c
       integer :: i,j,k,l,np
@@ -928,7 +930,9 @@ c
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      class(atmsrf_xchng_vars) :: patches(:),avg
+c gfortran prob. if passed as class() args
+c      class(atmsrf_xchng_vars) :: patches(:),avg
+      type(atmsrf_xchng_vars) :: patches(:),avg
       logical, intent(in), optional :: rel
 c
       integer :: i,j,k,l,np
@@ -1075,7 +1079,9 @@ c
       use domain_decomp_1d, only : dist_grid
       implicit none
       type(dist_grid) :: grid
-      class(atmsrf_xchng_vars) :: patches(:),avg
+c gfortran prob. if passed as class() args
+c      class(atmsrf_xchng_vars) :: patches(:),avg
+      type(atmsrf_xchng_vars) :: patches(:),avg
       logical, intent(in), optional :: rel
 c
       integer :: i,j,k,l,np
