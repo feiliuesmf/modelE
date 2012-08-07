@@ -252,23 +252,23 @@ C****
 
 ! BEGIN ---------------------------------------------------------
       PTYPE=PLICE
-          ! snow amount on land ice (kg/m^2)
+      ! snow amount on land ice (kg/m^2)
       SNOW=SNOWLI(I,J,IHC)
-          ! Temperature of top ice layer (C)
+      ! Temperature of top ice layer (C)
       TG1=TGRND(I,J)
 
-          ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
-          ! (Needed for Stefan-Boltzmann Law)
-          ! GTEMPR radiative ground temperature over surface type (K)
+      ! TR4 = TGR4(3,i,j) = atmgla%GTEMPR**4
+      ! (Needed for Stefan-Boltzmann Law)
+      ! GTEMPR radiative ground temperature over surface type (K)
       TR4=TGR4(I,J)
 
-          ! SRHEAT = Solar Heating
-          ! FSF = Solar Forcing over each type (W/m^2)
-          ! FSF = net absorption (for cosZ = 1)
-          ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
+      ! SRHEAT = Solar Heating
+      ! FSF = Solar Forcing over each type (W/m^2)
+      ! FSF = net absorption (for cosZ = 1)
+      ! COSZ1 = Mean Solar Zenith angle for curr. physics(not rad) time step
       SRHEAT=SRDN(I,J)*atmgla%COSZ1(I,J)
 
-          ! LHS = latent heat of sublimation at 0 C (J/kg)
+      ! LHS = latent heat of sublimation at 0 C (J/kg)
       ELHX=LHS
 
 c      uocean = 0. ; vocean = 0. ! no land ice velocity
@@ -379,35 +379,35 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
 ! variable names, etc.
 C**** CASE (3) ! FLUXES USING IMPLICIT TIME STEP OVER LANDICE
 
-          ! Z1E = Thickness of top landice layer (.1m const)
-          ! ALAMI0 = Lambda coefficient for ice J/(m*degC*sec) = W/(m K) (2.11 const)
-          !     (Lambda is thermal conductivity)
-          ! Z1LIBYL = "Z1 Land Ice by Lambda" = Z1E / ALAMI0
-          ! SNOW = snow amount on land ice (kg/m^2)
-          !                                          +---- m -------+
-          !                   m     J/(m*degC*sec)   kg/m^2    kg/m^3   J/(m*degC*sec)
-          ! Z1BY6L = 1/6 * [(Z1E / ALAMI0)          + ((SNOW / RHOS)   /   ALAMS)]
-          ! Z1BY6L units = (m^2 * degC * sec) / J
-          ! Z1BY6L = "Z1 by 6 Lambda"
+      ! Z1E = Thickness of top landice layer (.1m const)
+      ! ALAMI0 = Lambda coefficient for ice J/(m*degC*sec) = W/(m K) (2.11 const)
+      !     (Lambda is thermal conductivity)
+      ! Z1LIBYL = "Z1 Land Ice by Lambda" = Z1E / ALAMI0
+      ! SNOW = snow amount on land ice (kg/m^2)
+      !                                          +---- m -------+
+      !                   m     J/(m*degC*sec)   kg/m^2    kg/m^3   J/(m*degC*sec)
+      ! Z1BY6L = 1/6 * [(Z1E / ALAMI0)          + ((SNOW / RHOS)   /   ALAMS)]
+      ! Z1BY6L units = (m^2 * degC * sec) / J
+      ! Z1BY6L = "Z1 by 6 Lambda"
       Z1BY6L=(Z1LIBYL+SNOW*BYRLS)*BY6
 
-          ! Temperature of second ice layer
+      ! Temperature of second ice layer
       TG2=atmgla%GTEMP2(I,J)
 
-          ! TG2 = Temperature of second ice layer
+      ! TG2 = Temperature of second ice layer
       CDTERM=TG2
 
-          ! Z2LI = Thickness of second layer of ice (2.9m)
-          ! Z2LI3L = "Z2LI by 3 Lambda" = 1/3 (Z2LI / ALAMI0)
-          ! Z2LI3L=Z2LI/(3.*ALAMI0)
-          ! 2 * Z1BY6L = "Z1 by 3 Lambda"
-          ! CDENOM = 3 Lambda(ice) / (Z1 + Z2 = 3m)
+      ! Z2LI = Thickness of second layer of ice (2.9m)
+      ! Z2LI3L = "Z2LI by 3 Lambda" = 1/3 (Z2LI / ALAMI0)
+      ! Z2LI3L=Z2LI/(3.*ALAMI0)
+      ! 2 * Z1BY6L = "Z1 by 3 Lambda"
+      ! CDENOM = 3 Lambda(ice) / (Z1 + Z2 = 3m)
       CDENOM=1./(2.*Z1BY6L+Z2LI3L)
 
-          ! HC1LI = heat capacity of first layer land ice (J/m^2)
-          ! SNOW = snow amount on land ice (kg/m^2)
-          ! SHI = heat capacity of pure ice (at 0 C) (2060 J/kg C)
-          ! SNOW*SHI = Heat capacity of snow layer (J/m^2)
+      ! HC1LI = heat capacity of first layer land ice (J/m^2)
+      ! SNOW = snow amount on land ice (kg/m^2)
+      ! SHI = heat capacity of pure ice (at 0 C) (2060 J/kg C)
+      ! SNOW*SHI = Heat capacity of snow layer (J/m^2)
       HCG1=HC1LI+SNOW*SHI
 
 c      SHDT=0.
