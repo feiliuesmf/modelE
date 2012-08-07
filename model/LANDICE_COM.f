@@ -23,7 +23,8 @@
 !@param nhc number of height classes (static for now)
       integer, parameter :: nhc=1
 !@fhc fraction of landice area in each height class (static for testing purposes)
-      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
+!      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 
       !integer, parameter :: nhc=2
       !real*8, dimension(nhc), parameter :: fhc=(/1d0,0d0/)
@@ -62,7 +63,7 @@
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
-      Use LANDICE_COM, Only: NHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
+      Use LANDICE_COM, Only: NHC,FHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
      *                       FSHGLM,FNHGLM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
@@ -83,13 +84,15 @@
       J_0H = grid%J_STRT_HALO
       J_1H = grid%J_STOP_HALO
 
-      ALLOCATE( SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
+      ALLOCATE( FHC(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
      *          TLANDI(2,I_0H:I_1H,J_0H:J_1H,NHC),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          EDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          FSHGLM(I_0H:I_1H,J_0H:J_1H),
      *          FNHGLM(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
+      fhc(:,:,:) = 1d0/nhc
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H,NHC),
      *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H,NHC),
@@ -270,6 +273,7 @@ c      END SUBROUTINE io_landice
       use conserv_diags
       implicit none
       integer fid   !@var fid file id
+      call defvar(grid,fid,fhc,'fhc(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm,nhc)')
       call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
@@ -316,6 +320,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
       external conserv_MLI, conserv_MICB, conserv_HLI, conserv_HICB
       select case (iaction)
       case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'fhc',fhc)
         call write_dist_data(grid,fid,'snowli',snowli)
         call write_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
         call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
@@ -341,6 +346,7 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
         call dump_conserv_diags( grid, fid, 'wiceb', conserv_MICB )
         call dump_conserv_diags( grid, fid, 'eiceb', conserv_HICB )
       case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'fhc',fhc)
         call read_dist_data(grid,fid,'snowli',snowli)
         call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
 c set some defaults for quantities which may not be in the

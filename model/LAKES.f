@@ -427,6 +427,9 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES_COM
       USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
+      USE LANDICE_COM, only : NHC
+      USE pario
+
       IMPLICIT NONE
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -499,6 +502,15 @@ C**** Read Lake Depths
       call openunit("TOPO",iu_SILL,.true.,.true.)
       CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
       call closeunit(iu_SILL)
+
+      ! Read the same thing again, from TOPONC file
+      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+        iu_SILL = par_open(grid,"TOPONC","read")
+        call read_dist_data(grid,iu_SILL,'hlake',HLAKE)
+        call par_close(grid,iu_SILL)
+      end if
+
+
 
 C**** initialise FLAKE if requested (i.e. from older restart files)
       if (INILAKE) THEN

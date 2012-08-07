@@ -1703,6 +1703,9 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
+      USE LANDICE_COM, only : NHC
+      USE pario
+
       IMPLICIT NONE
       !TYPE (DIST_GRID), INTENT(IN) :: grd_dum
       INTEGER :: iu_TOPO
@@ -1736,13 +1739,27 @@ C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
 
       CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
-      CALL HALO_UPDATE(GRD_DUM, FOCEAN)
 
       CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
       CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
-      CALL HALO_UPDATE(GRD_DUM, FEARTH0)
 
       CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
+      call closeunit(iu_TOPO)
+
+      ! Read the same thing again, from TOPONC file
+      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+        iu_TOPO = par_open(grid,"TOPONC","read")
+        call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
+        call read_dist_data(grid,iu_TOPO,'flake0',FLAKE0)
+        call read_dist_data(grid,iu_TOPO,'fearth0',FEARTH0)
+        call read_dist_data(grid,iu_TOPO,'flice',FLICE)
+        call par_close(grid,iu_TOPO)
+      end if
+
+
+      CALL HALO_UPDATE(GRD_DUM, FOCEAN)
+      CALL HALO_UPDATE(GRD_DUM, FEARTH0)
+
 
 C**** Deal with single -> double precision problems and potential
 C**** ocean/lake inconsistency. Adjust FLAKE0 and FLICE if necessary.
@@ -1768,7 +1785,7 @@ C**** Ensure that no round off error effects land with ice and earth
       END DO
       CALL HALO_UPDATE(GRD_DUM, FLAKE0)
       CALL HALO_UPDATE(GRD_DUM, FLICE)
-      call closeunit(iu_TOPO)
+
       If (HASSOUTHPOLE(GRD_DUM)) Then
          FLAND(2:IM,1)=FLAND(1,1)
          FLICE(2:IM,1)=FLICE(1,1)

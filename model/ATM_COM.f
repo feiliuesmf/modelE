@@ -153,6 +153,9 @@ C**** module should own dynam variables used by other routines
 #else
        USE GEOM, only : geom_b
 #endif
+      USE LANDICE_COM, only : NHC
+      USE pario
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: iu_TOPO
@@ -209,6 +212,15 @@ C****
 
       call openunit("TOPO",iu_TOPO,.true.,.true.)
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography
+      call closeunit(iu_TOPO)
+
+      ! Read the same thing now from netCDF file
+      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+        iu_TOPO = par_open(grid,"TOPONC","read")
+        call read_dist_data(grid,iu_TOPO,'zatmo',zatmo)
+        call par_close(grid,iu_TOPO)
+      end if
+
       ZATMO(I_0:I_1,J_0:J_1) = ZATMO(I_0:I_1,J_0:J_1)*GRAV   ! Geopotential
       CALL HALO_UPDATE(GRID, ZATMO)
 C**** Check polar uniformity
@@ -230,7 +242,6 @@ C**** Check polar uniformity
           end if
         end do
       end if
-      call closeunit(iu_TOPO)
 
       ! K-I-J arrays
       ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 

@@ -73,7 +73,7 @@
       do ihc=1+lbound(atmglas,1),ubound(atmglas,1)
         do j=j_0,j_1
         do i=i_0,i_1
-          atmglas(ihc)%ftype_rel(i,j) = fhc(ihc)
+          atmglas(ihc)%ftype_rel(i,j) = fhc(i,j,ihc)
           atmglas(ihc)%ftype(i,j) =
      &         flice(i,j)*atmglas(ihc)%ftype_rel(i,j)
         enddo
@@ -570,7 +570,8 @@ C****
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        ICE(I,J)=FLICE(I,J)*(ACE1LI+ACE2LI+SUM(FHC(:)*SNOWLI(I,J,:)))
+        ICE(I,J)=FLICE(I,J)*
+     &    (ACE1LI+ACE2LI+SUM(FHC(I,J,:)*SNOWLI(I,J,:)))
       END DO
       END DO
       IF(HAVE_SOUTH_POLE) ICE(2:im,1) =ICE(1,1)
@@ -609,7 +610,7 @@ C****
       DO I=I_0,IMAXJ(J)
         EICEIJ = ((TLANDI(1,I,J,:)*SHI-LHM)*(ACE1LI
      *         +SNOWLI(I,J,:))+(TLANDI(2,I,J,:)*SHI-LHM)*ACE2LI)
-        EICE(I,J)=FLICE(I,J)*SUM(FHC*EICEIJ)
+        EICE(I,J)=FLICE(I,J)*SUM(FHC(I,J,:)*EICEIJ)
       END DO
       END DO
       IF(HAVE_SOUTH_POLE) EICE(2:im,1) =EICE(1,1)
