@@ -427,7 +427,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES_COM
       USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
-      USE LANDICE_COM, only : NHC
+      USE ATM_COM, ONLY : READ_NEW_TOPO
       USE pario
 
       IMPLICIT NONE
@@ -504,7 +504,7 @@ C**** Read Lake Depths
       call closeunit(iu_SILL)
 
       ! Read the same thing again, from TOPONC file
-      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
         iu_SILL = par_open(grid,"TOPONC","read")
         call read_dist_data(grid,iu_SILL,'hlake',HLAKE)
         call par_close(grid,iu_SILL)

@@ -1703,7 +1703,7 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
-      USE LANDICE_COM, only : NHC
+      USE ATM_COM, ONLY : READ_NEW_TOPO
       USE pario
 
       IMPLICIT NONE
@@ -1747,7 +1747,7 @@ C**** Actual array is set from restart file.
       call closeunit(iu_TOPO)
 
       ! Read the same thing again, from TOPONC file
-      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
         iu_TOPO = par_open(grid,"TOPONC","read")
         call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
         call read_dist_data(grid,iu_TOPO,'flake0',FLAKE0)

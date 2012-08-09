@@ -14,6 +14,9 @@
       Type (ESMF_CLOCK) :: atmclock
 #endif
 
+!**** Temporary hack
+      LOGICAL, PARAMETER :: READ_NEW_TOPO = .false.
+
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
 !@var REQ_FAC/REQ_FAC_M factors for REQ layer pressures
@@ -63,6 +66,7 @@
 !**** Boundary condition arrays:
 !@var ZATMO: surface elevation (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO
+
 
 C**** Some helpful arrays (arrays should be L first)
 !@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
@@ -153,8 +157,8 @@ C**** module should own dynam variables used by other routines
 #else
        USE GEOM, only : geom_b
 #endif
-      USE LANDICE_COM, only : NHC
       USE pario
+      USE ATM_COM, only : READ_NEW_TOPO
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -215,7 +219,7 @@ C****
       call closeunit(iu_TOPO)
 
       ! Read the same thing now from netCDF file
-      if (NHC > 1) then		! HACK to prevent "normal" users from seeing this
+      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
         iu_TOPO = par_open(grid,"TOPONC","read")
         call read_dist_data(grid,iu_TOPO,'zatmo',zatmo)
         call par_close(grid,iu_TOPO)
