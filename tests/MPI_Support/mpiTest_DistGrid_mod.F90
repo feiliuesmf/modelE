@@ -1,6 +1,6 @@
 ! *** MPI Test Cases ***
 ! This module contains tests of the dist_grid_mod module. 
-module testDistGrid_mod
+module mpiTest_DistGrid_mod
   use pFUnit, only: assertEqual, assertTrue, amRoot, mpiCommunicator, numProcesses, &
     processRank, TestInfo_type
   use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, destroy_grid, &
@@ -367,4 +367,4 @@ contains
 
   end subroutine test_broadcastInt
 
-end module testDistGrid_mod
+end module mpiTest_DistGrid_mod

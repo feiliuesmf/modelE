@@ -1,6 +1,6 @@
 ! *** MPI Test Cases ***
 ! This module contains tests of the Halo_mod module. 
-module testHalo_mod
+module mpiTest_Halo_mod
   use pFUnit, only: assertEqual, assertTrue, amRoot, mpiCommunicator, numProcesses, &
     processRank, TestInfo_type
   use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, destroy_grid, &
@@ -273,4 +273,4 @@ contains
 
   end subroutine test_HaloUpdateBlock
 
-end module testHalo_mod
+end module mpiTest_Halo_mod

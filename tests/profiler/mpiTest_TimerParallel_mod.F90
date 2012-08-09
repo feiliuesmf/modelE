@@ -1,7 +1,7 @@
 ! *** MPI Test Cases ***
 ! Do _NOT_ delete the line above
 
-module test_TimerParallel_mod
+module mpiTest_TimerParallel_mod
    use pFUnit, only: assertEqual
    use pFUnit, only: TestInfo_type, mpiCommunicator, numProcesses, processRank
    use Timer_mod
@@ -85,4 +85,4 @@ contains
       end function sumNsquared
 
    end subroutine test_gather
-end module test_TimerParallel_mod
+end module mpiTest_TimerParallel_mod

@@ -1,6 +1,6 @@
 ! *** MPI Test Cases ***
 ! This module contains tests of the GlobalSum_mod module. 
-module testGlobalSum_mod
+module mpiTest_GlobalSum_mod
   use pFUnit, only: assertEqual, amRoot, mpiCommunicator, numProcesses, &
     processRank, TestInfo_type
   use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, destroy_grid, &
@@ -83,6 +83,4 @@ contains
 
   end subroutine test_GlobalSumJ
 
-end module testGlobalSum_mod
-
-
+end module mpiTest_GlobalSum_mod

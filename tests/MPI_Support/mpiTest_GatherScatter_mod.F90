@@ -1,5 +1,5 @@
 ! *** MPI Test Cases ***
-module testGatherScatter_mod
+module mpiTest_GatherScatter_mod
   use pFUnit, only: assertEqual, amRoot, mpiCommunicator, numProcesses, &
     processRank, TestInfo_type
   use dist_grid_mod, only: setCommunicator, dist_grid, init_grid, destroy_grid, &
@@ -178,4 +178,4 @@ contains
 
   end subroutine test_ScatterInteger
 
-end module testGatherScatter_mod
+end module mpiTest_GatherScatter_mod
