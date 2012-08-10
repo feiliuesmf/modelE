@@ -292,13 +292,10 @@ check_sanity:
 	  exit 1 ; fi
 
 check_vars:
-ifeq ($(ESMF),YES)
-ifeq ($(ESMF5_DIR),)
-ifeq ($(BASELIBDIR5),)
-	@echo
-	@echo "You have to set ESMF5_DIR or BASELIBDIR5 in your ~/.modelErc"
-	@echo
-	@exit 1
-endif
-endif
-endif
+	@if [[ $(ESMF) == YES && -z "$(FVCUBED)" || "$(FVCUBED)" = "NO" ]]; then \
+	echo; echo 'Rundeck $(RUN) does not work with ESMF=YES option.'; \
+	exit 1; fi;
+	@if [[ $(ESMF) == YES && -z "$(ESMF5_DIR)" || -z "$(BASELIBDIR5)" ]]; then \
+	echo; echo 'You have to set ESMF5_DIR or BASELIBDIR5 in your ~/.modelErc.'; \
+	exit 1; fi;
+
