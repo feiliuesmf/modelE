@@ -6,7 +6,7 @@ DECKS_DIR = ../decks
 
 # List of all testable modelE components
 
-include $(DECKS_DIR)/components
+-include $(DECKS_DIR)/components
 COMPONENTS += profiler
 
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
@@ -49,12 +49,11 @@ endif
 # Targets:
 
 clean: 
-	make pfunitdistclean
-	$(RM) *.o *_wrap.F90 *.mod suite_list
+	$(RM) *.o *_wrap.F90 *.mod suite_list 
 
 distclean:
 	make clean
-	$(RM) *.a *.x 
+	$(RM) *.a *.x $(DECKS_DIR)/components
 
 $(PFUNIT_TEST_EXECUTABLE) : $(LIBSAVAIL)
 
