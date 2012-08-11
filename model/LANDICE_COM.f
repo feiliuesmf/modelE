@@ -21,7 +21,7 @@
       SAVE
 
 !@param nhc number of height classes (static for now)
-      integer, parameter :: nhc=3
+      integer, parameter :: nhc=1
 !@fhc fraction of landice area in each height class (static for testing purposes)
 !      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
