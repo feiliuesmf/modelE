@@ -180,7 +180,7 @@ C****
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
 
-	  ! Model may expect that some things are zero
+      ! Model may expect that some things are zero
       ! call stop_model('Please double-check that model might expect some things to be defined for some boxes, even if there is no ice in that box.', -17)
       PLICE=atmgla%ftype(I,J)
       PTYPE = PLICE
@@ -224,19 +224,19 @@ C****
       ! xdelt = deltx (or 0, if we want to define PBL code to take and receive
       !     actual temperatures to the external workd).
       ! Note from Max Kelley:
-      ! 	Virtual potential temperature is for computing the static stability of
-      ! 	the atmosphere (usually for turbulence parameterizations).  My
-      ! 	understanding is that the new code to be introduced for downscaling
-      ! 	probably does not need to re-compute any turbulence-related quantities
-      ! 	differently than the model is already doing.  So just compute the
-      ! 	virtual temperature passed to the PBL using co-located T and Q,
-      ! 	getting Q for the height classes with the same interpolation used for
-      ! 	T I guess.
+      !     Virtual potential temperature is for computing the static stability of
+      !     the atmosphere (usually for turbulence parameterizations).  My
+      !     understanding is that the new code to be introduced for downscaling
+      !     probably does not need to re-compute any turbulence-related quantities
+      !     differently than the model is already doing.  So just compute the
+      !     virtual temperature passed to the PBL using co-located T and Q,
+      !     getting Q for the height classes with the same interpolation used for
+      !     T I guess.
       !
-      ! 	But keep in mind that virtual temperature effects are negligible in
-      ! 	"cold" regions of the globe, and that the parameter xdelt is actually
-      ! 	set to zero these days (virtual temp. effects on buoyancy are
-      ! 	considered only _within_ the PBL code).
+      !     But keep in mind that virtual temperature effects are negligible in
+      !     "cold" regions of the globe, and that the parameter xdelt is actually
+      !     set to zero these days (virtual temp. effects on buoyancy are
+      !     considered only _within_ the PBL code).
       ! TODO: THV1 needs to get downscaled for topography
       !THV1=T(I,J,1)*(1.+Q1*xdelt)
       !THV1=atmgla%TEMP1(I,J)*(1.+Q1*xdelt)
@@ -560,6 +560,7 @@ C****
 C****
       END SUBROUTINE SURFACE_LANDICE
 
+! -----------------------------------------------------------------------
       subroutine patchify_landice_inputs(phase)
 ! create patch-specific values of inputs to the land ice model from
 ! grid-mean values and patch-specific physical parameters (elevation etc.)
@@ -567,12 +568,28 @@ C****
       use fluxes, only : atmglas,atmgla
      &     ,after_atm_phase1,during_srfflx
       use domain_decomp_atm, only : grid
+      use exchange_types, only : atmgla_xchng_vars
+
+      ! Stuff needed for downscaling
+      use landice_com, only : elevhc
+      use constant, only : kapa, Grav
+      use atm_com, only : zatmo
+      USE GEOM, only : imaxj
+      USE RESOLUTION, only : ptop
+      USE DYNAMICS, only : dsig
+      USE CONSTANT, only : LHS
+
       implicit none
+      real*8, external :: QSAT      ! Import function from Utilities.F90
 !@var phase indicates from which point this routine was called
       integer, intent(in) :: phase
 c
       integer :: ipatch
+      type(atmgla_xchng_vars), pointer :: igla
       integer :: i,j,i_0,i_1,j_0,j_1
+      real*8, parameter :: H = 6800d0  ! See eq. 3.7: http://paoc.mit.edu/labweb/notes/chap3.pdf
+      real*8 :: iglaT_K, atmglaT_K, P, zdiff
+      real*8 :: AM1_hPa    ! AM1 in units of hecto-Pascals
 
       if(ubound(atmglas,1)==1) return ! only one patch. nothing to do
 
@@ -580,26 +597,110 @@ c
       i_1 = grid%i_stop
       j_0 = grid%j_strt
       j_1 = grid%j_stop
+
+
+      ! ======= atm_exports_phase1 is composed of:
+      ! real*8, dimension(:,:), pointer ::
+      !       SRFP  ! SRFP actual surface pressure (hecto-Pascals)
+      !      ,SRFPK ! srfp**kapa
+      !      ,AM1   ! first-layer air mass (kg/m2)
+      !      ,BYAM1 ! 1/AM1
+      !      ,P1    ! center pressure of first layer (mb)
+      ! !@var PREC precipitation (kg/m^2)
+      ! !@var EPREC energy of preciptiation (J/m^2)
+      !      ,PREC,EPREC
+      ! !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
+      !      ,COSZ1
+      ! !@var FLONG, FSHORT downwelling longwave, shortwave radiation at surface
+      !      ,FLONG,FSHORT
+      !      ,TRUP_in_rad ! LW emission by surface during rad. timestep.
       if(phase==after_atm_phase1) then
         ! quantities that are not updated during surface sub-timesteps
         do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
-          atmglas(ipatch)%atm_exports_phase1 =
-     &         atmgla%atm_exports_phase1
+          igla => atmglas(ipatch)
+          igla%atm_exports_phase1 = atmgla%atm_exports_phase1
 #ifdef TRACERS_WATER
-          atmglas(ipatch)%tratm_exports_phase1 =
-     &         atmgla%tratm_exports_phase1
+          igla%tratm_exports_phase1 = atmgla%tratm_exports_phase1
 #endif
+
+          DO J=J_0,J_1
+          DO I=I_0,IMAXJ(J)
+            ! Downscale Pressure
+            ! See eq. 3.7: http://paoc.mit.edu/labweb/notes/chap3.pdf
+            zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+            igla%SRFP(i,j) = atmgla%SRFP(i,j) * exp(-zdiff/H)
+
+            ! Set other things that rely on downscaling
+            igla%SRFPK(i,j) = igla%SRFP(i,j) ** kapa
+            AM1_hPa = (igla%SRFP(i,j) - ptop) * dsig(1)
+
+            ! Pa = kg / (m s^2)
+            ! Grav = m/s^2
+            igla%AM1(i,j) = AM1_hPA * (100d0 / Grav)      ! kg/m^2
+
+            ! Center pressure of first layer
+            igla%P1(i,j) = igla%SRFP(i,j) - .5*AM1_hPA
+
+            ! Consider setting igla%FLONG.  This depends on the number
+            ! of molecules above you radiating down.  The form is
+            ! non-trivial.  For now, we are ignoring it.
+            ! Consider looking at differences in FLOG between edge and
+            ! center of an ice sheet, to see how much this might matter
+            ! igla%FLONG(i,j) = ...
+
+          enddo
+          enddo
         enddo
 
+      ! ======= atm_exports_phasesrf is composed of:
+      !    real*8, dimension(:,:,:), pointer ::
+      !         atm_exports_phasesrf=>null()
+      !    real*8, dimension(:,:), pointer ::
+      !@var TEMP1 pot. temp. of first layer w.r.t. 1 mb (K)
+      !@var Q1 specific humidity of first layer
+      !@var U1,V1 wind components of first layer (A-grid)
+      !       TEMP1
+      !      ,Q1
+      !      ,U1,V1
+      ! The "layer 1" arrays TEMP1,Q1,U1,V1,P1,AM1 will be redefined
+      ! to correspond to the full boundary layer depth.
       elseif(phase==during_srfflx) then
         ! quantities that are updated during surface sub-timesteps
         do ipatch=1+lbound(atmglas,1),ubound(atmglas,1)
-          atmglas(ipatch)%atm_exports_phasesrf =
-     &         atmgla%atm_exports_phasesrf
+          igla => atmglas(ipatch)
+          igla%atm_exports_phasesrf = atmgla%atm_exports_phasesrf
 #ifdef TRACERS_ON
-          atmglas(ipatch)%tratm_exports_phasesrf =
-     &         atmgla%tratm_exports_phasesrf
+          igla%tratm_exports_phasesrf = atmgla%tratm_exports_phasesrf
 #endif
+
+        ! Downscale Temperature
+        ! ***** But isn't this supposed to be POTENTIAL Temperature?
+        ! Use a simple 8 K/km lapse rate
+         DO J=J_0,J_1
+         DO I=I_0,IMAXJ(J)
+           ! ----------------------------------
+           ! Convert from potential temperature to real temperature
+           ! (reference pressure = 1mb = 1hPa)
+           atmglaT_K = atmgla%TEMP1(i,j) * atmgla%SRFPK(i,j)
+
+           ! Downscale temperature, 8K/km
+           zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
+           iglaT_K = atmglaT_K - zdiff * .008d0
+
+           ! Convert back to potential temperature
+           igla%TEMP1(i,j) = iglaT_K / atmgla%SRFPK(i,j)
+           ! ----------------------------------
+
+           ! Scale Q1 (kg/kg mixing ratio) assuming constant
+           ! humidity as we move up-slope.  That is appropriate,
+           ! since we are still just as close to the saturated
+           ! ice surface
+           igla%Q1(i,j) = atmgla%Q1(i,j) * (
+     &          QSAT(iglaT_K,   LHS,   igla%SRFP(i,j)) /
+     &          QSAT(atmglaT_K, LHS, atmgla%SRFP(i,j)))
+
+         enddo
+         enddo
         enddo
       endif
       return

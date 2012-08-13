@@ -26,10 +26,10 @@
 !      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 
-!@var ZATMOS: surface elevation, per height class (m)
+!@var ELEVHC: surface elevation, per height class (m)
 ! ZATMO should be kept consistent with this.
 ! The value of this ONLY MATTERS for grid cells with landice
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: ZATMOS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: ELEVHC
 
 
 
@@ -71,7 +71,7 @@
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
       Use LANDICE_COM, Only: NHC,FHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
-     *                       FSHGLM,FNHGLM, ZATMOS
+     *                       FSHGLM,FNHGLM, ELEVHC
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : NTM
@@ -92,7 +92,7 @@
       J_1H = grid%J_STOP_HALO
 
       ALLOCATE( FHC(I_0H:I_1H,J_0H:J_1H,NHC),
-     *          ZATMOS(I_0H:I_1H,J_0H:J_1H,NHC),
+     *          ELEVHC(I_0H:I_1H,J_0H:J_1H,NHC),
      *          SNOWLI(I_0H:I_1H,J_0H:J_1H,NHC),
      *          TLANDI(2,I_0H:I_1H,J_0H:J_1H,NHC),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
@@ -101,7 +101,7 @@
      *          FNHGLM(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
       fhc(:,:,:) = 1d0/nhc
-      zatmos(:,:,:) = 0
+      elevhc(:,:,:) = 0
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H,NHC),
      *          TRLNDI  (NTM,I_0H:I_1H,J_0H:J_1H,NHC),
@@ -283,7 +283,7 @@ c      END SUBROUTINE io_landice
       implicit none
       integer fid   !@var fid file id
       call defvar(grid,fid,fhc,'fhc(dist_im,dist_jm,nhc)')
-      call defvar(grid,fid,zatmos,'zatmos(dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,elevhc,'elevhc(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm,nhc)')
       call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
@@ -331,7 +331,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'fhc',fhc)
-        call write_dist_data(grid,fid,'zatmos',zatmos)
+        call write_dist_data(grid,fid,'elevhc',elevhc)
         call write_dist_data(grid,fid,'snowli',snowli)
         call write_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
         call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
@@ -358,7 +358,7 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
         call dump_conserv_diags( grid, fid, 'eiceb', conserv_HICB )
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'fhc',fhc)
-        call read_dist_data(grid,fid,'zatmos',zatmos)
+        call read_dist_data(grid,fid,'elevhc',elevhc)
         call read_dist_data(grid,fid,'snowli',snowli)
         call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
 c set some defaults for quantities which may not be in the
