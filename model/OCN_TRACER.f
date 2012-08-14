@@ -359,29 +359,19 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 !@sum OC_TDECAY decays radioactive tracers in ocean
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : itime
-      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0,expdec
+      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0,expDecayRate
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       IMPLICIT NONE
       real*8, intent(in) :: dts
-      logical, save :: ifirst=.true.
       integer n
-
-      if (ifirst) then               
-        allocate(expdec(ntm))
-        expdec(:) = 1.
-        do n=1,ntm
-          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dts)
-        end do
-        ifirst = .false.
-      end if
 
       do n=1,ntm
         if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** Oceanic decay
-          trmo(:,:,:,n)   = expdec(n)*trmo(:,:,:,n)
-          txmo(:,:,:,n)   = expdec(n)*txmo(:,:,:,n)
-          tymo(:,:,:,n)   = expdec(n)*tymo(:,:,:,n)
-          tzmo(:,:,:,n)   = expdec(n)*tzmo(:,:,:,n)
+          trmo(:,:,:,n)   = expDecayRate(n)*trmo(:,:,:,n)
+          txmo(:,:,:,n)   = expDecayRate(n)*txmo(:,:,:,n)
+          tymo(:,:,:,n)   = expDecayRate(n)*tymo(:,:,:,n)
+          tzmo(:,:,:,n)   = expDecayRate(n)*tzmo(:,:,:,n)
         end if
       end do
 C****

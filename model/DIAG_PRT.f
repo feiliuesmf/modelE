@@ -641,7 +641,6 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 !@sum DIAGJ produces area weighted statistics of zonal budget diags
 !@+   based on settings and quantities found in j_defs
 !@auth G. Schmidt/R. Ruedy/G. Russell
-      use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
       use model_com, only: modelEclock
@@ -652,11 +651,10 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
      &     QDIAG,kdiag,namreg,ia_j,iden_j,iden_reg,
      *     scale_j,stitle_j,lname_j,name_j,units_j,
      *     fmt_j,fmt_reg
-     &     ,jm=>jm_budg,dxyp_budg,lat_budg
+     &     ,jm=>jm_budg,dxyp_budg,lat_budg,Qbp
       USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
       USE MDIAG_COM, only : acc_period
       IMPLICIT NONE
-      LOGICAL qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
@@ -671,9 +669,6 @@ C**** Arrays needed for full output
       INTEGER, DIMENSION(JM) :: MLAT
 
       INTEGER :: IACC,J,JR,K,M,N,IT,iu_Ibp,n_out
-      character*80 line
-      logical, save :: Qbp(NTYPE_OUT+1) ! +1 for regions
-      INTEGER, SAVE :: IFIRST = 1
 
       CHARACTER*200    :: fmt903
       CHARACTER*200    :: fmt918
@@ -684,28 +679,6 @@ C**** Arrays needed for full output
       fmt903 = "('0',131('-')/20X,'G      NH     SH   ',24I4)"
       fmt918 = "('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))"
 
-      IF (IFIRST.EQ.1) THEN
-        IFIRST=0
-        inquire(file='Ibp',exist=qIbp)
-        Qbp=.true.
-        if(.not.qIbp) then
-          call openunit('Ibp',iu_Ibp,.false.,.false.)
-          write (iu_Ibp,'(a)') 'List of budget-pages'
-          do m = 1,ntype_out
-            write (iu_Ibp,'(i3,1x,a)') m,terrain(m)
-          end do
-            write (iu_Ibp,'(i3,1x,a)') ntype_out+1,'   (REGIONS)'
-        else if(kdiag(1).gt.0) then
-          Qbp=.false.
-          call openunit('Ibp',iu_Ibp,.false.,.true.)
-          read (iu_Ibp,'(a)',end=20) line
-   10     read (iu_Ibp,'(a)',end=20) line
-          read(line,'(i3)') m
-          Qbp(m)=.true.
-          go to 10
-   20     continue
-        end if
-      END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
