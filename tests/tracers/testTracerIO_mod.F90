@@ -34,18 +34,18 @@ contains
     call openUnit('testTracers.txt', unit, qold=.false., qbin=.false.)
     this%unit = unit
 
-    write(unit,*)'{'
-    write(unit,*)' name = speciesA'
-    write(unit,*)' molecularMass = 1.2 ! g'
-    write(unit,*)' optionA = True'
-    write(unit,*)' optionC = False'
-    write(unit,*)'}'
-    write(unit,*)' '
-    write(unit,*)'{'
-    write(unit,*)' name = speciesB'
-    write(unit,*)' molecularMass = 2.3 ! g'
-    write(unit,*)' optionB = False'
-    write(unit,*)'}'
+    write(unit,'(a)')'{'
+    write(unit,'(a)')' name = speciesA'
+    write(unit,'(a)')' molecularMass = 1.2 ! g'
+    write(unit,'(a)')' optionA = True'
+    write(unit,'(a)')' optionC = False'
+    write(unit,'(a)')'}'
+    write(unit,'(a)')' '
+    write(unit,'(a)')'{'
+    write(unit,'(a)')' name = speciesB'
+    write(unit,'(a)')' molecularMass = 2.3 ! g'
+    write(unit,'(a)')' optionB = False'
+    write(unit,'(a)')'}'
 
     rewind(unit)
 
@@ -54,6 +54,8 @@ contains
     this%defaultValues = Dictionary()
     call insert(this%defaultValues, 'optionC', .true.)
     call insert(this%defaultValues, 'optionD',  1)
+
+    this%bundle = TracerBundle()
 
   end subroutine setUp
 

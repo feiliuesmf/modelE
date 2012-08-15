@@ -103,10 +103,10 @@ contains
     character(len=256) :: line
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) 'a'
-    write(unit,*) 'b'
-    write(unit,*) BEGIN_DATA
-    write(unit,*) 'first line after header'
+    write(unit,'(a)') 'a'
+    write(unit,'(a)') 'b'
+    write(unit,'(a)') BEGIN_DATA
+    write(unit,'(a)') 'first line after header'
     rewind(unit)
 
     call setBeginData(parser, BEGIN_DATA)
@@ -127,8 +127,8 @@ contains
     character(len=256) :: line
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) 'a'
-    write(unit,*) 'b'
+    write(unit,'(a)') 'a'
+    write(unit,'(a)') 'b'
     rewind(unit)
 
     call setBeginData(parser, BEGIN_DATA)
@@ -333,9 +333,9 @@ contains
     integer :: status
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) BEGIN_DATA
-    write(unit,*) 'key = 1, 2, 3'
-    write(unit,*) END_DATA
+    write(unit,'(a)') BEGIN_DATA
+    write(unit,'(a)') 'key = 1, 2, 3'
+    write(unit,'(a)') END_DATA
     rewind(unit)
 
     call setBeginData(parser, BEGIN_DATA)
@@ -373,18 +373,18 @@ contains
     logical :: deltaValues(4)
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) 'alpha = 0' ! ignore - in header
-    write(unit,*) 'b'
-    write(unit,*) BEGIN_DATA
-    write(unit,*) '! alpha = 1' ! ignore - only a comment
-    write(unit,*) 'beta = 2'
-    write(unit,*) ! empty line
-    write(unit,*) '!' ! effectively empty line
-    write(unit,*) 'gamma = 3.'
-    write(unit,*) '! alpha = 2' ! ignore - only a comment
-    write(unit,*) 'delta = T, F, T, T'
-    write(unit,*) END_DATA
-    write(unit,*) '! alpha = 3' ! ignore - after header
+    write(unit,'(a)') 'alpha = 0' ! ignore - in header
+    write(unit,'(a)') 'b'
+    write(unit,'(a)') BEGIN_DATA
+    write(unit,'(a)') '! alpha = 1' ! ignore - only a comment
+    write(unit,'(a)') 'beta = 2'
+    write(unit,'(a)') ! empty line
+    write(unit,'(a)') '!' ! effectively empty line
+    write(unit,'(a)') 'gamma = 3.'
+    write(unit,'(a)') '! alpha = 2' ! ignore - only a comment
+    write(unit,'(a)') 'delta = T, F, T, T'
+    write(unit,'(a)') END_DATA
+    write(unit,'(a)') '! alpha = 3' ! ignore - after header
     rewind(unit)
 
     call setBeginData(parser, BEGIN_DATA)
@@ -433,9 +433,9 @@ contains
 
 #ifdef USE_PFUNIT
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
-    write(unit,*) BEGIN_DATA
-    write(unit,*) 'beta'
-    write(unit,*) END_DATA
+    write(unit,'(a)') BEGIN_DATA
+    write(unit,'(a)') 'beta'
+    write(unit,'(a)') END_DATA
     rewind(unit)
 
     call setBeginData(parser, BEGIN_DATA)

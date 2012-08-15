@@ -572,7 +572,7 @@ contains
     character(len=MAX_LEN_KEY), pointer :: keys(:)
 
     keys => getKeys(aDictionary)
-    write(unit,*) trim(this%beginData)
+    write(unit,'(a)') trim(this%beginData)
     do i = 1, getNumEntries(aDictionary)
 
       values =>lookup(aDictionary, keys(i))
@@ -586,9 +586,9 @@ contains
           line = trim(line) // ', ' // trim(toString(values(j)))
         end do
       end select
-      write(unit,*) trim(line)
+      write(unit,'(a)') trim(line)
     end do
-    write(unit,*) trim(this%endData)
+    write(unit,'(a)') trim(this%endData)
 
   end subroutine writeFormatted_parser
 

@@ -1,5 +1,5 @@
 module TracerBundle_mod
-  use Dictionary_mod, only: Dictionary_type
+  use Dictionary_mod, only: Dictionary_type, Dictionary
   use KeyValuePair_mod, only: MAX_LEN_KEY
   use Tracers_mod
   implicit none
@@ -31,7 +31,7 @@ module TracerBundle_mod
     private
     type (Dictionary_type) :: defaultValues
 !TODO: Should change to allocatable when compilers work
-    character(len=MAX_LEN_KEY), pointer :: mandatoryProperties(:)
+    character(len=MAX_LEN_KEY), pointer :: mandatoryProperties(:) => null()
     type (Tracer_type), pointer :: tracers(:) => null()
   end type TracerBundle_type
 
@@ -269,7 +269,7 @@ contains
     character(len=LEN_HEADER) :: header
 
     read(unit) header
-    read(header, '(a," - version:",i10.0)') tag, oldVersion
+    read(header, '(a,11x,i10.0)') tag, oldVersion
 
     if (tag /= DESCRIPTION) then
       call throwException(DESCRIPTION // '::readUnformatted() - incorrect header.', 14)
@@ -315,12 +315,15 @@ contains
     type (TracerBundle_type), intent(in) :: this
     character(len=*), intent(in) :: name
 
-    integer :: i
+    integer :: i, j
     character(len=MAX_LEN_KEY) :: aName
 
     index = NOT_FOUND
-    do i = 1, getCount(this)
-      if (all(name == lookup(getProperties(this%tracers(i)), 'name'))) then
+
+    j = getCount(this)
+
+    do i = 1, j
+      if (all([name] == lookup(getProperties(this%tracers(i)), 'name'))) then
         index = i
         exit
       end if
@@ -429,7 +432,8 @@ contains
     if (index /= NOT_FOUND) then
       properties => getProperties(this%tracers(index))
     else
-      nullify(properties)
+      allocate(properties)
+      properties = Dictionary()
     end if
 
   end function getProperties_multi
