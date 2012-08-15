@@ -305,7 +305,7 @@ contains
       properties => getProperties(this%tracers(i))
       call writeFormatted(parser, unit, properties)
     end do
-    
+
   end subroutine writeFormatted_bundle
 
   integer function getIndex(this, name) result(index)
@@ -316,14 +316,15 @@ contains
     character(len=*), intent(in) :: name
 
     integer :: i, j
-    character(len=MAX_LEN_KEY) :: aName
+    character(len=MAX_LEN_KEY) :: found
 
     index = NOT_FOUND
 
     j = getCount(this)
 
     do i = 1, j
-      if (all([name] == lookup(getProperties(this%tracers(i)), 'name'))) then
+      found = lookup(getProperties(this%tracers(i)), 'name')
+      if (name == found) then
         index = i
         exit
       end if
@@ -351,7 +352,7 @@ contains
     integer :: i
 
     n = size(this%mandatoryProperties)
-    
+
     allocate(oldProperties(n))
     oldProperties = this%mandatoryProperties
     deallocate(this%mandatoryProperties)
@@ -390,7 +391,7 @@ contains
     if (.not. hasProperty(this, property)) then
       name = getName(this)
       call throwException("TracerBundle_mod - species '" // trim(name) // &
-           & "' is missing mandatory property '" // trim(property) // "'.", 14)
+        & "' is missing mandatory property '" // trim(property) // "'.", 14)
       assertHasProperty = .false.
     end if
 
@@ -418,7 +419,7 @@ contains
     else
       tracer => null()
     end if
-    
+
   end function getTracer
 
   function getProperties_multi(this, species) result(properties)
@@ -454,7 +455,7 @@ contains
     else
       allocate(propertyValues(0))
     end if
-    
+
   end function getProperty_multi
 
 
@@ -465,7 +466,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     integer, intent(in) :: value
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -479,7 +480,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     integer, intent(in) :: values(:)
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -493,7 +494,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     real*8, intent(in) :: value
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -507,7 +508,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     real*8, intent(in) :: values(:)
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -520,7 +521,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     logical, intent(in) :: value
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -533,7 +534,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     logical, intent(in) :: values(:)
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -546,7 +547,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     character(len=*), intent(in) :: value
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -559,7 +560,7 @@ contains
     character(len=*), intent(in) :: name
     character(len=*), intent(in) :: property
     character(len=*), intent(in) :: values(:)
-    
+
     integer :: index
 
     index = getIndex(this, name)
@@ -570,7 +571,7 @@ contains
     type (TracerBundle_type), intent(in) :: this
 
     number = size(this%tracers)
-    
+
   end function getCount_
 
   integer function getCount_property(this, withProperty) result(number)
@@ -578,7 +579,7 @@ contains
     character(len=*), intent(in) :: withProperty
 
     number = count(hasProperty(this, withProperty))
-    
+
   end function getCount_property
 
   subroutine makeSubset(this, withProperty, subset)
@@ -630,10 +631,10 @@ contains
     end do
     deallocate(this%tracers)
     call clean(this%defaultValues)
-!    if (size(this%mandatoryProperties)>0) then
-!       print *, 'SIZE = ',size(this%mandatoryProperties)
-       deallocate(this%mandatoryProperties)
-!    end if
+    !    if (size(this%mandatoryProperties)>0) then
+    !       print *, 'SIZE = ',size(this%mandatoryProperties)
+    deallocate(this%mandatoryProperties)
+    !    end if
   end subroutine cleanBundle
 
 end module TracerBundle_mod
