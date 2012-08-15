@@ -5,8 +5,8 @@
 ! Adding this empty module allows intel 12.1.5.339 to compile with the
 ! debugging flag.  Weird problem.  The module should be deleted when
 ! Intel has a fix.
-module IntelWorkaround4
-end module IntelWorkaround4
+      module IntelWorkaround4
+      end module IntelWorkaround4
 
 C****   
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
