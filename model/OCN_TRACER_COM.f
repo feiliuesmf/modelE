@@ -128,7 +128,7 @@ C****     it will prove useful.
      .          ,n_wms3=0,n_dets,n_cfc,n_dic
 
 
-      real*8, allocatable :: expdec(:)
+      REAL*8, allocatable, DIMENSION(:) :: expDecayRate
 
 #ifdef TRACERS_SPECIAL_O18
       ! could be made a local var in tracer_ic_ocean?
@@ -136,6 +136,16 @@ C****     it will prove useful.
 #endif
 
       END MODULE OCN_TRACER_COM
+
+      SUBROUTINE initOcnTracerCom(DTS)
+      use ocn_tracer_com, only: ntm, expDecayRate, trdecay
+      real*8, intent(in) :: dts 
+      integer n
+      allocate(expDecayRate(ntm))
+      do n=1,ntm
+        if (trdecay(n).gt.0.0) expDecayRate(n)=exp(-trdecay(n)*dts)
+      end do
+      END SUBROUTINE initOcnTracerCom
 
       subroutine alloc_ocn_tracer_com
       USE DOMAIN_DECOMP_1D, only : am_i_root

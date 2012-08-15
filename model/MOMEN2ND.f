@@ -1,18 +1,23 @@
       module MOMENTS
+      USE RESOLUTION, only : ls1, PSFMPT, JM
       implicit none
       private
 
       public ADVECV, moment_enq_order
+      public initMoments
+      REAL*8, SAVE :: SMASS(JM)
 
       contains
-!      subroutine init_MOM
-!!@sum  init_MOM sets an order dependent coefficient for AVRX
-!      USE DYNAMICS, only : XAVRX
-!      XAVRX = 1. ! for second order scheme, byrt2 for 4th order scheme
-!      CALL AVRX0
-!
-!      RETURN
-!      END subroutine init_MOM
+
+      SUBROUTINE initMoments
+!@sum Implemented to remove IFIRST in ADVEC
+      USE GEOM, only : DXYV
+      IMPLICIT NONE
+      INTEGER :: J
+      DO J=2,JM
+        SMASS(J)=PSFMPT*DXYV(J)
+      END DO
+      END SUBROUTINE initMoments
 
       subroutine moment_enq_order(order)
 !@sum moment_enq_order returns order of the scheme
@@ -25,7 +30,6 @@
       SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
-      USE RESOLUTION, only : ls1,psfmpt
       USE RESOLUTION, only : im,jm,lm
       USE DIAG_COM, only : modd5k
       USE DOMAIN_DECOMP_ATM, only : GRID
@@ -45,9 +49,7 @@ c      USE DIAG, only : diagcd
      * PA(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      * PB(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      * FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      REAL*8, SAVE :: SMASS(JM)
 
-      INTEGER,SAVE :: IFIRST = 1
       INTEGER I,J,IP1,IM1,L  !@var I,J,IP1,IM1,L  loop variables
       REAL*8 VMASS,RVMASS,ALPH,PDT4,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
@@ -75,11 +77,6 @@ c**** Extract domain decomposition info
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       IF(MODD5K.LT.MRCH) CALL DIAG5F (U,V)
-      IF(IFIRST.EQ.1) THEN
-        IFIRST=0
-        DO 10 J=J_0S,J_1
- 10     SMASS(J)=PSFMPT*DXYV(J)
-      END IF
 
       DT2=DT1/2.
       DT4=DT1/4.

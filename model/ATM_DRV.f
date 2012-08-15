@@ -738,13 +738,18 @@ c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
       USE RESOLUTION, only : im,jm,lm
+#ifndef CUBED_SPHERE
+      USE MOMENTS, only : initMoments
+#endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       use TRACER_COM, only: initTracerCom
+      use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
+      call initGhyTracers
 #endif
 
 #ifdef SCM
@@ -828,6 +833,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 
 #ifdef SCM 
       call alloc_scm_com()
+#endif
+#ifndef CUBED_SPHERE
+      call initMoments
 #endif
       end subroutine alloc_drv_atm
 

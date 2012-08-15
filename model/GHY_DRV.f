@@ -102,6 +102,7 @@ ccc extra stuff which was present in "earth" by default
       public ghy_tracers_finish_step
       public ghy_tracers_set_cell
       public ghy_tracers_save_cell
+      public initGhyTracers
 
       integer, allocatable :: ntix(:)
       integer ntx
@@ -109,6 +110,9 @@ ccc extra stuff which was present in "earth" by default
 
       contains
 
+      subroutine initGhyTracers
+      allocate(ntix(ntm))
+      end subroutine initGhyTracers
 
       subroutine ghy_tracers_set_step(
 #ifdef TRACERS_WATER
@@ -125,14 +129,6 @@ ccc extra stuff which was present in "earth" by default
       logical :: is_water(ntm)
 #endif
       integer n
-      logical :: ifirst = .true.
-
-!TODO: this "ifirst" should go away, but need it for now to handle
-! one time only allocations.
-      if (ifirst) then
-        ifirst = .false.
-        allocate(ntix(ntm))
-      end if
 
       ntx=0
 #ifdef TRACERS_WATER

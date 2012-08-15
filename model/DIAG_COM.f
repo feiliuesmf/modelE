@@ -1019,7 +1019,41 @@ c instances of arrays
      &     AGC_ioptr
 #endif
 
+      logical, save :: Qbp(NTYPE_OUT+1) ! +1 for regions
+      public :: Qbp
+
       END MODULE DIAG_COM
+
+      SUBROUTINE initDiagj
+      use filemanager
+      USE DIAG_COM, only : ntype_out, terrain, kdiag, Qbp
+      IMPLICIT NONE
+
+      LOGICAL qIbp
+      INTEGER :: M,iu_Ibp
+      character*80 line
+
+        inquire(file='Ibp',exist=qIbp)
+        Qbp=.true.
+        if(.not.qIbp) then
+          call openunit('Ibp',iu_Ibp,.false.,.false.)
+          write (iu_Ibp,'(a)') 'List of budget-pages'
+          do m = 1,ntype_out
+            write (iu_Ibp,'(i3,1x,a)') m,terrain(m)
+          end do
+            write (iu_Ibp,'(i3,1x,a)') ntype_out+1,'   (REGIONS)'
+        else if(kdiag(1).gt.0) then
+          Qbp=.false.
+          call openunit('Ibp',iu_Ibp,.false.,.true.)
+          read (iu_Ibp,'(a)',end=20) line
+   10     read (iu_Ibp,'(a)',end=20) line
+          read(line,'(i3)') m
+          Qbp(m)=.true.
+          go to 10
+   20     continue
+        end if
+
+      END SUBROUTINE initDiagj
 
       SUBROUTINE ALLOC_DIAG_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
@@ -1222,6 +1256,8 @@ c allocate master copies of budget- and JK-arrays on root
       atmocn%area_of_zone => dxyp_budg
       atmocn%consrv => consrv_loc
       atmocn%nofm => nofm
+
+      call initDiagj
 
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
