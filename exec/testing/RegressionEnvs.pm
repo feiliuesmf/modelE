@@ -7,22 +7,23 @@ sub getEnvironment
   my $compiler = shift;
   my $branch = shift;
 
-  if ($compiler eq "intel") 
-  {
+  if ($compiler eq "intel") {
     return getIntelEnvironment($env->{$compiler}, $branch);
-  }
-  else 
-  {
+  } elsif ($compiler eq "gfortran") {
     return getGfortranEnvironment($env->{$compiler}, $branch);
+  } elsif ($compiler eq "nag") {
+    return getNagEnvironment($env->{$compiler}, $branch);
+  } else {
+      print "$compiler is not a valid compiler.";
+      exit;    
   }
+
 }
 
 # -----------------------------------------------------------------------------
-sub getIntelEnvironment
+sub getCommon
 {
   my $env     = shift;
-  my $branch     = shift;
-
    if (defined $ENV{REGWORK}) {
       $env->{NOBACKUP} = $ENV{REGWORK};
    }
@@ -51,6 +52,15 @@ sub getIntelEnvironment
   $env->{OVERWRITE}="YES";
   $env->{OUTPUT_TO_FILES}="YES";
   $env->{VERBOSE_OUTPUT}="YES";
+  return $env;
+}
+# -----------------------------------------------------------------------------
+sub getIntelEnvironment
+{
+  my $env     = shift;
+  my $branch     = shift;
+
+  $env=getCommon($env);
   $env->{MPIDISTR}="intel";
   $env->{COMPILER}="intel";
   if ($branch =~ m/AR5/) 
@@ -75,35 +85,8 @@ sub getGfortranEnvironment
   my $env     = shift;
   my $branch     = shift;
     
-   if (defined $ENV{REGWORK}) {
-      $env->{NOBACKUP} = $ENV{REGWORK};
-   }
-   else {
-      $env->{NOBACKUP}=$ENV{NOBACKUP};
-   }
-   if (defined $ENV{MODELBASELINE}) {
-      $env->{BASELINE_DIRECTORY} = $ENV{MODELBASELINE};
-   }
-   else {
-      $env->{BASELINE_DIRECTORY} = "/discover/nobackup/modele/modelE_baseline";
-   }
-   if (defined $ENV{GCMSEARCHPATH}) {
-      $env->{GCMSEARCHPATH} = $ENV{GCMSEARCHPATH};
-   }
-   else {
-      $env->{GCMSEARCHPATH} = "/discover/nobackup/projects/giss/prod_input_files";
-   }
-   $env->{RESULTS_DIRECTORY} = $env->{NOBACKUP} . "/regression_results";
-   $env->{SCRATCH_DIRECTORY} = $env->{NOBACKUP} . "/regression_scratch";
-   $env->{DECKS_REPOSITORY}=$env->{SCRATCH_DIRECTORY} . "/decks_repository";
-   $env->{CMRUNDIR}=$env->{SCRATCH_DIRECTORY} . "/cmrun";
-   $env->{EXECDIR}=$env->{SCRATCH_DIRECTORY} . "/exec";
-   $env->{SAVEDISK}=$env->{SCRATCH_DIRECTORY} . "/savedisk";
-   $env->{MP}="no";
-   $env->{OVERWRITE}="YES";
-   $env->{OUTPUT_TO_FILES}="YES";
-   $env->{VERBOSE_OUTPUT}="YES";
-   $env->{COMPILER}="gfortran";
+  $env=getCommon($env);
+  $env->{COMPILER}="gfortran";
   if ($branch =~ m/AR5/) 
   {
     $env->{MPIDISTR}="openmpi";
@@ -120,6 +103,31 @@ sub getGfortranEnvironment
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.6";
   }
   $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/gfortran/modelErc.gfortran";
+  return $env;
+}
+
+# -----------------------------------------------------------------------------
+sub getNagEnvironment 
+{
+  my $env     = shift;
+  my $branch     = shift;
+    
+  $env=getCommon($env);
+  $env->{COMPILER}="nag";
+  if ($branch =~ m/AR5/) 
+  {
+      print "NAG does not work with AR5 branch";
+      exit;    
+  }
+  else 
+  {
+    $env->{MPIDISTR}="openmpi";
+    $env->{MPIDIR}="/usr/local/other/SLES11/openMpi/1.6/nag-5.3-886";
+    $env->{BASELIBDIR5}="";
+    $env->{PNETCDFHOME}="/usr/local/other/SLES11/pnetcdf/1.2.0/nag-5.3-854_openmpi-1.6";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_nag-5.3";
+  }
+  $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/nag/modelErc.nag";
   return $env;
 }
 

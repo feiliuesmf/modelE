@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # This is the top level script to run modelE regression tests.
-# It is invoked by cron, Hudson, or user and runs the perl scripts under $MODELROOT/master/exec.
+# It is invoked by cron, Hudson, or user and runs the perl scripts under $MODELROOT/exec/testing.
 
 # Set up working variables
-need_default(){
+needDefault(){
    if [ -z "$1" ]; then
      echo "true"
      exit 0
@@ -13,13 +13,13 @@ need_default(){
      exit 1
    fi
 }
-get_defaults()
+setupRunEnvVariables()
 {
-   if  [ "$(need_default $MODELROOT)" == "true" ] ; then
+   if  [ "$(needDefault $MODELROOT)" == "true" ] ; then
      export MODELROOT=$NOBACKUP/devel/modelE.clones/master
    fi
 
-   if  [ "$(need_default $REGWORK)" == "true" ] ; then
+   if  [ "$(needDefault $REGWORK)" == "true" ] ; then
      export REGWORK=$NOBACKUP
    fi
 
@@ -35,23 +35,22 @@ get_defaults()
      mkdir $REGRESULTS
    fi
 
-   if  [ "$(need_default $MODELEBASELINE)" == "true" ] ; then
-     export MODELEBASELINE=$NOBACKUP/modelE_baseline
+   if  [ "$(needDefault $MODELEBASELINE)" == "true" ] ; then
+     export MODELEBASELINE=/discover/nobackup/modele/modelE_baseline
    fi
 
-   if  [ "$(need_default $GCMSEARCHPATH)" == "true" ] ; then
+   if  [ "$(needDefault $GCMSEARCHPATH)" == "true" ] ; then
      export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files
    fi
 	
 }
 
-watch_job()
+watchJob()
 {
 # Monitor job
 # Input arguments: $1=job id
    local jobID=$1
 
-   # diffreport.j has a 2hr time limit
    maxWait=7200
    seconds=0
    done=0
@@ -79,21 +78,34 @@ watch_job()
      echo "Usage: `basename $0` {cfgFile}"
      exit 65
    fi
-   export CFG_NAME=$1
-   cfgFile=$1.cfg
-   export CFG_FILE=$cfgFile
+   export CONFIG=$1
 
-   get_defaults
-   echo "Execute regressionTests.pl with "$cfgFile
-   rm -f $1.out
-   /usr/bin/perl regressionTests.pl $CFG_FILE > $1.out 2>&1
-   # Not sure why I still need to do this:
-   chmod g+rw $1.out
-   chgrp s1001 $1.out LOG
- 
-   wait
-   jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
-   jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-   watch_job $jobID
+   setupRunEnvVariables
 
-   echo "Done".
+   unset PFUNIT
+
+   # Run suite of modelE tests
+   if [ "$RUN_TESTS" == "YES" ]; then
+     echo "Execute regressionTests.pl with "$CONFIG
+     /usr/bin/perl regressionTests.pl $CONFIG.cfg > $CONFIG.out 2>&1
+     wait
+   fi
+
+   # Optionally run unit tests
+   if [ "$RUN_UNIT_TESTS" == "YES" ]; then
+     ./modelEunitTests.sh
+   else
+     echo "Skipped unit tests (RUN_UNIT_TESTS=$RUN_UNIT_TESTS)" > $CONFIG.unit
+   fi
+
+   # Optionally create a DIFF report
+   if [ "$CREATE_DIFF" == "YES" ]; then
+     # Submit job to run diffreport.x
+     jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
+     jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+     watchJob $jobID
+   else
+     echo "Skipped diffreport (CREATEDIFF=$CREATE_DIFF)" > $CONFIG.diff
+   fi
+
+   echo "DONE."

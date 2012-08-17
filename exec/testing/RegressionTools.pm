@@ -8,7 +8,7 @@ $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
 $extraFlags{SERIALMP} = "EXTRA_FFLAGS=-mp"; # Intel kludge for matching serial and OpenMP.
 
 $extraFlags{E4TcadF40} ="";
-$extraFlags{E4arobio_g6cc} ="";
+$extraFlags{E4arobio_g6c} ="";
 $extraFlags{E4arobio_h4c} ="";
 $extraFlags{EM20} ="";
 $extraFlags{E4F40} ="";
@@ -19,6 +19,7 @@ $extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/usr/local/other/Fortu
 
 $extraFlags{intel} = "";
 $extraFlags{gfortran} ="";
+$extraFlags{nag} ="";
 
 # -----------------------------------------------------------------------------
 sub createTemporaryCopy 
@@ -27,7 +28,7 @@ sub createTemporaryCopy
   my $tempDir = shift;
   my $branch = shift;
   my $commandString = "git clone -b $branch $referenceDir $tempDir";
-  #print "createTemporaryCopy: $commandString \n";
+  print "createTemporaryCopy: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
 
@@ -81,7 +82,7 @@ EOF
   }
 
   my $binDir = $expName . "_bin";
-  #print "compileRundeck: $commandString \n";
+  print "compileRundeck: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
 }
 
@@ -99,8 +100,8 @@ sub runConfiguration
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
 
-  #print "BRANCH: $branch \n";
-  #print "resultsDir: $resultsDir \n";
+  print "BRANCH: $branch \n";
+  print "resultsDir: $resultsDir \n";
 
   my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
   $flags =~ s/(\$npes)/$npes/eeg;
@@ -166,7 +167,7 @@ sub runConfiguration
     exit 1;
   fi
 EOF
-  #print "runConfiguration: $commandString \n";
+  print "runConfiguration: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
 }
 
@@ -184,7 +185,7 @@ sub writeModelErcFile
     $commandString .= "echo $var=$value >> $modelerc\n";
   }
   $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
-  #print "writeModelErcFile: $commandString \n";
+  print "writeModelErcFile: $commandString \n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
@@ -202,7 +203,7 @@ sub gitCheckout
   git clone -b $branch $gitroot $branch
   popd
 EOF
-  #print "gitCheckout: $commandString\n";
+  print "gitCheckout: $commandString\n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 1;

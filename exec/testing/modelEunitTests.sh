@@ -1,52 +1,20 @@
 #!/usr/local/bin/bash
 
 # Script to run modelE unit tests on Linux (DISCOVER)
-# It is invoked by a cron job
 
 # -------------------------------------------------------------------
 # FUNCTIONS
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-gatherForEmail()
-# -------------------------------------------------------------------
-{
-    echo $1 >> $toEmail 2>&1
-}
-
-# -------------------------------------------------------------------
-sendEmailReport()
-# -------------------------------------------------------------------
-{
-# email info
-    if [ "$FAIL" == "" ]; then
-       subject="modelE unit tests: successful"
-#       mail -s "$subject" giss-modelE-regression@lists.nasa.gov < "$toEmail"
-    else
-       subject="modelE unit tests: failed"
-#       echo -e "$subject" | mail -s "$subject" giss-modelE-regression@lists.nasa.gov < "$testLog"
-    fi
-}
-
-# -------------------------------------------------------------------
-failScript()
-# -------------------------------------------------------------------
-{
-    FAIL=YES
-    echo $(date +%H:%M:%S) ERROR: $1 >> $toEmail 2>&1
-    sendEmailReport
-    exit 1
-}
-
-# -------------------------------------------------------------------
-watch_job()
+watchJob()
 # -------------------------------------------------------------------
 {
 # Monitor job
 # Input arguments: $1=job id
     jobID=$1
 
-    maxWait=3600
+    maxWait=900
     seconds=0
     jobSuccess=0
     while [ $seconds -lt $maxWait ];
@@ -66,13 +34,25 @@ submitJob()
 # -------------------------------------------------------------------
 {
 
-   compiler=$1
-   jobScript=$work_path/modelE.${compiler}.j
-   cat << EOF > $jobScript
+  local compiler=$1
+  local jobScript=$2
+  local testLog=$3
+
+  local deck=E4TcadF40
+
+# CC: This condition is only used to test the script.
+  local mpi=YES
+  if [ "$mpi" == "NO" ]; then
+    pfunitSuffix=".serial"
+  fi
+
+# CREATE JOB SCRIPT
+
+  cat << EOF > $jobScript
 #!/bin/bash
 #PBS -N modelEut
-#PBS -l select=1
-#PBS -l walltime=1:00:00
+#PBS -l select=1:ncpus=12
+#PBS -l walltime=0:15:00
 #PBS -W group_list=s1001
 #PBS -j oe
 #PBS -V
@@ -85,7 +65,7 @@ EOF
    if [ "$compiler" == "intel" ]; then
 
    cat << EOF >> $jobScript
-module load comp/intel-12.1.0.233 mpi/impi-4.0.3.008
+module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
 EOF
 
    else
@@ -98,76 +78,80 @@ EOF
 
    cat << EOF >> $jobScript
 
-export PFUNIT=/discover/nobackup/modele/libs/pFUnit.${compiler}
-export MODELERC=/discover/nobackup/modele/regression_scratch/${compiler}/modelErc.${compiler}
+export PFUNIT=/discover/nobackup/modele/libs/pFUnit.${compiler}${pfunitSuffix}
+export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
-cd /discover/nobackup/modele/regression_scratch
-git clone /discover/nobackup/modele/regression_scratch/master unitTests.${compiler}
+# CC: This condition is only used to test the script.
+if [ ! -e "\$MODELERC" ]; then
+  export MODELERC=$HOME/.modelErc.${compiler}
+fi
 
-cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/decks
-make rundeck RUN=unitTests RUNSRC=E4TcadF40
+cd $REGSCRATCH
+git clone $MODELROOT ${deck}.${compiler}
+
+cd $REGSCRATCH/${deck}.${compiler}/decks
+make rundeck RUN=$deck RUNSRC=$deck
 EOF
 
    if [ "$compiler" == "intel" ]; then
 
    cat << EOF >> $jobScript
-make -j gcm RUN=unitTests EXTRA_FFLAGS="-O0 -g -traceback" MPI=YES
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -traceback" MPI=$mpi
 EOF
 
    else
 
    cat << EOF >> $jobScript
-make -j gcm RUN=unitTests EXTRA_FFLAGS="-O0 -g" MPI=YES
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -fbacktrace" MPI=$mpi
+make tests RUN=$deck MPI=$mpi >> $testLog 2>&1
 EOF
 
    fi
 
    cat << EOF >> $jobScript
-cd /discover/nobackup/modele/regression_scratch/unitTests.${compiler}/tests
+make tests RUN=$deck MPI=$mpi >> $testLog 2>&1
+unset PFUNIT
 EOF
+  chmod +x $jobScript
 
-   if [ "$compiler" == "intel" ]; then
-
-   cat << EOF >> $jobScript
-make tests >> $testLog 2>&1
-EOF
-
-   else
-
-   cat << EOF >> $jobScript
-make tests F90_VENDOR=GFortran >> $testLog 2>&1
-EOF
-
-   fi
-
-   jobID=`qsub $jobScript`
-   jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-   if [ -z "$jobID" ]; then
-      FAIL=YES
-      gatherForEmail "   +++There was a queue submission problem"
-      return
-   fi
-
-   watch_job $jobID jobRan
-
-   if [ $jobRan -eq 0 ]; then
-      failScript "The PBS $jobID did not complete on time."
-   fi
-
-   linesToShow=2
-   results=`grep 'run,.* failed' $testLog`
-   nbrOfFailed=`echo $results | sed 's/^[0-9]*\s*run, //g' | sed 's/\s*failed\s*.*$//g'`
-
-   anyError=`grep 'make: ***' $testLog`
-   if [ -n "$anyError" ]; then
-     errMsg="Failure building unit tests"
-     linesToShow=10
-   fi
+# SUBMIT JOB SCRIPT
 
    echo "RESULTS [$compiler]:" >> $toEmail
    echo ""  >> $toEmail
-   if [ -n "$anyError" ]; then
+   if [ "$mpi" == "YES" ]; then
+     jobID=`qsub $jobScript`
+     jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+     if [ -z "$jobID" ]; then
+       echo "There was a queue submission problem" >> $toEmail
+       echo ""  >> $toEmail
+       return
+     fi
 
+     watchJob $jobID jobRan
+
+      if [ $jobRan -eq 0 ]; then
+        echo "The PBS $jobID did not complete on time. Check $testLog" >> $toEmail
+        echo ""  >> $toEmail
+        return
+      fi  
+    else
+      ./$jobScript
+      wait
+    fi
+
+# PARSE FOR ERRORS
+
+   local linesToShow=2
+   local results=`grep 'run,.* failed' $testLog`
+   local nbrOfFailed=`echo $results | sed 's/^[0-9]*\s*run, //g' | sed 's/\s*failed\s*.*$//g'`
+
+   local anyError=`grep '[tests] Error' $testLog`
+   if [ -n "$anyError" ]; then
+     local errMsg="Error detected while compiling/running unit tests"
+     linesToShow=10
+   fi
+
+   if [ "$anyError" != "" ]; then
      echo "$errMsg"  >> $toEmail
      echo "SUMMARY:"  >> $toEmail
      echo "..."  >> $toEmail
@@ -179,7 +163,10 @@ EOF
      tail -$linesToShow $testLog >> $toEmail
      echo ""  >> $toEmail
 
-  fi #anyError
+  fi 
+
+# DELETE JOB SCRIPT
+  rm -f $jobScript
 
 }
 
@@ -187,14 +174,16 @@ EOF
 # MAIN
 # ---------------------
 
-work_path=/home/modele/exec
-toEmail=$work_path"/modelEut-email.log"
-testLog=$work_path"/modelEut-tests.log"
-cd $work_path
-rm -f $toEmail $testLog 
-
-submitJob "intel"
-submitJob "gfortran"
-sendEmailReport
+ROOT=$MODELROOT/exec/testing/
+cd $ROOT
+toEmail="$CONFIG.unit"
+rm -f $toEmail
+compilers=(intel gfortran)
+for compiler in "${compilers[@]}"; do 
+  job=modelE.${compiler}.j
+  log=${ROOT}${compiler}".log"
+  submitJob "$compiler" "$job" "$log"
+  rm -f $job $log
+done 
 
 exit 0

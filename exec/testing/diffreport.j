@@ -102,6 +102,9 @@ doDiff()
            else
              echo "    $name1 results and baseline DIFFER."
              echo "    -- Updating $deck in baseline directory"
+             # save old BASELINE 
+             cp -f $name2 $name2.save
+             # replace BASELINE 
              cp -f $name1 $name2
            fi
          fi
@@ -186,12 +189,12 @@ export printReport=NO
 
 cd $MODELROOT/exec/testing
 
-if [ -z $CFG_FILE ]; then
+if [ -z $CONFIG ]; then
    echo " *** ERROR ***"
-   echo "ENV variable CFG_FILE is not defined."
+   echo "ENV variable CONFIG is not defined."
    exit 1;
 else
-   echo "CFG_FILE ENV: $CFG_FILE"
+   echo "CONFIG ENV: $CONFIG"
 fi
 
 if [ -z $MOCKMODELE ]; then
@@ -223,7 +226,7 @@ fi
 OIFS=$IFS
 IFS="="
 
-cfg="$MODELROOT/exec/testing/."$CFG_FILE
+cfg="$MODELROOT/exec/testing/."$CONFIG".cfg"
 if [ ! -e $cfg ]; then
    echo " *** ERROR ***"
    echo "$cfg does not exist."
@@ -333,24 +336,24 @@ for comp in "${COMPILERS[@]}"; do
 
 done
 
-rm -f $MODELROOT/exec/testing/${CFG_NAME}.diff
+rm -f $MODELROOT/exec/testing/${CONFIG}.diff
 echo "ModelE test results, branch=$branch" 
 echo "--------------------------------------------------------------------------"
-echo "ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
-echo "--------------------------------------------------------------------------" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+echo "ModelE test results, branch=$branch" >> $MODELROOT/exec/testing/${CONFIG}.diff
+echo "--------------------------------------------------------------------------" >> $MODELROOT/exec/testing/${CONFIG}.diff
 
 len=${#deckReport[*]}
 i=0
 while [ $i -lt $len ]; do
    echo "${deckReport[$i]}" 
-   echo "${deckReport[$i]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+   echo "${deckReport[$i]}" >> $MODELROOT/exec/testing/${CONFIG}.diff
    let i++
 done
 
 if [ "$printReport" == "YES" ]; then
    for ((i=0; i < ${#report[@]}; i++)); do 
       echo "${report[${i}]}" 
-      echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CFG_NAME}.diff
+      echo "${report[${i}]}" >> $MODELROOT/exec/testing/${CONFIG}.diff
    done
 fi
 
@@ -363,22 +366,22 @@ else
    writeOK=1
 fi
 
-#chmod g+rw $MODELROOT/exec/testing/${CFG_NAME}.diff
-cp $MODELROOT/exec/testing/${CFG_NAME}.diff $WORKSPACE
+#chmod g+rw $MODELROOT/exec/testing/${CONFIG}.diff
+cp $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
 # Archive full difference reports
-cp $MODELROOT/exec/testing/${CFG_NAME}.diff $MODELEBASELINE/reports/${CFG_NAME}.diff.`date +%F`
+cp $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
 # Check for errors in report
-cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
+cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "NOT_REPRODUCIBLE" > /dev/null
 rc1=$?
-cat $MODELROOT/exec/testing/${CFG_NAME}.diff | grep -i "ERROR" > /dev/null
+cat $MODELROOT/exec/testing/${CONFIG}.diff | grep -i "ERROR" > /dev/null
 rc2=$?
 # if we found errors, (0 return code!) then we exit
 if [ $rc1 -eq 0 ] || [ $rc2 -eq 0 ]; then
    echo "Regression tests ERRORS: Will NOT create modelE snapshot"
    exit $EXIT_ERR
 else 
-# Create modelE snapshot iff no ERRORs in ${CFG_NAME}.diff (WARNINGs are OK)
+# Create modelE snapshot iff no ERRORs in ${CONFIG}.diff (WARNINGs are OK)
    if [ $writeOK -eq 1 ]; then touch $WORKSPACE/.success; fi
    echo "Will create modelE snapshot"
    # Create modelE snapshot
