@@ -24,8 +24,8 @@ module Parser_mod
   integer, parameter :: MAX_COMMENT_CHARACTERS = 3
   integer, parameter :: MAX_TOKEN_SEPARATORS   = 2
   integer, parameter :: MAX_LEN_TOKEN = 32
-  character(len=*), parameter :: ENTIRE_LINE = '(a257)' ! MAX_LEN_LINE + 1 char
-  character(len=*), parameter :: ENTIRE_TOKEN = '(a33)' ! MAX_LEN_TOKEN + 1 char
+  character(len=*), parameter :: ENTIRE_LINE = '(a256)' ! MAX_LEN_LINE
+  character(len=*), parameter :: ENTIRE_TOKEN = '(a33)' ! MAX_LEN_TOKEN
 
   type Parser_type
     character(len=MAX_COMMENT_CHARACTERS) :: commentCharacters = '!#' ! legacy default

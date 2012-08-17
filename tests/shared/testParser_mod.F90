@@ -100,7 +100,7 @@ contains
     integer :: unit
     integer :: status
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
-    character(len=256) :: line
+    character(len=MAX_LEN_LINE) :: line
 
     call openUnit('testParser.txt', unit, qold=.false., qbin=.false.)
     write(unit,'(a)') 'a'
@@ -111,7 +111,7 @@ contains
 
     call setBeginData(parser, BEGIN_DATA)
     call skipHeader(parser, unit, status)
-    read(unit,'(a257)') line
+    read(unit,'(a256)') line
     call assertEqual('first line after header', line)
 
     close(unit, status='delete')
