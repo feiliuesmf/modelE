@@ -254,18 +254,24 @@ c
 C** Land Na (cm-3)  for all 
 C** Ocean Na (cm-3)  for all aerosol number
 c
-      DO K=1,NBINS
-        mtot(k)=trm(i,j,l,idtso4-1+k)+ 
-     *       trm(i,j,l,idtna-1+k)+ trm(i,j,l,idtecob-1+k)+ 
-     *       trm(i,j,l,idtecil-1+k)+ trm(i,j,l,idtocob-1+k)+ 
-     *       trm(i,j,l,idtocil-1+k)+ trm(i,j,l,idtdust-1+k)
-        SSMAO=TRM(i,j,l,idtnumd-1+k)+SSMAO         
-      ENDDO
-      
-      DO K=1,NBINS
-        SSMAL=(TRM(i,j,l,idtnumd-1+k)/mtot(k)
-     &       *(mtot(k)-trm(i,j,l,idtna-1+k)))+SSMAL 
-      ENDDO
+! YUNHA Lee (Dec 2011) Turn off the below part due to very high CDNC 
+c$$$      DO K=1,NBINS
+c$$$        mtot(k)=trm(i,j,l,idtso4-1+k)+ 
+c$$$     *       trm(i,j,l,idtna-1+k)+ trm(i,j,l,idtecob-1+k)+ 
+c$$$     *       trm(i,j,l,idtecil-1+k)+ trm(i,j,l,idtocob-1+k)+ 
+c$$$     *       trm(i,j,l,idtocil-1+k)+ trm(i,j,l,idtdust-1+k)
+c$$$        if(mtot(k).gt.0.)then     ! due to mtot can be zero. 
+c$$$          SSMAO=TRM(i,j,l,idtnumd-1+k)+SSMAO     
+c$$$        endif    
+c$$$      ENDDO
+c$$$      
+c$$$      DO K=1,NBINS
+c$$$        if(mtot(k).gt.0.)then ! due to mtot can be zero. 
+c$$$          SSMAL=(TRM(i,j,l,idtnumd-1+k)/mtot(k)
+c$$$     &         *(mtot(k)-trm(i,j,l,idtna-1+k)))+SSMAL 
+c$$$        endif
+c$$$      ENDDO
+! YUNHA Lee (Dec 2011) 
 
       SSMAO=SSMAO*tams*1.e-6 !#/cm3
       SSMAL=SSMAL*tams*1.e-6 !#/cm3

@@ -2,16 +2,15 @@
 
       MODULE TOMAS_AEROSOL
 
+C-----INCLUDE FILES--------------------------------------------------
       USE RESOLUTION, only : im,jm,lm     ! dimensions
       USE TRACER_COM, only : ntm
       IMPLICIT NONE 
 
-C-----INCLUDE FILES--------------------------------------------------
- 
+C-----VARIABLE DECLARATIONS------------------------------------------
       integer ibins, icomp !ibins should be matched to nbins in TRACER_COM.f
       integer idiag ! number of diagnostic aerosol species
       parameter(ibins=12, icomp=9, idiag=2)
-
 
       integer srtso4, srtna, srth2o, srtecob, srtecil, srtocob,
      &	      srtocil, srtnh4, srtdust
@@ -49,8 +48,8 @@ C Physical properties of aerosol components
       data molwt/96., 58.45, 200., 200., 200., 200., 100.,18.,18./
 
 C Flag for which nucleation parameterizations to use
-      integer bin_nuc, tern_nuc, ion_nuc   !flags for binary and ternary nuc
-      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0) ! 1 = on
+      integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   !flags for binary and ternary nuc
+      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=1) ! 1 = on
 
 C soa_amp is the mass growth amplification factor (determined by the amount of
 C soa that needs to be condensed
@@ -86,11 +85,80 @@ C SOArate is the rate of SOA condensing (kg/s)
 
       ! FALSE : one Radiation call
       ! TRUE  : nmodes Radiation calls
-      INTEGER                            :: TOMAS_DIAG_FC = 1 !debug 
+      INTEGER                            :: TOMAS_DIAG_FC = 2 !debug 
 ! 2=external mixing (=icomp-2) radiation calls  |
 ! 1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
 ! TOMAS_DIAG_FC=2 is only available now.  
+#if (defined TOMAS_12_10NM) 
+      real*8, parameter :: scalesizeSO4(ibins)=(/
+     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
 
+      real*8, parameter :: scalesizeCARBO30(ibins)=(/
+     &     1.1291E-03,4.9302E-03,1.2714E-02,3.6431E-02,
+     &     1.0846E-01,2.1994E-01,2.7402E-01,2.0750E-01,
+     &     9.5304E-02,2.6504E-02,1.2925E-02,1.6069E-05/) ! use for fossil fuel (bimodal)
+      real*8, parameter :: scalesizeCARBO100(ibins)=(/!0.0,0.0,0.0,
+     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
+     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
+     &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
+#elif (defined TOMAS_12_3NM) 
+      real*8, parameter :: scalesizeSO4(ibins)=(/0.d0,0.d0,0.d0,
+     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
+
+      real*8, parameter :: scalesizeCARBO30(ibins)=(/0.d0,0.d0,0.d0,
+     &     1.1291E-03,4.9302E-03,1.2714E-02,3.6431E-02,
+     &     1.0846E-01,2.1994E-01,2.7402E-01,2.0750E-01,
+     &     9.5304E-02,2.6504E-02,1.2925E-02,1.6069E-05/) ! use for fossil fuel (bimodal)
+      real*8, parameter :: scalesizeCARBO100(ibins)=(/0.d0,0.d0,0.d0,
+     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
+     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
+     &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
+#endif
+
+#if (defined TOMAS_15_10NM)
+      real*8, parameter :: scalesizeSO4(ibins)=(/
+     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
+
+      real*8, parameter :: scalesizeCARBO30(ibins)=(/
+     &     3.8100E-03,2.0700E-02,7.2900E-02,1.6750E-01,
+     &     2.5000E-01,2.4500E-01,1.5510E-01,6.4200E-02,1.7320E-02,
+     &     3.0320E-03,3.7079E-04,2.3265E-07/) ! use for fossil fuel
+
+      real*8, parameter :: scalesizeCARBO100(ibins)=(/
+     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
+     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,2.4126E-01,
+     &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
+#elif (defined TOMAS_15_3NM)
+      real*8, parameter :: scalesizeSO4(ibins)=(/
+     &     0.d0,0.d0,0.d0,
+     &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
+     &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
+     &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
+
+      real*8, parameter :: scalesizeCARBO30(ibins)=(/
+     &     0.d0,0.d0,0.d0,
+     &     3.8100E-03,2.0700E-02,7.2900E-02,1.6750E-01,
+     &     2.5000E-01,2.4500E-01,1.5510E-01,6.4200E-02,1.7320E-02,
+     &     3.0320E-03,3.7079E-04,2.3265E-07/) ! use for fossil fuel
+
+      real*8, parameter :: scalesizeCARBO100(ibins)=(/
+     &     0.d0,0.d0,0.d0,
+     &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
+     &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,2.4126E-01,
+     &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
+#endif
+
+!#if (defined TOMAS_30_10NM)
+
+!#elif (defined TOMAS_30_3NM)
+           
+!#endif
       END MODULE TOMAS_AEROSOL
 
 
@@ -108,8 +176,9 @@ C     the GCM.
 
       SUBROUTINE TOMAS_DRV 
 
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, write_parallel
-     &     ,am_i_root
+C-----INCLUDE FILES--------------------------------------------------
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
+     &   write_parallel ,am_i_root
       USE TOMAS_AEROSOL 
       USE TRACER_COM
 
@@ -145,7 +214,7 @@ C-----VARIABLE DECLARATIONS------------------------------------------
       real*8 tot_aam  ! total aerosol ammonia per grid cell across all bins
       real*8 Gcavg ! average h2so4 concentration during timstep
              
-      real*8 H2SO4rate_o ! H2SO4rate for the specific gridcell
+      real*8 H2SO4rate_o, SOAmass ! H2SO4rate for the specific gridcell, SOA mass to be condensed
       integer num_iter
       real*8 fn                 ! nucleation rate of clusters cm-3 s-1
       real*8 fn1                ! formation rate of particles to first size bin cm-3 s-1
@@ -160,7 +229,8 @@ C-----VARIABLE DECLARATIONS------------------------------------------
 c$$$      real*4, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
 c$$$     &     nucrate,nucrate1
 
-C-----CODE-----------------------------------------------------------    
+C-----CODE-----------------------------------------------------------
+    
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -184,27 +254,7 @@ C     Loop over all grid cells
                boxmass=am(l,i,j)*axyp(i,j) !kg of air
                boxvol=boxmass/mair*1000.d0
      &              *gasc*temp/pres*1e6 !cm3
-
-               adt=dtsrc        ! 30 mins
-
-               H2SO4rate_o = H2SO4_chem(i,j,l) !kg of h2so4/sec  (from SO2+OH)
-
-                                !calculate SOA to condense
-               SOArate = TRM(i,j,l,n_SOAgas)*(1.d0-
-     &              exp(-adt/(tau_soa*3600.*24.)))/adt
-
-               if(H2SO4rate_o.le.0.) THEN
-                  if(am_i_root())
-     &                 print*,'problem in soa_amp',i,j,l,
-     &                 h2so4rate_o,SOArate
-
-                  soa_amp=0
-               else
-
-               soa_amp = SOArate/H2SO4rate_o  ! TOMAS- floating invalid due to zero division??
-               endif
-              
-               
+ 
 Cjrp  Initialize all components condensible gas values to zero      
 Cjrp  Gc(srtso4) will remain zero until within cond_nuc where the
 Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
@@ -228,7 +278,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
 
                INIT_NK(:) = NK(:)
                INIT_MK(:,:)=MK(:,:)
-               INIT_H2SO4 = H2SO4_chem(I,J,L)*adt
+               INIT_H2SO4 = H2SO4_chem(I,J,L)*dtsrc
                INIT_NH3=TRM(I,J,L,n_NH3)
                INIT_NH4=TRM(I,J,L,n_NH4)
                INIT_SOA=TRM(I,J,L,n_SOAgas)
@@ -246,47 +296,78 @@ C     Swap T0M into Nk, Mk, Gc arrays
                do k=1,ibins
                   tot_n_1 = tot_n_1 + Mk(k,srtnh4)*14.d0/18.d0
                enddo
-               
 
-C     ****************
-C     Aerosol dynamics
-C     ****************               
-!               do mt=1,10        ! 6 * 10 min inside
-                  
-                                !Do water eqm at appropriate times
-               call ezwatereqm(Mk)
+               H2SO4rate_o = H2SO4_chem(i,j,l) !kg of h2so4/sec  (from SO2+OH)
+               SOAmass=TRM(i,j,l,n_SOAgas) !kg of SOA 
                
+! Do water eqm at appropriate times
+               call ezwatereqm(Mk)
 
                call storenm()
                call mnfix(Nk,Mk)
                mpnum=6 
                call aerodiag(mpnum,i,j,l)
 
-!! in-cloud oxidation! move from clouds2.f to here            
+! in-cloud oxidation is not affected by time step.  
+! in-cloud oxidation! move from clouds2.f to here        
+
                call storenm()
-               if(AQSO4oxid_mc(I,J,L).gt.0.)then
-                  call aqoxid(AQSO4oxid_mc(I,J,L),.TRUE.,Nk,Mk,
-     &                 Nkout,Mkout) ! Moist Convective clouds
-                  Nk(:)=Nkout(:)
-                  Mk(:,:)=Mkout(:,:)
-! Nk/Mk changes by mnfix will go to aqoxid. 
-                  call mnfix(Nk,Mk)
-               endif
+                  call aqoxid(i,j,l,.TRUE.) ! Moist Convective clouds
 
                mpnum=4 
                call aerodiag(mpnum,i,j,l)
 
+! Do water eqm at appropriate times
+               call ezwatereqm(Mk)
+
                call storenm()
-               if(AQSO4oxid_ls(I,J,L).gt.0.)then
-                  call aqoxid(AQSO4oxid_ls(I,J,L),.false.,Nk,Mk,
-     &                 Nkout,Mkout) ! Large scale clouds
-                  Nk(:)=Nkout(:)
-                  Mk(:,:)=Mkout(:,:)
-                  call mnfix(Nk,Mk)
-               endif
+               call mnfix(Nk,Mk)
+               mpnum=6 
+               call aerodiag(mpnum,i,j,l)
+
+
+               call storenm()
+                  call aqoxid(i,j,l,.false.) ! Large scale clouds
 
                mpnum=5 
+               call aerodiag(mpnum,i,j,l) 
+
+
+! Do water eqm at appropriate times
+               call ezwatereqm(Mk)
+
+               call storenm()
+               call mnfix(Nk,Mk)
+               mpnum=6 
                call aerodiag(mpnum,i,j,l)
+
+! timestep is shorten to be 10 mins 
+
+               adt=dtsrc/3. 
+
+               do mt=1,3        ! 3 * 10 min inside
+
+                                !calculate SOA to condense
+               SOArate = SOAmass*(1.d0-
+     &              exp(-adt/(tau_soa*3600.*24.)))/adt
+
+               SOAmass=SOAmass-SOArate*adt ! updated SOA mass within the time step loop
+
+               if(H2SO4rate_o.le.0.) THEN
+                  if(am_i_root())
+     &                 print*,'problem in soa_amp',i,j,l,
+     &                 h2so4rate_o,SOArate
+
+                  soa_amp=0. !no SOA condensing! 
+               else
+
+               soa_amp = SOArate/H2SO4rate_o  ! TOMAS- floating invalid due to zero division??
+               endif
+
+C     ****************
+C     Aerosol dynamics
+C     ****************                                  
+
 ! get the total mass of S
                tot_s_1 = H2SO4rate_o*adt*32.d0/98.d0
                do k=1,ibins
@@ -294,15 +375,29 @@ C     ****************
                enddo
 
                Gcavg = 0.0
+
+               Gc(:)=0.d0  ! back to zero
+!YUNHA LEE - Gc=0 is moved here due to shorter time step.
+ 
+! WHAT TO DO WITH Gc initialization!! ? 
+
+Cjrp  Initialize all components condensible gas values to zero      
+Cjrp  Gc(srtso4) will remain zero until within cond_nuc where the
+Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
+
+!               Gc(srtso4)=h2so4rate_o*adt ! this is for condensation diagnostics 
+
                call storenm()
 
 C If any Nk are zero, then set them to a small value to avoid division by zero
                call cond_nuc(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
-     &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond)
+     &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,l)
                                 !get nucleation diagnostic
  
                Mk(:,:)=Mknuc(:,:)
                Nk(:)=Nknuc(:)
+
+!               Gc(srtso4)=h2so4rate_o*adt !to make zero nucleation diag
             
                mpnum=3 
                call aerodiag(mpnum,i,j,l)
@@ -313,6 +408,8 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
                
                Gc(srtnh4)=Gcout(srtnh4)
                Gc(srtso4)=Gcout(srtso4)
+
+               TRM(I,J,L,n_H2SO4)=Gc(srtso4)
 
                mpnum=1
                call aerodiag(mpnum,i,j,l)
@@ -341,21 +438,29 @@ c$$$               T3DC(I,J,L,2)=T3DC(I,J,L,2)+fn1*boxvol*adt
                tot_s_1b = 0.d0
                do k=1,ibins
                   tot_s_1b = tot_s_1b + Mk(k,srtso4)*32.d0/96.d0
-               enddo
+               enddo               
+        
                
-               
+               call storenm()
+               call mnfix(Nk,Mk)
+               mpnum=6 
+               call aerodiag(mpnum,i,j,l)
+
+
+C YHL - This should be called for next multicoag.  This does not need to be called in last timestep but do it anyway. 
+
                                 !Coagulation
                call storenm()
                call multicoag(adt)
 
                mpnum=2
                call aerodiag(mpnum,i,j,l)
-           
+
+
 C     Do water eqm at appropriate times
                call eznh3eqm(Gc,Mk)
                call ezwatereqm(Mk)
                   
-!            enddo
 C     ***********************
 C     End of aerosol dynamics
 C     ***********************
@@ -374,22 +479,26 @@ C     ***********************
                enddo
                
 
+               if(mt.eq.1)then  !only firs time step
                if(am_i_root())then
 
                   if (abs(tot_n_2-tot_n_1)/tot_n_1.gt.1.0D-4)then
                      print*,'Nitrogen not conserved in aerophys'
-                     print*,'i',i,'j',j,'l',l
-                     print*,'Init,Init1,Intm,Final',tot_n_i,tot_n_1,
-     *                    tot_n_1a,tot_n_2
+! 1                   print*,'i',i,'j',j,'l',l
+!                     print*,'Init,Init1,Intm,Final',tot_n_i,tot_n_1,
+!     *                    tot_n_1a,tot_n_2
                   endif
                   
                   if (abs(tot_s_2-tot_s_1)/tot_s_1.gt.1.0D-4)then !TOMAS - increase from 1.0D-4 
                      print*,'Sulfur not conserved in aerophys'
-                     print*,'i',i,'j',j,'l',l
-                     print*,'Init,Init1,Intm,Final',tot_s_1,
-     *                    tot_s_1b,tot_s_2
+!                     print*,'i',i,'j',j,'l',l
+!                     print*,'Init,Init1,Intm,Final',tot_s_1,
+!     *                    tot_s_1b,tot_s_2
                   endif
                endif
+               endif
+
+             enddo              ! timestep
               
 C     Check for negative tracer problems
                flag=0
@@ -407,16 +516,17 @@ C     Check for negative tracer problems
                enddo
                if (flag .eq. 1) 
      &              CALL STOP_MODEL('- tracer in TOMAS_DRV',255)   
-                                ! regular bins
 
+!Save diagnostics! 
                do n=1,ibins       
 !     Aerosol number             
                   tracnum=IDTNUMD-1+n 
                   tr3Dsource(i,j,l,nOther,tracnum)=
-     &                 (NK(N)-INIT_NK(N))/adt
+     &                 (NK(N)-INIT_NK(N))/dtsrc
                   
                   do np=1,ptype
-                     taijs(i,j,ijts_TOMAS(np,tracnum)) 
+                     if (ijts_TOMAS(np,tracnum).gt.0) 
+     &                taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
      &                    +AEROD(i,j,l,tracnum,np) ! /adt
                      if (itcon_TOMAS(np,tracnum).gt.0) 
@@ -427,10 +537,11 @@ C     Check for negative tracer problems
                   do jc=1,icomp-idiag
                      tracnum=IDTSO4-1+n+ibins*(jc-1)
                      tr3Dsource(i,j,l,nOther,tracnum)=
-     &                    (MK(n,jc)-INIT_Mk(n,jc))/adt
+     &                    (MK(n,jc)-INIT_Mk(n,jc))/dtsrc
 
                   do np=1,ptype
-                     taijs(i,j,ijts_TOMAS(np,tracnum)) 
+                     if (ijts_TOMAS(np,tracnum).gt.0) 
+     &                   taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
      &                    +AEROD(i,j,l,tracnum,np) ! /adt
 
@@ -440,18 +551,18 @@ C     Check for negative tracer problems
                   enddo
 
                   enddo  
-c$$$                  
+                 
                   tracnum=IDTH2O-1+n 
                   tr3Dsource(i,j,l,nOther,tracnum)=
-     &                 (MK(N,SRTH2O)-INIT_MK(N,SRTH2O))/adt
+     &                 (MK(N,SRTH2O)-INIT_MK(N,SRTH2O))/dtsrc
                enddo
                
 
-               tr3Dsource(i,j,l,nChemistry,n_H2SO4) =
-     *              (Gc(srtSO4)-INIT_H2SO4)/adt
+               tr3Dsource(i,j,l,nOther,n_H2SO4) =
+     *              (Gc(srtSO4)-INIT_H2SO4)/dtsrc
                
                tr3Dsource(i,j,l,nChemistry,n_NH3)=
-     *              (Gc(srtNH4)-INIT_NH3)/adt
+     *              (Gc(srtNH4)-INIT_NH3)/dtsrc
 
                                 ! aerosol ammonia
                tot_aam = 0.d0
@@ -460,12 +571,12 @@ c$$$
                enddo
                
                tr3Dsource(i,j,l,nChemistry,n_NH4)=
-     *              (tot_aam-INIT_NH4)/adt
+     *              (tot_aam-INIT_NH4)/dtsrc
 
                tr3Dsource(i,j,l,nChemistry,n_SOAgas)=
-     *              -SOArate
+     *              (SOAmass-INIT_SOA)/dtsrc !total SOA rate in 30 min
                
-               AEROD(i,j,l,:,7)=0.0 !for aeroupdate
+               AEROD(i,j,l,:,:)=0.0 !for aeroupdate
 
 C     End of loop over grid cells
             enddo               !I loop
@@ -475,6 +586,7 @@ c$$$            enddo
          enddo                  !J loop
       enddo                     !L loop
       return
+
       END SUBROUTINE TOMAS_DRV                     !of main
       
 
@@ -510,33 +622,32 @@ C     This function calculates the average diameter of aerosol
 C     particles in a given GCM grid cell and size bin.
 
       subroutine dep_getdp(i,j,l,getdp,size_density)                                            
-!      USE TOMAS_AEROSOL
+C-----INCLUDE FILES-----------------------------------------------------
       USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
      &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
      &     IDTNUMD,ntm,xk,trm
-      USE CONSTANT,   only : pi 
+      USE CONSTANT,   only : pi,lhe,mair,gasc  
+      USE ATM_COM, only :   t            ! potential temperature (C)
+     $     ,q                   ! saturated pressure
+     $     ,pmid                ! midpoint pressure in hPa (mb)
+     $     ,pk                  ! pk is t mess up factor
+      USE TOMAS_AEROSOL
 
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS------------------------------------------
-
-      integer i,j,l  !coordinate of GCM grid cell
-      integer n      !tracer index
-
 C-----VARIABLE DECLARATIONS------------------------------------------
 
-      integer k     !size bin index
+      integer i,j,l  !coordinate of GCM grid cell
+      integer n,k      !tracer index and size bin index
       real density                 !density (kg/m3) of current size bin
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mtot,mnacl             
       real*8 mp          !particle mass (kg)
       real*8 mu          !air viscosity (kg/m s)
+      real*8 qsat
       real aerodens
       real,intent(out),DIMENSION(nbins) :: getdp,size_density
-C-----VARIABLE COMMENTS----------------------------------------------
-
-C-----ADJUSTABLE PARAMETERS------------------------------------------
       real*8 Neps  !a small number of particles (#/box)
       parameter (Neps=1.d-20)
 
@@ -544,30 +655,50 @@ C-----CODE-----------------------------------------------------------
 
 !     Compute particle diameter for each bins - YUNHA LEE 
       do k=1,nbins
-              
-         if (TRM(I,J,L,IDTNUMD-1+k) .eq. 0.0) then
-            if (TRM(I,J,L,IDTSO4-1+k) .gt. 1.) then
+
+C     Swap GCM variables into aerosol algorithm variables
+        Nk(k)=trm(i,j,l,IDTNUMD-1+k)
+        Mk(k,srtso4)=trm(i,j,l,IDTSO4-1+k)
+        Mk(k,srtna )=trm(i,j,l,IDTNA -1+k)
+        Mk(k,srtnh4)=0.1875*Mk(k,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,IDTNH4-1+n)
+        MK(k,srtecob)=trm(i,j,l,IDTECOB -1+k)
+        MK(k,srtecil)=trm(i,j,l,IDTECIL -1+k)
+        MK(k,srtocob)=trm(i,j,l,IDTOCOB -1+k)
+        MK(k,srtocil)=trm(i,j,l,IDTOCIL -1+k) 
+        MK(k,srtdust)=trm(i,j,l,IDTDUST -1+k) 
+        Mk(k,srth2o)= trm(i,j,l,IDTH2O-1+k) !I don't think this is necessary!
+      enddo
+
+      temp = pk(l,i,j)*t(i,j,l) !should be in [K]
+      rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
+            
+      call mnfix(Nk,Mk)  
+      call ezwatereqm(Mk)
+
+      do k=1,nbins 
+         if (Nk(k) .eq. 0.0) then
+            if (Mk(k,srtso4) .gt. 1.) then
                print*, 'ERROR in getdp - # = but mass > 0',i,j
                print*, 'bin=',k
-               print*, 'TRM(#)=',TRM(I,J,L,IDTNUMD-1+k)
-               print*, 'TRM(SO4)=',TRM(I,J,L,IDTSO4-1+k)
-               print*, 'TRM(NACL)=',TRM(I,J,L,IDTNA-1+k)
-               print*, 'TRM(OCIL)=',TRM(I,J,L,IDTOCIL-1+k)
+               print*, 'TRM(#)=',Nk(k)
+               print*, 'TRM(SO4)=',Mk(k,srtso4)
+               print*, 'TRM(NACL)=',Mk(k,srtna)
+               print*, 'TRM(OCIL)=',Mk(k,srtocil)
                call stop_model('ERROR IN getdp',255)
             endif
          endif
 
-         mso4=TRM(I,J,L,IDTSO4-1+k) 
-         mnacl=TRM(I,J,L,IDTNA-1+k)
+         mso4=Mk(k,srtso4) 
+         mnacl=Mk(k,srtna)
          mno3=0.e0
          if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
          mnh4=0.1875*mso4  !assume ammonium bisulfate
-         mecob=TRM(I,J,L,IDTECOB-1+k)
-         mecil=TRM(I,J,L,IDTECIL-1+k)
-         mocil=TRM(I,J,L,IDTOCIL-1+k)
-         mocob=TRM(I,J,L,IDTOCOB-1+k)
-         mdust=TRM(I,J,L,IDTDUST-1+k)          
-         mh2o=TRM(I,J,L,IDTH2O-1+k)   
+         mecob=Mk(k,srtecob)
+         mecil=Mk(k,srtecil)
+         mocil=Mk(k,srtocil)
+         mocob=Mk(k,srtocob)
+         mdust=Mk(k,srtdust)          
+         mh2o=Mk(k,srth2o)   
 
 !in CLOUDS2.f - some tracers goes negative..
 !So, set to zero to prevent a problem in density calculation
@@ -579,40 +710,41 @@ C-----CODE-----------------------------------------------------------
          if(mdust.lt.0) mdust=0.
          if(mh2o.lt.0) mh2o=0.
 
-         mtot= 1.1875*TRM(I,J,L,IDTSO4-1+k)+mnacl+mecil+mecob+
-     *        mocil+mocob+mdust+mh2o
+         density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
+     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate   
 
-         density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
-     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
+         mtot= 1.1875*Mk(k,srtso4)+mnacl+mecil+mecob+
+     *        mocil+mocob+mdust+mh2o
+   
          size_density(k)=density      
- 
-         if (TRM(I,J,L,IDTNUMD-1+k) .gt. Neps.and.mtot.gt.0.) then
-            mp=mtot/(TRM(I,J,L,IDTNUMD-1+k))
+
+         if (Nk(k) .gt. Neps.and.mtot.gt.0.) then
+            mp=mtot/Nk(k)
          else
             mp=sqrt(xk(k+1)*xk(k))
-            if(TRM(I,J,L,IDTNUMD-1+k) .gt. Neps) 
-     &           print*,'Warning in getdp:#>Neps but mtot=0',
-     &           k,mtot,TRM(I,J,L,IDTNUMD-1+k)
+!            if(Nk(k) .gt. Neps) 
+!     &           print*,'Warning in getdp:#>Neps but mtot=0',
+!     &           k,mtot,Nk(k)
          endif
          
 !     fix unrealistically large mp for low aerosol conc.
          if (mp .gt. 1.d3*xk(NBINS+1)) then
             
-            if ((TRM(I,J,L,IDTNUMD-1+k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
-     &           (TRM(I,J,L,IDTSO4-1+k) .lt. 3.)) then
+            if ((Nk(k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
+     &           (Mk(k,srtso4) .lt. 3.)) then
                mp=sqrt(xk(k+1)*xk(k))
             else
-               if (TRM(I,J,L,IDTNUMD-1+k) .gt. 1.d12) then
+               if (Nk(k) .gt. 1.d12) then
 !MODELE-TOMAS: during CONDSE, TM(H2O) is so large that causes too big mp. 
 !MODELE-TOMAS: So, if dry mass is less than the max size boundary, just take the max mp. 
-                  if((mtot-TRM(I,J,L,IDTH2O-1+k)).lt.
-     &                 1.d1*xk(nbins+1)*TRM(I,J,L,IDTNUMD-1+k))then
+                  if((mtot-Mk(k,srth2o)).lt.
+     &                 1.d1*xk(nbins+1)*Nk(k))then
                      print*,'Fudge mp in getdp: large mp by AH2O'
                      mp=sqrt(xk(nbins+1)*xk(nbins))                     
                   else
                   print*,'ERROR in getdp: mp too large'
                   print*, 'bin=',k
-                  print*, 'TM(#)=', TRM(I,J,L,IDTNUMD-1+k)
+                  print*, 'TM(#)=', Nk(k)
                   print*, 'TM(SO4)=', mso4, mh2o
                   print*, 'TM(NACL)=', mnacl, mdust
                   print*, 'TM(OC)=',mocob,mocil
@@ -628,80 +760,78 @@ C-----CODE-----------------------------------------------------------
       RETURN
       END subroutine dep_getdp
 
-
-C	readfraction.f
-	subroutine readfraction(infile,fraction)
-
-        implicit none
-
-	character*17 infile  ! This size must be changed when the input file name is changed. 
-	integer innum, ii, jj, kk
-
-	real*8,intent(out),dimension(101,101,101):: fraction
-	parameter (innum=580)
- 1	format(f6.5)
-	open(unit=innum,file=infile,FORM='FORMATTED',STATUS='OLD')
-	do ii=1,101
-		do jj=1,101
-			do kk=1,101
-			read(innum,1) fraction(kk,jj,ii)
-			if (fraction(kk,jj,ii).gt.1.) fraction(kk,jj,ii)=0.
-			enddo
-		enddo
-	enddo
-!        print*,'fraction last',fraction(101,101,101)
-	close(innum)
-	return 
-	end subroutine readfraction
+      subroutine readfraction(infile,fraction2)
+      
+      IMPLICIT NONE
+C-----VARIABLE DECLARATIONS---------------------------------------------
+      
+      character*17 infile
+      integer innum, ii, jj, kk
+      
+      real*8,intent(out),dimension(101,101,101):: fraction2
+      parameter (innum=580)
+ 1    format(f6.5)
+      open(unit=innum,file=infile,FORM='FORMATTED',STATUS='OLD')
+      do ii=1,101
+        do jj=1,101
+          do kk=1,101
+            read(innum,1) fraction2(kk,jj,ii)
+            if (fraction2(kk,jj,ii).gt.1.) fraction2(kk,jj,ii)=0.
+          enddo
+        enddo
+      enddo
+!     print*,'fraction last',fraction(101,101,101)
+      close(innum)
+      return 
+      end subroutine readfraction
 			 
-	subroutine readbinact(infile,binact)
+      subroutine readbinact(infile,binact)
+C-----INCLUDE FILES-----------------------------------------------------
+      USE TOMAS_AEROSOL, ONLY : ibins      
+      IMPLICIT NONE
+C-----VARIABLE DECLARATIONS---------------------------------------------
+      
+      character*15 infile
+      integer innum, ii, jj, kk
+      integer,intent(out),dimension(101,101,101):: binact
+      parameter (innum=590)
+ 1    format(I2)
+      open(unit=innum,file=infile,FORM='FORMATTED',STATUS='OLD')
+      do ii=1,101
+        do jj=1,101
+          do kk=1,101
+            read(innum,1) binact(kk,jj,ii)
+            if (binact(kk,jj,ii).eq.0) binact(kk,jj,ii)=ibins+1
+          enddo
+        enddo
+      enddo
+      close(innum)
+      return
+      end subroutine readbinact
+      
+      subroutine getfraction(tr_conv,tm,fract)
+      USE TOMAS_AEROSOL, ONLY : binact02,binact10,
+     &     fraction02,fraction10 
+      USE TRACER_COM, only : nbins,ntm,IDTECIL,
+     &     IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
+     &     IDTECOB
 
-
-        USE TOMAS_AEROSOL, ONLY : ibins
-
-        implicit none
-
-	character*15 infile ! This size must be changed when the input file name is changed. 
-	integer innum, ii, jj, kk
-	integer,intent(out),dimension(101,101,101):: binact
-	parameter (innum=590)
- 1	format(I2)
-	open(unit=innum,file=infile,FORM='FORMATTED',STATUS='OLD')
-	do ii=1,101
-		do jj=1,101
-			do kk=1,101
-			read(innum,1) binact(kk,jj,ii)
-			if (binact(kk,jj,ii).eq.0) binact(kk,jj,ii)=ibins+1
-			enddo
-		enddo
-	enddo
-	close(innum)
-	return
-	end subroutine readbinact
-			 
-
-	subroutine getfraction(tr_conv,tm,fraction)
-        USE TOMAS_AEROSOL, ONLY : binact02,binact10,
-     &       fraction02,fraction10 
-        USE TRACER_COM, only : nbins,ntm,IDTECIL,
-     &       IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
-     &       IDTECOB
-
-        implicit none
-
-	real mecil, mocil, mocob, mso4, mnacl,mdust, mtot
-	real xocil, xso4, xnacl
-	integer iso4, inacl, iocil,k
-	integer getbinact
-	real*8,intent(out),dimension(nbins) ::  fraction
-        REAL*8,  INTENT(IN), DIMENSION(ntm) :: TM
-        LOGICAL TR_CONV
-
-        do k=1, nbins
+      IMPLICIT NONE
+C-----VARIABLE DECLARATIONS---------------------------------------------
+      
+      real mecil, mocil, mocob, mso4, mnacl,mdust, mtot
+      real xocil, xso4, xnacl
+      integer iso4, inacl, iocil,k
+      integer getbinact
+      real*8,dimension(nbins) ::  fract
+      REAL*8, DIMENSION(ntm) :: TM
+      LOGICAL TR_CONV
+      
+      do k=1, nbins
         mecil=TM(IDTECIL-1+k)
 	mocil=TM(IDTOCIL-1+k)
 	mocob=TM(IDTOCOB-1+k)
-	mso4=TM(IDTSO4-1+k)*1.2  !account for ammonium sulfate
+	mso4=TM(IDTSO4-1+k)*1.2 !account for ammonium sulfate
 	mnacl=TM(IDTNA-1+k)
 	mdust=TM(IDTDUST-1+k)
 	mtot=mecil+mocil+mocob+mso4+mnacl+mdust+1.e-20
@@ -711,60 +841,57 @@ C	readfraction.f
 	iso4=min(101,int(xso4*100)+1)
 	inacl=min(101,int(xnacl*100)+1)
 	iocil=min(101,int(xocil*100)+1)
-
+        
         if(xso4.lt.0.or.xnacl.lt.0.or. xocil.lt.0)then
-           print*,'wrong getfraction'
-           print*,'mass',mso4,mnacl,mecil,mocob
-     &          ,mocil,mdust
-           call stop_model('wrong getfraction',255)
+          print*,'wrong getfraction'
+          print*,'mass',mso4,mnacl,mecil,mocob
+     &         ,mocil,mdust
+          call stop_model('wrong getfraction',255)
         endif
-
-        if (tr_conv)then !convective clouds
-           getbinact=binact10(iso4,inacl,iocil)
-           
-           if(binact10(iso4,inacl,iocil).lt.0)then
-              print*,'wrong binact',binact10(iso4,inacl,iocil)
-              print*,'iso4',iso4,inacl,iocil
-              print*,'mass',mso4,mnacl,mocil,mtot
-           call stop_model('wrong binact',255)
-           endif
-           
-           if (getbinact.gt.k) then
-              fraction(k)=0.    !not activated
-           else if (getbinact.eq.k) then
-              
-              fraction(k)=fraction10(iso4,inacl,iocil) !partly activated
-           else
-              fraction(k)=1.    !all sizebin activated
-           endif
-           if(getbinact.le.2)
-     &          print*,'CONV CLD',getbinact,k,iso4,inacl,iocil
+        
+        if (tr_conv)then        !convective clouds
+          getbinact=binact10(iso4,inacl,iocil)
+          
+          if(binact10(iso4,inacl,iocil).lt.0)then
+            print*,'wrong binact',binact10(iso4,inacl,iocil)
+            print*,'iso4',iso4,inacl,iocil
+            print*,'mass',mso4,mnacl,mocil,mtot
+            call stop_model('wrong binact',255)
+          endif
+          
+          if (getbinact.gt.k) then
+            fract(k)=0.         !not activated
+          else if (getbinact.eq.k) then           
+            fract(k)=fraction10(iso4,inacl,iocil) !partly activated
+          else
+            fract(k)=1.         !all sizebin activated
+          endif
+          if(getbinact.le.2)
+     &         print*,'CONV CLD',getbinact,k,iso4,inacl,iocil
         else                    !large-scale
-           getbinact=binact02(iso4,inacl,iocil)
-
-           if(binact02(iso4,inacl,iocil).lt.0)then
-              print*,'wrong binact',binact02(iso4,inacl,iocil)
-              print*,'iso4',iso4,inacl,iocil
-              print*,'mass',mso4,mnacl,mocil,mtot
-           endif
-
-           if (getbinact.gt.k) then
-              fraction(k)=0.    !not activated
-           else if (getbinact.eq.k) then
-              
-              fraction(k)=fraction02(iso4,inacl,iocil) !partly activated
-           else
-              fraction(k)=1.    !all sizebin activated
-         
-           if(getbinact.le.4)
-     &          print*,'STRAT CLD',getbinact,k,iso4,inacl,iocil
-
-           endif
+          getbinact=binact02(iso4,inacl,iocil)
+          
+          if(binact02(iso4,inacl,iocil).lt.0)then
+            print*,'wrong binact',binact02(iso4,inacl,iocil)
+            print*,'iso4',iso4,inacl,iocil
+            print*,'mass',mso4,mnacl,mocil,mtot
+          endif
+          
+          if (getbinact.gt.k) then
+            fract(k)=0.         !not activated
+          else if (getbinact.eq.k) then            
+            fract(k)=fraction02(iso4,inacl,iocil) !partly activated
+          else
+            fract(k)=1.         !all sizebin activated            
+            if(getbinact.le.4)
+     &           print*,'STRAT CLD',getbinact,k,iso4,inacl,iocil
+            
+          endif
         endif
-        enddo                   !k
-	return
-	end subroutine getfraction
-
+      enddo                     !k
+      return
+      end subroutine getfraction
+      
 C     **************************************************
 C     *  aqoxid                                        *
 C     **************************************************
@@ -785,7 +912,7 @@ C-----INPUTS------------------------------------------------------------
 
 C-----OUTPUTS-----------------------------------------------------------
 
-      SUBROUTINE aqoxid(moxid,tr_conv,Nko,Mko,Nkf,Mkf)
+      SUBROUTINE aqoxid(i,j,l,tr_conv)
 
 C-----INCLUDE FILES-----------------------------------------------------
 
@@ -795,25 +922,19 @@ C-----INCLUDE FILES-----------------------------------------------------
      &       IDTECOB,IDTH2O,xk,nbins
 
       IMPLICIT NONE
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
+C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 moxid !mass of new sulfate from in-cloud oxid.
       real*8, dimension(ibins) :: fraction    !fraction activated for every sizebin
-
-c      real*8 tracc(NTM)
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
       real*8 Nact, Mact  !#/mass of activated particles
       real*8 mpo   !initial particle mass (kg)
       real*8 mpw   !initial particle wet mass (kg)
       real*8 aqtau(ibins)
-      integer k,mpnum,n,tracnum
+      integer k,mpnum,n,tracnum,i,j,l
       real*8 Nko(ibins), Mko(ibins, icomp) !input to cond routine
       real*8 Nkf(ibins), Mkf(ibins, icomp) !output from cond routine
       real*8 tdt      !the value 2/3
       real*8,parameter :: eps=1.d-40
-      integer jc,j
+      integer jc
       real*8 frac      
       real*8 WR                ! wet ratio = total mass/ dry mass (win, 5/15/06)
       real*8 mox(ibins) !mass of new sulfate per particle in each bin
@@ -825,19 +946,25 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 
               
+      if (tr_conv) then
+         moxid=AQSO4oxid_mc(i,j,l) 
+      else
+         moxid=AQSO4oxid_ls(i,j,l) 
+      endif
+
       if (moxid.eq.0.d0) return
 
       tdt=2.d0/3.d0
 
       TM(:)=0.0
 !only mass needed for getfraction
-      do n=1,NBINS
+      do n=1,IBINS
          do jc=1,icomp-idiag
             tracnum=IDTSO4-1+n+ibins*(jc-1)
-            TM(tracnum)=Mko(n,jc)               
+            TM(tracnum)=Mk(n,jc)               
          enddo
          tracnum=IDTH2O-1+n
-         TM(tracnum)=Mko(n,srth2o)
+         TM(tracnum)=Mk(n,srth2o)
       enddo
 
       if (tr_conv) then
@@ -849,15 +976,15 @@ C-----CODE--------------------------------------------------------------
       Nact=0.0
       Mact=0.0
       do k=1,ibins
-         Nact=Nact+Nko(k)*fraction(k)
+         Nact=Nact+Nk(k)*fraction(k)
          do jc=1,icomp-idiag
-            Mact=Mact+Mko(k,jc)*fraction(k)
+            Mact=Mact+Mk(k,jc)*fraction(k)
          enddo
       enddo
 
       if ((Mact+moxid)/(Nact+eps) .gt. xk(ibins)) then !YHL- I change xk(ibins-1) to xk(ibins)
 !            if (TAU .gt. 8350.) then
-               write(*,*) 'ERROR in aqoxidcc: Ave size out of bounds'
+cdebug               write(*,*) 'ERROR in aqoxidcc: Ave size out of bounds'
 c$$$               write(*,*) 'Nact: ',Nact
 c$$$               write(*,*) 'moxid/Mact: ',moxid,Mact
 c$$$               do k=1,ibins
@@ -885,14 +1012,14 @@ C Calculate tau for each size bin
             !WIN'S CODE MODIFICATION 6/19/06
             !THIS MUST CHANGED WITH THE NEW dmdt_int.f
             do jc=1,icomp-idiag
-               mpo = mpo+Mko(k,jc)  !accumulate dry mass
+               mpo = mpo+Mk(k,jc)  !accumulate dry mass
             enddo
             do jc=1,icomp
-               mpw = mpw+Mko(k,jc)  ! have wet mass include amso4
+               mpw = mpw+Mk(k,jc)  ! have wet mass include amso4
             enddo
             WR = mpw/mpo  !WR = wet ratio = total mass/dry mass
-            if (Nko(k) .gt. 0.d0) then
-               mpw=mpw/Nko(k)
+            if (Nk(k) .gt. 0.d0) then
+               mpw=mpw/Nk(k)
                aqtau(k)=1.5d0*((mpw+mox(k)*WR)**tdt-mpw**tdt)  !added WR to moxid term (win, 5/15/06)
             else
                !nothing in this bin - set tau to zero
@@ -902,30 +1029,20 @@ C Calculate tau for each size bin
          endif
       enddo
 
+      Nko(:)=Nk(:)
+      Mko(:,:)=Mk(:,:)
+
       call tmcond(aqtau,xk,Mko,Nko,Mkf,Nkf,srtso4,mox)
 
-C Do water eqm at appropriate times
-!      call eznh3eqm(Gc,Mkf)
-      call ezwatereqm(Mkf)      
+      Nk(:)=Nkf(:)
+      Mk(:,:)=Mkf(:,:)   
 
-      do k=1,ibins  
-         if(Nkf(k).lt.0)then
-            print*,'ERROR:Nk < 0',k, Nkf(k)
-         endif
-         do j=1,icomp
-            if(Mkf(k,j).lt.0)then
-               print*,'ERROR:Mk < 0',k,j,Mkf(k,j)
-            endif
-         enddo
-      enddo
 
  20      continue   !go here if process is skipped  
 
-
-
-
       RETURN
       END SUBROUTINE aqoxid
+
 
 C     **************************************************
 C     *  aerodens                                      *
@@ -1061,8 +1178,6 @@ C Save initial component masses to restore later
       h2otemp=mh2o
       nacltemp=mnacl
 
-
-!      print*,'inodens init',so4temp,no3temp,nh4temp,h2otemp,nacltemp
 C Calculate mole fractions
       mtot = mso4+mno3+mnh4+mnacl+mh2o
       drytot = mso4+mno3+mnh4+mnacl
@@ -1142,7 +1257,6 @@ C contributes to neutralizing sulfate
       xs2=ns2*mws2/mtot*100.
       xnacl=nnacl*mwnacl/mtot*100.
       xtot=xan+xs0+xs1+xs2+xnacl
-!      call nanstop(xtot,153,0,0)
       !Calculate binary mixture densities (Tang, eqn 9)
       dan=0.9971 +4.05e-3*xtot +9.0e-6*xtot**2.
       ds0=0.9971 +7.367e-3*xtot -4.934e-5*xtot**2. +1.754e-6*xtot**3.
@@ -1212,18 +1326,12 @@ C-----OUTPUTS-----------------------------------------------------------
 
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
-
-      real*8 Mke(ibins,icomp)
-
 C-----VARIABLE DECLARATIONS---------------------------------------------
-
       integer k
+      real*8 Mke(ibins,icomp)
       real*8 so4mass, naclmass, ocilmass
       real*8 wrso4, wrnacl, wrocil
       real*8 rhe
-
       real*8 waterso4, waternacl, waterocil
 
 C     VARIABLE COMMENTS...
@@ -1237,7 +1345,6 @@ C     simple curve fits to estimate wr based on the current humidity.
 C     The curve fit is based on ISORROPIA results for ammonium bisulfate
 C     at 273 K and sea salt at 273 K.
 
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
 
@@ -1280,14 +1387,8 @@ C-----OUTPUTS-----------------------------------------------------------
 
       SUBROUTINE eznh3eqm(Gce,Mke)
 
-
       USE TOMAS_AEROSOL
       IMPLICIT NONE
-
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
-      real*8 Gce(icomp)
-      real*8 Mke(ibins,icomp)
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
 
@@ -1295,6 +1396,8 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 tot_nh3  !total kmoles of ammonia
       real*8 tot_so4  !total kmoles of so4
       real*8 sfrac    !fraction of sulfate that is in that bin
+      real*8 Gce(icomp)
+      real*8 Mke(ibins,icomp)
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -1344,19 +1447,13 @@ C     in equilibrium with the sulfate.  Aerosol water concentrations
 C     are assumed to be in equilibrium at all times and the array of 
 C     concentrations is updated accordingly.
 
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
-
       real*8 FUNCTION waterso4(rhe)
 
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
+C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe   !relative humidity (0-100 scale)
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
 
 C     VARIABLE COMMENTS...
 
@@ -1365,8 +1462,6 @@ C     of calling a thermodynamic equilibrium code, this routine uses a
 C     simple curve fit to estimate wr based on the current humidity.
 C     The curve fit is based on ISORROPIA results for ammonium bisulfate
 C     at 273 K.
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
 
@@ -1418,20 +1513,12 @@ C     in equilibrium with the seasalt.  Aerosol water concentrations
 C     are assumed to be in equilibrium at all times and the array of 
 C     concentrations is updated accordingly.
 
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
-
       real*8 FUNCTION waternacl(rhe)
 
       IMPLICIT NONE
 
-
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
-      real*8 rhe   !relative humidity (0-100 scale)
-
 C-----VARIABLE DECLARATIONS---------------------------------------------
+      real*8 rhe   !relative humidity (0-100 scale)
 
 C     VARIABLE COMMENTS...
 
@@ -1440,8 +1527,6 @@ C     of calling a thermodynamic equilibrium code, this routine uses a
 C     simple curve fit to estimate waternacl based on the current humidity.
 C     The curve fit is based on ISORROPIA results for sodium sulfate
 C     at 273 K.
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
 
@@ -1492,22 +1577,15 @@ C     in equilibrium with the hydrophillic OA.  Aerosol water concentrations
 C     are assumed to be in equilibrium at all times and the array of 
 C     concentrations is updated accordingly.
 
-C-----INPUTS------------------------------------------------------------
-
-C-----OUTPUTS-----------------------------------------------------------
-
       real*8 FUNCTION waterocil(rhe)
 
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
+C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 rhe   !relative humidity (0-100 scale)
       real*8 a, b, c, d, e, f, prefactor, activcoef
       parameter(a=1.0034, b=0.1614, c=1.1693,d=-3.1,
      & e=6.0)
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
 
 C     VARIABLE COMMENTS...
 
@@ -1515,8 +1593,6 @@ C     waterocil is the ratio of wet mass to dry mass of a particle.  Instead
 C     of calling a thermodynamic equilibrium code, this routine uses a
 C     simple curve fit to estimate waterocil based on the current humidity.
 C     The curve fit is based on observations of Dick et al. JGR D1 1471-1479
-
-C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
       
@@ -1544,9 +1620,6 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
       END  FUNCTION waterocil
 
 
-
-
-
 C     **************************************************
 C     *  GCM_ezwatereqm                                    *
 C     **************************************************
@@ -1572,7 +1645,7 @@ C     at 273 K and sea salt at 273 K.
 
       SUBROUTINE aeroupdate
 
-
+C-----INCLUDE FILES-----------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel,
      &     am_i_root, getDomainBounds
       USE TOMAS_AEROSOL 
@@ -1588,23 +1661,17 @@ C     at 273 K and sea salt at 273 K.
       USE MODEL_COM, only : dtsrc
       USE CONSTANT,   only:  lhe
       USE ATM_COM,   only: pmid,pk ! midpoint pressure in hPa (mb)
-
       IMPLICIT NONE
 
-      INTEGER J_0, J_1, I_0, I_1
+C-----VARIABLE DECLARATIONS---------------------------------------------
 
+      INTEGER J_0, J_1, I_0, I_1
       integer i,j,l,k,n,jc,mpnum  !counters
       real*8 qsat         !used in RH calculation
       integer tracnum
-      
       real*8 frac, Nkout(iBINS),Mkout(iBINS,icomp),Gcout(icomp-1)
-      
       real*8 rhe
-
-
       real*8 waterso4, waternacl, waterocil
-
-C     VARIABLE COMMENTS...
 
 
 C-----CODE-----------------------------------------------------------    
@@ -1691,9 +1758,9 @@ C Check for negative tracer problems
      &              trm(i,j,l,IDTSO4+n-1)
                write(*,*) ' < 0 in box ', i,j,l
                call stop_model('TRM<0 in aeroupdate',255)
-            else
-               !numerical problem - set to zero
-               TRM(i,j,l,IDTSO4+n-1)=0.0!1.d-42 !5??
+!            else
+!               !numerical problem - set to zero
+!               TRM(i,j,l,IDTSO4+n-1)=0.0!1.d-42 !5??
             endif
          endif
       enddo
@@ -1803,36 +1870,43 @@ C-----OUTPUTS-----------------------------------------------------------
 
       SUBROUTINE aerodiag(pt,i,j,l)
 
-
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : IDTSO4,IDTNUMD
+      USE TRACER_COM, only : IDTSO4,IDTNUMD,n_H2SO4
+      IMPLICIT NONE
 
-      implicit none 
+C-----VARIABLE DECLARATIONS---------------------------------------------
+
       integer pt, i, j, l, jc, n
-      real adt            !aerosol microphysics time step (seconds)
-
       integer k,kk,tracnum
+
 C-----CODE--------------------------------------------------------------
 
-      if(pt.ne.7)then 
+      if(pt.eq.4.or.pt.eq.5.or.pt.eq.7)then ! Aqoxid_mc,Aqoxid_ls,Aeroupdate
+
+C Bulk species
+        AEROD(i,j,l,n_H2SO4,pt)=
+     &     (Gc(srtso4)-Gcd(srtso4))
 
          do n=1,ibins       
                        
 !     Aerosol number
             tracnum=IDTNUMD-1+n
             AEROD(i,j,l,tracnum,pt)= 
-     &           Nk(n)-Nkd(n)
+     &           (Nk(n)-Nkd(n))
 !     Aerosol mass
             do jc=1,icomp-idiag
                tracnum=IDTSO4-1+n+ibins*(jc-1)
                AEROD(i,j,l,tracnum,pt)= 
-!     &           AEROD(i,j,l,tracnum,pt) 
-     &              Mk(n,jc)-Mkd(n,jc)
+     &              (Mk(n,jc)-Mkd(n,jc))
                
             enddo   
          enddo
          
       else
+
+C Bulk species
+        AEROD(i,j,l,n_H2SO4,pt)=AEROD(i,j,l,n_H2SO4,pt)
+     &     +(Gc(srtso4)-Gcd(srtso4))
 
          do n=1,ibins  
 !     Aerosol number
@@ -1851,329 +1925,11 @@ C-----CODE--------------------------------------------------------------
                
             enddo 
          enddo
-      endif      
+      endif     
+ 
       RETURN
       END SUBROUTINE aerodiag
 
-c$$$
-c$$$C     **************************************************
-c$$$C     *  subgridcoag_drv                                   *
-c$$$C     **************************************************
-c$$$
-c$$$C     Written by Yunha Lee, July 2011 
-c$$$C     In order to accommodate 2-D and 3-D emission in GISS ModelE, the original 
-c$$$C     subgridcoag subroutine, written by Jeff Pierce, is modified into two. 
-c$$$C 
-c$$$C     No moments updated here because aerosol emission are positive! 
-c$$$
-c$$$      SUBROUTINE subgridcoag_drv(i,j,l,EMISTYPE,dtstep)
-c$$$
-c$$$C-----INCLUDE FILES--------------------------------------------------
-c$$$      USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
-c$$$     &     ntisurfsrc,trname
-c$$$     &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
-c$$$     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
-c$$$   
-c$$$      USE TOMAS_AEROSOL
-c$$$      USE CONSTANT, ONLY : pi,gasc,mair
-c$$$!      USE MODEL_COM, only : dtsrc
-c$$$      USE ATM_COM, only :   t            ! potential temperature (C)
-c$$$      USE GEOM, only: axyp,BYAXYP   
-c$$$      USE ATM_COM,   only: pmid,pk, am   ! midpoint pressure in hPa (mb)
-c$$$!                                           and pk is t mess up factor
-c$$$!                                           BYAM  1/Air mass (m^2/kg)
-c$$$      USE FLUXES, only : trsource, tr3Dsource,trflux1, trsrfflx
-c$$$      USE TRDIAG_COM, only : taijs=>taijs_loc
-c$$$      USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
-c$$$      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-c$$$      IMPLICIT NONE
-c$$$
-c$$$
-c$$$C-----PASSED VARIABLE DECLARATIONS-----------------------------------
-c$$$      INTEGER, INTENT(IN) :: I,J,L
-c$$$      REAL*8, INTENT(IN) :: dtstep
-c$$$      INTEGER n,ns,c,k,tot_src,tracnum
-c$$$      INTEGER tomas_ntsurf !same as ntsurfsrc
-c$$$      real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
-c$$$      real*8,dimension(nbins) ::  ndist, ndist2, ndist0 !the number of particles in the box
-c$$$      real*8,dimension(nbins,icomp) :: mdist,mdist2,mdist0 ! the mass of each component in the box. (kg)
-c$$$      real tscale ! the scale time for mixing (s)
-c$$$      real*8 ndistfinal(nbins),tot_ndistinit(nbins) !the number of particles being added to the gridbox after subgrid coag
-c$$$      real*8 maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
-c$$$      LOGICAL EMISTYPE
-c$$$
-c$$$
-c$$$C-----CODE-----------------------------------------------------------
-c$$$!     subgrid timescale and met conditions
-c$$$      
-c$$$      tscale=10.*3600.
-c$$$      temp = pk(l,i,j)*t(i,j,l) !should be in [K]
-c$$$      pres= pmid(l,i,j)*100.    ! pmid in [hPa]
-c$$$      boxvol=am(l,i,j)*axyp(i,j)/mair*1000.d0
-c$$$     &     *gasc*temp/pres*1e6  !cm3
-c$$$      
-c$$$!     For 2-D emission, TRM is the initial tracer burden. 
-c$$$!     For 3-D emission, TRM is including 3-D sources.  
-c$$$      
-c$$$      if(EMISTYPE)THEN
-c$$$        
-c$$$        do k=1,nbins
-c$$$          ndist0(k)=TRM_EMIS(I,J,L,IDTNUMD+k-1)
-c$$$          do c=1,icomp-idiag
-c$$$            mdist0(k,c)=TRM_EMIS(I,J,L,IDTSO4+(c-1)*nbins+k-1)
-c$$$          enddo
-c$$$          mdist0(k,srtnh4)=0.0
-c$$$          mdist0(k,srth2o)=TRM_EMIS(I,J,L,IDTH2O+k-1)
-c$$$          ndistfinal(k)=0
-c$$$          maddfinal(k)=0
-c$$$        enddo
-c$$$        
-c$$$        ndist(:)=ndist0(:)
-c$$$        mdist(:,:)=mdist0(:,:)
-c$$$        
-c$$$        TOT_SRC=3
-c$$$        
-c$$$        DO NS=1,TOT_SRC
-c$$$          
-c$$$          do k=1,nbins
-c$$$            if(ns.lt.3) 
-c$$$     &           ndistinit(k)=tr3Dsource(i,j,l,ns,IDTNUMD+K-1)*dtstep
-c$$$            if(ns.eq.3) 
-c$$$     &           ndistinit(k)=tr3Dsource(i,j,l,ns+1,IDTNUMD+K-1)*dtstep 
-c$$$          enddo
-c$$$          
-c$$$          if(sum(ndistinit(1:nbins)).gt.0.)then
-c$$$!     only when there is emission! 
-c$$$            call subgridcoag(ndistinit,ndist,mdist,boxvol,
-c$$$     &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
-c$$$            
-c$$$            do k=1,nbins
-c$$$              ndist(k)=ndist(k)+ndistfinal(k)
-c$$$              
-c$$$              IF(NS.EQ.1)THEN
-c$$$                                !SO4
-c$$$                mdist(k,srtso4)=mdist(k,srtso4)+
-c$$$     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)
-c$$$                
-c$$$              ELSEIF(NS.EQ.2)THEN
-c$$$                                !EC
-c$$$                mdist(k,srtecil)=mdist(k,srtecil)+
-c$$$     &               ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.2
-c$$$                mdist(k,srtecob)=mdist(k,srtecob)+
-c$$$     &               ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.8   
-c$$$                
-c$$$              ELSEIF(NS.EQ.3)THEN
-c$$$                                !OC
-c$$$                mdist(k,srtocil)=mdist(k,srtocil)+
-c$$$     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.5
-c$$$                mdist(k,srtocob)=mdist(k,srtocob)+
-c$$$     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.5   
-c$$$              ENDIF
-c$$$            enddo
-c$$$          endif
-c$$$        enddo                   !ns
-c$$$        
-c$$$      ELSE                      ! FOR 2-D EMISSION
-c$$$        
-c$$$        do k=1,nbins
-c$$$          ndist0(k)=TRM(I,J,L,IDTNUMD+k-1)
-c$$$          do c=1,icomp-idiag
-c$$$            mdist0(k,c)=TRM(I,J,L,IDTSO4+(c-1)*nbins+k-1)
-c$$$          enddo
-c$$$          mdist0(k,srtnh4)=0.0
-c$$$          mdist0(k,srth2o)=TRM(I,J,L,IDTH2O+k-1)
-c$$$          ndistfinal(k)=0
-c$$$          maddfinal(k)=0
-c$$$        enddo
-c$$$        
-c$$$        ndist(:)=ndist0(:)
-c$$$        mdist(:,:)=mdist0(:,:)
-c$$$        
-c$$$!     Only initialize when 2-D emission starts! 
-c$$$        N_subgridcg(i,j,l,:)=0.
-c$$$        M_subgridcg(i,j,l,:,:)=0.
-c$$$        tot_ndistinit(:)=0.
-c$$$
-c$$$        TOT_SRC=5
-c$$$        
-c$$$        DO NS=1,TOT_SRC
-c$$$          
-c$$$          do k=1,nbins
-c$$$            if(NS.LE.3)THEN
-c$$$              ndistinit(k)=trsource(i,j,NS,IDTNUMD+K-1)*dtstep
-c$$$            elseif(NS.eq.4)then
-c$$$              ndistinit(k)=trsrfflx(i,j,IDTNA+K-1)*gridarea
-c$$$     &             /sqrt(xk(k)*xk(k+1))*dtstep
-c$$$
-c$$$            elseif(ns.eq.5)then
-c$$$             ndistinit(k)=trsrfflx(i,j,IDTDUST+K-1)*gridarea
-c$$$     &             /sqrt(xk(k)*xk(k+1))*dtstep
-c$$$            endif
-c$$$            tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k)
-c$$$          enddo
-c$$$  
-c$$$          if(sum(ndistinit(1:nbins)).gt.0.)then
-c$$$!     only when there is emission! 
-c$$$            
-c$$$            call subgridcoag(ndistinit,ndist,mdist,boxvol,
-c$$$     &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
-c$$$            
-c$$$            do k=1,nbins
-c$$$              ndist(k)=ndist(k)+ndistfinal(k)
-c$$$              
-c$$$              IF(NS.EQ.1)THEN
-c$$$                                !SO4
-c$$$                mdist(k,srtso4)= mdist(k,srtso4)+
-c$$$     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)
-c$$$                
-c$$$              ELSEIF(NS.EQ.2)THEN
-c$$$                                !EC
-c$$$                mdist(k,srtecil)= mdist(k,srtecil)+
-c$$$     &               ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.2
-c$$$                mdist(k,srtecob)= mdist(k,srtecob)+
-c$$$     &               ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.8   
-c$$$                
-c$$$              ELSEIF(NS.EQ.3)THEN
-c$$$                                !OC
-c$$$                mdist(k,srtocil)=mdist(k,srtocil)+
-c$$$     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.5
-c$$$                mdist(k,srtocob)=mdist(k,srtocob)+
-c$$$     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)*0.5   
-c$$$              ELSEIF(NS.EQ.4)THEN
-c$$$                                !NACL
-c$$$                mdist(k,srtna)= mdist(k,srtna)+
-c$$$     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)
-c$$$              ELSEIF(NS.EQ.5)THEN
-c$$$                                !DUST
-c$$$                mdist(k,srtdust)=mdist(k,srtdust)+
-c$$$     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
-c$$$     &               maddfinal(k)
-c$$$              ENDIF
-c$$$            enddo
-c$$$          endif
-c$$$          
-c$$$        enddo
-c$$$        
-c$$$      endif                     !emission type! 
-c$$$      
-c$$$!     fix the inconsistancies in the distribution
-c$$$      do k=1,nbins
-c$$$        ndist2(k)=ndist(k)
-c$$$        do c=1,icomp-idiag
-c$$$          mdist2(k,c)=mdist(k,c)
-c$$$        enddo
-c$$$      enddo
-c$$$     
-c$$$!just for debug!  
-c$$$!cyhl      if(sum(ndist(1:nbins)).gt.0.)
-c$$$!cyhl     &     call mnfix(ndist2,mdist2)
-c$$$      
-c$$$!     ADD NEW DIAGNOSTICS! 
-c$$$      
-c$$$      do k=1,nbins  
-c$$$        
-c$$$        if(EMISTYPE)THEN
-c$$$          
-c$$$          tracnum=IDTNUMD-1+k  
-c$$$          N_subgridcg(i,j,l,k)=(ndist2(k)- !this is emission after subgrid
-c$$$     &         trm(i,j,l,tracnum))+ !trflux1 is emission before subgrid
-c$$$     *         N_subgridcg(i,j,l,k) !from 2-d emission subgrid coagulation
-c$$$          
-c$$$!!debug 
-c$$$!         if((ndist2(k)-ndist0(k)).ne.0)
-c$$$!     &   print*,'3-D subcoag',k,trm(i,j,l,tracnum),ndist2(k),ndist0(k),
-c$$$!     &   N_subgridcg(i,j,l,k),trm(i,j,l,tracnum)-trm_emis(i,j,l,tracnum)
-c$$$
-c$$$          trm(i,j,l,tracnum)=ndist2(k)
-c$$$          
-c$$$          taijs(i,j,ijts_subcoag(tracnum)) 
-c$$$     &         =taijs(i,j,ijts_subcoag(tracnum))
-c$$$     &         +N_subgridcg(i,j,l,k) ! /adt
-c$$$
-c$$$          if (itcon_subcoag(tracnum).gt.0) 
-c$$$     &         call inc_diagtcb(i,j,N_subgridcg(i,j,l,k) ,
-c$$$     &         itcon_subcoag(tracnum),tracnum)
-c$$$        ELSE         
-c$$$          
-c$$$!     2-D emission: trflux1 should have only emission! 
-c$$$!     (mdist0 and ndist0 are background concentration) 
-c$$$          tracnum=IDTNUMD-1+k  
-c$$$          
-c$$$          N_subgridcg(i,j,l,k)=(ndist2(k)-ndist0(k))- !this is emission after subgrid
-c$$$     &         tot_ndistinit(k) ! emission before subgrid
-c$$$          
-c$$$          trflux1(i,j,tracnum)=(ndist2(k)-ndist0(k))/dtstep/gridarea !kg/m2/sec
-c$$$          
-c$$$!debug 
-c$$$!         if(N_subgridcg(i,j,l,k).ne.0)
-c$$$!     &   print*,'2-D subcoag',k,trflux1(i,j,tracnum)*dtstep,
-c$$$!     &         trsrfflx(i,j,tracnum)*dtstep,ndist2(k),ndist0(k)
-c$$$!     &         ,N_subgridcg(i,j,l,k)
-c$$$          
-c$$$        ENDIF
-c$$$        
-c$$$        do c=1,icomp-idiag
-c$$$
-c$$$          if(EMISTYPE)THEN   
-c$$$            
-c$$$            tracnum=IDTSO4-1+k+nbins*(c-1) 
-c$$$            M_subgridcg(i,j,l,k,c)=(mdist2(k,c)- !trm + emission after subgrid 
-c$$$     &           trm(i,j,l,tracnum))+ !trm + emission before subgrid (which is computed in apply_tracer3d) 
-c$$$     &           M_subgridcg(i,j,l,k,c) !from 2-d emission subgrid coagulation
-c$$$            
-c$$$            trm(i,j,l,tracnum)=mdist2(k,c)
-c$$$            
-c$$$            taijs(i,j,ijts_subcoag(tracnum)) 
-c$$$     &           =taijs(i,j,ijts_subcoag(tracnum))
-c$$$     &           +M_subgridcg(i,j,l,k,c) ! /adt
-c$$$            if (itcon_subcoag(tracnum).gt.0) 
-c$$$     &           call inc_diagtcb(i,j,M_subgridcg(i,j,l,k,c),
-c$$$     &           itcon_subcoag(tracnum),tracnum)
-c$$$            
-c$$$          ELSE
-c$$$            
-c$$$            tracnum=IDTSO4-1+k+nbins*(c-1)
-c$$$
-c$$$            if(c.eq.2.or.c.eq.7)then
-c$$$
-c$$$              M_subgridcg(i,j,l,k,c)=(mdist2(k,c)-mdist0(k,c))-
-c$$$     &             trsrfflx(i,j,tracnum)*dtstep*gridarea  !seasalt and dust
-c$$$
-c$$$            else
-c$$$
-c$$$              if(c.eq.1) tomas_ntsurf=ntsurfsrc(n_SO2)
-c$$$              if(c.eq.3.or.c.eq.4) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
-c$$$              if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(IDTOCOB) !ecob
-c$$$              M_subgridcg(i,j,l,k,c)=(mdist2(k,c)-mdist0(k,c))-
-c$$$     &             sum(trsource(i,j,1:tomas_ntsurf,tracnum))*dtstep ! emission before subgrid
-c$$$
-c$$$            endif
-c$$$
-c$$$            
-c$$$!     2-D emission: trflux1 should have only emission! 
-c$$$!     (mdist0 and ndist0 are background concentration) 
-c$$$            
-c$$$            trflux1(i,j,tracnum)=(mdist2(k,c)-mdist0(k,c))/dtstep/gridarea 
-c$$$            
-c$$$          ENDIF
-c$$$          
-c$$$        enddo
-c$$$      enddo
-c$$$      
-c$$$      return
-c$$$      end subroutine subgridcoag_drv
-     
 
 C     **************************************************
 C     *  subgridcoag_drv                                   *
@@ -2188,25 +1944,28 @@ C     No moments updated here because aerosol emission are positive!
       SUBROUTINE subgridcoag_drv(dtstep)
 
 C-----INCLUDE FILES--------------------------------------------------
+
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID,getDomainBounds,write_parallel
+      USE TOMAS_AEROSOL
+      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_subcoag,itcon_subcoag
+      USE FLUXES, only : tr3dsource
+
       use resolution, only     : lm
-      USE GEOM, only : imaxj
+      USE ATM_COM, only :   t   ! potential temperature (C)
+     $     ,q                   ! saturated pressure
+     $     ,pmid                ! midpoint pressure in hPa (mb)
+     $     ,pk                  ! pk is t mess up factor
+     $     ,am                 ! BYAM  1/Air mass (m^2/kg) 
+      
+      USE MODEL_COM, only : dtsrc
+      USE GEOM, only : imaxj,axyp,BYAXYP
+      USE CONSTANT, ONLY : pi,gasc,mair 
+
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
      &     IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
-   
-      USE TOMAS_AEROSOL
-      USE CONSTANT, ONLY : pi,gasc,mair
-      USE ATM_COM, only :   t            ! potential temperature (C)
-      USE GEOM, only: axyp,BYAXYP   
-      USE ATM_COM,   only: pmid,pk, am   ! midpoint pressure in hPa (mb)
-!                                           and pk is t mess up factor
-!                                           BYAM  1/Air mass (m^2/kg)
-      USE FLUXES, only : tr3dsource
-      USE TRDIAG_COM, only : taijs=>taijs_loc
-      USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+ 
       IMPLICIT NONE
-
 
 C-----PASSED VARIABLE DECLARATIONS-----------------------------------
       integer :: J_1, J_0, I_1, I_0
@@ -2230,6 +1989,17 @@ C-----CODE-----------------------------------------------------------
 
       DO L=1,LM; DO J=J_0,J_1; DO I=I_0,imaxj(j)
 
+c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
+c$$$          open (1044,file='debug_coag.dat',access='append',
+c$$$     &         status='unknown')
+c$$$          do k=1,nbins
+c$$$            write(1044,*)'begin',l,trm_emis(i,j,l,idtecob+k-1)
+c$$$     $           ,trm_emis(i,j,l,idtnumd+k-1),
+c$$$     $   trm(i,j,l,idtecob+k-1),trm(i,j,l,idtnumd+k-1),
+c$$$     $           taijs(i,j,ijts_subcoag(IDTECOB+k-1))
+c$$$            enddo
+c$$$      ENDIF
+
       tscale=5.*3600.
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
       pres= pmid(l,i,j)*100.    ! pmid in [hPa]
@@ -2252,7 +2022,8 @@ C-----CODE-----------------------------------------------------------
       ndistinit(:)=0.
         
       DO NS=1,3
-          
+!        print*,'subcoag 3d',ns,dtstep,nbins,idtso4
+
         do k=1,nbins
           if(ns.lt.3) 
      &         ndistinit(k)=tr3Dsource(i,j,l,ns,IDTNUMD+K-1)*dtstep
@@ -2260,6 +2031,14 @@ C-----CODE-----------------------------------------------------------
      &         ndistinit(k)=tr3Dsource(i,j,l,ns+1,IDTNUMD+K-1)*dtstep 
         enddo
         
+c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
+c$$$          
+c$$$          do k=1, nbins
+c$$$          write(1044,*)'middle',l,ns,ndist0(k),mdist0(k,srtecob),
+c$$$     $         ndist(k),mdist(k,srtecob),ndist2(k),mdist2(k,srtecob)   
+c$$$          enddo
+c$$$        ENDIF
+c$$$
         if(sum(ndistinit(1:nbins)).gt.0.)then
 !     only when there is emission! 
           call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
@@ -2299,13 +2078,27 @@ C-----CODE-----------------------------------------------------------
 !     fix the inconsistancies in the distribution
         do k=1,nbins
           ndist2(k)=ndist(k)+ndist0(k)
-          do c=1,icomp-idiag
+          do c=1,icomp !-idiag
             mdist2(k,c)=mdist(k,c)+mdist0(k,c)
           enddo
         enddo
  
+c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
+c$$$          do k=1,nbins
+c$$$            write(1044,*)'middle 2',l,ndist(k),ndist2(k)
+c$$$     $           ,mdist(k,srtecob),mdist2(k,srtecob) 
+c$$$          enddo
+c$$$
+c$$$      ENDIF
         if(sum(ndist(1:nbins)).gt.0.) call mnfix(ndist2,mdist2)
         
+c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
+c$$$          do k=1,nbins
+c$$$            write(1044,*)'after mnfix',l,ndist(k),ndist2(k)
+c$$$     $           ,mdist(k,srtecob),mdist2(k,srtecob),sum(ndist(1:nbins)) 
+c$$$          enddo   
+c$$$
+c$$$      ENDIF
 !        call mnfix(ndist2,mdist2)
 !     DIAGNOSTICS! 
         
@@ -2316,9 +2109,10 @@ C-----CODE-----------------------------------------------------------
      &         trm(i,j,l,tracnum)) 
 
 
-          if(ndist2(k)/trm(i,j,l,tracnum).GT.10.)THEN
-        PRINT*,'too large subcoag',i,j,l,k,ndist2(k),ndist(k),ndist0(k)
-          endif
+!          if(ndist2(k)/trm(i,j,l,tracnum).GT.1000.)THEN
+!            PRINT*,'too large subcoag',i,j,l,k,ndist2(k),ndist(k),
+!     $           ndist0(k)
+!          endif
 
           if(l.eq.1)then
             N_subgridcg(i,j,l,k,2)=N_subgridcg(i,j,l,k,2)+ 
@@ -2360,6 +2154,20 @@ C-----CODE-----------------------------------------------------------
             
           enddo
         enddo
+
+c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
+c$$$          do k=1,nbins
+c$$$            
+c$$$        write(1044,*) 'subcoag result',l,trm_emis(i,j,l,idtecob+k-1),
+c$$$     $       trm(i,j,l,idtecob+3),M_subgridcg(i,j,l,k,3,2),
+c$$$     $           N_subgridcg(i,j,l,k,2),
+c$$$     $       taijs(i,j,ijts_subcoag(IDTECOB+k-1))
+c$$$      enddo 
+c$$$
+c$$$      ENDIF
+
+        M_subgridcg(i,j,l,:,:,:)=0.0
+        N_subgridcg(i,j,l,:,:)=0.0
         
        enddo; enddo; enddo
         
@@ -2379,38 +2187,42 @@ C     No moments updated here because aerosol emission are positive!
       SUBROUTINE subgridcoag_drv_2D(dtstep)
 
 C-----INCLUDE FILES--------------------------------------------------
+
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID,getDomainBounds,write_parallel
+      USE TOMAS_AEROSOL
+      USE FLUXES, only : trsource,atmsrf
+
       use resolution, only     : lm
-      USE GEOM, only : imaxj,axyp
+      USE ATM_COM, only :   t   ! potential temperature (C)
+     $     ,q                   ! saturated pressure
+     $     ,pmid                ! midpoint pressure in hPa (mb)
+     $     ,pk                  ! pk is t mess up factor
+     $     ,am                 ! BYAM  1/Air mass (m^2/kg) 
+      
+      USE MODEL_COM, only : dtsrc
+      USE GEOM, only : imaxj,axyp,BYAXYP
+      USE CONSTANT, ONLY : pi,gasc,mair 
+
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
      &     IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
      &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
-   
-      USE TOMAS_AEROSOL
-      USE CONSTANT, ONLY : pi,gasc,mair
-      USE ATM_COM, only :   t            ! potential temperature (C)
-      USE GEOM, only: axyp,BYAXYP   
-      USE ATM_COM,   only: pmid,pk, am   ! midpoint pressure in hPa (mb)
-!                                           and pk is t mess up factor
-!                                           BYAM  1/Air mass (m^2/kg)
-      USE FLUXES, only : trsource,trflux1
-      USE TRDIAG_COM, only : taijs=>taijs_loc
-!      USE TRDIAG_COM, only : ijts_subcoag,itcon_subcoag
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+ 
       IMPLICIT NONE
 
+C-----VARIABLE DECLARATIONS-----------------------------------
 
-C-----PASSED VARIABLE DECLARATIONS-----------------------------------
       integer :: J_1, J_0, I_1, I_0,L,I,J
 
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,c,k,tot_src,tracnum
       INTEGER tomas_ntsurf !same as ntsurfsrc
       real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
-      real*8,dimension(nbins) ::  ndist, ndist2, ndist0 !the number of particles in the box
-      real*8,dimension(nbins,icomp) :: mdist,mdist2,mdist0 ! the mass of each component in the box. (kg)
-      real tscale ! the scale time for mixing (s)
+      real*8,dimension(nbins) ::  ndist, ndist0 !the number of particles in the box
+      real*8,dimension(nbins,icomp) :: mdist,mdist0 ! the mass of each component in the box. (kg)
+      real*8 tscale ! the scale time for mixing (s)
       real*8 ndistfinal(nbins),tot_ndistinit(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8 maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
+      real*8 trflux_tom ! temporal variable
 
 C-----CODE-----------------------------------------------------------
 
@@ -2421,7 +2233,8 @@ C-----CODE-----------------------------------------------------------
 
       l=1 !2-D emission is at 1st layer
 
-      DO J=J_0,J_1; DO I=I_0,imaxj(j)
+      DO J=J_0,J_1
+        DO I=I_0,imaxj(j)
           
 !     subgrid timescale and met conditions
  
@@ -2451,14 +2264,14 @@ C-----CODE-----------------------------------------------------------
         ndistinit(:)=0.
                 
         DO ns=1,ntsurfsrc(idtnumd)
-          
-!     ns=1 for so4; ns=2 for ec; ns=3 for oc; ns=4 for ss; ns=5 for dust
+!          print*,'subcoag 2d',ns,ntsurfsrc(idtnumd),dtstep
+!     ns=1 for so4; ns=2 for ec; ns=3 for oc
           
           do k=1,nbins
             
             ndistinit(k)=trsource(i,j,NS,IDTNUMD+K-1)*dtstep
             
-            tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k)
+            tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
           
           if(sum(ndistinit(1:nbins)).gt.0.)then
@@ -2468,9 +2281,6 @@ C-----CODE-----------------------------------------------------------
      &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
             
             do k=1,nbins
-
-!            print*,'subgridcoag',i,j,k,ndist0(k),ndistinit(k),
-!     &             ndistfinal(k),tscale,boxvol
 
               ndist(k)=ndistfinal(k)+ ndist(k) !sum of all emission type after subgrid coag
               
@@ -2503,15 +2313,15 @@ C-----CODE-----------------------------------------------------------
           
         enddo !ntsurfsrc    
         
-!     fix the inconsistancies in the distribution
-        do k=1,nbins
-          ndist2(k)=ndist(k)+ndist0(k)
-          do c=1,icomp-idiag
-            mdist2(k,c)=mdist(k,c)+mdist0(k,c)
-          enddo
-        enddo
+c$$$!     fix the inconsistancies in the distribution
+c$$$        do k=1,nbins
+c$$$          ndist2(k)=ndist(k)+ndist0(k)
+c$$$          do c=1,icomp-idiag
+c$$$            mdist2(k,c)=mdist(k,c)+mdist0(k,c)
+c$$$          enddo
+c$$$        enddo
         
-        if(sum(ndist(1:nbins)).gt.0.) call mnfix(ndist2,mdist2)
+        if(sum(ndist(1:nbins)).gt.0.) call mnfix(ndist,mdist)
         
 !     DIAGNOSTICS! 
       
@@ -2519,11 +2329,14 @@ C-----CODE-----------------------------------------------------------
           
           tracnum=IDTNUMD-1+k  
           
-          N_subgridcg(i,j,l,k,1)=ndist(k)- ! emission after subgrid
+          N_subgridcg(i,j,l,k,1)=N_subgridcg(i,j,l,k,1)+ndist(k)- ! emission after subgrid
      &         tot_ndistinit(k) ! emission before subgrid
           
-          trflux1(i,j,tracnum)=trflux1(i,j,tracnum)+
-     &         N_subgridcg(i,j,l,k,1)/dtstep/axyp(i,j) !kg/m2/sec
+!          trflux_tom=atmsrf%trflux_prescr(tracnum,i,j)
+!     &         /byaxyp(i,j)+
+!     &         (ndist(k)- tot_ndistinit(k))/dtstep !kg/sec
+
+          atmsrf%trflux_prescr(tracnum,i,j)= ndist(k)/dtstep*byaxyp(i,j) ! kg/s to kg/m2/s
           
           do c=1,icomp-idiag
             
@@ -2539,16 +2352,32 @@ C-----CODE-----------------------------------------------------------
               if(c.eq.3.or.c.eq.4) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
               if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(IDTOCOB) !ecob
               
-              M_subgridcg(i,j,l,k,c,1)=mdist(k,c)-
-     &             (sum(trsource(i,j,1:tomas_ntsurf,tracnum))*dtstep) ! emission before subgrid
+              M_subgridcg(i,j,l,k,c,1)=M_subgridcg(i,j,l,k,c,1)
+     &             + mdist(k,c)-
+     &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j)*dtstep
+!     &             (sum(trsource(i,j,1:tomas_ntsurf,tracnum))*dtstep) ! emission before subgrid
               
             endif
-            trflux1(i,j,tracnum)=trflux1(i,j,tracnum)+
-     &          M_subgridcg(i,j,l,k,c,1)/dtstep/axyp(i,j)
+!            trflux_tom=atmsrf%trflux_prescr(tracnum,i,j)
+!     &           /byaxyp(i,j)+ (mdist(k,c)/dtstep-
+!     &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j))
+
+!     &           (sum(trsource(i,j,1:tomas_ntsurf,tracnum))))
+
+
+            atmsrf%trflux_prescr(tracnum,i,j)=
+     &           mdist(k,c)/dtstep*byaxyp(i,j)
             
           enddo !c
         enddo ! k
-      enddo; enddo ! i,j
+
+      enddo
+
+!      if(M_subgridcg(i,j,l,4,3,1).gt.0.) 
+!     $     print*,'subcoag 2D result',trsource(i,j,2,IDTNUMD+3),
+!     $       trm(i,j,1,idtecob+3),M_subgridcg(i,j,l,4,3,1)
+      
+      enddo ! i,j
       
       return
       end subroutine subgridcoag_drv_2D
@@ -2565,7 +2394,7 @@ C     be scavenged by coagulation prior to being completely mixed in the gridbox
 C     give the new emissions size distribution along with where the mass of coagulated
 C     particles should be added.
 
-      SUBROUTINE subgridcoag(ndistinit,ndist,mdist,boxvolume,
+      SUBROUTINE subgridcoag(ndistinit,ndist2,mdist2,boxvolume,
      & tscale,ndistfinal,maddfinal)
 
 C-----INCLUDE FILES--------------------------------------------------
@@ -2575,15 +2404,14 @@ C-----INCLUDE FILES--------------------------------------------------
       USE CONSTANT, ONLY : pi,gasc,mair
       IMPLICIT NONE
 
-
 C-----PASSED VARIABLE DECLARATIONS-----------------------------------
  
       INTEGER n,k,c,kk
       real*8, intent(in) :: ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
-      real*8, intent(in) :: ndist(nbins) !the number of particles in the box
-      real*8, intent(in) :: mdist(nbins,icomp) ! the mass of each component in the box. (kg)
+      real*8, intent(in) :: ndist2(nbins) !the number of particles in the box
+      real*8, intent(in) :: mdist2(nbins,icomp) ! the mass of each component in the box. (kg)
       real*8, intent(in) :: boxvolume  ! volume of box in cm3
-      real*8, intent(in) :: tscale ! the scale time for mixing (s)
+      real, intent(in) :: tscale ! the scale time for mixing (s)
       real*8, intent(out) :: ndistfinal(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8, intent(out) :: maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
 
@@ -2616,30 +2444,30 @@ C-----CODE-----------------------------------------------------------
 
 C     get the wet diameter of particles in each size bin
       do k=1,nbins
-         mp=0.1875*mdist(k,srtso4)
+         mp=0.1875*mdist2(k,srtso4)
          do c=1,icomp
-            mp = mp + mdist(k,c)
+            mp = mp + mdist2(k,c)
          enddo
-         if (ndist(k).eq.0.)then
+         if (ndist2(k).eq.0.)then
             mp=sqrt(xk(k)*xk(k+1))
          else
-            mp = mp / ndist(k)
+            mp = mp / ndist2(k)
          endif
-         if((mdist(k,srtso4)+mdist(k,srtna)+mdist(k,srtocil)+
-     &        mdist(k,srtdust)).eq.0)then
+         if((mdist2(k,srtso4)+mdist2(k,srtna)+mdist2(k,srtocil)+
+     &        mdist2(k,srtdust)).eq.0)then
             density=1400.
          else
-         mso4=mdist(k,srtso4) 
-         mnacl=mdist(k,srtna)
+         mso4=mdist2(k,srtso4) 
+         mnacl=mdist2(k,srtna)
          mno3=0.e0
          if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
          mnh4=0.1875*mso4  !assume ammonium bisulfate
-         mecob=mdist(k,srtecob)
-         mecil=mdist(k,srtecil)
-         mocil=mdist(k,srtocil)
-         mocob=mdist(k,srtocob)
-         mdust=mdist(k,srtdust)          
-         mh2o=mdist(k,srth2o)   
+         mecob=mdist2(k,srtecob)
+         mecil=mdist2(k,srtecil)
+         mocil=mdist2(k,srtocil)
+         mocob=mdist2(k,srtocob)
+         mdust=mdist2(k,srtdust)          
+         mh2o=mdist2(k,srth2o)   
 
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
@@ -2651,7 +2479,7 @@ C     get the total diameter of particles larger than each size bin
       diaml(nbins)=0. !no diameter larger than largest bin
       do kk=1,nbins-1
          k=nbins-kk
-         diaml(k) = diaml(k+1) + diameter(k+1)*ndist(k+1)/boxvolume ! m/cm3
+         diaml(k) = diaml(k+1) + diameter(k+1)*ndist2(k+1)/boxvolume ! m/cm3
       enddo
       
 C     get the fraction of the diameter larger that comes from each bin larger
@@ -2663,7 +2491,7 @@ C     get the fraction of the diameter larger that comes from each bin larger
       do k=1,nbins-1
          do kk=k+1,nbins
             if (diaml(k).ne.0.0)then
-               fracdiaml(k,kk)=diameter(kk)*ndist(kk)/boxvolume/diaml(k)
+              fracdiaml(k,kk)=diameter(kk)*ndist2(kk)/boxvolume/diaml(k)
             else
                fracdiaml(k,kk)=0.0
             endif
@@ -2682,8 +2510,6 @@ C     determine the coagulation rate for each size bin
 C     determine the number of new particles left after coagulation
       do k=1,nbins
          ndistfinal(k)=ndistinit(k)*exp(-kcoag(k)*tscale)
-!         print*,'ndistfinal',k,kcoag(k),diameter(k),diaml(k),
-!     *        ndistinit(k),ndistfinal(k)
       enddo
 
 C     determine the mass added to each bin coagulation
@@ -2699,7 +2525,6 @@ C     determine the mass added to each bin coagulation
 
       return
       end SUBROUTINE subgridcoag
-
 
       subroutine alloc_tracer_TOMAS_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
@@ -2731,7 +2556,6 @@ C     determine the mass added to each bin coagulation
      *     ICOMP-IDIAG,2))
      
       allocate(  TRM_EMIS(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
-!      allocate(  TOMAS_EMIS(I_0H:I_1H,J_0H:J_1H,IBINS,2) )
 
       return
       end subroutine alloc_tracer_TOMAS_com

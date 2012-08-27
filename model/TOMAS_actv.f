@@ -1071,6 +1071,9 @@ C MASS AND RADIUS GRID
       NBOTT(I) = N0*THETA**K*(GINLARGE-GINSMALL)
       NTOT = NTOT+NBOTT(I)
 cyhl Added by YUNHA Lee 
+c  DEC 2011 - NTOT is zero because GINLARGE and GINSMALL are same.  
+c  However, DB(I) and DB(I+1) are different. 
+c  When does gamma function give the same values for different DB(I)/THETA?
       if(I.EQ.11.AND.GINLARGE.EQ.GINSMALL)THEN
          PRINT*,'NTOT=0 BUT SET TO 100.'
          NTOT=100.

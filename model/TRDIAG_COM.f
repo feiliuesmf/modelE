@@ -107,7 +107,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
 #ifdef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktaijs=3590
+      INTEGER,PARAMETER :: ktaijs=3781 !3590
 #else
       INTEGER,PARAMETER :: ktaijs=2300
 #endif
@@ -390,7 +390,7 @@ C**** TCONSRV
      &                             +3
 #endif
 #ifdef TRACERS_TOMAS
-     &                             +3
+     &                             +6
 #endif
 !@param KTCON total number of conservation diagnostics for tracers
       INTEGER, PARAMETER :: KTCON=npts+ntcons+2
@@ -460,7 +460,8 @@ C**** TCONSRV
 !!    REAL*8 TRP_acc(ntm,IM,JM), TRE_acc(ntm,IM,JM)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+      (defined TRACERS_TOMAS)
 !@var PM2p5_acc, PM10_acc accumulation arrays for some SUBDD diags
 !@+ s prefix means SFC and l1 means L=1 accumulations. c prefix means
 !@+ concentration units (kg/m3) rather than the mass mixing ratio
@@ -1290,7 +1291,8 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TRP_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( TRE_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
       ALLOCATE (  sPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE (   sPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( csPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)

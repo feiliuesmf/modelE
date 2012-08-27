@@ -163,7 +163,7 @@ C*********************************************************************
       SUBROUTINE get_dep_vel(I,J,ITYPE,OBK,ZHH,USTARR,TEMPK,DEP_VEL,
      & stomatal_dep_vel,trnmm
 #ifdef TRACERS_TOMAS
-     & ,gs_vel,tm
+     & ,gs_vel
 #endif
      &     )
 !@sum  get_dep_vel computes the Bulk surface reistance to
@@ -257,11 +257,11 @@ C
       LOGICAL :: problem_point
 #ifdef TRACERS_TOMAS 
       real*8  XNU
-      integer binnum    !@var binnum size bin # that corresponds to current tracer
+      integer binnum,Ni    !@var binnum size bin # that corresponds to current tracer
       real*8 rb(NBINS)  !@var rb quasilaminar sublayer resistance (s m-1)
       real*8 vs(NBINS)  !@var vs gravitational settling velocity (m s-1)
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: gs_vel
-      REAL*8, INTENT(IN), DIMENSION(NTM) :: TM
+!      REAL*8, INTENT(IN), DIMENSION(NTM) :: TM
       real Dp(nbins),density(nbins) !particle diameter (m)
       real*8 Dk          !@var Dk particle diffusivity (m2/s)
       real*8 mu          !@var mu air viscosity (kg/m s)
@@ -284,6 +284,9 @@ C* Initialize VD and RSURFACE and reciprocal:
           RSURFACE(K,1:NTYPE) = 0.d0
           VD(K)               = 0.d0
           dep_vel(K)          = 0.d0
+#ifdef TRACERS_TOMAS
+          gs_vel(K)           = 0.d0
+#endif
        end if
       END DO    
 
@@ -647,12 +650,33 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             DTMP3=1.d0/(RAC(LDT)+RGSX)
             DTMP4=1.d0/(RDC+RCLX)
             RSURFACE(K,LDT) = 1.d0/(DTMP1+DTMP2+DTMP3+DTMP4)
-          ELSE IF (tr_wd_TYPE(K) == nPART) THEN ! AEROSOLS        
+          ELSE IF (tr_wd_TYPE(K) == nPART) THEN ! AEROSOLS  
+#ifdef TRACERS_TOMAS
+! for bulk aerosol model 
+            if(k.lt.IDTSO4)THEN 
+              VDS = 0.002d0*USTARR
+              IF(OBK < 0.)VDS = VDS*(1.d0+(-300.d0/OBK)**0.6667) 
+              IF(OBK == 0.) call stop_model('OBK=0 in TRDRYDEP',255)
+              CZH  = ZHH/OBK
+              IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
+
+            else
+!for size-resolved aerosol model
+       !use this formula for size-resolved aerosols
+       !Seinfeld & Pandis, eqn 19.7
+              binnum=mod(K-IDTSO4+1,NBINS)
+              if (binnum.eq.0) binnum=NBINS
+              VDS=1.d0/rb(binnum)
+              gs_vel(k)=vs(binnum) !grav. settling velocity for TOMAS model
+            endif
+#endif 
+#ifndef TRACERS_TOMAS
             VDS = 0.002d0*USTARR
             IF(OBK < 0.)VDS = VDS*(1.d0+(-300.d0/OBK)**0.6667) 
             IF(OBK == 0.) call stop_model('OBK=0 in TRDRYDEP',255)
             CZH  = ZHH/OBK
             IF(CZH < -30.)VDS=0.0009d0*USTARR*(-CZH)**0.6667
+#endif
             RSURFACE(K,LDT)=1.d0/MIN(VDS,1.d-4*REAL(IVSMAX(II)))
           END IF ! tracer type
           dep_vel(K)=1.d0/MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))

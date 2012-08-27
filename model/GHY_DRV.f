@@ -209,6 +209,10 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,mineralFractions
 #endif
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only :IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
+     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+#endif
 #endif
 #ifdef TRACERS_WATER
       use fluxes, only : atmlnd
@@ -328,9 +332,6 @@ c**** prescribed dust emission
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
-!#ifdef TRACERS_TOMAS
-!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
-!#endif
 cddd#ifdef TRACERS_GASEXCH_land_CO2
 cddd      USE FLUXES, only : TRGASEX
 cddd#endif
@@ -435,7 +436,6 @@ ccc accumulate tracer evaporation and runoff
       num_bin=0
       du_bin=0
       num_bin2=0
-!      TOMAS_emis(I,J,:,2)=0.
 #endif
       DO nx=1,ntx
         n=ntix(nx)
@@ -466,8 +466,9 @@ C**** fixed datasets are used, it can happen over land as well.
         case ('M_DDD_DU')
           trc_flux=sum(pbl_args%dust_flux(1:4))
 #endif
-!TOMAS - I don't think that seasalt emission is here.. 
+!TOMAS - I don't think that seasalt emission needs here.. 
 #ifdef TRACERS_TOMAS
+
           CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
      &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
      &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
@@ -478,10 +479,7 @@ C**** fixed datasets are used, it can happen over land as well.
      &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
           
           dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
-
-! NO subgrid coagulation for dust 
-!        TOMAS_EMIS(I,J,du_bin,2)= trc_flux*axyp(i,j)*ptype
-          
+       
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
      &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')

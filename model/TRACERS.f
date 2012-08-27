@@ -531,14 +531,12 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
       do n=1,ntm
         trflux1(:,:,n) = 0.
 #ifdef TRACERS_TOMAS
-        if(n.lt.idtso4.or.n.ge.IDTH2O) tomas_ntsurf = ntsurfsrc(n) !gas/h2o
-        if(n.ge.IDTNUMD.and.n.lt.IDTH2O) tomas_ntsurf=ntsurfsrc(IDTNUMD) !number
+        tomas_ntsurf = ntsurfsrc(n) 
+
+! Overwrite with first bin 
        if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
-!not here       if(n.ge.IDTNA.and.n.lt.IDTECOB) tomas_ntsurf = ntsurfsrc(n) !NACL
-!no surface emission for ecob and ecil for now!! 
        if(n.ge.IDTECOB.and.n.lt.IDTOCOB) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
        if(n.ge.IDTOCOB.and.n.lt.IDTDUST) tomas_ntsurf=ntsurfsrc(IDTOCOB) !ocob + ocil
-!not here       if(n.ge.IDTDUST.and.n.lt.IDTNUMD) tomas_ntsurf = ntsurfsrc(n) !DUST
 
        do ns=1,tomas_ntsurf
 #else
@@ -913,18 +911,13 @@ C****
       integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
 #ifdef TRACERS_TOMAS
-
       integer binnum,k
-      real*8 vs(NBINS)          !gravitational settling velocity (m s-1)
-      real Dp(nbins)            !particle diameter (m)
-      real density                 !density (kg/m3) of current size bin
-      real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
-      real mecil,mecob,mocil,mocob
-      real mdust,mtot,mnacl             
-      real*8 mp          !particle mass (kg)
-      real*8 mu          !air viscosity (kg/m s)
-      real aerodens
-      external aerodens
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm,NBINS) :: vs !gravitational settling velocity (m s-1)
+      real Dp_gr(nbins)         !particle diameter (m)
+      real density_gr(nbins)    !density (kg/m3) of current size bin           
+      real*8 mp                 !particle mass (kg)
+      real*8 mu                 !air viscosity (kg/m s)
 #endif
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
@@ -1002,73 +995,18 @@ C**** and slip correction factor)
      *         ,tr_dens,visc(i,j,l),hydrate)
           
        elseif(n.ge.IDTSO4) then
-          
-          if(n.eq.IDTSO4)THEN
-          DO K=1,NBINS
-             mso4=TRM(i,j,l,IDTSO4-1+k) 
-             mnacl=TRM(i,j,l,IDTNA-1+k)
-             mno3=0.e0
-             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-             mnh4=0.1875*mso4   !assume ammonium bisulfate
-             mecob=TRM(i,j,l,IDTECOB-1+k)
-             mecil=TRM(i,j,l,IDTECIL-1+k)
-             mocil=TRM(i,j,l,IDTOCIL-1+k)
-             mocob=TRM(i,j,l,IDTOCOB-1+k)
-             mdust=TRM(i,j,l,IDTDUST-1+k)          
-             mh2o=TRM(i,j,l,IDTH2O-1+k)   
-             
-             if ((mnacl) .lt. 0) mnacl=0.
-             if ((mecob) .lt. 0) mecob=0.
-             if ((mecil) .lt. 0) mecil=0.
-             if ((mocob) .lt. 0) mocob=0.
-             if ((mocil) .lt. 0) mocil=0.
-             if ((mdust) .lt. 0) mdust=0.
-             
-             
-             mtot= 1.1875*mso4+mnacl+mecil+mecob+
-     *            mocil+mocob+mdust+mh2o
-             
-             density=aerodens(mso4, mno3,mnh4 !mno3 taken off!
-     *            ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate     
-                 
 
-             if (TRM(i,j,l,IDTNUMD-1+k) .gt.1.d-20) then  ! arbituary number !
-                mp=mtot/(TRM(i,j,l,IDTNUMD-1+k))
-             else
-                mp=sqrt(xk(k+1)*xk(k))
-             endif
-             
-!     fix unrealistically large mp for low aerosol conc.
-             if (mp .gt. 1.d3*xk(NBINS+1)) then            
-                if ((TRM(i,j,l,IDTNUMD-1+k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
-     &               (TRM(i,j,l,IDTSO4-1+k) .lt. 3.)) then
-                   mp=sqrt(xk(k+1)*xk(k))
-                else
-                   if (TRM(i,j,l,IDTNUMD-1+k) .gt. 1.d12) then
-                      print*,'ERROR in TRGRAV: mp too large'
-                      print*, 'bin=',k,'i,j,',i,j,l
-                      print*, 'TRM(#)=', TRM(i,j,l,IDTNUMD-1+k)
-                      print*, 'TRM(SO4)=', mso4, mh2o
-                      print*, 'TRM(NACL)=', mnacl, mdust
-                      print*, 'TRM(OC)=',mocob,mocil
-                      print*, 'TRM(EC)=',mecob,mecil
-                      call stop_model('mp too large TRGRAV',13)
-                   endif
-                endif
-             endif
-
-!     print*,'getdp',k, mp,size_density(k)
-             Dp(k)=(6.d0*mp/(pi*density))**(1.d0/3.d0)   
-             vs(k)=density*(dp(k)**2)*grav
-     *            /18.d0/visc(i,j,l)     
-          enddo
-          
-       endif !N=IDTSO4
-
+         if(n.eq.IDTSO4)THEN
+C 02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
+            call dep_getdp(i,j,l,Dp_gr,density_gr) 
+            do k=1,nbins
+              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
+     *             /18.d0/visc(i,j,l) 
+            enddo
+          endif
           binnum=mod(N-IDTSO4+1,NBINS)
-          if (binnum.eq.0) binnum=NBINS
-          
-          stokevdt=dtsrc*vs(binnum) !grav. settling velocity for TOMAS model
+          if (binnum.eq.0) binnum=NBINS          
+          stokevdt=dtsrc*vs(i,j,l,binnum) !grav. settling velocity for TOMAS model
        endif !size-resolved aerosols
 
 #endif
@@ -1363,12 +1301,14 @@ C**** check whether air mass is conserved
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -1388,7 +1328,7 @@ C**** check whether air mass is conserved
 #endif
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
   
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1411,7 +1351,8 @@ C**** check whether air mass is conserved
 #endif
       real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc_glob
      &     ,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
       real(kind=8),allocatable,dimension(:,:) :: sPM2p5_acc_glob
      &     ,sPM10_acc_glob,l1PM2p5_acc_glob,l1PM10_acc_glob
      &     ,csPM2p5_acc_glob,csPM10_acc_glob
@@ -1452,7 +1393,7 @@ C**** check whether air mass is conserved
      &    ,Aijl_glob(img,jmg,LM)
      &     )
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       allocate( snosiz_glob(img,jmg) )
 #endif
 
@@ -1481,7 +1422,8 @@ C**** check whether air mass is conserved
 
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
      &        ,trcSurfByVol_acc_glob(im,jm,NTM))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
       allocate(sPM2p5_acc_glob(im,jm)
      &        ,sPM10_acc_glob(im,jm)
      &        ,l1PM2p5_acc_glob(im,jm)
@@ -1531,8 +1473,8 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ricntd_glob,pprec_glob,pevap_glob
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
-       header='TRACERS_AEROSOLS_Koch: snosiz(i,j)'
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+       header='BC_albedo_effect: snosiz(i,j)'
         call pack_data(grid,snosiz(:,:),snosiz_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,snosiz_glob
 #endif
@@ -1684,7 +1626,8 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 
        call pack_data(grid,trcSurfMixR_acc,trcSurfMixR_acc_glob)
        call pack_data(grid,trcSurfByVol_acc,trcSurfByVol_acc_glob)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
        call pack_data(grid,sPM2p5_acc,sPM2p5_acc_glob)
        call pack_data(grid,sPM10_acc,sPM10_acc_glob)
        call pack_data(grid,l1PM2p5_acc,l1PM2p5_acc_glob)
@@ -1695,7 +1638,8 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='accumulation arrays for subdd diagnostics for tracers'
        if (am_i_root()) write(kunit,err=10) header,trcSurfMixR_acc_glob
      &      ,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &      ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
@@ -1741,7 +1685,7 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           CALL unpack_data(grid,pevap_glob,pevap)
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
           if(am_i_root())read(kunit,err=10)header,snosiz_glob
           call unpack_data(grid,snosiz_glob(:,:),snosiz(:,:))
 #endif
@@ -1849,7 +1793,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
           if (am_i_root()) read(kunit,err=10) header
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &         ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
@@ -1860,7 +1805,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
           call unpack_data(grid,trcSurfMixR_acc_glob,trcSurfMixR_acc)
           call unpack_data(grid,trcSurfByVol_acc_glob,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
           call unpack_data(grid,sPM2p5_acc_glob,sPM2p5_acc)
           call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
           call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
@@ -1900,11 +1846,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
      &     )
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       deallocate(snosiz_glob)
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
       deallocate(sPM2p5_acc_glob, sPM10_acc_glob, l1PM2p5_acc_glob,
      & l1PM10_acc_glob, csPM2p5_acc_glob, csPM10_acc_glob)
 #endif
@@ -1950,11 +1897,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: def_rsf_trdust
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -2055,7 +2003,8 @@ c daily_z is currently only needed for CS
      &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
       call defvar(grid,fid,trcSurfByVol_acc
      &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
       call defvar(grid,fid,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
       call defvar(grid,fid,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
       call defvar(grid,fid,l1PM2p5_acc,'l1PM2p5_acc(dist_im,dist_jm)')
@@ -2074,7 +2023,7 @@ c daily_z is currently only needed for CS
       call def_rsf_trdust(fid)
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
 #endif
 
@@ -2112,11 +2061,12 @@ c daily_z is currently only needed for CS
       use trdust_drv, only: new_io_trdust
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       use domain_decomp_atm, only : grid
@@ -2200,7 +2150,8 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
         call write_dist_data(grid,fid,'trcSurfByVol_acc'
      &       ,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
         call write_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
         call write_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call write_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
@@ -2217,7 +2168,7 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'pevap',pevap)
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
         call write_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
@@ -2304,7 +2255,8 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
         call read_dist_data(grid,fid,'trcSurfByVol_acc'
      &       ,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
         call read_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
         call read_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call read_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
@@ -2321,7 +2273,7 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'pevap',pevap)
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
         call read_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 

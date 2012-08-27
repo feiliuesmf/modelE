@@ -916,16 +916,15 @@ c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
       call surface_diag1(dtsurf,moddsf,trhdt_sv2)
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_TOMAS
+C**** Apply subgrid coagulation for freshly emitted particles
+      call subgridcoag_drv_2D(dtsurf)
+
+#endif
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_2Dsource(dtsurf)
-#endif
-
-#ifdef TRACERS_TOMAS
-C**** Apply subgrid coagulation for freshly emitted particles
-        call subgridcoag_drv_2D(dtsurf)
-
 #endif
 
 c****
@@ -1923,17 +1922,16 @@ c
       real*8 :: trc_flux
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin
-      real*8 ss_num(nbins),tot_seasalt
-      real*8, parameter :: scalesizeSS(nbins)=(/!0.0,0.0,0.0,
-     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
-     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
-     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
+      real*8 ss_num(nbins)
+c$$$      real*8, parameter :: scalesizeSS(nbins)=(/!0.0,0.0,0.0,
+c$$$     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+c$$$     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+c$$$     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
 #endif
 c
 #ifdef TRACERS_TOMAS
       ss_bin=0
       num_bin=0
-!      TOMAS_emis(I,J,:,1)=0.
 #endif
 C**** Loop over tracers
       DO NX=1,pbl_args%NTX
@@ -1963,13 +1961,10 @@ C****
      &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
 
           ss_bin=ss_bin+1
-          if(ss_bin.eq.1)
-     &     tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
+          trc_flux=pbl_args%tomas_ss_flux(ss_bin)
 
-          trc_flux=tot_seasalt*scalesizeSS(ss_bin)
-          ss_num(ss_bin)=tot_seasalt*scalesizeSS(ss_bin)
+          ss_num(ss_bin)=(pbl_args%tomas_ss_flux(ss_bin))
      &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
-
 ! No subgrid coagulation for sea-salt
 !        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
 

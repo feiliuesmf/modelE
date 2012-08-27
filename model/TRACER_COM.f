@@ -325,7 +325,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      &     IDTDUST = IDTOCIL+NBINS, !216
      &     IDTNUMD = IDTDUST+NBINS,
      &     IDTH2O  = IDTNUMD+NBINS  !246
-      double precision, dimension(nbins) :: xk(nbins+1)
+      double precision, dimension(nbins+1) :: xk
 !      integer, parameter :: oldNTM=ntm_tomas
       integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
 

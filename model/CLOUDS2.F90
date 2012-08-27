@@ -3663,8 +3663,9 @@ contains
 !         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
 
 !2. computed using EGCM
+! TOMAS (Nov 2011) WPARC results in too high CDNC. So it reduced by 7 times (arbitrary)
 
-        WPARC=v0(mkx) !wturb=sqrt(0.6667*EGCM(l,i,j))
+        WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
 !End of updrate velocity option. 
 
 
@@ -3681,8 +3682,8 @@ contains
             CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
                  ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
          ELSE
-!YUNHA- I don't know how to set the minimum NACT. For now, I put the same mininum as Nenes.  
-            NACT = 40.d6 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
+!YUNHA- The minimum NACT is set to 1 instead of 40.d6, which is used for old GISS-TOMAS model.
+            NACT = 1.0 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
             SMAX = 0.0001    ! Minimum supersaturation
          ENDIF
        NACTL(mkx)=NACT

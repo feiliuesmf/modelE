@@ -1761,6 +1761,10 @@ subroutine CONDSE
 #endif
 #endif
 
+#ifdef TRACERS_TOMAS
+!C     To fix inconsistent aerosol size distribution and water eqm. 
+      CALL aeroupdate
+#endif
   !
   !     NOW UPDATE THE MODEL WINDS
   !

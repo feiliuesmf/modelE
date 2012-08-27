@@ -578,6 +578,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 c
       ss=0.
       erate=0.d0
+#ifndef TRACERS_TOMAS
       if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
         if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
@@ -629,6 +630,54 @@ c if after Feb 28 skip the leapyear day
           ss=SS2_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
         endif
       endif
+#endif /* TRACERS_TOMAS */
+
+#ifdef TRACERS_TOMAS 
+      if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
+        if (itype.eq.1) then
+          erate=1.373d0*swind**3.41d0 !Gong
+          if (ibin.eq.1) then 
+            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
+          elseif (ibin.eq.2)then
+            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
+          elseif (ibin.eq.3)then
+            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
+          elseif (ibin.eq.4)then
+            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
+          elseif (ibin.eq.5)then
+            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
+          elseif (ibin.eq.6)then
+            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
+          elseif (ibin.eq.7)then
+            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
+          elseif (ibin.eq.8)then
+            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
+          elseif (ibin.eq.9)then
+            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
+          elseif (ibin.eq.10)then
+            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
+          elseif (ibin.eq.11)then
+            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
+          elseif (ibin.eq.12)then
+            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
+          endif
+
+!#ifdef TRACERS_AEROSOLS_OCEAN
+!            if (trim(tr).eq.'OCocean') then
+!              ss=ss*OC_SS_enrich_fact(i,j)
+!            else
+!              ss=ss*(1.d0-OC_SS_enrich_fact(i,j))
+!            endif
+!#endif  /* TRACERS_AEROSOLS_OCEAN */
+         endif
+       else
+C TOMAS don't allow offline SS! 
+        call stop_model('TOMAS: NO offline Sea-salt emission',255)
+       endif
+
+#endif 
+
+
       return
       end SUBROUTINE read_seasalt_sources
 
@@ -726,10 +775,11 @@ C**** initialise source arrays
         tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#ifdef TRACERS_AMP
         tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
 #endif
 #ifdef TRACERS_TOMAS
+        tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2SO4)=0. ! H2O2 chem sink
         H2SO4_chem(:,j_0:j_1,:)=0.0
         do k=1,nbins
            tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECOB(k))=0.
@@ -983,8 +1033,7 @@ c SO2 production from DMS
 #ifdef TRACERS_TOMAS 
 ! EC/OC aging 
         case ('AECIL_01')
-           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day 
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
 
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
@@ -996,12 +1045,13 @@ c SO2 production from DMS
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 
 !              IF(am_i_root())
-!     &      print*,'ECOB aging',n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro)) 
+!         print*,'ECOB aging',k,n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!     &  , trm(i,j,l,n_AECOB(K))
            ENDDO
            
         case ('AOCIL_01')
-           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
+
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
      &             =trm(i,j,l,n_AOCOB(K))*
@@ -1012,7 +1062,8 @@ c SO2 production from DMS
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 !     &             4.3D-6
 !              IF(am_i_root())
-!     &      print*,'OCOB aging',n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!         print*,'OCOB aging',k,n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!     &  , trm(i,j,l,n_AOCOB(K))
 
            ENDDO   
 

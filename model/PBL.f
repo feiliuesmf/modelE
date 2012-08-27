@@ -188,6 +188,9 @@ c**** output
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
         real*8 :: DMS_flux,ss1_flux,ss2_flux
+#ifdef TRACERS_TOMAS
+        real*8,dimension(nbins)::  tomas_ss_flux
+#endif /* TRACERS_TOMAS */ 
 #endif
 #ifdef TRACERS_AEROSOLS_OCEAN
         real*8 :: OCocean_flux
@@ -475,16 +478,27 @@ C****
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-      real*8, dimension(NTM) :: tr_dum
+      real*8 ss_emis
+!      real*8, dimension(ntm) :: tr_dum
       real*8, parameter :: scalesizeSS(nbins)=(/
      *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
      *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
      *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
-!scalesizeDU : distribute clay mass into bins from 10nm to 1 um. This is number is clay+silt! Should be updated only for clay size distribution. 
-      real*8, parameter :: scalesizeDU(nbins)=(/
-     &     7.33E-10,2.032E-08,3.849E-07,5.01E-06,
-     &     4.45E-05,2.714E-04,1.133E-03,3.27E-03,6.81E-03,
-     &     1.276E-02,2.155E-01,6.085E-01/)
+
+!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
+!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
+      real*8, parameter :: scalesizeClay(nbins)=(/
+     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
+     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
+     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
+!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
+!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
+!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
+      real*8, parameter :: scalesizeSilt(nbins)=(/
+     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
+     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
+     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+
 #endif
       if(xdelt /= 0d0) call stop_model(
      &     'PBL.f is not yet compatible with xdelt==deltx',255)
@@ -725,19 +739,10 @@ C**** First, define some useful quantities
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
 C**** for all dry deposited tracers
-#ifdef TRACERS_TOMAS
-!TOMAS - I think that tr is same in all PBL layer initially.
-!      At the end of this subroutine, tr at each PBL layer is computed. 
-!      So, I think it is okay to use tr(1,nx) instead of each PBL layer.   
-      do nx=1,pbl_args%ntx 
-         tr_dum(pbl_args%ntix(nx))=tr(1,nx)
-         pbl_args%gs_vel(pbl_args%ntix(nx))=0.
-      end do
-#endif
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
      &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm
 #ifdef TRACERS_TOMAS
-     &     ,pbl_args%gs_vel,tr_dum
+     &     ,pbl_args%gs_vel
 #endif
      &     )
 #endif
@@ -856,16 +861,13 @@ C****   4) tracers with interactive sources
      &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
      &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
         ss_bin=ss_bin+1
-        if(ss_bin.eq.1)then          
-           call read_seasalt_sources(ws,itype,1,ilong,jlat
-     &          ,pbl_args%ss1_flux)
-           call read_seasalt_sources(ws,itype,2,ilong,jlat
-     &          ,pbl_args%ss2_flux)
-           tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
-        endif
-          trcnst=tot_seasalt*byrho
-     &         *scalesizeSS(ss_bin)
-          ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
+       
+        call read_seasalt_sources(ws,itype,ss_bin,ilong,jlat
+     &       ,ss_emis,trname(pbl_args%ntix(itr)))
+        
+        pbl_args%tomas_ss_flux(ss_bin)=ss_emis
+        trcnst=pbl_args%tomas_ss_flux(ss_bin)*byrho
+        ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
 #endif 
         end select
 #endif
@@ -952,34 +954,33 @@ ccc dust emission from earth
         CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
      &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
      &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
-          du_bin=du_bin+1
+           du_bin=du_bin+1
           if(du_bin.eq.1)then
              n1=1
                 CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx,dsrcflx2)
-                tot_dust=dsrcflx
                 pbl_args%dust_flux(n1)=dsrcflx
                 pbl_args%dust_flux2(n1)=dsrcflx2
-          endif          
-          if(du_bin.le.10) trcnst=tot_dust*byrho*scalesizeDU(du_bin) 
-
-          if(du_bin.eq.11)then
              n1=2             !silt1
                 CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx, dsrcflx2)
-                tot_dust=dsrcflx
-                trcnst=tot_dust*byrho
                 pbl_args%dust_flux(n1)=dsrcflx
                 pbl_args%dust_flux2(n1)=dsrcflx2
-          elseif(du_bin.eq.12)then
              n1=3               !silt2
                 CALL local_dust_emission(n1,wsgcm,pbl_args,
      &              dsrcflx, dsrcflx2)
-                tot_dust=dsrcflx
-                trcnst=tot_dust*byrho
                 pbl_args%dust_flux(n1)=dsrcflx
-                pbl_args%dust_flux2(n1)=dsrcflx2                
+                pbl_args%dust_flux2(n1)=dsrcflx2 
+            n1=4              !silt3
+                CALL local_dust_emission(n1,wsgcm,pbl_args,
+     &              dsrcflx, dsrcflx2)
+                pbl_args%dust_flux(n1)=dsrcflx
+                pbl_args%dust_flux2(n1)=dsrcflx2                 
           endif
+
+          trcnst=pbl_args%dust_flux(1)*byrho*scalesizeclay(du_bin)
+     &       +sum(pbl_args%dust_flux(2:4))*byrho*scalesizesilt(du_bin)
+
           dust_num(du_bin)=trcnst/sqrt(xk(du_bin)*xk(du_bin+1))
           
 !TOMAS - Silt3 is out of size range for TOMAS. 

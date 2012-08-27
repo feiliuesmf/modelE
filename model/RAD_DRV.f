@@ -2092,9 +2092,7 @@ C**** or not.
       O3natL(:)=O3JDAY_native(:,I,J)
       O3natLref(:)=O3JREF_native(:,I,J)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-
+C YUNHA LEE - took the shindell outside of the Koch/dust directives. 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
       CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
@@ -2107,6 +2105,9 @@ C**** Ozone and Methane:
      &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
       if (NTRACE>0 .and. moddrf==0) then
         FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
