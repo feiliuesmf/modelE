@@ -88,10 +88,12 @@ C**** initiallise all netcdf parameters etc.
 C**** get current 'zirk'ulating year (calculated from iyear1)
 C**** thus if iyear=iyear1, file u0.nc will be read
 
-      write(nstr1,'(I0)') jyear - iyear1
+      write(nstr1,'(I0)') modelEclock%year() - iyear1
 
-      step_rea = INT( (((jday - 1) * 24) + jhour)/6) + 1
-      print*,'READING REANALYSIS INIT ',jhour, jday, step_rea
+      step_rea = INT( (((modelEclock%dayOfYear() - 1) * 24) + 
+     &  modelEclock%hour())/6) + 1
+      print*,'READING REANALYSIS INIT ',modelEclock%hour(), 
+     &  modelEclock%dayOfYear(), step_rea
 
 C**** always need to open at least one file
 
@@ -109,7 +111,7 @@ C**** read in second set of nudged winds
 C**** if near end of year, may need to open another file
       if (step_rea.eq.nts_max+1) then
         step_rea=1
-        write(nstr2,'(I0)') jyear - iyear1 + 1
+        write(nstr2,'(I0)') modelEclock%year() - iyear1 + 1
         if (am_i_root()) then
           call close_nudge_file(nstr1)
           call  open_nudge_file(nstr2)
@@ -139,7 +141,8 @@ c******************************************************************
       character(len=3) :: nstr1,nstr2
 
 C**** Check whether nudged winds need to be updated
-      step_rea_1 = INT( (((jday - 1) * 24) + jhour)/6) + 2
+      step_rea_1 = INT( (((modelEclock%dayOfYear() - 1) * 24) + 
+     *  modelEclock%hour())/6) + 2
       if (step_rea.lt.step_rea_1 .and. (mod(itime,nday/4).eq.0.))
      *     then                 ! they do
 
@@ -151,8 +154,8 @@ C**** check whether new file is needed
 
         if (step_rea.eq.nts_max+1) then
           step_rea = 1
-          write(nstr1,'(I0)') jyear - iyear1
-          write(nstr2,'(I0)') jyear - iyear1 + 1
+          write(nstr1,'(I0)') modelEclock%year() - iyear1
+          write(nstr2,'(I0)') modelEclock%year() - iyear1 + 1
           if (am_i_root()) then
             call close_nudge_file(nstr1)
             call  open_nudge_file(nstr2)
