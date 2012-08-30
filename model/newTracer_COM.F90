@@ -15,14 +15,19 @@ contains
 !**** do igas=1,ntm_chem instances get corrected.
 
   subroutine printTracerNames(tracerNames)
+    use domain_decomp_atm, only: am_i_root
+
     character(len=MAXLEN_TRACER_NAME), allocatable :: tracerNames(:)
     integer :: ntm       ! # of tracers
     integer :: i
 
     NTM = size(tracerNames)
-    do i=1,NTM
+    
+    if (am_i_root()) then
+      do i=1,NTM
         write(6,*) 'TRACER',i,trim(tracerNames(i))
-    end do
+      end do
+    end if
   end subroutine printTracerNames
     
  

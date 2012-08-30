@@ -5,7 +5,6 @@ define([PROPERTIES_AND_TYPES],
  [(tr_mm,real*8,,!@var TR_MM: molecular mass of each tracer (g/mole)),
   (ntm_power,integer,,Power of 10 associated with each tracer (for printing)),
   (t_qlimit,logical,.true.,if t_qlimit=.true. tracer is maintained as positive),
-  (ntsurfsrc,integer,0,no. of non-interactive surface sources for each tracer),
   (needtrs,logical,.false.,true if surface tracer value from PBL is required),
   (trdecay,real*8,0.d0,radioactive decay constant (1/s) (=0 for stable tracers)),
   (itime_tr0,integer,,start time for each tracer (hours)),
@@ -101,20 +100,25 @@ ifelse($1,emisPerFireByVegType,,
 ])dnl
 
 module OldTracer_mod
+  use TracerBundle_mod
+  use Tracer_mod
   implicit none
   private
 
   public :: OldTracer_type
   public :: initializeOldTracers
   public :: makeNewTracers
-  public :: addTracer
+  public :: oldAddTracer
+  public :: tracers
+  public :: trName
+  public :: MAX_LEN_NAME
 
   public :: nGAS, nPART, nWATER
 
   foreach([property],PROPERTIES,[DECLARE_ACCESSORS(property)])
   foreach([property],PROPERTIES,[OVERLOAD_ACCESSORS(property)])
 
-  integer, parameter :: MAX_LEN_NAME = 8
+  integer, parameter :: MAX_LEN_NAME = 20
 !**** parameters for tr_wd_TYPE
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
@@ -131,14 +135,48 @@ foreachq([property_and_type],[PROPERTIES_AND_TYPES],[_cat([DECLARE_COMPONENT],pr
 
   integer, save :: numTracers = 0
   type (OldTracer_type), allocatable :: tracers(:)
+  procedure(IdefaultSpec), pointer :: defaultSpec
+
+  abstract interface
+    subroutine IdefaultSpec(n_idx, trcer)
+    use Tracer_mod
+    integer, intent(in) :: n_idx
+    type (Tracer_type), pointer :: trcer
+    end subroutine IdefaultSpec
+  end interface
+
+  interface trName
+    module procedure trname_s
+    module procedure trname_all
+  end interface trName
+  
+  type (TracerBundle_type), pointer :: tracerReference => null()
 
 contains
 
-  subroutine initializeOldTracers()
+  function trName_s(idx) result(name)
+    integer, intent(in) :: idx
+    character(len=len_trim(tracers(idx)%name)) :: name
+    name = trim(tracers(idx)%name)
+  end function trName_s
+
+  function trName_all() result(name)
+    character(len=MAX_LEN_NAME) :: name(numTracers)
+    name = tracers(:)%name
+  end function trName_all
+
+  subroutine initializeOldTracers(tracerRef, spec)
+    type (TracerBundle_type), target :: tracerRef
+    procedure(IdefaultSpec) :: spec
+
+    tracerReference => tracerRef
+    defaultSpec => spec
     allocate(tracers(0))
+    
   end subroutine initializeOldTracers
 
-  subroutine addTracer(name)
+  integer function oldAddTracer(name) result(n)
+    use TracerBundle_mod, only: getTracer
     character(len=*), intent(in) :: name
     type (OldTracer_type), allocatable :: tmp(:)
 
@@ -153,16 +191,20 @@ contains
     numTracers = numTracers + 1
     tracers(numTracers)%name = trim(name)
 
-  end subroutine addTracer
+    call addTracer(tracerReference, Tracer(name))
+    call defaultSpec(numTracers, getTracer(tracerReference, name))
+    n = numTracers
+
+  end function oldAddTracer
 
   function makeNewTracers() result (bundle)
-    use Tracers_mod, only: Tracer_type
-    use Tracers_mod, only: Tracer
+    use Tracer_mod, only: Tracer_type
+    use Tracer_mod, only: Tracer
     use TracerBundle_mod, only: TracerBundle_type
     use TracerBundle_mod, only: TracerBundle
     use TracerBundle_mod, only: addTracer
-    use Tracers_mod, only: setProperty
-    use Tracers_mod, only: clean
+    use Tracer_mod, only: setProperty
+    use Tracer_mod, only: clean
     type (TracerBundle_type), pointer :: bundle
 
     type (Tracer_type) :: aTracer

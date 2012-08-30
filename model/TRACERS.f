@@ -642,12 +642,15 @@ C****
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : NTM,trm,trmom,trname,alter_sources,
-     * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
-     * ,tr_sect_index3D,num_tr_sectors3d
+     * ef_FACT3d,tracers
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
+      use TracerSource_mod, only: TracerSource3D
+      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer_type
+      use EmissionRegion_mod, only: numRegions, regions
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -662,6 +665,9 @@ C****
       INTEGER :: J_0, J_1, I_0, I_1
       integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
       real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
+
+      type (TracerSource3D), pointer :: source
+      type (Tracer_type), pointer :: tracer
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -683,14 +689,14 @@ C**** Modify tracer amount, moments, and diagnostics
       naij = ijts_3Dsource(ns,n)
 
 C**** apply tracer source alterations if requested in rundeck:
+      tracer => getTracer(tracers, n)
+      source => tracer%sources3D(ns)
       if (alter_sources) then
-        do kreg = 1, num_regions
+        do kreg = 1, numRegions
           do j = j_0, j_1
             do i = i_0, imaxj(j)
-              if (lat2d_dg(i,j) >= REG_S(kreg) .and. 
-     &            lat2d_dg(i,j) <= REG_N(kreg) .and.
-     &            lon2d_dg(i,j) >= REG_W(kreg) .and.
-     &            lon2d_dg(i,j) < REG_E(kreg) ) then
+              if (regions(kreg)%hasLatLon(lat2d_dg(i,j),lon2d_dg(i,j)))
+     &             then
                  mask(i,j) = 1
               else
                  mask(i,j) = 0
@@ -698,8 +704,8 @@ C**** apply tracer source alterations if requested in rundeck:
             end do
           end do
 
-          do nsect = 1, num_tr_sectors3d(n,ns)
-            nn = tr_sect_index3D(n, ns, nsect)
+          do nsect = 1, source%num_tr_sectors
+            nn = source%tr_sect_index(nsect)
             if (ef_FACT3d(nn,kreg) > -1.e20) then
               do j = j_0, j_1
                  do i = i_0, imaxj(j)
@@ -1115,7 +1121,7 @@ C****
         if (modelEclock%dayOfYear().le.16)  then ! JDAY in Jan 1-15, first month is Dec
           CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,12)
           CALL REWIND_PARALLEL( iu )
-        else            ! JDAY is in Jan 16 to Dec 16, get first month
+        else            ! JDAY is in Jan 17 to Dec 16, get first month
   120     imon=imon+1
           if (modelEclock%dayOfYear().gt.idofm(imon) 
      &        .AND. imon.le.INT_MONTHS_PER_YEAR)
@@ -2072,10 +2078,12 @@ c daily_z is currently only needed for CS
       use pario, only : write_dist_data,read_dist_data,read_data,
      & write_data
       USE Dictionary_mod
+
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
+
       select case (iaction)
       case (iowrite)            ! output to restart file
         do n=1,NTM
@@ -2294,524 +2302,6 @@ c daily_z is currently only needed for CS
 #endif /* TRACERS_ON */
 #endif /* NEW_IO */
 
-      subroutine num_srf_sources(nt,checkname)
-!@sum reads headers from emission files to return
-!@+ source names and determine the number of sources
-!@+ from the number of files in the rundeck of the form:
-!@+ trname_##. Then assigns each source to sector(s),
-!@+ based on definitions in the rundeck.
-!@auth Greg Faluvegi
-
-      use TRACER_COM, only : ntsurfsrcmax,trname,
-     & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
-     & tr_sect_name, sect_name
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
-     &                             am_i_root, write_parallel
-      USE FILEMANAGER, only: openunit,closeunit
-      use Dictionary_mod, only : sync_param
-      Use OldTracer_mod, only: set_ntsurfsrc
-    
-      implicit none
-
-!@var nsrc number of source to define ntsurfsrc(n)
-      integer, intent(in) :: nt
-      integer :: n,iu,i,j,nsect,nn
-      character*2 :: fnum
-      character*80 :: fname
-      character*32 :: pname
-      character*124 :: tr_sectors_are
-      character(len=300) :: out_line
-      logical :: qexist,checkname
-      integer :: nsrc
-
-! loop through potential number of surface sources, checking if
-! those files exist. If they do, obtain the source name by reading
-! the header. If not, the number of sources for this tracer has 
-! been reached.
-
-      nsrc=0
-      if (am_i_root()) 
-     &  print*,__LINE__,__FILE__,' nt = ', nt, nsrc, ntsurfsrcmax
-      loop_n: do n=1,ntsurfsrcmax
-        if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
-        else ; write(fnum,'(I2)')n ; endif
-        fname=trim(trname(nt))//'_'//fnum
-        if (am_i_root()) print*,'name: ', trim(fname)
-        inquire(file=trim(fname),exist=qexist)
-        if (am_i_root()) print*,'name: ', trim(fname), qexist
-        if(qexist) then
-          nsrc=nsrc+1
-          call openunit(fname,iu,.true.)
-          call read_emis_header(nt,n,iu,checkname)
-          call closeunit(iu)
-! -- begin sector  stuff --
-          tr_sectors_are = ' '
-          pname=trim(trim(fname)//'_sect')
-          call sync_param(pname,tr_sectors_are)
-          num_tr_sectors(nt,n)=0
-          i=1
-          do while(i < len(tr_sectors_are))
-            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-            if (j > 1) then
-              num_tr_sectors(nt,n)=num_tr_sectors(nt,n)+1
-              i=i+j
-            else
-              i=i+1
-            end if
-          enddo
-          if(num_tr_sectors(nt,n) > n_max_sect) call stop_model
-     &    ("num_tr_sectors problem",255)
-          if(num_tr_sectors(nt,n) > 0)then
-            read(tr_sectors_are,*)
-     &      tr_sect_name(nt,n,1:num_tr_sectors(nt,n))
-            do nsect=1,num_tr_sectors(nt,n)
-              tr_sect_index(nt,n,nsect)=0
-              loop_nn: do nn=1,num_sectors
-                if(trim(tr_sect_name(nt,n,nsect)) ==
-     &          trim(sect_name(nn))) then
-                  tr_sect_index(nt,n,nsect)=nn
-                  exit loop_nn
-                endif
-              enddo loop_nn
-            enddo
-          endif
-! -- end sector stuff --
-        else
-          exit loop_n
-        endif
-      enddo loop_n
-
-! and make sure there isn't a skip:
-
-      n=n+1
-      if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
-      else ; write(fnum,'(I2)')n ; endif
-      fname=trim(trname(nt))//'_'//fnum
-      inquire(file=fname,exist=qexist)
-      if(qexist) then
-        write(out_line,*)'problem with num_srf_sources'
-        call write_parallel(trim(out_line))
-        call stop_model(trim(out_line),255)
-      endif
-
-      if (am_i_root()) print*,__LINE__,__FILE__,' nt = ', nt, nsrc
-      call set_ntsurfsrc(nt, nsrc)
-
-      end subroutine num_srf_sources
-
-
-      subroutine read_sfc_sources(n,nsrc,xyear,xday,checkname)
-!@sum reads surface (2D generally non-interactive) sources
-!@auth Jean Lerner/Greg Faluvegi
-      USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds,
-     &     readt_parallel, write_parallel
-      use TimeConstants_mod, only: DAYS_PER_YEAR
-      USE FILEMANAGER, only: openunit,closeunit, nameunit
-      USE TRACER_COM,only:itime_tr0,trname,sfc_src,NTM,
-     &     ntsurfsrcmax,
-     & freq,nameT,ssname,ty_start,ty_end,delTyr
-   
-      implicit none
-      
-      integer :: iu,ns,k,ipos,kx,kstep=10
-      integer, intent(in) :: nsrc,n
-      character*80 :: fname
-      character*2 :: fnum
-      character(len=300) :: out_line
-      logical, save :: ifirst = .true.
-!TODO: kludge - ifirst2 now needs to be dynamically allocated due to NTM change
-      logical, save, allocatable, dimension(:,:) :: ifirst2
-      real*8 :: alpha
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     & sfc_a,sfc_b
-      integer, intent(IN) :: xyear, xday
-      logical :: checkname
-      
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
-      if (itime < itime_tr0(n)) return
-      if (nsrc <= 0) return
-
-      if (ifirst) then
-        ifirst = .false.
-        allocate(ifirst2(NTM, ntsurfsrcmax))
-        ifirst2 = .true.
-      end if
-        
-      do ns=1,nsrc
-
-! open file and read its header:
-
-        if(ns < 10) then
-          write(fnum,'(a1,I1)')'0',ns
-        else
-          write(fnum,'(I2)')ns
-        endif
-        fname=trim(trname(n))//'_'//fnum
-        call openunit(fname,iu,.true.)
-        call read_emis_header(n,ns,iu,checkname)
-
-! now read the data: (should be in kg/m2/s please)
- 
-! -------------- non-transient emissions ----------------------------!
-        if(ty_start(n,ns)==ty_end(n,ns))then 
-
-          select case(freq(n,ns))
-          case('a')        ! annual file, only read first time
-            if(ifirst2(n,ns)) then
-              call readt_parallel(grid,iu,fname,sfc_src(:,:,n,ns),1)
-              write(out_line,*)trim(nameT(n,ns)),
-     &        ' ',trim(ssname(n,ns)),' ann source read.'
-              call write_parallel(trim(out_line))
-              ifirst2(n,ns) = .false.
-            endif
-          case('m')        ! monthly file, interpolate to now
-            call read_mon_src_2(n,ns,iu,sfc_src(:,:,n,ns),xyear,xday)
-            ifirst2(n,ns) = .false. ! needed?
-          end select
-
-! --------------- transient emissions -------------------------------!
-        else                
-          select case(freq(n,ns))
-          case('a')        ! annual file, only read first time + new steps
-            kstep=delTyr(n,ns)
-            ipos=1
-            alpha=0.d0 ! before start year, use start year value
-            kx=ty_start(n,ns) ! just for printing
-            if(xyear>ty_end(n,ns).or.
-     &      (xyear==ty_end(n,ns).and.xday>=183))then
-              alpha=1.d0 ! after end year, use end year value     
-              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
-              kx=ty_end(n,ns)-kstep
-            endif
-            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
-!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
-              if(xyear>k .or. (xyear==k.and.xday>=183)) then
-                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
-                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-                  alpha=(DAYS_PER_YEAR*(0.5+real(xyear-1-k))+xday) / 
-     &                  (DAYS_PER_YEAR*real(kstep))
-                  kx=k
-                  exit
-                endif
-              endif
-            enddo
-!should do! if(ifirst2(n,ns)) then
-              call readt_parallel(grid,iu,fname,sfc_a(:,:),ipos)
-              call readt_parallel(grid,iu,fname,sfc_b(:,:),1)
-!should do! endif
-            sfc_src(I_0:I_1,J_0:J_1,n,ns)=sfc_a(I_0:I_1,J_0:J_1)*
-     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
-
-            write(out_line,'(a,1X,a,a4,F9.4,a16,I4,a8,I4)')
-     &      trim(nameT(n,ns)),trim(ssname(n,ns)),' at ',
-     &      100.d0*alpha,'% of period mid ',kx,' to mid ',kx+kstep
-            call write_parallel(trim(out_line))
-            ifirst2(n,ns) = .false.
-
-          case('m')        ! monthly file, interpolate to now
-            call read_mon_src_2(n,ns,iu,sfc_src(:,:,n,ns),xyear,xday)
-            ifirst2(n,ns) = .false. ! needed?
-          end select
-
-        endif
-        call closeunit(iu)
-
-      enddo
-
-      return
-      end subroutine read_sfc_sources
-
-
-      subroutine read_emis_header(n,ns,iu,checkname)
-!@sum read_emis_header reads the emissions file's header and
-!@+   reports back the meta-data. 
-!@auth Greg Faluvegi
-     
-      use TRACER_COM, only : trname,nameT
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, write_parallel
-      USE FILEMANAGER, only: openunit,closeunit
-
-      implicit none
-
-      integer, intent(in) :: iu,n,ns
-      integer :: error
-      character*80 :: message,header
-      character(len=300) :: out_line
-      logical :: checkname
-
-      error=0
-      read(iu)header
-      if(len_trim(header) < 1)error=1
-
-      call parse_header(n,ns,trim(header),error)
-  
-      select case(error)
-      case default ! nothing
-      case(1) ; message='read_emis_header: missing header'
-      case(2) ; message='read_emis_header: problem with freq'
-      case(3) ; message='read_emis_header: a and m are choices for freq'
-      case(4) ; message='read_emis_header: problem with tracer name'
-      case(5) ; message='read_emis_header: tracer name mismatch'
-      case(6) ; message='read_emis_header: problem with source'
-      case(7) ; message='read_emis_header: problem with res'
-      case(8) ; message='read_emis_header: M and F are choices for res'
-      case(9) ; message='read_emis_header: transient years seem wrong'
-      case(10); message='read_emis_header: delTyr(e.g. kstep) is zero'
-      case(11); message='read_emis_header: trans yrs step/years suspect'
-      end select
-      if(error > 0) then
-        if(error == 5 .and. .not. checkname)then
-          continue
-        else
-          write(out_line,*) trim(header)
-          call write_parallel(trim(out_line))
-          write(out_line,*) trim(message)
-          call write_parallel(trim(out_line))
-          call stop_model('problem reading emissions',255)
-        endif
-      endif
-
-      end subroutine read_emis_header
-
-
-      subroutine parse_header(n,ns,str,error)
-!@sum parse_header gets the informantion from emissions file's
-!@+  header and reports back the meta-data. 
-!@auth Greg Faluvegi
-     
-      use TRACER_COM, only : trname,freq,nameT,res,ssname,Tyears,
-     & ty_start,ty_end,delTyr
-      use StringUtilities_mod, only : toLowerCase
-      implicit none
-
-      integer, intent(in) :: n,ns
-      integer :: n1,n2,error
-      character*(*) str
-
-      n1 = scan( str,'=')         ! freq
-      if(str(1:n1-1) /= 'freq')error=2
-      read(str(n1+1:n1+1),*)freq(n,ns)
-      if(freq(n,ns) /= 'a' .and. freq(n,ns) /= 'm')error=3
-
-      str = str(n1+3:)            ! tracer name
-      n1 = scan( str, '=')
-      if(str(1:n1-1) /= 'name')error=4
-      n2 = scan( str,' ')
-      read(str(n1+1:n2-1),*)nameT(n,ns)
-      if(toLowerCase(trim(trname(n))) /=
-     &   toLowerCase(trim(nameT(n,ns))) )error=5
-
-      str = str(n2+1:)            ! source name
-      n1 = scan( str,'=')
-      if(str(1:n1-1) /= 'source')error=6
-      n2 = scan( str,' ')
-      read(str(n1+1:n2-1),*)ssname(n,ns)
-
-      str = str(n2+1:)            ! resolution
-      n1 = scan( str,'=')
-      if(str(1:n1-1) /= 'res')error=7
-      read(str(n1+1:n1+1),*)res(n,ns)
-#ifndef CUBED_SPHERE
-      if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F' .and.
-     & res(n,ns) /= 'C') error=8
-#endif
-
-      n1 = scan( str, ' ')
-      str = str(n1+1:)            ! optional transient years
-      n1 = scan( str, '=')
-      if(str(1:n1-1) /= 'y')then
-        ty_start(n,ns)=0; ty_end(n,ns)=0
-      else 
-        read(str(n1+1:n1+9),*)Tyears(n,ns)
-        read(Tyears(n,ns)(1:4),'(I4)')ty_start(n,ns)
-        read(Tyears(n,ns)(6:9),'(I4)')ty_end(n,ns)
-        if(ty_start(n,ns) /= ty_end(n,ns))then
-          if(ty_start(n,ns) < 0 .or. ty_start(n,ns) > 3000)error=9
-          if(ty_end(n,ns)   < 0 .or. ty_end(n,ns)   > 3000)error=9
-        endif
-      endif
-
-      delTyr(n,ns)=10   ! default=decades for backwards compatability
-      str = str(n1+9+1:)
-      n1 = scan( str, '=')     ! optional transient slice step.
-      if(n1 > 0) then
-        if(str(n1-3:n1-1) == 'del')then
-          str = str(n1+1:)
-          n2 = scan( str,' ')
-          read(str(1:n2-1),*)delTyr(n,ns)
-        endif
-      endif
-
-      if(delTyr(n,ns)==0)then
-        error=10
-      else
-        ! check for integer number of slices:
-        if(MOD((ty_end(n,ns)-ty_start(n,ns)),delTyr(n,ns))/=0.)error=11
-      endif
-
-      end subroutine parse_header
-
-
-      SUBROUTINE read_mon_src_2(n,ns,iu,data,xyear,xday)
-!@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the lines:
-!@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
-!@+      save jdlast,imon
-!@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array + two monthly data arrays
-!@+ Note: this started out very similar to read_monthly_sources, 
-!@+ but I had problems with that routine. This one is less effecient,
-!@+ in that it doesn't keep file open, and has to read monthly files
-!@+ each day. My intent is to eventually fix this problem and merge
-!@+ with read_monthly_sources. --gsf
-!@auth Greg Faluvegi, Jean Lerner and others
-
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,AM_I_ROOT,write_parallel,
-     &     READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL,
-     &     getDomainBounds
-      USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: idofm=>JDmidOfM
-      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
-      USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,delTyr
-
-      implicit none
-
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     tlca,tlcb,data
-      real*8 :: frac,alpha
-      integer ::  imon,iu,n,ns,ipos,k,nn,kx,kstep=10
-      character*80 :: junk
-      character(len=300) :: out_line
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     & sfc_a,sfc_b
-      integer, intent(IN) :: xyear, xday
-
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-
-! -------------- non-transient emissions ----------------------------!
-      if(ty_start(n,ns)==ty_end(n,ns))then
-        imon=1
-        if (xday <= 16)  then ! xDAY in Jan 1-15, first month is Dec
-          call readt_parallel(grid,iu,nameunit(iu),tlca,12)
-          call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
-        else            ! xDAY is in Jan 16 to Dec 16, get first month
-          do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
-            imon=imon+1
-          enddo
-          call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
-          if (imon == 13)then
-            call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
-          endif
-        end if
-        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
-
-c****   Interpolate two months of data to current day
-        frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-        data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
-     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-        write(out_line,*)
-     &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' interp to now ',frac
-        call write_parallel(trim(out_line))
-! --------------- transient emissions -------------------------------!
-      else 
-        kstep=delTyr(n,ns)
-        ipos=1
-        alpha=0.d0 ! before start year, use start year value
-        kx=ty_start(n,ns) ! just for printing
-        if(xyear>ty_end(n,ns).or.
-     &  (xyear==ty_end(n,ns).and.xday>=183))then
-          alpha=1.d0 ! after end year, use end year value
-          ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
-          kx=ty_end(n,ns)-kstep
-        endif
-        do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
-          if(xyear>k .or. (xyear==k.and.xday>=183)) then
-            if(xyear<k+kstep .or. (xyear==k+kstep.and.xday<183))then
-              ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
-              alpha=real(xyear-k)/real(kstep)
-              kx=k
-              exit
-            endif
-          endif
-        enddo
-!
-! read the two necessary months from the first decade:
-!
-        imon=1
-        if (xday <= 16)  then ! xDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),tlca,
-     &                       (ipos-1)*INT_MONTHS_PER_YEAR+12)
-         do nn=1,12; call backspace_parallel(iu); enddo
-        else            ! xDAY is in Jan 16 to Dec 16, get first month
-         do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
-           imon=imon+1
-         enddo
-         call readt_parallel (grid,iu,nameunit(iu),tlca,
-     &                        (ipos-1)*INT_MONTHS_PER_YEAR+imon-1)
-         if (imon == 13)then
-           do nn=1,12; call backspace_parallel(iu); enddo               
-         endif
-        end if
-        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
-c****   Interpolate two months of data to current day
-        frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-        sfc_a(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
-     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-        call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
-
-        ipos=ipos+1
-        imon=1
-        if (xday <= 16)  then ! xDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),tlca,
-     &                       (ipos-1)*INT_MONTHS_PER_YEAR+12)
-         do nn=1,12; call backspace_parallel(iu); enddo
-        else            ! xDAY is in Jan 16 to Dec 16, get first month
-         do while(xday > idofm(imon) .AND. imon <= INT_MONTHS_PER_YEAR)
-           imon=imon+1
-         enddo
-         call readt_parallel
-     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*INT_MONTHS_PER_YEAR+imon-1)
-         if (imon == 13)then
-           do nn=1,12; call backspace_parallel(iu); enddo
-         endif
-        end if
-        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
-c****   Interpolate two months of data to current day
-        frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-        sfc_b(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
-     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-
-! now interpolate between the two time periods:
-
-        data(I_0:I_1,J_0:J_1)=sfc_a(I_0:I_1,J_0:J_1)*(1.d0-alpha) + 
-     &  sfc_b(I_0:I_1,J_0:J_1)*alpha
-
-        write(out_line,'(a,1X,a,a4,F9.4,a21,I4,a13,I4,a22,F9.4)')
-     &  trim(nameT(n,ns)),trim(ssname(n,ns)),' at ',100.d0*alpha,
-     &  '% of period this day ',kx,' to this day ',kx+kstep,
-     &  ' and monthly fraction=',frac
-        call write_parallel(trim(out_line))
- 
-      endif
-
-      return
-      end subroutine read_mon_src_2
-
 
       subroutine setup_emis_sectors_regions
 !@sum setup_emis_sectors_regions reads from the rundeck the 
@@ -2821,21 +2311,23 @@ c****   Interpolate two months of data to current day
 !@+ region. Output IJ map of regions.
 !@auth Greg Faluvegi
 
-      use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
+      use TRACER_COM, only : n_max_sect,
      & n_max_reg,alter_sources,ef_REG_IJ,
-     & ef_fact,num_regions,num_sectors,sect_name
-      USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds
-      USE DOMAIN_DECOMP_ATM, only:AM_I_ROOT,writet_parallel
+     & ef_fact,num_sectors,sect_name
+      USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
       USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use Dictionary_mod, only : sync_param
+      use EmissionRegion_mod, only: initializeEmissionsRegions
+      use EmissionRegion_mod, only: regions, numRegions
 
       implicit none
 
       integer :: i,j,n,iu
       character*80 :: title
       character*2 :: fnum
-      character*124 :: sectors_are,regions_are
+      character*124 :: sectors_are
 
       INTEGER J_0, J_1, I_0, I_1
       call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1)
@@ -2843,12 +2335,11 @@ c****   Interpolate two months of data to current day
       I_1 = grid%I_STOP
 
       sectors_are=' '
-      regions_are=' '
       call sync_param("sectors_are",sectors_are)
-      call sync_param("regions_are",regions_are)
+
+      call initializeEmissionsRegions()
 
 ! see how many sectors there are, save names in array:
-
       num_sectors=0
       i=1
       do while(i < len(sectors_are))
@@ -2865,41 +2356,16 @@ c****   Interpolate two months of data to current day
       if(num_sectors > 0 ) read(sectors_are,*)
      & sect_name(1:num_sectors)
 
-! see how many regions there are, save names in array:
-
-      num_regions=0
-      i=1
-      do while(i < len(regions_are))
-        j=index(regions_are(i:len(regions_are))," ")
-        if (j > 1) then
-          num_regions=num_regions+1
-          i=i+j
-        else
-          i=i+1
-        end if
-      enddo
-      if (num_regions > n_max_reg) call stop_model
-     &("n_max_reg must be increased",255)
-      if(num_regions>0) then
-        REG_N(:)=-1.e30 ! initialize to undefined
-        REG_S(:)=-1.e30; REG_E(:)=-1.e30; REG_W(:)=-1.e30
-        call sync_param("REG_N",REG_N,num_regions)
-        call sync_param("REG_S",REG_S,num_regions)
-        call sync_param("REG_E",REG_E,num_regions)
-        call sync_param("REG_W",REG_W,num_regions)
-      end if 
-
 ! read the actual emission altering factors:
       do n=1,num_sectors
-        if(n < 10) then ; write(fnum,'(a1,I1)')'0',n
-        else ; write(fnum,'(I2)')n ; endif
+         write(fnum,'(I2.2)') n
         ef_fact(n,:)=1.d0
-        call sync_param("SECT_"//fnum,ef_fact(n,:),num_regions)
+        call sync_param("SECT_"//fnum,ef_fact(n,:),numRegions)
       enddo
 
 ! check if there is any altering requested:
       alter_sources = .false.
-      do i=1,num_sectors; do j=1,num_regions
+      do i=1,num_sectors; do j=1,numRegions
         if(ef_fact(i,j)/=1.0 .and. ef_fact(i,j)/=-1.d30)
      &  alter_sources = .true.
       enddo ; enddo
@@ -2907,12 +2373,14 @@ c****   Interpolate two months of data to current day
 ! write out regions to GISS-format IJ file, each restart:
       if(alter_sources)then
         ef_REG_IJ(I_0:I_1,J_0:J_1)=0.d0
-        do j=J_0,J_1; do i=i_0,imaxj(j); do n=1,num_regions
-          if(lat2d_dg(i,j) >= REG_S(n) .and. lat2d_dg(i,j)
-     &    <= REG_N(n) .and. lon2d_dg(i,j) >= REG_W(n)
-     &    .and. lon2d_dg(i,j) < REG_E(n) ) ef_REG_IJ(i,j)=
-     &    max(ef_REG_IJ(i,j),dble(n))
-        enddo; enddo; enddo
+        do j=J_0,J_1 
+          do i=i_0,imaxj(j)
+            do n=1,numRegions
+              if (regions(n)%hasLatLon(lat2d_dg(i,j), lon2d_dg(i,j)))
+     &             ef_REG_IJ(i,j)= max(ef_REG_IJ(i,j),dble(n))
+            enddo
+          enddo
+        enddo
         title='Regions defined in rundeck for altering tracer sources'
         call openunit('EF_REG',iu,.true.)
         call WRITET_PARALLEL(grid,iu,nameunit(iu),ef_REG_IJ,title)

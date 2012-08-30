@@ -6,9 +6,14 @@ module StringUtilities_mod
 
   public :: toLowerCase
 
+  interface toLowerCase
+    module procedure toLowerCase_scalar
+    module procedure toLowerCase_array
+  end interface toLowerCase
+
 contains
 
-  function toLowerCase(string) result(newString)
+  function toLowerCase_scalar(string) result(newString)
 !@auth I. Aleinov
 !@sum Produces a copy of the string argument, but with any
 !@+ capitalized letters replaced by their lower case equivalent.
@@ -31,6 +36,16 @@ contains
       if ( c>=A .and. c<=Z ) newString(i:i) = achar( c + shift )
     enddo
 
-  end function toLowerCase
+  end function toLowerCase_scalar
+
+  function toLowerCase_array(string) result(newString)
+    character(len=*), intent(in) :: string(:)
+    character(len=maxval(len_trim(string))) :: newString(size(string))
+
+    integer :: i
+    do i = 1, size(string)
+      newString(i) = toLowerCase(string(i))
+    end do
+  end function toLowerCase_array
 
 end module StringUtilities_mod

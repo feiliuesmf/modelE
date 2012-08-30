@@ -374,43 +374,51 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
-      use tracer_com, only: nAircraft,num_tr_sectors3D,
-     & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
+      use tracer_com, only: nAircraft, tracers,
+     & sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
-
+      use TracerSource_mod, only: TracerSource3D
+      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer_type
       IMPLICIT NONE
       integer, intent(in) :: n_NOx
       integer :: i,j,ns,nsect,nn
       character*124 :: tr_sectors_are
       character*32 :: pname
 
+      type (TracerSource3D), pointer :: source
+      type (Tracer_type), pointer :: tracer
+
       tr_sectors_are = ' '
+      tracer => getTracer(tracers,'NOx')
+      source => tracer%sources3D(nAircraft)
+
       pname='NOx_AIRC_sect'
       call sync_param(pname,tr_sectors_are)
-      num_tr_sectors3D(n_NOX,nAircraft)=0
+      source%num_tr_sectors = 0
+
       i=1
       do while(i < len(tr_sectors_are))
         j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
         if (j > 1) then
-          num_tr_sectors3D(n_NOX,nAircraft)=
-     &    num_tr_sectors3D(n_NOX,nAircraft) + 1
+          source%num_tr_sectors = source%num_tr_sectors + 1
           i=i+j
         else
           i=i+1
         end if
       enddo
-      ns=num_tr_sectors3D(n_NOX,nAircraft)
+      ns=source%num_tr_sectors
       if(ns > n_max_sect)
      &call stop_model("num_tr_sectors3D problem",255)
       if(ns > 0)then
-        read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
+        read(tr_sectors_are,*) source%tr_sect_name(1:ns)
         do nsect=1,ns
-          tr_sect_index3D(n_NOX,nAircraft,nsect)=0
+          source%tr_sect_index(nsect) = 0
           loop_nn: do nn=1,num_sectors
-            if(trim(tr_sect_name3D(n_NOx,nAircraft,nsect)) ==
-     &      trim(sect_name(nn))) then
-              tr_sect_index3D(n_NOx,nAircraft,nsect)=nn
+            if(trim(source%tr_sect_name(nsect)) ==
+     &         trim(sect_name(nn))) then
+              source%tr_sect_index(nsect) = nn
               ef_fact3d(nn,1:num_regions)=
      &        ef_fact(nn,1:num_regions)
               exit loop_nn

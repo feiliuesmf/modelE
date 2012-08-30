@@ -28,20 +28,24 @@
 
 
 module OldTracer_mod
+  use TracerBundle_mod
+  use Tracer_mod
   implicit none
   private
 
   public :: OldTracer_type
   public :: initializeOldTracers
   public :: makeNewTracers
-  public :: addTracer
+  public :: oldAddTracer
+  public :: tracers
+  public :: trName
+  public :: MAX_LEN_NAME
 
   public :: nGAS, nPART, nWATER
 
   public :: set_tr_mm, tr_mm 
 public :: set_ntm_power, ntm_power 
 public :: set_t_qlimit, t_qlimit 
-public :: set_ntsurfsrc, ntsurfsrc 
 public :: set_needtrs, needtrs 
 public :: set_trdecay, trdecay 
 public :: set_itime_tr0, itime_tr0 
@@ -85,11 +89,6 @@ interface t_qlimit
 module procedure t_qlimit_s
 module procedure t_qlimit_all
    module procedure t_qlimit_m
-end interface
-interface ntsurfsrc
-module procedure ntsurfsrc_s
-module procedure ntsurfsrc_all
-   module procedure ntsurfsrc_m
 end interface
 interface needtrs
 module procedure needtrs_s
@@ -232,7 +231,7 @@ module procedure TRLI0_all
 end interface
 
 
-  integer, parameter :: MAX_LEN_NAME = 8
+  integer, parameter :: MAX_LEN_NAME = 20
 !**** parameters for tr_wd_TYPE
 !@param nGAS   index for wetdep tracer type = gas
 !@param nPART  index for wetdep tracer type = particle/aerosol
@@ -249,8 +248,6 @@ end interface
     integer :: ntm_power  
 !@var t_qlimit: if t_qlimit=.true. tracer is maintained as positive
     logical :: t_qlimit = .true. 
-!@var ntsurfsrc: no. of non-interactive surface sources for each tracer
-    integer :: ntsurfsrc = 0 
 !@var needtrs: true if surface tracer value from PBL is required
     logical :: needtrs = .false. 
 !@var trdecay: radioactive decay constant (1/s) (=0 for stable tracers)
@@ -317,14 +314,48 @@ end interface
 
   integer, save :: numTracers = 0
   type (OldTracer_type), allocatable :: tracers(:)
+  procedure(IdefaultSpec), pointer :: defaultSpec
+
+  abstract interface
+    subroutine IdefaultSpec(n_idx, trcer)
+    use Tracer_mod
+    integer, intent(in) :: n_idx
+    type (Tracer_type), pointer :: trcer
+    end subroutine IdefaultSpec
+  end interface
+
+  interface trName
+    module procedure trname_s
+    module procedure trname_all
+  end interface trName
+  
+  type (TracerBundle_type), pointer :: tracerReference => null()
 
 contains
 
-  subroutine initializeOldTracers()
+  function trName_s(idx) result(name)
+    integer, intent(in) :: idx
+    character(len=len_trim(tracers(idx)%name)) :: name
+    name = trim(tracers(idx)%name)
+  end function trName_s
+
+  function trName_all() result(name)
+    character(len=MAX_LEN_NAME) :: name(numTracers)
+    name = tracers(:)%name
+  end function trName_all
+
+  subroutine initializeOldTracers(tracerRef, spec)
+    type (TracerBundle_type), target :: tracerRef
+    procedure(IdefaultSpec) :: spec
+
+    tracerReference => tracerRef
+    defaultSpec => spec
     allocate(tracers(0))
+    
   end subroutine initializeOldTracers
 
-  subroutine addTracer(name)
+  integer function oldAddTracer(name) result(n)
+    use TracerBundle_mod, only: getTracer
     character(len=*), intent(in) :: name
     type (OldTracer_type), allocatable :: tmp(:)
 
@@ -339,16 +370,20 @@ contains
     numTracers = numTracers + 1
     tracers(numTracers)%name = trim(name)
 
-  end subroutine addTracer
+    call addTracer(tracerReference, Tracer(name))
+    call defaultSpec(numTracers, getTracer(tracerReference, name))
+    n = numTracers
+
+  end function oldAddTracer
 
   function makeNewTracers() result (bundle)
-    use Tracers_mod, only: Tracer_type
-    use Tracers_mod, only: Tracer
+    use Tracer_mod, only: Tracer_type
+    use Tracer_mod, only: Tracer
     use TracerBundle_mod, only: TracerBundle_type
     use TracerBundle_mod, only: TracerBundle
     use TracerBundle_mod, only: addTracer
-    use Tracers_mod, only: setProperty
-    use Tracers_mod, only: clean
+    use Tracer_mod, only: setProperty
+    use Tracer_mod, only: clean
     type (TracerBundle_type), pointer :: bundle
 
     type (Tracer_type) :: aTracer
@@ -360,7 +395,6 @@ contains
       call setProperty(aTracer, 'tr_mm', tr_mm(i))
 call setProperty(aTracer, 'ntm_power', ntm_power(i))
 call setProperty(aTracer, 't_qlimit', t_qlimit(i))
-call setProperty(aTracer, 'ntsurfsrc', ntsurfsrc(i))
 call setProperty(aTracer, 'needtrs', needtrs(i))
 call setProperty(aTracer, 'trdecay', trdecay(i))
 call setProperty(aTracer, 'itime_tr0', itime_tr0(i))
@@ -470,31 +504,6 @@ call setProperty(aTracer, 'TRLI0', TRLI0(i))
     logical :: t_qlimit_m(size(oldIndices))
     t_qlimit_m = tracers(oldIndices(:))%t_qlimit
   end function t_qlimit_m
-
-
-
-  subroutine set_ntsurfsrc(oldIndex, value)
-    integer, intent(in) :: oldIndex
-    integer, intent(in) :: value
-    tracers(oldIndex)%ntsurfsrc = value
-  end subroutine set_ntsurfsrc
-  
-  function ntsurfsrc_s(oldIndex)
-    integer, intent(in) :: oldIndex
-    integer :: ntsurfsrc_s
-    ntsurfsrc_s = tracers(oldIndex)%ntsurfsrc
-  end function ntsurfsrc_s
-
-  function ntsurfsrc_all()
-    integer :: ntsurfsrc_all(size(tracers))
-    ntsurfsrc_all = tracers(:)%ntsurfsrc
-  end function ntsurfsrc_all
-
-  function ntsurfsrc_m(oldIndices)
-    integer, intent(in) :: oldIndices(:)
-    integer :: ntsurfsrc_m(size(oldIndices))
-    ntsurfsrc_m = tracers(oldIndices(:))%ntsurfsrc
-  end function ntsurfsrc_m
 
 
 

@@ -15,7 +15,6 @@ C
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
-      use OldTracer_mod, only: ntsurfsrc
       use OldTracer_mod, only: needtrs
       use OldTracer_mod, only: trdecay
 
@@ -56,9 +55,13 @@ C
       use TRACERS_VBS, only: vbs_bins
 #endif
 
-C
+      use TracerBundle_mod
+      use TracerSource_mod, only: N_MAX_SECT
+c     
       IMPLICIT NONE
       SAVE
+
+      type (TracerBundle_type), save :: tracers
 
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
@@ -848,31 +851,14 @@ C**** tracer specific switches
 
 C**** arrays that could be general, but are only used by chemistry
 
-!@var ssname holds source name, read from file header, e.g. to be
-!@+ placed into lname and sname arrays.
-!@var freq frequency (annual? monthly?) read from emis file header
-!@var res horiz. resolution (M? F?) read from emis file header
-!@var nameT tracer name read from emis file header (should match trname)
-!@var ty_start starting year/decade for a transient emissions file
-!@var ty_end     ending year/decade for a transient emissions file
 !! dbparam trans_emis_overr_yr year for overriding tracer transient emis
 !! dbparam trans_emis_overr_day day for overriding tracer transient emis
 !@var trans_emis_overr_yr year for overriding tracer transient emis
 !@var trans_emis_overr_day day for overriding tracer transient emis
-      character*30, allocatable, dimension(:,:) :: ssname ! some maybe
-      character*10, allocatable, dimension(:,:) :: nameT  ! need not be
-      character*1, allocatable, dimension(:,:) :: freq,res ! arrays
-      character*9, allocatable, dimension(:,:) :: Tyears   ! here...
-      integer, allocatable, dimension(:,:) :: ty_start,ty_end,delTyr
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
 ! ---- section for altering tracers sources by sector/region ----
-!@param n_max_sect maximum number of sectors for emissions altering
 !@param n_max_reg  maximum number of regions for emissions altering
-      integer, parameter :: n_max_sect=10, n_max_reg=10
-!@var num_tr_sectors number of sectors for a particular tracer and source
-      integer, allocatable, dimension(:,:) :: num_tr_sectors
-!@var num_tr_sectors3D number of sectors for a tracer's 3D source
-      integer, allocatable, dimension(:,:) :: num_tr_sectors3D
+      integer, parameter :: n_max_reg=10
 !@var num_regions the number of source-altering regions from rundeck
 !@var num_sectors the number of source-altering sectors from rundeck
       integer :: num_regions, num_sectors
@@ -883,20 +869,12 @@ C**** arrays that could be general, but are only used by chemistry
 !@var reg_E the east  edge of rectangular regions for emissions altering
 !@var reg_W the west  edge of rectangular regions for emissions altering
       real*8, dimension(n_max_reg) :: reg_N,reg_S,reg_E,reg_W
-!@var tr_sect_index array hold the sector index for given tracer/source
-      integer, allocatable, dimension(:,:,:) :: tr_sect_index
-!@var tr_sect_index3D holds 3d source sector index for given tracer/source
-      integer, allocatable, dimension(:,:,:) :: tr_sect_index3D
-!@var tr_sect_name array hold the sector name for given tracer/source
-      character*10,allocatable, dimension(:,:,:):: tr_sect_name
-!@var tr_sect_name3D holds 3d source sector name for given tracer/source
-      character*10,allocatable, dimension(:,:,:):: tr_sect_name3D
 !@var sect_name array hold the sector names (all)
-      character*10,dimension(n_max_sect):: sect_name
+      character*10,dimension(N_MAX_SECT):: sect_name
 !@var ef_fact the actual factors that alter sources by region/sector
 !@var ef_fact3d factors used to alter 3D sources (these are more
 !@+ hard-coded for now...)
-      real*8, dimension(n_max_sect,n_max_reg) :: ef_fact,ef_fact3D
+      real*8, dimension(N_MAX_SECT,n_max_reg) :: ef_fact,ef_fact3D
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
 ! --- end of source-altering section ----------------------------
@@ -944,6 +922,11 @@ c note: not applying CPP when declaring counts/lists.
      &     active_list,gases_list,aero_list,water_list,
      &     hlawt_list,aqchem_list
 
+      ! temporary support of legacy interface
+      interface ntsurfsrc
+        module procedure ntsurfsrc_1
+        module procedure ntsurfsrc_all
+      end interface ntsurfsrc
       contains
 
       subroutine initTracerCom()
@@ -952,22 +935,6 @@ c note: not applying CPP when declaring counts/lists.
 
       call getTracerNames(trname)
       NTM = size(trname)
-
-      allocate(ssname(NTM, ntsurfsrcmax))
-      allocate(nameT(NTM, ntsurfsrcmax))
-      allocate(freq(NTM, ntsurfsrcmax))
-      allocate(res(NTM, ntsurfsrcmax))
-      allocate(Tyears(NTM, ntsurfsrcmax))
-      allocate(ty_start(NTM, ntsurfsrcmax))
-      allocate(ty_end(NTM, ntsurfsrcmax))
-      allocate(delTyr(NTM, ntsurfsrcmax))
-      allocate(num_tr_sectors(NTM, ntsurfsrcmax))
-      
-      allocate(num_tr_sectors3D(NTM,nt3Dsrcmax))
-      allocate(tr_sect_index(NTM,ntsurfsrcmax,n_max_sect))
-      allocate(tr_sect_index3D(NTM,nt3Dsrcmax,n_max_sect))
-      allocate(tr_sect_name(NTM,ntsurfsrcmax,n_max_sect))
-      allocate(tr_sect_name3D(NTM,nt3Dsrcmax,n_max_sect))
 
 #ifdef TRACERS_SPECIAL_O18
       allocate(iso_index(NTM))
@@ -1054,6 +1021,32 @@ c note: not applying CPP when declaring counts/lists.
 
       return
       end subroutine remake_tracer_lists
+
+      integer function ntsurfsrc_1(index) result(n)
+      use Tracer_mod
+      integer, intent(in) :: index
+
+      n = ntsurfsrc(tracers, index)
+      
+      end function ntsurfsrc_1
+
+      function ntsurfsrc_all() result(n)
+      use Tracer_mod
+      integer, pointer :: n(:)
+
+      allocate(n(getNumTracers(tracers)))
+      n = ntsurfsrc(tracers)
+      
+      end function ntsurfsrc_all
+
+      subroutine set_ntsurfsrc(index, value)
+      use Tracer_mod
+      integer, intent(in) :: index
+      integer, intent(in) :: value
+
+      call setNtsurfsrc(tracers, index, value)
+      end subroutine set_ntsurfsrc
+
 
       END MODULE TRACER_COM
 
