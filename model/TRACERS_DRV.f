@@ -7915,7 +7915,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
             if (trim(trname(n)).eq.'ASO4__01'.or.
-     &           trim(trname(n)).eq.'ANUM__01'.or.
+     &           trim(trname(n)(1:5)).eq.'ANUM_'.or.
      &           trim(trname(n)).eq.'M_AKK_SU'.or. 
      &           trim(trname(n)).eq.'M_ACC_SU') then  
 !skip these tracers!               
@@ -8164,7 +8164,6 @@ C****
 
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
-
         do k=1,nbins
            trsource(:,J_0:J_1,1,IDTNUMD+k-1)=0.
            trsource(:,J_0:J_1,2,IDTNUMD+k-1)=0.
@@ -8659,11 +8658,11 @@ C****
              do k=1,nbins
                 trsource(:,J_0:J_1,ns,IDTSO4+k-1)=
      &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
-                
+               
                 trsource(:,J_0:J_1,1,IDTNUMD+k-1)=
      &           trsource(:,J_0:J_1,1,IDTNUMD+k-1) +
      &               trsource(:,J_0:J_1,ns,IDTSO4+k-1)
-     &               /sqrt(xk(k)*xk(k+1))
+     &               /sqrt(xk(k)*xk(k+1))    
               enddo
 
 
@@ -10659,8 +10658,12 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
+#if (defined TOMAS_12_3NM) || (defined TOMAS_15_3NM)
+      parameter(Mo=1.5625d-23) ! 3nm
+#else
       parameter(Mo=1.0d-21)    ! 10nm
-c      parameter(Mo=1.5625d-23) ! 3nm
+#endif
+
 
 C-----CODE--------------------------------------------------------------
 

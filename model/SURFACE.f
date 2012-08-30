@@ -1958,8 +1958,11 @@ C****
 #ifdef TRACERS_TOMAS
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
-     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
-
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANACL_13','ANACL_14','ANACL_15'
+#endif
+     &         )
           ss_bin=ss_bin+1
           trc_flux=pbl_args%tomas_ss_flux(ss_bin)
 
@@ -1970,7 +1973,11 @@ C****
 
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
            num_bin=num_bin+1
            trc_flux=ss_num(num_bin)
       
@@ -2008,7 +2015,11 @@ C****
 
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &       'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
-     &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+     &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANACL_13','ANACL_14','ANACL_15'
+#endif
+     &         )
         
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
@@ -2018,7 +2029,11 @@ C****
         
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
         
 !TOMAS - itcon_surf (1,3) is for SO4/EC/OC.
         if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,

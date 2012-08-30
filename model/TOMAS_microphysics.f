@@ -37,6 +37,8 @@ C-----OUTPUTS-----------------------------------------------------------
 
 C     The program updates Nk and Mk.
 
+#if (defined TOMAS_12_10NM) || (defined TOMAS_12_3NM)
+
       SUBROUTINE multicoag(dt)
 
 
@@ -494,12 +496,15 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
          enddo
       enddo
 
+      if(dts.lt.1.e-5) call mnfix(Nk,Mk) !YUNHA LEE (08/28/2012) 
+
       tsum=tsum+dts
 
       if (tsum .lt. dt) goto 10
 
       RETURN
       END SUBROUTINE multicoag
+#endif 
 
 
 c$$$  This is multicoag for TOMAS-30 model

@@ -363,11 +363,7 @@ cddd#endif
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-      real*8, parameter :: scalesizeSS(nbins)=(/
-     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
-     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
-     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
-
+#ifdef TOMAS_12_10NM 
 !scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
 !sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
       real*8, parameter :: scalesizeClay(nbins)=(/
@@ -382,6 +378,22 @@ cddd#endif
      *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
      *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
      *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
+#ifdef TOMAS_12_3NM 
+!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
+!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
+      real*8, parameter :: scalesizeClay(nbins)=(/0.,0.,0.,
+     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
+     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
+     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
+!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
+!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
+!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
+      real*8, parameter :: scalesizeSilt(nbins)=(/0.,0.,0.,
+     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
+     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
+     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
 
 
 #endif
@@ -471,7 +483,11 @@ C**** fixed datasets are used, it can happen over land as well.
 
           CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
      &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
-     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ADUST_13','ADUST_14','ADUST_15'
+#endif
+     &         )
 
           du_bin=du_bin+1
 
@@ -482,7 +498,11 @@ C**** fixed datasets are used, it can happen over land as well.
        
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
            num_bin2=num_bin2+1
            trc_flux=dust_num(num_bin2)
 #endif

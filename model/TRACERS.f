@@ -537,7 +537,6 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
        if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
        if(n.ge.IDTECOB.and.n.lt.IDTOCOB) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
        if(n.ge.IDTOCOB.and.n.lt.IDTDUST) tomas_ntsurf=ntsurfsrc(IDTOCOB) !ocob + ocil
-
        do ns=1,tomas_ntsurf
 #else
 C**** Non-interactive sources

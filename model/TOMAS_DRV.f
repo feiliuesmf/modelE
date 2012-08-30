@@ -4,13 +4,13 @@
 
 C-----INCLUDE FILES--------------------------------------------------
       USE RESOLUTION, only : im,jm,lm     ! dimensions
-      USE TRACER_COM, only : ntm
+      USE TRACER_COM, only : ntm,nbins
       IMPLICIT NONE 
 
 C-----VARIABLE DECLARATIONS------------------------------------------
-      integer ibins, icomp !ibins should be matched to nbins in TRACER_COM.f
-      integer idiag ! number of diagnostic aerosol species
-      parameter(ibins=12, icomp=9, idiag=2)
+      integer,parameter :: ibins=nbins
+      integer,parameter :: icomp=9
+      integer,parameter :: idiag=2 ! number of diagnostic aerosol species
 
       integer srtso4, srtna, srth2o, srtecob, srtecil, srtocob,
      &	      srtocil, srtnh4, srtdust
@@ -104,16 +104,16 @@ C SOArate is the rate of SOA condensing (kg/s)
      &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
      &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
 #elif (defined TOMAS_12_3NM) 
-      real*8, parameter :: scalesizeSO4(ibins)=(/0.d0,0.d0,0.d0,
+      real*8, parameter :: scalesizeSO4(ibins)=(/0.,0.,0.,
      &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
      &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
      &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
 
-      real*8, parameter :: scalesizeCARBO30(ibins)=(/0.d0,0.d0,0.d0,
+      real*8, parameter :: scalesizeCARBO30(ibins)=(/0.,0.,0.,
      &     1.1291E-03,4.9302E-03,1.2714E-02,3.6431E-02,
      &     1.0846E-01,2.1994E-01,2.7402E-01,2.0750E-01,
      &     9.5304E-02,2.6504E-02,1.2925E-02,1.6069E-05/) ! use for fossil fuel (bimodal)
-      real*8, parameter :: scalesizeCARBO100(ibins)=(/0.d0,0.d0,0.d0,
+      real*8, parameter :: scalesizeCARBO100(ibins)=(/0.,0.,0.,
      &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
      &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,
      &     2.4126E-01,1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
@@ -136,19 +136,19 @@ C SOArate is the rate of SOA condensing (kg/s)
      &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning
 #elif (defined TOMAS_15_3NM)
       real*8, parameter :: scalesizeSO4(ibins)=(/
-     &     0.d0,0.d0,0.d0,
+     &     0.,0.,0.,
      &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
      &     4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01,
      &     1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/)
 
       real*8, parameter :: scalesizeCARBO30(ibins)=(/
-     &     0.d0,0.d0,0.d0,
+     &     0.,0.,0.,
      &     3.8100E-03,2.0700E-02,7.2900E-02,1.6750E-01,
      &     2.5000E-01,2.4500E-01,1.5510E-01,6.4200E-02,1.7320E-02,
      &     3.0320E-03,3.7079E-04,2.3265E-07/) ! use for fossil fuel
 
       real*8, parameter :: scalesizeCARBO100(ibins)=(/
-     &     0.d0,0.d0,0.d0,
+     &     0.,0.,0.,
      &     1.9827E-06,3.9249E-05,5.0202E-04,4.1538E-03,
      &     2.2253E-02,7.7269E-02,1.7402E-01,2.5432E-01,2.4126E-01,
      &     1.4856E-01,7.6641E-02,9.8120E-04/) ! use for biomass burning

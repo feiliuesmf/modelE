@@ -107,7 +107,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
 #ifdef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktaijs=3781 !3590
+      INTEGER,PARAMETER :: ktaijs=4500 !3590
 #else
       INTEGER,PARAMETER :: ktaijs=2300
 #endif
@@ -331,7 +331,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifndef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktajls=1260
 #else
-      INTEGER,PARAMETER :: ktajls=3000 ! 1017 - yhl for TOMAS 
+      INTEGER,PARAMETER :: ktajls=3250 ! 1017 - yhl for TOMAS 
 #endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3

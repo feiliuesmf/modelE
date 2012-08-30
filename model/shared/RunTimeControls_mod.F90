@@ -1128,6 +1128,18 @@ module RunTimeControls_mod
   logical, parameter :: tracers_tomas = .false.
 #endif
 
+#if defined(TOMAS_12_10NM)
+  logical, parameter :: tomas_12_10nm = .true.
+#else
+  logical, parameter :: tomas_12_10nm = .false.
+#endif
+
+#if defined(TOMAS_12_3NM)
+  logical, parameter :: tomas_12_3nm = .true.
+#else
+  logical, parameter :: tomas_12_3nm = .false.
+#endif
+
 #if defined(TRACERS_WATER)
   logical, parameter :: tracers_water = .true.
 #else

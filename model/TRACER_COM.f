@@ -304,8 +304,12 @@ C    KCDGN is the number of cloud microphysics and optical depth diagnostics
 !@param ntm number of tracers
 
 ! yhl - NAP is changed to 6 to exclude mineral dust for now (1/20/2011)
-
-      integer, parameter :: NBS=7,NAP=7, NAD=1,  NBINS=12 !, NXP=7, NCR=2, 
+#if (defined TOMAS_12_10NM) 
+      integer, parameter :: NBINS=12 
+#elif (defined TOMAS_15_10NM) || (defined TOMAS_12_3NM)
+      integer, parameter :: NBINS=15 
+#endif
+      integer, parameter :: NBS=7,NAP=7, NAD=1 !, NXP=7, NCR=2, 
       integer, parameter :: ntm_tomas=NBINS*(NAP+NAD+1)
 
       integer, parameter :: non_aerosol=ntm_O18+ntm_gasexch+ntm_lerner+

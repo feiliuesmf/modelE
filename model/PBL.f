@@ -479,12 +479,7 @@ C****
       INTEGER ss_bin,num_bin,du_bin,num_bin2,k,nx
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
       real*8 ss_emis
-!      real*8, dimension(ntm) :: tr_dum
-      real*8, parameter :: scalesizeSS(nbins)=(/
-     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
-     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
-     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
-
+#ifdef TOMAS_12_10NM 
 !scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
 !sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
       real*8, parameter :: scalesizeClay(nbins)=(/
@@ -498,6 +493,23 @@ C****
      *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
      *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
      *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
+
+#ifdef TOMAS_12_3NM 
+!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
+!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
+      real*8, parameter :: scalesizeClay(nbins)=(/0.,0.,0.,
+     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
+     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
+     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
+!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
+!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
+!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
+      real*8, parameter :: scalesizeSilt(nbins)=(/0.,0.,0.,
+     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
+     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
+     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
 
 #endif
       if(xdelt /= 0d0) call stop_model(
@@ -859,7 +871,11 @@ C****   4) tracers with interactive sources
 #ifdef TRACERS_TOMAS
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
-     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
+#ifdef TOMAS_12_3NM 
+     *         ,'ANACL_13','ANACL_14','ANACL_15'
+#endif
+     &         )
         ss_bin=ss_bin+1
        
         call read_seasalt_sources(ws,itype,ss_bin,ilong,jlat
@@ -953,7 +969,11 @@ ccc dust emission from earth
         SELECT CASE (trname(pbl_args%ntix(itr)))
         CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
      &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
-     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12'
+#ifdef TOMAS_12_3NM 
+     *         ,'ADUST_13','ADUST_14','ADUST_15'
+#endif
+     &         )
            du_bin=du_bin+1
           if(du_bin.eq.1)then
              n1=1
@@ -986,7 +1006,11 @@ ccc dust emission from earth
 !TOMAS - Silt3 is out of size range for TOMAS. 
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *         ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
            num_bin2=num_bin2+1
            trcnst=dust_num(num_bin2)+ss_num(num_bin2)  
         END SELECT
