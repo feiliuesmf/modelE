@@ -79,7 +79,7 @@ C**** GLOBAL parameters and variables:
      &     dmfastj2,NBFASTJ,AER2,MXFASTJ
       USE RAD_COM,only: ttausv_ntrace,ntrix
       USE RADPAR, only : NTRACE
-      USE TRACER_COM, only : trname
+      use OldTracer_mod, only: trname
 
       IMPLICIT NONE
 

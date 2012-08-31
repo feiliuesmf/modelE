@@ -9,7 +9,8 @@
     (defined TRACERS_TOMAS)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
-      use tracer_com, only: trname, ntm_dust
+      use tracer_com, only: ntm_dust
+      use OldTracer_mod, only: trName, MAX_LEN_NAME
 
       IMPLICIT NONE
 
@@ -21,7 +22,7 @@
 !@param n_soilDust index of first soil dust aerosol tracer
       integer :: n_soilDust
 !@param dust_names names of soil dust aerosol tracers
-      character(len=len(trname(1))),allocatable,dimension(:) ::
+      character(len=MAX_LEN_NAME),allocatable,dimension(:) ::
      &   dust_names(:)
 
 c**** rundeck parameter to switch between different emission schemes

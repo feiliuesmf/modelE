@@ -19,7 +19,8 @@
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,axyp,byaxyp
       USE SOMTQ_COM, only: mz
-      USE TRACER_COM
+      use OldTracer_mod, only: itime_tr0, dowetdep
+      USE TRACER_COM, only: ntm, trm, trwm
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
      $     to_conc
@@ -174,7 +175,8 @@ C**** Save current value in TCONSRV(NI)
       use resolution, only : ls1
       use resolution, only : lm,jm,im
       use geom, only : imaxj
-      use tracer_com, only : trm,trname
+      use OldTracer_mod, only: trname
+      use tracer_com, only : trm
 #ifdef TRACERS_WATER
      *     ,trwm
 #endif
@@ -352,7 +354,8 @@ C**** No need to save current value
      &     idacc,jhour0,jdate0,amon,amon0,
      &     jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only: areag 
-      USE TRACER_COM, only: NTM,itime_tr0
+      use OldTracer_mod, only: itime_tr0
+      USE TRACER_COM, only: NTM
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
@@ -508,7 +511,8 @@ C****
       SUBROUTINE JLt_TITLEX
 !@sum JLt_TITLEX sets up titles, etc. for composite JL output (tracers)
 !@auth J. Lerner
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, ntm_power
+      USE TRACER_COM, only: ntm
       USE TRDIAG_COM
       USE BDjlt
       IMPLICIT NONE
@@ -566,7 +570,8 @@ C****
       USE MODEL_COM, only: itime,idacc,xlabel,lrunid
       USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
-      USE TRACER_COM
+      use OldTracer_mod, only: ntm_power, dowetdep, trw0
+      USE TRACER_COM, only: ntm, n_water
       USE DIAG_COM, only: linect,plm,qdiag,lm_req,ia_dga,ajl
      *     ,jl_dpa,jl_dpasrc,jl_dwasrc,fim
       USE MDIAG_COM, only: acc_period
@@ -1213,7 +1218,8 @@ C****
       use model_com, only: modelEclock
       USE MODEL_COM, only: jhour0,jdate0,amon,amon0
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
-      USE TRACER_COM
+      use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
+      USE TRACER_COM, only: ntm, n_water
       USE DIAG_COM
 
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
@@ -1584,7 +1590,8 @@ C****
       use model_com, only: modelEclock
       USE MODEL_COM, only: jhour0,jdate0,amon,amon0
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
-      USE TRACER_COM
+      use OldTracer_mod, only: trw0
+      USE TRACER_COM, only: ntm, n_water
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
      *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
@@ -1848,7 +1855,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only:idacc
       USE GEOM, only: dxyp
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
       USE DIAG_COM
       USE DIAG_SERIAL, only : IJ_avg
       USE MDIAG_COM, only:

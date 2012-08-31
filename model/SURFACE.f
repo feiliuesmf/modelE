@@ -50,13 +50,14 @@ C****
       USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom,
+      use OldTracer_mod, only: itime_tr0, needtrs
+      USE TRACER_COM, only : NTM,trm,trmom,
      *     n_Be7, n_Be10
 #ifdef TRACERS_DRYDEP
-     *     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE
 #endif
 #endif
       USE SOCPBL, only : npbl=>n
@@ -1148,9 +1149,11 @@ C**** For distributed implementation - ensure point is on local process.
       USE ATM_COM, only : byam
       USE RAD_COM, only : trhr
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom
+      use OldTracer_mod, only: itime_tr0, needtrs
+      USE TRACER_COM, only : NTM,trm,trmom
 #ifdef TRACERS_WATER
-     *     ,nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE
+
 #endif
 #endif
       USE DIAG_COM, only : aij=>aij_loc,aijmm
@@ -1904,7 +1907,7 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       subroutine collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
-      use tracer_com, only : trname
+      use OldTracer_mod, only : trname
       use fluxes, only : atmocn
       use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,ijts_isrc,jls_isrc
@@ -2063,7 +2066,8 @@ C****
       use pbl_drv, only : t_pbl_args
       use model_com, only : itime,dtsrc
       use diag_com, only : aij=>aij_loc,ij_gasx,ij_kw,ij_alpha
-      USE TRACER_COM, only: n_co2n,n_cfcn,vol2mass,tr_mm,itime_tr0
+      use OldTracer_mod, only: vol2mass, tr_mm, itime_tr0
+      USE TRACER_COM, only: n_co2n,n_cfcn
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=>itime
 #else

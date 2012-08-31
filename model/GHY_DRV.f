@@ -19,28 +19,27 @@ c******************   TRACERS             ******************************
     (defined TRACERS_TOMAS)
       use sle001,ONLY : aevap
 #endif
-      use tracer_com, only : NTM
-     *     ,itime_tr0,needtrs
-     *     ,trname
+      use OldTracer_mod, only: itime_tr0, trname, needtrs
+      use tracer_com, only: NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-     &     ,Ntm_dust
+      use tracer_com, only: Ntm_dust
 #endif
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only:dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER, nGAS, nPARt, tr_wd_TYPE
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay
+      use TRACER_COM, only: n_clay
 #else
 #ifdef TRACERS_MINERALS
-     &     ,n_clayilli
+      use TRACER_COM, only: n_clayilli
 #else
 #ifdef TRACERS_QUARZHEM
-     &     ,n_sil1quhe
+      use TRACER_COM, only: n_sil1quhe
 #endif
 #endif
 #endif
@@ -312,7 +311,10 @@ c**** prescribed dust emission
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc
 #endif
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+#endif
  !     use socpbl, only : dtsurf
       use geom, only : axyp
       use sle001, only : nsn,fb,fv
@@ -1541,7 +1543,7 @@ c***********************************************************************
 #ifdef TRACERS_DUST
       USE tracer_com,ONLY : Ntm_dust,n_clay
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #endif
 
@@ -2002,8 +2004,8 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only : vdata
 #endif
 #ifdef TRACERS_WATER
-      use tracer_com, only : NTM,tr_wd_TYPE,nwater,itime_tr0,
-     &     needtrs
+      use OldTracer_mod, only: tr_wd_TYPE, nWATER, itime_tr0, needtrs
+      use tracer_com, only : NTM
 #ifndef USE_ENT
       use veg_com, only:  avh !,afb
 #endif
@@ -3149,7 +3151,8 @@ cddd      end subroutine retp2
      *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC,wfcs
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
-      USE TRACER_COM, only : NTM, trname, t_qlimit
+      use OldTracer_mod, only: trname, t_qlimit
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
@@ -4178,7 +4181,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
      &     ,w_ij,ht_ij,fearth,shc_soil_texture
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : NTM,needtrs,itime_tr0
+      use OldTracer_mod, only: needtrs, itime_tr0
+      use TRACER_COM, only : NTM
       use model_com, only : itime
 #endif
 #ifdef USE_ENT
@@ -4670,7 +4674,8 @@ c**** Also reset snow fraction for albedo computation
      &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : NTM,needtrs,itime_tr0
+      use OldTracer_mod, only: needtrs,itime_tr0
+      use TRACER_COM, only : NTM
       use model_com, only : itime
 #endif
 #ifdef SCM

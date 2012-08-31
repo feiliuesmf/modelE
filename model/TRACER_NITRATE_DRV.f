@@ -25,7 +25,11 @@
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
 !     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm, trm
+      use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
+      use TRACER_COM, only: n_seasalt1, n_seasalt2
+      use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       USE AEROSOL_SOURCES, only: off_HNO3, off_SS
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
@@ -235,7 +239,11 @@ c avol [m3/gb] mass of air pro m3
 !
 ! 
 !----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm, trm
+      use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
+      use TRACER_COM, only: n_seasalt1, n_seasalt2
+      use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       USE AEROSOL_SOURCES, only: off_HNO3,off_SS
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions

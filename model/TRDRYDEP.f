@@ -181,8 +181,9 @@ C
       USE GEOM,       only : imaxj
       USE CONSTANT,   only : tf,pi,grav     
       USE RAD_COM,     only: COSZ1,cfrac,srdn
-      USE TRACER_COM, only : NTM, tr_wd_TYPE, nPART, trname,
-     & dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
+      use OldTracer_mod, only: tr_wd_TYPE, nPart, trname
+      use OldTracer_mod, only: dodrydep, F0_glob=>F0, HSTAR_glob=>HSTAR
+      USE TRACER_COM, only : NTM
 #ifdef TRACERS_SPECIAL_Shindell
      & , n_NOx
       USE TRCHEM_Shindell_COM, only : pNOx

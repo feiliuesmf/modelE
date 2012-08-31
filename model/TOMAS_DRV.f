@@ -4,7 +4,7 @@
 
 C-----INCLUDE FILES--------------------------------------------------
       USE RESOLUTION, only : im,jm,lm     ! dimensions
-      USE TRACER_COM, only : ntm,nbins
+      USE TRACER_COM, only : ntm,nbins, xk
       IMPLICIT NONE 
 
 C-----VARIABLE DECLARATIONS------------------------------------------
@@ -71,7 +71,7 @@ C SOArate is the rate of SOA condensing (kg/s)
       integer, parameter :: ptype=7 ! number of microphysics process 
       real*8, ALLOCATABLE,dimension(:,:,:,:,:) :: AEROD
       real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls  !1 for Convective and 2 for large-scale
-      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  !h2so4 formation rate from so2+oh [kg of H2SO4/sec\
+      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  !h2so4 formation rate from so2+oh [kg of H2SO4/sec
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg !number changed by subgrid coagulation
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg !mass changed by subgrid coagulation
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis !trm before emission and uses for subgrid coagulation
@@ -180,8 +180,13 @@ C-----INCLUDE FILES--------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      &   write_parallel ,am_i_root
       USE TOMAS_AEROSOL 
-      USE TRACER_COM
-
+      USE TOMAS_AEROSOL, only: n_subgridcg
+      USE TRACER_COM, only: ntm, trm, nbins, xk
+      use TRACER_COM, only: n_H2SO4, n_NH3, n_NH4, n_SOAgas, nOther
+      use TRACER_COM, only: nChemistry
+      USE TRACER_COM, only : IDTSO4,IDTNA,IDTECIL,
+     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
+     &     IDTNUMD
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_TOMAS,itcon_TOMAS
 !      USE AEROSOL_SOURCES, only: off_HNO3
@@ -1650,8 +1655,9 @@ C-----INCLUDE FILES-----------------------------------------------------
      &     am_i_root, getDomainBounds
       USE TOMAS_AEROSOL 
       USE GEOM, only: imaxj
+      use OldTracer_mod, only: trName
       USE TRACER_COM, only : IDTSO4, IDTNA, IDTOCIL,IDTH2O,NBINS
-     &     ,trm,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNUMD,TRNAME
+     &     ,trm,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNUMD
      *     ,ntm,ntm_TOMAS
 
       USE TRDIAG_COM, only : taijs=>taijs_loc !,taijls=>taijls_loc

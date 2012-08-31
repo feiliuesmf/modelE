@@ -730,7 +730,7 @@ c set-up for MPI implementation
       USE MOMENTS, only : initMoments
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      use TRACER_COM, only: initTracerCom
+      use TRACER_COM, only: initTracerCom, alloc_tracer_com
       use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE

@@ -38,12 +38,15 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm=>NTM, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: ntm=>NTM, ntm_soa,ntm_ococean
+  use OldTracer_mod, only: trname, t_qlimit
 #ifdef TRACERS_AEROSOLS_OCEAN
-  use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
+  use OldTracer_mod, only: trpdens
+  use TRACER_COM, only: n_ococean,n_seasalt1,trm
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
-  use TRACER_COM, only:        nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
+  use OldTracer_mod, only: tr_wd_type, tr_RKD, tr_DHD
+  use TRACER_COM, only:        nGAS, nPART, nWATER, &
        tr_evap_fact, gases_list,gases_count
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

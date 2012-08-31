@@ -14,7 +14,8 @@
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, trw0
+      USE TRACER_COM, only: ntm
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
@@ -108,10 +109,8 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use OldTracer_mod, only: initializeOldTracers
-      use OldTracer_mod, only: addTracer
       use OldTracer_mod, only: set_tr_mm, set_ntm_power
       use OldTracer_mod, only: set_t_qlimit
-      use OldTracer_mod, only: set_ntsurfsrc
       use OldTracer_mod, only: set_needtrs
       use OldTracer_mod, only: set_trdecay
       use OldTracer_mod, only: set_itime_tr0

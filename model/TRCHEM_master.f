@@ -37,38 +37,45 @@ c
 #endif
       USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D
       USE FLUXES, only      : tr3Dsource
+      use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                        n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
      &                        n_Terpenes,
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
-     &                        tr_wd_type,nWater,trm,trmom,
+     &                        trm,trmom
 #ifdef TRACERS_AEROSOLS_SOA
-     &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+      USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
+     &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a
 #ifdef TRACERS_TERP
-     &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
+      USE TRACER_COM, only  : 
+     &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AMP
+      USE TRACER_COM, only  : 
      &                        n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
      &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
      &                        n_M_SSA_SU,n_M_OCC_SU,n_M_BC1_SU,
      &                        n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU,
-     &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU,
+     &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU
 #endif
 #ifdef TRACERS_TOMAS
-     &                        n_ASO4,nbins,   
+      USE TRACER_COM, only  : n_ASO4,nbins
 #else
-     &                        n_SO4,
+      USE TRACER_COM, only  : 
+     &                        n_SO4
 #endif  
+      USE TRACER_COM, only  : 
      &                        n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
-     &                        rsulf3,rsulf4,TR_MM,trname
-     *                        ,mass2vol,vol2mass
-     &                        ,n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
+     &                        rsulf3,rsulf4,
+     &                        n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                        n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
+      use OldTracer_mod, only: tr_mm, mass2vol, vol2mass, trname
 #ifdef TRACERS_HETCHEM
-     &                        ,krate,n_N_d1,n_N_d2,n_N_d3
+      USE TRACER_COM, only  : 
+     &                        krate,n_N_d1,n_N_d2,n_N_d3
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only: avg_model,n__sw

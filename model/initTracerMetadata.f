@@ -13,7 +13,70 @@
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: am     ! Air mass of each box (kg/m^2)
-      USE TRACER_COM
+      use OldTracer_mod, only: trName, nGAS, nWater, nPart
+      use OldTracer_mod, only: tr_wd_type, do_fire, HSTAR
+      use OldTracer_mod, only: tr_RKD, nBBsources, itime_tr0, tr_mm
+      use OldTracer_mod, only: set_vol2mass, set_mass2vol
+      use TracerBundle_mod, only: getNumTracers
+      USE TRACER_COM, only: ntm, ef_fact3d, imPI, no_emis_over_ice
+      USE TRACER_COM, only: offline_dms_ss, offline_ss, tracers
+      USE TRACER_COM, only: aer_int_yr, num_sectors
+      use TRACER_COM, only: coupled_chem, set_ntsurfsrc, ntsurfsrc
+      use TRACER_COM, only:
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL
+      use TRACER_COM, only: n_AOCOB, n_AOCIL, n_ADUST, n_ANUM
+      use TRACER_COM, only: n_SOAgas, xk, n_AH2O, n_ASO4, nbins
+#endif
+      use TRACER_COM, only: 
+     *                 n_SF6_c,                                        
+     *     n_Air,    n_SF6,   n_Rn222, n_CO2,      n_N2O,
+     *     n_CFC11,  n_14CO2, n_CH4,   n_O3,       n_water,
+     *     n_H2O18,  n_HDO,   n_HTO,   n_Ox,       n_NOx,
+     *     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,
+     *     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,
+     *     n_Isoprene, n_AlkylNit, n_Alkenes, n_Paraffin,
+     *     n_stratOx, n_Terpenes,n_codirect,
+     *     n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+     *     n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
+     *     n_DMS,    n_MSA,   n_SO2,   n_SO4,    n_H2O2_s,
+     *     n_ClOx,   n_BrOx,  n_HCl,   n_HOCl,   n_ClONO2,
+     *     n_HBr,    n_HOBr,  n_BrONO2,n_CFC,    n_GLT,
+     *     n_Pb210,n_Be7,   n_Be10,
+     .     n_CFCn,   n_CO2n,  n_Age,
+     *     n_seasalt1,  n_seasalt2, n_SO4_d1,  n_SO4_d2,
+     *     n_SO4_d3,n_N_d1,  n_N_d2,  n_N_d3,
+     &     n_NH3,   n_NH4,   n_NO3p,
+     *     n_BCII,  n_BCIA,  n_BCB,
+     *     n_OCII,  n_OCIA,  n_OCB,
+     *     n_vbsGm2, n_vbsGm1, n_vbsGz,  n_vbsGp1, n_vbsGp2,
+     *     n_vbsGp3, n_vbsGp4, n_vbsGp5, n_vbsGp6,
+     *     n_vbsAm2, n_vbsAm1, n_vbsAz,  n_vbsAp1, n_vbsAp2,
+     *     n_vbsAp3, n_vbsAp4, n_vbsAp5, n_vbsAp6,
+     *     n_OCocean,
+     &     n_clay,   n_silt1, n_silt2, n_silt3, n_silt4,
+     &     n_clayilli,n_claykaol,n_claysmec,n_claycalc,
+     &     n_clayquar,n_sil1quar,n_sil1feld,n_sil1calc,
+     &     n_sil1hema,n_sil1gyps,n_sil2quar,n_sil2feld,
+     &     n_sil2calc,n_sil2hema,n_sil2gyps,n_sil3quar,
+     &     n_sil3feld,n_sil3calc,n_sil3hema,n_sil3gyps,
+     &     n_sil1quhe,n_sil2quhe,n_sil3quhe,
+     *     n_M_NO3,   n_M_NH4,   n_M_H2O,   n_M_AKK_SU,
+     *     n_N_AKK_1, n_M_ACC_SU,n_N_ACC_1, n_M_DD1_SU,
+     *     n_M_DD1_DU,n_N_DD1_1, n_M_DS1_SU,n_M_DS1_DU,
+     *     n_N_DS1_1 ,n_M_DD2_SU,n_M_DD2_DU,n_N_DD2_1 ,
+     *     n_M_DS2_SU,n_M_DS2_DU,n_N_DS2_1 ,n_M_SSA_SU,
+     *     n_M_SSA_SS,n_M_SSC_SS,
+     *     n_M_OCC_SU,n_M_OCC_OC,n_N_OCC_1 ,
+     *     n_M_BC1_SU,n_M_BC1_BC,n_N_BC1_1 ,n_M_BC2_SU,
+     *     n_M_BC2_BC,n_N_BC2_1 ,n_M_BC3_SU,n_M_BC3_BC,
+     *     n_N_BC3_1 ,n_M_DBC_SU,n_M_DBC_BC,n_M_DBC_DU,
+     *     n_N_DBC_1 ,n_M_BOC_SU,n_M_BOC_BC,n_M_BOC_OC,
+     *     n_N_BOC_1, n_M_BCS_SU,n_M_BCS_BC,n_N_BCS_1 ,
+     *     n_M_MXX_SU,n_M_MXX_BC,n_M_MXX_OC,n_M_MXX_DU,
+     *     n_M_MXX_SS,n_N_MXX_1 ,n_M_OCS_SU,n_M_OCS_OC,
+     *     n_N_OCS_1,n_M_SSS_SS,n_M_SSS_SU,
+     *     n_H2SO4, n_N_SSA_1, n_N_SSC_1
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
@@ -110,7 +173,6 @@
       use OldTracer_mod, only: oldAddTracer
       use OldTracer_mod, only: set_tr_mm, set_ntm_power
       use OldTracer_mod, only: set_t_qlimit
-      use OldTracer_mod, only: set_ntsurfsrc
       use OldTracer_mod, only: set_needtrs
       use OldTracer_mod, only: set_trdecay
       use OldTracer_mod, only: set_itime_tr0
@@ -812,6 +874,7 @@ C**** Aerosol tracer output should be mass mixing ratio
       contains
 
       subroutine setDefaultSpec(n, tracer)
+      use TRACER_COM, only: set_ntsurfsrc
       use TRACER_COM, only: sect_name
       use Tracer_mod, only: Tracer_type
       use Tracer_mod, only: setProperty
@@ -928,6 +991,7 @@ C**** Aerosol tracer output should be mass mixing ratio
       end subroutine Air_setSpec
 
       subroutine CO2n_setSpec(name)
+      use TRACER_COM, only: set_ntsurfsrc
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CO2n = n

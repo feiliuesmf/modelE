@@ -14,7 +14,8 @@
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
-      USE TRACER_COM                   !, only : rxts,trm
+      USE TRACER_COM, only: trm, krate, rhet
+      use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
@@ -266,7 +267,9 @@ c radii interpolation
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
-      USE TRACER_COM                   !, only : rxts,trm
+      USE TRACER_COM, only: trm, rxts, rhet
+      use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
+      use TRACER_COM, only: rxts1, rxts2, rxts3, rxts4
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)

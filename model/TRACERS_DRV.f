@@ -20,7 +20,16 @@
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, dowetdep, dodrydep
+      use OldTracer_mod, only: ntm_power
+      use TracerBundle_mod, only: getTracer
+      USE TRACER_COM, only: ntm, noverwrite, nvolcanic, nother
+      use TRACER_COM, only: nchemloss, nchemistry, nbiomass, naircraft
+      use TRACER_COM, only: ntsurfsrc, n_SO2, tracers
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: IDTNUMD, IDTH2O, n_AECOB, n_AOCOB, n_ANUM
+      use TRACER_COM, only: N_AECOB, IDTSO4, xk
+#endif
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
@@ -1207,7 +1216,14 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
-      USE TRACER_COM
+      use TracerBundle_mod, only: getTracer
+      use OldTracer_mod, only: trname, ntm_power
+      use TRACER_COM, only: ntm, n_SO2, naircraft, nbiomass, nchemistry
+      use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
+      use TRACER_COM, only: ntsurfsrc, tracers
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_ANUM, n_AECOB, n_AOCOB
+#endif
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -2919,12 +2935,18 @@ c Oxidants
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
-      USE TRACER_COM
+      use TracerBundle_mod, only: getTracer
+      use OldTracer_mod, only: trname, ntm_power
+      use TRACER_COM, only: ntm, n_SO2, naircraft, nbiomass, nchemistry
+      use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
+      use TRACER_COM, only: ntsurfsrc, tracers
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AOCOB, n_ANUM, n_AECOB
+#endif
       USE DIAG_COM
 #ifdef TRACERS_ON
       use Tracer_mod, only: Tracer_type
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -5908,7 +5930,7 @@ c      enddo
       subroutine set_diag_rad(n,k)
 !@sum set_diag_rad sets special rad diags for aerosols
 !@auth Dorothy Koch
-      USE TRACER_COM
+      use OldTracer_mod, only: trname
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
@@ -6053,7 +6075,8 @@ c clear sky scattering asymmetry factor in six solar bands
 !@sum init_ijlts_diag Initialise lat/lon/height tracer diags
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      USE TRACER_COM
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only: ntm
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
@@ -6605,9 +6628,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE ATM_COM, only: pmidl00
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
-      USE TRACER_COM, only: NTM,
-     *     trm,trmom,itime_tr0,trname,needtrs,
-     *     tr_mm,rnsrc,vol2mass,trsi0
+      use OldTracer_mod, only: trname, itime_tr0, vol2mass, tr_mm
+      use OldTracer_mod, only: trsi0, needtrs
+      USE TRACER_COM, only: NTM, trm, trmom, rnsrc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       USE TRACER_COM, only:
@@ -6618,8 +6641,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
 #endif
 #ifdef TRACERS_WATER
-      USE TRACER_COM,only:
-     *     trwm,trw0,tr_wd_type,nWATER,n_HDO,n_H2O18
+      use OldTracer_mod, only: trw0, tr_wd_type, nWATER
+      USE TRACER_COM,only: trwm,n_HDO,n_H2O18, n_OCII
       USE LANDICE, only : ace1li,ace2li
       USE LANDICE_COM, only : trsnowli,trlndi,snowli
       USE SEAICE_COM, only : si_atm,si_ocn
@@ -6662,7 +6685,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      * om2oc
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only:
-     * OCT_src,n_OCII
+     * OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
       USE AEROSOL_SOURCES, only:
      * DMS_AER,SS1_AER,SS2_AER,
@@ -7722,28 +7745,33 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
-      USE TRACER_COM, only: coupled_chem,daily_z
       USE CONSTANT, only: grav
-      USE TRACER_COM, only: NTM,trname,itime_tr0,nOther,nAircraft,
-     & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,do_fire,
-     & trans_emis_overr_yr,trans_emis_overr_day,nBBsources
+      use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
+      use OldTracer_mod, only: nBBsources, do_fire, vol2mass
+      use TRACER_COM, only: tracers, set_ntsurfsrc
+      USE TRACER_COM, only: coupled_chem,daily_z
+      USE TRACER_COM, only: trm,trmom,n_CO2n
+      USE TRACER_COM, only: NTM,nOther,nAircraft,
+     & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
+     & trans_emis_overr_yr,trans_emis_overr_day
 #ifdef TRACERS_SPECIAL_Shindell
-     & ,ntm_chem
+      use TRACER_COM, only: ntm_chem
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-     * ,aer_int_yr,imPI,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+      use TRACER_COM, only: 
+     *  aer_int_yr,imPI,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
-     * ,n_AECOB,n_AOCOB,n_ASO4,nbins,IDTECOB,IDTDUST
+      use TRACER_COM, only:
+     * n_AECOB,n_AOCOB,n_ASO4,nbins,IDTECOB,IDTDUST
 #endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE resolution,ONLY : lm,psf
       USE GEOM, only: axyp
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
-      USE TRACER_COM, only: trm,vol2mass,trmom,n_CO2n
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
       USE MODEL_COM, only : nday,nstep=>itime
 #ifdef constCO2
@@ -7764,8 +7792,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
-      use TRACER_COM, only: set_ntsurfsrc
-      use TRACER_COM, only: tracers
       use TracerBundle_mod, only: getTracer
       use Tracer_mod, only: Tracer_type, readSurfaceSources
       IMPLICIT NONE
@@ -7791,6 +7817,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       type (Tracer_type), pointer :: tracer
 C****
       integer :: year, month, dayOfYear
+      character(len=MAX_LEN_NAME) :: tmpString
 
       call modelEclock%getDate(year=year, month=month, 
      *     dayOfYear=dayOfYear)
@@ -8008,8 +8035,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+            tmpString = trim(trname(n))
             if (trim(trname(n)).eq.'ASO4__01'.or.
-     &           trim(trname(n)(1:5)).eq.'ANUM_'.or.
+     &           tmpString(1:5).eq.'ANUM_'.or.
      &           trim(trname(n)).eq.'M_AKK_SU'.or. 
      &           trim(trname(n)).eq.'M_ACC_SU') then  
 !skip these tracers!               
@@ -8167,7 +8195,16 @@ C**** at the start of any day
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
-      USE TRACER_COM
+      use OldTracer_mod, only: itime_tr0, trname, vol2mass
+      USE TRACER_COM, only: ntm, sfc_src, alter_sources
+      use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
+      use TRACER_COM, only: trm, ntsurfsrc, rnsrc, reg_N, reg_W, reg_S
+      use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: IDTH2O, IDTNUMD, n_AECOB, n_AOCOB
+      use TRACER_COM, only: n_ANUM, IDTECIL, IDTOCIL, IDTECOB, IDTOCOB
+      use TRACER_COM, only: nbins, n_ASO4, xk, IDTSO4
+#endif
       USE FLUXES, only: trsource,fland,flice,focean,atmsrf
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth
@@ -8927,7 +8964,27 @@ c latlon grid
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      & write_parallel,AM_I_ROOT
-      USE TRACER_COM
+      use RESOLUTION, only: LM
+      use OldTracer_mod, only: itime_tr0, do_fire, trname
+      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
+      USE TRACER_COM, only: ntm, sfc_src, trm
+      use TRACER_COM, only: mchem, mtrace, n_BCIA , n_BCII
+      use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
+      use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
+      use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
+      use TRACER_COM, only: n_NOx, n_NO3p, n_OCIA, n_OCII
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: n_NO3p, n_OCIA, n_OCII, n_SO2
+      use TRACER_COM, only: ntm_chem, ntsurfsrc
+      use TRACER_COM, only: n_NOx, naircraft, nBiomass, nChemistry
+      use TRACER_COM, only: nVolcanic, nOverwrite, nChemloss, nOther
+      use TRACER_COM, only:  trans_emis_overr_day, trans_emis_overr_yr
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: nbins, n_AECOB, n_AOCIL, IDTH2O
+      use TRACER_COM, only: IDTOCIL, IDTNUMD, IDTNA, IDTECIL, IDTDUST
+      use TRACER_COM, only: IDTECOB, IDTOCOB, IDTSO4, n_H2SO4, n_SOAGAS
+      use TRACER_COM, only: nChemistry, n_AOCOB, n_AECIL, ntm_tomas
+#endif
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
       use model_com, only: modelEclock
@@ -9737,8 +9794,10 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
-      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
-     *     ,trname,NTM,lm,t_qlimit,fq_aer,trpdens
+      use OldTracer_mod, only: nWater, nGas, nPart, tr_wd_type
+      use OldTracer_mod, only: tr_RKD, tr_DHD, trname, t_qlimit
+      use OldTracer_mod, only: trpdens, fq_aer
+      USE TRACER_COM, only: NTM,lm
 #ifdef TRACERS_SPECIAL_O18
       USE TRACER_COM, only:
      &     supsatfac
@@ -9978,8 +10037,11 @@ C**** GLOBAL parameters and variables:
 ! NB: these lists are often used for implicit loops
      &     gases_list,aero_list,water_list,hlawt_list
 
-      USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,ngas,nPART,tr_wd_type
-     *     ,trname,NTM,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
+      use OldTracer_mod, only: tr_RKD, tr_DHD, tr_wd_type
+      use OldTracer_mod, only: nWater, ngas,nPART
+      use OldTracer_mod, only: trname, t_qlimit, fq_aer, trpdens
+      USE TRACER_COM, only: 
+     *     NTM,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
       USE TRACER_COM, only: supsatfac
 #endif
@@ -10295,10 +10357,13 @@ c      enddo ! end loop over aerosols
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
 c
 C**** GLOBAL parameters and variables:
-      USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
-     * tr_RKD,tr_DHD,LM,NTM,rc_washt
+      use OldTracer_mod, only: nWATER, ngas, nPART, tr_wd_type
+      use OldTracer_mod, only: tr_RKD, tr_DHD, rc_washt
+      USE TRACER_COM, only: 
+     * LM,NTM
 #ifdef TRACERS_AEROSOLS_Koch
-     * ,trname,n_seasalt1,n_seasalt2
+     * ,n_seasalt1,n_seasalt2
+      use OldTracer_mod, only: trname
 c     USE PBLCOM, only: wsavg
 #endif
 c      USE CLOUDS, only: NTIX,PL
@@ -10386,10 +10451,12 @@ c
 ! NOTE: FQ is only computed for the tracers in aero_list!
 c
 C**** GLOBAL parameters and variables:
-      USE TRACER_COM, only: nWATER, ngas, nPART, tr_wd_type,
-     * tr_RKD,tr_DHD,NTM,rc_washt,trname
+      use OldTracer_mod, only: nWATER, ngas, nPART, tr_wd_type
+      use OldTracer_mod, only: tr_RKD, tr_DHD, rc_washt, trname
+      USE TRACER_COM, only: 
+     * NTM
 #ifdef TRACERS_AEROSOLS_Koch
-c     * ,trname,n_seasalt1,n_seasalt2
+c     * n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
 
@@ -10531,8 +10598,8 @@ c         endif
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: NTM,
-     *     tr_evap_fact, tr_wd_type,nwater,trname
+      use OldTracer_mod, only: tr_wd_type,nwater,trname
+      USE TRACER_COM, only: NTM, tr_evap_fact
 c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE
@@ -10590,9 +10657,8 @@ C**** no fractionation for ice evap
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only : tf,lhe
-      USE TRACER_COM, only: NTM,
-     &     tr_evap_fact, tr_wd_type,nwater,trname
-     &     ,water_count,water_list
+      use OldTracer_mod, only: tr_wd_type,nwater,trname
+      USE TRACER_COM, only: NTM, tr_evap_fact, water_count,water_list
 c      USE CLOUDS, only: NTIX
 c
       IMPLICIT NONE

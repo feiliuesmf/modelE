@@ -8,7 +8,8 @@ module TRACERS_SOA
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel, am_i_root
-use TRACER_COM, only: NTM,nsoa,tr_mm,&
+use OldTracer_mod, only: tr_mm
+use TRACER_COM, only: NTM,nsoa,&
                       n_Isoprene,&
 
 #ifdef TRACERS_TERP
@@ -408,13 +409,12 @@ end subroutine soa_apart
 
 
 subroutine soa_aerosolphase(III,JJJ,L,changeL,bypfactor)
-
+use OldTracer_mod, only: mass2vol
 use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
 #ifdef TRACERS_NITRATE
                       n_nh4,n_no3p,&
 #endif
-                      n_msa,n_so4,&
-                      mass2vol
+                      n_msa,n_so4
 #ifdef TRACERS_AEROSOLS_VBS
 use TRACERS_VBS, only: vbs_tr
 #endif

@@ -17,7 +17,6 @@
 !@ GRAINS
 !@ read_mon_3D
 !@ read_seawifs_chla
-      USE TRACER_COM
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
@@ -75,7 +74,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
-      use TRACER_COM, only: NTM
+      use TRACER_COM, only: NTM, n_OCII
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
@@ -493,7 +492,8 @@ c  concentrations
 c want kg DMS/m2/s
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE GEOM, only: axyp
-      USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
+      use OldTracer_mod, only: tr_mm
+      USE TRACER_COM, only: n_DMS,OFFLINE_DMS_SS
       use resolution, only: lm
       use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
@@ -714,7 +714,20 @@ C TOMAS don't allow offline SS!
       SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, tr_mm
+      use TRACER_COM, only: ntm, oh_live, no3_live, trm
+      use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
+      use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
+      use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: nChemistry, nChemLoss
+#if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
+      use TRACER_COM, only: rxts1, rxts2, rxts3
+#endif
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
+      use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
+#endif
       USE TRDIAG_COM, only : 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -1329,9 +1342,11 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
-      USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,NTM
-     *     ,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
+      use OldTracer_mod, only: trname, mass2vol, tr_mm
+      use OldTracer_mod, only: tr_RKD, tr_DHD
+      USE TRACER_COM, only: n_H2O2_s,n_SO2
+     *     ,NTM
+     *     ,lm,n_SO4,n_H2O2,coupled_chem
       USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
       USE MODEL_COM, only: dtsrc
 c
@@ -1590,16 +1605,16 @@ c
       USE CONSTANT, only: rhow
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
       USE SEAICE_COM, only : si_atm
-      USE TRACER_COM, only: trname
+      use TRACER_COM, only:
 #ifdef TRACERS_AEROSOLS_Koch
-     *                     ,n_BCB,n_BCII,n_BCIA
+      use TRACER_COM, only: n_BCB,n_BCII,n_BCIA
 #endif
 #ifdef TRACERS_AMP
-     *  ,n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
+      use TRACER_COM, only:n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
      *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
 #endif
 #ifdef TRACERS_TOMAS
-     *  ,n_AECIL,n_AECOB,nbins
+      use TRACER_COM, only: n_AECIL,n_AECOB,nbins
 #endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn

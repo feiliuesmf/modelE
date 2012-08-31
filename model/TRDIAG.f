@@ -16,13 +16,14 @@
       use constant, only : teeny,grav
       use resolution, only : lm
       USE MODEL_COM, only: idacc
-      USE TRACER_COM, only : ntm=>NTM,ntm_power,trname
+      use OldTracer_mod, only:  ntm_power, trname
+      USE TRACER_COM, only: ntm=>NTM
      &     ,n_Water,n_CH4,n_O3
 #ifdef TRACERS_WATER
-     &     ,trw0,dowetdep
+      use OldTracer_mod, only:trw0,dowetdep
 #endif
 #ifdef TRACERS_SPECIAL_O18
-     &     ,n_H2O18,n_HDO,n_H2O17
+      USE TRACER_COM, only: n_H2O18,n_HDO,n_H2O17
 #endif
       USE GEOM, only : areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
@@ -616,7 +617,8 @@ c
 ! comments to be added
       use resolution, only : im,jm
       use model_com, only: idacc
-      use tracer_com
+      use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
+      use tracer_com, only: ntm, n_water
       use diag_com
       use mdiag_com, only : sname_strlen
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
@@ -1010,10 +1012,11 @@ c
       end subroutine diagijt_prep
 
       SUBROUTINE DIAGIJLt_prep
-! comments to be added
+!     comments to be added
       use resolution, only : im,jm,lm
       use model_com, only: idacc
-      use tracer_com
+      use OldTracer_mod, only: trw0
+      use tracer_com, only: ntm, n_water
       use diag_com
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
      &     ktaijl_,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
@@ -1038,7 +1041,7 @@ c
 
       logical :: have_south_pole, have_north_pole
       call getDomainBounds(grid, have_south_pole = have_south_pole,
-     &               have_north_pole = have_north_pole)
+     &     have_north_pole = have_north_pole)
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -1085,18 +1088,18 @@ C**** Tracer concentrations
         ia_taijl(k) = ia_src
         scale_taijl(k) = scale_ijt(n)
         do l=1,lm
-        do j=j_0,j_1; do i=i_0,i_1
-          taijl(i,j,l,k) = taijln(i,j,l,n)*byaxyp(i,j)
-        enddo       ; enddo
+          do j=j_0,j_1; do i=i_0,i_1
+            taijl(i,j,l,k) = taijln(i,j,l,n)*byaxyp(i,j)
+          enddo       ; enddo
         enddo
 #ifdef TRACERS_WATER
         if(n.eq.n_water) k_water = k
         if(to_per_mil(n).gt.0) then
           do l=1,lm
-          do j=j_0,j_1; do i=i_0,i_1
-            taijl(i,j,l,k) = 1d3*(taijl(i,j,l,k)/trw0(n)
-     &           -byaxyp(i,j)*taijln(i,j,l,n_water))
-          enddo       ; enddo
+            do j=j_0,j_1; do i=i_0,i_1
+              taijl(i,j,l,k) = 1d3*(taijl(i,j,l,k)/trw0(n)
+     &             -byaxyp(i,j)*taijln(i,j,l,n_water))
+            enddo       ; enddo
           enddo
           denom_taijl(k) = k_water
           if(n.eq.n_water) then ! save a non-per-mil denom
@@ -1104,9 +1107,9 @@ C**** Tracer concentrations
             k_water = k
             denom_taijl(k-1) = k_water
             do l=1,lm
-            do j=j_0,j_1; do i=i_0,i_1
-              taijl(i,j,l,k) =  taijln(i,j,l,n)*byaxyp(i,j)
-            enddo       ; enddo
+              do j=j_0,j_1; do i=i_0,i_1
+                taijl(i,j,l,k) =  taijln(i,j,l,n)*byaxyp(i,j)
+              enddo       ; enddo
             enddo
             ia_taijl(k) = ia_taijl(k-1)
           endif
@@ -1125,16 +1128,16 @@ C**** Tracer specials
         ia_taijl(k) = ia_ijlt(kx)
         scale_taijl(k) = scale_ijlt(kx)
         do l=1,lm
-        do j=j_0,j_1; do i=i_0,i_1
-          taijl(i,j,l,k) = taijls(i,j,l,kx)
-        enddo       ; enddo
+          do j=j_0,j_1; do i=i_0,i_1
+            taijl(i,j,l,k) = taijls(i,j,l,kx)
+          enddo       ; enddo
         enddo
       enddo
 
 #ifdef TRACERS_SPECIAL_O18
-C****
+C**** 
 C**** Calculations of deuterium excess (d=dD-d18O)
-C****
+C**** 
       if (n_H2O18.gt.0 .and. n_HDO.gt.0) then
         n1=n_H2O18
         n2=n_HDO
@@ -1147,19 +1150,19 @@ C**** water vapour
         ir_taijl(k) = ir_m45_130
         ia_taijl(k) = ia_src
         do l=1,lm
-        do j=j_0,j_1
-        do i=i_0,i_1
-          taijl(i,j,l,k) = 1d3*(taijln(i,j,l,n2)/trw0(n2)-
-     &         8.*taijln(i,j,l,n1)/trw0(n1)+
-     &         7.*taijln(i,j,l,n_water))*byaxyp(i,j)
-        enddo
-        enddo
+          do j=j_0,j_1
+            do i=i_0,i_1
+              taijl(i,j,l,k) = 1d3*(taijln(i,j,l,n2)/trw0(n2)-
+     &             8.*taijln(i,j,l,n1)/trw0(n1)+
+     &             7.*taijln(i,j,l,n_water))*byaxyp(i,j)
+            enddo
+          enddo
         enddo
       end if
 
-C****
+C**** 
 C**** Calculations of D17O excess (D17O=ln(d17O+1)-0.529*ln(d18O+1))
-C****
+C**** 
       if (n_H2O18.gt.0 .and. n_H2O17.gt.0) then
         n1=n_H2O18
         n2=n_H2O17
@@ -1190,13 +1193,13 @@ C**** water vapour
 
       ktaijl_out = k
 
-c
-c if necessary, reallocate taijl to be the right size
-c
+c     
+c     if necessary, reallocate taijl to be the right size
+c     
       if(ktaijl_out.lt.size(taijl,4)) then
         allocate(taijl_tmp(i_0:i_1,j_0:j_1,lm,ktaijl_out))
         taijl_tmp(i_0:i_1,j_0:j_1,:,1:ktaijl_out) =
-     &      taijl(i_0:i_1,j_0:j_1,:,1:ktaijl_out)
+     &       taijl(i_0:i_1,j_0:j_1,:,1:ktaijl_out)
         deallocate(taijl)
         allocate(taijl(i_0h:i_1h,j_0h:j_1h,lm,ktaijl_out))
         taijl(i_0:i_1,j_0:j_1,:,1:ktaijl_out) =
@@ -1207,7 +1210,7 @@ c
       endif
 
 #ifdef TRACERS_SPECIAL_Lerner
-c adjust sname elements beginning with 14C
+c     adjust sname elements beginning with 14C
       do k=1,ktaijl_out
         if(sname_taijl(k)(1:3).eq.'14C') then
           sname_taijl(k) = 'a'//trim(sname_taijl(k))
@@ -1215,11 +1218,11 @@ c adjust sname elements beginning with 14C
       enddo
 #endif
 
-c
-c Declare the dimensions and metadata of TAIJL output fields using
-c netcdf CDL notation.  The C convention for dimension ordering
-c must be used (reversed wrt Fortran).
-c
+c     
+c     Declare the dimensions and metadata of TAIJL output fields using
+c     netcdf CDL notation.  The C convention for dimension ordering
+c     must be used (reversed wrt Fortran).
+c     
       cdl_taijl = cdl_ijl_template ! invoke a copy method later
 
 #ifdef CUBED_SPHERE

@@ -18,7 +18,10 @@
       USE MODEL_COM, only: dtsrc
       USE FLUXES, only : nisurf,atmice
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
-      USE TRACER_COM
+      use OldTracer_mod, only: trName, tr_wd_TYPE, mass2vol
+      use OldTracer_mod, only: dowetdep, dodrydep, trradius, ntrocn
+      use OldTracer_mod, only: ntm_power, nwater
+      USE TRACER_COM, only: ntm, n_Water, nPart
       USE TRDIAG_COM
       use Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -641,7 +644,8 @@ C****
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
-      USE TRACER_COM, only : NTM,trm,trmom,trname,alter_sources,
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
      * ef_FACT3d,tracers
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
@@ -787,9 +791,9 @@ C****
       USE MODEL_COM, only : itime,dtsrc
       USE FLUXES, only : tr3Dsource
       USE GEOM, only : imaxj
+      use OldTracer_mod, only: itime_tr0, trname, trdecay
       USE TRACER_COM, only : NTM
-     &     ,trm,trmom,trdecay,itime_tr0,n_Pb210,
-     &     trname, n_Rn222
+     &     ,trm,trmom,n_Pb210, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
       USE SEAICE_COM, only : si_atm,si_ocn
@@ -887,8 +891,8 @@ C****
       USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE ATM_COM, only : gz,pmid,pk
-      USE TRACER_COM, only : NTM,trm,trmom,itime_tr0,trradius
-     *     ,trname,trpdens
+      use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
+      USE TRACER_COM, only : NTM,trm,trmom
 #ifdef TRACERS_AMP
      *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens
@@ -1168,7 +1172,8 @@ c**** Interpolate two months of data to current day
       USE SOMTQ_COM, only : qmom
       USE ATM_COM, only : am
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, t_qlimit
+      USE TRACER_COM, only: ntm, trmom, trm, trwm, nmom
       USE DOMAIN_DECOMP_ATM, ONLY: GRID, getDomainBounds, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
@@ -1287,7 +1292,10 @@ C**** check whether air mass is conserved
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
      &     ,UNPACK_COLUMN, broadcast, getDomainBounds
-      USE TRACER_COM
+      USE RESOLUTION, only: im,jm,lm
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only: ntm, TRmom, TRWM, TRM, coupled_chem
+      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
@@ -1881,7 +1889,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@sum  def_rsf_tracer defines tracer array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      use tracer_com
+      use OldTracer_mod, only: trName
+      use tracer_com, only: ntm, trm, trmom, trwm, coupled_chem
+      use tracer_com, only: no3_live, oh_live
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       use fluxes, only : atmocn
@@ -2046,7 +2056,9 @@ c daily_z is currently only needed for CS
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-      use tracer_com
+      use TRACER_COM, only: trName => tmpTrName
+      use TRACER_COM, only: ntm, trm, trmom, trwm, coupled_chem
+      use TRACER_COM, only: oh_live, no3_live
       use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,

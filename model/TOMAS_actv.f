@@ -1855,7 +1855,8 @@ C
       SUBROUTINE getCCN(ICel,JCel,LCel,BOXVi,Tot_MLi,
      &     Tt,TPi,MLi,NMxi,NSECi)
 C
-      USE TRACER_COM, only : ntm,trm,tr_mm
+      use OldTracer_mod, only: tr_mm
+      USE TRACER_COM, only : ntm,trm
      &     ,IDTSO4,IDTNA,IDTECIL,
      &     IDTOCIL,IDTNUMD,IDTH2O,nbins
       implicit none 

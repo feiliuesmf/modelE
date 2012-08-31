@@ -39,7 +39,7 @@
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_OCEAN_INDEP
 #else
-      USE TRACER_COM, only :  trglac,trw0
+      use OldTracer_mod, only: trglac, trw0
 #endif
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
@@ -731,7 +731,7 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
      *     ,traccpda,traccpdg   ! tricbimp
 #endif
       USE TRDIAG_COM, only : to_per_mil
-      USE TRACER_COM, only :  trw0, nWater, trname
+      use OldTracer_mod, only :  trw0, nWater, trname
 #endif    /* TNL: inserted */
       Use LANDICE_COM, Only: TLANDI,SNOWLI, MDWNIMP,EDWNIMP,
      *                       FSHGLM,FNHGLM
@@ -974,7 +974,8 @@ C**** Add MDWNIMP to MICBIMP and reset implicit accumulators
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, getDomainBounds, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : NTM, trname
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only : NTM
 #endif
       USE LANDICE, only : ace1li, ace2li
       USE LANDICE_COM, only : nhc,tlandi,snowli,mdwnimp,edwnimp

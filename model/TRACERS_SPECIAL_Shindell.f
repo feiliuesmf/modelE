@@ -4,7 +4,7 @@
 
 #ifdef TRACERS_ON
 
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
 
       IMPLICIT NONE
       SAVE
@@ -167,7 +167,8 @@ C**** linearly in time (at 1% increase per year)
       USE MODEL_COM, only: itime,itimei,DTsrc
       USE GEOM, only: axyp,IMAXJ  
       USE ATM_COM, only: am
-      USE TRACER_COM, only: trname,trm,n_GLT,vol2mass,itime_tr0
+      use OldTracer_mod, only: trname, vol2mass, itime_tr0
+      USE TRACER_COM, only: trm,n_GLT
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
       USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds,grid,write_parallel
@@ -219,19 +220,20 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,
+      use OldTracer_mod, only: itime_tr0,trname
 #ifdef TRACERS_SPECIAL_Shindell
-     *                      n_NOx,
+      use TRACER_COM, only: n_NOx
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-     *                      n_BCIA,
+      use TRACER_COM, only: n_BCIA
 #endif
 #ifdef TRACERS_TOMAS
-     *                      IDTECOB,
+      use TRACER_COM, only: IDTECOB
 #endif
 !#ifdef TRACERS_AMP
-!     *                      n_M_BC1_BC,
+!          use TRACER_COM, only: n_M_BC1_BC
 !#endif
+      use TRACER_COM, only:
      *                      nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
      &     ,airtracer
@@ -262,7 +264,7 @@ C we change that.)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !     *  mon_files=(/'NOx_AIRC','M_BC1_BC_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-     *  mon_files=(/'NOx_AIRC','AECOB_01_AIRC'/)
+     *  mon_files=(/'NOx_AIRC     ','AECOB_01_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell)
      *  mon_files=(/'NOx_AIRC'/)
 #elif (defined TRACERS_AEROSOLS_Koch)
@@ -707,7 +709,8 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       USE GEOM, only       : axyp,lat2d_dg
       USE ATM_COM, only   : am
       USE CONSTANT, only: mair
-      USE TRACER_COM, only : trm, n_CH4, nOverwrite, vol2mass
+      use OldTracer_mod, only: vol2mass
+      USE TRACER_COM, only : trm, n_CH4, nOverwrite
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry
@@ -1144,7 +1147,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE DOMAIN_DECOMP_1D, only : 
 #endif
      &     pack_data
-      USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
+      use OldTracer_mod, only: itime_tr0,trname
+      USE TRACER_COM, only: sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
      &   gw_ulim,gw_llim,SW_lim,exclude_us_eu,nra_ch4,first_mod,

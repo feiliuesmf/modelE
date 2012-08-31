@@ -91,7 +91,15 @@ C****
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite,save3dAOD
 #ifdef TRACERS_ON
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: n_BCIA, n_BCB, n_NO3p
+      USE TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, n_Silt4
+      USE TRACER_COM, only: n_SO4, n_Seasalt1, n_Seasalt2
+      USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4, ntm_dust
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL,
+     &     n_AOCOB, n_AOCIL, n_ADUST
+#endif
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
@@ -994,8 +1002,8 @@ C**** Update orbital parameters at start of year
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
-     *     ,ntm=>NTM
+      use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
+      USE TRACER_COM, only: trm,ntm=>NTM
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
@@ -1214,24 +1222,26 @@ C     OUTPUT DATA
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
+      use OldTracer_mod, only: trname, trpdens
       USE TRACER_COM, only: NTM=>NTM
-     *     ,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
+     *     ,n_Ox,trm,n_OCB,n_BCII,n_BCIA
+     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,n_SO4,n_stratOx
      *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
-     *     ,tr_mm,n_NH4,n_NO3p
+      use OldTracer_mod, only: tr_mm
+      use TRACER_COM, only: n_NH4,n_NO3p
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-     *     ,n_isopp1a,n_isopp2a
+      use TRACER_COM, only: n_isopp1a,n_isopp2a
 #ifdef TRACERS_TERP
-     *     ,n_apinp1a,n_apinp2a
+      use TRACER_COM, only: n_apinp1a,n_apinp2a
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_OCEAN
-     *     ,n_ococean
+      use TRACER_COM, only: n_ococean
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_AEROSOLS_Koch
-c    *     ,SNFST0,TNFST0
+c          use TRACER_COM, only: SNFST0,TNFST0
 #endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_tr

@@ -20,29 +20,30 @@
 #ifdef WATER_PROPORTIONAL
       USE TRACER_COM, only : force_limit=>force_limit_pbl
 #endif
-      USE TRACER_COM, only : NTM,trname,tr_wd_TYPE, nWATER
+      use OldTracer_mod, only: trName, nWATER, tr_wd_TYPE
+      USE TRACER_COM, only: NTM
 #ifdef TRACERS_SPECIAL_O18
-     *     ,n_water
+      use TRACER_COM, only: n_water
 #endif
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-     &     ,Ntm_dust
+      use TRACER_COM, only: Ntm_dust
 #endif
 #ifdef TRACERS_TOMAS
-     &   ,NBINS,xk
+      use TRACER_COM, only: NBINS, xk
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay
+      use TRACER_COM, only: n_clay
 #else
 #ifdef TRACERS_MINERALS
-     &     ,n_clayilli
+      use TRACER_COM, only: n_clayilli
 #endif /* TRACERS_MINERALS */
 #ifdef TRACERS_QUARZHEM
-     &     ,n_sil1quhe
+      use TRACER_COM, only: n_sil1quhe
 #endif /* TRACERS_QUARZHEM */
 #endif /* TRACERS_DUST */
 #endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP||TRACERS_TOMAS */

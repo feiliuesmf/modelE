@@ -35,9 +35,10 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : NTM,itime_tr0,needtrs
+      use OldTracer_mod, only: itime_tr0, needtrs
+      USE TRACER_COM, only : NTM
 #ifdef TRACERS_WATER
-     *     ,nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE
 #endif
 #endif
       USE PBL_DRV, only : alloc_pbl_args, dealloc_pbl_args

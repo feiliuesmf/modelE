@@ -150,7 +150,7 @@ c     for SCM cases using provided surface temps - do not overwrite
      *     itocean,itoice
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only: taijn=>taijn_loc
-      USE TRACER_COM, only: trsi0
+      USE OldTracer_mod, only: trsi0
 #endif
       IMPLICIT NONE
 
@@ -781,7 +781,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE CONSTANT, only : tf
 
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : trw0
+      USE OldTracer_mod, only : trw0
 #endif
       USE FLUXES, only : atmice ! move uisurf,visurf init elsewhere
       USE SEAICE, only : qsfix, osurf_tilt
@@ -1141,7 +1141,7 @@ C****
       USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa,itocean,itoice
       USE FLUXES, only : atmice
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only: trsi0
+      USE OldTracer_mod, only: trsi0
 #endif
       USE SEAICE, only : ace1i,ssi0,tfrez
       USE SEAICE_COM, only : si_ocn
@@ -1493,7 +1493,8 @@ C****
 !@+   called only when tracers turn on
 !@auth Gavin Schmidt
       USE MODEL_COM, only : itime
-      USE TRACER_COM, only : trw0,ntm=>NTM,itime_tr0
+      USE OldTracer_mod, only : trw0,itime_tr0
+      use TRACER_COM, only: ntm=>NTM
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn

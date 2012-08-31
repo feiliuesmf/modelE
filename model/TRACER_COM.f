@@ -12,6 +12,7 @@ C
       use newTracer_COM, only: getTracerNames, MAXLEN_TRACER_NAME
       USE QUSDEF, only: nmom
       USE RESOLUTION, only: im,jm,lm
+      use OldTracer_mod, only: trName
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: ntm_power
       use OldTracer_mod, only: t_qlimit
@@ -61,14 +62,13 @@ c
       IMPLICIT NONE
       SAVE
 
-      type (TracerBundle_type), save :: tracers
+      type (TracerBundle_type) :: tracers
 
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
 C**** Each tracer has a variable name and a unique index
 !@param NTM number of tracers
-!@var TRNAME: Name for each tracer >>> MUST BE LEFT-JUSTIFIED <<<
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
@@ -348,7 +348,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
 #endif
 
       integer :: NTM
-      character(len=MAXLEN_TRACER_NAME), allocatable :: trname(:)
+      character(len=MAXLEN_TRACER_NAME), allocatable :: tmpTrName(:)
 
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
@@ -933,8 +933,8 @@ c note: not applying CPP when declaring counts/lists.
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       integer :: i
 
-      call getTracerNames(trname)
-      NTM = size(trname)
+      call getTracerNames(tmpTrName)
+      NTM = size(tmpTrName)
 
 #ifdef TRACERS_SPECIAL_O18
       allocate(iso_index(NTM))
@@ -943,6 +943,7 @@ c note: not applying CPP when declaring counts/lists.
       end subroutine initTracerCom
 
       subroutine remake_tracer_lists()
+      use OldTracer_mod, only: trname
 !@sum regenerates the counts and lists of tracers in various categories
       use model_com, only : itime
       implicit none
@@ -1047,14 +1048,10 @@ c note: not applying CPP when declaring counts/lists.
       call setNtsurfsrc(tracers, index, value)
       end subroutine set_ntsurfsrc
 
-
-      END MODULE TRACER_COM
-
       SUBROUTINE ALLOC_TRACER_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-      USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -1099,4 +1096,7 @@ C****
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
+
+
+      END MODULE TRACER_COM
 
