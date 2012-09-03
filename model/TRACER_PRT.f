@@ -20,7 +20,10 @@
       USE GEOM, only: imaxj,axyp,byaxyp
       USE SOMTQ_COM, only: mz
       use OldTracer_mod, only: itime_tr0, dowetdep
-      USE TRACER_COM, only: ntm, trm, trwm
+      USE TRACER_COM, only: ntm, trm
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
      $     to_conc

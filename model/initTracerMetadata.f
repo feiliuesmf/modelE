@@ -18,9 +18,14 @@
       use OldTracer_mod, only: tr_RKD, nBBsources, itime_tr0, tr_mm
       use OldTracer_mod, only: set_vol2mass, set_mass2vol
       use TracerBundle_mod, only: getNumTracers
-      USE TRACER_COM, only: ntm, ef_fact3d, imPI, no_emis_over_ice
-      USE TRACER_COM, only: offline_dms_ss, offline_ss, tracers
-      USE TRACER_COM, only: aer_int_yr, num_sectors
+      USE TRACER_COM, only: ntm, ef_fact3d, no_emis_over_ice
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
+      use TRACER_COM, only: imPI, aer_int_yr
+      USE TRACER_COM, only: offline_dms_ss, offline_ss
+#endif
+      USE TRACER_COM, only: tracers
+      USE TRACER_COM, only: num_sectors
       use TRACER_COM, only: coupled_chem, set_ntsurfsrc, ntsurfsrc
       use TRACER_COM, only:
 #ifdef TRACERS_TOMAS

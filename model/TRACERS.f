@@ -1173,7 +1173,10 @@ c**** Interpolate two months of data to current day
       USE ATM_COM, only : am
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
       use OldTracer_mod, only: trname, t_qlimit
-      USE TRACER_COM, only: ntm, trmom, trm, trwm, nmom
+      USE TRACER_COM, only: ntm, trmom, trm, nmom
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
       USE DOMAIN_DECOMP_ATM, ONLY: GRID, getDomainBounds, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
@@ -1294,7 +1297,10 @@ C**** check whether air mass is conserved
      &     ,UNPACK_COLUMN, broadcast, getDomainBounds
       USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: trname
-      USE TRACER_COM, only: ntm, TRmom, TRWM, TRM, coupled_chem
+      USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
@@ -1890,7 +1896,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth M. Kelley
 !@ver  beta
       use OldTracer_mod, only: trName
-      use tracer_com, only: ntm, trm, trmom, trwm, coupled_chem
+      use tracer_com, only: ntm, trm, trmom, coupled_chem
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
       use tracer_com, only: no3_live, oh_live
       use domain_decomp_atm, only : grid
       use pario, only : defvar
@@ -2057,7 +2066,10 @@ c daily_z is currently only needed for CS
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
       use TRACER_COM, only: trName => tmpTrName
-      use TRACER_COM, only: ntm, trm, trmom, trwm, coupled_chem
+      use TRACER_COM, only: ntm, trm, trmom, coupled_chem
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
       use TRACER_COM, only: oh_live, no3_live
       use fluxes, only : atmocn
 #ifdef TRACERS_SPECIAL_Shindell

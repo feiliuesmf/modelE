@@ -120,6 +120,9 @@
       use OldTracer_mod, only: set_F0
       use OldTracer_mod, only: set_dodrydep
 
+#ifdef TRACERS_GASEXCH_ocean
+      use OldTracer_mod, only: vol2mass
+#endif
       use OldTracer_mod, only: dodrydep
       use OldTracer_mod, only: F0
       use OldTracer_mod, only: HSTAR
