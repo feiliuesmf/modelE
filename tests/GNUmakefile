@@ -7,7 +7,6 @@ DECKS_DIR = ../decks
 # List of all testable modelE components
 
 -include $(DECKS_DIR)/components
-COMPONENTS += profiler
 
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
 LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
@@ -23,13 +22,10 @@ EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM))
 
 # Defaults
 
-MPI_FC := mpif90
+USE_MPI = NO
+PFUNIT_USE_MPI = NO
 CSTRING := $(shell mpif90 --version)
 COMPILER := $(findstring ifort, $(CSTRING))
-MPIRUN := mpirun
-PFUNIT_NPES := 10
-PFUNIT_USE_MPI := YES
-PFUNIT_TEST_PATTERNS = test% Test% mpiTest%
 
 ifeq ($(COMPILER),ifort)
   FC = ifort
@@ -41,9 +37,12 @@ endif
 
 EXTRA_FFLAGS += $(CPPFLAGS)
 
-ifeq ($(MPI),NO)
-  USE_MPI = NO
-  PFUNIT_USE_MPI = NO
+ifeq ($(MPI),YES)
+  USE_MPI = YES
+  MPI_FC := mpif90
+  MPIRUN := mpirun
+  PFUNIT_NPES := 10
+  PFUNIT_USE_MPI := YES
 endif
 
 # Targets:

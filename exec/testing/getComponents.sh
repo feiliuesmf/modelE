@@ -3,7 +3,7 @@
 deck=$1
 
 declare -a c
-c=("COMPONENTS := ")
+c=("COMPONENTS :=  ")
 compLine="Components:"
 
 filecontent=( `cat $deck ` )
@@ -18,8 +18,11 @@ for entry in "${filecontent[@]}"; do
     if [ "$entry" == "Component" ]; then
       break
     fi
-    c=( "${c[@]}" "$entry" )
+    if [ "$entry" == "tracers" ]; then
+      c=( "${c[@]}" "$entry" )
+    fi    
   fi    
 done
+c=( "${c[@]}" " profiler shared solvers giss_LSM dd2d Ent MPI_Support" )
 
 echo ${c[@]} > components

@@ -40,8 +40,9 @@ submitJob()
 
   local deck=E4TcadF40
 
-# CC: This condition is only used to test the script.
-  local mpi=YES
+  mpiMode=(YES NO)
+  for mpi in "${mpiMode[@]}"; do  
+
   if [ "$mpi" == "NO" ]; then
     pfunitSuffix=".serial"
   fi
@@ -116,7 +117,7 @@ EOF
 
 # SUBMIT JOB SCRIPT
 
-   echo "RESULTS [$compiler]:" >> $toEmail
+   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
    echo ""  >> $toEmail
    if [ "$mpi" == "YES" ]; then
      jobID=`qsub $jobScript`
@@ -167,6 +168,8 @@ EOF
 
 # DELETE JOB SCRIPT
   rm -f $jobScript
+
+  done # loop over mpiMode
 
 }
 
