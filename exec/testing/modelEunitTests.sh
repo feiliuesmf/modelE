@@ -104,20 +104,19 @@ EOF
 
    cat << EOF >> $jobScript
 make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -fbacktrace" MPI=$mpi
-make tests RUN=$deck MPI=$mpi >> $testLog 2>&1
 EOF
 
    fi
 
    cat << EOF >> $jobScript
-make tests RUN=$deck MPI=$mpi >> $testLog 2>&1
+make tests RUN=$deck MPI=$mpi > $testLog 2>&1
 unset PFUNIT
 EOF
   chmod +x $jobScript
 
 # SUBMIT JOB SCRIPT
 
-   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
+   echo "RESULTS [$compiler MPI=$mpi]:" > $toEmail
    echo ""  >> $toEmail
    if [ "$mpi" == "YES" ]; then
      jobID=`qsub $jobScript`
@@ -142,29 +141,17 @@ EOF
 
 # PARSE FOR ERRORS
 
-   local linesToShow=2
-   local results=`grep 'run,.* failed' $testLog`
-   local nbrOfFailed=`echo $results | sed 's/^[0-9]*\s*run, //g' | sed 's/\s*failed\s*.*$//g'`
-
-   local anyError=`grep '[tests] Error' $testLog`
-   if [ -n "$anyError" ]; then
-     local errMsg="Error detected while compiling/running unit tests"
-     linesToShow=10
-   fi
-
+   local anyError=`grep ' Error' $testLog` 
    if [ "$anyError" != "" ]; then
-     echo "$errMsg"  >> $toEmail
+     local errMsg="Error detected during unit tests" >> $toEmail
      echo "SUMMARY:"  >> $toEmail
      echo "..."  >> $toEmail
-     tail -$linesToShow $testLog >> $toEmail
+     tail -20 $testLog >> $toEmail
      echo ""  >> $toEmail
-
    else
-
-     tail -$linesToShow $testLog >> $toEmail
+     tail -2 $testLog | grep " run" >> $toEmail
      echo ""  >> $toEmail
-
-  fi 
+   fi 
 
 # DELETE JOB SCRIPT
   rm -f $jobScript
@@ -186,7 +173,6 @@ for compiler in "${compilers[@]}"; do
   job=modelE.${compiler}.j
   log=${ROOT}${compiler}".log"
   submitJob "$compiler" "$job" "$log"
-  rm -f $job $log
 done 
 
 exit 0
