@@ -1,12 +1,9 @@
-COMPILER = intel
 EXTERNAL_CPP = NO
 CONFIG_DIR = ../config
 SOURCE_DIR = ../model
 DECKS_DIR = ../decks
 
 # List of all testable modelE components
-
--include $(DECKS_DIR)/components
 
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
 LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
@@ -24,10 +21,8 @@ EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM))
 
 USE_MPI = NO
 PFUNIT_USE_MPI = NO
-CSTRING := $(shell mpif90 --version)
-COMPILER := $(findstring ifort, $(CSTRING))
 
-ifeq ($(COMPILER),ifort)
+ifeq ($(COMPILER), intel)
   FC = ifort
   EXTRA_FFLAGS += -g -O0 -traceback -fpp -O2
 else
