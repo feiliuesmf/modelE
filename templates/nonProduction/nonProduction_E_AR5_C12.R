@@ -38,7 +38,7 @@ Data input files:
 
 RVR=RD8X10.RVR.bin           ! river direction file
 
-#include "land36x24_input_files"
+#include "land_36x24_input_files"
 #include "rad_input_files"
 #include "TAero2008_input_files"
 #include "O3_2005_input_files"

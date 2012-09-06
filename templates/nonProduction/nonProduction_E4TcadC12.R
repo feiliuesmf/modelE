@@ -85,7 +85,7 @@ Data input files:
 #include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
 RVR=RD8X10.RVR.bin           ! river direction file
 
-#include "land36x24_input_files"
+#include "land_36x24_input_files"
 #include "rad_input_files"
 #include "TAero2008_input_files"
 #include "O3_2005_input_files"
@@ -95,7 +95,7 @@ RVR=RD8X10.RVR.bin           ! river direction file
 #include "dust_tracer_36x24_input_files"
 #include "dry_depos_36x24_input_files"
 #include "chem_emiss_36x24_input_files"
-#include "aeros_36x24_input_files"
+#include "aerosol_36x24_input_files"
 Ox_ref=gsin/zeroReferenceOzone_72x46x49 ! for radiative forcing reference
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
@@ -133,13 +133,13 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 cloud_rad_forc=1
 
-#include "aerosol_params36x24"
+#include "aerosol_36x24_params"
 
 imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, aer_int_yr=1850
 aer_int_yr=1850    !select desired year (1890 to 2000) or 0 to use JYEAR
 
 #include "dust_params"
-#include "chemistry36x24_params"
+#include "chemistry_36x24_params"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=450.          ! could be 900 if DTsrc=3600.  do not forget nda5 et al.
