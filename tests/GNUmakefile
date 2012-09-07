@@ -6,7 +6,9 @@ DECKS_DIR = ../decks
 # List of all testable modelE components
 
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
-LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
+COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
+#LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
+LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 # Determine modelE components to be tested based on library availability
 
