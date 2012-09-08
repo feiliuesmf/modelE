@@ -333,7 +333,7 @@ MODULE dist_grid_mod
      AIbounds = MPIgridBounds(distGrid)
 #endif
 
-     if (distGrid%npes_used < distGrid%npes_world) then
+     if (distGrid%npes_world > jm-2) then
        write(errorMessage,'("The number of MPI processes for this rundeck cannot exceed ",i0, &
       &  " PEs")') distGrid% npes_used
        call stop_model(trim(errorMessage), 14)
