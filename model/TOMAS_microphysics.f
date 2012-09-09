@@ -53,7 +53,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
       
-      integer n,c,bh,bl,num_dts,count ! for 15 size bins lumping
+      integer n,c,bh,bl,dts_old,count ! for 15 size bins lumping
 
 
       integer k,j,i,jj,kk    !counters
@@ -118,7 +118,7 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 
       tsum = 0.0
-
+      dts_old=10.
 C If any Nk are zero, then set them to a small value to avoid division by zero
       do k=1,ibins
          if (Nk(k) .lt. Neps) then
@@ -428,7 +428,7 @@ cdbg      limit='comp'
             if (dNdt(k) .gt. 0.0) tlimit=itlimit
             if (abs(dNdt(k)*dts) .gt. Nk(k)*tlimit) then 
                dts=Nk(k)*tlimit/abs(dNdt(k))
-               if(dts.eq.0) print*,'dts Nk',k,dts,dNdt(k),Nk(k)
+!               if(dts.eq.0) print*,'dts Nk',k,dts,dNdt(k),Nk(k)
             endif
             do j=1,icomp-idiag
                if (dMdt(k,j) .lt. 0.0) tlimit=dtlimit
@@ -444,7 +444,7 @@ cdbg      limit='comp'
  
                      if(dts.eq.0)print*,'dts MK',k,j,dts,dt,tsum,Mk(k,j)
      &                    ,nk(k),mtotal,dMdt(k,j),xk(k),xk(k+1)
-                     if(dts.eq.0) then
+                     if(dts.eq.0.and.dts_old.eq.0.) then
                        open (1044,file='debug_coag.dat',access='append',
      &                      status='unknown')
                        write(1044,*)'start',k,j,dts,dt,tsum,Mk(k,j)
@@ -489,7 +489,7 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
 !       endif
 
 !YUNHA (Sep, 2012) this is newly added to prevent an occasional crash. 
-      if(dts.lt.1.e-10) then
+      if(dts.eq.0) then
 ! When dts is small and this is due to the mass/number is out of size range, 
 ! it calls mnfix. Doing this, it will help to avoid dts=0 case. 
         Nki(:)=Nk(:)
@@ -501,22 +501,19 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
             count=count+1
           endif
         enddo
-        if(dts.eq.0.and.count.eq.ibins)then
-!This case, next dts will be zero and model should be stopped. 
-          write(*,*) 'time step is 0'
-          call stop_model('dts=0 in multicoag',255)
-        endif
-        if(count.lt.5) then
-          print*,'dts<1e-10, mnfix worked',dts,tsum,count ! count<5 is random choice
+
+        if(count.lt.ibins) then
+          print*,'dts=0 but mnfix worked',dts,tsum,count ! count<5 is random choice
           Nk(:)=Nki(:)
           Mk(:,:)=Mki(:,:)
         endif
       endif
      
-! When dts is small and mnfix does change # and mass distribution, 
-! then go back to 10 to re-compute dts. 
-
-      if(dts.lt.1.e-10.and.count.lt.5) goto 10 
+      if(dts.eq.0.and.count.eq.ibins)then
+!This case, next dts will be zero and model should be stopped. 
+        write(*,*) 'time step is 0',count
+        call stop_model('dts=0 in multicoag',255)
+      endif
 
       do k=1,ibins
          Nk(k)=Nk(k)+dNdt(k)*dts
@@ -525,10 +522,17 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
          enddo
       enddo
 
-!!      if(dts.lt.1.e-5) call mnfix(Nk,Mk) !YUNHA LEE (08/28/2012) 
+      if(dts.lt.1e-10.and.dts_old.lt.1e-10) then
+! When dts is small in two sequently, then mnfix is called. It might help to get a larger dts next time.  However, I am not sure if it is helpful   !YUNHA LEE (09/05/2012) 
+        Nki(:)=Nk(:)
+        Mki(:,:)=Mk(:,:)
+        call mnfix(Nki,Mki)     
+        Nk(:)=Nki(:)
+        Mk(:,:)=Mki(:,:)
+      endif
 
       tsum=tsum+dts
-
+      dts_old=dts
       if (tsum .lt. dt) goto 10
 
       RETURN

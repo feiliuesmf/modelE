@@ -394,7 +394,7 @@ c manage the reading/writing of timing information. could be done better
       integer :: pvali(1000)
       real*8 :: pvalr(1000)
       character(len=128) :: pname,pvalc(1000)
-      integer, parameter :: lcstr=1300
+      integer, parameter :: lcstr=1500
       character(len=lcstr) :: cstr
       select case (iaction)
       case (iowrite) ! output
