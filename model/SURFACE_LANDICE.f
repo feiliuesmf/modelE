@@ -657,7 +657,7 @@ c
 
           enddo
           enddo
-        enddo
+        enddo	! ipatch
 
       ! ======= atm_exports_phasesrf is composed of:
       !    real*8, dimension(:,:,:), pointer ::
@@ -708,7 +708,7 @@ c
 
          enddo
          enddo
-        enddo
+        enddo		! ipatch
       endif
       return
       end subroutine patchify_landice_inputs
