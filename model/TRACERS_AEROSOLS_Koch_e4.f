@@ -17,7 +17,6 @@
 !@ GRAINS
 !@ read_mon_3D
 !@ read_seawifs_chla
-      USE TRACER_COM
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
@@ -75,7 +74,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
-      use TRACER_COM, only: NTM
+      use TRACER_COM, only: NTM, n_OCII
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
@@ -493,7 +492,8 @@ c  concentrations
 c want kg DMS/m2/s
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE GEOM, only: axyp
-      USE TRACER_COM, only: tr_mm,n_DMS,OFFLINE_DMS_SS
+      use OldTracer_mod, only: tr_mm
+      USE TRACER_COM, only: n_DMS,OFFLINE_DMS_SS
       use resolution, only: lm
       use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
@@ -578,6 +578,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
 c
       ss=0.
       erate=0.d0
+#ifndef TRACERS_TOMAS
       if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
         if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
@@ -629,6 +630,83 @@ c if after Feb 28 skip the leapyear day
           ss=SS2_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
         endif
       endif
+#endif /* TRACERS_TOMAS */
+
+#ifdef TRACERS_TOMAS 
+      if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
+        if (itype.eq.1) then
+          erate=1.373d0*swind**3.41d0 !Gong
+#ifdef TOMAS_12_10NM
+          if (ibin.eq.1) then 
+            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
+          elseif (ibin.eq.2)then
+            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
+          elseif (ibin.eq.3)then
+            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
+          elseif (ibin.eq.4)then
+            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
+          elseif (ibin.eq.5)then
+            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
+          elseif (ibin.eq.6)then
+            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
+          elseif (ibin.eq.7)then
+            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
+          elseif (ibin.eq.8)then
+            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
+          elseif (ibin.eq.9)then
+            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
+          elseif (ibin.eq.10)then
+            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
+          elseif (ibin.eq.11)then
+            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
+          elseif (ibin.eq.12)then
+            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
+          endif
+#endif
+#ifdef TOMAS_12_3NM
+          if (ibin.le.3)  ss=0.0  ! zeor below 10nm for now 
+          if (ibin.eq.4) then 
+            ss=tune_ss1*erate*3.7028916e-23 ! wrong 2.6656153e-21 !Gong
+          elseif (ibin.eq.5)then
+            ss=tune_ss1*erate*5.7123891e-22 ! wrong 5.8887602e-20 !Gong
+          elseif (ibin.eq.6)then
+            ss=tune_ss1*erate*1.1839277e-20 !wrong 1.2690423e-18 !Gong
+          elseif (ibin.eq.7)then
+            ss=tune_ss1*erate*2.8514155e-19 !wrong 1.5477057e-17 !Gong
+          elseif (ibin.eq.8)then
+            ss=tune_ss1*erate*4.5906335e-18 !wrong 9.6921813e-17 !Gong
+          elseif (ibin.eq.9)then
+            ss=tune_ss1*erate*4.388824e-17 ! wrong 3.1987962e-16 !Gong
+          elseif (ibin.eq.10)then
+            ss=tune_ss1*erate*1.8982601e-16 !wrong 5.8656553e-16 !Gong
+          elseif (ibin.eq.11)then
+            ss=tune_ss1*erate*4.6295965e-16 ! wrong 9.8777984e-16 !Gong
+          elseif (ibin.eq.12)then
+            ss=tune_ss1*erate*7.409149e-16 !wrong 2.3027083e-15 !Gong
+          elseif (ibin.eq.13)then
+            ss=tune_ss1*erate*1.4321188e-15 ! wrong 9.1869805e-15 !Gong
+          elseif (ibin.eq.14)then
+            ss=tune_ss1*erate*3.6773131e-14 ! wrong 7.5069310e-14 !Gong
+          elseif (ibin.eq.15)then
+            ss=tune_ss1*erate*7.6566702e-14 ! wrong1.1860428e-13 !Gong
+          endif
+#endif
+!#ifdef TRACERS_AEROSOLS_OCEAN
+!            if (trim(tr).eq.'OCocean') then
+!              ss=ss*OC_SS_enrich_fact(i,j)
+!            else
+!              ss=ss*(1.d0-OC_SS_enrich_fact(i,j))
+!            endif
+!#endif  /* TRACERS_AEROSOLS_OCEAN */
+         endif
+       else
+C TOMAS don't allow offline SS! 
+        call stop_model('TOMAS: NO offline Sea-salt emission',255)
+       endif
+
+#endif 
+
+
       return
       end SUBROUTINE read_seasalt_sources
 
@@ -636,7 +714,20 @@ c if after Feb 28 skip the leapyear day
       SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
-      USE TRACER_COM
+      use OldTracer_mod, only: trname, tr_mm
+      use TRACER_COM, only: ntm, oh_live, no3_live, trm
+      use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
+      use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
+      use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: nChemistry, nChemLoss
+#if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
+      use TRACER_COM, only: rxts1, rxts2, rxts3
+#endif
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
+      use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
+#endif
       USE TRDIAG_COM, only : 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -726,10 +817,11 @@ C**** initialise source arrays
         tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#ifdef TRACERS_AMP
         tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
 #endif
 #ifdef TRACERS_TOMAS
+        tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2SO4)=0. ! H2O2 chem sink
         H2SO4_chem(:,j_0:j_1,:)=0.0
         do k=1,nbins
            tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECOB(k))=0.
@@ -983,8 +1075,7 @@ c SO2 production from DMS
 #ifdef TRACERS_TOMAS 
 ! EC/OC aging 
         case ('AECIL_01')
-           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day 
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
 
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
@@ -996,12 +1087,13 @@ c SO2 production from DMS
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 
 !              IF(am_i_root())
-!     &      print*,'ECOB aging',n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro)) 
+!         print*,'ECOB aging',k,n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!     &  , trm(i,j,l,n_AECOB(K))
            ENDDO
            
         case ('AOCIL_01')
-           !TAU_hydro=1.5D0*24.D0*3600.D0 !1.5 day 
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !1.5 day
+           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
+
            DO K=1,nbins
               tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
      &             =trm(i,j,l,n_AOCOB(K))*
@@ -1012,7 +1104,8 @@ c SO2 production from DMS
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 !     &             4.3D-6
 !              IF(am_i_root())
-!     &      print*,'OCOB aging',n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!         print*,'OCOB aging',k,n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
+!     &  , trm(i,j,l,n_AOCOB(K))
 
            ENDDO   
 
@@ -1249,9 +1342,11 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
-      USE TRACER_COM, only: tr_RKD,tr_DHD,n_H2O2_s,n_SO2
-     *     ,trname,NTM
-     *     ,tr_mm,lm,n_SO4,n_H2O2,mass2vol,coupled_chem
+      use OldTracer_mod, only: trname, mass2vol, tr_mm
+      use OldTracer_mod, only: tr_RKD, tr_DHD
+      USE TRACER_COM, only: n_H2O2_s,n_SO2
+     *     ,NTM
+     *     ,lm,n_SO4,n_H2O2,coupled_chem
       USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
       USE MODEL_COM, only: dtsrc
 c
@@ -1510,16 +1605,16 @@ c
       USE CONSTANT, only: rhow
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
       USE SEAICE_COM, only : si_atm
-      USE TRACER_COM, only: trname
+      use TRACER_COM, only:
 #ifdef TRACERS_AEROSOLS_Koch
-     *                     ,n_BCB,n_BCII,n_BCIA
+      use TRACER_COM, only: n_BCB,n_BCII,n_BCIA
 #endif
 #ifdef TRACERS_AMP
-     *  ,n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
+      use TRACER_COM, only:n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
      *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
 #endif
 #ifdef TRACERS_TOMAS
-     *  ,n_AECIL,n_AECOB,nbins
+      use TRACER_COM, only: n_AECIL,n_AECOB,nbins
 #endif
       !USE VEG_COM, only: afb
       USE RADPAR, only: agesn

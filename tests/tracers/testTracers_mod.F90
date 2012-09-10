@@ -1,6 +1,6 @@
 module testTracers_mod
   use pFUnit
-  use Tracers_mod
+  use Tracer_mod
   use TracerBundle_mod
   use Dictionary_mod, only: Dictionary_type
   implicit none

@@ -31,10 +31,11 @@
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trdn1
 #ifdef TRACERS_DRYDEP
-     &    ,trradius,trpdens,tr_mm
+      use OldTracer_mod, only: trradius, trpdens, tr_mm
 #endif
 #endif
 #ifdef TRACERS_AMP
+      use TRACER_COM, only:
      & ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
@@ -399,7 +400,7 @@ ccc put drive output data to pbl_args structure
       subroutine tracer_lower_bc(i,j,itype,pbl_args,atm)
       use exchange_types
       use geom, only : byaxyp
-      USE TRACER_COM, only :
+      use OldTracer_mod, only :
      &     dodrydep,tr_wd_type,nWATER,nPART,nGAS
       implicit none
       integer, intent(in) :: i,j,itype  !@var itype surface type
@@ -569,7 +570,8 @@ c**** wspdf in PBL.f for the other soil types.
       SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
       use exchange_types
       USE CONSTANT, only :  rgas,grav,deltx,teeny
-      USE TRACER_COM, only : ntm,dodrydep,trname,ntm_dust
+      use OldTracer_mod, only : dodrydep,trname
+      USE TRACER_COM, only : ntm,ntm_dust
       use SOCPBL, only : npbl=>n
       USE PBLCOM
       USE DIAG_COM, only :

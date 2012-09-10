@@ -38,7 +38,8 @@ c
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE TRACER_COM, only : ntm=>NTM,tr_mm    !tracers involved in air-sea gas exch
+      use OldTracer_mod, only: tr_mm
+      USE TRACER_COM, only : ntm=>NTM    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : tracflx1d
 #endif
       

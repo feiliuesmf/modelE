@@ -1,6 +1,9 @@
 export WORKSPACE=${WORKSPACE}
 
 # The following variables are used by mainRegTests.sh:
+export RUN_UNIT_TESTS=NO
+export RUN_TESTS=YES
+export CREATE_DIFF=NO
 export REGWORK=/discover/nobackup/modele
 export MODELEBASELINE=/discover/nobackup/modele/modelE_baseline
 export GCMSEARCHPATH=/discover/nobackup/projects/giss/prod_input_files
@@ -17,7 +20,6 @@ CONFIG=regTest
 rm -f $CONFIG.cfg
 cat << EOF > $CONFIG.cfg
 # decks arrays lists the rundecks to test:
-#@decks = ('EM20', 'E1oM20', 'E4F40');
 @decks = ('EM20', 'E1oM20','E4TcadF40','E4F40','E4arobio_h4c','E4arobio_g6c');
 # Git branch:
 \$gitbranch = 'master';

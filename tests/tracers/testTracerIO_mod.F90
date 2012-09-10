@@ -1,6 +1,6 @@
 module testTracerIO_mod
   use pFUnit
-  use Tracers_mod
+  use Tracer_mod
   use TracerBundle_mod
   use Dictionary_mod, only: Dictionary_type
   implicit none
@@ -77,7 +77,7 @@ contains
     unit = this%unit
     this%bundle = readFromText(unit, this%defaultValues)
 
-    call assertEqual(this%numTracers, getCount(this%bundle), &
+    call assertEqual(this%numTracers, getNumTracers(this%bundle), &
          & 'Incorrect number of tracers found.')
 
   end subroutine testReadFromText

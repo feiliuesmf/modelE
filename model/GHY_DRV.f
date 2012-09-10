@@ -19,28 +19,27 @@ c******************   TRACERS             ******************************
     (defined TRACERS_TOMAS)
       use sle001,ONLY : aevap
 #endif
-      use tracer_com, only : NTM
-     *     ,itime_tr0,needtrs
-     *     ,trname
+      use OldTracer_mod, only: itime_tr0, trname, needtrs
+      use tracer_com, only: NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
-     &     ,Ntm_dust
+      use tracer_com, only: Ntm_dust
 #endif
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only:dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,nGAS,nPART,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER, nGAS, nPARt, tr_wd_TYPE
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay
+      use TRACER_COM, only: n_clay
 #else
 #ifdef TRACERS_MINERALS
-     &     ,n_clayilli
+      use TRACER_COM, only: n_clayilli
 #else
 #ifdef TRACERS_QUARZHEM
-     &     ,n_sil1quhe
+      use TRACER_COM, only: n_sil1quhe
 #endif
 #endif
 #endif
@@ -209,6 +208,10 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,mineralFractions
 #endif
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only :IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
+     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+#endif
 #endif
 #ifdef TRACERS_WATER
       use fluxes, only : atmlnd
@@ -308,7 +311,10 @@ c**** prescribed dust emission
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc
 #endif
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+#endif
  !     use socpbl, only : dtsurf
       use geom, only : axyp
       use sle001, only : nsn,fb,fv
@@ -328,9 +334,6 @@ c**** prescribed dust emission
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
 #endif
-!#ifdef TRACERS_TOMAS
-!      USE TOMAS_AEROSOL, ONLY : TOMAS_EMIS
-!#endif
 cddd#ifdef TRACERS_GASEXCH_land_CO2
 cddd      USE FLUXES, only : TRGASEX
 cddd#endif
@@ -362,11 +365,7 @@ cddd#endif
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-      real*8, parameter :: scalesizeSS(nbins)=(/
-     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
-     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
-     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
-
+#ifdef TOMAS_12_10NM 
 !scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
 !sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
       real*8, parameter :: scalesizeClay(nbins)=(/
@@ -381,6 +380,22 @@ cddd#endif
      *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
      *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
      *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
+#ifdef TOMAS_12_3NM 
+!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
+!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
+      real*8, parameter :: scalesizeClay(nbins)=(/0.,0.,0.,
+     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
+     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
+     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
+!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
+!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
+!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
+      real*8, parameter :: scalesizeSilt(nbins)=(/0.,0.,0.,
+     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
+     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
+     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
+#endif
 
 
 #endif
@@ -435,7 +450,6 @@ ccc accumulate tracer evaporation and runoff
       num_bin=0
       du_bin=0
       num_bin2=0
-!      TOMAS_emis(I,J,:,2)=0.
 #endif
       DO nx=1,ntx
         n=ntix(nx)
@@ -466,11 +480,16 @@ C**** fixed datasets are used, it can happen over land as well.
         case ('M_DDD_DU')
           trc_flux=sum(pbl_args%dust_flux(1:4))
 #endif
-!TOMAS - I don't think that seasalt emission is here.. 
+!TOMAS - I don't think that seasalt emission needs here.. 
 #ifdef TRACERS_TOMAS
+
           CASE ('ADUST_01','ADUST_02','ADUST_03','ADUST_04'
      &          ,'ADUST_05','ADUST_06','ADUST_07','ADUST_08'
-     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12')
+     &          ,'ADUST_09','ADUST_10','ADUST_11','ADUST_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ADUST_13','ADUST_14','ADUST_15'
+#endif
+     &         )
 
           du_bin=du_bin+1
 
@@ -478,13 +497,14 @@ C**** fixed datasets are used, it can happen over land as well.
      &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
           
           dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
-
-! NO subgrid coagulation for dust 
-!        TOMAS_EMIS(I,J,du_bin,2)= trc_flux*axyp(i,j)*ptype
-          
+       
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
            num_bin2=num_bin2+1
            trc_flux=dust_num(num_bin2)
 #endif
@@ -1523,7 +1543,7 @@ c***********************************************************************
 #ifdef TRACERS_DUST
       USE tracer_com,ONLY : Ntm_dust,n_clay
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #endif
 
@@ -1984,8 +2004,8 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only : vdata
 #endif
 #ifdef TRACERS_WATER
-      use tracer_com, only : NTM,tr_wd_TYPE,nwater,itime_tr0,
-     &     needtrs
+      use OldTracer_mod, only: tr_wd_TYPE, nWATER, itime_tr0, needtrs
+      use tracer_com, only : NTM
 #ifndef USE_ENT
       use veg_com, only:  avh !,afb
 #endif
@@ -3131,7 +3151,8 @@ cddd      end subroutine retp2
      *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC,wfcs
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
-      USE TRACER_COM, only : NTM, trname, t_qlimit
+      use OldTracer_mod, only: trname, t_qlimit
+      USE TRACER_COM, only : NTM
 #endif
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       implicit none
@@ -4160,7 +4181,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
      &     ,w_ij,ht_ij,fearth,shc_soil_texture
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : NTM,needtrs,itime_tr0
+      use OldTracer_mod, only: needtrs, itime_tr0
+      use TRACER_COM, only : NTM
       use model_com, only : itime
 #endif
 #ifdef USE_ENT
@@ -4652,7 +4674,8 @@ c**** Also reset snow fraction for albedo computation
      &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
-      use TRACER_COM, only : NTM,needtrs,itime_tr0
+      use OldTracer_mod, only: needtrs,itime_tr0
+      use TRACER_COM, only : NTM
       use model_com, only : itime
 #endif
 #ifdef SCM

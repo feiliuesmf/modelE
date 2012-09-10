@@ -15,14 +15,19 @@ contains
 !**** do igas=1,ntm_chem instances get corrected.
 
   subroutine printTracerNames(tracerNames)
+    use domain_decomp_atm, only: am_i_root
+
     character(len=MAXLEN_TRACER_NAME), allocatable :: tracerNames(:)
     integer :: ntm       ! # of tracers
     integer :: i
 
     NTM = size(tracerNames)
-    do i=1,NTM
+    
+    if (am_i_root()) then
+      do i=1,NTM
         write(6,*) 'TRACER',i,trim(tracerNames(i))
-    end do
+      end do
+    end if
   end subroutine printTracerNames
     
  
@@ -206,8 +211,10 @@ contains
     subroutine appendTomasTracers()
       call appendNames([ &
            &    'H2SO4   ','DMS     ','SO2     ','SOAgas  ','H2O2_s  ', &
-           &    'NH3     ','NH4     ', &
+           &    'NH3     ','NH4     '])
            ! H202_s should be used if gas chemistry is off.  &
+      if (tomas_12_10nm) then
+      call appendNames([ &
            &    'ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05', &
            &    'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10', &
            &    'ASO4__11','ASO4__12', &
@@ -236,6 +243,39 @@ contains
            &    'AH2O__06','AH2O__07','AH2O__08','AH2O__09','AH2O__10', &
            &    'AH2O__11','AH2O__12' &
            & ])
+      end if
+      if (tomas_12_3nm) then
+      call appendNames([ &
+           &    'ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05', &
+           &    'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10', &
+           &    'ASO4__11','ASO4__12','ASO4__13','ASO4__14','ASO4__15', &
+           &    'ANACL_01','ANACL_02','ANACL_03','ANACL_04','ANACL_05', &
+           &    'ANACL_06','ANACL_07','ANACL_08','ANACL_09','ANACL_10', &
+           &    'ANACL_11','ANACL_12','ANACL_13','ANACL_14','ANACL_15', &
+           &    'AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05', &
+           &    'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10', &
+           &    'AECOB_11','AECOB_12','AECOB_13','AECOB_14','AECOB_15', &
+           &    'AECIL_01','AECIL_02','AECIL_03','AECIL_04','AECIL_05', &
+           &    'AECIL_06','AECIL_07','AECIL_08','AECIL_09','AECIL_10', &
+           &    'AECIL_11','AECIL_12','AECIL_13','AECIL_14','AECIL_15', &
+           &    'AOCOB_01','AOCOB_02','AOCOB_03','AOCOB_04','AOCOB_05', &
+           &    'AOCOB_06','AOCOB_07','AOCOB_08','AOCOB_09','AOCOB_10', &
+           &    'AOCOB_11','AOCOB_12','AOCOB_13','AOCOB_14','AOCOB_15', &
+           &    'AOCIL_01','AOCIL_02','AOCIL_03','AOCIL_04','AOCIL_05', &
+           &    'AOCIL_06','AOCIL_07','AOCIL_08','AOCIL_09','AOCIL_10', &
+           &    'AOCIL_11','AOCIL_12','AOCIL_13','AOCIL_14','AOCIL_15', &
+           &    'ADUST_01','ADUST_02','ADUST_03','ADUST_04','ADUST_05', &
+           &    'ADUST_06','ADUST_07','ADUST_08','ADUST_09','ADUST_10', &
+           &    'ADUST_11','ADUST_12','ADUST_13','ADUST_14','ADUST_15', &
+           &    'ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05', &
+           &    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10', &
+           &    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15', &
+           &    'AH2O__01','AH2O__02','AH2O__03','AH2O__04','AH2O__05', &
+           &    'AH2O__06','AH2O__07','AH2O__08','AH2O__09','AH2O__10', &
+           &    'AH2O__11','AH2O__12','AH2O__13','AH2O__14','AH2O__15'&
+           & ])
+      endif
+
     end subroutine appendTomasTracers
 
     subroutine appendNames(names)

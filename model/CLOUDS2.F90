@@ -38,12 +38,15 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: ntm=>NTM, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: ntm=>NTM, ntm_soa,ntm_ococean
+  use OldTracer_mod, only: trname, t_qlimit
 #ifdef TRACERS_AEROSOLS_OCEAN
-  use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
+  use OldTracer_mod, only: trpdens
+  use TRACER_COM, only: n_ococean,n_seasalt1,trm
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
-  use TRACER_COM, only:        nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
+  use OldTracer_mod, only: tr_wd_type, tr_RKD, tr_DHD
+  use TRACER_COM, only:        nGAS, nPART, nWATER, &
        tr_evap_fact, gases_list,gases_count
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -3663,8 +3666,9 @@ contains
 !         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
 
 !2. computed using EGCM
+! TOMAS (Nov 2011) WPARC results in too high CDNC. So it reduced by 7 times (arbitrary)
 
-        WPARC=v0(mkx) !wturb=sqrt(0.6667*EGCM(l,i,j))
+        WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
 !End of updrate velocity option. 
 
 
@@ -3681,8 +3685,8 @@ contains
             CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
                  ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
          ELSE
-!YUNHA- I don't know how to set the minimum NACT. For now, I put the same mininum as Nenes.  
-            NACT = 40.d6 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
+!YUNHA- The minimum NACT is set to 1 instead of 40.d6, which is used for old GISS-TOMAS model.
+            NACT = 1.0 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
             SMAX = 0.0001    ! Minimum supersaturation
          ENDIF
        NACTL(mkx)=NACT

@@ -1,6 +1,10 @@
 #include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
 
+      ! needed for compilation with "-g" in ifort 12.1
+      module IntelWorkaround5
+      end module IntelWorkaround5
+
 #if defined(CUBED_SPHERE) || defined(NEW_IO)
 #else
 #define USE_ATM_GLOBAL_ARRAYS

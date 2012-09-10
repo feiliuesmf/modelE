@@ -29,13 +29,14 @@
 #else
      &     ,trprec_dust
 #endif
+      use OldTracer_mod, only: trname
       use tracer_com,only: n_clay,n_clayilli,n_sil1quhe,ntm_dust,trm
-     &     ,trname,coupled_chem
+     &     ,coupled_chem
 #ifdef TRACERS_DRYDEP
-     &     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #ifdef TRACERS_WATER
-     &     ,dowetdep
+      use OldTracer_mod, only: dowetdep
 #endif
       use trdiag_com, only: trcsurf,trcSurfByVol,to_conc
       use tracers_dust

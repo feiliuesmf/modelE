@@ -96,7 +96,8 @@ subroutine CONDSE
 #endif
 #ifdef TRACERS_ON
   use TRACER_COM, only : remake_tracer_lists
-  use TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1
+  use TRACER_COM, only: TRM,TRMOM,NTM,trdn1
+  use OldTracer_mod, only: itime_tr0, trname
 #ifdef TRACERS_COSMO
   use TRACER_COM, only: n_Be10,n_Be7
 #endif
@@ -104,7 +105,8 @@ subroutine CONDSE
   use TRACER_COM, only: n_clay,n_clayilli,n_sil1quhe
 #endif
 #ifdef TRACERS_WATER
-  use TRACER_COM, only: trwm,trw0,dowetdep
+  use OldTracer_mod, only: trw0, dowetdep
+  use TRACER_COM, only: trwm
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
   use TRACER_COM, only: Ntm_dust 
@@ -1761,6 +1763,10 @@ subroutine CONDSE
 #endif
 #endif
 
+#ifdef TRACERS_TOMAS
+!C     To fix inconsistent aerosol size distribution and water eqm. 
+      CALL aeroupdate
+#endif
   !
   !     NOW UPDATE THE MODEL WINDS
   !
@@ -2060,7 +2066,8 @@ subroutine qmom_topo_adjustments
   use somtq_com, only : tmom,qmom
   use domain_decomp_atm, only : grid,getDomainBounds,halo_update
 #ifdef TRACERS_WATER
-  use tracer_com, only: trm,trmom,ntm=>NTM,tr_wd_type,nwater
+  use OldTracer_mod, only: tr_wd_type, nWATER
+  use tracer_com, only: trm,trmom,ntm=>NTM
 #endif
   use clouds_com, only : svlhx
   implicit none

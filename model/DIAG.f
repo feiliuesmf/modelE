@@ -134,7 +134,8 @@ C**** Some local constants
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRACER_COM, only: trm,mass2vol,n_CO,n_Ox,n_NOx
+      USE TRACER_COM, only: trm,n_CO,n_Ox,n_NOx
+      use OldTracer_mod, only: mass2vol
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
       USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,am
@@ -877,7 +878,8 @@ c
 !@auth Gary Russell/Gavin Schmidt
       USE MODEL_COM, only : mdiag,itime
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: itime_tr0,NTM  !xcon
+      USE TRACER_COM, only: NTM  !xcon
+      use OldTracer_mod, only: itime_tr0
 #endif
       USE DIAG_COM, only : icon_AM,icon_KE,icon_MS,icon_TPE
      *     ,icon_WM,icon_LKM,icon_LKE,icon_EWM,icon_WTG,icon_HTG
@@ -1265,7 +1267,14 @@ C****
 #endif
 #ifdef TRACERS_ON
       use rad_com, only: nTracerRadiaActive,tracerRadiaActiveFlag
-      use tracer_com
+      use TRACER_COM, only: NTM, trm, ntm_dust
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
+      use TRACER_COM, only: n_SO2, n_CO, n_NOx, n_Ox
+      use OldTracer_mod, only: mass2vol
+      use OldTracer_mod, only: trName
+      use OldTracer_mod, only: dodrydep, dowetdep
+      use OldTracer_mod, only: MAX_LEN_NAME
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : sOx_acc,sNOx_acc,sCO_acc
      &     ,l1Ox_acc,l1NO2_acc
@@ -1274,7 +1283,8 @@ C****
       use trdiag_com, only: trcsurf,trcSurfByVol,trcSurfMixR_acc
      &     ,trcSurfByVol_acc
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -1338,7 +1348,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 #endif
 #ifdef TRACERS_ON
 !@var rTrname array with tracer names for subdd radiation diagnostics
-      character(len=len(trname(1))),allocatable,dimension(:) :: rTrname
+      character(len=MAX_LEN_NAME),allocatable,dimension(:) :: rTrname
 !@var TRACER_array tracer array for subdd diagnostics
 !@var rTRACER_array tracer array for subdd radiation diagnostic
       real(kind=8),allocatable,dimension(:,:,:) :: TRACER_array
@@ -2417,7 +2427,8 @@ C**** accumulating/averaging mode ***
           units_of_data = 'flash/m^2/s'
           long_name = 'Cloud to Ground Lightning Flash Rate'
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            datar8=sPM2p5_acc/real(Nsubdd)
            sPM2p5_acc=0.
@@ -2454,7 +2465,7 @@ C**** accumulating/averaging mode ***
           units_of_data = 'kg/m^3'
           long_name = 'Surface Particulate Matter <= 10 um'
           qinstant = .false.
-#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) */
+#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)  || (defined TRACERS_TOMAS) */
 
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1

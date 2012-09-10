@@ -308,7 +308,8 @@ MODULE dist_grid_mod
      INTEGER :: width_
      INTEGER :: AIbounds(4)
      integer :: group_world, group_used
-     integer :: newCommunicator     
+     integer :: newCommunicator   
+     character(len=256) :: errorMessage  
 
      distGrid%IM_WORLD      = IM
      distGrid%JM_WORLD      = JM
@@ -331,6 +332,12 @@ MODULE dist_grid_mod
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
 #endif
+
+     if (distGrid%npes_world > jm-2) then
+       write(errorMessage,'("The number of MPI processes for this rundeck cannot exceed ",i0, &
+      &  " PEs")') distGrid% npes_used
+       call stop_model(trim(errorMessage), 14)
+     end if
 
 #else  ! SERIAL CASE
 

@@ -37,6 +37,8 @@ C-----OUTPUTS-----------------------------------------------------------
 
 C     The program updates Nk and Mk.
 
+#if (defined TOMAS_12_10NM) || (defined TOMAS_12_3NM)
+
       SUBROUTINE multicoag(dt)
 
 
@@ -47,17 +49,17 @@ C     The program updates Nk and Mk.
 
 C-----ARGUMENT DECLARATIONS---------------------------------------------
 
-c      real dt         !time step (s)
-      real dt
+      real dt         !time step (s)
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
       
-      integer n,c,bh,bl,num_dts ! for 15 size bins lumping
+      integer n,c,bh,bl,dts_old,count ! for 15 size bins lumping
 
 
       integer k,j,i,jj,kk    !counters
       real*8 dNdt(ibins), dMdt(ibins,icomp-idiag)
       real*8 xbar(ibins), phi(ibins), eff(ibins)
+      real*8 Nki(ibins), Mki(ibins,icomp)
 
 C kij represents the coagulation coefficient (cm3/s) normalized by the
 C volume of the GCM grid cell (boxvol, cm3) such that its units are (s-1)
@@ -100,7 +102,7 @@ cdbg      character*12 limit        !description of what limits time step
       real*8 mi, mf   !initial and final masses
       logical is_nan
       external is_nan
-      
+
 C     VARIABLE COMMENTS...
 
 C     dNdt and dMdt are the rates of change of Nk and Mk.  xk contains
@@ -116,7 +118,7 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 
       tsum = 0.0
-
+      dts_old=10.
 C If any Nk are zero, then set them to a small value to avoid division by zero
       do k=1,ibins
          if (Nk(k) .lt. Neps) then
@@ -131,6 +133,9 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
 cyhl To check whether mass is conserved during coagulation. 
 c         print*,'Nk',k,Nk(k),Mk(k,2)
       enddo
+
+      Nki(:)=Nk(:)
+      Mki(:,:) =Mk(:,:)
 
 C Calculate air viscosity and mean free path
 
@@ -153,12 +158,6 @@ C Calculate air viscosity and mean free path
 
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
-
-c$$$Ckpc  Add 0.2x first for ammonium, and then add 1.0x in the loop
-c$$$         density=aerodens(Mk(k,srtso4),0.0,Mk(k,srtnh4),
-c$$$     &        Mk(k,srtna),Mk(k,srtecil),Mk(k,srtecob),
-c$$$     &        Mk(k,srtocil),Mk(k,srtocob),Mk(k,srtdust),
-c$$$     &        Mk(k,srth2o))    !assume bisulfate
 
          Mktot=0.d0
          do j=1,icomp
@@ -185,22 +184,6 @@ C Calculate coagulation coefficients
       enddo
  10   continue     !repeat process here if multiple time steps are needed
 
-c$$$        open  (1044, 'debug44.dat', access='append',status='unknown')
-c$$$        write(1044,*) 'in multicoag'
-c$$$        write(1044,*)
-c$$$     & 'Nk(k),Mk(1),Mk(2),Mk(3),Mk(4),Mk(5),Mk(6),Mk(7)'
-c$$$        write (1044,1045)
-c$$$     &  NK(1),Mk(1,1),Mk(1,2),Mk(1,3),MK(1,4),Mk(1,5),Mk(1,6)
-c$$$     &       ,Mk(1,7)
-c$$$        write (1044,1045)
-c$$$     &  NK(2),Mk(2,1),Mk(2,2),Mk(2,3),MK(2,4),Mk(2,5),Mk(2,6)
-c$$$     &       ,Mk(2,7)
-c$$$        write (1044,1045)
-c$$$     &  NK(3),Mk(3,1),Mk(3,2),Mk(3,3),MK(3,4),Mk(3,5),Mk(3,6)
-c$$$     &       ,Mk(3,7)
-c$$$
-c$$$ 1045   format (8(1x,E10.3))
-
 C Calculate xbar, phi and eff
 
       do k=1,ibins
@@ -209,6 +192,7 @@ C Calculate xbar, phi and eff
          do j=1,icomp-idiag
             xbar(k)=xbar(k)+Mk(k,j)/Nk(k)            !eqn 8b
          enddo
+
        if(k.lt.ibins-1)then !from 1 to 10 bins
 
          eff(k)=2./9.*Nk(k)/xk(k)
@@ -444,7 +428,7 @@ cdbg      limit='comp'
             if (dNdt(k) .gt. 0.0) tlimit=itlimit
             if (abs(dNdt(k)*dts) .gt. Nk(k)*tlimit) then 
                dts=Nk(k)*tlimit/abs(dNdt(k))
-               if(dts.eq.0) print*,'dts Nk',k,dts,dNdt(k),Nk(k)
+!               if(dts.eq.0) print*,'dts Nk',k,dts,dNdt(k),Nk(k)
             endif
             do j=1,icomp-idiag
                if (dMdt(k,j) .lt. 0.0) tlimit=dtlimit
@@ -455,9 +439,29 @@ cdbg      limit='comp'
                      mtotal=mtotal+Mk(k,jj)
                   enddo         !only use this criteria if this species is significant
 
-                  if ((Mk(k,j)/mtotal) .gt. 1.d-5) then
+                  if ((Mk(k,j)/mtotal) .gt. 5.d-4) then
                      dts=Mk(k,j)*tlimit/abs(dMdt(k,j))
-      if(dts.eq.0)print*,'dts MK',k,j,dts,Mk(k,j),nk(k),mtotal,dMdt(k,j)
+ 
+                     if(dts.eq.0)print*,'dts MK',k,j,dts,dt,tsum,Mk(k,j)
+     &                    ,nk(k),mtotal,dMdt(k,j),xk(k),xk(k+1)
+                     if(dts.eq.0.and.dts_old.eq.0.) then
+                       open (1044,file='debug_coag.dat',access='append',
+     &                      status='unknown')
+                       write(1044,*)'start',k,j,dts,dt,tsum,Mk(k,j)
+     &                    ,nk(k),mtotal,dMdt(k,j),xk(k),xk(k+1)
+                       write(1044,*)'dts MK, T,P',temp,pres
+                       write(1044,*)'dts Mk, BOX',boxvol,boxmass,rh
+                       do kk=1,ibins
+                       write(1044,*)'dts MK, Nk=',Nk(kk),Nki(kk)
+                       enddo
+                       do jj=1,icomp
+                         write(1044,*)'comp',jj
+                       do kk=1,ibins
+            write(1044,*)'dts MK, Mk=',Mk(kk,jj),Mki(kk,jj)
+                       enddo
+                       enddo
+                     endif
+
                   else
                      if (dMdt(k,j) .lt. 0.0) then !set dmdt to 0 to avoid very small mk going negative
                         dMdt(k,j)=0.0
@@ -479,10 +483,37 @@ c            print*,'dNdt',k,Nk(k),dNdt(k),Mk(k,1),dMdt(k,1)
       enddo
 
 c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
-       if (dts .eq. 0.) then
-          write(*,*) 'time step is 0. dts=',dts
-          stop
-       endif
+!       if (dts .eq. 0.) then
+!          write(*,*) 'time step is 0. dts=',dts
+!          call stop_model('dts=0 in multicoag',255)
+!       endif
+
+!YUNHA (Sep, 2012) this is newly added to prevent an occasional crash. 
+      if(dts.eq.0) then
+! When dts is small and this is due to the mass/number is out of size range, 
+! it calls mnfix. Doing this, it will help to avoid dts=0 case. 
+        Nki(:)=Nk(:)
+        Mki(:,:)=Mk(:,:)
+        call mnfix(Nki,Mki)       !YUNHA LEE (08/28/2012) 
+        count=0
+        do k=1,ibins
+          if(Nki(k).eq.Nk(k)) then
+            count=count+1
+          endif
+        enddo
+
+        if(count.lt.ibins) then
+          print*,'dts=0 but mnfix worked',dts,tsum,count ! count<5 is random choice
+          Nk(:)=Nki(:)
+          Mk(:,:)=Mki(:,:)
+        endif
+      endif
+     
+      if(dts.eq.0.and.count.eq.ibins)then
+!This case, next dts will be zero and model should be stopped. 
+        write(*,*) 'time step is 0',count
+        call stop_model('dts=0 in multicoag',255)
+      endif
 
       do k=1,ibins
          Nk(k)=Nk(k)+dNdt(k)*dts
@@ -491,17 +522,25 @@ c      if (dts .lt. 20.) write(*,*) 'dts<20. in multicoag',dts,tsum
          enddo
       enddo
 
+      if(dts.lt.1e-10.and.dts_old.lt.1e-10) then
+! When dts is small in two sequently, then mnfix is called. It might help to get a larger dts next time.  However, I am not sure if it is helpful   !YUNHA LEE (09/05/2012) 
+        Nki(:)=Nk(:)
+        Mki(:,:)=Mk(:,:)
+        call mnfix(Nki,Mki)     
+        Nk(:)=Nki(:)
+        Mk(:,:)=Mki(:,:)
+      endif
+
       tsum=tsum+dts
-c$$$      if (tsum .lt. dt) write(1044,*),'dts',dts,tsum,dNdt(1),dmdt(1,1),
-c$$$     &     dNdt(2),dmdt(2,1)
-c$$$        close (1044)
+      dts_old=dts
       if (tsum .lt. dt) goto 10
 
       RETURN
       END SUBROUTINE multicoag
+#endif 
 
 
-c$$$
+c$$$  This is multicoag for TOMAS-30 model
 c$$$
 c$$$C     **************************************************
 c$$$C     *  multicoag                                     *
@@ -957,16 +996,16 @@ C     Nkcond, Mkcond - same as above, but final values from just condensation
 C     fn, fn1
 
       SUBROUTINE cond_nuc(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
-     &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond)            
+     &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,lev)            
 
       USE TOMAS_AEROSOL
-!      USE CONSTANT,   only:  pi,gasc  
       USE TRACER_COM, only : xk
       USE DOMAIN_DECOMP_ATM, only : am_i_root
 
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
+
+C-----VARIABLE DECLARATIONS---------------------------------------------
 
       real*8 Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
       real*8  Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
@@ -976,9 +1015,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       real dti
       real*8 fnavg    ! nucleation rate of clusters cm-3 s-1
       real*8 fn1avg   ! formation rate of particles to first size bin cm-3 s-1
-
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
+      integer, intent(in) :: lev
       real*8 dt
       integer i,j,k,c,jc           ! counters
       real*8 fn       ! nucleation rate of clusters cm-3 s-1
@@ -1027,8 +1064,7 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
       dt = dble(dti)
-c$$$      if(am_i_root())print*,'boxvol cond_nuc',boxvol,boxmass,temp,pres,
-c$$$     &     dt,num_iter
+
 C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
@@ -1047,38 +1083,30 @@ C Initialize values of Nkf, Mkf, Gcf, and time
 C     Get initial condensation sink
       CS1 = 0.d0
       call getCondSink(Nk1,Mk1,srtso4,CS1,sinkfrac)
-c      print*,'CS1', CS1
-c      CS1 = max(CS1,eps)
 
 C     Get initial H2SO4 concentration guess (assuming no nucleation)
 C     Make sure that H2SO4 concentration doesn't exceed the amount generated
 C     during that timestep (this will happen when the condensation sink is very low)
 
 C     get the steady state H2SO4 concentration
-      call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc)
-c      print*,'gasConc',gasConc
+      call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc,lev)
+
       Gc1(srtso4) = gasConc
       addt = min_tstep
-c      addt = 3600.d0
+
       totmass = H2SO4rate*addt*96.d0/98.d0
 
-C     Get change size distribution due to nucleation with initial guess
-c      call nucleation(Nk1,Mk1,Gc1,Nnuc1,Mnuc1,totmass,addt,Nk2,Mk2,Gc2,
-c     &     Nnuc2,Mnuc2,nflg)    
+C     Get change size distribution due to nucleation with initial guess  
       call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin,
-     &     addt)          
+     &     addt,lev)          
 
 ! for so4
       mass_change = 0.d0
-c      print*,'mass_change1',mass_change
+
       do k=1,ibins
          mass_change = mass_change + (Mk2(k,srtso4)-Mk1(k,srtso4))
       enddo
-c      print*,'mass_change2',mass_change
       mcond = totmass-mass_change ! mass of h2so4 to condense
-
-!      print*,'mcond',mcond,totmass,GasConc
-
       if (mcond.lt.0.d0)then
          tmass = 0.d0
          do k=1,ibins
@@ -1086,7 +1114,7 @@ c      print*,'mass_change2',mass_change
                tmass = tmass + Mk2(k,j)
             enddo
          enddo
-c     if (abs(mcond).gt.tmass*1.0D-8) then
+
          if (abs(mcond).gt.totmass*1.0d-8) then
             if (-mcond.lt.Mk2(nuc_bin,srtso4)) then
 
@@ -1106,8 +1134,6 @@ c     if (abs(mcond).gt.tmass*1.0D-8) then
                Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
                Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                mcond = 0.d0        
-c               print*,'mcond < 0 in cond_nuc', mcond, totmass
-c               stop
             endif
          else
             mcond = 0.d0
@@ -1115,11 +1141,11 @@ c               stop
       endif
       
       mass_change = 0.d0
-c      print*,'mass_change1',mass_change
+
       do k=1,ibins
          mass_change = mass_change + (Mk2(k,srtocil)-Mk1(k,srtocil))
       enddo
-c      print*,'mass_change2',mass_change
+
       mcond_soa = SOArate*addt-mass_change ! mass of soa to condense
       tmass = 0.d0
       do k=1,ibins-1
@@ -1128,26 +1154,11 @@ c      print*,'mass_change2',mass_change
          enddo
       enddo
       if (mcond_soa.gt.tmass)then ! limit soa
-!         print*,'limiting SOA',mcond_soa,tmass
          mcond_soa=tmass
       endif
 
 C     Get guess for condensation
       call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3)
-c$$$
-c$$$!YUNHA LEE 
-c$$$      if(mcond.gt.0.d0.and.fn1.eq.0.)then
-c$$$         do k=1,ibins
-c$$$            if(Nk2(k)-Nk3(k).eq.0.)then
-c$$$               print*,'ERROR in ezcond1'
-c$$$               print*,'mcond',mcond
-c$$$               print*,'Nk1',Nk1(k),'Nk2',Nk2(k),'Nk3',Nk3(k)
-c$$$               print*,'Mk1',Mk1(k,srtso4),
-c$$$     &              'Mk2',Mk2(k,srtso4),'Mk3',Mk3(k,srtso4)
-c$$$            endif
-c$$$         enddo
-c$$$      endif
-c$$$!YUNHA LEE 
 
       if(mcond_soa.eq.0) goto 17
       do k=1,ibins
@@ -1164,33 +1175,14 @@ c$$$!YUNHA LEE
 
       call eznh3eqm(Gc3,Mk3)
       call ezwatereqm(Mk3)
-!      if(am_i_root())then
-!         if(i.eq.1.and.j.eq.1.and.l.eq.1)then
-c$$$            do k=1,ibins
-c$$$               write(*,*)'bf getcond',k
-c$$$               write(*,*)'Nk3 is ', Nk(k)
-c$$$               write(*,*)'Mk3 are ', (MK(k,jc),jc=1,icomp)
-c$$$            enddo
-!         endif
-!      endif
 
 ! check to see how much condensation sink changed
       call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac) !problem here. 
 
 
       if(CS2.eq.CS1.or.CS1.le.0.) then
-         if(am_i_root())then
 !MODELE-TOMAS : Somehow CSch becomes NaN, which mean no condensation and nucleation occurs.
 ! I take whole timestep in this case. Need to look this further in future. 
-!         print*,'CSch<=0 get1',CS1,CS2,mcond,mcond_soa,addt
-!         print*,'CSch<=0 get1',H2SO4rate,SOArate,fn,fn1 !Nucleation happends? 
-c$$$         do k=1,ibins
-c$$$         write(*,*)'get1 Nk3 is',K,Nk3(k),MK3(k,srtso4),Mk3(k,srtocil)
-c$$$         write(*,*)'get1 Nk1 is',K,Nk1(k),MK1(k,srtso4),Mk1(k,srtocil) 
-c$$$!         write(*,*)'Mk3 get1 are ', (MK3(k,1),jc=1,icomp)
-c$$$         enddo
-         endif
-         
         time_rem=dt 
         addt=dt  !This will let it go only one. 
 
@@ -1214,29 +1206,24 @@ c      if (CSch.gt.CSch_tol) then ! condensation sink didn't change much use who
          ! do adaptive timesteps
          do while (time_rem .gt. 0.d0)
             num_iter = num_iter + 1
-c            print*, 'iter', num_iter, ' addt', addt
 C     get the steady state H2SO4 concentration
             if (num_iter.gt.1)then ! no need to recalculate for first step
-               call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc)
+               call getH2SO4conc(H2SO4rate,CS1,Gc1(srtnh4),gasConc,lev)
                Gc1(srtso4) = gasConc
             endif
-!            print*,'gasConc',gasConc,CS1,CS2
 
             sumH2SO4 = sumH2SO4 + Gc1(srtso4)*addt
             totmass = H2SO4rate*addt*96.d0/98.d0
 
             call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,
-     &           nuc_bin,addt) 
-c            print*,'after nucleation iter'
+     &           nuc_bin,addt,lev) 
             sumfn = sumfn + fn*addt
             sumfn1 = sumfn1 + fn1*addt
 
             mass_change = 0.d0
-c            print*,'mass_change1',mass_change
             do k=1,ibins
                mass_change = mass_change + (Mk2(k,srtso4)-Mk1(k,srtso4))
             enddo
-c            print*,'mass_change2',mass_change
             mcond = totmass-mass_change ! mass of h2so4 to condense
 
             if (mcond.lt.0.d0)then
@@ -1268,8 +1255,6 @@ c                     endif
                      Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
                      Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                      mcond = 0.d0 
-c                     print*,'mcond < 0 in cond_nuc', mcond, totmass
-c                     stop
                   endif
                else
                   mcond = 0.d0
@@ -1277,11 +1262,11 @@ c                     stop
             endif
 
             mass_change = 0.d0
-c     print*,'mass_change1',mass_change
+
             do k=1,ibins
                mass_change=mass_change+(Mk2(k,srtocil)-Mk1(k,srtocil))
             enddo
-c     print*,'mass_change2',mass_change
+
             mcond_soa = SOArate*addt-mass_change ! mass of soa to condense
             tmass = 0.d0
             do k=1,ibins-1
@@ -1290,7 +1275,7 @@ c     print*,'mass_change2',mass_change
                enddo
             enddo
             if (mcond_soa.gt.tmass)then  ! limit soa
-!debug               print*,'limiting SOA',mcond_soa,tmass
+
                mcond_soa=tmass
             endif
             
@@ -1311,19 +1296,6 @@ c            mcond_soa = mcond*soa_amp
                   Mkcond(k,j)=Mkcond(k,j)+Mk3(k,j)-Mk2(k,j)
                enddo
             enddo
-c$$$!YUNHA LEE 
-c$$$      if(mcond.gt.0.d0.and.fn1.eq.0.)then
-c$$$         do k=1,ibins
-c$$$            if(Nk2(k)-Nk3(k).eq.0.)then
-c$$$               print*,'ERROR in ezcond2'
-c$$$               print*,'mcond',mcond
-c$$$               print*,'Nk1',Nk1(k),'Nk2',Nk2(k),'Nk3',Nk3(k)
-c$$$               print*,'Mk1',Mk1(k,srtso4),
-c$$$     &              'Mk2',Mk2(k,srtso4),'Mk3',Mk3(k,srtso4)
-c$$$            endif
-c$$$         enddo
-c$$$      endif
-c$$$!YUNHA LEE 
 
             if(mcond_soa.eq.0) goto 19
             do k=1,ibins
@@ -1343,14 +1315,12 @@ c$$$!YUNHA LEE
  19         continue
 
             Gc3(srtnh4) = Gc1(srtnh4)
-c            print*,'after ezcond iter'
+
             call eznh3eqm(Gc3,Mk3)
             call ezwatereqm(Mk3)
             
 ! check to see how much condensation sink changed
             call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac)  
-
-!            PRINT*,'getcondsink',CS1,CS2,time_rem
 
             time_rem = time_rem - addt
             if (time_rem .gt. 0.d0) then
@@ -1360,14 +1330,6 @@ c            print*,'after ezcond iter'
 !same size distribution causes problems. 
 
                if(CS2.eq.CS1.or.CS1.le.0.) then
-                  if(am_i_root())then
-!                  print*,'CSch<=0 get2',CS1,CS2,mcond,mcond_soa,time_rem
-!                  print*,'CSch<=0 get2',H2SO4rate,SOArate,fn,fn1
-c$$$                  do k=1,ibins
-c$$$                     write(*,*)'get2 Nk3 is',K,Nk3(k),MK3(k,srtso4)
-c$$$                     write(*,*)'get2 Nk1 is',K,Nk1(k),MK1(k,srtso4)
-c$$$                  enddo
-                   endif
                   addt = time_rem
                   addt = max(addt,min_tstep)
                else
@@ -1379,7 +1341,6 @@ c$$$                  enddo
                   addt = max(addt,min_tstep)
                endif
 Cjrp               endif
-c               print*,'CS1',CS1,'CS2',CS2
                CS1 = CS2
                Gc1(srtnh4)=Gc3(srtnh4)
                do k=1,ibins
@@ -1393,11 +1354,6 @@ c               print*,'CS1',CS1,'CS2',CS2
          Gcf(srtso4)=sumH2SO4/dt
          fnavg = sumfn/dt
          fn1avg = sumfn1/dt
-c         print*,'AVERAGE GAS CONC',Gcf(srtso4)
-
-c      print*, 'cond_nuc num_iter =', num_iter
-
-	!T0M(1,1,1,3) = double(num_iter) ! store iterations here
 
       do k=1,ibins
          Nkf(k)=Nk3(k)
@@ -1458,7 +1414,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
 
       integer i,j,k,c           ! counters
 !      real*8 pi, R    ! pi and gas constant (J/mol K)
-!      real*8 mu                  !viscosity of air (kg/m s)
+      real*8 mu                  !viscosity of air (kg/m s)
       real*8 mfp                 !mean free path of air molecule (m)
       real Di       !diffusivity of gas in air (m2/s)
       real*8 Neps     !tolerance for number
@@ -1492,19 +1448,14 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
 
-C     get some parameters  ! bugs mfp should be for the condensing gas in air.
-c$$$      mu=2.5277e-7*temp**0.75302
-c$$$      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6
+C     get some parameters 
+!      mu=2.5277e-7*temp**0.75302
+!      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6
 
 cyhl the following should be used instead of above two lines!
       Di=gasdiff(temp,pres,98.0,Sv(srtso4)) ! Di is diffusivity of condensing gas in air [m2/s]
       mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*0.098))   !0.098 for H2SO4 m.w. [kg/mol]
-!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]
-         
-cyhl but this needs some tuning before it actually uses! 
-
-c      Di=gasdiff(temp,pres,98.0,Sv(srtso4))
-c      print*,'Di',Di
+!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]         
 
 C     get size dependent values
       CS = 0.d0
@@ -1528,16 +1479,9 @@ C     get size dependent values
          mocob=Mko(k,srtocob)
          mdust=Mko(k,srtdust)          
          mh2o=Mko(k,srth2o)   
-
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
-     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
-
-c$$$C     kpc  Density should be changed due to more species involed.
-c$$$            density=aerodens(Mko(k,srtso4),0.d0,
-c$$$     &           Mko(k,srtnh4),Mko(k,srtna),Mko(k,srtecil),
-c$$$     &           Mko(k,srtecob),Mko(k,srtocil),Mko(k,srtocob),
-c$$$     &           Mko(k,srtdust),Mko(k,srth2o)) !assume bisulfate                      
-            mp=Mktot/Nko(k)
+     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate                  
+         mp=Mktot/Nko(k)
          else
                                 !nothing in this bin - set to "typical value"
             density=1500.
@@ -1652,15 +1596,7 @@ c$$$      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6 !bug?
 
 cyhl mfp is now for the condensing gas in the air   10/17/2010
       Di=gasdiff(temp,pres,98.0,Sv(spec))  ! YHL(10/17/2010) - this is not accurate for SOA, but leave this for now. 
-      if(spec.eq.srtso4) mw=0.098 ! h2so4
-      if(spec.eq.srtocil) mw=0.2  ! OM molecular weight
-      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*mw))   
-!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]
-         
-cyhl but this needs some tuning before it actually uses! 
-
-!      print*,'temp',temp,'pres',pres,'Sv',Sv(spec),'Di',Di
-c      print*,'Di',Di
+      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*0.098))   
 
 C     get size dependent values
       do k=1,ibins
@@ -1683,14 +1619,8 @@ C     get size dependent values
          mh2o=Mko(k,srth2o)   
 
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
-     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
-
-c$$$Ckpc  Density should be changed due to more species involed.     
-c$$$            density=aerodens(Mko(k,srtso4),0.d0,
-c$$$     &              Mko(k,srtnh4),Mko(k,srtna),Mko(k,srtecil),
-c$$$     &        Mko(k,srtecob),Mko(k,srtocil),Mko(k,srtocob),
-c$$$     &        Mko(k,srtdust),Mko(k,srth2o))    !assume bisulfate                     
-            mp=Mktot/Nko(k)
+     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate                  
+         mp=Mktot/Nko(k)
          else
             !nothing in this bin - set to "typical value"
             density=1500.
@@ -1969,7 +1899,7 @@ C     fn - nucleation rate [# cm-3 s-1]
 C     rnuc - radius of nuclei [nm]
 C     nflg - says if nucleation happend
 
-      SUBROUTINE getNucRate(Gci,fn,mnuc,nflg)
+      SUBROUTINE getNucRate(Gci,fn,mnuc,nflg,l)
 
 
 C-----INCLUDE FILES-----------------------------------------------------
@@ -1981,7 +1911,7 @@ C-----INCLUDE FILES-----------------------------------------------------
 
 C-----ARGUMENT DECLARATIONS---------------------------------------------
 
-      integer j,i,k
+      integer j,i,k,l
       real*8 Gci(icomp-1)
       real*8 fn       ! nucleation rate to first bin cm-3 s-1
       real*8 mnuc     !mass of nucleating particle [kg]
@@ -2031,8 +1961,6 @@ C-----CODE--------------------------------------------------------------
       fn = 0.d0
       rnuc = 0.d0
 
-c      print*,'h2so4',h2so4,'nh3ppt',nh3ppt
-
 C     if requirements for nucleation are met, call nucleation subroutines
 C     and get the nucleation rate and critical cluster size
       if (h2so4.gt.1.d4) then
@@ -2050,25 +1978,30 @@ c            print*, 'napari'
                rnuc=h5
             endif
             nflg=.true.
-         elseif (bin_nuc.eq.1) then
+          elseif (bin_nuc.eq.1) then
 c            print*, 'vehk'
-            call vehk_nucl(temp,rh,h2so4,fn,rnuc) !binary nuc
-            if ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
-               call ion_nucl(h2so4,surf_area,temp,ionrate,rh,h1,h2,h3,
-     &              h4,h5,h6)
+            if((actv_nuc.eq.1).and.(l.le.3))then
+              call bl_nucl(h2so4,fn,rnuc)
             else
-               h1=0.d0
+              call vehk_nucl(temp,rh,h2so4,fn,rnuc) !binary nuc
             endif
-            if (h1.gt.fn)then
-               fn=h1
-               rnuc=h5
-            endif
-            if (fn.gt.1.0d-6)then
-               nflg=.true.
-            else
-               fn = 0.d0
-               nflg=.false.
-            endif
+              if ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
+                call ion_nucl(h2so4,surf_area,temp,ionrate,rh,h1,h2,h3,
+     &               h4,h5,h6)
+              else
+                h1=0.d0
+              endif
+              
+              if (h1.gt.fn)then
+                fn=h1
+                rnuc=h5
+              endif
+              if (fn.gt.1.0d-6)then
+                nflg=.true.
+              else
+                fn = 0.d0
+                nflg=.false.
+              endif
          elseif ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
             call ion_nucl(h2so4,surf_area,temp,ionrate,rh,h1,h2,h3,
      &           h4,h5,h6)
@@ -2109,7 +2042,7 @@ c         print*,'fn1',fn
 c         print*,'fn2',fn
          mnuc = sqrt(xk(1)*xk(2))
       endif
-      
+
       return
       end
       
@@ -2144,15 +2077,14 @@ C-----OUTPUTS-----------------------------------------------------------
 
 C     gasConc - gas H2SO4 [kg/box]
 
-      SUBROUTINE getH2SO4conc(H2SO4rate,CS,NH3conc,gasConc)
+      SUBROUTINE getH2SO4conc(H2SO4rate,CS,NH3conc,gasConc,level)
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi
       USE TRACER_COM, only : xk
       IMPLICIT NONE
 
-C-----ARGUMENT DECLARATIONS---------------------------------------------
-
+C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 H2SO4rate
       real*8 CS
       real*8 NH3conc
@@ -2160,8 +2092,7 @@ C-----ARGUMENT DECLARATIONS---------------------------------------------
       logical prev
       real*8 gasConc_prev
 
-C-----VARIABLE DECLARATIONS---------------------------------------------
-
+      integer, intent(in) :: level  ! vertical layer 
       integer i,j,k,c           ! counters
       real*8 fn, rnuc ! nucleation rate [# cm-3 s-1] and critical radius [nm]
       real*8 mnuc, mnuc1 ! mass of nucleated particle [kg]
@@ -2176,20 +2107,12 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 Gci(icomp-1)      !array to carry gas concentrations
       logical nflg              !says if nucleation occured
       real*8 H2SO4min !minimum H2SO4 concentration in parameterizations (molec/cm3)
-!      real*8 pi
       integer iter,iter1
       real*8 CSeps    ! low limit for CS
       real*8 max_H2SO4conc !maximum H2SO4 concentration in parameterizations (kg/box)
       real*8 nh3ppt   !ammonia concentration in ppt
- 
-C     VARIABLE COMMENTS...
-
-C-----EXTERNAL FUNCTIONS------------------------------------------------
-
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
-
-!      parameter(pi=3.141592654)
       parameter(H2SO4min=1.D4) !molecules cm-3
       parameter(CSeps=1.0d-20)
 
@@ -2232,14 +2155,14 @@ C     Checks for when condensation sink is very small
       
       gasConc = min(gasConc,max_H2SO4conc)
       Gci(srtso4) = gasConc
-      call getNucRate(Gci,fn,mnuc,nflg)
+      call getNucRate(Gci,fn,mnuc,nflg,level)
       
       if (fn.gt.0.d0) then      ! nucleation occured
          gasConc_lo = H2SO4min*boxvol/(1000.d0/98.d0*6.022d23) !convert to kg/box
          
 C     Test to see if gasConc_lo gives a res < 0 (this means ANY nucleation is too high)
          Gci(srtso4) = gasConc_lo*1.000001d0
-         call getNucRate(Gci,fn1,mnuc1,nflg)
+         call getNucRate(Gci,fn1,mnuc1,nflg,level)
          if (fn1.gt.0.d0) then
             massnuc = mnuc1*fn1*(1.d0/(1.d0+soa_amp))*boxvol*98.d0/96.d0
 c     massnuc = 4.d0/3.d0*pi*(rnuc1*1.d-9)**3*1350.*fn1*boxvol*
@@ -2286,7 +2209,7 @@ c            print*, 'iter',iter
 c            print*,'gasConc_lo',gasConc_lo,'gasConc_hi',gasConc_hi
             gasConc = sqrt(gasConc_hi*gasConc_lo) ! take new guess as logmean
             Gci(srtso4) = gasConc
-            call getNucRate(Gci,fn,mnuc,nflg)
+            call getNucRate(Gci,fn,mnuc,nflg,level)
             massnuc = mnuc*fn*(1.d0/(1.d0+soa_amp))*boxvol*98.d0/96.d0
             res = H2SO4rate - CS*gasConc - massnuc
 c            print*,'res',res
@@ -2420,7 +2343,7 @@ C     Nkf, Mkf, Gcf - same as above, but final values
 C     fn, fn1
 
       SUBROUTINE nucleation(Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf,
-     &     nuc_bin,dt)
+     &     nuc_bin,dt,l)
 
 
       USE TOMAS_AEROSOL
@@ -2431,7 +2354,7 @@ C     fn, fn1
 
 C-----ARGUMENT DECLARATIONS---------------------------------------------
 
-      integer j,i,k
+      integer j,i,k,l
       real*8 Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
       real*8 Nkf(ibins), Mkf(ibins, icomp), Gcf(icomp-1)
       real*8 totsulf
@@ -2476,8 +2399,6 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       real*8 fn_c     ! barrierless nucleation rate
       real*8 h1,h2,h3,h4,h5,h6
 
-C-----EXTERNAL FUNCTIONS------------------------------------------------
-
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
       parameter (neps=1E8, meps=1E-8)
@@ -2514,7 +2435,11 @@ c            print*, 'napari'
             endif
          elseif (bin_nuc.eq.1) then
 c            print*,'nuc vehk'
-            call vehk_nucl(temp,rh,h2so4,fn,rnuc) !binary nuc
+            if((actv_nuc.eq.1).and.(l.le.3))then
+              call bl_nucl(h2so4,fn,rnuc)
+            else
+              call vehk_nucl(temp,rh,h2so4,fn,rnuc) !binary nuc
+            endif
             if ((ion_nuc.eq.1).and.(ionrate.ge.1.d0)) then
                call ion_nucl(h2so4,surf_area,temp,ionrate,rh,h1,h2,h3,
      &              h4,h5,h6)
@@ -2917,11 +2842,7 @@ c     maddp(k)=0.d0
 c     print*,'tau',tau
             call mnfix(Nk1,Mk1)
                                 ! do condensation
-c$$$      if(am_i_root())then
-c$$$      do k=1,ibins
-c$$$         print*,'Nk/Mk bf tmcond', k, NK1(k),(MK1(k,j),j=1,icomp)
-c$$$      enddo
-c$$$      endif
+
             call tmcond(tau,xk,Mk1,Nk1,Mk2,Nk2,spec,maddp)
 c     call tmcond(tau,xk,Mk1,Nk1,Mk2,Nk2,spec)
 C     jrp         totch=0.0
@@ -3136,12 +3057,6 @@ C If any ANKD are zero, set them to a small value to avoid division by zero
          endif
       enddo
 
-c$$$      if(am_i_root())then
-c$$$      do k=1,ibins
-c$$$         print*,'Nk/Mk in tmcond', k, ANKD(k),(AMKD(k,j),j=1,icomp)
-c$$$      enddo
-c$$$      endif
-
 Cpja Sometimes, after repeated condensation calls, the average bin mass
 Cpja can be just above the bin boundary - in that case, transfer a some
 Cpja to the next highest bin
@@ -3162,12 +3077,6 @@ Cpja to the next highest bin
             ANKD(k)=ANKD(k)*0.9d0
          endif
       enddo
-
-c$$$      if(am_i_root())then
-c$$$      do k=1,ibins
-c$$$         print*,'NEW Nk/Mk in tmcond', k, ANKD(k),(AMKD(k,j),j=1,icomp)
-c$$$      enddo
-c$$$      endif
 
 Cpja Initialize ventilation variables so they don't do anything
       VSW=0.0d0
@@ -3684,9 +3593,54 @@ c     cluster radius
  10   return
       end
 
+
+C     **************************************************
+C     *  bl_nucl                                     *
+C     **************************************************
+
+C     WRITTEN BY Jeff Pierce, April 2007
+
+C     This subroutine calculates a simple binary nucleation rate of 1 nm
+C     particles.
+
+C      j_1nm = A * [H2SO4]
+
+      SUBROUTINE bl_nucl(cnai,fn,rnuc)
+
+      IMPLICIT NONE
+
+C-----INPUTS------------------------------------------------------------
+
+      real*8,intent(in) :: cnai                 ! concentration of gas phase sulfuric acid [molec cm-3]
+
+C-----OUTPUTS-----------------------------------------------------------
+
+      real*8 fn                 ! nucleation rate [cm-3 s-1]
+      real*8 rnuc               ! critical cluster radius [nm]
+
+C-----INCLUDE FILES-----------------------------------------------------
+
+C-----ARGUMENT DECLARATIONS---------------------------------------------
+
+C-----VARIABLE DECLARATIONS---------------------------------------------
+      real*8 cna                ! concentration of gas phase sulfuric acid [molec cm-3]
+      real*8 A                  ! prefactor... empirical
+
+C-----ADJUSTABLE PARAMETERS---------------------------------------------
+
+      parameter(A=2.0D-6)
+
+C-----CODE--------------------------------------------------------------
+
+      cna=cnai
+
+      fn=A*cna
+      rnuc=0.5d0                ! particle diameter of 1 nm
+
+      return
+      end SUBROUTINE bl_nucl
             
       
-
 C     **************************************************
 C     *  napa_nucl                                     *
 C     **************************************************

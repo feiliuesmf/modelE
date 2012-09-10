@@ -9,7 +9,8 @@
 !@ver  2010/08/04 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : trname,ntm=>NTM
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only : ntm=>NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -418,7 +419,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : trw0
+      USE OldTracer_mod, only : trw0
 #endif
       USE FLUXES, only : atmocn,atmsrf
      &     ,flice,focean,fearth0,flake0,fland
@@ -1430,8 +1431,8 @@ C****
       USE GEOM, only : byaxyp
       USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm=>NTM,trname,trw0,n_water,itime_tr0
-     *     ,tr_wd_type,nwater
+      use OldTracer_mod, only: trname, trw0, itime_tr0,tr_wd_type,nWATER
+      USE TRACER_COM, only : ntm=>NTM,n_water
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
@@ -1547,7 +1548,8 @@ C****
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
+      use OldTracer_mod, only: trname, t_qlimit
+      USE TRACER_COM, only : ntm=>NTM
 #endif
       USE LAKES
       USE LAKES_COM
@@ -2950,7 +2952,8 @@ C****
       USE MODEL_COM
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm=>NTM, trname, t_qlimit
+      use OldTracer_mod, only: trname, t_qlimit
+      USE TRACER_COM, only : ntm=>NTM
 #endif
       USE SEAICE, only : lmi,xsi,ace1i,Ti
       USE SEAICE_COM, only : x=>si_atm

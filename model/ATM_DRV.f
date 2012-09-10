@@ -215,9 +215,6 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
-#ifdef TRACERS_TOMAS
-         CALL aeroupdate
-#endif
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
@@ -227,9 +224,6 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
 
 C**** RADIATION, SOLAR AND THERMAL
       MODRD=MOD(Itime-ItimeI,NRAD)
-#ifdef TRACERS_TOMAS
-      CALL aeroupdate
-#endif
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (NOW,MRAD)
@@ -240,9 +234,6 @@ C**** RADIATION, SOLAR AND THERMAL
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
-#ifdef TRACERS_TOMAS
-      CALL aeroupdate
-#endif
 
 C****
 C**** Add up the non-interactive tracer surface sources.
@@ -450,9 +441,6 @@ C**** SEA LEVEL PRESSURE FILTER
 ! Reinitialize instantaneous consrv qtys (every timestep since
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter
-#endif
-#ifdef TRACERS_TOMAS
-      CALL aeroupdate
 #endif
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
@@ -742,7 +730,7 @@ c set-up for MPI implementation
       USE MOMENTS, only : initMoments
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      use TRACER_COM, only: initTracerCom
+      use TRACER_COM, only: initTracerCom, alloc_tracer_com
       use ghy_tracers, only: initGhyTracers
 #endif
       IMPLICIT NONE

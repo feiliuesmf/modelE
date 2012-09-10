@@ -18,8 +18,9 @@ C ************************************************************
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
+      use OldTracer_mod, only: trName, TRPDENS
       USE TRACER_COM,  only: TRM,NBINS,IDTSO4,IDTNA,
-     &     IDTOCIL,IDTNUMD,IDTH2O,TRPDENS,xk,trname
+     &     IDTOCIL,IDTNUMD,IDTH2O,xk
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure

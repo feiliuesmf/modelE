@@ -50,13 +50,14 @@ C****
       USE ATM_COM, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom,
+      use OldTracer_mod, only: itime_tr0, needtrs
+      USE TRACER_COM, only : NTM,trm,trmom,
      *     n_Be7, n_Be10
 #ifdef TRACERS_DRYDEP
-     *     ,dodrydep
+      use OldTracer_mod, only: dodrydep
 #endif
 #ifdef TRACERS_WATER
-     *     ,nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE
 #endif
 #endif
       USE SOCPBL, only : npbl=>n
@@ -916,16 +917,15 @@ c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
       call surface_diag1(dtsurf,moddsf,trhdt_sv2)
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_TOMAS
+C**** Apply subgrid coagulation for freshly emitted particles
+      call subgridcoag_drv_2D(dtsurf)
+
+#endif
 C****
 C**** Apply tracer surface sources and sinks
 C****
       call apply_tracer_2Dsource(dtsurf)
-#endif
-
-#ifdef TRACERS_TOMAS
-C**** Apply subgrid coagulation for freshly emitted particles
-        call subgridcoag_drv_2D(dtsurf)
-
 #endif
 
 c****
@@ -1149,9 +1149,11 @@ C**** For distributed implementation - ensure point is on local process.
       USE ATM_COM, only : byam
       USE RAD_COM, only : trhr
 #ifdef TRACERS_ON
-      USE TRACER_COM, only : NTM,itime_tr0,needtrs,trm,trmom
+      use OldTracer_mod, only: itime_tr0, needtrs
+      USE TRACER_COM, only : NTM,trm,trmom
 #ifdef TRACERS_WATER
-     *     ,nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE
+
 #endif
 #endif
       USE DIAG_COM, only : aij=>aij_loc,aijmm
@@ -1905,7 +1907,7 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       subroutine collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
-      use tracer_com, only : trname
+      use OldTracer_mod, only : trname
       use fluxes, only : atmocn
       use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,ijts_isrc,jls_isrc
@@ -1923,17 +1925,16 @@ c
       real*8 :: trc_flux
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin
-      real*8 ss_num(nbins),tot_seasalt
-      real*8, parameter :: scalesizeSS(nbins)=(/!0.0,0.0,0.0,
-     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
-     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
-     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
+      real*8 ss_num(nbins)
+c$$$      real*8, parameter :: scalesizeSS(nbins)=(/!0.0,0.0,0.0,
+c$$$     *     6.4614E-08,5.0110E-07,2.7243E-06,1.1172E-05,
+c$$$     *     3.7192E-05,1.2231E-04,4.4986E-04,1.4821E-03,
+c$$$     *     3.7403E-03,7.9307E-03,1.8918E-01,7.9705E-01/)
 #endif
 c
 #ifdef TRACERS_TOMAS
       ss_bin=0
       num_bin=0
-!      TOMAS_emis(I,J,:,1)=0.
 #endif
 C**** Loop over tracers
       DO NX=1,pbl_args%NTX
@@ -1960,22 +1961,26 @@ C****
 #ifdef TRACERS_TOMAS
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
-     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
-
+     &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANACL_13','ANACL_14','ANACL_15'
+#endif
+     &         )
           ss_bin=ss_bin+1
-          if(ss_bin.eq.1)
-     &     tot_seasalt=(pbl_args%ss2_flux + pbl_args%ss1_flux)
+          trc_flux=pbl_args%tomas_ss_flux(ss_bin)
 
-          trc_flux=tot_seasalt*scalesizeSS(ss_bin)
-          ss_num(ss_bin)=tot_seasalt*scalesizeSS(ss_bin)
+          ss_num(ss_bin)=(pbl_args%tomas_ss_flux(ss_bin))
      &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
-
 ! No subgrid coagulation for sea-salt
 !        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
 
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
            num_bin=num_bin+1
            trc_flux=ss_num(num_bin)
       
@@ -2013,7 +2018,11 @@ C****
 
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &       'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
-     &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12')
+     &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANACL_13','ANACL_14','ANACL_15'
+#endif
+     &         )
         
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
@@ -2023,7 +2032,11 @@ C****
         
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
-     &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12')
+     &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
+#ifdef TOMAS_12_3NM 
+     *    ,'ANUM__13','ANUM__14','ANUM__15'
+#endif
+     &         )
         
 !TOMAS - itcon_surf (1,3) is for SO4/EC/OC.
         if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,
@@ -2053,7 +2066,8 @@ C****
       use pbl_drv, only : t_pbl_args
       use model_com, only : itime,dtsrc
       use diag_com, only : aij=>aij_loc,ij_gasx,ij_kw,ij_alpha
-      USE TRACER_COM, only: n_co2n,n_cfcn,vol2mass,tr_mm,itime_tr0
+      use OldTracer_mod, only: vol2mass, tr_mm, itime_tr0
+      USE TRACER_COM, only: n_co2n,n_cfcn
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=>itime
 #else

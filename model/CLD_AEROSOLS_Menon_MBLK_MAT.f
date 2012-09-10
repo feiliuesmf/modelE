@@ -5,7 +5,6 @@
 !@contains routines for calculating cloud droplet number (cm-3) for convective clouds
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
-      USE TRACER_COM
       USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
@@ -125,7 +124,9 @@ c
 !@Use for calculating cloud droplet number for convective clouds
 !@when using mass based aerosols
       USE CLOUDS_COM
-      USE TRACER_COM
+      USE TRACER_COM, only: n_apinp1a, n_apinp2a,n_BCB, n_isopp1a, 
+     * n_isopp2a, n_OCB 
+      USE OldTracer_mod, only: fq_aer
       USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
@@ -221,7 +222,9 @@ C*******************************************************************************
 !@when using mass based aerosols
 !@input is mostly aerosol mass and a few cloud properties 
       USE CLOUDS_COM
-      USE TRACER_COM
+      USE TRACER_COM, only: n_apinp1a, n_apinp2a,n_BCB, n_isopp1a, 
+     * n_isopp2a, n_OCB 
+      USE OldTracer_mod, only: fq_aer
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
@@ -361,7 +364,9 @@ C**************************************************************************
 !@auth Surabi Menon 
 !@contains various routines that may be used to get autoconversion that depends on cloud droplet number or size
 !@when using mass based aerosols
-      USE TRACER_COM
+      USE TRACER_COM, only: n_apinp1a, n_apinp2a,n_BCB, n_isopp1a, 
+     * n_isopp2a, n_OCB 
+      USE OldTracer_mod, only: fq_aer
       USE CONSTANT,only:TWOPI,GRAV,by6,by3,RGAS
       IMPLICIT NONE
       real*8 TL,WMX,SCDNCW,QAUT,RHOW,FCLD,RCLD,rho,r3c
@@ -424,8 +429,10 @@ C**************************************************************************
 !@ Use for calculating cloud droplet number for large-scale stratus clouds
 !@when using mass-based aerosols that are updated after various cloud processes in CLOUDS2_E1
       USE CLOUDS_COM
+      USE TRACER_COM, only: n_apinp1a, n_apinp2a,n_BCB, n_isopp1a, 
+     * n_isopp2a, n_OCB 
+      USE OldTracer_mod, only: fq_aer
       USE CONSTANT,only:LHE,LHS
-      USE TRACER_COM
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
      *,OLDCDL,VVEL,SME,WTURB  ! VVEL is in cm/s

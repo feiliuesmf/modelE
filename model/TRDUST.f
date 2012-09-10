@@ -302,7 +302,8 @@ c**** output
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       USE socpbl,ONLY : t_pbl_args
-      use tracer_com, only: Ntm_dust, trname
+      use tracer_com, only: Ntm_dust
+      use OldTracer_mod, only: trname
       use tracers_dust,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
      &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

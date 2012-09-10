@@ -25,7 +25,9 @@ c ---------------------------------------------------------------------
   
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : vol2mass,ntm_gasexch
+      use OldTracer_mod, only: vol2mass
+
+      USE TRACER_COM, only : ntm_gasexch
       USE obio_incom, only : awan
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime

@@ -1,0 +1,165 @@
+nonProduction_E4TcadC12  GISS Model E Tom Clune 02/28/2011
+
+nonProduction_E4TcadC12.R  = combination of template EC12 and E4TcadF40 decks, then 
+altered a bit.
+
+This is for faster testing of tracer code, not scrutinized for "science" purposes.
+
+Preprocessor Options
+#define NEW_IO
+#define TRAC_ADV_CPU
+#define USE_ENT                  ! include dynamic vegetation model
+#define TRACERS_ON               ! include tracers code
+#define TRACERS_WATER            ! wet deposition and water tracer
+#define TRACERS_DUST             ! include dust tracers
+#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
+#define TRACERS_DRYDEP           ! default dry deposition
+#define ALLOW_MORE_DRYDEP_NTYPE  ! larger dimension needed for 8x10 regridded VEGTYPE
+#define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
+#define NO_HDIURN                ! exclude hdiurn diagnostics
+#define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
+! OFF  #define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+!  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
+#define TRACERS_TERP                ! include terpenes in gas-phase chemistry
+#define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
+#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
+#define TRACERS_NITRATE
+#define TRACERS_HETCHEM
+#define BC_ALB                      !optional tracer BC affects snow albedo
+#define BIN_OLSON   ! use binary versions of vegtype and LAI files for tracers
+!  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
+!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
+!  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
+!  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
+!  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
+!  OFF #define NUDGE_ON                 ! nudge the meteorology
+!  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
+!  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+End Preprocessor Options
+
+Object modules:
+     ! resolution-specific source codes
+RES_C12                      ! horiz/vert resolution, 8x10deg, 12 layers
+DIAG_RES_M                   ! diagnostics
+FFT36                        ! Fast Fourier Transform
+
+IO_DRV                       ! new i/o
+
+    ! GISS dynamics
+ATMDYN MOMEN2ND              ! atmospheric dynamics
+QUS_DRV              ! T/Q moments, 1D QUS
+!   STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
+
+QUS3D                               ! advection of Q and tracer gases
+TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
+
+#include "tracer_shared_source_files"
+#include "tracer_shindell_source_files"
+#include "tracer_aerosols_source_files"
+TRDIAG
+
+#include "latlon_source_files"
+#include "modelE4_source_files"
+
+!!RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
+lightning                           ! Colin Price lightning model
+! flammability_drv flammability       ! Olga's fire model
+
+#include "static_ocn_source_files"
+
+Components:
+#include "E4_components_nc"
+tracers
+Ent
+
+Component Options:
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB
+OPTS_giss_LSM = USE_ENT=YES
+OPTS_dd2d = NC_IO=PNETCDF
+
+Data input files:
+#include "IC_36x24_input_files.nc"
+#include "static_ocn_1950_36x24_input_files"  /* 1880 for 8x10 needs to be made */
+RVR=RD8X10.RVR.bin           ! river direction file
+
+#include "land_36x24_input_files"
+#include "rad_input_files"
+#include "TAero2008_input_files"
+#include "O3_2005_input_files"
+
+#include "chemistry_input_files"
+#include "chemistry_36x24_input_files"
+#include "dust_tracer_36x24_input_files"
+#include "dry_depos_36x24_input_files"
+#include "chem_emiss_36x24_input_files"
+#include "aerosol_36x24_input_files"
+Ox_ref=gsin/zeroReferenceOzone_72x46x49 ! for radiative forcing reference
+
+MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+REG=REG8X10                      ! special regions-diag
+
+
+Label and Namelist:  (next 2 lines)
+TCC12_E4Tcad (ModelE4 8x10, 12 layers, with Tcad tracers for testing only)
+
+&&PARAMETERS
+#include "static_ocn_params"
+#include "sdragC12_params"
+
+wsn_max=2.   ! restrict snow depth to 2 m-h2o (if 0. snow depth is NOT restricted)
+
+xCDpbl=1.
+cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
+
+! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
+U00a=0.54      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00      ! below 850mb and MC regions; then tune this to get rad.balance
+
+WMUI_multiplier = 2.
+
+PTLISO=15.       ! press(mb) above which rad. assumes isothermal layers
+H2ObyCH4=0.      ! activates strat.H2O generated by CH4 
+                 ! [Turn off when Shindell tracer CH4 on & clim_interact_chem=1]
+KSIALB=0         ! 6-band albedo (Hansen) (=1 A.Lacis orig. 6-band alb)
+KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
+
+initial_GHG_setup = 1 ! Set to 0 after initial setup.
+
+#include "atmCompos_36x24_params"
+
+madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
+cloud_rad_forc=1
+
+#include "aerosol_36x24_params"
+
+imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, aer_int_yr=1850
+aer_int_yr=1850    !select desired year (1890 to 2000) or 0 to use JYEAR
+
+#include "dust_params"
+#include "chemistry_36x24_params"
+
+DTsrc=1800.      ! cannot be changed after a run has been started
+DT=450.          ! could be 900 if DTsrc=3600.  do not forget nda5 et al.
+! parameters that control the Shapiro filter
+DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT
+DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT
+DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
+
+NIsurf=1         ! (surf.interaction NIsurf times per physics time step)
+NRAD=5           ! radiation (every NRAD'th physics time step)
+
+#include "diag_params"
+
+Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
+Ndisk=480
+&&END_PARAMETERS
+
+ &INPUTZ
+ YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+/

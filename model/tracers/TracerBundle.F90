@@ -1,7 +1,7 @@
 module TracerBundle_mod
   use Dictionary_mod, only: Dictionary_type, Dictionary
   use KeyValuePair_mod, only: MAX_LEN_KEY
-  use Tracers_mod
+  use Tracer_mod
   implicit none
   private
 
@@ -14,11 +14,12 @@ module TracerBundle_mod
   public :: readUnformatted
   public :: writeUnformatted
   public :: getTracer
+  public :: getCount
   public :: getProperty
   public :: getProperties
   public :: setProperty
   public :: getIndex
-  public :: getCount
+  public :: getNumTracers
   public :: makeSubset
   public :: hasProperty
   public :: addMandatoryProperty
@@ -27,11 +28,18 @@ module TracerBundle_mod
 
   public :: NOT_FOUND
 
+  ! legacy support for index access
+  public :: ntsurfsrc
+  public :: setNtsurfsrc
+
   type TracerBundle_type
     private
     type (Dictionary_type) :: defaultValues
-!TODO: Should change to allocatable when compilers work
+!TODO pointer for mandatoryProperties should be allocatable
+! but does not work with ifort 12.1.  Pointer is just a workaround.
+! Need to add -assume realloc_lhs for intel ...
     character(len=MAX_LEN_KEY), pointer :: mandatoryProperties(:) => null()
+
     type (Tracer_type), pointer :: tracers(:) => null()
   end type TracerBundle_type
 
@@ -88,9 +96,20 @@ module TracerBundle_mod
     module procedure addDefault_string
   end interface
 
+  interface getTracer
+    module procedure getTracer_byName
+    module procedure getTracer_byIndex
+  end interface getTracer
+
   integer, parameter :: LEN_HEADER = 80
   integer, parameter :: VERSION = 1
   character(len=*), parameter :: DESCRIPTION = 'TracerBundle'
+
+  ! temporary support of legacy interface
+  interface ntsurfsrc
+    module procedure ntsurfsrc_1
+    module procedure ntsurfsrc_all
+  end interface ntsurfsrc
 
 contains
 
@@ -397,15 +416,7 @@ contains
 
   end function assertHasProperty
 
-  function getName(this) result(name)
-    use GenericType_mod
-    use KeyValuePair_mod, only: MAX_LEN_KEY
-    type (Tracer_type), intent(in) :: this
-    character(len=MAX_LEN_KEY) :: name
-    name = getProperty(this, 'name')
-  end function getName
-
-  function getTracer(this, species) result(tracer)
+  function getTracer_byName(this, species) result(tracer)
     type (TracerBundle_type), target, intent(in) :: this
     character(len=*), intent(in) :: species
     type (Tracer_type), pointer :: tracer
@@ -419,8 +430,20 @@ contains
     else
       tracer => null()
     end if
+  end function getTracer_byName
 
-  end function getTracer
+  function getTracer_byIndex(this, index) result(tracer)
+    type (TracerBundle_type), target, intent(in) :: this
+    integer, intent(in) :: index
+    type (Tracer_type), pointer :: tracer
+
+    if (index > 0 .and. index <= size(this%tracers)) then
+      tracer => this%tracers(index)
+    else
+      tracer => null()
+    end if
+    
+  end function getTracer_byIndex
 
   function getProperties_multi(this, species) result(properties)
     type (TracerBundle_type), target, intent(in) :: this
@@ -636,5 +659,35 @@ contains
     deallocate(this%mandatoryProperties)
     !    end if
   end subroutine cleanBundle
+  
+  integer function ntsurfsrc_1(this, index) result(n)
+    use Tracer_mod
+    type (TracerBundle_type), intent(in) :: this
+    integer, intent(in) :: index
+
+    n = this%tracers(index)%ntSurfSrc
+
+  end function ntsurfsrc_1
+
+  integer function ntsurfsrc_all(this) result(n)
+    use Tracer_mod
+    type (TracerBundle_type), intent(in) :: this
+    type (Tracer_type), pointer :: pTracer
+
+
+    n = sum(this%tracers(:)%ntSurfSrc)
+
+  end function ntsurfsrc_all
+
+  subroutine setNtsurfsrc(this, index, value)
+    use Tracer_mod
+    type (TracerBundle_type), intent(in) :: this
+    integer, intent(in) :: index
+    integer, intent(in) :: value
+
+! TODO - this should be the same as the length of list of sources
+    this%tracers(index)%ntSurfSrc = value
+
+  end subroutine setNtsurfsrc
 
 end module TracerBundle_mod

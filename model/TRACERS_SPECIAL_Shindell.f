@@ -4,7 +4,7 @@
 
 #ifdef TRACERS_ON
 
-      USE TRACER_COM
+      USE TRACER_COM, only: ntm
 
       IMPLICIT NONE
       SAVE
@@ -167,7 +167,8 @@ C**** linearly in time (at 1% increase per year)
       USE MODEL_COM, only: itime,itimei,DTsrc
       USE GEOM, only: axyp,IMAXJ  
       USE ATM_COM, only: am
-      USE TRACER_COM, only: trname,trm,n_GLT,vol2mass,itime_tr0
+      use OldTracer_mod, only: trname, vol2mass, itime_tr0
+      USE TRACER_COM, only: trm,n_GLT
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
       USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds,grid,write_parallel
@@ -219,19 +220,20 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,
+      use OldTracer_mod, only: itime_tr0,trname
 #ifdef TRACERS_SPECIAL_Shindell
-     *                      n_NOx,
+      use TRACER_COM, only: n_NOx
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-     *                      n_BCIA,
+      use TRACER_COM, only: n_BCIA
 #endif
 #ifdef TRACERS_TOMAS
-     *                      IDTECOB,
+      use TRACER_COM, only: IDTECOB
 #endif
 !#ifdef TRACERS_AMP
-!     *                      n_M_BC1_BC,
+!          use TRACER_COM, only: n_M_BC1_BC
 !#endif
+      use TRACER_COM, only:
      *                      nAircraft
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
      &     ,airtracer
@@ -262,7 +264,7 @@ C we change that.)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !     *  mon_files=(/'NOx_AIRC','M_BC1_BC_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-     *  mon_files=(/'NOx_AIRC','AECOB_01_AIRC'/)
+     *  mon_files=(/'NOx_AIRC     ','AECOB_01_AIRC'/)
 #elif (defined TRACERS_SPECIAL_Shindell)
      *  mon_files=(/'NOx_AIRC'/)
 #elif (defined TRACERS_AEROSOLS_Koch)
@@ -374,43 +376,51 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
-      use tracer_com, only: nAircraft,num_tr_sectors3D,
-     & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
+      use tracer_com, only: nAircraft, tracers,
+     & sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
-
+      use TracerSource_mod, only: TracerSource3D
+      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer_type
       IMPLICIT NONE
       integer, intent(in) :: n_NOx
       integer :: i,j,ns,nsect,nn
       character*124 :: tr_sectors_are
       character*32 :: pname
 
+      type (TracerSource3D), pointer :: source
+      type (Tracer_type), pointer :: tracer
+
       tr_sectors_are = ' '
+      tracer => getTracer(tracers,'NOx')
+      source => tracer%sources3D(nAircraft)
+
       pname='NOx_AIRC_sect'
       call sync_param(pname,tr_sectors_are)
-      num_tr_sectors3D(n_NOX,nAircraft)=0
+      source%num_tr_sectors = 0
+
       i=1
       do while(i < len(tr_sectors_are))
         j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
         if (j > 1) then
-          num_tr_sectors3D(n_NOX,nAircraft)=
-     &    num_tr_sectors3D(n_NOX,nAircraft) + 1
+          source%num_tr_sectors = source%num_tr_sectors + 1
           i=i+j
         else
           i=i+1
         end if
       enddo
-      ns=num_tr_sectors3D(n_NOX,nAircraft)
+      ns=source%num_tr_sectors
       if(ns > n_max_sect)
      &call stop_model("num_tr_sectors3D problem",255)
       if(ns > 0)then
-        read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
+        read(tr_sectors_are,*) source%tr_sect_name(1:ns)
         do nsect=1,ns
-          tr_sect_index3D(n_NOX,nAircraft,nsect)=0
+          source%tr_sect_index(nsect) = 0
           loop_nn: do nn=1,num_sectors
-            if(trim(tr_sect_name3D(n_NOx,nAircraft,nsect)) ==
-     &      trim(sect_name(nn))) then
-              tr_sect_index3D(n_NOx,nAircraft,nsect)=nn
+            if(trim(source%tr_sect_name(nsect)) ==
+     &         trim(sect_name(nn))) then
+              source%tr_sect_index(nsect) = nn
               ef_fact3d(nn,1:num_regions)=
      &        ef_fact(nn,1:num_regions)
               exit loop_nn
@@ -699,7 +709,8 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       USE GEOM, only       : axyp,lat2d_dg
       USE ATM_COM, only   : am
       USE CONSTANT, only: mair
-      USE TRACER_COM, only : trm, n_CH4, nOverwrite, vol2mass
+      use OldTracer_mod, only: vol2mass
+      USE TRACER_COM, only : trm, n_CH4, nOverwrite
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry
@@ -1136,7 +1147,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE DOMAIN_DECOMP_1D, only : 
 #endif
      &     pack_data
-      USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
+      use OldTracer_mod, only: itime_tr0,trname
+      USE TRACER_COM, only: sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
      &   gw_ulim,gw_llim,SW_lim,exclude_us_eu,nra_ch4,first_mod,

@@ -19,27 +19,28 @@ C
      &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
      &     ,ijlt_OxpRO2
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+      use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
-     &                   n_stratOx,
+     &                   n_stratOx
 #ifdef TRACERS_TERP
-     &                   n_Terpenes,
+      USE TRACER_COM, only: n_Terpenes
 #endif  /* TRACERS_TERP */
-     &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
+      USE TRACER_COM, only: n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2
 #ifdef TRACERS_AEROSOLS_SOA
-     &                   n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+      USE TRACER_COM, only: n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a
 #ifdef TRACERS_TERP
-     &                   n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
+      USE TRACER_COM, only: n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &                  n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,NTM,
+      USE TRACER_COM, only: n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,NTM,
      &                  n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
-     &                  n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
-     &                  vol2mass
+     &                  n_HOBr,n_BrONO2,n_CFC,ntm_chem
 #ifdef TRACERS_WATER
-     &                   ,trm,trmom,tr_wd_type,nwater,tr_H2ObyCH4
+      use OldTracer_mod, only: tr_wd_type, nWater, tr_H2ObyCH4
+      USE TRACER_COM, only: trm, trmom 
 #endif
 #ifdef TRACERS_HETCHEM
-     &                  ,krate,n_N_d1,n_N_d2,n_N_d3
+      USE TRACER_COM, only: krate,n_N_d1,n_N_d2,n_N_d3
 #endif
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,cpd,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,

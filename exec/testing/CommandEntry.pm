@@ -114,7 +114,7 @@ sub runInBatch
       { $walltime = "1:00:00\n" }
       case [ "E4C90L40", "E_AR5_CADI" ] 
       { $walltime = "2:00:00\n" }
-      case [ "E4TcadF40", "E4arobio_g6c", "E4arobio_h4c" ] 
+      case [ "E4TcadF40", "E4TcadiF40", "E4arobio_g6c", "E4arobio_h4c" ] 
       { $walltime = "3:00:00\n" }
       else
       { $walltime = "8:00:00\n"; }
@@ -149,11 +149,15 @@ module load comp/intel-10.1.017 mpi/impi-3.2.2.006
 EOF
 
     } 
-    else 
+    elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
 module load other/comp/gcc-4.5 other/mpi/openmpi/1.4.2-gcc-4.5
 EOF
+    }
+    else 
+    {
+       # Nothing to do
     }
 
   } 
@@ -165,12 +169,22 @@ EOF
 module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
 EOF
     } 
-    else 
+    elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
 module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
 EOF
     }  
+    elsif ($compiler eq "nag")  
+    {
+      $script .= <<EOF;
+module load comp/nag-5.3-886 other/mpi/openmpi/1.6.0-nag-5.3-886
+EOF
+    }
+    else 
+    {
+       return;
+    }
   }
 
   $script .= <<EOF;
@@ -239,6 +253,10 @@ sub setModuleEnvironment
       {
         module (load, "other/comp/gcc-4.7-20120331", "other/mpi/mvapich2-1.8a2/gcc-4.7-20120331");
       }
+      elsif ($compiler eq "nag") 
+      {
+        module (load, "comp/nag-5.3-886", "other/mpi/openmpi/1.6.0-nag-5.3-886");
+      } 
       else 
       {
         # Nothing to do
