@@ -1,11 +1,5 @@
 #include "rundeck_opts.h"
 
-      ! Adding this empty module allows intel 12.1.5.339 to compile with the 
-      ! debugging flag.  Weird problem.  The module should be deleted when
-      ! Intel has a fix.
-      module IntelWorkaround
-      end module IntelWorkaround
-
       MODULE MODEL_COM
 !@sum  MODEL_COM Main model variables, independent of resolution
 !@auth Original Development Team
