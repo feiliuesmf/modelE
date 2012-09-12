@@ -307,6 +307,10 @@ C****
      &     ,units_glhc,denom_glhc,scale_glhc,cdl_glhc
       use LANDICE_COM, only : nhc,glhc_frac,glhc_tsurf,glhc_prec
       use DIAG_COM, only : ia_src,ia_srf,cdl_ij_template
+#ifdef CUBED_SPHERE
+      use LANDICE_COM, only : cdl_glhc_latlon
+      use DIAG_COM, only : cdl_ij_latlon_template
+#endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use cdl_mod
       implicit none
