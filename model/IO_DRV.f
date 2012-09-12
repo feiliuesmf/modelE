@@ -92,6 +92,7 @@ c
       if(do_io_acc) then
         if(iaction.eq.iowrite_single) call write_acc_meta(fid)
         call new_io_acc(fid,iaction)
+        call new_io_glaacc(fid,iaction)
         call new_io_ocdiag(fid,iaction)
 #ifndef STANDALONE_HYCOM
         call new_io_icdiag(fid,iorw)
@@ -181,6 +182,7 @@ c idacc(5) is not additive
       call write_attr(grid,fid,'idacc','reduction','sum')
 
       call def_meta_atmacc(fid)
+      call def_meta_glaacc(fid)
       call def_meta_ocdiag(fid)
 #ifndef STANDALONE_HYCOM
       call def_meta_icdiag(fid)
@@ -199,6 +201,7 @@ c idacc(5) is not additive
       implicit none
       integer :: fid         !@var fid file id
       call write_meta_atmacc(fid)
+      call write_meta_glaacc(fid)
       call write_meta_ocdiag(fid)
 #ifndef STANDALONE_HYCOM
       call write_meta_icdiag(fid)
@@ -214,6 +217,7 @@ c idacc(5) is not additive
       integer :: fid         !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
       call def_rsf_acc(fid,r4_on_disk)
+      call def_rsf_glaacc(fid,r4_on_disk)
       call def_rsf_ocdiag(fid,r4_on_disk)
 #ifndef STANDALONE_HYCOM
       call def_rsf_icdiag(fid,r4_on_disk)

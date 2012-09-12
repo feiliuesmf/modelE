@@ -16,7 +16,8 @@
 #ifdef COUPLE_GLIMMER
       USE glint_main, only : glint_params
 #endif
-
+      use cdl_mod, only : cdl_type
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
 
@@ -62,6 +63,25 @@
       type(glint_params) :: glint_greenland;
 #endif
 
+!@param kglhc number of glhc accumulations
+      integer, parameter :: kglhc=3
+!@var glhc accumulations for glacial ice height-classified diagnostics
+      real*8, dimension(:,:,:,:), allocatable :: glhc
+!@var scale_glhc scale factor for glhc diagnostics
+      real*8, dimension(kglhc) :: scale_glhc
+!@var ia_glhc,denom_glhc  idacc-numbers,weights for glhc diagnostics
+      integer, dimension(kglhc) :: ia_glhc,denom_glhc,lgrid_glhc
+!@var sname_glhc short names of glhc diagnostics
+      character(len=sname_strlen), dimension(kglhc) :: sname_glhc
+!@var lname_glhc,units_glhc descriptions/units of glhc diagnostics
+      character(len=lname_strlen), dimension(kglhc) :: lname_glhc
+      character(len=units_strlen), dimension(kglhc) :: units_glhc
+!@var cdl_glhc consolidated metadata for glhc output fields in cdl notation
+      type(cdl_type) :: cdl_glhc,cdl_glhc_latlon
+!@var glhc_xxx indices for accumulations
+      integer ::
+     &     glhc_frac,glhc_tsurf,glhc_prec
+
       END MODULE LANDICE_COM
 
       SUBROUTINE ALLOC_LANDICE_COM(grid)
@@ -80,6 +100,7 @@
       USE LANDICE, only : TRACCPDA, TRACCPDG
 #endif
 #endif
+      USE LANDICE_COM, only : KGLHC,GLHC
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -112,6 +133,8 @@
       TRACCPDA = 0.; TRACCPDG = 0.
 #endif
 #endif
+
+      ALLOCATE(GLHC(I_0H:I_1H,J_0H:J_1H,NHC,KGLHC))
 
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
@@ -390,4 +413,116 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
       end select
       return
       end subroutine new_io_landice
+
+      subroutine def_rsf_glaacc(fid,r4_on_disk)
+!@sum  def_rsf_glaacc defines accumulation array structure in restart/acc files
+!@auth M. Kelley
+!@ver  beta
+      use landice_com, only : glhc
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
+
+      call defvar(grid,fid,glhc,'glhc(dist_im,dist_jm,nhc,kglhc)',
+     &     r4_on_disk=r4_on_disk)
+
+      return
+      end subroutine def_rsf_glaacc
+
+      subroutine new_io_glaacc(fid,iaction)
+!@sum  new_io_glaacc read/write accumulation arrays from/to restart/acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use resolution, only : im,jm
+      use model_com, only : ioread,iowrite,iowrite_single,idacc
+      use landice_com, only : glhc,glhc_frac,ia_glhc
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : hasNorthPole, hasSouthPole
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      integer :: k,l
+      select case (iaction)
+      case (iowrite,iowrite_single) ! output to restart or acc file
+        if(iaction.eq.iowrite_single) then ! pole fills needed for acc-files
+          do l=1,size(glhc,4)
+            do k=1,size(glhc,3)
+              if(hasSouthPole(grid)) then
+                glhc(2:im, 1,k,l) = glhc(1, 1,k,l)
+              endif
+              if(hasNorthPole(grid)) then
+                glhc(2:im,jm,k,l) = glhc(1,jm,k,l)
+              endif
+            enddo
+          enddo
+          do l=1,size(glhc,4) ! mult by area fraction for masking purposes
+            if(l == glhc_frac) cycle
+            glhc(:,:,:,l) = glhc(:,:,:,l)*
+     &           (glhc(:,:,:,glhc_frac)/idacc(ia_glhc(glhc_frac)))
+          enddo
+        endif
+        call write_dist_data(grid,fid,'glhc',glhc)
+      case (ioread)            ! input from restart or acc file
+        call read_dist_data(grid,fid,'glhc',glhc)
+      end select
+      return
+      end subroutine new_io_glaacc
+
+      subroutine def_meta_glaacc(fid)
+!@sum  def_meta_glaacc defines metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      use landice_com, only :
+     &     ia_glhc,scale_glhc,denom_glhc,sname_glhc
+     &     ,cdl_glhc,cdl_glhc_latlon
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar,write_attr
+      use cdl_mod, only : defvar_cdl
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_attr(grid,fid,'glhc','reduction','sum')
+      call write_attr(grid,fid,'glhc','split_dim',4)
+      call defvar(grid,fid,ia_glhc,'ia_glhc(kglhc)')
+      call defvar(grid,fid,scale_glhc,'scale_glhc(kglhc)')
+      call defvar(grid,fid,denom_glhc,'denom_glhc(kglhc)')
+      call defvar(grid,fid,sname_glhc,'sname_glhc(sname_strlen,kglhc)')
+      call defvar_cdl(grid,fid,cdl_glhc,
+     &     'cdl_glhc(cdl_strlen,kcdl_glhc)')
+#ifdef CUBED_SPHERE
+      call defvar_cdl(grid,fid,cdl_glhc_latlon,
+     &     'cdl_glhc_latlon(cdl_strlen,kcdl_glhc_latlon)')
+#endif
+
+      return
+      end subroutine def_meta_glaacc
+
+      subroutine write_meta_glaacc(fid)
+!@sum  write_meta_glaacc writes metadata to acc files
+!@auth M. Kelley
+!@ver  beta
+      use landice_com, only :
+     &     ia_glhc,scale_glhc,denom_glhc,sname_glhc
+     &     ,cdl_glhc,cdl_glhc_latlon
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar,write_data
+      use cdl_mod, only : write_cdl
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_data(grid,fid,'ia_glhc',ia_glhc)
+      call write_data(grid,fid,'scale_glhc',scale_glhc)
+      call write_data(grid,fid,'denom_glhc',denom_glhc)
+      call write_data(grid,fid,'sname_glhc',sname_glhc)
+      call write_cdl(grid,fid,'cdl_glhc',cdl_glhc)
+#ifdef CUBED_SPHERE
+      call write_cdl(grid,fid,'cdl_glhc_latlon',cdl_glhc_latlon)
+#endif
+
+      return
+      end subroutine write_meta_glaacc
+
 #endif /* NEW_IO */
