@@ -428,7 +428,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES_COM
       USE DIAG_COM, only : npts,conpt0,icon_LKM,icon_LKE
       USE Dictionary_mod
-      USE ATM_COM, ONLY : READ_NEW_TOPO
       USE pario
 
       IMPLICIT NONE
@@ -462,6 +461,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(:,:,:), POINTER :: GTRACER
 #endif
+      INTEGER :: NHC_LOCAL = 1
 
       GTEMP => ATMOCN%GTEMP
       GTEMP2 => ATMOCN%GTEMP2
@@ -500,13 +500,13 @@ C**** Get parameters from rundeck
       call sync_param("lake_rise_max",lake_rise_max)
 
 C**** Read Lake Depths
-      call openunit("TOPO",iu_SILL,.true.,.true.)
-      CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
-      call closeunit(iu_SILL)
-
-      ! Read the same thing again, from TOPONC file
-      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
-        iu_SILL = par_open(grid,"TOPONC","read")
+      call sync_param("NHC", NHC_LOCAL)
+      if (nhc_local.eq.1) then
+        call openunit("TOPO",iu_SILL,.true.,.true.)
+        CALL READT_PARALLEL(grid,iu_SILL,NAMEUNIT(iu_SILL),HLAKE ,7)
+        call closeunit(iu_SILL)
+      else
+        iu_SILL = par_open(grid,"TOPO","read")
         call read_dist_data(grid,iu_SILL,'hlake',HLAKE)
         call par_close(grid,iu_SILL)
       end if

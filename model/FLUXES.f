@@ -1481,7 +1481,7 @@ c
      *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
 #endif
-      USE LANDICE_COM, only : nhc
+      use Dictionary_mod, only : sync_param, get_param
       IMPLICIT NONE
 
 !@dbparam NIsurf: DT_Surface  =  DTsrc/NIsurf
@@ -1604,7 +1604,7 @@ C**** fluxes associated with variable lake fractions
 !@+   water, floating ice, glacial ice, and the land surface.
       type(atmocn_xchng_vars) :: atmocns(1) ! ocean and lakes
       type(atmice_xchng_vars) :: atmices(1) ! ocean and lakes
-      type(atmgla_xchng_vars) :: atmglas(1-min(nhc,2)/2:nhc) ! glacial ice
+      type(atmgla_xchng_vars), allocatable, dimension(:) :: atmglas !(1-min(nhc,2)/2:nhc) ! glacial ice
       type(atmlnd_xchng_vars) :: atmlnds(1) ! land surface
 
 !@var atm{ocn,ice,gla,lnd} pointers to the index of atm{ocn,ice,gla,lnd}s
@@ -1703,7 +1703,6 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
-      USE ATM_COM, ONLY : READ_NEW_TOPO
       USE pario
 
       IMPLICIT NONE
@@ -1713,7 +1712,9 @@ C**** fluxes associated with variable lake fractions
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER,K
       character(len=2) :: c2
+      integer :: NHC_LOCAL = 1
 
+      call sync_param( "NHC", nhc_local)
       call sync_param( "NIsurf", NIsurf )
       call sync_param( "UOdrag", UOdrag )
 
@@ -1727,6 +1728,7 @@ C**** fluxes associated with variable lake fractions
       J_0 = grd_dum%J_STRT
       J_1 = grd_dum%J_STOP
 
+      ALLOCATE(atmglas(1-min(nhc_local,2)/2:nhc_local), STAT=IER)
       ALLOCATE(FLAND(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FOCEAN(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(FLICE(I_0H:I_1H,J_0H:J_1H), STAT = IER)
@@ -1736,19 +1738,19 @@ C**** fluxes associated with variable lake fractions
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
 C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
-      call openunit("TOPO",iu_TOPO,.true.,.true.)
+      if (NHC_LOCAL.eq.1) then		! Read old-format TOPO file
+        call openunit("TOPO",iu_TOPO,.true.,.true.)
 
-      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
+        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
 
-      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
-      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
+        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
+        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
 
-      CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
-      call closeunit(iu_TOPO)
-
-      ! Read the same thing again, from TOPONC file
-      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
-        iu_TOPO = par_open(grid,"TOPONC","read")
+        CALL READT_PARALLEL(grd_dum,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
+        call closeunit(iu_TOPO)
+      else
+        ! Read new-format TOPO.nc file (allows for height classes)
+        iu_TOPO = par_open(grid,"TOPO","read")
         call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
         call read_dist_data(grid,iu_TOPO,'flake0',FLAKE0)
         call read_dist_data(grid,iu_TOPO,'fearth0',FEARTH0)

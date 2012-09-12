@@ -14,9 +14,6 @@
       Type (ESMF_CLOCK) :: atmclock
 #endif
 
-!**** Temporary hack
-      LOGICAL, PARAMETER :: READ_NEW_TOPO = .false.
-
 !@var LM_REQ Extra number of radiative equilibrium layers
       INTEGER, PARAMETER :: LM_REQ=3
 !@var REQ_FAC/REQ_FAC_M factors for REQ layer pressures
@@ -158,7 +155,7 @@ C**** module should own dynam variables used by other routines
        USE GEOM, only : geom_b
 #endif
       USE pario
-      USE ATM_COM, only : READ_NEW_TOPO
+      use Dictionary_mod, only : sync_param, get_param
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -166,6 +163,7 @@ C**** module should own dynam variables used by other routines
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: I, J, I_0, I_1, J_1, J_0
       INTEGER :: IER
+      INTEGER :: nhc_local = 1
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
@@ -214,13 +212,14 @@ C****
       WMICE (:,:,:)=0.
 #endif
 
-      call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography
-      call closeunit(iu_TOPO)
-
-      ! Read the same thing now from netCDF file
-      if (READ_NEW_TOPO) then		! HACK to prevent "normal" users from seeing this
-        iu_TOPO = par_open(grid,"TOPONC","read")
+      call sync_param("NHC", nhc_local)
+      if (nhc_local.eq.1) then
+        call openunit("TOPO",iu_TOPO,.true.,.true.)
+        CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,5) ! Topography
+        call closeunit(iu_TOPO)
+      else
+        ! New-format netCDF file
+        iu_TOPO = par_open(grid,"TOPO","read")
         call read_dist_data(grid,iu_TOPO,'zatmo',zatmo)
         call par_close(grid,iu_TOPO)
       end if

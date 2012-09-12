@@ -20,22 +20,15 @@
       IMPLICIT NONE
       SAVE
 
-!@param nhc number of height classes (static for now)
-      integer, parameter :: nhc=1
+!@var nhc number of height classes
+      integer :: nhc=1
 !@fhc fraction of landice area in each height class (static for testing purposes)
-!      real*8, dimension(nhc), parameter :: fhc=(/1d0/)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 
 !@var ELEVHC: surface elevation, per height class (m)
 ! ZATMO should be kept consistent with this.
 ! The value of this ONLY MATTERS for grid cells with landice
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: ELEVHC
-
-
-
-      !integer, parameter :: nhc=2
-      !real*8, dimension(nhc), parameter :: fhc=(/1d0,0d0/)
-      !real*8, dimension(nhc), parameter :: fhc=(/.5d0,.5d0/)
 
 !@var SNOWLI snow amount on land ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWLI
@@ -80,11 +73,15 @@
       USE LANDICE, only : TRACCPDA, TRACCPDG
 #endif
 #endif
+      use Dictionary_mod, only : sync_param, get_param
+
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
+
+      call sync_param("NHC",NHC)
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
