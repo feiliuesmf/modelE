@@ -292,6 +292,106 @@ C**** Set conservation diagnostics for implicit iceberg mass, energy
 C****
       END SUBROUTINE init_LI
 
+      subroutine reset_glaacc
+      use landice_com, only : glhc
+      implicit none
+      glhc = 0.
+      return
+      end subroutine reset_glaacc
+
+      subroutine glhc_defs
+      use CONSTANT, only : bygrav,sha,rgas
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      use MODEL_COM, only : dtsrc
+      use LANDICE_COM, only : kglhc,ia_glhc,sname_glhc,lname_glhc
+     &     ,units_glhc,denom_glhc,scale_glhc,cdl_glhc
+      use LANDICE_COM, only : nhc,glhc_frac,glhc_tsurf,glhc_prec
+      use DIAG_COM, only : ia_src,ia_srf,cdl_ij_template
+#ifdef CUBED_SPHERE
+      use LANDICE_COM, only : cdl_glhc_latlon
+      use DIAG_COM, only : cdl_ij_latlon_template
+#endif
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use cdl_mod
+      implicit none
+      integer :: k,kk
+      character(len=32) :: dimstr,lldimstr
+c
+      do k=1,kglhc
+         write(sname_glhc(k),'(a4,i3.3)') 'GLHC',k
+         lname_glhc(k) = 'no output'
+         units_glhc(k) = 'unused'
+         scale_glhc(k) = 1.
+         denom_glhc(k) = 0
+         ia_glhc(k) = ia_src
+      enddo
+
+c
+      k=0
+c
+      k=k+1
+      glhc_frac = k
+      sname_glhc(k) = 'frac'
+      lname_glhc(k) = 'area fraction'
+      units_glhc(k) = '1'
+c
+      k=k+1
+      glhc_tsurf = k
+      sname_glhc(k) = 'tsurf'
+      lname_glhc(k) = 'surface air temperature'
+      units_glhc(k) = 'K'
+      scale_glhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
+      denom_glhc(k) = glhc_frac
+c
+      k=k+1
+      glhc_prec = k
+      sname_glhc(k) = 'prec'
+      lname_glhc(k) = 'precipitation'
+      units_glhc(k) = 'mm/day'
+      scale_glhc(k) = SECONDS_PER_DAY/DTsrc
+      denom_glhc(k) = glhc_frac
+c
+      if (k .gt. kglhc) then
+        if(am_i_root())
+     &       write (6,*) 'glhc_defs: Increase kglhc=',kglhc,' to ',k
+        call stop_model( 'kglhc too small', 255 )
+      end if
+      if(AM_I_ROOT())
+     &     write (6,*) 'Number of GLHC diagnostics defined: kglhcmax=',k
+
+c
+c Declare the dimensions and metadata of GLHC output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).
+c
+      cdl_glhc = cdl_ij_template
+      call add_dim(cdl_glhc,'nhc',nhc)
+
+      lldimstr='(nhc,lat,lon) ;'
+#ifdef CUBED_SPHERE
+      cdl_glhc_latlon = cdl_ij_latlon_template
+      call add_dim(cdl_glhc,'nhc',nhc)
+      dimstr='(tile,nhc,y,x) ;'
+#else
+      dimstr=lldimstr
+#endif
+      do k=1,kglhc
+        if(trim(units_glhc(k)).eq.'unused') cycle
+        call add_var(cdl_glhc,
+     &       'float '//trim(sname_glhc(k))//trim(dimstr),
+     &       units=trim(units_glhc(k)),
+     &       long_name=trim(lname_glhc(k)))
+#ifdef CUBED_SPHERE
+        call add_var(cdl_glhc_latlon,
+     &       'float '//trim(sname_glhc(k))//trim(lldimstr),
+     &       units=trim(units_glhc(k)),
+     &       long_name=trim(lname_glhc(k)))
+#endif
+      enddo
+
+      return
+      end subroutine glhc_defs
+
       SUBROUTINE PRECIP_LI(atmgla,ihc)
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
 !@auth Original Development team
@@ -309,6 +409,7 @@ C****
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
+      USE LANDICE_COM, only : glhc,glhc_frac,glhc_prec
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
@@ -357,6 +458,8 @@ C**** Get useful grid parameters
 #ifdef TRACERS_WATER
       atmgla%IMPLT(:,I,J)=0.
 #endif
+      ! demo diagnostic
+      glhc(i,j,ihc,glhc_frac) = glhc(i,j,ihc,glhc_frac)+plice
       IF (PLICE.gt.0 .and. PRCP.gt.0) THEN
 
         ENRGP=EPREC(I,J)      ! energy of precipitation
@@ -409,6 +512,10 @@ C**** ACCUMULATE DIAGNOSTICS
         atmgla%IMPLT(:,I,J)=atmgla%IMPLT(:,I,J)+TRDIFS(:)
 #endif
         atmgla%E1(I,J)=EDIFS
+
+        ! demo diagnostic
+        glhc(i,j,ihc,glhc_prec) = glhc(i,j,ihc,glhc_prec)+prcp
+
       ELSE
         atmgla%IMPLM(I,J)=0.
         atmgla%IMPLH(I,J)=0.

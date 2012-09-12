@@ -1,13 +1,6 @@
 ! Lakes = itype == 1
 ! Look in GHY_DRV to see which tracers in SURFACE.f are needed for LANDICE surface type
 
-
-! Adding this empty module allows intel 12.1.5.339 to compile with the
-! debugging flag.  Weird problem.  The module should be deleted when
-! Intel has a fix.
-      module IntelWorkaround4
-      end module IntelWorkaround4
-
 C****   
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
@@ -49,6 +42,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlndi
 #endif
+      USE LANDICE_COM, only : glhc,glhc_tsurf
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
       USE EXCHANGE_TYPES
       USE Timer_mod, only: Timer_type
@@ -549,6 +543,11 @@ cccccc for SCM use ARM provided fluxes for designated box
 !unused      atmgla%DMVA(I,J) = atmgla%DMVA(I,J) + DMVA_IJ
       atmgla%uflux1(i,j) = RCDMWS*US
       atmgla%vflux1(i,j) = RCDMWS*VS
+
+
+      ! demo diagnostic: a PBL output
+      glhc(i,j,ihc,glhc_tsurf) = glhc(i,j,ihc,glhc_tsurf)
+     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
 
 C****
 

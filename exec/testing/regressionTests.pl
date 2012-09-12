@@ -46,11 +46,13 @@ foreach $compiler (@$compilers)
 
 my $resolutions = {};
 # HEAD rundecks
-$resolutions->{EC12} = "8x10";
+$resolutions->{E_AR5_C12} = "8x10";
+$resolutions->{E4TcadC12} = "8x10";
 $resolutions->{EM20} = "4x5";
 $resolutions->{E1oM20} = "4x5";
 $resolutions->{E4F40} = "2x2.5";
 $resolutions->{E4TcadF40} = "2x2.5";
+$resolutions->{E4TcadiF40} = "2x2.5";
 $resolutions->{E4arobio_h4c} = "2x2.5";
 $resolutions->{E4arobio_g6c} = "2x2.5";
 $resolutions->{SCMSGPCONT} = "0"; # single column model 

@@ -584,7 +584,7 @@ C**** TCONSRV
 !@var CHNG_SC scale for changes
       REAL*8, INTENT(IN) :: CHNG_SC
 !@var NAME_CON name of conservation quantity
-      CHARACTER*8, INTENT(IN) :: NAME_CON
+      CHARACTER(len=*), INTENT(IN) :: NAME_CON
 !@var sname name of conservation quantity (no spaces)
       CHARACTER*8 :: sname
 !@var INST_UNIT string for unit for instant. values
