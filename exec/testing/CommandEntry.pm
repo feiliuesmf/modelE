@@ -110,6 +110,8 @@ sub runInBatch
 
   switch ($jobname) 
   {
+      case [ "E4TcadC12", "E_AR5_C12" ] 
+      { $walltime = "1:00:00\n" }
       case [ "EM20", "E1oM20", "E4F40", "SCMSGPCONT" ] 
       { $walltime = "1:00:00\n" }
       case [ "E4C90L40", "E_AR5_CADI" ] 
@@ -166,7 +168,7 @@ EOF
     if ($compiler eq "intel") 
     {
       $script .= <<EOF;
-module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
+module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
 EOF
     } 
     elsif ($compiler eq "gfortran")  
@@ -247,7 +249,7 @@ sub setModuleEnvironment
 
       if ($compiler eq "intel")
       {
-        module (load, "comp/intel-12.1.0.233",  "mpi/impi-3.2.2.006");
+        module (load, "comp/intel-13.0.0.079",  "mpi/impi-3.2.2.006");
       }
       elsif ($compiler eq "gfortran")
       {

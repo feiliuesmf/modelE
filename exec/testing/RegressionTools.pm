@@ -7,7 +7,10 @@ $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
 $extraFlags{SERIALMP} = "EXTRA_FFLAGS=-mp"; # Intel kludge for matching serial and OpenMP.
 
+$extraFlags{E4TcadC12} ="";
+$extraFlags{E_AR5_C12} ="";
 $extraFlags{E4TcadF40} ="";
+$extraFlags{E4TcadiF40} ="";
 $extraFlags{E4arobio_g6c} ="";
 $extraFlags{E4arobio_h4c} ="";
 $extraFlags{EM20} ="";
@@ -15,7 +18,7 @@ $extraFlags{E4F40} ="";
 $extraFlags{E1oM20} ="";
 $extraFlags{E_AR5_CADI} ="ESMF=YES";
 # Need to set CS variables in the configuration file:
-$extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/usr/local/other/Fortuna-2_5.noHDF5 MPPDIR=/usr/local/other/Fortuna-2_5.noHDF5/Linux FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2";
+$extraFlags{E4C90L40} ="ESMF=YES FVCUBED=YES FVCUBED_ROOT=/discover/nobackup/ccruz/GEOS5/Ganymed-1_0_BETA4.noHDF5 MPPDIR=/discover/nobackup/ccruz/GEOS5/Ganymed-1_0_BETA4.noHDF5/MPP/intel12_impi32.noHDF5 FFTW_ROOT=/discover/nobackup/mkelley5/fftw-3.2.2";
 
 $extraFlags{intel} = "";
 $extraFlags{gfortran} ="";
