@@ -66,7 +66,7 @@ EOF
    if [ "$compiler" == "intel" ]; then
 
    cat << EOF >> $jobScript
-module load comp/intel-12.1.0.233 mpi/impi-3.2.2.006
+module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
 EOF
 
    else
