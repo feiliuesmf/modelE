@@ -19,6 +19,11 @@ EXTENDED_SOURCE = -extend_source
 
 # flags needed for particular releases
 
+ifeq ($(IFORT_RELEASE),13.0)
+FFLAGS += -assume protect_parens -fp-model strict -warn nousage
+F90FLAGS += -assume protect_parens -fp-model strict -warn nousage
+endif
+
 ifeq ($(IFORT_RELEASE),12.1)
 FFLAGS += -assume protect_parens -fp-model strict -warn nousage
 F90FLAGS += -assume protect_parens -fp-model strict -warn nousage
