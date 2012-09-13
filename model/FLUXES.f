@@ -463,10 +463,10 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var xxx_exports_gla memory spaces holding selected landice-specific fields
 !@+   for bulk processing operations (averaging over patches etc.)
          real*8, dimension(:,:,:), pointer ::
-     &        srfflx_exports_gla!,srfstate_exports_gla
+     &        srfflx_exports_gla=>null()!,srfstate_exports_gla
 #ifdef TRACERS_ON
          real*8, dimension(:,:,:,:), pointer ::
-     &        trsrfflx_exports_gla!,trsrfstate_exports_gla
+     &        trsrfflx_exports_gla=>null()!,trsrfstate_exports_gla
 #endif
 
          !@var E1 net energy flux at layer 1
