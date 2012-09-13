@@ -51,7 +51,11 @@ sinclude $(DECKS_DIR)/$(RUN).mk
 ifort_version:
 	@echo $(IFORT_RELEASE)
 
-rundeck:
+linkNonProduction:
+	@if [ -e $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R ]; then \
+	ln -sf $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R $(TEMPLATES_DIR); fi
+
+rundeck: linkNonProduction
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
 	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
