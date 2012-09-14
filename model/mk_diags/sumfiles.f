@@ -152,27 +152,27 @@ c
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
-      use TimeConstants_mod, only: HOURS_PER_DAY, INT_DAYS_PER_YEAR,
-     &                             INT_MONTHS_PER_YEAR
       IMPLICIT NONE
-      integer, parameter, dimension(0:INT_MONTHS_PER_YEAR) :: JDendOfM =
-     &     (/0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      character(len=4), dimension(0:INT_MONTHS_PER_YEAR), parameter :: 
-     &  amonth = (/'IC  ',
+      real*8, parameter :: hrday=24.
+      integer, parameter :: jmpery=12,jdpery=365
+      integer, parameter, dimension(0:jmpery) :: JDendOfM = (
+     *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
+      character(len=4), dimension(0:jmpery), parameter :: amonth = (/
+     &  'IC  ',
      *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
      *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
       INTEGER, INTENT(IN) :: It,Nday,Iyr0
       INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
       CHARACTER*4, INTENT(OUT) :: amn
 
-      Jyr=Iyr0+It/(Nday*INT_DAYS_PER_YEAR)
-      Jd=1+It/Nday-(Jyr-Iyr0)*INT_DAYS_PER_YEAR
+      Jyr=Iyr0+It/(Nday*JDperY)
+      Jd=1+It/Nday-(Jyr-Iyr0)*JDperY
       Jmn=1
       do while (Jd.GT.JDendOfM(Jmn))
         Jmn=Jmn+1
       end do
       Jdate=Jd-JDendOfM(Jmn-1)
-      Jhour=nint(mod(It*HOURS_PER_DAY/Nday,HOURS_PER_DAY))
+      Jhour=nint(mod(It*hrday/Nday,hrday))
       amn=amonth(Jmn)
 
       return
