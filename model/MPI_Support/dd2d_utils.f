@@ -113,6 +113,9 @@ c see whether model E is running in serial mode
 
       implicit none
       private
+#ifndef SERIAL_MODE
+      include 'mpif.h'
+#endif
       save
 
       public :: init_dist_grid
@@ -256,7 +259,6 @@ c
       end type dist_grid
 
 #ifndef SERIAL_MODE
-      include 'mpif.h'
 
 c public interfaces
       public :: pack_row,unpack_row
