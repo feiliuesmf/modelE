@@ -1019,7 +1019,7 @@ c instances of arrays
      &     AGC_ioptr
 #endif
 
-      logical, save :: Qbp(NTYPE_OUT+1) ! +1 for regions
+      logical :: Qbp(NTYPE_OUT+1) ! +1 for regions
       public :: Qbp
 
       END MODULE DIAG_COM
