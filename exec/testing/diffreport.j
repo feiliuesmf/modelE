@@ -201,8 +201,13 @@ if [ -z $MOCKMODELE ]; then
   compiler=$(cat $MODELERC | grep COMPILER= | awk -F"=" '{print $2}')
   if [ "$compiler" == "intel" ]; then
      FC=ifort
-  else
+  elif [ "$compiler" == "gfortran" ]; then
      FC=gfortran
+  elif [ "$compiler" == "nag" ]; then
+     FC=nagfor
+  else
+     echo "Incorrect compiler option for diffreport.x"
+     exit 1;
   fi
   netcdf=$(cat $MODELERC | grep "/netcdf/" | awk -F"=" '{print $2}')
   INC=$netcdf/include
