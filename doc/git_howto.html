@@ -42,16 +42,14 @@ We are planning to use some functionality which was added in 1.7.0
 version of git. So preferably you should install version no older than
 1.7.0 . Older version will work for most operations but you may see
 some problems in the future. On Discover the latest version of Git 
-is installed at /usr/local/other/git/1.7.3.4_GNU  , so you may want to 
-add the following line to your .profile :
+is available as a module. You can load it with:
 <pre>
-  export PATH=/usr/local/other/git/1.7.3.4_GNU/bin:$PATH
+  module load other/git-1.7.3.4
 </pre>
 If you want to install it on your own workstation or laptop, 
 git is available through Mac ports on Mac and as a rpm package on
-Linux (use EPEL repository on Red Hat 5). EPEL currently provides
-version 1.6.* . This should work for a start, but eventually you
-want to upgrade to 1.7.* . Of course, you can always compile it from
+Linux (use EPEL repository on Red Hat 5).
+ Of course, you can always compile it from
 the source (real easy) which you can get from
 <pre>
   <a href="http://git-scm.com/download">http://git-scm.com/download</a>
@@ -125,18 +123,15 @@ in the repository on simplex</b></A>
 </pre>
 This will &quot;pull&quot; the latest changes from the repository you 
 cloned from (<tt>simplex.giss.nasagov:/giss/gitrepo/modelE.git</tt> in
-our case). You can also use a more explicit form of this command
+our case). Typically one should always use this simple command, unless 
+one needs to do something fancy, like pulling from a private
+repository of other user. In that case one can use more explicit command
 <pre>
-    git pull <it>username</it>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git branch_name
+    git pull <it>username</it>@host_name:/path_to_modelE_dir branch_name
 </pre>
-This allows you to pull from a different repository (like a private 
-repository of other researcher) and from a different branch if
-necessary. But be carefull when using this explicit command, for example
-<pre>
-    git pull <it>username</it>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
-</pre>
-will always pull from &quot;master&quot; branch even if you are on a
-different branch.
+But be carefull when using this explicit command, for example, if you 
+omit branch_name you will be pulling from the master branch, even if 
+locally you are on a different branch.
 </p>
 
 <LI> <A name="part1_1a"><b> to commit your code to the central
@@ -144,7 +139,7 @@ repository on  simplex </b></A>
 <p>you have to execute two commands:
 <pre>
     git commit -a
-    git push <tt>username</tt>@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
+    git push
 </pre>
 The first one commits the code &quot;locally&quot;, i.e. it stores this
 information in .git subdirectory. The second command &quot;pushes&quot; this
@@ -154,6 +149,17 @@ message to the list with the commit info (similar to commit
 messages we are getting now from CVS). So if you don't receive
 such message you may want to check if your &quot;commit&quot; and &quot;push&quot;
 went through correctly.
+</p>
+<p>
+If you are working on more than one branch, then instead of 
+&quot;git push&quot; it is more safe to execute 
+<pre>
+    git push origin HEAD
+</pre>
+This will push only your current local branch to the remote branch
+with the same name, while &quot;git push&quot; will push changes on
+all your branches which were committed but not pushed yet (and that 
+may be not what you want).
 </p>
 <p>
 It is possible that when you try to &quot;push&quot; Git will complain
