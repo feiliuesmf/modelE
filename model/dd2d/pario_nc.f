@@ -14,12 +14,12 @@ c these routines are only needed when running on multiple CPUs
       use dd2d_utils, only : pack_row,unpack_row,get_nlnk,pack_data
 #endif
       implicit none
-      save
-      private
-
 #ifndef SERIAL_MODE
       include 'mpif.h'
 #endif
+      save
+      private
+
       include 'netcdf.inc'
 
 c

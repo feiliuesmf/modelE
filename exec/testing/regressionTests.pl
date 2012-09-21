@@ -121,6 +121,7 @@ if ($cleanScratch eq 'YES') {
 my $git = CommandEntry->new(gitCheckout($env)); # Compiler is not important here
 $pool->add($git);
 
+
 foreach $compiler (@$compilers) 
 {
   $pool->add(writeModelErcFile($env->{$compiler}));
@@ -137,6 +138,10 @@ foreach my $rundeck (@$rundecks)
 { 
   foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
   {
+    if ($compiler eq 'nag') {
+      $ENV{PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{PATH};
+      $ENV{LD_LIBRARY_PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{LD_LIBRARY_PATH};
+    }
     $env->{$compiler}->{RUNDECK} = $rundeck;
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
     {

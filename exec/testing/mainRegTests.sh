@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This is the top level script to run modelE regression tests.
-# It is invoked by cron, Hudson, or user and runs the perl scripts under $MODELROOT/exec/testing.
+# Main modelE regression tests script. This is an interface to other scripts:
+# regressionScripts.pl, modelEunitTests.sh and diffreport.j
 
 # Set up working variables
 needDefault(){
@@ -93,6 +93,7 @@ watchJob()
 
    # Optionally run unit tests
    if [ "$RUN_UNIT_TESTS" == "YES" ]; then
+     echo "Run unit tests..."
      ./modelEunitTests.sh
    else
      echo "Skipped unit tests (RUN_UNIT_TESTS=$RUN_UNIT_TESTS)" > $CONFIG.unit
@@ -100,6 +101,7 @@ watchJob()
 
    # Optionally create a DIFF report
    if [ "$CREATE_DIFF" == "YES" ]; then
+     echo "Run diffreport..."
      # Submit job to run diffreport.x
      jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
      jobID=`echo $jobID | sed 's/.[a-z]*$//g'`

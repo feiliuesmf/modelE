@@ -14,7 +14,7 @@ watchJob()
 # Input arguments: $1=job id
   jobID=$1
 
-  maxWait=900
+  maxWait=180
   seconds=0
   jobSuccess=0
   while [ $seconds -lt $maxWait ];
@@ -41,8 +41,11 @@ submitJob()
 
   local deck=E4TcadF40
 
+  MAKELOG=make.log.${compiler}
+  FAILLOG=${testLog}.FAILED
   if [ "$mpi" == "NO" ]; then
     pfunitSuffix=".serial"
+    FAILLOG=${testLog}${pfunitSuffix}.FAILED
   fi
 
 # CREATE JOB SCRIPT
@@ -51,7 +54,7 @@ submitJob()
 #!/bin/bash
 #PBS -N modelEut
 #PBS -l select=1:ncpus=12
-#PBS -l walltime=0:15:00
+#PBS -l walltime=0:03:00
 #PBS -W group_list=s1001
 #PBS -j oe
 #PBS -V
@@ -84,7 +87,7 @@ cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
 clean=YES
 if [ ! -d "${deck}.${compiler}" ]; then
-  git clone $MODELROOT ${deck}.${compiler}
+  git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
   clean=NO
 fi
 
@@ -100,14 +103,14 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -traceback" MPI=$mpi >> make.log.${compiler} 2>&1
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -traceback" MPI=$mpi >> $MAKELOG 2>&1
 wait
 EOF
 
   else
 
     cat << EOF >> $jobScript
-make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -fbacktrace" MPI=$mpi  >> make.log.${compiler} 2>&1
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -fbacktrace" MPI=$mpi  >> $MAKELOG 2>&1
 wait
 EOF
 
@@ -121,52 +124,57 @@ EOF
 
 # SUBMIT JOB SCRIPT
 
+  echo ""  >> $toEmail
   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
   echo ""  >> $toEmail
-  if [ "$mpi" == "YES" ]; then
-    jobID=`qsub $jobScript`
-    jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-    if [ -z "$jobID" ]; then
-      echo "There was a queue submission problem" >> $toEmail
-      echo ""  >> $toEmail
-      return
-    fi
-
-    watchJob $jobID jobRan
-
-    if [ $jobRan -eq 0 ]; then
-      echo "The PBS $jobID did not complete on time. Check $testLog" >> $toEmail
-      echo ""  >> $toEmail
-      return
-    fi  
-  else
-    ./$jobScript
-    wait
+  jobID=`qsub $jobScript`
+  jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+  if [ -z "$jobID" ]; then
+    echo "There was a queue submission problem" >> $toEmail
+    echo ""  >> $toEmail
+    return
   fi
+
+  watchJob $jobID jobRan
+
+  if [ $jobRan -eq 0 ]; then
+    cp $testLog $FAILLOG
+    echo " ### The PBS $jobID did not complete on time." >> $toEmail
+    echo " ### Check $FAILLOG" >> $toEmail
+    return
+  fi  
 
 # PARSE FOR ERRORS
 
   local anyError=`grep ' Error' $testLog` 
   if [ "$anyError" != "" ]; then
-    local errMsg="Error detected during unit tests" >> $toEmail
+    local errMsg=" ### Error detected during unit tests" >> $toEmail
     echo "SUMMARY:"  >> $toEmail
     echo "..."  >> $toEmail
-    tail -20 $testLog >> $toEmail
+    tail -10 $testLog >> $toEmail
     echo ""  >> $toEmail
   fi 
    
-  local testFail=`grep 'Failure in' $testLog` 
-  if [ "$testFail" != "" ]; then
-    nt=`cat $testLog | wc | awk '{print $1}'`
-    ni=`cat $testLog | grep -in 'mpirun -np' | awk -F: '{print $1}'`
-    n=$((nt-ni)); nh=$((n-1)) 
-    # don't want to see make error message, so ...
-    tail -$n $testLog > foo; head -$nh foo >> $toEmail; rm foo
+  local didTestsFail=`grep 'Failure in' $testLog` 
+  if [ "$didTestsFail" != "" ]; then
+    totLines=`cat $testLog | wc | awk '{print $1}'`
+    if [ "$mpi" == "NO" ]; then
+      execLine=`cat $testLog | grep -in './tests.x' | awk -F: '{print $1}'`
+    else
+      execLine=`cat $testLog | grep -in 'mpirun -np' | awk -F: '{print $1}'`
+    fi
+    # prune the output a little more...
+    blockLines=$((totLines-execLine))
+    showLines=$((blockLines-1)) 
+    tail -$blockLines $testLog > foo
+    head -$showLines foo >> $toEmail
+    rm foo
   else
     msg=$(tail -2 $testLog | grep " run")
     if [ "$msg" == "" ]; then
-      cp $testLog ${testLog}.${pfunitSuffix}.FAILED
-      echo "Tests failed to run. Please check ${testLog}.${pfunitSuffix}.FAILED"   >> $toEmail
+      cp $testLog $FAILLOG
+      echo " ### Tests failed to run." >> $toEmail
+      echo " ### Check $FAILLOG" >> $toEmail
     else
       tail -2 $testLog | grep " run" >> $toEmail
       rm -f $testLog
@@ -176,7 +184,7 @@ EOF
   wait
 
 # DELETE FILES
-  rm -f $jobScript
+  rm -f $testLog $jobScript
 
 }
 
@@ -190,8 +198,10 @@ toEmail="$CONFIG.unit"
 rm -f $toEmail
 compilers=(intel gfortran)
 mpiMode=(YES NO)
-for mpi in "${mpiMode[@]}"; do  
+for mpi in "${mpiMode[@]}"; do
+  echo " - MPI=$mpi"
   for compiler in "${compilers[@]}"; do 
+    echo " -- COMPILER=$compiler"
     job=modelE.${compiler}.j
     log=${ROOT}${compiler}".log"
     submitJob "$compiler" "$job" "$log" "$mpi"

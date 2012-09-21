@@ -1,3 +1,3 @@
 
-LIBS += -lm -lrt -ldl -lmpich -lfmpich -lstdc++ -lpthread -lrdmacm -libverbs -libumad -lmpl
+LIBS += -lm -lrt -ldl -lmpich -lfmpich -lstdc++ -lpthread -lrdmacm -libverbs -libumad -lmpl -lnuma
 
