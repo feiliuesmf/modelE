@@ -1752,9 +1752,9 @@ C**** Actual array is set from restart file.
         ! Read new-format TOPO.nc file (allows for height classes)
         iu_TOPO = par_open(grid,"TOPO","read")
         call read_dist_data(grid,iu_TOPO,'focean',FOCEAN)
-        call read_dist_data(grid,iu_TOPO,'flake0',FLAKE0)
-        call read_dist_data(grid,iu_TOPO,'fearth0',FEARTH0)
-        call read_dist_data(grid,iu_TOPO,'flice',FLICE)
+        call read_dist_data(grid,iu_TOPO,'flake',FLAKE0)
+        call read_dist_data(grid,iu_TOPO,'fgrnd',FEARTH0)
+        call read_dist_data(grid,iu_TOPO,'fgice',FLICE)
         call par_close(grid,iu_TOPO)
       end if
 
