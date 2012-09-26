@@ -197,6 +197,12 @@ else
    echo "CONFIG ENV: $CONFIG"
 fi
 
+if [ -z $MODELERC ]; then
+   echo " *** ERROR ***"
+   echo "ENV variable MODELERC is not defined."
+   export MODELERC=$HOME/.modelErc
+fi
+
 if [ -z $MOCKMODELE ]; then
   compiler=$(cat $MODELERC | grep COMPILER= | awk -F"=" '{print $2}')
   if [ "$compiler" == "intel" ]; then
