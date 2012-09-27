@@ -23,7 +23,7 @@ c      call il_defs
       call ijl_defs
       call ijk_defs
       call diurn_defs
-      call glhc_defs
+      call ijhc_defs
       return
       end subroutine def_acc
 

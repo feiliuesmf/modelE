@@ -56,26 +56,26 @@
       type(glint_params) :: glint_greenland;
 #endif
 
-!@param kglhc number of glhc accumulations
-      integer, parameter :: kglhc=11
-!@var glhc accumulations for glacial ice height-classified diagnostics
-      real*8, dimension(:,:,:,:), allocatable :: glhc
-!@var scale_glhc scale factor for glhc diagnostics
-      real*8, dimension(kglhc) :: scale_glhc
-!@var ia_glhc,denom_glhc  idacc-numbers,weights for glhc diagnostics
-      integer, dimension(kglhc) :: ia_glhc,denom_glhc,lgrid_glhc
-!@var sname_glhc short names of glhc diagnostics
-      character(len=sname_strlen), dimension(kglhc) :: sname_glhc
-!@var lname_glhc,units_glhc descriptions/units of glhc diagnostics
-      character(len=lname_strlen), dimension(kglhc) :: lname_glhc
-      character(len=units_strlen), dimension(kglhc) :: units_glhc
-!@var cdl_glhc consolidated metadata for glhc output fields in cdl notation
-      type(cdl_type) :: cdl_glhc,cdl_glhc_latlon
-!@var glhc_xxx indices for accumulations
+!@param kijhc number of ijhc accumulations
+      integer, parameter :: kijhc=11
+!@var ijhc accumulations for glacial ice height-classified diagnostics
+      real*8, dimension(:,:,:,:), allocatable :: ijhc
+!@var scale_ijhc scale factor for ijhc diagnostics
+      real*8, dimension(kijhc) :: scale_ijhc
+!@var ia_ijhc,denom_ijhc  idacc-numbers,weights for ijhc diagnostics
+      integer, dimension(kijhc) :: ia_ijhc,denom_ijhc,lgrid_ijhc
+!@var sname_ijhc short names of ijhc diagnostics
+      character(len=sname_strlen), dimension(kijhc) :: sname_ijhc
+!@var lname_ijhc,units_ijhc descriptions/units of ijhc diagnostics
+      character(len=lname_strlen), dimension(kijhc) :: lname_ijhc
+      character(len=units_strlen), dimension(kijhc) :: units_ijhc
+!@var cdl_ijhc consolidated metadata for ijhc output fields in cdl notation
+      type(cdl_type) :: cdl_ijhc,cdl_ijhc_latlon
+!@var ijhc_xxx indices for accumulations
       integer ::
-     &     glhc_frac,glhc_tsurf,
-     &     GLHC_PRECLI,GLHC_RUNLI,GLHC_EVAPLI,GLHC_F0LI,GLHC_TSLI,
-     &     GLHC_SHDTLI,GLHC_EVHDT,GLHC_TRHDT,GLHC_IMPMLI,GLHC_IMPHLI
+     &     ijhc_frac,ijhc_tsurf,
+     &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
+     &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT,IJHC_IMPMLI,IJHC_IMPHLI
 
       END MODULE LANDICE_COM
 
@@ -96,7 +96,7 @@
 #endif
 #endif
       use Dictionary_mod, only : sync_param, get_param
-      USE LANDICE_COM, only : KGLHC,GLHC
+      USE LANDICE_COM, only : KIJHC,IJHC
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -133,7 +133,7 @@
 #endif
 #endif
 
-      ALLOCATE(GLHC(I_0H:I_1H,J_0H:J_1H,NHC,KGLHC))
+      ALLOCATE(IJHC(I_0H:I_1H,J_0H:J_1H,NHC,KIJHC))
 
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
@@ -417,14 +417,14 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
 !@sum  def_rsf_glaacc defines accumulation array structure in restart/acc files
 !@auth M. Kelley
 !@ver  beta
-      use landice_com, only : glhc
+      use landice_com, only : ijhc
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
 
-      call defvar(grid,fid,glhc,'glhc(dist_im,dist_jm,nhc,kglhc)',
+      call defvar(grid,fid,ijhc,'ijhc(dist_im,dist_jm,nhc,kijhc)',
      &     r4_on_disk=r4_on_disk)
 
       return
@@ -436,7 +436,7 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
 !@ver  beta new_ prefix avoids name clash with the default version
       use resolution, only : im,jm
       use model_com, only : ioread,iowrite,iowrite_single,idacc
-      use landice_com, only : glhc,glhc_frac,ia_glhc
+      use landice_com, only : ijhc,ijhc_frac,ia_ijhc
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : hasNorthPole, hasSouthPole
       use pario, only : write_dist_data,read_dist_data
@@ -447,25 +447,25 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
       select case (iaction)
       case (iowrite,iowrite_single) ! output to restart or acc file
         if(iaction.eq.iowrite_single) then ! pole fills needed for acc-files
-          do l=1,size(glhc,4)
-            do k=1,size(glhc,3)
+          do l=1,size(ijhc,4)
+            do k=1,size(ijhc,3)
               if(hasSouthPole(grid)) then
-                glhc(2:im, 1,k,l) = glhc(1, 1,k,l)
+                ijhc(2:im, 1,k,l) = ijhc(1, 1,k,l)
               endif
               if(hasNorthPole(grid)) then
-                glhc(2:im,jm,k,l) = glhc(1,jm,k,l)
+                ijhc(2:im,jm,k,l) = ijhc(1,jm,k,l)
               endif
             enddo
           enddo
-          do l=1,size(glhc,4) ! mult by area fraction for masking purposes
-            if(l == glhc_frac) cycle
-            glhc(:,:,:,l) = glhc(:,:,:,l)*
-     &           (glhc(:,:,:,glhc_frac)/idacc(ia_glhc(glhc_frac)))
+          do l=1,size(ijhc,4) ! mult by area fraction for masking purposes
+            if(l == ijhc_frac) cycle
+            ijhc(:,:,:,l) = ijhc(:,:,:,l)*
+     &           (ijhc(:,:,:,ijhc_frac)/idacc(ia_ijhc(ijhc_frac)))
           enddo
         endif
-        call write_dist_data(grid,fid,'glhc',glhc)
+        call write_dist_data(grid,fid,'ijhc',ijhc)
       case (ioread)            ! input from restart or acc file
-        call read_dist_data(grid,fid,'glhc',glhc)
+        call read_dist_data(grid,fid,'ijhc',ijhc)
       end select
       return
       end subroutine new_io_glaacc
@@ -475,25 +475,25 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
 !@auth M. Kelley
 !@ver  beta
       use landice_com, only :
-     &     ia_glhc,scale_glhc,denom_glhc,sname_glhc
-     &     ,cdl_glhc,cdl_glhc_latlon
+     &     ia_ijhc,scale_ijhc,denom_ijhc,sname_ijhc
+     &     ,cdl_ijhc,cdl_ijhc_latlon
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
       use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
 
-      call write_attr(grid,fid,'glhc','reduction','sum')
-      call write_attr(grid,fid,'glhc','split_dim',4)
-      call defvar(grid,fid,ia_glhc,'ia_glhc(kglhc)')
-      call defvar(grid,fid,scale_glhc,'scale_glhc(kglhc)')
-      call defvar(grid,fid,denom_glhc,'denom_glhc(kglhc)')
-      call defvar(grid,fid,sname_glhc,'sname_glhc(sname_strlen,kglhc)')
-      call defvar_cdl(grid,fid,cdl_glhc,
-     &     'cdl_glhc(cdl_strlen,kcdl_glhc)')
+      call write_attr(grid,fid,'ijhc','reduction','sum')
+      call write_attr(grid,fid,'ijhc','split_dim',4)
+      call defvar(grid,fid,ia_ijhc,'ia_ijhc(kijhc)')
+      call defvar(grid,fid,scale_ijhc,'scale_ijhc(kijhc)')
+      call defvar(grid,fid,denom_ijhc,'denom_ijhc(kijhc)')
+      call defvar(grid,fid,sname_ijhc,'sname_ijhc(sname_strlen,kijhc)')
+      call defvar_cdl(grid,fid,cdl_ijhc,
+     &     'cdl_ijhc(cdl_strlen,kcdl_ijhc)')
 #ifdef CUBED_SPHERE
-      call defvar_cdl(grid,fid,cdl_glhc_latlon,
-     &     'cdl_glhc_latlon(cdl_strlen,kcdl_glhc_latlon)')
+      call defvar_cdl(grid,fid,cdl_ijhc_latlon,
+     &     'cdl_ijhc_latlon(cdl_strlen,kcdl_ijhc_latlon)')
 #endif
 
       return
@@ -504,21 +504,21 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
 !@auth M. Kelley
 !@ver  beta
       use landice_com, only :
-     &     ia_glhc,scale_glhc,denom_glhc,sname_glhc
-     &     ,cdl_glhc,cdl_glhc_latlon
+     &     ia_ijhc,scale_ijhc,denom_ijhc,sname_ijhc
+     &     ,cdl_ijhc,cdl_ijhc_latlon
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_data
       use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
 
-      call write_data(grid,fid,'ia_glhc',ia_glhc)
-      call write_data(grid,fid,'scale_glhc',scale_glhc)
-      call write_data(grid,fid,'denom_glhc',denom_glhc)
-      call write_data(grid,fid,'sname_glhc',sname_glhc)
-      call write_cdl(grid,fid,'cdl_glhc',cdl_glhc)
+      call write_data(grid,fid,'ia_ijhc',ia_ijhc)
+      call write_data(grid,fid,'scale_ijhc',scale_ijhc)
+      call write_data(grid,fid,'denom_ijhc',denom_ijhc)
+      call write_data(grid,fid,'sname_ijhc',sname_ijhc)
+      call write_cdl(grid,fid,'cdl_ijhc',cdl_ijhc)
 #ifdef CUBED_SPHERE
-      call write_cdl(grid,fid,'cdl_glhc_latlon',cdl_glhc_latlon)
+      call write_cdl(grid,fid,'cdl_ijhc_latlon',cdl_ijhc_latlon)
 #endif
 
       return
