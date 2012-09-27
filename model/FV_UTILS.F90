@@ -2,8 +2,9 @@
 
 module FV_UTILS
 
-  USE ESMF_MOD
+  USE ESMF_Mod
   USE CONSTANT, only: KAPA
+  use MAPL_Mod, only: MAPL_MetaComp, MAPL_Set
 
   implicit none
   private
@@ -35,23 +36,26 @@ module FV_UTILS
   public :: StateWriteToFile
 
   Interface ReverseLevels
-     Module Procedure reverse_3d_r8
-     Module Procedure reverse_3d_r4
+    Module Procedure reverse_3d_r8
+    Module Procedure reverse_3d_r4
   End Interface
 
   Interface ConvertPotTemp_GISS2FV
-     Module Procedure CnvPotTemp_GISS2FV_r8
-     Module Procedure CnvPotTemp_GISS2FV_r4
+    Module Procedure CnvPotTemp_GISS2FV_r8
+    Module Procedure CnvPotTemp_GISS2FV_r4
   End Interface
 
   Interface ConvertPotTemp_FV2GISS
-     Module Procedure CnvPotTemp_FV2GISS_r4
+    Module Procedure CnvPotTemp_FV2GISS_r4
   End Interface
 
   Interface ConvertPressure_GISS2FV
-     Module Procedure ConvertPressure_GISS2FV_r4
-     Module Procedure ConvertPressure_GISS2FV_r8
+    Module Procedure ConvertPressure_GISS2FV_r4
+    Module Procedure ConvertPressure_GISS2FV_r8
   End Interface
+
+  integer, parameter :: R4 = kind(0.0  ) ! single precision
+  integer, parameter :: R8 = kind(0.0D0) ! double precision
 
   ! Public parameters
   character(len=*), parameter, public :: FVCORE_INTERNAL_RESTART = 'fvcore_internal_rst'
@@ -60,41 +64,34 @@ module FV_UTILS
 
   character(len=*), parameter, public :: TENDENCIES_FILE = 'tendencies_checkpoint'
 
-  Real*8, parameter, public :: PRESSURE_UNIT_GISS  =  100 ! 1 mb
-  Real*8, parameter, public :: PRESSURE_UNIT_FV    =    1 ! 1 pa
-  Real*8, parameter, public :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
-
-  integer, parameter, public :: INITIAL_START = 2 ! ISTART=2: cold start, no FV restart files
-  integer, parameter, public :: EXTEND_RUN = 3    ! ISTART>2: FV restart files are read
-
+  Real(kind=R8), parameter, public :: PRESSURE_UNIT_GISS  =  100 ! 1 mb
+  Real(kind=R8), parameter, public :: PRESSURE_UNIT_FV    =    1 ! 1 pa
+  Real(kind=R8), parameter, public :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
+  ! ISTART=2: cold start, no FV restart files
+  integer, parameter, public :: INITIAL_START = 2 
+  ! ISTART>2: FV restart files are read
+  integer, parameter, public :: EXTEND_RUN = 3    
 
   ! This data structure is o convenient entity for storing persistent data between
   ! calls to this module.  In addition to
   Type FV_CORE
-
-
-     type (ESMF_gridcomp) :: gc   ! This is the handle for the fv dynamical core
-
-     type (ESMF_grid)     :: grid ! Although modelE is not an ESMF component, it does have an ESMF_Grid
-     type (ESMF_vm)       :: vm   ! Should be eliminated ... Only used to obtain NPES for config file.
-
-     ! Import and Export states for FV dycore
-     type(ESMF_state) :: import   ! Allocated within FV component
-     type(ESMF_state) :: export   ! Allocated within FV component
-
-     ! The following pointers can be re-extracted from the import state at each iteration,
-     ! but it is convenient to have a simpler means of access.
-     real*4, pointer, dimension(:,:,:) :: dudt, dvdt, dtdt, dpedt  ! Tendencies
-     real*4, pointer, dimension(:,:,:) :: Q  ! Humidity
-     real*4, pointer, dimension(:,:,:) :: Qtr  ! other tracers
-     real*4, pointer, dimension(:,:)   :: phis
-
-     ! modelE does not work directly with tendencies.  Instead, tendencies are derived
-     ! by differencing before and after physics.  Therefore, the final dynamical state
-     ! must be preserved for the following
-     ! of modelE fields
-     real*8, pointer, dimension(:,:,:) :: U_old, V_old, dPT_old, PE_old, dT_old
-
+    ! This is the handle for the fv dynamical core
+    type (ESMF_gridcomp) :: gc  
+    ! Although modelE is not an ESMF component, it does have an ESMF_Grid
+    type (ESMF_grid)     :: grid 
+    ! Import and Export states for FV dycore
+    type(ESMF_state) :: import   ! Allocated within FV component
+    type(ESMF_state) :: export   ! Allocated within FV component
+    ! The following pointers can be re-extracted from the import state at each iteration,
+    ! but it is convenient to have a simpler means of access.
+    real(kind=R4), pointer, dimension(:,:,:) :: dudt, dvdt, dtdt, dpedt  ! Tendencies
+    real(kind=R4), pointer, dimension(:,:,:) :: Q  ! Humidity
+    real(kind=R4), pointer, dimension(:,:,:) :: Qtr  ! other tracers
+    real(kind=R4), pointer, dimension(:,:)   :: phis
+    ! modelE does not work directly with tendencies.  Instead, tendencies are derived
+    ! by differencing before and after physics.  Therefore, the final dynamical state
+    ! must be preserved for the following modelE fields
+    real(kind=R8), pointer, dimension(:,:,:) :: U_old, V_old, dPT_old, PE_old, dT_old
   END Type FV_CORE
 
   ! private data of convenience
@@ -104,9 +101,13 @@ module FV_UTILS
   ! different units and different reference pressures for potential temperature.
   ! Superficially there is redundancy between the two sets, but in some sense
   ! this is merely coincidental.
-  Real*8, parameter :: REF_PRESSURE_GISS = 100 ! 1 mb = 100 pa
-  Real*8, parameter :: REF_PRESSURE_FV   =   1 ! pa
-  Real*8, parameter :: REF_RATIO = REF_PRESSURE_FV / REF_PRESSURE_GISS
+  Real(kind=R8), parameter :: REF_PRESSURE_GISS = 100 ! 1 mb = 100 pa
+  Real(kind=R8), parameter :: REF_PRESSURE_FV   =   1 ! pa
+  Real(kind=R8), parameter :: REF_RATIO = REF_PRESSURE_FV / REF_PRESSURE_GISS
+  character(len=ESMF_MAXSTR), parameter :: IAm='FV_UTILS'
+
+  type(MAPL_MetaComp) :: MAPLOBJ
+  public :: MAPLOBJ
 
 contains
 
@@ -115,6 +116,7 @@ contains
   ! GISS termination routine.   The line number and return code are
   ! written into a buffer which is passed to stop_model().
   !----------------------------------------------------------------
+
 !-------------------------------------------------------------------------------
   Subroutine abort_core(line,rc)
 !-------------------------------------------------------------------------------
@@ -130,9 +132,11 @@ contains
   End Subroutine abort_core
 
   ! Reverse the order of vertical levels.
+!-------------------------------------------------------------------------------
   Function reverse_3d_r8(A) Result(B)
-    Real*8, Intent(In) :: A(:,:,:)
-    Real*8             :: B(Size(A,1),Size(A,2),size(A,3))
+!-------------------------------------------------------------------------------
+    Real(kind=R8), Intent(In) :: A(:,:,:)
+    Real(kind=R8)             :: B(Size(A,1),Size(A,2),size(A,3))
 
     Integer, parameter :: K_IDX = 3
     Integer :: k, n
@@ -147,9 +151,11 @@ contains
   End Function reverse_3d_r8
 
   ! Single precision variant of Reverse()
+!-------------------------------------------------------------------------------
   Function reverse_3d_r4(A) Result(B)
-    Real*4, Intent(In) :: A(:,:,:)
-    Real*4             :: B(Size(A,1),Size(A,2),size(A,3))
+!-------------------------------------------------------------------------------
+    Real(kind=R4), Intent(In) :: A(:,:,:)
+    Real(kind=R4)             :: B(Size(A,1),Size(A,2),size(A,3))
 
     Integer, parameter :: K_IDX = 3
     Integer :: k, n
@@ -162,13 +168,15 @@ contains
 
   End Function reverse_3d_r4
 
+!-------------------------------------------------------------------------------
   function EdgePressure_GISS() Result(PE)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
     Use DYNAMICS, only : SIG, SIGE
     use atm_com, only : P
     use domain_decomp_atm, only: grid, getDomainBounds
 
-    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
+    REAL(kind=R8) :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
 
     INTEGER :: L, i_0, i_1, j_0, j_1
 
@@ -176,24 +184,26 @@ contains
 
     Do L = 1, LM+1
 
-       If (L < LS1) THEN
-          PE(:,:,L) = SIGE(L)*P(I_0:I_1,J_0:J_1) + Ptop
-       Else
-          PE(:,:,L)  = SIGE(L)*PSFMPT + Ptop
-       End IF
+      If (L < LS1) THEN
+        PE(:,:,L) = SIGE(L)*P(I_0:I_1,J_0:J_1) + Ptop
+      Else
+        PE(:,:,L)  = SIGE(L)*PSFMPT + Ptop
+      End IF
 
     End Do
 
   end function EdgePressure_GISS
 
   ! Compute Delta-pressure for GISS model
+!-------------------------------------------------------------------------------
   function DeltPressure_GISS() Result(dP)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
-    REAL*8 :: dP(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
-    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
+    REAL(kind=R8) :: dP(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
 
     INTEGER :: k
 
@@ -205,14 +215,16 @@ contains
   end function DeltPressure_GISS
 
   ! Convert Potential Temperature into (dry) Temperature
+!-------------------------------------------------------------------------------
   function DeltPressure_DryTemp_GISS() Result(dPT)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
-    REAL*8 :: dPT(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
-    REAL*8 :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
-    REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: dPT(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: PE(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM+1)
+    REAL(kind=R8) :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
     call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
@@ -220,19 +232,21 @@ contains
     T_dry = DryTemp_GISS()
     PE = EdgePressure_GISS()
     do k = 1, LM
-       dPT(:,:,k) = (PE(:,:,k)-PE(:,:,k+1)) * T_dry(:,:,k)
+      dPT(:,:,k) = (PE(:,:,k)-PE(:,:,k+1)) * T_dry(:,:,k)
     end do
 
   end function DeltPressure_DryTemp_GISS
 
   ! Convert Potential Temperature into (dry) Temperature
+!-------------------------------------------------------------------------------
   function DryTemp_GISS() Result(T_dry)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM, LS1
     Use ATM_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
 
-    REAL*8 :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
-    REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: T_dry(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
     call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -242,13 +256,15 @@ contains
 
   end function DryTemp_GISS
 
+!-------------------------------------------------------------------------------
   function PKZ_GISS() Result(PKZ)
+!-------------------------------------------------------------------------------
     USE RESOLUTION, only: IM, LM, LS1, Ptop, PSFMPT
     USE DYNAMICS, only : SIG
     Use ATM_COM, only : P
     use domain_decomp_atm, only: grid, getDomainBounds
 
-    REAL*8 :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
+    REAL(kind=R8) :: PKZ(grid%I_STRT:grid%I_STOP,grid%J_STRT:grid%J_STOP,LM)
 
     INTEGER :: L
     INTEGER :: I_0, I_1, J_0,J_1
@@ -256,23 +272,23 @@ contains
 
     Do L = 1, LM
 
-       If (L < LS1) THEN
-          PKZ(:,:,L) = (SIG(L)*P(I_0:I_1,J_0:J_1) + Ptop) ** KAPA
-       Else
-          PKZ(:,:,L) = (SIG(L)*PSFMPT + Ptop) ** KAPA
-       End IF
+      If (L < LS1) THEN
+        PKZ(:,:,L) = (SIG(L)*P(I_0:I_1,J_0:J_1) + Ptop) ** KAPA
+      Else
+        PKZ(:,:,L) = (SIG(L)*PSFMPT + Ptop) ** KAPA
+      End IF
 
     End Do
   end function PKZ_GISS
 
+  ! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
 !-------------------------------------------------------------------------------
   subroutine ConvertUV_GISS2FV(U_orig, V_orig, U_d, V_d)
 !-------------------------------------------------------------------------------
-! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
     Use Resolution, only : LM
     Use Domain_decomp_atm, only : grid, getDomainBounds
-    Real*8, intent(in), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_orig, V_orig
-    Real*4, intent(out), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_d, V_d
+    Real(kind=R8), intent(in), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_orig, V_orig
+    Real(kind=R4), intent(out), Dimension(grid%I_STRT:,grid%J_STRT:,:) :: U_d, V_d
 
     Integer :: i,j,k
     integer :: I_0, I_1, j_0, j_1
@@ -280,20 +296,20 @@ contains
     call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do k = 1, LM
-       Do j = j_0,j_1
-          Do i = i_0,i_1
-             U_d(i,j,k) = U_orig(i,j,k)
-             V_d(i,j,k) = V_orig(i,j,k)
-          End do
-       end do
+      Do j = j_0,j_1
+        Do i = i_0,i_1
+          U_d(i,j,k) = U_orig(i,j,k)
+          V_d(i,j,k) = V_orig(i,j,k)
+        End do
+      end do
     end do
   end subroutine ConvertUV_GISS2FV
 
 !-------------------------------------------------------------------------------
   subroutine ConvertPressure_GISS2FV_r4(P_giss, P_fv)
 !-------------------------------------------------------------------------------
-    Real*8, intent(in) :: P_giss(:,:,:)
-    Real*4, intent(out) :: P_fv(:,:,:)   ! no halo in this case
+    Real(kind=R8), intent(in) :: P_giss(:,:,:)
+    Real(kind=R4), intent(out) :: P_fv(:,:,:)   ! no halo in this case
 
     P_fv = ReverseLevels(P_giss * PRESSURE_UNIT_RATIO)
 
@@ -302,8 +318,8 @@ contains
 !-------------------------------------------------------------------------------
   subroutine ConvertPressure_GISS2FV_r8(P_giss, P_fv)
 !-------------------------------------------------------------------------------
-    Real*8, intent(in) :: P_giss(:,:,:)
-    Real*8, intent(out) :: P_fv(:,:,:)   ! no halo in this case
+    Real(kind=R8), intent(in) :: P_giss(:,:,:)
+    Real(kind=R8), intent(out) :: P_fv(:,:,:)   ! no halo in this case
 
     P_fv = ReverseLevels(P_giss * PRESSURE_UNIT_RATIO)
 
@@ -314,8 +330,8 @@ contains
 !-------------------------------------------------------------------------------
   subroutine ConvertPressure_FV2GISS(P_fv, P_giss)
 !-------------------------------------------------------------------------------
-    Real*4, intent(in) :: P_fv(:,:,:)
-    Real*8, intent(out) :: P_giss(:,:,:)
+    Real(kind=R4), intent(in) :: P_fv(:,:,:)
+    Real(kind=R8), intent(out) :: P_giss(:,:,:)
 
     P_giss = ReverseLevels(P_fv / PRESSURE_UNIT_RATIO)
 
@@ -325,8 +341,8 @@ contains
 !-------------------------------------------------------------------------------
   subroutine CnvPotTemp_GISS2FV_r8(PT_giss, PT_fv)
 !-------------------------------------------------------------------------------
-    Real*8, intent(in) :: PT_giss(:,:,:)
-    Real*8, intent(out) :: PT_fv(:,:,:)
+    Real(kind=R8), intent(in) :: PT_giss(:,:,:)
+    Real(kind=R8), intent(out) :: PT_fv(:,:,:)
 
     PT_fv = ReverseLevels(PT_giss * REF_RATIO ** KAPA)
 
@@ -336,8 +352,8 @@ contains
 !-------------------------------------------------------------------------------
   subroutine CnvPotTemp_GISS2FV_r4(PT_giss, PT_fv)
 !-------------------------------------------------------------------------------
-    Real*8, intent(in) :: PT_giss(:,:,:)
-    Real*4, intent(out) :: PT_fv(:,:,:)
+    Real(kind=R8), intent(in) :: PT_giss(:,:,:)
+    Real(kind=R4), intent(out) :: PT_fv(:,:,:)
 
     PT_fv = ReverseLevels(PT_giss * REF_RATIO ** KAPA)
 
@@ -351,12 +367,12 @@ contains
 !-------------------------------------------------------------------------------
   subroutine CnvPotTemp_FV2GISS_r4(PT_fv, PT_giss)
 !-------------------------------------------------------------------------------
-    Real*4, intent(in) :: PT_fv(:,:,:)
-    Real*8, intent(out) :: PT_giss(:,:,:)
+    Real(kind=R4), intent(in) :: PT_fv(:,:,:)
+    Real(kind=R8), intent(out) :: PT_giss(:,:,:)
 
     ! As an export, FV provides Pot Temp with a reference
     ! pressure of 10^5 Pa, whereas GISS uses 100 Pa (1 mb)
-    REAL*8, PARAMETER :: REF_RATIO = 100000 / 100
+    REAL(kind=R8), PARAMETER :: REF_RATIO = 100000 / 100
     integer :: m,n
 
     ! PT_GISS has a halo, while PT_fv does not.
@@ -375,90 +391,90 @@ contains
     USE DOMAIN_DECOMP_ATM, Only: grid, getDomainBounds
     implicit none
 
-    real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
+    real(kind=R8), intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
                                   grid%j_strt_halo:grid%j_stop_halo) :: p,zatmo
-    real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
+    real(kind=R8), intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
                                   grid%j_strt_halo:grid%j_stop_halo,lm) :: t,sz
-    real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+    real(kind=R8), dimension(grid%i_strt_halo:grid%i_stop_halo, &
                       grid%j_strt_halo:grid%j_stop_halo,lm) :: phi
 
-    REAL*8 :: PKE(LS1:LM+1)
-    REAL*8 :: PIJ, PHIDN
-    REAL*8 :: DP, BYDP, P0, TZBYDP, X
-    REAL*8 :: PUP, PKUP, PKPUP, PKPPUP
-    REAL*8 :: PDN, PKDN, PKPDN, PKPPDN
+    REAL(kind=R8) :: PKE(LS1:LM+1)
+    REAL(kind=R8) :: PIJ, PHIDN
+    REAL(kind=R8) :: DP, BYDP, P0, TZBYDP, X
+    REAL(kind=R8) :: PUP, PKUP, PKPUP, PKPPUP
+    REAL(kind=R8) :: PDN, PKDN, PKPDN, PKPPDN
     INTEGER :: I, J, L
 
     INTEGER :: I_0, I_1, J_0, J_1
     LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
     call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
-         & HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
-         & HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
+      & HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
+      & HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
     DO L=LS1,LM+1
-       PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
+      PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
     END DO
 
     DO J=J_0,J_1
 
-       DO I=I_0,I_1
+      DO I=I_0,I_1
 
-          PIJ=P(I,J)
+        PIJ=P(I,J)
 
-          PDN=PIJ+PTOP
-          PKDN=PDN**KAPA
-          PHIDN=ZATMO(I,J)
+        PDN=PIJ+PTOP
+        PKDN=PDN**KAPA
+        PHIDN=ZATMO(I,J)
 
-          !**** LOOP OVER THE LAYERS
-          DO L=1,LM
-             PKPDN=PKDN*PDN
-             PKPPDN=PKPDN*PDN
-             IF(L.GE.LS1) THEN
-                DP=DSIG(L)*PSFMPT
-                BYDP=1./DP
-                P0=SIG(L)*PSFMPT+PTOP
-                TZBYDP=2.*SZ(I,J,L)*BYDP
-                X=T(I,J,L)+TZBYDP*P0
-                PUP=SIGE(L+1)*PSFMPT+PTOP
-                PKUP=PKE(L+1)
-                PKPUP=PKUP*PUP
-                PKPPUP=PKPUP*PUP
-             ELSE
-                DP=DSIG(L)*PIJ
-                BYDP=1./DP
-                P0=SIG(L)*PIJ+PTOP
-                TZBYDP=2.*SZ(I,J,L)*BYDP
-                X=T(I,J,L)+TZBYDP*P0
-                PUP=SIGE(L+1)*PIJ+PTOP
-                PKUP=PUP**KAPA
-                PKPUP=PKUP*PUP
-                PKPPUP=PKPUP*PUP
-             END IF
-             !**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-             PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1 &
-                  &      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2) &
-                  &      *BYDP*BYKAPAP1)
-             !**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-             PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP) &
-                  &     *BYKAPAP1)
-             PDN=PUP
-             PKDN=PKUP
-          END DO
-       END DO
+        !**** LOOP OVER THE LAYERS
+        DO L=1,LM
+          PKPDN=PKDN*PDN
+          PKPPDN=PKPDN*PDN
+          IF(L.GE.LS1) THEN
+            DP=DSIG(L)*PSFMPT
+            BYDP=1./DP
+            P0=SIG(L)*PSFMPT+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PSFMPT+PTOP
+            PKUP=PKE(L+1)
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+          ELSE
+            DP=DSIG(L)*PIJ
+            BYDP=1./DP
+            P0=SIG(L)*PIJ+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PIJ+PTOP
+            PKUP=PUP**KAPA
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+          END IF
+          !**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
+          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1 &
+            &      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2) &
+            &      *BYDP*BYKAPAP1)
+          !**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
+          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP) &
+            &     *BYKAPAP1)
+          PDN=PUP
+          PKDN=PKUP
+        END DO
+      END DO
     END DO
 
     !**** SET POLAR VALUES FROM THOSE AT I=1
     IF (HAVE_SOUTH_POLE) THEN
-       DO L=1,LM
-          PHI(2:IM,1,L)=PHI(1,1,L)
-       END DO
+      DO L=1,LM
+        PHI(2:IM,1,L)=PHI(1,1,L)
+      END DO
     END IF
 
     IF (HAVE_NORTH_POLE) THEN
-       DO L=1,LM
-          PHI(2:IM,JM,L)=PHI(1,JM,L)
-       END DO
+      DO L=1,LM
+        PHI(2:IM,JM,L)=PHI(1,JM,L)
+      END DO
     END IF
 
   end function compute_phi
@@ -475,15 +491,13 @@ contains
 !-------------------------------------------------------------------------------
   subroutine allocateFvExport3D ( state, name )
 !-------------------------------------------------------------------------------
-    use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
+    use MAPL_MOD, Only: ESMFL_StateGetPointerToData
     type(ESMF_State),  intent(INOUT) :: state
     character(len=*),  intent(IN   ) :: name
 
     real, pointer :: ptr(:,:,:)
-    logical       :: alloc
 
-    alloc = .true.
-    call ESMFL_StateGetPointerToData ( state, ptr , name , alloc, rc=rc )
+    call ESMFL_StateGetPointerToData ( state, ptr , trim(name) , alloc=.true., rc=rc )
     VERIFY_(rc)
 
   end subroutine allocateFvExport3D
@@ -515,23 +529,23 @@ contains
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv%gc, importState=fv%import, exportState=fv%export, &
-                                   clock=clock, rc=rc)
+      call ESMF_GridCompFinalize( fv%gc, importState=fv%import, exportState=fv%export, &
+        clock=clock, rc=rc)
     else
-       ! workaround for RecordPhase since modelE is not using MAPL interface 
-       ! for alarms
-       call MAPL_GetObjectFromGC( fv%gc, internalSTate)
-       call MAPL_Get(internalState, internal_ESMF_state=ESMFInternalState, rc=rc)
-       VERIFY_(rc)
-       call MAPL_GetResource( internalState   , hdr,         &
-                               default=0, &
-                               LABEL="INTERNAL_HEADER:", &
-                               RC=rc)
-       VERIFY_(rc)
-       call StateWriteToFile(ESMFInternalState, clock, &
-            & FVCORE_INTERNAL_RESTART // suffix,       &
-            & 'binary',internalState, hdr==1, rc=rc)
-       VERIFY_(rc)
+      ! workaround for RecordPhase since modelE is not using MAPL interface 
+      ! for alarms
+      call MAPL_GetObjectFromGC( fv%gc, internalSTate)
+      call MAPL_Get(internalState, internal_ESMF_state=ESMFInternalState, rc=rc)
+      VERIFY_(rc)
+      call MAPL_GetResource( internalState   , hdr,         &
+        default=0, &
+        LABEL="INTERNAL_HEADER:", &
+        RC=rc)
+      VERIFY_(rc)
+      call StateWriteToFile(ESMFInternalState, clock, &
+        & FVCORE_INTERNAL_RESTART // suffix,       &
+        & 'binary',internalState, hdr==1, rc=rc)
+      VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -556,12 +570,12 @@ contains
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, rc=rc)
-       VERIFY_(rc)
+      call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, rc=rc)
+      VERIFY_(rc)
     else
-       call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, &
-            &  phase=RecordPhase, rc=rc)
-       VERIFY_(rc)
+      call ESMF_GridCompFinalize( fv%gc, fv%import, fv%export, clock, &
+        &  phase=RecordPhase, rc=rc)
+      VERIFY_(rc)
     endif
 
     ! Now move the file into a more useful name
@@ -575,38 +589,35 @@ contains
 !-------------------------------------------------------------------------------
   function load_configuration(config_file) result( config )
 !-------------------------------------------------------------------------------
-    use ESMF_mod
+    use dist_grid_mod, only: barrier
     use FILEMANAGER
     Use MODEL_COM,  only: DT=>DTsrc
-    character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     character(len=*), intent(in) :: config_file
+    character(len=*), parameter :: Iam="FV_INTERFACE::loadconfiguration"
     type (ESMF_config)           :: config
-
     integer :: iunit
-    type (ESMF_VM) :: vm
 
     config = ESMF_configcreate(rc=rc)
     VERIFY_(rc)
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
-    write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'FVCORE_LAYOUT:                    ', FVCORE_LAYOUT
+    write(iunit,*)'INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
-    Call ESMF_VMGetGlobal(vm, rc)
-    call ESMF_VMbarrier(vm, rc)
+    call barrier()
     call ESMF_configloadfile(config, config_file, rc=rc)
+    VERIFY_(rc)
+    call MAPL_Set (MAPLOBJ, name=config_file, cf=CONFIG,  rc=rc)
     VERIFY_(rc)
 
   end function load_configuration
 
-
 !-------------------------------------------------------------------------------
   Subroutine Copy_FV_export_to_modelE(fv)
 !-------------------------------------------------------------------------------
-    use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
+    use MAPL_MOD, Only: ESMFL_StateGetPointerToData
     Use Resolution, only: IM,JM,LM,LS1,Ptop
     USE ATM_COM, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU, PV, SD
@@ -615,7 +626,7 @@ contains
     USE GEOM
     
     Type (FV_CORE) :: fv
-    real*4, Dimension(:,:,:), Pointer :: T_fv, PLE, U_d, V_d
+    real(kind=R4), Dimension(:,:,:), Pointer :: T_fv, PLE, U_d, V_d
 
     Integer :: unit
 
@@ -701,9 +712,9 @@ contains
   Function Tendency(A, A_old) Result(tend)
 !-------------------------------------------------------------------------------
     USE MODEL_COM, Only: DTsrc
-    REAL*8, INTENT(IN) :: A(:,:,:)
-    REAL*8, INTENT(IN) :: A_old(:,:,:)
-    REAL*8 :: tend(size(a,1),size(a,2),size(a,3))
+    REAL(kind=R8), INTENT(IN) :: A(:,:,:)
+    REAL(kind=R8), INTENT(IN) :: A_old(:,:,:)
+    REAL(kind=R8) :: tend(size(a,1),size(a,2),size(a,3))
 
     tend = (A - A_old)/DTsrc
 
@@ -748,8 +759,8 @@ contains
     !---------------------------------------------------------------------------
       use domain_decomp_atm, only: grid, dwrite8_parallel, getDomainBounds
       integer, intent(in) :: iunit
-      real*8, intent(in) :: arr(:,:,:)
-      real*8, allocatable :: padArr(:,:,:)
+      real(kind=R8), intent(in) :: arr(:,:,:)
+      real(kind=R8), allocatable :: padArr(:,:,:)
       integer :: I_0,  I_1,  J_0,  J_1
       integer :: I_0H, I_1H, J_0H, J_1H
 
@@ -787,8 +798,8 @@ contains
     USE DOMAIN_DECOMP_ATM, only: grid
     USE RESOLUTION, Only : IM, JM, LM
     USE ATM_COM, Only : U, V, T, P
-    real*4 u4(im,jm,lm), v4(im,jm,lm)
-    real*4 pt4(im,jm,lm), p4(im,jm)
+    real(kind=R4) u4(im,jm,lm), v4(im,jm,lm)
+    real(kind=R4) pt4(im,jm,lm), p4(im,jm)
     integer :: unit, rc
 
     u4=u; v4=v; pt4=t; p4=p
@@ -846,13 +857,13 @@ contains
 !----------
 
     if (filetype == 'binary' .or. filetype == 'BINARY') then
-       UNIT = GETFILE(FILENAME, form="unformatted", rc=rc)
-       VERIFY_(rc)
+      UNIT = GETFILE(FILENAME, form="unformatted", rc=rc)
+      VERIFY_(rc)
     elseif(filetype=="formatted".or.filetype=="FORMATTED") then
-       UNIT = GETFILE(FILENAME, form="formatted", rc=rc)
-       VERIFY_(rc)
+      UNIT = GETFILE(FILENAME, form="formatted", rc=rc)
+      VERIFY_(rc)
     else
-       UNIT=0
+      UNIT=0
     end if
 
 ! Write data
@@ -871,30 +882,30 @@ contains
     HEADER(4) = H
     HEADER(5) = M
     HEADER(6) = S
-    
+
     call Write_Parallel(HEADER, UNIT, RC=rc)
     VERIFY_(rc)
-    
+
     HEADER(1) = IM
     HEADER(2) = JM
     HEADER(3) = LM
     HEADER(4) = 0
     HEADER(5) = 0
-    
+
     call Write_Parallel(HEADER(1:5), UNIT, RC=rc)
     VERIFY_(rc)
-    
+
     if(UNIT/=0) then
-       do J = 1, ITEMCOUNT
-          call MAPL_VarWrite(UNIT=UNIT, STATE=STATE, NAME=ITEMNAMES(J), rc=rc)
-          VERIFY_(rc)
-       end do
-       call FREE_FILE(UNIT)
+      do J = 1, ITEMCOUNT
+        call MAPL_VarWrite(UNIT=UNIT, STATE=STATE, NAME=ITEMNAMES(J), rc=rc)
+        VERIFY_(rc)
+      end do
+      call FREE_FILE(UNIT)
     else
-       rc = -1  ! not yet
-       VERIFY_(rc)
+      rc = -1  ! not yet
+      VERIFY_(rc)
     endif
-    
+
     deallocate(ITEMNAMES) 
     deallocate(ITEMTYPES)
 

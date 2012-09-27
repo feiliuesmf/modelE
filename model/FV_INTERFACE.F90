@@ -25,26 +25,26 @@ module FV_INTERFACE_MOD
 
   ! except for
 
-  public :: Initialize             ! Uses modelE data to initialize the FV gridded component
-  public :: Run                    ! Execute the FV method to integrate the core forward in time
-  public :: Checkpoint             ! Unimplemented
-  public :: Finalize               ! Uses modelE data to finalize the FV gridded component
+  public :: Initialize          ! Uses modelE data to initialize the FV gridded component
+  public :: Run                 ! Execute the FV method to integrate the core forward in time
+  public :: Checkpoint      
+  public :: Finalize            ! Uses modelE data to finalize the FV gridded component
 
-  public :: FV_CORE_WRAPPER        ! Derived type to encapsulate FV + modelE data
+  public :: FV_CORE_WRAPPER     ! Derived type to encapsulate FV + modelE data
 
-  public :: Compute_Tendencies     ! Temporarily a separate method, but will move within Run() soon.
+  public :: Compute_Tendencies  ! Temporarily a separate method, but will move within Run() soon.
 
   Interface Initialize
-     module procedure Initialize_fv
+    module procedure Initialize_fv
   End Interface
 
   Interface Run
-     module procedure run_fv
+    module procedure run_fv
   End Interface
 
   Interface Compute_Tendencies
-     module procedure compute_tendencies_external
-     module procedure compute_tendencies_internal
+    module procedure compute_tendencies_external
+    module procedure compute_tendencies_internal
   End Interface
 
   ! private data of convenience
@@ -72,18 +72,18 @@ contains
     character(len=1) :: suffix
 
 ! if warm start, copy FV restart files to expected names
-      if(AM_I_ROOT() .and. istart.ge.8) then
-        if(istart.lt.10) then
-          call system('cp AICfv  dyncore_internal_restart')
-          call system('cp AICdfv tendencies_checkpoint')
-        else
-          write(suffix,'(i1)') KDISK
-          call system('cp  fv.'// suffix // ' dyncore_internal_restart')
-          call system('cp dfv.'// suffix // ' tendencies_checkpoint')
-        endif
+    if(AM_I_ROOT() .and. istart.ge.8) then
+      if(istart.lt.10) then
+        call system('cp AICfv  dyncore_internal_restart')
+        call system('cp AICdfv tendencies_checkpoint')
+      else
+        write(suffix,'(i1)') KDISK
+        call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+        call system('cp dfv.'// suffix // ' tendencies_checkpoint')
       endif
+    endif
 
-    call setupForESMF(fv_wrapper%fv, grid%esmf_grid, cf, config_file)
+    call gridCompSetup(fv_wrapper%fv, grid%esmf_grid, cf, config_file)
 
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
@@ -113,7 +113,6 @@ contains
     USE ATM_COM, ONLY: MA, PHI, GZ, PUA, PVA, SDA
 
     Type (FV_CORE_WRAPPER)    :: fv_wrapper
-!    Type (ESMF_Clock) :: clock
     type (ESMF_TimeInterval) :: timeInterval
 
     integer :: L,istep, NS, NIdyn_fv
@@ -138,27 +137,27 @@ contains
     NIdyn_fv = 1 !DTsrc / (DT)
     do istep = 1, NIdyn_fv
 
-       call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
-            fv_wrapper%fv%export, clock, phase=addIncsPhase, rc=rc )
+      call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
+        fv_wrapper%fv%export, clock, phase=addIncsPhase, rc=rc )
 
-       call clearTendencies(fv_wrapper%fv)
-       call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
-            fv_wrapper%fv%export, clock, rc=rc )
+      call clearTendencies(fv_wrapper%fv)
+      call ESMF_GridCompRun(fv_wrapper%fv%gc, fv_wrapper%fv%import, &
+        fv_wrapper%fv%export, clock, rc=rc )
 
-       call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
-       call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
+      call ESMF_TimeIntervalSet(timeInterval, s = nint(DT), rc=rc)
+      call ESMF_ClockAdvance(clock, timeInterval, rc=rc)
 
-       call accumulate_mass_fluxes(fv_wrapper%fv)
-       call Copy_FV_export_to_modelE(fv_wrapper%fv) ! inside loop to accumulate PUA,PVA,SDA
+      call accumulate_mass_fluxes(fv_wrapper%fv)
+      call Copy_FV_export_to_modelE(fv_wrapper%fv) ! inside loop to accumulate PUA,PVA,SDA
 
-       call reset_tmom
+      call reset_tmom
 #if defined(USE_FV_Q)
-       call reset_qmom
+      call reset_qmom
 #endif
 
-       phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
+      phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
 #ifdef FVCUBED_SKIPPED_THIS
-       call compute_mass_flux_diags(phi, pu, pv, dt)
+      call compute_mass_flux_diags(phi, pu, pv, dt)
 #endif
 
     end do
@@ -169,9 +168,9 @@ contains
     
   contains
 
-    !---------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
     subroutine reset_tmom
-    !---------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : t,pmid,pedn
@@ -208,9 +207,9 @@ contains
 
     end subroutine reset_tmom
 
-    !---------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
     subroutine reset_qmom
-    !---------------------------------------------------------------------------
+  !---------------------------------------------------------------------------
 
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : q,pmid,pedn
@@ -372,54 +371,54 @@ contains
 
     select case (istart)
     case (:initial_start)
-       ! Do a cold start.  Set Old = Current.
+      ! Do a cold start.  Set Old = Current.
 #ifdef CUBED_SPHERE
-       Allocate(U_d(I_0:I_1,J_0:J_1+1,LM), &
-                V_d(I_0:I_1+1,J_0:J_1,LM))
-       Allocate(U_temp(I_0:I_1,J_0:J_1,LM), &
-                V_temp(I_0:I_1,J_0:J_1,LM))
+      Allocate(U_d(I_0:I_1,J_0:J_1+1,LM), &
+        V_d(I_0:I_1+1,J_0:J_1,LM))
+      Allocate(U_temp(I_0:I_1,J_0:J_1,LM), &
+        V_temp(I_0:I_1,J_0:J_1,LM))
 
-       U_temp(I_0:I_1,J_0:J_1,:) = U(I_0:I_1,J_0:J_1,:)
-       V_temp(I_0:I_1,J_0:J_1,:) = V(I_0:I_1,J_0:J_1,:)
-       Call INTERP_AGRID_TO_DGRID(U_temp, V_temp, U_d, V_d)
-       U(I_0:I_1,J_0:J_1,:) = U_d(I_0:I_1,J_0:J_1,:)
-       V(I_0:I_1,J_0:J_1,:) = V_d(I_0:I_1,J_0:J_1,:)
+      U_temp(I_0:I_1,J_0:J_1,:) = U(I_0:I_1,J_0:J_1,:)
+      V_temp(I_0:I_1,J_0:J_1,:) = V(I_0:I_1,J_0:J_1,:)
+      Call INTERP_AGRID_TO_DGRID(U_temp, V_temp, U_d, V_d)
+      U(I_0:I_1,J_0:J_1,:) = U_d(I_0:I_1,J_0:J_1,:)
+      V(I_0:I_1,J_0:J_1,:) = V_d(I_0:I_1,J_0:J_1,:)
 
-       Deallocate(U_d, V_d)
-       Deallocate(U_temp, V_temp)
+      Deallocate(U_d, V_d)
+      Deallocate(U_temp, V_temp)
 
-       ! the tendency must be scaled by DT for use by the core's ADD_INCS routine
-       fv%dudt=ReverseLevels(U(I_0:I_1,J_0:J_1,:))/DTsrc
-       fv%dvdt=ReverseLevels(V(I_0:I_1,J_0:J_1,:))/DTsrc
+      ! the tendency must be scaled by DT for use by the core's ADD_INCS routine
+      fv%dudt=ReverseLevels(U(I_0:I_1,J_0:J_1,:))/DTsrc
+      fv%dvdt=ReverseLevels(V(I_0:I_1,J_0:J_1,:))/DTsrc
 #else
-       fv%dudt=0
-       fv%dvdt=0
+      fv%dudt=0
+      fv%dvdt=0
 #endif
-       fv%dtdt=0
-       fv%dpedt=0
+      fv%dtdt=0
+      fv%dpedt=0
 
-       fv%U_old = U(I_0:I_1,J_0:J_1,:)
-       fv%V_old = V(I_0:I_1,J_0:J_1,:)
-       fv%dPT_old = DeltPressure_DryTemp_GISS()
-       fv%dT_old = DryTemp_GISS()
-       fv%PE_old   = EdgePressure_GISS()
+      fv%U_old = U(I_0:I_1,J_0:J_1,:)
+      fv%V_old = V(I_0:I_1,J_0:J_1,:)
+      fv%dPT_old = DeltPressure_DryTemp_GISS()
+      fv%dT_old = DryTemp_GISS()
+      fv%PE_old   = EdgePressure_GISS()
     case (extend_run:)
-       ! input couplings are in a file somewhere and already read in
-       call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
-       call readArr(iunit, fv%U_old)
-       call readArr(iunit, fv%V_old)
-       call readArr(iunit, fv%dPT_old)
-       call readArr(iunit, fv%PE_old)
-       call readArr(iunit, fv%dT_old)
-       call closeunit(iunit)
+      ! input couplings are in a file somewhere and already read in
+      call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
+      call readArr(iunit, fv%U_old)
+      call readArr(iunit, fv%V_old)
+      call readArr(iunit, fv%dPT_old)
+      call readArr(iunit, fv%PE_old)
+      call readArr(iunit, fv%dT_old)
+      call closeunit(iunit)
 
-       if (AM_I_ROOT()) then
-         call system('rm ' // TENDENCIES_FILE ) ! clean up
-       end if
+      if (AM_I_ROOT()) then
+        call system('rm ' // TENDENCIES_FILE ) ! clean up
+      end if
 
-       call compute_tendencies(fv)
-!!  case default
-!!     call stop_model('ISTART option not supported',istart)
+      call compute_tendencies(fv)
+      !!  case default
+      !!     call stop_model('ISTART option not supported',istart)
     end select
 
   contains
@@ -448,8 +447,6 @@ contains
 
   End Subroutine allocateTendencyStorage
 
-  ! Compute tendencies
-  ! ------------------
 !-------------------------------------------------------------------------------
   subroutine compute_tendencies_internal(fv)
 !-------------------------------------------------------------------------------
@@ -467,24 +464,24 @@ contains
 
     ! U, V
     DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), &
-                                      fv%U_old(I_0:I_1,J_0:J_1,:))
+      fv%U_old(I_0:I_1,J_0:J_1,:))
     DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), &
-                                      fv%V_old(I_0:I_1,J_0:J_1,:))
+      fv%V_old(I_0:I_1,J_0:J_1,:))
     call ConvertUV_GISS2FV(ReverseLevels(DUT(I_0:I_1,J_0:J_1,:)), &
-                           ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), &
-                           fv%dudt, fv%dvdt)
+      ReverseLevels(DVT(I_0:I_1,J_0:J_1,:)), &
+      fv%dudt, fv%dvdt)
 
     ! delta pressure weighted Temperature
     fv % dtdt = ReverseLevels(DeltPressure_GISS() * &
-                              Tendency(DryTemp_GISS(), fv%dT_old)) * &
-                              (PRESSURE_UNIT_RATIO)
+      Tendency(DryTemp_GISS(), fv%dT_old)) * &
+      (PRESSURE_UNIT_RATIO)
 
     ! Edge Pressure
-       Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), &
-                                              fv%dpedt)
+    Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv%PE_old), &
+      fv%dpedt)
 
 #ifdef NO_FORCING
-       call clearTendencies(fv)
+    call clearTendencies(fv)
 #endif
 
   end subroutine compute_tendencies_internal
@@ -493,9 +490,9 @@ contains
 !-------------------------------------------------------------------------------
   subroutine compute_tendencies_external(fv_wrapper)
 !-------------------------------------------------------------------------------
-     Type (FV_CORE_WRAPPER) :: fv_wrapper
+    Type (FV_CORE_WRAPPER) :: fv_wrapper
 
-     call compute_tendencies(fv_wrapper%fv)
+    call compute_tendencies(fv_wrapper%fv)
   end subroutine compute_tendencies_external
 
 end module FV_INTERFACE_MOD
