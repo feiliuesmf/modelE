@@ -57,7 +57,7 @@
 #endif
 
 !@param kglhc number of glhc accumulations
-      integer, parameter :: kglhc=3
+      integer, parameter :: kglhc=11
 !@var glhc accumulations for glacial ice height-classified diagnostics
       real*8, dimension(:,:,:,:), allocatable :: glhc
 !@var scale_glhc scale factor for glhc diagnostics
@@ -73,7 +73,9 @@
       type(cdl_type) :: cdl_glhc,cdl_glhc_latlon
 !@var glhc_xxx indices for accumulations
       integer ::
-     &     glhc_frac,glhc_tsurf,glhc_prec
+     &     glhc_frac,glhc_tsurf,
+     &     GLHC_PRECLI,GLHC_RUNLI,GLHC_EVAPLI,GLHC_F0LI,GLHC_TSLI,
+     &     GLHC_SHDTLI,GLHC_EVHDT,GLHC_TRHDT,GLHC_IMPMLI,GLHC_IMPHLI
 
       END MODULE LANDICE_COM
 
