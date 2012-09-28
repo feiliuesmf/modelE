@@ -267,7 +267,7 @@ MODULE dist_grid_mod
     &     mpiCommunicator=comm, rc=rc)
    VERIFY_(rc)
    call setCommunicator(comm)
-
+#else
 #ifdef USE_MPI
    call MPI_INIT(rc)
    call setCommunicator(MPI_COMM_WORLD)
