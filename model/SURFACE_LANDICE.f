@@ -42,7 +42,7 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlndi
 #endif
-      USE LANDICE_COM, only : ijhc,ijhc_tsurf
+      USE LANDICE_COM, only : ijhc,ijhc_tsurf,ijhc_tsli
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
       USE EXCHANGE_TYPES
       USE Timer_mod, only: Timer_type
@@ -548,6 +548,8 @@ cccccc for SCM use ARM provided fluxes for designated box
       ! demo diagnostic: a PBL output
       ijhc(i,j,ihc,ijhc_tsurf) = ijhc(i,j,ihc,ijhc_tsurf)
      &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
+!      ijhc(i,j,ihc,ijhc_tsli) = ijhc(i,j,ihc,ijhc_tsli)
+!     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
 
 C****
 

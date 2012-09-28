@@ -650,7 +650,7 @@ C**** ACCUMULATE DIAGNOSTICS
       USE LANDICE_COM, only : ijhc
       USE LANDICE_COM, only : IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT
       USE LANDICE_COM, only : IJHC_F0LI,IJHC_EVAPLI,IJHC_TSLI
-      USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI
+      USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI, IJHC_RUNLI
 
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
@@ -754,7 +754,7 @@ C**** ACCUMULATE DIAGNOSTICS
         ijhc(i,j,ihc,IJHC_TRHDT)=ijhc(i,j,ihc,IJHC_TRHDT) +
      &       atmgla%TRHEAT(I,J)
         ijhc(i,j,ihc,IJHC_F0LI)=ijhc(i,j,ihc,IJHC_F0LI) +
-     &       atmgla%E0(I,J)
+     &       atmgla%E0(I,J) + atmgla%EPREC(I,J)
         ijhc(i,j,ihc,IJHC_EVAPLI)=ijhc(i,j,ihc,IJHC_EVAPLI) +
      &       atmgla%EVAPOR(I,J)
 
@@ -764,6 +764,9 @@ C**** ACCUMULATE DIAGNOSTICS
      &       atmgla%IMPLM(I,J)
         ijhc(i,j,ihc,IJHC_IMPHLI)=ijhc(i,j,ihc,IJHC_IMPHLI) +
      &       atmgla%IMPLH(I,J)
+
+        ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
+     &        atmgla%RUNO(i,j)
 
       END IF
 
