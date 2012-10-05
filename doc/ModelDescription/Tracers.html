@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<HTML lang=en>
+<HEAD>
+  <TITLE>Tracers</TITLE>
+  <link rel="stylesheet" href="modele.css" type="text/css" />
+</HEAD>
+<BODY>
+
+<H3>Tracers</H3>
+
+<p> ModelE comes with a full complement of tracer code that follows
+all mass transports in the model. All tracer fields are computed in
+mass units (not concentration) and thus are perfectly conserved (with
+one exception explained below). There is a library of pre-coded
+physics for some common tracers that have been used historically with
+the GISS models. For the simplest applications, the relevant tracer
+code needs to be turned on using pre-processor directives in the
+rundeck (details below), and then by editing TRACER_COM.f the specific
+tracer can be coded for. Some generic code is allowed for any tracers
+(such as radioactive decay, diagnostics etc.). Some specific tracers
+require special physics and these require some extra code (for
+instance water isotopes or chemistry).</p>
+
+<p>The tracers break naturally into four groups:
+atmospheric tracers that follow air mass, tracers that are either
+purely water based or have a soluble component, particulate tracers
+that may interact with the hydrologic cycle, and tracers that are
+purely oceanic. These are dealt with in turn below.</p>
+
+</BODY>
+</HTML>

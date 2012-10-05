@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<HTML lang=en>
+<HEAD>
+  <TITLE>GISS Dynamic ocean model</TITLE>
+  <link rel="stylesheet" href="modele.css" type="text/css" />
+</HEAD>
+<BODY>
+
+<H3>GISS Dynamic ocean model</H3>
+
+<P> This model is a fully dynamic, non-Boussinesq, mass-conserving
+free surface ocean model (Russell et al, 1995, 2000, Liu et al 2002,
+2003). The dynamics is based on a modified Arakawa scheme on the
+C-grid, with a linear upstream scheme for advecting tracers. Vertical
+mixing uses the KPP scheme of Large et al (1996). Momentum mixing is
+modelled as a spatically varying laplacian as in Wajsowicz (1993). The
+effects of mesoscale eddies and isopycnal diffusion are parameterised
+as in Gent and McWilliams (1996), but using variable coefficients
+(Visbeck et al, 1997), and coded as in Griffies (1998).
+</P>
+
+<p> The model contains up to 12 variable depth subgrid scale straits
+which contect ocean grid boxes, which would not be connected at the
+resolution used. In particular, the Straits of Gibraltar, Hormuz, and
+Nares straits are so modelled. All ocean components are fluxed through
+these straits as a function of the end to end pressure gradients,
+balanced against a drag proportional to the straits 'width' which
+serves as a tuning parameter to get reasonable fluxes. </p>
+
+</BODY>
+</HTML>
