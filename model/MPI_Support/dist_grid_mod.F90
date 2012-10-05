@@ -1,3 +1,4 @@
+#define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort(__LINE__,rc)
 #include "rundeck_opts.h"
 #ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
@@ -200,6 +201,7 @@ MODULE dist_grid_mod
 
    INTEGER, PUBLIC :: CHECKSUM_UNIT
 
+   public :: barrier
    public :: isPeriodic
    public :: am_i_root
    ! Direction bits
@@ -259,9 +261,11 @@ MODULE dist_grid_mod
      rank = 0        ! default rank = root PE for serial run
      NPES_WORLD = 1    ! default NPES = 1 for serial run
 #ifdef USE_ESMF
-   call ESMF_Initialize(vm=modelE_vm, rc=rc)
+   call ESMF_Initialize(vm=modelE_vm, defaultLogType=ESMF_LOG_NONE, rc=rc)
+   VERIFY_(rc)
    call ESMF_VMGet(modelE_vm, localPET=rank, petCount=NPES_WORLD, &
     &     mpiCommunicator=comm, rc=rc)
+   VERIFY_(rc)
    call setCommunicator(comm)
 #else
 #ifdef USE_MPI
@@ -294,9 +298,6 @@ MODULE dist_grid_mod
      LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP
      INTEGER, OPTIONAL, INTENT(IN) :: npes_max
      LOGICAL, OPTIONAL, INTENT(IN) :: excess_on_pe0
-#ifdef USE_ESMF
-     TYPE(ESMF_VM), Pointer :: vm_
-#endif
 #ifdef USE_MPI
      Type (AxisIndex), Pointer :: AI(:,:)
      integer, allocatable   :: IMS(:), JMS(:)
@@ -324,10 +325,12 @@ MODULE dist_grid_mod
     ! Distribute the horizontal dimensions
     !-------------------------------------
      allocate(ims(0:0), jms(0:distGrid%npes_world-1))
-     distGrid%npes_used = min(distGrid%npes_world, jm-2) ! jm-2 is latlon-specific
+     ! jm-2 is latlon-specific
+     distGrid%npes_used = min(distGrid%npes_world, jm-2)
      if (present(npes_max))distGrid% npes_used = min(npes_max, distGrid%npes_used)
      jms(0:distGrid%npes_used-1) = getLatitudeDistribution(distGrid)
-     if(distGrid%npes_used<distGrid%npes_world) jms(distGrid%npes_used:distGrid%npes_world-1) = 0
+     if(distGrid%npes_used<distGrid%npes_world) &
+       jms(distGrid%npes_used:distGrid%npes_world-1) = 0
      ims(0) = im
 #ifndef USE_ESMF
      AIbounds = MPIgridBounds(distGrid)
@@ -359,7 +362,6 @@ MODULE dist_grid_mod
 #endif !USE_MPI
 
 #ifdef USE_ESMF
-     vm_ => modelE_vm
      distGrid%ESMF_GRID = ESMF_GridCreateShapeTile(    &
             name="modelE grid",            &
             countsPerDEDim1=ims,           &
@@ -371,6 +373,7 @@ MODULE dist_grid_mod
             coordDep1 = (/1,2/),           &
             coordDep2 = (/1,2/),           &
             rc=rc)
+    VERIFY_(rc)
     AIbounds =  ESMFgridBounds(distGrid)
 #endif
 
@@ -382,13 +385,14 @@ MODULE dist_grid_mod
      distGrid%I_STOP        = AIbounds(2)
      distGrid%I_STRT_HALO   = MAX( 1, AIbounds(1)-width_)
      distGrid%I_STOP_HALO   = MIN(IM, AIbounds(2)+width_)
-     distGrid%ni_loc = (distGrid%RANK+1)*IM/distGrid%NPES_used - distGrid%RANK*IM/distGrid%NPES_used
+     distGrid%ni_loc = (distGrid%RANK+1)*IM/distGrid%NPES_used - &
+                        distGrid%RANK   *IM/distGrid%NPES_used
      
      distGrid%j_strt        = AIbounds(3)
      distGrid%J_STOP        = AIbounds(4)
-#ifdef USE_MPI
-     call MPI_Barrier(COMMUNICATOR, ierr)
-#endif
+
+     call barrier()
+
      distGrid%HAVE_DOMAIN   = AIbounds(3) <= JM
 
      distGrid%J_STRT_SKP = max (   2, AIbounds(3))
@@ -647,10 +651,13 @@ MODULE dist_grid_mod
      
      call ESMF_GridGet(GRID%ESMF_Grid, dimCount=gridRank, distGrid=distGrid, &
           rc=STATUS)
+     VERIFY_(status)
      call ESMF_DistGridGet(distGRID, delayout=layout, &
           rc=STATUS)
+     VERIFY_(status)
      call ESMF_DELayoutGet(layout, deCount =nDEs, localDeList=deList, &
           rc=status)
+     VERIFY_(status)
      deId = deList(1)
      
      allocate (AL(gridRank,0:nDEs-1),  stat=status)
@@ -658,7 +665,8 @@ MODULE dist_grid_mod
      
      call ESMF_DistGridGet(distgrid, minIndexPDimPDe=AL, maxIndexPDimPDe=AU, &
           rc=status)
-     
+     VERIFY_(status)
+    
      I1 = AL(1, deId)
      IN = AU(1, deId)
      J1 = AL(2, deId)
@@ -694,6 +702,7 @@ MODULE dist_grid_mod
      integer :: rc, iunit
     
      config = ESMF_ConfigCreate(rc=rc)
+     VERIFY_(rc)
      call openunit(config_file, iunit, qbin=.false., qold=.false.)
      if(am_i_root()) then
         write(iunit,*)'IM:  ', IM
@@ -704,7 +713,7 @@ MODULE dist_grid_mod
      endif
      call closeUnit(iunit)
      
-     call MPI_Barrier(communicator, rc)
+     call barrier()
      call ESMF_ConfigLoadFile(config, config_file, rc=rc)
      
    end function load_cap_config
@@ -1188,9 +1197,9 @@ MODULE dist_grid_mod
        Deallocate(lines)
 #endif
 #endif
-#ifdef USE_MPI
-      CALL MPI_BARRIER(COMMUNICATOR, ierr)
-#endif
+
+      CALL barrier()
+
       END SUBROUTINE HERE
 
 ! ----------------------------------------------------------------------
@@ -2146,6 +2155,19 @@ MODULE dist_grid_mod
       end function isPeriodic
 
 ! ----------------------------------------------------------------------
+      subroutine barrier()
+! ----------------------------------------------------------------------
+        integer :: rc
+#ifdef USE_ESMF
+        call ESMF_VMbarrier(modelE_vm, rc)
+#else
+#ifdef USE_MPI
+        call MPI_Barrier(communicator, rc)
+#endif
+#endif
+      end subroutine barrier
+
+! ----------------------------------------------------------------------
       subroutine setMpiCommunicator(this, comm)
 ! ----------------------------------------------------------------------
         type (dist_grid), intent(inout) :: this
@@ -2240,6 +2262,20 @@ MODULE dist_grid_mod
         getLogUnit = logUnit
 
       end function getLogUnit
+
+!-------------------------------------------------------------------------------
+  Subroutine abort(line,rc)
+!-------------------------------------------------------------------------------
+    Implicit None
+    Integer, Intent(In) :: line
+    Integer, Intent(In) :: rc
+
+    Character(len=100) :: buf
+
+    Write(buf,*)__FILE__,' failure at line',line,'\n error code:', rc
+    Call stop_model(Trim(buf),99)
+
+  End Subroutine abort
 
 END MODULE dist_grid_mod
 

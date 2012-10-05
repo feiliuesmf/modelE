@@ -293,104 +293,199 @@ C****
       END SUBROUTINE init_LI
 
       subroutine reset_glaacc
-      use landice_com, only : glhc
+      use landice_com, only : ijhc
       implicit none
-      glhc = 0.
+      ijhc = 0.
       return
       end subroutine reset_glaacc
 
-      subroutine glhc_defs
+      subroutine ijhc_defs
       use CONSTANT, only : bygrav,sha,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc
-      use LANDICE_COM, only : kglhc,ia_glhc,sname_glhc,lname_glhc
-     &     ,units_glhc,denom_glhc,scale_glhc,cdl_glhc
-      use LANDICE_COM, only : nhc,glhc_frac,glhc_tsurf,glhc_prec
+      use LANDICE_COM, only : kijhc,ia_ijhc,sname_ijhc,lname_ijhc
+     &     ,units_ijhc,denom_ijhc,scale_ijhc,cdl_ijhc
+      use LANDICE_COM, only : nhc
+      use LANDICE_COM, only :
+     &     ijhc_frac,ijhc_tsurf,
+     &     IJHC_PRECLI,  ! done
+     &     IJHC_RUNLI,   ! done
+     &     IJHC_EVAPLI,  ! done
+     &     IJHC_F0LI,    ! done
+     &     IJHC_TSLI,    ! done GROUND_LI
+     &     IJHC_SHDTLI,   ! done
+     &     IJHC_EVHDT,    ! done
+     &     IJHC_TRHDT,    ! done
+     &     IJHC_IMPMLI,		! done GROUND_LI
+     &     IJHC_IMPHLI		! done GROUND_LI
+
+!     &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
+!     &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_IMPMLI,IJHC_IMPHLI
+
+
+
+
+
       use DIAG_COM, only : ia_src,ia_srf,cdl_ij_template
 #ifdef CUBED_SPHERE
-      use LANDICE_COM, only : cdl_glhc_latlon
+      use LANDICE_COM, only : cdl_ijhc_latlon
       use DIAG_COM, only : cdl_ij_latlon_template
 #endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use cdl_mod
+      USE FLUXES, only : nisurf
+
       implicit none
       integer :: k,kk
       character(len=32) :: dimstr,lldimstr
 c
-      do k=1,kglhc
-         write(sname_glhc(k),'(a4,i3.3)') 'GLHC',k
-         lname_glhc(k) = 'no output'
-         units_glhc(k) = 'unused'
-         scale_glhc(k) = 1.
-         denom_glhc(k) = 0
-         ia_glhc(k) = ia_src
+      do k=1,kijhc
+         write(sname_ijhc(k),'(a4,i3.3)') 'IJHC',k
+         lname_ijhc(k) = 'no output'
+         units_ijhc(k) = 'unused'
+         scale_ijhc(k) = 1.
+         denom_ijhc(k) = 0
+         ia_ijhc(k) = ia_src
       enddo
 
 c
       k=0
 c
-      k=k+1
-      glhc_frac = k
-      sname_glhc(k) = 'frac'
-      lname_glhc(k) = 'area fraction'
-      units_glhc(k) = '1'
+      k=k+1				! ijhc
+      ijhc_frac = k
+      sname_ijhc(k) = 'frac'
+      lname_ijhc(k) = 'area fraction'
+      units_ijhc(k) = '1'
 c
-      k=k+1
-      glhc_tsurf = k
-      sname_glhc(k) = 'tsurf'
-      lname_glhc(k) = 'surface air temperature'
-      units_glhc(k) = 'K'
-      scale_glhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
-      denom_glhc(k) = glhc_frac
+      k=k+1				! ijhc
+      ijhc_tsurf = k
+      sname_ijhc(k) = 'tsurf'
+      lname_ijhc(k) = 'surface air temperature'
+      units_ijhc(k) = 'K'
+      scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
+      denom_ijhc(k) = ijhc_frac
 c
-      k=k+1
-      glhc_prec = k
-      sname_glhc(k) = 'prec'
-      lname_glhc(k) = 'precipitation'
-      units_glhc(k) = 'mm/day'
-      scale_glhc(k) = SECONDS_PER_DAY/DTsrc
-      denom_glhc(k) = glhc_frac
+      k=k+1 ! ijhc
+      IJHC_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
+      lname_ijhc(k) = 'PRECIPITATION OVER LAND ICE (HC)'
+      units_ijhc(k) = 'mm/day'
+      sname_ijhc(k) = 'pr_lndice'
+      scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
+      denom_ijhc(k) = ijhc_frac
 c
-      if (k .gt. kglhc) then
-        if(am_i_root())
-     &       write (6,*) 'glhc_defs: Increase kglhc=',kglhc,' to ',k
-        call stop_model( 'kglhc too small', 255 )
-      end if
-      if(AM_I_ROOT())
-     &     write (6,*) 'Number of GLHC diagnostics defined: kglhcmax=',k
+      k=k+1 ! ijhc
+      IJHC_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
+      lname_ijhc(k) = 'SURFACE RUNOFF OVER LAND ICE (HC)'
+      units_ijhc(k) = 'mm/day'
+      sname_ijhc(k) = 'runoff_lndice'
+      scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_EVAPLI = k ! EVAP OVER LAND ICE  (KG/m**2)          1 GD
+      lname_ijhc(k) = 'LAND ICE EVAPORATION (HC)'
+      units_ijhc(k) = 'mm/day'
+      sname_ijhc(k) = 'evap_lndice'
+      scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
+c     iw built-in
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/m**2) 1 GD
+      lname_ijhc(k) = 'NET HEAT INTO LAND ICE (HC)'
+      units_ijhc(k) = 'W/m^2'
+      sname_ijhc(k) = 'netht_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
+      lname_ijhc(k) = 'SURF AIR TEMP OVER LAND ICE (HC)'
+      units_ijhc(k) = 'C'
+      sname_ijhc(k) = 'tsurf_lndice'
+      scale_ijhc(k) = 1.d0/DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ijhc(k) = 'SENS HEAT FLUX OVER LAND ICE (HC)'
+      units_ijhc(k) = 'W/m^2'
+      sname_ijhc(k) = 'sensht_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_EVHDT = k ! EVHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ijhc(k) = 'LATENT HEAT FLUX OVER LAND ICE (HC)'
+      units_ijhc(k) = 'W/m^2'
+      sname_ijhc(k) = 'latht_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      IJHC_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ijhc(k) = 'NET THERMAL RADIATION INTO LAND ICE (HC)'
+      units_ijhc(k) = 'W/m^2'
+      sname_ijhc(k) = 'trht_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
+c
+      k=k+1 ! ijhc
+      IJHC_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE (kg/s*m^2)           1 SF
+      lname_ijhc(k) = 'IMPLICIT MASS FLUX over LAND ICE (HC)'
+      units_ijhc(k) = 'kg/s*m^2'
+      sname_ijhc(k) = 'impm_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
 
 c
-c Declare the dimensions and metadata of GLHC output fields using
+      k=k+1 ! ijhc
+      IJHC_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE (W/m^2)           1 SF
+      lname_ijhc(k) = 'IMPLICIT HEAT FLUX over LAND ICE (HC)'
+      units_ijhc(k) = 'W/m^2'
+      sname_ijhc(k) = 'imph_lndice'
+      scale_ijhc(k) = 1./DTsrc
+      denom_ijhc(k) = ijhc_frac
+
+      if (k .gt. kijhc) then
+        if(am_i_root())
+     &       write (6,*) 'ijhc_defs: Increase kijhc=',kijhc,' to ',k
+        call stop_model( 'kijhc too small', 255 )
+      end if
+      if(AM_I_ROOT())
+     &     write (6,*) 'Number of IJHC diagnostics defined: kijhcmax=',k
+
+c
+c Declare the dimensions and metadata of IJHC output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
-      cdl_glhc = cdl_ij_template
-      call add_dim(cdl_glhc,'nhc',nhc)
+      cdl_ijhc = cdl_ij_template
+      call add_dim(cdl_ijhc,'nhc',nhc)
 
       lldimstr='(nhc,lat,lon) ;'
 #ifdef CUBED_SPHERE
-      cdl_glhc_latlon = cdl_ij_latlon_template
-      call add_dim(cdl_glhc,'nhc',nhc)
+      cdl_ijhc_latlon = cdl_ij_latlon_template
+      call add_dim(cdl_ijhc,'nhc',nhc)
       dimstr='(tile,nhc,y,x) ;'
 #else
       dimstr=lldimstr
 #endif
-      do k=1,kglhc
-        if(trim(units_glhc(k)).eq.'unused') cycle
-        call add_var(cdl_glhc,
-     &       'float '//trim(sname_glhc(k))//trim(dimstr),
-     &       units=trim(units_glhc(k)),
-     &       long_name=trim(lname_glhc(k)))
+      do k=1,kijhc
+        if(trim(units_ijhc(k)).eq.'unused') cycle
+        call add_var(cdl_ijhc,
+     &       'float '//trim(sname_ijhc(k))//trim(dimstr),
+     &       units=trim(units_ijhc(k)),
+     &       long_name=trim(lname_ijhc(k)))
 #ifdef CUBED_SPHERE
-        call add_var(cdl_glhc_latlon,
-     &       'float '//trim(sname_glhc(k))//trim(lldimstr),
-     &       units=trim(units_glhc(k)),
-     &       long_name=trim(lname_glhc(k)))
+        call add_var(cdl_ijhc_latlon,
+     &       'float '//trim(sname_ijhc(k))//trim(lldimstr),
+     &       units=trim(units_ijhc(k)),
+     &       long_name=trim(lname_ijhc(k)))
 #endif
       enddo
 
       return
-      end subroutine glhc_defs
+      end subroutine ijhc_defs
 
       SUBROUTINE PRECIP_LI(atmgla,ihc)
 !@sum  PRECIP_LI driver for applying precipitation to land ice fraction
@@ -409,7 +504,7 @@ c
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
-      USE LANDICE_COM, only : glhc,glhc_frac,glhc_prec
+      USE LANDICE_COM, only : ijhc,ijhc_frac,IJHC_PRECLI,IJHC_RUNLI
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
@@ -459,7 +554,7 @@ C**** Get useful grid parameters
       atmgla%IMPLT(:,I,J)=0.
 #endif
       ! demo diagnostic
-      glhc(i,j,ihc,glhc_frac) = glhc(i,j,ihc,glhc_frac)+plice
+      ijhc(i,j,ihc,ijhc_frac) = ijhc(i,j,ihc,ijhc_frac)+plice
       IF (PLICE.gt.0 .and. PRCP.gt.0) THEN
 
         ENRGP=EPREC(I,J)      ! energy of precipitation
@@ -514,8 +609,9 @@ C**** ACCUMULATE DIAGNOSTICS
         atmgla%E1(I,J)=EDIFS
 
         ! demo diagnostic
-        glhc(i,j,ihc,glhc_prec) = glhc(i,j,ihc,glhc_prec)+prcp
-
+        ijhc(i,j,ihc,IJHC_PRECLI) = ijhc(i,j,ihc,IJHC_PRECLI)+prcp
+        ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
+     &        atmgla%RUNO(i,j)
       ELSE
         atmgla%IMPLM(I,J)=0.
         atmgla%IMPLH(I,J)=0.
@@ -551,6 +647,11 @@ C**** ACCUMULATE DIAGNOSTICS
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       USE EXCHANGE_TYPES
+      USE LANDICE_COM, only : ijhc
+      USE LANDICE_COM, only : IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT
+      USE LANDICE_COM, only : IJHC_F0LI,IJHC_EVAPLI,IJHC_TSLI
+      USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI
+
       IMPLICIT NONE
       type(atmgla_xchng_vars) :: atmgla
       integer :: ihc
@@ -642,6 +743,27 @@ C**** ACCUMULATE DIAGNOSTICS
         atmgla%snow(i,j) = snow
         atmgla%snowfr(i,j) = scovli
         atmgla%snowdp(i,j) = snow/rhos
+
+        ! Put height-classified diagnostics here.
+        ! Put PBL-related diagnostics in SURFACE_LANDICE.f
+
+        ijhc(i,j,ihc,IJHC_SHDTLI)=ijhc(i,j,ihc,IJHC_SHDTLI) +
+     &       atmgla%SENSHT(I,J)
+        ijhc(i,j,ihc,IJHC_EVHDT)=ijhc(i,j,ihc,IJHC_EVHDT) +
+     &       atmgla%LATHT(I,J)
+        ijhc(i,j,ihc,IJHC_TRHDT)=ijhc(i,j,ihc,IJHC_TRHDT) +
+     &       atmgla%TRHEAT(I,J)
+        ijhc(i,j,ihc,IJHC_F0LI)=ijhc(i,j,ihc,IJHC_F0LI) +
+     &       atmgla%E0(I,J)
+        ijhc(i,j,ihc,IJHC_EVAPLI)=ijhc(i,j,ihc,IJHC_EVAPLI) +
+     &       atmgla%EVAPOR(I,J)
+
+        ijhc(i,j,ihc,IJHC_TSLI)=ijhc(i,j,ihc,IJHC_TSLI) +
+     &       atmgla%TSAVG(I,J)
+        ijhc(i,j,ihc,IJHC_IMPMLI)=ijhc(i,j,ihc,IJHC_IMPMLI) +
+     &       atmgla%IMPLM(I,J)
+        ijhc(i,j,ihc,IJHC_IMPHLI)=ijhc(i,j,ihc,IJHC_IMPHLI) +
+     &       atmgla%IMPLH(I,J)
 
       END IF
 
