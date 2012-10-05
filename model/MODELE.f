@@ -403,7 +403,9 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
+#ifndef STANDALONE_OCEAN
         call reset_glaacc
+#endif
       endif
       end subroutine startNewDay
 
@@ -934,7 +936,9 @@ C**** component-specific ops, folding the latter into component inits
       if (istart.le.9) then
         call reset_adiag(0)
         call reset_odiag(0)
+#ifndef STANDALONE_OCEAN
         call reset_glaacc
+#endif
       endif
 
       CALL SET_TIMER("       OTHER",MELSE)
