@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<HTML lang=en>
+<HEAD>
+  <TITLE>Surface fluxes</TITLE>
+  <link rel="stylesheet" href="modele.css" type="text/css" />
+</HEAD>
+<BODY>
+
+<H3>Surface fluxes</H3>
+
+<p> Surface fluxes are calculated separately for each land surface
+type (open water, ice, earth and land ice). For each type, a different
+high resolution PBL calculation is done to extrapolate the first layer
+atmospheric properites to the surface (defined as 10m above the
+ground). The diffusion parameters in the PBL layers are functions of
+the local turbulence closure scheme (Cheng et al, 2002) and are
+iterated to get a robust estimate of the surface properties
+(temperature, humidity, and tracer concentration) and
+fluxes. Generally, 2 or 4 surface flux time steps are done every hour,
+depending on the vertical resolution.</p>
+
+</BODY>
+</HTML>
