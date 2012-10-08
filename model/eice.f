@@ -119,9 +119,8 @@ c
         thkinv=1./(bot-top)
         do 11 k=1,kk
         kn=k+nn
+        p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
  11     saln(i,j,kn)=saln(i,j,kn)+salflx2(i,j)*delt1*g*thkinv
-crb  .     *max(0.,(min(p(i,j,k+1),bot)-max(p(i,j,k),top)+epsil)
-crb  .       /(dp(i,j,kn)+epsil))
      .     *max(0.,min(p(i,j,k+1),bot)-max(p(i,j,k),top))
      .       /max(dp(i,j,kn),epsil)
       else

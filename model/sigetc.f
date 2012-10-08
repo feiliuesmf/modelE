@@ -3,55 +3,48 @@ c
 c --- sigma, dsigma/dt, and dsigma/ds as functions of temp and salinity
 c
       implicit none
-      real t,s,p,bulk
 c
       include 'state_eqn.h'
 c
-ccc   sig=(c1+c3*s+t*(c2+c5*s+t*(c4+c7*s+c6*t)))*1.e-3                ! cgs
-c7    sigocn=(c1+c3*s+t*(c2+c5*s+t*(c4+c7*s+c6*t)))                !  SI
 c9    sigocn=(c1+s*(c3+s*(c8+c9*t))+t*(c2+c5*s+t*(c4+c7*s+c6*t)))       !  SI
 c
-c  New scheme using Jackett and McDougall's revised equation which
-c  computes rho correctly when the input is potential temperature.
-c  input is whatever in rho0 (example: 1000.), s is salinity in
-c  PSU, t is potential temperature in deg C, and p is pressure in
-c  bars.
-      p=200.                              ! bars
-      bulk = 1.965933e4 + t*(1.444304e2
-     & + t*(-1.706103e0 + t*(9.648704e-3
-     & + t*(-4.190253e-5))))
-     & + s*(5.284855e1 + t*(-3.101089e-1
-     & + t*(6.283263e-3 + t*(-5.084188e-5))))
-     & + sqrt(s**3)*(3.886640e-1
-     & + t*(9.085835e-3 + t*(-4.619924e-4)))
-     & + p*(3.186519e0 + t*(2.212276e-2
-     & + t*(-2.984642e-4 + t*(1.956415e-6))))
-     & + p*s*(6.704388e-3
-     & + t*(-1.847318e-4 + t*(2.059331e-7)))
-     & + p*sqrt(s**3)
-     & *1.480266e-4 + p*p*(2.102898e-4
-     & + t*(-1.202016e-5 + t*(1.394680e-7)))
-     & + p*p*s
-     & *(-2.040237e-6
-     & + t*(6.128773e-8 + t*(6.207323e-10)))
-      sigocn = ( 999.842594e0
-     &           + t*( 6.793952e-2
-     &           + t*(-9.095290e-3
-     &           + t*( 1.001685e-4
-     &           + t*(-1.120083e-6
-     &           + t*( 6.536332e-9)))))
-     &           + s*( 0.824493e0
-     &           + t *(-4.08990e-3
-     &           + t *( 7.64380e-5
-     &           + t *(-8.24670e-7
-     &           + t *( 5.38750e-9)))))
-     &           + sqrt(s**3)*(-5.72466e-3
-     &           + t*( 1.02270e-4
-     &           + t*(-1.65460e-6)))
-     &           + 4.8314e-4*s**2)
-     &           / (1.0 - p/bulk) - 1000.
+      real, intent(in)  :: t,s
+      real :: p
+c --- based on Jackett et al. 2006, J. of atm & oceanic technology.
+c --- rho(t=25, s=35, 2000) = 31. 650 560 565 76
+c --- rho(t=20, s=20, 1000) = 17. 728 868 019 64
+c --- rho(t=12, s=40, 8000) = 62. 952 798 206 31
+
+      real, parameter::
+     .  k01=9.9984085444849347e2, a1=7.3471625860981584, 
+     .  a2=-5.3211231792841769e-2,a3=3.6492439109814549e-4, 
+     .  b1=2.588057102399139, b2=-6.7168282786692355e-3,
+     .  b3=1.9203202055760151e-3, cc1=1.1798263740430364e-2, 
+     .  cc2=9.8920219266399117e-8, cc3=4.699664277175473e-6,
+     .  cc4=-2.5862187075154352e-8, cc5=-3.2921414007960662e-12
+
+      real, parameter:: k02=1.0,
+     .  d1=7.2815210113327091e-3, d2=-4.4787265461983921e-5, 
+     .  d3=3.3851002965802430e-7, d4=1.3651202389758572e-10,
+     .  e1=1.7632126669040377e-3, e2=-8.8066583251206474e-6,
+     .  e3=-1.8832689434804897e-10, e4=5.7463776745432097e-6, 
+     .  e5=1.4716275472242334e-9, f1=6.7103246285651894e-6,
+     .  f2=-2.4461698007024582e-17, f3=-9.1534417604289062e-18
+
+      real pn,pd
+
+      p=pref*1.e-4		! p in dbar
+      pn=k01+t*(a1+t*(a2+a3*t))+s*(b1+b2*t+b3*s)
+     .      +p*(cc1+cc2*t*t+cc3*s+p*(cc4+cc5*t*t))
+
+      pd=k02+t*(d1+d2*t+t*t*(d3+d4*t))
+     .      +s*(e1+e2*t+e3*t*t*t+sqrt(s)*(e4+e5*t*t))
+     .      +p*(f1+p*t*(f2*t*t+f3*p))
+
+      sigocn = pn/pd - 1000.
+
       return
-      end
+      end function sigocn
 c
 c
       real function dsigdt(t,s)
@@ -71,7 +64,6 @@ c
 c
       include 'state_eqn.h'
 c
-c     dsigds=(c3+t*(c5+t*c7))                                        ! SI c7
       dsigds=c3+2*s*(c8+c9*t)+t*(c5+t*c7)                       ! SI c9
       return
       end
@@ -93,7 +85,6 @@ c
       a2=(c4+c7*salin)/c6
 c
       cubq=athird*a1-(athird*a2)**2
-ccc   cubr=athird*(.5*a1*a2-1.5*(a0-1.e3*sigm/c6))                ! cgs
       cubr=athird*(.5*a1*a2-1.5*(a0-     sigm/c6))                !  SI
      .   -(athird*a2)**3
 c
@@ -119,8 +110,6 @@ c
 c
       include 'state_eqn.h'
 c
-c7    sofsig=(sigma                                          ! SI
-c7   .  -c1-tem*(c2+tem*(c4+c6*tem)))/(c3+tem*(c5+c7*tem))
       aa=c8+c9*tem
       bb=c3+c5*tem+c7*tem*tem
       cc=c1+c2*tem+c4*tem*tem+c6*tem*tem*tem-sigma
@@ -155,31 +144,31 @@ c
       include 'state_eqn.h'
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ccc      kappaf=0.                              ! no thermobaricity
+      kappaf=0.                              ! no thermobaricity
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      loc1=profil
-      if (loc1.lt.1 .or. loc1.gt.4) then
-        write (*,'(a,f7.3)') 'illegal profile value in kappaf:',profil
-        stop '(kappaf)'
-      end if
-      sdif=max(30.,min(38.,s))-refsal(loc1)
-      tdif=max(-2.,min(32.,t))-reftem(loc1)
-      kappa1=sclkap * (tdif*(qt(loc1)+tdif*(qtt(loc1)
-     .  +tdif*qttt(loc1))+.5*(prs+pref)*(qpt(loc1)
-     .  +sdif*qpst(loc1)+tdif*qptt(loc1)))
-     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)
-      kappa1=(1./thref+th)*(exp(kappa1)-1.)
-c
-      loc2=min(4,loc1+1)
-      sdif=max(30.,min(38.,s))-refsal(loc2)
-      tdif=max(-2.,min(32.,t))-reftem(loc2)
-      kappa2=sclkap * (tdif*(qt(loc2)+tdif*(qtt(loc2)
-     .  +tdif*qttt(loc2))+.5*(prs+pref)*(qpt(loc2)
-     .  +sdif*qpst(loc2)+tdif*qptt(loc2)))
-     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)
-      kappa2=(1./thref+th)*(exp(kappa2)-1.)
-c
-      kappaf=kappa1+(kappa2-kappa1)*(profil-float(loc1))
+ccc      loc1=profil
+ccc      if (loc1.lt.1 .or. loc1.gt.4) then
+ccc        write (*,'(a,f7.3)') 'illegal profile value in kappaf:',profil
+ccc        stop '(kappaf)'
+ccc      end if
+ccc      sdif=max(30.,min(38.,s))-refsal(loc1)
+ccc      tdif=max(-2.,min(32.,t))-reftem(loc1)
+ccc      kappa1=sclkap * (tdif*(qt(loc1)+tdif*(qtt(loc1)
+ccc     .  +tdif*qttt(loc1))+.5*(prs+pref)*(qpt(loc1)
+ccc     .  +sdif*qpst(loc1)+tdif*qptt(loc1)))
+ccc     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)
+ccc      kappa1=(1./thref+th)*(exp(kappa1)-1.)
+cccc
+ccc      loc2=min(4,loc1+1)
+ccc      sdif=max(30.,min(38.,s))-refsal(loc2)
+ccc      tdif=max(-2.,min(32.,t))-reftem(loc2)
+ccc      kappa2=sclkap * (tdif*(qt(loc2)+tdif*(qtt(loc2)
+ccc     .  +tdif*qttt(loc2))+.5*(prs+pref)*(qpt(loc2)
+ccc     .  +sdif*qpst(loc2)+tdif*qptt(loc2)))
+ccc     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)
+ccc      kappa2=(1./thref+th)*(exp(kappa2)-1.)
+cccc
+ccc      kappaf=kappa1+(kappa2-kappa1)*(profil-float(loc1))
 c
       return
       end
@@ -191,17 +180,19 @@ c
       implicit none
       include 'state_eqn.h'
 c
-      real t,s,prs,c1p,c2p,c3p,c4p,c5p,c6p,c7p
-      c1p(prs)=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-      c2p(prs)=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-      c3p(prs)=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-      c4p(prs)=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p(prs)=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-      c6p(prs)=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p(prs)=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+      real t,s,prs,c1p,c2p,c3p,c4p,c5p,c6p,c7p,c8p,c9p
+      c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
+      c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
+      c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
+      c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
+      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
+      c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
+      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+      c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
+      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
 c
-      sigloc=c1p(prs)+c3p(prs)*s+
-     &    t*(c2p(prs)+c5p(prs)*s+t*(c4p(prs)+c7p(prs)*s+c6p(prs)*t))
+      sigloc=c1p+s*(c3p+c8p*s)+t*(c2p+c5p*s+t*(c4p+c7p*s+c6p*t))+c9p*t*s*s
+
       return
       end
 c
@@ -213,17 +204,18 @@ c
       implicit none
       include 'state_eqn.h'
 c
-      real t,s,prs,c2p,c4p,c5p,c6p,c7p
-ccc   c1p(prs)=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-      c2p(prs)=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-ccc   c3p(prs)=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-      c4p(prs)=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p(prs)=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-      c6p(prs)=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p(prs)=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+      real t,s,prs,c2p,c4p,c5p,c6p,c7p,c9p
+ccc   c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
+      c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
+ccc   c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
+      c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
+      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
+      c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
+      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+ccc   c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
+      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
 c
-      dsiglocdt=c2p(prs)+c5p(prs)*s+
-     &    2.*t*(c4p(prs)+c7p(prs)*s+1.5*c6p(prs)*t)
+      dsiglocdt=c2p+s*(c5p+c9p*s)+2.*t*(c4p+c7p*s+1.5*c6p*t)	!  SI c9
       return
       end
 c
@@ -235,16 +227,18 @@ c
       implicit none
       include 'state_eqn.h'
 c
-      real t,s,prs,c3p,c5p,c7p
-ccc   c1p(prs)=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
-ccc   c2p(prs)=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
-      c3p(prs)=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
-ccc   c4p(prs)=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
-      c5p(prs)=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
-ccc   c6p(prs)=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
-      c7p(prs)=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+      real t,s,prs,c3p,c5p,c7p,c8p,c9p
+ccc   c1p=alphap(1)+1.e-5*prs*(betap(1)+1.e-5*prs*gammap(1))
+ccc   c2p=alphap(2)+1.e-5*prs*(betap(2)+1.e-5*prs*gammap(2))
+      c3p=alphap(3)+1.e-5*prs*(betap(3)+1.e-5*prs*gammap(3))
+ccc   c4p=alphap(4)+1.e-5*prs*(betap(4)+1.e-5*prs*gammap(4))
+      c5p=alphap(5)+1.e-5*prs*(betap(5)+1.e-5*prs*gammap(5))
+ccc   c6p=alphap(6)+1.e-5*prs*(betap(6)+1.e-5*prs*gammap(6))
+      c7p=alphap(7)+1.e-5*prs*(betap(7)+1.e-5*prs*gammap(7))
+      c8p=alphap(8)+1.e-5*prs*(betap(8)+1.e-5*prs*gammap(8))
+      c9p=alphap(9)+1.e-5*prs*(betap(9)+1.e-5*prs*gammap(9))
 c
-      dsiglocds=c3p(prs)+t*(c5p(prs)+t*c7p(prs))
+      dsiglocds=c3p+2*s*(c8p+c9p*t)+t*(c5p+t*c7p)                       ! SI c9
       return
       end
 c

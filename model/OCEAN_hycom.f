@@ -12,7 +12,7 @@
       USE HYCOM_SCALARS, only : delt1, salmin
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
-     &  , diapyn, diapyc, jerlv0
+     &  , diapyn, diapyc, jerlv0, thkdff
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
      .  , diag_counter,itest_trac,jtest_trac
@@ -66,6 +66,7 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       call sync_param( "diapyn", diapyn)
       call sync_param( "diapyc", diapyc)
       call sync_param( "jerlv0", jerlv0)
+      call sync_param( "thkdff", thkdff)
 
 #ifdef TRACERS_OceanBiology
       call obio_forc_init

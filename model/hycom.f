@@ -138,7 +138,7 @@ c
 c
       integer, parameter :: INT_HOURS_PER_YEAR = INT_HOURS_PER_DAY *
      &                                           INT_DAYS_PER_YEAR
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1,nt
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
@@ -515,13 +515,16 @@ c
         chk_rho=36.876732          ! using Jackett and McDougall (1995)
 css     chk_rho=36.878687          ! using Wright (1997)
         chk_kap=0.03461997
+      elseif (pref.eq.1.e7) then
+        chk_rho=32.3834
+        chk_kap=0.
       elseif (pref.eq.0.) then
         chk_rho=27.786223
       else
         stop 'wrong pref'    ! proper mpi_abort
       endif
 c
-      if (abs(sigocn(4.,35.)-chk_rho).gt..0001) then
+      if (abs(sigocn(4.,35.)-chk_rho) .gt. .001) then
       if (AM_I_ROOT())
      & write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
      . chk_rho,', not',sigocn(4.,35.)
