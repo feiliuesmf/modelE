@@ -138,7 +138,7 @@ c
 c
       integer, parameter :: INT_HOURS_PER_YEAR = INT_HOURS_PER_DAY *
      &                                           INT_DAYS_PER_YEAR
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1,nt
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
