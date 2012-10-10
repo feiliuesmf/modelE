@@ -44,26 +44,39 @@ sub compileRundeck
 
   my $compiler = $env->{COMPILER};
   my $rundeck  = $env->{RUNDECK};
-  my $branch   = $env->{BRANCH};
   my $configuration = $env -> {CONFIGURATION};
-
-  my $resultsDir = $env -> {RESULTS_DIRECTORY};
-  $resultsDir .="/$compiler";
- 
-  my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
-  $flags =~ s/(\$npes)/1/eeg;
-
-  my $MODELERC = $env->{MODELERC};
 
   my $expName;
   if (@_) {$expName = shift}
   else {$expName = "$rundeck.$configuration.$compiler"};
 
+  my $branch   = $env->{BRANCH};
+  my $debugFlags = $env -> {DEBUGFLAGS};
+
+  my $resultsDir = $env -> {RESULTS_DIRECTORY};
+  $resultsDir .="/$compiler";
+  my $MODELERC = $env->{MODELERC};
+ 
+  my $flags;
+  if ($debugFlags eq 'N')
+  {
+    $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
+  }
+  else
+  {
+    my $dFlags;
+    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback\""; }
+    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace\""; }
+    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline\""; }
+    $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler} EXTRA_FFLAGS=$dFlags";
+  }
+  $flags =~ s/(\$npes)/1/eeg;
+
   my $logFile = "$resultsDir/$expName.buildlog";
   unlink($logFile); # delete it
 
   my $commandString;
-  if ($rundeck =~ m/AR5/) 
+  if ($rundeck =~ m/^(E_AR5)/i)
   { 
     $commandString = <<EOF;
     export MODELERC=$MODELERC;
@@ -79,14 +92,17 @@ EOF
     export MODELERC=$MODELERC;
     cd $installDir/decks;
     make rundeck RUN=$expName RUNSRC=$rundeck;
-    make vclean RUN=$expName;
+    make clean RUN=$expName;
     make -j gcm RUN=$expName $flags COMPILER=$compiler;
 EOF
   }
 
+
   my $binDir = $expName . "_bin";
   print "compileRundeck: $commandString \n";
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", 
+          STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, 
+          MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
 }
 
 # -----------------------------------------------------------------------------
@@ -100,15 +116,31 @@ sub runConfiguration
   my $rundeck   = $env->{RUNDECK};
   my $branch    = $env->{BRANCH};
   my $configuration = $env->{CONFIGURATION};
+  my $debugFlags = $env -> {DEBUGFLAGS};
+  my $duration = $env -> {DURATION};
   my $resultsDir = $env->{RESULTS_DIRECTORY};
   $resultsDir .="/$compiler";
+  my $expName = "$rundeck.$configuration.$compiler";
+  my $MODELERC = $env->{MODELERC};
 
   print "BRANCH: $branch \n";
+  print "DURATION: $duration \n";
   print "resultsDir: $resultsDir \n";
 
-  my $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
-  $flags =~ s/(\$npes)/$npes/eeg;
-  my $expName = "$rundeck.$configuration.$compiler";
+  my $flags;
+  if ($debugFlags eq 'N')
+  {
+    $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler}";
+  }
+  else
+  {
+    my $dFlags;
+    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback\""; }
+    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace\""; }
+    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline\""; }
+    $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler} EXTRA_FFLAGS=$dFlags";
+  }
+  $flags =~ s/(\$npes)/1/eeg;
 
   my $suffix;
   my $mpiArgs;
@@ -124,54 +156,68 @@ sub runConfiguration
     $suffix = ".np=$npes";
     $mpiArgs = "-np $npes";
   }
-    
-  my $MODELERC = $env->{MODELERC};
-
   my $run1hr;
   my $run1dy;
-  if ($rundeck =~ m/AR5/) 
-  {
-    $run1hr = "export MODELERC=$MODELERC; make -f new.mk rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -f new.mk -j setup RUN=$expName $flags; ../exec/runE_new $expName -np $npes -cold-restart; rm -f $expName/run_status";
-    $run1dy = "export MODELERC=$MODELERC; $installDir/exec/editRundeck.sh $expName 48 2 1; make -f new.mk -j setup RUN=$expName $flags; ../exec/runE_new $expName -np $npes -cold-restart; rm -f $expName/run_status";
+  my $restart;
+  my $runCustom;
+  if ($duration == 0) 
+  {  
+    $run1hr = createMakeCommand($env, $expName, $npes, $flags, 2);
+    $run1dy = createMakeCommand($env, $expName, $npes, $flags, 48);
+    $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
   }
-  else 
+  else
   {
-    $run1hr = "export MODELERC=$MODELERC; make rundeck RUN=$expName RUNSRC=$rundeck OVERWRITE=YES; make -j setup RUN=$expName $flags; ../exec/runE $expName -np $npes -cold-restart; rm -f $expName/run_status";
-    $run1dy = "export MODELERC=$MODELERC; $installDir/exec/editRundeck.sh $expName 48 2 1; make -j setup RUN=$expName $flags; ../exec/runE $expName -np $npes -cold-restart; rm -f $expName/run_status";
-  }
-  my $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
-
-  if ($configuration eq "MPI" or $configuration eq "OPENMP") 
-  {
-    $continue1Day = "./$expName -np $npes ";
+    $runCustom = createMakeCommand($env, $expName, $npes, $flags, $duration,);
   }
 
-
-  my $commandString = <<EOF;
-  export MODELERC=$MODELERC;
-  cd $installDir/decks;
-  rm -f $expName/fort.2.nc;
-  $run1hr;
-  if [ -e $expName/fort.2.nc ]; then
-    cp $expName/fort.2.nc $resultsDir/$expName.1hr$suffix;
-  else
-    exit 1;
-  fi
-  $run1dy;
-  if [ -e $expName/fort.1.nc ]; then
-    cp $expName/fort.1.nc $resultsDir/$expName.1dy$suffix;
-  else
-    exit 1;
-  fi
-  $restart;
-  if [ -e $expName/fort.2.nc ]; then
-    cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
-  else
-    exit 1;
-  fi
+  # Create a run command
+  my $commandString;
+  if ($duration == 0) 
+  {  
+    $commandString = <<EOF;
+    export MODELERC=$MODELERC;
+    cd $installDir/decks;
+    rm -f $expName/fort.2.nc;
+    $run1hr;
+    if [ -e $expName/fort.2.nc ]; then
+      cp $expName/fort.2.nc $resultsDir/$expName.1hr$suffix;
+    else
+      exit 1;
+    fi
+    $run1dy;
+    if [ -e $expName/fort.1.nc ]; then
+      cp $expName/fort.1.nc $resultsDir/$expName.1dy$suffix;
+    else
+      exit 1;
+    fi
+    $restart;
+    if [ -e $expName/fort.2.nc ]; then
+      cp $expName/fort.2.nc $resultsDir/$expName.restart$suffix;
+    else
+      exit 1;
+    fi
 EOF
-  print "runConfiguration: $commandString \n";
-  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
+  }
+  else
+  {
+    $commandString = <<EOF;
+    export MODELERC=$MODELERC;
+    cd $installDir/decks;
+    rm -f $expName/fort.2.nc;
+    $runCustom;
+    if [ -e $expName/fort.2.nc ]; then
+      cp $expName/fort.2.nc $resultsDir/$expName.$duration;
+    else
+      exit 1;
+    fi
+EOF
+  }
+
+  print "runConfiguration: $commandString\n";
+  return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", 
+          STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, 
+          COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
 }
 
 # -----------------------------------------------------------------------------
@@ -179,7 +225,6 @@ sub writeModelErcFile
 {
   my $env = shift;
   my $modelerc = $env->{MODELERC};
-  #print "2) COMPILER: $env->{COMPILER}\n";
   my $commandString .= "mkdir -p $env->{SCRATCH_DIRECTORY}/$env->{COMPILER}\n"; 
   $commandString .= "rm $modelerc\n";
   
@@ -209,5 +254,60 @@ EOF
   print "gitCheckout: $commandString\n";
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
+
+# -----------------------------------------------------------------------------
+sub createMakeCommand
+{
+  my $env = shift;
+  my $exp = shift;
+  my $npes = shift;
+  my $flags = shift;
+  my $time = shift;
+
+  my $deck = $env->{RUNDECK};
+  my $rc = $env->{MODELERC};
+  if ($time == 2 || $time == 48 ) 
+  {
+    if ($deck =~ m/^(E_AR5)/i)
+    {
+      return ("export MODELERC=$rc; 
+             ../exec/editRundeck.sh $exp $time 2 1;
+             make -f new.mk rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES; 
+             make -f new.mk -j setup RUN=$exp $flags; 
+             ../exec/runE_new $exp -np $npes -cold-restart; 
+             rm -f $exp/run_status")
+    }
+    else
+    {
+      if ($time == 2) {
+        return ("export MODELERC=$rc; 
+           make rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES;  
+           make -j setup RUN=$exp $flags; 
+           ../exec/runE $exp -np $npes -cold-restart; 
+           rm -f $exp/run_status")
+      }
+      else {
+        return ("export MODELERC=$rc; 
+           make rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES;  
+           ../exec/editRundeck.sh $exp $time 2 1; 
+           make -j setup RUN=$exp $flags; 
+           ../exec/runE $exp -np $npes -cold-restart; 
+           rm -f $exp/run_status")
+      }
+    }
+  }
+  else
+  {
+      my $date = $time / 48;
+      return ("export MODELERC=$rc; 
+           make rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES;  
+           ../exec/editRundeck.sh $exp $time $date 0; 
+           make -j setup RUN=$exp $flags; 
+           ../exec/runE $exp -np $npes -cold-restart; 
+           rm -f $exp/run_status")
+  }
+
+}
+
 1;
 

@@ -178,22 +178,26 @@ sub saveForDiffreport()
    if ($@) {
       print "Failed to load, because : $@"
    }
+# Loop over configurations to get rundecks
+  foreach my $deck ( keys %configurations )  {
+    push (@rundecks, $deck);
+  }
 
-   my $rsize = scalar @decks;
-   my $csize = scalar @comps;
+   my $rsize = scalar @rundecks;
+   my $csize = scalar @compilers;
 
    my $file =  $env->{GIT_CLONE} . "/exec/testing/" . "." . "$cfgFile";
    open (FH, "> $file") or die "Can't open $file for write: $!";
    my $i = 0;
    while($i < $rsize)
    {
-      print FH "DECK=$decks[$i]\n";
+      print FH "DECK=$rundecks[$i]\n";
       $i++;
    }
    $i = 0;
    while($i < $csize)
    {
-      print FH "COMPILER=$comps[$i]\n";
+      print FH "COMPILER=$compilers[$i]\n";
       $i++;
    }   
    print FH "LEVEL=$level\n";
