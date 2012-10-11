@@ -9,7 +9,7 @@
   var filename="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 
   // or, if it is installed locally, set a local path to it
-  //  var filename1="/opt/mathjax/mathjax-MathJax-07669ac/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+  //  var filename="/opt/mathjax/mathjax-MathJax-07669ac/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 
   var head = document.getElementsByTagName('head')[0];
   var script = document.createElement('script');
