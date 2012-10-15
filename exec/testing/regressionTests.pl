@@ -16,113 +16,114 @@ if ($num_args != 1) {
 $cfgFile = $ARGV[0];
 print "Configuration file name: $cfgFile\n";
 
-# This is the LOG file.
-open(LOG,">modelETests.log", O_RDWR|O_CREAT, 0664); 
-
-# Get rundecks, compiler, level settings from configuration file
+# Get configurations and other options from configuration file
 eval { require "$cfgFile"};
 if ($@) {
-    print "Failed to load, because : $@"
+  print "Failed to load, because : $@"
 }
-# get references to configuration file options:
-my $compilers = \@comps;
-my $rundecks = \@decks;
+
+# Create references to local variables
 my $branch = $gitbranch;
 my $cleanScratch = $doCleanScratch;
 
-# get ENVironmental variables and initialize other settings for this run
+# Initialize local data structures
 my $env = {};
+my $resolutions = {};
+my $useCases = {};
+my $numProcesses = {};
+my @rundecks;
 
 $env->{BRANCH} = $branch;
 $env = setupENVvariables($env);
 
-foreach $compiler (@$compilers) 
+foreach $compiler (@compilers) 
 {
-   $env->{$compiler} = getEnvironment($env, $compiler, $branch);
+  $env->{$compiler} = getEnvironment($env, $compiler, $branch);
+  $env->{$compiler}->{BRANCH} = $branch;
 }
 
 # Save settings for diffreport
 &saveForDiffreport($env, $cfgFile);
 
-my $resolutions = {};
-# HEAD rundecks
-$resolutions->{E_AR5_C12} = "8x10";
-$resolutions->{E4TcadC12} = "8x10";
-$resolutions->{EM20} = "4x5";
-$resolutions->{E1oM20} = "4x5";
-$resolutions->{E4F40} = "2x2.5";
-$resolutions->{E4TcadF40} = "2x2.5";
-$resolutions->{E4TcadiF40} = "2x2.5";
-$resolutions->{E4arobio_h4c} = "2x2.5";
-$resolutions->{E4arobio_g6c} = "2x2.5";
-$resolutions->{SCMSGPCONT} = "0"; # single column model 
-$resolutions->{E4C90L40} = "CS"; # cubed sphere
-# AR5 rundecks
-$resolutions->{E_AR5_CADI} = "2x2.5";
+# Resolution identifiers for rundeck suite
+$resolutions->{nonProduction_E4TcadC12} = "8x10";
+$resolutions->{nonProduction_E_AR5_C12} = "8x10";
+$resolutions->{EM20}                    = "4x5";
+$resolutions->{E1oM20}                  = "4x5";
+$resolutions->{E4F40}                   = "2x2.5";
+$resolutions->{E4TcadF40}               = "2x2.5";
+$resolutions->{E4TcadiF40}              = "2x2.5";
+$resolutions->{E4arobio_h4c}            = "2x2.5";
+$resolutions->{E4arobio_g6c}            = "2x2.5";
+$resolutions->{E_AR5_CADI}              = "2x2.5";
+$resolutions->{SCMSGPCONT}              = "0"; # single column model 
+$resolutions->{E4C90L40}                = "CS";  # cubed sphere
 
-my $numProcesses = {};
-
-$numProcesses->{"0"}->{GENTLE}     = [];
-$numProcesses->{"0"}->{AGGRESSIVE} = [];
-$numProcesses->{"0"}->{INSANE}     = [];
-
-$numProcesses->{"CS"}->{GENTLE}     = [6];
-$numProcesses->{"CS"}->{AGGRESSIVE} = [6,48];
-$numProcesses->{"CS"}->{INSANE}     = [6,84];
-
-$numProcesses->{"8x10"}->{GENTLE}     = [4];
-$numProcesses->{"8x10"}->{AGGRESSIVE} = [1,4,12];
-$numProcesses->{"8x10"}->{INSANE}     = [1,4,22];
-
-$numProcesses->{"4x5"}->{GENTLE}     = [4];
-$numProcesses->{"4x5"}->{AGGRESSIVE} = [1,4,23];
-$numProcesses->{"4x5"}->{INSANE}     = [1,4,23,44];
-
+# numProcesses is resolution based (Note that domain decomposition is along y)  
+$numProcesses->{"8x10"}->{GENTLE}      = [4];
+$numProcesses->{"8x10"}->{AGGRESSIVE}  = [1,4,12];
+$numProcesses->{"8x10"}->{INSANE}      = [1,4,22];
+$numProcesses->{"4x5"}->{GENTLE}       = [4];
+$numProcesses->{"4x5"}->{AGGRESSIVE}   = [1,4,23];
+$numProcesses->{"4x5"}->{INSANE}       = [1,4,23,44];
 $numProcesses->{"2x2.5"}->{GENTLE}     = [8];
 $numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,45];
 $numProcesses->{"2x2.5"}->{INSANE}     = [1,8,45,88];
+$numProcesses->{"0"}->{GENTLE}         = [];
+$numProcesses->{"0"}->{AGGRESSIVE}     = [];
+$numProcesses->{"0"}->{INSANE}         = [];
+$numProcesses->{"CS"}->{GENTLE}        = [6];
+$numProcesses->{"CS"}->{AGGRESSIVE}    = [6,48];
+$numProcesses->{"CS"}->{INSANE}        = [6,84];
 
-my $useCases = {};
-foreach my $rundeck (@$rundecks) 
-{
-  $useCases->{$rundeck}->{COMPILERS} = $compilers;
-  if ($rundeck =~ m/C90/ || $rundeck =~ m/AR5/) 
+# Loop over configurations and copy into local arrays
+foreach my $deck ( keys %configurations )  {
+  $cnt=0;  
+  foreach my $cfg ( @{$configurations{$deck}} )  
   {
-    $useCases->{$rundeck}->{CONFIGURATIONS} = ["MPI"];
-  }
-  else 
-  {
-    $useCases->{$rundeck}->{CONFIGURATIONS} = ["SERIAL","MPI"];
-  }
-  $useCases->{$rundeck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$rundeck}}->{$level};
-  $useCases->{$rundeck}->{DURATIONS} = ["1hr","1dy","restart"];
-}
-
-# Override anything else here
-$useCases->{"SCMSGPCONT"}->{CONFIGURATIONS} = ["SERIAL"];
-
-foreach my $rundeck (@$rundecks) 
-{ 
-  foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
-  {
-    $env->{$compiler}->{BRANCH} = $branch;
-  }
+    $cnt=$cnt+1;
+    if ($cnt == 1) {
+      if ($cfg eq 'S') {
+        $useCases->{$deck}->{CONFIGURATIONS} = ["SERIAL"];
+      }
+      elsif ($cfg eq 'M') {
+        $useCases->{$deck}->{CONFIGURATIONS} = ["MPI"];
+      }
+      elsif ($cfg eq 'B') {
+        $useCases->{$deck}->{CONFIGURATIONS} = ["SERIAL", "MPI"];
+      }
+      else {
+        $useCases->{$deck}->{CONFIGURATIONS} = ["MPI"];
+      }
+    }
+    elsif ($cnt == 2) {
+      $useCases->{$deck}->{DURATION} = $cfg;
+    }
+    elsif ($cnt == 3) {
+      $useCases->{$deck}->{DEBUGFLAGS} = $cfg;
+    }
+  }   
+  $useCases->{$deck}->{NUM_MPI_PROCESSES} = $numProcesses->{$resolutions->{$deck}}->{$level};
+  push (@rundecks,$deck);
 }
 
 # Create a new command pool:
 my $pool = CommandPool->new();
 
+# Create a "clean scratch space" command
 # If we are running ALL the tests at the same time we probably want to clean up 
 # the scratch space
 if ($cleanScratch eq 'YES') {
   my $clean = CommandEntry->new({COMMAND => "rm -rf *.o[0-9]* *.diff $env->{SCRATCH_DIRECTORY}/* $env->{RESULTS_DIRECTORY}/*/*;"});
   $pool->add($clean);
 }
+
+# git checkout command
 my $git = CommandEntry->new(gitCheckout($env)); # Compiler is not important here
 $pool->add($git);
 
-
-foreach $compiler (@$compilers) 
+# Write .modelErc command
+foreach $compiler (@compilers) 
 {
   $pool->add(writeModelErcFile($env->{$compiler}));
   unless (-d $env->{$compiler}->{RESULTS_DIRECTORY}."/$compiler") 
@@ -131,21 +132,27 @@ foreach $compiler (@$compilers)
   }
 }
 
-print "Loop over all configurations...\n";
 my $reference = "$env->{SCRATCH_DIRECTORY}" . "/$branch";
 
-foreach my $rundeck (@$rundecks) 
+print "Loop over all configurations...\n";
+foreach my $rundeck (@rundecks) 
 { 
-  foreach $compiler (@{$useCases->{$rundeck}->{COMPILERS}}) 
+  foreach $compiler (@compilers) 
   {
-    if ($compiler eq 'nag') {
+    if ($compiler eq 'nag') 
+    {
       $ENV{PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{PATH};
       $ENV{LD_LIBRARY_PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{LD_LIBRARY_PATH};
     }
+
     $env->{$compiler}->{RUNDECK} = $rundeck;
+
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
     {
+
       $env->{$compiler}->{CONFIGURATION} = $configuration;
+      $env->{$compiler}->{DEBUGFLAGS} = $useCases->{$rundeck}->{DEBUGFLAGS};
+      $env->{$compiler}->{DURATION} = $useCases->{$rundeck}->{DURATION};
       my $tempDir="$env->{SCRATCH_DIRECTORY}/$compiler/$rundeck.$configuration";
 
       my $copy  = createTemporaryCopy($reference, $tempDir, $branch);
@@ -165,9 +172,9 @@ foreach my $rundeck (@$rundecks)
       }
       foreach my $npes (@peList) 
       {
-	my $run = runConfiguration($env->{$compiler}, $tempDir, $npes);
-	$pool->add($run, $previous, $compiler);
-	$previous = $run;
+        my $run = runConfiguration($env->{$compiler}, $tempDir, $npes);
+        $pool->add($run, $previous, $compiler);
+        $previous = $run;
       }
     }
   }

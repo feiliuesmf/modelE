@@ -19,15 +19,45 @@ CONFIG=regTest
 # Create a configuration file for this run:
 rm -f $CONFIG.cfg
 cat << EOF > $CONFIG.cfg
-# decks arrays lists the rundecks to test:
-@decks = ('EM20', 'E1oM20','E4TcadF40','E4F40','E4arobio_h4c','E4arobio_g6c');
-# Git branch:
+# The configurations hash consists of a rundeck and its associated options
+# Format is as follows: rundeck => [options], where rundeck is a rundeck that
+# belongs to the rundeck suite and [options] are entered in the following
+# order:
+#   [options] = mode, <durations array>, debug
+#   where
+#     mode         : S(SERIAL), M(MPI), B(BOTH)
+#     durations    : If it equals to 0 (default) then it runs for 
+#                    1hr+1dy+restart (used for testing)
+#                    Else entry it runs for the specified time 
+#                    (in model time-steps, e.g. 96=2dy, 1440=1mo)
+#    debug option  : Y or N (allows for compilation with debug flags)
+
+%configurations = ( 'EM20'   => ['B',0,'N'],
+                    'E1oM20' => ['B',0,'N'] );
+
+#                    'E4F40'     => ['B',0,'N']
+#                    'E4TcadF40' => ['M',0,'N']
+#                    'E4arobio_g6c' => ['M',0,'N']
+#                    'E4arobio_h4c' => ['M',0,'N']
+#                    'E4C90L40' => ['M',0,'N']
+#                    'SCMSGPCONT' => ['S',0,'N']
+#                    'E_AR5_CADI' => ['M',0,'N']
+#                    'nonProduction_E4TcadC12' => ['B',1440,'N']
+#                    'nonProduction_E_AR5_C12' => ['B',1440,'N']
+#                    'E1oM20' => ['M',0,'N']
+
+# Specify the compilers to use: intel, gfortran, nag
+@compilers = ('intel','gfortran');
+
+# Git branch to clone and test:
 \$gitbranch = 'master';
-# comps arrays specifies the compilers to use:
-@comps = ('intel', 'gfortran');
-# This specifies the test level. Other options are AGGRESSIVE and INSANE
+
+# This specifies the test level. Other options are AGGRESSIVE and INSANE. 
+# Since modelE domain decomposition is along latitudinal direction the
+# different options vary the number of PEs as a function of NLATS.
 \$level = 'GENTLE';
-# Do we want to clean up the scratch space?
+
+# Do we want to clean up the scratch space? Generally yes.
 \$doCleanScratch = 'YES';
 EOF
 
