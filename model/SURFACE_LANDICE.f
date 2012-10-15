@@ -548,8 +548,8 @@ cccccc for SCM use ARM provided fluxes for designated box
       ! demo diagnostic: a PBL output
       ijhc(i,j,ihc,ijhc_tsurf) = ijhc(i,j,ihc,ijhc_tsurf)
      &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
-!      ijhc(i,j,ihc,ijhc_tsli) = ijhc(i,j,ihc,ijhc_tsli)
-!     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
+      ijhc(i,j,ihc,ijhc_tsli) = ijhc(i,j,ihc,ijhc_tsli)
+     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
 
 C****
 
@@ -580,7 +580,7 @@ C****
       use exchange_types, only : atmgla_xchng_vars
 
       ! Stuff needed for downscaling
-      use landice_com, only : elevhc
+      use landice_com, only : elevhc, HC_T_LAPSE_RATE
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
@@ -692,12 +692,12 @@ c
            ! (reference pressure = 1mb = 1hPa)
            atmglaT_K = atmgla%TEMP1(i,j) * atmgla%SRFPK(i,j)
 
-           ! Downscale temperature, 8K/km
+           ! Downscale temperature, 8K/km (.008 K/m)
            zdiff = elevhc(i,j,ipatch) - zatmo(i,j)/Grav
-           iglaT_K = atmglaT_K - zdiff * .008d0
+           iglaT_K = atmglaT_K - zdiff * HC_T_LAPSE_RATE
 
            ! Convert back to potential temperature
-           igla%TEMP1(i,j) = iglaT_K / atmgla%SRFPK(i,j)
+           igla%TEMP1(i,j) = iglaT_K / igla%SRFPK(i,j)
            ! ----------------------------------
 
            ! Scale Q1 (kg/kg mixing ratio) assuming constant

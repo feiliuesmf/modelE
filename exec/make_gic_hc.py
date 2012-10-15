@@ -281,43 +281,45 @@ def test3_hc(topo, ncgic, nhc) :
 
 	return ovars
 # -------------------------------------------------------------
-# @return .mask2, .elevation2, .sd, .n1
-def read_searise_ice(overlap_fname, searise_fname, n1) :
-	ret = {}
-
-	# =============== Read stuff from ice grid (mask2, elevation2)
-	# fname = os.path.join(data_root, 'searise/Greenland_5km_v1.1.nc')
-	print 'Opening ice data file %s' % searise_fname
-	searise_nc = netCDF4.Dataset(searise_fname)
-	mask2 = get_landmask(searise_nc)
-	ret['mask2'] = mask2
-	topg = np.array(searise_nc.variables['topg'], dtype='d').flatten('C')
-	thk = np.array(searise_nc.variables['thk'], dtype='d').flatten('C')
-	elevation2 = topg + thk
-	ret['elevation2'] = elevation2
-	searise_nc.close()
-
-	# ========= Set up height class categories
-	tops = np.array([200,400,700,1000,1300,1600,2000,2500,3000,10000], dtype='d')
-#	tops = np.array([10000], dtype='d')
-	nhc = tops.shape[0]
-	height_max1 = np.tile(tops, (n1,1))		# Produces an n1 x nhc array
-
-	# ================ Read overlap matrix
-	# See p. 14 of "The CESM Land Ice Model: Documentation and User's Guide"
-	# by William Lipscomb (June 2010)
-	print 'overlap_fname = %s' % overlap_fname
-	sd = snowdrift.Snowdrift(overlap_fname)
-	sd.init(elevation2, mask2, height_max1)
-	grid1 = sd.grid1()
-	print 'Loaded grid1, n1=%d' % grid1.n
-
-	ret['nhc'] = nhc
-	ret['sd'] = sd
-	ret['grid1'] = grid1
-#	ret['n1'] = grid1.n1
-
-	return giss.util.Struct(ret)
+# This is moved to giss.snowdrift package
+# # @return .mask2, .elevation2, .sd, .n1
+# def read_searise_ice(overlap_fname, searise_fname, n1) :
+# 	ret = {}
+# 
+# 	# =============== Read stuff from ice grid (mask2, elevation2)
+# 	# fname = os.path.
+# # oin(data_root, 'searise/Greenland_5km_v1.1.nc')
+# 	print 'Opening ice data file %s' % searise_fname
+# 	searise_nc = netCDF4.Dataset(searise_fname)
+# 	mask2 = get_landmask(searise_nc)
+# 	ret['mask2'] = mask2
+# 	topg = np.array(searise_nc.variables['topg'], dtype='d').flatten('C')
+# 	thk = np.array(searise_nc.variables['thk'], dtype='d').flatten('C')
+# 	elevation2 = topg + thk
+# 	ret['elevation2'] = elevation2
+# 	searise_nc.close()
+# 
+# 	# ========= Set up height class categories
+# 	tops = np.array([200,400,700,1000,1300,1600,2000,2500,3000,10000], dtype='d')
+# #	tops = np.array([10000], dtype='d')
+# 	nhc = tops.shape[0]
+# 	height_max1 = np.tile(tops, (n1,1))		# Produces an n1 x nhc array
+# 
+# 	# ================ Read overlap matrix
+# 	# See p. 14 of "The CESM Land Ice Model: Documentation and User's Guide"
+# 	# by William Lipscomb (June 2010)
+# 	print 'overlap_fname = %s' % overlap_fname
+# 	sd = snowdrift.Snowdrift(overlap_fname)
+# 	sd.init(elevation2, mask2, height_max1)
+# 	grid1 = sd.grid1()
+# 	print 'Loaded grid1, n1=%d' % grid1.n
+# 
+# 	ret['nhc'] = nhc
+# 	ret['sd'] = sd
+# 	ret['grid1'] = grid1
+# #	ret['n1'] = grid1.n1
+# 
+# 	return giss.util.Struct(ret)
 
 # -------------------------------------------------------------------
 def get_landmask(searise_nc) :
@@ -377,10 +379,17 @@ def overlap_hc(overlap_fname, topo, ncgic, nhc) :
 
 	# ========== Initialize FHC and related arrays
 	# These will have nan off-ice-sheet
-	fch1h = np.zeros((nhc, n1))
-	fch1h[:] = np.nan
-	elev1h = np.zeros((nhc, n1))
-	elev1h[:] = np.nan
+	fhc1h = np.zeros((nhc, n1))
+#	fhc1h[:] = np.nan
+	fhc1h[:] = 0
+	fhc1h[0,:] = 1
+
+	elev1hxy = np.zeros((nhc, jm, im))
+	for ihc in range(0,nhc) :
+		elev1hxy[ihc,:,:] = zatmo_t[0][:,:]
+	elev1h = elev1hxy.reshape((nhc,n1))
+#	elev1h = np.zeros((nhc, n1))
+#	elev1h[:] = np.nan
 
 	# These will have a value everywhere, defaulting to value
 	# read from ModelE data files.
@@ -392,23 +401,23 @@ def overlap_hc(overlap_fname, topo, ncgic, nhc) :
 #	print '*******************',fgice_od.dtype, fgice1.dtype
 
 	# ========== Add in FHC, etc. for Greenland grid
-	greenland = read_searise_ice(overlap_fname, os.path.join(data_root, 'searise/Greenland_5km_v1.1.nc'), n1)
+	greenland = giss.snowdrift.read_searise_ice(overlap_fname, os.path.join(data_root, 'searise/Greenland_5km_v1.1.nc'), n1)
 	if (n1 != greenland.grid1.n) :
 		raise Exception('Greenland file has different GCM grid size than GCM files: %d vs %d' % (greenland.grid1.n, n1))
-	greenland.sd.compute_fhc(fch1h, elev1h, fgice1)
+	greenland.sd.compute_fhc(fhc1h, elev1h, fgice1)
 
 	# ========== Add in FHC, etc. for Antarctica grid
 
 	
 
 	# ============ Convert to (im, jm) format and store away
-	if np.not_equal(np.isnan(fch1h), np.isnan(elev1h)).any() :
-		raise Exception('Sanity Check: Nan extents differ on fch1h vs. elev1h')
-	fch1hxy = fch1h.reshape((nhc, jm,im))
+#	if np.not_equal(np.isnan(fhc1h), np.isnan(elev1h)).any() :
+#		raise Exception('Sanity Check: Nan extents differ on fhc1h vs. elev1h')
+	fhc1hxy = fhc1h.reshape((nhc, jm,im))
 	elev1hxy = elev1h.reshape((nhc, jm,im))
 	fgice1xy = fgice1.reshape((jm,im))
 #	fgice1xy[:,:] = fgice_t[0][:,:]		# TEMP
-	ovars['fhc'] = (fch1hxy, ovars['snowli'][1], 'f8')
+	ovars['fhc'] = (fhc1hxy, ovars['snowli'][1], 'f8')
 	ovars['elevhc'] = (elev1hxy, ovars['snowli'][1], 'f8')
 	ovars['fgice'] = (fgice1xy, fgice_t[1], 'f8')
 
@@ -426,7 +435,7 @@ def overlap_hc(overlap_fname, topo, ncgic, nhc) :
 	ovars['fgrnd'] = (fgrnd, fgrnd_t[1], 'f8')
 
 	# ======= Compute zatmo and merge into existing
-	zatmo1xy = np.nansum(fch1hxy * elev1hxy, 0)
+	zatmo1xy = np.nansum(fhc1hxy * elev1hxy, 0)
 	mask = np.logical_not(np.isnan(zatmo1xy))
 	zatmo = np.zeros(zatmo_t[0].shape)
 	zatmo[:,:] = zatmo_t[0][:,:]
@@ -434,7 +443,7 @@ def overlap_hc(overlap_fname, topo, ncgic, nhc) :
 	ovars['zatmo'] = (zatmo, zatmo_t[1], 'f8')
 
 	#np.set_printoptions(threshold='nan')
-	#print np.nansum(fch1hxy,0)		# SHOULD BE 1
+	#print np.nansum(fhc1hxy,0)		# SHOULD BE 1
 
 
 #	# =========== Store it away (temporary)
@@ -443,10 +452,10 @@ def overlap_hc(overlap_fname, topo, ncgic, nhc) :
 #	nc.createDimension('jm', jm)
 #	nc.createDimension('im', im)
 #	nc.createVariable('fhc', 'f8', ('nhc', 'jm', 'im'))
-#	nc.variables['fhc'][:] = fch1hxy[:]
+#	nc.variables['fhc'][:] = fhc1hxy[:]
 #	nc.close()
 #
-#	print 'fhc = ', fch1hxy[:,42,22]
+#	print 'fhc = ', fhc1hxy[:,42,22]
 #
 #
 #	# Check that dimensions in overlap matrix match with dimensions
@@ -472,3 +481,4 @@ class MyOverlapHC() :
 
 hcgic(TOPO_in, GIC_in, TOPO_out, GIC_out, MyOverlapHC(), 10)
 #hcgic(TOPO_in, GIC_in, TOPO_out, GIC_out, test3_hc, 3)
+#hcgic(TOPO_in, GIC_in, TOPO_out, GIC_out,  dummy_hc, 10)

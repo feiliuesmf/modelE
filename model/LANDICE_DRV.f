@@ -308,6 +308,7 @@ C****
       use LANDICE_COM, only : nhc
       use LANDICE_COM, only :
      &     ijhc_frac,ijhc_tsurf,
+     %     IJHC_SRFP,
      &     IJHC_PRECLI,  ! done
      &     IJHC_RUNLI,   ! done
      &     IJHC_EVAPLI,  ! done
@@ -318,13 +319,6 @@ C****
      &     IJHC_TRHDT,    ! done
      &     IJHC_IMPMLI,		! done GROUND_LI
      &     IJHC_IMPHLI		! done GROUND_LI
-
-!     &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
-!     &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_IMPMLI,IJHC_IMPHLI
-
-
-
-
 
       use DIAG_COM, only : ia_src,ia_srf,cdl_ij_template
 #ifdef CUBED_SPHERE
@@ -365,6 +359,14 @@ c
       scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
       denom_ijhc(k) = ijhc_frac
 c
+      k=k+1				! ijhc
+      ijhc_srfp = k
+      sname_ijhc(k) = 'srfp'
+      lname_ijhc(k) = 'surface air pressure'
+      units_ijhc(k) = 'hPa'
+      scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
+      denom_ijhc(k) = ijhc_frac
+c
       k=k+1 ! ijhc
       IJHC_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
       lname_ijhc(k) = 'PRECIPITATION OVER LAND ICE (HC)'
@@ -401,7 +403,7 @@ c
       k=k+1 ! ijhc
       IJHC_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
       lname_ijhc(k) = 'SURF AIR TEMP OVER LAND ICE (HC)'
-      units_ijhc(k) = 'C'
+      units_ijhc(k) = 'K'
       sname_ijhc(k) = 'tsurf_lndice'
       scale_ijhc(k) = 1.d0/DTsrc
       denom_ijhc(k) = ijhc_frac
@@ -648,6 +650,7 @@ C**** ACCUMULATE DIAGNOSTICS
       USE TimerPackage_mod, only: stopTimer => stop
       USE EXCHANGE_TYPES
       USE LANDICE_COM, only : ijhc
+      USE LANDICE_COM, only : IJHC_SRFP
       USE LANDICE_COM, only : IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT
       USE LANDICE_COM, only : IJHC_F0LI,IJHC_EVAPLI,IJHC_TSLI
       USE LANDICE_COM, only : IJHC_IMPMLI,IJHC_IMPHLI, IJHC_RUNLI
@@ -758,8 +761,8 @@ C**** ACCUMULATE DIAGNOSTICS
         ijhc(i,j,ihc,IJHC_EVAPLI)=ijhc(i,j,ihc,IJHC_EVAPLI) +
      &       atmgla%EVAPOR(I,J)
 
-        ijhc(i,j,ihc,IJHC_TSLI)=ijhc(i,j,ihc,IJHC_TSLI) +
-     &       atmgla%TSAVG(I,J)
+!        ijhc(i,j,ihc,IJHC_TSLI)=ijhc(i,j,ihc,IJHC_TSLI) +
+!     &       atmgla%TSAVG(I,J)
         ijhc(i,j,ihc,IJHC_IMPMLI)=ijhc(i,j,ihc,IJHC_IMPMLI) +
      &       atmgla%IMPLM(I,J)
         ijhc(i,j,ihc,IJHC_IMPHLI)=ijhc(i,j,ihc,IJHC_IMPHLI) +
@@ -767,6 +770,9 @@ C**** ACCUMULATE DIAGNOSTICS
 
         ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
      &        atmgla%RUNO(i,j)
+
+        ijhc(i,j,ihc,IJHC_SRFP)=ijhc(i,j,ihc,IJHC_SRFP) +
+     &        atmgla%SRFP(i,j)
 
       END IF
 

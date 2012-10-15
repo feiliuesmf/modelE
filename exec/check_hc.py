@@ -105,3 +105,8 @@ mask = np.isnan(zatmo_new)
 zatmo_new[mask] = zatmo[mask]
 print 'zatmo_new nans =', np.sum(np.isnan(zatmo_new))
 compare_old_new_relative(zatmo, zatmo_new, 'zatmo_new')
+
+# ==================================================
+# Check for nan in TLANDI
+tlandi = read_ncvar(gic_nc, 'tlandi')
+print 'tlandi has %d nans' % np.sum(np.isnan(tlandi))

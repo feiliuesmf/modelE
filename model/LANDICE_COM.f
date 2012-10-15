@@ -23,6 +23,7 @@
 
 !@var nhc number of height classes
       integer :: nhc=1
+      REAL*8 :: HC_T_LAPSE_RATE = .008		! Lapse rate to use in T downscaling, K/m
 !@fhc fraction of landice area in each height class (static for testing purposes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 
@@ -57,7 +58,7 @@
 #endif
 
 !@param kijhc number of ijhc accumulations
-      integer, parameter :: kijhc=11
+      integer, parameter :: kijhc=15
 !@var ijhc accumulations for glacial ice height-classified diagnostics
       real*8, dimension(:,:,:,:), allocatable :: ijhc
 !@var scale_ijhc scale factor for ijhc diagnostics
@@ -74,6 +75,7 @@
 !@var ijhc_xxx indices for accumulations
       integer ::
      &     ijhc_frac,ijhc_tsurf,
+     &     IJHC_SRFP,
      &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
      &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT,IJHC_IMPMLI,IJHC_IMPHLI
 
@@ -86,7 +88,7 @@
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
       Use LANDICE_COM, Only: NHC,FHC,SNOWLI,TLANDI, MDWNIMP,EDWNIMP,
-     *                       FSHGLM,FNHGLM, ELEVHC
+     *                       FSHGLM,FNHGLM, ELEVHC, HC_T_LAPSE_RATE
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : NTM
@@ -105,6 +107,7 @@
       INTEGER :: IER
 
       call sync_param("NHC",NHC)
+      call sync_param("HC_T_LAPSE_RATE", HC_T_LAPSE_RATE)
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
