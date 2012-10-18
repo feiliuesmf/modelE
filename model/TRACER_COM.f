@@ -835,8 +835,6 @@ C**** Aerosol specific switches and arrays
       integer :: OFFLINE_DMS_SS = 0
 !!@dbparam OFFLINE_SS is 0 for standard case, 1 for offline seasalt emission
       integer :: OFFLINE_SS = 0
-!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
-      integer :: imPI = 0
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
 !@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
