@@ -1333,7 +1333,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
       SUBROUTINE GET_SULFATE(L,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
-     *  tm,tmcl,airm,LHX,dt_sulf,fcld0)
+     *  tm,tmcl,airm,LHX,dt_sulf,fcld0,no_plume)
 
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
@@ -1394,6 +1394,9 @@ c     REAL*8,  INTENT(OUT)::
       real*8, dimension(ntm), intent(inout) :: dt_sulf
       real*8 finc,fcld0,temp
       INTEGER, INTENT(IN) :: L
+!@var NO_PLUME : false ==> TM is already TMP (TM in plume), so fcloud shouldn't 
+!@+   be applied tm (added by Yunha Lee, 2012)
+      LOGICAL NO_PLUME 
       do n=1,ntx
         sulfin(N)=0.
         sulfinc(N)=0.
@@ -1439,7 +1442,11 @@ c  cloud liquid water content
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(is)=tr_rkd(is)*(1.+ rk1f/3.2d-5)
 c mole of tracer, used to limit so4 production
-      trmol(is)=1000.*tm(l,isx)/tr_mm(is)*fcloud
+      if(no_plume)then
+        trmol(is)=1000.*tm(l,isx)/tr_mm(is)*fcloud
+      else
+        trmol(is)=1000.*tm(l,isx)/tr_mm(is)
+      endif
 c partial pressure of gas x henry's law coefficient
       pph(is)=mass2vol(is)*1.d-3*ppas/amass*
      *   tr_rkd(is)*exp(-tr_dhd(is)*tfac)
@@ -1468,7 +1475,11 @@ c dissolved moles
 c modified Henry's Law coefficient assuming pH of 4.5
       rkdm(ih)=tr_rkd(ih)
 c mole of tracer, used to limit so4 production
+      if(no_plume)then
       trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)*fcloud
+      else
+      trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)
+      endif
 c partial pressure of gas x henry's law coefficient
       pph(ih)=mass2vol(ih)*1.D-3*ppas/amass*
      *   tr_rkd(ih)*exp(-tr_dhd(ih)*tfac)

@@ -3989,6 +3989,15 @@ c put in chemical loss of SO2
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in sink of SO2 from aqueous chem
+        k = k + 1
+        ijts_aq(n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 aqueous chem sink'
+        sname_ijts(k) = 'SO2_aq_chem_sink'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c emissions of industrial SO2
         do kr=1,ntsurfsrc(n)
           k = k + 1
