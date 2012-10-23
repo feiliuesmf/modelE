@@ -21,7 +21,7 @@
       USE TRACER_COM, only: ntm, ef_fact3d, no_emis_over_ice
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
-      use TRACER_COM, only: imPI, aer_int_yr
+      use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
       USE TRACER_COM, only: tracers
@@ -409,8 +409,6 @@ C**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 C**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
-C**** decide if preindustrial emissions
-      call sync_param("imPI",imPI)
 C**** determine year of emissions
       call sync_param("aer_int_yr",aer_int_yr)
 #endif
