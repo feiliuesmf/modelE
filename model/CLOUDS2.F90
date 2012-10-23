@@ -4516,10 +4516,10 @@ contains
         FPRT=FPR
         do N=1,NTX
           DTQWT(N) = -FWTOQT(N)*TRWML(N,L)*(1.-FPRT)
-        enddo
           IF (WMX(L).eq.0.and.fwtoq.gt.0.9999)then !0.9999 is random choice - YUNHA
             DTQWT(N) = -TRWML(N,L)*(1.-FPRT)
           ENDIF
+        enddo
       else
         FWTOQT(1:NTX) = 0.
         DTQWT(1:NTX) = 0.
