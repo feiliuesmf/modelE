@@ -4,7 +4,6 @@ SOURCE_DIR = ../model
 DECKS_DIR = ../decks
 
 # List of all testable modelE components
-
 INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
 #LIBS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM)/lib$(ITEM).a)
@@ -42,6 +41,8 @@ ifeq ($(MPI),YES)
   MPIRUN := mpirun
   PFUNIT_NPES := 10
   PFUNIT_USE_MPI := YES
+  PFUNIT_MPI_HOSTFILE=--hostfile my-hostfile
+  export PFUNIT_MPI_HOSTFILE
 endif
 
 # Targets:
@@ -55,10 +56,9 @@ distclean:
 
 $(PFUNIT_TEST_EXECUTABLE) : $(LIBSAVAIL)
 
-ifeq ($(MPI),NO)
-  PFUNIT_TEST_PATTERNS = test% Test%
-  PFUNIT_TEST_SOURCES := $(filter-out mpiTest%, $(PFUNIT_TEST_SOURCES))
-  PFUNIT_TEST_OBJECTS = $(addsuffix .o,$(basename $(PFUNIT_TEST_SOURCES)))
+PFUNIT_TEST_PATTERNS = test% Test%
+ifeq ($(MPI),YES)
+  PFUNIT_TEST_PATTERNS += mpiTest% 
 endif
 
 ifdef PFUNIT
