@@ -55,6 +55,7 @@ module Timer_mod
       logical         :: isActive     = .false.
 
       logical :: synchronize = .false.
+      integer :: communicator = -1
       integer :: minProcess = 0 ! only used with MPI
       integer :: maxProcess = 0 ! only used with MPI
 
@@ -84,10 +85,12 @@ module Timer_mod
 
 contains
 
-   subroutine setSynchronous(this, flag)
+   subroutine setSynchronous(this, flag, communicator)
       type (Timer_type), intent(inOut) :: this
       logical, intent(in) :: flag
+      integer, intent(in) :: communicator
       this%synchronize = flag
+      this%communicator = communicator
    end subroutine setSynchronous
 
    integer function getNumTrips(this)
@@ -113,7 +116,7 @@ contains
       include 'mpif.h'
 #endif
 #ifdef USE_MPI
-      if (this%synchronize) call mpi_barrier(MPI_COMM_WORLD, ier)
+      if (this%synchronize) call mpi_barrier(this%communicator, ier)
 #endif
       call startAtTime(this, getWTime())
    end subroutine start_

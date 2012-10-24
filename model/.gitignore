@@ -10,4 +10,6 @@
 /.current_options
 /.depend_subdirs
 /.liblist
+*.i
+*.i90
 /notes

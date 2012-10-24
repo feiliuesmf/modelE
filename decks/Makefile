@@ -35,6 +35,8 @@ export COMPILER
 export MODELERC
 export MPI
 export COMPONENTS
+export PNETCDFHOME
+export NETCDFHOME
 
 V =
 

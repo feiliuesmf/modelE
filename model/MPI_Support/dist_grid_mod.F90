@@ -540,8 +540,12 @@ MODULE dist_grid_mod
    SUBROUTINE DESTROY_GRID(distGrid)
 ! ----------------------------------------------------------------------
      TYPE (DIST_GRID), INTENT(INOUT) :: distGrid
+     integer :: ier
 #ifdef USE_ESMF
      Call ESMF_GridDestroy(distGrid%ESMF_Grid)
+#endif
+#ifdef USE_MPI
+     call MPI_Comm_free(distGrid%private%MPI_COMM, ier)
 #endif
    END SUBROUTINE DESTROY_GRID
 
@@ -863,14 +867,14 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
            allocate(arr_tmp(arr_size))
         else
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,COMMUNICATOR, ierr)
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
           arr_master = arr_master + arr_tmp
         endif
         deallocate(arr_tmp)
@@ -926,10 +930,10 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) allocate(arr_tmp(arr_size))
+        if(am_i_root(COMMUNICATOR)) allocate(arr_tmp(arr_size))
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_INTEGER, &
     &       MPI_SUM,root,COMMUNICATOR, ierr)
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
           arr_master = arr_master + arr_tmp
           deallocate(arr_tmp)
         endif
@@ -985,7 +989,7 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
          arr_size = size(arr)
          if(increment_) then
-            if(am_i_root()) then
+            if(am_i_root(COMMUNICATOR)) then
                allocate(arr_tmp(arr_size))
             else
                allocate(arr_tmp(1))
@@ -993,7 +997,7 @@ MODULE dist_grid_mod
             call MPI_Reduce(arr,arr_tmp,arr_size, &
     &           MPI_DOUBLE_PRECISION,MPI_SUM,root, &
     &           COMMUNICATOR, ierr)
-            if(am_i_root()) then
+            if(am_i_root(COMMUNICATOR)) then
               arr_master = arr_master + reshape(arr_tmp,shape(arr))
             endif
             deallocate(arr_tmp)
@@ -1050,14 +1054,14 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
            allocate(arr_tmp(arr_size))
         else
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,COMMUNICATOR, ierr)
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
@@ -1113,14 +1117,14 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
            allocate(arr_tmp(arr_size))
         else
            allocate(arr_tmp(1))
         end if
         call MPI_Reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION, &
     &       MPI_SUM,root,COMMUNICATOR, ierr)
-        if(am_i_root()) then
+        if(am_i_root(COMMUNICATOR)) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
         endif
         deallocate(arr_tmp)
@@ -1184,7 +1188,7 @@ MODULE dist_grid_mod
 
 #ifdef DEBUG_DECOMP
       CALL LOG_PARALLEL(grid, file, line)
-      If (AM_I_ROOT()) Then
+      If (AM_I_ROOT(COMMUNICATOR)) Then
          WRITE(CHECKSUM_UNIT,*)'HERE: ',file, line
          CALL SYS_FLUSH(CHECKSUM_UNIT)
        End If
