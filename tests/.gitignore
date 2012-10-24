@@ -1,7 +1,8 @@
-*.o
-*_wrap.F90
 *.mod
+*.o
 *.x
+*_wrap.F90
 /.pFUnitLog
 /run_status
 /suite_list
+*.i90

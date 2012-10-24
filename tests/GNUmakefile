@@ -14,6 +14,8 @@ LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 LIBSAVAIL := $(wildcard $(LIBS))
 PFUNIT_LFLAGS += $(foreach ITEM, $(LIBSAVAIL), $(ITEM))
+PFUNIT_LFLAGS += -L$(PNETCDFHOME)/lib -lpnetcdf
+PFUNIT_LFLAGS += -L$(NETCDFHOME)/lib -lnetcdf
 PFUNIT_TEST_DIRECTORIES := $(foreach ITEM, $(COMPONENTS), ./$(ITEM))
 
 INCSAVAIL := $(wildcard $(INCS))
@@ -24,7 +26,7 @@ EXTRA_FFLAGS += $(foreach ITEM, $(INCSAVAIL), -I$(ITEM))
 USE_MPI = NO
 PFUNIT_USE_MPI = NO
 
-ifeq ($(COMPILER), intel)
+ifeq ($(COMPILER),Intel)
   FC = ifort
   EXTRA_FFLAGS += -g -O0 -traceback -fpp -O2
 else
