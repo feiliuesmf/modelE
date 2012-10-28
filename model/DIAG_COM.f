@@ -2464,7 +2464,7 @@ c new_io_subdd
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
-     &     name_consrv,sname_gc,name_ijk,
+     &     name_consrv,sname_gc,name_ijk,nisccp,ntau,
      &     cdl_j,cdl_reg,cdl_jl,
      &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
      &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,cdl_ijk,
@@ -2487,6 +2487,7 @@ c new_io_subdd
       implicit none
       integer fid   !@var fid unit number of read/write
       integer :: i,n,ntime_dd,ntime_hd
+      real*8, allocatable :: tmpArr(:)
 
 #ifdef CUBED_SPHERE
       call write_dist_data(grid,fid,'lon',lon2d_dg)
@@ -2579,9 +2580,16 @@ c new_io_subdd
       call write_cdl(grid,fid,'cdl_hdiurn',cdl_hd)
 #endif
 
-      call write_data(grid,fid,'isccp_press',isccp_press)
-      call write_data(grid,fid,'isccp_tau',isccp_tau)
-      call write_data(grid,fid,'isccp_late',isccp_late)
+      call write_data(grid,fid,'isccp_press',(isccp_press))
+! tmpArr is a workaround for pnetcdf under gfortran.  Apparently
+! some issue with arrays with the PARAMETER attribute
+      allocate(tmpArr(ntau))
+      tmpArr = isccp_tau
+      call write_data(grid,fid,'isccp_tau',tmpArr)
+      deallocate(tmpArr)
+      allocate(tmpArr(nisccp+1))
+      tmpArr = isccp_late
+      call write_data(grid,fid,'isccp_late',tmpArr)
       call write_data(grid,fid,'wisccp',wisccp)
 
       call write_meta_rvracc(fid)
