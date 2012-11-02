@@ -14,12 +14,16 @@ DESCRIPTION
 
      Use this script to compile and/or run modelE rundecks through command line options.
      The script compiles/runs within a working git repository as specified in the MODELEGIT 
-     environment variable. On DISCOVER it is assumed that the script is executed within a PBS
-     interactive session. On non-DISCOVER systems a fortran compiler (gfortran or Intel) 
-     and MPI must be available.     
-     To use this script to create a modelE baseline set the MODELEBASE environment variable
-     and pass the appropriate command line flags.
+     environment variable. If specified, the results will be compared against a set of
+     baseline results.
+
+     To create a modelE baseline just set the MODELEBASE environment variable and the
+     corresponding command line flag.
     
+     On DISCOVER it is assumed that the script is executed within a PBS
+     interactive session. On non-DISCOVER systems a fortran compiler (gfortran or Intel) 
+     and MPI must be available.    
+ 
 
 SYNOPSIS
 
@@ -30,26 +34,25 @@ REQUIREMENTS
      MODELEGIT      : environment variable defining git local repository path
                       e.g. export MODELEGIT=<path to git repository>
 
-     MODELEBASE      : environment variable defining a baseline repository path
-                      e.g. export MODELEBASE=<path to git repository>
-
 ARGUMENTS
 
      -h | --help     : this help screen
 
 OPTIONS
 
-     -b | --baseline : create modelE baseline result (default: NO)
-     -v | --verbose  : verbose (default: YES)
+     MODELEBASE      : environment variable defining a baseline repository path
+                      e.g. export MODELEBASE=<path to git repository>
+
+     -b | --baseline : create modelE baseline (default: NO) 
+     -c | --clean    : run "make clean" (default: YES) 
+     -d | --deck     : rundeck name (default: nonProduction_E_AR5_C12)
      -f | --fflags   : use debug FFLAGS to compile (default: YES)
-     -c | --clean    : run "make clean" (default: NO) 
-     -r | --regress  : perform restart regression (default: NO)
-     -x | --check    : check run results against baseline repository (default: NO)
-                       If yes, set export MODELEBASE=<path to baseline repository>
      -m | --modelErc : specified location of .modelErc (default: $HOME/.modelErc)
-                       OR set export MODELERC=<path to file>
-     -d | --deck     : rundeck name (default: EM20)
-                       OR set export MODELEDECK=<deck name>
+                       OR MODELERC environment variable
+     -r | --regress  : perform restart regression (default: YES)
+     -x | --check    : check run results against baseline repository (default: NO)
+                       If yes, MODELEBASE environement variable must be set
+     -v | --verbose  : verbose (default: YES)
 
      Additionally, on DISCOVER:
 
@@ -62,10 +65,10 @@ EXAMPLE
 
      This screen:
         runModelE.sh -h 
-     Create baseline:
-        runModelE.sh -b YES
-     Do not check agains baseline and perform a make clean
-        runModelE.sh -x NO -c YES
+     Create baseline (with MODELEBASE set):
+        runModelE.sh
+     Do not check agains baseline (just runs within MODELEGIT)
+        runModelE.sh -x NO
      Use gcc47 modules, E4TcadF40 rundeck and the specified modelErc file
         runModelE.sh -e gcc47 -d E4TcadF40 --modelErc=$HOME/.modelErc.G47
 
@@ -83,9 +86,6 @@ defaults()
 # Defaults. Most of these can be overridden via command-line arguments.
    clear
 
-# Debug compilation flags
-   fflags="YES"
-
 # .modelErc file path - the default file is automatically created here
    rcFile=$HOME/.modelErc
 
@@ -99,20 +99,23 @@ defaults()
    MPIDISTR=intel
    MPIDIR=
 
-# Run make clean
-   clean="NO"
+# Debug compilation flags
+   fflags="YES"
 
-# Default: Do not do restart regression
-   regress="NO"
-
-# Default: Do not create a baseline
+# Create a set of modelEbaseline restarts to be compared against
    baseline="NO"
 
-# Check rundeck changes against those in BASELINE repository
-   check="NO"
+# Run make clean
+   clean="YES"
+
+# Run restart regression
+   regress="YES"
 
 # Print out run information
    verbose="YES"
+
+# Check rundeck changes against those in MODELEBASE repository
+   check="NO"
 
 # "diff report" for nc files based on GISS utility. On DISCOVER it is 
 # installed and ready to go but user must build it on other systems (and
@@ -170,7 +173,7 @@ initEnvironment()
       EXTRA_FFLAGS=""
    fi
 
-# If we are doing baseline run then make sure of these defaults
+# If we are doing baseline run then ...
    if [ "$baseline" == "YES" ]; then
       check="NO"
       clean="YES"
@@ -252,23 +255,31 @@ checkSetModEnv()
 baselineAndDataPaths()
 # -------------------------------------------------------------------
 {
-# May need to adjust gitBaseRepository and/or gcmSearchPath
-
-   if [[ "$check" == "YES"  || "$baseline" == "YES" ]]; then
+# if we are checking against baseline or doing a baseline run then we need
+# a baseline repository...first check if it's valid, else use some defaults
+   if [[ "$check" == "YES" || "$baseline" == "YES" ]]; then
       if [ -z "$MODELEBASE" ]; then
          if [[ "$node" =~ borg ]]; then
+           # WARNING: This setting is not meant to work for everyone
+           # Use MODELEBASE instead!
             gitBaseRepository=$NOBACKUP/devel/modelE.clones/base
          else
+           # WARNING: If working on your own system then change this or
+           # use MODELEBASE!
             gitBaseRepository=$HOME/models/devel/modelE.clones/base
          fi
          diagMessage " ------ MODELEBASE was not set. Will use $gitBaseRepository"
       else
          gitBaseRepository=$MODELEBASE
+         if [ ! -d "$gitBaseRepository" ]; then
+            finalize 1 " --- $gitBaseRepository does not exist"
+         fi
       fi
    fi
    if [[ "$node" =~ borg ]]; then
       gcmSearchPath=/discover/nobackup/projects/giss/prod_input_files
    else
+      # WARNING: If working on your own system then change this:
       gcmSearchPath=$HOME/data/modelE
    fi
    if [ "$baseline" == "YES" ]; then
@@ -289,7 +300,7 @@ setModules()
 
     source /usr/share/modules/init/bash
     module purge
-    # NOTE: DEFAULT is intel11
+    # NOTE: DEFAULT is intel13
     if [ "$moduleSet" == "intel13" ]; then
        module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
        PNETCDFHOME=/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006
@@ -342,7 +353,6 @@ buildAndRun()
       diagMessage " --- EXPERIMENTAL ---"
    fi
    buildAndRunCodeBase "$codebase"
-   if [[ "$baseline" == "YES" ]]; then finalize 0; fi
 }
 
 # -------------------------------------------------------------------
@@ -362,6 +372,7 @@ buildAndRunCodeBase()
       wait
       buildMpi "${rundeck}.${codebase}" 
       runModel "${rundeck}.${codebase}" "$val"
+      saveState "${rundeck}.${codebase}" "$val" "HRRUN"
       restartRegression "${rundeck}.${codebase}" "$val"
 
    else
@@ -379,7 +390,7 @@ buildAndRunCodeBase()
 	    buildMpi "${rundeck}.${codebase}" "$buildOption"
 	    let cnt=$cnt+1
 	    runModel "${rundeck}.${codebase}" "$val"
-#         saveState "${rundeck}.${codebase}" "$val"
+            saveState "${rundeck}.${codebase}" "$val" "HRRUN"
 # Run restart regression (compares 25 hr restart vs 24+1hr restart)
             if [ "$regress" == "YES" ]; then
                restartRegression "${rundeck}.${codebase}" "$val"
@@ -436,7 +447,7 @@ buildMpi()
       make --quiet vclean 1>> $makeLog 2>&1
 # make gcm
       echo " ====== START MPI BUILD ====== " >> $makeLog
-      diagMessage " ------ make -j grucm RUN=$deck MPI=YES" 
+      diagMessage " ------ make -j gcm RUN=$deck MPI=YES" 
       if [ "$EXTRA_FFLAGS" == "" ]; then   
          make -j gcm RUN=$deck MODELERC=$rcFile MPI=YES 1>> $makeLog 2>&1
       else
@@ -528,42 +539,25 @@ restartRegression()
 { 
    local deck=$1
    local ncpu=$2
-   local regDeck=${deck}.reg
-   diagMessage " --- Regression (1day) runs"
+   diagMessage " --- Regression run"
 
-# Make a new rundeck - it will have the .reg suffix
-   makeRundeck "$regDeck"
-
-#   if [ "$baseline" == "YES" ]; then
-
-# Edit rundeck to run 1 day
-# Note that 48 = # time steps in one day
-      editRundeck "$regDeck.R" 48 2 0
-      diagMessage " --- Run model one day"
-      runModel "$regDeck" "$ncpu"   
-  
-#   else
-
-#      if [ "$regress" == "YES" ]; then
 # Edit rundeck to run 1 hr past day 2 (any assumptions here?) and
 # create a checkpoint (fort.1) at day 2.
-#         editRundeck "$regDeck.R" 48 2 1
+   editRundeck "${deck}.R" 48 2 1
 # Run model from t0 -> t2 (running one day)
-#         runModel "$regDeck" "$ncpu"
+   runModel "$deck" "$ncpu"
 # Remove run_status - this is only a problem on discover (why?)
-#         rm -f $regDeck/run_status
+   rm -f $deck/run_status
 # Save t2 (fort.2) into t1 (fort.1) , and keep a copy of t2 for
 # comparison with t2'
-#         saveState "$regDeck" "$ncpu" "YES"
-#         cd $regDeck
+   saveState "$deck" "$ncpu" "DAYRUN"
+   cd $deck
 # Run model from from t1 -> t2'
-#         diagMessage " --------- ./$regDeck -np $ncpu"
-#         ./$regDeck -np "$ncpu" 1>> $makeLog 2>&1
-#      fi
+   diagMessage " --------- ./$deck -np $ncpu"
+   ./$deck -np "$ncpu" 1>> $makeLog 2>&1
+   saveState "$deck" "$ncpu" "RESTART"
 
-#   fi
    cd $workPath
-
 }
 
 # -------------------------------------------------------------------
@@ -586,7 +580,7 @@ editRundeck()
    eof2='/'
 
    a=$( grep -n ${eof1}  $deck | head -1 ) ; n1=${a%%:*}
-   a=$( grep -n ^.${eof2} $deck | head -1 ) ; n2=${a%%:*}
+   a=$( grep -n ^${eof2} $deck | head -1 ) ; n2=${a%%:*}
 
    cp ${deck} templ
    head -$(( n1-1 )) templ                   > ${deck}
@@ -614,98 +608,48 @@ compareRuns()
    declare -a id
    id=( )
 
-   if [ ! -L $base ]; then
-      finalize 1 " ------ $base does not link to an output directory";
-   fi
-
-   if [ "$compile" == "YES" ]; then
-      return
-   fi
-
-   echo " *** Results ***"
-   echo " ------------------------------------------"
-   cnt=0
-   for n in "${npes[@]}"; do
-      id[${#id[*]}]="NPES${n}"
-      let cnt=$cnt+1
-   done
-
-#   echo " --- DIFF results: Strong reproducibility"   
-#   if [ "$runSerial" == "YES" ]; then
-#      for (( n=0 ;  n<${#npes[*]}; n++ )); do    
-#         rc=`$diffReport $exp/fort.2.nc $expMpi/fort.2.nc.${id[$n]} > .sz`
-#         sz=`ls -la .sz | awk '{print $5}'`
-#         checkStatus $sz " ------ SERIAL vs ${id[$n]}: "
-#         rm -f .sz
-#      done
-#   fi
-
-#   let cnt=${#npes[*]}-1
-#   for (( n=0 ;  n<$cnt; n++ )); do
-#      let n1=$n+1
-#      rc=`$diffReport $expMpi/fort.2.nc.${id[0]} $expMpi/fort.2.nc.${id[$n1]} > .sz`
-#      sz=`ls -la .sz | awk '{print $5}'`
-#      checkStatus $sz " ------ ${id[0]} vs ${id[$n1]}: "
-#      rm -f .sz
-#   done
-
    if [ "$check" == "YES" ]; then
+      if [ ! -d $base ]; then
+         finalize 1 " ------ $base does not link to an output directory";
+      fi
+
+      echo " *** Results ***"
+      echo " ------------------------------------------"
+      cnt=0
+      for n in "${npes[@]}"; do
+         id[${#id[*]}]="NPES${n}"
+         exitIfNofile "$base/$rundeck.base.1hr.$id"
+         exitIfNofile "$base/$rundeck.base.1dy.$id"
+         exitIfNofile "$base/$rundeck.base.restart.$id"
+         exitIfNofile "$exp/$rundeck.exp.1hr.$id"
+         exitIfNofile "$exp/$rundeck.exp.1dy.$id"
+         exitIfNofile "$exp/$rundeck.exp.restart.$id"
+         let cnt=$cnt+1
+      done
+
       echo " --- DIFF results: Has model changed?"   
-         exitIfNofile "$base/fort.2.nc"
-         exitIfNofile "$exp/fort.2.nc"
-         rc=`$diffReport $base/fort.2.nc $exp/fort.2.nc > .sz`
-         sz=`ls -la .sz | awk '{print $5}'`
-         checkStatus $sz " ------ BASELINE vs EXP 1HR: "
+      for n in "${npes[@]}"; do
+         id[${#id[*]}]="NPES${n}"
+         rc=`$diffReport $base/$rundeck.base.1hr.$id  $exp/$rundeck.exp.1hr.$id > .sz`
+         sz=`wc -c .sz | awk '{print $1}'`
+         checkStatus $sz " ------ BASELINE vs EXP 1HR ($id): "
          rm -f .sz
 
-         exitIfNofile "$baseDay/fort.2.nc"
-         exitIfNofile "$expDay/fort.2.nc"
-         rc=`$diffReport $baseDay/fort.2.nc $expDay/fort.2.nc > .sz`
-         sz=`ls -la .sz | awk '{print $5}'`
-         checkStatus $sz " ------ BASELINE vs EXP 1DY: "
+         rc=`$diffReport $base/$rundeck.base.1dy.$id  $exp/$rundeck.exp.1dy.$id > .sz`
+         sz=`wc -c .sz | awk '{print $1}'`
+         checkStatus $sz " ------ BASELINE vs EXP 1DY ($id): "
          rm -f .sz
 
-#      let cnt=${#npes[*]}
-#      for (( n=0 ;  n<$cnt; n++ )); do
-#         rc=`$diffReport $base/fort.2.nc $expMpi/fort.2.nc.${id[$n]} > .sz`
-#         sz=`ls -la .sz | awk '{print $5}'`
-#         checkStatus $sz " ------ BASELINE vs EXP (${id[$n]}): "
-#         rm -f .sz
-#      done
+         rc=`$diffReport $base/$rundeck.base.restart.$id  $exp/$rundeck.exp.restart.$id > .sz`
+         sz=`wc -c .sz | awk '{print $1}'`
+         checkStatus $sz " ------ BASELINE vs EXP RESTART ($id): "
+         rm -f .sz
+
+      done
    fi
    unset id
    echo " ------------------------------------------"
-}
 
-# -------------------------------------------------------------------
-compareRegressionRuns() 
-# -------------------------------------------------------------------
-{
-   local n
-   local cnt
-   local rc
-   local out2=$rundeck.exp.reg
-   declare -a id
-   id=( )
-
-   cnt=0
-   for n in "${npes[@]}"; do
-      id[${#id[*]}]="NPES${n}"
-      let cnt=$cnt+1
-   done
-
-   echo " --- DIFF results - Restart regression"   
-
-   let cnt=${#npes[*]}
-   for (( n=0 ;  n<$cnt; n++ )); do
-      echo $diffReport $out2/restart.1dy.${id[$n]} $out2/fort.2.nc
-      rc=`$diffReport $out2/restart.1dy.${id[$n]} $out2/fort.2.nc > .sz`
-      sz=`ls -la .sz | awk '{print $5}'`
-      checkStatus $sz " ------ restart regression for ${id[$n]} : "
-      rm -f .sz
-   done
-   unset id
-   echo " ------------------------------------------"
 }
 
 # -------------------------------------------------------------------
@@ -716,13 +660,16 @@ saveState()
    local n=$2
    local saveReg=$3
    local id="NPES${n}"
-   diagMessage " ------ saveState $deck $id"
+   diagMessage " ------ save $deck restart: id=$id option=$saveReg"
 # Save checkpoints
-   if [ "$saveReg" == "YES" ]; then
-      cp $deck/fort.1.nc $deck/restart.1dy.$id
+   if [ "$saveReg" == "RESTART" ]; then
+      # Note this is done in the $deck directory
+      cp fort.2.nc $deck.restart.$id
+   elif [ "$saveReg" == "DAYRUN" ]; then
+      cp $deck/fort.2.nc $deck/$deck.1dy.$id
       cp $deck/fort.2.nc $deck/fort.1.nc
-   else
-      cp $deck/fort.2.nc $deck/fort.2.nc.$id
+   else 
+      cp $deck/fort.2.nc $deck/$deck.1hr.$id
    fi
 }
 
@@ -805,17 +752,17 @@ printInfo()
    diagMessage " *** Options ***"
    diagMessage "    EXPERIMENTAL GIT repository: $gitRepository"
    if [[ "$check" == "YES"  || "$baseline" == "YES" ]]; then
-      diagMessage "    create baseline               = $baseline"
       diagMessage "    BASELINE GIT repository: $gitBaseRepository"
-   fi
-   if [[ "$pbsType" =~ BATCH ]]; then
-      diagMessage "    moduleEnv                     = $moduleSet"
+      diagMessage "    create baseline               = $baseline"
    fi
    diagMessage "    modelErc file                 = $rcFile"
    diagMessage "    runDeck                       = $rundeck"
    diagMessage "    make clean                    = $clean"
    diagMessage "    restart regression            = $regress"
    diagMessage "    check against base repository = $check"
+   if [[ "$pbsType" =~ BATCH ]]; then
+      diagMessage "    moduleEnv                     = $moduleSet"
+   fi
    if [ "$fflags" != "" ]; then
       diagMessage "    fortran flags                 = $EXTRA_FFLAGS"
    fi
@@ -838,7 +785,6 @@ parseOptions()
 # if these are defined thru ENV then set them; but command line will override them
 
    if [ ! -z "$MODELERC" ]; then rcFile=$MODELERC; fi
-   if [ ! -z "$MODELEDECK" ]; then rundeck=$MODELEDECK; fi
 
 # Loop through argument options
 

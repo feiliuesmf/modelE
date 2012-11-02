@@ -57,12 +57,10 @@
 
 # Build/run the deck
    buildAndRun
+   if [[ "$check" == "NO"  && "$baseline" == "YES" ]]; then finalize 0; fi
 
 # compare run restarts with baseline
    compareRuns
-   #if [ "$regress" == "YES" ]; then
-   #  compareRegressionRuns
-   #fi
 
 # clean up work space
    finalize 0
