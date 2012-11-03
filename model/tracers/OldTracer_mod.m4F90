@@ -12,7 +12,7 @@ define([PROPERTIES_AND_TYPES],
   (trw0,real*8,0.d0,concentration in water (kg/kg)),
   (mass2vol,real*8,,mass to volume ratio = mair/tr_mm),
   (vol2mass,real*8,,volume to mass ratio = tr_mm/mair),
-  (dodrydep,logical,,true if tracer should undergo dry deposition),
+  (dodrydep,logical,.false.,true if tracer should undergo dry deposition),
   (F0,real*8,0.d0,reactivity factor for oxidation of biological substances),
   (HSTAR,real*8,0.d0,Henry's Law const for tracer dry deposition. mole/(L atm)
 !@+   Same as the tr_RKD wet dep variable, except for units.
