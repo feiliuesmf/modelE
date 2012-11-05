@@ -15,7 +15,7 @@
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
       use OldTracer_mod, only: trname, trw0
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: ntm, tracers, syncProperty
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
@@ -130,8 +130,6 @@
       use OldTracer_mod, only: set_trradius
 
       use OldTracer_mod, only: set_tr_wd_TYPE
-      use OldTracer_mod, only: set_tr_RKD
-      use OldTracer_mod, only: set_tr_DHD
       use OldTracer_mod, only: set_fq_aer
       use OldTracer_mod, only: set_rc_washt
       use OldTracer_mod, only: set_isDust
@@ -320,9 +318,10 @@ C          read the CFC initial conditions:
       call vbs_init(ntm)
 #endif  /* TRACERS_AEROSOLS_VBS */
 C**** Get to_volume_MixRat from rundecks if it exists
-      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+      call syncProperty(tracers, "to_volume_MixRat",
+     &     set_to_volume_MixRat,to_volume_MixRat())
 C**** Get to_conc from rundecks if it exists
-      call sync_param("to_conc",to_conc,ntm)
+      call syncProperty(tracers,"to_conc", set_to_conc, to_conc())
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\

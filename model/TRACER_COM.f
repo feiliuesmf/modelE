@@ -9,7 +9,6 @@
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
 C
-      use newTracer_COM, only: getTracerNames, MAXLEN_TRACER_NAME
       USE QUSDEF, only: nmom
       USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: trName
@@ -348,7 +347,6 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
 #endif
 
       integer :: NTM
-      character(len=MAXLEN_TRACER_NAME), allocatable :: tmpTrName(:)
 
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
@@ -813,9 +811,6 @@ C**** Water isotope specific parameters
 
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
-!@var iso_index indexing taking actual tracer number to isotope
-!@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
-      integer, allocatable :: iso_index(:)
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
@@ -925,18 +920,14 @@ c note: not applying CPP when declaring counts/lists.
         module procedure ntsurfsrc_1
         module procedure ntsurfsrc_all
       end interface ntsurfsrc
+
       contains
 
       subroutine initTracerCom()
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      integer :: i
+      use TracerBundle_mod, only: TracerBundle
 
-      call getTracerNames(tmpTrName)
-      NTM = size(tmpTrName)
-
-#ifdef TRACERS_SPECIAL_O18
-      allocate(iso_index(NTM))
-#endif
+      tracers = TracerBundle()
+      call initTracerMetadata()
 
       end subroutine initTracerCom
 
@@ -1095,6 +1086,31 @@ C****
 
       END SUBROUTINE ALLOC_TRACER_COM
 
+      subroutine syncProperty(tracers, property, setValue, values)
+      use Dictionary_mod, only: sync_param
+      use TracerBundle_mod
+      type (TracerBundle_type), intent(inout) :: tracers
+      character(len=*) :: property
+      interface
+        subroutine setValue(n,value)
+        integer, intent(in) :: n
+        integer, intent(in) :: value
+        end subroutine setValue
+      end interface
+      integer, intent(in) :: values(:)
+
+      integer :: scratch(size(values))
+      integer :: n 
+      integer :: i
+
+      n = getNumTracers(tracers)
+      scratch = values
+      call sync_param(property,scratch,n)
+      do i = 1, n
+         call setValue(i, scratch(i))
+      end do
+
+      end subroutine syncProperty
 
       END MODULE TRACER_COM
 

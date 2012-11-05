@@ -9,11 +9,9 @@
 !@auth Jean Lerner/Gavin Schmidt
 
       subroutine init_tracer
-      use TRACER_COM, only: tracers
-      use TracerBundle_mod, only: TracerBundle
+      implicit none
 
-      tracers = TracerBundle()
-      call initTracerMetadata()
+      call laterInitTracerMetadata()
       call initTracerGriddedData()
       end subroutine init_tracer
 
@@ -6639,7 +6637,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE SOMTQ_COM, only : qmom,mz,mzz
       use OldTracer_mod, only: trname, itime_tr0, vol2mass, tr_mm
       use OldTracer_mod, only: trsi0, needtrs
-      USE TRACER_COM, only: NTM, trm, trmom, rnsrc
+      use OldTracer_mod, only: set_itime_tr0
+      USE TRACER_COM, only: NTM, trm, trmom, rnsrc, tracers
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       USE TRACER_COM, only:

@@ -262,6 +262,7 @@ C**** Initialize to zero
       !TR_WVEGE(:,:,:,J_0H:J_1H)=0.d0
       TR_W_IJ(:,:,:,:,J_0H:J_1H)=0.d0
       TR_WSN_IJ(:,:,:,:,J_0H:J_1H)=0.d0
+      TRSNOWBV0 = 0.d0
 #endif
 
       ALLOCATE( soil_surf_moist(I_0H:I_1H,J_0H:J_1H) )

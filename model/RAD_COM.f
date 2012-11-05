@@ -405,7 +405,6 @@ C**** Local variables initialised in init_RAD
       ttausv_ntrace = huge(1.d0)
 #endif
 #endif
-
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
 
