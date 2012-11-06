@@ -6643,7 +6643,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       USE TRACER_COM, only:
-     *     n_SO2,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
+     *     n_SO2,OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only:
      *     n_ASO4,n_AOCOB,IDTSO4,IDTNUMD,xk,nbins
