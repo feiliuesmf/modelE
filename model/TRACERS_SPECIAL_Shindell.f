@@ -835,6 +835,25 @@ c     mixing ratios to 1.79 (observed):
       RETURN
       END SUBROUTINE get_sza
  
+      subroutine interpolateAltitude()
+      USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
+     &     ClOXaltIN, ClOxalt,
+     &     BrOXaltIN, BrOxalt,
+     &     HClAltIN, Hclalt,
+     &     ClONO2altIN, ClONO2alt
+      USE ATM_COM, only: pmidl00
+      USE RESOLUTION, only : LM
+
+C     Interpolate ClOx altitude-dependence to model resolution:
+      CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PMIDL00,ClOxalt,.true.)
+C     Interpolate BrOx altitude-dependence to model resolution:
+      CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PMIDL00,BrOxalt,.true.)
+C     Interpolate HCl altitude-dependence to model resolution:
+      CALL LOGPINT(LCOalt,PCOalt,HClaltIN,LM,PMIDL00,HClalt,.true.)
+C     Interpolate ClONO2 altitude-dependence to model resolution:
+      CALL
+     &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PMIDL00,ClONO2alt,.true.)
+      end subroutine interpolateAltitude
  
       SUBROUTINE LOGPINT(LIN,PIN,AIN,LOUT,POUT,AOUT,min_zero)
 !@sum LOGPINT does vertical interpolation of column variable,

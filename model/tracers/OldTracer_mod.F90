@@ -73,6 +73,10 @@ public :: set_ntrocn, ntrocn
 public :: set_conc_from_fw, conc_from_fw 
 public :: set_trglac, trglac 
 public :: set_ntisurfsrc, ntisurfsrc 
+public :: set_iso_index, iso_index 
+public :: set_om2oc, om2oc 
+public :: set_to_volume_MixRat, to_volume_MixRat 
+public :: set_to_conc, to_conc 
 public :: set_TRLI0, TRLI0 
 
   interface tr_mm
@@ -224,6 +228,26 @@ module procedure ntisurfsrc_s
 module procedure ntisurfsrc_all
    module procedure ntisurfsrc_m
 end interface
+interface iso_index
+module procedure iso_index_s
+module procedure iso_index_all
+   module procedure iso_index_m
+end interface
+interface om2oc
+module procedure om2oc_s
+module procedure om2oc_all
+   module procedure om2oc_m
+end interface
+interface to_volume_MixRat
+module procedure to_volume_MixRat_s
+module procedure to_volume_MixRat_all
+   module procedure to_volume_MixRat_m
+end interface
+interface to_conc
+module procedure to_conc_s
+module procedure to_conc_all
+   module procedure to_conc_m
+end interface
 interface TRLI0
 module procedure TRLI0_s
 module procedure TRLI0_all
@@ -263,7 +287,7 @@ end interface
 !@var vol2mass: volume to mass ratio = tr_mm/mair
     real*8 :: vol2mass  
 !@var dodrydep: true if tracer should undergo dry deposition
-    logical :: dodrydep  
+    logical :: dodrydep = .false. 
 !@var F0: reactivity factor for oxidation of biological substances
     real*8 :: F0 = 0.d0 
 !@var HSTAR: Henry's Law const for tracer dry deposition. mole/(L atm)
@@ -306,6 +330,14 @@ end interface
     real*8 :: trglac  
 !@var ntisurfsrc: no. of interactive surface sources for each tracer
     integer :: ntisurfsrc  
+!@var iso_index: indexing taking actual tracer number to isotope
+    integer :: iso_index = 1 
+!@var om2oc: ratio of organic matter to organic carbon
+    real*8 :: om2oc = 1.4d0 
+!@var to_volume_MixRat: =0: print tracer conc. by vol mix ratio; =1:mass mixing ratio
+    integer :: to_volume_MixRat = 0 
+!@var to_conc: =0: print 3D tracer conc. by to_volume_MixRat; =1: kg/m3
+    integer :: to_conc = 0 
 !@var TRLI0: default tracer conc. for land ice (kg/kg)
     real*8 :: TRLI0 = 0.d0 
 
@@ -422,6 +454,10 @@ call setProperty(aTracer, 'ntrocn', ntrocn(i))
 call setProperty(aTracer, 'conc_from_fw', conc_from_fw(i))
 call setProperty(aTracer, 'trglac', trglac(i))
 call setProperty(aTracer, 'ntisurfsrc', ntisurfsrc(i))
+call setProperty(aTracer, 'iso_index', iso_index(i))
+call setProperty(aTracer, 'om2oc', om2oc(i))
+call setProperty(aTracer, 'to_volume_MixRat', to_volume_MixRat(i))
+call setProperty(aTracer, 'to_conc', to_conc(i))
 call setProperty(aTracer, 'TRLI0', TRLI0(i))
 
 
@@ -1168,6 +1204,106 @@ call setProperty(aTracer, 'TRLI0', TRLI0(i))
     integer :: ntisurfsrc_m(size(oldIndices))
     ntisurfsrc_m = tracers(oldIndices(:))%ntisurfsrc
   end function ntisurfsrc_m
+
+
+
+  subroutine set_iso_index(oldIndex, value)
+    integer, intent(in) :: oldIndex
+    integer, intent(in) :: value
+    tracers(oldIndex)%iso_index = value
+  end subroutine set_iso_index
+  
+  function iso_index_s(oldIndex)
+    integer, intent(in) :: oldIndex
+    integer :: iso_index_s
+    iso_index_s = tracers(oldIndex)%iso_index
+  end function iso_index_s
+
+  function iso_index_all()
+    integer :: iso_index_all(size(tracers))
+    iso_index_all = tracers(:)%iso_index
+  end function iso_index_all
+
+  function iso_index_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    integer :: iso_index_m(size(oldIndices))
+    iso_index_m = tracers(oldIndices(:))%iso_index
+  end function iso_index_m
+
+
+
+  subroutine set_om2oc(oldIndex, value)
+    integer, intent(in) :: oldIndex
+    real*8, intent(in) :: value
+    tracers(oldIndex)%om2oc = value
+  end subroutine set_om2oc
+  
+  function om2oc_s(oldIndex)
+    integer, intent(in) :: oldIndex
+    real*8 :: om2oc_s
+    om2oc_s = tracers(oldIndex)%om2oc
+  end function om2oc_s
+
+  function om2oc_all()
+    real*8 :: om2oc_all(size(tracers))
+    om2oc_all = tracers(:)%om2oc
+  end function om2oc_all
+
+  function om2oc_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    real*8 :: om2oc_m(size(oldIndices))
+    om2oc_m = tracers(oldIndices(:))%om2oc
+  end function om2oc_m
+
+
+
+  subroutine set_to_volume_MixRat(oldIndex, value)
+    integer, intent(in) :: oldIndex
+    integer, intent(in) :: value
+    tracers(oldIndex)%to_volume_MixRat = value
+  end subroutine set_to_volume_MixRat
+  
+  function to_volume_MixRat_s(oldIndex)
+    integer, intent(in) :: oldIndex
+    integer :: to_volume_MixRat_s
+    to_volume_MixRat_s = tracers(oldIndex)%to_volume_MixRat
+  end function to_volume_MixRat_s
+
+  function to_volume_MixRat_all()
+    integer :: to_volume_MixRat_all(size(tracers))
+    to_volume_MixRat_all = tracers(:)%to_volume_MixRat
+  end function to_volume_MixRat_all
+
+  function to_volume_MixRat_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    integer :: to_volume_MixRat_m(size(oldIndices))
+    to_volume_MixRat_m = tracers(oldIndices(:))%to_volume_MixRat
+  end function to_volume_MixRat_m
+
+
+
+  subroutine set_to_conc(oldIndex, value)
+    integer, intent(in) :: oldIndex
+    integer, intent(in) :: value
+    tracers(oldIndex)%to_conc = value
+  end subroutine set_to_conc
+  
+  function to_conc_s(oldIndex)
+    integer, intent(in) :: oldIndex
+    integer :: to_conc_s
+    to_conc_s = tracers(oldIndex)%to_conc
+  end function to_conc_s
+
+  function to_conc_all()
+    integer :: to_conc_all(size(tracers))
+    to_conc_all = tracers(:)%to_conc
+  end function to_conc_all
+
+  function to_conc_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    integer :: to_conc_m(size(oldIndices))
+    to_conc_m = tracers(oldIndices(:))%to_conc
+  end function to_conc_m
 
 
 

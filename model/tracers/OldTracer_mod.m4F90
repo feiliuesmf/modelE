@@ -12,7 +12,7 @@ define([PROPERTIES_AND_TYPES],
   (trw0,real*8,0.d0,concentration in water (kg/kg)),
   (mass2vol,real*8,,mass to volume ratio = mair/tr_mm),
   (vol2mass,real*8,,volume to mass ratio = tr_mm/mair),
-  (dodrydep,logical,,true if tracer should undergo dry deposition),
+  (dodrydep,logical,.false.,true if tracer should undergo dry deposition),
   (F0,real*8,0.d0,reactivity factor for oxidation of biological substances),
   (HSTAR,real*8,0.d0,Henry's Law const for tracer dry deposition. mole/(L atm)
 !@+   Same as the tr_RKD wet dep variable, except for units.
@@ -38,6 +38,10 @@ define([PROPERTIES_AND_TYPES],
   (conc_from_fw,logical,.true.,true if ocean conc is defined using fresh water),
   (trglac,real*8,,tracer ratio in glacial runoff to ocean (kg/kg)),
   (ntisurfsrc,integer,,no. of interactive surface sources for each tracer),
+  (iso_index,integer,1,indexing taking actual tracer number to isotope),
+  (om2oc,real*8,1.4d0,ratio of organic matter to organic carbon),
+  (to_volume_MixRat,integer,0, =0: print tracer conc. by vol mix ratio; =1:mass mixing ratio),
+  (to_conc,integer,0, =0: print 3D tracer conc. by to_volume_MixRat; =1: kg/m3),
   (TRLI0, real*8,0.d0,default tracer conc. for land ice (kg/kg))])dnl
 
 

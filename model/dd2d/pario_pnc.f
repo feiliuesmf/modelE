@@ -1166,7 +1166,7 @@ c
      &     isd,ied,jsd,jed, is,ie,js,je)
       implicit none
       real*8 arr(nl,isd:ied,jsd:jed,nk)
-      real*8 arr1d(1)
+      real*8 arr1d(*)
       integer :: nl,nk, isd,ied,jsd,jed, is,ie,js,je
       integer :: i,j,k,l,n
       n = 0
@@ -1187,7 +1187,7 @@ c
      &     isd,ied,jsd,jed, is,ie,js,je)
       implicit none
       real*8 arr(nl,isd:ied,jsd:jed,nk)
-      real*8 arr1d(1)
+      real*8 arr1d(*)
       integer :: nl,nk, isd,ied,jsd,jed, is,ie,js,je
       integer :: i,j,k,l,n
       n = 0

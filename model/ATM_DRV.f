@@ -806,6 +806,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #endif
 #ifdef TRACERS_ON
       call alloc_trdiag_com
+#ifdef TRACERS_SPECIAL_Shindell
+      call interpolateAltitude()
+#endif
 #endif
 #ifdef NUDGE_ON
       call alloc_nudge(grid)

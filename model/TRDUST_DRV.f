@@ -38,7 +38,7 @@
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: dowetdep
 #endif
-      use trdiag_com, only: trcsurf,trcSurfByVol,to_conc
+      use trdiag_com, only: trcsurf,trcSurfByVol,to_conc,set_to_conc
       use tracers_dust
 #ifdef NEW_IO
       use pario, only: defvar,read_dist_data,write_dist_data
@@ -94,10 +94,13 @@ c**** initialize dust names
 
 c**** insert to_conc_soildust into to_conc
 
-      if ( .not. any( to_conc( n_soilDust:n_soilDust+ntm_dust-1 ) > 0 )
+      if ( .not. 
+     &     any([(to_conc(n),n=n_soilDust,n_soilDust+ntm_dust-1)] > 0 )
      &     ) then
         call sync_param( 'to_conc_soildust', to_conc_soildust )
-        to_conc( n_soilDust:n_soilDust+ntm_dust-1 ) = to_conc_soildust
+        do n = n_soilDust, n_soilDust+ntm_dust-1
+          call set_to_conc(n, to_conc_soildust)
+        end do
       end if
 #endif
 #endif

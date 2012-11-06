@@ -17,6 +17,7 @@
 !@ GRAINS
 !@ read_mon_3D
 !@ read_seawifs_chla
+      use OldTracer_mod, only: om2oc
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
@@ -60,8 +61,6 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
       real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
-!@var om2oc ratio of organic matter to organic carbon
-      real*8, allocatable, dimension(:) :: om2oc
 !@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
       real*8:: BBinc=1.0d0
 #ifdef TRACERS_AEROSOLS_VBS
@@ -75,7 +74,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM, n_OCII
-      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,om2oc,
+      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -145,8 +144,6 @@ c off line
 #ifdef TRACERS_AEROSOLS_VBS
       allocate(VBSemifact(vbs_tr%nbins))
 #endif
-
-      allocate(om2oc(ntm)); om2oc = 1.4d0
 
       return
       end SUBROUTINE alloc_aerosol_sources      

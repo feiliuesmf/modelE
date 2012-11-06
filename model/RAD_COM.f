@@ -399,8 +399,12 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
       nTracerRadiaActive=0
       tracerRadiaActiveFlag=.false.
+#ifdef TRACERS_SPECIAL_Shindell
+! Some rundecks do not initialize this variable which leads to
+! annoying issues with regression tests.
+      ttausv_ntrace = huge(1.d0)
 #endif
-
+#endif
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
 

@@ -22,6 +22,8 @@
 #ifdef NEW_IO
       use cdl_mod
 #endif
+      use OldTracer_mod, only: to_conc, set_to_conc
+      use OldTracer_mod, only: to_volume_MixRat, set_to_volume_MixRat
       IMPLICIT NONE
       SAVE
 
@@ -29,14 +31,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 
 #ifdef TRACERS_ON
-!@dbparam to_volume_MixRat: For printout of tracer concentration
-!@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
-!@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: to_volume_MixRat
-!@dbparam to_conc: For printout of 3D tracer concentration in kg/m3
-!@+   to_conc=0: printout is as defined by to_volume_MixRat
-!@+   to_conc=1: printout is in kg/m3
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: to_conc
 #endif  /* TRACERS_ON */
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil
@@ -1352,10 +1346,6 @@ C*** Unpack read global data into local distributed arrays
       jls_wet = 0
 
 
-      allocate(to_volume_MixRat(NTM))
-      to_volume_MixRat = 0
-      allocate(to_conc(NTM))
-      to_conc = 0
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       allocate(to_per_mil(NTM))
       to_per_mil = 0
