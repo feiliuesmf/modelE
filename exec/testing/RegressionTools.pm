@@ -2,6 +2,7 @@ use CommandEntry;
 use Env;
 
 my $extraFlags;
+my $localDebug=0;
 $extraFlags{SERIAL}   = "";
 $extraFlags{MPI}      = "MPI=YES";
 $extraFlags{OPENMP}   = "EXTRA_FFLAGS=-mp MP=YES NPROCS=\$npes";
@@ -30,8 +31,8 @@ sub createTemporaryCopy
   my $referenceDir = shift;
   my $tempDir = shift;
   my $branch = shift;
-  my $commandString = "git clone -b $branch $referenceDir $tempDir";
-  print "createTemporaryCopy: $commandString \n";
+  my $commandString = "git clone -b $branch $referenceDir $tempDir  > /dev/null 2>&1 ";
+  print "createTemporaryCopy: $commandString \n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
 
@@ -99,7 +100,7 @@ EOF
 
 
   my $binDir = $expName . "_bin";
-  print "compileRundeck: $commandString \n";
+  print "compileRundeck: $commandString \n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", 
           STDOUT_LOG_FILE => "$logFile", COMPILER => $compiler, 
           MODELERC=>$MODELERC, RUNDECK => $rundeck, BRANCH => $branch }));
@@ -123,9 +124,9 @@ sub runConfiguration
   my $expName = "$rundeck.$configuration.$compiler";
   my $MODELERC = $env->{MODELERC};
 
-  print "BRANCH: $branch \n";
-  print "DURATION: $duration \n";
-  print "resultsDir: $resultsDir \n";
+  print "BRANCH: $branch \n" if $localDebug;
+  print "DURATION: $duration \n" if $localDebug;
+  print "resultsDir: $resultsDir \n" if $localDebug;
 
   my $flags;
   if ($debugFlags eq 'N')
@@ -164,7 +165,7 @@ sub runConfiguration
   {  
     $run1hr = createMakeCommand($env, $expName, $npes, $flags, 2);
     $run1dy = createMakeCommand($env, $expName, $npes, $flags, 48);
-    $restart = "pushd $expName; cp fort.2.nc fort.1.nc ; ./$expName $mpiArgs  ; popd";
+    $restart = "cd $expName; cp fort.2.nc fort.1.nc; ./$expName $mpiArgs; cd -";
   }
   else
   {
@@ -214,7 +215,7 @@ EOF
 EOF
   }
 
-  print "runConfiguration: $commandString\n";
+  print "runConfiguration: $commandString\n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString, QUEUE => "", 
           STDOUT_LOG_FILE => "$logFile", NUM_PROCS => $npes, 
           COMPILER => $compiler, RUNDECK => $rundeck , BRANCH => $branch }));
@@ -233,7 +234,7 @@ sub writeModelErcFile
     $commandString .= "echo $var=$value >> $modelerc\n";
   }
   $commandString .= "mkdir -p $env->{DECKS_REPOSITORY} $env->{CMRUNDIR} $env->{SAVEDISK} $env->{EXECDIR} \n";
-  print "writeModelErcFile: $commandString \n";
+  print "writeModelErcFile: $commandString \n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 
@@ -247,11 +248,11 @@ sub gitCheckout
   my $branch           = $env -> {BRANCH};
 
   my $commandString = <<EOF;
-  pushd $scratchDirectory
-  git clone -b $branch $gitroot $branch
-  popd
+  cd $scratchDirectory
+  git clone -b $branch $gitroot $branch  > /dev/null 2>&1
+  cd -
 EOF
-  print "gitCheckout: $commandString\n";
+  print "gitCheckout: $commandString\n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString}))
 }
 

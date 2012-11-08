@@ -99,21 +99,21 @@ sub run {
   my $counter = 0;
   my $somethingChanged = 0;
 
-  #print "LOG is $LOG\n";
-  #print "DEBUG is $DEBUG\n";
+  print "LOG is $LOG\n";
+  print "DEBUG is $DEBUG\n";
 
   for (;;) {
       ++$counter;
     
       print $LOG "new cycle ... $counter\n" if $DEBUG;
       if ($counter > $MAX_CYCLES) {
-	  print $LOG "MAX_CYCLES exceeded - something is very wrong.\n"; 
+	  print $LOG "MAX_CYCLES exceeded - something is very wrong.\n" if $DEBUG; 
 	  $self->{notCompleted} = true;
 	  return 0;
       }
       
       if ($self -> allComplete()) {
-	  print $LOG "All tasks completed.  Shutting down.\n";
+	  print $LOG "All tasks completed.  Shutting down.\n" if $DEBUG;
 	  $self->{notCompleted} = 0;
 	  last;
       }
@@ -124,7 +124,7 @@ sub run {
 	  
 	  if ($cmd -> isReady()) {
 	      print $LOG " ... Launching $id \n" if $DEBUG;
-	      print $LOG "     ...   " . $cmd -> {COMMAND} . "\n"  if $DEBUG;
+	      print $LOG "     ...   " . $cmd -> {COMMAND} . "\n" if $DEBUG;
 	      $cmd -> setStatus(RUNNING);
 	      
 	      $cmd -> launch($semaphore);
@@ -152,7 +152,7 @@ sub run {
   }
 # Do any final task
   if ($self -> {FINAL_COMMAND}) {
-      print $LOG "Final task ...\n";
+      print $LOG "Final task ...\n" if $DEBUG;
       $self -> {FINAL_COMMAND} -> launch(semaphore("/dev/nul"));
   }
   

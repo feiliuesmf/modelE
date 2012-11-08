@@ -19,6 +19,8 @@
 FILE_ERR=69
 EXIT_ERR=1
 OK=0
+checkMPI=0
+checkSERIAL=0
 
 # -------------------------------------------------------------------
 updReport()
@@ -137,21 +139,27 @@ deckDiff()
       echo "    Skip SERIAL comparison"
     else
 # compare SERIAL restart reproducibility
-      doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
+      if [ $checkSERIAL -gt 0]; then
+        doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
 # compare SERIAL baseline (previous day) restart reproducibility
-      doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
-      doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+        doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
+        doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+      fi
     fi
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
     if [ ! -z $3 ]; then
       declare -a npeArray=("${!3}")
       for npe in "${npeArray[@]}"; do
-        doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
+        if [ $checkMPI -gt 0]; then
+          doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
+        fi
       done
 # compare MPI baseline (previous day) restart reproducibility
       for npe in "${npeArray[@]}"; do
-        doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
-        doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+        if [ $checkMPI -gt 0]; then
+          doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
+          doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+        fi
       done
     fi
     if [ "$compileErr" == YES ]; then
@@ -335,6 +343,9 @@ for comp in "${COMPILERS[@]}"; do
   echo "--- COMPILER = $comp ---"
 
   cd $REGRESULTS/$comp
+
+  checkMPI=`ls *MPI* | wc -c`
+  checkSERIAL=`ls *SERIAL* | wc -c`
 
   report=( "${report[@]}" "" )
   report=( "${report[@]}" "ADDITIONAL DETAILS:")

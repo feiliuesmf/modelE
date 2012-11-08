@@ -45,11 +45,13 @@ OPTIONS
 
      -b | --baseline : create modelE baseline (default: NO) 
      -c | --clean    : run "make clean" (default: YES) 
-     -d | --deck     : rundeck name (default: nonProduction_E_AR5_C12)
+     -d | --deck     : rundeck template name (default: nonProduction_E_AR5_C12)
      -f | --fflags   : use debug FFLAGS to compile (default: YES)
      -m | --modelErc : specified location of .modelErc (default: $HOME/.modelErc)
                        OR MODELERC environment variable
-     -r | --regress  : perform restart regression (default: YES)
+     -n | --deckname : use a different name for rundeck (default: SAME)
+     -o | --compile  : compile only (default: NO)
+     -r | --runtype  : runtype is 1HR or 1DY or ALL (default: ALL)
      -x | --check    : check run results against baseline repository (default: NO)
                        If yes, MODELEBASE environement variable must be set
      -v | --verbose  : verbose (default: YES)
@@ -108,8 +110,14 @@ defaults()
 # Run make clean
    clean="YES"
 
-# Run restart regression
-   regress="YES"
+# Compile only
+   compile="NO"
+
+# If not "TEMPLATE" then use deckname specified in command line
+   deckname="TEMPLATE"
+
+# Run type ALL=1hr+1dy+regression
+   runtype="ALL"
 
 # Print out run information
    verbose="YES"
@@ -123,13 +131,13 @@ defaults()
    if [[ "$node" =~ borg || "$node" =~ discover || "$node" =~ dali ]]; then
       diffReport=diffreport.x
    else
-      diffReportinPath=`command -v diffreport`
+      diffReportinPath=`command -v diffreport.x`
       if [ "$diffReportinPath" == "" ]; then
 	 echo " ------ diffreport executable not found..."
 	 echo " ------ Will use _diff_ but final report may show a FAILURE."
 	 diffReport="diff -q"
       else
-         diffReport="diffreport"
+         diffReport="diffreport.x"
       fi
    fi
 }
@@ -153,10 +161,10 @@ initEnvironment()
 # set some directory paths
    baselineAndDataPaths
 
-#if on DISCOVER, update git repository
+#if on DISCOVER, update git repository (not sure if I want to do this...)
    cd $workPath
-   if [[ "$node" =~ borg ]]; then
-      git pull
+   if [[ "$node" =~ borg && "$baseline" == "NO" ]]; then
+      git pull > /dev/null 2>&1
    fi
 
 # set email address and log file names
@@ -165,13 +173,19 @@ initEnvironment()
 # check/set module environment
    checkSetModEnv "$moduleSet"
 
-# set NPES based on rundeck
-   setNPES
-
 # Set EXTRA_FFLAGS 
    if [ "$fflags" == "NO" ]; then
       EXTRA_FFLAGS=""
    fi
+
+# Set template and rundeck names
+   template=$rundeck
+   if [ "$deckname" != "TEMPLATE" ]; then
+      rundeck=$deckname
+   fi
+
+# set NPES based on rundeck
+   setNPES
 
 # If we are doing baseline run then ...
    if [ "$baseline" == "YES" ]; then
@@ -328,12 +342,14 @@ setNPES()
 {
 # In this function we determine, based on the rundeck, how many
 # cpus to use. 
-   if [[ "$rundeck" =~ EM20  || "$rundeck" =~ E_AR5_C12 ]]; then
+   if [[ "$template" =~ EM20  || "$template" =~ E_AR5_C12 ]]; then
       npes=( 4 )
-   elif [[ "$rundeck" =~ E4Tcad || "$rundeck" =~ arobio  ]]; then
+   elif [[ "$template" =~ E4Tcad || "$template" =~ arobio  ]]; then
       npes=( 8 )
-   elif [[ "$rundeck" =~ E4C90 ]]; then
+   elif [[ "$template" =~ E4C90 ]]; then
       npes=( 6 )
+   elif [[ "$template" =~ tomas ]]; then
+      npes=( 48 )
    else 
       npes=( 8 )
    fi
@@ -363,6 +379,7 @@ buildAndRunCodeBase()
    local val
    local cnt
    local i
+
    if [ "$baseline" == "YES" ]; then
 
       val=${npes[0]}
@@ -371,10 +388,19 @@ buildAndRunCodeBase()
       rmFile "${rundeck}.${codebase}.exe"
       wait
       buildMpi "${rundeck}.${codebase}" 
+      if [ "$compile" == "YES" ]; then
+        return 
+      fi
       runModel "${rundeck}.${codebase}" "$val"
       saveState "${rundeck}.${codebase}" "$val" "HRRUN"
-      restartRegression "${rundeck}.${codebase}" "$val"
 
+      if [ "$runtype" == "ALL" ]; then
+        restartRegression "${rundeck}.${codebase}" "$val"
+      elif [ "$runtype" == "1DY" ]; then
+        run1Day "${rundeck}.${codebase}" "$val"
+      elif [ "$runtype" == "1HR" ]; then
+        return 
+      fi
    else
 
 # Remove exe file (just in case) 
@@ -388,13 +414,22 @@ buildAndRunCodeBase()
                buildOption="NO"
      	    fi 
 	    buildMpi "${rundeck}.${codebase}" "$buildOption"
-	    let cnt=$cnt+1
+            if [ "$compile" == "YES" ]; then
+              return 
+            fi
+  	    let cnt=$cnt+1
+
 	    runModel "${rundeck}.${codebase}" "$val"
             saveState "${rundeck}.${codebase}" "$val" "HRRUN"
-# Run restart regression (compares 25 hr restart vs 24+1hr restart)
-            if [ "$regress" == "YES" ]; then
-               restartRegression "${rundeck}.${codebase}" "$val"
+
+            if [ "$runtype" == "ALL" ]; then
+              restartRegression "${rundeck}.${codebase}" "$val"
+            elif [ "$runtype" == "1DY" ]; then
+              run1Day "${rundeck}.${codebase}" "$val"
+            elif [ "$runtype" == "1HR" ]; then
+              return 
             fi
+
          done
       fi
    fi
@@ -410,7 +445,6 @@ buildSerial()
 
 # make rundeck
    makeRundeck "$deck"
-   exitIfNofile "$deck.R"
 
    if [ "$clean" == "YES" ]; then   
       make --quiet vclean 1>> $makeLog 2>&1
@@ -442,7 +476,6 @@ buildMpi()
 
 # make rundeck
       makeRundeck "$deck"
-      exitIfNofile "$deck.R"
 
       make --quiet vclean 1>> $makeLog 2>&1
 # make gcm
@@ -491,11 +524,12 @@ makeRundeck()
 # -------------------------------------------------------------------
 { 
    local deck=$1
-   #if [ ! -e ../templates/$rundeck.R ]; then
+   #if [ ! -e ../templates/$template.R ]; then
    #   finalize 1 " --- RUNSRC=$rundeck does not exist."
    #fi
-   diagMessage " ------ make rundeck RUN=$deck RUNSRC=$rundeck"
-   make rundeck RUN=$deck RUNSRC=$rundeck OVERWRITE=YES MODELERC=$rcFile 1>> $makeLog 2>&1
+   diagMessage " ------ make rundeck RUN=$deck RUNSRC=$template"
+   make rundeck RUN=$deck RUNSRC=$template OVERWRITE=YES 1>> $makeLog 2>&1
+   #exitIfNofile "$template.R"
 }
 
 # -------------------------------------------------------------------
@@ -504,6 +538,7 @@ runModel()
 {   
    local deck=$1
    local ncpu=$2
+
    if [ $ncpu -eq 0 ]; then
       diagMessage " --- Run $deck (serial mode)"
       make -j setup RUN=$deck MODELERC=$rcFile 1>> $makeLog 2>&1
@@ -531,6 +566,25 @@ checkRun()
    else
       finalize 1 " ------ $deck/run_status does not exist";
    fi 
+}
+
+# -------------------------------------------------------------------
+run1Day() 
+# -------------------------------------------------------------------
+{ 
+   local deck=$1
+   local ncpu=$2
+   diagMessage " --- 1 Day run"
+
+# Edit rundeck to run 1 day
+   editRundeck "${deck}.R" 48 2 0
+# Run model (running one day)
+   runModel "$deck" "$ncpu"
+# Remove run_status - this is only a problem on discover (why?)
+   rm -f $deck/run_status
+   saveState "$deck" "$ncpu" "DAYRUN"
+
+   cd $workPath
 }
 
 # -------------------------------------------------------------------
@@ -598,6 +652,7 @@ compareRuns()
    local n
    local cnt
    local rc
+
    local base=$gitBaseRepository/decks/$rundeck.base
    local exp=$workPath/$rundeck.exp
    local baseDay=$gitBaseRepository/decks/$rundeck.base.reg
@@ -630,21 +685,26 @@ compareRuns()
       echo " --- DIFF results: Has model changed?"   
       for n in "${npes[@]}"; do
          id[${#id[*]}]="NPES${n}"
-         rc=`$diffReport $base/$rundeck.base.1hr.$id  $exp/$rundeck.exp.1hr.$id > .sz`
-         sz=`wc -c .sz | awk '{print $1}'`
-         checkStatus $sz " ------ BASELINE vs EXP 1HR ($id): "
-         rm -f .sz
-
-         rc=`$diffReport $base/$rundeck.base.1dy.$id  $exp/$rundeck.exp.1dy.$id > .sz`
-         sz=`wc -c .sz | awk '{print $1}'`
-         checkStatus $sz " ------ BASELINE vs EXP 1DY ($id): "
-         rm -f .sz
-
-         rc=`$diffReport $base/$rundeck.base.restart.$id  $exp/$rundeck.exp.restart.$id > .sz`
-         sz=`wc -c .sz | awk '{print $1}'`
-         checkStatus $sz " ------ BASELINE vs EXP RESTART ($id): "
-         rm -f .sz
-
+         if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
+           rc=`$diffReport $base/$rundeck.base.1hr.$id  $exp/$rundeck.exp.1hr.$id > .sz`
+           sz=`wc -c .sz | awk '{print $1}'`
+           checkStatus $sz " ------ BASELINE vs EXP 1HR ($id): "
+           rm -f .sz
+         fi
+      
+         if [[ "$runtype" == "1DY" || "$runtype" == "ALL" ]]; then
+           rc=`$diffReport $base/$rundeck.base.1dy.$id  $exp/$rundeck.exp.1dy.$id > .sz`
+           sz=`wc -c .sz | awk '{print $1}'`
+           checkStatus $sz " ------ BASELINE vs EXP 1DY ($id): "
+           rm -f .sz
+         fi
+         
+         if [ "$runtype" == "ALL" ]; then
+           rc=`$diffReport $base/$rundeck.base.restart.$id  $exp/$rundeck.exp.restart.$id > .sz`
+           sz=`wc -c .sz | awk '{print $1}'`
+           checkStatus $sz " ------ BASELINE vs EXP RESTART ($id): "
+           rm -f .sz
+         fi
       done
    fi
    unset id
@@ -660,7 +720,8 @@ saveState()
    local n=$2
    local saveReg=$3
    local id="NPES${n}"
-   diagMessage " ------ save $deck restart: id=$id option=$saveReg"
+
+   diagMessage " ------ save state for $deck : id=$id ($saveReg)"
 # Save checkpoints
    if [ "$saveReg" == "RESTART" ]; then
       # Note this is done in the $deck directory
@@ -756,14 +817,20 @@ printInfo()
       diagMessage "    create baseline               = $baseline"
    fi
    diagMessage "    modelErc file                 = $rcFile"
-   diagMessage "    runDeck                       = $rundeck"
+   diagMessage "    rundeck template              = $template"
+   if [ "$deckname" != "TEMPLATE" ]; then
+      diagMessage "    rundeck name                  = $rundeck"
+   fi
    diagMessage "    make clean                    = $clean"
-   diagMessage "    restart regression            = $regress"
-   diagMessage "    check against base repository = $check"
+   diagMessage "    compile only                  = $compile"
+   if [[ "$compile" == "NO" ]]; then
+      diagMessage "    run type                      = $runtype"
+      diagMessage "    check against base repository = $check"
+   fi
    if [[ "$pbsType" =~ BATCH ]]; then
       diagMessage "    moduleEnv                     = $moduleSet"
    fi
-   if [ "$fflags" != "" ]; then
+   if [ "$fflags" == "YES" ]; then
       diagMessage "    fortran flags                 = $EXTRA_FFLAGS"
    fi
 }
@@ -833,17 +900,29 @@ parseOptions()
            let i=i+1
 	   check=${names[$i]}
 	   
-       elif [[ "${names[$i]}" =~ --regress ]]; then 
-   	   regress=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
-       elif [[ "${names[$i]}" =~ -r ]]; then 
-           let i=i+1
-	   regress=${names[$i]}
-
        elif [[ "${names[$i]}" =~ --baseline ]]; then 
    	   baseline=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
        elif [[ "${names[$i]}" =~ -b ]]; then 
            let i=i+1
 	   baseline=${names[$i]}
+
+       elif [[ "${names[$i]}" =~ --compile ]]; then 
+   	   compile=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -o ]]; then 
+           let i=i+1
+	   compile=${names[$i]}
+
+       elif [[ "${names[$i]}" =~ --runtype ]]; then 
+   	   runtype=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -r ]]; then 
+           let i=i+1
+	   runtype=${names[$i]}
+
+       elif [[ "${names[$i]}" =~ --deckname ]]; then 
+   	   deckname=`echo ${names[$i]} | sed 's/[-a-zA-Z0-9]*=//'`
+       elif [[ "${names[$i]}" =~ -n ]]; then 
+           let i=i+1
+	   deckname=${names[$i]}
 
        else
            echo " ### Unknown argument ${names[$i]}"; exit 1
