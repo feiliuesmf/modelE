@@ -146,7 +146,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
-aer_int_yr=1850    !select desired year (1890 to 2000) or 0 to use JYEAR
+!aer_int_yr=1850    !select desired year (1890 to 2000) or 0 to use JYEAR
 #include "dust_params"
 #include "chemistry_params"
 
