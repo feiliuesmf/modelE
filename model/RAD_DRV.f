@@ -37,7 +37,7 @@ C****
       USE CONSTANT, only : grav,bysha,twopi
       USE RESOLUTION, only : jm,lm
       USE ATM_COM, only : t,pk,kradia,lm_req
-      USE MODEL_COM, only : dtsrc,iyear1,modelEclock
+      USE MODEL_COM, only : dtsrc,iyear1,modelEclock,master_yr
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, write_parallel, am_i_root
      &     ,readt_parallel, getDomainBounds
@@ -142,8 +142,16 @@ C****
 
 C**** sync radiation parameters from input
       call sync_param( "NRAD", NRAD ) !!
-      call sync_param( "variable_orb_par", variable_orb_par )
-      call sync_param( "orb_par_year_bp", orb_par_year_bp )
+      if (is_set_param("variable_orb_par")) then
+        call get_param( "variable_orb_par", variable_orb_par )
+      else
+        if (master_yr == 0) variable_orb_par=0 ! else default value
+      endif
+      if (is_set_param("orb_par_year_bp")) then
+        call get_param( "orb_par_year_bp", orb_par_year_bp )
+      else
+        orb_par_year_bp=1950-master_yr
+      endif
       call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "S0X", S0X )
       call sync_param( "CO2X", CO2X )
@@ -156,16 +164,36 @@ C**** sync radiation parameters from input
       call sync_param( "O3X", O3X )
       call sync_param( "CLDX", CLDX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
-      call sync_param( "S0_yr", S0_yr )
-      call sync_param( "ghg_yr", ghg_yr )
-      call sync_param( "ghg_day", ghg_day )
+      if (is_set_param("S0_yr")) then
+        call get_param( "S0_yr", S0_yr )
+      else
+        s0_yr=master_yr
+      endif
       call sync_param( "S0_day", S0_day )
-      call sync_param( "volc_yr", volc_yr )
+      if (is_set_param("ghg_yr")) then
+        call get_param( "ghg_yr", ghg_yr )
+      else
+        ghg_yr=master_yr
+      endif
+      call sync_param( "ghg_day", ghg_day )
+      if (is_set_param("volc_yr")) then
+        call get_param( "volc_yr", volc_yr )
+      else
+        volc_yr=master_yr
+      endif
       call sync_param( "volc_day", volc_day )
-      call sync_param( "aero_yr", aero_yr )
+      if (is_set_param("aero_yr")) then
+        call get_param( "aero_yr", aero_yr )
+      else
+        aero_yr=master_yr
+      endif
       call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
-      call sync_param( "albsn_yr", albsn_yr )
+      if (is_set_param("albsn_yr")) then
+        call get_param( "albsn_yr", albsn_yr )
+      else
+        albsn_yr=master_yr
+      endif
       call sync_param( "aermix", aermix , 13 )
       call sync_param( "REFdry", REFdry , 8 )
       call sync_param( "FS8OPX", FS8OPX , 8 )
@@ -173,7 +201,11 @@ C**** sync radiation parameters from input
       call sync_param( "RHfix", RHfix )
       call sync_param( "CC_cdncx", CC_cdncx )
       call sync_param( "OD_cdncx", OD_cdncx )
-      call sync_param( "O3_yr", O3_yr )
+      if (is_set_param("O3_yr")) then
+        call get_param( "O3_yr", O3_yr )
+      else
+        O3_yr=master_yr
+      endif
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "O3YR_max", O3YR_max )
       call sync_param( "KSOLAR", KSOLAR )

@@ -563,7 +563,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 !@+   sync_param( "B", Y ) reads parameter B into variable Y
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
-      USE MODEL_COM, only : NIPRNT
+      USE MODEL_COM, only : NIPRNT,master_yr
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
@@ -577,6 +577,11 @@ C**** Rundeck parameters:
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "IRAND", IRAND )
+      if (is_set_param("master_yr")) then
+        call get_param( "master_yr", master_yr )
+      else
+        call stop_model('Please define master_yr in the rundeck.',255)
+      endif
 
       RETURN
 C****

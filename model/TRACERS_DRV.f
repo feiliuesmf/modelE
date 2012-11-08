@@ -7,7 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-
       subroutine init_tracer
       implicit none
 
@@ -21,6 +20,7 @@
       use OldTracer_mod, only: trname, dowetdep, dodrydep
       use OldTracer_mod, only: ntm_power
       use TracerBundle_mod, only: getTracer
+      use model_com, only: master_yr
       USE TRACER_COM, only: ntm, noverwrite, nvolcanic, nother
       use TRACER_COM, only: nchemloss, nchemistry, nbiomass, naircraft
       use TRACER_COM, only: ntsurfsrc, n_SO2, tracers
