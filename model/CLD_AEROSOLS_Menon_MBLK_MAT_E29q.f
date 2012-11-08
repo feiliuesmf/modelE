@@ -518,7 +518,7 @@ C**************************************************************************
       USE CLOUDS_COM
       USE CONSTANT,only:LHE,LHS
       use OldTracer_mod, only: fq_aer
-      USE TRACER_COM, only: ntm, ntm_soa, ntm_ococean, nbins, n_seasalt1
+      USE TRACER_COM, only: ntm, ntm_soa, ntm_ococean, n_seasalt1
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
      *,OLDCDL,VVEL,SME,WTURB
