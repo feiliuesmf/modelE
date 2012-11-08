@@ -419,12 +419,6 @@ C**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 C**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
-C**** determine year of emissions
-      if (is_set_param("aer_int_yr")) then
-        call get_param("aer_int_yr",aer_int_yr)
-      else
-        aer_int_yr=master_yr
-      endif
 #endif
 
       if (tracers_special_shindell) then
@@ -3474,6 +3468,12 @@ C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
       call sync_param("BBinc",BBinc)
+C**** determine year of emissions
+      if (is_set_param("aer_int_yr")) then
+        call get_param("aer_int_yr",aer_int_yr)
+      else
+        aer_int_yr=master_yr
+      endif
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       call sync_param("VBSemifact",VBSemifact,vbs_tr%nbins)
