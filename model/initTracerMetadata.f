@@ -128,7 +128,7 @@
      &     ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
       USE RESOLUTION, only : jm,lm
-      USE MODEL_COM, only: dtsrc
+      USE MODEL_COM, only: dtsrc, master_yr
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: am     ! Air mass of each box (kg/m^2)
@@ -3378,7 +3378,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
 
 
       subroutine laterInitTracerMetadata()
-      USE MODEL_COM, only: itime
+      USE MODEL_COM, only: itime,master_yr
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, tracers, syncProperty
@@ -3387,7 +3387,7 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
      &     fraction10,fraction02
 #endif
       use TRACER_COM, only: coupled_chem
-      use Dictionary_mod, only: sync_param
+      use Dictionary_mod, only: sync_param,is_set_param,get_param
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif

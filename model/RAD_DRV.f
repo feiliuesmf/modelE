@@ -145,7 +145,7 @@ C**** sync radiation parameters from input
       if (is_set_param("variable_orb_par")) then
         call get_param( "variable_orb_par", variable_orb_par )
       else
-        if (master_yr == 0)
+        if (master_yr == 0) then
           variable_orb_par=1
         else
           variable_orb_par=0
