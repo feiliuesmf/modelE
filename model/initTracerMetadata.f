@@ -420,7 +420,11 @@ C**** DMS, seasalt from offline fields
 C**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
 C**** determine year of emissions
-      call sync_param("aer_int_yr",aer_int_yr)
+      if (is_set_param("aer_int_yr")) then
+        call get_param("aer_int_yr",aer_int_yr)
+      else
+        aer_int_yr=master_yr
+      endif
 #endif
 
       if (tracers_special_shindell) then
@@ -3489,7 +3493,15 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param("allowSomeChemReinit",allowSomeChemReinit)
       call sync_param("which_trop",which_trop)
-      call sync_param("PI_run",PI_run)
+      if (is_set_param("PI_run")) then
+        call get_param("PI_run",PI_run)
+      else
+        if (master_yr == 1850) then
+          PI_run=1
+        else
+          PI_run=0
+        endif
+      endif
       call sync_param("PIratio_N",PIratio_N)
       call sync_param("PIratio_CO_T",PIratio_CO_T)
       call sync_param("PIratio_CO_S",PIratio_CO_S)
@@ -3498,8 +3510,26 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("use_rad_ch4",use_rad_ch4)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
-      call sync_param("aircraft_Tyr1",aircraft_Tyr1)
-      call sync_param("aircraft_Tyr2",aircraft_Tyr2)
+      if (is_set_param("aircraft_Tyr1")) then
+        call get_param("aircraft_Tyr1",aircraft_Tyr1)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr1 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr1=master_yr
+        endif
+      endif
+      if (is_set_param("aircraft_Tyr2")) then
+        call get_param("aircraft_Tyr2",aircraft_Tyr2)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr2 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr2=master_yr
+        endif
+      endif
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
       call sync_param("PIratio_N2O",PIratio_N2O)
