@@ -1,5 +1,6 @@
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
+master_yr=1850
 crops_yr=-1  ! if -1, crops in VEG-file is used
 s0_yr=1850
 s0_day=182
