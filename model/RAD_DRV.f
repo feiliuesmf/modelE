@@ -154,7 +154,11 @@ C**** sync radiation parameters from input
       if (is_set_param("orb_par_year_bp")) then
         call get_param( "orb_par_year_bp", orb_par_year_bp )
       else
-        orb_par_year_bp=1950-master_yr
+        if (master_yr == 0) then
+          orb_par_year_bp=0
+        else
+          orb_par_year_bp=1950-master_yr
+        endif
       endif
       call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "S0X", S0X )
