@@ -154,7 +154,11 @@ C**** sync radiation parameters from input
       if (is_set_param("orb_par_year_bp")) then
         call get_param( "orb_par_year_bp", orb_par_year_bp )
       else
-        orb_par_year_bp=1950-master_yr
+        if (master_yr == 0) then
+          orb_par_year_bp=0
+        else
+          orb_par_year_bp=1950-master_yr
+        endif
       endif
       call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "S0X", S0X )
@@ -173,19 +177,31 @@ C**** sync radiation parameters from input
       else
         s0_yr=master_yr
       endif
-      call sync_param( "S0_day", S0_day )
+      if (is_set_param("S0_day")) then
+        call get_param( "S0_day", S0_day )
+      else
+        if (s0_yr==0) s0_day=0 ! else use default value
+      endif
       if (is_set_param("ghg_yr")) then
         call get_param( "ghg_yr", ghg_yr )
       else
         ghg_yr=master_yr
       endif
-      call sync_param( "ghg_day", ghg_day )
+      if (is_set_param("ghg_day")) then
+        call get_param( "ghg_day", ghg_day )
+      else
+        if (ghg_yr==0) ghg_day=0 ! else use default value
+      endif
       if (is_set_param("volc_yr")) then
         call get_param( "volc_yr", volc_yr )
       else
         volc_yr=master_yr
       endif
-      call sync_param( "volc_day", volc_day )
+      if (is_set_param("volc_day")) then
+        call get_param( "volc_day", volc_day )
+      else
+        if (volc_yr==0) volc_day=0 ! else use default value
+      endif
       if (is_set_param("aero_yr")) then
         call get_param( "aero_yr", aero_yr )
       else

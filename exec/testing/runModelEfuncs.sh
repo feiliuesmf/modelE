@@ -161,11 +161,11 @@ initEnvironment()
 # set some directory paths
    baselineAndDataPaths
 
-#if on DISCOVER, update git repository (not sure if I want to do this...)
+#if on DISCOVER, update git repository (disabling for now)
    cd $workPath
-   if [[ "$node" =~ borg && "$baseline" == "NO" ]]; then
-      git pull > /dev/null 2>&1
-   fi
+   #if [[ "$node" =~ borg && "$baseline" == "NO" ]]; then
+   #   git pull > /dev/null 2>&1
+   #fi
 
 # set email address and log file names
    setLogNames
@@ -663,12 +663,18 @@ compareRuns()
       cnt=0
       for n in "${npes[@]}"; do
          id[${#id[*]}]="NPES${n}"
-         exitIfNofile "$base/$rundeck.base.1hr.$id"
-         exitIfNofile "$base/$rundeck.base.1dy.$id"
-         exitIfNofile "$base/$rundeck.base.restart.$id"
-         exitIfNofile "$exp/$rundeck.exp.1hr.$id"
-         exitIfNofile "$exp/$rundeck.exp.1dy.$id"
-         exitIfNofile "$exp/$rundeck.exp.restart.$id"
+         if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
+           exitIfNofile "$base/$rundeck.base.1hr.$id"
+           exitIfNofile "$exp/$rundeck.exp.1hr.$id"
+         fi
+         if [[ "$runtype" == "1DY"  || "$runtype" == "ALL" ]]; then
+           exitIfNofile "$base/$rundeck.base.1dy.$id"
+           exitIfNofile "$exp/$rundeck.exp.1dy.$id"
+         fi
+         if [ "$runtype" == "ALL" ]; then
+           exitIfNofile "$base/$rundeck.base.restart.$id"
+           exitIfNofile "$exp/$rundeck.exp.restart.$id"
+         fi
          let cnt=$cnt+1
       done
 
