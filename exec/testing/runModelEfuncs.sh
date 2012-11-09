@@ -342,17 +342,7 @@ setNPES()
 {
 # In this function we determine, based on the rundeck, how many
 # cpus to use. 
-   if [[ "$template" =~ EM20  || "$template" =~ E_AR5_C12 ]]; then
-      npes=( 4 )
-   elif [[ "$template" =~ E4Tcad || "$template" =~ arobio  ]]; then
-      npes=( 8 )
-   elif [[ "$template" =~ E4C90 ]]; then
-      npes=( 6 )
-   elif [[ "$template" =~ tomas ]]; then
-      npes=( 48 )
-   else 
-      npes=( 8 )
-   fi
+    npes=( ${NPES} )
 }
 
 # -------------------------------------------------------------------
