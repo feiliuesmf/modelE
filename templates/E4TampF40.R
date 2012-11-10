@@ -150,7 +150,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "AMP_params"
-aer_int_yr=2000    !select desired year (1890 to 2000) or 0 to use JYEAR
+!aer_int_yr=2000    !select desired year (1890 to 2000) or 0 to use JYEAR
 #include "dust_params"
 !#include "chemistry_params"
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
