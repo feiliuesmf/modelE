@@ -172,48 +172,28 @@ C**** sync radiation parameters from input
       call sync_param( "O3X", O3X )
       call sync_param( "CLDX", CLDX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
-      if (is_set_param("S0_yr")) then
-        call get_param( "S0_yr", S0_yr )
-      else
-        s0_yr=master_yr
-      endif
+      call get_param( "S0_yr", S0_yr, default=master_yr )
       if (is_set_param("S0_day")) then
         call get_param( "S0_day", S0_day )
       else
         if (s0_yr==0) s0_day=0 ! else use default value
       endif
-      if (is_set_param("ghg_yr")) then
-        call get_param( "ghg_yr", ghg_yr )
-      else
-        ghg_yr=master_yr
-      endif
+      call get_param( "ghg_yr", ghg_yr, default=master_yr )
       if (is_set_param("ghg_day")) then
         call get_param( "ghg_day", ghg_day )
       else
         if (ghg_yr==0) ghg_day=0 ! else use default value
       endif
-      if (is_set_param("volc_yr")) then
-        call get_param( "volc_yr", volc_yr )
-      else
-        volc_yr=master_yr
-      endif
+      call get_param( "volc_yr", volc_yr, default=master_yr )
       if (is_set_param("volc_day")) then
         call get_param( "volc_day", volc_day )
       else
         if (volc_yr==0) volc_day=0 ! else use default value
       endif
-      if (is_set_param("aero_yr")) then
-        call get_param( "aero_yr", aero_yr )
-      else
-        aero_yr=master_yr
-      endif
+      call get_param( "aero_yr", aero_yr, default=master_yr )
       call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
-      if (is_set_param("albsn_yr")) then
-        call get_param( "albsn_yr", albsn_yr )
-      else
-        albsn_yr=master_yr
-      endif
+      call get_param( "albsn_yr", albsn_yr, default=master_yr )
       call sync_param( "aermix", aermix , 13 )
       call sync_param( "REFdry", REFdry , 8 )
       call sync_param( "FS8OPX", FS8OPX , 8 )
@@ -221,11 +201,7 @@ C**** sync radiation parameters from input
       call sync_param( "RHfix", RHfix )
       call sync_param( "CC_cdncx", CC_cdncx )
       call sync_param( "OD_cdncx", OD_cdncx )
-      if (is_set_param("O3_yr")) then
-        call get_param( "O3_yr", O3_yr )
-      else
-        O3_yr=master_yr
-      endif
+      call get_param( "O3_yr", O3_yr, default=master_yr )
       call sync_param( "PTLISO", PTLISO )
       call sync_param( "O3YR_max", O3YR_max )
       call sync_param( "KSOLAR", KSOLAR )

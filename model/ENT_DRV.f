@@ -68,11 +68,7 @@
       do_patchdynamics = 0 !false
 
       !--- read rundeck parameters
-      if (is_set_param("crops_yr")) then
-        call get_param( "crops_yr", crops_yr)
-      else
-        crops_yr=master_yr
-      endif
+      call get_param( "crops_yr", crops_yr, default=master_yr )
       !YKIM - add new options for modelE
       call sync_param( "do_soilresp",do_soilresp)
       call sync_param( "do_phenology_activegrowth",
