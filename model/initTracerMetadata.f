@@ -522,7 +522,9 @@ c$$$      call  H2O17_setSpec('H2O17')
         call  MSA_setSpec('MSA')
         call  SO2_setSpec('SO2')
         call  SO4_setSpec('SO4')
+#ifndef TRACERS_SPECIAL_Shindell
         call  H2O2_s_setSpec('H2O2_s')
+#endif  /* TRACERS_SPECIAL_Shindell */
         if (.not. sulf_only_aerosols) then
           call  seasalt1_setSpec('seasalt1')
           call  seasalt2_setSpec('seasalt2')
@@ -733,7 +735,9 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
         call  H2SO4_setSpec('H2SO4')
         call  DMS_setSpec('DMS') ! duplicate with Koch
         call  SO2_setSpec('SO2') ! duplicate with Koch
+#ifndef TRACERS_SPECIAL_Shindell
         call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+#endif  /* TRACERS_SPECIAL_Shindell */
         call  NH3_setSpec('NH3') ! duplicate with nitrate
         if (tracers_aerosols_koch) then
           call stop_model('contradictory tracer specs')
