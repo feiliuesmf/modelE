@@ -1217,7 +1217,7 @@ C SO4 production
      *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
         case('H2O2_s')
 
-          if (coupled_chem.eq.1) go to 140
+          if (coupled_chem.ne.1) then
 
 c hydrogen peroxide formation and destruction:
 C***5.H2O2 +hv -> 2OH
@@ -1258,9 +1258,8 @@ c H2O2 losses:5 and 6
           
           najl = jls_phot
           if (najl > 0) call inc_tajls(i,j,l,najl,perj(i,j,l))
+          endif
         end select
-
- 140    CONTINUE
 
  33   CONTINUE
 #endif
