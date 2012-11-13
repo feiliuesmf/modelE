@@ -857,7 +857,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE MODEL_COM, only : kocean,iyear1,ioreadnt,ioread
+      USE MODEL_COM, only : kocean,iyear1,ioreadnt,ioread,modelEclock
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
@@ -895,7 +895,10 @@ c
       real*8 z1ox(grid%i_strt_halo:grid%i_stop_halo,
      &            grid%j_strt_halo:grid%j_stop_halo)
       integer :: i_0,i_1, j_0,j_1
-      character(len=4) :: jyear_str
+      character(len=4) :: year_str
+      integer :: year
+
+      call modelEclock%getDate(year=year)
 
       call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
       I_0 = grid%I_STRT
@@ -962,8 +965,8 @@ C****   Read in constant factor relating RSI to MSI from sea ice clim.
         CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),DM,1)
 c read sea-ice thickness
         if (ZSI_exists) then
-          write(jyear_str,'(i4.4)')jyear
-          ncid=par_open(grid,'ZSI'//'/ZSI_'//jyear_str//'.nc','read')
+          write(year_str,'(i4.4)')year
+          ncid=par_open(grid,'ZSI'//'/ZSI_'//year_str//'.nc','read')
           call read_dist_data(grid,ncid,'ZSI',ZSI)
           call read_dist_data(grid,ncid,'ZSI_eom',ZSI_eom)
           call par_close(grid,fid)
