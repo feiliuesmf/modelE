@@ -60,6 +60,7 @@ C****
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
+     *     ,CH4X_RADoverCHEM
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -165,6 +166,7 @@ C**** sync radiation parameters from input
       call sync_param( "CO2X", CO2X )
       call sync_param( "N2OX", N2OX )
       call sync_param( "CH4X", CH4X )
+      call sync_param( "CH4X_RADoverCHEM", CH4X_RADoverCHEM )
       call sync_param( "CFC11X", CFC11X )
       call sync_param( "CFC12X", CFC12X )
       call sync_param( "XGHGX", XGHGX )
@@ -1157,6 +1159,7 @@ C     OUTPUT DATA
      &          ,SRXNIR,SRDNIR
       USE RAD_COM, only : modrd,nrad
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
+     *     ,CH4X_RADoverCHEM
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
@@ -1275,7 +1278,8 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       use TRACERS_VBS, only: vbs_tr
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
-     *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijts_sqex
+     *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijlt_3daaod
+     *     ,ijts_sqex
      *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
      *     ,diag_rad
 #ifdef AUXILIARY_OX_RADF
@@ -2133,7 +2137,8 @@ C**** or not.
 C YUNHA LEE - took the shindell outside of the Koch/dust directives. 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
-      CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
+      CHEM_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
+      CHEM_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM
       if (clim_interact_chem > 0) then
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
@@ -2243,7 +2248,7 @@ C**** Ozone:
         TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
         chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)  ! Ozone
-        chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)  ! Methane
+        chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM  ! Methane
 #ifdef ACCMIP_LIKE_DIAGS
 ! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
 ! Initial calls are reference year/day:
@@ -2451,6 +2456,10 @@ C**** Save optical depth diags
      &             =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &             +SUM(ttausv(1:Lm,n))*OPNSKY
             END IF
+            if (ijlt_3Daaod(NTRIX(n)).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))
+     *           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
             if (ijlt_3Dtau(NTRIX(n)).gt.0)
      *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
      *           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
@@ -2495,6 +2504,10 @@ C**** Save optical depth diags
      &             =taijs(i,j,ijts_tau(2,NTRIX(n)))
      &             +SUM(TTAUSV(1:lm,n))*OPNSKY
             END IF
+            if (ijlt_3Daaod(NTRIX(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
             if (ijlt_3Dtau(NTRIX(n)).gt.0)
      &           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
      &           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
@@ -2597,6 +2610,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
       CSZ2=COSZ2(I,J)
       do L=1,LM
         rad_to_chem(:,L,i,j)=chem_out(L,:)
+        rad_to_chem(4,L,i,j)=chem_out(L,4)/CH4X_RADoverCHEM
         do k=1,4
           kliq(L,k,i,j)=kdeliq(L,k) ! save updated flags
         end do
