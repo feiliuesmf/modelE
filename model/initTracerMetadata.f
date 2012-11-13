@@ -765,7 +765,9 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #ifndef TRACERS_AEROSOLS_SOA
       call  TOMAS_SOAgas_setSpec('SOAgas')
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifndef TRACERS_SPECIAL_Shindell
       call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+#endif  /* TRACERS_SPECIAL_Shindell */
       call  NH3_setSpec('NH3') ! duplicate with nitrate
       call  NH4_setSpec('NH4') ! duplicate with nitrate
 
