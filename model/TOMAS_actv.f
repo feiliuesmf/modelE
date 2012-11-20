@@ -1734,13 +1734,13 @@ C======================================================================C
 C
 C       ==================================================
 C       PURPOSE: COMPUTE THE INCOMPLETE GAMMA FUNCTION
-C                R(A,X), ג(A,X) AND P(A,X)
-C       INPUT :  A   --- PARAMETER ( A ף 170 )
+C                R(A,X), ?(A,X) AND P(A,X)
+C       INPUT :  A   --- PARAMETER ( A ? 170 )
 C                X   --- ARGUMENT
 C       OUTPUT:  GIN --- R(A,X)
-C                GIM --- ג(A,X)
+C                GIM --- ?(A,X)
 C                GIP --- P(A,X)
-C       ROUTINE CALLED: GAMMA FOR COMPUTING ג(X)
+C       ROUTINE CALLED: GAMMA FOR COMPUTING ?(X)
 C       ==================================================C
 !        IMPLICIT REAL*8 (A-H,O-Z)
       IMPLICIT NONE
@@ -1784,10 +1784,10 @@ C       ==================================================C
 
         SUBROUTINE GAMMA(X,GA)
 C
-C       =================================================C       PURPOSE: COMPUTE GAMMA FUNCTION ג(X)
-C       INPUT :  X  --- ARGUMENT OF ג(X)
-C                       ( X IS NOT EQUAL TO 0,-1,-2,תתת)
-C       OUTPUT:  GA --- ג(X)
+C       =================================================C       PURPOSE: COMPUTE GAMMA FUNCTION ?(X)
+C       INPUT :  X  --- ARGUMENT OF ?(X)
+C                       ( X IS NOT EQUAL TO 0,-1,-2,???)
+C       OUTPUT:  GA --- ?(X)
 C       =================================================C
 !        IMPLICIT REAL*8 (A-H,O-Z)
 
