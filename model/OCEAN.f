@@ -47,6 +47,9 @@
 !@var Z12O annual maximum ocean mixed layer depth
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: Z12O
 
+      logical :: ZSI_exists
+      real*8, allocatable, dimension(:,:,:) :: ZSI,ZSI_eom
+      real*8, allocatable, dimension(:,:) :: AZSI,EZSI0,EZSI1,BZSI,CZSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:) ::DM,AOST,EOST1,EOST0,BOST,
      *     COST,ARSI,ERSI1,ERSI0,BRSI,CRSI
       INTEGER, ALLOCATABLE, DIMENSION(:,:) ::  KRSI
@@ -157,9 +160,9 @@ c     for SCM cases using provided surface temps - do not overwrite
 C now allocated from ALLOC_OCEAN   REAL*8, SAVE :: XZO(IM,JM),XZN(IM,JM)
       LOGICAL, INTENT(IN) :: end_of_day
 
-      INTEGER n,J,I,LSTMON,m,m1,JR,YEAR_OCN
+      INTEGER n,J,I,LSTMON,m,m1,JR,YEAR_OCN,LSTMON_zsi
       REAL*8 RSICSQ,ZIMIN,ZIMAX,Z1OMIN,RSINEW,TIME,FRAC,MSINEW,OPNOCN
-     *     ,TFO
+     *     ,TFO,ZSINEW
 !@var JDLAST julian day that OCLIM was last called
       INTEGER, SAVE :: JDLAST=0
 !@var IMON0 current month for SST climatology reading
@@ -269,6 +272,11 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           YEAR_OCN=year
           if(ocn_cycl>2) YEAR_OCN=ocn_cycl
           LSTMON=month-1+(YEAR_OCN-IYEAR1)*INT_MONTHS_PER_YEAR
+          if (ZSI_exists) then
+! ZSI_mon goes from 0 to 12, 0 being DEC of last year and 12 DEC of this year
+            LSTMON_zsi=month-1
+!            if (lstmon_zsi.eq.0) lstmon_zsi = 12
+          endif
   300     call READ_PARALLEL(M, iu_OSST)
           if (m.lt.lstmon) go to 300
           CALL BACKSPACE_PARALLEL( iu_OSST )
@@ -278,6 +286,7 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           CALL MREAD_PARALLEL
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,TEMP_LOCAL)
           EOST0 = TEMP_LOCAL(:,:,2)
+          if (ZSI_exists) EZSI0 = ZSI_eom(:,:,lstmon_zsi)
           CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,TEMP_LOCAL)
           ERSI0 = TEMP_LOCAL(:,:,2)
@@ -290,6 +299,7 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
       ELSE
 C****   COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         EOST0=EOST1
+        if (ZSI_exists) EZSI0=EZSI1
         ERSI0=ERSI1
       END IF
 C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
@@ -326,6 +336,10 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
      *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,TEMP_LOCAL)
         AOST  = TEMP_LOCAL(:,:,1)
         EOST1 = TEMP_LOCAL(:,:,2)
+        if (ZSI_exists) then
+          AZSI = ZSI(:,:,IMON0)
+          EZSI1 = ZSI_eom(:,:,IMON0)
+        endif
         CALL MREAD_PARALLEL
      *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
@@ -342,6 +356,14 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         end if
       end if
 C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
+      if (ZSI_exists) then
+        DO J=J_0,J_1
+          DO I=I_0,IMAXJ(J)
+            BZSI(I,J)=EZSI1(I,J)-EZSI0(I,J)
+            CZSI(I,J)=3.*(EZSI1(I,J)+EZSI0(I,J)) - 6.*AZSI(I,J)
+          END DO
+        END DO
+      endif
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           BOST(I,J)=EOST1(I,J)-EOST0(I,J)
@@ -383,35 +405,81 @@ C**** OST always uses quadratic fit
 C**** RSI uses piecewise linear fit because quadratic fit at apex < 0
             CASE (-1)
               IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .gt. 0.)  then
+                if (ZSI_exists) then
+                  ZSINEW = EZSI0(I,J) - BZSI(I,J)*(TIME+.5) !  TIME < T0
+                endif
                 RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
               ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .gt. 0.)  then
+                if (ZSI_exists) then
+                  ZSINEW = EZSI1(I,J) - BZSI(I,J)*(.5-TIME) !  T1 < TIME
+                endif
                 RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
               ELSE
+              if (ZSI_exists) then
+                ZSINEW=ZIMIN       !  T0 < TIME < T1
+              endif
               RSINEW = 0.       !  T0 < TIME < T1
             END IF
 C**** RSI uses piecewise linear fit because quadratic fit at apex > 1
             CASE (1)
               IF(ERSI0(I,J)-BRSI(I,J)*(TIME+.5) .lt. 1.)  then
                 RSINEW = ERSI0(I,J) - BRSI(I,J)*(TIME+.5) !  TIME < T0
+                if (ZSI_exists) then
+                  if (RSINEW .gt. 0.d0) then
+                    ZSINEW=max(ZIMIN,AZSI(I,J)+BZSI(I,J)*TIME+
+     &                   CZSI(I,J)*(TIME**2-BY12))
+                  else
+                    ZSINEW=ZIMIN
+                  endif
+                endif
               ELSEIF(ERSI1(I,J)-BRSI(I,J)*(.5-TIME) .lt. 1.)  then
                 RSINEW = ERSI1(I,J) - BRSI(I,J)*(.5-TIME) !  T1 < TIME
+                if (ZSI_exists) then
+                  if (RSINEW .gt. 0.d0) then
+                    ZSINEW=max(ZIMIN,AZSI(I,J)+BZSI(I,J)*TIME+
+     &                   CZSI(I,J)*(TIME**2-BY12))
+                  else
+                    ZSINEW=ZIMIN
+                  endif
+                endif
               ELSE
                 RSINEW = 1.     !  T0 < TIME < T1
+                if (ZSI_exists) then
+                  if (RSINEW .gt. 0.d0) then
+                    ZSINEW=max(ZIMIN,AZSI(I,J)+BZSI(I,J)*TIME+
+     &                   CZSI(I,J)*(TIME**2-BY12))
+                  else
+                    ZSINEW=ZIMIN
+                  endif
+                endif
             END IF
 C**** RSI uses quadratic fit
             CASE (0)
               RSINEW=ARSI(I,J)+BRSI(I,J)*TIME+CRSI(I,J)*(TIME**2-BY12)
+              if (ZSI_exists) then
+                if (RSINEW .gt. 0.d0) then
+                  ZSINEW=max(ZIMIN,AZSI(I,J)+BZSI(I,J)*TIME+
+     &                             CZSI(I,J)*(TIME**2-BY12))
+                else
+                  ZSINEW=ZIMIN
+                endif
+              endif
             END SELECT
 C**** Set new mass
-            MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+            if (ZSI_exists) then
+              ZSINEW = max(ZIMIN,ZSINEW)
+              MSINEW=RHOI*(ZSINEW-Z1I)
+            else
+              MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** Ensure that lead fraction is consistent with kocean=1 case
-            IF (RSINEW.gt.0) THEN
-              OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
-              IF (RSINEW.GT.1.-OPNOCN) THEN
-                RSINEW = 1.-OPNOCN
-                MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+              IF (RSINEW.gt.0) THEN
+                OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
+                IF (RSINEW.GT.1.-OPNOCN) THEN
+                  RSINEW = 1.-OPNOCN
+                  MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
+                END IF
               END IF
-            END IF
+            endif
 C**** accumulate diagnostics
             IF(MSI(I,J).eq.0) MSI(I,J)=MSINEW  ! does this happen?
             IF (end_of_day.and..not.off_line) THEN
@@ -723,10 +791,12 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
       SUBROUTINE ALLOC_OCEAN
       USE STATIC_OCEAN, only  : TOCEAN,OTA,OTB,OTC,Z1O,Z1OOLD,Z12O,
+     &                          ZSI_exists,ZSI,ZSI_eom,
+     &                          AZSI,EZSI0,EZSI1,BZSI,CZSI,
      &                          DM,AOST,EOST1,EOST0,BOST,COST,FOCEAN,
      &                          ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
       USE STATIC_OCEAN, only  : KRSI
-      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,am_i_root
       IMPLICIT NONE
       INTEGER :: I_0H,I_1H,J_0H,J_1H,IER
 
@@ -734,6 +804,18 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
+      inquire(file='ZSI/exists', exist=ZSI_exists)
+      if (ZSI_exists) then
+        ALLOCATE(
+     &           ZSI(I_0H:I_1H,J_0H:J_1H,12),
+     &           ZSI_eom(I_0H:I_1H,J_0H:J_1H,0:12),
+     &           AZSI(I_0H:I_1H,J_0H:J_1H),
+     &           EZSI0(I_0H:I_1H,J_0H:J_1H),
+     &           EZSI1(I_0H:I_1H,J_0H:J_1H),
+     &           BZSI(I_0H:I_1H,J_0H:J_1H),
+     &           CZSI(I_0H:I_1H,J_0H:J_1H),
+     &      STAT=IER)
+      endif
       ALLOCATE(TOCEAN(3,I_0H:I_1H,J_0H:J_1H),
      &    STAT=IER)
 !allocALLOCATE(OTA(I_0H:I_1H,J_0H:J_1H,4),
@@ -775,7 +857,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
      &     ,MREAD_PARALLEL,READT_PARALLEL
-      USE MODEL_COM, only : kocean,iyear1,ioreadnt,ioread
+      USE MODEL_COM, only : kocean,iyear1,ioreadnt,ioread,modelEclock
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
@@ -787,9 +869,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE SEAICE, only : qsfix, osurf_tilt
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX,focean
+     *     ,ZSI_exists,ZSI,ZSI_eom
       USE DIAG_COM, only : npts,icon_OCE,conpt0
 #ifdef NEW_IO
-      use pario, only : par_open, par_close
+      use pario, only : par_open, par_close, read_dist_data
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -802,7 +885,7 @@ c
       CHARACTER CONPT(NPTS)*10
       integer :: fid,status
 !@var iu_OHT unit number for reading in ocean heat transports & z12o_max
-      INTEGER :: iu_OHT,iu_GIC
+      INTEGER :: iu_OHT,iu_GIC,ncid
       INTEGER :: I,J,m,ioerr
       logical :: postProc = .false.
       logical :: readGIC = .false.
@@ -812,6 +895,10 @@ c
       real*8 z1ox(grid%i_strt_halo:grid%i_stop_halo,
      &            grid%j_strt_halo:grid%j_stop_halo)
       integer :: i_0,i_1, j_0,j_1
+      character(len=4) :: year_str
+      integer :: year
+
+      call modelEclock%getDate(year=year)
 
       call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
       I_0 = grid%I_STRT
@@ -876,6 +963,14 @@ C****   set up unit numbers for ocean climatologies
 
 C****   Read in constant factor relating RSI to MSI from sea ice clim.
         CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),DM,1)
+c read sea-ice thickness
+        if (ZSI_exists) then
+          write(year_str,'(i4.4)')year
+          ncid=par_open(grid,'ZSI'//'/ZSI_'//year_str//'.nc','read')
+          call read_dist_data(grid,ncid,'ZSI',ZSI)
+          call read_dist_data(grid,ncid,'ZSI_eom',ZSI_eom)
+          call par_close(grid,fid)
+        endif
       else !  IF (KOCEAN.eq.1) THEN
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients

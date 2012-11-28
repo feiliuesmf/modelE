@@ -15,14 +15,14 @@ DESCRIPTION
      Use this script to compile and/or run modelE rundecks through command line options.
      The script compiles/runs within a working git repository as specified in the MODELEGIT 
      environment variable. If specified, the results will be compared against a set of
-     baseline results.
+     baseline results. (Baseline results must be precomputed.)
 
      To create a modelE baseline just set the MODELEBASE environment variable and the
      corresponding command line flag.
     
-     On DISCOVER it is assumed that the script is executed within a PBS
-     interactive session. On non-DISCOVER systems a fortran compiler (gfortran or Intel) 
-     and MPI must be available.    
+     On DISCOVER it is assumed that the script is executed within a PBS interactive
+     session. On non-DISCOVER systems a fortran compiler (gfortran or Intel) and
+     MPI must be available.    
  
 
 SYNOPSIS
@@ -71,8 +71,8 @@ EXAMPLE
         runModelE.sh
      Do not check agains baseline (just runs within MODELEGIT)
         runModelE.sh -x NO
-     Use gcc47 modules, E4TcadF40 rundeck and the specified modelErc file
-        runModelE.sh -e gcc47 -d E4TcadF40 --modelErc=$HOME/.modelErc.G47
+     Use gcc47 modules, E4TcadF40 rundeck (with shortname=cad) and the specified modelErc file
+        runModelE.sh --modEnv=gcc47 -d E4TcadF40 -n cad --modelErc=$HOME/.modelErc.G47
 
 AUTHOR
 
@@ -355,8 +355,8 @@ buildAndRun()
    if [ "$baseline" == "YES" ]; then
       codebase="base"
    else
-      codebase=exp
-      diagMessage " --- EXPERIMENTAL ---"
+      codebase=dev
+      diagMessage " --- DEVELOPMENT ---"
    fi
    buildAndRunCodeBase "$codebase"
 }
@@ -588,7 +588,7 @@ restartRegression()
 # Edit rundeck to run 1 hr past day 2 (any assumptions here?) and
 # create a checkpoint (fort.1) at day 2.
    editRundeck "${deck}.R" 48 2 1
-# Run model from t0 -> t2 (running one day)
+# Run model from t0 -> t2 (running one day+1hr)
    runModel "$deck" "$ncpu"
 # Remove run_status - this is only a problem on discover (why?)
    rm -f $deck/run_status
@@ -596,7 +596,7 @@ restartRegression()
 # comparison with t2'
    saveState "$deck" "$ncpu" "DAYRUN"
    cd $deck
-# Run model from from t1 -> t2'
+# Run model from from t1 -> t2 (running one hr continuation)
    diagMessage " --------- ./$deck -np $ncpu"
    ./$deck -np "$ncpu" 1>> $makeLog 2>&1
    saveState "$deck" "$ncpu" "RESTART"
@@ -644,12 +644,12 @@ compareRuns()
    local rc
 
    local base=$gitBaseRepository/decks/$rundeck.base
-   local exp=$workPath/$rundeck.exp
+   local dev=$workPath/$rundeck.dev
    local baseDay=$gitBaseRepository/decks/$rundeck.base.reg
-   local exp=$workPath/$rundeck.exp
-   local expDay=$workPath/$rundeck.exp.reg
-   local expMpi=$workPath/$rundeck.exp
-   local expMpiDay=$workPath/$rundeck.exp.reg
+   local dev=$workPath/$rundeck.dev
+   local devDay=$workPath/$rundeck.dev.reg
+   local devMpi=$workPath/$rundeck.dev
+   local devMpiDay=$workPath/$rundeck.dev.reg
    declare -a id
    id=( )
 
@@ -665,15 +665,15 @@ compareRuns()
          id[${#id[*]}]="NPES${n}"
          if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
            exitIfNofile "$base/$rundeck.base.1hr.$id"
-           exitIfNofile "$exp/$rundeck.exp.1hr.$id"
+           exitIfNofile "$dev/$rundeck.dev.1hr.$id"
          fi
          if [[ "$runtype" == "1DY"  || "$runtype" == "ALL" ]]; then
            exitIfNofile "$base/$rundeck.base.1dy.$id"
-           exitIfNofile "$exp/$rundeck.exp.1dy.$id"
+           exitIfNofile "$dev/$rundeck.dev.1dy.$id"
          fi
          if [ "$runtype" == "ALL" ]; then
            exitIfNofile "$base/$rundeck.base.restart.$id"
-           exitIfNofile "$exp/$rundeck.exp.restart.$id"
+           exitIfNofile "$dev/$rundeck.dev.restart.$id"
          fi
          let cnt=$cnt+1
       done
@@ -682,23 +682,23 @@ compareRuns()
       for n in "${npes[@]}"; do
          id[${#id[*]}]="NPES${n}"
          if [[ "$runtype" == "1HR"  || "$runtype" == "ALL" ]]; then
-           rc=`$diffReport $base/$rundeck.base.1hr.$id  $exp/$rundeck.exp.1hr.$id > .sz`
+           rc=`$diffReport $base/$rundeck.base.1hr.$id  $dev/$rundeck.dev.1hr.$id > .sz`
            sz=`wc -c .sz | awk '{print $1}'`
-           checkStatus $sz " ------ BASELINE vs EXP 1HR ($id): "
+           checkStatus $sz " ------ BASELINE vs DEV 1HR ($id): "
            rm -f .sz
          fi
       
          if [[ "$runtype" == "1DY" || "$runtype" == "ALL" ]]; then
-           rc=`$diffReport $base/$rundeck.base.1dy.$id  $exp/$rundeck.exp.1dy.$id > .sz`
+           rc=`$diffReport $base/$rundeck.base.1dy.$id  $dev/$rundeck.dev.1dy.$id > .sz`
            sz=`wc -c .sz | awk '{print $1}'`
-           checkStatus $sz " ------ BASELINE vs EXP 1DY ($id): "
+           checkStatus $sz " ------ BASELINE vs DEV 1DY ($id): "
            rm -f .sz
          fi
          
          if [ "$runtype" == "ALL" ]; then
-           rc=`$diffReport $base/$rundeck.base.restart.$id  $exp/$rundeck.exp.restart.$id > .sz`
+           rc=`$diffReport $base/$rundeck.base.restart.$id  $dev/$rundeck.dev.restart.$id > .sz`
            sz=`wc -c .sz | awk '{print $1}'`
-           checkStatus $sz " ------ BASELINE vs EXP RESTART ($id): "
+           checkStatus $sz " ------ BASELINE vs DEV RESTART ($id): "
            rm -f .sz
          fi
       done
@@ -807,7 +807,7 @@ printInfo()
 # -------------------------------------------------------------------
 {   
    diagMessage " *** Options ***"
-   diagMessage "    EXPERIMENTAL GIT repository: $gitRepository"
+   diagMessage "    DEVELOPMENT GIT repository: $gitRepository"
    if [[ "$check" == "YES"  || "$baseline" == "YES" ]]; then
       diagMessage "    BASELINE GIT repository: $gitBaseRepository"
       diagMessage "    create baseline               = $baseline"

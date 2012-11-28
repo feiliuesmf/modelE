@@ -139,7 +139,7 @@ deckDiff()
       echo "    Skip SERIAL comparison"
     else
 # compare SERIAL restart reproducibility
-      if [ $checkSERIAL -gt 0]; then
+      if [ $checkSERIAL -gt 0 ]; then
         doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
 # compare SERIAL baseline (previous day) restart reproducibility
         doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
@@ -150,13 +150,13 @@ deckDiff()
     if [ ! -z $3 ]; then
       declare -a npeArray=("${!3}")
       for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0]; then
+        if [ $checkMPI -gt 0 ]; then
           doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
         fi
       done
 # compare MPI baseline (previous day) restart reproducibility
       for npe in "${npeArray[@]}"; do
-        if [ $checkMPI -gt 0]; then
+        if [ $checkMPI -gt 0 ]; then
           doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
           doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
         fi
@@ -205,39 +205,13 @@ else
    echo "CONFIG ENV: $CONFIG"
 fi
 
-if [ -z $MODELERC ]; then
-   echo " *** ERROR ***"
-   echo "ENV variable MODELERC is not defined."
-   export MODELERC=$HOME/.modelErc
-fi
-
 if [ -z $MOCKMODELE ]; then
-  compiler=$(cat $MODELERC | grep COMPILER= | awk -F"=" '{print $2}')
-  if [ "$compiler" == "intel" ]; then
-     FC=ifort
-  elif [ "$compiler" == "gfortran" ]; then
-     FC=gfortran
-  elif [ "$compiler" == "nag" ]; then
-     FC=nagfor
-  else
-     echo "Incorrect compiler option for diffreport.x"
-     exit 1;
-  fi
-  netcdf=$(cat $MODELERC | grep "/netcdf/" | awk -F"=" '{print $2}')
-  INC=$netcdf/include
-  LIB=$netcdf/lib
-
-  misnc=$MODELROOT/model/mk_diags/miscnc.f
-  diffr=$MODELROOT/model/mk_diags/diffreport.f
-  diffExec=$MODELROOT/exec/testing/diffreport.x
-  
-  echo $FC -O3 -I$INC $misnc $diffr -o $diffExec -L$LIB -lnetcdf
-  $FC -O3 -I$INC $misnc $diffr -o $diffExec -L$LIB -lnetcdf
-  if [ ! -e $diffExec ]; then
-     echo " *** WARNING ***"
-     echo "$diffExec does not exist. Will use GISS installation"
-     diffExec=/discover/nobackup/projects/giss/exec/diffreport
-  fi
+   diffExec=diffreport.x
+   command -v $diffExec &>/dev/null || 
+   { 
+      echo " ~~~ $diffExec does not exist. Will use GISS installation." >&2
+      diffExec=/discover/nobackup/projects/giss/exec/diffreport
+   }
 else
   diffExec=/usr/bin/cmp
 fi

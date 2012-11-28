@@ -122,13 +122,25 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=4
+#else
       integer, parameter :: ntm_koch=5
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=0
 #elif (defined TRACERS_AEROSOLS_VBS)
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=9
+#else
       integer, parameter :: ntm_koch=10
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=2*vbs_bins
 #else
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=12
+#else
       integer, parameter :: ntm_koch=13
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=0
 #endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
 #else
@@ -253,7 +265,11 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AMP_M8
       integer, parameter :: ntmAMP=28
 #endif  /* TRACERS_AMP_M8 */
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_amp=ntmAMP+4
+#else
       integer, parameter :: ntm_amp=ntmAMP+5
+#endif  /* TRACERS_SPECIAL_Shindell */
 #else
       integer, parameter :: ntm_amp=0
 #endif  /* TRACERS_AMP */

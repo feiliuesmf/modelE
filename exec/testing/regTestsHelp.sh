@@ -10,7 +10,7 @@ echo
 echo -e "\t${BOLD}$1${RESET} executes ModelE regression testing."
 cat <<pleHHelp1 
 During setup, it interprets a number of environmental variables and/or reads a possible configuration
-ﬁle (see Examples below). The variables will override settings contained in the configuration file.
+file (see Examples below). The variables will override settings contained in the configuration file.
 
 pleHHelp1
 echo -e ${BOLD}Environmental Variables:${RESET}

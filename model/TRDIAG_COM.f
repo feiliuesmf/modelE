@@ -202,7 +202,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=50
+      INTEGER, PARAMETER :: ktaijl=50+16+2
 #ifdef ACCMIP_LIKE_DIAGS 
      &                            + 12
 #endif
@@ -291,6 +291,8 @@ C**** TAIJLS 3D special tracer diagnostics
 #endif 
 !@var ijlt_3Dtau 3D tracer independent array for hydrated opt. thick.
       integer, allocatable :: ijlt_3Dtau(:)
+!@var ijlt_3Daaod 3D tracer independent array for hydrated absorption
+      INTEGER, allocatable :: ijlt_3Daaod(:)
 
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
@@ -1403,6 +1405,7 @@ C*** Unpack read global data into local distributed arrays
       allocate(ijlt_AMPm(2,ntm))
 #endif 
       allocate(ijlt_3Dtau(ntm))
+      allocate(ijlt_3Daaod(ntm))
 
       allocate(sname_jln(ktajlx,ntm))
       allocate(lname_jln(ktajlx,ntm))
