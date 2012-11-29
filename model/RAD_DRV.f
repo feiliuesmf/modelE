@@ -104,6 +104,11 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
+      USE TRACER_COM, only:  
+     *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
+     *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
+     *     n_N_BC2_1 ,n_N_BC3_1,
+     *     n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp

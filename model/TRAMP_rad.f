@@ -2,6 +2,16 @@
 
 c -----------------------------------------------------------------
 
+      module AMP_Utilities_mod
+
+      contains
+
+      character*2 function aerosolkind(tracerName) 
+      character(len=*), intent(in) :: tracerName
+      aerosolkind = tracerName(7:8)
+      end function aerosolkind
+
+      end module AMP_Utilities_mod
 
       SUBROUTINE SETAMP(EXT,SCT,GCB,TAB)
 !@sum Calculation of extinction, asymmetry and scattering for AMP Aerosols
@@ -321,12 +331,14 @@ c -----------------------------------------------------------------
 
       USE AMP_AEROSOL, only: DIAM, Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,
      +                       dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
-      USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP,trname
+      USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
 
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,DENS_SEAS, DENS_BCAR, DENS_OCAR
+      use OldTracer_mod, only: trname
+      use AMP_utilities_mod, only: aerosolkind
       IMPLICIT NONE
 
       ! Arguments: 
@@ -393,11 +405,18 @@ cBond + Berstroem, all wavelength
            if(trname(n) .eq.'M_NO3') NO3 =trm(i,j,l,n)
            if(trname(n) .eq.'M_H2O') H2O =trm(i,j,l,n)
           if(AMP_NUMB_MAP(nAMP).eq. 0) then  ! Volume fraction
-           if(trname(n)(6:8).eq.'_SU') VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
-           if(trname(n)(6:8).eq.'_BC') VMass(AMP_MODES_MAP(nAMP),2) =trm(i,j,l,n)/DENS_BCAR
-           if(trname(n)(6:8).eq.'_OC') VMass(AMP_MODES_MAP(nAMP),3) =trm(i,j,l,n)/DENS_OCAR
-           if(trname(n)(6:8).eq.'_DU') VMass(AMP_MODES_MAP(nAMP),4) =trm(i,j,l,n)/DENS_DUST
-           if(trname(n)(6:8).eq.'_SS') VMass(AMP_MODES_MAP(nAMP),5) =trm(i,j,l,n)/DENS_SEAS
+             select case (aerosolKind(trname(n)))
+             case ('SU')
+                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
+             case ('BC')
+                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_BCAR
+             case ('OC')
+                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_OCAR
+             case ('DU')
+                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_DUST
+             case ('SS')
+                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SEAS
+             end select
           else                           ! Number
 !          [ - ]                        [#/gb]         [m-2]      
            NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n) * bydxyp(j)

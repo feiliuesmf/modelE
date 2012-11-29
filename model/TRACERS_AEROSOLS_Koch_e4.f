@@ -725,6 +725,9 @@ C TOMAS don't allow offline SS!
       use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
       use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
 #endif
+#ifdef TRACERS_AMP
+      use TRACER_COM, only: n_H2SO4
+#endif
       USE TRDIAG_COM, only : 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

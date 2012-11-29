@@ -265,11 +265,11 @@
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,
      &     DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
-      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM
+      use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
@@ -3437,6 +3437,10 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
      &     ,fracSiltPDFscheme
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
+#endif
+
       USE TRACER_COM, only: ef_fact3d, no_emis_over_ice
       use Model_com, only: itime
       implicit none

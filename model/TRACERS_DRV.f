@@ -9019,6 +9019,10 @@ c latlon grid
       use TRACER_COM, only: IDTECOB, IDTOCOB, IDTSO4, n_H2SO4, n_SOAGAS
       use TRACER_COM, only: nChemistry, n_AOCOB, n_AECIL, ntm_tomas
 #endif
+#ifdef TRACERS_AMP
+      use TRACER_COM, only: n_H2SO4
+      use TRACER_COM, only: ntmAMPi, ntmAMPe
+#endif
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource
       use model_com, only: modelEclock
