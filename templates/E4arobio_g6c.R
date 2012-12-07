@@ -202,21 +202,8 @@ madaer=3    ! updated aerosols
 aer_rad_forc=0
 cloud_rad_forc=1
 
-! parameters that control the atmospheric/boundary conditions
-! if set to 0, the current (day/) year is used: transient run
-crops_yr=1850  ! if -1, crops in VEG-file is used
-s0_yr=1850
-s0_day=182
-ghg_yr=1850
-ghg_day=182
-volc_yr=-1
-volc_day=182
-aero_yr=1850
-od_cdncx=0.        ! don't include 1st indirect effect
-cc_cdncx=0.        ! include 2nd indirect effect
-albsn_yr=1850
-dalbsnX=.024
-o3_yr=-1850
+#include "atmCompos_1850_params"
+variable_orb_par=-2
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)
