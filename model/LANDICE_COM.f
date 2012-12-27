@@ -52,11 +52,6 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRDWNIMP
 #endif
 
-#ifdef COUPLE_GLIMMER
-!@var glint_greenland Glimmer model of the Greenland ice sheet
-      type(glint_params) :: glint_greenland;
-#endif
-
 !@param kijhc number of ijhc accumulations
       integer, parameter :: kijhc=15
 !@var ijhc accumulations for glacial ice height-classified diagnostics
