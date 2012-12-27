@@ -1198,7 +1198,7 @@ c
       subroutine copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
       implicit none
       integer :: nl,nj,nk,j1,j2
-      real*8 arr1d(1)
+      real*8 arr1d(*)
       real*8 arr(nl,nj,nk)
 
       integer :: j,k,l,n
@@ -1217,7 +1217,7 @@ c
       subroutine copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
       implicit none
       integer :: nl,nj,nk,j1,j2
-      real*8 arr1d(1)
+      real*8 arr1d(*)
       real*8 arr(nl,nj,nk)
 
       integer :: j,k,l,n

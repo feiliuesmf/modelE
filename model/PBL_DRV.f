@@ -35,8 +35,7 @@
 #endif
 #endif
 #ifdef TRACERS_AMP
-      use TRACER_COM, only:
-     & ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
+      use TRACER_COM, only: AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif

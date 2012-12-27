@@ -7,13 +7,10 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-
       subroutine init_tracer
-      use TRACER_COM, only: tracers
-      use TracerBundle_mod, only: TracerBundle
+      implicit none
 
-      tracers = TracerBundle()
-      call initTracerMetadata()
+      call laterInitTracerMetadata()
       call initTracerGriddedData()
       end subroutine init_tracer
 
@@ -3989,6 +3986,15 @@ c put in chemical loss of SO2
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c put in sink of SO2 from aqueous chem
+        k = k + 1
+        ijts_aq(n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'SO2 aqueous chem sink'
+        sname_ijts(k) = 'SO2_aq_chem_sink'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c emissions of industrial SO2
         do kr=1,ntsurfsrc(n)
           k = k + 1
@@ -6080,7 +6086,7 @@ c clear sky scattering asymmetry factor in six solar bands
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
-#ifdef HTAP_LIKE_DIAGS
+#if (defined HTAP_LIKE_DIAGS) || (defined ACCMIP_LIKE_DIAGS)
       USE MODEL_COM, only: dtsrc
 #endif
       USE DIAG_COM
@@ -6108,11 +6114,22 @@ C**** some tracer specific 3D arrays
 
 #ifdef TRACERS_DUST
       CASE('Clay','Silt1','Silt2','Silt3','Silt4')
+!     *     'isopp1a','isopp2a','apinp1a','apinp2a',
+!     *     'OCB','OCII','OCIA','OCocean','MSA','BCB','BCII','BCIA',
+!     *     'SO4','NO3p','NH4','seasalt1','seasalt2')
         k = k + 1
          ijlt_3Dtau(n)=k
          ia_ijlt(k) = ia_rad
          lname_ijlt(k) = trim(trname(n))//' tau'
          sname_ijlt(k) = 'tau_3D_'//trname(n)
+         ijlt_power(k) = -2
+         units_ijlt(k) = unit_string(ijlt_power(k),' ')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+         ijlt_3Daaod(n)=k
+         ia_ijlt(k) = ia_rad
+         lname_ijlt(k) = trim(trname(n))//' aaod'
+         sname_ijlt(k) = 'aaod_3D_'//trname(n)
          ijlt_power(k) = -2
          units_ijlt(k) = unit_string(ijlt_power(k),' ')
          scale_ijlt(k) = 10.**(-ijlt_power(k))
@@ -6137,6 +6154,22 @@ c- 3D diagnostic per mode
          sname_ijlt(k) = 'ACTI3D_'//TRIM(trname(n))
          ijlt_power(k) = -2.
          units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+         ijlt_3Dtau(n)=k
+         ia_ijlt(k) = ia_rad
+         lname_ijlt(k) = trim(trname(n))//' tau'
+         sname_ijlt(k) = 'tau_3D_'//trname(n)
+         ijlt_power(k) = -2
+         units_ijlt(k) = unit_string(ijlt_power(k),' ')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+         ijlt_3Daaod(n)=k
+         ia_ijlt(k) = ia_rad
+         lname_ijlt(k) = trim(trname(n))//' aaod'
+         sname_ijlt(k) = 'aaod_3D_'//trname(n)
+         ijlt_power(k) = -2
+         units_ijlt(k) = unit_string(ijlt_power(k),' ')
          scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif
       end select
@@ -6630,11 +6663,12 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE SOMTQ_COM, only : qmom,mz,mzz
       use OldTracer_mod, only: trname, itime_tr0, vol2mass, tr_mm
       use OldTracer_mod, only: trsi0, needtrs
-      USE TRACER_COM, only: NTM, trm, trmom, rnsrc
+      use OldTracer_mod, only: set_itime_tr0
+      USE TRACER_COM, only: NTM, trm, trmom, rnsrc, tracers
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       USE TRACER_COM, only:
-     *     n_SO2,imPI,aer_int_yr,OFFLINE_DMS_SS,OFFLINE_SS
+     *     n_SO2,OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only:
      *     n_ASO4,n_AOCOB,IDTSO4,IDTNUMD,xk,nbins
@@ -7760,7 +7794,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: 
-     *  aer_int_yr,imPI,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
@@ -8984,6 +9018,10 @@ c latlon grid
       use TRACER_COM, only: IDTOCIL, IDTNUMD, IDTNA, IDTECIL, IDTDUST
       use TRACER_COM, only: IDTECOB, IDTOCOB, IDTSO4, n_H2SO4, n_SOAGAS
       use TRACER_COM, only: nChemistry, n_AOCOB, n_AECIL, ntm_tomas
+#endif
+#ifdef TRACERS_AMP
+      use TRACER_COM, only: n_H2SO4
+      use TRACER_COM, only: ntmAMPi, ntmAMPe
 #endif
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource

@@ -32,6 +32,7 @@
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use fluxes, only : focean, FLICE
+      use MODEL_COM, only: master_yr
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
@@ -67,7 +68,7 @@
       do_patchdynamics = 0 !false
 
       !--- read rundeck parameters
-      call sync_param( "crops_yr", crops_yr)
+      call get_param( "crops_yr", crops_yr, default=master_yr )
       !YKIM - add new options for modelE
       call sync_param( "do_soilresp",do_soilresp)
       call sync_param( "do_phenology_activegrowth",

@@ -105,7 +105,6 @@ contains
 
 #ifdef MPITYPE_LOOKUP_HACK
     numMpiTypes = numMpiTypes + 1
-    print *,"NEW MPI_Type: ", numMpiTypes
     if ( numMpiTypes > MAX_MPI_TYPES ) call stop_model("numMpiTypes > 1024",255)
     mpiTypes(numMpiTypes) = MpiType_type(numBlocks, blockLen, stride, baseType, newType)
 #endif
@@ -140,7 +139,6 @@ contains
       endif
     enddo
 
-    print*,'not found: ', numBlocks, blockLen, stride, baseType
     getTypeIndex = NOT_FOUND
 
   end function getTypeIndex

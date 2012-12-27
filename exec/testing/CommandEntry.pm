@@ -111,7 +111,7 @@ sub runInBatch
   switch ($jobname) 
   {
       case [ "nonProduction_E4TcadC12", "nonProduction_E_AR5_C12" ] 
-      { $walltime = "4:00:00\n" }
+      { $walltime = "1:00:00\n" }
       case [ "EM20", "E1oM20", "E4F40", "SCMSGPCONT" ] 
       { $walltime = "1:00:00\n" }
       case [ "E4C90L40", "E_AR5_CADI" ] 
@@ -119,7 +119,7 @@ sub runInBatch
       case [ "E4TcadF40", "E4TcadiF40", "E4arobio_g6c", "E4arobio_h4c" ] 
       { $walltime = "3:00:00\n" }
       else
-      { $walltime = "8:00:00\n"; }
+      { $walltime = "12:00:00\n"; $nodes=8}
   }
 
   print " runInBatch: COMPILER=$compiler, jobname=$jobname, BRANCH=$branch\n";

@@ -993,6 +993,10 @@ contains
 #ifdef TRACERS_ON
               call reset_tracer_work_arrays(lmin,lmax)
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      DT_SULF_MC(1:NTM,lmin:lmax)=0.
+#endif
             end if
           end if
 
@@ -1449,14 +1453,15 @@ contains
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
 
             if (FPLUME.gt.teeny) then
-              TMP_SUL(L,aqchem_list)=TMP(aqchem_list)/FPLUME
+!YUNHA              TMP_SUL(L,aqchem_list)=TMP(aqchem_list)/FPLUME
+              TMP_SUL(L,aqchem_list)=TMP(aqchem_list)
             else
               TMP_SUL(L,aqchem_list)=0.
             end if
 
             call GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
                  SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L), &
-                 AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT)
+                 AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT,.false.)
 
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
@@ -2591,7 +2596,7 @@ contains
 
               call GET_SULFATE(L,TOLD,FPLUME,WA_VOL,WMXTR,SULFIN, &
                    SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX, &
-                   DT_SULF_MC(1,L),CLDSAVT)
+                   DT_SULF_MC(1,L),CLDSAVT,.true.)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
@@ -4411,9 +4416,18 @@ contains
                *ER(L))*FSSL(L))
 #ifdef TRACERS_WATER
         else
-          if (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
-               +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
-          FWTOQ=min(1d0,FWTOQ)
+!yunha          if (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
+!yunha               +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+!yunha          FWTOQ=min(1d0,FWTOQ)
+          IF (FORM_CLOUDS) THEN 
+            IF (WMX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
+                 +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
+            FWTOQ=MIN(1d0,FWTOQ) 
+            IF(WMNEW.EQ.0.AND.QNEW.GE.0) FWTOQ=1.
+          ELSE ! YUNHA
+            IF (WMX(L)-PREP(L)*DTsrc.gt.0.)FWTOQ=DWDT/(WMX(L)-PREP(L)*DTsrc) 
+            FWTOQ=MIN(1d0,FWTOQ) 
+          ENDIF
 #endif
         end if
       end if
@@ -4466,7 +4480,7 @@ contains
 
       call GET_SULFATE(L,TL(L),FCLD,WA_VOL &
            ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX &
-           ,DT_SULF_SS(1,L),CLDSAVT)
+           ,DT_SULF_SS(1,L),CLDSAVT,.true.)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4502,6 +4516,9 @@ contains
         FPRT=FPR
         do N=1,NTX
           DTQWT(N) = -FWTOQT(N)*TRWML(N,L)*(1.-FPRT)
+          IF (WMX(L).eq.0.and.fwtoq.gt.0.9999)then !0.9999 is random choice - YUNHA
+            DTQWT(N) = -TRWML(N,L)*(1.-FPRT)
+          ENDIF
         enddo
       else
         FWTOQT(1:NTX) = 0.
@@ -4708,7 +4725,7 @@ contains
 
           call GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN, &
                SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX, &
-               DT_SULF_SS(1,L),CLDSAVT)
+               DT_SULF_SS(1,L),CLDSAVT,.true.)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)

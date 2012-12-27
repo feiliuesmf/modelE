@@ -35,6 +35,8 @@ export COMPILER
 export MODELERC
 export MPI
 export COMPONENTS
+export PNETCDFHOME
+export NETCDFHOME
 
 V =
 
@@ -128,11 +130,11 @@ setup_script:
 	    echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
 	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R ;\
-	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
-	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
+	    echo "$(F90_VERSION)" >> $(DECKS_REPOSITORY)/$(RUN).R ;\
+	    if [ -d $(MODEL_E_ROOT)/.git ]; then \
+	      echo "Git reference: `git rev-parse HEAD 2>&1`" \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
-	      echo 'CVS Repository: MAIN Branch' \
+	      echo 'Version: `cat ../model/version`, unknown revision' \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R ;\
 	    fi ;\
 	  fi ;\
@@ -164,11 +166,11 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	    echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
 	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R ;\
+	    echo "$(F90_VERSION)" >> $(DECKS_REPOSITORY)/$(RUN).R ;\
 	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
 	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
-	      echo 'CVS Repository: MAIN Branch' \
+	      echo 'CVS Repository: no info' \
 	      >> $(DECKS_REPOSITORY)/$(RUN).R ;\
 	    fi ;\
 	  fi ;\
@@ -228,11 +230,11 @@ exe: $(RUN)/$(RUN) gcm
 	<$(DECKS_REPOSITORY)/$(RUN).R  >$(DECKS_REPOSITORY)/$(RUN).R.tmp
 	@echo '### Executable was recompiled ' >> $(DECKS_REPOSITORY)/$(RUN).R
 	@date >> $(DECKS_REPOSITORY)/$(RUN).R
-	@echo $(F90_VERSION) >> $(DECKS_REPOSITORY)/$(RUN).R
-	@if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
-	echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
+	@echo "$(F90_VERSION)" >> $(DECKS_REPOSITORY)/$(RUN).R
+	@if [ -d $(MODEL_E_ROOT)/.git ]; then \
+	echo "Git reference: `git rev-parse HEAD 2>&1`" \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; else \
-	echo 'CVS Repository: MAIN Branch' \
+	echo 'Version: `cat ../model/version`, unknown revision' \
 	>> $(DECKS_REPOSITORY)/$(RUN).R; fi
 	@echo 'diff old.R new.R :' >> $(DECKS_REPOSITORY)/$(RUN).R
 	@diff $(DECKS_REPOSITORY)/$(RUN).R.tmp $(RUN).R \

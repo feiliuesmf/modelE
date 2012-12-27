@@ -37,7 +37,8 @@
      $                     ,q            ! saturatered pressure
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,BYAXYP
-      USE CONSTANT,   only:  lhe,mair,gasc    ! latent heat of evaporation at 0 C       
+      USE CONSTANT,   only: mair,gasc
+      USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
       USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
@@ -137,7 +138,7 @@
       DO I=I_0,I_1
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
-      RH = q(i,j,l)/QSAT (pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
+      RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),SVLHX(l,i,j),pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3      
       AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
@@ -251,7 +252,8 @@ c avol [m3/gb] mass of air pro m3
      $                     ,q            ! saturatered pressure
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,BYAXYP
-      USE CONSTANT,   only:  lhe,mair,gasc    ! latent heat of evaporation at 0 C       
+      USE CONSTANT,   only: mair,gasc
+      USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
       USE FLUXES, only: tr3Dsource
       USE ATM_COM,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
@@ -355,7 +357,7 @@ c avol [m3/gb] mass of air pro m3
       DO I=I_0,I_1
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
-      RH = q(i,j,l)/QSAT (pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
+      RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),SVLHX(l,i,j),pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3      
       AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]

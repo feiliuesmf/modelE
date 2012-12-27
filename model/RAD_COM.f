@@ -170,6 +170,7 @@ C**** does not produce exactly the same as the default values.
       INTEGER :: S0_yr = 1951 , S0_day = 182
 !@dbparam CO2X,... scaling factors for CO2 N2O CH4 CFC11 CFC12 XGHG
       REAL*8 :: CO2X=1.,N2OX=1.,CH4X=1., CFC11X=1.,CFC12X=1.,XGHGX=1.
+     *         ,CH4X_RADoverCHEM=1.d0
 !@dbparm ref_mult factor to control REFDRY from rundeck
       REAL*8 :: ref_mult = 1.
 !@dbparam GHG_yr,GHG_day obs.date of well-mixed GHgases (if 0: time var)
@@ -399,8 +400,12 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
       nTracerRadiaActive=0
       tracerRadiaActiveFlag=.false.
+#ifdef TRACERS_SPECIAL_Shindell
+! Some rundecks do not initialize this variable which leads to
+! annoying issues with regression tests.
+      ttausv_ntrace = huge(1.d0)
 #endif
-
+#endif
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
 

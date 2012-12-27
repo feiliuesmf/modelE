@@ -134,6 +134,8 @@ c calculate gatherv/scatterv info
       allocate(cntsij(1), displsij(1)) ! unused but passed to routine with fixed size arrays
       call alloc_gs_wksp_default()
 #endif
+      if (.not. allocated(cntsij)) allocate(cntsij(1))
+      if (.not. allocated(displsij)) allocate(displsij(1))
         
 #ifdef _GATHER_
 c
@@ -188,6 +190,8 @@ c
           else
             deallocate(cntsij,displsij)
           endif
+        else
+          deallocate(cntsij,displsij)
         endif
       endif
 #endif

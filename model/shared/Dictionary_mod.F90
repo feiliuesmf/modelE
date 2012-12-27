@@ -12,8 +12,11 @@ module Dictionary_mod
 !@+ Simple copy routines to copy parameters to/from database:
 !@+     set_param( name, value, dim, opt ) - put a parameter with the
 !@+       name <name> and the value <value> to the database
-!@+     get_param( name, value, dim ) - copy the value of the parameter
-!@+       <name> from the database to the variable <value>
+!@+     get_param( name, value, dim, default ) - copy the value of
+!@+       the parameter <name> from the database to the variable <value>.
+!@+       If <name> is not present in the database the program 
+!@+       will stop, unless <default> is present, in which case
+!@+       <value> will be set to <default> 
 !@+
 !@+ Query logical function:
 !@+     is_set_param( name ) - returns .true. if parameter <name> is
@@ -392,33 +395,42 @@ contains
   end subroutine set_aiparam
 
 
-  subroutine get_iparam( name, value )
+  subroutine get_iparam( name, value, default )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent(out) ::  value
+    integer, intent(out), optional ::  default
     integer v(1)
 
-    call get_aiparam( name, v, 1 )
+    if ( present(default) ) then
+      call get_aiparam( name, v, 1, (/default/) )
+    else
+      call get_aiparam( name, v, 1 )
+    endif
     value = v(1)
     return
   end subroutine get_iparam
 
 
-  subroutine get_aiparam( name, value, np )
+  subroutine get_aiparam( name, value, np, default )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     integer, intent(out) ::  value(np)
+    integer, intent(in), optional ::  default(np)    
     type (ParamStr), pointer :: PStr
 
     call get_pstr( name, np, 'i', PStr )
-    if ( .not. associated( PStr) ) then
+    if ( associated( PStr) ) then
+      value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
+    else if ( present(default) ) then
+      value(1:np) = default(1:np)
+    else
       print *, 'PARAM: Can''t get - not in database : ', name
       call stop_model( &
            &       'PARAM: Can''t get parameter - not in database',255)
     endif
-    value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
     return
   end subroutine get_aiparam
 
@@ -461,33 +473,42 @@ contains
   end subroutine set_arparam
 
 
-  subroutine get_rparam( name, value )
+  subroutine get_rparam( name, value, default )
     implicit none
     character*(*), intent(in) ::  name
     real*8, intent(out) ::  value
+     real*8, intent(in), optional :: default
     real*8 v(1)
 
-    call get_arparam( name, v, 1 )
+    if ( present(default) ) then
+      call get_arparam( name, v, 1, (/default/) )
+    else
+      call get_arparam( name, v, 1 )
+    endif
     value = v(1)
     return
   end subroutine get_rparam
 
 
-  subroutine get_arparam( name, value, np )
+  subroutine get_arparam( name, value, np, default )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     real*8, intent(out) ::  value(np)
+    real*8, intent(in), optional ::  default(np)
     type (ParamStr), pointer :: PStr
 
     call get_pstr( name, np, 'r', PStr )
-    if ( .not. associated( PStr) ) then
+    if ( associated( PStr) ) then
+    value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
+    PStr%is_accessed = 'y'
+    else if ( present(default) ) then
+      value(1:np) = default(1:np)
+    else
       print *, 'PARAM: Can''t get - not in database : ', name
       call stop_model( &
            &       'PARAM: Can''t get parameter - not in database',255)
     endif
-    value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
     return
   end subroutine get_arparam
 
@@ -543,33 +564,42 @@ contains
   end subroutine set_acparam
 
 
-  subroutine get_cparam( name, value )
+  subroutine get_cparam( name, value, default )
     implicit none
     character*(*), intent(in) ::  name
     character*(*), intent(out) ::  value
+    character*(*), intent(in), optional :: default
     character*(MAX_CHAR_LEN) v(1)
 
-    call get_acparam( name, v, 1 )
+    if ( present(default) ) then
+      call get_acparam( name, v, 1, (/default/) )
+    else
+      call get_acparam( name, v, 1 )
+    endif
     value = v(1)
     return
   end subroutine get_cparam
 
 
-  subroutine get_acparam( name, value, np )
+  subroutine get_acparam( name, value, np, default )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     character*(*), intent(out) ::  value(np)
+    character*(*), intent(in), optional ::  default(np)
     type (ParamStr), pointer :: PStr
 
     call get_pstr( name, np, 'c', PStr )
-    if ( .not. associated( PStr) ) then
+    if ( associated( PStr) ) then
+      value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
+    else if ( present(default) ) then
+      value(1:np) = default(1:np)
+    else
       print *, 'PARAM: Can''t get - not in database : ', name
       call stop_model( &
            &       'PARAM: Can''t get parameter - not in database',255)
     endif
-    value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
     return
   end subroutine get_acparam
 

@@ -26,7 +26,7 @@ contains
 
       call assertEqual('   Name', getHeader(report))
       call assertEqual('', getUnits(report))
-      call assertEqual('A',    getLine(report, timers, 1))
+      call assertEqual('A',    trim(getLine(report, timers, 1)))
 
       call reset(timers)
    end subroutine test_oneColumn

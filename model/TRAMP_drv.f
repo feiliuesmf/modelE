@@ -1,4 +1,9 @@
 #include "rundeck_opts.h"
+      ! empty module that enables ifort 13.0.1
+      !TODO: remove this
+      module foo
+      end module foo
+
       MODULE AMP_AEROSOL
 !@sum Driver for Aerosol Microphysics
 !@auth Susanne Bauer

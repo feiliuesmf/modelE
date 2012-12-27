@@ -223,12 +223,13 @@ contains
       getNumTimersDefault = getNumTimers(defaultList)
    end function getNumTimersDefault
    
-   subroutine addTimer_(this, name, synchronize)
+   subroutine addTimer_(this, name, synchronize, communicator)
       use Timer_mod, only: reset
       use Timer_mod, only: setSynchronous
       type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
       logical, optional, intent(in) :: synchronize
+      integer, optional, intent(in) :: communicator
       type (NamedTimer_type), allocatable :: tmpList(:)
 
       integer :: n
@@ -248,7 +249,7 @@ contains
       this%list(n+1)%name = name
       call reset(this%list(n+1)%timer)
       if (present(synchronize)) then
-         call setSynchronous(this%list(n+1)%timer, synchronize)
+         call setSynchronous(this%list(n+1)%timer, synchronize, communicator)
       end if
 
    end subroutine addTimer_

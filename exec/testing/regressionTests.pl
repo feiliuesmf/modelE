@@ -55,8 +55,10 @@ $resolutions->{E4TcadF40}               = "2x2.5";
 $resolutions->{E4TcadiF40}              = "2x2.5";
 $resolutions->{E4arobio_h4c}            = "2x2.5";
 $resolutions->{E4arobio_g6c}            = "2x2.5";
+$resolutions->{E4TctomasiF40}           = "2x2.5";
+$resolutions->{E4TctomasiF40ncep}       = "2x2.5";
 $resolutions->{E_AR5_CADI}              = "2x2.5";
-$resolutions->{SCMSGPCONT}              = "0"; # single column model 
+$resolutions->{SCMSGPCONT}              = "0";   # single column model 
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
 
 # numProcesses is resolution based (Note that domain decomposition is along y)  
@@ -75,6 +77,8 @@ $numProcesses->{"0"}->{INSANE}         = [];
 $numProcesses->{"CS"}->{GENTLE}        = [6];
 $numProcesses->{"CS"}->{AGGRESSIVE}    = [6,48];
 $numProcesses->{"CS"}->{INSANE}        = [6,84];
+$numProcesses->{"2x2.5"}->{XLDECK}     = [45];  # for extra large (memory) rundecks
+$numProcesses->{"2x2.5"}->{XLRUN}      = [88];  # for extra long (>=1mo) runs
 
 # Loop over configurations and copy into local arrays
 foreach my $deck ( keys %configurations )  {
@@ -180,10 +184,10 @@ foreach my $rundeck (@rundecks)
   }
 }
 
-print LOG "\n***************************\n";
-print LOG "Starting regression tests.\n";
-print LOG "***************************\n\n";
-$pool->run(*LOG, true);
-print LOG "Completed modelE regression tests.\n";
+print "\n***************************\n";
+print "Starting regression tests.\n";
+print "***************************\n\n";
+$pool->run(*LOG, 0);
+print "Completed modelE regression tests.\n";
 close(LOG);
 

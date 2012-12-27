@@ -123,8 +123,6 @@ ccc new tracers
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TR_W_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TR_WSN_IJ
 ccc TRSNOWBV is not used
-!@var TRSNOWBV tracer amount in snow over bare and veg. soil (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRSNOWBV0
 !@var ntixw index array for tracers (shared by OMP threads)
 !!      integer ntixw(ntm)
 #endif
@@ -255,7 +253,6 @@ cddd      ALLOCATE(     TR_WBARE(NTM,  NGM,I_0H:I_1H,J_0H:J_1H),
 cddd     *              TR_WVEGE(NTM,0:NGM,I_0H:I_1H,J_0H:J_1H),
       ALLOCATE(      TR_W_IJ(NTM,0:NGM,LS_NFRAC,I_0H:I_1H,J_0H:J_1H),
      *             TR_WSN_IJ(NTM,NLSN,        2,I_0H:I_1H,J_0H:J_1H),
-     *             TRSNOWBV0(NTM,             2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 C**** Initialize to zero
       !TR_WBARE(:,:,:,J_0H:J_1H)=0.d0
@@ -421,7 +418,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       integer m
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRSOILS03"
-      REAL*8, ALLOCATABLE :: TRSNOWBV0_GLOB(:,:,:,:)
       REAL*8, ALLOCATABLE, TARGET :: TR_W_GLOB  (:,:,:,:,:)
       REAL*8, allocatable :: localSlice(:,:,:,:)
       REAL*8, allocatable :: globalSlice(:,:,:,:)
@@ -455,14 +451,12 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
           CALL PACK_BLOCK(grid, localSlice, globalSlice)
           if (AM_I_ROOT()) TR_W_GLOB(:,:,m,:,:) = globalSlice
         enddo
-        CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
         IF (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,w_glob,
      *       ht_glob,snowbv_glob
 #ifdef TRACERS_WATER
           WRITE (kunit,err=10) TRMODULE_HEADER,TR_W_GLOB
-     &       ,TRSNOWBV0_GLOB
 #endif
         END IF
       CASE (IOREAD:)            ! input from restart file
@@ -494,7 +488,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)  ! reruns/restarts
           if (AM_I_ROOT()) then
             READ (kunit,err=10) TRHEADER, TR_W_GLOB
-     &         ,TRSNOWBV0_GLOB
             IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRHEADER
      *             ,TRMODULE_HEADER
@@ -506,7 +499,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             CALL UNPACK_BLOCK(grid, globalSlice, localSlice)
             TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H) = localSlice
           enddo
-          CALL UNPACK_BLOCK(grid,TRSNOWBV0_GLOB,TRSNOWBV0)
 
         END SELECT
 #endif
@@ -533,7 +525,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     W_GLOB(0:NGM,LS_NFRAC,img,jmg),
      &     HT_GLOB(0:NGM,LS_NFRAC,img,jmg) )
 #ifdef TRACERS_WATER
-      ALLOCATE(TRSNOWBV0_GLOB(NTM,2,img,jmg))
       ALLOCATE(TR_W_GLOB(NTM,0:NGM,LS_NFRAC,img,jmg))
       ALLOCATE(globalSlice(NTM,0:NGM,img,jmg))
       ALLOCATE(localSlice(NTM,0:NGM,I_0H:I_1H,J_0H:J_1H))
@@ -544,8 +535,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       W_GLOB,
      &       HT_GLOB )
 #ifdef TRACERS_WATER
-        DEALLOCATE( TRSNOWBV0_GLOB,
-     &       TR_W_GLOB, localSlice, globalSlice )
+        DEALLOCATE( TR_W_GLOB, localSlice, globalSlice )
 #endif
       end subroutine deallocate_me
 
@@ -789,8 +779,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 #ifdef TRACERS_WATER
       call defvar(grid,fid,tr_w_ij,
      &     'tr_w_ij(ntm,zero_to_ngm,ls_nfrac,dist_im,dist_jm)')
-      call defvar(grid,fid,trsnowbv0,
-     &     'trsnowbv0(ntm,bv,dist_im,dist_jm)')
 #endif
       call declare_conserv_diags( grid, fid, 'wgrnd(dist_im,dist_jm)' )
       call declare_conserv_diags( grid, fid, 'egrnd(dist_im,dist_jm)' )
@@ -817,7 +805,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call write_dist_data(grid,fid,'snowbv',snowbv,jdim=3)
 #ifdef TRACERS_WATER
         call write_dist_data(grid,fid,'tr_w_ij',tr_w_ij,jdim=5)
-        call write_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
 #endif
         call dump_conserv_diags( grid, fid, 'wgrnd', conserv_WTG )
         call dump_conserv_diags( grid, fid, 'egrnd', conserv_HTG )
@@ -827,7 +814,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call read_dist_data(grid,fid,'snowbv',snowbv,jdim=3)
 #ifdef TRACERS_WATER
         call read_dist_data(grid,fid,'tr_w_ij',tr_w_ij,jdim=5)
-        call read_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
 #endif
       end select
       return

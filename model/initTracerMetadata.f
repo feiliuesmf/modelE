@@ -1,32 +1,151 @@
 #include "rundeck_opts.h"
-      SUBROUTINE initTracerMetadata()
-!     @sum init_tracer initializes trace gas attributes and diagnostics
-!     @auth J. Lerner
-!     @calls sync_param, SET_TCON, RDLAND, RDDRYCF
+      subroutine setDefaultSpec(n, tracer)
+      use Dictionary_mod, only: sync_param
+      use RunTimeControls_mod, only: tracers_amp
+      use RunTimeControls_mod, only: tracers_tomas
+      use OldTracer_mod, only: trName, do_fire
+      use OldTracer_mod, only: nBBsources, set_nBBsources
+      use DOMAIN_DECOMP_ATM, only: am_i_root
+      use TRACER_COM, only: tracers
+      use TRACER_COM, only: set_ntsurfsrc
+      use TRACER_COM, only: sect_name
+      use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc, ntsurfsrcmax
+      use TRACER_COM, only: num_sectors
+      use Tracer_mod, only: Tracer_type
+      use Tracer_mod, only: setProperty
+      use Tracer_mod, only: findSurfaceSources
+      use Tracer_mod, only: addSurfaceSource
+      use TracerBundle_mod, only: getTracer
+#ifdef TRACERS_SPECIAL_Shindell      
+      use TRCHEM_Shindell_COM, only: use_rad_ch4
+#endif
+      implicit none
+
+      integer, intent(in) :: n
+      type (Tracer_type), pointer :: tracer
+
+      logical :: checkSourceName
+      integer :: val
+
+      call setProperty(tracer, 'ntSurfSrc', 0)
+
+!     The following section will check for rundeck file of
+!     the form: trname_01, trname_02... and thereby define
+!     the ntsurfsrc(n). If those files exist it reads an
+!     80 char header to get information including the
+!     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
+!     get set to zero if those files aren't found:
+!     (I can enclose this in an ifdef if it causes problems
+!     for people). num_srf_sources routine also assigns
+!     sources to sectors, if desired:
+!     general case:
+
+      if (tracers_amp .or. tracers_tomas) then
+         checkSourceName = .false.
+      else
+         checkSourceName = .true.
+      end if
+
+      call findSurfaceSources(tracer, checkSourceName, 
+     &     sect_name(1:num_sectors))
+
+#ifdef DYNAMIC_BIOMASS_BURNING
+!     allow some tracers to have biomass burning based on fire model:
+        select case (trname(n))
+          case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2'
+     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
+     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
+#ifdef TRACERS_SPECIAL_Shindell
+     &         ,'CH4'           ! in here to avoid potential Lerner tracers conflict
+#endif
+#ifdef TRACERS_TOMAS
+     &         ,'AECOB_01','AOCOB_01' !BCB and OCB hygroscopities? Need to put emission into OB and IL.
+
+#endif
+     &         )
+          call set_do_fire(n, .true.)
+        end select
+#endif /* DYNAMIC_BIOMASS_BURNING */
+
+!     allow some tracers to have biomass burning sources that mix over
+!     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
+        select case (trname(n))
+          case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+#ifdef TRACERS_SPECIAL_Shindell
+     &         'CH4',           ! in here to avoid potential Lerner tracers conflict
+#endif
+     &         'AECOB_01','AOCOB_01', 
+     &         'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
+     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
+     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
+     &         'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
+          val = nBBsources(n)
+          call sync_param(trim(trname(n))//"_nBBsources",val)
+          call set_nBBsources(n, val)
+          if(nBBsources(n)>0)then
+            if(do_fire(n))then
+              if(am_i_root())write(6,*)
+     &             'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
+              call stop_model('nBBsource do_fire conflict',13)
+            else
+              call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
+            end if
+          end if
+        end select
+        if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
+          write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
+          call stop_model('do_fire+ntsurfsrc too large',13)
+        end if
+        if(ntsurfsrc(n)+nBBsources(n) > ntsurfsrcmax)then
+          write(6,*)trname(n),'ntsurfsrc+nBBsources > max of ',
+     &         ntsurfsrcmax
+          call stop_model('ntsurfsrc+nBBsources too large',13)
+        end if
+
+!     other special cases:
+#ifndef TRACERS_AEROSOLS_SOA
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+        (defined TRACERS_TOMAS)
+        select case (trname(n))
+        case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
+          tracer => getTracer(tracers, trname(n))
+          call addSurfaceSource(tracer, "Terpene_source")
+        end select
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_SPECIAL_Shindell
+        if (trname(n)=='CH4' .and. use_rad_ch4/=0) then
+          call set_ntsurfsrc(n,0)
+        end if
+#endif
+
+      end subroutine setDefaultSpec
+
+      subroutine initTracerMetadata()
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE CONSTANT, only: mair,mwat,pi
 #ifdef TRACERS_AEROSOLS_SOA
      &     ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
       USE RESOLUTION, only : jm,lm
-      USE MODEL_COM, only: dtsrc,itime
+      USE MODEL_COM, only: dtsrc, master_yr
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: am     ! Air mass of each box (kg/m^2)
       use OldTracer_mod, only: trName, nGAS, nWater, nPart
       use OldTracer_mod, only: tr_wd_type, do_fire, HSTAR
-      use OldTracer_mod, only: tr_RKD, nBBsources, itime_tr0, tr_mm
+      use OldTracer_mod, only: tr_RKD, nBBsources, tr_mm
       use OldTracer_mod, only: set_vol2mass, set_mass2vol
       use TracerBundle_mod, only: getNumTracers
       USE TRACER_COM, only: ntm, ef_fact3d, no_emis_over_ice
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
-      use TRACER_COM, only: imPI, aer_int_yr
+      use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
       USE TRACER_COM, only: tracers
       USE TRACER_COM, only: num_sectors
-      use TRACER_COM, only: coupled_chem, set_ntsurfsrc, ntsurfsrc
+      use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc
       use TRACER_COM, only:
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL
@@ -92,11 +211,6 @@
 !     @+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
       USE LINOZ_CHEM_COM, only: dsol
 #endif
-#ifdef TRACERS_WATER
-#ifdef TRDIAG_WETDEPO
-      USE CLOUDS, ONLY : diag_wetdep
-#endif
-#endif /* TRACERS_WATER */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
       (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
       (defined TRACERS_TOMAS)
@@ -108,27 +222,23 @@
      &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
-     &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
+     &     fix_CH4_chemistry,PI_run,
+     &     allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
-     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
+     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
-     &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL,
+     &     use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
      &     gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
      &     ns_wet,nra_ch4
-#endif
-#ifdef BIOGENIC_EMISSIONS
-      use biogenic_emis, only: base_isopreneX
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
@@ -155,11 +265,11 @@
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,
      &     DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
-      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM
+      use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
@@ -174,13 +284,11 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use OldTracer_mod, only: initializeOldTracers
-      use OldTracer_mod, only: trNameOld => trName
       use OldTracer_mod, only: oldAddTracer
       use OldTracer_mod, only: set_tr_mm, set_ntm_power
       use OldTracer_mod, only: set_t_qlimit
       use OldTracer_mod, only: set_needtrs
       use OldTracer_mod, only: set_trdecay
-      use OldTracer_mod, only: set_itime_tr0
       use OldTracer_mod, only: set_mass2vol
       use OldTracer_mod, only: set_vol2mass
       use OldTracer_mod, only: set_HSTAR
@@ -214,13 +322,13 @@
 
       use OldTracer_mod, only: set_trli0
       use OldTracer_mod, only: set_trsi0
+      use OldTracer_mod, only: set_to_volume_MixRat, to_volume_MixRat
 
 #if (defined TRACERS_OCEAN) &&  !defined(TRACERS_OCEAN_INDEP)
 !     atmosphere copies atmosphere-declared tracer info to ocean
 !     so that the ocean can "inherit" it without referencing atm. code
       use ocn_tracer_com, only : 
      &     n_Water_ocn      => n_Water,
-     &     itime_tr0_ocn    => itime_tr0,
      &     ntrocn_ocn       => ntrocn,
      &     to_per_mil_ocn   => to_per_mil,
      &     t_qlimit_ocn     => t_qlimit,
@@ -267,6 +375,7 @@
       use RunTimeControls_mod, only: tracers_amp_m8
       use TracerConstants_mod, only: H2O18
       implicit none
+      external setDefaultSpec
       integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracls
@@ -275,7 +384,7 @@
       real*8 :: TOMAS_dens,TOMAS_radius
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
-!     @param convert_HSTAR converts from mole/Joule to mole/(L*atm)
+!@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
       real*8, parameter :: convert_HSTAR = 1.01325d2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -299,109 +408,10 @@
       integer, allocatable :: values(:)
       integer :: val
       integer :: nn
-      INTEGER J_0, J_1, I_0, I_1
 
-C**** 
-C**** Set some documentary parameters in the database
-C**** 
-      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
-
-#ifdef TRACERS_TOMAS
-      CALL initbounds()
-      call readbinact ("binact10_12.dat",binact10) 
-      call readbinact ("binact02_12.dat",binact02) 
-      call readfraction("fraction10_12.dat",fraction10) 
-      call readfraction("fraction02_12.dat",fraction02) 
-      call readmielut           ! aerosol radiation lookup table
-#endif
-
+!     call routine to read/set up regions and sectors for emissions:
+      call setup_emis_sectors_regions()
       call initializeOldTracers(tracers, setDefaultSpec)
-
-
-!     TODO remove this comment
-C**** Set defaults for tracer attributes (all dimensioned ntm)
-C**** Many defaults are now set in OldTracers_mod.F90
-
-#ifdef TRACERS_ON
-#ifdef TRACERS_SPECIAL_Lerner
-      n_MPtable = 0
-      tcscale = 0.
-#endif
-#endif /* TRACERS_ON */
-#ifdef TRACERS_SPECIAL_O18
-      iso_index = 1             ! act like water by default
-#endif
-
-C**** Synchronise tracer related paramters from rundeck
-
- 
-#ifdef TRACERS_WATER
-C**** Decide on water tracer conc. units from rundeck if it exists
-      call sync_param("to_per_mil",to_per_mil,ntm)
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
-      call sync_param("tune_ss1",tune_ss1)
-      call sync_param("tune_ss2",tune_ss2)
-      call sync_param("BBinc",BBinc)
-#endif
-#ifdef TRACERS_AEROSOLS_VBS
-      call sync_param("VBSemifact",VBSemifact,vbs_tr%nbins)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-C**** set super saturation parameter for isotopes if needed
-      call sync_param("supsatfac",supsatfac)
-#endif
-#ifdef TRACERS_ON
-      CALL sync_param("diag_rad",diag_rad)
-#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
-      CALL sync_param("diag_wetdep",diag_wetdep)
-#endif
-!     not params call sync_param("trans_emis_overr_day",trans_emis_overr_day)
-!     not params call sync_param("trans_emis_overr_yr", trans_emis_overr_yr )
-#endif /* TRACERS_ON */
-#ifdef TRACERS_SPECIAL_Shindell
-      call sync_param("allowSomeChemReinit",allowSomeChemReinit)
-      call sync_param("which_trop",which_trop)
-      call sync_param("PI_run",PI_run)
-      call sync_param("PIratio_N",PIratio_N)
-      call sync_param("PIratio_CO_T",PIratio_CO_T)
-      call sync_param("PIratio_CO_S",PIratio_CO_S)
-      call sync_param("PIratio_other",PIratio_other)
-      call sync_param("rad_FL",rad_fl)
-      call sync_param("use_rad_ch4",use_rad_ch4)
-      call sync_param("Lmax_rad_O3",Lmax_rad_O3)
-      call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
-      call sync_param("aircraft_Tyr1",aircraft_Tyr1)
-      call sync_param("aircraft_Tyr2",aircraft_Tyr2)
-      call sync_param("use_rad_n2o",use_rad_n2o)
-      call sync_param("use_rad_cfc",use_rad_cfc)
-      call sync_param("PIratio_N2O",PIratio_N2O)
-      call sync_param("PIratio_CFC",PIratio_CFC)
-      call sync_param("PltOx",PltOx)
-      call sync_param("Tpsc_offset_N",Tpsc_offset_N)
-      call sync_param("Tpsc_offset_S",Tpsc_offset_S)
-#ifdef BIOGENIC_EMISSIONS
-      call sync_param("base_isopreneX",base_isopreneX)
-#endif
-#ifdef INTERACTIVE_WETLANDS_CH4
-      call sync_param("ice_age",ice_age)
-      call sync_param("ns_wet",ns_wet)
-      call sync_param("int_wet_dist",int_wet_dist)
-      call sync_param("topo_lim",topo_lim)
-      call sync_param("sat_lim",sat_lim)
-      call sync_param("gw_ulim",gw_ulim)
-      call sync_param("gw_llim",gw_llim)
-      call sync_param("sw_lim",sw_lim)
-      call sync_param("exclude_us_eu",exclude_us_eu)
-      call sync_param("nn_or_zon",nn_or_zon)
-      do n=1,nra_ch4
-        if(nday_ch4(n) > max_days .or. nday_ch4(n) < 1)
-     &       call stop_model('nday_ch4 out of range',255)
-      end do
-#endif
-
-#endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
       (defined TRACERS_TOMAS)
@@ -409,55 +419,8 @@ C**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 C**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
-C**** decide if preindustrial emissions
-      call sync_param("imPI",imPI)
-C**** determine year of emissions
-      call sync_param("aer_int_yr",aer_int_yr)
-#endif
-#if (defined TRACERS_AMP)
-C**** Decide on how many times Radiation is called for aerosols once or nmode, default one call
-      call sync_param("AMP_DIAG_FC",AMP_DIAG_FC)
-C**** Decide Radiative Mixing Rules - Volume - Core Shell - Maxwell Garnett, default Volume
-      call sync_param("AMP_RAD_KEY",AMP_RAD_KEY)
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-      (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-      (defined TRACERS_TOMAS)
-C**** decide on AEROCOM or interactive emissions
-      CALL sync_param('imDUST',imDUST)
-      call sync_param('prefDustSources', prefDustSources)
-      call sync_param('fracClayPDFscheme', fracClayPDFscheme)
-      call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
-#endif
-#ifdef TRACERS_QUARZHEM
-      call sync_param( 'frHemaInQuarAggr', frHemaInQuarAggr )
-      call sync_param( 'pureByTotalHematite', pureByTotalHematite )
 #endif
 
-#if (defined TRACERS_COSMO)
-C**** get rundeck parameter for cosmogenic source factor
-      call sync_param("be7_src_param", be7_src_param)
-#endif
-      call sync_param("no_emis_over_ice",no_emis_over_ice)
-
-!     call routine to read/set up regions and sectors for emissions:
-      call setup_emis_sectors_regions
-
-!     initialize 3D source factors:
-      ef_fact3d(:,:)=1.d0
-
-!     The following section will check for rundeck file of
-!     the form: trname_01, trname_02... and thereby define
-!     the ntsurfsrc(n). If those files exist it reads an
-!     80 char header to get information including the
-!     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
-!     get set to zero if those files aren't found:
-!     (I can enclose this in an ifdef if it causes problems
-!     for people). num_srf_sources routine also assigns
-!     sources to sectors, if desired:
-
-C**** Define individual tracer characteristics
-      
       if (tracers_special_shindell) then
 #ifdef TRACERS_SPECIAL_Shindell
         call  Ox_setSpec('Ox')
@@ -468,6 +431,7 @@ C**** Define individual tracer characteristics
         call  HNO3_setSpec('HNO3')
         call  H2O2_setSpec('H2O2')
         call  CH3OOH_setSpec('CH3OOH')
+
         call  HCHO_setSpec('HCHO')
         call  HO2NO2_setSpec('HO2NO2')
         call  CO_setSpec('CO')
@@ -496,7 +460,6 @@ C**** Define individual tracer characteristics
           end if
         end if
 #endif
-
         call  HCl_setSpec('HCl')
         call  HOCl_setSpec('HOCl')
         call  ClONO2_setSpec('ClONO2')
@@ -514,13 +477,17 @@ C**** Define individual tracer characteristics
           end if
         end if
 
-#endif /* TRACERS_SPECIAL_Shindell */
-      end if  ! tracers_special_shindell
+#endif
+      end if
+
+      if (tracers_special_lerner) then
+        call  N2O_setSpec('N2O') ! warning duplicate with Shindell
+        call  CH4_setSpec('CH4') ! warning duplicate with Shindell
+      end if
 
       if ((.not. tracers_amp) .and. tracers_water) then
         call  Water_setSpec('Water')
       end if
-
       
 
 #ifdef TRACERS_SPECIAL_O18
@@ -542,10 +509,8 @@ c$$$      call  H2O17_setSpec('H2O17')
         call  SF6_setSpec('SF6')
         call  Rn222_setSpec('Rn222')
         call  CO2_setSpec('CO2')
-        call  N2O_setSpec('N2O') ! warning duplicate with Shindell
         call  CFC11_setSpec('CFC11')
         call  C_14O2_setSpec('14CO2')
-        call  CH4_setSpec('CH4') ! warning duplicate with Shindell
         call  O3_setSpec('O3')
         call  SF6_c_setSpec('SF6_c')
         if (tracers_special_shindell) 
@@ -557,7 +522,9 @@ c$$$      call  H2O17_setSpec('H2O17')
         call  MSA_setSpec('MSA')
         call  SO2_setSpec('SO2')
         call  SO4_setSpec('SO4')
+#ifndef TRACERS_SPECIAL_Shindell
         call  H2O2_s_setSpec('H2O2_s')
+#endif  /* TRACERS_SPECIAL_Shindell */
         if (.not. sulf_only_aerosols) then
           call  seasalt1_setSpec('seasalt1')
           call  seasalt2_setSpec('seasalt2')
@@ -590,7 +557,7 @@ c$$$      call  H2O17_setSpec('H2O17')
           call  OCIA_setSpec('OCIA')   !Aged industrial organic mass
           call  OCB_setSpec('OCB')     !Biomass organic mass
 #endif /* TRACERS_AEROSOLS_VBS */
-      end if        
+      end if
 
       if (tracers_aerosols_ocean) then
         call  OCocean_setSpec('OCocean') !Insoluble oceanic organic mass
@@ -768,7 +735,9 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
         call  H2SO4_setSpec('H2SO4')
         call  DMS_setSpec('DMS') ! duplicate with Koch
         call  SO2_setSpec('SO2') ! duplicate with Koch
+#ifndef TRACERS_SPECIAL_Shindell
         call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+#endif  /* TRACERS_SPECIAL_Shindell */
         call  NH3_setSpec('NH3') ! duplicate with nitrate
         if (tracers_aerosols_koch) then
           call stop_model('contradictory tracer specs')
@@ -780,6 +749,13 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #endif /* TRACERS_AMP */
 
 #ifdef TRACERS_TOMAS
+      CALL initbounds()
+      call readbinact ("binact10_12.dat",binact10) 
+      call readbinact ("binact02_12.dat",binact02) 
+      call readfraction("fraction10_12.dat",fraction10) 
+      call readfraction("fraction02_12.dat",fraction02) 
+      call readmielut           ! aerosol radiation lookup table
+
 !For aerosol tracers in TOMAS model, 
 !fq_aer is determined based on kohler theory. 
 
@@ -789,7 +765,9 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #ifndef TRACERS_AEROSOLS_SOA
       call  TOMAS_SOAgas_setSpec('SOAgas')
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifndef TRACERS_SPECIAL_Shindell
       call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+#endif  /* TRACERS_SPECIAL_Shindell */
       call  NH3_setSpec('NH3') ! duplicate with nitrate
       call  NH4_setSpec('NH4') ! duplicate with nitrate
 
@@ -809,7 +787,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       n_AECOB(:) = TOMAS_setSpec(TOMAS_AECOB_setSpec, 'AECOB',nbins)
       n_AECIL(:) = TOMAS_setSpec(TOMAS_AECIL_setSpec, 'AECIL',nbins)
       n_AOCOB(:) = TOMAS_setSpec(TOMAS_AOCOB_setSpec, 'AOCOB',nbins)
-      n_AOCIL(:) = TOMAS_setSpec(TOMAS_AOCOB_setSpec, 'AOCIL',nbins)
+      n_AOCIL(:) = TOMAS_setSpec(TOMAS_AOCIL_setSpec, 'AOCIL',nbins)
       n_ADUST(:) = TOMAS_setSpec(TOMAS_ADUST_setSpec, 'ADUST',nbins)
       n_ANUM(:) = TOMAS_setSpec(TOMAS_ANUM_setSpec,   'ANUM', nbins)
       n_AH2O(:)  = TOMAS_setSpec(TOMAS_AH2O_setSpec,  'AH2O', nbins)
@@ -820,16 +798,11 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
       ntm = getNumTracers(tracers)
 
       call set_param("NTM",NTM,'o')
-      call set_param("TRNAME",trNameOld(),ntm,'o')
+      call set_param("TRNAME",trName(),ntm,'o')
+      call printTracerNames(trName())
 
       ! Generic tracer work
-      allocate(values(ntm))
-      values = itime_tr0()
-      call sync_param("itime_tr0",values,ntm)
       do n = 1, ntm
-
-        call set_itime_tr0(n, values(n))
-
 #ifdef TRACERS_WATER
 C**** Tracers that are soluble or are scavenged or are water => wet dep
         if (tr_wd_type(n).eq.nWater.or.tr_wd_type(n) .EQ. nPART .or.
@@ -854,386 +827,43 @@ C**** Any tracers that dry deposits needs the surface concentration:
 C**** Define the conversion from mass to volume units here
         call set_mass2vol(n, mair/tr_mm(n))
         call set_vol2mass(n, tr_mm(n)/mair)
-        to_conc(n) = 0
+        call set_to_conc(n, 0)
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Aerosol tracer output should be mass mixing ratio
         select case (tr_wd_TYPE(n))
         case (nGAS)
-          to_volume_MixRat(n) = 1 !gas output to volume mixing ratio
-        case (nPART)
-          to_volume_MixRat(n) = 0 !aerosol output to mass mixing ratio
-        case (nWATER)
-          to_volume_MixRat(n) = 0 !water output to mass mixing ratio
+          call set_to_volume_MixRat(n, 1) !gas output to volume mixing ratio
+        case (nPART, nWATER)
+          call set_to_volume_MixRat(n, 0) ! aerosol/water output to mass mixing ratio
         case default
-          to_volume_MixRat(n) = 0 !default output to mass mixing ratio
+          call set_to_volume_MixRat(n, 0) !default output to mass mixing ratio
         end select
 #endif
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-        to_volume_MixRat(n) = 1 !gas output to volume mixing ratio
+        call set_to_volume_MixRat(n, 1) !gas output to volume mixing ratio
 #endif
 #endif /* TRACERS_ON */
 
       end do
-      return
 
       contains
 
-      subroutine setDefaultSpec(n, tracer)
-      use TRACER_COM, only: set_ntsurfsrc
-      use TRACER_COM, only: sect_name
-      use Tracer_mod, only: Tracer_type
-      use Tracer_mod, only: setProperty
-      use Tracer_mod, only: findSurfaceSources
-      use Tracer_mod, only: addSurfaceSource
-      use TracerBundle_mod, only: getTracer
-      USE MODEL_COM, only: itime
-      integer, intent(in) :: n
-      type (Tracer_type), pointer :: tracer
+       subroutine printTracerNames(tracerNames)
+       use domain_decomp_atm, only: am_i_root
 
-      logical :: checkSourceName
+       character(len=*) :: tracerNames(:)
+       integer :: i
+      
+       if (am_i_root()) then
+          do i = 1, size(tracerNames)
+             write(6,*) 'TRACER',i,trim(tracerNames(i))
+          end do
+       end if
+      
+       end subroutine printTracerNames
+    
 
-      call set_itime_tr0(n, itime)
-      call setProperty(tracer, 'ntSurfSrc', 0)
-
-!     The following section will check for rundeck file of
-!     the form: trname_01, trname_02... and thereby define
-!     the ntsurfsrc(n). If those files exist it reads an
-!     80 char header to get information including the
-!     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
-!     get set to zero if those files aren't found:
-!     (I can enclose this in an ifdef if it causes problems
-!     for people). num_srf_sources routine also assigns
-!     sources to sectors, if desired:
-!     general case:
-
-      if (tracers_amp .or. tracers_tomas) then
-         checkSourceName = .false.
-      else
-         checkSourceName = .true.
-      end if
-
-      call findSurfaceSources(tracer, checkSourceName, 
-     &     sect_name(1:num_sectors))
-
-#ifdef DYNAMIC_BIOMASS_BURNING
-!     allow some tracers to have biomass burning based on fire model:
-        select case (trname(n))
-          case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2'
-     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
 #ifdef TRACERS_SPECIAL_Shindell
-     &         ,'CH4'           ! in here to avoid potential Lerner tracers conflict
-#endif
-#ifdef TRACERS_TOMAS
-     &         ,'AECOB_01','AOCOB_01' !BCB and OCB hygroscopities? Need to put emission into OB and IL.
-
-#endif
-     &         )
-          call set_do_fire(n, .true.)
-        end select
-#endif /* DYNAMIC_BIOMASS_BURNING */
-
-!     allow some tracers to have biomass burning sources that mix over
-!     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
-        select case (trname(n))
-          case ('Alkenes', 'CO', 'NOx', 'Paraffin',
-#ifdef TRACERS_SPECIAL_Shindell
-     &         'CH4',           ! in here to avoid potential Lerner tracers conflict
-#endif
-     &         'AECOB_01','AOCOB_01', 
-     &         'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
-     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-     &         'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
-          val = nBBsources(n)
-          call sync_param(trim(trname(n))//"_nBBsources",val)
-          call set_nBBsources(n, val)
-          if(nBBsources(n)>0)then
-            if(do_fire(n))then
-              if(am_i_root())write(6,*)
-     &             'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
-              call stop_model('nBBsource do_fire conflict',13)
-            else
-              call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
-            end if
-          end if
-        end select
-        if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
-          write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
-          call stop_model('do_fire+ntsurfsrc too large',13)
-        end if
-        if(ntsurfsrc(n)+nBBsources(n) > ntsurfsrcmax)then
-          write(6,*)trname(n),'ntsurfsrc+nBBsources > max of ',
-     &         ntsurfsrcmax
-          call stop_model('ntsurfsrc+nBBsources too large',13)
-        end if
-
-!     other special cases:
-#ifndef TRACERS_AEROSOLS_SOA
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-        (defined TRACERS_TOMAS)
-        select case (trname(n))
-        case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
-          tracer => getTracer(tracers, trname(n))
-          call addSurfaceSource(tracer, "Terpene_source")
-        end select
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_SPECIAL_Shindell
-        if (trname(n)=='CH4' .and. use_rad_ch4/=0) then
-          call set_ntsurfsrc(n,0)
-        end if
-#endif
-
-      end subroutine setDefaultSpec
-
-      subroutine Air_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Air = n
-      call set_ntm_power(n, -2)
-      call set_tr_mm(n, mair)
-      end subroutine Air_setSpec
-
-      subroutine CO2n_setSpec(name)
-      use TRACER_COM, only: set_ntsurfsrc
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CO2n = n
-      call set_ntm_power(n, -6)
-      call set_tr_mm(n, 44.d0)  !grams
-      call set_t_qlimit(n,  .false.)
-      call set_ntsurfsrc(n,  1)
-      call set_needtrs(n, .true.)
-      end subroutine CO2n_setSpec
-
-      subroutine CFCn_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CFCn = n
-      call set_ntm_power(n, -12)
-!     !call set_tr_mm(n, 136.0d0    !NCAR value
-      call set_tr_mm(n, 137.37d0) !note units are in gr
-      call set_ntsurfsrc(n,  1)
-      call set_needtrs(n, .true.)
-      end subroutine CFCn_setSpec
-
-      subroutine SF6_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_SF6 = n
-      call set_ntm_power(n, -14)
-      call set_tr_mm(n, 146.01d0)
-      call set_ntsurfsrc(n,  1)
-      end subroutine SF6_setSpec
-
-      subroutine Rn222_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Rn222 = n
-      call set_ntm_power(n, -21)
-      call set_tr_mm(n, 222.d0)
-      call set_trdecay(n,  2.1d-6)
-      call set_ntsurfsrc(n,  1)
-      end subroutine Rn222_setSpec
-
-      subroutine CO2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CO2 = n
-      call set_ntm_power(n, -6)
-      call set_tr_mm(n, 44.d0)
-      call set_t_qlimit(n,  .false.)
-      call set_ntsurfsrc(n,  6)
-      end subroutine CO2_setSpec
-
-      subroutine N2O_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_N2O = n
-      call set_ntm_power(n, -9)
-      call set_tr_mm(n, 44.d0)
-#ifdef TRACERS_SPECIAL_Lerner
-      call set_ntsurfsrc(n,  1)
-      n_mptable(n) = 1
-      tcscale(n_MPtable(n)) = 1.
-#endif
-      end subroutine N2O_setSpec
-
-      subroutine CFC11_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CFC11 = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 137.4d0)
-      call set_ntsurfsrc(n,  1)
-#ifdef TRACERS_SPECIAL_Lerner
-      n_mptable(n) = 2
-      tcscale(n_MPtable(n)) = 1.
-#endif
-      end subroutine CFC11_setSpec
-
-      subroutine C_14O2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_14CO2 = n
-      call set_ntm_power(n, -18)
-      call set_tr_mm(n, 46.d0)
-      call set_ntsurfsrc(n,  1)
-      end subroutine C_14O2_setSpec
-
-      subroutine CH4_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CH4 = n
-      call set_tr_mm(n, 16.d0)
-#ifdef TRACERS_SPECIAL_Lerner
-      call set_ntsurfsrc(n,  14)
-      call set_ntm_power(n, -9)
-      n_mptable(n) = 3
-      tcscale(n_MPtable(n)) = 1.
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      call set_ntm_power(n, -8)
-#ifdef DYNAMIC_BIOMASS_BURNING
-!     12 below are the 12 VDATA veg types or Ent remapped to them,
-!     from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00,1.0864168d-06,
-     & 6.3624935d-07, 4.7021388d-07, 1.0293500d-06, 1.7132404d-06,
-     & 1.4364367d-06, 3.0849296d-06, 0.0000000d+00, 0.0000000d+00,
-     & 0.0000000d+00, 0.0000000d+00/)
-#endif /* DYNAMIC_BIOMASS_BURNING */
-#endif /* TRACERS_SPECIAL_Shindell */
-      end subroutine CH4_setSpec
-
-      subroutine O3_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_O3 = n
-      call set_ntm_power(n, -8)
-      call set_tr_mm(n, 48.d0)
-      call set_ntsurfsrc(n,  1)
-#ifdef TRACERS_SPECIAL_Lerner
-C**** Get solar variability coefficient from namelist if it exits
-      dsol = 0.
-      call sync_param("dsol",dsol)
-#endif
-      end subroutine O3_setSpec
-
-      subroutine SF6_c_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_SF6_c = n
-      call set_ntm_power(n, -14)
-      call set_tr_mm(n, 146.01d0)
-      call set_ntsurfsrc(n,  1)
-      end subroutine SF6_c_setSpec
-
-      subroutine Water_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Water = n
-#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
-      call set_trw0(n, 1.d+0)
-      call set_ntrocn(n, 0)
-#endif
-#ifdef TRACERS_WATER
-      call set_ntm_power(n, -4)
-      call set_tr_mm(n, mwat)
-      call set_needtrs(n,  .true.)
-      call set_tr_wd_type(n, nWater)
-      call set_trli0(n, 1.d+0)
-      call set_trsi0(n, 1.d+0)
-      call set_tr_H2ObyCH4(n, 1.d+0)
-#endif
-#ifdef TRACERS_OCEAN
-      call set_trglac(n, 1.d+0)
-#endif
-#ifdef TRACERS_SPECIAL_O18
-      iso_index(n) = 1          ! indexing for isotopic fractionation calcs
-#endif
-      end subroutine Water_setSpec
-
-#ifdef TRACERS_SPECIAL_O18
-      subroutine H2O18_setSpec(name)
-      use TracerConstants_mod, only: H2O18
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_H2O18 = n
-      call set_ntm_power(n, -7)
-      call set_tr_mm(n, H2O18%molMass)
-      call set_needtrs(n,  .true.)
-      call set_tr_wd_type(n, nwater)
-      iso_index(n) = 2          ! indexing for isotopic fractionation calcs
-      call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
-      call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
-      call set_trsi0(n, fracls(n)*trw0(n))
-      call set_tr_H2ObyCH4(n, trw0(n)*1.023d0 ) ! d=+23 (ie. no frac from O2)
-      call set_ntrocn(n, -3)
-#ifdef TRACERS_OCEAN
-      call set_trglac(n, trw0(n)*0.98d0   ) ! d=-20
-#endif
-      end subroutine H2O18_setSpec
-
-      subroutine HDO_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_HDO = n
-      call set_ntm_power(n, -8)
-      call set_tr_mm(n, 19d0)
-      call set_needtrs(n,  .true.)
-      call set_tr_wd_type(n, nwater)
-      iso_index(n) = 3          ! indexing for isotopic fractionation calcs
-      call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
-      call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
-      call set_trsi0(n, fracls(n)*trw0(n))
-      call set_tr_H2ObyCH4(n, trw0(n)*0.93d0  ) ! d=-70
-      call set_ntrocn(n, -4)
-#ifdef TRACERS_OCEAN
-      call set_trglac(n, trw0(n)*0.84d0   ) ! d=-160
-#endif
-      end subroutine HDO_setSpec
-
-      subroutine HTO_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_HTO = n
-      call set_ntm_power(n, -18)
-      call set_tr_mm(n, 20d0)
-      call set_needtrs(n,  .true.)
-      call set_tr_wd_type(n, nwater)
-      iso_index(n) = 4          ! indexing for isotopic fractionation calcs
-      call set_trw0(n, 0d0)     !2.22d-18   ) ! SMOW mass ratio of water molecules
-      call set_trli0(n, 0d0)
-      call set_trsi0(n, 0d0)
-      call set_tr_H2ObyCH4(n, 0d0)
-      call set_trdecay(n,  1.77d-9) ! =5.59d-2 /yr
-      call set_ntrocn(n, -18)
-#ifdef TRACERS_OCEAN
-      call set_trglac(n, 0d0)
-#endif
-      end subroutine HTO_setSpec
-
-      subroutine H2O17_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_H2O17 = n
-      call set_ntm_power(n, -7)
-      call set_tr_mm(n, 19d0)
-      call set_needtrs(n,  .true.)
-      call set_tr_wd_type(n, nwater)
-      iso_index(n) = 5          ! indexing for isotopic fractionation calcs
-      call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
-      call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
-      call set_trsi0(n, fracls(n)*trw0(n))
-      call set_tr_H2ObyCH4(n, trw0(n)*1.011596d0 ) ! d=+11.596 (some frac from O2)
-      call set_ntrocn(n, -3)
-#ifdef TRACERS_OCEAN
-      call set_trglac(n, trw0(n)*0.98937d0   ) ! d=-10.63 D17O=
-#endif
-      end subroutine H2O17_setSpec
-#endif  /* TRACERS_SPECIAL_O18 */
-
       subroutine Ox_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1269,23 +899,12 @@ C**** Get solar variability coefficient from namelist if it exits
 #endif
       end subroutine NOx_setSpec
 
-      subroutine N2O5_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_N2O5 = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 108.02d0)
-      end subroutine N2O5_setSpec
-
-#ifdef TRACERS_SPECIAL_Shindell
       subroutine ClOx_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_ClOx = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 51.5d0)
-C     Interpolate ClOx altitude-dependence to model resolution:
-      CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PMIDL00,ClOxalt,.true.)
       end subroutine ClOx_setSpec
 
       subroutine BrOx_setSpec(name)
@@ -1294,74 +913,16 @@ C     Interpolate ClOx altitude-dependence to model resolution:
       n_BrOx = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 95.9d0)
-C     Interpolate BrOx altitude-dependence to model resolution:
-      CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PMIDL00,BrOxalt,.true.)
       end subroutine BrOx_setSpec
 
-      subroutine HCl_setSpec(name)
+      subroutine N2O5_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_HCl = n
-      call set_ntm_power(n, -10)
-      call set_tr_mm(n, 36.5d0)
-C     Interpolate HCl altitude-dependence to model resolution:
-      CALL LOGPINT(LCOalt,PCOalt,HClaltIN,LM,PMIDL00,HClalt,.true.)
-      end subroutine HCl_setSpec
-
-      subroutine ClONO2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_ClONO2 = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 97.5d0)
-C     Interpolate ClONO2 altitude-dependence to model resolution:
-      CALL
-     &    LOGPINT(LCOalt,PCOalt,ClONO2altIN,LM,PMIDL00,ClONO2alt,.true.)
-      end subroutine ClONO2_setSpec
-
-      subroutine HOCl_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_HOCl = n
+      n_N2O5 = n
       call set_ntm_power(n, -12)
-      call set_tr_mm(n, 52.5d0)
-      end subroutine HOCl_setSpec
-#endif /* TRACERS_SPECIAL_Shindell */ 
+      call set_tr_mm(n, 108.02d0)
+      end subroutine N2O5_setSpec
 
-      subroutine HBr_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_HBr = n
-      call set_ntm_power(n, -14)
-      call set_tr_mm(n, 80.9d0)
-      end subroutine HBr_setSpec
-      
-      subroutine HOBr_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_HOBr = n
-      call set_ntm_power(n, -14)
-      call set_tr_mm(n, 96.9d0)
-      end subroutine HOBr_setSpec
-
-      subroutine BrONO2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_BrONO2 = n
-      call set_ntm_power(n, -14)
-      call set_tr_mm(n, 141.9d0)
-      end subroutine BrONO2_setSpec
-
-      subroutine CFC_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_CFC = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 137.4d0) !CFC11
-      end subroutine CFC_setSpec
-
-
-        
       subroutine HNO3_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1387,38 +948,6 @@ C     Interpolate ClONO2 altitude-dependence to model resolution:
       call set_F0(n,  1.d0)
 #endif
       end subroutine H2O2_setSpec
-
-      subroutine GLT_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_GLT = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, mair)
-      end subroutine GLT_setSpec
-
-      subroutine stratOx_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_stratOx = n
-! assumes initial Ox conditions read in for Ox tracer
-      call set_ntm_power(n, -8)
-      call set_tr_mm(n, 48.d0)
-#ifdef TRACERS_DRYDEP
-      call set_F0(n,  1.0d0)
-      call set_HSTAR(n,  1.d-2)
-#endif
-      end subroutine stratOx_setSpec
-
-
-      subroutine codirect_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_codirect = n
-      call set_ntm_power(n, -8)
-      call set_tr_mm(n, 28.01d0)
-      call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
-! not a radiactive decay, but functionally identical
-      end subroutine codirect_setSpec
 
       subroutine CH3OOH_setSpec(name)
       character(len=*), intent(in) :: name
@@ -1466,7 +995,6 @@ C     Interpolate ClONO2 altitude-dependence to model resolution:
      & 0.0000000d+00, 0.0000000d+00/)
 #endif
       end subroutine CO_setSpec
-
       subroutine PAN_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1654,6 +1182,324 @@ C     Interpolate ClONO2 altitude-dependence to model resolution:
       end subroutine apinp2a_setSpec
 #endif  /* TRACERS_AEROSOLS_SOA */
 
+      subroutine HCl_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HCl = n
+      call set_ntm_power(n, -10)
+      call set_tr_mm(n, 36.5d0)
+      end subroutine HCl_setSpec
+
+      subroutine HOCl_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HOCl = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 52.5d0)
+      end subroutine HOCl_setSpec
+
+      subroutine ClONO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_ClONO2 = n
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 97.5d0)
+      end subroutine ClONO2_setSpec
+
+      subroutine HBr_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HBr = n
+      call set_ntm_power(n, -14)
+      call set_tr_mm(n, 80.9d0)
+      end subroutine HBr_setSpec
+      
+      subroutine HOBr_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HOBr = n
+      call set_ntm_power(n, -14)
+      call set_tr_mm(n, 96.9d0)
+      end subroutine HOBr_setSpec
+
+      subroutine BrONO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_BrONO2 = n
+      call set_ntm_power(n, -14)
+      call set_tr_mm(n, 141.9d0)
+      end subroutine BrONO2_setSpec
+
+      subroutine CFC_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CFC = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 137.4d0) !CFC11
+      end subroutine CFC_setSpec
+
+      subroutine codirect_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_codirect = n
+      call set_ntm_power(n, -8)
+      call set_tr_mm(n, 28.01d0)
+      call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
+! not a radiactive decay, but functionally identical
+      end subroutine codirect_setSpec
+
+      subroutine stratOx_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_stratOx = n
+! assumes initial Ox conditions read in for Ox tracer
+      call set_ntm_power(n, -8)
+      call set_tr_mm(n, 48.d0)
+#ifdef TRACERS_DRYDEP
+      call set_F0(n,  1.0d0)
+      call set_HSTAR(n,  1.d-2)
+#endif
+      end subroutine stratOx_setSpec
+
+      subroutine GLT_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_GLT = n
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, mair)
+      end subroutine GLT_setSpec
+
+#endif /* TRACERS_SPECIAL_Shindell */
+
+      subroutine CH4_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CH4 = n
+      call set_tr_mm(n, 16.d0)
+#ifdef TRACERS_SPECIAL_Lerner
+      call set_ntsurfsrc(n,  14)
+      call set_ntm_power(n, -9)
+      n_MPtable(n) = 3
+      tcscale(n_MPtable(n)) = 1.
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call set_ntm_power(n, -8)
+#ifdef DYNAMIC_BIOMASS_BURNING
+!     12 below are the 12 VDATA veg types or Ent remapped to them,
+!     from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+      emisPerFireByVegType(n,1:12)=(/0.0000000d+00,1.0864168d-06,
+     & 6.3624935d-07, 4.7021388d-07, 1.0293500d-06, 1.7132404d-06,
+     & 1.4364367d-06, 3.0849296d-06, 0.0000000d+00, 0.0000000d+00,
+     & 0.0000000d+00, 0.0000000d+00/)
+#endif /* DYNAMIC_BIOMASS_BURNING */
+#endif /* TRACERS_SPECIAL_Shindell */
+      end subroutine CH4_setSpec
+
+      subroutine N2O_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_N2O = n
+      call set_ntm_power(n, -9)
+      call set_tr_mm(n, 44.d0)
+#ifdef TRACERS_SPECIAL_Lerner
+      call set_ntsurfsrc(n,  1)
+      n_MPtable(n) = 1
+      tcscale(n_MPtable(n)) = 1.
+#endif
+      end subroutine N2O_setSpec
+
+      subroutine Water_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Water = n
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+      call set_trw0(n, 1.d+0)
+      call set_ntrocn(n, 0)
+#endif
+#ifdef TRACERS_WATER
+      call set_ntm_power(n, -4)
+      call set_tr_mm(n, mwat)
+      call set_needtrs(n,  .true.)
+      call set_tr_wd_type(n, nWater)
+      call set_trli0(n, 1.d+0)
+      call set_trsi0(n, 1.d+0)
+      call set_tr_H2ObyCH4(n, 1.d+0)
+#endif
+#ifdef TRACERS_OCEAN
+      call set_trglac(n, 1.d+0)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+      iso_index(n) = 1          ! indexing for isotopic fractionation calcs
+#endif
+      end subroutine Water_setSpec
+
+#ifdef TRACERS_SPECIAL_O18
+      subroutine H2O18_setSpec(name)
+      use TracerConstants_mod, only: H2O18
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_H2O18 = n
+      call set_ntm_power(n, -7)
+      call set_tr_mm(n, H2O18%molMass)
+      call set_needtrs(n,  .true.)
+      call set_tr_wd_type(n, nwater)
+      iso_index(n) = 2          ! indexing for isotopic fractionation calcs
+      call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
+      call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
+      call set_trsi0(n, fracls(n)*trw0(n))
+      call set_tr_H2ObyCH4(n, trw0(n)*1.023d0 ) ! d=+23 (ie. no frac from O2)
+      call set_ntrocn(n, -3)
+#ifdef TRACERS_OCEAN
+      call set_trglac(n, trw0(n)*0.98d0   ) ! d=-20
+#endif
+      end subroutine H2O18_setSpec
+
+      subroutine HDO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HDO = n
+      call set_ntm_power(n, -8)
+      call set_tr_mm(n, 19d0)
+      call set_needtrs(n,  .true.)
+      call set_tr_wd_type(n, nwater)
+      iso_index(n) = 3          ! indexing for isotopic fractionation calcs
+      call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
+      call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
+      call set_trsi0(n, fracls(n)*trw0(n))
+      call set_tr_H2ObyCH4(n, trw0(n)*0.93d0  ) ! d=-70
+      call set_ntrocn(n, -4)
+#ifdef TRACERS_OCEAN
+      call set_trglac(n, trw0(n)*0.84d0   ) ! d=-160
+#endif
+      end subroutine HDO_setSpec
+
+      subroutine HTO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_HTO = n
+      call set_ntm_power(n, -18)
+      call set_tr_mm(n, 20d0)
+      call set_needtrs(n,  .true.)
+      call set_tr_wd_type(n, nwater)
+      iso_index(n) = 4          ! indexing for isotopic fractionation calcs
+      call set_trw0(n, 0d0)     !2.22d-18   ) ! SMOW mass ratio of water molecules
+      call set_trli0(n, 0d0)
+      call set_trsi0(n, 0d0)
+      call set_tr_H2ObyCH4(n, 0d0)
+      call set_trdecay(n,  1.77d-9) ! =5.59d-2 /yr
+      call set_ntrocn(n, -18)
+#ifdef TRACERS_OCEAN
+      call set_trglac(n, 0d0)
+#endif
+      end subroutine HTO_setSpec
+
+      subroutine H2O17_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_H2O17 = n
+      call set_ntm_power(n, -7)
+      call set_tr_mm(n, 19d0)
+      call set_needtrs(n,  .true.)
+      call set_tr_wd_type(n, nwater)
+      iso_index(n) = 5          ! indexing for isotopic fractionation calcs
+      call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
+      call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
+      call set_trsi0(n, fracls(n)*trw0(n))
+      call set_tr_H2ObyCH4(n, trw0(n)*1.011596d0 ) ! d=+11.596 (some frac from O2)
+      call set_ntrocn(n, -3)
+#ifdef TRACERS_OCEAN
+      call set_trglac(n, trw0(n)*0.98937d0   ) ! d=-10.63 D17O=
+#endif
+      end subroutine H2O17_setSpec
+#endif  /* TRACERS_SPECIAL_O18 */
+
+      subroutine CFCn_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CFCn = n
+      call set_ntm_power(n, -12)
+!     !call set_tr_mm(n, 136.0d0    !NCAR value
+      call set_tr_mm(n, 137.37d0) !note units are in gr
+      call set_ntsurfsrc(n,  1)
+      call set_needtrs(n, .true.)
+      end subroutine CFCn_setSpec
+
+      subroutine CO2n_setSpec(name)
+      use TRACER_COM, only: set_ntsurfsrc
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CO2n = n
+      call set_ntm_power(n, -6)
+      call set_tr_mm(n, 44.d0)  !grams
+      call set_t_qlimit(n,  .false.)
+      call set_ntsurfsrc(n,  1)
+      call set_needtrs(n, .true.)
+      end subroutine CO2n_setSpec
+
+      subroutine SF6_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_SF6 = n
+      call set_ntm_power(n, -14)
+      call set_tr_mm(n, 146.01d0)
+      call set_ntsurfsrc(n,  1)
+      end subroutine SF6_setSpec
+
+      subroutine CO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CO2 = n
+      call set_ntm_power(n, -6)
+      call set_tr_mm(n, 44.d0)
+      call set_t_qlimit(n,  .false.)
+      call set_ntsurfsrc(n,  6)
+      end subroutine CO2_setSpec
+
+      subroutine CFC11_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_CFC11 = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 137.4d0)
+      call set_ntsurfsrc(n,  1)
+#ifdef TRACERS_SPECIAL_Lerner
+      n_mptable(n) = 2
+      tcscale(n_MPtable(n)) = 1.
+#endif
+      end subroutine CFC11_setSpec
+
+      subroutine C_14O2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_14CO2 = n
+      call set_ntm_power(n, -18)
+      call set_tr_mm(n, 46.d0)
+      call set_ntsurfsrc(n,  1)
+      end subroutine C_14O2_setSpec
+
+      subroutine O3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_O3 = n
+      call set_ntm_power(n, -8)
+      call set_tr_mm(n, 48.d0)
+      call set_ntsurfsrc(n,  1)
+#ifdef TRACERS_SPECIAL_Lerner
+C**** Get solar variability coefficient from namelist if it exits
+      dsol = 0.
+      call sync_param("dsol",dsol)
+#endif
+      end subroutine O3_setSpec
+
+      subroutine SF6_c_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_SF6_c = n
+      call set_ntm_power(n, -14)
+      call set_tr_mm(n, 146.01d0)
+      call set_ntsurfsrc(n,  1)
+      end subroutine SF6_c_setSpec
+
       subroutine DMS_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1714,213 +1560,6 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_tr_wd_type(n, npart)
       end subroutine SO4_setSpec
 
-      subroutine SO4_d1_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_SO4_d1 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 96.d0)  !!!! Sulfat
-      call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
-      call set_trradius(n, 0.75D-06 ) !m
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine SO4_d1_setSpec
-
-      subroutine SO4_d2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_SO4_d2 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 96.d0)
-      call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
-      call set_trradius(n, 2.2D-06 ) !m
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine SO4_d2_setSpec
-
-      subroutine SO4_d3_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_SO4_d3 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 96.d0)
-      call set_trpdens(n, 2.65d3) !this is Silt2 value
-      call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine SO4_d3_setSpec
-
-      subroutine N_d1_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_N_d1 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 62.d+0) ! NO3
-      call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
-      call set_trradius(n, 0.75D-06 ) !m
-      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine N_d1_setSpec
-
-      subroutine N_d2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_N_d2 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 62.d+0)
-      call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
-      call set_trradius(n, 2.2D-06 ) !m
-      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine N_d2_setSpec
-
-      subroutine N_d3_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_N_d3 = n
-      call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
-      call set_tr_mm(n, 62.d0)
-      call set_trpdens(n, 2.65d3) !this is Silt2 value
-      call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
-      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine N_d3_setSpec
-
-      subroutine BCII_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_BCII = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 12.d0)
-      call set_trpdens(n, 1.3d3) !kg/m3
-      call set_trradius(n, 1.d-7 ) !m
-      call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine BCII_setSpec
-
-      subroutine BCIA_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_BCIA = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 12.d0)
-      call set_trpdens(n, 1.3d3) !kg/m3
-      call set_trradius(n, 1.d-7 ) !m
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine BCIA_setSpec
-
-      subroutine BCB_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_BCB = n
-      call set_ntm_power(n, -12)
-      call set_tr_mm(n, 12.d0)
-      call set_trpdens(n, 1.3d3) !kg/m3
-      call set_trradius(n, 1.d-7 ) !m
-      call set_fq_aer(n, 0.6d0 ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-#ifdef DYNAMIC_BIOMASS_BURNING
-! 12 below are the 12 VDATA veg types or Ent remapped to them,
-! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 8.2731990d-09,
-     & 1.7817767d-07, 8.5456378d-08, 2.5662467d-07, 3.3909114d-07,
-     & 1.1377826d-07, 2.9145593d-07, 0.0000000d+00, 0.0000000d+00,
-     & 0.0000000d+00, 0.0000000d+00/)
-#endif
-      end subroutine BCB_setSpec
-
-      subroutine OCII_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_OCII = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
-      call set_trpdens(n, 1.5d3) !kg/m3
-      call set_trradius(n, 3.d-7 ) !m
-      call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine OCII_setSpec
-
-      subroutine OCIA_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_OCIA = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
-      call set_trpdens(n, 1.5d3) !kg/m3
-      call set_trradius(n, 3.d-7 ) !m
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine OCIA_setSpec
-
-      subroutine OCB_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_OCB = n
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      call sync_param("OCB_om2oc",om2oc(n_OCB))
-#endif
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
-      call set_trpdens(n, 1.5d3) !kg/m3
-      call set_trradius(n, 3.d-7 ) !m
-      call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-#ifdef DYNAMIC_BIOMASS_BURNING
-! 12 below are the 12 VDATA veg types or Ent remapped to them,
-! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,
-     &     1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,
-     &     2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,
-     &     0.0000000d+00, 0.0000000d+00/)
-#endif
-      end subroutine OCB_setSpec
-
-      subroutine Be7_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Be7 = n
-      call set_ntm_power(n, -23) ! power of ten for tracer
-      call set_tr_mm(n, 7.d0)
-      call set_trdecay(n,  1.51d-7)
-      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
-      call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart) ! same as SO4
-      end subroutine Be7_setSpec
-
-      subroutine Be10_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Be10 = n
-      call set_ntm_power(n, -23)
-      call set_tr_mm(n, 10.d0)
-      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
-      call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart) ! same as SO4
-      end subroutine Be10_setSpec
-
-      subroutine Pb210_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_Pb210 = n
-      call set_ntm_power(n, -23)
-      call set_tr_mm(n, 210.d0)
-      call set_trdecay(n,  9.85d-10)
-      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
-      call set_trradius(n, 3.d-7  ) !again S04 value
-      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart) ! same as SO4
-      end subroutine Pb210_setSpec
-
       subroutine H2O2_s_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1969,6 +1608,149 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_tr_wd_type(n, npart)
       end subroutine seasalt2_setSpec
 
+      subroutine BCII_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_BCII = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 12.d0)
+      call set_trpdens(n, 1.3d3) !kg/m3
+      call set_trradius(n, 1.d-7 ) !m
+      call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine BCII_setSpec
+
+      subroutine BCIA_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_BCIA = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 12.d0)
+      call set_trpdens(n, 1.3d3) !kg/m3
+      call set_trradius(n, 1.d-7 ) !m
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine BCIA_setSpec
+
+      subroutine BCB_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_BCB = n
+      call set_ntm_power(n, -12)
+      call set_tr_mm(n, 12.d0)
+      call set_trpdens(n, 1.3d3) !kg/m3
+      call set_trradius(n, 1.d-7 ) !m
+      call set_fq_aer(n, 0.6d0 ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+#ifdef DYNAMIC_BIOMASS_BURNING
+! 12 below are the 12 VDATA veg types or Ent remapped to them,
+! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 8.2731990d-09,
+     & 1.7817767d-07, 8.5456378d-08, 2.5662467d-07, 3.3909114d-07,
+     & 1.1377826d-07, 2.9145593d-07, 0.0000000d+00, 0.0000000d+00,
+     & 0.0000000d+00, 0.0000000d+00/)
+#endif
+      end subroutine BCB_setSpec
+
+#ifdef TRACERS_AEROSOLS_VBS
+      subroutine VBS_setSpec(name, n, index, type) result(label)
+      character(len=*), intent(in) :: name
+      integer, intent(in) :: index
+      character(len=4), intent(in) :: type
+
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      label = n
+
+      select case (type)
+      case ('igas')
+        vbs_tr%igas(index) = n
+        call num_srf_sources(n,.false.)
+      case ('iaer')
+        vbs_tr%iaer(index) = n
+        call num_srf_sources(n,.true.)
+      end selec t case
+
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 15.6d0)
+      select case(name)
+      case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2', ! VBS gas-phase
+     &      'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
+        call set_tr_wd_type(n, ngas)
+        call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+!     call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
+#ifdef TRACERS_DRYDEP
+        call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
+#endif
+      case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2', ! VBS aerosol-phase
+     &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+#ifdef DYNAMIC_BIOMASS_BURNING
+!     12 below are the 12 VDATA veg types or Ent remapped to them,
+!     from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+        emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,
+     &   1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,
+     &   2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,
+     &   0.0000000d+00, 0.0000000d+00/)
+#endif
+        call set_tr_wd_type(n, npart)
+        call set_trpdens(n, 1.5d3) !kg/m3
+        call set_trradius(n, 3.d-7 ) !m
+        call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+      end select
+      end subroutine VBS_setSpec
+#endif /* TRACERS_AEROSOLS_VBS */
+
+      subroutine OCII_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_OCII = n
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 15.6d0)
+      call set_trpdens(n, 1.5d3) !kg/m3
+      call set_trradius(n, 3.d-7 ) !m
+      call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine OCII_setSpec
+
+      subroutine OCIA_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_OCIA = n
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 15.6d0)
+      call set_trpdens(n, 1.5d3) !kg/m3
+      call set_trradius(n, 3.d-7 ) !m
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine OCIA_setSpec
+
+      subroutine OCB_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
+      character(len=*), intent(in) :: name
+      real*8 :: tmp
+      n = oldAddTracer(name)
+      n_OCB = n
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      tmp = om2oc(n_OCB)
+      call sync_param("OCB_om2oc",tmp)
+      call set_om2oc(n_OCB, tmp)
+#endif
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 15.6d0)
+      call set_trpdens(n, 1.5d3) !kg/m3
+      call set_trradius(n, 3.d-7 ) !m
+      call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+#ifdef DYNAMIC_BIOMASS_BURNING
+! 12 below are the 12 VDATA veg types or Ent remapped to them,
+! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
+      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,
+     &     1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,
+     &     2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,
+     &     0.0000000d+00, 0.0000000d+00/)
+#endif
+      end subroutine OCB_setSpec
+
       subroutine OCocean_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
@@ -1980,54 +1762,6 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_fq_aer(n, 1.0d0) ! same as seasalt
       call set_tr_wd_type(n, nPART)
       end subroutine OCocean_setSpec
-
-      subroutine NH3_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_NH3 = n
-      call set_ntm_power(n, -10)
-      call set_tr_mm(n, 17.d0)
-      call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
-      call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
-      call set_tr_wd_type(n, ngas)
-#ifdef TRACERS_DRYDEP
-      call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
-#endif
-#ifdef DYNAMIC_BIOMASS_BURNING
-! 12 below are the 12 VDATA veg types or Ent remapped to them,
-! from Olga Pechony's AR5_EPFC_factors_corrected_NH3.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.2274993d-06,
-     &     3.8813269d-07, 3.5230462d-07, 4.0781484d-07, 8.8901584d-07,
-     &     1.1341459d-06, 1.4117913d-06, 0.0000000d+00, 0.0000000d+00,
-     &     0.0000000d+00, 0.0000000d+00/)
-#endif
-      end subroutine NH3_setSpec
-
-      subroutine NH4_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_NH4 = n
-      call set_ntsurfsrc(n,  0)
-      call set_ntm_power(n, -10)
-      call set_tr_mm(n, 18.d0)
-      call set_trpdens(n, 1.7d3)
-      call set_trradius(n, 3.d-7)
-      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine NH4_setSpec
-
-      subroutine NO3p_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_NO3p = n
-      call set_ntsurfsrc(n,  0)
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 62.d0)
-      call set_trpdens(n, 1.7d3)
-      call set_trradius(n, 3.d-7)
-      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-      end subroutine NO3p_setSpec
 
       subroutine Clay_setSpec(name)
       character(len=*), intent(in) :: name
@@ -2108,6 +1842,180 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_tr_mm(n, 1.d+0)
       call set_isdust(n, 1)
       end subroutine Silt4_setSpec
+
+      subroutine NH3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_NH3 = n
+      call set_ntm_power(n, -10)
+      call set_tr_mm(n, 17.d0)
+      call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
+      call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
+      call set_tr_wd_type(n, ngas)
+#ifdef TRACERS_DRYDEP
+      call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+! 12 below are the 12 VDATA veg types or Ent remapped to them,
+! from Olga Pechony's AR5_EPFC_factors_corrected_NH3.xlsx file.
+      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.2274993d-06,
+     &     3.8813269d-07, 3.5230462d-07, 4.0781484d-07, 8.8901584d-07,
+     &     1.1341459d-06, 1.4117913d-06, 0.0000000d+00, 0.0000000d+00,
+     &     0.0000000d+00, 0.0000000d+00/)
+#endif
+      end subroutine NH3_setSpec
+
+      subroutine NH4_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_NH4 = n
+      call set_ntsurfsrc(n,  0)
+      call set_ntm_power(n, -10)
+      call set_tr_mm(n, 18.d0)
+      call set_trpdens(n, 1.7d3)
+      call set_trradius(n, 3.d-7)
+      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine NH4_setSpec
+
+      subroutine NO3p_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_NO3p = n
+      call set_ntsurfsrc(n,  0)
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 62.d0)
+      call set_trpdens(n, 1.7d3)
+      call set_trradius(n, 3.d-7)
+      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine NO3p_setSpec
+
+      subroutine SO4_d1_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_SO4_d1 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 96.d0)  !!!! Sulfat
+      call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
+      call set_trradius(n, 0.75D-06 ) !m
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine SO4_d1_setSpec
+
+      subroutine SO4_d2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_SO4_d2 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 96.d0)
+      call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
+      call set_trradius(n, 2.2D-06 ) !m
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine SO4_d2_setSpec
+
+      subroutine SO4_d3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_SO4_d3 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 96.d0)
+      call set_trpdens(n, 2.65d3) !this is Silt2 value
+      call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine SO4_d3_setSpec
+
+      subroutine N_d1_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_N_d1 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 62.d+0) ! NO3
+      call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
+      call set_trradius(n, 0.75D-06 ) !m
+      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine N_d1_setSpec
+
+      subroutine N_d2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_N_d2 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 62.d+0)
+      call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
+      call set_trradius(n, 2.2D-06 ) !m
+      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine N_d2_setSpec
+
+      subroutine N_d3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_N_d3 = n
+      call set_ntm_power(n, -11)
+      call set_ntsurfsrc(n,  0)
+      call set_tr_mm(n, 62.d0)
+      call set_trpdens(n, 2.65d3) !this is Silt2 value
+      call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
+      call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart)
+      end subroutine N_d3_setSpec
+
+      subroutine Pb210_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Pb210 = n
+      call set_ntm_power(n, -23)
+      call set_tr_mm(n, 210.d0)
+      call set_trdecay(n,  9.85d-10)
+      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
+      call set_trradius(n, 3.d-7  ) !again S04 value
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart) ! same as SO4
+      end subroutine Pb210_setSpec
+
+      subroutine Be7_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Be7 = n
+      call set_ntm_power(n, -23) ! power of ten for tracer
+      call set_tr_mm(n, 7.d0)
+      call set_trdecay(n,  1.51d-7)
+      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
+      call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart) ! same as SO4
+      end subroutine Be7_setSpec
+
+      subroutine Be10_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Be10 = n
+      call set_ntm_power(n, -23)
+      call set_tr_mm(n, 10.d0)
+      call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
+      call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
+      call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
+      call set_tr_wd_type(n, npart) ! same as SO4
+      end subroutine Be10_setSpec
+
+      subroutine Rn222_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Rn222 = n
+      call set_ntm_power(n, -21)
+      call set_tr_mm(n, 222.d0)
+      call set_trdecay(n,  2.1d-6)
+      call set_ntsurfsrc(n,  1)
+      end subroutine Rn222_setSpec
 
 #ifdef TRACERS_MINERALS
       subroutine Clayilli_setSpec(name)
@@ -2487,6 +2395,15 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_isdust(n, 1)
       end subroutine Sil3quhe_setSpec
 #endif  /* TRACERS_QUARZHEM */
+
+      subroutine Air_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Air = n
+      call set_ntm_power(n, -2)
+      call set_tr_mm(n, mair)
+      end subroutine Air_setSpec
+
 
 #ifdef TRACERS_AMP
       subroutine H2SO4_setSpec(name)
@@ -3229,53 +3146,6 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
 
 #endif /* TRACERS_AMP */
 
-#ifdef TRACERS_AEROSOLS_VBS
-      subroutine VBS_setSpec(name, n, index, type) result(label)
-      character(len=*), intent(in) :: name
-      integer, intent(in) :: index
-      character(len=4), intent(in) :: type
-
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      label = n
-
-      select case (type)
-      case ('igas')
-        vbs_tr%igas(index) = n
-        call num_srf_sources(n,.false.)
-      case ('iaer')
-        vbs_tr%iaer(index) = n
-        call num_srf_sources(n,.true.)
-      end selec t case
-
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
-      select case(name)
-      case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2', ! VBS gas-phase
-     &      'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
-        call set_tr_wd_type(n, ngas)
-        call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
-!     call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
-#ifdef TRACERS_DRYDEP
-        call set_HSTAR(n,  tr_RKD(n) * convert_HSTAR)
-#endif
-      case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2', ! VBS aerosol-phase
-     &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-#ifdef DYNAMIC_BIOMASS_BURNING
-!     12 below are the 12 VDATA veg types or Ent remapped to them,
-!     from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-        emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,
-     &   1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,
-     &   2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,
-     &   0.0000000d+00, 0.0000000d+00/)
-#endif
-        call set_tr_wd_type(n, npart)
-        call set_trpdens(n, 1.5d3) !kg/m3
-        call set_trradius(n, 3.d-7 ) !m
-        call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
-      end select
-      end subroutine VBS_setSpec
-#endif /* TRACERS_AEROSOLS_VBS */
 
 #ifdef TRACERS_TOMAS
       subroutine TOMAS_H2SO4_setSpec(name)
@@ -3424,8 +3294,11 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       end function TOMAS_AECIL_setSpec
 
       integer function TOMAS_AOCOB_setSpec(name, bin) result(n_AOCOB)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
       integer, intent(in) :: bin
+      real*8 :: tmp
+
       n = oldAddTracer(name)
       n_AOCOB = n 
       TOMAS_dens= 1.4d3
@@ -3438,7 +3311,11 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_fq_aer(n, 1.d0   ) !not used in wet deposition
       call set_tr_wd_type(n, npart)        
 
-      if (bin==1) call sync_param("OCB_om2oc",om2oc(n_AOCOB))
+      if (bin==1) then
+        tmp = om2oc(n_AOCOB)
+        call sync_param("OCB_om2oc",tmp)
+        call set_om2oc(n_AOCOB, tmp)
+      end if
       end function TOMAS_AOCOB_setSpec
 
       integer function TOMAS_AOCIL_setSpec(name, bin) result(n_AOCIL)
@@ -3495,7 +3372,230 @@ c     call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
       call set_tr_wd_type(n, npart)  
       end function TOMAS_AH2O_setSpec
 
-
 #endif /* TRACERS_TOMAS */
 
       end subroutine initTracerMetadata
+
+
+      subroutine laterInitTracerMetadata()
+      USE MODEL_COM, only: itime,master_yr
+      use OldTracer_mod, only: itime_tr0
+      use OldTracer_mod, only: set_itime_tr0
+      USE TRACER_COM, only: NTM, tracers, syncProperty
+#ifdef TRACERS_TOMAS
+      use TOMAS_AEROSOL, only : binact10,binact02,
+     &     fraction10,fraction02
+#endif
+      use TRACER_COM, only: coupled_chem
+      use Dictionary_mod, only: sync_param,is_set_param,get_param
+#ifdef TRACERS_WATER
+      use TRDIAG_com, only: to_per_mil
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+      (defined TRACERS_TOMAS)
+      USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2, om2oc, BBinc
+#endif
+      use TRDIAG_COM, only: diag_rad
+      use TRACER_COM, only: ntm ! should be available by this procedure call
+#ifdef TRACERS_WATER
+#ifdef TRDIAG_WETDEPO
+      USE CLOUDS, ONLY : diag_wetdep
+#endif
+#endif /* TRACERS_WATER */
+#ifdef TRACERS_SPECIAL_Shindell
+      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
+      USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
+     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
+     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
+     &     OxICIN,OxIC,OxICINL,OxICL,
+     &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
+     &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
+     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
+     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
+     &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
+     &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
+     &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
+     &     Tpsc_offset_S
+#ifdef INTERACTIVE_WETLANDS_CH4
+      USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
+     &     gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
+     &     ns_wet,nra_ch4
+#endif
+#ifdef BIOGENIC_EMISSIONS
+      use biogenic_emis, only: base_isopreneX
+#endif
+#endif /* TRACERS_SPECIAL_Shindell */
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
+      use TRACER_COM, only: aer_int_yr
+      USE TRACER_COM, only: offline_dms_ss, offline_ss
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+      (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+      (defined TRACERS_TOMAS)
+      use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
+     &     ,fracSiltPDFscheme
+#endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
+#endif
+
+      USE TRACER_COM, only: ef_fact3d, no_emis_over_ice
+      use Model_com, only: itime
+      implicit none
+      integer :: n
+
+C**** 
+C**** Set some documentary parameters in the database
+C**** 
+      do n = 1, NTM
+        call set_itime_tr0(n, itime)
+      end do
+      call syncProperty(tracers, "itime_tr0", set_itime_tr0,itime_tr0())
+
+      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
+
+#ifdef TRACERS_ON
+#ifdef TRACERS_SPECIAL_Lerner
+!TLC - LERNER tracer will need some changes
+      LERNER tracers not supported with current changes
+! Lerner defaults
+      n_MPtable = 0
+      tcscale = 0.
+#endif
+#endif /* TRACERS_ON */
+
+C**** Synchronise tracer related parameters from rundeck
+
+ 
+#ifdef TRACERS_WATER
+C**** Decide on water tracer conc. units from rundeck if it exists
+      call sync_param("to_per_mil",to_per_mil,ntm)
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+      (defined TRACERS_TOMAS)
+      call sync_param("tune_ss1",tune_ss1)
+      call sync_param("tune_ss2",tune_ss2)
+      call sync_param("BBinc",BBinc)
+C**** determine year of emissions
+      if (is_set_param("aer_int_yr")) then
+        call get_param("aer_int_yr",aer_int_yr)
+      else
+        aer_int_yr=master_yr
+      endif
+#endif
+#ifdef TRACERS_AEROSOLS_VBS
+      call sync_param("VBSemifact",VBSemifact,vbs_tr%nbins)
+#endif
+#ifdef TRACERS_SPECIAL_O18
+C**** set super saturation parameter for isotopes if needed
+      call sync_param("supsatfac",supsatfac)
+#endif
+#ifdef TRACERS_ON
+      CALL sync_param("diag_rad",diag_rad)
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
+      CALL sync_param("diag_wetdep",diag_wetdep)
+#endif
+!     not params call sync_param("trans_emis_overr_day",trans_emis_overr_day)
+!     not params call sync_param("trans_emis_overr_yr", trans_emis_overr_yr )
+#endif /* TRACERS_ON */
+#ifdef TRACERS_SPECIAL_Shindell
+      call sync_param("allowSomeChemReinit",allowSomeChemReinit)
+      call sync_param("which_trop",which_trop)
+      if (is_set_param("PI_run")) then
+        call get_param("PI_run",PI_run)
+      else
+        if (master_yr == 1850) then
+          PI_run=1
+        else
+          PI_run=0
+        endif
+      endif
+      call sync_param("PIratio_N",PIratio_N)
+      call sync_param("PIratio_CO_T",PIratio_CO_T)
+      call sync_param("PIratio_CO_S",PIratio_CO_S)
+      call sync_param("PIratio_other",PIratio_other)
+      call sync_param("rad_FL",rad_fl)
+      call sync_param("use_rad_ch4",use_rad_ch4)
+      call sync_param("Lmax_rad_O3",Lmax_rad_O3)
+      call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
+      if (is_set_param("aircraft_Tyr1")) then
+        call get_param("aircraft_Tyr1",aircraft_Tyr1)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr1 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr1=master_yr
+        endif
+      endif
+      if (is_set_param("aircraft_Tyr2")) then
+        call get_param("aircraft_Tyr2",aircraft_Tyr2)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr2 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr2=master_yr
+        endif
+      endif
+      call sync_param("use_rad_n2o",use_rad_n2o)
+      call sync_param("use_rad_cfc",use_rad_cfc)
+      call sync_param("PIratio_N2O",PIratio_N2O)
+      call sync_param("PIratio_CFC",PIratio_CFC)
+      call sync_param("PltOx",PltOx)
+      call sync_param("Tpsc_offset_N",Tpsc_offset_N)
+      call sync_param("Tpsc_offset_S",Tpsc_offset_S)
+#ifdef BIOGENIC_EMISSIONS
+      call sync_param("base_isopreneX",base_isopreneX)
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      call sync_param("ice_age",ice_age)
+      call sync_param("ns_wet",ns_wet)
+      call sync_param("int_wet_dist",int_wet_dist)
+      call sync_param("topo_lim",topo_lim)
+      call sync_param("sat_lim",sat_lim)
+      call sync_param("gw_ulim",gw_ulim)
+      call sync_param("gw_llim",gw_llim)
+      call sync_param("sw_lim",sw_lim)
+      call sync_param("exclude_us_eu",exclude_us_eu)
+      call sync_param("nn_or_zon",nn_or_zon)
+      do n=1,nra_ch4
+        if(nday_ch4(n) > max_days .or. nday_ch4(n) < 1)
+     &       call stop_model('nday_ch4 out of range',255)
+      end do
+#endif
+
+#endif /* TRACERS_SPECIAL_Shindell */
+
+#if (defined TRACERS_AMP)
+C**** Decide on how many times Radiation is called for aerosols once or nmode, default one call
+      call sync_param("AMP_DIAG_FC",AMP_DIAG_FC)
+C**** Decide Radiative Mixing Rules - Volume - Core Shell - Maxwell Garnett, default Volume
+      call sync_param("AMP_RAD_KEY",AMP_RAD_KEY)
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+      (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
+      (defined TRACERS_TOMAS)
+C**** decide on AEROCOM or interactive emissions
+      CALL sync_param('imDUST',imDUST)
+      call sync_param('prefDustSources', prefDustSources)
+      call sync_param('fracClayPDFscheme', fracClayPDFscheme)
+      call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
+#endif
+#ifdef TRACERS_QUARZHEM
+      call sync_param( 'frHemaInQuarAggr', frHemaInQuarAggr )
+      call sync_param( 'pureByTotalHematite', pureByTotalHematite )
+#endif
+
+#if (defined TRACERS_COSMO)
+C**** get rundeck parameter for cosmogenic source factor
+      call sync_param("be7_src_param", be7_src_param)
+#endif
+      call sync_param("no_emis_over_ice",no_emis_over_ice)
+
+!     initialize 3D source factors:
+      ef_fact3d(:,:)=1.d0
+
+      end subroutine laterInitTracerMetadata

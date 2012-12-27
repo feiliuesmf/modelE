@@ -9,7 +9,6 @@
 !@sum  TRACER_COM tracer variables
 !@auth Jean Lerner
 C
-      use newTracer_COM, only: getTracerNames, MAXLEN_TRACER_NAME
       USE QUSDEF, only: nmom
       USE RESOLUTION, only: im,jm,lm
       use OldTracer_mod, only: trName
@@ -123,13 +122,25 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=4
+#else
       integer, parameter :: ntm_koch=5
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=0
 #elif (defined TRACERS_AEROSOLS_VBS)
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=9
+#else
       integer, parameter :: ntm_koch=10
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=2*vbs_bins
 #else
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_koch=12
+#else
       integer, parameter :: ntm_koch=13
+#endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=0
 #endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
 #else
@@ -254,7 +265,11 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AMP_M8
       integer, parameter :: ntmAMP=28
 #endif  /* TRACERS_AMP_M8 */
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: ntm_amp=ntmAMP+4
+#else
       integer, parameter :: ntm_amp=ntmAMP+5
+#endif  /* TRACERS_SPECIAL_Shindell */
 #else
       integer, parameter :: ntm_amp=0
 #endif  /* TRACERS_AMP */
@@ -348,7 +363,6 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
 #endif
 
       integer :: NTM
-      character(len=MAXLEN_TRACER_NAME), allocatable :: tmpTrName(:)
 
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
@@ -813,9 +827,6 @@ C**** Water isotope specific parameters
 
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
-!@var iso_index indexing taking actual tracer number to isotope
-!@+   fractionation number (1=water,2=h2o18,3=hdo,4=hto,5=h2o17)
-      integer, allocatable :: iso_index(:)
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
@@ -835,8 +846,6 @@ C**** Aerosol specific switches and arrays
       integer :: OFFLINE_DMS_SS = 0
 !!@dbparam OFFLINE_SS is 0 for standard case, 1 for offline seasalt emission
       integer :: OFFLINE_SS = 0
-!@dbparam imPI is 0 for industrial simulations, 1 for pre-industrial
-      integer :: imPI = 0
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
 !@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
@@ -927,18 +936,14 @@ c note: not applying CPP when declaring counts/lists.
         module procedure ntsurfsrc_1
         module procedure ntsurfsrc_all
       end interface ntsurfsrc
+
       contains
 
       subroutine initTracerCom()
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      integer :: i
+      use TracerBundle_mod, only: TracerBundle
 
-      call getTracerNames(tmpTrName)
-      NTM = size(tmpTrName)
-
-#ifdef TRACERS_SPECIAL_O18
-      allocate(iso_index(NTM))
-#endif
+      tracers = TracerBundle()
+      call initTracerMetadata()
 
       end subroutine initTracerCom
 
@@ -1097,6 +1102,31 @@ C****
 
       END SUBROUTINE ALLOC_TRACER_COM
 
+      subroutine syncProperty(tracers, property, setValue, values)
+      use Dictionary_mod, only: sync_param
+      use TracerBundle_mod
+      type (TracerBundle_type), intent(inout) :: tracers
+      character(len=*) :: property
+      interface
+        subroutine setValue(n,value)
+        integer, intent(in) :: n
+        integer, intent(in) :: value
+        end subroutine setValue
+      end interface
+      integer, intent(in) :: values(:)
+
+      integer :: scratch(size(values))
+      integer :: n 
+      integer :: i
+
+      n = getNumTracers(tracers)
+      scratch = values
+      call sync_param(property,scratch,n)
+      do i = 1, n
+         call setValue(i, scratch(i))
+      end do
+
+      end subroutine syncProperty
 
       END MODULE TRACER_COM
 

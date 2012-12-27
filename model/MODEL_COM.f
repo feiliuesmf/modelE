@@ -16,6 +16,13 @@
 !@dbparam KOCEAN: if 0 => specified, if 1 => predicted ocean
       integer :: KOCEAN = 1
 
+!**** Default simulation year. If set to zero, transient run.
+!@dbparam master_yr year of simulation. This value will define aero_yr,
+!@+       aer_int_yr, albsn_yr, crops_yr, ghg_yr, o3_yr, s0_yr, volc_yr,
+!@+       variable_orb_par,orb_par_year_bp,and PI_run, unless any of these
+!@+       are specifically defined.
+      INTEGER ::  master_yr = 1951
+
 !**** Diagnostic control parameters
 !@dbparam NMONAV number of months in a diagnostic accuml. period
 !@dbparam NIPRNT number of instantaneous initial printouts

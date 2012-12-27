@@ -54,7 +54,7 @@ c arrays for upwind halos
       USE QUSCOM, ONLY : IM,JM,LM
       USE ATM_COM, ONLY: pu=>pua, pv=>pva, sd=>sda, mb, ma
       IMPLICIT NONE
-      character*8 tname          !tracer name
+      character(*) tname          !tracer name
       logical :: qlimit
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
      &                  rm

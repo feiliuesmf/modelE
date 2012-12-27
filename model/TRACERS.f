@@ -2065,7 +2065,7 @@ c daily_z is currently only needed for CS
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-      use TRACER_COM, only: trName => tmpTrName
+      use OldTracer_mod, only: trName
       use TRACER_COM, only: ntm, trm, trmom, coupled_chem
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trwm
