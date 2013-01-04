@@ -399,7 +399,7 @@ contains
     implicit none
     character*(*), intent(in) ::  name
     integer, intent(out) ::  value
-    integer, intent(out), optional ::  default
+    integer, intent(in), optional ::  default
     integer v(1)
 
     if ( present(default) ) then
