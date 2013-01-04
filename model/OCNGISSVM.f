@@ -1,31 +1,34 @@
 C****  
-C**** GISSVM.f  GISS ocean vertical mixing scheme    2012/03/21
+C**** OCNGISSVM.f  GISS ocean vertical mixing scheme, 12/28/2012
 C****
 #include "rundeck_opts.h"
 
       MODULE GISSMIX_COM
 !@sum  GISSMIX_COM holds variables related to the GISS mixing scheme
-!@auth Ye Cheng
+!@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
+!@auth AHoward/YCheng
 #ifdef TRACERS_OCEAN
 c     USE OCN_TRACER_COM, only : ntm
 #endif
       USE OCEAN, only : im,jm,lmo
-      USE SW2OCEAN, only : lsrpd
+      USE CONSTANT, only : omega,by3,grav
       IMPLICIT NONE
       SAVE
-!@var otke turbulent kinetic energy in ocean (m/s)**2
+!@var otke turbulent kinetic energy in ocean (m/s)^2
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: otke
-!@var otke_init_max maximum initial vaule of otke
-      real*8, parameter :: otke_init_max=0.5d0/800. 
-      real*8, parameter :: emin=1d-6,emax=1000. ! (m/s)^2
+!@var otke_init_max maximum initial value of otke (m/s)^2
+      real*8, parameter :: otke_init_max=0.5d0/800.
+!@var emin minimum value of otke (m/s)^2
+!@var emax maximum value of otke (m/s)^2
+      real*8, parameter :: emin=1d-6,emax=1000.
 #ifdef TRACERS_OCEAN
 c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
       ! bottom drag over lon,lat used by bottom drag routine
-      !@ref C2010 section 7.2 equation (72)
+      ! C2010 section 7.2 equation (72)
 !@var rhobot in-situ density at ocean bottom (kg/m^3)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rhobot
-!@var taubx x component of tau_b
+!@var taubx x component of tau_b, kinematic bottom drag in (m/s)^2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: taubx
 !@var tauby y component of tau_b
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: tauby
@@ -34,36 +37,37 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 !@var ut2a unresolved bottom velocity squared (m/s)^2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ut2a
       integer, parameter :: idrag=1    !@var idrag 1: tides are not explicit
-!@var nonlocal 0: local; 1: non-local; 2: non-local with counter-gradient terms
-      integer, parameter :: nonlocal=0
       END MODULE GISSMIX_COM
 
+CCCCCCCCCCCCCC
+!ad hoc 2013:
+! exam/replace following USE's for distribution
+!      USE OCEAN, only : im,jm,lmo
+!      USE CONSTANT, only : omega,by3,grav
+c replace/explain following tides related USE's
+c     USE FILEMANAGER
+c     USE DOMAIN_DECOMP_1D, only : READT_PARALLEL
+c     USE OCEANR_DIM, only : ogrid
+CCCCCCCCCCCCCC
 
       MODULE GISS_OTURB
 !@sum GISS_OTURB contains variables and routines for GISS mixing scheme
 !@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
 !@+   Canuto et al. 2011, Ocean Modelling, 36, 198-207 (C2011)
 !@+   Cheng et al. 2002, JAS, 59,1550-1565 (C2002)
-!@auth AHOWARD and YCHENG
-!@date May 2011
+!@auth AHoward/YCheng
 
-      USE OCEAN, only : im,jm,lmo
-      USE DOMAIN_DECOMP_1d, Only: AM_I_ROOT
-      USE CONSTANT, only : omega,by3,grav
+      USE GISSMIX_COM, only : im,jm,lmo,omega,by3,grav
       USE GISSMIX_COM, only : otke,otke_init_max,emin,emax
       USE GISSMIX_COM, only : rhobot,taubx,tauby,exya,ut2a,idrag
-     &    ,nonlocal
 
       implicit none
 
       integer, parameter :: mt=214      !@var mt dim of ri in table
-c     integer, parameter :: nt=162      !@var mt dim of rr in table
       integer, parameter :: nt=108      !@var mt dim of rr in table
       real*8, parameter :: kmin=1d-3    !@var kmin min of diffusivities, (m^2/s)
-      real*8, parameter :: kmax=100.   !@var kmax max of diffusivities, (m^2/s)
-      real*8, parameter :: lrmax=1.    !@var lrmax max of length/l2
+      real*8, parameter :: kmax=100.    !@var kmax max of diffusivities, (m^2/s)
       real*8, parameter :: osocb1=21.6,kappa=0.4
-c     real*8, parameter :: gammam_bg=.46
       real*8, save ::
      &    ria(mt)       !@var ria ri 1d array of richardson #, for 2d tables
      &   ,rra(nt)       !@var rra rr 1d array of density ratio,for 2d tables
@@ -73,41 +77,23 @@ c     real*8, parameter :: gammam_bg=.46
      &   ,ssa(mt,nt)    !@var ssa 2d table for ss=structure fuction for salinity
      &   ,rfa(mt,nt)    !@var rfa 2d table for rf=flux richardson #
      &   ,phim2a(mt,nt) !@var phim2a 2d table for phim2, used for bottom shear
-     &   ,lr1a(mt)      !@var lr1a 1d table for length/(blackadar length)
-c    &   ,lra(mt,nt)    !@var lra 2d table for length/(blackadar length)
-c     real*8, save ::
-c    &    gma1(mt)    !@var gma 1d table for gm=(tau*shear)^2
-c    &   ,sma1(mt)    !@var sma 1d table for sm=structure fuction for momentum
-c    &   ,sha1(mt)    !@var sha 1d table for sh=structure fuction for heat
-c    &   ,ssa1(mt)    !@var ssa 1d table for ss=structure fuction for salinity
-c    &   ,rfa1(mt)    !@var rfa 1d table for rf=flux richardson #
-c     real*8, save ::
-c    &    ribga(nt)     !@var ribg 1d array of backgound richardson number ri 
-c    &   ,smbga(nt)     !@var smbga 1d table for background sm
-c    &   ,shbga(nt)     !@var shbga 1d table for background sh
-c    &   ,ssbga(nt)     !@var ssbga 1d table for background ss
-c    &   ,rfbga(nt)     !@var rfbga 1d table for background rf
-c    &   ,gammbga(nt)   !@var gammbga 1d table for background gamma_m
       real*8, save :: 
      &    rimin         !@var rimin min of richardson # ri
      &   ,rimax         !@var rimax max of richardson # ri
      &   ,rrmin         !@var rrmin min of density ratio rr
      &   ,rrmax         !@var rrmax max of density ratio rr
 
-c     real*8, save :: rtwi_rr     ! Rrho, passed to fct in rtwi routine
       real*8, save ::  pi10,pi20,pi30,pi40,pi50
-      real*8, save ::  p1,p2,p3,p4
-      real*8, save ::  rf1,rf2
 
       CONTAINS
 
       subroutine gissmix_init(iniOCEAN)
 !@sum creates tables for the giss diffusivities(ri,rr) 
-!@Author AHoward/YCheng
-!@ref Canuto et al., Ocean Modelling, 2010
-!@+   Canuto et al., Ocean Modelling, 2010
-!@+   Cheng et al., JAS, 2002
-!@date May 2011    
+!@+   gissmix_init is called from routine init_OCEAN in OCNDYN.f
+!@auth AHoward/YCheng
+!@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
+!@+   Canuto et al. 2011, Ocean Modelling, 36, 198-207 (C2011)
+!@+   Cheng et al. 2002, JAS, 59,1550-1565 (C2002)
       USE FILEMANAGER
       USE DOMAIN_DECOMP_1D, only : READT_PARALLEL
       USE OCEANR_DIM, only : ogrid
@@ -116,6 +102,7 @@ c     real*8, save :: rtwi_rr     ! Rrho, passed to fct in rtwi routine
 
       ! in:
       logical, intent(in) :: iniOCEAN
+
       ! local:
 
       integer m,n,m0,m1,n0,j,k,i,l
@@ -128,10 +115,12 @@ c     real*8, save :: rtwi_rr     ! Rrho, passed to fct in rtwi routine
       real*8 :: val,rest,eps
       character*80 path 
       INTEGER :: iu_TIDES
-c     integer i_0,i_1,j_0,j_1
 
       ! establish ri grids for look-up table
       ! the grids extend from -rend to +rend, with more grids near zero
+      ! In the following, m must equal mt, n must equal nt
+      ! if not, change mt,nt parameters in MODULE GISS_OTURB
+
       rini=1d-4
       rend=1d4
       ff=4.
@@ -178,20 +167,15 @@ c     integer i_0,i_1,j_0,j_1
              rra(k)=tmpa(k-n0)
           endif
        end do
+       rra(1)=-1.
 
       ! 2d tables for gm,sm,sh,ss,rf,phim2
       ! phim2 is defined in C2002, (36), with l=kz; for bottom shear
 
       rimin=ria(1) ! -1.d4
       rimax=ria(m) !  1.d4
-      rrmin=rra(1) ! -0.99
+      rrmin=rra(1) ! -1.
       rrmax=rra(n) !  0.99
-c     if( AM_I_ROOT() ) then
-c        write(67,'(a,1e14.4)') "rimin=",rimin
-c        write(67,'(a,1e14.4)') "rimax=",rimax
-c        write(67,'(a,1e14.4)') "rrmin=",rrmin
-c        write(67,'(a,1e14.4)') "rrmax=",rrmax
-c     endif
       do k=1,n
          do j=1,m
             call gissdiffus(
@@ -200,105 +184,14 @@ c     endif
             ! Out:
      &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k),rfa(j,k))
             phim2a(j,k)=2./osocb1**2*gma(j,k)**.5d0/sma(j,k)
-c           if( AM_I_ROOT() ) then
-c              write(61,'(9e14.4)') ria(j),rra(k)
-c    &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k),rfa(j,k)
-c           endif
          end do ! loop j
       end do ! loop k
-
-      ! 1d tables for gm,sm,sh,ss,rf (rf used in length scale formula)
-
-      do j=m,1,-1
-         call gissdiffus(
-         ! In:
-     &      ria(j),rrmin
-         ! Out:
-     &     ,gm1,sm1,sh1,ss1,rf1)
-         if(j.eq.m) rf2=rf1
-         tmp=min(max(1-rf1/rf2,1d-30),1.d0)
-         lr1a(j)=tmp**(4.*by3)
-c        if( AM_I_ROOT() ) then
-c           write(61,'(9e14.4)') ria(j),lr1a(j),rf2
-c        endif
-      end do ! loop j
-
-c     ! 2d table for length/(blackadar leng)
-c     call gissdiffus(
-c     ! In:
-c    &   rimax,rrmin
-c     ! Out:
-c    &  ,gm1,sm1,sh1,ss1,rf1)
-c        if( AM_I_ROOT() ) then
-c           write(61,'(9e14.4)') rf1,rf2,rf1/rf2
-c        endif
-c     do j=1,m
-c        if( AM_I_ROOT() ) then
-c           write(61,'(9e14.4)') ria(j),rf1,rfa1(j)/rf1
-c        endif
-c     end do
-
-c     do k=1,n
-c        do j=1,m
-c           if(rfa(j,k)/rf1.gt.1.) then
-c             write(*,*) "rfa(j,k)/rf1.gt.1., stop"
-c             write(*,*) rfa(j,k)/rf1
-c             stop
-c           endif
-c           if(rfa(j,k).gt.0.) then
-c              pow=4./3.
-c           else
-c              pow=.15
-c           endif
-c           tmp=1.-4./(3.*pow)*rfa(j,k)/rf1
-c           lra(j,k)=tmp**pow
-c           lra(j,k)=min(tmp**pow,lrmax)
-c        end do ! loop j
-c     end do ! loop k
-c     ! make the 1-d tables for background sm,sh,ss
-c     eps=1.d-6
-c     iend=40
-c     ! rtwi finds the root of ri=fct(ri)
-c     do k=1,n
-c        rr=rra(k)
-c        ! to estimate rest
-c        if(k.eq.1) then
-c            rest=.4
-c        else
-c            rest=ri
-c        endif
-c        rtwi_rr=rr
-c        ! in rtwi, rest is the input (estimate of ri), ri is the output
-c        ! fct is the function ri=fct(ri) from which ri is solved
-c        call rtwi(ri,val,fct,rest,eps,iend,ier)
-c        ribga(k)=ri
-c        ! make 1d table for sm,sh,ss of rr
-c        ribga(k)=0.4
-c        call gissdiffus(
-c        ! In:
-c    &      ribga(k),rra(k)
-c        ! Out:
-c    &     ,gmbg,smbga(k),shbga(k),ssbga(k),rfbga(k))
-c        gammbga(k)=.5*ribga(k)*gmbg*smbga(k)
-c        if( AM_I_ROOT() ) then
-c           write(62,'(9e14.4)') ribga(k),rra(k)
-c    &      ,gammbga(k),smbga(k),shbga(k)/smbga(k),ssbga(k)/smbga(k)
-c        endif
-c     end do
 
 C**** initialize exya, ut2a
       ! tidally induced diffusivities: C2010, (69), (75)-(77)
       call openunit("TIDES",iu_TIDES,.true.,.true.)
       CALL READT_PARALLEL(ogrid,iu_TIDES,NAMEUNIT(iu_TIDES),exya ,1)
       CALL READT_PARALLEL(ogrid,iu_TIDES,NAMEUNIT(iu_TIDES),ut2a ,1)
-c     ! i_0=ogrid%I_STRT
-c     ! i_1=ogrid%I_STOP
-c     j_0=ogrid%J_STRT
-c     j_1=ogrid%J_STOP
-c     do i=1,im
-c        do j=j_0,j_1
-c        end do
-c     end do
 
 C**** initialize rhobot, taubx, tauby
       rhobot(:,:)=0.
@@ -315,30 +208,14 @@ C**** initialize otke
       return
       end subroutine gissmix_init
 
-c     real*8 function fct(ri)
-c!@sum rtwi finds the root of ri=fct(ri)
-c      implicit none
-c      real*8 ri,rr,gm,sm,sh,ss,rf
-c      rr=rtwi_rr
-c      call gissdiffus(
-c      ! In:
-c     &    ri,rr
-c      ! Out:
-c     &   ,gm,sm,sh,ss,rf)
-c      fct=2.*gammam_bg/(gm*sm)
-c      return
-c      end function fct
-
-
       subroutine gissdiffus(
       ! In:
      &    ri,rr
       ! Out:
      &   ,gm,sm,sh,ss,rf)
 !@sum finds structure functions sm,sh,ss and rf using giss model
-!@ref Canuto et al., Ocean Modelling, 2010
-!@auth aHoward/YCheng
-!@date May, 2011
+!@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
+!@auth AHoward/YCheng
       
       implicit none
 
@@ -404,7 +281,7 @@ c      end function fct
       x=ri*gm/omrr
       q=pi1*(pi2*(1+rr)-pi3*rr)
       p=pi4*(pi5-pi2*(1+rr))
-      bygam=rr/( (pi4/pi1)*(1+q*x)/(1+p*x) ) ! lower case gamma
+      bygam=rr/( (pi4/pi1)*(1+q*x)/(1+p*x) )
       ah=pi4/(1+p*x+pi2*pi4*x*(1-bygam))
       xx=(1-bygam)*x*ah
       am=2/gm*(15./7.+xx)
@@ -431,6 +308,11 @@ c      end function fct
      &     ,pi1,pi2,pi3,pi4,pi5
      &     ,a3,a2,a1,a0
      &     )
+!@sum calculates the coefficients of the cubic eqn for gm
+!@+   a3*gm**3+a2*gm**2+a1*gm+a0=0
+!@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
+!@ref Canuto et al. 2013, in preparation
+!@auth AHoward/YCheng
 
       implicit none
 
@@ -445,7 +327,7 @@ c      end function fct
       real*8 pi2_,pi1_,pi4_,b2su,rr2su,pi1_1,pi4_1,pi2_1,w
       integer test
 
-      !@ pi0's:
+      !@ pi's are the time scale ratios
 
       sgmt0=.72d0
       pi20=1./3.d0
@@ -461,12 +343,10 @@ c      end function fct
          pi4=pi40
       else ! ri >= 0
          if(rr.gt.0.) then
-c           a=5.
             b=2.*ri/(.1+ri)
             rrsy = 2./(rr + 1/rr)
-            ! pi1 = pi10/(1. + ri/(1. + (a*rrsy**2)))
             tmp=atan2(.5*rrsy**2*(1-rrsy**2),2*rrsy**2-1)/3.1415927
-            pi1 = pi10/(1.+ri**tmp*tmp)   !ok
+            pi1 = pi10/(1.+ri**tmp*tmp)
             pi4 = pi1
             pi2=pi20*( 1-b*rrsy*(1-rrsy) )
          else ! rr < 0
@@ -510,12 +390,6 @@ c           a=5.
       a2 = aa3*ri**2+aa4*ri
       a1 = aa5*ri+aa6
       a0 = 1.
-
-      ! for the turbulence soc model at level 2.5:
-      p1=pi40*pi50
-      p2=pi40*(pi50-pi20)
-      p3=pi10*pi20
-      p4=pi40-.02d0*by3
 
       return
  1001 format(15(1pe14.4))
@@ -589,55 +463,6 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       return
       END SUBROUTINE locate
 
-
-c      subroutine rtwi(x,val,fct,xst,eps,iend,ier)
-cc     to solve general nonlinear equations of the form x=fct(x)
-cc     by means of wegsteins iteration method
-cc     prepare iteration
-c
-c      implicit none
-c
-c      real*8 x,val,fct,xst,eps
-c      integer iend,ier
-c      real*8 tol,a,b,d
-c      integer i
-c
-c      ier=0
-c      tol=xst
-c      x=fct(tol)
-c      a=x-xst
-c      b=-a
-c      tol=x
-c      val=x-fct(tol)
-cc     start iteration loop
-c      do 6 i=1,iend
-c      if(val) 1,7,1
-cc     equation is not satisfied by x
-c 1    b=b/val-1.
-c      if(b) 2,8,2
-cc     iteration is possible
-c 2    a=a/b
-c      x=x+a
-c      b=val
-c      tol=x
-c      val=x-fct(tol)
-cc     test on satisfactory accuracy
-c      tol=eps
-c      d=abs(x)
-c      if(d-1.) 4,4,3
-c 3    tol=tol*d
-c 4    if(abs(a)-tol) 5,5,6
-c 5    if(abs(val)-10.*tol) 7,7,6
-c 6    continue
-cc     end of iteration loop
-cc     no convergence after iend iteration steps. error return.
-c      ier=1
-c 7    return
-cc     error return in case of zero divisor
-c 8    ier=2
-c      return
-c      end subroutine rtwi
-
       END MODULE GISS_OTURB
 
 
@@ -648,23 +473,22 @@ c      end subroutine rtwi
       ! inout:
      &   ,e
       ! out:
-     &   ,ri,rr,km,kh,ks,buoynl) 
+     &   ,ri,rr,km,kh,ks) 
 
 !@sum giss turbulence model for ocean
 !@ref Canuto et al. 2004, GRL, 31, L16305 (C2004)
 !@+   Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
 !@+   Canuto et al. 2011, Ocean Modelling, 36, 198-207 (C2011)
 !@auth AHoward and YCheng
-!@date May 2011
 
       USE GISS_OTURB
-      !@var grav acceleration of gravity m/s^2
-      !@var lmo max. number of vertical layers
-      !@var taubx(im,jm) x component of tau_b = kinematic bottom drag (m/s)^2
-      !@var tauby(im,jm) y component of tau_b = kinematic bottom drag (m/s)^2
-      !@var rhobot(im,jm) in-situ density at ocean bottom (kg/m^3)	
-      !@var exya internal tidal energy (w/m^2)
-      !@var ut2a unresolved bottom shear squared (m/s)^2
+!@var grav acceleration of gravity m/s^2
+!@var lmo max. number of vertical layers
+!@var taubx(im,jm) x component of tau_b = kinematic bottom drag (m/s)^2
+!@var tauby(im,jm) y component of tau_b = kinematic bottom drag (m/s)^2
+!@var rhobot(im,jm) in-situ density at ocean bottom (kg/m^3)	
+!@var exya internal tidal energy (w/m^2)
+!@var ut2a unresolved bottom shear squared (m/s)^2
 
       implicit none
 
@@ -701,14 +525,13 @@ c      end subroutine rtwi
       real*8 km(0:lmo+1) !@var km vertical momentun diffusivity (m**2/s)
       real*8 kh(0:lmo+1) !@var kh vertical heat diffusivity (m**2/s)
       real*8 ks(0:lmo+1) !@var ks vertical salinity diffusivity (m**2/s)
-      real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
-      intent (out) ri,rr,km,kh,ks,buoynl
+      intent (out) ri,rr,km,kh,ks
 
       integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
-c     integer, parameter :: num_smooth=1
-      real*8, parameter :: l0min=3.d0,l2min=.05d0
+      ! num_smooth=1: to smooth bv2,vs2 and rr; num_smooth=0: no smooth
+      integer, parameter :: num_smooth=0
+      real*8, parameter :: l0min=3.d0,l2min=.05d0 ! (m)
       integer iter, mr
-c     real*8 bylenr ! rotation effect
       real*8 vs2(0:lmo+1)!@var vs2 velocity shear squared (1/s**2)
       real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
       real*8 len         !@var len turbulence length scale (m)
@@ -717,13 +540,6 @@ c     real*8 bylenr ! rotation effect
       real*8 a1,a2,b1,b2,c1,c2,c3,c4
       real*8 ril,rrl,gm,sm,sh,ss,kml,khl,ksl,lr,etau
       real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp,tmp1,tmp2
-
-      ! for nonlocal diffusivities
-      real*8, parameter :: ghmin=-5.
-      real*8 wstar,wstar3,ustar1,ustar2,ustar3,bylmonin
-     &      ,zeta,phi_m,eps,tau,lb,byn,qturb
-     &      ,ah,as,am,gh,w2byk,zili,buoy,krl
-     &      ,omrr,x,pp,qq,bygam,xx
 
       ! for background diffusivities
       ! consts appeared in C2010, (65a)-(66)
@@ -734,11 +550,10 @@ c     real*8 bylenr ! rotation effect
      &   ,bv0byf30=bv0/f30                ! (1), (65b)
      &   ,byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
      &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
-     &   ,q=.7d0
-     &   ,byzet=1./500.d0                   ! (1/m)
+     &   ,q=.7d0   ! fraction of baroclinic energy into creating mixing
+     &   ,byzet=1./500.d0                 ! upward decaying factor (1/m)
       real*8 fbyden,afc,ltn
       real*8 bvbyf,fac
-c     real*8 gammbg,smbg,shbg,ssbg
       real*8 kmbg,khbg,ksbg
 
       ! for tidally-induced diffusivities, exy from table in GISS_OTURB
@@ -746,6 +561,8 @@ c     real*8 gammbg,smbg,shbg,ssbg
       ! for unresolved bottom shear, ut2 from table in GISS_OTURB
       real*8 ut2,ustarb2,phim2,zb,unr20
 
+      ! Vertical grid diagram
+      !
       !             grid levels                       interface levels
       !
       !                   -----------------------------  surf
@@ -766,51 +583,28 @@ c     real*8 gammbg,smbg,shbg,ssbg
 
       !-----------------------------------------------------------------
       ! more details of giss model are included in subroutine gissdiffus
-      ! which is only called from within the subroutine gissmix_init,
-      ! the latter is called only once. the lookup uses bisection.
+      ! which is called from within the subroutine gissmix_init, the
+      ! latter is called only once from routine init_OCEAN in OCNDYN.f
       !-----------------------------------------------------------------
-
-      ! have moved "call gissmix_init" to init_OCEAN in OCNDYN_ye.f
 
       do l=1,n-1
          bydz=1./(zg(l)-zg(l+1))
          bv2(l)=db(l)*bydz ! N^2
          vs2(l)=dv2(l)*bydz*bydz
       end do
-c     do mr = 1,num_smooth
-c        call z121(bv2,n-1,lmo)
-c        call z121(vs2,n-1,lmo)
-c     end do
+      do mr = 1,num_smooth ! no smoothing if num_smooth=0
+         call z121(bv2,n-1,lmo)
+         call z121(vs2,n-1,lmo)
+      end do
       do l=1,n-1
-         ! ri(l)=db(l)*(zg(l)-zg(l+1))/(dv2(l)+1d-30)
          ri(l)=bv2(l)/(vs2(l)+1d-30)
          rr(l)=bds(l)/(adt(l)+1d-30)
       end do
+      do mr = 1,num_smooth
+        call z121(rr,n-1,lmo)
+      end do
 
-      ! vertically smooth Rr num_smooth times
-c     do mr = 1,num_smooth
-c        call z121(rr,n-1,lmo)
-c     end do
       l0=.15*hbl
-
-      if(nonlocal.ne.0) then ! nonlocal
-         ustar1=max(ustar,3.5d-3)
-         ustar2=ustar1*ustar1
-         ustar3=ustar1*ustar2
-         bylmonin=kappa*bf/ustar3 !@var bylmonin 1/Lmonin
-         if(bf.lt.0.) then
-            wstar3=-bf*hbl
-            wstar=wstar3**by3
-            if(nonlocal.eq.2) then
-               l=max(kbl,2)
-               zili=.2/(1.+7.*(-bf/(hbl*hbl))**(2.*by3)
-     &             /max(bv2(l),1d-30))
-            endif
-         else
-            wstar3=0.
-            wstar=0.
-         endif
-      endif
 
       ! modify ri at the interface nearest to ocean bottom
       ! due to unresolved bottom shear, C2010, eqs,(73)-(77)
@@ -840,6 +634,8 @@ c     end do
          rrl=rr(l)
          if(abs(rrl).gt.1.) rrl=1/(rr(l)+1d-30)
          rrl=min(max(rrl,rrmin),rrmax)
+        
+         ! locate uses bisection method to lookup tables
          call locate(nt,rra,rrl,klo,khi,a2,b2)
          ril=ri(l)
          do iter=1,10
@@ -858,11 +654,6 @@ c     end do
       den=1.-exp(-ze(n)*byzet)
       afc=abs(fc)
       fbyden=afc*byden
-c     if(bf.lt.0.) then ! rotation effects
-c        bylenr=(afc**3/max(-bf,1d-20))**.5
-c     else
-c        bylenr=0.
-c     endif
 
       do l=1,n-1
 
@@ -903,13 +694,6 @@ c     endif
          zl=ze(l)
          zbyh=zl/hbl
          kz=kappa*zl
-c        lr=c1*lra(jlo,klo)+c2*lra(jhi,klo)
-c    &     +c3*lra(jhi,khi)+c4*lra(jlo,khi)
-c        if(ril.ge.0.) then 
-c           lr=a1*lr1a(jlo)+b1*lr1a(jhi)
-c        else
-c           lr=1.
-c        endif
          lr=1./(1.+max(ril,0.d0))
          if(zl.le.hbl) then         ! within obl
             l1=l0
@@ -925,60 +709,6 @@ c        endif
          kml=etau*sm
          khl=etau*sh
          ksl=etau*ss
-         buoynl(l)=0.
-         if(nonlocal.ne.0.and.zl.le.hbl) then ! nonlocal, in obl
-            if (bv2(l).gt.0.) then
-               byn=1./(sqrt(bv2(l))+1d-30)
-               qturb=.75*sqrt(max(e(l),emin))
-               lb=qturb*byn
-            else
-               lb=1.d30
-            endif
-            l1=l1*lb/(l1+lb)
-            len=l1*kz/(l1+kz)
-            ! find e and update sm,sh,ss within obl
-            zeta=zl*bylmonin
-            if(zeta.lt.0.) then
-               phi_m=(1.-15.*zeta)**(-.25)
-            else
-               phi_m=1.+4.7*zeta
-            endif
-            ! eps: modified Moeng and Sullivan 1994
-            eps=.4*wstar3/hbl+ustar3*(1.-zbyh)*phi_m/kz
-            e(l)=.5*(osocb1*len*eps)**(2.*by3)
-            e(l)=min(max(e(l),emin),emax)
-            tau=2.*e(l)/(eps+1d-20)
-            etau=e(l)*tau
-            ! Level 2.5 of OIII model
-            rrl=-1.
-            gm=tau*tau*vs2(l)
-            omrr=1-rrl
-            !x=ril*gm/omrr ! x=gh
-            x=tau*tau*bv2(l)/omrr ! x=gh
-            !if(x.lt.-10.) x=-10. ! if rrl=0
-            if(x.lt.ghmin) x=ghmin  ! if rrl=-1
-            qq=pi10*(pi20*(1+rrl)-pi30*rrl)
-            pp=pi40*(pi50-pi20*(1+rrl))
-            bygam=rrl/((pi40/pi10)*(1+qq*x)/(1+pp*x))
-            ah=pi40/(1+pp*x+pi20*pi40*x*(1-bygam))
-            as=ah/((pi40/pi10)*(1+qq*x)/(1+pp*x))
-            xx=(1-bygam)*x*ah
-            am=(.8-(pi40-pi10+(pi10-.0066667)*(1-bygam))*x*ah)
-     &        /(10.+(pi40-pi10*rrl)*x+.02*gm)
-            w2byk=2./(3.+.4*xx+.3*gm*am)
-            sh=ah*w2byk
-            ss=as*w2byk
-            sm=am*w2byk
-            kml=max(etau*sm,kml)
-            khl=max(etau*sh,khl)
-            ksl=max(etau*ss,ksl)
-            if(nonlocal.eq.2.and.bf.lt.0.) then ! find cg terms
-               buoy=-bf*(1.-(1.+zili)*zbyh)
-     &              -ustar3/hbl*zbyh
-               krl=(khl-ksl*rrl)/omrr
-               buoynl(l)=buoy+krl*bv2(l)
-            endif
-         endif ! end nonlocal and in obl
 
          ! background and tidally induced diffusivities
 
@@ -993,31 +723,11 @@ c        endif
                ltn=7.d-2                ! dimensionless
             endif
             fac=epsbyn2*ltn      ! in m^2/s, Km=GAMMAm*fac
-
-c           ! background diffusivities from 1d lookup tables
-c           gammbg=a2*gammbga(klo)+b2*gammbga(khi)
-c           smbg=a2*smbga(klo)+b2*smbga(khi)
-c           shbg=a2*shbga(klo)+b2*shbga(khi)
-c           ssbg=a2*ssbga(klo)+b2*ssbga(khi)
-c           ! symmetry of giss model: sh <-> ss if rr<->1/rr
-c           if(flag.eq.1) then
-c              tmp=shbg
-c              shbg=ssbg
-c              ssbg=tmp
-c           endif
-cc          !kmbg=.46d0*fac
-c           ! gammam_bg=.5*ribg*gmbg*smbg
-c           ! gammah_bg=.5*ribg*gmbg*shbg
             kmbg=fac
             khbg=by3*fac
             ksbg=khbg
-c           tmp1=shbg/(smbg+1.d-30)
-c           tmp2=ssbg/(smbg+1.d-30)
-c           khbg=kmbg*tmp1
-c           ksbg=kmbg*tmp2
 
             ! tidally induced diffusivities, C2010, eqs.(69)-(71)
-
             ! use the following fz instead of (70) of C10:
             fz=(exp((-zg(l+1)-ze(n))*byzet)
      &         -exp((-zg(l)  -ze(n))*byzet))/(den*(zg(l)-zg(l+1)))
@@ -1025,8 +735,6 @@ c           ksbg=kmbg*tmp2
             kmtd=epstd_byn2
             khtd=by3*epstd_byn2
             kstd=khtd
-c           khtd=kmtd*tmp1
-c           kstd=kmtd*tmp2
          else
             kmbg=0.
             khbg=0.
@@ -1047,7 +755,6 @@ c           kstd=kmtd*tmp2
       km(0)=0.; kh(0)=0.; ks(0)=0.
       km(1)=max(km(1),kmin);kh(1)=max(kh(1),kmin);ks(1)=max(ks(1),kmin)
       km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.
-      buoynl(n:lmo)=0.
       ri(0)=0.; rr(0)=0.
       ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; e(n:lmo)=emin
       
@@ -1056,13 +763,15 @@ c           kstd=kmtd*tmp2
 
 
 #ifdef OCN_GISSMIX /*alloc_gissmix_com,def_rsf_gissmix,new_io_gissmix*/
+      ! the three routines below are for allocation and input/output
+      ! which are specifics for GISS modelE
 
       SUBROUTINE alloc_gissmix_com(grid)
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy/Ye Cheng
 
-      USE DOMAIN_DECOMP_1D, only : dist_grid,get
+      USE DOMAIN_DECOMP_1D, only : dist_grid,getDomainBounds
 !      USE OCEANR_DIM
 
       USE GISSMIX_COM
@@ -1074,7 +783,6 @@ c           kstd=kmtd*tmp2
       INTEGER :: IER
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      !ALLOCATE( otke(LSRPD,IM,J_0H:J_1H) , STAT = IER)
       ALLOCATE( otke(lmo,IM,J_0H:J_1H) , STAT = IER)
       ALLOCATE( rhobot(IM,J_0H:J_1H) , STAT = IER)
       ALLOCATE( taubx(IM,J_0H:J_1H) , STAT = IER)
@@ -1092,9 +800,8 @@ c    *   STAT = IER)
       END SUBROUTINE alloc_gissmix_com
 
       subroutine def_rsf_gissmix(fid)
-!@sum
-!@+    this subroutine is called at the end of
-!@+    subroutine def_rsf_ocean, the latter is in OCNDYNtn.f
+!@sum  this subroutine is called at the end of
+!@+    subroutine def_rsf_ocean, the latter is in OCNDYN.f
 !@+    remember to put #ifdef OCN_GISSMIX around the call 
 !@date Nov 29,2011
       use pario, only : defvar
@@ -1109,9 +816,8 @@ c    *   STAT = IER)
       end subroutine def_rsf_gissmix
 
       subroutine new_io_gissmix(fid,iaction)
-!@sum
-!@+    this subroutine is called at the end of
-!@+    subroutine new_io_ocean, the latter is in OCNDYNtn.f
+!@sum  this subroutine is called at the end of
+!@+    subroutine new_io_ocean, the latter is in OCNDYN.f
 !@+    remember to put #ifdef OCN_GISSMIX around the call 
 !@date Nov 29,2011
       use model_com, only : ioread,iowrite

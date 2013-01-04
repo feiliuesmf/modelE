@@ -1443,9 +1443,9 @@ c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 rib(lmo)    !
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
-      real*8 ga          !@var ga grav*alpha
-      real*8 gb          !@var gb grav*beta
-      real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
+c     real*8 ga          !@var ga grav*alpha
+c     real*8 gb          !@var gb grav*beta
+c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
       REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
@@ -1920,7 +1920,7 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
       ! inout:
      &   ,e
       ! out:
-     &   ,ri,rrho,akvm,akvg,akvs,buoynl)
+     &   ,ri,rrho,akvm,akvg,akvs)
       do l=1,lmij-1
          otke(l,i,j)=e(l)
       end do
@@ -1959,12 +1959,12 @@ c        buoynl=-GHAT(L)/RHO(L)
 c    &         *( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
 c    &           -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) )
 #else
-         ga=-talpha(l)/R*grav
-         gb= sbeta(l)/R*grav
+c        ga=-talpha(l)/R*grav
+c        gb= sbeta(l)/R*grav
          ! wtnl=.5*buoynl(l)/ga
          ! wsnl=-.5*buoynl(l)/gb
-         GHATG(L)=-R*SHCGS(G(L),S(L))*.5*buoynl(l)/ga*DXYPO(J)
-         GHATS(L)= R*.5*buoynl(l)/gb*DXYPO(J)
+c        GHATG(L)=-R*SHCGS(G(L),S(L))*.5*buoynl(l)/ga*DXYPO(J)
+c        GHATS(L)= R*.5*buoynl(l)/gb*DXYPO(J)
 c        GHAT(L)=-buoynl(l)*RHO(L)
 c    &      /( ga*AKVG(L)*DELTAE/SHCGS(G(L),S(L))
 c    &        -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) + 1d-30)
@@ -1975,6 +1975,8 @@ c    &        -gb*AKVS(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM) + 1d-30)
          ! SHCGS is Specific Heat Capacity as a function of G and S (in SI *not* cgs units).
          ! GHATS is nonlocal salt per unit time into the grid box, to get it
          ! multiply the nonlocal salt mass fraction flux, wsnl, by \rho times cell area.
+         GHATG(L)=0.d0
+         GHATS(L)=0.d0
 #endif
 C**** GHAT terms must be zero for consistency with OSOURC
 ! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
@@ -2562,9 +2564,9 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
       REAL*8 wsnl(lmo)   !@var wsnl non-local term of ws
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
-      real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
-      real*8 ga          !@var ga grav*alphaT
-      real*8 gb          !@var gb grav*alphaS
+c     real*8 buoynl(lmo) !@var buoynl nonlocal part of buoy production
+c     real*8 ga          !@var ga grav*alphaT
+c     real*8 gb          !@var gb grav*alphaS
 #endif
 
       IF (IFIRST.eq.1) THEN
@@ -2725,7 +2727,7 @@ C**** Get diffusivities for the whole column
       ! inout:
      &   ,e
       ! out:
-     &   ,ri1,rrho,akvm,akvg,akvs,buoynl)
+     &   ,ri1,rrho,akvm,akvg,akvs)
       do l=1,lmij-1
          otkest(l,n)=e(l)
       end do
