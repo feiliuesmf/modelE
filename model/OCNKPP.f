@@ -1915,12 +1915,10 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,hbl,kbl,strait,i,j
-      ! inout:
-     &   ,e
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
+     &   ,Coriol,hbl,strait,i,j
       ! out:
-     &   ,ri,rrho,akvm,akvg,akvs)
+     &   ,ri,rrho,akvm,akvg,akvs,e)
       do l=1,lmij-1
          otke(l,i,j)=e(l)
       end do
@@ -2722,12 +2720,10 @@ C**** Get diffusivities for the whole column
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,to,s,RHO,uob,vob,u2b
-     &   ,Coriol,ustar,bf,hbl,kbl,strait,0,0
-      ! inout:
-     &   ,e
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
+     &   ,Coriol,hbl,strait,0,0
       ! out:
-     &   ,ri1,rrho,akvm,akvg,akvs)
+     &   ,ri1,rrho,akvm,akvg,akvs,e)
       do l=1,lmij-1
          otkest(l,n)=e(l)
       end do
