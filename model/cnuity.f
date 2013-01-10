@@ -9,7 +9,8 @@ c --- hycom version 0.9
      &     ,jchunk
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
-     &     ,sigjmp,onem
+     &     ,sigjmp,onem,bolus_biharm_constant,bolus_laplc_constant 
+     &     ,bolus_laplc_exponential
       USE HYCOM_ARRAYS, only : utotn,vtotn,dp,utotm,u,ubavg,scuy,depthu
      &     ,uflux,uflux2,dpu,uflx,vtotm,v,scvx,depthv,vflux
      &     ,vflux2,dpv,vflx,dpold,scp2i,vbavg,util1,util2,scp2,p
@@ -25,6 +26,7 @@ c
       external hyc_pechg1,hyc_pechg2
       character text*20
       logical abort
+
       integer, parameter :: itmax = 5
       !!integer ja_,jb_
 cddd      integer my_pet
@@ -43,6 +45,16 @@ c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
+
+      if ((bolus_laplc_constant*bolus_laplc_exponential==1)
+     . .or. (bolus_laplc_constant*bolus_biharm_constant==1)
+     . .or. (bolus_laplc_exponential*bolus_biharm_constant==1)) then
+       print *,' wrong bolus setting: only one can be true'
+       stop 'wrong bolus setting: only one can be true'
+      elseif (bolus_laplc_constant==0 .and. bolus_laplc_exponential==0
+     . .and. bolus_biharm_constant==0) then
+       stop 'wrong bolus setting: one has to be true'
+      end if
 
       do 41 j=J_0,J_1
 c
@@ -549,28 +561,30 @@ c --- in preparation for biharmonic smoothing, compute 2nd derivatives
 c --- of pressure in x,y direction. store in -util1,util2- resp.
 c --- don't allow grid points elevated by topography to affect derivatives.
 c --- disable next 22 lines to switch from biharm. to laplacian smoothing
-      pa=p(ia,j,k)
-      pb=p(ib,j,k)
-      if   (float(ip(ia,j))*pbot(ia,j).lt.p(i,j,k)) then
-        pa=p(i,j,k)
-        if (float(ip(ib,j))*pbot(ib,j).gt.p(i,j,k)) pa=p(ib,j,k)
+      if (bolus_laplc_exponential==1 .or. bolus_laplc_constant==1) then
+        pa=p(ia,j,k)
+        pb=p(ib,j,k)
+        if   (float(ip(ia,j))*pbot(ia,j).lt.p(i,j,k)) then
+          pa=p(i,j,k)
+          if (float(ip(ib,j))*pbot(ib,j).gt.p(i,j,k)) pa=p(ib,j,k)
+        end if
+        if   (float(ip(ib,j))*pbot(ib,j).lt.p(i,j,k)) then
+          pb=p(i,j,k)
+          if (float(ip(ia,j))*pbot(ia,j).gt.p(i,j,k)) pb=p(ia,j,k)
+        end if
+        util1(i,j)=util1(i,j)-.5*(pa+pb)
+        pa=p(i,ja,k)
+        pb=p(i,jb,k)
+        if   (float(ip(i,ja))*pbot(i,ja).lt.p(i,j,k)) then
+          pa=p(i,j,k)
+          if (float(ip(i,jb))*pbot(i,jb).gt.p(i,j,k)) pa=p(i,jb,k)
+        end if
+        if   (float(ip(i,jb))*pbot(i,jb).lt.p(i,j,k)) then
+          pb=p(i,j,k)
+          if (float(ip(i,ja))*pbot(i,ja).gt.p(i,j,k)) pb=p(i,ja,k)
+        end if
+        util2(i,j)=util2(i,j)-.5*(pa+pb)
       end if
-      if   (float(ip(ib,j))*pbot(ib,j).lt.p(i,j,k)) then
-        pb=p(i,j,k)
-        if (float(ip(ia,j))*pbot(ia,j).gt.p(i,j,k)) pb=p(ia,j,k)
-      end if
-      util1(i,j)=util1(i,j)-.5*(pa+pb)
-      pa=p(i,ja,k)
-      pb=p(i,jb,k)
-      if   (float(ip(i,ja))*pbot(i,ja).lt.p(i,j,k)) then
-        pa=p(i,j,k)
-        if (float(ip(i,jb))*pbot(i,jb).gt.p(i,j,k)) pa=p(i,jb,k)
-      end if
-      if   (float(ip(i,jb))*pbot(i,jb).lt.p(i,j,k)) then
-        pb=p(i,j,k)
-        if (float(ip(i,ja))*pbot(i,ja).gt.p(i,j,k)) pb=p(i,ja,k)
-      end if
-      util2(i,j)=util2(i,j)-.5*(pa+pb)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  131  continue
 c
@@ -592,8 +606,15 @@ c
 c
       do 151 l=1,isu(j)
       do 151 i=ifu(j,l),ilu(j,l)
-      bolusu(i,j,k)=delt1*thkdff*(util1(i,j)-util1(i-1,j))*scuy(i,j)
+      if (bolus_laplc_constant==1 .or. bolus_biharm_constant==1) then
+        bolusu(i,j,k)=delt1*thkdff*(util1(i,j)-util1(i-1,j))*scuy(i,j) ! thkdff=const
      .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
+      else if (bolus_laplc_exponential==1) then
+        bolusu(i,j,k)=delt1*
+     .  (thkdff*exp(-(p(i,j,k)+p(i-1,j,k))/(onem*600.))+0.003) !thkdff=3*exp(-z/300m)+0.3 (cm/s)
+     .  *(util1(i,j)-util1(i-1,j))*scuy(i,j)
+     .   *boost(pbot(i,j),pbot(i-1,j),p(i,j,k),p(i-1,j,k))
+      end if
 c
 c --- suppress uphill fluxes into 'perched' cells
       if (p(i  ,j,k).gt.pbot(i-1,j)) bolusu(i,j,k)=max(0.,bolusu(i,j,k))
@@ -614,8 +635,15 @@ c --- difference of 2 interface 'pressure fluxes' becomes thickness flux
 c
       do 141 l=1,isv(j)
       do 141 i=ifv(j,l),ilv(j,l)
-      bolusv(i,j,k)=delt1*thkdff*(util2(i,j)-util2(i,ja ))*scvx(i,j)
+      if (bolus_laplc_constant==1 .or. bolus_biharm_constant==1) then
+         bolusv(i,j,k)=delt1*thkdff*(util2(i,j)-util2(i,ja ))*scvx(i,j)  ! thkdff=const
+     .    *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
+      else if (bolus_laplc_exponential==1) then
+        bolusv(i,j,k)=delt1*
+     .  (thkdff*exp(-(p(i,j,k)+p(i,ja,k))/(onem*600.))+0.003) !thkdff=3*exp(-z/300m+0.3 (cm/s)
+     .  *(util2(i,j)-util2(i,ja ))*scvx(i,j)
      .   *boost(pbot(i,j),pbot(i,ja ),p(i,j,k),p(i,ja ,k))
+      end if
 c
 c --- suppress uphill fluxes into 'perched' cells
       if (p(i,j  ,k).gt.pbot(i,ja )) bolusv(i,j,k)=max(0.,bolusv(i,j,k))

@@ -524,37 +524,11 @@ c
       enddo
 c
       write(*,'(a,20i12)') 'ijlist ',((ijlist(i,j),i=30,32),j=4,5)
-c
-      wgtkap=0.
-      do 159 j=1,jj
-      do 159 l=1,isp(j)
-      do 159 i=ifp(j,l),ilp(j,l)+1
-c
-c --- in indopacific, wgtkap varies between 2 in the south and 3 in the north
-c --- in atlantic, wgtkap varies between 2 in the south and 1 in the north
-c --- in mediterranean, wgtkap is set to 4
-c
-c --- linear variation between 30 S and 30 N
-      q=min(1.,max(0.,(latij(i,j,3)+30.)/60.))
-c
-      wgtkap(i,j)=2.
-      if (msk(i,j).eq.1.or.msk(i,j).eq.2.or.msk(i,j).eq.7) then ! Atl. & Arctic
-        wgtkap(i,j)=2.*(1.-q)+1.*q
-      elseif (msk(i,j).ge.3.and.msk(i,j).le.6) then ! Pacific & Indian
-        wgtkap(i,j)=2.*(1.-q)+3.*q
-      elseif (msk(i,j).eq.9) then       ! Med
-        wgtkap(i,j)=4.
-      endif
- 159  continue
-      call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
-     .     'wgtkap')
-c
       endif ! AM_I_ROOT
 c
       call cpl_wgt                      ! read in weights for coupler
       call init_hycom_dynsi_cpler
 c
-
       call broadcast(ogrid,area)
 
       return

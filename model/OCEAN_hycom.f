@@ -13,6 +13,8 @@
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
      &  , diapyn, diapyc, jerlv0, thkdff
+     &  , bolus_biharm_constant, bolus_laplc_constant
+     &  , bolus_laplc_exponential
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
      || (defined TRACERS_ZEBRA)
      .  , diag_counter,itest_trac,jtest_trac
@@ -56,17 +58,20 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       osurf_tilt = 0
 #endif
 
-      call sync_param( "itest", itest)
-      call sync_param( "jtest", jtest)
-      call sync_param( "iocnmx", iocnmx)
-      call sync_param( "brntop", brntop)
-      call sync_param( "brnbot", brnbot)
-      call sync_param( "ocnmx_factor_s", ocnmx_factor_s)
-      call sync_param( "ocnmx_factor_t", ocnmx_factor_t)
-      call sync_param( "diapyn", diapyn)
-      call sync_param( "diapyc", diapyc)
-      call sync_param( "jerlv0", jerlv0)
-      call sync_param( "thkdff", thkdff)
+      call sync_param("itest", itest)
+      call sync_param("jtest", jtest)
+      call sync_param("iocnmx", iocnmx)
+      call sync_param("brntop", brntop)
+      call sync_param("brnbot", brnbot)
+      call sync_param("ocnmx_factor_s", ocnmx_factor_s)
+      call sync_param("ocnmx_factor_t", ocnmx_factor_t)
+      call sync_param("diapyn", diapyn)
+      call sync_param("diapyc", diapyc)
+      call sync_param("jerlv0", jerlv0)
+      call sync_param("thkdff", thkdff)
+      call sync_param("bolus_biharm_constant",  bolus_biharm_constant)
+      call sync_param("bolus_laplc_constant",   bolus_laplc_constant)
+      call sync_param("bolus_laplc_exponential",bolus_laplc_exponential)
 
 #ifdef TRACERS_OceanBiology
       call obio_forc_init
