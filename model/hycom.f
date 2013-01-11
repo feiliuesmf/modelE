@@ -156,7 +156,6 @@ c
       integer ipa(iia,jja)
 #endif
 #ifdef TRACERS_OceanBiology
-      integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
       real plev
