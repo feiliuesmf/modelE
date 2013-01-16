@@ -9,10 +9,10 @@ LEVEL_OPT = -g -traceback -C
 LEVEL_OPT = -O2 
 
 FC=     ifort $(LEVEL_OPT)   -convert big_endian -openmp
-FC=     ifort $(LEVEL_OPT)   -convert big_endian 
+FC=     ifort $(LEVEL_OPT)   -convert big_endian
 
 LD=     ifort $(LEVEL_OPT)   -convert big_endian -I${NC}/include -openmp
-LD=     ifort $(LEVEL_OPT)   -convert big_endian -I${NC}/include 
+LD=     ifort $(LEVEL_OPT)   -convert big_endian -I${NC}/include
 
 LDFLAGS =  
 CPPFLAGS =
@@ -20,7 +20,7 @@ LIBS = -L${NC}/lib -lnetcdf
 
 avg_obj=const_proc.o hycom_dimen.o hycom_arrays.o coagflx.o avg.o \
 	gethyb.o extrct.o prtmsk.o bigrid.o gtdpth.o meshsz.o restep.o findmx.o \
-	psmoo.o thruflow.o zebra.o
+	psmoo.o thruflow.o zebra.o TimeConstants.o
 avg_src = $(avg_obj:.o=.f)
 
 ov2_obj=const_proc.o hycom_dimen.o hycom_arrays.o pltov_mon.o gethyb.o \
@@ -48,7 +48,7 @@ latlonz:    $(latlonz_obj)
 get2d:  $(get2d_obj)
 	$(LD) -o get2d $(get2d_obj) $(LIBS) $(LDFLAGS)
 
-avg.o: avg.f const_proc.f hycom_dimen.f
+avg.o: avg.f const_proc.f hycom_dimen.f TimeConstants.o
 	$(LD) $(LDFLAGS) -c avg.f
 bigrid.o: bigrid.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c bigrid.f
@@ -78,6 +78,8 @@ psmoo.o: psmoo.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c psmoo.f
 restep.o: restep.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c restep.f
+TimeConstants.o: ../../model/shared/TimeConstants.F90
+	$(LD) $(LDFLAGS) -c ../../model/shared/TimeConstants.F90
 
 
 tar: makefile input readme $(latlonz_src) $(get2d_src) $(avg_src)
