@@ -28,6 +28,7 @@ c     USE OCN_TRACER_COM, only : ntm
      &   ,sma(mt,nt)    !@var sma 2d table for sm=structure fuction for momentum
      &   ,sha(mt,nt)    !@var sha 2d table for sh=structure fuction for heat
      &   ,ssa(mt,nt)    !@var ssa 2d table for ss=structure fuction for salinity
+     &   ,sca(mt,nt)    !@var sca 2d table for sc=structure fuction for passive scalars
      &   ,phim2a(mt,nt) !@var phim2a 2d table for phim2, used for bottom shear
       real*8, save :: 
      &    rimin         !@var rimin min of richardson # ri
@@ -47,11 +48,15 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
       ! bottom drag over lon,lat used by bottom drag routine
       ! C2010 section 7.2 equation (72)
-!@var rhobot in-situ density at ocean bottom (kg/m^3)
+!@var rhobot(:,:) in-situ density at ocean bottom (kg/m^3)
+!@+   which is calculated in subroutine OCONV and passed from here
+!@+   and will be used to calculate the ocean bottom drag in the GCM host
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rhobot
 !@var taubx x component of tau_b, kinematic bottom drag in (m/s)^2
+!@var tauby y component of tau_b, kinematic bottom drag in (m/s)^2
+!@+   taubx and tauby are calculated in subroutine gissmix
+!@+   and will be used to calculate the ocean bottom drag in the GCM host
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: taubx
-!@var tauby y component of tau_b
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: tauby
 !@var exya internal tidal energy (w/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: exya
@@ -135,7 +140,7 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
        end do
        rra(1)=-1.
 
-      ! 2d tables for gm,sm,sh,ss,rf,phim2
+      ! 2d tables for gm,sm,sh,ss,sc,rf,phim2
       ! phim2 is defined in C2002, (36), with l=kz; for bottom shear
 
       rimin=ria(1) ! -1.d4
@@ -148,7 +153,7 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
             ! In:
      &         ria(j),rra(k)
             ! Out:
-     &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k))
+     &        ,gma(j,k),sma(j,k),sha(j,k),ssa(j,k),sca(j,k))
             phim2a(j,k)=2./osocb1**2*gma(j,k)**.5d0/sma(j,k)
          end do ! loop j
       end do ! loop k
@@ -183,8 +188,8 @@ C**** initialize otke
       ! In:
      &    ri,rr
       ! Out:
-     &   ,gm,sm,sh,ss)
-!@sum finds structure functions sm,sh,ss using giss model
+     &   ,gm,sm,sh,ss,sc)
+!@sum finds structure functions sm,sh,ss,sc using giss model
 !@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
 !@auth AHoward/YCheng
       
@@ -193,12 +198,12 @@ C**** initialize otke
       ! in:
       real*8 :: ri,rr
       ! out:
-      real*8 :: gm,sm,sh,ss
+      real*8 :: gm,sm,sh,ss,sc
       ! local:
-      real*8 :: pi1,pi2,pi3,pi4,pi5,a3,a2,a1,a0
-      real*8 :: tmp,a,b,c
+      real*8 :: pi1,pi2,pi3,pi4,pi5,a3,a2,a1,a0,p1,p2
+      real*8 :: tmp,a,b,c,x
       real*8 :: x1r,x2r,x3r,x1i,x2i,x3i,omrr
-      real*8 :: x,q,p,bygam,xx,am,ah,as,w2byk
+      real*8 :: gh,gr,q,p,bygam,xx,am,ah,as,ac,ar,w2byk
       complex*16 x1,x2,x3
 
       ! prepare for solving follwoing cubic eqn for gm
@@ -247,23 +252,29 @@ C**** initialize otke
          write(*,*) "gm < 0", gm
          stop
       endif
-      ! below, x=gh, notation change (it was used to represent gm)
       omrr=1-rr
-      x=ri*gm/omrr
+      gh=ri*gm/omrr
       q=pi1*(pi2*(1+rr)-pi3*rr)
       p=pi4*(pi5-pi2*(1+rr))
-      bygam=rr/( (pi4/pi1)*(1+q*x)/(1+p*x) )
-      ah=pi4/(1+p*x+pi2*pi4*x*(1-bygam))
-      xx=(1-bygam)*x*ah
+      bygam=rr/( (pi4/pi1)*(1+q*gh)/(1+p*gh) )
+      ah=pi4/(1+p*gh+pi2*pi4*gh*(1-bygam))
+      xx=(1-bygam)*gh*ah
+      ar=xx/(ri*gm)
+      p1=(1+rr**2)/(1/pi1+rr**2/pi4)
+      p2=pi2
+      gr=ri*gm
       am=2/gm*(15./7.+xx)
       w2byk=2. / (30./7.+xx)
-      as=ah/( (pi4/pi1)*(1+q*x)/(1+p*x) )
+      as=ah/( (pi4/pi1)*(1+q*gh)/(1+p*gh) )
+      ac=p1/(1+p1*p2*gr)*(1-p2*gr*ar)
+      sm=am*w2byk
       sh=ah*w2byk
       ss=as*w2byk
-      sm=am*w2byk
-      if((gm.le.0.).or.(sm.le.0.).or.(sh.le.0.).or.(ss.le.0.)) then
-         write(100,*) "gm,sm,sh,ss <= 0., stop and check"
-         write(100,*)  gm,sm,sh,ss
+      sc=ac*w2byk
+      if((gm.le.0.).or.(sm.le.0.).or.(sh.le.0.).or.(ss.le.0.).
+     &  or.(sc.le.0.)) then
+         write(100,*) "gm,sm,sh,ss or sc <= 0., stop and check"
+         write(100,*)  gm,sm,sh,ss,sc
          stop
       endif
       !sr=(sh-rr*ss)/(1-rr)
@@ -439,7 +450,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
      &    n,ze,zg,db,dv2,adt,bds,rho,uob,vob,u2b
      &   ,fc,hbl,strait,ilon,jlat
       ! out:
-     &   ,ri,rr,km,kh,ks,e) 
+     &   ,ri,rr,km,kh,ks,kc,e) 
 
 !@sum giss turbulence model for ocean
 !@ref Canuto et al. 2004, GRL, 31, L16305 (C2004)
@@ -448,15 +459,14 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
 !@auth AHoward and YCheng
 !@var grav acceleration of gravity m/s^2
 !@var lmo max. number of vertical layers
-!@var taubx(im,jm) x component of tau_b = kinematic bottom drag (m/s)^2
-!@var tauby(im,jm) y component of tau_b = kinematic bottom drag (m/s)^2
-!@var rhobot(im,jm) in-situ density at ocean bottom (kg/m^3)	
+!@var taubx(IM,J_0H:J_1H) x component of tau_b = kinematic bottom drag (m/s)^2
+!@var tauby(IM,J_0H:J_1H) y component of tau_b = kinematic bottom drag (m/s)^2
 !@var exya internal tidal energy (w/m^2)
 !@var ut2a unresolved bottom shear squared (m/s)^2
 
       USE GISS_OTURB
 !@ MODULE OTURB's variables will be used and/or updated
-!@ for example, taubx,tauby and rhobot will be updated
+!@ for example, taubx,tauby will be updated
       implicit none
 
       ! in:
@@ -483,8 +493,9 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       real*8 km(0:lmo+1) !@var km vertical momentun diffusivity (m**2/s)
       real*8 kh(0:lmo+1) !@var kh vertical heat diffusivity (m**2/s)
       real*8 ks(0:lmo+1) !@var ks vertical salinity diffusivity (m**2/s)
+      real*8 kc(0:lmo+1) !@var kc vertical passive scalar diffusivity (m**2/s)
       real*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
-      intent (out) ri,rr,km,kh,ks,e
+      intent (out) ri,rr,km,kh,ks,kc,e
 
       ! local:
       integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
@@ -505,7 +516,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
 
       integer l,jlo,jhi,klo,khi
       real*8 a1,a2,b1,b2,c1,c2,c3,c4
-      real*8 ril,rrl,gm,sm,sh,ss,kml,khl,ksl,lr,etau
+      real*8 ril,rrl,gm,sm,sh,ss,sc,kml,khl,ksl,kcl,lr,etau
       real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp,tmp1
 
       ! for background diffusivities
@@ -587,7 +598,6 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
          !@var ut2 mean square tidal velocity used to calculate 
          !@+   tide-induced drag and reduction of bottom Ri 
          !@var tauby tidally enhanced meridional bottom drag
-         !@var rhobot bottom density
          !@var tau_b momentum flux into rock beneath bottom ocean grid box
          !@+   divided by mass of bottom ocean grid box
          !@+   tau_b is according to C2010. eq.(72)
@@ -596,8 +606,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
          tmp1=cd*(u2b+ut2)**.5d0
          taubx(ilon,jlat)=tmp1*uob
          tauby(ilon,jlat)=tmp1*vob
-         rhobot(ilon,jlat)=rho(n)
-         ! taubx, tauby and rhobot are variables of MODULE OTURB,
+         ! taubx, tauby are variables of MODULE OTURB,
          ! they are calculated above and will be used in subroutine OBDRAG
          ! in OCNDYN.f and OCNDYN2.f if idrag=1
 
@@ -657,6 +666,8 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
      &     +c3*sha(jhi,khi)+c4*sha(jlo,khi)
          ss=c1*ssa(jlo,klo)+c2*ssa(jhi,klo)
      &     +c3*ssa(jhi,khi)+c4*ssa(jlo,khi)
+         sc=c1*sca(jlo,klo)+c2*sca(jhi,klo)
+     &     +c3*sca(jhi,khi)+c4*sca(jlo,khi)
          ! symmetry of giss model: sh <-> ss if rr<->1/rr
          if(flag.eq.1) then
             tmp=sh
@@ -690,6 +701,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
          kml=etau*sm
          khl=etau*sh
          ksl=etau*ss
+         kcl=etau*sc
 
          ! background and tidally induced diffusivities
 
@@ -731,11 +743,13 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
          km(l)=min(kml+kmbg+kmtd,kmax)
          kh(l)=min(khl+khbg+khtd,kmax)
          ks(l)=min(ksl+ksbg+kstd,kmax)
+         kc(l)=min(kcl+ksbg+kstd,kmax)
          
       end do  
-      km(0)=0.; kh(0)=0.; ks(0)=0.
+      km(0)=0.; kh(0)=0.; ks(0)=0.; kc(0)=0.
       km(1)=max(km(1),kmin);kh(1)=max(kh(1),kmin);ks(1)=max(ks(1),kmin)
-      km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.
+      kc(1)=max(kc(1),kmin)
+      km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.; kc(n:lmo+1)=0.
       ri(0)=0.; rr(0)=0.
       ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; e(n:lmo)=emin
       

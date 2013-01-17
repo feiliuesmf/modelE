@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=70,KOIJL=38,KOL=6,KOLNST=12,KOIJmm=10
+      INTEGER, PARAMETER :: KOIJ=70,KOIJL=39,KOL=6,KOLNST=12,KOIJmm=10
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -85,7 +85,7 @@
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
      *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs
+     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs,ijl_kvc
 #endif
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -1112,6 +1112,15 @@ c
       sname_oijl(k) = 'kvs'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'VERT. SALT DIFF.'
+      scale_oijl(k) = 1d4*byrho2
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_kvc = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvc'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. SCALAR DIFF.'
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
