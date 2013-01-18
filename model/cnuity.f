@@ -45,17 +45,6 @@ c --- ------------------------------------------------------
 c --- continuity equation (flux-corrected transport version)
 c --- ------------------------------------------------------
 c
-
-      if ((bolus_laplc_constant*bolus_laplc_exponential==1)
-     . .or. (bolus_laplc_constant*bolus_biharm_constant==1)
-     . .or. (bolus_laplc_exponential*bolus_biharm_constant==1)) then
-       print *,' wrong bolus setting: only one can be true'
-       stop 'wrong bolus setting: only one can be true'
-      elseif (bolus_laplc_constant==0 .and. bolus_laplc_exponential==0
-     . .and. bolus_biharm_constant==0) then
-       stop 'wrong bolus setting: one has to be true'
-      end if
-
       do 41 j=J_0,J_1
 c
       !write(0,*) my_pet, j, isp(j)
@@ -70,8 +59,6 @@ c
       do 41 l=1,isv(j)
       do 41 i=ifv(j,l),ilv(j,l)
  41   vtotn(i,j)=0.
-
-
 c
       do 76 k=1,kk
       km=k+mm

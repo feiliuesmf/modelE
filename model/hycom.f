@@ -144,7 +144,7 @@ c
 #include "kprf_scalars.h"
 c
       real sum_,coord,x,x1,totl,sumice,fusion,saldif,tf,sigocn
-     .  ,chk_rho,chk_rhor,chk_kap,apehyc,pechg_hyc_bolus
+     .  ,chk_rho,chk_rhor,chk_rhostar,apehyc,pechg_hyc_bolus
      .  ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .  ,thkchg,flxdiv,eflow_gl,sigloc,t4,s4,p4,sigstar
       real*8 sss_restore_dt,sss_restore_dtice
@@ -156,6 +156,7 @@ c
       integer ipa(iia,jja)
 #endif
 #ifdef TRACERS_OceanBiology
+      integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
       real plev
@@ -510,17 +511,17 @@ c --- compute eqn.of state check values
 c
       t4=5.
       s4=36.
-      p4=2500.e4                    ! 2500m
-      chk_rho =39.6858
+      p4=2500.e4			! 2500m
+      chk_rho =39.6858			! in_situ rho for t4,s4 & p4
       if (pref.eq.0.) then
-        chk_rhor = 27.
-        chk_kap  = -9999.
+        chk_rhor    = 28.469            ! sigma0  for t4 & s4
+        chk_rhostar = -9999.            ! sigma0* for t4 & s4
       elseif (pref.eq.1.e7) then
-        chk_rhor = 33.0321
-        chk_kap  = 32.82078
+        chk_rhor    = 33.0321           ! sigma1  for t4 & s4
+        chk_rhostar = 32.82078          ! sigma1* for t4 & s4
       elseif (pref.eq.2.e7) then
-        chk_rhor = 37.4934
-        chk_kap  = -9999.
+        chk_rhor    = 37.4934           ! sigma2  for t4 & s4
+        chk_rhostar = -9999.            ! sigma2* for t4 & s4
       else
         stop 'wrong pref'    ! proper mpi_abort
       endif
@@ -532,10 +533,10 @@ c
         stop
       end if
 
-      if (abs(sigstar(t4,s4,p4)-chk_kap).gt. .001) then
+      if (abs(sigstar(t4,s4,p4)-chk_rhostar).gt. .001) then
       if (AM_I_ROOT())
-     .  write (lp,*)'error: chk_kap should be',
-     .  chk_kap,', not',sigstar(t4,s4,p4)
+     .  write (lp,*)'error: chk_rhostar should be',
+     .  chk_rhostar,', not',sigstar(t4,s4,p4)
         stop
       end if
 c

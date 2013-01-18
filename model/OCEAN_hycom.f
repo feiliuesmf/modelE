@@ -77,7 +77,6 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       call obio_forc_init
 #endif
 c
-
       if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
      .                                                              then
         call inikpp
@@ -88,7 +87,16 @@ c
       endif
 c
       if (AM_I_ROOT()) then ! work on global grids here
-      
+        if ((bolus_laplc_constant*bolus_laplc_exponential==1)
+     . .or. (bolus_laplc_constant*bolus_biharm_constant==1)
+     . .or. (bolus_laplc_exponential*bolus_biharm_constant==1)) then
+          print *,' wrong bolus setting: only one can be true'
+          stop 'wrong bolus setting: only one can be true'
+        elseif (bolus_laplc_constant==0 .and. bolus_laplc_exponential==0
+     .    .and. bolus_biharm_constant==0) then
+          stop 'wrong bolus setting: one has to be true'
+        end if
+c
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
 c
