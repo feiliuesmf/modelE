@@ -548,7 +548,7 @@ c --- in preparation for biharmonic smoothing, compute 2nd derivatives
 c --- of pressure in x,y direction. store in -util1,util2- resp.
 c --- don't allow grid points elevated by topography to affect derivatives.
 c --- disable next 22 lines to switch from biharm. to laplacian smoothing
-      if (bolus_laplc_exponential==1 .or. bolus_laplc_constant==1) then
+      if (bolus_laplc_exponential==0 .and. bolus_laplc_constant==0) then ! use biharm
         pa=p(ia,j,k)
         pb=p(ib,j,k)
         if   (float(ip(ia,j))*pbot(ia,j).lt.p(i,j,k)) then
