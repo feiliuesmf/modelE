@@ -1892,6 +1892,7 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+      akvc=akvs
 #else
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
@@ -2679,6 +2680,7 @@ C**** Get diffusivities for the whole column
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
+      akvc=akvs
 #else
       call bldepth(ZE,zgrid,byhwide,LMIJ,dVsq,Ustar,Bo,Bosol
      *     ,dbloc,Ritop
