@@ -44,7 +44,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       REAL*8, PARAMETER :: FLEADLK = 0.
 !@var FLEADMX maximum thickness for lead fraction (m)
       REAL*8, PARAMETER :: FLEADMX = 5.
-!@param BYRLS reciprical of snow density*lambda
+!@param BYRLS reciprocal of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
