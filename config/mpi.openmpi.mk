@@ -1,9 +1,19 @@
 
 ifneq (${MPIDIR},)
-FFLAGS += -I${MPIDIR}/include
-F90FLAGS += -I${MPIDIR}/include
+ifneq ($(wildcard $(MPIDIR)/include/mpi.h),)
+  FFLAGS += -I${MPIDIR}/include
+  F90FLAGS += -I${MPIDIR}/include
+  CPPFLAGS += -I${MPIDIR}/include
+else
+  ifneq ($(wildcard $(MPIDIR)/include/openmpi/mpi.h),)
+    FFLAGS += -I${MPIDIR}/include/openmpi
+    F90FLAGS += -I${MPIDIR}/include/openmpi
+    CPPFLAGS += -I${MPIDIR}/include/openmpi
+  else
+    $(error MPI distribution not found. Check settings in ~/.modelErc)
+  endif
+endif
 LIBS += -L${MPIDIR}/lib
-CPPFLAGS += -I${MPIDIR}/include
 endif
 
 # try to work around memory leak
