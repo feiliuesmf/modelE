@@ -1346,8 +1346,9 @@ C****
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+     *     ,ij_mld,ij_mldmax
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_otke,ijl_kvs,ijl_kvc
+     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
@@ -1422,7 +1423,7 @@ C**** KPP variables
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
      *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
-      REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
+      REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS,VOLGS
 #ifdef ENHANCED_DEEP_MIXING
 !@var kvextra an array prescribing background diffusivity as a function of depth
       REAL*8, DIMENSION(LMO) :: KVEXTRA
@@ -1448,6 +1449,7 @@ c     real*8 gb          !@var gb grav*beta
 c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
       REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
+      real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
       integer strait
 #endif
@@ -1458,6 +1460,8 @@ c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
+      real*8 ptdd,ptdm,ptd(lmo),mld
+      integer kmld
 
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &                j_strt_skp=j_0s, j_stop_skp=j_1s,
@@ -1855,6 +1859,23 @@ C**** numerator of bulk richardson number on grid levels
            Ritop(L) = (zgrid(1)-zgrid(L)) * dbsfc(L)
          END IF
       END DO
+C**** find mld, the mixed layer depth 
+      ptdd=0.03d0       ! kg/m^3  pot.dens.diff criterion
+      mld=-zgrid(lmij)
+      kmld=lmij
+      do l=1,lmij
+        G(L)=G0ML(L)*BYMML(L)
+        S(L)=S0ML(L)*BYMML(L)
+        ptd(l) = 1d0/VOLGS(G(L),S(L))-1000d0
+        if (abs(ptd(l)-ptd(1)).gt.ptdd) then
+          ptdm=ptd(1)+sign(ptdd,ptd(l)-ptd(1))
+          mld=-zgrid(l-1)+(zgrid(l-1)-zgrid(l))*
+     &        (ptdm-ptd(l-1))/(ptd(l)-ptd(l-1)+1.d-30)
+          kmld=l ! kmld is the layer number immediately below the mld
+          exit
+        endif
+      end do
+c     write(61,*) i,j,kmld,mld
       talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
       sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
 
@@ -1921,7 +1942,7 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
      &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
      &   ,Coriol,hbl,strait,i,j
       ! out:
-     &   ,ri,rrho,akvm,akvg,akvs,akvc,e)
+     &   ,ri,rrho,bv2,akvm,akvg,akvs,akvc,e)
       do l=1,lmij-1
          otke(l,i,j)=e(l)
       end do
@@ -2059,6 +2080,7 @@ C**** Diagnostics for non-local transport and vertical diffusion
          OIJL(I,J,L,IJL_KVC) = OIJL(I,J,L,IJL_KVC) + AKVC(L)
          OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
          OIJL(I,J,L,ijl_rrho)= OIJL(I,J,L,ijl_rrho) + rrho(L) ! density ratio
+         OIJL(I,J,L,ijl_bv2)= OIJL(I,J,L,ijl_bv2) + bv2(L) ! B.Vaisala freq sq
          OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.
 #endif
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
@@ -2081,11 +2103,13 @@ CCC         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
        END DO
 C**** Set diagnostics
        OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
+       OIJ(I,J,ij_mld) = OIJ(I,J,ij_mld) + mld ! mixed layer depth
        OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
        OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
        OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
 
        OIJmm(I,J,IJ_HBLmax) = max(OIJmm(I,J,IJ_HBLmax), HBL)
+       OIJmm(I,J,ij_mldmax) = max(OIJmm(I,J,IJ_mldmax), mld)
 
        IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****
@@ -2497,7 +2521,7 @@ C****
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
 #ifdef OCN_GISSMIX
-     &     ,ln_ri,ln_rrho,ln_otke
+     &     ,ln_ri,ln_rrho,ln_bv2,ln_otke
       USE GISSMIX_COM, only : otke
 #endif
       IMPLICIT NONE
@@ -2506,7 +2530,7 @@ C****
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
       REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS,AKVC
 #ifdef OCN_GISSMIX
-     &     ,ri1,rrho
+     &     ,ri1,rrho,bv2
 #endif
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
 #ifdef TRACERS_OCEAN
@@ -2526,7 +2550,7 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
      *     alphaDT(LMO),betaDS(LMO)
       REAL*8, PARAMETER :: epsln=1d-20
       REAL*8, SAVE :: Bo,Bosol,bydts,ustar
-      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2
+      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2,mld
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
@@ -2699,7 +2723,7 @@ C**** Get diffusivities for the whole column
      &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho,uob,vob,u2b
      &   ,Coriol,hbl,strait,0,0
       ! out:
-     &   ,ri1,rrho,akvm,akvg,akvs,akvc,e)
+     &   ,ri1,rrho,bv2,akvm,akvg,akvs,akvc,e)
       do l=1,lmij-1
          otkest(l,n)=e(l)
       end do
@@ -2769,6 +2793,7 @@ C****
 #ifdef OCN_GISSMIX
         OLNST(L,N,ln_ri)  = OLNST(L,N,ln_ri)  + ri1(L)
         OLNST(L,N,ln_rrho)= OLNST(L,N,ln_rrho)+ rrho(L)
+        OLNST(L,N,ln_bv2)= OLNST(L,N,ln_bv2)+ bv2(L)
         OLNST(L,N,ln_otke)= OLNST(L,N,ln_otke)+ e(L)
 #endif
 C       OLNST(L,N,LN_KVS) = OLNST(L,N,LN_KVS) + AKVS(L)

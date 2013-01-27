@@ -450,7 +450,7 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
      &    n,ze,zg,db,dv2,adt,bds,rho,uob,vob,u2b
      &   ,fc,hbl,strait,ilon,jlat
       ! out:
-     &   ,ri,rr,km,kh,ks,kc,e) 
+     &   ,ri,rr,bv2,km,kh,ks,kc,e) 
 
 !@sum giss turbulence model for ocean
 !@ref Canuto et al. 2004, GRL, 31, L16305 (C2004)
@@ -490,12 +490,13 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       ! out:
       real*8 ri(0:lmo+1) !@var ri local richardson number
       real*8 rr(0:lmo+1) !@var rr local alpha*dTdz/(beta*dSdz)
+      real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
       real*8 km(0:lmo+1) !@var km vertical momentun diffusivity (m**2/s)
       real*8 kh(0:lmo+1) !@var kh vertical heat diffusivity (m**2/s)
       real*8 ks(0:lmo+1) !@var ks vertical salinity diffusivity (m**2/s)
       real*8 kc(0:lmo+1) !@var kc vertical passive scalar diffusivity (m**2/s)
       real*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
-      intent (out) ri,rr,km,kh,ks,kc,e
+      intent (out) ri,rr,bv2,km,kh,ks,kc,e
 
       ! local:
       integer :: flag !@var flag =0 if abs(rr)<=1; =1 if abs(rr)>1
@@ -511,7 +512,6 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       real*8, parameter :: l1min=3.d0,l2min=.05d0 ! (m)
       integer iter, mr
       real*8 vs2(0:lmo+1)!@var vs2 velocity shear squared (1/s**2)
-      real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
       real*8 len         !@var len turbulence length scale (m)
 
       integer l,jlo,jhi,klo,khi
@@ -750,8 +750,8 @@ c     y=a*ya(klo)+b*ya(khi) ! calc. outside locate for efficiency
       km(1)=max(km(1),kmin);kh(1)=max(kh(1),kmin);ks(1)=max(ks(1),kmin)
       kc(1)=max(kc(1),kmin)
       km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.; kc(n:lmo+1)=0.
-      ri(0)=0.; rr(0)=0.
-      ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; e(n:lmo)=emin
+      ri(0)=0.; rr(0)=0.; bv2(0)=0.
+      ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; bv2(n:lmo+1)=0.; e(n:lmo)=emin
       
       return
       end subroutine gissmix
