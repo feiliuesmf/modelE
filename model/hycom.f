@@ -138,7 +138,7 @@ c
 c
       integer, parameter :: INT_HOURS_PER_YEAR = INT_HOURS_PER_DAY *
      &                                           INT_DAYS_PER_YEAR
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1,nt
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
@@ -154,6 +154,9 @@ c
       integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)
 #ifdef USE_ATM_GLOBAL_ARRAYS
       integer ipa(iia,jja)
+#endif
+#ifdef TRACERS_HYCOM_Ventilation
+      integer nt
 #endif
 #ifdef TRACERS_OceanBiology
       integer nt
