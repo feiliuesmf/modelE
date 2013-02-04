@@ -6,6 +6,7 @@ use RegressionEnvs;
 
 # This is the main modelE regression tests script. Its role is to setup the testing
 # environment for rundecks specified in the configuration file (required argument).
+# It also creates a "pool" of commands that is executed once the setup is done.
 
 $num_args = $#ARGV + 1;
 if ($num_args != 1) {
@@ -36,6 +37,13 @@ my @rundecks;
 $env->{BRANCH} = $branch;
 $env = setupENVvariables($env);
 
+$machine = $ENV{HOST};
+if ($machine =~ discover || $machine =~ borg)
+{
+  # On DISCOVER the default git is quite old so make sure we use the latest
+  $ENV{PATH}="/usr/local/other/git/1.7.3.4_GNU/libexec/git-core:".$ENV{PATH};
+}
+
 foreach $compiler (@compilers) 
 {
   $env->{$compiler} = getEnvironment($env, $compiler, $branch);
@@ -51,12 +59,11 @@ $resolutions->{nonProduction_E_AR5_C12} = "8x10";
 $resolutions->{EM20}                    = "4x5";
 $resolutions->{E1oM20}                  = "4x5";
 $resolutions->{E4F40}                   = "2x2.5";
-$resolutions->{E4TcadF40}               = "2x2.5";
+$resolutions->{E4TampF40}               = "2x2.5";
 $resolutions->{E4TcadiF40}              = "2x2.5";
 $resolutions->{E4arobio_h4c}            = "2x2.5";
 $resolutions->{E4arobio_g6c}            = "2x2.5";
-$resolutions->{E4TctomasiF40}           = "2x2.5";
-$resolutions->{E4TctomasiF40ncep}       = "2x2.5";
+$resolutions->{E4TctomasF40}           = "2x2.5";
 $resolutions->{E_AR5_CADI}              = "2x2.5";
 $resolutions->{SCMSGPCONT}              = "0";   # single column model 
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
