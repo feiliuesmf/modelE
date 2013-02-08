@@ -894,7 +894,8 @@ C****
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
       USE TRACER_COM, only : NTM,trm,trmom
 #ifdef TRACERS_AMP
-     *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
+      USE TRACER_COM, only : ntmAMPi,ntmAMPe
+      use AmpTracersMetadata_mod, only: AMP_NUMB_MAP, AMP_MODES_MAP
       USE AMP_AEROSOL, only : DIAM, AMP_dens
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif

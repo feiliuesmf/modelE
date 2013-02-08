@@ -135,7 +135,7 @@ deckDiff()
     report=( "${report[@]}" "$deck [$comp] :" )
     echo "  --- DECK = $deck ---"
     # Don't do serial comparisons of C90 and AR5 rundecks
-    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]]; then
+    if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5 ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
       echo "    Skip SERIAL comparison"
     else
 # compare SERIAL restart reproducibility
@@ -146,6 +146,9 @@ deckDiff()
         doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
       fi
     fi
+    if [[ "$comp" =~ nag ]]; then
+       echo "skip MPI comparisons when using NAG compiler"
+    else
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
     if [ ! -z $3 ]; then
       declare -a npeArray=("${!3}")
@@ -162,6 +165,8 @@ deckDiff()
         fi
       done
     fi
+    fi # skip MPI comparisons when using NAG compiler
+
     if [ "$compileErr" == YES ]; then
       updDeckReport "$deck $comp ***COMPILE_RUNTIME_ERROR***"
     else
@@ -318,8 +323,8 @@ for comp in "${COMPILERS[@]}"; do
 
   cd $REGRESULTS/$comp
 
-  checkMPI=`ls *MPI* | wc -c`
-  checkSERIAL=`ls *SERIAL* | wc -c`
+  checkMPI=`ls -1 *MPI* | wc -c`
+  checkSERIAL=`ls -1 *SERIAL* | wc -c`
 
   report=( "${report[@]}" "" )
   report=( "${report[@]}" "ADDITIONAL DETAILS:")
@@ -364,6 +369,8 @@ fi
 
 #chmod g+rw $MODELROOT/exec/testing/${CONFIG}.diff
 cp $MODELROOT/exec/testing/${CONFIG}.diff $WORKSPACE
+cp $MODELROOT/exec/testing/${CONFIG}.unit $WORKSPACE
+
 # Archive full difference reports
 cp $MODELROOT/exec/testing/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 

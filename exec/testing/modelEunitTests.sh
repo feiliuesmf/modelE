@@ -39,12 +39,12 @@ submitJob()
   local testLog=$3
   local mpi=$4
 
-  local deck=E4TcadF40
+  local deck=E4TcadiF40
 
   MAKELOG=make.log.${compiler}
   FAILLOG=${testLog}.FAILED
   if [ "$mpi" == "NO" ]; then
-    pfunitSuffix=".serial"
+    pfunitSuffix="-serial"
     FAILLOG=${testLog}${pfunitSuffix}.FAILED
   fi
 
@@ -80,7 +80,7 @@ EOF
 
   cat << EOF >> $jobScript
 
-export PFUNIT=/discover/nobackup/modele/libs/pFUnit.${compiler}${pfunitSuffix}
+export PFUNIT=/discover/nobackup/ccruz/Baselibs/pFUnit/${compiler}${pfunitSuffix}
 export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH

@@ -74,6 +74,8 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       SUBROUTINE MATRIX_DRV
       USE TRACER_COM
+      use AmpTracersMetadata_mod, only: AMP_NUMB_MAP, AMP_AERO_MAP, 
+     *  AMP_MODES_MAP, AMP_TRM_NM1, AMP_TRM_NM2
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_AMPp,ijlt_AMPm,ijlt_AMPext,ijts_AMPpdf
      *     ,itcon_AMP,itcon_AMPm
@@ -421,6 +423,8 @@ c -----------------------------------------------------------------
 !     Routine to calculate the actual density per mode
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM
+      use AmpTracersMetadata_mod, only: AMP_NUMB_MAP, AMP_AERO_MAP, 
+     *  AMP_MODES_MAP, AMP_TRM_NM1, AMP_TRM_NM2
       USE AMP_AEROSOL, only : AMP_dens
       USE AERO_CONFIG, ONLY: NMODES
 
@@ -451,6 +455,8 @@ c -----------------------------------------------------------------
 !     Routine to calculate the actual molecular mass per mode
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM
+      use AmpTracersMetadata_mod, only: AMP_NUMB_MAP, AMP_AERO_MAP, 
+     *  AMP_MODES_MAP, AMP_TRM_NM1, AMP_TRM_NM2
       USE AMP_AEROSOL, only : AMP_TR_MM
       USE AERO_CONFIG, ONLY: NMODES
 
