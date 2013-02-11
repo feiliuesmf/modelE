@@ -270,7 +270,7 @@ if ( $MPIDISTR =~ /mvapich2/ ) {
     if ( -f $MPIBIN."openmpirun" ) { # hack for Macports OpenMPI
 	$mpi_run = $MPIBIN."openmpirun \$MPI_FLAGS -np \$NP";
     } else {
-	$mpi_run = $MPIBIN."mpirun \$MPI_FLAGS -np \$NP --mca btl_openib_warn_no_hca_params_found 0 ";
+	$mpi_run = $MPIBIN."mpirun \$MPI_FLAGS -np \$NP"; # --mca btl_openib_warn_no_hca_params_found 0 ";
     }
 }
 

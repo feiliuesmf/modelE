@@ -64,6 +64,12 @@ CFLAGS = -O2 -m64
 M4 = m4
 # default runlib
 RANLIB = ranlib
+# default name for lib directory for current ABI
+ifeq ($(ABI),64)
+  LIBABI = lib64
+else
+  LIBABI = lib
+endif
 
 # RFLAGS returns rundeck options for the current object (i.e. for $*)
 # it has effect only of OBJ_LIST_O is defined
@@ -214,7 +220,11 @@ ifneq ($(CUBED_SPHERE),YES)
 
 ifdef NETCDFHOME
   NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include
-  NETCDFLIBDIR ?= $(NETCDFHOME)/lib
+  ifneq ($(wildcard $(NETCDFHOME)/$(LIBABI)/libnetcdf*),)
+    NETCDFLIBDIR ?= $(NETCDFHOME)/$(LIBABI)
+  else
+    NETCDFLIBDIR ?= $(NETCDFHOME)/lib
+  endif
 endif
 
 ifdef NETCDFINCLUDEDIR
