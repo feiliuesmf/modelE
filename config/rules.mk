@@ -219,7 +219,16 @@ endif
 ifneq ($(CUBED_SPHERE),YES)
 
 ifdef NETCDFHOME
-  NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include
+  ifneq ($(wildcard $(NETCDFHOME)/include/netcdf.inc),)
+    NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include
+  else
+    ifneq ($(wildcard $(NETCDFHOME)/include/netcdf-3/netcdf.inc),)
+      NETCDFINCLUDEDIR ?= $(NETCDFHOME)/include/netcdf-3
+    else
+      $(error NetCDF include files not found)
+    endif
+  endif
+
   ifneq ($(wildcard $(NETCDFHOME)/$(LIBABI)/libnetcdf*),)
     NETCDFLIBDIR ?= $(NETCDFHOME)/$(LIBABI)
   else
