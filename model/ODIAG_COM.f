@@ -14,7 +14,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=71,KOIJL=40,KOL=6,KOLNST=13,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJ=71,KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -85,7 +85,7 @@
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
      *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc
+     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
 #ifdef OCN_Mesoscales
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
@@ -110,7 +110,7 @@
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
      *     ,LN_ICFL
 #ifdef OCN_GISSMIX
-     *     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_kvs
+     *     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_kvs,ln_buoy
 #endif
 !@var lname_olnst Long names for OLNST diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOLNST) :: LNAME_OLNST
@@ -898,6 +898,9 @@ c
       ln_bv2 = k
 c
       k=k+1
+      ln_buoy = k
+c
+      k=k+1
       ln_otke = k
 #endif
 c
@@ -1151,6 +1154,15 @@ c
       sname_oijl(k) = 'bv2'
       units_oijl(k) = '1/s**2'
       lname_oijl(k) = 'Brunt Vaisala frequency squared'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+c
+      k=k+1
+      ijl_buoy= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'buoy'
+      units_oijl(k) = 'm**2/s**3'
+      lname_oijl(k) = 'Buoyancy flux'
       scale_oijl(k) = 1
       lgrid_oijl(k) = 2
 c

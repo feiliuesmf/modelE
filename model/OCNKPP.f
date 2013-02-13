@@ -1348,7 +1348,7 @@ C****
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
      *     ,ij_mld,ij_mldmax
 #ifdef OCN_GISSMIX
-     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc
+     *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
      &     ,uod1,vod1
@@ -1450,6 +1450,7 @@ c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 ri(0:lmo+1)   !@var ri Rchardson number
       REAL*8 rrho(0:lmo+1) !@var rrho salt to head density ratio
       real*8 bv2(0:lmo+1)!@var bv2 Brunt Vaisala frequency squared (1/s**2)
+      real*8 buoy(0:lmo+1)!@var buoy buoyancy flux (m**2/s**3)
       REAL*8 e(lmo)      !@var e ocean turbulent kinetic energy (m/s)**2
       integer strait
 #endif
@@ -1943,8 +1944,10 @@ c-c     ws0=-BYRHO(1)*(DELTAS-S(1)*DELTAM)
      &   ,Coriol,hbl,strait,i,j
       ! out:
      &   ,ri,rrho,bv2,akvm,akvg,akvs,akvc,e)
+      buoy=0.
       do l=1,lmij-1
          otke(l,i,j)=e(l)
+         buoy(l)=-(akvg(l)-rrho(l)*akvs(l))/(1-rrho(l))*bv2(l)
       end do
 #endif
 
@@ -2081,6 +2084,7 @@ C**** Diagnostics for non-local transport and vertical diffusion
          OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
          OIJL(I,J,L,ijl_rrho)= OIJL(I,J,L,ijl_rrho) + rrho(L) ! density ratio
          OIJL(I,J,L,ijl_bv2)= OIJL(I,J,L,ijl_bv2) + bv2(L) ! B.Vaisala freq sq
+         OIJL(I,J,L,ijl_buoy)= OIJL(I,J,L,ijl_buoy) + buoy(L) ! buoyancy flux
          OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.
 #endif
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
@@ -2521,7 +2525,7 @@ C****
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
 #ifdef OCN_GISSMIX
-     &     ,ln_ri,ln_rrho,ln_bv2,ln_otke
+     &     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_buoy
       USE GISSMIX_COM, only : otke
 #endif
       IMPLICIT NONE
@@ -2530,7 +2534,7 @@ C****
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
       REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS,AKVC
 #ifdef OCN_GISSMIX
-     &     ,ri1,rrho,bv2
+     &     ,ri1,rrho,bv2,buoy
 #endif
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
 #ifdef TRACERS_OCEAN
@@ -2724,8 +2728,10 @@ C**** Get diffusivities for the whole column
      &   ,Coriol,hbl,strait,0,0
       ! out:
      &   ,ri1,rrho,bv2,akvm,akvg,akvs,akvc,e)
+      buoy=0.
       do l=1,lmij-1
          otkest(l,n)=e(l)
+         buoy(l)=-(akvg(l)-rrho(l)*akvs(l))/(1-rrho(l))*bv2(l)
       end do
 #endif
 
@@ -2793,7 +2799,8 @@ C****
 #ifdef OCN_GISSMIX
         OLNST(L,N,ln_ri)  = OLNST(L,N,ln_ri)  + ri1(L)
         OLNST(L,N,ln_rrho)= OLNST(L,N,ln_rrho)+ rrho(L)
-        OLNST(L,N,ln_bv2)= OLNST(L,N,ln_bv2)+ bv2(L)
+        OLNST(L,N,ln_bv2) = OLNST(L,N,ln_bv2) + bv2(L)
+        OLNST(L,N,ln_buoy)= OLNST(L,N,ln_buoy)+ buoy(L)
         OLNST(L,N,ln_otke)= OLNST(L,N,ln_otke)+ e(L)
 #endif
 C       OLNST(L,N,LN_KVS) = OLNST(L,N,LN_KVS) + AKVS(L)
