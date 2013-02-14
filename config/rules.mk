@@ -40,7 +40,7 @@ endif
 # starting machine - specific options
 #
 
-NO_COMMAND = echo "*****  Requested target is not supported on $(UNAME)"; \
+NO_COMMAND = @echo "*****  This architecture is not supported "; \
              echo "*****  or compiler is not specified properly."; \
              echo "*****  You have COMPILER=$(COMPILER)" ; exit 1;
 F90 = $(NO_COMMAND)
@@ -101,13 +101,10 @@ endif
 MACHINE = $(shell uname)
 include $(CONFIG_DIR)/machine.$(MACHINE).mk
 
-# if COMPILER is not defined try default
-ifndef COMPILER
-  COMPILER = $(MACHINE)
-endif
-
 #include compiler-specific options
-include $(CONFIG_DIR)/compiler.$(COMPILER).mk
+ifneq ($(COMPILER),)
+  include $(CONFIG_DIR)/compiler.$(COMPILER).mk
+endif
 
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI

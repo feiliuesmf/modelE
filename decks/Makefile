@@ -26,11 +26,16 @@ MODELERC ?= $(HOMEDIR)/.modelErc
 #default number of processors for setup
 NPROC = 1
 NPES = 1
-# getting options from configuration files
-# default modelE configuration file:
-include $(SCRIPTS_DIR)/modelErc
 # configuration file with user-defined options:
-sinclude $(MODELERC)
+ifeq ($(findstring $(MAKECMDGOALS),config configure),)
+  ifeq ($(wildcard $(MODELERC)),)
+    $(error $(MODELERC) not found. Was "make config" done for this account?)
+  endif
+  include $(MODELERC)
+  ifeq ($(COMPILER),)
+    $(error you need to specify COMPILER in your ~.modelErc)
+  endif
+endif
 export COMPILER
 export MODELERC
 export MPI
@@ -275,7 +280,7 @@ config configure:
 	echo "Please specify location for ModelE support directory with" ; \
 	echo "    ModelE_Support=<path_to_support_directory>" ; exit 1 ; fi
 	@echo "This will create a global configuration file for user `whoami`"
-	@if [ -f $(MODELERC) -a $(OVERWRITE) != YES ]; then \
+	@if [ -f $(MODELERC) -a "$(OVERWRITE)" != YES ]; then \
 	echo '~/.modelErc already exists, use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
 	@cp -f $(SCRIPTS_DIR)/modelErc $(MODELERC)
@@ -309,6 +314,7 @@ etags:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 $(RUN).mk: $(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
+	@if [ -z "$(RUN)" ]; then echo "Please specify RUN name"; exit 1; fi
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
 
 #sinclude $(DECKS_DIR)/$(RUN).mk
