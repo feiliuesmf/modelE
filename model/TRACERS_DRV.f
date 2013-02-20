@@ -7844,9 +7844,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
 #ifdef TRACERS_TOMAS
-      real*8 number  !for TOMAS debug only
       integer km, najl_num,naij_num,k
-      real*8 :: scalesize(nbins+nbins)
+      real*8 :: scalesize(nbins+nbins) !temporal emission mass fraction
 #endif
       type (Tracer_type), pointer :: tracer
 C****
@@ -10535,14 +10534,12 @@ C**** Local parameters and variables and arguments:
 C
 #ifdef TRACERS_TOMAS
       integer k,i,j,l
-      real*8 scavr                !below-cloud scavenging coefficient (per mm rain)
+!@var scavr/stratsav : below-cloud scavenging coefficient (per mm rain)
+      real*8 scavr                
       real stratscav
-!      external stratscav
-      real*8 dpaero,mtot  !aerosol diameter(m) 
-      real*8, parameter :: Neps=1.d-20 ! small number of particles (#/box) 
+!@var dpaero : aerosol diameter [m]
+      real*8 dpaero,mtot  
       real,dimension(nbins) ::  getdp,density
-      logical no_wash
-
 #endif
 c      thlaw(:)=0.
 
@@ -10845,17 +10842,16 @@ c DMM is number density of air in molecules/cm3
 
 #ifdef TRACERS_TOMAS
 
-C     **************************************************
-C     *  initbounds                                    *
-C     **************************************************
+!    **************************************************
+!@sum  initbounds                                    
+!    **************************************************
+!@+    This subroutine initializes the array, xk, which describes the
+!@+    boundaries between the aerosol size bins.  xk is in terms of dry
+!@+    single-particle mass (kg).  The aerosol microphysics algorithm
+!@+    used here assumes mass doubling such that each xk is twice the
+!@+    previous.
 
-C     WRITTEN BY Peter Adams, November 1999
-
-C     This subroutine initializes the array, xk, which describes the
-C     boundaries between the aerosol size bins.  xk is in terms of dry
-C     single-particle mass (kg).  The aerosol microphysics algorithm
-C     used here assumes mass doubling such that each xk is twice the
-C     previous.
+!@auth Peter Adams, November 1999 (Modified by Yunha Lee)
 
       SUBROUTINE initbounds()
 
@@ -10869,7 +10865,8 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
       IMPLICIT NONE
 
       integer k
-      real*8 Mo     !lower mass bound for first size bin (kg)
+!@var Mo : lower mass bound for first size bin (kg)
+      real*8 Mo     
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -10901,21 +10898,20 @@ C-----CODE--------------------------------------------------------------
       END
 
 
-C     **************************************************
-C     *  momentfix                                     *
-C     **************************************************
+!    **************************************************
+!@sum   momentfix                                     
+!    **************************************************
+!@+    This routine changes the first and second order moments of a
+!@+    given tracer's distribution such that they match the shape of
+!@+    another specified tracer.  Since the zeroth order moment is
+!@+    unchanged, the routine conserves mass.
 
-C     WRITTEN BY Peter Adams
-
-C     This routine changes the first and second order moments of a
-C     given tracer's distribution such that they match the shape of
-C     another specified tracer.  Since the zeroth order moment is
-C     unchanged, the routine conserves mass.
+!@auth Peter Adams
 
 C-----INPUTS------------------------------------------------------------
 
-c     pn - the number of the tracer that will serve as the pattern
-c     fn - the number of the tracer whose moments will be fixed 
+!@var     pn - the number of the tracer that will serve as the pattern
+!@var     fn - the number of the tracer whose moments will be fixed 
 
 C-----OUTPUTS-----------------------------------------------------------
 
@@ -10964,38 +10960,38 @@ C****
       
 
 
-C     **************************************************
-C     *  stratscav                                     *
-C     **************************************************
+!    **************************************************
+!@sum  stratscav                                     
+!@    **************************************************
+!@+    This function is basically a lookup table to get the below-cloud 
+!@+    scavenging rate (per mm of rainfall) as a function of particle
+!@+    diameter.  The data are taken from Dana, M. T., and
+!@+    J. M. Hales, Statistical Aspects of the Washout of Polydisperse
+!@+    Aerosols, Atmos. Environ., 10, 45-50, 1976.  I am using the
+!@+    monodisperse aerosol curve from Figure 2 which assumes a
+!@+    lognormal distribution of rain drops with Rg=0.02 cm and a
+!@+    sigma of 1.86, values typical of a frontal rain spectrum
+!@+    (stratiform clouds).
 
-C     WRITTEN BY Peter Adams, January 2001
-
-C     This function is basically a lookup table to get the below-cloud 
-C     scavenging rate (per mm of rainfall) as a function of particle
-C     diameter.  The data are taken from Dana, M. T., and
-C     J. M. Hales, Statistical Aspects of the Washout of Polydisperse
-C     Aerosols, Atmos. Environ., 10, 45-50, 1976.  I am using the
-C     monodisperse aerosol curve from Figure 2 which assumes a
-C     lognormal distribution of rain drops with Rg=0.02 cm and a
-C     sigma of 1.86, values typical of a frontal rain spectrum
-C     (stratiform clouds).
+!@auth  Peter Adams, January 2001
 
       real FUNCTION stratscav(dp)
 
       IMPLICIT NONE
 
-C     INCLUDE FILES...
-
 C-----ARGUMENT DECLARATIONS------------------------------------------
-
-      real*8 dp   !particle diameter (m)
+!@var dp : particle diameter [m]
+      real*8 dp  
 
 C-----VARIABLE DECLARATIONS------------------------------------------
-
-      integer numpts  !number of points in lookup table
-      real dpdat      !particle diameter in lookup table (m)
-      real scdat      !scavenging rate in lookup table (mm-1)
-      integer n1, n2  !indices of nearest data points
+!@param numpts : number of points in lookup table
+!@var dpdat : particle diameter in lookup table [m]
+!@var scdat : scavenging rate in lookup table [mm-1]
+!@var n1/n2 : indices of nearest data points
+      integer numpts  
+      real dpdat      
+      real scdat      
+      integer n1, n2 
 
 C-----VARIABLE COMMENTS----------------------------------------------
 

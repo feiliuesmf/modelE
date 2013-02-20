@@ -286,42 +286,37 @@ c          (in order to calculate dust emissions), but not added to ntm.
 #else
 #ifdef TRACERS_TOMAS
        !constants that have to do with the number of tracers
-C    NBS is the number of bulk species (gases and aerosols that don't
-C	 have size resolution such as MSA)
-C    NAP is the number of size-resolved "prognostic" aerosol species
-C	 (ones that undergo transport)
-C    NAD is the number of size-resolved "diagnostic" aerosol species
-C	 (ones that don't undergo transport or have a complete budget
-C	 such as aerosol water and nitrate)
-C    NSPECIES is the number of unique chemical species not counting
-C	 size-resolved species more than once (the sum of NBS, NAP,
-C	 and NAD)
-C    NBINS is the number of bins used to resolve the size distribution
-C    NTM is the total number of tracer concentrations that the model
-C	 tracks.  This counts bulk species, and both prognostic and 
-C	 diagnostic aerosols.  Each size-resolved aerosol has a number
-C	 of tracers equal to NBINS to resolve its mass distribution.
-C	 An additional NBINS are required to resolve the aerosol number
-C	 distribution.
-C    NTT is the total number of transported tracers.  This is the same
-C	 as NTM, but excludes the "diagnostic" aerosol species which
-C	 do not undergo transport - ??? will I use this
+!@param NBS is the number of bulk species (gases and aerosols that don't
+!@+      have size resolution such as MSA) but excluding Shindell's gas tracers
+!@param NAP is the number of size-resolved "prognostic" aerosol species
+!@+      (ones that undergo transport)
+!@param NAD is the number of size-resolved "diagnostic" aerosol species
+!@+      (ones that don't undergo transport or have a complete budget
+!@+      such as aerosol water and nitrate)
+!@param NSPECIES is the number of unique chemical species not counting
+!@+      size-resolved species more than once (the sum of NBS, NAP,
+!@+      and NAD)
+!@param NBINS is the number of bins used to resolve the size distribution
+!@param NTM is the total number of tracer concentrations that the model
+!@+      tracks.  This counts bulk species, and both prognostic and 
+!@+      diagnostic aerosols.  Each size-resolved aerosol has a number
+!@+      of tracers equal to NBINS to resolve its mass distribution.
+!@+      An additional NBINS are required to resolve the aerosol number
+!@+      distribution.
+!@param NTT is the total number of transported tracers.  This is the same
+!@+      as NTM, but excludes the "diagnostic" aerosol species which
+!@+      do not undergo transport - ??? will I use this
 
        !constants that determine the size of diagnostic arrays
-C    NXP is the number of transport processes that are tracked
-C	 separately
-C    NCR is the number of chemical reactions for which data is saved
-C    NOPT is the number of aerosol optical properties tracked
-C    NFOR is the number of different forcings that are calculated
-C    NAERO is the number of aerosol microphysics diagnostics
-C    NCONS is the number of conservation quantity diagnostics
-C    KCDGN is the number of cloud microphysics and optical depth diagnostics
+!@param NXP is the number of transport processes that are tracked
+!@+      separately (NO USE)
+!@param NCR is the number of chemical reactions for which data is saved (NO USE)
+!@param NOPT is the number of aerosol optical properties tracked
+!@param NFOR is the number of different forcings that are calculated
+!@param NAERO is the number of aerosol microphysics diagnostics
+!@param NCONS is the number of conservation quantity diagnostics
+!@param KCDGN is the number of cloud microphysics and optical depth diagnostics
 
-!yhl - nbs should be deleted, and use shindell gas species..
-
-!@param ntm number of tracers
-
-! yhl - NAP is changed to 6 to exclude mineral dust for now (1/20/2011)
 #if (defined TOMAS_12_10NM) 
       integer, parameter :: NBINS=12 
 #elif (defined TOMAS_15_10NM) || (defined TOMAS_12_3NM)
@@ -337,7 +332,6 @@ C    KCDGN is the number of cloud microphysics and optical depth diagnostics
      *                          ntm_shindell_extra+ntm_ococean+NBS
 
       integer, parameter :: 
-c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      *     IDTSO4  = non_aerosol+1, !36;NBINS for sulfate mass dist.
      &     IDTNA   = IDTSO4 +NBINS, !66;
      &     IDTECOB = IDTNA+NBINS, !126; NBINS for Hydrophobic EC
@@ -347,7 +341,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      &     IDTDUST = IDTOCIL+NBINS, !216
      &     IDTNUMD = IDTDUST+NBINS,
      &     IDTH2O  = IDTNUMD+NBINS  !246
-      double precision, dimension(nbins+1) :: xk
+      real*8, dimension(nbins+1) :: xk
 !      integer, parameter :: oldNTM=ntm_tomas
       integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
 
@@ -696,6 +690,7 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
      *    27,28,29   /)
 #endif
 #endif   /* TRACERS_AMP */
+!@var N_XXX: variable names of indices for tracers (init = 0)
 #ifdef TRACERS_TOMAS
       integer, dimension(nbins) :: n_ANUM =0
       integer, dimension(nbins) :: n_ASO4 =0
@@ -708,7 +703,6 @@ c     &     IDTNUMD = non_aerosol+1,         !NBINS for number distribution
       integer, dimension(nbins) :: n_ADUST=0  
       integer :: n_SOAgas=0
 #endif
-!@var N_XXX: variable names of indices for tracers (init = 0)
       integer ::
      *                 n_SF6_c=0,                                        
      *     n_Air=0,    n_SF6=0,   n_Rn222=0, n_CO2=0,      n_N2O=0,

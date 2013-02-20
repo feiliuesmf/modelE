@@ -921,9 +921,11 @@ C****
       logical :: hydrate
 #ifdef TRACERS_TOMAS
       integer binnum,k
+!@var vs : gravitational settling velocity at each bin (m s-1)
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm,NBINS) :: vs !gravitational settling velocity (m s-1)
-      real Dp_gr(nbins)         !particle diameter (m)
+!@var Dp_gr : particle diameter (m)
+      real Dp_gr(nbins)         
       real density_gr(nbins)    !density (kg/m3) of current size bin           
       real*8 mp                 !particle mass (kg)
       real*8 mu                 !air viscosity (kg/m s)

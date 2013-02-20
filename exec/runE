@@ -1,16 +1,6 @@
 #!/bin/sh
 ## simple script to run the model
 
-node=`uname -n`
-isMPIrun=`grep mpirun $1/$1`
-if [ -n "$isMPIrun" ]; then
-  if [[ "$node" =~ discover || "$node" =~ dali ]]; then
-    [ -z "$PBS_ENVIRONMENT" ] &&  
-    echo " ### Need to run under PBS interactive or batch job." && 
-    exit 1;
-  fi  
-fi  
-
 OPTS=
 
 if [ "$MODELERC"x = x ] ; then MODELERC=$HOME/.modelErc ; fi
