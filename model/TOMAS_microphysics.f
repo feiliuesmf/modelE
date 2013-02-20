@@ -1603,7 +1603,8 @@ c$$$      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6 !bug?
 
 cyhl mfp is now for the condensing gas in the air   10/17/2010
       Di=gasdiff(temp,pres,98.0,Sv(spec))  ! YHL(10/17/2010) - this is not accurate for SOA, but leave this for now. 
-      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*(molwt(srtso4)+2.)/1000.)   !molwt(srtso4) is 96, so adding 2 will make 98. 
+      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*(molwt(srtso4)+2.)/1000.))   
+!     molwt(srtso4) is 96, so adding 2 will make 98. 
 !     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]
 
 C     get size dependent values
