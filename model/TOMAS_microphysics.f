@@ -1448,14 +1448,21 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
 C-----CODE--------------------------------------------------------------
 
-C     get some parameters 
-!      mu=2.5277e-7*temp**0.75302
-!      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6
+C     get some parameters  
+!!      mu=2.5277e-7*temp**0.75302
+!!      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*gasc*temp)))  !S&P eqn 8.6
+!for old debugging      mfp=2.0*mu/(pres*sqrt(8.0*0.6589/(pi*gasc*temp)))  !S&P eqn 8.6
+
 
 cyhl the following should be used instead of above two lines!
       Di=gasdiff(temp,pres,98.0,Sv(srtso4)) ! Di is diffusivity of condensing gas in air [m2/s]
-      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*0.098))   !0.098 for H2SO4 m.w. [kg/mol]
-!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]         
+      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*(molwt(srtso4)+2.)/1000.))   !0.098 for H2SO4 m.w. [kg/mol]
+!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]
+         
+cyhl but this needs some tuning before it actually uses! 
+
+c      Di=gasdiff(temp,pres,98.0,Sv(srtso4))
+c      print*,'Di',Di
 
 C     get size dependent values
       CS = 0.d0
@@ -1596,7 +1603,8 @@ c$$$      mfp=2.0*mu/(pres*sqrt(8.0*0.0289/(pi*R*temp)))  !S&P eqn 8.6 !bug?
 
 cyhl mfp is now for the condensing gas in the air   10/17/2010
       Di=gasdiff(temp,pres,98.0,Sv(spec))  ! YHL(10/17/2010) - this is not accurate for SOA, but leave this for now. 
-      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*0.098))   
+      mfp=2.d0*Di/sqrt(8.0*gasc*temp/(pi*(molwt(srtso4)+2.)/1000.)   !molwt(srtso4) is 96, so adding 2 will make 98. 
+!     the denominator is mean speed. sqrt(8.0*R*temp/(pi*molwt(srtso4)/1000.)) !S&P2 eqn 9.2 ms=mean speed [m/s]
 
 C     get size dependent values
       do k=1,ibins
