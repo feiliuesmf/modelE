@@ -1,5 +1,10 @@
 #include "rundeck_opts.h"
 
+!@sum  TOMAS_DRV: TwO-Moment Aerosol Sectional (TOMAS) microphysics driver 
+!@auth Peter Adams/Jeff Pierce/Yunha Lee (implemented into ModelE by Yunha Lee)
+!@ver  1.0
+!@calls various subroutines under TOMAS_DRV.f and TOMAS_microphysics.f 
+
       MODULE TOMAS_AEROSOL
 
 C-----INCLUDE FILES--------------------------------------------------
@@ -7,11 +12,17 @@ C-----INCLUDE FILES--------------------------------------------------
       USE TRACER_COM, only : ntm,nbins, xk
       IMPLICIT NONE 
 
-C-----VARIABLE DECLARATIONS------------------------------------------
+C-----INCLUDE FILES--------------------------------------------------
+!@param ibins : number of size bins used in TOMAS (equal to nbins defined in TRACER_COM) 
+!@param icomp : number of size-resolved chemical species (SO4,SS,ECOB,ECIL,OCOB,OCIL,DUST,NH4,AER-WATER
+!@param idiag : number of aerosol diagnostic species (NH4 and AER-WATER) 
       integer,parameter :: ibins=nbins
       integer,parameter :: icomp=9
-      integer,parameter :: idiag=2 ! number of diagnostic aerosol species
-
+      integer,parameter :: idiag=2
+!@param ncomp : number of size-resolved chemical species that actually used in GCM 
+!@+    NH4 is not size-resolved out of TOMAS algorithm, which makes ncomp differs from icomp
+      integer,parameter ::  ncomp=8
+!@param srtso4,srtna, etc : index number for icomp 
       integer srtso4, srtna, srth2o, srtecob, srtecil, srtocob,
      &	      srtocil, srtnh4, srtdust
       parameter (srtso4=1,
@@ -24,71 +35,90 @@ C-----VARIABLE DECLARATIONS------------------------------------------
      &           srtnh4=8,
      &           srth2o=9)
 
-C Nk and Mk contain the number and mass size distributions of the
-C aerosol.  Units are #/grid cell or kg/grid cell, respectively.
-C Gc are gas phase concentrations (kg/grid cell) of species
-C corresponding to the aerosol species (e.g. H2SO4 for sulfate).
-C Nkd and Mkd store values of Nk and Mk for diagnostic purposes.
+!@var Nk and Mk contain the number and mass size distributions of the
+!@+   aerosol.  Units are #/grid cell or kg/grid cell, respectively.
+!@+   Nkd and Mkd store values of Nk and Mk for diagnostic purposes.
+!@var Gc are gas phase concentrations (kg/grid cell) of species
+!@+   corresponding to the aerosol species (e.g. H2SO4 for sulfate).
 
       real*8 Nk(ibins), Mk(ibins,icomp), Gc(icomp-1)
       real*8 Nkd(ibins), Mkd(ibins,icomp), Gcd(icomp-1) 
 
 C The following variables describe the grid cell in which the
 C microphysics is operating.
-
-      real*8 boxvol     !volume of grid cell (cm3)
-      real*8 boxmass    !volume of grid cell (kg)
-      real*8 temp       !temperature (K) of grid cell
-      real*8 pres       !air pressure (Pa) of grid cell
-      real*8 rh         !relative humidity (0-1)
+!@var boxvol : volume of grid cell (cm3)
+!@var boxmass : air mass of grid cell (kg)
+!@var temp : temperature (K) of grid cell
+!@var pres : air pressure (Pa) of grid cell 
+!@var rh : relative humidity (0-1)
+      real*8 boxvol    
+      real*8 boxmass    
+      real*8 temp      
+      real*8 pres       
+      real*8 rh        
 
 C Physical properties of aerosol components
-
+!@param molwt : molecular weight of chemical species (icomp) 
       real molwt(icomp)
       data molwt/96., 58.45, 200., 200., 200., 200., 100.,18.,18./
 
-C Flag for which nucleation parameterizations to use
+!@param bin_nuc/tern_nuc/ion_nuc/actv_nuc : Flag for which nucleation parameterizations to use
       integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   !flags for binary and ternary nuc
       parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=1) ! 1 = on
 
-C soa_amp is the mass growth amplification factor (determined by the amount of
-C soa that needs to be condensed
+!@var soa_amp : mass growth amplification factor (determined by the 
+!@+             amount of soa that needs to be condensed
       real*8 soa_amp
 
-C tau_soa is the 1st order timescale in which SOA condenses (days)
+!@param tau_soa : 1st order timescale in which SOA condenses (0.5 days)
       real*8 tau_soa
       parameter(tau_soa=0.5d0)
 
-C SOArate is the rate of SOA condensing (kg/s)
+!@var SOArate is the rate of SOA condensing (kg/s)
 !      real*8, ALLOCATABLE, DIMENSION(:,:)  :: SOA_chem !SOA formation [kg]
       real*8  SOArate
-
-      real*8 surf_area ! aerosol surface area [micon^2 cm^-3]
-      real*8 ionrate ! ion pair formation rate [ion pairs cm^-3 s^-1]
-
+!@var surf_area : aerosol surface area [micon^2 cm^-3]
+      real*8 surf_area 
+!@var ionrate : ion pair formation rate [ion pairs cm^-3 s^-1]
+      real*8 ionrate 
+!@var binact10/binact02 : lookup table of activated size bin at supersatuaration of 1.0% and 0.2%
       integer, dimension(101,101,101) :: binact10,binact02
+!@var fraction10/fraction02 : lookup table of chemical composition fraction in the activated size bin at supersatuaration of 1.0% and 0.2%
       real*8,dimension(101,101,101) :: fraction10,fraction02
-      integer, parameter :: ptype=7 ! number of microphysics process 
+!@param ptype : number of aerosol microphysics process 
+      integer, parameter :: ptype=7 
+!@var AEROD : saving aerosol microphyiscs dianogstics
       real*8, ALLOCATABLE,dimension(:,:,:,:,:) :: AEROD
-      real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls  !1 for Convective and 2 for large-scale
-      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  !h2so4 formation rate from so2+oh [kg of H2SO4/sec
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg !number changed by subgrid coagulation
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg !mass changed by subgrid coagulation
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis !trm before emission and uses for subgrid coagulation
-!      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: tomas_emis !trm before interactive emission and uses for subgrid coagulation
-      integer ncomp
-      parameter(ncomp=8)
+!@var AQSO4oxid_mc/AQSO4oxid_ls : aqueous h2so4 formation for convective and large-scale clouds 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls 
+!@var h2so4_chem : h2so4 formation rate from so2+oh [kg of H2SO4/sec]
+      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  
+!@var N_subgridcg : aerosol number emission rate changed by subgrid coagulation 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg 
+!@var M_subgridcg : aerosol mass emission rate changed by subgrid coagulation
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg 
+!@var trm_emis : TRM before emission and used in subgridcoagualtion process 
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis
 
-! Mie lookup tables
+!@var TOMAS_QEXT/TOMAS_QSCA/TOMAS_QABS/TOMAS_GSCA : size-dependant radiative properties 
+!@+      lookup tables based on Mie theory
       REAL*8, DIMENSION(124,101,91)      :: TOMAS_QEXT, TOMAS_QSCA,
      &     TOMAS_QABS,TOMAS_GSCA !,TOMAS_QBACK 
 
-      ! FALSE : one Radiation call
-      ! TRUE  : nmodes Radiation calls
-      INTEGER                            :: TOMAS_DIAG_FC = 2 !debug 
-! 2=external mixing (=icomp-2) radiation calls  |
-! 1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
-! TOMAS_DIAG_FC=2 is only available now.  
+!@param TOMAS_DIAG_FC : Flag used in aerosol radiation calculation
+!@+  2=external mixing (=icomp-2) radiation calls  |
+!@+  1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
+!@+  TOMAS_DIAG_FC=2 is only available now.
+
+      INTEGER                            :: TOMAS_DIAG_FC = 2 
+  
+
+!@param scalesizeSO4 : SO4 emission size distribution (mass fraction at each bin)
+!@param scaleCARBO30/scaleCARBO100 : EC/OC emission size distribution 
+!@+   CARBO30 is for fossil fuel and uses bimodal distribution [Ban-Weiss et al, 2010] 
+!@+          (NMD: 17.5 nm and GSD:1.6 ; NMD: 60 nm and GSD: 1.9)  
+!@+   CARBO100 is for Biofuel and Biomass burning emissions
+!@_          (NMD of 100 nm and GSD of 2)
 #if (defined TOMAS_12_10NM) 
       real*8, parameter :: scalesizeSO4(ibins)=(/
      &     4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02,
