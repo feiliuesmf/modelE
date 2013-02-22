@@ -93,15 +93,16 @@ endif
 endif
 	@echo '====> running fmakedep'
 	$(FMAKEDEP) -f $(DEPENDFILE)_f $(FFSRCS_CPP) 
+	-rm -f $(FFSRCS_CPP)
 	$(SCRIPTS_DIR)/check_dep.pl $(DEPENDFILE)_f
 	$(SCRIPTS_DIR)/pproc_dep.pl  $(DEPENDFILE)_f > $(DEPENDFILE)_tmp
 	cat $(DEPENDFILE)_cpp $(DEPENDFILE)_tmp > $(DEPENDFILE)
-	rm -f $(FFSRCS_CPP) $(DEPENDFILE)_cpp $(DEPENDFILE)_f $(DEPENDFILE)_tmp
+	-rm -f $(DEPENDFILE)_cpp $(DEPENDFILE)_f $(DEPENDFILE)_tmp
 	@echo '---------         done with dependencies             ---------'
 	@echo
 
 clean:
-	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h
+	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h *.cpp
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
