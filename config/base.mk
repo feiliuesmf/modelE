@@ -92,7 +92,7 @@ else
 endif
 endif
 	@echo '====> running fmakedep'
-	$(FMAKEDEP) -f $(DEPENDFILE)_f $(FFSRCS_CPP) 
+	$(FMAKEDEP) $(CPPFLAGS) -f $(DEPENDFILE)_f $(FFSRCS_CPP) 
 	-rm -f $(FFSRCS_CPP)
 	$(SCRIPTS_DIR)/check_dep.pl $(DEPENDFILE)_f
 	$(SCRIPTS_DIR)/pproc_dep.pl  $(DEPENDFILE)_f > $(DEPENDFILE)_tmp
