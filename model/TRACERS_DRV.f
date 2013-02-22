@@ -8278,7 +8278,7 @@ C**** at the start of any day
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       use TracerBundle_mod, only: getTracer
 #ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only : scalesizeSO4,scalesizeCARBO30
+      USE TOMAS_EMIS, only : scalesizeSO4,scalesizeCARBO30
 #endif
       USE LAKES_COM, only : flake
       implicit none
@@ -9059,8 +9059,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE CONSTANT, only : pi
       USE TRDIAG_COM, only : itcon_TOMAS,itcon_subcoag 
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_TOMAS
-      USE TOMAS_AEROSOL, only : TRM_EMIS,scalesizeCARBO100,
-     &     scalesizeCARBO30, scalesizeSO4,xk,icomp,idiag
+      USE TOMAS_AEROSOL, only : TRM_EMIS,xk,icomp,idiag
+      USE TOMAS_EMIS, only : scalesizeCARBO100,
+     &     scalesizeCARBO30, scalesizeSO4
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,

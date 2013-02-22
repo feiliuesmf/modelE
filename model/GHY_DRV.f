@@ -313,7 +313,8 @@ c**** prescribed dust emission
 #endif
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+      USE TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+      USE TOMAS_EMIS 
 #endif
  !     use socpbl, only : dtsurf
       use geom, only : axyp
@@ -365,39 +366,6 @@ cddd#endif
 #ifdef TRACERS_TOMAS
       INTEGER ss_bin,num_bin,du_bin,num_bin2
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
-#ifdef TOMAS_12_10NM 
-!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
-!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
-      real*8, parameter :: scalesizeClay(nbins)=(/
-     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
-     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
-     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
-!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
-!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
-!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
- 
-      real*8, parameter :: scalesizeSilt(nbins)=(/
-     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
-     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
-     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
-#endif
-#ifdef TOMAS_12_3NM 
-!scalesizeClay assumes a lognormal with NMD=0.14 um and Sigma=2
-!sum of scalesizeClay = ~1 (~5% of total clay emission will be in Dp>2um) 
-      real*8, parameter :: scalesizeClay(nbins)=(/0.,0.,0.,
-     *    3.883E-08,1.246E-06,2.591E-05,3.493E-04,
-     *    3.059E-03,1.741E-02,6.444E-02,1.553E-01,
-     *    2.439E-01,2.495E-01,2.530E-01,1.292E-02/)
-!scalesizeSilt assumes a lognormal with NMD=1.14 um and Sigma=2
-!sum of scalesizeSilt = 0.8415 (~15% of total silt emission will be missing 
-!due to upper size limit, ~10um, in TOMAS. ~8% will be in clay size range)
-      real*8, parameter :: scalesizeSilt(nbins)=(/0.,0.,0.,
-     *    2.310E-17,5.376E-15,8.075E-13,7.832E-11,
-     *    4.910E-09,1.991E-07,5.229E-06,8.900E-05,
-     *    9.831E-04,7.054E-03,2.183E-01,6.150E-01/)
-#endif
-
-
 #endif
 ccc tracers
       byNIsurf=1.d0/real(NIsurf)
