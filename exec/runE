@@ -71,7 +71,7 @@ if [ $rc -ne 13 ] && [ $rc -ne 12 ] ; then
     if [ $rc -ne 1 ] ; then
         error_message=`tail -1 run_status`
     else 
-        error_message="Unknown reason (Segmentation fault?)"
+        error_message="Unknown reason"
     fi
     echo " >>> $error_message <<<"
     exit 2 ;
