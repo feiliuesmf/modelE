@@ -565,7 +565,7 @@ c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
             dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
           else
             ierr_loc=ierr_loc+1 ! will stop model in masterchem
-            write(out_line,'(a17,5(1X,E10.4))')
+            write(out_line,'(a17,5(1X,E11.4))')
      &      'Oxcorr fault NO2:',
      &      ratioNs,ratioN2,rNO2frac,rNO2prod,rNOprod
             call write_parallel(trim(out_line),crit=.true.)      
@@ -590,7 +590,7 @@ c         or NO+O+M->NO2+M:
             dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
           else
             ierr_loc=ierr_loc+1 ! will stop model in masterchem
-            write(out_line,'(a16,3I4,10(1X,E10.4))')'Oxcorr fault NO:',
+            write(out_line,'(a16,3I4,10(1X,E11.4))')'Oxcorr fault NO:',
      &      I,J,L,ratioNs,ratioN2,rNOfrac,rNO2prod,rNOprod,y(nNO2,L),
      &      y(nNO,L),rNOdenom,y(nO,L),y(nO3,L)
             call write_parallel(trim(out_line),crit=.true.)    
