@@ -323,6 +323,10 @@
       use OldTracer_mod, only: set_trli0
       use OldTracer_mod, only: set_trsi0
       use OldTracer_mod, only: set_to_volume_MixRat, to_volume_MixRat
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACERS_VBS, only: ivbs_m2,ivbs_m1,ivbs_m0,ivbs_p1,ivbs_p2,ivbs_p3,&
+                             ivbs_p4,ivbs_p5,ivbs_p6
+#endif /* TRACERS_AEROSOLS_VBS */
 
 #if (defined TRACERS_OCEAN) &&  !defined(TRACERS_OCEAN_INDEP)
 !     atmosphere copies atmosphere-declared tracer info to ocean
@@ -533,25 +537,25 @@ c$$$      call  H2O17_setSpec('H2O17')
           call  BCB_setSpec('BCB')
         end if
 #ifdef TRACERS_AEROSOLS_VBS
-          call  VBS_setSpec('vbsGm2', 1,'igas')
-          call  VBS_setSpec('vbsGm1', 2,'igas')
-          call  VBS_setSpec('vbsGz', 3,'igas')
-          call  VBS_setSpec('vbsGp1', 4,'igas')
-          call  VBS_setSpec('vbsGp2', 5,'igas')
-          call  VBS_setSpec('vbsGp3', 6,'igas')
-          call  VBS_setSpec('vbsGp4', 7,'igas')
-          call  VBS_setSpec('vbsGp5', 8,'igas')
-          call  VBS_setSpec('vbsGp6', 9,'igas')
-
-          call  VBS_setSpec('vbsAm2', 1,'iaer')
-          call  VBS_setSpec('vbsAm1', 2,'iaer')
-          call  VBS_setSpec('vbsAz', 3,'iaer')
-          call  VBS_setSpec('vbsAp1', 4,'iaer')
-          call  VBS_setSpec('vbsAp2', 5,'iaer')
-          call  VBS_setSpec('vbsAp3', 6,'iaer')
-          call  VBS_setSpec('vbsAp4', 7,'iaer')
-          call  VBS_setSpec('vbsAp5', 8,'iaer')
-          call  VBS_setSpec('vbsAp6', 9,'iaer')
+          call  VBS_setSpec('vbsGm2', ivbs_m2,'igas')
+          call  VBS_setSpec('vbsGm1', ivbs_m1,'igas')
+          call  VBS_setSpec('vbsGz', ivbs_m0,'igas')
+          call  VBS_setSpec('vbsGp1', ivbs_p1,'igas')
+          call  VBS_setSpec('vbsGp2', ivbs_p2,'igas')
+          call  VBS_setSpec('vbsGp3', ivbs_p3,'igas')
+          call  VBS_setSpec('vbsGp4', ivbs_p4,'igas')
+          call  VBS_setSpec('vbsGp5', ivbs_p5,'igas')
+          call  VBS_setSpec('vbsGp6', ivbs_p6,'igas')
+      
+          call  VBS_setSpec('vbsAm2', ivbs_m2,'iaer')
+          call  VBS_setSpec('vbsAm1', ivbs_m1,'iaer')
+          call  VBS_setSpec('vbsAz', ivbs_m0,'iaer')
+          call  VBS_setSpec('vbsAp1', ivbs_p1,'iaer')
+          call  VBS_setSpec('vbsAp2', ivbs_p2,'iaer')
+          call  VBS_setSpec('vbsAp3', ivbs_p3,'iaer')
+          call  VBS_setSpec('vbsAp4', ivbs_p4,'iaer')
+          call  VBS_setSpec('vbsAp5', ivbs_p5,'iaer')
+          call  VBS_setSpec('vbsAp6', ivbs_p6,'iaer')
 #else
           call  OCII_setSpec('OCII')   !Insoluble industrial organic mass
           call  OCIA_setSpec('OCIA')   !Aged industrial organic mass
