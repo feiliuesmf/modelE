@@ -4,7 +4,8 @@ module AmpTracersMetadata_mod
 !------------------------------------------------------------------------------
 !@sum  AMPTracersMetadata_mod encapsulates the TRACERS_AMP metadata
 !@auth NCCS ASTG
-  use sharedTracersMetadata_mod
+  use sharedTracersMetadata_mod, only: DMS_setspec, &
+    SO2_setspec, H2O2_s_setspec, NH3_setspec
   USE CONSTANT, only: mwat
   USE AERO_PARAM, only: &
     SOLU_DD1, SOLU_DD2, SOLU_AKK, SOLU_ACC, &
@@ -47,7 +48,6 @@ module AmpTracersMetadata_mod
   use Tracer_com, only: set_ntsurfsrc
   use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
-  use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: tr_RKD 
   use OldTracer_mod, only: set_F0
   use OldTracer_mod, only: set_tr_RKD
@@ -396,6 +396,7 @@ module AmpTracersMetadata_mod
     22,23,24,25,26, &
     27,28,29   /)
 #endif
+
   public AMP_MODES_MAP
   public AMP_NUMB_MAP
   public AMP_AERO_MAP

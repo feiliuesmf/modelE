@@ -10,17 +10,171 @@
 !@+      Check routine: checktr
 !@auth Jean Lerner/Gavin Schmidt
 
+      MODULE apply3d
+!@sum apply3d is used simply so that I can get optional arguments
+!@+   to work. If anyone can some up with something neater, let me know.
+!@sum apply_tracer_3Dsource adds 3D sources to tracers
+!@auth Jean Lerner/Gavin Schmidt
+      use TracerSource_mod, only: TracerSource3D
+      use TracerBundle_mod, only: getTracer
+      use Tracer_mod, only: Tracer_type
+      use OldTracer_mod, only: trname
+      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
+     * ef_FACT3d,tracers
+      USE CONSTANT, only : teeny
+      USE RESOLUTION, only: lm
+      USE MODEL_COM, only : dtsrc
+      USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
+      USE QUSDEF, only: nmom
+      USE FLUXES, only : tr3Dsource
+      USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
+     *     ,ijts_3Dsource,taijs=>taijs_loc
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
+      use EmissionRegion_mod, only: numRegions, regions
+      IMPLICIT NONE
+
+      CONTAINS
+
+      SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+!@var MOM true (default) if moments are to be modified
+      logical, optional, intent(in) :: momlog
+      integer, intent(in) :: n,ns
+      real*8 fred(grid%i_strt:grid%i_stop),
+     &     dtrm(grid%i_strt_halo:grid%i_stop_halo,
+     &          grid%j_strt_halo:grid%j_stop_halo,lm),
+     &     dtrml(lm),eps
+
+      logical :: domom
+      integer najl,i,j,l,naij,kreg,nsect,nn
+      INTEGER :: J_0, J_1, I_0, I_1
+      integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
+      real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
+
+      type (TracerSource3D), pointer :: source
+      type (Tracer_type), pointer :: tracer
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C**** Ensure that this is a valid tracer and source
+      if (n.eq.0 .or. ns.eq.0) then
+         return
+      end if
+C**** parse options
+      domom=.true.
+      if( present(momlog) ) then
+        domom=momlog
+      end if
+C**** This is tracer independent coding designed to work for all
+C**** 3D sources.
+C**** Modify tracer amount, moments, and diagnostics
+      najl = jls_3Dsource(ns,n)
+      naij = ijts_3Dsource(ns,n)
+
+C**** apply tracer source alterations if requested in rundeck:
+      tracer => getTracer(tracers, n)
+      source => tracer%sources3D(ns)
+      if (alter_sources) then
+        do kreg = 1, numRegions
+          do j = j_0, j_1
+            do i = i_0, imaxj(j)
+              if (regions(kreg)%hasLatLon(lat2d_dg(i,j),lon2d_dg(i,j)))
+     &             then
+                 mask(i,j) = 1
+              else
+                 mask(i,j) = 0
+              end if
+            end do
+          end do
+
+          do nsect = 1, source%num_tr_sectors
+            nn = source%tr_sect_index(nsect)
+            if (ef_FACT3d(nn,kreg) > -1.e20) then
+              do j = j_0, j_1
+                 do i = i_0, imaxj(j)
+                    coef(i,j) = 
+     &                   mask(i,j) * ef_Fact3d(nn,kreg) + 
+     &                   (1-mask(i,j))
+                 end do
+              end do
+              do l = 1, lm
+                do j = j_0, j_1
+                  do i = i_0, imaxj(j)
+                    tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
+     &                    coef(i,j)
+        
+                  end do
+                end do
+              end do
+            end if
+          end do
+        end do
+      end if
+
+      eps = tiny(trm(i_0,j_0,1,n))
+      do l=1,lm
+      do j=j_0,j_1
+        do i=i_0,imaxj(j)
+          dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
+C**** calculate fractional loss and update tracer mass
+#ifdef TRACERS_TOMAS
+          if(trm(i,j,l,n).gt.0.)then
+          fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+          else
+             fred(i)=100.  !It won't be used anyway (fred<1 to be used)
+          endif
+#else
+          fred(i) = max(0.d0,
+     &         1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+#endif
+          trm(i,j,l,n) = trm(i,j,l,n)+dtrm(i,j,l)
+          if(fred(i).le.1d-16) trm(i,j,l,n) = 0.
+        end do
+        if(domom .and. any(fred.lt.1.)) then
+          do i=i_0,imaxj(j)
+            trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fred(i)
+          enddo
+        endif
+      end do
+      if (naij.gt.0) then
+        do j=j_0,j_1
+          do i=i_0,imaxj(j)
+            taijs(i,j,naij) = taijs(i,j,naij) + dtrm(i,j,l)
+          end do
+        end do
+      end if
+      end do ! l
+
+      if(jls_3Dsource(ns,n) > 0) then
+        do j=j_0,j_1
+          do i=i_0,imaxj(j)
+            dtrml(:) = dtrm(i,j,:)
+            call inc_tajls_column(i,j,1,lm,lm,najl,dtrml)
+          enddo
+        enddo
+      endif
+
+      if (itcon_3Dsrc(ns,n).gt.0)
+     *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
+
+C****
+      RETURN
+      END SUBROUTINE apply_tracer_3Dsource
+
+      end module apply3d
+
       SUBROUTINE set_generic_tracer_diags
 !@sum set_generic_tracer_diags init trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param
+      use OldTracer_mod, only: trName, tr_wd_TYPE, mass2vol
+      use OldTracer_mod, only: dowetdep, dodrydep, trradius, ntrocn
+      use OldTracer_mod, only: ntm_power, nwater
       USE CONSTANT, only: mair
       USE MODEL_COM, only: dtsrc
       USE FLUXES, only : nisurf,atmice
       USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,ir_0_71
-      use OldTracer_mod, only: trName, tr_wd_TYPE, mass2vol
-      use OldTracer_mod, only: dowetdep, dodrydep, trradius, ntrocn
-      use OldTracer_mod, only: ntm_power, nwater
       USE TRACER_COM, only: ntm, n_Water, nPart
       USE TRDIAG_COM
       use Dictionary_mod
@@ -632,158 +786,6 @@ C****
       RETURN
       END SUBROUTINE apply_tracer_2Dsource
 
-      MODULE apply3d
-!@sum apply3d is used simply so that I can get optional arguments
-!@+   to work. If anyone can some up with something neater, let me know.
-      CONTAINS
-      SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
-!@sum apply_tracer_3Dsource adds 3D sources to tracers
-!@auth Jean Lerner/Gavin Schmidt
-      USE CONSTANT, only : teeny
-      USE RESOLUTION, only: im,jm,lm
-      USE MODEL_COM, only : dtsrc
-      USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
-      USE QUSDEF, only: nmom
-      use OldTracer_mod, only: trname
-      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
-     * ef_FACT3d,tracers
-      USE FLUXES, only : tr3Dsource
-      USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
-     *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
-      use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
-      use Tracer_mod, only: Tracer_type
-      use EmissionRegion_mod, only: numRegions, regions
-      IMPLICIT NONE
-!@var MOM true (default) if moments are to be modified
-      logical, optional, intent(in) :: momlog
-      integer, intent(in) :: n,ns
-      real*8 fred(grid%i_strt:grid%i_stop),
-     &     dtrm(grid%i_strt_halo:grid%i_stop_halo,
-     &          grid%j_strt_halo:grid%j_stop_halo,lm),
-     &     dtrml(lm),eps
-
-      logical :: domom
-      integer najl,i,j,l,naij,kreg,nsect,nn
-      INTEGER :: J_0, J_1, I_0, I_1
-      integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
-      real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
-
-      type (TracerSource3D), pointer :: source
-      type (Tracer_type), pointer :: tracer
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
-C**** Ensure that this is a valid tracer and source
-      if (n.eq.0 .or. ns.eq.0) then
-         return
-      end if
-C**** parse options
-      domom=.true.
-      if( present(momlog) ) then
-        domom=momlog
-      end if
-C**** This is tracer independent coding designed to work for all
-C**** 3D sources.
-C**** Modify tracer amount, moments, and diagnostics
-      najl = jls_3Dsource(ns,n)
-      naij = ijts_3Dsource(ns,n)
-
-C**** apply tracer source alterations if requested in rundeck:
-      tracer => getTracer(tracers, n)
-      source => tracer%sources3D(ns)
-      if (alter_sources) then
-        do kreg = 1, numRegions
-          do j = j_0, j_1
-            do i = i_0, imaxj(j)
-              if (regions(kreg)%hasLatLon(lat2d_dg(i,j),lon2d_dg(i,j)))
-     &             then
-                 mask(i,j) = 1
-              else
-                 mask(i,j) = 0
-              end if
-            end do
-          end do
-
-          do nsect = 1, source%num_tr_sectors
-            nn = source%tr_sect_index(nsect)
-            if (ef_FACT3d(nn,kreg) > -1.e20) then
-              do j = j_0, j_1
-                 do i = i_0, imaxj(j)
-                    coef(i,j) = 
-     &                   mask(i,j) * ef_Fact3d(nn,kreg) + 
-     &                   (1-mask(i,j))
-                 end do
-              end do
-              do l = 1, lm
-                do j = j_0, j_1
-                  do i = i_0, imaxj(j)
-                    tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
-     &                    coef(i,j)
-        
-                  end do
-                end do
-              end do
-            end if
-          end do
-        end do
-      end if
-
-      eps = tiny(trm(i_0,j_0,1,n))
-      do l=1,lm
-      do j=j_0,j_1
-        do i=i_0,imaxj(j)
-          dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
-C**** calculate fractional loss and update tracer mass
-#ifdef TRACERS_TOMAS
-          if(trm(i,j,l,n).gt.0.)then
-          fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
-          else
-             fred(i)=100.  !It won't be used anyway (fred<1 to be used)
-          endif
-#else
-          fred(i) = max(0.d0,
-     &         1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
-#endif
-          trm(i,j,l,n) = trm(i,j,l,n)+dtrm(i,j,l)
-          if(fred(i).le.1d-16) trm(i,j,l,n) = 0.
-        end do
-        if(domom .and. any(fred.lt.1.)) then
-          do i=i_0,imaxj(j)
-            trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fred(i)
-          enddo
-        endif
-      end do
-      if (naij.gt.0) then
-        do j=j_0,j_1
-          do i=i_0,imaxj(j)
-            taijs(i,j,naij) = taijs(i,j,naij) + dtrm(i,j,l)
-          end do
-        end do
-      end if
-      end do ! l
-
-      if(jls_3Dsource(ns,n) > 0) then
-        do j=j_0,j_1
-          do i=i_0,imaxj(j)
-            dtrml(:) = dtrm(i,j,:)
-            call inc_tajls_column(i,j,1,lm,lm,najl,dtrml)
-          enddo
-        enddo
-      endif
-
-      if (itcon_3Dsrc(ns,n).gt.0)
-     *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
-
-C****
-      RETURN
-      END SUBROUTINE apply_tracer_3Dsource
-
-      end module apply3d
-
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
@@ -894,7 +896,8 @@ C****
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
       USE TRACER_COM, only : NTM,trm,trmom
 #ifdef TRACERS_AMP
-     *     ,AMP_MODES_MAP,AMP_NUMB_MAP,ntmAMPi,ntmAMPe
+      USE TRACER_COM, only : ntmAMPi,ntmAMPe
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP
       USE AMP_AEROSOL, only : DIAM, AMP_dens
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
@@ -1104,7 +1107,8 @@ C****
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
       USE RESOLUTION, only: im,jm
       use model_com, only: modelEclock
@@ -1116,7 +1120,8 @@ C****
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac
-      integer imon,iu,jdlast
+      integer :: imon
+      integer :: iu,jdlast
 
       integer :: J_0, J_1, I_0, I_1
 

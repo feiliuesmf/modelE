@@ -45,6 +45,7 @@ ALLOC_DRV                           ! allocate global distributed arrays
 #include "hycom_source_files"
 #include "ocarbon_cycle_oH_files"   
 #include "tracer_shared_source_files"
+MiscTracersMetadata
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */

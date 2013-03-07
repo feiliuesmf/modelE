@@ -4,7 +4,8 @@ module TomasTracersMetadata_mod
 !------------------------------------------------------------------------------
 !@sum  TomasTracersMetadata_mod encapsulates the TRACERS_TOMAS metadata
 !@auth NCCS ASTG
-  use sharedTracersMetadata_mod
+  use sharedTracersMetadata_mod, only: DMS_setspec, SO2_setspec, &
+    NH3_setspec, NH4_setspec, H2O2_s_setSpec
   USE CONSTANT, only: pi
   use Dictionary_mod, only: sync_param
   use OldTracer_mod, only: set_emisPerFireByVegType
