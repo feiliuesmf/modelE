@@ -193,7 +193,7 @@ EOF
     elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.7-20120331 other/mpi/mvapich2-1.8a2/gcc-4.7-20120331
+module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
 EOF
     }  
     elsif ($compiler eq "nag")  
@@ -281,7 +281,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.7-20120331", "other/mpi/mvapich2-1.8a2/gcc-4.7-20120331");
+        module (load, "other/comp/gcc-4.7.1", "other/mpi/mvapich2-1.9a2/gcc-4.7.1");
       }
       elsif ($compiler eq "nag") 
       {

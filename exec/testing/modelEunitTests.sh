@@ -85,19 +85,12 @@ export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
-clean=YES
-if [ ! -d "${deck}.${compiler}" ]; then
-  git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
-  clean=NO
-fi
+git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
 make rundeck RUN=$deck RUNSRC=$deck >> make.log.${compiler} 2>&1
 wait
-if [ "\$clean" == "YES" ]; then
-  make clean >> make.log.${compiler} 2>&1
-  wait
-fi
+
 EOF
 
   if [ "$compiler" == "intel" ]; then

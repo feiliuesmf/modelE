@@ -152,10 +152,9 @@ foreach my $rundeck (@rundecks)
   {
     if ($compiler eq 'nag') 
     {
-      $ENV{PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{PATH};
-      $ENV{LD_LIBRARY_PATH}="/discover/nobackup/ccruz/Baselibs/mvapich2_1.8/nag-5.3-886/lib:".$ENV{LD_LIBRARY_PATH};
+      $ENV{PATH}="/usr/local/other/mvapich2/1.9a2/nag-5.3-886/bin:".$ENV{PATH};
+      $ENV{LD_LIBRARY_PATH}="/usr/local/other/mvapich2/1.9a2/nag-5.3-886/lib:".$ENV{LD_LIBRARY_PATH};
     }
-
     $env->{$compiler}->{RUNDECK} = $rundeck;
 
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
