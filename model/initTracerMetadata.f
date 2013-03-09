@@ -754,10 +754,19 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 
 #ifdef TRACERS_TOMAS
       CALL initbounds()
+#ifdef TOMAS_12_10NM
       call readbinact ("binact10_12.dat",binact10) 
       call readbinact ("binact02_12.dat",binact02) 
       call readfraction("fraction10_12.dat",fraction10) 
       call readfraction("fraction02_12.dat",fraction02) 
+#endif
+#ifdef TOMAS_12_3NM
+      call readbinact ("binact10_12_3nm.dat",binact10) 
+      call readbinact ("binact02_12_3nm.dat",binact02) 
+      call readfraction("fraction10_12_3nm.dat",fraction10) 
+      call readfraction("fraction02_12_3nm.dat",fraction02) 
+#endif
+
       call readmielut           ! aerosol radiation lookup table
 
 !For aerosol tracers in TOMAS model, 

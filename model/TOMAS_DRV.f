@@ -719,7 +719,13 @@ C     Swap GCM variables into aerosol algorithm variables
       
       implicit none
       
-      character*17 infile
+#ifdef TOMAS_12_10NM
+	character*17 infile
+#endif
+#ifdef TOMAS_12_3NM
+	character*21 infile
+#endif
+
       integer innum, ii, jj, kk
       
       real*8,intent(out),dimension(101,101,101):: fraction2
@@ -749,7 +755,12 @@ C     Swap GCM variables into aerosol algorithm variables
       
       implicit none
       
-      character*15 infile
+#ifdef TOMAS_12_10NM
+	character*15 infile
+#endif
+#ifdef TOMAS_12_3NM
+	character*19 infile
+#endif
       integer innum, ii, jj, kk
       integer,intent(out),dimension(101,101,101):: binact
       parameter (innum=590)
