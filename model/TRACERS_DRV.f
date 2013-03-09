@@ -6749,6 +6749,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE RADPAR, only : xnow
 #endif
       use OldTracer_mod, only: trli0
+#ifdef TRACERS_AMP
+      use TRACER_COM, only:n_M_OCC_OC  
+#else
+      use TRACER_COM, only:n_OCII 
+#endif
 #endif /* TRACERS_ON */
 
       IMPLICIT NONE
@@ -8219,17 +8224,35 @@ C**** at the start of any day
       SUBROUTINE set_tracer_2Dsource
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE RESOLUTION, only : pmtop,psf
-      USE RESOLUTION, only : im,jm
-      use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,nday
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      use TracerBundle_mod, only: getTracer
+      use model_com, only: modelEclock
+      use RESOLUTION, only: im
       USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
      *   ,globalmax, getDomainBounds
+      use Tracer_mod, only: Tracer_type
+      USE FLUXES, only: fland,flice,focean,atmsrf
+      USE SEAICE_COM, only : si_atm
+      USE GHY_COM, only : fearth
+      USE CONSTANT, only: tf,bygrav,mair,pi,teeny
+      USE LAKES_COM, only : flake
+      use OldTracer_mod, only: vol2mass
+      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: itime_tr0
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
+     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
+      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
+      USE TRACER_COM, only: ntm
+      USE FLUXES, only: trsource
+      use TRACER_COM, only: tracers
+      use TRACER_COM, only: num_regions
+      use TRACER_COM, only: reg_E, ef_FACT
+      USE RESOLUTION, only : pmtop,psf
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
-      USE ATM_COM, only: am  ! Air mass of each box (kg/m^2)
-      use OldTracer_mod, only: itime_tr0, trname, vol2mass
-      USE TRACER_COM, only: ntm, sfc_src, alter_sources
+      USE TRACER_COM, only: sfc_src
+      USE TRACER_COM, only: alter_sources
       use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
       use TRACER_COM, only: trm, ntsurfsrc, rnsrc, reg_N, reg_W, reg_S
       use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
@@ -8238,12 +8261,6 @@ C**** at the start of any day
       use TRACER_COM, only: n_ANUM, IDTECIL, IDTOCIL, IDTECOB, IDTOCOB
       use TRACER_COM, only: nbins, n_ASO4, xk, IDTSO4
 #endif
-      USE FLUXES, only: trsource,fland,flice,focean,atmsrf
-      USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : fearth
-      USE CONSTANT, only: tf,bygrav,mair,pi,teeny
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
-     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
 #endif
@@ -8274,13 +8291,9 @@ C**** at the start of any day
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
-      use Tracer_mod, only: Tracer_type
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use TracerBundle_mod, only: getTracer
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS, only : scalesizeSO4,scalesizeCARBO30
 #endif
-      USE LAKES_COM, only : flake
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,

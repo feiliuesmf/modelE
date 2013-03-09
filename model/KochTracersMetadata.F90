@@ -3,15 +3,17 @@ module KochTracersMetadata_mod
 !------------------------------------------------------------------------------
 !@sum  KochTracersMetadata_mod encapsulates the KOCH tracers metadata
 !@auth NCCS ASTG
-  use sharedTracersMetadata_mod
-  use OldTracer_mod, only : oldAddTracer
-  use OldTracer_mod, only : nPart, nGAS
-  use OldTracer_mod, only : set_tr_mm
-  use OldTracer_mod, only : set_ntm_power
-  use OldTracer_mod, only : set_trpdens
-  use OldTracer_mod, only : set_trradius
-  use OldTracer_mod, only : set_fq_aer
-  use OldTracer_mod, only : set_tr_wd_type
+  use sharedTracersMetadata_mod, only: DMS_setspec, &
+    SO2_setspec, H2O2_s_setspec
+  use sharedTracersMetadata_mod, only: convert_HSTAR
+  use OldTracer_mod, only: oldAddTracer
+  use OldTracer_mod, only: nPart, nGAS
+  use OldTracer_mod, only: set_tr_mm
+  use OldTracer_mod, only: set_ntm_power
+  use OldTracer_mod, only: set_trpdens
+  use OldTracer_mod, only: set_trradius
+  use OldTracer_mod, only: set_fq_aer
+  use OldTracer_mod, only: set_tr_wd_type
   use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: set_tr_RKD
   use OldTracer_mod, only: set_tr_DHD
@@ -21,7 +23,7 @@ module KochTracersMetadata_mod
   use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, n_seasalt1,  n_seasalt2, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
   use TRACER_COM, only: aer_int_yr
-  USE TRACER_COM, only: offline_dms_ss, offline_ss
+  use TRACER_COM, only: offline_dms_ss, offline_ss
   use TRACER_COM, only: set_ntsurfsrc
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
@@ -73,7 +75,7 @@ module KochTracersMetadata_mod
       call  VBS_setSpec('vbsGp4', ivbs_p4,'igas')
       call  VBS_setSpec('vbsGp5', ivbs_p5,'igas')
       call  VBS_setSpec('vbsGp6', ivbs_p6,'igas')
-      
+
       call  VBS_setSpec('vbsAm2', ivbs_m2,'iaer')
       call  VBS_setSpec('vbsAm1', ivbs_m1,'iaer')
       call  VBS_setSpec('vbsAz', ivbs_m0,'iaer')
@@ -108,7 +110,7 @@ module KochTracersMetadata_mod
     subroutine SO4_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_SO4 = n
+      n_SO4 = n 
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 96.d+0)
       call set_trpdens(n, 1.7d3) !kg/m3 this is sulfate value

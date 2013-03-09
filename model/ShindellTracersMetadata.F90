@@ -5,7 +5,9 @@ module ShindellTracersMetadata_mod
 !@sum  ShindellTracersMetadata_mod encapsulates the TRACERS_SPECIAL_Shindell
 !@+    metadata.
 !@auth NCCS ASTG
-  use sharedTracersMetadata_mod
+  use sharedTracersMetadata_mod, only: CH4_setspec, &
+    N2O_setspec, H2O2_setspec
+  use sharedTracersMetadata_mod, only: convert_HSTAR
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -13,7 +15,6 @@ module ShindellTracersMetadata_mod
     n_stratOx, n_Terpenes,n_codirect,                &
     n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,         &
     n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,         &
-    n_DMS,    n_MSA,   n_SO2,                        &
     n_ClOx,   n_BrOx,  n_HCl,   n_HOCl,   n_ClONO2,  &
     n_HBr,    n_HOBr,  n_BrONO2,n_CFC,    n_GLT
 #ifdef TRACERS_AEROSOLS_SOA

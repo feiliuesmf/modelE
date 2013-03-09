@@ -4,7 +4,8 @@ module TomasTracersMetadata_mod
 !------------------------------------------------------------------------------
 !@sum  TomasTracersMetadata_mod encapsulates the TRACERS_TOMAS metadata
 !@auth NCCS ASTG
-  use sharedTracersMetadata_mod
+  use sharedTracersMetadata_mod, only: DMS_setspec, SO2_setspec, &
+    NH3_setspec, NH4_setspec, H2O2_s_setSpec
   USE CONSTANT, only: pi
   use Dictionary_mod, only: sync_param
   use OldTracer_mod, only: set_emisPerFireByVegType
@@ -59,10 +60,18 @@ contains
     real*8 :: TOMAS_dens,TOMAS_radius
 
     CALL initbounds()
-    call readbinact ("binact10_12.dat",binact10) 
-    call readbinact ("binact02_12.dat",binact02) 
-    call readfraction("fraction10_12.dat",fraction10) 
-    call readfraction("fraction02_12.dat",fraction02) 
+#ifdef TOMAS_12_10NM
+      call readbinact ("binact10_12.dat",binact10) 
+      call readbinact ("binact02_12.dat",binact02) 
+      call readfraction("fraction10_12.dat",fraction10) 
+      call readfraction("fraction02_12.dat",fraction02) 
+#endif
+#ifdef TOMAS_12_3NM
+      call readbinact ("binact10_12_3nm.dat",binact10) 
+      call readbinact ("binact02_12_3nm.dat",binact02) 
+      call readfraction("fraction10_12_3nm.dat",fraction10) 
+      call readfraction("fraction02_12_3nm.dat",fraction02) 
+#endif
     call readmielut           ! aerosol radiation lookup table
 
     ! For aerosol tracers in TOMAS model, 

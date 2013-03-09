@@ -1019,7 +1019,8 @@ Ckpc  Jan.,2002 - extended to include carbonaceous aerosols
       real FUNCTION aerodens(mso4,mno3,mnh4,mnacl,mecil,
      & mecob,mocil,mocob,mdust,mh2o)
 
-      USE TRACER_COM, only : trpdens,IDTECOB,IDTOCOB,IDTDUST,N_AECOB
+      USE OldTracer_mod, only : trpdens
+      USE TRACER_COM, only : IDTECOB,IDTOCOB,IDTDUST,N_AECOB
       IMPLICIT NONE
 !@var mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
 !@+   component.  Since the density is an intensive property,

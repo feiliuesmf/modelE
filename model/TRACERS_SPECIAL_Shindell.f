@@ -213,9 +213,11 @@ C we change that.)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : lm
       use model_com, only: itime
-      use domain_decomp_atm, only: GRID, getDomainBounds, write_parallel
+      use domain_decomp_atm, only: GRID
+      use domain_decomp_atm, only: getDomainBounds, write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
@@ -376,12 +378,12 @@ C we change that.)
 !@sum check_aircraft_sectors checks parameters for user-
 !@+ set sector for NOx aircraft source.
 !@auth Greg Faluvegi
+      use TracerSource_mod, only: TracerSource3D
+      use TracerBundle_mod, only: getTracer
       use tracer_com, only: nAircraft, tracers,
      & sect_name,num_sectors,
      & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
-      use TracerSource_mod, only: TracerSource3D
-      use TracerBundle_mod, only: getTracer
       use Tracer_mod, only: Tracer_type
       IMPLICIT NONE
       integer, intent(in) :: n_NOx
@@ -444,14 +446,19 @@ C we change that.)
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
       USE RESOLUTION, only : ptop,psf
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : lm
+      USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
       USE DYNAMICS, only : sig
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID
+      USE DOMAIN_DECOMP_ATM, only: getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
  
       IMPLICIT NONE
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
+      CHARACTER(LEN=*),  INTENT(IN) :: fn
 
 !@var nmons: number of monthly input files
 !@param Psulf pressure levels of the input file
@@ -465,15 +472,12 @@ C we change that.)
       integer, dimension(ncalls):: mon_units
       integer i,j,iu,k,l,nc
       character*80 :: title
-      CHARACTER(LEN=*),  INTENT(IN) :: fn
       character(len=300) :: out_line
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
       REAL*8, DIMENSION(LM)    :: pres,srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
       logical :: trans_emis=.false.
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
@@ -716,6 +720,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      *     ch4_init_nh,fix_CH4_chemistry
  
       IMPLICIT NONE
+      integer, intent(in) :: icall
  
 !@var CH4INIT temp variable for ch4 initial conditions
 !@var I,J,L dummy loop variables
@@ -723,7 +728,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 !@var icall =1 (during run) =0 (first time)
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
-      INTEGER I, J, L, icall
+      INTEGER I, J, L
       integer :: J_0, J_1, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
@@ -799,8 +804,10 @@ c     mixing ratios to 1.79 (observed):
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
       use domain_decomp_atm, only : grid,hasSouthPole, hasNorthPole
-
+  
       IMPLICIT NONE
+      REAL*8, INTENT(OUT) :: tempsza
+      INTEGER, INTENT(IN) :: I,J
 
 !@param ANG1 ?
 !@var DX degree width of a model grid cell (360/IM)
@@ -812,8 +819,6 @@ c     mixing ratios to 1.79 (observed):
 !@var FACT,temp are temp variables
       REAL*8, PARAMETER ::  ANG1 = 90.d0/91.3125d0
       REAL*8 P1,P2,P3,VLAT,VLON,TIMEC,FACT,temp
-      REAL*8, INTENT(OUT) :: tempsza
-      INTEGER, INTENT(IN) :: I,J
       INTEGER DY
 
       DY   = NINT(180./REAL(JM)) ! only used for latlon grid
