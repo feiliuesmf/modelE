@@ -217,14 +217,25 @@ open RUNIDULN, ">$runID"."uln" or die "can't open ${runID}ln for writing\n";
 $flag_missing_data_files = 0;
 
 foreach $_ ( @data_files ) {
+    my $full_dest = "";
     ($name, $dest) = split /\s*=\s*/;
-    if ( $dest !~ /^\// ) { $dest = "$GCMSEARCHPATH/$dest"; }
-    if ( ! -e "$dest" ) {
+    if ( $dest !~ /^\// ) { 
+	my $dir="";
+	foreach $dir (split /:/, $GCMSEARCHPATH) {
+	    if ( -e "$dir/$dest" ) {
+		$full_dest = "$dir/$dest";
+		last;
+	    }
+	}
+    } else {
+	$full_dest = $dest;
+    }
+    if ( ! $full_dest || ! -e "$full_dest" ) {
 	print "$dest not found\n";
 	$flag_missing_data_files = 1;
-	#exit 1;
+	next;
     }
-    print RUNIDLN "ln -fs $dest $name\n";
+    print RUNIDLN "ln -fs $full_dest $name\n";
     print RUNIDULN "rm $name\n";
 }
 
